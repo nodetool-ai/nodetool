@@ -12,6 +12,7 @@ import {
 } from "../src/bundle.js";
 import {
   APP_SCHEMA_VERSION,
+  BASE_APP_SCHEMA_VERSION,
   createEmptyPuckData,
   type ApplicationDocument,
   type OperationBinding
@@ -134,7 +135,7 @@ describe("Recipe Application manifest", () => {
   it("round-trips recipe metadata through export/import", () => {
     const recipeApp: BundleApplicationSource = {
       ...app,
-      document: { ...app.document, recipe }
+      document: { ...app.document, recipe, variables: ["product", "price", "timeline"].map((id) => ({ id, name: id, scope: "instance" as const, persist: false })), operations: app.document.operations.map((operation) => operation.id === "draft" ? { ...operation, inputs: { product: { from: "variable" as const, variableId: "product" }, price: { from: "variable" as const, variableId: "price" } } } : operation) }
     };
     const bundle = bundleFromApplication(recipeApp, sources);
     expect(bundle.app.recipe).toEqual(recipe);
@@ -173,7 +174,7 @@ describe("Recipe Application manifest", () => {
       ]
     };
     const bundle = bundleFromApplication(
-      { name: "Product hero offer", document: { ...app.document, recipe: manifest } },
+      { name: "Product hero offer", document: { ...app.document, recipe: manifest, variables: ["product", "logo", "headline", "cta", "storyboard", "timeline"].map((id) => ({ id, name: id, scope: "instance" as const, persist: false })), operations: app.document.operations.map((operation) => ({ ...operation, inputs: Object.fromEntries(["product", "logo", "headline", "cta"].map((id) => [id, { from: "variable" as const, variableId: id }])) })) } },
       sources
     );
     expect(bundle.app.recipe?.mediaPolicy?.defaultStrategy).toBe("still_motion_graphics");
@@ -281,7 +282,7 @@ describe("parseApplicationBundle", () => {
       workflows: []
     });
 
-    expect(bundle?.app.schemaVersion).toBe(APP_SCHEMA_VERSION);
+    expect(bundle?.app.schemaVersion).toBe(BASE_APP_SCHEMA_VERSION);
     expect(bundle?.app.operations).toEqual([]);
   });
 });

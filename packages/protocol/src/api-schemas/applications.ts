@@ -139,6 +139,7 @@ export const recipeManifest = z.object({
   outputs: z.array(z.object({
     id: z.string().min(1),
     kind: z.enum(["asset", "storyboard", "timeline", "value"]),
+    binding: z.string().min(1).optional(),
     label: z.string().optional()
   })),
   presentation: z.object({
@@ -165,7 +166,7 @@ export const recipeManifest = z.object({
 export type RecipeManifestSchema = z.infer<typeof recipeManifest>;
 
 export const applicationDocument = z.object({
-  schemaVersion: z.number(),
+  schemaVersion: z.number().int().min(1).max(5),
   ui: puckData,
   operations: z.array(operationBinding).default([]),
   resources: z.array(resourceBinding).default([]),
@@ -178,6 +179,33 @@ export const applicationDocument = z.object({
   const operationIds = new Set(document.operations.map((operation) => operation.id));
   document.recipe.operations.forEach((operation, index) => {
     if (!operationIds.has(operation.bindingId)) context.addIssue({ code: "custom", path: ["recipe", "operations", index, "bindingId"], message: "Recipe operation must reference an Application operation." });
+  });
+  const variableIds = new Set(document.variables.map((variable) => variable.id));
+  if (variableIds.size !== document.variables.length) context.addIssue({ code: "custom", path: ["variables"], message: "Recipe Application variable IDs must be unique." });
+  if (operationIds.size !== document.operations.length) context.addIssue({ code: "custom", path: ["operations"], message: "Recipe Application operation IDs must be unique." });
+  const recipeBindings = document.operations.filter((operation) => document.recipe?.operations.some((intent) => intent.bindingId === operation.id));
+  document.recipe.inputs.forEach((input, index) => {
+    const actualType = document.variables.find((variable) => variable.id === input.id)?.type?.type;
+    const expectedType = input.kind === "text" || input.kind === "color" ? "str" : input.kind === "boolean" ? "bool" : input.kind === "number" ? "float" : input.kind;
+    if (actualType && actualType !== expectedType && !(input.kind === "number" && actualType === "int")) context.addIssue({ code: "custom", path: ["recipe", "inputs", index], message: "Recipe input type is incompatible with its Application variable." });
+    if (!variableIds.has(input.id)) context.addIssue({ code: "custom", path: ["recipe", "inputs", index, "id"], message: "Recipe input must reference an Application variable with the same ID." });
+    if (input.required && !recipeBindings.some((operation) => Object.values(operation.inputs).some((mapping) => mapping.from === "variable" && mapping.variableId === input.id))) context.addIssue({ code: "custom", path: ["recipe", "inputs", index], message: "Required Recipe input must reach an Application operation." });
+  });
+
+  for (const operation of recipeBindings) {
+    for (const mapping of Object.values(operation.inputs)) {
+      if (mapping.from === "variable" && !variableIds.has(mapping.variableId)) context.addIssue({ code: "custom", path: ["operations"], message: "Recipe operation reads a missing Application variable." });
+    }
+    for (const mapping of Object.values(operation.outputs)) {
+      if (mapping.to === "variable" && !variableIds.has(mapping.variableId)) context.addIssue({ code: "custom", path: ["operations"], message: "Recipe operation writes a missing Application variable." });
+    }
+  }
+  document.recipe.outputs.forEach((output, index) => {
+    const binding = output.binding ?? `var:${output.id}`;
+    const match = /^op:([^/]+)\/out:(.+)$/.exec(binding);
+    if (binding.startsWith("var:") && variableIds.has(binding.slice(4))) return;
+    if (match && document.operations.some((operation) => operation.id === match[1] && operation.outputs[match[2]])) return;
+    context.addIssue({ code: "custom", path: ["recipe", "outputs", index], message: "Recipe output must resolve to a readable Application binding." });
   });
 });
 export type ApplicationDocumentSchema = z.infer<typeof applicationDocument>;

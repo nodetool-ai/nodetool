@@ -7,7 +7,9 @@ import {
   createEmptyDocument,
   isRenderableUi,
   liftLegacyAppDoc,
-  parseApplicationDocument
+  parseApplicationDocument,
+  inspectRecipeManifest,
+  type ApplicationDocument
 } from "../src/document.js";
 
 const puck = { root: { props: { title: "Demo" } }, content: [{ type: "Text" }] };
@@ -297,4 +299,66 @@ describe("liftLegacyAppDoc", () => {
       liftLegacyAppDoc({ id: "wf-host", app_doc: { schemaVersion: 99, ui: puck } })
     ).toBeNull();
   });
+});
+
+
+describe("Recipe executable bindings", () => {
+  const document = (): ApplicationDocument => ({
+    schemaVersion: 5, ui: puck, resources: [],
+    variables: ["price", "timeline"].map((id) => ({ id, name: id, scope: "instance", persist: false })),
+    operations: [{ id: "finish", name: "Finish", workflowId: "wf", policy: "replace", inputs: { price: { from: "variable", variableId: "price" } }, outputs: { result: { to: "variable", variableId: "timeline" } } }],
+    recipe: { schemaVersion: 1, slug: "price-drop", inputs: [{ id: "price", label: "Price", kind: "text", required: true }], operations: [{ id: "finish", bindingId: "finish", intent: "finish_storyboard" }], outputs: [{ id: "timeline", kind: "timeline" }] }
+  });
+  it("accepts a wired Recipe and preserves its manifest through JSON save/reload", () => {
+    const value = document();
+    expect(parseApplicationDocument(JSON.parse(JSON.stringify(value)))?.recipe).toEqual(value.recipe);
+  });
+  it("rejects missing variables and required inputs not reaching operations", () => {
+    const value = document();
+    value.variables = value.variables.filter((variable) => variable.id !== "price");
+    expect(parseApplicationDocument(value)).toBeNull();
+    const unmapped = document();
+    unmapped.operations[0].inputs = {};
+    expect(parseApplicationDocument(unmapped)).toBeNull();
+  });
+  it("rejects incompatible input types", () => {
+    const value = document();
+    value.variables[0].type = { type: "image" };
+    expect(parseApplicationDocument(value)).toBeNull();
+  });
+  it("rejects invalid operations and unresolved outputs", () => {
+    const value = document();
+    value.operations = [];
+    expect(parseApplicationDocument(value)).toBeNull();
+    const output = document();
+    output.variables = output.variables.filter((variable) => variable.id !== "timeline");
+    expect(parseApplicationDocument(output)).toBeNull();
+  });
+  it("resolves explicit operation output bindings", () => {
+    const value = document();
+    if (!value.recipe) throw new Error("Fixture Recipe missing");
+    value.recipe.outputs[0].binding = "op:finish/out:result";
+    expect(parseApplicationDocument(value)?.recipe?.outputs[0].binding).toBe("op:finish/out:result");
+    value.recipe.outputs[0].binding = "op:finish/out:missing";
+    expect(parseApplicationDocument(value)).toBeNull();
+  });
+  it("rejects unsupported, malformed and legacy-envelope Recipe metadata", () => {
+    const value = document();
+    expect(parseApplicationDocument({ ...value, recipe: { ...value.recipe, schemaVersion: 99 } })).toBeNull();
+    expect(parseApplicationDocument({ ...value, recipe: null })).toBeNull();
+    expect(parseApplicationDocument({ version: 2, data: puck, recipe: value.recipe })).toBeNull();
+    expect(parseApplicationDocument({ ...value, recipe: { ...value.recipe, preservationRules: [{ inputId: "price", policy: "approximate" }] } })).toBeNull();
+  });
+  it("keeps old and new ordinary Applications compatible", () => {
+    for (const schemaVersion of [3, 4, 5]) {
+      expect(parseApplicationDocument({ schemaVersion, ui: puck })?.schemaVersion).toBe(schemaVersion);
+    }
+  });
+});
+
+
+it("distinguishes absent, malformed and unsupported Recipe metadata", () => {
+  expect(inspectRecipeManifest(undefined)).toEqual({ status: "none" });
+  expect(inspectRecipeManifest(null)).toEqual({ status: "malformed" });
+  expect(inspectRecipeManifest({ schemaVersion: 2 })).toEqual({ status: "unsupported", schemaVersion: 2 });
 });

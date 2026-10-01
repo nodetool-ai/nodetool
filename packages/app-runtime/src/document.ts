@@ -63,6 +63,8 @@ export interface RecipeOperationSpec {
 
 export interface RecipeOutputSpec {
   id: string;
+  /** Readable Application binding. Defaults to var:<id>. */
+  binding?: string;
   kind: "asset" | "storyboard" | "timeline" | "value";
   label?: string;
 }
@@ -287,7 +289,8 @@ const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
   const outputs: RecipeOutputSpec[] = [];
   for (const raw of value.outputs) {
     if (!isRecord(raw) || !isNonEmptyString(raw.id) || !recipeOutputKinds.has(raw.kind as RecipeOutputSpec["kind"])) return undefined;
-    outputs.push({ id: raw.id, kind: raw.kind as RecipeOutputSpec["kind"], ...(isString(raw.label) ? { label: raw.label } : {}) });
+    if (raw.binding !== undefined && !isNonEmptyString(raw.binding)) return undefined;
+    outputs.push({ id: raw.id, ...(isString(raw.binding) ? { binding: raw.binding } : {}), kind: raw.kind as RecipeOutputSpec["kind"], ...(isString(raw.label) ? { label: raw.label } : {}) });
   }
   let preservationRules: RecipePreservationRule[] | undefined;
   if (value.preservationRules !== undefined) {
@@ -305,6 +308,10 @@ const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
   const outputIds = new Set(outputs.map((output) => output.id));
   if (inputIds.size !== inputs.length || operationIds.size !== operations.length || outputIds.size !== outputs.length) return undefined;
   if (preservationRules?.some((rule) => !inputIds.has(rule.inputId))) return undefined;
+  if (preservationRules && new Set(preservationRules.map((rule) => rule.inputId)).size !== preservationRules.length) return undefined;
+  if (value.category !== undefined && !isString(value.category)) return undefined;
+  if (value.tags !== undefined && (!Array.isArray(value.tags) || !value.tags.every(isString))) return undefined;
+  if (value.defaults !== undefined && !isRecord(value.defaults)) return undefined;
   const manifest: RecipeManifest = { schemaVersion: RECIPE_MANIFEST_SCHEMA_VERSION, slug: value.slug, inputs, operations, outputs };
   if (isString(value.category)) manifest.category = value.category;
   if (Array.isArray(value.tags) && value.tags.every(isString)) manifest.tags = value.tags;
@@ -542,6 +549,71 @@ const parseResource = (value: unknown): ResourceBinding | null => {
 /** The default operation id a migrated single-workflow app gets. */
 export const DEFAULT_OPERATION_ID = "main";
 
+export type RecipeManifestStatus =
+  | { status: "none" }
+  | { status: "valid"; manifest: RecipeManifest }
+  | { status: "malformed" }
+  | { status: "unsupported"; schemaVersion: number };
+
+/** Inspect protection metadata without downgrading invalid Recipes to ordinary Apps. */
+export const inspectRecipeManifest = (value: unknown): RecipeManifestStatus => {
+  if (value === undefined) return { status: "none" };
+  if (isRecord(value) && isNumber(value.schemaVersion) && value.schemaVersion !== RECIPE_MANIFEST_SCHEMA_VERSION) {
+    return { status: "unsupported", schemaVersion: value.schemaVersion };
+  }
+  const manifest = parseRecipeManifest(value);
+  return manifest ? { status: "valid", manifest } : { status: "malformed" };
+};
+
+/** Validate Recipe references against existing Application bindings. */
+export const validateRecipeBindings = (
+  document: Pick<ApplicationDocument, "recipe" | "variables" | "operations">
+): string[] => {
+  const recipe = document.recipe;
+  if (!recipe) return [];
+  const errors: string[] = [];
+  const variables = new Map(document.variables.map((variable) => [variable.id, variable]));
+  const operations = new Map(document.operations.map((operation) => [operation.id, operation]));
+  if (variables.size !== document.variables.length) errors.push("Application variable IDs must be unique.");
+  if (operations.size !== document.operations.length) errors.push("Application operation IDs must be unique.");
+  const boundOperations = recipe.operations.flatMap((intent) => {
+    const operation = operations.get(intent.bindingId);
+    if (!operation) errors.push(`Recipe operation ${intent.id} references missing operation ${intent.bindingId}.`);
+    return operation ? [operation] : [];
+  });
+  for (const input of recipe.inputs) {
+    const variable = variables.get(input.id);
+    if (!variable) {
+      errors.push(`Recipe input ${input.id} requires Application variable ${input.id}.`);
+      continue;
+    }
+    const expectedType = input.kind === "text" || input.kind === "color" ? "str" : input.kind === "boolean" ? "bool" : input.kind === "number" ? "float" : input.kind;
+    const actualType = variable.type?.type;
+    if (actualType && actualType !== expectedType && !(input.kind === "number" && actualType === "int")) {
+      errors.push(`Recipe input ${input.id} (${input.kind}) is incompatible with variable type ${actualType}.`);
+    }
+    if (input.required && !boundOperations.some((operation) => Object.values(operation.inputs).some((mapping) => mapping.from === "variable" && mapping.variableId === input.id))) {
+      errors.push(`Required Recipe input ${input.id} is not mapped to a Recipe operation.`);
+    }
+  }
+  for (const operation of boundOperations) {
+    for (const mapping of Object.values(operation.inputs)) {
+      if (mapping.from === "variable" && !variables.has(mapping.variableId)) errors.push(`Operation ${operation.id} reads missing variable ${mapping.variableId}.`);
+    }
+    for (const mapping of Object.values(operation.outputs)) {
+      if (mapping.to === "variable" && !variables.has(mapping.variableId)) errors.push(`Operation ${operation.id} writes missing variable ${mapping.variableId}.`);
+    }
+  }
+  for (const output of recipe.outputs) {
+    const binding = output.binding ?? `var:${output.id}`;
+    if (binding.startsWith("var:") && variables.has(binding.slice(4))) continue;
+    const match = /^op:([^/]+)\/out:(.+)$/.exec(binding);
+    if (match && operations.get(match[1])?.outputs[match[2]]) continue;
+    errors.push(`Recipe output ${output.id} has unresolved readable binding ${binding}.`);
+  }
+  return errors;
+};
+
 /**
  * Parse an unknown value into an {@link ApplicationDocument}, or null.
  *
@@ -565,9 +637,14 @@ export const parseApplicationDocument = (
 ): ApplicationDocument | null => {
   if (!isRecord(value)) return null;
 
+  // Legacy envelopes cannot carry protection metadata safely.
+  if (!isPuckData(value.ui) && value.recipe !== undefined) return null;
+
   // v3+: the native shape.
   if (isPuckData(value.ui)) {
-    const recipe = parseRecipeManifest(value.recipe);
+    const metadata = inspectRecipeManifest(value.recipe);
+    if (metadata.status === "malformed" || metadata.status === "unsupported") return null;
+    const recipe = metadata.status === "valid" ? metadata.manifest : undefined;
     const schemaVersion = isNumber(value.schemaVersion)
       ? value.schemaVersion
       : recipe
@@ -576,7 +653,7 @@ export const parseApplicationDocument = (
     if (schemaVersion > APP_SCHEMA_VERSION) return null;
     // Recipe metadata is a safety contract. Malformed or unsupported metadata
     // must never downgrade silently to an unconstrained ordinary Application.
-    if (value.recipe !== undefined && value.recipe !== null && recipe === undefined) return null;
+    if (value.recipe !== undefined && recipe === undefined) return null;
     if (recipe && schemaVersion < 5) return null;
     const operations = Array.isArray(value.operations)
       ? value.operations
@@ -587,7 +664,7 @@ export const parseApplicationDocument = (
       const bindingIds = new Set(operations.map((operation) => operation.id));
       if (recipe.operations.some((operation) => !bindingIds.has(operation.bindingId))) return null;
     }
-    return {
+    const document: ApplicationDocument = {
       schemaVersion,
       ui: value.ui,
       operations,
@@ -607,6 +684,8 @@ export const parseApplicationDocument = (
           : undefined,
       recipe
     };
+    if (validateRecipeBindings(document).length > 0) return null;
+    return document;
   }
 
   // v1/v2: `{ version, data }` on `workflow.app_doc`.

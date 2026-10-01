@@ -40,7 +40,7 @@ describe("appData", () => {
         { hostWorkflowId: "wf1" }
       );
       expect(doc).not.toBeNull();
-      expect(doc!.schemaVersion).toBe(APP_SCHEMA_VERSION);
+      expect(doc!.schemaVersion).toBe(BASE_APP_SCHEMA_VERSION);
       expect(doc!.ui.content).toHaveLength(1);
       expect(doc!.operations[0]).toMatchObject({ workflowId: "wf1" });
     });
