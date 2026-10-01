@@ -9,28 +9,15 @@
  * unknown types as "not in the local TS registry".
  */
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
-import { registerBaseNodes } from "@nodetool-ai/base-nodes";
-import { registerAtlasCloudNodes } from "@nodetool-ai/atlascloud-nodes";
-import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
-import { registerMinimaxNodes } from "@nodetool-ai/minimax-nodes";
-import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
-import { registerFalNodes } from "@nodetool-ai/fal-nodes";
-import { registerReplicateNodes } from "@nodetool-ai/replicate-nodes";
-import { registerReveNodes } from "@nodetool-ai/reve-nodes";
-import { registerHuggingFaceNodes } from "@nodetool-ai/huggingface-nodes";
+import {
+  registerBuiltinPacks,
+  CLI_BUILTIN_PACK_POLICY
+} from "@nodetool-ai/base-nodes/builtin-packs";
 import { installSandboxCatalog } from "./sandbox-catalog.js";
 
 export function buildFullRegistry(): NodeRegistry {
   installSandboxCatalog();
   const registry = new NodeRegistry();
-  registerBaseNodes(registry);
-  registerAtlasCloudNodes(registry);
-  registerElevenLabsNodes(registry);
-  registerMinimaxNodes(registry);
-  registerTransformersJsNodes(registry);
-  registerFalNodes(registry);
-  registerReplicateNodes(registry);
-  registerReveNodes(registry);
-  registerHuggingFaceNodes(registry);
+  registerBuiltinPacks(registry, CLI_BUILTIN_PACK_POLICY);
   return registry;
 }
