@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { productionRequirement } from "@nodetool-ai/protocol";
 import type { Entity, ImageRef, Shot } from "@nodetool-ai/protocol";
 import type { StoryboardDocument } from "../src/document.js";
 import { planShotRenders } from "../src/render-plan.js";
@@ -472,5 +473,47 @@ describe("renderShots", () => {
     const outcomes = await renderShots(host, { id: "b1" }, plans);
 
     expect(outcomes[0].error).toContain("could not be saved as an asset");
+  });
+});
+
+describe("render policy before provider spend", () => {
+  it.each(["still_motion_graphics", "protected_product"])(
+    "rejects a policy changed after planning: %s",
+    async (scenario) => {
+      const doc = board([shot({ id: "s1", index: 0, render_mode: "direct" })]);
+      const plans = planShotRenders(doc, [], "clip");
+      doc.shots[0].production = productionRequirement.parse(
+        scenario === "still_motion_graphics"
+          ? { media_strategy: "still_motion_graphics" }
+          : {
+              protected_inputs: [
+                { id: "product", kind: "product", asset_id: "original" }
+              ]
+            }
+      );
+      const { host, requests } = fakeHost(doc);
+      const result = await renderShots(host, { id: "b1" }, plans);
+      expect(result[0].ok).toBe(false);
+      expect(result[0].error).toMatch(
+        /forbids video|protected source fidelity/
+      );
+      expect(requests).toEqual([]);
+    }
+  );
+  it("rejects protected still regeneration before planning", () => {
+    const doc = board([
+      shot({
+        id: "s1",
+        index: 0,
+        production: productionRequirement.parse({
+          protected_inputs: [
+            { id: "logo", kind: "logo", asset_id: "original-logo" }
+          ]
+        })
+      })
+    ]);
+    expect(() => planShotRenders(doc, [], "keyframe")).toThrow(
+      "protected source fidelity"
+    );
   });
 });
