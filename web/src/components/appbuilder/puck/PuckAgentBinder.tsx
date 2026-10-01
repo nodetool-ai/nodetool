@@ -23,6 +23,7 @@ import {
 } from "./puckDataOps";
 import {
   APP_SCHEMA_VERSION,
+  BASE_APP_SCHEMA_VERSION,
   addOperation,
   addResource,
   bindingTargets,
@@ -297,7 +298,7 @@ const PuckAgentBinder: React.FC<PuckAgentBinderProps> = ({
         // `Data` — root props, content, zones — kept in `app-runtime` so that
         // package needs no Puck dependency. `working.current` is that document.
         const document: ApplicationDocument = {
-          schemaVersion: APP_SCHEMA_VERSION,
+          schemaVersion: metaRef.current.recipe ? APP_SCHEMA_VERSION : BASE_APP_SCHEMA_VERSION,
           ui: data as PuckData,
           operations: metaRef.current.operations,
           resources: metaRef.current.resources,
