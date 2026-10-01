@@ -567,11 +567,13 @@ export const parseApplicationDocument = (
 
   // v3+: the native shape.
   if (isPuckData(value.ui)) {
+    const recipe = parseRecipeManifest(value.recipe);
     const schemaVersion = isNumber(value.schemaVersion)
       ? value.schemaVersion
-      : APP_SCHEMA_VERSION;
+      : recipe
+        ? APP_SCHEMA_VERSION
+        : BASE_APP_SCHEMA_VERSION;
     if (schemaVersion > APP_SCHEMA_VERSION) return null;
-    const recipe = parseRecipeManifest(value.recipe);
     // Recipe metadata is a safety contract. Malformed or unsupported metadata
     // must never downgrade silently to an unconstrained ordinary Application.
     if (value.recipe !== undefined && value.recipe !== null && recipe === undefined) return null;
