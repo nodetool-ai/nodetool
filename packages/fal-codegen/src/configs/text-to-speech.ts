@@ -2,6 +2,62 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "elevenlabs/tts/eleven-v4": {
+      className: "ElevenlabsTtsElevenV4",
+      docstring:
+        "Eleven v4 from ElevenLabs generates expressive speech with audio tags, voice stability and similarity controls, and IPA pronunciation.",
+      tags: ["audio", "tts", "text-to-speech", "elevenlabs", "voice"],
+      useCases: [
+        "Narrate videos and audiobooks",
+        "Direct delivery with audio tags",
+        "Control pronunciation with IPA",
+        "Generate voiceovers in many languages",
+        "Produce expressive character dialogue"
+      ]
+    },
+
+    "elevenlabs/tts/eleven-v4-turbo": {
+      className: "ElevenlabsTtsElevenV4Turbo",
+      docstring:
+        "Eleven v4 Turbo from ElevenLabs generates speech faster with audio tags, voice stability and similarity controls, and IPA pronunciation.",
+      tags: ["audio", "tts", "text-to-speech", "elevenlabs", "voice", "turbo"],
+      useCases: [
+        "Generate low-latency voiceovers",
+        "Narrate content in batches",
+        "Direct delivery with audio tags",
+        "Control pronunciation with IPA",
+        "Prototype voice lines quickly"
+      ]
+    },
+
+    "google/gemini-3.8-flash-tts": {
+      className: "Gemini38FlashTts",
+      docstring:
+        "Gemini 3.8 Flash TTS generates expressive speech with 30 voices, style instructions, and single-speaker or two-speaker dialogue.",
+      tags: ["audio", "tts", "text-to-speech", "gemini", "google", "voice"],
+      useCases: [
+        "Narrate content with a chosen voice",
+        "Direct tone with style instructions",
+        "Produce two-speaker dialogue",
+        "Generate podcast-style audio",
+        "Create voiceovers for video"
+      ]
+    },
+
+    "google/gemini-3.8-flash-lite-tts": {
+      className: "Gemini38FlashLiteTts",
+      docstring:
+        "Gemini 3.8 Flash Lite TTS generates expressive speech at lower cost with 30 voices, style instructions, and single-speaker or two-speaker dialogue.",
+      tags: ["audio", "tts", "text-to-speech", "gemini", "google", "voice"],
+      useCases: [
+        "Generate low-cost voiceovers in bulk",
+        "Direct tone with style instructions",
+        "Produce two-speaker dialogue",
+        "Narrate drafts and prototypes",
+        "Create assistant voice responses"
+      ]
+    },
+
     "alibaba/qwen-audio-3-tts": {
       className: "QwenAudio3Tts",
       docstring:

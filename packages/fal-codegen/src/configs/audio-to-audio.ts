@@ -2,6 +2,20 @@ import type { ModuleConfig } from "../types.js";
 
 export const config: ModuleConfig = {
   configs: {
+    "veed/clean-audio": {
+      className: "VeedCleanAudio",
+      docstring:
+        "VEED Clean Audio turns noisy speech recordings into studio-quality audio, with adjustable strength and a loudness target.",
+      tags: ["audio", "processing", "audio-to-audio", "denoise", "veed"],
+      useCases: [
+        "Remove background noise from speech",
+        "Clean up interview recordings",
+        "Normalize loudness to a target LUFS",
+        "Improve podcast audio",
+        "Prepare voiceovers for mixing"
+      ]
+    },
+
     "fal-ai/elevenlabs/voice-changer": {
       className: "ElevenlabsVoiceChanger",
       docstring:

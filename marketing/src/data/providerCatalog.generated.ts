@@ -31,13 +31,13 @@ export interface ProviderCatalog {
 export const providerCatalog: Record<string, ProviderCatalog> = {
   "fal_ai": {
     "id": "fal_ai",
-    "total": 1615,
+    "total": 1624,
     "counts": {
       "3d": 65,
-      "image": 751,
-      "audio": 131,
+      "image": 753,
+      "audio": 136,
       "text": 18,
-      "video": 650
+      "video": 652
     },
     "topTags": [
       "generation",
@@ -1034,6 +1034,28 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
         ]
       },
       {
+        "id": "elevenlabs/tts/eleven-v4",
+        "name": "Elevenlabs Tts Eleven V4",
+        "kind": "audio",
+        "desc": "Eleven v4 from ElevenLabs generates expressive speech with audio tags, voice stability and similarity controls, and IPA pronunciation.",
+        "tags": [
+          "audio",
+          "tts",
+          "text to speech"
+        ]
+      },
+      {
+        "id": "elevenlabs/tts/eleven-v4-turbo",
+        "name": "Elevenlabs Tts Eleven V4 Turbo",
+        "kind": "audio",
+        "desc": "Eleven v4 Turbo from ElevenLabs generates speech faster with audio tags, voice stability and similarity controls, and IPA pronunciation.",
+        "tags": [
+          "audio",
+          "tts",
+          "text to speech"
+        ]
+      },
+      {
         "id": "fal-ai/ace-step",
         "name": "ACEStep",
         "kind": "audio",
@@ -1174,28 +1196,6 @@ export const providerCatalog: Record<string, ProviderCatalog> = {
           "audio",
           "generation",
           "rhythm"
-        ]
-      },
-      {
-        "id": "fal-ai/elevenlabs/audio-isolation",
-        "name": "Elevenlabs Audio Isolation",
-        "kind": "audio",
-        "desc": "Isolate audio tracks using ElevenLabs advanced audio isolation technology.",
-        "tags": [
-          "audio",
-          "processing",
-          "audio to audio"
-        ]
-      },
-      {
-        "id": "fal-ai/elevenlabs/music",
-        "name": "Eleven Labs Music",
-        "kind": "audio",
-        "desc": "ElevenLabs Music generates custom music compositions from text descriptions.",
-        "tags": [
-          "audio",
-          "music",
-          "generation"
         ]
       },
       {
