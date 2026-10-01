@@ -339,6 +339,74 @@ describe("parseStoryboardBundle", () => {
     });
   });
 
+  it("preserves motion graphics through bundle import", () => {
+    const graphicsDocument = {
+      ...document,
+      screenplay: {
+        type: "screenplay",
+        id: "sp-graphics",
+        title: "Offer",
+        shots: [
+          {
+            type: "shot",
+            id: "shot-1",
+            index: 0,
+            action: "A faithful packshot",
+            status: "planned",
+            graphics: {
+              mode: "overlay",
+              elements: [
+                {
+                  id: "headline",
+                  kind: "text",
+                  role: "headline",
+                  text: "SAVE 20%"
+                }
+              ]
+            }
+          }
+        ],
+        motion_design: {
+          direction: "Keep the headline rhythm consistent across the cut."
+        }
+      },
+      shots: [
+        {
+          type: "shot",
+          id: "shot-1",
+          index: 0,
+          action: "A faithful packshot",
+          status: "planned",
+          graphics: {
+            mode: "overlay",
+            elements: [
+              {
+                id: "headline",
+                kind: "text",
+                role: "headline",
+                text: "SAVE 20%"
+              }
+            ]
+          }
+        }
+      ]
+    };
+
+    const bundle = parseStoryboardBundle({
+      name: "Offer",
+      document: graphicsDocument
+    });
+
+    expect(bundle?.document.screenplay?.motion_design).toEqual({
+      direction: "Keep the headline rhythm consistent across the cut."
+    });
+    expect(bundle?.document.shots[0].graphics?.elements?.[0]).toMatchObject({
+      id: "headline",
+      kind: "text",
+      text: "SAVE 20%"
+    });
+  });
+
   it("refuses a file that carries no board", () => {
     expect(parseStoryboardBundle({ name: "Lighthouse" })).toBeNull();
     expect(parseStoryboardBundle({ document })).toBeNull();
