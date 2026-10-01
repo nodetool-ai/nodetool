@@ -1240,6 +1240,7 @@ export const StepperWidget: React.FC<WidgetCommon & { label?: string; steps?: St
   const steps = props.steps ?? [];
   const found = steps.findIndex((step) => step.value === str(value));
   const current = found < 0 ? 0 : found;
+  React.useEffect(() => { if (value == null && steps[0] && !props.disabled) setValue(steps[0].value); }, [props.disabled, setValue, steps, value]);
   const choose = (index: number) => {
     const step = steps[index];
     if (props.disabled || !step || step.disabled || (index < current && props.allowBack === false)) return;
