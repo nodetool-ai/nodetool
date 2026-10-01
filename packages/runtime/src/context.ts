@@ -3022,9 +3022,10 @@ export class ProcessingContext {
     // Strict, anchored sanitizer for the URIs that may flow into the asset /
     // storage retrieval path. Accept asset references, the browser-facing
     // storage route, and URIs from configured storage adapters. External URLs
-    // and unrecognized schemes stay out of the storage adapter.
+    // and unrecognized schemes stay out of the storage adapter. `:` is allowed
+    // for named owner ids such as `projects/personal:<user_id>/assets/…`.
     const RESOLVABLE_URI_RE =
-      /^(?:asset:\/\/|\/?api\/storage\/|(?:memory|file|s3|supabase):\/\/)[A-Za-z0-9._~/%-]+$/;
+      /^(?:asset:\/\/|\/?api\/storage\/|(?:memory|file|s3|supabase):\/\/)[A-Za-z0-9._~/%:-]+$/;
     const isResolvableUri = (uri: string): boolean =>
       RESOLVABLE_URI_RE.test(uri);
 
