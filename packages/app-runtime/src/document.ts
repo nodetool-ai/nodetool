@@ -300,6 +300,11 @@ const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
       preservationRules.push({ inputId: raw.inputId, policy: raw.policy as RecipePreservationRule["policy"], ...(transforms ? { allowedTransformations: transforms as RecipePreservationRule["allowedTransformations"] } : {}) });
     }
   }
+  const inputIds = new Set(inputs.map((input) => input.id));
+  const operationIds = new Set(operations.map((operation) => operation.id));
+  const outputIds = new Set(outputs.map((output) => output.id));
+  if (inputIds.size !== inputs.length || operationIds.size !== operations.length || outputIds.size !== outputs.length) return undefined;
+  if (preservationRules?.some((rule) => !inputIds.has(rule.inputId))) return undefined;
   const manifest: RecipeManifest = { schemaVersion: RECIPE_MANIFEST_SCHEMA_VERSION, slug: value.slug, inputs, operations, outputs };
   if (isString(value.category)) manifest.category = value.category;
   if (Array.isArray(value.tags) && value.tags.every(isString)) manifest.tags = value.tags;
@@ -571,14 +576,19 @@ export const parseApplicationDocument = (
     // must never downgrade silently to an unconstrained ordinary Application.
     if (value.recipe !== undefined && value.recipe !== null && recipe === undefined) return null;
     if (recipe && schemaVersion < 5) return null;
+    const operations = Array.isArray(value.operations)
+      ? value.operations
+          .map((op) => parseOperation(op, options.hostWorkflowId))
+          .filter((op): op is OperationBinding => op !== null)
+      : [];
+    if (recipe) {
+      const bindingIds = new Set(operations.map((operation) => operation.id));
+      if (recipe.operations.some((operation) => !bindingIds.has(operation.bindingId))) return null;
+    }
     return {
       schemaVersion,
       ui: value.ui,
-      operations: Array.isArray(value.operations)
-        ? value.operations
-            .map((op) => parseOperation(op, options.hostWorkflowId))
-            .filter((op): op is OperationBinding => op !== null)
-        : [],
+      operations,
       resources: Array.isArray(value.resources)
         ? value.resources
             .map(parseResource)
