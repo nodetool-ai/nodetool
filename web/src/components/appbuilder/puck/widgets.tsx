@@ -1206,7 +1206,7 @@ export interface ChoiceCardOption {
 }
 
 export const ChoiceCardsWidget: React.FC<
-  WidgetCommon & { label?: string; options?: ChoiceCardOption[]; columns?: number }
+  WidgetCommon & { label?: string; options?: ChoiceCardOption[]; columns?: number; disabled?: boolean }
 > = (props) => {
   const { value, setValue, emit } = useBinding(props, "write");
   const selected = str(value);
@@ -1219,9 +1219,9 @@ export const ChoiceCardsWidget: React.FC<
           const active = selected === option.value;
           return (
             <Card key={option.value} variant="outlined" padding="none" sx={{ p: SPACING.md, cursor: option.disabled ? "not-allowed" : "pointer", outline: active ? "2px solid currentColor" : "none", opacity: option.disabled ? 0.5 : 1 }}>
-              <Box role="radio" aria-checked={active} aria-disabled={option.disabled || undefined} tabIndex={option.disabled ? -1 : 0} onClick={() => { if (!option.disabled) { setValue(option.value); emit("change"); } }} onKeyDown={(event) => { if (!option.disabled && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setValue(option.value); emit("change"); } }} sx={{ width: "100%" }}>
+              <Box role="radio" aria-checked={active} aria-disabled={option.disabled || undefined} tabIndex={option.disabled ? -1 : 0} onClick={() => { if (!props.disabled && !option.disabled) { setValue(option.value); emit("change"); } }} onKeyDown={(event) => { if (!props.disabled && !option.disabled && (event.key === "Enter" || event.key === " ")) { event.preventDefault(); setValue(option.value); emit("change"); } }} sx={{ width: "100%" }}>
                 <FlexColumn gap={SPACING.micro} fullWidth>
-                  <Text>{option.title || option.value}</Text>
+                  {option.image ? <Box component="img" src={option.image} alt="" sx={{ width: "100%", aspectRatio: "16 / 9", objectFit: "cover", borderRadius: 1 }} /> : null}\n                  <Text>{option.title || option.value}</Text>
                   {option.description ? <Caption color="secondary">{option.description}</Caption> : null}
                 </FlexColumn>
               </Box>
@@ -1235,14 +1235,14 @@ export const ChoiceCardsWidget: React.FC<
 
 export interface StepperStep { value: string; title: string; description?: string; disabled?: boolean; completed?: boolean }
 
-export const StepperWidget: React.FC<WidgetCommon & { label?: string; steps?: StepperStep[]; allowBack?: boolean }> = (props) => {
+export const StepperWidget: React.FC<WidgetCommon & { label?: string; steps?: StepperStep[]; allowBack?: boolean; disabled?: boolean }> = (props) => {
   const { value, setValue, emit } = useBinding(props, "write");
   const steps = props.steps ?? [];
   const found = steps.findIndex((step) => step.value === str(value));
   const current = found < 0 ? 0 : found;
   const choose = (index: number) => {
     const step = steps[index];
-    if (!step || step.disabled || (index < current && props.allowBack === false)) return;
+    if (props.disabled || !step || step.disabled || (index < current && props.allowBack === false)) return;
     setValue(step.value);
     emit("change");
   };
@@ -1253,13 +1253,13 @@ export const StepperWidget: React.FC<WidgetCommon & { label?: string; steps?: St
   </FlexColumn>;
 };
 
-export const ApprovalWidget: React.FC<WidgetCommon & { label?: string; description?: string; approveLabel?: string; rejectLabel?: string }> = (props) => {
+export const ApprovalWidget: React.FC<WidgetCommon & { label?: string; description?: string; approveLabel?: string; rejectLabel?: string; disabled?: boolean }> = (props) => {
   const { value, setValue, emit } = useBinding(props, "write");
-  const choose = (next: "approved" | "rejected") => { setValue(next); emit("change"); };
+  const choose = (next: "approved" | "rejected") => { if (props.disabled) return; setValue(next); emit("change"); };
   return <Card variant="outlined" padding="none" sx={{ p: SPACING.md, width: "100%" }}><FlexColumn gap={SPACING.sm} fullWidth>
     {props.label ? <Label>{props.label}</Label> : null}
     {props.description ? <Caption color="secondary">{props.description}</Caption> : null}
-    <FlexRow gap={SPACING.sm}><EditorButton variant={value === "approved" ? "contained" : "outlined"} size="small" onClick={() => choose("approved")}>{props.approveLabel || "Approve"}</EditorButton><EditorButton variant={value === "rejected" ? "contained" : "outlined"} size="small" onClick={() => choose("rejected")}>{props.rejectLabel || "Needs changes"}</EditorButton></FlexRow>
+    <FlexRow gap={SPACING.sm}><EditorButton variant={value === "approved" ? "contained" : "outlined"} size="small" disabled={props.disabled} onClick={() => choose("approved")}>{props.approveLabel || "Approve"}</EditorButton><EditorButton variant={value === "rejected" ? "contained" : "outlined"} size="small" disabled={props.disabled} onClick={() => choose("rejected")}>{props.rejectLabel || "Needs changes"}</EditorButton></FlexRow>
   </FlexColumn></Card>;
 };
 
