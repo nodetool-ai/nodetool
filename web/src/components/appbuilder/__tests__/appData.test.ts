@@ -14,7 +14,7 @@ describe("appData", () => {
 
   it("creates a document with a title in root props", () => {
     const doc = createEmptyDocument("My App");
-    expect(doc.schemaVersion).toBe(APP_SCHEMA_VERSION);
+    expect(doc.schemaVersion).toBe(BASE_APP_SCHEMA_VERSION);
     expect(doc.ui.root.props?.title).toBe("My App");
     expect(doc.operations).toEqual([]);
   });
