@@ -35,10 +35,7 @@ export const CLI_BUILTIN_PACK_POLICY: BuiltinPackPolicy = {
   excludedPackIds: ["kie", "topaz", "higgsfield", "together"]
 };
 
-const BUILTIN_PACK_REGISTRARS: Record<
-  string,
-  (registry: NodeRegistry) => void
-> = {
+const BUILTIN_PACK_REGISTRARS = {
   base: registerBaseNodes,
   elevenlabs: registerElevenLabsNodes,
   minimax: registerMinimaxNodes,
@@ -52,7 +49,11 @@ const BUILTIN_PACK_REGISTRARS: Record<
   together: registerTogetherNodes,
   replicate: registerReplicateNodes,
   huggingface: registerHuggingFaceNodes
-};
+} satisfies Record<string, (registry: NodeRegistry) => void>;
+
+function hasBuiltinRegistrar(id: string): id is keyof typeof BUILTIN_PACK_REGISTRARS {
+  return Object.hasOwn(BUILTIN_PACK_REGISTRARS, id);
+}
 
 export function builtinPackUnavailableReason(
   pack: BuiltinNodePack,
@@ -81,10 +82,10 @@ export function registerBuiltinPacks(
   onSkipped?: (pack: BuiltinNodePack, reason: string) => void
 ): void {
   for (const pack of BUILTIN_NODE_PACKS) {
-    const registrar = BUILTIN_PACK_REGISTRARS[pack.id];
-    if (!registrar) {
+    if (!hasBuiltinRegistrar(pack.id)) {
       throw new Error(`No registrar for built-in node pack "${pack.id}"`);
     }
+    const registrar = BUILTIN_PACK_REGISTRARS[pack.id];
     const reason = builtinPackUnavailableReason(pack, policy);
     if (reason) {
       onSkipped?.(pack, reason);
@@ -99,12 +100,11 @@ export function setBuiltinPackEnabled(
   id: string,
   enabled: boolean
 ): void {
-  const registrar = BUILTIN_PACK_REGISTRARS[id];
-  if (!registrar) {
+  if (!hasBuiltinRegistrar(id)) {
     throw new Error(`No registrar for built-in node pack "${id}"`);
   }
   if (enabled) {
-    registry.registerPackage(id, registrar);
+    registry.registerPackage(id, BUILTIN_PACK_REGISTRARS[id]);
   } else {
     for (const nodeType of registry.list()) {
       if (registry.getNodePackageId(nodeType) === id) {
