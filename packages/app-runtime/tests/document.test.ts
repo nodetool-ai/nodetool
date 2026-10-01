@@ -231,7 +231,7 @@ describe("liftLegacyAppDoc", () => {
         variables: [{ id: "v1", name: "tone", scope: "user", persist: true }]
       }
     });
-    expect(doc?.schemaVersion).toBe(APP_SCHEMA_VERSION);
+    expect(doc?.schemaVersion).toBe(3);
     expect(doc?.ui).toEqual(puck);
     expect(doc?.operations).toHaveLength(1);
     expect(doc?.operations[0].workflowId).toBe("wf-other");
@@ -262,7 +262,7 @@ describe("liftLegacyAppDoc", () => {
       id: "wf-host",
       app_doc: { version: 2, data: puck }
     });
-    expect(doc?.schemaVersion).toBe(APP_SCHEMA_VERSION);
+    expect(doc?.schemaVersion).toBe(BASE_APP_SCHEMA_VERSION);
     expect(doc?.operations).toEqual([
       {
         id: DEFAULT_OPERATION_ID,
