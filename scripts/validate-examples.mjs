@@ -38,6 +38,9 @@ import { basename, dirname, join, resolve } from "node:path";
 import { fileURLToPath, pathToFileURL } from "node:url";
 import { Worker, isMainThread, parentPort } from "node:worker_threads";
 
+import { parseApplicationBundle, validateApplicationBundleBindings } from "@nodetool-ai/app-runtime";
+import { jsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
+
 const scriptDir = dirname(fileURLToPath(import.meta.url));
 const repoRoot = resolve(scriptDir, "..");
 const cliValidate = join(repoRoot, "packages/cli/dist/validate/index.js");
@@ -123,7 +126,7 @@ if (!isMainThread) {
 
   // Ready for the first job.
   parentPort.postMessage({ ready: true });
-} else {
+} else if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.url)) {
   await main();
 }
 
@@ -162,20 +165,25 @@ function findExamples(dir) {
 // five of them shipped `provider: "huggingface_fal_ai"`, which the runtime
 // cannot construct. Validate each embedded graph with the same validator the
 // plain examples get.
-function expandBundle(file) {
-  let bundle;
+export function expandBundle(file) {
+  let raw;
   try {
-    bundle = JSON.parse(readFileSync(file, "utf8"));
+    raw = JSON.parse(readFileSync(file, "utf8"));
   } catch (err) {
     return { parseError: err.message, workflows: [] };
   }
-  const workflows = Array.isArray(bundle?.workflows) ? bundle.workflows : [];
+  const bundle = parseApplicationBundle(raw);
+  if (!bundle) return { parseError: "invalid Application bundle or unresolved Recipe bindings", workflows: [] };
+  const problems = validateApplicationBundleBindings(bundle);
+  if (bundle.workflows.length === 0 && bundle.scripts.length === 0) problems.push("bundle declares no workflows or scripts");
+  if (bundle.app.operations.length === 0) problems.push("bundle declares no executable operations");
+  for (const script of bundle.scripts) {
+    const parsed = jsScriptDocument.safeParse(script.document);
+    if (!parsed.success) problems.push(`Script ${script.key}: ${parsed.error.issues.map((issue) => issue.message).join(", ")}`);
+  }
   return {
-    parseError: workflows.length === 0 ? "bundle declares no workflows" : null,
-    workflows: workflows.map((wf, i) => ({
-      label: wf?.name || wf?.key || `workflow[${i}]`,
-      graph: wf?.graph
-    }))
+    parseError: problems.length ? problems.join("\n") : null,
+    workflows: bundle.workflows.map((workflow) => ({label: workflow.name || workflow.key, graph: workflow.graph}))
   };
 }
 
@@ -633,6 +641,7 @@ async function main() {
       jobs.push({ label: rel, failure: parseError });
       continue;
     }
+    if (workflows.length === 0) jobs.push({ label: rel, output: null });
     for (const [i, wf] of workflows.entries()) {
       const label = `${rel} › ${wf.label}`;
       if (!wf.graph) {
