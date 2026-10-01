@@ -25,6 +25,8 @@ export interface PuckData {
 
 /** Bumped whenever the parser needs a new branch. */
 export const APP_SCHEMA_VERSION = 5 as const;
+/** Ordinary Applications remain v4-compatible; Recipe metadata requires v5. */
+export const BASE_APP_SCHEMA_VERSION = 4 as const;
 
 /** Versioned authoring metadata for an Application that is also a Recipe. */
 export const RECIPE_MANIFEST_SCHEMA_VERSION = 1 as const;
@@ -244,7 +246,7 @@ export const createEmptyPuckData = (title?: string): PuckData => ({
 });
 
 export const createEmptyDocument = (title?: string): ApplicationDocument => ({
-  schemaVersion: APP_SCHEMA_VERSION,
+  schemaVersion: BASE_APP_SCHEMA_VERSION,
   ui: createEmptyPuckData(title),
   operations: [],
   resources: [],
@@ -302,11 +304,41 @@ const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
   if (isString(value.category)) manifest.category = value.category;
   if (Array.isArray(value.tags) && value.tags.every(isString)) manifest.tags = value.tags;
   if (isRecord(value.defaults)) manifest.defaults = value.defaults;
-  if (isRecord(value.creativeStrategy)) manifest.creativeStrategy = value.creativeStrategy as RecipeManifest["creativeStrategy"];
+  if (value.creativeStrategy !== undefined) {
+    if (!isRecord(value.creativeStrategy)) return undefined;
+    const { objective, structure, direction } = value.creativeStrategy;
+    if ([objective, structure, direction].some((part) => part !== undefined && !isString(part))) return undefined;
+    manifest.creativeStrategy = {
+      ...(isString(objective) ? { objective } : {}),
+      ...(isString(structure) ? { structure } : {}),
+      ...(isString(direction) ? { direction } : {})
+    };
+  }
   if (preservationRules) manifest.preservationRules = preservationRules;
-  if (isRecord(value.mediaPolicy)) manifest.mediaPolicy = value.mediaPolicy as RecipeManifest["mediaPolicy"];
-  if (isRecord(value.presentation)) manifest.presentation = value.presentation as RecipeManifest["presentation"];
-  if (isRecord(value.marketing)) manifest.marketing = value.marketing as RecipeManifest["marketing"];
+  if (value.mediaPolicy !== undefined) {
+    if (!isRecord(value.mediaPolicy)) return undefined;
+    const strategy = value.mediaPolicy.defaultStrategy;
+    if (strategy !== undefined && strategy !== "still_motion_graphics" && strategy !== "hybrid" && strategy !== "generated_video") return undefined;
+    if (value.mediaPolicy.allowGeneratedVideo !== undefined && typeof value.mediaPolicy.allowGeneratedVideo !== "boolean") return undefined;
+    manifest.mediaPolicy = {
+      ...(strategy !== undefined ? { defaultStrategy: strategy } : {}),
+      ...(typeof value.mediaPolicy.allowGeneratedVideo === "boolean" ? { allowGeneratedVideo: value.mediaPolicy.allowGeneratedVideo } : {})
+    };
+  }
+  if (value.presentation !== undefined) {
+    if (!isRecord(value.presentation)) return undefined;
+    const { layout, groups, advancedInputs } = value.presentation;
+    if (layout !== undefined && !isString(layout)) return undefined;
+    if (advancedInputs !== undefined && (!Array.isArray(advancedInputs) || !advancedInputs.every(isString))) return undefined;
+    if (groups !== undefined && (!Array.isArray(groups) || !groups.every((group) => isRecord(group) && isString(group.id) && isString(group.title) && Array.isArray(group.inputIds) && group.inputIds.every(isString)))) return undefined;
+    manifest.presentation = value.presentation as RecipeManifest["presentation"];
+  }
+  if (value.marketing !== undefined) {
+    if (!isRecord(value.marketing)) return undefined;
+    if (value.marketing.shortDescription !== undefined && !isString(value.marketing.shortDescription)) return undefined;
+    if (value.marketing.thumbnailAssetId !== undefined && !isString(value.marketing.thumbnailAssetId)) return undefined;
+    manifest.marketing = value.marketing as RecipeManifest["marketing"];
+  }
   return manifest;
 };
 
@@ -534,8 +566,13 @@ export const parseApplicationDocument = (
       ? value.schemaVersion
       : APP_SCHEMA_VERSION;
     if (schemaVersion > APP_SCHEMA_VERSION) return null;
+    const recipe = parseRecipeManifest(value.recipe);
+    // Recipe metadata is a safety contract. Malformed or unsupported metadata
+    // must never downgrade silently to an unconstrained ordinary Application.
+    if (value.recipe !== undefined && value.recipe !== null && recipe === undefined) return null;
+    if (recipe && schemaVersion < 5) return null;
     return {
-      schemaVersion: APP_SCHEMA_VERSION,
+      schemaVersion,
       ui: value.ui,
       operations: Array.isArray(value.operations)
         ? value.operations
@@ -556,7 +593,7 @@ export const parseApplicationDocument = (
         isRecord(value.theme) && isString(value.theme.id)
           ? { id: value.theme.id }
           : undefined,
-      recipe: parseRecipeManifest(value.recipe)
+      recipe
     };
   }
 
