@@ -1,6 +1,7 @@
 import { resolveEffectiveProductionRequirement, type StoryboardMotionDesign, type ProductionRequirement, type ProductionProtectedInput, type Shot } from "@nodetool-ai/protocol";
 import { createTimeOrderedUuid, makeClip, makeTrack } from "./defaults.js";
 import { resolveShotSource } from "./storyboard.js";
+import { isKnownShapeKind } from "./types.js";
 import type { TimelineClip, TimelineTrack, TimelineMarker } from "./types.js";
 
 export interface FinishedStoryboardDocument {
@@ -73,6 +74,7 @@ export function validateProducedTimeline(
       if (clip.hidden || clip.opacity === 0 || (clip.transform && (!Number.isFinite(clip.transform.scale.x) || !Number.isFinite(clip.transform.scale.y) || clip.transform.scale.x === 0 || clip.transform.scale.y === 0)) || clip.durationMs <= 0 || !tracks.has(clip.trackId) || tracks.get(clip.trackId)?.visible === false) {
         issue("missing_element", `${element.id} must be visible.`);
       }
+      if (element.kind === "shape" && (!clip.shapeStyle || !isKnownShapeKind(clip.shapeStyle.kind))) issue("missing_element", `${element.id} has unsupported or missing visible shape geometry.`);
       const protection = element.protected_input_id ? protectedInputs.get(element.protected_input_id) : undefined;
       if (element.protected_input_id && !protection) {
         issue("protected_source", `Unknown protected input ${element.protected_input_id}.`);
@@ -172,7 +174,7 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
         currentAssetId: element.kind === "asset" ? protection?.asset_id ?? element.asset_id : undefined,
         transform: isBackground ? undefined : { position: { x: 0, y: (y - 0.5) * input.height }, scale: { x: element.role === "logo" ? 0.18 : element.kind === "asset" ? 0.65 : 1, y: element.role === "logo" ? 0.18 : element.kind === "asset" ? 0.65 : 1 }, rotation: 0, anchor: { x: 0.5, y: 0.5 } },
         textStyle: element.kind === "text" ? { text: protection?.value ?? element.text ?? "", fontSizePx: element.role === "price" ? input.width * 0.12 : input.width * 0.065, fontWeight: 600, color: "#FFFFFF", align: "center", maxWidthFrac: 0.85 } : undefined,
-        shapeStyle: element.kind === "shape" ? { kind: "rectangle", fill: protection?.kind === "brand_color" ? protection.value : "#21263A", x: isBackground ? 0 : 0.12, y: isBackground ? 0 : 0.74, width: isBackground ? 1 : 0.76, height: isBackground ? 1 : 0.008 } : undefined,
+        shapeStyle: element.kind === "shape" ? { kind: "rect", fill: protection?.kind === "brand_color" ? protection.value : "#21263A", x: isBackground ? 0 : 0.12, y: isBackground ? 0 : 0.74, width: isBackground ? 1 : 0.76, height: isBackground ? 1 : 0.008 } : undefined,
         animations: isBackground ? [] : [{ id: previous?.animations?.[0]?.id ?? createTimeOrderedUuid(), role: "in", preset: "fade", durationMs: 400, delayMs: 80 * index }]
       });
       clip.storyboardMaterializationBaseline = baseline(clip);
@@ -194,10 +196,10 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
   }
   // These semantic directions select existing Timeline animations, never another animation model.
   for (const transition of input.motionDesign?.transitions ?? []) {
-    const direction = transition.direction?.trim().toLowerCase() ?? "crossfade";
+    const direction = transition.direction?.trim().toLowerCase() ?? "fade";
     if (direction === "cut") continue;
-    if (direction !== "crossfade") {
-      conflicts.push({ code: "forbidden_transform", shotId: transition.to_shot_id, elementId: "$transition", message: `Unsupported transition direction ${direction}. Use cut or crossfade.` });
+    if (direction !== "fade") {
+      conflicts.push({ code: "forbidden_transform", shotId: transition.to_shot_id, elementId: "$transition", message: `Unsupported transition direction ${direction}. Use cut or fade. Crossfade requires overlapping composition and is not supported by this materializer.` });
       continue;
     }
     const outgoing = clips.filter((clip) => clip.storyboardBoardId === input.boardId && clip.storyboardShotId === transition.from_shot_id);
@@ -216,7 +218,11 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
       if (!clip) continue;
       // A continuous device retains placement and does not restart its entrance at each cut.
       if (index > 0) {
-        clip.transform = first.transform ? structuredClone(first.transform) : undefined;
+        const previous = existing.get(identity(clip.storyboardShotId ?? "", clip.storyboardElementId ?? ""));
+        const owned = previous?.storyboardMaterializationBaseline ? JSON.parse(previous.storyboardMaterializationBaseline) as Record<string, unknown> : undefined;
+        if (previous && owned && !same(previous.transform, owned.transform) && !same(previous.transform, first.transform)) {
+          conflicts.push({ code: "manual_conflict", shotId: clip.storyboardShotId ?? "", elementId: continuity.id, message: `Manual placement on continuity ${continuity.id} conflicts with shared placement.` });
+        } else clip.transform = first.transform ? structuredClone(first.transform) : undefined;
         clip.animations = (clip.animations ?? []).filter((animation) => animation.role !== "in");
       }
       if (index < matching.length - 1) clip.animations = (clip.animations ?? []).filter((animation) => animation.role !== "out");

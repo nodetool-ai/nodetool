@@ -107,7 +107,7 @@ describe("Storyboard finishing", () => {
     second.id = "cta";
     second.index = 1;
     args.shots.push(second);
-    const motionDesign = { transitions: [{ from_shot_id: "hook", to_shot_id: "cta", direction: "crossfade" }], continuities: [{ id: "background", shot_ids: ["hook", "cta"], direction: "continue" }] };
+    const motionDesign = { transitions: [{ from_shot_id: "hook", to_shot_id: "cta", direction: "fade" }], continuities: [{ id: "background", shot_ids: ["hook", "cta"], direction: "continue" }] };
     const first = materializeStoryboard({ ...args, motionDesign });
     expect(first.validation).toEqual([]);
     expect(first.document.clips.find((clip) => clip.storyboardShotId === "hook" && clip.storyboardElementId === "product")!.animations!.some((animation) => animation.role === "out")).toBe(true);
@@ -123,6 +123,27 @@ describe("Storyboard finishing", () => {
     const result = materializeStoryboard(args);
     result.document.clips[1].transform!.scale = { x: 0, y: 0 };
     expect(validateProducedTimeline(args, result.document).some((issue) => issue.code === "missing_element")).toBe(true);
+  });
+
+  it("rejects unsupported crossfades and conflicting manual continuity placement", () => {
+    const args = input();
+    const second = structuredClone(args.shots[0]);
+    second.id = "cta"; second.index = 1; args.shots.push(second);
+    const motionDesign = { continuities: [{ id: "product", shot_ids: ["hook", "cta"], direction: "continue" }] };
+    const first = materializeStoryboard({ ...args, motionDesign });
+    const product = first.document.clips.find((clip) => clip.storyboardShotId === "cta" && clip.storyboardElementId === "product")!;
+    product.transform!.position.x = 99;
+    const rerun = materializeStoryboard({ ...args, motionDesign, current: first.document });
+    expect(rerun.validation.some((issue) => issue.code === "manual_conflict")).toBe(true);
+    expect(materializeStoryboard({ ...args, motionDesign: { transitions: [{ from_shot_id: "hook", to_shot_id: "cta", direction: "crossfade" }] } }).validation.some((issue) => issue.elementId === "$transition")).toBe(true);
+  });
+
+  it("uses rendered rect backgrounds and rejects unknown geometry", () => {
+    const args = input();
+    const first = materializeStoryboard(args);
+    expect(first.document.clips[0].shapeStyle!.kind).toBe("rect");
+    first.document.clips[0].shapeStyle!.kind = "rectangle";
+    expect(validateProducedTimeline(args, first.document).some((issue) => issue.code === "missing_element")).toBe(true);
   });
 
 });
