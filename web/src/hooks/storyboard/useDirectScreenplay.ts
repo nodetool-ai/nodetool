@@ -106,11 +106,10 @@ const preserveNonDirectorIntent = (
     shots: next.shots.map((shot) => {
       const old = oldById.get(shot.id);
       if (!old) return shot;
-      return {
-        ...shot,
-        ...(old.graphics !== undefined ? { graphics: old.graphics } : {}),
-        ...(old.production !== undefined ? { production: old.production } : {})
-      };
+      const retained = { ...shot };
+      if (old.graphics !== undefined) retained.graphics = old.graphics;
+      if (old.production !== undefined) retained.production = old.production;
+      return retained;
     })
   };
 };
