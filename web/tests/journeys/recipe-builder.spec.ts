@@ -39,6 +39,23 @@ test("Recipe metadata survives a real App Builder UI edit and save", async ({
       }
     }
   }
+  // The installed Application must keep its pinned ports and implementation.
+  // Editing the scripts' live heads must not change this released operation.
+  for (const operation of bundle.app.operations) {
+    await mutate("jsScripts.update", {
+      id: operation.target.scriptId,
+      document: {
+        schemaVersion: 1,
+        code: "throw new Error('Unpinned live script executed');",
+        inputs: [],
+        outputs: [],
+        packages: [],
+        secrets: [],
+        timeoutSeconds: 60,
+        tests: []
+      }
+    });
+  }
   const application = await mutate("applications.create", {
     name: bundle.name,
     description: bundle.description,
@@ -158,6 +175,9 @@ test("Recipe metadata survives a real App Builder UI edit and save", async ({
     exact: true
   });
   await expect(openTimeline).toBeVisible({ timeout: 60_000 });
+  await expect(runtime.getByTestId("preview-compositor")).toHaveAttribute(
+    "data-preview-ready", "true", {timeout: 60_000}
+  );
   await openTimeline.click();
   await expect(page).toHaveURL(/\/timeline\/[a-f0-9]{32}/);
   await waitForAppReady(page);

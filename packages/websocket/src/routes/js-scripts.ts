@@ -21,7 +21,11 @@ import {
   emptyDeclaredJsScriptOutputsError,
   missingDeclaredJsScriptOutputs
 } from "@nodetool-ai/execution/js-script-debug";
-import { getSecret, JsScript } from "@nodetool-ai/models";
+import {
+  createJsScriptResolver,
+  getSecret,
+  JsScript
+} from "@nodetool-ai/models";
 import {
   PERMISSION_GATE_CONTEXT_KEY,
   ProcessingContext,
@@ -30,6 +34,8 @@ import {
 import {
   JS_SCRIPT_MAX_TIMEOUT_SECONDS,
   runJsScriptRequest,
+  jsScriptDocument,
+  type JsScriptDocument,
   type RunJsScriptResponse
 } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import type { StorageAdapter } from "@nodetool-ai/storage";
@@ -90,7 +96,26 @@ export async function handleJsScriptRun(
     );
   }
 
-  const document = script.toDocument();
+  let document: JsScriptDocument;
+  if (parsedBody.data.script_version !== undefined) {
+    const resolved = await createJsScriptResolver().resolve(
+      { id: script.id, version: parsedBody.data.script_version },
+      userId
+    );
+    if (!resolved) {
+      return jsonResponse({ detail: "JS script version not found" }, 404);
+    }
+    const parsedDocument = jsScriptDocument.safeParse(resolved.document);
+    if (!parsedDocument.success) {
+      return jsonResponse(
+        { detail: "Invalid JS script version document" },
+        400
+      );
+    }
+    document = parsedDocument.data;
+  } else {
+    document = script.toDocument();
+  }
   const staged = parsedBody.data.input_streams;
   if (staged) {
     const declared = new Set(document.inputs.map((port) => port.name));

@@ -434,6 +434,8 @@ export type RestoreJsScriptVersionResponse = z.infer<
 // ── Run endpoint (POST /api/js-scripts/:id/run) ─────────────────────────────
 
 export const runJsScriptRequest = z.object({
+  /** Immutable operation snapshot. Omitted editor runs use the saved head. */
+  script_version: z.number().int().positive().optional(),
   inputs: z.record(z.string(), z.unknown()).default({}),
   /**
    * Items staged per input handle for a body that reads `stream`. Wire names
