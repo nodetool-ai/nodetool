@@ -350,6 +350,10 @@ describe("headless timeline media parity", () => {
   });
 
   it("deduplicates CAS retries per operation while allowing two identical requested edits", async () => {
+    const sequence = await TimelineSequence.create({
+      user_id: "u1", project_id: "default", name: "CAS retry source",
+      document: JSON.stringify({ tracks: [makeTrack({ id: "track-1", type: "video" })], clips: [clip], markers: [] })
+    });
     const context = new ProcessingContext({ jobId: "job-1", userId: "u1" });
     context.registerProvider("fal_ai", new EditProvider());
     vi.spyOn(context, "resolveAssetBytes").mockResolvedValue({
@@ -365,7 +369,7 @@ describe("headless timeline media parity", () => {
         receipt: null,
         duration_ms: 1
       }));
-    const source = captureMediaEditSourceContext("sequence-1", clip);
+    const source = captureMediaEditSourceContext(sequence.id, clip);
     if (!source.ok) throw new Error(source.error);
     const request = createMediaEditRequest({
       sourceContext: source.context,
