@@ -18,6 +18,9 @@ import {
   EmptyState,
   LoadingSpinner,
   Box,
+  FlexColumn,
+  EditorButton,
+  SPACING,
   BORDER_RADIUS
 } from "../../ui_primitives";
 import { AppEvent } from "../types";
@@ -145,17 +148,24 @@ export const TimelineWidget: React.FC<
 
   if (sequence) {
     return (
-      <Box sx={frame(props.height)}>
-        <React.Suspense
-          fallback={<LoadingSpinner size="small" text="Loading preview" />}
-        >
-          <LazyTimelineRenderer
-            sequence={sequence}
-            ariaLabel="Timeline"
-            showMetadata={props.showMetadata ?? true}
-          />
-        </React.Suspense>
-      </Box>
+      <FlexColumn gap={SPACING.sm}>
+        <Box sx={frame(props.height)}>
+          <React.Suspense
+            fallback={<LoadingSpinner size="small" text="Loading preview" />}
+          >
+            <LazyTimelineRenderer
+              sequence={sequence}
+              ariaLabel="Timeline"
+              showMetadata={props.showMetadata ?? true}
+            />
+          </React.Suspense>
+        </Box>
+        {!designMode && timelineId ? (
+          <EditorButton href={`/timeline/${encodeURIComponent(timelineId)}`}>
+            Open editable timeline
+          </EditorButton>
+        ) : null}
+      </FlexColumn>
     );
   }
   if (shouldLoad && query.isLoading) {

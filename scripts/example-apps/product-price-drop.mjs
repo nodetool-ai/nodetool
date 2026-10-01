@@ -59,6 +59,7 @@ const result = await finish_storyboard({storyboardId: inputs.storyboardId, expec
 if (result.error) throw new Error(result.error);
 await output("timelineId", result.timelineId);
 await output("timelineRevision", result.timelineRevision);
+await output("storyboardRevision", result.storyboardRevision);
 await output("timeline", {type: "timeline", id: result.timelineId});
 await output("validation", result.validation);
 await output("step", "result");`;
@@ -71,7 +72,7 @@ const script = (key, code, inputs, outputs) => ({key, name: `Price Drop ${key}`,
 const planInputs = [...shared, "storyboardId"];
 const planOutputs = ["storyboardId", "storyboardRevision", "plannedFingerprint", "approval", "planPreview", "step"]; 
 const finishInputs = [...shared, ...planOutputs, "timelineId", "timelineRevision"];
-const finishOutputs = ["timelineId", "timelineRevision", "timeline", "validation", "step"];
+const finishOutputs = ["timelineId", "timelineRevision", "storyboardRevision", "timeline", "validation", "step"];
 export const PRODUCT_PRICE_DROP_BUNDLE = {
   schemaVersion: 1, name: "Product Price Drop", description: "Build a layered six-second vertical ad using your exact product, logo, prices and copy. No generated video.", workflows: [],
   scripts: [script("plan", PLAN_CODE, planInputs, planOutputs), script("finish", FINISH_CODE, finishInputs, finishOutputs)],

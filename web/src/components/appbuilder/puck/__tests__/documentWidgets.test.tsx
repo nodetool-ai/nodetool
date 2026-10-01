@@ -188,6 +188,7 @@ describe("TimelineWidget", () => {
     );
     expect(timelineEnabled).toHaveBeenCalledWith(true);
     expect(await screen.findByTestId("timeline-renderer")).toBeInTheDocument();
+    expect(screen.getByRole("link", {name: "Open editable timeline"})).toHaveAttribute("href", "/timeline/seq-1");
   });
 
   it("shows the placeholder when nothing is bound yet", () => {

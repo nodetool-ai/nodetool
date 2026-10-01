@@ -62,6 +62,7 @@ it("installs, plans, finishes, renders and reopens the exact editable Price Drop
   expect(board!.toDocument().screenplay?.motion_design?.continuities).toHaveLength(1);
   values.approval = "approved";
   await run("finish");
+  await run("finish");
   const timeline = await TimelineSequence.findById(String(values.timelineId));
   expect(timeline).not.toBeNull();
   const layered = timeline!.toTimelineSequence();
@@ -81,7 +82,7 @@ it("installs, plans, finishes, renders and reopens the exact editable Price Drop
   const outputId = "d".repeat(32);
   const node = new RenderTimelineNode();
   node.timeline = {type: "timeline", id: timeline!.id, data: null};
-  node.preview_scale = 0.25;
+  node.preview_scale = 1;
   node.include_audio = false;
   const rendered = await node.process({
     getTimelineSequence: async () => layered,
@@ -108,8 +109,8 @@ it("installs, plans, finishes, renders and reopens the exact editable Price Drop
   expect(foregroundPixels).toBeGreaterThan(1000);
   expect((await readFile(outputPath)).byteLength).toBeGreaterThan(1000);
   const probe = JSON.parse((await promisify(execFile)("ffprobe", ["-v", "error", "-count_frames", "-show_entries", "stream=width,height,nb_read_frames:format=duration", "-of", "json", outputPath])).stdout);
-  expect(probe.streams[0].width).toBe(270);
-  expect(probe.streams[0].height).toBe(480);
+  expect(probe.streams[0].width).toBe(1080);
+  expect(probe.streams[0].height).toBe(1920);
   expect(Number(probe.format.duration)).toBeCloseTo(6, 1);
   expect(Number(probe.streams[0].nb_read_frames)).toBe(180);
   if (process.env.PRICE_DROP_PROOF_DIR) {

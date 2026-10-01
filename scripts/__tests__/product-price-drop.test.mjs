@@ -1,7 +1,7 @@
 import { readFileSync } from "node:fs";
 import { isKnownWidget } from "../../packages/app-runtime/dist/widgets.js";
 import assert from "node:assert/strict";
-import { test } from "node:test";
+import { test } from "vitest";
 import { PRODUCT_PRICE_DROP_BUNDLE, PLAN_CODE, FINISH_CODE } from "../example-apps/product-price-drop.mjs";
 import { parseApplicationBundle } from "../../packages/app-runtime/dist/bundle.js";
 const input = {productImage: {asset_id: "a".repeat(32)}, logo: {asset_id: "b".repeat(32)}, headline: "  Better coffee  ", oldPrice: "€49", newPrice: "€29", cta: "Shop now", brandColor: "#1248AB", direction: "Bold editorial rhythm"};
@@ -55,12 +55,13 @@ test("plan retains exact sources and whitespace with graphics-only strategy", as
 test("finish rejects stale approval before invoking finishing", async () => {
   const plannedFingerprint = JSON.stringify([...Object.values(input)]);
   let calls = 0;
-  const finish_storyboard = async () => {calls++; return {timelineId: "t", timelineRevision: "r", validation: {valid: true}};};
+  const finish_storyboard = async () => {calls++; return {timelineId: "t", timelineRevision: "r", storyboardRevision: 4, validation: {valid: true}};};
   await assert.rejects(execute(FINISH_CODE, {...input, approval: "pending", plannedFingerprint}, {finish_storyboard}), /Approve/);
   await assert.rejects(execute(FINISH_CODE, {...input, newPrice: "€19", approval: "approved", plannedFingerprint}, {finish_storyboard}), /Inputs changed/);
   assert.equal(calls, 0);
   const output = await execute(FINISH_CODE, {...input, approval: "approved", plannedFingerprint, storyboardId: "b", storyboardRevision: "r"}, {finish_storyboard});
   assert.deepEqual(output.timeline, {type: "timeline", id: "t"});
+  assert.equal(output.storyboardRevision, 4);
 });
 test("the shipped Recipe fails closed when protection version or operation references change", () => {
   const future = structuredClone(PRODUCT_PRICE_DROP_BUNDLE);

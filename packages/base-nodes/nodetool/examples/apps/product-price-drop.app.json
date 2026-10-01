@@ -85,7 +85,7 @@
       "name": "Price Drop finish",
       "document": {
         "schemaVersion": 1,
-        "code": "import { finish_storyboard } from \"@nodetool-ai/sandbox-nodetool/storyboards\";\nconst keys = [\"productImage\", \"logo\", \"headline\", \"oldPrice\", \"newPrice\", \"cta\", \"brandColor\", \"direction\"];\nconst fingerprint = JSON.stringify(keys.map(key => inputs[key]));\nif (inputs.approval !== \"approved\") throw new Error(\"Approve the plan before building.\");\nif (inputs.plannedFingerprint !== fingerprint) throw new Error(\"Inputs changed after planning. Plan and approve again.\");\nconst result = await finish_storyboard({storyboardId: inputs.storyboardId, expectedStoryboardRevision: inputs.storyboardRevision, ...(inputs.timelineId ? {timelineId: inputs.timelineId, expectedTimelineRevision: inputs.timelineRevision} : {})});\nif (result.error) throw new Error(result.error);\nawait output(\"timelineId\", result.timelineId);\nawait output(\"timelineRevision\", result.timelineRevision);\nawait output(\"timeline\", {type: \"timeline\", id: result.timelineId});\nawait output(\"validation\", result.validation);\nawait output(\"step\", \"result\");",
+        "code": "import { finish_storyboard } from \"@nodetool-ai/sandbox-nodetool/storyboards\";\nconst keys = [\"productImage\", \"logo\", \"headline\", \"oldPrice\", \"newPrice\", \"cta\", \"brandColor\", \"direction\"];\nconst fingerprint = JSON.stringify(keys.map(key => inputs[key]));\nif (inputs.approval !== \"approved\") throw new Error(\"Approve the plan before building.\");\nif (inputs.plannedFingerprint !== fingerprint) throw new Error(\"Inputs changed after planning. Plan and approve again.\");\nconst result = await finish_storyboard({storyboardId: inputs.storyboardId, expectedStoryboardRevision: inputs.storyboardRevision, ...(inputs.timelineId ? {timelineId: inputs.timelineId, expectedTimelineRevision: inputs.timelineRevision} : {})});\nif (result.error) throw new Error(result.error);\nawait output(\"timelineId\", result.timelineId);\nawait output(\"timelineRevision\", result.timelineRevision);\nawait output(\"storyboardRevision\", result.storyboardRevision);\nawait output(\"timeline\", {type: \"timeline\", id: result.timelineId});\nawait output(\"validation\", result.validation);\nawait output(\"step\", \"result\");",
         "inputs": [
           {
             "name": "productImage",
@@ -159,6 +159,10 @@
           },
           {
             "name": "timelineRevision",
+            "type": "any"
+          },
+          {
+            "name": "storyboardRevision",
             "type": "any"
           },
           {
@@ -653,6 +657,10 @@
           "timelineRevision": {
             "to": "variable",
             "variableId": "timelineRevision"
+          },
+          "storyboardRevision": {
+            "to": "variable",
+            "variableId": "storyboardRevision"
           },
           "timeline": {
             "to": "variable",
