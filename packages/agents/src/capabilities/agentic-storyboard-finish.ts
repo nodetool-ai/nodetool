@@ -13,10 +13,7 @@ import {
   type RunBudget
 } from "@nodetool-ai/runtime";
 import { isRecord } from "@nodetool-ai/protocol";
-import {
-  buildTimelineToolContracts,
-  type TimelineToolName
-} from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
+import { buildTimelineToolContracts } from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
 import { uiToolParams } from "@nodetool-ai/protocol/api-schemas/ui-tool-contract.js";
 import { validateTimelineSequence } from "@nodetool-ai/execution/timeline-debug";
 import {
@@ -105,7 +102,7 @@ export async function finishStoryboardAgentically(
         ),
       duration: Math.max(1, (shot.duration_seconds ?? 4) * 1000)
     }));
-  const permittedOps = new Set([
+  const permittedOpNames = [
     "get_state",
     "list_animation_presets",
     "add_track",
@@ -120,15 +117,16 @@ export async function finishStoryboardAgentically(
     "set_parent",
     "set_matte",
     "add_group"
-  ]);
+  ] as const;
+  const permittedOps = new Set<string>(permittedOpNames);
   const contracts = buildTimelineToolContracts({
     staggerUnits: STAGGER_UNITS,
     animatedProperties: ANIMATED_PROPERTIES,
     beatToleranceMs: DEFAULT_BEAT_TOLERANCE_MS
   });
   const operationContracts = Object.fromEntries(
-    [...permittedOps].map((op) => {
-      const contract = contracts[`ui_timeline_${op}` as TimelineToolName];
+    permittedOpNames.map((op) => {
+      const contract = contracts[`ui_timeline_${op}`];
       return [
         op,
         {
@@ -202,11 +200,24 @@ export async function finishStoryboardAgentically(
     >
   ): Promise<void> => {
     signal?.throwIfAborted();
+    // SDK-native loops can issue parallel MCP callbacks despite sequentialTools.
+    // Serialize access to this one isolated draft, including reads and submission.
+    let executionTail: Promise<void> = Promise.resolve();
     for await (const event of runtime.provider.generateLoop({
       messages,
       model: runtime.model,
       tools,
-      executeTool: execute,
+      executeTool: (call) => {
+        const pending = executionTail.then(() => {
+          signal?.throwIfAborted();
+          return execute(call);
+        });
+        executionTail = pending.then(
+          () => undefined,
+          () => undefined
+        );
+        return pending;
+      },
       maxIterations: 12,
       sequentialTools: true,
       signal,
@@ -217,6 +228,7 @@ export async function finishStoryboardAgentically(
         throw new Error(`Finishing stopped: ${event.reason}`);
       }
     }
+    await executionTail;
   };
 
   const { current: _current, ...referenceInput } = input;

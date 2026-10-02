@@ -346,6 +346,59 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
       result.reviews?.[1].frames.map((frame) => frame.sha256)
     );
   });
+  it("serializes concurrent provider edit callbacks so independent clip changes are both retained", async () => {
+    const { board, context } = await fixture();
+    class ParallelAuthorProvider extends FinishingProvider {
+      authored = false;
+      override async *generateLoop(
+        args: Parameters<BaseProvider["generateLoop"]>[0]
+      ): AsyncGenerator<ProviderStreamItem> {
+        if (
+          !this.authored &&
+          args.tools?.some((tool) => tool.name === "edit_timeline")
+        ) {
+          this.authored = true;
+          const executeTool = args.executeTool;
+          if (!executeTool) {
+            throw new Error("No draft executor.");
+          }
+          const prices = authorContext(args).scaffold.clips.filter(
+            (clip) => clip.storyboardElementId === "price"
+          );
+          await Promise.all(
+            prices.map((clip, index) =>
+              executeTool(
+                call("edit_timeline", {
+                  ops: [
+                    {
+                      op: "set_clip_params",
+                      target: clip.id,
+                      fontSizePx: 170 + index * 10
+                    }
+                  ]
+                })
+              )
+            )
+          );
+          await executeTool(call("submit_finished_cut"));
+          return;
+        }
+        yield* super.generateLoop(args);
+      }
+    }
+    const provider = new ParallelAuthorProvider([approve, done]);
+    const result = await execute(provider, context, board);
+    expect(result.error).toBeUndefined();
+    const timeline = result.timelineId
+      ? await TimelineSequence.findById(result.timelineId)
+      : null;
+    expect(
+      timeline
+        ?.toDocument()
+        .clips.filter((clip) => clip.storyboardElementId === "price")
+        .map((clip) => clip.textStyle?.fontSizePx)
+    ).toEqual([170, 180]);
+  });
   it("rejects exact text replacement without any write or false visual approval", async () => {
     const { board, context } = await fixture();
     const editPrice: Turn = (args) => {
