@@ -17,6 +17,7 @@ import {
   FlexRow,
   Text,
   BORDER_RADIUS,
+  SPACING,
   TYPOGRAPHY
 } from "../ui_primitives";
 import { trpc } from "../../lib/trpc";
@@ -66,11 +67,11 @@ const SandboxPackDisclosure = ({ packName }: { packName: string }) => {
   if (modules.length === 0) return null;
 
   return (
-    <FlexColumn gap={0.75}>
+    <FlexColumn gap={SPACING.xs}>
       <Text size="small" color="secondary">
         {SANDBOX_PACK_CONSENT_TEXT}
       </Text>
-      <FlexColumn gap={0.25}>
+      <FlexColumn gap={SPACING.micro}>
         {modules.map((module) => (
           <Text key={module.specifier} size="small" family="secondary">
             {module.specifier}

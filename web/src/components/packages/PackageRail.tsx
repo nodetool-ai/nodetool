@@ -37,14 +37,14 @@ const PackageRail = ({
   onCat
 }: PackageRailProps) => (
   <FlexColumn
-    gap={0.75}
+    gap={SPACING.xs}
     sx={(theme) => ({
       // Phone width: the rail sits above the list as a full-width header
       // instead of taking 250px of a 375px viewport.
       width: { xs: "100%", sm: 250 },
       flexShrink: 0,
       height: { xs: "auto", sm: "100%" },
-      p: 1.75,
+      p: SPACING.md,
       borderRight: { xs: "none", sm: `1px solid ${theme.vars.palette.divider}` },
       borderBottom: {
         xs: `1px solid ${theme.vars.palette.divider}`,
@@ -75,7 +75,7 @@ const PackageRail = ({
         display: { xs: "none", sm: "block" },
         textTransform: "uppercase",
         letterSpacing: "0.09em",
-        px: 1.25,
+        px: SPACING.sm,
         pt: 2,
         pb: 0.5
       }}
@@ -88,7 +88,7 @@ const PackageRail = ({
       sx={{
         display: "flex",
         flexDirection: { xs: "row", sm: "column" },
-        gap: 0.75,
+        gap: SPACING.xs,
         minWidth: 0,
         overflowX: { xs: "auto", sm: "visible" },
         pt: { xs: 1, sm: 0 }
@@ -107,7 +107,7 @@ const PackageRail = ({
               position: "relative",
               display: "flex",
               alignItems: "center",
-              gap: 1.25,
+              gap: SPACING.sm,
               width: { xs: "auto", sm: "100%" },
               flexShrink: 0,
               whiteSpace: "nowrap",
@@ -179,7 +179,7 @@ const PackageRail = ({
       sx={(theme) => ({
         display: { xs: "none", sm: "block" },
         lineHeight: 1.5,
-        p: 1.25,
+        p: SPACING.sm,
         borderTop: `1px solid ${theme.vars.palette.divider}`
       })}
     >

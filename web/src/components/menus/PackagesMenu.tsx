@@ -19,7 +19,8 @@ import {
   Text,
   TextInput,
   BORDER_RADIUS,
-  MOTION
+  MOTION,
+  SPACING
 } from "../ui_primitives";
 import { isElectron } from "../../lib/env";
 import SandboxPackDisclosure from "../packages/SandboxPackDisclosure";
@@ -76,8 +77,8 @@ const PackRow = memo(function PackRow({
     <FlexColumn
       gap={0.5}
       sx={(theme) => ({
-        px: 2.25,
-        py: 1.75,
+        px: SPACING.md,
+        py: SPACING.md,
         borderRadius: BORDER_RADIUS.xl,
         border: `1px solid ${theme.vars.palette.divider}`,
         backgroundColor: theme.vars.palette.background.paper,
@@ -258,11 +259,11 @@ const InstalledPacksPanel = memo(function InstalledPacksPanel({
   if (packs.length === 0) return null;
 
   return (
-    <FlexColumn gap={1.75}>
+    <FlexColumn gap={SPACING.md}>
       <Text size="normal" weight={600}>
         Installed by NodeTool ({packs.length})
       </Text>
-      <FlexColumn gap={1.25}>
+      <FlexColumn gap={SPACING.sm}>
         {packs.map((pack) => {
           const status = pack.installation;
           const needsTrust =
@@ -272,10 +273,10 @@ const InstalledPacksPanel = memo(function InstalledPacksPanel({
           return (
             <FlexColumn
               key={pack.name}
-              gap={0.75}
+              gap={SPACING.xs}
               sx={(theme) => ({
-                px: 2.25,
-                py: 1.75,
+                px: SPACING.md,
+                py: SPACING.md,
                 borderRadius: BORDER_RADIUS.xl,
                 border: `1px solid ${theme.vars.palette.divider}`,
                 backgroundColor: theme.vars.palette.background.paper
@@ -499,8 +500,8 @@ function PackagesMenu() {
     trust.allowlist.includes("*") || trustedSet.has(name);
 
   return (
-    <FlexColumn gap={3.5} sx={{ maxWidth: 880 }}>
-      <FlexColumn gap={1.75}>
+    <FlexColumn gap={SPACING.xl} sx={{ maxWidth: 880 }}>
+      <FlexColumn gap={SPACING.md}>
         <Text size="normal" weight={600}>
           Trust defaults
         </Text>
@@ -508,7 +509,7 @@ function PackagesMenu() {
           gap={3}
           align="center"
           sx={(theme) => ({
-            px: 2.25,
+            px: SPACING.md,
             py: 2,
             borderRadius: BORDER_RADIUS.xl,
             border: `1px solid rgba(${theme.vars.palette.warning.mainChannel} / 0.18)`,
@@ -551,7 +552,7 @@ function PackagesMenu() {
         />
       )}
 
-      <FlexColumn gap={1.75}>
+      <FlexColumn gap={SPACING.md}>
         <FlexRow gap={1} align="center" justify="space-between">
           <Text size="normal" weight={600}>
             Discovered packs ({packs.length})
@@ -575,8 +576,8 @@ function PackagesMenu() {
         {!isLoading && packs.length === 0 ? (
           <FlexRow
             sx={(theme) => ({
-              px: 2.75,
-              py: 2.75,
+              px: SPACING.lg,
+              py: SPACING.lg,
               borderRadius: BORDER_RADIUS.xl,
               border: `1px dashed ${theme.vars.palette.divider}`,
               backgroundColor: theme.vars.palette.background.default
@@ -589,7 +590,7 @@ function PackagesMenu() {
             </Text>
           </FlexRow>
         ) : (
-          <FlexColumn gap={1.25}>
+          <FlexColumn gap={SPACING.sm}>
             {packs.map((pack) => (
               <PackRow
                 key={pack.name}

@@ -9,7 +9,14 @@
 import { memo } from "react";
 import type { ReactNode } from "react";
 
-import { FlexColumn, FlexRow, Text, BORDER_RADIUS, MOTION } from "../ui_primitives";
+import {
+  FlexColumn,
+  FlexRow,
+  Text,
+  BORDER_RADIUS,
+  MOTION,
+  SPACING
+} from "../ui_primitives";
 
 interface PackageRowProps {
   name: string;
@@ -26,7 +33,7 @@ const PackageRow = ({ name, meta, description, actions }: PackageRowProps) => (
     align="center"
     sx={(theme) => ({
       px: 3,
-      py: 2.5,
+      py: SPACING.lg,
       borderRadius: BORDER_RADIUS.xl,
       backgroundColor: theme.vars.palette.background.paper,
       border: `1px solid ${theme.vars.palette.divider}`,
