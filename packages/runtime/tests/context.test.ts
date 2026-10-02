@@ -1481,6 +1481,46 @@ describe("ProcessingContext – asset helper methods", () => {
     }
   });
 
+  it("resolveMessageMediaUris dereferences a /api/storage/ image whose key holds a named owner id", async () => {
+    const root = await mkdtemp(join(tmpdir(), "nodetool-resolve-named-owner-"));
+    try {
+      const pngBytes = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a]);
+      const key =
+        "projects/personal:281c2a59-2dc5-40c9-8924-01170fa2b9d3/assets/view-84dbae59-521a-4c4c-adee-f1585a4f1fb9.png";
+      const ctx = new ProcessingContext({
+        jobId: "j1",
+        userId: "u1",
+        workspaceDir: root,
+        fetchFn: async (input: string | URL | Request) =>
+          String(input).endsWith(`/api/storage/${encodeURIComponent(key)}`)
+            ? new Response(pngBytes, {
+                status: 200,
+                headers: { "content-type": "image/png" }
+              })
+            : new Response("not found", { status: 404 })
+      });
+
+      const resolved = await ctx.resolveMessageMediaUris([
+        {
+          role: "user",
+          content: [
+            {
+              type: "image_url",
+              image: { uri: `/api/storage/${key}`, mimeType: "image/png" }
+            }
+          ]
+        }
+      ]);
+
+      const parts = resolved[0].content as Array<Record<string, any>>;
+      expect(parts[0].image.uri).toBe(
+        `data:image/png;base64,${Buffer.from(pngBytes).toString("base64")}`
+      );
+    } finally {
+      await rm(root, { recursive: true, force: true });
+    }
+  });
+
   it("resolveMessageMediaUris resolves an asset:// image through assetStorage when storage holds the temp store", async () => {
     // The server points `storage` at the temp store and assets live elsewhere.
     // Before `assetStorage` existed the reference could only be chased over

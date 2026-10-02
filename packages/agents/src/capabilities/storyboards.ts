@@ -2689,7 +2689,9 @@ const directStoryboard: CapabilityExport = {
       });
       const previousMotionDesign = next.screenplay?.motion_design;
       next.screenplay = { ...screenplay, shots: next.shots };
-      if (previousMotionDesign !== undefined) next.screenplay.motion_design = previousMotionDesign;
+      if (previousMotionDesign !== undefined) {
+        next.screenplay.motion_design = previousMotionDesign;
+      }
       next.style = screenplay.style_bible ?? next.style;
       next.aspectRatio = screenplay.aspect_ratio ?? next.aspectRatio;
       if (screenplay.genre) next.genre = screenplay.genre;
