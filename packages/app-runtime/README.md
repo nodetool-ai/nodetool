@@ -115,6 +115,7 @@ choices instead of substituting an authored list. Web, mobile and `app debug`
 share option parsing, and disabled choices cannot write a selection.
 
 Use existing input widgets inside a named input group for product and brand
-information. Use the existing Storyboard resource surface for shot review.
+information. Bind the existing Timeline widget to a read-only composed
+Storyboard preview for plan review before Approval.
 These compositions keep the Price Drop Recipe editable in App Builder without
 adding Recipe-specific widgets.
