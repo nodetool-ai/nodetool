@@ -11,6 +11,7 @@
  */
 
 import {
+  assertProductionGenerationAllowed,
   currentRenderInputs,
   entitiesForShot,
   entityConditioningHash,
@@ -200,6 +201,7 @@ export function planShotRenders(
   const lines = options.scriptLines ?? new Map<string, ScriptLine>();
 
   return selectShots(doc, targets).map((shot) => {
+    assertProductionGenerationAllowed(shot.production, kind === "keyframe" ? "text_to_image" : "text_to_video");
     const requestedMode = options.mode ?? shotRenderMode(shot);
     let mode = requestedMode;
     const selection =

@@ -12,6 +12,7 @@
  */
 
 import {
+  assertProductionGenerationAllowed,
   CLIP_RESOLUTION,
   STILL_RESOLUTION,
   storyboardRenderVersion,
@@ -333,6 +334,10 @@ export async function renderShots(
           plan.kind === "keyframe"
             ? { name: `shot-${plan.index + 1}-still` }
             : { name: `shot-${plan.index + 1}-clip`, mime: "video/mp4" };
+        const current = await host.getStoryboard(ref.id);
+        const currentShot = current?.document.shots.find((shot) => shot.id === plan.shotId);
+        if (!currentShot) throw new Error(`Shot ${plan.shotId} no longer exists.`);
+        assertProductionGenerationAllowed(currentShot.production, capability);
         const result = await host.runGeneration({
           id: generationId,
           provider: plan.model.provider,

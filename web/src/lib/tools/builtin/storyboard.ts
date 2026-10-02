@@ -1,5 +1,5 @@
 import { z } from "zod";
-import type { ShotStatus } from "@nodetool-ai/protocol";
+import { productionRequirement, type ShotStatus } from "@nodetool-ai/protocol";
 import { storyboards } from "@nodetool-ai/protocol/api-schemas";
 import { FrontendToolRegistry } from "../frontendTools";
 import { getStoryboardAgentHandler } from "../../../components/storyboard/storyboardAgentBridge";
@@ -93,6 +93,7 @@ const screenplayShotParam = z
     camera: cameraParam.optional(),
     motion: z.string().optional(),
     graphics: storyboards.storyboardShotGraphics.optional(),
+    production: productionRequirement.optional(),
     dialogue: z.string().optional(),
     narration: z.string().optional(),
     notes: z.string().optional(),
@@ -265,6 +266,7 @@ FrontendToolRegistry.register({
     camera: cameraParam.optional(),
     motion: z.string().optional(),
     graphics: storyboards.storyboardShotGraphics.optional(),
+    production: productionRequirement.optional(),
     durationSeconds: z.number().optional(),
     index: z.number().optional(),
     afterShotId: targetParam
@@ -280,6 +282,7 @@ FrontendToolRegistry.register({
     camera,
     motion,
     graphics,
+    production,
     durationSeconds,
     index,
     afterShotId
@@ -290,6 +293,7 @@ FrontendToolRegistry.register({
       camera,
       motion,
       graphics,
+      production,
       durationSeconds,
       index,
       afterShotId
@@ -316,6 +320,7 @@ FrontendToolRegistry.register({
     camera: cameraParam.optional(),
     motion: z.string().optional(),
     graphics: storyboards.storyboardShotGraphics.nullable().optional(),
+    production: productionRequirement.nullable().optional(),
     dialogue: z
       .string()
       .optional()
@@ -343,6 +348,7 @@ FrontendToolRegistry.register({
     camera,
     motion,
     graphics,
+    production,
     dialogue,
     notes,
     durationSeconds,
@@ -355,6 +361,7 @@ FrontendToolRegistry.register({
       camera,
       motion,
       graphics,
+      production,
       dialogue,
       notes,
       durationSeconds,

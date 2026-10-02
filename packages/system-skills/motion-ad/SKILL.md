@@ -34,6 +34,19 @@ this skill quotes.
   version and a new rendered asset with a versioned name
   (`<brand>-<topic>-ad-4x5-v2`).
 
+## Production policy
+
+The canonical machine-readable policy is the shot's `production` requirement.
+For social ads, choose `media_strategy` deliberately:
+
+- `still_motion_graphics` is the default. Preserve the source image and build motion, type, shapes and transitions in the Timeline.
+- `hybrid` uses generated/existing footage for atmosphere or physical motion while product, logo and exact copy remain separate protected layers.
+- `generated_video` is reserved for actor performance, lifestyle movement or scene motion that materially benefits from video generation.
+
+Put source truth in `protected_inputs`. Product/logo/source assets carry their exact `asset_id`; copy and brand colours carry their exact `value`. Declare only non-destructive `allowed_transformations` such as position, scale, crop, rotate, mask, opacity and composite. A finished-cut plan must pass `validateProductionMaterialization`: replacing or regenerating a protected asset, changing exact copy/colour, or applying an undeclared transform is a policy error.
+
+Do not use `generated_video` merely because a keyframe exists. Price cards, packshots, feature callouts, carousels, comparisons, typography hooks and CTA endings normally stay `still_motion_graphics`.
+
 ## The loop
 
 1. Research the page and the brand.

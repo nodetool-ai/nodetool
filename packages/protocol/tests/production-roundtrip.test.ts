@@ -4,7 +4,8 @@ import {
   productionRequirement,
   productionGenerationSnapshot,
   productionVariationIdentity,
-  productionCandidateResult
+  productionCandidateResult,
+  validateProductionMaterialization
 } from "../src/production-authoring.js";
 import {
   appendClipVersionInput,
@@ -143,6 +144,104 @@ const board = {
   videoModel: null,
   creative_context: context
 };
+
+describe("social-ad production policy", () => {
+  const product = {
+    id: "hero-product",
+    kind: "product" as const,
+    asset_id: "product-photo",
+    entity_id: "camera",
+    allowed_transformations: ["position", "scale", "crop", "composite"] as const
+  };
+  const price = {
+    id: "price-copy",
+    kind: "exact_text" as const,
+    value: "€29",
+    allowed_transformations: ["position", "scale", "opacity"] as const
+  };
+
+  it.each([
+    ["still_motion_graphics", "product_close_up"],
+    ["hybrid", "lifestyle_b_roll"],
+    ["generated_video", "actor_to_camera"]
+  ] as const)("round-trips the %s strategy", (media_strategy, visual_treatment) => {
+    const parsed = productionRequirement.parse({
+      media_strategy,
+      visual_treatment,
+      protected_inputs: [product, price]
+    });
+    expect(parsed.media_strategy).toBe(media_strategy);
+    expect(parsed.protected_inputs?.map((input) => input.id)).toEqual([
+      "hero-product",
+      "price-copy"
+    ]);
+  });
+
+  it("allows declared non-destructive transforms of protected assets", () => {
+    expect(
+      validateProductionMaterialization(
+        productionRequirement.parse({ protected_inputs: [product] }),
+        [
+          { protected_input_id: "hero-product", operation: "crop" },
+          { protected_input_id: "hero-product", operation: "composite" }
+        ]
+      )
+    ).toEqual([]);
+  });
+
+  it("rejects replacement, regeneration, undeclared transforms and exact-copy drift", () => {
+    const requirement = productionRequirement.parse({
+      protected_inputs: [product, price]
+    });
+    expect(
+      validateProductionMaterialization(requirement, [
+        {
+          protected_input_id: "hero-product",
+          operation: "replace",
+          asset_id: "generated-product"
+        },
+        { protected_input_id: "hero-product", operation: "regenerate" },
+        { protected_input_id: "hero-product", operation: "recolor" },
+        {
+          protected_input_id: "price-copy",
+          operation: "edit_text",
+          value: "€19"
+        }
+      ]).map((issue) => issue.code)
+    ).toEqual([
+      "protected_asset_replaced",
+      "protected_content_regenerated",
+      "transformation_not_allowed",
+      "protected_value_changed"
+    ]);
+  });
+
+  it("preserves exact protected copy byte-for-byte and rejects duplicate ids", () => {
+    const exact = productionRequirement.parse({
+      protected_inputs: [{ id: "headline", kind: "exact_text", value: "  SAVE 20%  " }]
+    });
+    expect(exact.protected_inputs?.[0].value).toBe("  SAVE 20%  ");
+    expect(productionRequirement.safeParse({
+      protected_inputs: [
+        { id: "same", kind: "exact_text", value: "A" },
+        { id: "same", kind: "exact_text", value: "B" }
+      ]
+    }).success).toBe(false);
+  });
+
+  it("requires source truth for every protected input", () => {
+    expect(
+      productionRequirement.safeParse({
+        protected_inputs: [{ id: "product", kind: "product" }]
+      }).success
+    ).toBe(false);
+    expect(
+      productionRequirement.safeParse({
+        protected_inputs: [{ id: "cta", kind: "exact_text" }]
+      }).success
+    ).toBe(false);
+  });
+});
 
 describe("production persistence and handoff schemas", () => {
   it("round-trips Video setup, beat requirements, and take provenance through PATCH and response", () => {

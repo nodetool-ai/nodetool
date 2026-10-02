@@ -134,6 +134,28 @@ describe("production candidate lifecycle", () => {
     expect(candidates[0]?.executionRoute).toBe("reference_to_video");
   });
 
+  it("fails closed for still-first and protected-asset video generation", () => {
+    const base = {
+      batchId: "batch-1",
+      destinationId: "clip-1",
+      destinationKind: "timeline_clip" as const,
+      operation: "initial_generation" as const,
+      prompt: "Product ad",
+      routeSupport: { referenceToVideo: true, audioDrivenPerformance: false }
+    };
+    expect(() => compileProductionCandidates({
+      ...base,
+      requirement: { schema_version: 1, speech_mode: "none", media_strategy: "still_motion_graphics", requested_take_count: 1 }
+    })).toThrow(/not a video-generation route/i);
+    expect(() => compileProductionCandidates({
+      ...base,
+      requirement: {
+        schema_version: 1, speech_mode: "none", media_strategy: "hybrid", requested_take_count: 1,
+        protected_inputs: [{ id: "product", kind: "product", asset_id: "asset-product", allowed_transformations: ["composite"] }]
+      }
+    })).toThrow(/cannot prove fidelity/i);
+  });
+
   it("rejects timing mismatches and unsupported on-camera performance before dispatch", () => {
     const base = {
       batchId: "batch-1",

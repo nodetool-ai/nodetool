@@ -21,6 +21,7 @@
  */
 
 import { useCallback } from "react";
+import { assertProductionGenerationAllowed } from "@nodetool-ai/protocol";
 import type {
   BoardRenderContext,
   Entity,
@@ -290,6 +291,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       modelOverride?: ShotModelRef,
       batchId?: string
     ): Promise<void> => {
+      assertProductionGenerationAllowed(shot.production, "text_to_image");
       const board = useStoryboardStore.getState().getBoard(boardId);
       const model = modelOverride ?? shot.still_model ?? board?.imageModel;
       const style = board?.style ?? "";
@@ -360,6 +362,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       modelOverride?: ShotModelRef,
       batchId?: string
     ): Promise<void> => {
+      assertProductionGenerationAllowed(shot.production, "text_to_video");
       if (isShotBusy(shot.id)) {
         return;
       }
@@ -537,6 +540,7 @@ export const useGenerateShot = (): UseGenerateShotResult => {
       instruction: string,
       modelOverride?: ShotModelRef
     ): Promise<void> => {
+      assertProductionGenerationAllowed(shot.production, "video_to_video");
       // Check before building the edit snapshot or running any preflight. An
       // agent call can reach this path while an ordinary render is already
       // active; its failure must not replace that render's job or pending row.

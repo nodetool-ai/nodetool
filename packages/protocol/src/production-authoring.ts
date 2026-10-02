@@ -42,6 +42,79 @@ export const productionReference = z
   .passthrough();
 export type ProductionReference = z.infer<typeof productionReference>;
 
+/** How a social-ad beat should be materialized. Generative video is opt-in. */
+export const productionMediaStrategy = z.enum([
+  "still_motion_graphics",
+  "hybrid",
+  "generated_video"
+]);
+export type ProductionMediaStrategy = z.infer<typeof productionMediaStrategy>;
+
+/** Content whose identity/copy must survive production exactly. */
+export const productionProtectedContentKind = z.enum([
+  "product",
+  "logo",
+  "exact_text",
+  "brand_color",
+  "source_asset"
+]);
+export type ProductionProtectedContentKind = z.infer<
+  typeof productionProtectedContentKind
+>;
+
+/** Transformations that preserve source identity instead of regenerating it. */
+export const productionProtectedTransformation = z.enum([
+  "position",
+  "scale",
+  "crop",
+  "rotate",
+  "mask",
+  "opacity",
+  "composite"
+]);
+export type ProductionProtectedTransformation = z.infer<
+  typeof productionProtectedTransformation
+>;
+
+/**
+ * One exact input carried from recipe/brief through Storyboard and Timeline.
+ * Asset-backed inputs name asset_id; exact copy/colors use value. Neither may
+ * be silently regenerated or replaced.
+ */
+export const productionProtectedInput = z
+  .object({
+    id: identifier,
+    kind: productionProtectedContentKind,
+    asset_id: identifier.optional(),
+    entity_id: identifier.optional(),
+    value: z.string().refine((value) => value.trim().length > 0, "Exact value must not be empty.").optional(),
+    allowed_transformations: z
+      .array(productionProtectedTransformation)
+      .max(7)
+      .default([])
+  })
+  .superRefine((input, context) => {
+    const assetKind =
+      input.kind === "product" ||
+      input.kind === "logo" ||
+      input.kind === "source_asset";
+    if (assetKind && input.asset_id === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["asset_id"],
+        message: `${input.kind} protected inputs need asset_id.`
+      });
+    }
+    if (!assetKind && input.value === undefined) {
+      context.addIssue({
+        code: "custom",
+        path: ["value"],
+        message: `${input.kind} protected inputs need an exact value.`
+      });
+    }
+  });
+export type ProductionProtectedInput = z.infer<typeof productionProtectedInput>;
+
 /** Creative context shared by the existing Video, Storyboard, and Script documents. */
 export const creativeContext = z
   .object({
@@ -146,6 +219,10 @@ export const productionRequirement = z
     speech_binding: productionSpeechBinding.optional(),
     reference_bindings: z.array(productionReferenceBinding).max(32).optional(),
     references: z.array(productionReference).max(32).optional(),
+    /** Explicit strategy. Omitted on legacy/general-video documents. */
+    media_strategy: productionMediaStrategy.optional(),
+    /** Exact assets/copy/brand tokens the materializer must preserve. */
+    protected_inputs: z.array(productionProtectedInput).max(64).optional(),
     duration_ms: z.number().int().positive().optional(),
     speech_duration_ms: z.number().int().positive().optional(),
     local_direction: nonEmptyText.optional(),
@@ -153,6 +230,10 @@ export const productionRequirement = z
   })
   .passthrough()
   .superRefine((requirement, context) => {
+    const ids = requirement.protected_inputs?.map((input) => input.id) ?? [];
+    if (new Set(ids).size !== ids.length) {
+      context.addIssue({ code: "custom", path: ["protected_inputs"], message: "Protected input ids must be unique." });
+    }
     if (
       requirement.speech_mode === "none" &&
       requirement.speech_binding !== undefined
@@ -175,6 +256,179 @@ export const productionRequirement = z
     }
   });
 export type ProductionRequirement = z.infer<typeof productionRequirement>;
+
+/** Resolve shot overrides without allowing inherited source truth to disappear. */
+export function resolveEffectiveProductionRequirement(
+  boardPolicy: ProductionRequirement | undefined,
+  shotPolicy: ProductionRequirement | undefined
+): ProductionRequirement | undefined {
+  if (!boardPolicy && !shotPolicy) return undefined;
+  if (boardPolicy) boardPolicy = productionRequirement.parse(boardPolicy);
+  if (shotPolicy) shotPolicy = productionRequirement.parse(shotPolicy);
+  const inputs = new Map<string, ProductionProtectedInput>();
+  for (const input of [
+    ...(boardPolicy?.protected_inputs ?? []),
+    ...(shotPolicy?.protected_inputs ?? [])
+  ]) {
+    const inherited = inputs.get(input.id);
+    if (inherited) {
+      if (
+        inherited.kind !== input.kind ||
+        inherited.asset_id !== input.asset_id ||
+        inherited.entity_id !== input.entity_id ||
+        inherited.value !== input.value
+      ) {
+        throw new Error(
+          `Protected input ${input.id} conflicts with inherited production truth.`
+        );
+      }
+      inputs.set(input.id, {
+        ...input,
+        allowed_transformations: inherited.allowed_transformations.filter(
+          (operation) => input.allowed_transformations.includes(operation)
+        )
+      });
+    } else {
+      inputs.set(input.id, input);
+    }
+  }
+  return productionRequirement.parse({
+    ...boardPolicy,
+    ...shotPolicy,
+    protected_inputs: [...inputs.values()]
+  });
+}
+
+/** Current generation routes cannot mechanically preserve protected content. */
+export function assertProductionGenerationAllowed(
+  requirement: ProductionRequirement | undefined,
+  capability:
+    | "text_to_image"
+    | "image_to_image"
+    | "text_to_video"
+    | "image_to_video"
+    | "reference_to_video"
+    | "video_to_video"
+): void {
+  if (!requirement) return;
+  if (
+    requirement.media_strategy === "still_motion_graphics" &&
+    capability.endsWith("video")
+  ) {
+    throw new Error(
+      "still_motion_graphics forbids video generation. Materialize editable Timeline layers instead."
+    );
+  }
+  if (requirement.protected_inputs?.length) {
+    throw new Error(
+      "This generation route cannot prove protected source fidelity. Materialize protected assets and exact values as editable Timeline layers instead."
+    );
+  }
+}
+
+/** Operations a finished-cut plan can propose against protected content. */
+export const productionMaterializationOperation = z.enum([
+  "position",
+  "scale",
+  "crop",
+  "rotate",
+  "mask",
+  "opacity",
+  "composite",
+  "replace",
+  "regenerate",
+  "recolor",
+  "edit_text"
+]);
+export type ProductionMaterializationOperation = z.infer<
+  typeof productionMaterializationOperation
+>;
+
+export interface ProductionMaterializationAction {
+  protected_input_id: string;
+  operation: ProductionMaterializationOperation;
+  /** Required for replace; equality with the protected asset is a no-op. */
+  asset_id?: string;
+  /** Required for edit_text/recolor when a caller wants validation of the value. */
+  value?: string;
+}
+
+export interface ProductionPolicyIssue {
+  code: "protected_asset_replaced" | "protected_content_regenerated" | "transformation_not_allowed" | "protected_value_changed" | "unknown_protected_input";
+  protected_input_id: string;
+  message: string;
+}
+
+/**
+ * Validate a proposed Timeline/materialization pass before it mutates the cut.
+ * The policy is intentionally pure so recipes, agents and future finished-cut
+ * tooling all enforce the same rules instead of copying prompt prose.
+ */
+export function validateProductionMaterialization(
+  requirement: Pick<ProductionRequirement, "protected_inputs">,
+  actions: readonly ProductionMaterializationAction[]
+): ProductionPolicyIssue[] {
+  const inputs = new Map(
+    (requirement.protected_inputs ?? []).map((input) => [input.id, input] as const)
+  );
+  const issues: ProductionPolicyIssue[] = [];
+  for (const action of actions) {
+    const input = inputs.get(action.protected_input_id);
+    if (!input) {
+      issues.push({
+        code: "unknown_protected_input",
+        protected_input_id: action.protected_input_id,
+        message: `Protected input ${action.protected_input_id} is not declared by this production requirement.`
+      });
+      continue;
+    }
+    if (action.operation === "regenerate") {
+      issues.push({
+        code: "protected_content_regenerated",
+        protected_input_id: input.id,
+        message: `Protected ${input.kind} ${input.id} cannot be regenerated.`
+      });
+      continue;
+    }
+    if (action.operation === "replace") {
+      if (!input.asset_id || action.asset_id !== input.asset_id) {
+        issues.push({
+          code: "protected_asset_replaced",
+          protected_input_id: input.id,
+          message: `Protected ${input.kind} ${input.id} must keep asset ${input.asset_id ?? "(none)"}.`
+        });
+      }
+      continue;
+    }
+    if (action.operation === "edit_text" || action.operation === "recolor") {
+      const matchingValueKind =
+        (action.operation === "edit_text" && input.kind === "exact_text") ||
+        (action.operation === "recolor" && input.kind === "brand_color");
+      if (!matchingValueKind) {
+        issues.push({
+          code: "transformation_not_allowed",
+          protected_input_id: input.id,
+          message: `${action.operation} is not allowed for protected ${input.kind} ${input.id}.`
+        });
+      } else if (action.value !== input.value) {
+        issues.push({
+          code: "protected_value_changed",
+          protected_input_id: input.id,
+          message: `Protected ${input.kind} ${input.id} must keep its exact value.`
+        });
+      }
+      continue;
+    }
+    if (!input.allowed_transformations.includes(action.operation)) {
+      issues.push({
+        code: "transformation_not_allowed",
+        protected_input_id: input.id,
+        message: `${action.operation} is not allowed for protected ${input.kind} ${input.id}.`
+      });
+    }
+  }
+  return issues;
+}
 
 export const productionDestinationKind = z.enum([
   "timeline_clip",

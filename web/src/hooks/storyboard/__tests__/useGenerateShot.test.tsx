@@ -59,6 +59,7 @@ import {
   settleCancelledShotJob
 } from "../../../stores/storyboard/StoryboardGenerationStore";
 import {
+  productionRequirement,
   clipPrompt,
   directClipPrompt,
   keyframePrompt
@@ -1308,5 +1309,21 @@ describe("render record context", () => {
       useStoryboardGenerationStore.getState().shotJobs[revisable.id]
         ?.renderInputs
     ).toBeUndefined();
+  });
+});
+
+describe("protected direct browser generation", () => {
+  it("rejects protected product stills before sending the RPC", async () => {
+    const protectedShot: Shot = { ...shot, production: productionRequirement.parse({ protected_inputs: [{ id: "product", kind: "product", asset_id: "original-product" }] }) };
+    const { result } = renderHook(() => useGenerateShot());
+    await expect(result.current.generateKeyframe(BOARD, protectedShot)).rejects.toThrow("protected source fidelity");
+    expect(send).not.toHaveBeenCalled();
+  });
+  it("rejects still-motion video generation and revision before sending the RPC", async () => {
+    const protectedShot: Shot = { ...shot, production: productionRequirement.parse({ media_strategy: "still_motion_graphics" }) };
+    const { result } = renderHook(() => useGenerateShot());
+    await expect(result.current.generateClip(BOARD, protectedShot)).rejects.toThrow("forbids video");
+    await expect(result.current.generateRevisedClip(BOARD, protectedShot, "animate")).rejects.toThrow("forbids video");
+    expect(send).not.toHaveBeenCalled();
   });
 });

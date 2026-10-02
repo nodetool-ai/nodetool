@@ -112,6 +112,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         camera: shot.camera,
         motion: shot.motion,
         graphics: shot.graphics,
+        production: shot.production,
         durationSeconds: shot.duration_seconds,
         durationSource: shot.duration_source,
         status: shot.status,
@@ -160,6 +161,18 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
         return [...requireBoard().shots].sort((a, b) => a.index - b.index);
       }
       return [requireShot(target)];
+    };
+
+    const assertGenerationAllowed = (shot: Shot, kind: "keyframe" | "clip" | "revision") => {
+      const policy = shot.production;
+      if (!policy) return;
+      if (kind !== "keyframe" && policy.media_strategy === "still_motion_graphics") {
+        throw new Error(`Shot ${shot.id} is still_motion_graphics; video generation is forbidden. Materialize its still/assets as editable Timeline layers instead.`);
+      }
+      const protectedAssets = policy.protected_inputs?.filter((input) => input.asset_id) ?? [];
+      if (kind === "keyframe" && protectedAssets.length > 0) {
+        throw new Error(`Shot ${shot.id} protects source assets; the current keyframe generator cannot prove it preserves them. Use the protected assets directly in the Timeline or a policy-aware finishing path.`);
+      }
     };
 
     const reRead = (id: string): Shot => {
@@ -328,6 +341,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
             camera: input.camera,
             motion: input.motion,
             graphics: input.graphics,
+            production: input.production,
             duration_seconds: input.durationSeconds
           });
           return toShotNode(reRead(id));
@@ -342,6 +356,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
           camera: input.camera,
           motion: input.motion,
           graphics: input.graphics,
+          production: input.production,
           duration_seconds: input.durationSeconds,
           status: "planned"
         };
@@ -373,6 +388,7 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
             next.graphics = patch.graphics;
           }
         }
+        if (patch.production !== undefined) next.production = patch.production ?? undefined;
         if (patch.status !== undefined) next.status = patch.status;
         if (patch.dialogue !== undefined) next.dialogue = patch.dialogue;
         if (patch.notes !== undefined) next.notes = patch.notes;
@@ -508,19 +524,16 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
       },
 
       async generateKeyframe(target, options) {
-        return renderShots(target, "keyframe", options, (shot) =>
-          generateKeyframe(boardId, shot)
-        );
+        return renderShots(target, "keyframe", options, (shot) => { assertGenerationAllowed(shot, "keyframe"); return generateKeyframe(boardId, shot); });
       },
 
       async generateClip(target, options) {
-        return renderShots(target, "clip", options, (shot) =>
-          generateClip(boardId, shot)
-        );
+        return renderShots(target, "clip", options, (shot) => { assertGenerationAllowed(shot, "clip"); return generateClip(boardId, shot); });
       },
 
       async reviseShot(target, instruction) {
         const shot = requireShot(target);
+        assertGenerationAllowed(shot, "revision");
         await generateRevisedClip(boardId, shot, instruction);
         return toShotNode(reRead(shot.id));
       },
