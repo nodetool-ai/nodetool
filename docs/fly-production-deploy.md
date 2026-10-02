@@ -1,8 +1,9 @@
 # Production deploy (Fly.io)
 
-How `main` reaches https://api.nodetool.ai, what the rolling deploy does to each
-machine, and what to do when it stops half way. Self-hosting somebody else's
-NodeTool is a different job — see [Self-Hosted Deployment](self-hosted-deployment.md).
+The active release destination is the Docker host. Follow
+[Production Deploy (Docker)](docker-production-deploy.md) for GitHub releases.
+This guide covers manual operation of the retained Fly deployment. Self-hosting
+uses [Self-Hosted Deployment](self-hosted-deployment.md).
 
 The app is `nodetool` on Fly.io, configured by [`fly.toml`](https://github.com/nodetool-ai/nodetool/blob/main/fly.toml) at the
 repo root. Its machines run in `fra`, next to the Supabase database, and the
@@ -12,22 +13,12 @@ window rather than a handover.
 
 ## What triggers a deploy
 
-A push to `main` starts two workflows independently: `docker.yml` builds and
-pushes the GHCR image, and `user-journeys.yml` runs the `reliability-ring1`
-suite. [`fly-deploy.yml`](https://github.com/nodetool-ai/nodetool/blob/main/.github/workflows/fly-deploy.yml) triggers on the
-*completion* of either, and its `gate` job polls the other for the same commit.
-Whichever finishes second is the run that reaches the rollout; both must be
-green.
-
-The image tag is `main-<shortsha>` for the exact triggering commit, never
-`:latest`. Two `main` builds can finish out of order, and `:latest` would then
-point at the wrong commit. `:latest` is used only by a manual
-`workflow_dispatch` re-deploy.
-
-`fly-deploy.yml` sets `concurrency: fly-deploy` with `cancel-in-progress: true`.
-Because both upstream workflows fire an event, **a run cancelled seconds after
-it starts is normal** — the second event superseded the first. A `cancelled`
-conclusion next to a later `success` on the same commit is not a failure.
+GitHub no longer releases to Fly. The historical
+[fly-deploy.yml](../.github/workflows/fly-deploy.yml) filename runs **Deploy to
+Docker** and Pages follows that workflow. A manual Fly release uses
+`scripts/fly-rolling-deploy.sh` with a previously built commit image or immutable
+digest. Review database compatibility and trigger dispatch before using Fly as
+the rollback destination. Do not enable a second automatic release path.
 
 ## What the rollout does
 
@@ -154,10 +145,9 @@ curl -sf -H "Authorization: Bearer $FLY_API_TOKEN" \
   script is idempotent: a machine already on the target image drains, updates to
   the same image, and reports healthy.
 
-A manual re-deploy of the current `:latest` is the `workflow_dispatch` trigger on
-`fly-deploy.yml`. To roll back, re-run `docker.yml`'s image tag for an older
-commit — the tag is `main-<shortsha>`, so any past commit on `main` is directly
-deployable.
+For a manual Fly rollback, run `bash scripts/fly-rolling-deploy.sh <image>` with
+a reviewed, previously built image. GitHub's production workflow now targets
+Docker and must not be used to operate Fly.
 
 ## Testing the script
 

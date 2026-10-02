@@ -3,13 +3,13 @@ name: Web Deploy (Cloudflare Pages)
 # Deploys the web app (web/, a Vite SPA) to Cloudflare Pages — but only AFTER
 # the backend it talks to has actually been released.
 #
-# Why the chain: the SPA used to deploy on every push to main while the Fly
-# release ("Deploy to Fly") is gated on Docker + the reliability Ring 1 suite
+# Why the chain: the SPA used to deploy on every push to main while the server
+# release ("Deploy to Docker") is gated on Docker + the reliability Ring 1 suite
 # ("User Journeys") being green for the same commit. Any Ring 1 red therefore
 # parked the backend while the frontend kept shipping, and a frontend built
 # against newer node metadata crashed on boot against the old API (17 h of
 # version skew on 2026-08-11). So this workflow now workflow_run-triggers on
-# "Deploy to Fly" completing, and the `gate` job releases the SPA only when
+# "Deploy to Docker" completing, and the `gate` job releases the SPA only when
 # that run's "Deploy server" job really ran and succeeded — not when it was
 # skipped for a superseded commit (the newer commit's own chain ships both).
 # The remaining skew window is the few minutes where the backend is newer than
@@ -55,7 +55,7 @@ name: Web Deploy (Cloudflare Pages)
 
 on:
   workflow_run:
-    workflows: ["Deploy to Fly"]
+    workflows: ["Deploy to Docker"]
     types: [completed]
     branches: [main]
   # Manual deploy of the current ref, bypassing the backend-release gate —
@@ -64,7 +64,7 @@ on:
 
 # The build only reads the repo; the Pages deploy authenticates with its own
 # Cloudflare API token. `actions: read` lets the gate inspect the triggering
-# Fly run's jobs.
+# Docker release run's jobs.
 permissions:
   contents: read
   actions: read
@@ -75,9 +75,9 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Confirms the triggering "Deploy to Fly" run actually released the backend:
+  # Confirms the triggering "Deploy to Docker" run actually released the backend:
   # its "Deploy server" job must have concluded `success`. A `skipped`
-  # conclusion means Fly's gate declined the release (commit superseded on
+  # conclusion means the server gate declined the release (commit superseded on
   # main, or Ring 1/Docker red) — shipping the SPA for that commit would
   # recreate exactly the frontend-ahead-of-backend skew this chain exists to
   # prevent, so we skip too and let the newer commit's chain deploy both.
@@ -92,7 +92,7 @@ jobs:
     env:
       GH_TOKEN: ${{ github.token }}
     steps:
-      - name: Check the Fly run's deploy job conclusion
+      - name: Check the Docker run's deploy job conclusion
         id: check
         shell: bash
         run: |
@@ -103,7 +103,7 @@ jobs:
 
           conclusion="$(gh api "repos/${repo}/actions/runs/${run_id}/jobs?per_page=100" \
             --jq '[.jobs[] | select(.name == "Deploy server")][0].conclusion // "missing"')"
-          echo "Fly run ${run_id} (commit ${sha}): 'Deploy server' concluded '${conclusion}'."
+          echo "Docker run ${run_id} (commit ${sha}): 'Deploy server' concluded '${conclusion}'."
 
           if [ "${conclusion}" = "success" ]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"

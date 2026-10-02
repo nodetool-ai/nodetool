@@ -61,7 +61,7 @@ Guidelines](docs/BRAND.md).
 - **[Harness-First Engineering](docs/HARNESS_FIRST.md)** — The doctrine: every surface headlessly drivable, the registry, `nodetool harness audit`
 - **[Agent Harnesses & Tooling](#agent-harnesses--tooling)** — Validate, debug, run, single-node, browser, deploy, trace (the tools that close the build→verify loop)
 - **[Harness Reference](docs/harnesses.md)** — Every harness and agent tool surface in full: flags, what it simulates, the design behind it. CLI flags: [docs/cli.md](docs/cli.md)
-- **[Production Deploy (Fly)](docs/fly-production-deploy.md)** — How `main` reaches api.nodetool.ai: the trigger chain, the rolling drain, and how to read a failed rollout
+- **[Production Deploy (Docker)](docs/docker-production-deploy.md)** — How `main` reaches api.nodetool.ai: the release gates, restricted SSH, and rolling drain
 - **[Dev Environment](docs/dev-environment.md)** — Sandboxed/proxied `npm install`, WebGPU without a Vulkan driver
 - **[TypeScript Backend](packages/AGENTS.md)** — TypeScript backend packages (`packages/`), and the index of the per-package overlays
 - **[Agent System](packages/agents/AGENTS.md)** — Planning, execution, parallelism, skills, tuning
@@ -368,10 +368,11 @@ verification requirements.
 
 ### Deployment & Packaging
 
-- Production ships a self-contained GHCR image to Fly.io. Backend, `web/dist`,
+- Production ships a self-contained GHCR image to the Docker host. Backend, `web/dist`,
   and workflow examples deploy together through `.github/workflows/docker.yml`,
-  `fly-deploy.yml`, and `scripts/fly-rolling-deploy.sh`. Follow the
-  [production deploy guide](docs/fly-production-deploy.md). Self-hosting uses
+  `fly-deploy.yml` (named **Deploy to Docker**), and the adjacent
+  `nodetool-deploy/rolling-deploy.sh`. Follow the
+  [production deploy guide](docs/docker-production-deploy.md). Self-hosting uses
   `docker-compose.yml` or `packages/deploy`, not the retired `deploy.sh`. See
   [deployment commands](docs/cli.md#nodetool-deploy).
 - `node scripts/docker-smoke.mjs http://localhost:7777` checks a running image's

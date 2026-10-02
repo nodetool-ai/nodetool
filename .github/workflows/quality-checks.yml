@@ -159,6 +159,10 @@ jobs:
           ${{ matrix.command }}
           echo "::endgroup::"
 
+      - name: Check production release workflow contracts
+        if: matrix.check == 'lint'
+        run: node --test .github/tests/docker-deploy.test.mjs
+
   # Build the ~55 backend packages ONCE and publish their dist as an artifact.
   # The `built` legs below consume it instead of each rebuilding from scratch,
   # which on a fresh commit (cold per-SHA Turbo cache) means one build instead
