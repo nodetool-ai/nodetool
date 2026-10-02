@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
+import { isRecord, sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
 import { runCodeBody } from "../src/capabilities/code.js";
 import { mountJsScriptSandbox } from "../src/js-script-sandbox.js";
 import {
@@ -109,10 +109,38 @@ const craft: Turn = (args) => [
   }),
   call("submit_finished_cut")
 ];
-const approve: Turn = () => [
+function candidateFrameReviews(
+  args: Parameters<BaseProvider["generateMessages"]>[0],
+  findings: string[] = []
+) {
+  const user = args.messages.find((message) => message.role === "user");
+  const content =
+    Array.isArray(user?.content) && user.content[0].type === "text"
+      ? user.content[0].text
+      : user?.content;
+  if (typeof content !== "string") {
+    throw new Error("Missing candidate frame context.");
+  }
+  const parsed: unknown = JSON.parse(content);
+  if (!isRecord(parsed) || !Array.isArray(parsed["frameTimesMs"])) {
+    throw new Error("Missing candidate frame times.");
+  }
+  return parsed["frameTimesMs"].map((timeMs, index) => {
+    if (typeof timeMs !== "number") {
+      throw new Error("Invalid candidate frame time.");
+    }
+    return {
+      timeMs,
+      passed: index > 0 || findings.length === 0,
+      findings: index === 0 ? findings : []
+    };
+  });
+}
+const approve: Turn = (args) => [
   call("review_finished_cut", {
     passed: true,
     findings: [],
+    frameReviews: candidateFrameReviews(args),
     summary:
       "Both shots show the original red product as a separate image above a dark background. Exact white price is visible and the continuing accent remains aligned."
   })
@@ -1039,6 +1067,9 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
             findings: [
               "Price is undersized relative to the product. Increase its size on both shots."
             ],
+            frameReviews: candidateFrameReviews(args, [
+              "Price is undersized relative to the product. Increase its size on both shots."
+            ]),
             summary:
               "The original red product is visible. The small price lacks emphasis."
           })
@@ -1208,15 +1239,118 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
       )
     ).toBe(false);
   });
+  it("requires consistent per-frame review verdicts before recording an explicit corrected pass", async () => {
+    const { board, context } = await fixture();
+    const provider = new FinishingProvider([
+      craft,
+      done,
+      (args) => [
+        call("review_finished_cut", {
+          passed: false,
+          findings: [],
+          summary: "All supplied candidate frames are clear and have no defects.",
+          frameReviews: candidateFrameReviews(args)
+        })
+      ],
+      (args) => {
+        const response = args.messages
+          .filter((message) => message.role === "tool")
+          .at(-1)?.content;
+        expect(String(response)).toContain("consistent");
+        return [
+          call("review_finished_cut", {
+            passed: true,
+            findings: [],
+            summary: "After explicitly checking every candidate frame, no material visual defect remains.",
+            frameReviews: candidateFrameReviews(args)
+          })
+        ];
+      },
+      done
+    ]);
+    const result = await execute(provider, context, board);
+    expect(result.error).toBeUndefined();
+    expect(result["reviews"]).toEqual(
+      expect.arrayContaining([
+        expect.objectContaining({
+          passed: true,
+          findings: [],
+          frameReviews: expect.any(Array)
+        })
+      ])
+    );
+    expect((await Storyboard.findById(board.id))?.timeline_id).toBe(result.timelineId);
+  });
+  it.each([
+    "missing",
+    "duplicate",
+    "unknown",
+    "overall_pass",
+    "frame_pass",
+    "findings_mismatch"
+  ])("does not record inconsistent %s frame review or persist a candidate", async (mistake) => {
+    const { board, context } = await fixture();
+    const provider = new FinishingProvider([
+      craft,
+      done,
+      (args) => {
+        const frameReviews = candidateFrameReviews(args);
+        const findings: string[] = [];
+        let passed = true;
+        if (mistake === "missing") {
+          frameReviews.pop();
+        } else if (mistake === "duplicate") {
+          frameReviews[1].timeMs = frameReviews[0].timeMs;
+        } else if (mistake === "unknown") {
+          frameReviews[0].timeMs = -1;
+        } else if (mistake === "overall_pass") {
+          frameReviews[0].passed = false;
+          frameReviews[0].findings = ["Visible price overlaps the product."];
+          findings.push(...frameReviews[0].findings);
+        } else if (mistake === "frame_pass") {
+          frameReviews[0].findings = ["Visible price overlaps the product."];
+          findings.push(...frameReviews[0].findings);
+          passed = false;
+        } else {
+          frameReviews[0].passed = false;
+          frameReviews[0].findings = ["Visible price overlaps the product."];
+          passed = false;
+        }
+        return [
+          call("review_finished_cut", {
+            passed,
+            findings,
+            summary: "Inspect the explicit frame verdicts without inferring approval from this prose.",
+            frameReviews
+          })
+        ];
+      },
+      (args) => {
+        const response = args.messages
+          .filter((message) => message.role === "tool")
+          .at(-1)?.content;
+        expect(JSON.parse(String(response))).toMatchObject({
+          ok: false,
+          error: expect.stringContaining("Review not recorded"),
+          expectedFrameTimesMs: candidateFrameReviews(args).map((frame) => frame.timeMs)
+        });
+        return [];
+      }
+    ]);
+    const result = await execute(provider, context, board);
+    expect(result.error).toMatch(/no explicit visual review/);
+    expect((await Storyboard.findById(board.id))?.timeline_id).toBeFalsy();
+  });
   it("fails when visual findings are unresolved and the agent submits the unchanged draft", async () => {
     const { board, context } = await fixture();
     const provider = new FinishingProvider([
       craft,
       done,
-      () => [
+      (args) => [
         call("review_finished_cut", {
           passed: false,
           findings: ["CTA absent in the closing frame"],
+          frameReviews: candidateFrameReviews(args, ["CTA absent in the closing frame"]),
           summary: "Closing frame needs its CTA"
         })
       ],

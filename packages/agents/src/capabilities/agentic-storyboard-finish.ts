@@ -35,10 +35,16 @@ import { applyOps, parseOps } from "./timelines.js";
 import { editTimelineSpec } from "./timelines.specs.js";
 import { renderTimelineFrames } from "../timeline-preview/frames.js";
 
+const frameReviewSchema = z.object({
+  timeMs: z.number().finite(),
+  passed: z.boolean(),
+  findings: z.array(z.string().min(1))
+});
 const reviewSchema = z.object({
   passed: z.boolean(),
   findings: z.array(z.string().min(1)),
-  summary: z.string().min(1)
+  summary: z.string().min(1),
+  frameReviews: z.array(frameReviewSchema).min(1)
 });
 export interface FinishedCutRuntime {
   readonly provider: BaseProvider;
@@ -51,6 +57,11 @@ export interface FinishedCutReview {
   readonly passed: boolean;
   readonly findings: readonly string[];
   readonly summary: string;
+  readonly frameReviews?: readonly {
+    readonly timeMs: number;
+    readonly passed: boolean;
+    readonly findings: readonly string[];
+  }[];
   readonly referenceFrames: readonly {
     shotId: string;
     fingerprint: string;
@@ -443,17 +454,8 @@ export async function finishStoryboardAgentically(
   const review: ProviderTool = {
     name: "review_finished_cut",
     description:
-      "Report visual findings after inspecting EVERY attached composited frame. A pass needs no defects and an explicit visual summary. Cannot waive source/policy/structure validation.",
-    inputSchema: {
-      type: "object",
-      properties: {
-        passed: { type: "boolean" },
-        findings: { type: "array", items: { type: "string" } },
-        summary: { type: "string" }
-      },
-      required: ["passed", "findings", "summary"],
-      additionalProperties: false
-    }
+      "Inspect EVERY actual candidate frame and report one frameReviews entry per supplied candidate timeMs. References are separate, never candidate frames. findings contain only current unresolved material defects, never positive observations, withdrawn suspicions or resolved issues. Each frame passed must equal whether its findings are empty. Overall passed must equal every frame passed; overall findings is the unique union of frame findings. Submit an internally consistent explicit verdict and visual summary. Cannot waive source/policy/structure validation.",
+    inputSchema: zodToJsonSchema(reviewSchema)
   };
 
   const drive = async (
@@ -849,19 +851,27 @@ export async function finishStoryboardAgentically(
           storyboard: board,
           resolvedProduction: input,
           timeline: document,
-          frameTimesMs: timesMs,
+          frameTimesMs: frames.frames.map((frame) => frame.time_ms),
+          candidateFrameCount: frames.frames.length,
+          designReferenceFrameCount: referenceEvidence.length,
           instruction:
             "Visually review all rendered frames against approved semantic graphics and full-cut direction. Find clipped/overlapped copy, hidden assets, wrong hierarchy/contrast, awkward motion endpoints and continuity failures. The first images are labeled design references derived from the expected Storyboard revision. The subsequent images are the actual candidate cut. Compare candidate composition against these references while assessing motion and visual defects. These references are derived from approved/current semantic intent, not a separate historical pixel approval. Exact identity is independently checked mechanically. Fail on any material defect."
         })
       },
       ...referenceImages,
-      ...frames.frames.map(
-        (frame): MessageContent => ({
-          type: "image_url",
-          image: {
-            uri: `data:image/png;base64,${Buffer.from(frame.png).toString("base64")}`
+      ...frames.frames.flatMap(
+        (frame): MessageContent[] => [
+          {
+            type: "text",
+            text: `Actual candidate cut frame at ${frame.time_ms}ms. Include exactly one frameReviews entry for this timeMs. This is not a derived design reference.`
+          },
+          {
+            type: "image_url",
+            image: {
+              uri: `data:image/png;base64,${Buffer.from(frame.png).toString("base64")}`
+            }
           }
-        })
+        ]
       )
     ];
     await drive(
@@ -869,7 +879,7 @@ export async function finishStoryboardAgentically(
         {
           role: "system",
           content:
-            "You are the visual finishing reviewer. Inspect the actual supplied composited frame pixels. Call review_finished_cut with actionable findings and a specific visual summary. Never approve without inspecting the whole cut."
+            "You are the visual finishing reviewer. Inspect the actual supplied composited frame pixels. Design references and actual candidate frames are labeled separately. Review each actual candidate timeMs exactly once. Call review_finished_cut with an internally consistent overall and per-frame verdict. Findings are ONLY current unresolved actionable material defects. Put positive observations and withdrawn suspicions in summary, not findings. If no material defect remains, explicitly set passed true with empty findings for every frame and overall. If any frame has a material defect, set that frame and overall passed false with the exact defect in both findings lists. Never approve without inspecting the whole cut. Never reject merely to report positive observations or previously resolved issues."
         },
         { role: "user", content }
       ],
@@ -885,8 +895,30 @@ export async function finishStoryboardAgentically(
         if (!parsed.success) {
           return json(parsed.error.issues);
         }
-        if (parsed.data.passed && parsed.data.findings.length) {
-          return "A passing review cannot contain unresolved findings.";
+        const expectedTimes = frames.frames.map((frame) => frame.time_ms);
+        const reportedTimes = parsed.data.frameReviews.map(
+          (frame) => frame.timeMs
+        );
+        const frameFindings = [
+          ...new Set(parsed.data.frameReviews.flatMap((frame) => frame.findings))
+        ].sort();
+        const consistent =
+          reportedTimes.length === expectedTimes.length &&
+          new Set(reportedTimes).size === expectedTimes.length &&
+          reportedTimes.every((time) => expectedTimes.includes(time)) &&
+          parsed.data.frameReviews.every(
+            (frame) => frame.passed === (frame.findings.length === 0)
+          ) &&
+          parsed.data.passed ===
+            parsed.data.frameReviews.every((frame) => frame.passed) &&
+          json([...parsed.data.findings].sort()) === json(frameFindings);
+        if (!consistent) {
+          return json({
+            ok: false,
+            error: "Review not recorded. Submit consistent overall and per-frame verdicts.",
+            expectedFrameTimesMs: expectedTimes,
+            resolution: "Review each actual candidate timeMs exactly once, without reference frames. Each frame passed must equal whether its unresolved defect findings are empty. Overall passed must equal every frame passed. Overall findings must be the unique union of frame findings. Correct the explicit report and call review_finished_cut again. No verdict will be inferred from summary."
+          });
         }
         verdict = parsed.data;
         return "Review recorded.";
