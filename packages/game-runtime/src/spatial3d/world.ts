@@ -1,6 +1,6 @@
 import type { Collider, ColliderDesc, KinematicCharacterController, RigidBody, World } from "@dimforge/rapier3d-compat";
 import type { GameCollider3D, GameInputFrame3D, GameScene3D, GameScriptCommand3D, GameSnapshot3D, GameVector3 } from "@nodetool-ai/protocol";
-import { add3, approach, quaternionArray, quaternionObject, quantizeSpatial3D, scale3, ZERO3 } from "./math.js";
+import { add3, approach, multiplyQuaternion, quaternionArray, quaternionObject, quantizeSpatial3D, scale3, ZERO3 } from "./math.js";
 import { base64ToBytes, bytesToBase64 } from "./digest.js";
 import { pairKey3D, type Contact3D, type EntityState3D } from "./state.js";
 
@@ -238,7 +238,17 @@ export class SpatialWorld3D {
       const body = this.records.get(state.definition.id)?.body;
       if (!body) continue;
       const delta = posed.has(state.definition.id) ? add3(body.nextTranslation(), scale3(body.translation(), -1)) : scale3(state.velocity, 1 / 60);
-      if (!posed.has(state.definition.id)) body.setNextKinematicTranslation(add3(state.transform.position, delta));
+      if (!posed.has(state.definition.id)) {
+        body.setNextKinematicTranslation(add3(state.transform.position, delta));
+        const angularSpeed = Math.hypot(state.angularVelocity.x, state.angularVelocity.y, state.angularVelocity.z);
+        if (angularSpeed > 0) {
+          const halfAngle = angularSpeed / 120;
+          const axis = scale3(state.angularVelocity, Math.sin(halfAngle) / angularSpeed);
+          body.setNextKinematicRotation(quaternionObject(multiplyQuaternion(
+            [axis.x, axis.y, axis.z, Math.cos(halfAngle)], state.transform.rotation
+          )));
+        }
+      }
       platformMoves.set(state.definition.id, delta);
     }
     const sensors = [...this.records.values()].flatMap((record) => record.collider?.isSensor() ? [record.collider] : []);
@@ -259,7 +269,9 @@ export class SpatialWorld3D {
       state.velocity.x = quantizeSpatial3D(approach(state.velocity.x, worldX * character.speed, character.acceleration / 60));
       state.velocity.z = quantizeSpatial3D(approach(state.velocity.z, worldZ * character.speed, character.acceleration / 60));
       if (controllerState.grounded) controllerState.coyoteRemaining = character.coyoteTicks;
-      if (intent?.jump || input.justPressed.includes(character.jumpAction)) controllerState.jumpBufferRemaining = character.jumpBufferTicks + 1;
+      if (intent?.jump ?? input.justPressed.includes(character.jumpAction)) {
+        controllerState.jumpBufferRemaining = character.jumpBufferTicks + 1;
+      }
       let jumped = false;
       if (controllerState.jumpBufferRemaining > 0 && (controllerState.grounded || controllerState.coyoteRemaining > 0)) {
         controllerState.verticalVelocity = character.jumpSpeed;

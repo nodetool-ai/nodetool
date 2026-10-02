@@ -788,34 +788,6 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
               state.velocityY += gravity.y * scale * dt;
             }
           }
-          // Static bodies with a velocity are moving solids. They move first and carry the bodies that
-          // stand on them; a body in the way is pushed out along the motion.
-          const carries = new Map<EntityState, { dx: number; dy: number; platform: EntityState }>();
-          for (const platform of states) {
-            if (!platform.active || platform.definition.body2d?.type !== "static" || platform.velocityX === 0 && platform.velocityY === 0) {
-              continue;
-            }
-            const dx = platform.velocityX * dt;
-            const dy = platform.velocityY * dt;
-            const riders = kinematic.filter((body) => !carries.has(body) && standsOn(body, platform));
-            platform.x += dx;
-            platform.y += dy;
-            for (const rider of riders) carries.set(rider, { dx, dy, platform });
-            for (const body of kinematic) {
-              const box = colliderBox(body);
-              if (!box || carries.get(body)?.platform === platform || body.definition.collider2d?.sensor) continue;
-              const found: Obstacle[] = [];
-              obstaclesOf(platform, body.x - box.halfWidth, body.y - box.halfHeight, body.x + box.halfWidth, body.y + box.halfHeight, found);
-              for (const obstacle of found) {
-                if (!obstacle.solid || obstacle.sensor || obstacle.oneWay || !canCollideObstacle(body, obstacle)) continue;
-                const o = obstacle.box;
-                if (Math.abs(body.x - o.x) >= box.halfWidth + o.halfWidth - TOUCH_EPSILON ||
-                  Math.abs(body.y - o.y) >= box.halfHeight + o.halfHeight - TOUCH_EPSILON) continue;
-                if (Math.abs(dy) >= Math.abs(dx)) body.y = o.y + Math.sign(dy) * (o.halfHeight + box.halfHeight);
-                else body.x = o.x + Math.sign(dx) * (o.halfWidth + box.halfWidth);
-              }
-            }
-          }
           const moveBody = (state: EntityState, dx: number, dy: number, exclude: EntityState | undefined): { blockedX: number; blockedY: number } => {
             const collider = state.definition.collider2d;
             const blocked = { blockedX: 0, blockedY: 0 };
@@ -872,6 +844,42 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
             }
             return blocked;
           };
+          // Static bodies with a velocity are moving solids. They move first and carry the bodies that
+          // stand on them; a body in the way is pushed out along the motion.
+          const carries = new Map<EntityState, { dx: number; dy: number; platform: EntityState }>();
+          for (const platform of states) {
+            if (!platform.active || platform.definition.body2d?.type !== "static" || platform.velocityX === 0 && platform.velocityY === 0) {
+              continue;
+            }
+            const dx = platform.velocityX * dt;
+            const dy = platform.velocityY * dt;
+            const riders = kinematic.filter((body) => !carries.has(body) && standsOn(body, platform));
+            platform.x += dx;
+            platform.y += dy;
+            for (const rider of riders) carries.set(rider, { dx, dy, platform });
+            for (const body of kinematic) {
+              const box = colliderBox(body);
+              if (!box || carries.get(body)?.platform === platform || body.definition.collider2d?.sensor) continue;
+              const found: Obstacle[] = [];
+              obstaclesOf(platform, body.x - box.halfWidth + Math.min(0, dx), body.y - box.halfHeight + Math.min(0, dy),
+                body.x + box.halfWidth + Math.max(0, dx), body.y + box.halfHeight + Math.max(0, dy), found);
+              for (const obstacle of found) {
+                if (!obstacle.solid || obstacle.sensor || obstacle.oneWay || !canCollideObstacle(body, obstacle)) continue;
+                const o = obstacle.box;
+                // Sweep relative to the platform's starting position, then push through the regular
+                // collision solver so a platform cannot teleport its passenger through another wall.
+                const hit = sweepBox(box, { ...o, x: o.x - dx, y: o.y - dy }, -dx, -dy, false);
+                if (!hit || (obstacle.internal & faceOf(hit)) !== 0) {
+                  continue;
+                }
+                recordContact(body, platform, hit);
+                // An earlier tile can already have pushed the body beyond this face.
+                const pushX = hit.normalX * Math.max(0, (o.x - body.x) * hit.normalX + o.halfWidth + box.halfWidth);
+                const pushY = hit.normalY * Math.max(0, (o.y - body.y) * hit.normalY + o.halfHeight + box.halfHeight);
+                moveBody(body, pushX, pushY, platform);
+              }
+            }
+          }
           for (const state of kinematic) {
             if (!state.definition.collider2d) {
               state.x += state.velocityX * dt;
@@ -1002,9 +1010,9 @@ function createGameSessionWithRunner(value: GameDocument, seed: number, savedSna
             spawnSequence += 1;
             const sourceState = states.find((state) => state.definition.id === source.id);
             if (!sourceState) throw new Error(`Missing spawn template state ${source.id}`);
-            const spawned = initialState({ ...source, id: `${prefabId}#${spawnSequence}`, templateOnly: false }, sourceState, tick + 1);
-            if (spawn.x !== undefined) spawned.x = spawned.previousX = spawn.x;
-            if (spawn.y !== undefined) spawned.y = spawned.previousY = spawn.y;
+            const spawned = initialState({ ...source, id: `${prefabId}#${spawnSequence}`, templateOnly: false }, {
+              ...sourceState, x: spawn.x ?? sourceState.x, y: spawn.y ?? sourceState.y
+            }, tick + 1);
             if (spawn.velocityX !== undefined) spawned.velocityX = spawn.velocityX;
             if (spawn.velocityY !== undefined) spawned.velocityY = spawn.velocityY;
             states.push({ ...spawned, sourceId: prefabId });

@@ -1,6 +1,6 @@
 import { createCanvas, GlobalFonts, loadImage } from "@napi-rs/canvas";
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
-import { paintHud, pixelRect, projectedCamera, visibleItems } from "./frame.js";
+import { paintHud, pixelRect, projectedCamera, tintPixels, visibleItems } from "./frame.js";
 import { applyLighting, spritePixelBounds } from "./lighting.js";
 import { gameFontFamily } from "./fonts.js";
 import { applyGpuEffects } from "./gpu-capture.js";
@@ -81,11 +81,9 @@ export async function captureGameFrame(frame: GameRenderFrame, options: CaptureG
           tintCanvas = createCanvas(source.width, source.height);
           const tintContext = tintCanvas.getContext("2d");
           tintContext.drawImage(image, source.x, source.y, source.width, source.height, 0, 0, source.width, source.height);
-          tintContext.globalCompositeOperation = "multiply";
-          tintContext.fillStyle = item.tint;
-          tintContext.fillRect(0, 0, source.width, source.height);
-          tintContext.globalCompositeOperation = "destination-in";
-          tintContext.drawImage(image, source.x, source.y, source.width, source.height, 0, 0, source.width, source.height);
+          const pixels = tintContext.getImageData(0, 0, source.width, source.height);
+          tintPixels(pixels.data, item.tint);
+          tintContext.putImageData(pixels, 0, 0);
           tinted.set(key, tintCanvas);
         }
         drawContext.drawImage(tintCanvas, -width / 2, -height / 2, width, height);

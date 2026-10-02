@@ -37,6 +37,26 @@ function entity(session: ReturnType<typeof createGameSession>, id: string) {
 }
 
 describe("platformer physics", () => {
+  it.each([
+    { axis: "x", direction: 1 }, { axis: "x", direction: -1 },
+    { axis: "y", direction: 1 }, { axis: "y", direction: -1 }
+  ] as const)("pushes monotonically through moving tiles regardless of order ($axis, $direction)", ({ axis, direction }) => {
+    for (const reverse of [false, true]) {
+      const positions = reverse ? [-2, 0] : [0, -2];
+      const session = createGameSession(game([
+        { id: "platform", transform2d: { x: axis === "x" ? -2 * direction : 0, y: axis === "y" ? -2 * direction : 0 },
+          body2d: { type: "static", velocity: { x: axis === "x" ? 360 * direction : 0, y: axis === "y" ? 360 * direction : 0 } },
+          tilemap: { assetId: "tiles", solid: true, tiles: positions.map((position) => ({
+            x: axis === "x" ? position * direction : 0, y: axis === "y" ? position * direction : 0, width: 1, height: 1
+          })) } },
+        body("hero", 0, 0, { collider2d: { width: 1, height: 1 } })
+      ], { gravity: { x: 0, y: 0 } }), 0);
+      session.step(idle);
+      expect(entity(session, "hero")[axis]).toBe(5 * direction);
+      session.dispose();
+    }
+  });
+
   it("drops a body onto solid tiles, where it rests without building fall speed", () => {
     const session = createGameSession(game([ground(row(-3, 3, 0)), body("hero", 0, 3)]), 0);
     run(session, 120);
