@@ -16,7 +16,7 @@ import {
   useTimelinePlaybackStore,
   useTimelinePlaybackStoreApi
 } from "../../stores/timeline/TimelineInstance";
-import { useEntities } from "../../serverState/useEntities";
+import { useStoryboardDesignSources } from "../../serverState/useStoryboardDesignSources";
 import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import PauseIcon from "@mui/icons-material/Pause";
 import { PlaybackClock } from "../timeline/preview/PlaybackClock";
@@ -45,14 +45,19 @@ export default function ShotDesignFrame({
   shot
 }: ShotDesignFrameProps): React.ReactElement {
   const board = useStoryboardStore((state) => state.boards[boardId]);
-  const { data: entities } = useEntities();
+  const sourceShots = useMemo(
+    () => board?.shots.map((value) => value.id === shot.id ? shot : value) ?? [],
+    [board?.shots, shot]
+  );
+  const sources = useStoryboardDesignSources(sourceShots);
   const preview = useMemo(() => {
     if (!board) {
       return null;
     }
-    const shots = structuredClone(
-      board.shots.map((value) => (value.id === shot.id ? shot : value))
-    );
+    if (sources.error) {
+      return {error: sources.error.message};
+    }
+    const shots = structuredClone(sourceShots);
     for (const value of shots) {
       value.production = resolveEffectiveProductionRequirement(
         undefined,
@@ -66,15 +71,40 @@ export default function ShotDesignFrame({
         if (!entityId) {
           continue;
         }
-        const assetId = entities?.find((entity) => entity.id === entityId)
-          ?.reference_images?.[0]?.asset_id;
-        if (!assetId && value.id === shot.id) {
+        if (!sources.data) {
+          return null;
+        }
+        const entity = sources.data.entitiesByReference[entityId];
+        const assetId = entity?.reference_images?.[0]?.asset_id;
+        if (!assetId) {
           return {
             error: `Entity ${entityId} needs a reference image before its design frame can be reviewed.`
           };
         }
-        if (!assetId) {
-          continue;
+        if (
+          protection?.entity_id &&
+          sources.data.entitiesByReference[protection.entity_id]?.id !== entity.id
+        ) {
+          return {
+            error: `Element ${element.id} references a different entity from its protected source. Update the production inputs before reviewing.`
+          };
+        }
+        for (const declaredId of [element.asset_id, protection?.asset_id]) {
+          if (declaredId && sources.data.assetsByReference[declaredId]?.id !== assetId) {
+            return {
+              error: `Entity ${entityId} no longer points to the exact declared source asset. Update the production inputs before reviewing.`
+            };
+          }
+        }
+        element.entity_id = entity.id;
+        if (protection?.entity_id) {
+          protection.entity_id = entity.id;
+        }
+        if (element.asset_id) {
+          element.asset_id = assetId;
+        }
+        if (protection?.asset_id) {
+          protection.asset_id = assetId;
         }
         if (element.kind === "asset" && !element.asset_id) {
           element.asset_id = assetId;
@@ -98,7 +128,11 @@ export default function ShotDesignFrame({
         motionDesign: board.screenplay?.motion_design
       },
       shot.id,
-      { style: board.style, context: board.creativeContext, entities }
+      {
+        style: board.style,
+        context: board.creativeContext,
+        entities: Object.values(sources.data?.entitiesByReference ?? {})
+      }
     );
     if (frame.validation.length) {
       return {
@@ -126,7 +160,7 @@ export default function ShotDesignFrame({
       startMs: frame.timeMs - durationMs / 2,
       endMs: frame.timeMs + durationMs / 2
     };
-  }, [board, shot, entities, boardId]);
+  }, [board, shot, sourceShots, sources.data, sources.error, boardId]);
   return (
     <Box
       role="region"

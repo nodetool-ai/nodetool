@@ -1,13 +1,15 @@
 import React from "react";
-import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { act, fireEvent, render as renderComponent, screen, waitFor } from "@testing-library/react";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { trpcClient } from "../../../trpc/client";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Shot } from "@nodetool-ai/protocol";
 import mockTheme from "../../../__mocks__/themeMock";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import ShotDesignFrame from "../ShotDesignFrame";
 
-jest.mock("../../../serverState/useEntities", () => ({
-  useEntities: () => ({ data: [] })
+jest.mock("../../../trpc/client", () => ({
+  trpcClient: {assets: {get: {query: jest.fn()}, search: {query: jest.fn()}}}
 }));
 jest.mock("../../timeline/preview/PreviewCompositor", () => {
   const { useTimelineStore, useTimelinePlaybackStore } = jest.requireActual(
@@ -29,6 +31,26 @@ jest.mock("../../timeline/preview/PreviewCompositor", () => {
     }
   };
 });
+let queryClient: QueryClient;
+const getAssetQuery = trpcClient.assets.get.query as jest.Mock;
+const canonical = "a".repeat(32);
+const replacement = "b".repeat(32);
+const sourceAsset = (id = canonical, projectId = "another-project", referenceId?: string) => ({
+  id, user_id: "owned-user", project_id: projectId, name: "Product", content_type: "image/png", created_at: "", metadata: {nodetool_entity: {kind: "prop", name: "Product", descriptor: "Exact product", ...(referenceId ? {reference_asset_id: referenceId} : {})}}
+});
+const render = (view: React.ReactElement) => renderComponent(view, {
+  wrapper: ({children}) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+});
+beforeEach(() => {
+  queryClient = new QueryClient({defaultOptions: {queries: {retry: false}}});
+  getAssetQuery.mockReset();
+  getAssetQuery.mockImplementation(async ({id}) => {
+    if (id === canonical || id === canonical.slice(0, 12)) return sourceAsset();
+    throw new Error("Asset not found");
+  });
+});
+afterEach(() => queryClient.clear());
+
 const shot: Shot = {
   type: "shot",
   id: "hook",
@@ -61,6 +83,58 @@ describe("Storyboard design frame adapter", () => {
       }
     }));
   });
+  it("resolves a unique short entity and asset reference through the owned server boundary", async () => {
+    const candidate: Shot = {...shot, graphics: {mode: "graphics_first", elements: [{id: "product", kind: "asset", role: "product", asset_id: canonical.slice(0, 12), entity_id: canonical.slice(0, 12)}]}};
+    render(<ThemeProvider theme={mockTheme}><ShotDesignFrame boardId="board" shot={candidate} /></ThemeProvider>);
+    await waitFor(() => expect(screen.getByTestId("timeline-compositor-input")).toHaveTextContent(canonical));
+    expect(getAssetQuery).toHaveBeenCalledWith({id: canonical.slice(0, 12)});
+    expect(getAssetQuery).toHaveBeenCalledWith({id: canonical});
+    expect(candidate.graphics?.elements?.[0].asset_id).toBe(canonical.slice(0, 12));
+  });
+
+  it("renders an owned entity outside the active project catalog without moving it", async () => {
+    const candidate: Shot = {...shot, graphics: {mode: "graphics_first", elements: [{id: "product", kind: "asset", role: "product", asset_id: canonical, entity_id: canonical}]}};
+    render(<ThemeProvider theme={mockTheme}><ShotDesignFrame boardId="board" shot={candidate} /></ThemeProvider>);
+    await waitFor(() => expect(screen.getByTestId("timeline-compositor-input")).toHaveTextContent(canonical));
+    expect(getAssetQuery).toHaveBeenCalledWith({id: canonical});
+    expect(trpcClient.assets.search.query).not.toHaveBeenCalled();
+  });
+
+  it.each(["Asset not found", "short id matches more than one row"])("denies missing/foreign or ambiguous entities before compositor rendering: %s", async message => {
+    getAssetQuery.mockRejectedValue(new Error(message));
+    const candidate: Shot = {...shot, graphics: {mode: "graphics_first", elements: [{id: "product", kind: "asset", role: "product", asset_id: canonical, entity_id: canonical.slice(0, 12)}]}};
+    render(<ThemeProvider theme={mockTheme}><ShotDesignFrame boardId="board" shot={candidate} /></ThemeProvider>);
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent(message));
+    expect(screen.queryByTestId("timeline-compositor-input")).not.toBeInTheDocument();
+  });
+
+  it("rejects a swapped entity reference instead of replacing protected exact media", async () => {
+    getAssetQuery.mockImplementation(async ({id}) => id === canonical ? sourceAsset(canonical, "another-project", replacement) : sourceAsset(replacement));
+    const candidate: Shot = {...shot, production: {schema_version: 1, speech_mode: "none", requested_take_count: 1, media_strategy: "still_motion_graphics", protected_inputs: [{id: "product-input", kind: "product", asset_id: canonical, entity_id: canonical, allowed_transformations: ["position", "scale", "opacity", "composite"]}]}, graphics: {mode: "graphics_first", elements: [{id: "product", kind: "asset", role: "product", asset_id: canonical, entity_id: canonical, protected_input_id: "product-input"}]}};
+    render(<ThemeProvider theme={mockTheme}><ShotDesignFrame boardId="board" shot={candidate} /></ThemeProvider>);
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("no longer points to the exact declared source asset"));
+    expect(screen.queryByTestId("timeline-compositor-input")).not.toBeInTheDocument();
+    expect(candidate.production?.protected_inputs?.[0].asset_id).toBe(canonical);
+  });
+
+  it("rejects conflicting graphics/protected entity identities even when their image matches", async () => {
+    getAssetQuery.mockImplementation(async ({id}) => id === canonical ? sourceAsset() : sourceAsset(replacement, "another-project", canonical));
+    const candidate: Shot = {...shot, production: {schema_version: 1, speech_mode: "none", requested_take_count: 1, media_strategy: "still_motion_graphics", protected_inputs: [{id: "product-input", kind: "product", asset_id: canonical, entity_id: replacement, allowed_transformations: ["position", "scale", "opacity", "composite"]}]}, graphics: {mode: "graphics_first", elements: [{id: "product", kind: "asset", role: "product", asset_id: canonical, entity_id: canonical, protected_input_id: "product-input"}]}};
+    render(<ThemeProvider theme={mockTheme}><ShotDesignFrame boardId="board" shot={candidate} /></ThemeProvider>);
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("different entity from its protected source"));
+    expect(screen.queryByTestId("timeline-compositor-input")).not.toBeInTheDocument();
+  });
+
+  it("revalidates exact source identity when an entity changes after review", async () => {
+    const candidate: Shot = {...shot, graphics: {mode: "graphics_first", elements: [{id: "product", kind: "asset", role: "product", asset_id: canonical, entity_id: canonical}]}};
+    render(<ThemeProvider theme={mockTheme}><ShotDesignFrame boardId="board" shot={candidate} /></ThemeProvider>);
+    await waitFor(() => expect(screen.getByTestId("timeline-compositor-input")).toHaveTextContent(canonical));
+    getAssetQuery.mockImplementation(async ({id}) => id === canonical ? sourceAsset(canonical, "another-project", replacement) : sourceAsset(replacement));
+    await act(async () => queryClient.invalidateQueries({queryKey: ["assets"]}));
+    await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("no longer points to the exact declared source asset"));
+    expect(screen.queryByTestId("timeline-compositor-input")).not.toBeInTheDocument();
+  });
+
   it("plays a policy-allowed composed video using its local Timeline playback", async () => {
     const videoShot: Shot = {
       ...shot,
