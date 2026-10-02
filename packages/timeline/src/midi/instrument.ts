@@ -57,6 +57,10 @@ export const AUDITION_PITCH = 60;
  * so middle C would preview it as silence; every other voice takes middle C.
  */
 export function auditionPitch(instrument: MidiInstrument): number {
+  if (instrument.type === "sampler") {
+    const zone = instrument.zones[0];
+    return zone ? Math.max(zone.lowNote, Math.min(zone.highNote, zone.rootNote)) : AUDITION_PITCH;
+  }
   return instrument.type === "drum" ? instrument.baseNote : AUDITION_PITCH;
 }
 
@@ -67,6 +71,7 @@ export function auditionPitch(instrument: MidiInstrument): number {
  */
 export function instrumentTailMs(instrument: MidiInstrument): number {
   switch (instrument.type) {
+    case "sampler":
     case "subtractive":
       return instrument.releaseMs;
     case "wavetable":

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { trpcClient } from "../../../trpc/client";
 import {
   findInstrumentPreset,
   MIDI_INSTRUMENT_PRESETS,
@@ -870,6 +871,13 @@ FrontendToolRegistry.register({
     const resolved = resolveInstrumentArg(instrument);
     if ("error" in resolved) {
       return { ok: false, error: resolved.error };
+    }
+    if (resolved.instrument.type === "sampler") {
+      resolved.instrument = { ...resolved.instrument, zones: await Promise.all(resolved.instrument.zones.map(async zone => {
+        const asset = await trpcClient.assets.get.query({ id: zone.assetId });
+        if (!asset.content_type.startsWith("audio/")) throw new Error(`Audio sample unavailable: ${zone.name}`);
+        return { ...zone, assetId: asset.id };
+      })) };
     }
     const updated = getTimelineAgentHandler(timeline_id).setTrackInstrument(
       track,

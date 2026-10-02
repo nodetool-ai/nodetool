@@ -69,6 +69,7 @@ export interface TimelineBundleClip {
 }
 
 export interface TimelineBundleDocument {
+  tracks?: Array<{ instrument?: { type: string; zones?: Array<{ assetId: string }> } }>;
   clips: TimelineBundleClip[];
   workflowId?: string;
 }
@@ -127,6 +128,11 @@ export function collectTimelineAssetIds(doc: TimelineBundleDocument): string[] {
     pushUnique(ids, seen, clip.waveformAssetId);
     for (const version of clip.versions ?? []) {
       pushUnique(ids, seen, version.assetId);
+    }
+  }
+  for (const track of doc.tracks ?? []) {
+    if (track.instrument?.type === "sampler") {
+      for (const zone of track.instrument.zones ?? []) pushUnique(ids, seen, zone.assetId);
     }
   }
   return ids;
@@ -193,6 +199,11 @@ export function rewriteTimelineAssetIds<T extends TimelineBundleDocument>(
     }
     for (const version of clip.versions ?? []) {
       if (version.assetId) version.assetId = rewrite(version.assetId);
+    }
+  }
+  for (const track of clone.tracks ?? []) {
+    if (track.instrument?.type === "sampler") {
+      for (const zone of track.instrument.zones ?? []) zone.assetId = map.get(zone.assetId) ?? zone.assetId;
     }
   }
   return clone;

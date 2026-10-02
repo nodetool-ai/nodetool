@@ -8,6 +8,7 @@
  * the offline context rather than fetched.
  */
 import type { TimelineClip, TimelineTrack } from "@nodetool-ai/timeline";
+import { clearSamplerAudioCache } from "../../preview/samplerAudio";
 import { renderTimelineAudio } from "../renderAudio";
 
 interface Scheduled {
@@ -43,6 +44,10 @@ class MockOfflineAudioContext {
     const channel = new Float32Array(length);
     return { length, getChannelData: () => channel, channel };
   }
+  decodeAudioData() {
+    return Promise.resolve({ length: this.sampleRate, duration: 1, sampleRate: this.sampleRate, numberOfChannels: 1,
+      getChannelData: () => Float32Array.from({ length: this.sampleRate }, (_, i) => .25 * Math.sin(i * .03)) });
+  }
   startRendering() {
     return Promise.resolve({ length: this.length } as AudioBuffer);
   }
@@ -74,7 +79,22 @@ const midiClip: TimelineClip = {
 };
 
 describe("renderTimelineAudio — midi", () => {
+  it("loads a sampler recording and schedules its rendered tail in the offline mix", async () => {
+    const originalFetch = globalThis.fetch;
+    globalThis.fetch = jest.fn().mockResolvedValue({ ok: true, arrayBuffer: async () => new ArrayBuffer(8) });
+    const resolveUrl = jest.fn().mockResolvedValue("https://example.test/drum.wav");
+    try {
+      await renderTimelineAudio({ clips: [midiClip], tracks: [{ ...midiTrack, instrument: {
+        type: "sampler", zones: [{ id: "z", name: "Hit", assetId: "a".repeat(32), rootNote: 60, lowNote: 60, highNote: 60, gainDb: 0 }],
+        oneShot: true, attackMs: 0, releaseMs: 50, gainDb: -6
+      } }], durationMs: 2000, resolveUrl });
+      expect(resolveUrl).toHaveBeenCalledWith("a".repeat(32));
+      const buffer = scheduled[0].buffer as { channel: Float32Array };
+      expect(buffer.channel.slice(24000, 36000).some(x => Math.abs(x) > .01)).toBe(true);
+    } finally { globalThis.fetch = originalFetch; }
+  });
   beforeEach(() => {
+    clearSamplerAudioCache();
     scheduled.length = 0;
     (
       globalThis as unknown as { OfflineAudioContext: unknown }

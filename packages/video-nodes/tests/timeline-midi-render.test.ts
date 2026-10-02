@@ -18,6 +18,7 @@ import { MIDI_PPQ } from "@nodetool-ai/timeline";
 let execFileCalls: Array<{ cmd: string; args: string[] }> = [];
 /** Bytes of every `*.wav` an ffmpeg call read, by file name. */
 let capturedWavs = new Map<string, Buffer>();
+let sampleChannels = 1;
 
 function captureWavInputs(args: string[]): void {
   for (const arg of args) {
@@ -32,6 +33,7 @@ function mockResponse(
 ): { stdout: string; stderr: string } {
   if (cmd === "ffprobe") {
     const argsStr = args.join(" ");
+    if (argsStr.includes("stream=channels")) return { stdout: String(sampleChannels), stderr: "" };
     if (argsStr.includes("codec_type")) return { stdout: "audio\n", stderr: "" };
     if (argsStr.includes("format=duration")) {
       return { stdout: "4\n", stderr: "" };
@@ -40,7 +42,12 @@ function mockResponse(
   }
   captureWavInputs(args);
   const outputPath = args[args.length - 1];
-  fsSync.writeFileSync(outputPath, Buffer.from(`fake:${outputPath}`));
+  if (outputPath.endsWith(".f32")) {
+    const samples = Float32Array.from({ length: 48000 }, (_, i) => .25 * Math.sin(i * 2 * Math.PI * 220 / 48000));
+    fsSync.writeFileSync(outputPath, Buffer.from(samples.buffer));
+  } else {
+    fsSync.writeFileSync(outputPath, Buffer.from(`fake:${outputPath}`));
+  }
   return { stdout: "", stderr: "" };
 }
 
@@ -240,9 +247,25 @@ function rms(samples: Float32Array, fromMs: number, toMs: number): number {
 beforeEach(() => {
   execFileCalls = [];
   capturedWavs = new Map();
+  sampleChannels = 1;
 });
 
 describe("RenderTimeline — midi tracks", () => {
+  it("resolves sampler assets, decodes once and renders one-shot tails into the exported WAV", async () => {
+    sampleChannels = 2;
+    const assetId = "a".repeat(32);
+    await render(sequence({ tracks: [{ ...MIDI_TRACK, instrument: {
+      type: "sampler", zones: [{ id: "z", name: "Drum", assetId, rootNote: 60, lowNote: 60, highNote: 60, gainDb: 0 }],
+      oneShot: true, attackMs: 0, releaseMs: 50, gainDb: -6
+    } }], clips: [midiClip({ notes: [{ id: "n", pitch: 60, velocity: 127, startTick: 0, durationTick: 96 }] })] }));
+    const wav = capturedWavs.get("midi_clip-m.wav");
+    expect(wav).toBeDefined();
+    const { samples } = decodeWavPcm16(wav!);
+    expect(rms(samples, 300, 800)).toBeGreaterThan(.02);
+    expect(rms(samples, 1100, 1800)).toBe(0);
+    expect(execFileCalls.filter(call => call.args.includes("f32le"))).toHaveLength(1);
+    expect(ffmpegArgs().some(args => args.includes("pan=mono|c0=0.5*c0+0.5*c1"))).toBe(true);
+  });
   it("renders a midi-only timeline and mixes the clip's rendered WAV in", async () => {
     const seq = sequence({ tracks: [MIDI_TRACK] });
     await expect(render(seq)).resolves.toBeDefined();

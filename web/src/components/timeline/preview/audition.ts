@@ -7,6 +7,7 @@
  * must never join the mix the export reads.
  */
 
+import { getSamplerAudio } from "./samplerAudio";
 import { auditionPitch, renderAuditionNote } from "@nodetool-ai/timeline";
 import type { MidiInstrument } from "@nodetool-ai/timeline";
 
@@ -38,7 +39,10 @@ export async function playAuditionNote(
   if (isLive) {
     await (ctx as AudioContext).resume();
   }
+  try {
+  const recordings = await getSamplerAudio(ctx, instrument);
   const samples = renderAuditionNote({
+    samples: recordings,
     pitch: pitch ?? auditionPitch(instrument),
     velocity,
     durationMs: AUDITION_NOTE_MS,
@@ -56,4 +60,8 @@ export async function playAuditionNote(
     if (isLive) void (ctx as AudioContext).close();
   };
   source.start();
+  } catch (error) {
+    if (isLive) await ctx.close();
+    throw error;
+  }
 }

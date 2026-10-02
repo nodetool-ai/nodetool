@@ -51,7 +51,7 @@ describe("midi types match the protocol schemas", () => {
   });
 
   // The presets are the only place every branch of the instrument union is
-  // spelled out, so parsing them is what keeps the four synths in step with
+  // spelled out, so parsing them is what keeps the instrument variants in step with
   // the schema that stores and validates them.
   it.each(MIDI_INSTRUMENT_PRESETS.map((p) => [p.id, p] as const))(
     "parses the %s preset through the protocol schema",
@@ -65,7 +65,7 @@ describe("midi types match the protocol schemas", () => {
   it("covers every instrument type with a preset", () => {
     expect(
       new Set(MIDI_INSTRUMENT_PRESETS.map((p) => p.instrument.type))
-    ).toEqual(new Set(["subtractive", "wavetable", "bass", "drum"]));
+    ).toEqual(new Set(["subtractive", "wavetable", "bass", "drum", "sampler"]));
   });
 
   it("keeps the note cap the same on both sides", () => {

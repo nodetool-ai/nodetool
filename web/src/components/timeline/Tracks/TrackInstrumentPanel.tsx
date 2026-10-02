@@ -1,20 +1,21 @@
 /** @jsxImportSource @emotion/react */
 /** The selected MIDI track's instrument in the right-panel Instruments tab. */
-import React, { memo, useCallback, useEffect, useRef } from "react";
+import React, { memo, useCallback, useEffect, useRef, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import { findInstrumentPreset, presetIdForInstrument } from "@nodetool-ai/timeline";
+import { findInstrumentPreset, presetIdForInstrument, auditionPitch } from "@nodetool-ai/timeline";
 import type { MidiInstrument } from "@nodetool-ai/timeline";
 import { DEFAULT_TIMELINE_INSTRUMENT, TIMELINE_INSTRUMENT_PRESETS } from "../../../stores/timeline/instrumentPresets";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { playAuditionNote } from "../preview/audition";
+import SamplerInstrumentEditor from "./SamplerInstrumentEditor";
 import FableSynthInstrumentEditor, { InstrumentKeyboard } from "./FableSynthInstrumentEditors";
 import { Button, Caption, FlexColumn, SelectField, SPACING } from "../../ui_primitives";
 export const AUDITION_DEBOUNCE_MS = 120;
 const containerStyles = (theme: Theme) => css({
-  width: "100%", height: "100%", padding: theme.spacing(1),
+  width: "100%", height: "100%", padding: theme.spacing(SPACING.xs),
   backgroundColor: theme.vars.palette.background.default,
   color: theme.vars.palette.text.primary, boxSizing: "border-box",
   overflowY: "auto", overflowX: "hidden", overscrollBehavior: "contain"
@@ -27,6 +28,7 @@ interface TrackInstrumentPanelProps {
 export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
   ({ trackId }) => {
     const theme = useTheme();
+    const [auditionError, setAuditionError] = useState("");
     const instrument = useTimelineStore(
       (s) =>
         s.tracks.find((t) => t.id === trackId)?.instrument ??
@@ -51,21 +53,18 @@ export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
 
     const commit = useCallback(
       (next: MidiInstrument, auditionPitch?: number) => {
+        setAuditionError("");
         if (next !== instrument) setTrackInstrument(trackId, next);
         if (auditionTimerRef.current !== null) {
           clearTimeout(auditionTimerRef.current);
         }
         if (next === instrument) {
-          void playAuditionNote(next, auditionPitch).catch(() => {
-            // A host without Web Audio still supports editing.
-          });
+          void playAuditionNote(next, auditionPitch).catch(error => { setAuditionError(error instanceof Error ? error.message : "Could not play this instrument."); });
           return;
         }
         auditionTimerRef.current = setTimeout(() => {
           auditionTimerRef.current = null;
-          void playAuditionNote(next, auditionPitch).catch(() => {
-            // A host with no Web Audio cannot preview; the edit still stands.
-          });
+          void playAuditionNote(next, auditionPitch).catch(error => { setAuditionError(error instanceof Error ? error.message : "Could not play this instrument."); });
         }, AUDITION_DEBOUNCE_MS);
       },
       [setTrackInstrument, trackId, instrument]
@@ -79,7 +78,7 @@ export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
         <FlexColumn gap={SPACING.md}>
           <SelectField
             label="Instrument preset"
-            css={css({ width: 240, maxWidth: "100%", alignSelf: "flex-start" })}
+            css={css({ width: "100%", alignSelf: "flex-start" })}
             size="small"
             value={presetId}
             options={[
@@ -98,15 +97,16 @@ export const TrackInstrumentPanel: React.FC<TrackInstrumentPanelProps> = memo(
             sx={{ alignSelf: "flex-start", color: showKeyboard ? "primary.main" : "text.secondary", backgroundColor: showKeyboard ? "action.selected" : "transparent" }}
             onClick={() => toggleKeyboard(trackId)}>Keyboard</Button>
           {showKeyboard && <div className={`fs-editor fs-${instrument.type}`}>
-            <InstrumentKeyboard start={instrument.type === "drum" ? instrument.baseNote : instrument.type === "bass" ? 36 : 48}
+            <InstrumentKeyboard start={instrument.type === "sampler" ? Math.min(103, auditionPitch(instrument)) : instrument.type === "drum" ? instrument.baseNote : instrument.type === "bass" ? 36 : 48}
               onPlay={pitch => commit(instrument, pitch)} />
           </div>}
-          {instrument.type === "subtractive" ? <Caption color="muted">Choose a WT-1, BL-1, or DR-1 preset to edit this track’s instrument.</Caption> : (
+          {instrument.type === "sampler" ? <SamplerInstrumentEditor key={trackId} instrument={instrument} onChange={commit} /> : instrument.type === "subtractive" ? <Caption color="muted">Choose a sampler, WT-1, BL-1, or DR-1 preset to edit this track’s instrument.</Caption> : (
             <FableSynthInstrumentEditor key={trackId} instrument={instrument} onChange={commit} />
           )}
+          {auditionError && <Caption role="alert">{auditionError}</Caption>}
           <Caption color="muted">
             Every clip on this track plays this voice. Changes are auditioned on{" "}
-            {instrument.type === "drum" ? "the selected pad" : "middle C"}.
+            {instrument.type === "drum" ? "the selected pad" : instrument.type === "sampler" ? "the mapped sample key" : "middle C"}.
           </Caption>
         </FlexColumn>
       </div>

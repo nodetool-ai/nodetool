@@ -3257,7 +3257,16 @@ export function createTimelineToolBridge(
         const midiTrack = resolveMidiTrack(track as string);
         // Resolved before the track is touched, so an unknown preset id leaves
         // the voice the track already had.
-        midiTrack.instrument = resolveInstrumentArg(instrument);
+        const next = resolveInstrumentArg(instrument);
+        if (next.type === "sampler" && next.zones.length) {
+          if (!resolveAsset) throw new Error("Sample assets cannot be resolved on this host");
+          next.zones = await Promise.all(next.zones.map(async zone => {
+            const asset = await resolveAsset(zone.assetId);
+            if (!asset || !asset.contentType.startsWith("audio/")) throw new Error(`Audio sample unavailable: ${zone.name}`);
+            return { ...zone, assetId: asset.id };
+          }));
+        }
+        midiTrack.instrument = next;
         return { ok: true, track: serializeTrack(midiTrack) };
       }
     ),

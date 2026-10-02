@@ -43,6 +43,8 @@ import {
   makeSequence,
   makeTrack,
   renderMidiClip,
+  loadSamplerSamples,
+  type SamplerAudio,
   resolveTempo,
   timeRemapAudioSegments,
   type TimeRemapAudioSegment,
@@ -54,7 +56,7 @@ import { tagAsNode, tagAsServer } from "@nodetool-ai/nodes-utils";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { AssetFiles } from "./timeline/assetFiles.js";
+import { AssetFiles, assetFileName } from "./timeline/assetFiles.js";
 import {
   execFfmpeg,
   execFfprobe,
@@ -505,11 +507,14 @@ const MIDI_SAMPLE_RATE = 48000;
 class MidiFiles {
   private readonly files = new Map<string, Promise<string>>();
   private readonly tracks: Map<string, TimelineTrack>;
+  private readonly samples = new Map<string, Promise<SamplerAudio>>();
   private readonly bpm: number;
 
   constructor(
     private readonly workDir: string,
-    seq: TimelineSequence
+    seq: TimelineSequence,
+    private readonly resolveAssetPath: (id: string) => Promise<string | null>,
+    private readonly signal?: AbortSignal
   ) {
     this.tracks = trackById(seq.tracks);
     this.bpm = resolveTempo(seq).bpm;
@@ -524,6 +529,33 @@ class MidiFiles {
     return pending;
   }
 
+  private loadSample(id: string): Promise<SamplerAudio> {
+    let pending = this.samples.get(id);
+    if (!pending) {
+      pending = (async () => {
+        const source = await this.resolveAssetPath(id);
+        if (!source) throw new Error(`Sample unavailable: ${id}`);
+        const file = path.join(this.workDir, `sample_${assetFileName(id)}.f32`);
+        const probe = await execFfprobe(["-v", "error", "-select_streams", "a:0", "-show_entries", "stream=channels", "-of", "default=noprint_wrappers=1:nokey=1", source], { signal: this.signal });
+        const channels = Number(probe.stdout.trim());
+        if (!Number.isInteger(channels) || channels < 1 || channels > 32) {
+          throw new Error("Sampler recordings must contain between 1 and 32 audio channels");
+        }
+        // Match the browser's arithmetic mean. FFmpeg's default stereo downmix adds 3 dB.
+        const downmix = `pan=mono|c0=${Array.from({ length: channels }, (_, i) => `${1 / channels}*c${i}`).join("+")}`;
+        // Decode one extra frame to distinguish an overlong recording from a valid one.
+        await execFfmpeg(["-y", "-i", source, "-map", "0:a:0", "-vn", "-t", "60.001", "-af", downmix, "-ar", String(MIDI_SAMPLE_RATE), "-f", "f32le", file], { signal: this.signal });
+        const bytes = await fs.readFile(file);
+        if (bytes.length > 60 * MIDI_SAMPLE_RATE * 4) throw new Error("Sampler recordings must be 60 seconds or shorter. Trim this asset first.");
+        const samples = new Float32Array(bytes.length / 4);
+        for (let i = 0; i < samples.length; i++) samples[i] = bytes.readFloatLE(i * 4);
+        return { samples, sampleRate: MIDI_SAMPLE_RATE };
+      })();
+      this.samples.set(id, pending);
+    }
+    return pending;
+  }
+
   private async write(clip: TimelineClip): Promise<string> {
     // The instrument belongs to the track, not the clip.
     const instrument =
@@ -531,6 +563,7 @@ class MidiFiles {
     const mono = renderMidiClip({
       clip,
       bpm: this.bpm,
+      samples: await loadSamplerSamples(instrument, id => this.loadSample(id)),
       instrument,
       sampleRate: MIDI_SAMPLE_RATE
     });
@@ -796,7 +829,7 @@ export async function mixCompositedTimelineAudio(opts: {
     clips,
     baseHasAudio: false,
     assets: { path: resolveAssetPath },
-    midi: new MidiFiles(workDir, sequence),
+    midi: new MidiFiles(workDir, sequence, resolveAssetPath),
     workDir,
     extension: output.extension,
     audioCodec: output.audioCodec ?? "aac"
@@ -1031,7 +1064,7 @@ export class RenderTimelineNode extends BaseNode {
     );
     try {
       const assets = new AssetFiles(workDir, ctx);
-      const midi = new MidiFiles(workDir, seq);
+      const midi = new MidiFiles(workDir, seq, id => assets.path(id), ctx.signal);
       let basePath: string;
       let baseHasAudio: boolean;
       let audioToMix: TimelineClip[];

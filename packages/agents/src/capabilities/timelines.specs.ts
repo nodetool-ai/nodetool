@@ -248,7 +248,7 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "the clip's content start, 960 ticks to a quarter note — so trimming " +
         "the clip hides notes instead of deleting them. " +
         'set_track_instrument takes {"track", "instrument"}, either a named ' +
-        'voice — {"preset": "bass"}, one of saw-lead, square-lead, soft-pad, ' +
+        'voice — {"preset": "bass"}, including saw-lead, square-lead, soft-pad, ' +
         "pluck, bass, bell, the FableSynth WT-1 wavetable patches " +
         "wt1-prime-lead, wt1-bloom-pad, wt1-vox-morph, wt1-chime-bell, the " +
         "BL-1 acid basslines bl1-acid, bl1-deep, bl1-rubber, and the DR-1 " +
@@ -258,7 +258,16 @@ export const EDIT_TIMELINE_SCHEMA: JsonSchema = {
         "from 36 (kick, kick 2, snare, clap, rim, closed hat, open hat, ride, " +
         "three toms, crash, two percs, vox, glitch) and is silent above 51. " +
         "get_state reports the preset a track's instrument matches as " +
-        "presetId. " +
+        "presetId. Soundtrack voices include sampler (load audio assets into key ranges), wt1-cinematic-strings, " +
+        "wt1-chamber-strings, wt1-short-strings, wt1-low-strings, " +
+        "wt1-warm-brass, wt1-air-choir, wt1-dark-swell, wt1-soft-keys, " +
+        "wt1-glass-mallet, wt1-muted-pluck, bl1-cinematic-sub, " +
+        "bl1-score-pulse, bl1-rounded-bass, and dr1-cinematic. " +
+        "These are synthesized instruments. Use low strings around MIDI " +
+        "36–55, ensembles around 48–79, and basses around 28–48. " +
+        "dr1-cinematic uses MIDI 36–51: low boom, gran cassa, field snare, " +
+        "ensemble strike, wood tick, shaker, brush, metal wash, low/mid/high " +
+        "taiko, cymbal swell, low metal, small bell, deep gong, tension hit. " +
         'set_tempo takes {"bpm", offset_ms?, beats_per_bar?, beat_unit?} and ' +
         "rescales every midi clip around offset_ms — halving the BPM doubles " +
         "each midi clip's start and length — while picture and audio stay " +
