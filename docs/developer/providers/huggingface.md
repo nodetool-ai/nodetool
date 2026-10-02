@@ -23,7 +23,7 @@ For user-facing docs (setup, authentication, example workflows) see [docs/huggin
 | Concern | Path |
 |---|---|
 | Provider class (model discovery + API calls) | `packages/runtime/src/providers/huggingface-provider.ts` |
-| Provider registration + secret key | `packages/runtime/src/providers/index.ts` (line 236) |
+| Provider registration + secret key | `packages/runtime/src/providers/index.ts` (`registerBuiltinProvider(PROVIDER_IDS.HUGGINGFACE, ...)`) |
 | Provider ID constant | `packages/protocol/src/api-types.ts` — `PROVIDER_IDS.HUGGINGFACE = "huggingface"` |
 | Shared HTTP helpers (fetch, auth, binary handling) | `packages/huggingface-nodes/src/huggingface-base.ts` |
 | Node implementations — text/NLP | `packages/huggingface-nodes/src/nodes/text.ts` |
@@ -41,7 +41,7 @@ For user-facing docs (setup, authentication, example workflows) see [docs/huggin
 
 NodeTool has two different HuggingFace integration points that serve different purposes.
 
-**`HuggingFaceProvider`** (in `packages/runtime/`) is the AI-provider abstraction used by agent nodes, chat, and workflow LLM nodes. It wraps the `@huggingface/inference` SDK and implements the standard `BaseProvider` interface — `generateMessage`, `textToImage`, `textToSpeech`, etc.
+**`HuggingFaceProvider`** (in `packages/runtime/`) is the AI-provider abstraction used by agent nodes, chat, and workflow LLM nodes. It wraps the `@huggingface/inference` SDK, which is an optional dependency loaded on first use, and implements the standard `BaseProvider` interface — `generateMessage`, `textToImage`, `textToSpeech`, etc.
 
 **`packages/huggingface-nodes/`** is a separate node package that talks to the HuggingFace Inference Providers API directly over `fetch` (no SDK dependency). These nodes cover the full set of HF Inference pipeline tasks, including NLP tasks the provider abstraction does not expose.
 
@@ -49,7 +49,7 @@ Both use `HF_TOKEN` from the NodeTool secrets store.
 
 ### Model discovery (provider side)
 
-`HuggingFaceProvider` does **not** use a static model list. It queries `https://huggingface.co/api/models` at runtime, filtered to `inference=warm` models sorted by likes, one per pipeline tag:
+`HuggingFaceProvider` does **not** use a static model list. It queries `https://huggingface.co/api/models` at runtime, filtered to `inference=warm` models sorted by likes, with a limit of 100 per pipeline tag:
 
 | `getAvailable*()` method | HF pipeline tag queried |
 |---|---|
@@ -72,9 +72,9 @@ All node API calls go to `https://router.huggingface.co`:
 Helpers in `huggingface-base.ts`:
 
 - `hfChatCompletion(token, body)` — chat completions
-- `hfPipelineJson<T>(token, model, body)` — pipeline tasks returning JSON
+- `hfPipelineJson(token, model, body)` — pipeline tasks returning JSON as an `HfJsonValue`. Read it with `jsonObject`, `jsonArray`, `jsonString`, or `jsonNumber`
 - `hfPipelineBinary(token, model, body)` — pipeline tasks returning raw media bytes (image/video)
-- `refToBase64(ref, context)` — resolve an image/audio `MediaRef` to a base64 string for API input
+- `refToBase64(ref, context)` / `refToBytes(ref, context)` — resolve an image/audio/video `MediaRef` to base64 or bytes for API input
 - `imageRefFromBytes(bytes, mimeType)` / `videoRefFromBytes(bytes, mimeType)` — wrap output bytes into a `MediaRef`-shaped object
 - `cleanParams(params)` — strip `null`/`undefined` entries from a parameters object
 
@@ -107,7 +107,7 @@ Copy the shape of an existing node in the same file. Below is an annotated skele
 // packages/huggingface-nodes/src/nodes/text.ts  (example addition)
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
-import { cleanParams, getHfToken, hfPipelineJson } from "../huggingface-base.js";
+import { getHfToken, hfPipelineJson, jsonArray } from "../huggingface-base.js";
 
 export class MySentenceSimilarityNode extends BaseNode {
   // Required statics —————————————————————————————————————————————
@@ -149,10 +149,12 @@ export class MySentenceSimilarityNode extends BaseNode {
       .map((s) => s.trim())
       .filter(Boolean);
 
-    const result = await hfPipelineJson<number[]>(
-      token,
-      String(this.model ?? "sentence-transformers/all-MiniLM-L6-v2"),
-      { inputs: { source_sentence: source, sentences: items } }
+    const result = jsonArray(
+      await hfPipelineJson(
+        token,
+        String(this.model ?? "sentence-transformers/all-MiniLM-L6-v2"),
+        { inputs: { source_sentence: source, sentences: items } }
+      )
     );
 
     return { output: result };
@@ -162,7 +164,7 @@ export class MySentenceSimilarityNode extends BaseNode {
 
 For binary output (image or video), use `hfPipelineBinary` and wrap the result with `imageRefFromBytes` or `videoRefFromBytes`. See `TextToImageNode` in `image.ts` for the full pattern.
 
-For audio input, resolve the `MediaRef` with `refToBase64(ref, context)` — the `process()` method must accept `context` as its first argument and forward it. See `AutomaticSpeechRecognitionNode` in `audio.ts`.
+For audio input, resolve the `MediaRef` with `refToBase64(ref, context)` — the `process()` method accepts `context` as its first argument and forwards it. See `AutomaticSpeechRecognitionNode` in `audio.ts`.
 
 **`@prop` type values:** `"str"` `"int"` `"float"` `"bool"` `"enum"` `"image"` `"audio"` `"video"` `"dict"` `"list"`
 
@@ -179,7 +181,7 @@ export const HUGGINGFACE_TEXT_NODES: readonly NodeClass[] = [
 ];
 ```
 
-No changes needed to `src/index.ts` — it re-exports the modality arrays.
+No changes needed to `src/index.ts`. It spreads the modality arrays into `HUGGINGFACE_NODES` through `tagContentCardBodies`, which gives nodes with displayable output a content-card body.
 
 ### 4. Update the registration test
 
@@ -216,17 +218,12 @@ npm run dev:nodetool -- node run huggingface.MySentenceSimilarity \
   --props '{"source_sentence":"hello","sentences":"world\nhi there"}' \
   --no-secrets
 
-# 5. Full check
-npm run check
+# 5. Affected tests and the harness gate
+npm run test:affected
+npm run dev:nodetool -- harness gate --base origin/main
 ```
 
 If the smoke-test hits a real HF endpoint (i.e., `HF_TOKEN` is set), it calls the router at `https://router.huggingface.co/hf-inference/models/<model>`. For a hermetic run, pass `--no-secrets` and mock the network in tests.
-
----
-
-## How past commits did it
-
-The `huggingface-nodes` package was introduced in commit **`ae5470cf`** ("Add Hugging Face Inference Providers nodes package", PR #3503), which also reworked the already-existing `HuggingFaceProvider` (first tracked in `4469fd80`, "Add TypeScript backend packages from nodetool-core/ts"). The package started with the full node set for all Inference Providers pipeline tasks and the live Hub discovery mechanism.
 
 ---
 

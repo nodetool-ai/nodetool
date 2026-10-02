@@ -51,7 +51,9 @@ graph LR
 {% endmermaid %}
 
 1. **Feed in the episode.** The recording, a line of show context (name, host,
-   voice, call to action), and how many quote cards you want.
+   voice, call to action), and how many quote cards you want (2 to 8, default
+   4). The shipped template is named *Podcast Repurposing Studio* (**Examples**
+   in the sidebar, **Workflows** tab).
 2. **Transcribe once.** A speech-recognition model turns the episode into a
    transcript that every branch reads from.
 3. **Write the episode page.** An agent drafts three title options, a summary,
@@ -87,21 +89,21 @@ publishing day becomes an upload, not a writing shift.
 
 ## Models in this workflow
 
-The template ships with no models selected — pick one per role when you open
-it. Called with your own keys; the bill comes from the provider.
+Called with your own keys. The bill comes from the provider. The template
+ships with the defaults below and each is one dropdown.
 
-| Role | Node | Works well with |
-| --- | --- | --- |
-| Transcription | Automatic Speech Recognition | Whisper (hosted or local) |
-| Show notes, newsletter | Agent | Any strong language model |
-| Posts, quotes | List Generator | Any language model |
-| Quote cards | Text To Image | A model with reliable text rendering (Nano Banana, GPT Image) |
+| Role | Node | Shipped default | Also works with |
+| --- | --- | --- | --- |
+| Transcription | Automatic Speech Recognition | Whisper Large v3 on fal.ai | Other Whisper variants, hosted or local |
+| Show notes, newsletter | Agent | GPT-5 mini | Any strong language model |
+| Posts, quotes | List Generator | GPT-5 mini | Any language model |
+| Quote cards | Text To Image | FLUX.1 Schnell (1:1, 1K) | A model with reliable text rendering (Nano Banana, GPT Image) |
 
 See [Models &amp; Providers]({{ '/models-and-providers' | relative_url }}) to set up keys.
 
 ## Next steps
 
-- Open the template: **Examples → Podcast Repurposing Studio** in the app menu
+- Open the template: **Examples** in the sidebar, **Workflows** tab, *Podcast Repurposing Studio*
 - [Ad Creative Factory]({{ '/use-cases/ad-creative-factory' | relative_url }}) — the same fan-out, pointed at paid social
 - [Transcribe Audio]({{ '/workflows/transcribe-audio' | relative_url }}) — the transcription building block on its own
 - [All use cases]({{ '/use-cases' | relative_url }})

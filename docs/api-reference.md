@@ -10,10 +10,12 @@ description: "REST, WebSocket, and OpenAI-compatible API endpoints for NodeTool 
 
 NodeTool runs a single Fastify HTTP + WebSocket server (`@nodetool-ai/websocket` — `packages/websocket/src/server.ts`). The same process serves:
 
-- REST routes under `/api/*` (workflows, assets, storage, and the surfaces in the matrix below). Jobs, models, and settings are tRPC procedures, not REST.
+- REST routes under `/api/*` (workflows, assets, storage, and the surfaces in the matrix below). Jobs, models, and settings are tRPC procedures, not REST. See [tRPC Procedures](#trpc-procedures).
 - OpenAI-compatible `/v1/chat/completions` and `/v1/models`.
 - WebSocket endpoints for workflow execution, chat, the browser extension, and downloads.
+- An MCP endpoint at `/mcp` and its OAuth routes. In production `/mcp` registers only with `NODETOOL_ENABLE_MCP=1`.
 - Health and liveness probes.
+- The built web app, when the server finds one, for every `GET` outside `/api`, `/ws`, `/v1`, `/trpc`, and `/mcp`.
 
 Start it with `nodetool serve` (default `127.0.0.1:7777`). `serve` accepts only `--host` and `--port` — there is no `--mode` flag.
 
@@ -23,20 +25,22 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 
 | Area       | Path                              | Method / Protocol | Auth                                           | Streaming                   | Notes |
 |-----------|-----------------------------------|-------------------|------------------------------------------------|-----------------------------|-------|
-| Models    | `/v1/models`                      | `GET`             | Bearer when `AUTH_PROVIDER` enforces           | no                          | OpenAI-compatible model listing |
-| Chat      | `/v1/chat/completions`            | `POST`            | Bearer when `AUTH_PROVIDER` enforces           | SSE when `"stream": true`   | OpenAI-compatible chat; SSE or single JSON |
-| Workflows | `/api/workflows`                  | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | List workflows |
-| Workflows | `/api/workflows/{id}/run`         | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Run a workflow once, return final outputs as one JSON response |
-| Workflows | `/api/workflows/names`            | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | `{id: name}` for the caller's workflows (up to 1000) |
-| Workflows | `/api/workflows/tools`            | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Workflows saved with `run_mode: "tool"`, as `{name, tool_name, description}` |
-| Workflows | `/api/workflows/{id}/dsl-export`  | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Graph as TypeScript DSL source (`text/plain`) |
-| Workflows | `/api/workflows/{id}/export-bundle` | `GET`           | Depends on `AUTH_PROVIDER`                     | no                          | One workflow and its assets as a `.nodetool` zip |
-| Workflows | `/api/workflows/export-bundle`    | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Several workflows in one `.nodetool` zip, by `workflow_ids` |
-| Workflows | `/api/workflows/import-bundle`    | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Import a `.nodetool` zip into the caller's library |
-| Workflows | `/api/debug/sessions/{id}`        | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | State of an interactive run: the escalation it is parked on, or its final report |
-| Workflows | `/api/debug/sessions/{id}/verdict` | `POST`           | Depends on `AUTH_PROVIDER`                     | no                          | Answer the parked escalation, then wait for the next one or the final report |
-| Workflows | `/api/debug/sessions/{id}/cancel` | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Cancel the run and return its final report |
-| SDK       | `/api/sdk/v1/workflows/{id}/interface` | `GET`        | Depends on `AUTH_PROVIDER`                     | no                          | One workflow's input and output pins; `?version=1` is required |
+| Models    | `/v1/models`                      | `GET`             | Session auth                                   | no                          | OpenAI-compatible model listing. A fixed list, not a live catalog |
+| Chat      | `/v1/chat/completions`            | `POST`            | Session auth                                   | SSE when `"stream": true`   | OpenAI-compatible chat; SSE or single JSON |
+| Workflows | `/api/workflows` | `GET`, `POST` | Session auth | no | `GET` lists the caller's workflows with graphs (`limit`, `cursor`, `run_mode`, `project_id`). `POST` creates one from `name` and `graph` |
+| Workflows | `/api/workflows/{id}` | `GET`, `PUT`, `DELETE` | Session auth | no | Read, save, or delete one workflow. `PUT` creates it when the id is new and takes `expected_updated_at` for optimistic saves. `DELETE` answers `204` |
+| Workflows | `/api/workflows/{id}/run`         | `POST`            | Session auth                     | no                          | Run a workflow once, return final outputs as one JSON response |
+| Workflows | `/api/workflows/{id}/debug` | `POST` | Session auth | no | Same body as `run`. Returns the debug report: per-node `summary` and a `verdict` |
+| Workflows | `/api/workflows/names`            | `GET`             | Session auth                     | no                          | `{id: name}` for the caller's workflows (up to 1000) |
+| Workflows | `/api/workflows/tools`            | `GET`             | Session auth                     | no                          | Workflows saved with `run_mode: "tool"`, as `{name, tool_name, description}` |
+| Workflows | `/api/workflows/{id}/dsl-export`  | `GET`             | Session auth                     | no                          | Graph as TypeScript DSL source (`text/plain`) |
+| Workflows | `/api/workflows/{id}/export-bundle` | `GET`           | Session auth                     | no                          | One workflow and its assets as a `.nodetool` zip |
+| Workflows | `/api/workflows/export-bundle`    | `POST`            | Session auth                     | no                          | Several workflows in one `.nodetool` zip, by `workflow_ids` |
+| Workflows | `/api/workflows/import-bundle`    | `POST`            | Session auth                     | no                          | Import a `.nodetool` zip into the caller's library |
+| Workflows | `/api/debug/sessions/{id}`        | `GET`             | Session auth                     | no                          | State of an interactive run: the escalation it is parked on, or its final report |
+| Workflows | `/api/debug/sessions/{id}/verdict` | `POST`           | Session auth                     | no                          | Answer the parked escalation, then wait for the next one or the final report |
+| Workflows | `/api/debug/sessions/{id}/cancel` | `POST`            | Session auth                     | no                          | Cancel the run and return its final report |
+| SDK       | `/api/sdk/v1/workflows/{id}/interface` | `GET`        | Session auth                     | no                          | One workflow's input and output pins; `?version=1` is required |
 | Workflows | `/api/workflows/public`           | `GET`             | none                                           | no                          | Workflows the owner marked `access: "public"` |
 | Workflows | `/api/workflows/public/{id}`      | `GET`             | none                                           | no                          | One public workflow; `404` when it is not public |
 | Examples  | `/api/workflows/examples`         | `GET`             | none                                           | no                          | Shipped example templates — metadata only, `graph` is empty |
@@ -55,72 +59,98 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | MCP OAuth | `/oauth/register`                 | `POST`            | none                                           | no                          | RFC 7591 dynamic client registration |
 | MCP OAuth | `/oauth/revoke`                   | `POST`            | none                                           | no                          | RFC 7009 revocation of an access or refresh token |
 | Nodes     | `/api/nodes/metadata`             | `GET`             | none                                           | no                          | The node registry the editor loads at boot; slim summaries by default, one node's full metadata with `?node_type=` |
-| Workspaces | `/api/workspaces/{id}/download/{path}` | `GET`        | Depends on `AUTH_PROVIDER`                     | streaming                   | One file out of a workspace as an attachment; `403` when `NODETOOL_ENV=production` |
-| Assets    | `/api/assets/{id}/extract-audio`  | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Extract a video asset's audio track into a new WAV asset |
-| Assets    | `/api/assets/{id}/peaks`          | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Waveform peaks of an audio or video asset, computed with ffmpeg and cached on disk |
+| Workspaces | `/api/workspaces/{id}/download/{path}` | `GET`        | Session auth                     | streaming                   | One file out of a workspace as an attachment; `403` in production unless the workspace is the server-managed one |
+| Assets    | `/api/assets`                     | `POST`            | Session auth                                   | no                          | Create an asset. Multipart with a `file` part and an optional `json` part for `name`, `content_type`, `parent_id`, `workflow_id`, `node_id`, `job_id`, `project_id`, `metadata`. Cloud backends upload through `assets.createUpload` instead, see [Uploading an Asset](#uploading-an-asset) |
+| Assets    | `/api/assets/{id}/extract-audio`  | `POST`            | Session auth                     | no                          | Extract a video asset's audio track into a new WAV asset |
+| Assets    | `/api/assets/{id}/peaks`          | `GET`             | Session auth                     | no                          | Waveform peaks of an audio or video asset, computed with ffmpeg and cached on disk |
 | Assets    | `/api/assets/packages/{package}/{file}` | `GET`       | none                                           | streaming                   | Bytes behind a `package://` ref, from a node pack's assets directory |
 | Assets    | `/api/assets/packages`            | `GET`             | none                                           | no                          | Stub — always `{"assets": [], "next": null}`; there is no package listing |
 | Assets    | `/api/assets/packages/{package}`  | `GET`             | none                                           | no                          | Stub — same empty page. Fetch a package's files by name, not by listing |
-| Assets    | `/api/assets/download`            | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Bulk ZIP download; `501` on this server |
-| Apps      | `/api/applications/{id}/released-document` | `GET`    | Depends on `AUTH_PROVIDER`                     | no                          | The snapshot a published app should run, with each operation's pinned graph; `null` when nothing is published |
-| Apps      | `/api/applications/{id}/export-bundle` | `GET`        | Depends on `AUTH_PROVIDER`                     | no                          | One app and the full graph of every workflow it binds, as a downloadable `ApplicationBundle` |
-| Apps      | `/api/applications/build`         | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Build a mini app from a prompt or a pinned spec; returns the `BuildReport`. `poll: true` returns a session id instead |
-| Apps      | `/api/applications/debug`         | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Simulate a saved app by `application_id`, or a draft posted inline as `document`; returns the compacted debug report |
-| Apps      | `/api/applications/examples`      | `GET`             | none                                           | no                          | The shipped example apps — slug, name, description, workflow names, operation count, thumbnail URL |
-| Apps      | `/api/applications/examples/{slug}` | `GET`           | none                                           | no                          | One example's full `ApplicationBundle`; `404` when the slug names nothing shipped |
-| Apps      | `/api/applications/examples/{slug}/install` | `POST`  | Depends on `AUTH_PROVIDER`                     | no                          | Install an example into the caller's library, creating the workflows it binds |
-| Storyboards | `/api/storyboards/{id}/export-zip` | `GET`           | Depends on `AUTH_PROVIDER`                     | streaming                   | One board as a zip of Markdown plus its stills and clips; `404` when the caller does not own it |
-| Timelines | `/api/timelines/{id}/export-zip`   | `GET`             | Depends on `AUTH_PROVIDER`                     | streaming                   | One sequence and the bytes of every asset its clips name, as a zip; `404` when the caller does not own it |
-| Timelines | `/api/timelines/import-zip`       | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Multipart upload of such a zip; stores the assets and creates a new timeline pointing at them |
-| Providers | `/api/fal/credits`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The server's fal.ai account balance; `204` when no `FAL_API_KEY` is configured |
-| Providers | `/api/fal/pricing`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Unit price per fal.ai endpoint, one or more `?endpoint_id=`; cached an hour |
-| Providers | `/api/fal/pricing/estimate`       | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | What a fal.ai endpoint costs for a given quantity; `204` when no `FAL_API_KEY` is configured |
-| Providers | `/api/kie/credits`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The server's kie.ai credit balance; `204` when no `KIE_API_KEY` is configured |
-| Providers | `/api/kie/pricing`                | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Credit price per kie.ai model, one or more `?model_id=`; cached an hour |
-| Providers | `/api/kie/resolve-dynamic-schema` | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Pasted kie.ai model docs to a node's dynamic properties, inputs, and outputs |
-| JS Scripts | `/api/js-scripts/{id}/run`       | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Run a saved JS script document in the sandbox and return its outputs |
-| SDK       | `/api/sdk/v1/capabilities`        | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | What this server supports — profiles, encodings, execution options, limits |
-| SDK       | `/api/sdk/v1/node-types`          | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Paged inventory of the pin types in the registry and which nodes use them |
-| SDK       | `/api/sdk/v1/workflows`           | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Workflow summaries with the revision an interface was read at |
-| SDK       | `/api/sdk/v1/workflow-interfaces` | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Up to 100 workflows' interfaces in one call, with per-workflow errors |
-| SDK       | `/api/sdk/v1/preflight`           | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Whether a workflow is runnable, what it needs, and what it will cost |
-| SDK       | `/api/sdk/v1/assets/temporary`    | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Store one execution input in temporary storage; creates no asset row |
-| SDK       | `/api/sdk/v1/models`              | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Paged model catalog with per-model availability and the wire value a node property takes |
-| SDK       | `/api/sdk/v1/model-downloads`     | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | Snapshot of this caller's model downloads, running and finished |
-| SDK       | `/api/sdk/v1/model-downloads`     | `POST`            | Depends on `AUTH_PROVIDER`                     | no                          | Start a model download; `202` with the operation's first state |
-| SDK       | `/api/sdk/v1/model-downloads/cancel` | `POST`         | Depends on `AUTH_PROVIDER`                     | no                          | Cancel one download by `operation_id` |
-| Extension | `/api/extension/download`         | `GET`             | Depends on `AUTH_PROVIDER`                     | no                          | The built Chrome extension as a zip; `404` when the server has no build |
-| Workflow WS | `/ws`                           | WebSocket         | Bearer header or `api_key` query when enforced | yes                         | Workflow execution, chat, job control, live editor tools, and live updates (MessagePack or JSON) |
-| Extension WS | `/ws/extension`                | WebSocket         | Follows global auth settings                   | yes                         | Browser extension channel |
-| Download WS | `/ws/download`                  | WebSocket         | Follows global auth settings                   | yes                         | Model/file downloads |
-| Storage   | `/api/storage/*`                  | `HEAD/GET`        | Depends on `AUTH_PROVIDER`                     | streaming for `GET`         | Asset bytes at `<userId>/<assetId>.<ext>`, scoped to the caller. Read-only: writes and deletes go through the asset API (tRPC `assets.delete` removes an asset's stored objects). `storage.signUrl` is the only tRPC storage procedure |
-| Account   | `/api/account/export`             | `GET`             | An authenticated identity, whatever `AUTH_PROVIDER` is | no                  | Everything this server holds about the caller, as one JSON download |
-| Account   | `/api/account`                    | `DELETE`          | An authenticated identity, whatever `AUTH_PROVIDER` is | no                  | Erase the caller's data. The body must be `{"confirm": "DELETE MY ACCOUNT"}` |
+| Assets    | `/api/assets/download`            | `POST`            | Session auth                     | no                          | Bulk ZIP download; `501` on this server |
+| Apps | `/api/applications` | `GET`, `POST` | Session auth | no | List the caller's apps (`project_id` filter) or create one |
+| Apps | `/api/applications/{id}` | `GET`, `PUT`, `PATCH`, `DELETE` | Session auth | no | Read, update, or delete one app |
+| Apps      | `/api/applications/{id}/released-document` | `GET`    | Session auth                     | no                          | The snapshot a published app should run, with each operation's pinned graph; `null` when nothing is published |
+| Apps      | `/api/applications/{id}/export-bundle` | `GET`        | Session auth                     | no                          | One app and the full graph of every workflow it binds, as a downloadable `ApplicationBundle` |
+| Apps | `/api/applications/import-bundle` | `POST` | Session auth | no | Create an app, and the workflows it binds, from an `ApplicationBundle` |
+| Apps      | `/api/applications/build`         | `POST`            | Session auth                     | no                          | Build a mini app from a prompt or a pinned spec; returns the `BuildReport`. `poll: true` returns a session id instead |
+| Apps      | `/api/applications/debug`         | `POST`            | Session auth                     | no                          | Simulate a saved app by `application_id`, or a draft posted inline as `document`; returns the compacted debug report |
+| Apps      | `/api/applications/examples`      | `GET`             | Session auth                                   | no                          | The shipped example apps — slug, name, description, workflow names, operation count, thumbnail URL |
+| Apps      | `/api/applications/examples/{slug}` | `GET`           | Session auth                                   | no                          | One example's full `ApplicationBundle`; `404` when the slug names nothing shipped |
+| Apps      | `/api/applications/examples/{slug}/install` | `POST`  | Session auth                     | no                          | Install an example into the caller's library, creating the workflows it binds |
+| Storyboards | `/api/storyboards/{id}/export-zip` | `GET`           | Session auth                     | streaming                   | One board as a zip of Markdown plus its stills and clips; `404` when the caller does not own it |
+| Timelines | `/api/timelines/{id}/export-zip`   | `GET`             | Session auth                     | streaming                   | One sequence and the bytes of every asset its clips name, as a zip; `404` when the caller does not own it |
+| Timelines | `/api/timelines/import-zip`       | `POST`            | Session auth                     | no                          | Multipart upload of such a zip; stores the assets and creates a new timeline pointing at them |
+| Providers | `/api/fal/credits`                | `GET`             | Session auth                     | no                          | The server's fal.ai account balance; `204` when no `FAL_API_KEY` is configured |
+| Providers | `/api/fal/pricing`                | `GET`             | Session auth                     | no                          | Unit price per fal.ai endpoint, one or more `?endpoint_id=`; cached an hour |
+| Providers | `/api/fal/pricing/estimate`       | `POST`            | Session auth                     | no                          | What a fal.ai endpoint costs for a given quantity; `204` when no `FAL_API_KEY` is configured |
+| Providers | `/api/kie/credits`                | `GET`             | Session auth                     | no                          | The server's kie.ai credit balance; `204` when no `KIE_API_KEY` is configured |
+| Providers | `/api/kie/pricing`                | `GET`             | Session auth                     | no                          | Credit price per kie.ai model, one or more `?model_id=`; cached an hour |
+| Providers | `/api/kie/resolve-dynamic-schema` | `POST`            | Session auth                     | no                          | Pasted kie.ai model docs to a node's dynamic properties, inputs, and outputs |
+| JS Scripts | `/api/js-scripts/{id}/run`       | `POST`            | Session auth                     | no                          | Run a saved JS script document in the sandbox and return its outputs |
+| SDK       | `/api/sdk/v1/capabilities`        | `GET`             | Session auth                     | no                          | What this server supports — profiles, encodings, execution options, limits |
+| SDK       | `/api/sdk/v1/node-types`          | `GET`             | Session auth                     | no                          | Paged inventory of the pin types in the registry and which nodes use them |
+| SDK       | `/api/sdk/v1/workflows`           | `GET`             | Session auth                     | no                          | Workflow summaries with the revision an interface was read at |
+| SDK       | `/api/sdk/v1/workflow-interfaces` | `POST`            | Session auth                     | no                          | Up to 100 workflows' interfaces in one call, with per-workflow errors |
+| SDK       | `/api/sdk/v1/preflight`           | `POST`            | Session auth                     | no                          | Whether a workflow is runnable, what it needs, and what it will cost |
+| SDK       | `/api/sdk/v1/assets/temporary`    | `POST`            | Session auth                     | no                          | Store one execution input in temporary storage; creates no asset row |
+| SDK       | `/api/sdk/v1/models`              | `GET`             | Session auth                     | no                          | Paged model catalog with per-model availability and the wire value a node property takes |
+| SDK       | `/api/sdk/v1/model-downloads`     | `GET`             | Session auth                     | no                          | Snapshot of this caller's model downloads, running and finished |
+| SDK       | `/api/sdk/v1/model-downloads`     | `POST`            | Session auth                     | no                          | Start a model download; `202` with the operation's first state |
+| SDK       | `/api/sdk/v1/model-downloads/cancel` | `POST`         | Session auth                     | no                          | Cancel one download by `operation_id` |
+| Extension | `/api/extension/download`         | `GET`             | Session auth                     | no                          | The built Chrome extension as a zip; `404` when the server has no build |
+| Workflow WS | `/ws`                           | WebSocket         | Session auth. Bearer header or `api_key` query | yes                         | Workflow execution, chat, job control, live editor tools, and live updates (MessagePack or JSON) |
+| Extension WS | `/ws/extension`                | WebSocket         | Session auth. Off in production unless `NODETOOL_ENABLE_EXTENSION_BRIDGE=1` | yes                         | Browser extension channel |
+| Download WS | `/ws/download`                  | WebSocket         | Session auth. Off in production                | yes                         | Model/file downloads |
+| Storage   | `/api/storage/*`                  | `HEAD/GET`        | Session auth                     | streaming for `GET`         | Asset bytes at `<userId>/<assetId>.<ext>`, scoped to the caller. Read-only: writes and deletes go through the asset API (tRPC `assets.delete` removes an asset's stored objects). `storage.signUrl` is the only tRPC storage procedure |
+| Account   | `/api/account/export`             | `GET`             | An authenticated identity, even in Local mode | no                  | Everything this server holds about the caller, as one JSON download |
+| Account   | `/api/account`                    | `DELETE`          | An authenticated identity, even in Local mode | no                  | Erase the caller's data. The body must be `{"confirm": "DELETE MY ACCOUNT"}` |
+| Files     | `/api/files/local`                | `GET`, `HEAD`     | Session auth                                   | streaming                   | One local file by absolute path, with `Range` support, for `file://` previews. `403` when `NODETOOL_ENV=production` |
+| OAuth     | `/api/oauth/{provider}/*`         | see [Provider Sign-in](#provider-sign-in) | Session auth, except the two callbacks | no               | Hugging Face, GitHub, OpenAI, Claude, and Google credential flows |
+| Collections | `/api/collections/{name}/index` | `POST`            | Session auth                                   | no                          | Multipart upload of one text file into a vector collection. Other collection operations are tRPC |
+| Documents | `/api/documents/extract-text`     | `POST`            | Session auth                                   | no                          | Extract text from an uploaded PDF or DOCX (25 MB cap). Stores nothing |
+| Apps      | `/api/apps/{token}`               | `GET`             | none (the token is the credential)             | no                          | A deployed mini app's released document. Production only |
+| Apps      | `/api/apps/{token}/session`       | `POST`            | none (the token is the credential)             | no                          | Mint the short-lived `nda_` session a deployed app's visitor runs on. Production only |
+| Timelines | `/api/timelines/{id}/track-object` | `POST`           | Session auth                                   | no                          | Track a subject through a clip with the `track_object` capability |
+| Timelines | `/api/timelines/{id}/bake-audio-animation` | `POST`   | Session auth                                   | no                          | Turn an audio clip's loudness or beats into keyframes on another clip |
+| Timelines | `/api/timelines/{id}/isolate-subject` | `POST`        | Session auth                                   | no                          | Cut a clip's subject out with a matte model |
+| Timelines | `/api/timelines/animations/bake`  | `POST`            | Session auth                                   | no                          | Run a custom animation's JavaScript once and return keyframe curves |
+| Timelines | `/api/assets/packages/timeline/fonts/{file}` and `.../google/{family}/css`, `.../google/{slug}/{file}` | `GET` | none | streaming | Bundled timeline fonts, and Google Fonts CSS and files cached on the server |
+| Providers | `/api/kie/webhook`                | `POST`            | none                                           | no                          | kie.ai task callback. Needs a `taskId`, answers `{"status":"accepted"}` |
+| Providers | `/api/providers/fal/webhook/{token}` | `POST`         | Ed25519 signature headers (no session)         | no                          | fal.ai queue callback, rate-limited to 120 per minute |
+| Providers | `/api/providers/atlascloud/webhook` | `POST`          | Ed25519 signature header (no session)          | no                          | AtlasCloud prediction callback, rate-limited to 120 per minute |
+| Sandbox   | `/api/sandbox-modules/*`          | `GET`             | Session auth                                   | no                          | Guest module source for the browser sandbox, by module id |
+| MCP       | `/mcp`                            | `GET`, `POST`, `DELETE` | Session auth, or an `ntk_` or `nta_` token | SSE                         | MCP over HTTP. See [MCP in production](mcp-production.md) |
 | Config    | `/api/config`                     | `GET`             | none                                           | no                          | How this server is configured, for a client that has not signed in yet: auth mode, Supabase URL and anon key, Google Workspace scopes, version |
-| Admin     | `/admin/secrets/import`           | `POST`            | none                                           | no                          | Stub — always `501`. Bulk secret import is not part of the standalone server |
-| Health    | `/health`                         | `GET`             | none                                           | no                          | JSON: `{status, timestamp, uptime, services}` (`200`/`503`) |
+| Admin     | `/admin/secrets/import`           | `POST`            | Session auth                                   | no                          | Stub — always `501`. Bulk secret import is not part of the standalone server |
+| Health    | `/health`                         | `GET`             | none                                           | no                          | JSON: `{status, timestamp, uptime, turns, jobs, services}`. `503` when the database check fails or the server is draining |
 | Health    | `/api/health`                     | `GET`             | none                                           | no                          | JSON: `{version, uptime}` |
 | Liveness  | `/ready`                          | `GET`             | none                                           | no                          | Always `200` with `{status:"ok"}` |
 
-> When `AUTH_PROVIDER` is `local` or `none`, endpoints accept requests without a token for convenience. When it is `static` or `supabase`, include `Authorization: Bearer <token>` on every request except the health/liveness routes.
+> **Session auth** means the request must carry a credential unless Local mode trusts the caller. Rows marked `none` skip session auth. The server does not read an `AUTH_PROVIDER` variable. The mode comes from `SUPABASE_URL` and `SUPABASE_KEY`, as described in [Authentication](authentication.md). The SDK discovery routes (`capabilities`, `models`, `node-types`, `workflows`, `workflow-interfaces`) also skip session auth unless the server enforces auth or the SDK authentication flag is set.
 
 ## Authentication and Headers
 
-NodeTool uses Bearer token authentication. The behavior depends on your `AUTH_PROVIDER` setting:
+The server picks one of two modes at startup. When both `SUPABASE_URL` and `SUPABASE_KEY` are set it runs in **Supabase mode** and validates a Supabase JWT on every request that is not public. Otherwise it runs in **Local mode**. Loopback callers are trusted as user `1` with no token, and other callers need an access token or an address listed in `NODETOOL_TRUST_LOCAL_NETWORKS`. The full rules are in [Authentication](authentication.md).
 
-| AUTH_PROVIDER | Token Required? | Use Case |
-|---------------|----------------|----------|
-| `local` / `none` | No | Local development, desktop app |
-| `static` | Yes — use the configured static token | Simple deployments with a shared secret |
-| `supabase` | Yes — use a Supabase JWT | Production deployments with user management |
+Credentials a client can present:
+
+| Credential | Prefix | Where it works |
+|------------|--------|----------------|
+| Supabase JWT | none | Everything, in Supabase mode |
+| Access token minted in Settings → MCP | `ntk_` | Everything, in both modes |
+| MCP OAuth access token | `nta_` | `/mcp` only |
+| Deployed app session | `nda_` | `/ws` only, confined to one app |
+| Delegated token from a messaging bridge | `ndt_` | Everything, for the linked user. See [Linking an External Messaging Account](#linking-an-external-messaging-account) |
 
 ### How to include credentials
 
 - **HTTP requests:** `Authorization: Bearer <token>` header on all non-public routes
-- **WebSocket:** `Authorization: Bearer <token>` header (preferred) or `api_key` query parameter
-- **SSE streams (`/v1/chat/completions`):** `Authorization: Bearer <token>` and `Accept: text/event-stream`
+- **WebSocket:** `Authorization: Bearer <token>` header (preferred) or `api_key` query parameter. The query parameter is read on WebSocket upgrades only
+- **SSE streams (`/v1/chat/completions`):** `Authorization: Bearer <token>`
 
-> **Local development:** When running locally with the default config (`AUTH_PROVIDER=local`), no token is needed. You can omit the `Authorization` header entirely.
+Requests without a valid credential get `401`. The public routes are listed in the matrix with `none` in the Auth column.
+
+> **Local development:** When running locally with the default config, loopback requests need no token. You can omit the `Authorization` header entirely.
 
 See [Authentication](authentication.md) for full token handling rules.
 
@@ -132,6 +162,71 @@ See [Authentication](authentication.md) for full token handling rules.
 - Storage routes stream file contents for large assets.
 
 ---
+
+## tRPC Procedures
+
+The web app, the CLI, and the mobile app talk to the server over tRPC at
+`/trpc`. Procedures are plain JSON with no transformer. A query is
+`GET /trpc/<router>.<procedure>?input=<url-encoded JSON>`, and a mutation is
+`POST /trpc/<router>.<procedure>` with the input as the JSON body. Batching
+joins paths with commas (`/trpc/a.x,b.y?batch=1`, one input per index) and is
+capped at 20 calls per batch. Because long batched inputs overflow URLs behind reverse proxies, the
+server also accepts `POST` for queries. A result is `{"result": {"data": ...}}`.
+
+An error carries the tRPC `code` and `message`, plus `data.apiCode` (an API
+error code such as `NOT_FOUND` or `INVALID_INPUT`) and `data.zodError` (field
+errors, or `null`). Every procedure needs a signed-in user except `healthz`,
+`extension.status`, `nodes.replicateStatus`, `workflows.public.list`, and
+`workflows.public.get`.
+
+Procedures by router. Nested routers appear as a dotted path.
+
+| Router | Queries | Mutations |
+|---|---|---|
+| `agentAccess` | `mcpConnection`, `listTokens`, `getOauthRequest`, `listOauthGrants` | `createToken`, `revokeToken`, `approveOauthRequest`, `denyOauthRequest`, `revokeOauthGrant` |
+| `applications` | `list`, `get`, `versions`, `released`, `releasedDocument`, `deployment`, `budget`, `usage`, `invocations` | `create`, `update`, `delete`, `publish`, `deploy`, `undeploy`, `setBudget`, `beginInvocation`, `settleInvocation`, `release` |
+| `assets` | `list`, `get`, `externalImportConfig`, `recursive`, `search` | `createUpload`, `finalizeUpload`, `createExternal`, `relinkExternal`, `ensureProxy`, `update`, `delete` |
+| `codeGen` | — | `generate` |
+| `collections` | `list` | `create`, `update`, `delete` |
+| `costs` | `dashboard` | — |
+| `credits` | `status` | `setPlan`, `topup` |
+| `customProviders` | `list` | `save`, `delete`, `test` |
+| `documents` | `index` | — |
+| `extension` | `status` | — |
+| `externalMcp` | `list` | `save`, `delete`, `probe` |
+| `files` | `list` | `createFolder` |
+| `fonts` | `list` | — |
+| `games` | `list`, `examples`, `get`, `getDraft`, `draftChanges`, `draftBeforeChange`, `revisions` | `create`, `installExample`, `saveDraft`, `previewAuthoring`, `applyAuthoring`, `publish`, `restore`, `restoreDraft`, `installAsset`, `installCandidate` |
+| `integrations` | `list`, `describeLinkCode` | `createLinkCode`, `confirmLink`, `unlink` |
+| `jobs` | `list`, `get`, `triggersRunning` | `cancel`, `triggerStart`, `triggerStop` |
+| `jsScripts` | `list`, `palette`, `get`, `documentVersions.list`, `documentVersions.get` | `create`, `update`, `delete`, `documentVersions.create`, `documentVersions.restore`, `documentVersions.delete` |
+| `mcpConfig` | `status` | `install`, `uninstall` |
+| `memories` | `list`, `search` | `delete` |
+| `messages` | `list` | — |
+| `models` | `providers`, `recommended`, `recommendedImageTextToImage`, `recommendedImageImageToImage`, `recommendedLanguageEmbedding`, `recommendedAsr`, `recommendedTts`, `recommendedVideoTextToVideo`, `recommendedVideoImageToVideo`, `availableForKind`, `all`, `huggingfaceList`, `huggingfaceSearch`, `huggingfaceHubSearch`, `huggingfaceByType`, `transformersJsByType`, `transformersJsRecommended`, `ollama`, `llmByProvider`, `mediaOptions`, `imageByProvider`, `tts`, `ttsByProvider`, `music`, `musicByProvider`, `audioToAudio`, `audioToAudioByProvider`, `asr`, `asrByProvider`, `video`, `videoByProvider`, `embeddingByProvider` | `huggingfaceDelete`, `ollamaDelete`, `huggingfaceCacheStatus`, `pullOllamaModel` |
+| `nodes` | `replicateStatus`, `list`, `get` | — |
+| `packs` | `list`, `runtimeStatuses`, `getTrust`, `sandboxModules`, `sandboxPackageDocs`, `listBuiltins` | `setTrust`, `setBuiltinEnabled`, `reload` |
+| `projects` | `list`, `archived`, `summaries`, `get`, `documents`, `restoreTabs`, `unassigned` | `thread`, `create`, `update`, `archive`, `restore`, `delete`, `assignDocument`, `copyDocument` |
+| `resources` | `list`, `read` | `create`, `update`, `delete` |
+| `scripts` | `list`, `get` | `create`, `update`, `delete` |
+| `segmentation` | — | `segment` |
+| `settings` | `secrets.list`, `secrets.get`, `history.get`, `list` | `secrets.upsert`, `secrets.delete`, `secrets.validate`, `history.update`, `history.cleanup`, `history.compact`, `update` |
+| `sketch` | `list`, `get`, `versions.list`, `documentVersions.list`, `documentVersions.get` | `create`, `update`, `delete`, `versions.append`, `versions.setFavorite`, `versions.delete`, `documentVersions.create`, `documentVersions.restore`, `documentVersions.delete`, `layers.create`, `layers.duplicate` |
+| `skills` | `list`, `get` | `create`, `update`, `delete` |
+| `storage` | `signUrl` | — |
+| `storyboards` | `list`, `get`, `examples` | `create`, `update`, `delete`, `installExample`, `stylePresets` |
+| `threads` | `list`, `get` | `create`, `update`, `delete`, `summarize` |
+| `timeline` | `examples`, `list`, `get`, `versions.list`, `versions.get`, `code.get` | `installExample`, `create`, `update`, `delete`, `versions.create`, `versions.restore`, `versions.delete`, `code.set`, `code.rebake`, `code.detach`, `clips.create` |
+| `triggers` | `listByWorkflow` | `fire` |
+| `users` | `list` | `create`, `remove`, `resetToken` |
+| `worker` | `profiles.list`, `instances.list`, `apiKeyStatus`, `health` | `profiles.create`, `profiles.delete`, `provision`, `stop`, `resume`, `terminate`, `stopAll`, `reconcile`, `attach`, `detach` |
+| `workflows` | `list`, `get`, `examples`, `recipes`, `public.list`, `public.get`, `terminalOutputs`, `versions.list`, `sharing.get`, `sharing.sharedWithMe` | `create`, `update`, `delete`, `autosave`, `versions.create`, `versions.restore`, `versions.delete`, `sharing.createLink`, `sharing.revokeLink`, `sharing.setRole`, `sharing.removeCollaborator`, `sharing.accept` |
+| `workspace` | `list`, `listFiles`, `readFile` | `create`, `update`, `delete`, `writeFile` |
+
+`healthz` is a root-level query that returns `{"ok": true}`. Input and output
+shapes are the Zod schemas in `packages/protocol/src/api-schemas/` and in the
+router files under `packages/websocket/src/trpc/routers/`. The `AppRouter` type
+exported by `@nodetool-ai/websocket/trpc` gives a typed client every shape.
 
 ## Headless Mode: Running Workflows via CLI/API
 
@@ -557,12 +652,16 @@ Response:
     }
   ],
   "usage": {
-    "prompt_tokens": 10,
-    "completion_tokens": 150,
-    "total_tokens": 160
+    "prompt_tokens": 0,
+    "completion_tokens": 0,
+    "total_tokens": 0
   }
 }
 ```
+
+`usage` is always zeros, because the endpoint does not count tokens. The
+provider comes from the model name, and a request without `model` uses
+`llama3.2:latest`. See the [Chat API](chat-api.md#chat-completions-post-v1chatcompletions) for the rules.
 
 ### Streaming Chat
 
@@ -580,15 +679,13 @@ curl -X POST "http://localhost:7777/v1/chat/completions" \
   }'
 ```
 
-Streaming response:
+Streaming response. Each event is a `chat.completion.chunk`, the last one carries `finish_reason`, and the stream ends with `[DONE]`:
 ```
-data: {"id":"chatcmpl-123","choices":[{"delta":{"role":"assistant"},"index":0}]}
+data: {"id":"chatcmpl-…","object":"chat.completion.chunk","created":1699000000,"model":"gpt-5.6","choices":[{"index":0,"delta":{"content":"Code"},"finish_reason":null}]}
 
-data: {"id":"chatcmpl-123","choices":[{"delta":{"content":"Code"},"index":0}]}
+data: {"id":"chatcmpl-…","object":"chat.completion.chunk","created":1699000000,"model":"gpt-5.6","choices":[{"index":0,"delta":{"content":" flows"},"finish_reason":null}]}
 
-data: {"id":"chatcmpl-123","choices":[{"delta":{"content":" flows"},"index":0}]}
-
-data: {"id":"chatcmpl-123","choices":[{"delta":{"content":" like"},"index":0}]}
+data: {"id":"chatcmpl-…","object":"chat.completion.chunk","created":1699000000,"model":"gpt-5.6","choices":[{"index":0,"delta":{},"finish_reason":"stop"}]}
 
 data: [DONE]
 ```
@@ -600,18 +697,22 @@ curl "http://localhost:7777/v1/models" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
 
-Response:
+The route returns a fixed list. It does not query providers or reflect configured keys:
 ```json
 {
   "object": "list",
   "data": [
-    {"id": "gpt-5.6", "object": "model", "owned_by": "openai"},
-    {"id": "gpt-5-mini", "object": "model", "owned_by": "openai"},
-    {"id": "claude-opus-5", "object": "model", "owned_by": "anthropic"},
-    {"id": "gpt-oss:20b", "object": "model", "owned_by": "ollama"}
+    {"id": "llama3.2:latest", "object": "model", "created": 0, "owned_by": "ollama"},
+    {"id": "gpt-4", "object": "model", "created": 0, "owned_by": "openai"},
+    {"id": "gpt-4o", "object": "model", "created": 0, "owned_by": "openai"},
+    {"id": "gpt-4o-mini", "object": "model", "created": 0, "owned_by": "openai"},
+    {"id": "claude-sonnet-4-20250514", "object": "model", "created": 0, "owned_by": "anthropic"},
+    {"id": "claude-opus-4-20250514", "object": "model", "created": 0, "owned_by": "anthropic"}
   ]
 }
 ```
+
+A chat request accepts any model name, not only these. For the live catalog with per-model availability, use [`GET /api/sdk/v1/models`](#listing-models-an-sdk-client-can-use).
 
 ### Node Metadata
 
@@ -675,10 +776,15 @@ curl "http://localhost:7777/api/nodes/metadata?node_type=nodetool.text.Concat"
 ### List Workflows
 
 ```bash
-# List all workflows
+# List the caller's workflows (graphs included)
 curl "http://localhost:7777/api/workflows" \
   -H "Authorization: Bearer YOUR_TOKEN"
 ```
+
+The response is `{"workflows": [...], "next": <cursor or null>}`. Pass `limit`
+(default 100, cap 500), `cursor`, `run_mode`, or `project_id` to page and filter.
+Create, read, save, and delete are covered in the
+[Workflow API](workflow-api.md#creating-updating-and-deleting).
 
 ### Moving Workflows Between Servers
 
@@ -1034,16 +1140,17 @@ curl "http://localhost:7777/api/workspaces/ws_abc123/download/notes/report.md" \
   -o report.md
 ```
 
-Workspaces browse the local filesystem, so the whole surface is off in
-production — every path answers `403` with
-`{"detail": "Workspaces are disabled in production"}` when
-`NODETOOL_ENV=production`. Otherwise:
+When `NODETOOL_ENV=production`, only the server-managed workspace is readable.
+A workspace row that points at some other host folder answers `403` with
+`{"detail": "This workspace is not readable in production"}`. Otherwise:
 
 | Status | Meaning |
 |--------|---------|
 | `400`  | `path` is absolute |
-| `403`  | `path` resolves outside the workspace root |
+| `403`  | `path` resolves outside the workspace root, or the workspace is not readable in production |
 | `404`  | No such workspace for this caller, or no such file inside it |
+| `405`  | The method is not `GET` |
+| `500`  | The workspace has no storage configured |
 
 ```bash
 curl "http://localhost:7777/api/workspaces/nosuchws/download/a.txt"
@@ -1281,8 +1388,9 @@ not a REST route.
 ### Installing a Shipped Example App
 
 NodeTool ships a set of curated mini apps. They are `ApplicationBundle` files on
-disk rather than database rows, so listing and reading one needs no user and no
-token; installing one writes into the caller's library.
+disk rather than database rows, so listing and reading one touches no user data.
+The routes still sit behind session auth, and installing one writes into the
+caller's library.
 
 `GET /api/applications/examples` is the catalog:
 
@@ -2455,6 +2563,108 @@ answers `200` with zeros. The `data_erasure_requested` and
 `data_erasure_completed` events survive the sweep as the record that the request
 arrived and was answered.
 
+### Provider Sign-in
+
+`/api/oauth/*` runs the credential flows for outside accounts. Only the two
+browser redirect targets skip session auth, because the identity provider sends
+the user back with no `Authorization` header. Every other path reads or changes
+credentials stored for the caller. Methods that do not match answer `405`.
+
+| Provider | Routes |
+|----------|--------|
+| Hugging Face | `GET /api/oauth/hf/start` (returns `{"auth_url": ...}`), `GET /api/oauth/hf/callback` (public), `GET /api/oauth/hf/tokens`, `POST /api/oauth/hf/refresh`, `GET /api/oauth/hf/whoami` |
+| GitHub | `GET /api/oauth/github/start`, `GET /api/oauth/github/callback` (public), `GET /api/oauth/github/tokens`, `GET /api/oauth/github/user` |
+| OpenAI (Codex) | `GET /api/oauth/openai/start`, `POST /api/oauth/openai/complete`, `GET /api/oauth/openai/tokens`, `POST /api/oauth/openai/disconnect` |
+| Claude subscription | `GET /api/oauth/claude/start`, `POST /api/oauth/claude/complete`, `GET /api/oauth/claude/tokens`, `POST /api/oauth/claude/disconnect` |
+| Google Workspace | `POST /api/oauth/google/session`, `GET /api/oauth/google/tokens`, `POST /api/oauth/google/disconnect`. The session route takes the Supabase Google login's `access_token` and answers `404` unless `NODETOOL_GOOGLE_WORKSPACE` is on |
+
+Hugging Face and GitHub use PKCE with a single-use `state`. The `start` route
+builds the redirect URI from the request's `Host` header. Token routes return
+metadata (`scope`, expiry), never the token itself. Any other path under
+`/api/oauth/` is a `404`.
+
+### Streaming a Local File
+
+`GET /api/files/local?path=<absolute path>` streams one file from the machine the
+server runs on, with `Range` support. The editor uses it to preview `file://`
+media. The path must resolve inside a configured root (the home directory by
+default), both lexically and after symlinks. A missing `path` or a directory is a
+`400`, a path outside the roots is a `403`, and a missing file is a `404`. With
+`NODETOOL_ENV=production` every request is a `403`.
+
+### Indexing a File into a Collection
+
+`POST /api/collections/{name}/index` takes a `multipart/form-data` body with one
+`file` field, splits the text into chunks, and adds them to the vector collection.
+The response is `{"path": "<file name>", "chunks": 12, "error": null}`. A
+collection that does not exist or belongs to someone else is a `404`, a body that
+is not multipart or has no file is a `400`, and a file over
+`NODETOOL_MAX_UPLOAD_BYTES` is a `413`. Create, list, query, and delete are tRPC
+procedures on `collections`.
+
+### Extracting Text from a Document
+
+`POST /api/documents/extract-text` reads one PDF or DOCX sent as the `file` field
+of a multipart body and returns `{"text": "...", "pages": 3}` (`pages` only for
+PDF). Nothing is stored. The limit is 25 MB (`413`). The type comes from the
+content type, or from the file extension when the content type is
+`application/octet-stream`. Another type is a `415`. A file that cannot be parsed,
+or a PDF or DOCX with no text, is a `422`. Script and screenplay imports use it.
+
+### Timeline Operations
+
+Four routes run timeline edits that need the server. The first three read the
+stored sequence, call a capability, save the result, and return it. The editor
+then reloads the document. A refusal from the capability, such as a missing clip,
+is a `400` with `{"detail": "..."}`. A body that fails validation is also a `400`
+and the detail names the field.
+
+| Route | Body | What it does |
+|-------|------|--------------|
+| `POST /api/timelines/{id}/track-object` | `clip_id`, `initial_region` (`x`, `y`, `width`, `height`), `start_ms`, `end_ms`, optional `provider`, `model`, `name`, `direction` (`forward`, `backward`, `both`), `track_id`, `regenerate` | Tracks a subject through a clip and stores the track |
+| `POST /api/timelines/{id}/bake-audio-animation` | `audio_clip_id`, `target_clip_id`, `property` (`scale`, `opacity`, `offsetX`, `offsetY`), `output_range` (`[quiet, loud]`), optional `mode` (`envelope`, `beats`), `sensitivity`, `attack_ms`, `release_ms`, `offset_ms`, `tolerance`, `max_points`, `frame_ms`, `max_seconds`, `replace` | Turns an audio clip's loudness or beats into keyframes on the target clip |
+| `POST /api/timelines/{id}/isolate-subject` | `clip_id`, optional `model` (`General Use (Light)`, `General Use (Light 2K)`, `General Use (Heavy)`, `Matting`, `Portrait`, `General Use (Dynamic)`), `operating_resolution` (`1024x1024`, `2048x2048`, `2304x2304`), `refine_foreground`, `regenerate`, `background` | Generates a matte for the clip's subject. A generation that fails answers `200` with `status: "failed"` and keeps the previous matte |
+| `POST /api/timelines/animations/bake` | `code` or `script_id` (exactly one), `role` (`in`, `out`, `emphasis`, `loop`), `duration_ms`, `clip_duration_ms`, `canvas` (`width`, `height`), optional `params`, `stagger_count`, `sample_count` | Runs a custom animation body once in the sandbox, with no secrets and no toolbelt, and returns `{ok, curves, logs, duration_ms}`. A `script_id` that is not the caller's is a `404` |
+
+### Deployed App Routes
+
+`GET /api/apps/{token}` returns a deployed mini app's released document and
+`POST /api/apps/{token}/session` mints the `nda_` token its visitor runs on over
+`/ws`. The deployment token in the path is the credential, so neither route uses
+session auth. Both answer `404` with `{"detail": "This app is not available"}`
+for an unknown or revoked token, and for every request outside production. The
+`GET` response is gzip-compressed when the client accepts it.
+
+### Provider Callbacks
+
+Three routes receive results from providers that call back instead of making the
+server poll.
+
+| Route | Authentication | Behavior |
+|-------|----------------|----------|
+| `POST /api/kie/webhook` | None | Reads `taskId` (or `task_id`, also under `data`) and the status, resolves or rejects the waiting run, and answers `{"status": "accepted"}`. A body with no task id is a `400` |
+| `POST /api/providers/fal/webhook/{token}` | Ed25519 signature over the raw body, in `x-fal-webhook-*` headers | Verifies the signature and request id, records the result in the durable generation inbox, and answers `{"status": "accepted", "duplicate": false}`. A bad signature is a `400`. A transient verification or inbox failure is a `503` so fal retries |
+| `POST /api/providers/atlascloud/webhook` | Ed25519 signature over the raw body, in `x-atlascloud-webhook-*` headers | Same pattern for AtlasCloud predictions |
+
+The fal and AtlasCloud routes allow 120 requests per minute.
+
+### Sandbox Modules
+
+`GET /api/sandbox-modules/{module id}` serves the source of a guest module to the
+browser sandbox. The id is a pack entry specifier such as `@acme/geo`, or an
+internal file id such as `@acme/geo::sandbox/helper.js`. The response carries the
+module as its body with an `ETag`, `Cache-Control: private, no-cache`, and headers
+that name its digest, SHA-256, pack, file id, and dependency list. An unknown id
+is a `404`, and a module the caller may not receive is a `403`.
+
+### MCP over HTTP
+
+`/mcp` is the Model Context Protocol endpoint. It binds the user the auth hook
+resolved, so an agent presents an `ntk_` access token or an `nta_` OAuth token.
+Without a user, `initialize` answers `401`. In production it registers only with
+`NODETOOL_ENABLE_MCP=1`. See [MCP OAuth Discovery](#mcp-oauth-discovery) and
+[MCP in production](mcp-production.md).
+
 ### Health Check
 
 ```bash
@@ -2468,9 +2678,16 @@ Response:
   "status": "ok",
   "timestamp": "2026-06-20T00:00:00.000Z",
   "uptime": 123,
+  "turns": 0,
+  "jobs": 0,
   "services": { "database": "ok", "server": "ok" }
 }
 ```
+
+`turns` and `jobs` count the chat turns and workflow runs this process is still
+executing. `status` is `"degraded"` with a `503` when the database check fails,
+and `"draining"` with a `503` after the server receives `SIGUSR2`. See
+[Draining](websocket-api.md#draining).
 
 ### CLI Workflow Execution
 
@@ -2549,7 +2766,7 @@ HEADERS = {
 }
 
 # List workflows
-workflows = requests.get(f"{BASE_URL}/api/workflows", headers=HEADERS).json()
+workflows = requests.get(f"{BASE_URL}/api/workflows", headers=HEADERS).json()["workflows"]
 
 # Run a workflow (runs to completion, returns one JSON response)
 result = requests.post(
@@ -2583,27 +2800,29 @@ To run a workflow via API, you need its ID. Here's how to find it:
 
 ### Error Handling
 
-API errors return standard HTTP status codes with JSON error bodies:
+API errors return standard HTTP status codes. The body shape depends on the
+route family:
 
-```json
-{
-  "error": {
-    "message": "Workflow not found: invalid_id",
-    "type": "not_found",
-    "code": 404
-  }
-}
-```
+| Family | Body |
+|--------|------|
+| Most REST routes | `{"detail": "Workflow not found"}`, sometimes with a `code` such as `INVALID_INPUT` |
+| `/api/sdk/v1/*` | `{"code": "INVALID_REQUEST", "message": "..."}` |
+| `/v1/*` | OpenAI shape, `{"error": {"message", "type", "param", "code"}}` |
+| Webhook and provider callbacks | `{"error": "..."}` |
+| `/trpc` | tRPC error object with `data.apiCode` and `data.zodError` |
 
 | Status Code | Meaning | Common Causes |
 |-------------|---------|---------------|
-| 400 | Bad Request | Invalid parameters, malformed JSON |
+| 400 | Bad Request | Invalid parameters, malformed JSON, a graph the server refuses to run |
 | 401 | Unauthorized | Missing or invalid token |
-| 403 | Forbidden | Token lacks permission |
-| 404 | Not Found | Workflow/resource doesn't exist |
-| 422 | Validation Error | Parameter validation failed |
+| 403 | Forbidden | Production guard on local-file and workspace routes, path traversal |
+| 404 | Not Found | Resource missing, or owned by someone else |
+| 409 | Conflict | A workflow save with a stale `expected_updated_at` |
+| 422 | Unprocessable | A document or media file that cannot be read |
+| 429 | Too Many Requests | Rate limit, or too many live debug sessions |
 | 500 | Internal Error | Server-side error |
-| 503 | Service Unavailable | Server overloaded or starting up |
+| 501 | Not Implemented | Stub routes such as bulk asset download |
+| 503 | Service Unavailable | A feature flag is off, ffmpeg is missing, or the server is draining |
 
 ---
 

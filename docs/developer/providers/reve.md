@@ -28,9 +28,9 @@ description: "Runbook for adding new Reve image API endpoints and model versions
 | Remix Image node | `packages/reve-nodes/src/nodes/remix-image.ts` |
 | Package entry point | `packages/reve-nodes/src/index.ts` |
 | Runtime provider (generic image picker) | `packages/runtime/src/providers/reve-provider.ts` |
-| Provider registration | `packages/runtime/src/providers/index.ts` line 221 |
-| `PROVIDER_IDS.REVE` | `packages/protocol/src/api-types.ts` line 887 |
-| Unit tests | `packages/reve-nodes/tests/nodes.test.ts` |
+| Provider registration | `packages/runtime/src/providers/index.ts` (`registerBuiltinProvider(PROVIDER_IDS.REVE, ...)`) |
+| `PROVIDER_IDS.REVE` | `packages/protocol/src/api-types.ts` |
+| Unit tests | `packages/reve-nodes/tests/nodes.test.ts`, `reve-base.test.ts` |
 | Registration test | `packages/reve-nodes/tests/registration.test.ts` |
 
 ---
@@ -49,7 +49,7 @@ There is no manifest or code-generation script. Each node is a hand-written `Bas
 
 **Shared utilities in `reve-base.ts`:**
 
-- `REVE_ASPECT_RATIOS` — the seven aspect ratios all endpoints accept.
+- `REVE_ASPECT_RATIOS` — the aspect ratios all endpoints accept.
 - `REVE_POSTPROCESSING` — optional post-generation operations (`upscale`, `remove_background`, `fit_image`, `effect`).
 - `getReveApiKey(secrets)` — reads `REVE_API_KEY` from `this._secrets` then `process.env`, throws if absent.
 - `reveGenerate(apiKey, endpoint, body)` — POSTs to `https://api.reve.com/v1/image/{endpoint}` with `Authorization: Bearer`, returns the parsed `ReveImageResponse`.
@@ -234,29 +234,13 @@ npm run dev:nodetool -- node run reve.YourEndpoint \
 
 # 6. Static validation (no API key required)
 npm run dev:nodetool -- validate workflow.json
+
+# 7. Affected tests and the harness gate
+npm run test:affected
+npm run dev:nodetool -- harness gate --base origin/main
 ```
 
 A `REVE_API_KEY is not configured` error from step 5 means the node registered correctly — it loaded from `dist/` and resolved the type. An `unknown node type` error means the build or export wiring is broken.
-
----
-
-## How past commits did it
-
-The Reve node package and runtime provider were introduced together in commit `115c352c` ("Add Reve image provider and nodes"). That commit added:
-
-```
-packages/runtime/src/providers/reve-provider.ts
-packages/reve-nodes/src/reve-base.ts
-packages/reve-nodes/src/nodes/create-image.ts
-packages/reve-nodes/src/nodes/edit-image.ts
-packages/reve-nodes/src/nodes/remix-image.ts
-packages/reve-nodes/src/index.ts
-packages/reve-nodes/tests/nodes.test.ts
-packages/reve-nodes/tests/registration.test.ts
-packages/reve-nodes/tests/reve-base.test.ts
-```
-
-The three endpoints (`create`, `edit`, `remix`) map to three node classes with no factory or manifest layer. For reference, XAI image/video support was added in PR #3951 (commit `69dd6f88`) by extending `getAvailableImageModels` and `getAvailableVideoModels` in the existing provider — that pattern applies when the provider's generic image picker (not a standalone node pack) is the target.
 
 ---
 
@@ -265,4 +249,4 @@ The three endpoints (`create`, `edit`, `remix`) map to three node classes with n
 Source: <https://github.com/nodetool-ai/nodetool>  
 Discord: <https://discord.gg/WmQTWZRcYE>
 
-Before opening a PR, run `npm run check` (typecheck + lint + tests). Add a test for every new node; the existing `nodes.test.ts` stubs `fetch` globally, so new test cases fit cleanly in the same file.
+Before opening a PR, run the Verify steps. Add a test for every new node; the existing `nodes.test.ts` stubs `fetch` globally, so new test cases fit cleanly in the same file.

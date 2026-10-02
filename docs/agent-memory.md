@@ -105,7 +105,7 @@ export interface MemoryEntry {
 
 ## Memory Tools (the LLM-facing API)
 
-Three tools are auto-attached to every step executor. Their signatures appear in the prompt's tool catalog, so the model knows when to call them.
+Three tools are auto-attached to every step executor. Inside a CodeAct step the model reaches them as `nodetool.shared.list(opts)`, `nodetool.shared.read(keys)`, and `nodetool.shared.publish(key, value, opts)` (`opts` carries `title` and `description`). The wire names below are what the tool calls and the supervisor's `StepExecutor` use.
 
 ### `list_shared`
 
@@ -139,7 +139,7 @@ Discover available entries without paying for their values.
 }
 ```
 
-`valueBytes` is the size of the JSON-serialized value — useful for the model to budget reads. The result is hard-capped at 200 entries; older entries are truncated and reported via `truncated: true`.
+`valueBytes` is the character length of the value (the string itself, or its JSON serialization). The model can use it to budget reads. Each `description` is cut at 240 characters with a trailing `…`. The result is capped at 200 entries, the first 200 in insertion order, and `truncated: true` reports that more exist. `createdAt` is an ISO timestamp here.
 
 ### `read_shared`
 
@@ -165,7 +165,7 @@ Fetch full values for one or more keys.
 }
 ```
 
-Missing keys are reported in `missing` so the model can decide whether to retry, list again, or proceed without them.
+Missing keys are reported in `missing` so the model can decide whether to retry, list again, or proceed without them. A key with no `:` is retried under `shared:`, so the suffix given to `share_result` reads back as written. Each entry is the full `MemoryEntry`, so `createdAt` is a millisecond number here.
 
 ### `share_result`
 
@@ -184,13 +184,15 @@ Publish a value under the `shared:` namespace so other agents and steps can disc
 { "ok": true, "key": "shared:top_source", "kind": "shared", "createdAt": "..." }
 ```
 
-Writes are restricted to the `shared:` namespace to prevent agents from spoofing step / task / input results.
+A key that already starts with `shared:` has the prefix stripped, so writing back a key from `list_shared` does not produce `shared:shared:<key>`. `title` defaults to the key suffix, and `source` is always `share_result`. Writes are restricted to the `shared:` namespace to prevent agents from spoofing step / task / input results.
 
 ---
 
 ## Direct API Reference
 
 The `AgentMemory` class lives in `packages/runtime/src/agent-memory.ts` and is re-exported from `@nodetool-ai/runtime`. Tools and executors use this API directly; agents reach it only through the three memory tools above.
+
+Other methods: `delete(key)` returns whether the key existed, `size()` returns the entry count, and `formatForPrompt(filter?)` renders matching entries as a Markdown block ordered by `createdAt` (empty string when none match).
 
 ### Writing
 
@@ -239,6 +241,15 @@ unsubscribe();
 
 UIs can use this to render a live memory side panel.
 
+### Snapshot and restore
+
+```ts
+const saved = context.memory.snapshot();   // MemoryEntry[] in insertion order
+context.memory.restore(saved);             // rewrites each entry, keeps createdAt, notifies subscribers
+```
+
+Persist a snapshot at a checkpoint and call `restore` on a fresh `AgentMemory` to rebuild it. Existing keys are overwritten.
+
 ### Clearing
 
 ```ts
@@ -261,15 +272,15 @@ The execution engine for a single step.
 |---|---|---|
 | Always | `step:<step.id>` | `step_result` |
 | Last step of a task (finish-task) | `task:<task.id>` | `task_result` |
-| Step exhausted iterations | `step:<step.id>` (with `{ error }`) | `step_result` |
+| Step failed (error, budget stop, iterations exhausted, or no `finish()`) | `step:<step.id>` (with `{ error }`, title `Failed: <instructions>`) | `step_result` |
 
 **LLM access**:
 
 - The memory tools ride in the toolbelt like any other, but the object model is their one documented form: the prompt teaches `nodetool.shared.list()` / `nodetool.shared.read(keys)` / `nodetool.shared.publish(key, value)`, and the three wire names drop out of the raw tool catalog like every other wrapped tool.
-- The user message includes only **specific declared upstream keys** as a hint:
+- The user message includes only **specific declared upstream keys** as a hint, under the heading "Required upstream context — read these before acting (via `await nodetool.shared.read([...])`)":
   - `step:<id>` for every entry of the step's `dependsOn` (intra-task deps).
   - any key supplied via `CodeActExecutorOptions.upstreamMemoryKeys` (typically `task:<id>` from the parent task's `dependsOn`).
-- Values are not included; the agent calls `read_shared` to fetch them.
+- Values are not included, and the keys are listed whether or not they exist yet. The agent calls `nodetool.shared.read` to fetch them.
 
 **Tool attachment**: `getSharedTools()` (`packages/agents/src/tools/shared-tools.ts`) — a belt built from the `shared` capability module's specs — is auto-pushed into the step's tool list at construction time, alongside any caller-supplied tools. Mount policy stays with the executor: the host never mounts these. Completion is `finish(result)` in the sandbox, validated host-side against the step's schema.
 
@@ -290,7 +301,7 @@ for (const [key, value] of Object.entries(this.inputs)) {
 }
 ```
 
-The only `step:` key it writes itself is a terminal failure: `failStepEvents` records `{ error }` under `memoryKeys.step(step.id)` so the parent can read the reason. Every successful step result is written by the `CodeActExecutor` running it.
+Keys already seeded by `ParallelTaskExecutor` are skipped. Each step runs on a copy of the context that shares the task's memory (`context.copy({ shareMemory: true })`). The only `step:` key it writes itself is a terminal failure: `failStepEvents` records `{ error }` under `memoryKeys.step(step.id)` so the parent can read the reason. Every successful step result is written by the `CodeActExecutor` running it.
 
 `TaskExecutor` accepts an optional `upstreamMemoryKeys` array (e.g. `task:<id>` keys from the parent plan). It forwards this verbatim to every step executor it creates.
 
@@ -309,6 +320,17 @@ Runs a `TaskPlan` of multiple tasks as a DAG. It owns no private result map — 
 | Read specific task | `getTaskResult(id)` |
 
 Downstream tasks see their declared upstream task keys as hints in the step user message and pull values via `read_shared` when needed.
+
+### StepExecutor (`packages/agents/src/step-executor.ts`)
+
+The step executor of the supervisor agent and the app-build harness, not of `execute_plan`. It attaches the same three tools. Its system prompt has a "Memory Tools (progressive disclosure)" section that names `list_shared`, `read_shared`, and `share_result` directly. Its user message lists declared upstream keys that exist in memory, with titles:
+
+```markdown
+# Required upstream memory (call `read_shared` with these keys):
+- task:research_phase — Research findings
+```
+
+Steps finish through `finish_step`.
 
 ### The calling loop (`execute_plan`'s caller)
 
@@ -334,17 +356,15 @@ This is the canonical end-to-end flow for a multi-task plan:
       └─ TaskExecutor.executeTasks()
          └─ For each step:
             └─ CodeActExecutor.execute()
-               ├─ buildSystemPrompt() → default execution prompt
-               │     (includes "Memory Tools" section)
+               ├─ system prompt teaches nodetool.shared.*
                ├─ buildUserMessage() → instructions
-               │     + "Required upstream memory" hint listing
+               │     + "Required upstream context" hint listing
                │       declared dependency keys (no values)
-               ├─ LLM streams → may emit:
-               │     - list_shared  → returns metadata
-               │     - read_shared  → returns values for chosen keys
-               │     - share_result → publishes shared facts
-               │     - other tools / finish_step
-               ├─ finish_step received → storeCompletionResult()
+               ├─ model writes actions that may call:
+               │     - nodetool.shared.list    → returns metadata
+               │     - nodetool.shared.read    → returns values for chosen keys
+               │     - nodetool.shared.publish → publishes shared facts
+               ├─ finish(result) accepted → storeCompletionResult()
                │     ├─ context.memory.set({ key: "step:<id>", ... })
                │     └─ if useFinishTask:
                │         context.memory.set({ key: "task:<id>", ... })
@@ -352,7 +372,7 @@ This is the canonical end-to-end flow for a multi-task plan:
 3. ParallelTaskExecutor: ensure task: entry exists (idempotent)
 4. Mark task.completed = true → unblocks downstream tasks
 5. Next iteration: downstream tasks now executable. Their step user
-   messages name the upstream task keys; agents call read_shared when
+   messages name the upstream task keys; agents call nodetool.shared.read when
    they actually need the values.
 6. execute_plan returns the task results; the calling session's next turn
    reads task:<id> via read_shared for anything it still needs and writes
@@ -376,9 +396,9 @@ console.log(
 );
 ```
 
-### What the LLM sees (system prompt extract)
+### What the LLM sees (StepExecutor system prompt extract)
 
-The default execution system prompt includes:
+The `StepExecutor` default execution system prompt includes the block below. A CodeAct step is taught the same three operations as `nodetool.shared.list`, `read`, and `publish`.
 
 ```markdown
 ## Memory Tools (progressive disclosure)
@@ -395,7 +415,7 @@ The default execution system prompt includes:
 - Pull only what you need — don't fetch every entry by reflex.
 ```
 
-And the user message for a step that depends on `task:research_phase` looks like:
+And the `StepExecutor` user message for a step that depends on `task:research_phase` looks like:
 
 ```markdown
 Write a report from the upstream findings.
@@ -404,7 +424,7 @@ Write a report from the upstream findings.
 - task:research_phase — Research findings
 ```
 
-The model then chooses whether to call `read_shared` or proceed.
+The model then chooses whether to read the key or proceed.
 
 ### Pre-populate memory before running
 
@@ -518,15 +538,14 @@ The LLM has to read keys back from the tool result and pass them to `read_shared
 Copies are designed for isolated sub-runs. If a sub-run should inherit memory, the caller can `set` entries from the parent before kicking it off. Default isolation is the safer choice.
 
 **Why does `systemPrompt` no longer replace the default execution prompt?**
-Replacing it stripped the memory-tool documentation and the `finish_step` discipline. The fix layers any caller preamble before the default prompt rather than replacing it. The execution contract (memory tools, output schema, completion protocol, conclusion-stage rules) is now non-bypassable.
+Replacing it stripped the memory-tool documentation and the completion discipline. The fix layers any caller preamble before the default prompt rather than replacing it. The execution contract (memory tools, output schema, completion protocol, conclusion-stage rules) is now non-bypassable.
 
 ---
 
 ## Troubleshooting
 
-**Symptom:** A downstream task's prompt shows the upstream key hint but the agent never calls `read_shared`.
+**Symptom:** A downstream task's prompt shows the upstream key hint but the agent never reads it.
 - The model may have decided it doesn't need the value. If you know it should, make the user instructions more explicit ("read the upstream findings via read_shared before writing").
-- Check the conclusion stage: if the step is at >90% token budget, only `finish_step` is allowed and `read_shared` is filtered out.
 
 **Symptom:** Task result key is missing after the step yielded `step_result` with `is_task_result: true`.
 - A step executor only writes `task:<id>` for steps where `useFinishTask === true`. That flag is set by `TaskExecutor.isFinishStep()` for the last step in the task. Steps in the middle of a task only write `step:<id>`.
@@ -536,7 +555,7 @@ Replacing it stripped the memory-tool documentation and the `finish_step` discip
 - A new `AgentMemory` instance is constructed for every `ProcessingContext`. If you reuse a context across tests, call `context.memory.clear()` between them.
 
 **Symptom:** Agent calls `list_shared` and gets `truncated: true`.
-- The list response is hard-capped at 200 entries. If you need more, narrow the filter (`kind`, `key_prefix`, or `sources`) — or accept that for very long runs, only the most recent 200 are visible at once.
+- The list response is capped at the first 200 entries in insertion order. Narrow the filter (`kind`, `key_prefix`, or `sources`) to reach later ones.
 
 ---
 

@@ -8,7 +8,7 @@ nav_order: 1
 ## What a workflow is
 
 A workflow is a graph. Nodes are operations, edges carry typed values, and a
-node runs as soon as its inputs are ready — you never order the steps yourself.
+node runs as soon as its inputs are ready. You never order the steps yourself.
 
 ```
 Brief → Direct → Still → Clip → Cut
@@ -24,7 +24,7 @@ Four rules follow from that:
    downstream image node starts on the first one while the last is still being
    written.
 4. **Failures are local.** A red node stops its own branch. Other branches
-   finish.
+   finish, and the run then ends as `failed` with each node's error.
 
 ---
 
@@ -37,13 +37,14 @@ graph that repeats the work.
 | Document | Into a graph | What reads it | What writes it |
 |---|---|---|---|
 | **Sketch** | `nodetool.constant.Sketch` | `RenderSketch` (image + mask), `SketchLayers` | `CreateSketch` |
-| **Script** | `nodetool.constant.Script` | `LoadScript`, `ScriptToSubtitles` | `VoiceScript`, `ScriptToTimeline` |
-| **Timeline** | `nodetool.constant.Timeline` | `Transcript`, `RenderTimeline` | `AddClips` |
+| **Script** | `nodetool.constant.Script` | `LoadScript`, `VoiceScript`, `ScriptToTimeline`, `ScriptToSubtitles`, `FillScript` | `WriteScript`, `FillScript`, `VoiceScript` (saves takes) |
+| **Timeline** | `nodetool.constant.Timeline` | `Transcript`, `RenderTimeline`, `RetargetTimeline`, `FillTimelineText` | `AddClips`, `ScriptToTimeline`, `RetargetTimeline`, `FillTimelineText` |
+| **Storyboard** | `nodetool.constant.Storyboard` | `LoadStoryboard`, `StoryboardShots`, `RenderStills`, `RenderClips`, `AssembleTimeline`, `RecastStoryboard` | `RecastStoryboard`, `RenderStills`, `RenderClips` |
 
-A storyboard is the exception: it has no node of its own, because what a graph
-consumes from it is the screenplay and the timeline it produces.
-`nodetool.creative.Director` writes that same screenplay shape headlessly, so a
-graph can start where the board would have.
+`nodetool.creative.Director` writes the same screenplay shape as a board, so a
+graph can start from a brief instead of from a board you already approved.
+`RecastStoryboard` copies an approved board onto a new cast and keeps every
+frame whose prompt did not change, so a re-run pays only for what moved.
 
 ---
 
@@ -57,11 +58,11 @@ graph can start where the board would have.
 | `audio` | One track | `TextToSpeech`, `TextToMusic` |
 | `list[T]` | Many of T | `ListGenerator`, `Collect`, `SketchLayers` |
 | `dict` | A record | `Director` (screenplay), `ScreenplayShots` (shot) |
-| `sketch` `script` `timeline` | A document | the constants above |
+| `sketch` `script` `timeline` `storyboard` | A document | the constants above |
 | `image_model` `video_model` `tts_model` | A model choice | `ImageModelInput`, `VideoModelInput` |
 
 Models are values too. Wire a `VideoModelInput` into several nodes and one
-selection changes the whole graph — which is how a cheap draft run and an
+selection changes the whole graph. That is how a cheap draft run and an
 expensive final run stay the same graph.
 
 ---
@@ -78,8 +79,8 @@ graph LR
   brief["Brief"] --> gen["ListGenerator"] --> img["TextToImage"] --> collect["Collect"] --> out["Output"]
 {% endmermaid %}
 
-**Sequence with carry-over.** Each step depends on the last — a shot seeded by
-the previous shot's final frame. `ShotChain` does this internally; `ForEach`
+**Sequence with carry-over.** Each step depends on the last, such as a shot
+seeded by the previous shot's final frame. `ShotChain` does this internally; `ForEach`
 plus a `Code` node does it when the rule is your own.
 
 {% mermaid %}
@@ -101,10 +102,12 @@ A video run costs real money, so check the graph statically first:
 npm run dev:nodetool -- validate workflow.json
 ```
 
-It reports unknown node types, missing properties, unselected models, models
-naming a provider you have no key for, and `Code` bodies that will not run —
-in under a second, before any node executes. The workflow editor's estimate
-panel prices the graph from per-node unit pricing in the same spirit.
+It reports unknown node types, missing required properties, unselected models,
+models naming a provider or model id that does not exist, dangling or mis-typed
+edges, and `Code` bodies that will not run. It does this without executing any
+node. Against a saved workflow id, it also warns about credentials this install
+cannot resolve. The workflow editor's estimate panel prices the graph from per-node unit
+pricing in the same spirit.
 
 When a run does fail, `nodetool debug <id>` runs it and hands back every
 message, log, output, and error in one bundle. Details in

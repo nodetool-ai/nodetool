@@ -25,8 +25,9 @@ changed. Pull down to refresh. Tapping a row pushes the app onto its own screen;
 `nodetool://app/<application-id>` opens one directly, which is what a
 notification or a shared link points at.
 
-If the list is empty, nothing has been published to that server yet — build an
-app on the desktop and it shows up here on the next refresh.
+If the list is empty, the screen reads "No apps yet. Build one in the desktop app
+builder." Any app on the server is listed, published or not, and a new one shows
+up on the next refresh.
 
 ## Running an app
 
@@ -100,9 +101,9 @@ Known limits:
 
 - No editing. Authoring an app document needs the desktop builder.
 - Apps are listed per server. Switching servers in Settings switches the list.
-- A Timeline widget shows a summary card — name, duration, track and clip
-  counts — not the timeline itself. A Sketch widget renders the composited
-  image.
+- A Timeline widget shows a summary card (duration, track and clip counts), not
+  the timeline itself. A Sketch widget renders the composited image, and falls
+  back to a size and layer summary when it cannot load the document.
 
 ## Related
 

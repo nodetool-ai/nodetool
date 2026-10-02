@@ -51,11 +51,10 @@ When a workflow isn't working as expected, work through this checklist systemati
 #### Diagnostic Steps
 
 1. **Check Preview nodes** – Add Preview nodes after each major step to identify where execution stalls
-2. **Review node status** – Look at node border colors:
-   - **Gray** = Not started
-   - **Yellow** = Running
-   - **Green** = Completed
-   - **Red** = Failed
+2. **Review node status** – Look at the node:
+   - An animated ring around the node means it is running
+   - An error box with a **Report** button means it failed
+   - "Model is booting, taking minutes." means a hosted model is starting up
 3. **Inspect system resources** – Open Task Manager (Windows) or Activity Monitor (macOS) to check:
    - CPU usage
    - RAM usage
@@ -65,7 +64,7 @@ When a workflow isn't working as expected, work through this checklist systemati
 #### Common Causes & Fixes
 
 **Cause 1: Model not downloaded**
-- **Fix:** Open **Models → Model Manager** and install the required model
+- **Fix:** Open **Model Manager** from the sidebar menu (or **Tools → Model Manager** in the desktop app) and install the required model
 - **Prevention:** Always install models before running workflows that use them
 
 **Cause 2: Large file processing**
@@ -81,7 +80,7 @@ When a workflow isn't working as expected, work through this checklist systemati
   - Increase system swap/page file
 
 **Cause 4: Network timeout (cloud models)**
-- **Fix:** Check internet connection, verify API keys, increase timeout settings
+- **Fix:** Check internet connection and verify API keys
 - **Alternative:** Switch to local models for offline operation
 
 **Cause 5: Infinite loop in workflow**
@@ -94,13 +93,14 @@ When a workflow isn't working as expected, work through this checklist systemati
 ### Issue: "Node shows error: Type mismatch"
 
 #### Symptoms
-- Red connection lines between nodes
-- Error message: "Cannot connect [Type A] to [Type B]"
-- Workflow won't run
+- The connection snaps back and no edge is created
+- A warning notification: "Cannot connect these types"
+- A cycle shows "Cannot create a cyclic connection" instead
+- Workflow won't run because a required input is empty
 
 #### Diagnostic Steps
 
-1. **Hover over connection** – Tooltip shows expected vs actual types
+1. **Match handle colors** – Handle colors show each slot's type
 2. **Check node documentation** – Click node and read input/output type requirements
 3. **Use Preview nodes** – Verify what data type is actually being produced
 
@@ -115,8 +115,8 @@ When a workflow isn't working as expected, work through this checklist systemati
 - **Fix:** Add validation or default value nodes
 
 **Cause 3: Image format mismatch**
-- **Example:** Node outputs PIL image, next expects Tensor
-- **Fix:** Use appropriate conversion nodes (usually automatic)
+- **Example:** A node outputs an image, the next expects a different media type
+- **Fix:** Add a conversion node or a `nodetool.code.Code` node that returns the shape the next node wants
 
 #### Type Conversion Quick Reference
 
@@ -136,7 +136,7 @@ When a workflow isn't working as expected, work through this checklist systemati
 
 #### Diagnostic Steps
 
-1. **Check prompt template** – Review prompt in `FormatText` or `Agent` nodes
+1. **Check prompt template** – Review the prompt in `Template` or `Agent` nodes
 2. **Verify model selection** – Ensure appropriate model for task
 3. **Test with different temperature** – Adjust creativity vs accuracy tradeoff
 4. **Add examples** – Provide few-shot examples in prompt
@@ -241,7 +241,7 @@ When a workflow isn't working as expected, work through this checklist systemati
 - **Move cache:** Set `HF_HOME` environment variable to a drive with more space
 
 **Cause 2: Network interruption**
-- **Fix:** Retry the download — NodeTool resumes partial downloads automatically
+- **Fix:** Retry the download from Model Manager
 - **If behind a proxy:** Configure `HTTP_PROXY` and `HTTPS_PROXY` environment variables
 - **Slow connection:** Large models (12 GB+) may take 30+ minutes on slower connections
 
@@ -268,25 +268,28 @@ When a workflow isn't working as expected, work through this checklist systemati
 #### Diagnostic Steps
 
 1. **Check deployment logs** – `nodetool deploy logs <name>`
-2. **Verify configuration** – Review `deployment.yaml` for typos/errors
-3. **Test locally first** – Ensure workflow runs in desktop app
-4. **Check resource limits** – Verify target has enough CPU/RAM/GPU
-5. **Verify credentials** – Ensure API keys and tokens are set
+2. **Check status** – `nodetool deploy status <name>`
+3. **Verify configuration** – Review `deployment.yaml` for typos/errors
+4. **Test locally first** – Ensure workflow runs in desktop app
+5. **Check resource limits** – Verify target has enough CPU/RAM/GPU
+6. **Verify credentials** – Ensure API keys and tokens are set
 
 #### Common Causes & Fixes
 
 **Cause 1: Invalid deployment.yaml**
-- **Fix:** Validate configuration with `nodetool deploy plan <name>`
-- **Check:** Required fields (type, image, host for self-hosted)
+- **Fix:** Run `nodetool deploy plan <name>` to see what `apply` would do, or `nodetool deploy apply <name> --dry-run`
+- **Check:** Required fields: `host`, `image.name` and `container.name` and `container.port`. The only deployment `type` is `docker`
 
 **Cause 2: Missing environment variables**
-- **Fix:** Add required vars to `env` section:
+- **Fix:** Add required vars under `container.environment`:
   ```yaml
-  env:
-    PORT: "7777"
-    DB_PATH: "/workspace/nodetool.db"
-    HF_HOME: "/hf-cache"
+  container:
+    name: nodetool
+    port: 7777
+    environment:
+      HF_HOME: "/workspace/hf-cache"
   ```
+  NodeTool writes a generated `SECRETS_MASTER_KEY` there, and a `server_auth_token`, when it loads a `deployment.yaml` that lacks them.
 
 **Cause 3: Volume mount errors (self-hosted)**
 - **Symptoms:** Container logs show "Permission denied" or "No such file"
@@ -305,13 +308,12 @@ When a workflow isn't working as expected, work through this checklist systemati
   - Stop conflicting service: `docker ps` to find, `docker stop <id>`
 
 **Cause 6: Image not found**
-- **Fix:** Build image first: `docker build -t nodetool:latest .`
-- **Verify:** `docker images | grep nodetool`
+- **Fix:** Check `image.name`, `image.tag` (default `latest`) and `image.registry` (default `docker.io`) in `deployment.yaml`, and that the image exists in that registry
+- **Verify:** `docker images | grep nodetool` on the host
 
-**Cause 7: RunPod/Cloud Run credential issues**
-- **Fix:** 
-  - **RunPod:** Set `RUNPOD_API_KEY` environment variable
-  - **Cloud Run:** Authenticate with `gcloud auth login`
+**Cause 7: SSH access fails (remote hosts)**
+- **Symptoms:** `deploy apply` cannot reach the host
+- **Fix:** Check the `ssh` block (`user`, `key_path`, `port`) in `deployment.yaml` and test `ssh <user>@<host>` by hand
 
 ---
 
@@ -337,7 +339,7 @@ When a workflow isn't working as expected, work through this checklist systemati
 
 **Cause 2: Conditional logic filtered out data**
 - **Fix:** Review filter conditions, adjust criteria
-- **Example:** `Filter` node removed all items
+- **Example:** A `FilterCode` or `FilterEqual` node removed all items
 
 **Cause 3: Async timing issue**
 - **Fix:** Ensure upstream nodes complete before downstream starts
@@ -363,7 +365,7 @@ When a workflow isn't working as expected, work through this checklist systemati
 
 2. **Batch processing**
    - Process multiple items together
-   - Use nodes like `Extend` or `Collect` to batch operations
+   - Use `Chunk` to group stream items into batches and `Collect` to gather a stream into a list
 
 3. **Parallel execution**
    - Split workflow into independent branches
@@ -418,9 +420,9 @@ Input → Preview(1) → Transform → Preview(2) → LLM → Preview(3) → Out
 ### Enable Verbose Logging
 
 **Desktop app:**
-1. Open **Settings → Advanced**
-2. Enable **Debug Logging**
-3. Check console/logs for detailed messages
+1. Open **Tools → Log Viewer** to read the backend logs
+2. Open **Tools → Performance Monitor** to watch resource use
+3. To raise the log level, start the app with `NODETOOL_LOG_LEVEL=debug` set
 
 **CLI/Server:**
 
@@ -507,7 +509,7 @@ The Report a Bug form gathers your version, OS, error text, node settings and
 workflow for you. When you ask elsewhere — Discord, an issue you write by hand
 — include these:
 
-1. **NodeTool version** — from **Help → About**
+1. **NodeTool version** — from **Settings → About**
 2. **Operating system** — macOS/Windows/Linux + version
 3. **What you're trying to do** — describe the goal, not just the error
 4. **Full error message** — copy the complete text, not just "it doesn't work"

@@ -10,19 +10,24 @@ description: "Runbook for adding KIE (kie.ai) models and nodes to NodeTool."
 
 ## TL;DR
 
-`kie-manifest.json` is **generated** — do not edit it directly. The source of
-truth is `packages/kie-codegen/src/configs/{image,audio,video}.ts`. Edit those
-configs, run `npm run generate:kie`, then build and verify.
+`kie-manifest.json` and `packages/kie-codegen/src/configs/{image,audio,video}.ts`
+are both **generated** from KIE's published docs. Do not edit either by hand.
+`npm run generate:kie` re-fetches the docs, rewrites the configs, and rewrites
+the manifest. A model that KIE lists in `https://docs.kie.ai/llms.txt` appears
+after a regeneration. Persistent behavior changes go in the fetcher, parser,
+writer, or generator code. Then build and verify.
 
 ## Where things live
 
 | Path | Purpose |
 |---|---|
-| `packages/kie-codegen/src/configs/image.ts` | Image-node config source |
-| `packages/kie-codegen/src/configs/audio.ts` | Audio-node config source (TTS, music) |
-| `packages/kie-codegen/src/configs/video.ts` | Video-node config source |
-| `packages/kie-codegen/src/generate.ts` | Reads configs, writes manifest + pricing |
+| `packages/kie-codegen/src/schema-fetcher.ts` | Fetches `llms.txt` and the linked English docs pages |
+| `packages/kie-codegen/src/schema-parser.ts` | Converts each page's embedded OpenAPI YAML to a `NodeConfig` |
+| `packages/kie-codegen/src/config-writer.ts` | Writes the three module configs |
+| `packages/kie-codegen/src/configs/{image,audio,video}.ts` | **Generated** module configs |
 | `packages/kie-codegen/src/generate-configs.ts` | Fetches KIE docs, re-generates configs |
+| `packages/kie-codegen/src/generate.ts` | Reads configs, writes manifest + pricing |
+| `packages/kie-codegen/src/fixture-generate.ts` | Offline generation from `fixtures/`, used by the drift gate |
 | `packages/kie-nodes/src/kie-manifest.json` | **Generated** — do not edit |
 | `packages/kie-nodes/src/kie-factory.ts` | Creates node classes from manifest at runtime |
 | `packages/kie-nodes/src/kie-base.ts` | API submission, polling, upload, result conversion |
@@ -85,7 +90,7 @@ A minimal image-generation entry looks like this:
 | `image` | single image AssetRef |
 | `audio` / `video` | single audio/video AssetRef |
 | `list[image]` / `list[video]` / `list[audio]` | list of AssetRefs |
-| `list[str]` | list of strings |
+| `list[str]` / `list[int]` / `list[float]` / `list[dict]` | list of scalars or objects |
 
 ### Upload descriptors
 
@@ -144,75 +149,52 @@ Check [https://docs.kie.ai](https://docs.kie.ai) or the KIE dashboard. Note:
 - Input fields and their types/defaults/constraints
 - Any media upload fields (where the API wants a URL, not raw bytes)
 
-### 2. Add the node config to the right config file
+### 2. Check that the KIE docs list the model
 
-Open the appropriate config file in `packages/kie-codegen/src/configs/`. Add a
-new entry to the `nodes` array. Match the existing shape exactly:
+`schema-fetcher.ts` reads `https://docs.kie.ai/llms.txt` and each linked page.
+`schema-parser.ts` turns the page's embedded OpenAPI YAML into a node: class
+name, `modelId`, title, fields, `uploads`, `validation`, and `conditionalFields`.
+A Suno page that links an `old-model` version is replaced by that page. A page
+that fails to fetch keeps the node's previous config.
 
-```typescript
-// packages/kie-codegen/src/configs/image.ts
-{
-  "className": "VendorNewModel",          // PascalCase, used as node class name
-  "modelId": "vendor/new-model",          // KIE model id
-  "title": "New Model - Text to Image",   // Human-readable label
-  "description": "...",                   // Shown in the node panel
-  "outputType": "image",                  // "image" | "video" | "audio"
-  "fields": [
-    {
-      "name": "prompt",
-      "type": "str",
-      "default": "",
-      "title": "Prompt",
-      "description": "...",
-      "required": true
-    },
-    {
-      "name": "aspect_ratio",
-      "type": "enum",
-      "default": "1:1",
-      "title": "Aspect Ratio",
-      "values": ["1:1", "16:9", "9:16"]
-    }
-  ],
-  "validation": [
-    { "field": "prompt", "rule": "not_empty", "message": "Prompt is required" }
-  ]
-}
-```
+If the model's page is missing from `llms.txt`, or the parser mishandles it,
+fix the fetcher or parser rather than adding a config entry. Rules the parser
+follows:
 
-If the model takes image inputs, add an `uploads` array:
-
-```typescript
-"uploads": [
-  {
-    "field": "input_image",
-    "kind": "image",
-    "paramName": "image_url"
-  }
-]
-```
-
-The `fields` entry for `input_image` must use `"type": "image"` (not `"str"`).
-Never use raw URL strings as field types — the factory uploads AssetRefs.
+- URL media inputs become AssetRef fields: `image`, `video`, `audio`,
+  `list[image]`, `list[video]`, `list[audio]`. Each needs an `uploads` entry.
+  List fields set `isList: true` and the API `paramName`.
+- Other arrays take their list type from the item schema (`list[dict]`,
+  `list[int]`, `list[float]`, `list[str]`). They never fall back to
+  `list[image]`, because the factory skips an asset-typed field that has no
+  upload config.
+- A `_url` or `_urls` parameter is media even when KIE declares it
+  `type: object`. A `_file_urls` or `_link_urls` parameter stays `list[str]`.
 
 Poll tuning: `pollInterval` (ms between status checks) and `maxAttempts` inherit
 from the module's defaults (`defaultPollInterval`, `defaultMaxAttempts`) unless
-overridden on the node entry. Image defaults are 1500 ms / 400 attempts; video
-defaults are 8000 ms / 450 attempts.
+overridden on the node entry. Image defaults are 1500 ms / 400 attempts, audio
+defaults are 4000 ms / 120 attempts, and video defaults are 8000 ms / 450
+attempts.
 
-### 3. Regenerate the manifest
+### 3. Regenerate the configs and manifest
 
 ```bash
 npm run generate:kie
 ```
 
-This writes `packages/kie-nodes/src/kie-manifest.json` and updates the pricing
-bundles in `packages/kie-nodes/src/generated/`. If the KIE pricing API is
-unreachable, pass `--no-pricing` to write empty bundles and proceed:
+This runs `generate --all --refresh-configs` in `packages/kie-codegen`. It
+rewrites `src/configs/*.ts`, writes `packages/kie-nodes/src/kie-manifest.json`,
+and updates the pricing bundles in `packages/kie-nodes/src/generated/`. If the
+KIE pricing API is unreachable, the run writes empty pricing bundles. To skip
+the pricing fetch on purpose, pass `--no-pricing`:
 
 ```bash
-npm run generate --workspace=packages/kie-codegen -- --all --no-pricing
+npm run generate --workspace=packages/kie-codegen -- --all --refresh-configs --no-pricing
 ```
+
+Without `--refresh-configs`, the run regenerates only the manifest from the
+checked-in configs.
 
 ### 4. Rebuild
 
@@ -229,44 +211,29 @@ npm run build:packages
 # Type-check codegen and runtime packages
 npm run typecheck
 
-# Run kie-nodes and kie-codegen tests
+# Run kie-nodes and kie-codegen tests and the fixture drift gate
 npm run test --workspace=packages/kie-nodes
 npm run test --workspace=packages/kie-codegen
+npm run generate:kie:check
 
 # Run a single node in isolation (replace with the new node type)
 npm run dev:nodetool -- node run kie.image.VendorNewModel \
   --props '{"prompt":"a red apple"}' --no-secrets
 
-# Static validation (catches unknown field types, missing required props)
-npm run dev:nodetool -- validate --json
+# Static validation of a workflow that uses the node
+npm run dev:nodetool -- validate workflow.json --json
 ```
 
 Check `git diff packages/kie-nodes/src/kie-manifest.json` to confirm only the
 expected entry was added or changed.
-
-## How past changes were made
-
-**commit e9e03f42** (`fix(kie): map video_list to native list[video]`) — changed
-the Gemini Omni `video_list` field from a bespoke `video_clip_list` type to the
-canonical `list[video]`. Touched `packages/kie-codegen/src/configs/video.ts`,
-`kie-factory.ts`, `kie-manifest.json`, and `node-sdk/src/field-classification.ts`.
-The factory's `isVideoClip` upload flag still builds `{url, start, ends}` clip
-payloads internally.
-
-**commit 6de0ef90** (`feat(nodes): make content-card body fully metadata-driven`)
-— the factory gained `body: "content_card"` for all media-output nodes so the
-frontend renders them as content cards without hardcoded namespace checks. Any
-new KIE node with `outputType === "image" | "video" | "audio"` automatically
-gets this flag through the factory.
-
-Both changes went through the config → `generate:kie` → `build:packages` cycle
-described above.
 
 ## Contributing
 
 Source: [https://github.com/nodetool-ai/nodetool](https://github.com/nodetool-ai/nodetool)  
 Discord: [https://discord.gg/WmQTWZRcYE](https://discord.gg/WmQTWZRcYE)
 
-Before opening a PR, run `npm run check` (typecheck + lint + tests). Patches to
-`kie-manifest.json` alone will be rejected — changes must come from the config
-files and codegen pipeline.
+Before opening a PR, run `npm run test:affected`, `npm run typecheck`, and
+`npm run lint`. Patches to `kie-manifest.json` or `src/configs/*.ts` alone will
+be rejected. Changes must come from the codegen pipeline. After an intended
+generator change, refresh the drift fixtures with
+`node scripts/provider-codegen-check.mjs --provider kie --write`.

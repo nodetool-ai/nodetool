@@ -6,7 +6,7 @@ description: "A layered, GPU-accelerated paint and AI-generation canvas built in
 
 Draw, paint, mask, and generate AI imagery on a layered canvas — without leaving your workflow.
 
-> **Quick Access:** Click **+ New** in the workspace tab bar and choose **New image** for a blank canvas, or open a sketch from the left **Sketches** panel.
+> **Quick Access:** Click the **+** button in the workspace tab bar and choose **New sketch** for a blank canvas, or open a sketch from the left **Sketches** panel.
 
 ---
 
@@ -20,12 +20,12 @@ The Sketch Editor is a layered raster editor with a built-in AI generation pipel
 
 - Layer stack with blend modes, per-layer opacity, lock, and visibility
 - Painting tools: brush, pencil, eraser, fill, gradient, blur, clone stamp, color adjust
-- Selection tools: rectangular marquee and AI-assisted magic wand / segmentation
+- Selection tools: rectangle, ellipse, lasso, polygon lasso, and magic wand, plus an AI **Segment** tool (SAM) that selects objects from point or box prompts
 - Shape tools: line, rectangle, ellipse, arrow
 - Crop and free transform (scale, rotate, skew, perspective, deform)
 - Pen-pressure support, stroke stabilization, and drawing symmetry
 - **AI layers** — generate a layer from a prompt or bind it to a workflow; regenerate when inputs change
-- Unlimited undo/redo with a full history
+- Undo/redo for the last 30 history steps
 - Exports a flattened image, a mask, and per-layer outputs back into your workflow
 
 ---
@@ -44,13 +44,13 @@ The Sketch Editor runs in three places, all backed by the same document so your 
 
 ### From the new tab button
 
-1. Click **+ New** in the workspace tab bar (top of the editor).
-2. Choose **New image** to open a blank canvas in a new tab, or **Open asset…** to edit an existing image.
+1. Click the **+** button in the workspace tab bar (top of the editor).
+2. Choose **New sketch**. NodeTool creates a blank white image asset and opens it in a new tab in edit mode. To edit an existing image, open the asset in a tab and switch it to edit mode.
 3. The editor fills the tab. Use **Save to image** to render the composite back into the asset, then **Done** to return the tab to view mode.
 
 ### From the Sketches panel
 
-Open the **Sketches** panel in the left sidebar to browse documents you've created, grouped by date. Click one to open it, or use **New Sketch** to start a blank canvas.
+Open the **Sketches** panel in the left sidebar to browse documents you've created, grouped by date. Click one to open it, or use the **New sketch** button to start a blank canvas.
 
 ### As a standalone page
 
@@ -82,7 +82,7 @@ Reposition the active layer or selection contents.
 
 ### Brush — `B`
 
-Paint freehand with the foreground color. Supports round, soft, airbrush, and spray brush styles, plus pen-pressure sensitivity.
+Paint freehand with the foreground color. Supports round, soft, airbrush, and spray brush styles, plus pen-pressure sensitivity. A stabilizer option smooths shaky strokes.
 
 - **Size:** `[` decreases, `]` increases
 - **Hardness:** `{` decreases, `}` increases
@@ -143,8 +143,9 @@ Perspective and Deform produce a four-point quad, so a layer carrying one is tra
 
 | Tool | Shortcut | Behavior |
 |------|----------|----------|
-| Rectangular marquee | `M` | Drag a rectangular selection |
-| Magic wand | `W` | Click to select a region by color, with AI-assisted segmentation |
+| Select (rectangle, ellipse, lasso, polygon lasso) | `M` | Pick the mode in the tool options, then drag or click points to select |
+| Magic wand | `W` | Click to select a region by color. Tolerance, contiguous, and sample-all-layers options sit in the tool options |
+| Segment | none | AI object selection (SAM). Click to add a positive point, `Alt`-click for a negative point, or drag a box |
 
 Once a selection is active, paint and edit operations are constrained to it. `Ctrl/⌘ + D` deselects.
 
@@ -159,7 +160,7 @@ Draw vector-style shapes onto a layer.
 | Ellipse | `O` |
 | Arrow | `A` |
 
-Hold `Shift` while dragging to constrain proportions (squares, circles, 45° lines).
+Hold `Shift` while dragging to constrain proportions (squares and circles) or to snap lines and arrows to 30° steps. Hold `Alt` to draw rectangles and ellipses from the center.
 
 ---
 
@@ -167,10 +168,11 @@ Hold `Shift` while dragging to constrain proportions (squares, circles, 45° lin
 
 The editor is layer-based. Stack layers, reorder them, toggle visibility, lock them, group them, and composite them with blend modes.
 
-- **Blend modes** — choose how a layer combines with those beneath it (Normal, Multiply, Screen, Overlay, and more). In the Layers panel, `↑`/`↓` step through blend modes.
+- **Blend modes** — choose how a layer combines with those beneath it (Normal, Multiply, Screen, Overlay, Darken, Lighten, Color Dodge, Color Burn, Hard Light, Soft Light, Difference, Exclusion, and Add). In the Layers panel, `↑`/`↓` step through blend modes.
 - **Opacity** — set per-layer transparency.
 - **Lock** — protect a layer from edits.
 - **Mask layer** — designate a layer as the document's mask. It's exported as a separate **mask** output for inpainting and compositing nodes.
+- **Layer order** — `Ctrl/⌘ + ]` moves the active layer forward and `Ctrl/⌘ + [` sends it back.
 - **Layer via copy / cut** — `Ctrl/⌘ + J` copies the current selection to a new layer; `Ctrl/⌘ + Shift + J` cuts it to a new layer.
 - **Clear layer** — `Delete` or `Backspace` clears the active layer (or selection).
 - **Fill layer** — `Ctrl/⌘ + Backspace` fills with the background color; `Alt + Backspace` fills with the foreground color.
@@ -181,10 +183,12 @@ The editor is layer-based. Stack layers, reorder them, toggle visibility, lock t
 
 What sets the Sketch Editor apart is that a layer can be **generated**, not just painted. Select a layer and open the **Inspector** to bind it to a generator:
 
-- **Prompt-based generation** — pick a provider and model, write a prompt, and generate text-to-image, image-to-image, or inpaint results directly onto the layer.
-- **Workflow-bound generation** — bind the layer to one of your own workflows and choose which output node feeds the layer. The layer becomes a live surface for any pipeline you've built.
+- **Prompt-based generation** — pick a provider and model, write a prompt, and generate text-to-image or image-to-image results directly onto the layer. Image-to-image takes a source layer plus edit strength and inference steps. The Inspector shows an estimated cost before you generate.
+- **Workflow-bound generation** — click **Generate Layer** in the Inspector toolbar and pick one of your workflows that has an image output node (`ImageOutput`, `MaskOutput`, or `Output`). If it has several, choose which output node feeds the layer. The layer becomes a live surface for any pipeline you've built.
 
-Each generation is tracked as a **version** on the layer, so you can compare results and roll back. NodeTool also tracks each layer's inputs: if you change a prompt, parameter, or an upstream layer the generation depends on, the layer is flagged **stale** so you know it's worth regenerating. Generation runs as a job over the WebSocket connection, with live progress shown on the layer.
+Each generation is tracked as a **version** on the layer, so you can compare results and roll back. NodeTool also tracks each layer's inputs: if you change a prompt, parameter, or an upstream layer the generation depends on, the layer is flagged **stale** so you know it's worth regenerating. **Re-generate Stale** in the Inspector toolbar runs all stale layers in dependency order and skips locked layers. Generation runs as a job over the WebSocket connection, with live progress shown on the layer.
+
+The editor also has an assistant chat panel. It receives the active layers and can generate images or edit layers from a description.
 
 This makes the editor a natural place to **sketch a rough composition, mask a region, and let a model fill it in** — then keep painting on top.
 
@@ -202,22 +206,22 @@ The editor maintains a **foreground** and **background** color.
 
 ## Symmetry & Pen Pressure
 
-- **Symmetry** — mirror your strokes across horizontal, vertical, or radial axes (with configurable rays) for mandalas, patterns, and symmetric design. Enable it from the editor's header controls.
-- **Pen pressure** — when using a pressure-sensitive device, tune how pressure maps to brush size and opacity from the pen-pressure settings.
-- **Stroke assist** — stabilize shaky strokes or snap lines to angles for cleaner linework.
+- **Symmetry** — mirror your strokes in horizontal, vertical, dual, radial, or mandala modes. Radial and mandala modes take 2 to 12 rays (6 by default).
+- **Pen pressure** — when using a pressure-sensitive device, choose whether pressure affects size, opacity, or both, and tune the light-press scale and curve in the pen-pressure settings.
+- **Stroke assist** — the brush, pencil, and eraser settings offer a rolling-average stabilizer and a drag algorithm for cleaner linework.
 
 ---
 
 ## History & Undo
 
-The editor keeps a full history of your changes.
+The editor keeps the last 30 history steps. Older steps are merged into the baseline.
 
 | Action | Shortcut |
 |--------|----------|
 | **Undo** | `Ctrl/⌘ + Z` |
 | **Redo** | `Ctrl/⌘ + Shift + Z` (or `Ctrl/⌘ + Y`) |
 
-History persists while the editor is open. Large documents with extensive history use more memory.
+History persists while the editor is open.
 
 ---
 
@@ -260,7 +264,7 @@ Because the document is shared across the tab, the Sketches panel, and the stand
 | `S` | Clone stamp |
 | `J` | Color adjust |
 | `I` | Eyedropper |
-| `M` | Rectangular marquee select |
+| `M` | Select (rectangle, ellipse, lasso, polygon lasso) |
 | `W` | Magic wand select |
 | `C` | Crop |
 | `F` | Transform |
@@ -284,6 +288,8 @@ Because the document is shared across the tab, the Sketches panel, and the stand
 | `Ctrl/⌘ + Shift + I` | Invert selection |
 | `Ctrl/⌘ + T` | Free transform |
 | `Ctrl/⌘ + Shift + T` | Repeat last transform |
+| `Ctrl/⌘ + Shift + Alt + T` | Repeat last transform on a copy |
+| `Ctrl/⌘ + ]` / `[` | Move layer forward / back |
 | `Ctrl/⌘ + J` | Layer via copy |
 | `Ctrl/⌘ + Shift + J` | Layer via cut |
 | `Ctrl/⌘ + I` | Invert colors |
@@ -325,7 +331,7 @@ Because the document is shared across the tab, the Sketches panel, and the stand
 2. Block in a rough composition with the brush on one layer.
 3. Add a new layer, select the region you want to generate, and bind the layer to a model or workflow in the Inspector.
 4. Write a prompt and **Generate**.
-5. Keep painting on top, then close the editor — the flattened result flows downstream.
+5. Keep painting on top, then choose **Save to image** and **Done** — the flattened result flows downstream.
 
 ### Masking for inpaint
 
@@ -345,9 +351,9 @@ Because the document is shared across the tab, the Sketches panel, and the stand
 
 The sketch type is also available as workflow nodes:
 
-- **[Create Sketch](nodes/nodetool/sketch/createsketch.md)** — create a blank document with a chosen canvas size and background.
-- **[Render Sketch](nodes/nodetool/sketch/rendersketch.md)** — flatten layers, applying blend modes and opacity, to a single image.
-- **[Sketch Layers](nodes/nodetool/sketch/sketchlayers.md)** — expose individual layer images for downstream nodes.
+- **[Create Sketch](nodes/nodetool/sketch/createsketch.md)** — create a sketch document from an input image, placed on the base layer, ready to edit.
+- **[Render Sketch](nodes/nodetool/sketch/rendersketch.md)** — flatten layers, applying blend modes and opacity, to a single image. Outputs `image` and, when a mask layer is set, `mask`.
+- **[Sketch Layers](nodes/nodetool/sketch/sketchlayers.md)** — expose each visible layer as a separate image (`layers`) with its name (`names`).
 
 ---
 
@@ -355,6 +361,7 @@ The sketch type is also available as workflow nodes:
 
 - **[Asset Management](asset-management.md)** — organize and reuse generated images
 - **[Workflow Editor](workflow-editor.md)** — main editor documentation
+- **[CLI: nodetool sketch](cli.md#nodetool-sketch)** — validate a sketch, replay a scripted edit session headlessly, and manage saved versions
 
 ---
 

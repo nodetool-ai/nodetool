@@ -5,7 +5,9 @@ title: "Categorize Mails"
 
 ## Overview
 
-Classifies emails into predefined categories (Newsletter, Work, Family, Friends) using an LLM and applies matching Gmail labels.
+Classifies emails into categories (Newsletter, Work, Family, Friends) with an LLM and applies the matching Gmail label.
+
+> This tutorial does not ship as an importable template. Build it manually by following the steps below. It needs a connected Google account.
 
 ## Demo
 
@@ -15,10 +17,10 @@ Classifies emails into predefined categories (Newsletter, Work, Family, Friends)
 
 ## Workflow Steps
 
-1. **Gmail Search** - Fetches up to 10 recent emails using the specified filters (date, subject, sender).
-2. **Template** - Formats each email into a structured prompt with subject, sender, and body snippet.
-3. **Classifier** - Uses an LLM to classify the email into one or more categories.
-4. **Add Label** - Applies the determined label(s) to each email in Gmail.
+1. **Gmail Search** (`nodetool.code.Code`) - Imports `gmail_search` from `@nodetool-ai/sandbox-nodetool/google`. It takes a Gmail `query` (for example `is:unread newer_than:7d`) and `max_results` (1 to 50, default 10), and returns `messages` with subject, sender, date, and body.
+2. **Prompt** (`nodetool.text.Prompt`) - Formats each email into a prompt with subject, sender, and body.
+3. **Classifier** (`nodetool.agents.Classifier`) - Picks one of the `categories` you list. It takes `text` and a model.
+4. **Add Label** (`nodetool.code.Code`) - Imports `gmail_modify_labels` and calls it with the message's `message_id` and `add_label_ids`. Label ids come from `gmail_list_labels`.
 
 ## Tags
 
@@ -28,12 +30,12 @@ email, start
 
 {% mermaid %}
 graph TD
-  template_29a39f["Template"]
-  classifier_a6df08["Classifier"]
-  addlabel_663354["AddLabel"]
-  gmailsearch_b776a8["GmailSearch"]
-  template_29a39f --> classifier_a6df08
-  classifier_a6df08 --> addlabel_663354
-  gmailsearch_b776a8 --> addlabel_663354
-  gmailsearch_b776a8 --> template_29a39f
+  search["Code (gmail_search)"]
+  prompt["Prompt"]
+  classifier["Classifier"]
+  label["Code (gmail_modify_labels)"]
+  search --> prompt
+  prompt --> classifier
+  classifier --> label
+  search -->|message_id| label
 {% endmermaid %}

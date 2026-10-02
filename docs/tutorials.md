@@ -176,7 +176,7 @@ to create a combined sentence from different parts.
   <source src="{{ '/assets/tutorials/combine-inputs.mp4' | relative_url }}" type="video/mp4">
 </video>
 
-You will learn how to connect several inputs, how to use `{{ placeholders }}`,
+You will learn how to connect several inputs, how to use `{% raw %}{{ placeholders }}{% endraw %}`,
 and how to build changing instructions.
 
 ## Summarize a document

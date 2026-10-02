@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Product Video Generator"
-description: "Turn a campaign brief and a single product photo into a cinematic 16:9 product video. Your inputs feed a prompt, an agent directs the shot, and a text-to-video model renders it."
+description: "Turn a campaign brief and a single product photo into a cinematic 16:9 product video. Your inputs feed a prompt, an agent directs the shot, and an image-to-video model renders it."
 image: /assets/use-cases/smartwatch.png
 # This page mirrors the marketing site's version of the same use case, so the
 # two competed for one query set across domains (docs/SEO_STRATEGY.md § 0.10,
@@ -14,7 +14,7 @@ canonical_url: "https://nodetool.ai/use-cases/product-video"
 <p class="usecase-eyebrow">Use case · Marketing</p>
 
 Turn a campaign brief and a single product photo into a cinematic 16:9 product
-video. Your inputs feed a prompt, an agent directs the shot, and a text-to-video
+video. Your inputs feed a prompt, an agent directs the shot, and an image-to-video
 model renders a ready-to-post clip.
 
 <div class="usecase-hero">
@@ -24,7 +24,8 @@ model renders a ready-to-post clip.
 ## How it works
 
 Four inputs and four nodes: a brief, an audience, a feature list, and the hero
-photo go in; a finished clip comes out.
+photo go in; a finished clip comes out. The shipped template is named *Product
+Video Generator* (**Examples** in the sidebar, **Workflows** tab).
 
 {% mermaid %}
 graph LR
@@ -54,7 +55,7 @@ graph LR
 3. **Direct the shot.** An agent turns the request into a concrete, cinematic
    prompt with framing, lens, and motion cues — the part most people get wrong
    by hand.
-4. **Render the video.** A text-to-video model animates the product photo from
+4. **Render the video.** An image-to-video model animates the product photo from
    the agent's prompt into a finished, ready-to-post clip.
 
 ## One photo in, a clip out
@@ -85,13 +86,14 @@ The whole pipeline runs from a single product render. Same graph, any product.
 
 ## Models in this workflow
 
-Called with your own keys. The bill comes from the provider, and you can switch
-any of them for a better model the day it ships.
+Called with your own keys. The bill comes from the provider, and Veo bills per
+second of video. The template ships with these defaults and each is one
+dropdown.
 
 | Model | Role | Provider |
 | --- | --- | --- |
-| Gemini 3.1 Pro Preview | Writes the video prompt | Gemini |
-| Veo 3.1 Preview | Renders the clip from the product photo | Gemini |
+| GPT-5 mini | Writes the video prompt (the agent also sees the photo) | OpenAI |
+| Veo 3.1 Preview | Renders an 8-second 720p 16:9 clip from the product photo | Gemini |
 
 See [Models &amp; Providers]({{ '/models-and-providers' | relative_url }}) to set up keys.
 

@@ -11,9 +11,9 @@ Chat is where you tell NodeTool what to make. The agent behind it plans, calls t
 ## Overview
 
 - Builds and edits workflows, sketches, timelines, storyboards, scripts, and mini apps
-- Every turn runs the agent loop; the assistant plans and calls tools as a task needs them
+- Every turn runs the agent loop. The assistant plans and calls tools as a task needs them
 - 20+ providers (OpenAI, Anthropic, Gemini, Ollama, …)
-- One composer for chat, image, video, and speech generation
+- One composer for chat, image, video, speech, and music generation
 - Tools: web search, files, code execution, HTTP, and more
 - Permission modes (Plan / Default / Auto) set how much the agent may do without asking
 - Run saved workflows from chat
@@ -62,6 +62,7 @@ The same composer generates more than text. Click the mode chip to switch betwee
 | **Animate Image** | Turn a still image into a clip |
 | **Reference to Video** | One clip from several attached images and videos — a character plus a garment, a product plus a location, a clip whose motion the new shot follows |
 | **Generate Speech** | Text-to-speech with a voice picker |
+| **Generate Music** | Text-to-music with your chosen music model and a duration |
 
 Each mode swaps in its own controls — resolution, aspect ratio, duration, voice — and attaches them to the message so the server routes to the right provider call.
 
@@ -90,6 +91,12 @@ them:
 The same picker works inside the workflow editor's Prompt node, where a picked
 entity becomes a chip that expands to its descriptor and reference image at
 generation time.
+
+---
+
+## Slash commands: / for skills
+
+Type `/` at the start of a word in the composer to open a list of your skills. Picking one inserts `/<skill name> ` into the message so the agent loads that skill for the request. The list filters by skill name and description as you type.
 
 ---
 
@@ -216,19 +223,24 @@ Chat agents have access to these tools:
 | **Browser** | Navigate web pages, extract content, take screenshots |
 | **Search** | Web search via multiple search providers |
 | **Filesystem** | Read/write files, list directories, manage workspace |
-| **Code** | Execute JavaScript in a sandboxed environment |
-| **Calculator** | Perform mathematical calculations |
+| **Code** | Execute JavaScript in a sandboxed environment, including calculations |
 | **HTTP** | Make HTTP requests to external APIs |
 | **PDF** | Extract text and data from PDF documents |
 | **Email** | Read and process email messages |
 | **Assets** | Upload, organize, and manage NodeTool assets |
 | **Vectors** | Query and manage vector database collections |
 | **Google** | Interact with Google APIs (search, drive, etc.) |
-| **Workspace** | Manage NodeTool workspace settings and files |
 
 ### MCP Tools (Model Context Protocol)
 
-NodeTool supports MCP for connecting to external tool servers, so you can integrate custom tools and services beyond the built-in set. See the [MCP documentation](https://modelcontextprotocol.io/) for available MCP servers.
+Add external MCP servers in **Settings → MCP Servers → External servers** (local app only). Click **Add server** and give the server an id (lowercase letters, digits, and `_`, up to 32 characters), a name, and one of two transports:
+
+- **stdio**: a command, arguments (one per line), environment variables, and an optional working directory. Stdio servers are unavailable on some hosted deployments.
+- **http**: an `http` or `https` URL and optional request headers.
+
+Environment and header values can reference stored secrets as `${SECRET_NAME}`. A server's tools join the agent's toolbelt on the next message, named `mcp_<id>_<tool>`. **Test** connects to a server and checks it. **Disable** turns a server off without deleting it. See the [MCP documentation](https://modelcontextprotocol.io/) for available MCP servers.
+
+To use NodeTool from another agent instead, see [NodeTool as an MCP Server](mcp-server.md).
 
 ---
 

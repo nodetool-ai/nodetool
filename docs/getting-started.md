@@ -15,8 +15,7 @@ before you pay for clips.
 ## 1. Install and connect
 
 **Download** NodeTool from [nodetool.ai](https://nodetool.ai), install it, and
-open it. You need 8 GB of RAM and 10 GB of disk. You do not need a graphics card,
-because the models run in the cloud. OS details:
+open it. You do not need a graphics card, because the models run in the cloud. OS details:
 [Installation](installation.md).
 
 **Connect your models.** NodeTool uses AI from other companies. An **API key**
@@ -27,10 +26,10 @@ a key.
 | You need | For | Get it from |
 |---|---|---|
 | Language model | Plans the video | OpenAI, Anthropic, Gemini, Groq, Mistral, or a Claude subscription |
-| Video model | Renders the clips | FAL, Replicate, Gemini |
-| Voice model (optional) | Reads the voiceover | OpenAI, ElevenLabs |
+| Video model | Renders the clips | FAL, Replicate, Gemini, OpenAI, kie.ai, and others |
+| Voice model (optional) | Reads the voiceover | OpenAI, ElevenLabs, Gemini, and others |
 
-Fastest setup: FAL and one language provider.
+Fastest setup: FAL and one language provider. The [capability matrix](providers.md#capability-matrix) lists which provider covers which model type.
 
 ![Connect an AI provider](assets/screenshots/provider-onboarding-dialog.png)
 
@@ -38,7 +37,7 @@ Fastest setup: FAL and one language provider.
 
 ## 2. Say what you want
 
-On the **Home** tab, pick **Video**. You can also use **+ New → Timeline**.
+On the **Home** tab, pick **Video**. You can also use **+ New → New timeline**.
 
 Type one sentence:
 
@@ -98,7 +97,9 @@ opens and the clips fill in as they finish.
 - **Retry N failed** runs failed clips again.
 - You can close the tab during generation. The clips are there when you come
   back.
-- Drag to move, drag an edge to trim, `S` to split, `Delete` to remove.
+- Drag to move, drag an edge to trim, `S` to split, `Delete` to remove. These
+  are the default **NodeTool** keys. Press `?` to see them and to switch the
+  keyboard preset to Premiere Pro or Final Cut Pro.
 - Ask the **Editor Assistant**: *"fade out the last clip"*.
 - **Export video** saves an MP4 file. **Save as Asset** keeps it in your
   library.

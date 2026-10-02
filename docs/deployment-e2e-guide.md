@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "End-to-End Deployment Guide"
-description: "A practical runbook for deploying NodeTool end-to-end with `nodetool serve` — desktop, public, and private server modes."
+description: "A practical runbook for deploying NodeTool end-to-end with `nodetool serve`: a local server, a Supabase-backed server, and Docker or Podman."
 ---
 
 This guide is a practical runbook for deploying NodeTool end-to-end with the unified server entrypoint (`nodetool serve`).
@@ -19,13 +19,14 @@ The server entrypoint is:
 nodetool serve --host 0.0.0.0 --port 7777
 ```
 
-`nodetool serve` accepts only `--host` and `--port`. Use environment variables to control auth and runtime behavior.
+`nodetool serve` accepts only `--host` (default `127.0.0.1`) and `--port` (default `7777`). It sets `HOST` and `PORT` and starts the server from the built `@nodetool-ai/websocket` package. Use environment variables to control auth and runtime behavior. Run `node backend/server.mjs` in the Docker image, where `HOST` defaults to `0.0.0.0` in production mode.
 
 Important runtime behavior:
 
 - Auth is enabled automatically when **both** `SUPABASE_URL` and `SUPABASE_KEY` are set; otherwise the server uses a local auth provider. There is no `AUTH_PROVIDER` switch read by `serve`.
-- Production mode is selected by `NODETOOL_ENV=production` (the container also sets `NODE_ENV=production`). In production, `SECRETS_MASTER_KEY` is required.
-- `/health` and `/ready` require no authentication.
+- Production mode is selected by `NODETOOL_ENV=production` (the container also sets `NODE_ENV=production`). Production mode also turns off the `/mcp` mount and the Python bridge until you opt in, see [Self-Hosted Deployment](self-hosted-deployment.md#mcp-over-http-and-python-nodes).
+- The server needs a secrets master key. It reads `SECRETS_MASTER_KEY` first, then the system keychain, and generates a key into the keychain when neither exists. A host with no keychain (a headless Linux server) must set `SECRETS_MASTER_KEY`. The Docker image generates one into `/workspace/.secrets_master_key` when you leave it unset.
+- `/health` (503 when the database check fails or the server is draining), `/ready` (liveness), and `/api/health` (version and uptime) require no authentication.
 
 ## Prerequisites
 
@@ -33,7 +34,7 @@ Important runtime behavior:
 - Container runtime:
   - Docker or
   - Podman
-- Image build for local deployment tests:
+- Image for local deployment tests. The image refuses to start unless `DB_PATH` or `DATABASE_URL` is set. Build it from the repository root:
 
 ```bash
 docker build -t nodetool:local .
@@ -105,7 +106,7 @@ docker run --rm -p 7777:7777 \
   nodetool:local
 ```
 
-To enable Supabase auth, add `-e SUPABASE_URL=… -e SUPABASE_KEY=…`.
+To enable Supabase auth, add `-e SUPABASE_URL=… -e SUPABASE_KEY=…` and `-e SUPABASE_ANON_KEY=…` for the login screen. Without Supabase, the server runs in Local mode and rejects requests that do not come from loopback or a network in `NODETOOL_TRUST_LOCAL_NETWORKS`, which `docker run` does not set. See [Authentication](authentication.md).
 
 ### Podman
 
@@ -122,11 +123,14 @@ podman run --rm -p 7777:7777 \
 
 ## Workflow Sync to a Deployed Server
 
-Create deployment config (`~/.config/nodetool/deployment.yaml`) with the target host and auth token, then sync:
+Create the deployment config with `nodetool deploy init` and `nodetool deploy add <name> --type docker` (the file is `deployment.yaml` in the NodeTool config directory, `~/.config/nodetool/` on Linux). The deployment's `host` and `container.port` give the server URL. Pass an admin bearer token with `--token` or `NODETOOL_ADMIN_TOKEN`, then sync:
 
 ```bash
+export NODETOOL_ADMIN_TOKEN=<admin token>
 nodetool deploy workflows sync <deployment-name> <workflow-id>
 ```
+
+Sync pushes the workflow definition only. Assets and models are not copied.
 
 List remote workflows:
 
@@ -146,7 +150,7 @@ curl -s -X POST http://<host>:7777/api/workflows/<workflow-id>/run \
 ## Production Checklist
 
 - `NODETOOL_ENV=production`
-- `SECRETS_MASTER_KEY` set
+- `SECRETS_MASTER_KEY` set, or a persistent `/workspace` volume so the image can keep its generated key
 - Supabase auth (`SUPABASE_URL` + `SUPABASE_KEY`) configured if you need remote auth
 - `/health` and `/ready` are green
 - Unauthorized access to protected endpoints returns `401/403`
@@ -154,17 +158,17 @@ curl -s -X POST http://<host>:7777/api/workflows/<workflow-id>/run \
 
 ## Troubleshooting
 
-### Server exits on startup in production
+### Server exits on startup
 
-Check `SECRETS_MASTER_KEY`:
+The Docker image exits at once when neither `DB_PATH` nor `DATABASE_URL` is set. Outside the image, a host with no keychain exits when `SECRETS_MASTER_KEY` is missing. Generate a key:
 
 ```bash
 openssl rand -base64 32
 ```
 
-### E2E tests skip with “image not found”
+### `docker run` or `podman run` reports “image not found”
 
-Validate image in active runtime context:
+Docker and Podman keep separate image stores. Check the one you run with:
 
 ```bash
 docker image ls | grep nodetool

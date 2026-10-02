@@ -6,10 +6,11 @@ image: /assets/use-cases/poster-singularity-1.png
 ---
 
 These are the showcase workflows from [nodetool.ai](https://nodetool.ai). Each
-one starts from a handful of inputs and ends with a finished result — a trailer,
-a batch of video ads, a set of poster concepts — built on a single canvas. Nothing is
-locked: swap a model, rewrite an agent's prompt, or drop in a new brief and run
-it again. The workflow is the reusable part, not the example output.
+one starts from a handful of inputs and ends with a finished result, such as a
+trailer, a batch of video ads, or a set of poster concepts, built on a single
+canvas. Nothing is locked: swap a model, rewrite an agent's prompt, or drop in a
+new brief and run it again. The workflow is the reusable part, not the example
+output.
 
 Every model runs with your own keys. The bill comes from the provider, not from
 us, and you can switch any model for a better one the day it ships.
@@ -50,9 +51,9 @@ us, and you can switch any model for a better one the day it ships.
     <div class="usecase-body">
       <span class="usecase-tag">Marketing</span>
       <h3><a href="{{ '/use-cases/product-video' | relative_url }}">Product Video Generator</a></h3>
-      <p>Turn a campaign brief and a single product photo into a cinematic 16:9 product video. Your inputs feed a prompt, an agent directs the shot, and a text-to-video model renders it.</p>
+      <p>Turn a campaign brief and a single product photo into a cinematic 16:9 product video. Your inputs feed a prompt, an agent directs the shot, and an image-to-video model animates the photo.</p>
       <div class="pipeline-chips">
-        <span>Brief</span><span>Prompt</span><span>Agent</span><span>Text-to-Video</span>
+        <span>Brief</span><span>Prompt</span><span>Agent</span><span>Image-to-Video</span>
       </div>
     </div>
   </article>
@@ -78,7 +79,7 @@ us, and you can switch any model for a better one the day it ships.
     <div class="usecase-body">
       <span class="usecase-tag">Design</span>
       <h3><a href="{{ '/use-cases/movie-poster' | relative_url }}">Movie Poster Generator</a></h3>
-      <p>From a title, genre, and audience, the canvas writes a creative strategy and renders a batch of cinematic poster concepts — title, tagline, billing block and all.</p>
+      <p>From a title, genre, and visual style, the canvas writes a creative strategy and renders a batch of cinematic poster concepts, one image per concept.</p>
       <div class="pipeline-chips">
         <span>Brief</span><span>Strategy</span><span>Concepts</span><span>Key art</span>
       </div>
@@ -102,13 +103,21 @@ us, and you can switch any model for a better one the day it ships.
     <div class="usecase-body">
       <span class="usecase-tag">Content</span>
       <h3><a href="{{ '/use-cases/seo-content-engine' | relative_url }}">SEO Content Engine</a></h3>
-      <p>One topic in, a keyword-targeted article batch out. A strategist agent plans the cluster, and every brief becomes a full Markdown article with an editorial hero image — a cluster per run, not an article per invoice.</p>
+      <p>One topic in, a keyword-targeted article batch out. A strategist agent plans the cluster, and every brief becomes a full article with title, meta description, keywords, and body, plus an editorial hero image.</p>
       <div class="pipeline-chips">
         <span>Topic</span><span>Cluster</span><span>Briefs</span><span>Articles</span><span>Heroes</span>
       </div>
     </div>
   </article>
 </div>
+
+## Run them yourself
+
+The Movie Trailer Generator, Product Video Generator, Movie Posters, Podcast
+Repurposing Studio, and SEO Content Engine ship as templates. Open **Examples**
+in the app menu and load one. The Documentary Teaser Generator and Ad Creative
+Factory are not among the shipped templates in this repository, so build them
+from the node lists on their pages.
 
 ## Build your own
 

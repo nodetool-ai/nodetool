@@ -4,7 +4,7 @@ title: "Python Bridge Protocol"
 description: "How NodeTool talks to the Python worker over stdio using length-prefixed MessagePack frames."
 ---
 
-NodeTool runs Python nodes and local-compute providers in a separate Python worker process. The desktop app and server spawn that worker and communicate with it over a **local stdio RPC protocol**.
+NodeTool runs Python nodes and local-compute providers in a separate Python worker process. The TypeScript runtime talks to it over a **stdio RPC protocol** (a locally spawned worker) or the same frames over a **WebSocket** (a worker that is already running, such as a Docker container).
 
 ## Why this protocol exists
 
@@ -12,17 +12,33 @@ NodeTool uses Python for:
 
 - Python node execution
 - local ML providers such as MLX and HuggingFace
+- ComfyUI and Blender jobs on workers that front them
 - media processing and model-specific dependencies
 
 The TypeScript runtime uses stdio instead of a localhost socket for the worker because it is simpler to supervise, avoids port-management issues, and keeps the worker strictly parent-scoped.
 
 ## Transport
 
+`createPythonBridge()` (`packages/runtime/src/python-bridge-factory.ts`) picks the transport. If `NODETOOL_WORKER_URL` is set to a `ws://` or `wss://` address, the runtime uses the WebSocket transport. Otherwise it uses stdio.
+
+### Stdio
+
 - Parent process spawns: `python -m nodetool.worker --stdio`
 - `stdin` / `stdout`: binary protocol traffic
 - `stderr`: worker logs and startup diagnostics
 
-### Framing
+The interpreter is the first match of: the `pythonPath` option or `NODETOOL_PYTHON`, the active `CONDA_PREFIX` when it looks like a NodeTool environment (named `nodetool` or `conda_env`), then the NodeTool-managed conda environments for the platform.
+
+In production (`NODETOOL_ENV=production`) the stdio bridge refuses to start unless `NODETOOL_ALLOW_PYTHON_BRIDGE_IN_PRODUCTION=1`. The WebSocket bridge is allowed in production.
+
+### WebSocket
+
+- The bridge never spawns a process. The worker lifecycle is owned elsewhere.
+- One WebSocket binary message is exactly one MessagePack frame, with no length prefix.
+- `NODETOOL_WORKER_TOKEN` (or the `workerToken` option) is sent as `Authorization: Bearer <token>` on connect and on every reconnect.
+- If the socket drops, in-flight requests are rejected and the bridge reconnects with exponential backoff (1s, doubling, capped at 30s). After a reconnect it repeats `discover` and `worker.status`.
+
+### Stdio framing
 
 Each message is encoded as:
 
@@ -44,11 +60,11 @@ The payload is a MessagePack object with this envelope shape:
 
 1. TypeScript spawns the worker
 2. Python loads node packages and providers
-3. Python prints `NODETOOL_STDIO_READY` on `stderr`
+3. Python prints `NODETOOL_STDIO_READY` on `stderr` (stdio only)
 4. TypeScript sends `discover`
 5. Python responds with node metadata, protocol version, and any load errors
-6. TypeScript optionally requests `worker.status`
-7. Workflow execution uses `execute` / `execute.stream`, `cancel`, `provider.*`, and (on v2+ workers) `models.*` messages
+6. TypeScript requests `worker.status`, which sets the capability gates described under [Versioning](#versioning)
+7. Workflow execution uses `execute` / `execute.stream`, `cancel`, `provider.*`, and, when the worker supports them, `models.*`, `job.*`, `comfy.*`, and `blender.*` messages
 
 ## Message types
 
@@ -72,7 +88,7 @@ Example:
   "type": "discover",
   "request_id": "d1",
   "data": {
-    "protocol_version": 1,
+    "protocol_version": 6,
     "nodes": [...],
     "load_errors": [
       {
@@ -99,6 +115,9 @@ Response data:
 - `load_errors`
 - `transport`
 - `max_frame_size`
+- `model_prepare_backends` (v5+): the backends `models.prepare` accepts
+- `comfy` (v3+): present when the worker fronts a ComfyUI server
+- `blender`: present when the worker can run Blender
 
 ### `execute`
 
@@ -110,6 +129,7 @@ Request data:
 - `fields`
 - `secrets`
 - `blobs`
+- `blob_transfer: "chunked-v1"`, sent only to workers that report v5 or newer (see [Chunked blob transfer](#chunked-blob-transfer))
 
 Run identity, added in **v4**. Every field is optional, and a field the JS host
 cannot name is omitted rather than sent as null:
@@ -157,7 +177,12 @@ Used for Python-only providers. The message families the TS bridge implements:
 - `provider.stream`
 - `provider.text_to_image`
 - `provider.image_to_image`
+- `provider.text_to_video`
+- `provider.image_to_video`
+- `provider.reference_to_video`
+- `provider.text_to_audio`
 - `provider.tts`
+- `provider.tts_encoded`
 - `provider.asr`
 - `provider.embedding`
 
@@ -172,6 +197,7 @@ simply does not expose them (see [Versioning](#versioning)).
 - `models.list_cached` — list models cached on the worker's `HF_HOME` (cache-only, no network)
 - `models.download` — download a model onto the worker cache, streaming ordered `progress` frames then a terminal `result`
 - `models.delete` — delete a cached model; returns whether it existed
+- `models.prepare` (**v5**, gated by `supportsModelPreparation(backend)`) — prepare an image-owned model through a backend the worker lists in `worker.status.model_prepare_backends`. Request data: `backend`, `model_type`, `repo_id`, and an optional Hugging Face `token`. It streams `progress` frames like `models.download`.
 - `models.evict` (**v4**, gated by `supportsJobLifecycle()`) — drop loaded model
   weights. Optional request data narrows the scope: `node_ids`, `job_id`,
   `target_vram_gb` (stop once that many GiB are reclaimed). Response data is
@@ -256,6 +282,14 @@ fit the `{progress, total, message}` shape. Instead it emits a dedicated frame:
 `node_output` → `preview` (only if `previews: true`) → `completed` or
 `cancelled`. `result` is always the last frame.
 
+### `blender.*`
+
+Blender jobs. Gated by `supportsBlender()`: a worker offers `blender.execute` only when `worker.status.blender.enabled` is `true`. There is no protocol-version floor for this family, so the flag alone decides.
+
+- `blender.execute` — request data is `{job, inputs}` plus optional `blobs` and `timeout`. It streams `blender.event` frames, then a terminal `result` or `error`. Cancel with the `cancel` frame.
+
+`blender.event` carries `data.event` (today only `progress`) with `frame` and `total`, taken from Blender's `Fra:<n>` output during animation renders.
+
 ## Result, error, chunk, and progress
 
 ### `result`
@@ -312,6 +346,16 @@ MessagePack allows binary payloads directly. NodeTool uses that for:
 - output blobs in `result.data.blobs`
 - audio/image chunks for streaming provider APIs
 
+### Chunked blob transfer
+
+From protocol v5 the JS side sets `blob_transfer: "chunked-v1"` on `execute` and on provider calls that return media. A worker that honors it sends each result blob as three frame types instead of inline bytes:
+
+- `blob.start` — `{name, size}`
+- `blob.chunk` — `{name, offset, bytes}`
+- `blob.end` — `{name, size, sha256}`
+
+The bridge reassembles the blob and checks it against the final size and SHA-256. A mismatch rejects the request and sends `cancel`. A blob that declares a size above `NODETOOL_PYTHON_MAX_RESULT_BLOB_BYTES` (default 2 GiB) is rejected, as is an out-of-order or oversized chunk. Older workers keep returning the inline `blobs` map.
+
 ## Diagnostics and failure handling
 
 The bridge now surfaces worker problems in-band:
@@ -325,9 +369,13 @@ This matters because metadata may exist for a Python node even if its module fai
 
 ## Limits and timeouts
 
-- The worker and TS bridge enforce a maximum frame size via `NODETOOL_BRIDGE_MAX_FRAME_SIZE`
-- The TS stdio bridge enforces a startup timeout (`startupTimeoutMs`, default 20s)
+- The worker and TS bridge enforce a maximum frame size via `NODETOOL_BRIDGE_MAX_FRAME_SIZE` (default 256 MiB)
+- Both transports enforce a startup timeout (`startupTimeoutMs`, default 20s)
+- `execute` times out after `NODETOOL_PYTHON_EXECUTE_TIMEOUT_MS` (default 12 minutes)
+- `worker.status` times out after `NODETOOL_PYTHON_STATUS_TIMEOUT_MS` (default 30s)
+- Model downloads fail after `NODETOOL_PYTHON_DOWNLOAD_IDLE_TIMEOUT_MS` (default 5 minutes) without a progress frame
 - Cancellation is cooperative
+- `NODETOOL_VALIDATE_BRIDGE_FRAMES=1` validates every inbound frame against the Zod schemas in `packages/protocol/src/bridge-frames.ts`. It defaults to on under tests and off otherwise.
 
 ## Versioning
 
@@ -335,7 +383,7 @@ The JS runtime and Python worker each report a `BRIDGE_PROTOCOL_VERSION`. Two
 distinct numbers govern compatibility (see `packages/protocol/src/bridge-protocol.ts`):
 
 - **`BRIDGE_PROTOCOL_VERSION`** — the protocol the JS runtime currently speaks
-  (presently `4`).
+  (presently `6`).
 - **`MIN_BRIDGE_PROTOCOL_VERSION`** — the *hard floor* (presently `1`). The JS
   runtime rejects a worker only if it reports a protocol **below** this floor.
 
@@ -345,8 +393,11 @@ Compatibility rules:
   fail startup. Additive features the worker predates are gated per-capability:
   a v1 worker connects fine and simply doesn't expose the `models.*` family
   (gated by `supportsModelManagement()`, which requires v2+), `comfy.*` (gated
-  by `supportsComfy()`, which requires v3+ and `comfy.enabled`), or `job.*` /
-  `models.evict` (gated by `supportsJobLifecycle()`, which requires v4+).
+  by `supportsComfy()`, which requires v3+ and `comfy.enabled`), `job.*` /
+  `models.evict` (gated by `supportsJobLifecycle()`, which requires v4+),
+  `models.prepare` (gated by `supportsModelPreparation()`, which requires v5+
+  and a matching `model_prepare_backends` entry), or `blender.*` (gated by
+  `supportsBlender()`, which requires `blender.enabled`).
   Workers that predate the `protocol_version` field are treated as v1.
 
   The v4 identity fields on `execute` are the exception that proves the rule:

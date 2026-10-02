@@ -54,7 +54,10 @@ A special type of AI that can **plan and execute** multi-step tasks. Unlike simp
 *Technical: Multi-step planner/executor that can call tools or workflows.*
 
 ### LLM (Large Language Model)
-A type of AI model that understands and generates text. LLMs power chatbots, writing assistants, and text analysis tools. Examples: GPT-4, Claude, Llama.
+A type of AI model that understands and generates text. LLMs power chat assistants, writing assistants, and text analysis tools. Examples: GPT-4, Claude, Llama.
+
+### Permission Mode
+A per-thread setting that controls how far the agent acts without asking: **Plan** (read and propose only), **Default** (ask before actions), or **Auto** (routine work runs unattended, high-risk actions still ask).
 
 ### Inference
 The process of using a trained AI model to generate results. When you "run" a model, you're performing inference.
@@ -98,9 +101,7 @@ A single workflow execution. When you click Run, NodeTool creates a job that tra
 Receiving results progressively as they're generated, rather than waiting for everything to complete. Many AI nodes stream their output so you see progress in real-time.
 
 ### Execution Strategy
-How NodeTool runs your workflow – either in the same process, a separate subprocess, or inside a Docker container.
-
-*Technical options: threaded, subprocess, Docker.*
+Not a setting. The kernel runs every workflow in the server process, with one actor per node and no per-job threads, subprocesses, or containers. The `execution_strategy` field on a job is stored and never read. See [Execution Strategies](execution-strategies.md).
 
 ---
 
@@ -109,12 +110,12 @@ How NodeTool runs your workflow – either in the same process, a separate subpr
 ### Server
 The background program that actually runs your workflows. The desktop app starts one on your own machine and talks to it; you never have to think about it unless you're hosting NodeTool for other people.
 
-*Technical: Process that runs workflows and exposes HTTP/WebSocket endpoints (via `nodetool serve`, optionally with `--host`/`--port`).*
+*Technical: Process that runs workflows and exposes HTTP/WebSocket endpoints (via `nodetool serve`, optionally with `--host`, default `127.0.0.1`, and `--port`, default `7777`).*
 
 ### API Server
 The part of the server that answers requests from the app: saving and loading workflows, starting runs, returning results.
 
-*Technical: Node.js HTTP server (via `@nodetool-ai/websocket`) handling REST endpoints such as `/v1/chat/completions` and `/api/workflows`.*
+*Technical: Node.js HTTP server (via `@nodetool-ai/websocket`) handling the OpenAI-compatible `/v1/chat/completions` endpoint and REST routes such as `/api/workflows`.*
 
 ### Proxy
 An optional service that sits in front of NodeTool to handle security, routing, and SSL certificates for production deployments.
@@ -146,13 +147,13 @@ A special database that stores text as mathematical vectors, enabling semantic s
 ### RAG (Retrieval-Augmented Generation)
 A technique where an AI model answers questions using your own documents as context. Instead of relying only on its training data, the model retrieves relevant snippets from your documents first, then generates an answer based on that context. This dramatically reduces hallucinations and keeps answers grounded in your data.
 
-*In NodeTool: Use the HybridSearch node to retrieve documents, then pass them to an Agent node via FormatText.*
+*In NodeTool: Use the Hybrid Search node to retrieve documents, then pass them to an Agent node through a Template node.*
 
 ### Embedding
 A mathematical representation of text (or images) as a list of numbers (a "vector"). Embeddings capture meaning, so similar concepts have similar numbers. This is what makes semantic search possible — finding content by meaning rather than exact keyword matches.
 
 ### Prompt
-The text instruction you give to an AI model. Good prompts are specific and clear. In NodeTool, prompts are usually set as text inputs or constructed using FormatText nodes that combine variables into a template.
+The text instruction you give to an AI model. Good prompts are specific and clear. In NodeTool, prompts are usually set as text inputs or constructed using Template nodes that fill variables into a text template.
 
 ### Temperature
 A setting that controls how creative or deterministic an AI model's output is. Low temperature (0.0–0.3) produces consistent, factual responses. High temperature (0.8–1.2) produces more varied, creative results.

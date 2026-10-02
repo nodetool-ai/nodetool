@@ -10,7 +10,7 @@ a beat plan, a storyboard, or a script. Add the references that should guide
 the images, review every shot before generation, then choose which generated
 takes enter the cut.
 
-Generated takes are previews until you choose **Use** or approve a draft. You
+Generated takes are previews until you set one as current, choose **Use take**, or approve a draft. You
 can compare options without changing the current edit.
 
 ## Before you start
@@ -101,7 +101,7 @@ each beat or shot:
   Demonstration, Proof, or Call to action.
 - **Visual treatment** chooses Actor to camera, Product close-up, Lifestyle
   B-roll, or Generated scene.
-- **Speech mode** chooses None, Off-camera, or On-camera.
+- **Speech mode** chooses None or Off-camera. On-camera appears in the list but is disabled in the guided editors.
 - **Production direction** adds local camera or performance notes.
 - **Requested takes** asks for one, two, or three alternatives.
 
@@ -115,8 +115,13 @@ Use **Off-camera** for narration or voiceover that plays over a product shot,
 B-roll, or another scene. The speaker does not need to appear to say the line.
 This is the usual choice for a product demo assembled in the guided editors.
 
-Use **On-camera** only when the visible performer must match the recorded line.
-That route needs all of the following:
+The guided Video and Storyboard editors do not support **On-camera**. They show
+it as unavailable and block generation with "On-camera speech is unavailable in
+this guided flow" if a shot carries it. Choose Off-camera or None there.
+
+The agent can run an on-camera performance when the visible performer must
+match the recorded line. That route (`audio_driven_performance`) needs all of
+the following:
 
 - the exact speech take or recorded audio,
 - a character entity with a character reference,
@@ -125,11 +130,9 @@ That route needs all of the following:
 - enough time in the shot for the complete speech take.
 
 NodeTool does not turn an unsupported on-camera request into narration. If the
-guided flow cannot resolve the required audio, character, source video, or
-model capability, it shows the missing requirement and blocks generation. Use
-off-camera speech for that shot, prepare the missing inputs, or ask the agent
-to prepare the audio-driven performance after the speech take and visual
-sources exist.
+agent route cannot resolve the required audio, character, source video, or
+model capability, the request is rejected with the missing requirement. Use
+off-camera speech for that shot, or prepare the missing inputs first.
 
 Speech must fit inside its beat or shot. Shorten the line, choose a shorter
 speech take, or lengthen the section when NodeTool reports a timing conflict.
@@ -144,7 +147,7 @@ In Storyboard:
 1. Open **View takes** on a shot.
 2. Select a **Preview** chip to audition that clip without replacing the
    accepted clip.
-3. Choose **Use** beside the take you want.
+3. Choose **Set as current clip** beside the take you want. Stills have the same choice as **Set as current still**.
 
 In the timeline:
 
@@ -193,8 +196,8 @@ This example makes a three-beat social ad for a reusable water bottle.
    - Call to action: Product and character together with the final line.
 5. Request two takes for the product close-up and one take for the other beats.
    Choose a reference-capable video model and generate.
-6. Preview both close-up options. Choose **Use** or **Use take** for the better
-   one. Retry only the failed beat if a generation fails.
+6. Preview both close-up options. Choose **Set as current clip** (Storyboard) or
+   **Use take** (timeline) for the better one. Retry only the failed beat if a generation fails.
 7. Continue in the timeline. Trim the accepted clips, adjust audio, add
    captions, and export the vertical cut.
 

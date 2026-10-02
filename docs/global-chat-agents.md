@@ -4,7 +4,7 @@ title: "Chat & Agents"
 description: "The agent that builds your workflows, sketches, timelines, and apps — in the app, from the CLI, or over the API."
 ---
 
-Most tasks in NodeTool start with the agent. Just describe what you want, and it handles the rest: it plans the process, connects the right parts, selects the best models, runs the task, and edits your open document. Every time you send a message, the agent springs into action—there are no confusing modes to turn on or off.
+Most tasks in NodeTool start with the agent. Describe what you want. The agent plans the steps, connects the nodes, picks models, runs the task, and edits your open document. Every message runs the agent loop, so there is no mode to switch on.
 
 ## What it can build
 
@@ -17,14 +17,15 @@ Most tasks in NodeTool start with the agent. Just describe what you want, and it
 | Add voiced lines or subtitles | Scripts | [Creative Agent](creative-agent.md) |
 | Build forms, fields, buttons, or outputs | Mini Apps | [App Builder](app-builder.md) |
 
-The agent uses the same tools you do, so you can watch changes happen in real time. And when it’s done, you’re left with a normal document you can continue editing yourself.
+The agent uses the same actions the interface offers, so you can watch changes land as they happen. The result is a normal document you can keep editing yourself.
 
 ## Core guides
 
 - **[Chat](global-chat.md)** — How to use the composer, threads, permissions, and the agent.
 - **[Agent Memory](agent-memory.md)** — How the agent shares results between the steps of one run.
 - **[Agent CLI](agent-cli.md)** — Run the agent from your terminal.
-- **[Chat CLI](chat-cli.md)** & **[Chat Server](chat-server.md)** — Automate chats or build your own custom interface.
+- **[Chat CLI](chat-cli.md)** & **[Chat Server](chat-server.md)** — Automate chats or build your own interface.
+- **[NodeTool as an MCP Server](mcp-server.md)** — Drive NodeTool from Claude Code, Codex, OpenCode, or any MCP client.
 - **[Chat API](chat-api.md)** — Start chats, get responses, and run tools from your own code.
 
 ## Typical workflows
@@ -39,7 +40,7 @@ The agent uses the same tools you do, so you can watch changes happen in real ti
    Save your workflow in the editor, then select it in the chat or ask for it by name. The results will appear directly in your thread.
 
 4. **Control how much the agent does automatically**
-   You can set permissions for each thread: *Plan* just gives you a proposal, *Default* asks before making changes, and *Auto* does everything automatically. Learn more in the [Chat guide](global-chat.md#permission-modes).
+   You can set permissions for each thread: *Plan* gives you a proposal and runs nothing, *Default* asks before actions, and *Auto* runs routine work unattended but asks once before an action it labels high risk, such as deleting, publishing, or spending. Learn more in the [Chat guide](global-chat.md#permission-modes).
 
 5. **Run agents behind the scenes**
    Use the [Agent CLI](agent-cli.md) for automated scripts, or the [Chat API](chat-api.md) to connect the agent to a backend service.

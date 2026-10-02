@@ -23,7 +23,7 @@ npx --package=@nodetool-ai/cli nodetool --help
 npx --package=@nodetool-ai/cli nodetool-chat
 ```
 
-**Requires Node.js 22.x.** Check with `node --version`; install via [nvm](https://github.com/nvm-sh/nvm) if needed.
+**Requires Node.js 22 or later** (`engines` in `packages/cli/package.json`, and the repository pins 24 in `.nvmrc`). Check with `node --version`, and install via [nvm](https://github.com/nvm-sh/nvm) if needed.
 
 ## Getting Help
 
@@ -38,6 +38,7 @@ These flags work on any `nodetool` command and control [OpenTelemetry tracing](h
 - `--trace-file <path>` — append every LLM/agent/workflow span to `<path>` as JSONL (analyzer-friendly).
 - `--trace-stdout [format]` — stream spans to stdout: `pretty` (default) or `json`.
 - `--no-trace-stdout` — disable stdout span output (overrides `NODETOOL_TRACE_STDOUT`).
+- `--version` — print the CLI version.
 
 ```bash
 nodetool --trace-file trace.jsonl run workflow.ts
@@ -48,7 +49,7 @@ nodetool --trace-stdout pretty workflows run <id>
 
 ### `nodetool info`
 
-Display system and environment information including Node.js version, platform, and API key configuration.
+Display the CLI version, Node.js version, platform, which provider API keys are set (`configured` or `not set`, never the value), and the `ENV`, `LOG_LEVEL` and `PORT` environment values.
 
 **Options:**
 
@@ -94,6 +95,9 @@ Executes a workflow by ID (from the local database), JSON file, or TypeScript DS
 
 - `--params <json>` — JSON string of workflow parameters.
 - `--json` — output result as JSON.
+- `--asset-output-mode <mode>` — how media outputs are materialized: `native` (default), `raw`, `data_uri`, `workspace`, `storage_url`, or `temp_url`.
+- `--workspace <dir>` — workspace directory for `workspace` mode output (default `./nodetool-output`).
+- `--trigger-event <json>` — wake a trigger node the way the scheduler or webhook adapter would, for example `'{"node_id":"watch","payload":{"path":"/tmp/a.csv","event":"created"}}'`. Without it a webhook, file-watch or manual trigger has no event to emit and the run stalls until its timeout.
 - `--supervise` and its bounds — see [Supervised runs](#supervised-runs).
 
 **Examples:**
@@ -133,6 +137,7 @@ Exports a workflow as a TypeScript DSL file.
 
 **Options:**
 
+- `--api-url <url>` — fetch the workflow from a remote server instead of the local database (default `NODETOOL_API_URL`).
 - `-o, --output <file>` — write to file instead of stdout.
 
 **Examples:**
@@ -253,6 +258,8 @@ nodetool db baseline --direct-url "$DIRECT_URL"   # for existing DBs
 nodetool db rollback --direct-url "$DIRECT_URL" --steps 1
 ```
 
+`status`, `baseline`, and `rollback` take `--direct-url`, `--database-url`, and `--json` like `migrate`. `baseline` also takes `--force` to clear and recreate the migration tracking records. `rollback --steps <n>` defaults to `1`.
+
 ## Chat
 
 ### `nodetool chat`
@@ -268,6 +275,7 @@ is restored on exit. Piped input keeps its line-based interface.
 - `-a, --agent` — **deprecated, no-op.** Every chat session runs the unified agent loop; this flag has no effect.
 - `-u, --url <url>` — WebSocket server URL (default: uses a local provider).
 - `-w, --workspace <path>` — workspace directory for file operations (default: current directory).
+- `--no-read-only-search` — disable the read-only `run_search` fan-out primitive (on by default).
 - `--tools <tools>` — comma-separated tool names that narrow the belt. Without
   it, a local session offers the same belt as a server chat turn.
 - `--permission-mode <default|auto|plan>` — how tool calls are gated
@@ -331,7 +339,7 @@ nodetool chat --url ws://localhost:7777/ws
 
 Manage workflows. Reads the local database by default; `--api-url` targets a remote server.
 
-**Subcommands:** `list`, `get`, `run`, `export-dsl`, `export-example`, `export-bundle`, `import-bundle`,
+**Subcommands:** `list` and `get` (both take `--api-url <url>` and `--json`, and `list` takes `--limit <n>`, default 100), `run`, `export-dsl`, `export-example`, `export-bundle`, `import-bundle`,
 `migrate-code-inputs`
 
 ```bash
@@ -356,7 +364,10 @@ Export a workflow as a shipped template: materialize its referenced assets into 
 
 **Options:**
 
+- `--api-url <url>` — fetch the workflow and asset bytes from a remote server instead of the local database (default `NODETOOL_API_URL`).
 - `--package <name>` — owning package (default `nodetool-base`).
+- `--assets-dir <dir>` — root holding `<package>/<file>` constant assets (default: the monorepo base-nodes assets directory).
+- `--examples-dir <dir>` — directory the example JSON is written under, as `<dir>/<package>/<name>.json`.
 - `-o, --output <file>` — write the example JSON to this exact path.
 - `--include-remote` — also materialize http(s) and local-file refs.
 
@@ -373,6 +384,7 @@ they reference), sharable as a single file.
 
 **Options:**
 
+- `--api-url <url>` — fetch the workflows and asset bytes from a remote server instead of the local database (default `NODETOOL_API_URL`).
 - `-o, --output <file>` — output path (default `<name>.nodetool`).
 - `--include-remote` — also embed http(s) and local-file refs.
 
@@ -384,6 +396,10 @@ nodetool workflows export-bundle <id> [<id2> ...] -o my-pack.nodetool
 
 Import a `.nodetool` bundle into the local library: store its assets and create the workflows with refs rewritten to the
 imported assets.
+
+**Options:**
+
+- `--json` — print the created workflows as JSON.
 
 ```bash
 nodetool workflows import-bundle my-pack.nodetool
@@ -724,7 +740,7 @@ wins over an id, and file targets need no database.
 
 ### `nodetool timeline`
 
-**Subcommands:** `validate`, `debug`, `versions`
+**Subcommands:** `validate`, `debug`, `render`, `score`, `versions`
 
 #### `nodetool timeline validate <timeline_id_or_file>`
 
@@ -766,6 +782,14 @@ authored motion did not fit the clip.
 | `speed_multiplier_invalid` | error | A non-positive playback rate |
 | `unknown_animation_preset` | error | A preset this build does not ship; nothing animates |
 | `custom_animation_invalid` | error | Baked curves the one gate refuses; re-bake from the script |
+| `animation_link_source_missing` | error | A clip links animation to a clip the document lacks |
+| `animation_style_invalid` | error | An animation uses glyph tracks without a stagger unit |
+| `text_path_invalid` | error | A text clip's path cannot be read |
+| `shape_path_invalid` | error | A path shape this build cannot draw, so it draws nothing |
+| `midi_clip_off_midi_track` | error | A clip carrying notes sits on a non-midi track, so it makes no sound |
+| `non_midi_clip_on_midi_track` | error | A picture or audio clip sits on a midi track, so it is neither heard nor seen |
+| `midi_clip_retimed` | error | A midi clip carries speed or time remap, which retime samples a midi clip does not have |
+| `midi_notes_invalid` | error | A midi clip holds a note that fails its checks |
 | `parent_cycle` | error | A `parentId` chain loops, so the group cannot be resolved |
 | `matte_source_missing` | error | A `matte` names a clip the document lacks, or itself — the layer draws unmatted, showing everything the matte was hiding |
 | `time_remap_not_monotonic` | error | `timeRemap` keyframe `t` repeats or goes backwards (`sourceMs` may descend — that is a reverse) |
@@ -779,6 +803,17 @@ authored motion did not fit the clip.
 | `mask_path_invalid` | warning | A mask `kind` or path `d` that cannot rasterize; the layer draws unmasked |
 | `unknown_shape_kind` | warning | A `shapeStyle.kind` this build has no geometry for; the shape draws nothing |
 | `font_not_portable` | warning | A font family NodeTool does not ship; every host resolves it against its own installed fonts, so the editor preview and the render can differ |
+| `matte_source_invalid` | warning | A clip is matted by an adjustment clip, which has no pixels, so the layer draws unmatted |
+| `crop_degenerate` | warning | A crop whose left and right, or top and bottom, sum to 1 or more, so the clip draws its whole source |
+| `bake_stale` | warning | A bake rendered from a style the clip no longer has, so the live 3D layer draws instead |
+| `reframe_stale` | warning | Automatic framing that no longer matches the active source, so rendering falls back to centred framing |
+| `source_curve_outside_window` | warning | Animation keyframes cut from source outside the span the clip plays |
+| `adjustment_no_effects`, `adjustment_treats_nothing`, `adjustment_group_empty` | warning | An adjustment clip with no enabled effect, with no clip beneath it in its window, or in a group where nothing else overlaps it |
+| `adjustment_field_ignored` | warning | An adjustment clip carries fields it never draws |
+| `layout_on_non_group`, `unknown_layout_display`, `flex_item_without_flex_parent` | warning | A `layout` on a clip that is not a group, a `layout.display` other than `flex`, or a `flexItem` whose parent is not a flex container. Each is ignored |
+| `midi_clip_silent` | warning | A midi clip with no notes, or none starting inside its window |
+| `midi_tempo_missing` | warning | The document has midi but no `tempo`, so notes read at the default BPM |
+| `text_backing_unproven` | warning | Text over picture with no scrim, plate or outline, so nothing decides whether it is readable |
 | `parent_missing`, `parent_not_group` | warning | A `parentId` naming nothing, or naming a clip that is not a group; the child renders unparented |
 | `layer_cap_exceeded` | warning | More video clips overlap at an instant than the compositor draws |
 | `animation_exceeds_clip` | warning | The window does not fit the clip after its delay, so the motion is clamped — or never runs |
@@ -875,7 +910,7 @@ keyframes per visible second), breadth (distinct animated properties, effect
 types, showcase-only feature flags), and structural craft (style tracks, text
 animators, authored transitions, scene count), each against the reference
 examples' median, plus a fixed penalty per *distinct* showcase-tier warning
-code present (`validate`'s `--tier showcase` codes) — four findings of the
+code present (the `showcase_*` codes that the `showcase` validation tier adds, which `timeline validate` does not run) — four findings of the
 same code cost as much as one, so no single noisy check can dominate the
 score; instance counts stay visible in `showcaseWarnings` and
 `showcaseWarningCodeCounts`. The target is a timeline JSON file or
@@ -1106,6 +1141,13 @@ nodetool game capture game.json --ticks 120 --inputs inputs.json --out frame.png
 nodetool game capture game.json --ticks 120 --out frame.png --backend webgpu
 nodetool game build game.json --out game-build --assets-dir game-assets
 ```
+
+**Subcommands and options:**
+
+- `game validate <game_file>` — `--json`.
+- `game simulate <game_file>` — `--ticks <count>` (required), `--seed <integer>` (default `1`), `--inputs <file>`, `--assets-dir <directory>` (prepared 3D collider files named `<full-asset-id>.json`), `--expect-score <score>`, `--expect-win`, `--assertions <file>`, `--verify-replay`, `--json`.
+- `game capture <game_file>` — `--ticks <count>` and `--out <file>` (both required), `--seed <integer>`, `--inputs <file>`, `--scale <factor>` (default `1`), `--backend <canvas2d|webgpu|webgl2>`, `--assets-dir <directory>`, `--json`. A schema version 3 (3D) document defaults to `webgl2`. A 2D document accepts `canvas2d` (default) or `webgpu`.
+- `game build <game_file>` — `--out <directory>` (required), `--assets-dir <directory>`, `--json`.
 
 Schema version 2 adds sprite `visualAnimation` tracks and scene `backgrounds`.
 Tracks use scene or spawn age in ticks and animate rotation, scale, opacity, and
@@ -1385,12 +1427,12 @@ running.
 Where `costs` aggregates LLM spend, this answers the per-call questions: what a
 render cost, which asset it wrote, and whether it is still going.
 
-**Subcommands:** `list`, `get`, `await`, `cancel`, `reconcile`, `sweep`
+**Subcommands:** `list`, `get`, `await`, `cancel`, `reconcile`, `sweep`, `provider-list`, `provider-get`
 
 **Options:**
 
-- `--status <status>` — `running`, `completed`, `failed`, `cancelled`, or
-  `interrupted` (for `list`).
+- `--status <status>` — `pending`, `running`, `recovering`, `completed`, `failed`,
+  `cancelled`, `needs_attention`, or `interrupted` (for `list`).
 - `--provider <name>` / `--capability <name>` — filter by provider, or by
   capability such as `text_to_video` (for `list`).
 - `--thread-id <id>` / `--job-id <id>` — only what a chat thread or a workflow
@@ -1398,6 +1440,7 @@ render cost, which asset it wrote, and whether it is still going.
 - `--since <iso>` — only generations created at or after this time (for `list`).
 - `--limit <n>` — max results (for `list`, default `50`).
 - `--timeout <seconds>` — how long `await` waits before giving up (default `300`).
+- `--provider <name>` is required, with `--model <id>`, for `provider-list` and `provider-get` (see below).
 - `--json` — output as JSON. Available on every subcommand.
 
 **Examples:**
@@ -1451,6 +1494,20 @@ it as `unpriced` rather than as free.
 `interrupted`, then drains the reconcile queue once. The server runs it at
 every start, so reach for it when working against the database directly. Rows
 awaiting reconciliation retry with backoff at 1, 5, 30, 120, and 720 minutes.
+
+`provider-list` and `provider-get <request_id>` ask the provider instead of the
+local database: its own record of what this account ran, from any machine, at
+the price it billed. Both require `--provider <name>` (for example `fal_ai`) and
+accept `--model <id>`, the endpoint id (comma-separated for `provider-list`).
+`provider-list` also takes `--status <running|completed|failed|cancelled|unknown>`,
+`--since <iso>`, `--until <iso>` (exclusive), `--limit <n>` (default `50`) and
+`--cursor <cursor>`, the `next_cursor` that a previous page printed. A provider
+without a generations API reports that instead of an empty list.
+
+```bash
+nodetool generations provider-list --provider fal_ai --status running
+nodetool generations provider-get <request_id> --provider fal_ai --model fal-ai/flux/dev
+```
 
 Agents reach the same record through `list_generations`, `get_generation`,
 `await_generation`, `cancel_generation`, and `reconcile_generation`. Design:
@@ -1527,7 +1584,10 @@ the **Models & Providers** settings page.
 
 ### `nodetool settings show`
 
-Display current settings from environment variables.
+Display the current values of a fixed list of environment variables: `ENV`, `LOG_LEVEL`, `PORT`, `HOST`, `DB_PATH`,
+`NODETOOL_API_URL`, the provider keys (`ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `GEMINI_API_KEY`, `MISTRAL_API_KEY`,
+`GROQ_API_KEY`, `SERPAPI_API_KEY`), `OLLAMA_API_URL`, `HF_TOKEN`, `VECTORSTORE_DB_PATH`, `ASSET_BUCKET`, and
+`S3_ENDPOINT_URL`. A variable whose name ends in `KEY` or `TOKEN` prints as `***` when set. Unset variables print empty.
 
 **Options:**
 
@@ -1544,7 +1604,7 @@ nodetool settings show --json
 
 ### `nodetool models`
 
-List models and providers. Queries local providers and caches by default; `--api-url` targets a remote server.
+List models and providers. Queries local providers and caches by default. `--api-url <url>` (default `NODETOOL_API_URL`) targets a remote server on `list`, `ollama`, and `huggingface`. Every subcommand takes `--json`.
 
 **Subcommands:**
 
@@ -1924,11 +1984,12 @@ than guessing the path.
 
 **Options:**
 
+- `--type <type>` — required on `add`. `docker` is the only supported value.
 - `--dry-run` — print what `apply` would do without executing it.
 - `-f, --follow` / `--tail <n>` / `--service <service>` — for `logs`; `--tail`
   defaults to `100`.
-- `--force` — skip the `destroy` confirmation.
-- `--json` — machine-readable `list` output.
+- `--force` — skip the confirmation on `destroy`, `workflows delete`, and `users-remove`.
+- `--json` — machine-readable output on `list`, `workflows list`, and `users-list`.
 
 ```bash
 # Scaffold, describe, and review before touching the remote host
@@ -2017,10 +2078,12 @@ get to postpone.
   what to rent, on `profile add` or inline on `create`.
 - `--idle-timeout <minutes>` / `--max-lifetime <minutes>` — auto-stop when idle,
   and a hard TTL. Both are the guard against a forgotten worker.
+- `--ssh-key <path>` — OpenSSH public key file. It exposes `22/tcp` so the worker can be debugged.
+- `--disk <gb>` — persistent volume size, which holds the model cache (default `100`).
 - `--token-policy <generate|fixed>` — default `generate`.
 - `--profile <name>` / `--attach` — for `create`.
 - `--all` — for `stop`, stops every non-stopped worker.
-- `--json` — for `list`.
+- `--json` — for `list` and `profile list`.
 
 ```bash
 # Save a preset once, then rent from it
@@ -2326,7 +2389,7 @@ Markdown that ships with a pack.
 #### `nodetool package list`
 
 List the installed packages with their node counts, or the registry's catalog
-with `--available`.
+with `-a, --available`. `--json` prints the rows as JSON.
 
 ```bash
 nodetool package list
@@ -2366,7 +2429,7 @@ JSONs a pack ships. Each takes `-v, --verbose`.
 - `node-docs` — `-o, --output-dir <dir>` (default `docs/nodes`),
   `-p, --package-name <name>` to emit only nodes under a namespace prefix.
 - `workflow-docs` — `-o, --output-dir <dir>` (default `docs/workflows`),
-  `-e, --examples-dir <dir>` to point at the workflow JSONs, and
+  `-e, --examples-dir <dir>` (required) to point at the workflow JSONs, and
   `-p, --package-name <name>` to keep only those whose `package_name` matches.
 
 ```bash
@@ -2501,8 +2564,15 @@ its metrics — success rate, expectation score, tool calls, duration, and cost.
 - `--out <path>` — write the JSON report to a file.
 - `--max-iterations <n>` — turn cap per case for the loop-style suites (default 12).
 - `--timeout <ms>` — per-case execution timeout for the suites that run what they plan (default 300000).
+- `--system-prompt <text>` — the caller preamble the planner suites plan behind (default: the AgentNode's own prompt).
+- `--no-agent-prompt` — plan with no caller preamble, which scores the bare planner contract.
 - `--judge-model <provider/model>` — the model that judges outputs in the self-judging suites (`graph-e2e`, `app-build`). Defaults to the run's own provider and model, which grades its own work.
 - `--min-success <rate>` — exit non-zero when the success rate falls below this threshold (0..1).
+- `--min-score <rate>` — exit non-zero when the mean expectation score falls below this threshold (0..1).
+- `--min-cases <n>` — exit non-zero when fewer than `n` cases ran. Skipped cases do not count.
+- `--max-cost-usd <usd>` — exit non-zero when the run's total provider spend exceeds this.
+- `--max-p95-duration-ms <ms>` — exit non-zero when the p95 case duration, skipped cases excluded, exceeds this.
+- `--keyless` — run only the cases that need no API key and no network (see `--list`).
 - `--no-find-model` — run without configured model providers, skipping the model-dependent cases.
 
 **Examples:**

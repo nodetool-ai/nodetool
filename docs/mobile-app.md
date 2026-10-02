@@ -8,6 +8,8 @@ Run Mini-Apps and chat with models from your phone or tablet. Connects to any No
 
 > New here? Start on desktop with [Getting Started](getting-started.md).
 
+You must sign in. The app opens on a **Login** screen with **Continue with Google** (Supabase auth). A build without `EXPO_PUBLIC_SUPABASE_URL` and `EXPO_PUBLIC_SUPABASE_ANON_KEY` shows a banner saying login is not configured.
+
 ---
 
 ## Overview
@@ -16,8 +18,10 @@ Run Mini-Apps and chat with models from your phone or tablet. Connects to any No
 
 | Feature | Notes |
 |---------|-------|
-| **Chat** | Streaming responses across providers |
-| **Mini-Apps** | Run your workflows with a simple UI |
+| **Chat** | Streaming responses across providers, plus image and video generation modes |
+| **Workflows** | Browse, edit as a chain of cards, and run |
+| **Mini-Apps** | Run apps published on the server |
+| **Assets, Documents, Jobs, Triggers** | Browse files and documents, review job history, monitor triggers |
 | **Platforms** | iOS, Android, browser |
 | **Server** | Connect to any NodeTool server |
 
@@ -40,7 +44,7 @@ Build and run from source:
 git clone https://github.com/nodetool-ai/nodetool.git
 cd nodetool/mobile
 
-# Install dependencies
+# Install dependencies (mobile/ is not a root workspace)
 npm install
 
 # Start the development server
@@ -51,7 +55,9 @@ Then:
 - Press `i` for iOS Simulator (macOS only)
 - Press `a` for Android Emulator
 - Press `w` for web browser
-- Scan the QR code with Expo Go on your phone
+- Scan the QR code with a development build on your phone
+
+Expo Go does not work. The app uses native modules that Expo Go does not ship (Google Sign-In, Sentry, speech recognition), so sign-in and voice input fail there. Build a development build with `npm run build:dev`. See [mobile/README.md](https://github.com/nodetool-ai/nodetool/blob/main/mobile/README.md) for the TestFlight route.
 
 ---
 
@@ -62,10 +68,12 @@ The mobile app requires a running NodeTool server.
 ### Configure Server URL
 
 1. Open the app
-2. Go to **Settings** (gear icon)
-3. Enter your server URL
-4. Tap **Test Connection**
-5. Save when successful
+2. Go to **Settings** (gear icon on the Workflows screen)
+3. Enter the URL in **API Host**
+4. Tap **Test & Save** to check the server and save the URL in one step, or **Save Only** to skip the check
+5. The button reports the result: Server Ready & Saved, Sign In Required, Connection Timed Out, Incompatible Server, or Network Error
+
+The default host is `http://localhost:7777`. The URL must start with `http://` or `https://`.
 
 ### Server URLs by Platform
 
@@ -89,53 +97,60 @@ Chat with AI models from your mobile device.
 
 - **Streaming responses** – See text appear in real-time
 - **Model selection** – Choose from available AI models
-- **Markdown rendering** – Code blocks, formatting, syntax highlighting
-- **Stop generation** – Tap stop to cancel long responses
-- **Multiple threads** – Keep separate conversation topics
+- **Markdown rendering** – Code blocks and formatting
+- **Stop generation** – Tap the stop button to cancel a response
+- **Multiple threads** – Keep separate conversation topics and reopen them from the threads list
+- **Attachments and voice** – Attach files, take or pick photos, and dictate with voice input
+- **Modes** – Switch the composer between Chat, Image, and Video. Image and video modes expose aspect ratio, resolution, and variation or duration pickers
+- **Options bar** – Toggle **Agent** and **Help** modes, add tools, and choose collections to search
 
 ### How to Chat
 
 1. Tap the **Chat** button on the Workflows list screen
 2. Select a model (tap model name)
 3. Type your message
-4. Tap **Send**
+4. Tap the send button (up arrow)
 5. Watch the AI respond in real-time
 
 ### Tips
 
 - Use the **+** button to start a new conversation
-- Tap **Stop** to halt long responses
-- Scroll up to review conversation history
+- Use the history button to open past conversations. Each thread can be deleted there
+- Tap the stop button to halt a response
 - Switch models mid-conversation if needed
 
 ---
 
-## Running workflows
+## Running workflows and apps
 
-Mobile runs a workflow through a generated form. The home screen is the **Workflows** list (WorkflowsListScreen); tapping a workflow opens it (GraphEditorScreen) with input fields, a Run button, and results.
+The home screen is the **Workflows** list. Tapping a workflow opens it in the graph editor (see below), where the **Run workflow** button runs it with empty inputs and shows status and a result preview on each card. The list has a search box.
 
-Mini Apps are a separate resource, authored in the desktop App Builder and stored on the server. The apps icon in the Workflows header opens the **Apps** browser, and tapping an app runs it on its own screen. See [Mini Apps on Mobile](mini-apps-mobile.md).
+For a screen with input fields, use a Mini App. Mini Apps are a separate resource, authored in the desktop App Builder and stored on the server. The apps icon in the Workflows header opens the **Apps** browser, and tapping an app runs it on its own screen. See [Mini Apps on Mobile](mini-apps-mobile.md).
 
-### Running a workflow
+### Running a Mini App
 
-1. Open the **Workflows** list (the home screen)
-2. Tap a workflow to open it
-3. Fill in the inputs (text, number, boolean toggles, image, audio, …)
+1. Tap the apps icon in the Workflows header
+2. Tap an app
+3. Fill in the inputs
 4. Tap **Run**
-5. View results below
+5. View results as they stream in
 
 ![Mini App Runner](assets/screenshots/mobile-mini-app-runner.png)
 
 ### Supported Input Types
 
-| Type | Description |
+Mini App inputs map from the workflow's Input nodes to native controls:
+
+| Kind | Input nodes |
 |------|-------------|
-| Text | Single or multi-line text input |
-| Number | Integer or float values |
-| Boolean | On/off toggle switches |
-| Image | Image input |
-| Audio | Audio input |
-| File path | File reference |
+| Text | String, Text, Message |
+| Numbers | Integer, Float |
+| Boolean | Boolean toggle |
+| Media | Image, Video, Audio, Document, Model3D |
+| Lists | Image, Video, Audio, and Text lists |
+| Paths | File path, Folder path, Folder |
+| Other | Color, DataFrame, Select, Image size |
+| Models | Language, image, video, TTS, ASR, embedding, and Hugging Face model inputs |
 
 ---
 
@@ -155,7 +170,7 @@ New workflows open with a single prompt to add your first node.
 
 ### Node Picker
 
-Tap the **+** button to open the full-screen node picker, which filters by input/output compatibility.
+Tap the **+** button to open the full-screen node picker. It shows quick action tiles when idle and groups search results by namespace.
 
 ![Mobile Graph Editor — Picker](assets/screenshots/mobile-graph-editor-picker.png)
 
@@ -169,10 +184,12 @@ Interactions:
 
 | Action | Result |
 |--------|--------|
-| Tap a card | Open its properties |
+| Tap a card | Expand it to show properties, input mappings, and the output selector |
 | Up / Down buttons on a card | Reorder it within the chain |
 | Duplicate / Remove buttons | Duplicate or delete the node |
 | **+** button | Add a node via the full-screen picker |
+
+Input mappings wire a property to the output of any earlier node, and the list marks type-incompatible sources. A floating toolbar has Add node, Save workflow, Run workflow, and Stop workflow. Leaving with unsaved edits asks **Discard changes?**
 
 ---
 
@@ -184,11 +201,11 @@ Configure the mobile app from the gear icon:
 
 | Section | Purpose |
 |---------|---------|
-| Appearance | Light / Dark / System theme |
-| Server URL + Test Connection | Which NodeTool server to talk to, with a one-tap connectivity check |
-| Manage | Shortcuts to API Keys, Collections, and Jobs |
+| Appearance | Light, Dark, or System theme |
+| Server Connection | **API Host** with **Test & Save** and **Save Only** |
+| Manage | Shortcuts to API Keys, Collections, Jobs, and Triggers |
 | Account | Signed-in email and **Sign Out** |
-| About | App version, build info, links |
+| About | App version and the GitHub repository |
 
 ---
 
@@ -199,7 +216,7 @@ Tapping the model name at the top of a chat opens a two-step picker:
 1. **Select a provider** — the providers your server reports as supporting message generation.
 2. **Select a model** — the models offered by that provider.
 
-A search box appears in either step once the list is long enough, and a back arrow returns from models to providers. There is no API-key gating, disabled styling, or docs links in this picker.
+A search box appears in either step when the list has more than five entries, and a back arrow returns from models to providers. There is no API-key gating, disabled styling, or docs links in this picker.
 
 ![Mobile Model Selection](assets/screenshots/mobile-language-model-selection.png)
 
@@ -207,7 +224,22 @@ A search box appears in either step once the list is long enough, and a back arr
 
 ## Screens
 
-The stack registers 22 screens: Login, Workflows list, Graph editor, Settings, Chat, Threads, Language Model Selection, Apps, App, Documents, Storyboard Editor, Script Editor, Timeline Viewer, Sketch Viewer, Document Viewer, Assets, Asset Viewer, Secrets, Collections, Jobs, Job Detail, and Triggers.
+The stack registers these screens: Login, Workflows list, Graph editor, Settings, Chat, Threads, Language Model Selection, Apps, App, Documents, Storyboard Editor, Script Editor, JS Script Editor, Timeline Viewer, Sketch Viewer, Document Viewer, Assets, Asset Viewer, Secrets (API Keys), Collections, Jobs, Job Detail, and Triggers.
+
+### Deep links
+
+The app registers the `nodetool://` scheme. Links work only while signed in. Finished runs send a local notification whose link opens the job.
+
+| Link | Opens |
+|------|-------|
+| `nodetool://workflow/<id>` | Graph editor |
+| `nodetool://chat/<threadId>` | Chat |
+| `nodetool://threads`, `documents`, `apps`, `assets`, `jobs`, `triggers`, `collections`, `settings` | The matching screen |
+| `nodetool://app/<applicationId>` | A Mini App |
+| `nodetool://job/<jobId>` | Job detail |
+| `nodetool://asset/<assetId>` | Asset viewer |
+| `nodetool://document/<kind>/<id>` | Document editor or viewer (`storyboard`, `script`, `jsscript`, `timeline`, `sketch`) |
+| `nodetool://settings/secrets`, `settings/models` | API Keys, model picker |
 
 ---
 
@@ -215,21 +247,17 @@ The stack registers 22 screens: Login, Workflows list, Graph editor, Settings, C
 
 Your NodeTool server must be:
 
-1. **Running** – Start with `nodetool serve --port 7777`
+1. **Running** – Start with `nodetool serve --host 0.0.0.0 --port 7777`
 2. **Accessible** – On same network as your device
 3. **Configured** – With the models you want to use
 
 ### Starting the Server
 
 ```bash
-# Activate environment
-conda activate nodetool
-
-# Start server
-nodetool serve --port 7777
+nodetool serve --host 0.0.0.0 --port 7777
 ```
 
-The server runs at `http://localhost:7777` by default.
+`nodetool serve` binds to `127.0.0.1` on port 7777 by default. A physical device cannot reach that, so pass `--host 0.0.0.0` to listen on your network. The iOS Simulator and Android Emulator reach the default binding through the addresses in the table above.
 
 ### Firewall Settings
 
@@ -264,8 +292,8 @@ If connecting from a physical device, ensure:
 
 **Solutions**:
 1. Clear app data and restart
-2. Check that all dependencies are installed: `npm install`
-3. Reset Metro bundler: `npm start --reset-cache`
+2. Check that all dependencies are installed: `npm install` inside `mobile/`
+3. Reset Metro bundler: `npx expo start --clear`
 
 ### Chat Not Streaming
 
@@ -317,6 +345,8 @@ eas build --platform android --profile preview
 # Build for iOS
 eas build --platform ios --profile preview
 ```
+
+`mobile/package.json` wraps these as `npm run build:dev`, `build:preview`, and `build:production`, each for all platforms. The profiles in `mobile/eas.json` are `development`, `development-simulator`, `development-testflight`, `preview`, `preview-simulator`, and `production`.
 
 For store submissions:
 ```bash

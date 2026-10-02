@@ -12,16 +12,18 @@ Supabase provides both authentication and object storage for deployed NodeTool i
 
 | Feature | What It Does |
 |---------|--------------|
-| **Authentication** | User sign-up, login, and JWT-based session management |
-| **Object Storage** | S3-compatible asset storage with public or signed URLs |
-| **Row Level Security** | Fine-grained access control for multi-user deployments |
+| **Authentication** | User sign-up, login, and JWT-based session management. The server checks each token against your project's `/auth/v1/user` endpoint |
+| **Object Storage** | Asset storage in Supabase Storage buckets, with public or signed URLs |
+
+NodeTool talks to Supabase with the service role key, which bypasses Row Level
+Security. RLS policies do not restrict what the NodeTool server can read or write.
 
 ---
 
 ## Prerequisites
 
 - A **Supabase project** at [supabase.com](https://supabase.com)
-- Your project's **URL** and **service role key** from the Supabase dashboard
+- Your project's **URL**, **service role key**, and **anon key** from the Supabase dashboard
 - A NodeTool deployment target (self-hosted Docker server)
 
 ---
@@ -35,7 +37,7 @@ In your Supabase dashboard, go to **Storage** and create the following buckets:
 | Bucket | Purpose | Visibility |
 |--------|---------|------------|
 | `assets` | Permanent workflow assets (images, documents, audio) | Private or Public |
-| `assets-temp` | Temporary files during workflow execution (optional) | Private |
+| `assets-temp` | Temporary files during workflow execution | Private |
 
 **Public vs. Private buckets:**
 - **Public** buckets generate direct URLs that anyone can access -- suitable for assets shared externally
@@ -50,7 +52,10 @@ container:
   environment:
     # Supabase connection (presence of both enables Supabase auth)
     SUPABASE_URL: https://your-project.supabase.co
-    SUPABASE_KEY: your-service-role-key
+    SUPABASE_KEY: your-service-role-key   # server-only
+
+    # Public key the web login screen uses. Served by GET /api/config.
+    SUPABASE_ANON_KEY: your-anon-key
 
     # Select Supabase as the STORAGE backend (default is "file").
     # Setting only SUPABASE_URL/KEY enables Supabase AUTH but NOT storage.
@@ -58,14 +63,19 @@ container:
 
     # Storage buckets
     ASSET_BUCKET: assets
-    TEMP_BUCKET: assets-temp  # Optional
+    TEMP_BUCKET: assets-temp
 ```
+
+Without `SUPABASE_ANON_KEY` the server logs a warning, the web app has no public
+key to use, and every login fails with 401. Add `AUTH_REDIRECT_URL` when you serve NodeTool behind a
+domain, and allow-list it in the Supabase project.
 
 Or set them as environment variables directly:
 
 ```bash
 export SUPABASE_URL=https://your-project.supabase.co
 export SUPABASE_KEY=your-service-role-key
+export SUPABASE_ANON_KEY=your-anon-key
 export NODETOOL_STORAGE_BACKEND=supabase
 export ASSET_BUCKET=assets
 export TEMP_BUCKET=assets-temp
@@ -78,6 +88,10 @@ Apply the configuration to your deployment target:
 ```bash
 nodetool deploy apply <target-name>
 ```
+
+`apply` recreates the container with the new `container.environment`. For
+Docker Compose, put the variables in `.env` and run `docker compose up -d`. See
+[Self-Hosted Deployment](self-hosted-deployment.md#authentication--login-screen).
 
 ---
 
@@ -105,11 +119,11 @@ auth provider.
 ### Backend Selection
 
 NodeTool selects the storage backend from `NODETOOL_STORAGE_BACKEND`
-(`file` | `s3` | `supabase`, default `file`):
+(`file` | `s3` | `supabase`, default `file`). Any other value fails at startup:
 
-- **`file`** (default) -- local filesystem under the assets path.
-- **`s3`** -- requires `ASSET_BUCKET`/`TEMP_BUCKET` (plus `S3_REGION` / optional `S3_ENDPOINT`).
-- **`supabase`** -- requires `SUPABASE_URL`, `SUPABASE_KEY`, and `ASSET_BUCKET`/`TEMP_BUCKET`.
+- **`file`** (default) -- local filesystem under `ASSET_FOLDER`, then `STORAGE_PATH`, then the `assets` folder in the NodeTool data directory.
+- **`s3`** -- requires `ASSET_BUCKET` and `TEMP_BUCKET`. Optional `S3_REGION` and `S3_ENDPOINT` (or `S3_ENDPOINT_URL`).
+- **`supabase`** -- requires `SUPABASE_URL`, `SUPABASE_KEY`, `ASSET_BUCKET`, and `TEMP_BUCKET`. A missing variable throws an error that names it.
 
 Storage is **not** auto-selected from the presence of `SUPABASE_URL`/`SUPABASE_KEY`:
 those enable Supabase **auth**, but you must set `NODETOOL_STORAGE_BACKEND=supabase`
@@ -119,7 +133,7 @@ temp bucket is `TEMP_BUCKET`.
 ### Asset URLs
 
 - **Public buckets** generate direct Supabase Storage URLs
-- **Private buckets** generate time-limited signed URLs for secure access
+- **Private buckets** generate signed URLs that expire after 7 days (`SIGNED_URL_TTL`, the Supabase maximum)
 - For a controlled proxy layer, configure your reverse proxy to mediate access
 
 ---
@@ -128,7 +142,7 @@ temp bucket is `TEMP_BUCKET`.
 
 After deploying with Supabase, verify the integration:
 
-1. **Check logs** -- Look for messages confirming Supabase storage is active:
+1. **Check logs** -- Confirm the server started without a storage or auth error:
    ```bash
    nodetool deploy logs <target-name>
    ```

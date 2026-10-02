@@ -35,6 +35,7 @@ The command does these steps:
 Restart the harness, then ask it: "Use NodeTool to list my workflows."
 
 To install for one client, add `--claude`, `--codex`, or `--opencode`.
+Add `--no-verify` to write the config without starting the server first.
 Check the result with `nodetool mcp status --check`. Remove the entries with
 `nodetool mcp uninstall`.
 
@@ -50,8 +51,8 @@ is not. Add `--npx` to always use `npx`.
 | Codex | `~/.codex/config.toml`, block `[mcp_servers.nodetool]` | Every session |
 | OpenCode | `~/.config/opencode/opencode.json`, key `mcp` | Every session |
 
-Codex and OpenCode get a 120-second start timeout and a 900-second tool
-timeout, because a video generation can run for minutes.
+Codex gets a 120-second start timeout and a 900-second tool timeout, because a
+video generation can run for minutes. OpenCode gets the 120-second timeout.
 
 Earlier versions wrote the Claude Code entry under `projects["<home>"]`, so it
 worked only in sessions started in the home directory. A new install moves that
@@ -105,8 +106,9 @@ validation, assets, and the local file tools.
 
 ## With and without Studio
 
-`nodetool mcp serve` checks for a running NodeTool server on port 7777 (or
-`PORT`). When one answers, the stdio process forwards every request to it.
+`nodetool mcp serve` checks for a running NodeTool server on `127.0.0.1` at
+port 7777 (or `PORT`), over HTTPS when `TLS_CERT` and `TLS_KEY` are set. When
+one answers its MCP handshake, the stdio process forwards every request to it.
 Actions then run in that process, and an open editor shows the agent's changes
 as they happen.
 

@@ -48,7 +48,7 @@ waitNode.input = { request_id: "REQ-123" };
 
 | Property | Type | Default | Description |
 |----------|------|---------|-------------|
-| `timeout_seconds` | `number` | `0` | Seconds to wait before continuing. `0` = **no wait** (pass through immediately). |
+| `timeout_seconds` | `int` (minimum 0) | `0` | Seconds to wait before continuing. `0` = **no wait** (pass through immediately). |
 | `input` | `any` | `""` | Input data passed through to the output after the delay |
 
 ### WaitNode Output
@@ -69,7 +69,23 @@ After the delay, the WaitNode outputs:
 
 ---
 
+## Writing a trigger node
+
+A trigger node is how a node "waits" for an outside event. Set `static readonly isTrigger = true` on the class. When a run starts because an event arrived (the run request carries a `trigger_event` that targets the node), the kernel calls `emitTriggerEvent(event, outputs)` instead of the live-listening `genProcess()` loop. Without a trigger event, the node keeps its streaming behavior, which is what an in-editor live test uses.
+
+```ts
+import type { StreamingOutputs, TriggerEvent } from "@nodetool-ai/node-sdk";
+
+async emitTriggerEvent(event: TriggerEvent, outputs: StreamingOutputs): Promise<void> {
+  await outputs.emit("data", event.payload);
+}
+```
+
+`TriggerEvent` has `node_id`, `payload`, and `input_id` (the idempotency key of the stored trigger input). The default implementation on `BaseNode` copies each key of an object payload to the declared output of the same name and drops other keys. Override it to shape adapter payloads onto your outputs. `nodetool.triggers.ManualTrigger` in `packages/automation-nodes/src/nodes/triggers.ts` is a complete example. To fire a trigger from the CLI, pass `--trigger-event` to `nodetool workflows run` (see the [CLI reference](../cli.md)).
+
+---
+
 ## See Also
 
-- [Trigger Nodes](node-patterns.md) - Nodes that fire on external events
+- [Triggers design](../triggers-design.md) - How triggers register, fire, and start runs
 - [Workflow API](../workflow-api.md) - API endpoints for workflow control

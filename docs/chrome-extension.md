@@ -67,6 +67,7 @@ Load `nodetool-extension/` with **Load unpacked**. A server with no build to han
 ```bash
 cd chrome-extension
 npm run typecheck   # tsc --noEmit
+npm test            # vitest run
 npm run dev         # vite build --watch, for iterating on the extension itself
 npm run clean       # remove dist/
 ```
@@ -248,7 +249,7 @@ The action loop itself is `@nodetool-ai/browser` (`packages/browser/`), which kn
 ## Server requirements
 
 - A running NodeTool server: `nodetool serve --port 7777` (or your deployed URL).
-- The `/ws/extension` route (CDP proxy) and the `/trpc` + `/ws` routes (chat panel) are part of the standard NodeTool WebSocket server — no extra server-side setup is required beyond running the server.
+- The `/ws/extension` route (CDP proxy) and the `/trpc` + `/ws` routes (chat panel) are part of the standard NodeTool WebSocket server. The `/ws/extension` route is registered outside production only. A production server needs `NODETOOL_ENABLE_EXTENSION_BRIDGE=1` to serve it, and the chat panel works without it.
 - The extension and the server must be able to reach each other over the configured WebSocket URL (typically `localhost` for local development).
 - Chrome 116 or newer — `chrome.sidePanel` is what the chat panel opens into.
 
@@ -256,6 +257,7 @@ The action loop itself is `@nodetool-ai/browser` (`packages/browser/`), which kn
 
 ## Limitations
 
+- **Some pages cannot be attached.** `chrome.debugger` refuses `chrome://`, `chrome-untrusted://`, `devtools://`, `edge://` and `about:` pages, other extensions' pages, and the Chrome Web Store. **Open chat** attaches first, so on one of these pages it shows the error and does not open the panel. Switch to a normal page and retry.
 - **One tab at a time.** The extension proxies a single `chrome.debugger` session; attach a different tab and the previous one is implicitly detached.
 - **Not published to the Chrome Web Store.** Install as an unpacked extension from source.
 - **Mutually exclusive with DevTools.** You can't have Chrome DevTools open on a tab while the extension is attached to it (both use `chrome.debugger`).

@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "SEO Content Engine"
-description: "One topic in, a keyword-targeted article batch out. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full Markdown article with an editorial hero image."
+description: "One topic in, a keyword-targeted article batch out. A strategist agent plans the topic cluster, a list generator turns it into briefs, and every brief becomes a full article with an editorial hero image."
 # This page mirrors the marketing site's version of the same use case, so the
 # two competed for one query set across domains (docs/SEO_STRATEGY.md § 0.10,
 # finding 4). The marketing page is the search destination — it carries the
@@ -46,7 +46,7 @@ graph LR
 
 1. **Feed in the campaign.** Who's publishing and which pages the articles
    support, who searches and the seed topics, and how many articles to
-   produce. *(e.g. "ultralight hiking shop · beginner hikers · trail runners
+   produce (2 to 10, default 4). *(e.g. "ultralight hiking shop · beginner hikers · trail runners
    vs boots · 4 articles")*
 2. **Plan the cluster.** A strategist agent picks the topic cluster, assigns
    one primary keyword per article with its search intent, and divides
@@ -54,9 +54,11 @@ graph LR
 3. **Write the briefs.** A list generator turns the plan into one brief per
    article: title, keyword, intent, H2 sections, and what the reader must be
    able to do afterward.
-4. **Write the articles.** For each brief, a writer agent produces the full
-   Markdown piece — meta description, answer-first opening, the brief's
-   section structure, an FAQ, and one unforced CTA.
+4. **Write the articles.** For each brief, a writer agent returns typed fields:
+   `title`, `meta_description`, `keywords`, and a Markdown `body` of 900 to
+   1,200 words with an answer-first opening, the brief's section structure, a
+   three-question FAQ, and one unforced CTA. The template previews each field
+   separately, so nothing is merged into one blob to paste into a CMS.
 5. **Render the heroes.** In parallel, each brief becomes a 16:9 editorial
    hero image with room left for a headline overlay.
 
@@ -82,21 +84,21 @@ again.
 
 ## Models in this workflow
 
-The template ships with no models selected — pick one per role when you open
-it. Called with your own keys; the bill comes from the provider.
+Called with your own keys. The bill comes from the provider. The template
+ships with the defaults below and each is one dropdown.
 
-| Role | Node | Works well with |
-| --- | --- | --- |
-| Cluster strategist | Agent | Any strong language model |
-| Brief writer | List Generator | Any language model |
-| Article writer | Agent | A long-output model you trust with prose |
-| Hero images | Text To Image | FLUX, Imagen, Nano Banana |
+| Role | Node | Shipped default | Also works with |
+| --- | --- | --- | --- |
+| Cluster strategist | Agent | GPT-5 mini | Any strong language model |
+| Brief writer | List Generator | GPT-5 mini | Any language model |
+| Article writer | Agent | GPT-5 mini | A long-output model you trust with prose |
+| Hero images | Text To Image | FLUX.1 Schnell (16:9, 1K) | FLUX, Imagen, Nano Banana |
 
 See [Models &amp; Providers]({{ '/models-and-providers' | relative_url }}) to set up keys.
 
 ## Next steps
 
-- Open the template: **Examples → SEO Content Engine** in the app menu
+- Open the template: **Examples** in the sidebar, **Workflows** tab, *SEO Content Engine*
 - [Ad Creative Factory]({{ '/use-cases/ad-creative-factory' | relative_url }}) — paid acquisition from the same brief-style inputs
 - [Podcast Repurposing Studio]({{ '/use-cases/podcast-repurposing-studio' | relative_url }}) — the content pack for what you've already recorded
 - [All use cases]({{ '/use-cases' | relative_url }})

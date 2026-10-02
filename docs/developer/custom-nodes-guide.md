@@ -40,9 +40,11 @@ Scaffold a pack, write one node, install it, run the server:
 ```bash
 mkdir nodetool-mypack && cd nodetool-mypack
 npm init -y
-npm install --save @nodetool-ai/node-sdk
+npm install --save @nodetool-ai/node-sdk @nodetool-ai/runtime @nodetool-ai/protocol
 npm install --save-dev typescript @types/node vitest
 ```
+
+`nodetool package init` scaffolds a similar package, but its output is not a loadable pack yet. It writes `export function registerNodes(...)` and no `nodetool` field, and its `tsconfig.json` lacks `experimentalDecorators`. Add the `nodetool` field from [§3](#3-packagejson-and-the-pack-manifest) (with `"register": "registerNodes"`, or rename the export) and the compiler flags from [§5](#5-tsconfigjson).
 
 `src/nodes/reverse.ts`:
 
@@ -139,12 +141,15 @@ Keep the public surface in `src/index.ts` minimal: re-export node classes and th
 
 The **`nodetool`** field is what makes the package a pack. At startup the loader scans installed packages, picks up any with this field, imports the resolved entry, and calls the named export with the registry.
 
-| Field        | Default      | Meaning |
-|--------------|--------------|---------|
-| `apiVersion` | `1`          | Pack API version you built against. Packs declaring a version newer than the host supports are skipped with a warning. |
-| `register`   | `"register"` | Named export the loader calls with the registry. Can be `async`. |
+| Field            | Default      | Meaning |
+|------------------|--------------|---------|
+| `apiVersion`     | `1`          | Pack API version you built against. Packs declaring a version newer than the host supports are skipped with a warning. |
+| `register`       | `"register"` | Named export the loader calls with the registry. Can be `async`. The loader also looks for it on a default export object. |
+| `sandboxModules` | none         | Declares guest modules for the [JavaScript sandbox](../javascript-sandbox.md). A pack that sets this field without `register` is a sandbox-only pack, and the node loader ignores it. |
 
-> The loader uses the `"."` entry of `exports` (the `import` condition, falling back to `default`), or `main`, or `index.js` — in that order.
+> The loader uses the `"."` entry of `exports` (a string, or the `import` condition falling back to `default`, which may be nested), or `main`, or `index.js` — in that order. A `nodetool` field that fails schema validation logs a warning and the package is skipped.
+
+**Where the loader looks.** It scans every `node_modules` directory from the working directory up to the filesystem root, plus the directories listed in `NODETOOL_OPTIONAL_NODE_MODULES` (one path) and `NODETOOL_PACK_SEARCH_PATHS` (a list separated by commas, semicolons, or the platform path separator). It then scans the root holding the sandbox packs that ship with NodeTool (`NODETOOL_SHIPPED_PACKS_DIR` overrides that root). When two directories hold a package of the same name, the first one found wins. Packs load once at server start. The `packs.reload` tRPC mutation re-runs the scan, but it cannot unload nodes that are already registered.
 
 ---
 
@@ -158,13 +163,13 @@ The **`nodetool`** field is what makes the package a pack. At startup the loader
 To avoid silently running whatever happens to be in `node_modules` in production, the loader is gated:
 
 - **Allowlist** — a list of trusted pack names; `"*"` allows everything. Set via:
-  - The env var `NODETOOL_PACKS_ALLOWLIST` (comma-separated names), or
+  - The env var `NODETOOL_PACKS_ALLOWLIST` (comma-separated names), which takes precedence, or
   - The `allow` field of `~/.config/nodetool/packs.json` (path overridable with the `NODETOOL_PACKS_CONFIG` env var).
-- **`allowUnlisted`** — whether packs not on the allowlist load anyway. Defaults to **`true` in development** (so installing a pack just works) and **`false`** when either `NODETOOL_ENV=production` or `NODETOOL_PACKS_REQUIRE_ALLOWLIST=1` is set. The packaged desktop app sets the latter — it needs the allowlist without production mode, which would disable local-only features. Override via the config file.
+- **`allowUnlisted`** — whether packs not on the allowlist load anyway. Defaults to **`true` in development** (so installing a pack just works) and **`false`** when either `NODETOOL_ENV=production` or `NODETOOL_PACKS_REQUIRE_ALLOWLIST=1` is set. The packaged desktop app sets the latter — it needs the allowlist without production mode, which would disable local-only features. Override via the `allowUnlisted` field of the config file. The `packs.getTrust` and `packs.setTrust` tRPC procedures read and write the same file, and `setTrust` does not copy an env override into it.
 
 Two further guards protect the registry regardless of trust:
 
-- **Reserved namespaces** — packs cannot register node types under first-party namespaces (`nodetool.`, `lib.`, provider names like `openai.`, `replicate.`, …). Such nodes are skipped with a warning.
+- **Reserved namespaces** — packs cannot register node types whose first dot-separated segment is one of: `nodetool`, `lib`, `comfy`, `default`, `huggingface`, `hf`, `mlx`, `transformers`, `openai`, `gemini`, `anthropic`, `mistral`, `groq`, `ollama`, `replicate`, `fal`, `elevenlabs`, `kie`, `vector`, `apify`, `search`, `messaging`. Such nodes are skipped with a warning.
 - **Collision protection** — a pack cannot shadow an already-registered node type (a built-in, or a node registered earlier by another pack). The conflicting node is skipped with a warning; the original wins.
 
 Example allowlist file:
@@ -203,7 +208,7 @@ The SDK uses **legacy (experimental) decorators** without runtime metadata emiss
 }
 ```
 
-> Do **not** enable `"useDefineForClassFields"` or `"emitDecoratorMetadata"` — they conflict with the SDK's decorator protocol. Property declarations must use `declare` (see [§6](#6-anatomy-of-a-node)).
+> Keep `"emitDecoratorMetadata"` set to `false`. The SDK does not read decorator metadata. Property declarations must use `declare` (see [§6](#6-anatomy-of-a-node)), which emits no field initializer and so works whatever `useDefineForClassFields` resolves to.
 
 ---
 
@@ -250,11 +255,18 @@ export class AddOffsetNode extends BaseNode {
 
 | Member                 | Type                              | Purpose |
 |------------------------|-----------------------------------|---------|
-| `metadataOutputTypes`    | `{ [name]: typeString }`          | Maps output handle name → NodeTool type string. Required if outputs are anything other than the default `output: any`. |
+| `metadataOutputTypes`    | `{ [name]: typeString }`          | Maps output handle name → NodeTool type string. Declare every output the node returns: a node with no declared outputs has no output handles. |
 | `isStreamingInput`       | `boolean`                         | Marks the node as consuming a stream via the `run(...)` hook (pair with `inputMode = "stream"`). |
 | `supportsDynamicInputs`  | `boolean`                         | Allows users to add/remove input handles in the UI; read/write them with `getDynamic` / `setDynamic`. |
 | `inputMode`              | `"buffered" \| "stream" \| "controlled"` | How inputs are consumed. Default (`undefined`) is buffered. |
-| `outputCorrelation`      | `{ [output]: OutputCorrelation }` | Controls per-iteration / per-chunk fan-out semantics. Streaming output is inferred from this (e.g. `forward`/`iteration` kinds) — there is **no** `isStreamingOutput` flag. |
+| `outputCorrelation`      | `{ [output]: OutputCorrelation }` | Controls per-iteration / per-chunk fan-out semantics. Streaming output is inferred from this (`forward`, `iteration`, or `chunk` kinds) or from overriding `genProcess`. There is **no** `isStreamingOutput` flag. |
+| `requiredSettings`       | `string[]`                        | Secret names resolved from the secret store before the node runs. Read them from `this._secrets`. |
+| `inlineFields` / `inputFields` | `string[]`                  | Which properties render compactly on the node body, and which render as expanded inputs. |
+| `effect`                 | `"pure" \| "read" \| "write" \| "external"` | What running the node does to the world. Reactive runs (a slider drag, a mini app input change) execute only `pure` and `read` nodes. Default `"external"`. |
+| `cacheTtl`               | `number \| "forever"`             | How long a partial run ("Run Node", "Run from here") may reuse the result. `"forever"` for pure deterministic nodes, seconds for time-sensitive ones. Default: never reuse. |
+| `retrySafe`              | `boolean`                         | Opt in when re-running with identical inputs is safe. The workflow supervisor offers `retry` only for nodes that declare it. Default `false`. |
+| `deprecated` / `hidden` / `replacedBy` | `boolean` / `boolean` / `string` | Lifecycle flags. `hidden` keeps the node runnable but out of discovery UIs. |
+| `platforms`              | `Platform[]`                      | Deployment targets the node supports. Default `["node"]`. |
 
 ### The `process` method
 
@@ -333,7 +345,7 @@ The `type` string in `@prop` and the values in `metadataOutputTypes` come from t
 Media flows through the graph as small reference objects, not as raw bytes. Import the types from `@nodetool-ai/node-sdk`:
 
 `@nodetool-ai/node-sdk` re-exports only `ImageRef`, `AudioRef`, `VideoRef`,
-`TextRef`, and `DataframeRef`. `DocumentRef` and `Model3DRef` are **not**
+`TextRef`, and `DataframeRef`. `DocumentRef`, `Model3DRef`, and `FolderRef` are **not**
 re-exported by the SDK — import those from `@nodetool-ai/protocol`:
 
 ```ts
@@ -356,6 +368,10 @@ import type { DocumentRef, Model3DRef } from "@nodetool-ai/protocol";
 | `"text"`       | `TextRef`      | Large text blobs by reference |
 | `"dataframe"`  | `DataframeRef` | Tabular data |
 | `"model_3d"`   | `Model3DRef`   | 3D meshes / glTF |
+| `"folder"`     | `FolderRef`    | Asset folders |
+| `"collection"` | `{ type: "collection", name }` | Vector database collections (see `vector.Collection`) |
+
+`DocumentRef`, `Model3DRef`, and `FolderRef` come from `@nodetool-ai/protocol`.
 
 ### Model selectors
 
@@ -373,6 +389,8 @@ These render as model pickers in the UI:
 ### Domain types
 
 `"date"`, `"datetime"`, `"image_size"`, `"enum"` — render with specialised inputs.
+
+The vocabulary is open: asset and node-defined types are allowed. Use NodeTool's spellings, not JSON Schema or TypeScript ones. `integer`, `string`, `boolean`, `object`, and `array` are not types here, and a dynamic slot declared with one of them is rejected because the handle would never connect to an `int` or `str` input.
 
 ---
 
@@ -402,7 +420,9 @@ async process(): Promise<Record<string, unknown>> {
 }
 ```
 
-Output keys returned by `process()` must match keys in `metadataOutputTypes` — extra keys are dropped, missing keys produce `undefined` on the wire.
+Every key returned by `process()` must be declared in `metadataOutputTypes`. The editor exposes only declared outputs as handles, so an undeclared key is unreachable downstream. A key you leave out (or set to `undefined`) sends no message on that output, and nodes wired only to it do not run. `nodetool.control.If` relies on this: it returns only `if_true` or only `if_false`.
+
+If you do not declare `metadataOutputTypes`, the class falls back to a static `outputTypes` map, and a node with neither has no outputs.
 
 ---
 
@@ -420,8 +440,12 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 context.jobId;        // string — unique per workflow run
 context.workflowId;   // string | null
 context.userId;       // string
-context.workspaceDir; // string | null — per-job scratch dir
+context.signal;       // AbortSignal — pass it to fetch and other cancellable calls
+context.workspace;    // Workspace | null — the run's files (preferred)
+context.workspaceDir; // string | null — deprecated, null for cloud workspaces
 ```
+
+Read and write run files through `context.workspace` (`read`, `readText`, `write`, `exists`, `stat`, `list`, `copy`, `move`, `delete`) with workspace-relative paths. It works on local and cloud runs alike. `context.workspace.localDir` is `null` for a virtual (cloud) workspace. To run a host binary on a workspace file, use `materialize` and `absorb`, and `scratchDir()` for outputs.
 
 ### Secrets
 
@@ -438,29 +462,38 @@ Always prefer `getSecret` over `process.env` — secrets are user-scoped and may
 const resp = await context.httpGet("https://api.example.com/data", {
   headers: { Authorization: `Bearer ${apiKey}` }
 });
-await context.httpRequestWithRetries("POST", url, { json: { foo: 1 } });
+await context.httpRequestWithRetries("POST", url, {
+  headers: { "Content-Type": "application/json" },
+  body: JSON.stringify({ foo: 1 }),
+  retry: { maxRetries: 5 }
+});
 ```
 
 `httpGet` is the GET shorthand. Every other verb goes through
 `httpRequestWithRetries`, which carries the shared retry and backoff policy.
+Options are `RequestInit` plus `retry` (`maxRetries` default 3, `backoffMs` default 500 with exponential backoff, `retryStatuses` default 408, 425, 429, 500, 502, 503, 504). A non-retryable error status throws without retrying.
+
+These helpers do not apply SSRF protection. For a URL that a user, provider, or model chose, use `safeFetch` or `fetchExternalMedia` from `@nodetool-ai/runtime`.
 
 ### Cache
 
-The per-job cache is exposed at `context.cache`. Both methods are **async**;
+The cache is exposed at `context.cache` and is in-memory unless the host supplies another adapter. All methods are **async**.
 `set` takes an optional TTL in seconds, and `get` takes only the key (it returns
 `undefined` on a miss — there is no default-value argument):
 
 ```ts
 // CacheAdapter signatures:
-//   get(key: string): Promise<unknown | undefined>
-//   set(key: string, value: unknown, ttlSeconds?: number): Promise<void>
-const hit = await context.cache.get("my-key");
-if (hit !== undefined) return hit as Record<string, unknown>;
+//   get<T>(key: string): Promise<T | undefined>
+//   set<T>(key: string, value: T, ttlSeconds?: number): Promise<void>
+//   has(key: string): Promise<boolean>
+//   delete(key: string): Promise<void>
+const hit = await context.cache.get<Record<string, unknown>>("my-key");
+if (hit !== undefined) return hit;
 const result = await expensive();
 await context.cache.set("my-key", result, 3600);  // expires after 1 hour
 ```
 
-For node-result memoization, the convenience helpers wrap the same cache:
+For node-result memoization, the convenience helpers wrap the same cache. The key combines the user id, the node type, and a deterministic serialization of the properties. `cacheResult` defaults to a one-hour TTL:
 
 ```ts
 const cached = await context.getCachedResult(this.nodeType, this.serialize());
@@ -476,8 +509,13 @@ return result;
 const uri = await context.storage.store("output.png", bytes, "image/png");
 const data = await context.storage.retrieve(uri);
 
-await context.workspaceStorage.store("notes.txt", "hello", "text/plain");
+await context.workspace?.write("notes.txt", "hello", "text/plain");
+const notes = await context.workspace?.readText("notes.txt");
 ```
+
+`context.storage` is `null` when the host wires no storage adapter. `context.workspaceStorage` still exists but is deprecated in favor of `context.workspace`.
+
+To read the bytes of an image, audio, video, or model reference, call `loadMediaRefBytes(ref, context)` from `@nodetool-ai/runtime`. It handles inline `data`, `asset://` references, storage-backed URIs, and `http(s)` URLs (through the media egress policy), and returns `null` when it finds no bytes.
 
 ### LLM providers
 
@@ -493,6 +531,7 @@ if (await context.isProviderConfigured("openai")) {
 ```ts
 context.set("counter", 0);
 const n = context.get<number>("counter", 0);
+context.hasVariable("counter"); // true
 ```
 
 ### Messages
@@ -539,16 +578,41 @@ export class WordStreamNode extends BaseNode {
 
 ### Output correlation
 
-When a streaming node mixes per-item outputs with aggregate ones, declare `outputCorrelation` so the runtime knows how to fan downstream nodes:
+`outputCorrelation` tells the runtime how each output relates to the node's inputs, so downstream nodes line up items correctly:
 
 ```ts
+// metadataOutputTypes declares both outputs: { word: "str", count: "int" }
 static readonly outputCorrelation = {
   word:  { kind: "iteration", source: "__execution__", group: "items" },
   count: { kind: "single",    source: "__execution__" }
 };
 ```
 
-`kind: "iteration"` means each yielded value advances downstream consumers; `kind: "single"` means the value is the run's final aggregate. See the `OutputCorrelation` type in `@nodetool-ai/protocol` for the full vocabulary.
+| `kind`      | Meaning |
+|-------------|---------|
+| `single`    | One logical output per invocation. It inherits the invocation's lineage. |
+| `iteration` | Each emitted value is a new logical item with its own correlation token. Outputs that share a `group` share one token per yield. |
+| `chunk`     | A piece of a streamed value, such as text deltas. It inherits the base lineage. |
+| `forward`   | Emits per input item and copies that item's lineage. `source` names the input handle. |
+| `aggregate` | A `stream`-mode node that consumes child items and emits at a collapsed scope. Requires `collapse: "innermost"`. |
+
+Grouped `iteration` outputs must be emitted together, so yield one object per item from `genProcess` (as `ForEach` does). Once you declare `outputCorrelation`, it needs one entry for every declared output and no entry for an undeclared one. Every entry needs a `source`, `forward` cannot use `__execution__`, and `aggregate` needs `collapse` and a non-buffered `inputMode`. `registry.register` throws a `CorrelationMetadataError` on any violation, and inside a pack that makes the whole pack fail to load. See [Correlation Design](../correlation-design.md) for the rules.
+
+### Streaming inputs (`run`)
+
+A node that consumes a stream sets `isStreamingInput = true` and `inputMode = "stream"`, and implements `run(inputs, outputs, context?)` instead of relying on `process()`. It still needs a `process()` stub because the base class requires one. `nodetool.control.Take` is a small example:
+
+```ts
+import type { StreamingInputs, StreamingOutputs } from "@nodetool-ai/node-sdk";
+
+async run(inputs: StreamingInputs, outputs: StreamingOutputs): Promise<void> {
+  for await (const item of inputs.stream("input_item")) {
+    await outputs.emit("output", item);
+  }
+}
+```
+
+`inputs` offers `stream(name)`, `any()` (all handles in arrival order), `first(name, default?)`, and `hasStream(name)`. `outputs` offers `emit(slot, value)`, `emitGroup(values)` for grouped iteration outputs, `forward`, `drop`, and `complete(slot)` for early end-of-stream.
 
 ### Default behaviour
 
@@ -561,12 +625,12 @@ If you don't override `genProcess`, the base implementation yields the single re
 Override these on your class to run setup and teardown:
 
 ```ts
-async initialize(): Promise<void> { /* once when the node enters the run */ }
-async preProcess(): Promise<void>  { /* before every process()/genProcess() */ }
-async finalize(): Promise<void>    { /* once when the node leaves the run */ }
+async initialize(): Promise<void> { /* once per node, before the run starts */ }
+async preProcess(): Promise<void>  { /* once, when the node's actor starts, before its first invocation */ }
+async finalize(): Promise<void>    { /* once when the node finishes, even after an error */ }
 ```
 
-Use `initialize` for expensive one-time setup (e.g. opening a connection) and `finalize` to release it. `preProcess` is called per execution and is rarely needed.
+`initialize` runs for every node in the graph before any node executes. If one node's `initialize` throws, the run fails and the nodes already initialized are finalized. Use it for expensive one-time setup (e.g. opening a connection) and reset of per-run state, and use `finalize` to release it. `preProcess` does not run before each `process()` call, and it is rarely needed. A `finalize` error is swallowed so it cannot hide the original failure.
 
 ---
 
@@ -594,7 +658,7 @@ Things the loader will refuse — silently dropping the offending node and warni
 - A `nodeType` under a [reserved namespace](#4-trust-model-and-governance).
 - A `nodeType` already registered by a built-in or an earlier pack (no shadowing).
 
-The `register` function may be `async` — useful if you build node classes from a manifest at load time.
+The `register` function may be `async` — useful if you build node classes from a manifest at load time. Calling `registry.register` directly (outside the loader) skips both guards and replaces an existing registration of the same type with a warning.
 
 ### What `NodeRegistry` exposes
 
@@ -608,7 +672,7 @@ Pack authors only need:
 | `getClass(nodeType)`          | The class for a node type. |
 | `listMetadata()`              | UI metadata for every registered node. |
 
-Everything else on the registry is for the runtime.
+`register` throws if the class has no `nodeType`. Everything else on the registry is for the runtime.
 
 ---
 
@@ -655,7 +719,17 @@ describe("ReverseTextNode", () => {
 });
 ```
 
-For nodes that need a `ProcessingContext`, build a minimal one with the constructor options shown in [§10](#10-processingcontext--the-runtime-surface) or use a test double that stubs only the methods your node calls.
+For nodes that need a `ProcessingContext`, use `createFakeContext` from `@nodetool-ai/runtime`. It returns `{ context, workspaceDir, providers, cleanup }` with in-memory storage and cache, a stubbed `fetch`, and a fake provider. Pass `providers`, `secretResolver`, `fetchFn`, or `variables` to control what the node sees, and call `cleanup()` in `afterEach`:
+
+```ts
+import { createFakeContext } from "@nodetool-ai/runtime";
+
+const handle = createFakeContext({ secretResolver: (k) => (k === "API_KEY" ? "test" : null) });
+const result = await node.process(handle.context);
+handle.cleanup();
+```
+
+To run one node against the real registry from the command line, use `nodetool node run <type> --props '{"text":"hello"}'`. Add `--no-secrets` for a hermetic run and `--json` for the full result. See [CLI reference](../cli.md).
 
 ### Testing streaming nodes
 
@@ -696,7 +770,10 @@ The server logs which packs were discovered:
 Loaded node pack @acme/cool-nodes@0.1.0 (3 node(s))
 Skipped node pack @other/blocked@1.0.0: not on pack allowlist
 Pack @evil/shadowy: skipped node nodetool.text.Override (reserved-namespace)
+Failed to load node pack @acme/broken@0.2.0: entry "…/dist/index.js" has no callable export "register"
 ```
+
+The node-level skip reasons are `reserved-namespace` and `collision`. A pack-level skip reports `not on pack allowlist` or `requires pack API v2, host supports v1`. A pack that throws while loading is reported as failed and does not stop other packs. `packs.list` (tRPC) returns the same startup snapshot.
 
 ---
 
@@ -732,17 +809,19 @@ import { ReverseTextNode } from "./nodes/reverse";      // bad
 
 **`emitDecoratorMetadata`.** Leave this `false`. The SDK does not consume runtime metadata and enabling it can produce conflicting decorator output.
 
+**Returning an undeclared output key.** The editor offers only the handles in `metadataOutputTypes`. A key outside that map is unreachable downstream.
+
 **Loading from `src/` instead of `dist/`.** The loader resolves the package's `exports`/`main`, which points at `dist/`. Forgetting to build before installing means the pack loads stale code (or nothing).
 
 **Reserved-namespace `nodeType`s.** A `nodeType` of `nodetool.foo.MyNode` will be silently rejected. Use your own namespace (`mypack.foo.MyNode`, `@acme.foo.MyNode`, …).
 
-**Collision with built-ins.** If a built-in already owns the `nodeType` you picked, your node is dropped. Pick a unique name or run `nodetool workflows list --json` and grep to be sure.
+**Collision with built-ins.** If a built-in already owns the `nodeType` you picked, your node is dropped. Pick a unique name and check the server log for `skipped node … (collision)`.
 
-**Throwing strings instead of `Error`.** The runtime wraps errors and surfaces `.message`; a thrown string becomes `undefined` in the log.
+**Throwing strings instead of `Error`.** The runtime surfaces `.message` of the error it catches, so a thrown string has no message to show.
 
-**Long-running `process` blocking the event loop.** If your work is CPU-bound, do it in a `Worker`. The server is single-threaded.
+**Long-running `process` blocking the event loop.** If your work is CPU-bound, do it in a `Worker`. The server runs on a single Node.js event loop.
 
-**Reading from `process.env` for user-scoped secrets.** Use `context.getSecret(key)` — it consults the user's secret store, which may be encrypted and is not the process environment.
+**Reading from `process.env` for user-scoped secrets.** Use `requiredSettings` with `this._secrets`, or `context.getSecret(key)`. Both consult the user's secret store first (which may be encrypted and is not the process environment) and then fall back to the environment.
 
 ---
 

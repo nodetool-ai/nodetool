@@ -27,17 +27,17 @@ No code change. No restart required (NodeTool queries the daemon on every model-
 |---|---|
 | Provider implementation | `packages/runtime/src/providers/ollama-provider.ts` |
 | Default daemon URL | `packages/runtime/src/providers/defaults.ts` (`OLLAMA_DEFAULT_URL`) |
-| Registration + `optionalKwargs` | `packages/runtime/src/providers/index.ts` (lines 248–253) |
+| Registration + `optionalKwargs` | `packages/runtime/src/providers/index.ts` (the `PROVIDER_IDS.OLLAMA` block) |
 | Provider registry resolution logic | `packages/runtime/src/providers/provider-registry.ts` |
 
 ---
 
 ## How Ollama models are discovered
 
-`OllamaProvider.getAvailableLanguageModels()` (line 357 of `ollama-provider.ts`) fetches `GET {apiUrl}/api/tags` from the local daemon on every call. It maps each entry's `model` field (falling back to `name`) to a `LanguageModel` record:
+`OllamaProvider.getAvailableLanguageModels()` fetches `GET {apiUrl}/api/tags` from the local daemon on every call. It maps each entry's `model` field (falling back to `name`) to a `LanguageModel` record:
 
 ```typescript
-// packages/runtime/src/providers/ollama-provider.ts:357-372
+// packages/runtime/src/providers/ollama-provider.ts
 async getAvailableLanguageModels(): Promise<LanguageModel[]> {
   const response = await this._fetch(`${this.apiUrl}/api/tags`);
   if (!response.ok) return [];
@@ -48,27 +48,28 @@ async getAvailableLanguageModels(): Promise<LanguageModel[]> {
 }
 ```
 
-`getAvailableEmbeddingModels()` (line 374) calls `getAvailableLanguageModels()` and re-wraps every result as an `EmbeddingModel` with `dimensions: 0`. Ollama does not advertise context size or dimensions over `/api/tags`, so both methods surface all pulled models regardless of type. The caller (RAG pipeline, agent config) is responsible for picking an appropriate model.
+`getAvailableEmbeddingModels()` calls `getAvailableLanguageModels()` and re-wraps every result as an `EmbeddingModel` with `dimensions: 0`. Ollama does not advertise context size or dimensions over `/api/tags`, so both methods surface all pulled models regardless of type. The caller (RAG pipeline, agent config) is responsible for picking an appropriate model.
 
 **URL resolution order** (highest priority first):
 
-1. Secret store — key `OLLAMA_API_URL` (set via `nodetool secrets store OLLAMA_API_URL` or Settings → API Keys)
+1. Secret store, key `OLLAMA_API_URL` (set via `nodetool secrets store OLLAMA_API_URL` or Settings → API Keys)
 2. Environment variable — `OLLAMA_API_URL`
 3. Registered default — `http://127.0.0.1:11434` (`OLLAMA_DEFAULT_URL` in `defaults.ts`)
 
 The registration in `index.ts` uses an `optionalKwarg` for `OLLAMA_API_URL` so the registry always considers Ollama "configured" (no key required) while still resolving a user-set URL on every `getProvider()` call without a restart.
 
 ```typescript
-// packages/runtime/src/providers/index.ts:248-253
+// packages/runtime/src/providers/index.ts
 registerBuiltinProvider(
   PROVIDER_IDS.OLLAMA,
   OllamaProvider,
   {},
-  { OLLAMA_API_URL: OLLAMA_DEFAULT_URL }
+  { OLLAMA_API_URL: OLLAMA_DEFAULT_URL },
+  { access: "local_service", displayName: "Ollama" }
 );
 ```
 
-Ollama is registered only when `NODETOOL_ENV !== "production"` (lines 241–282 of `index.ts`). In production/cloud deployments the provider is pruned from the registry.
+Ollama is registered only when the cloud profile is inactive. The cloud profile is active when `NODETOOL_NODE_PROFILE=cloud`, or when `NODETOOL_NODE_PROFILE` is unset and `NODETOOL_ENV=production`. Self-hosted production servers that set `NODETOOL_NODE_PROFILE=full` keep Ollama, so they can point it at a sidecar container.
 
 The constructor also reads `OLLAMA_KEEP_ALIVE` from `process.env`. Default is `"10m"`. Set it to `"-1"` to keep models resident indefinitely, or `"0"` to unload immediately after each request.
 
@@ -117,7 +118,7 @@ Edit `packages/runtime/src/providers/ollama-provider.ts`. The main extension poi
 
 ### Tool-support detection
 
-`hasToolSupport(model)` (line 129) queries `POST {apiUrl}/api/show` and checks for `"tools"` in the `capabilities` array. It caches results in `_modelInfoCache` (a `Map<string, Record<string, unknown>>`). When the `/api/show` call fails or the model has no `capabilities` field, it defaults to `true`.
+`hasToolSupport(model)` queries `POST {apiUrl}/api/show` and checks for `"tools"` in the `capabilities` array. It caches results in `_modelInfoCache` (a `Map<string, Record<string, unknown>>`). When the `/api/show` call fails or the model has no `capabilities` field, it defaults to `true`.
 
 If a model reports no tool support, `generateMessage` and `generateMessages` fall back to `_injectToolEmulationPrompt` + `_parseEmulatedToolCalls`, which inject tool descriptions into the system prompt and parse `function_name(param='value')` patterns from the output.
 
@@ -136,7 +137,7 @@ if (model.startsWith("my-broken-model")) return false;
 Change the default (currently `"10m"`) by editing the fallback in the constructor:
 
 ```typescript
-// packages/runtime/src/providers/ollama-provider.ts:109-110
+// packages/runtime/src/providers/ollama-provider.ts
 const keepAlive = process.env.OLLAMA_KEEP_ALIVE?.trim();
 this.keepAlive = keepAlive && keepAlive.length > 0 ? keepAlive : "10m";
 ```
@@ -153,26 +154,18 @@ Change `OLLAMA_DEFAULT_URL` in `packages/runtime/src/providers/defaults.ts`. The
 # 1. Confirm the daemon is running and a model is present
 curl http://127.0.0.1:11434/api/tags
 
-# 2. Type-check the provider package
-npm run lint --workspace=packages/runtime
+# 2. List the models NodeTool sees
+npm run dev:nodetool -- models by-provider ollama --kind llm
 
 # 3. Run a single Ollama-backed node (replace model with one you have pulled)
 npm run dev:nodetool -- node run nodetool.agents.Agent \
   --props '{"prompt":"hello","model":{"type":"language_model","provider":"ollama","id":"llama3.2:latest"}}'
 
-# 4. Full suite
-npm run check
+# 4. Affected tests
+npm run test:affected
 ```
 
 If the daemon is not running, `getAvailableLanguageModels()` returns `[]` silently (the provider guards `if (!response.ok) return []`). Check that `ollama serve` (or the Ollama desktop app) is running before debugging further.
-
----
-
-## How past commits did it
-
-The provider file was first tracked in commit **`4469fd80`** ("Add TypeScript backend packages from nodetool-core/ts"), which established the provider registration pattern. The two mechanics the Ollama registration leans on arrived later: the gate for local-only providers in **`b0e0b8bc`** ("feat: gate local-only features behind `NODETOOL_ENV=production`"), and the `optionalKwargs` slot that resolves `OLLAMA_API_URL` on every `getProvider()` call in **`532a53b5`**.
-
-The registration block in `packages/runtime/src/providers/index.ts` still passes `{}` for required kwargs, putting `OLLAMA_API_URL` in the optional slot with `OLLAMA_DEFAULT_URL` as its fallback — the zero-required-kwarg pattern this page describes.
 
 ---
 
@@ -181,8 +174,10 @@ The registration block in `packages/runtime/src/providers/index.ts` still passes
 PRs welcome at <https://github.com/nodetool-ai/nodetool>. Before pushing:
 
 ```bash
-npm run lint        # must pass
-npm run typecheck   # must pass
+npm run test:affected
+npm run typecheck
+npm run lint
+npm run dev:nodetool -- harness gate --base origin/main
 ```
 
 Join the discussion on [Discord](https://discord.gg/WmQTWZRcYE).

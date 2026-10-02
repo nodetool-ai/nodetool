@@ -11,7 +11,7 @@ description: "How to add new Together AI models and workflow nodes to NodeTool �
 1. Edit `IMAGE_MODELS`, `VIDEO_MODELS`, `TTS_MODELS`, or `ASR_MODELS` in `scripts/generate-manifest.mjs`.
 2. Run `npm run gen:manifest` — rewrites `src/together-manifest.json`.
 3. Run `npm run build` in the package, then `npm run lint && npm run test` (`lint` is `tsc --noEmit`).
-4. For TTS / ASR / embedding **provider-side** models only: also update the static arrays in `packages/runtime/src/providers/together-provider.ts`.
+4. For TTS and ASR models, also update the matching static array in `packages/runtime/src/providers/together-provider.ts`. Embedding models exist only there.
 5. Verify with `nodetool node run together.<module>.<ClassName>`.
 
 ---
@@ -27,10 +27,10 @@ description: "How to add new Together AI models and workflow nodes to NodeTool �
 | Node registration entry point | `packages/together-nodes/src/index.ts` |
 | Provider class (chat, image, video, TTS, ASR, embeddings) | `packages/runtime/src/providers/together-provider.ts` |
 | Manifest→model-list bridge | `packages/runtime/src/providers/manifest-models.ts` |
-| Provider registration | `packages/runtime/src/providers/index.ts` line 227 |
-| Pack registration (websocket server) | `packages/websocket/src/node-registry-setup.ts` line 104 |
+| Provider registration | `packages/runtime/src/providers/index.ts` (`registerBuiltinProvider(PROVIDER_IDS.TOGETHER, ...)`) |
+| Pack registration (`registerTogetherNodes`) | `packages/base-nodes/src/builtin-packs.ts` |
 | Pack catalog entry | `packages/protocol/src/builtin-packs.ts` |
-| `PROVIDER_IDS.TOGETHER` constant | `packages/protocol/src/api-types.ts` line 877 |
+| `PROVIDER_IDS.TOGETHER` constant | `packages/protocol/src/api-types.ts` |
 
 ---
 
@@ -38,7 +38,7 @@ description: "How to add new Together AI models and workflow nodes to NodeTool �
 
 ### Image and video nodes — generated from the manifest
 
-`src/together-manifest.json` is **generated code**. The source of truth is `scripts/generate-manifest.mjs`, which defines four model catalogs (`IMAGE_MODELS`, `VIDEO_MODELS`, `TTS_MODELS`, `ASR_MODELS`) and expands each `(model × task)` pair into a manifest entry.
+`src/together-manifest.json` is **generated code**. The source of truth is `scripts/generate-manifest.mjs`, which defines four model catalogs (`IMAGE_MODELS`, `VIDEO_MODELS`, `TTS_MODELS`, `ASR_MODELS`) and expands each `(model × task)` pair into a manifest entry (image, video, `audio/text_to_speech`, and `transcription/automatic_speech_recognition` entries).
 
 Each entry looks like this:
 
@@ -72,7 +72,7 @@ These are hardcoded in `packages/runtime/src/providers/together-provider.ts`:
 - `TOGETHER_ASR_MODELS` — 3 entries (Whisper Large v3, Voxtral Mini 3B, Parakeet TDT 0.6B v3).
 - `TOGETHER_EMBEDDING_MODELS` — 1 entry (Multilingual E5 Large, 1024 dims).
 
-TTS models are **also** in the manifest (so they get workflow nodes). ASR and embedding models currently appear only in the provider arrays (no dedicated workflow nodes yet).
+TTS and ASR models are **also** in the manifest, so they get workflow nodes (`together.audio.<Model>TextToSpeech` and `together.transcription.<Model>Transcribe`). Embedding models appear only in the provider array and have no workflow node.
 
 ---
 
@@ -149,7 +149,7 @@ const TOGETHER_TTS_MODELS: TTSModel[] = [
 
 ### ASR model
 
-ASR nodes are not yet generated from the manifest, so update only the provider array:
+ASR models also need entries in both places. Add `{ id, name }` to `ASR_MODELS` in the generator, regenerate and build, then add the provider entry:
 
 ```ts
 // packages/runtime/src/providers/together-provider.ts
@@ -162,7 +162,7 @@ const TOGETHER_ASR_MODELS: ASRModel[] = [
 
 ### Embedding model
 
-Same pattern as ASR:
+Update only the provider array. The generator has no embedding catalog:
 
 ```ts
 // packages/runtime/src/providers/together-provider.ts
@@ -224,25 +224,13 @@ npm run dev:nodetool -- node run together.audio.Orpheus3BTextToSpeech \
 npm run dev:nodetool -- validate workflow.json
 ```
 
-**5. Combined lint + typecheck + test.**
+**5. Affected tests, lint, and the harness gate.**
 
 ```bash
-npm run check
+npm run test:affected
+npm run lint
+npm run dev:nodetool -- harness gate --base origin/main
 ```
-
----
-
-## How past PRs did it
-
-The entire `packages/together-nodes` package — generator script, manifest (56 entries), factory, base helpers, provider arrays, and tests — was introduced in commit **`4ded3bc3`** ("feat(together): add Together node pack"). That single commit is the reference for how the package was structured from the start. It adds:
-
-- `packages/together-nodes/scripts/generate-manifest.mjs` (214 lines, the generator)
-- `packages/together-nodes/src/together-manifest.json` (4274 lines, 56 entries)
-- `packages/together-nodes/src/together-factory.ts` (405 lines)
-- `packages/together-nodes/src/together-base.ts` (534 lines)
-- Tests: `packages/together-nodes/tests/together-base.test.ts`, `together-factory.test.ts`, `together-manifest.test.ts`
-
-The same commit reworked the already-existing `packages/runtime/src/providers/together-provider.ts`. To see the full diff: `git show 4ded3bc3`.
 
 ---
 
@@ -250,5 +238,5 @@ The same commit reworked the already-existing `packages/runtime/src/providers/to
 
 - Repository: <https://github.com/nodetool-ai/nodetool>
 - Discord: <https://discord.gg/WmQTWZRcYE>
-- Before opening a PR, run `npm run check` (typecheck + lint + tests). PRs that break any of the three will not merge.
+- Before opening a PR, run the Verify steps above.
 - Follow the writing style in [docs/WRITING_STYLE.md](https://github.com/nodetool-ai/nodetool/blob/main/docs/WRITING_STYLE.md) for any Markdown you touch.

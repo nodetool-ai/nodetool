@@ -40,6 +40,7 @@ echo "Research the latest AI trends" | \
 - `-m, --model <id>` — Model id (required)
 - `-w, --workspace <path>` — Workspace dir for file tools (default: cwd)
 - `--max-iterations <n>` — Tool-calling rounds in the turn (default 25)
+- `--permission-mode <default|auto|plan>` — How tool calls are gated (see [Permission mode](#permission-mode))
 - `--cost-cap <usd>` — Ceiling on provider spend for the whole run; `0` lifts it
 - `--timeout <s>` — Wall-clock bound on the run in seconds; `0` leaves it none
 - `--json` — Emit each agent event as a JSON line on **stderr**
@@ -76,6 +77,20 @@ capture the result on its own:
 nodetool agent run -p openai -m gpt-5.4-mini \
   -o "Summarize NodeTool" > result.txt
 ```
+
+### Permission mode
+
+Every tool call passes one gate. `default` runs reads and asks before each
+write, execute, or external call. `auto` runs everything. `plan` runs reads and
+blocks the rest. An unrecognized value is an error.
+
+With a terminal on stdin, the default mode is `default`. The prompt goes to
+stderr and takes `y` (this call), `n` (refuse), or `a` (this tool for the rest
+of the run). When the objective arrives down a pipe nobody can answer, so the
+run uses the headless gate (`auto`), prints a notice once, and denies anything
+the gate escalates. An explicit `--permission-mode` still applies. With
+`--json` the notice and any prompt arrive as `log_update` events. See
+[Permission mode](cli.md#permission-mode) in the CLI reference.
 
 ### Tools
 

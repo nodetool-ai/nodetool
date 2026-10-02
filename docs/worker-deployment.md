@@ -14,8 +14,9 @@ done.
 This is a different subsystem from [server deployment](self-hosted-deployment.md).
 A *server* is long-lived infrastructure that humans connect *into*. A *worker* is
 an ephemeral, billing-sensitive box that one NodeTool instance connects *out* to.
-Because GPUs bill by the minute, **teardown is the headline feature** — see the
-[cost guard](#cost-guard) below.
+Because a rented GPU bills while it exists, **teardown is the headline feature**.
+Read the [cost guard](#cost-guard) below, including the difference between
+stopping and terminating a worker.
 
 ---
 
@@ -27,7 +28,7 @@ Two concepts, deliberately split:
 |---|---|---|
 | What | A declarative, reusable preset | A live, running worker |
 | Lifetime | Permanent until you delete it | Ephemeral — spin up, attach, tear down |
-| Holds | target, image, GPU/vCPU spec, token policy, idle timeout, max lifetime | the provider's pod/instance id, the `wss://` URL, the bearer token, status, cost |
+| Holds | target, image, GPU, vCPU, volume size, optional SSH public key, token policy, idle timeout, max lifetime | the provider's pod/instance id, the `ws://` or `wss://` URL, the bearer token, status, estimated cost |
 | Stored | `worker_profiles` table (DB) | `worker_instances` table (DB) |
 
 A **profile** is the recipe ("an A40 RunPod pod running the HuggingFace worker
@@ -83,9 +84,12 @@ to the environment variables of the same names.
 
 | Target | Provider | URL form | Teardown |
 |--------|----------|----------|----------|
-| `runpod` | RunPod **pod** (REST `rest.runpod.io/v1/pods`) | `wss://<podid>-7777.proxy.runpod.net` | deletes the pod |
-| `vast` | Vast.ai instance | `ws://<ip>:<port>` | destroys the instance |
+| `runpod` | RunPod **pod** (REST `rest.runpod.io/v1/pods`) | `wss://<podid>-7777.proxy.runpod.net` | deletes the pod and its volume |
+| `vast` | Vast.ai instance (`console.vast.ai/api/v0`) | `ws://<ip>:<port>` | destroys the instance and its disk |
 | `verda` | Verda **VM** (REST `api.verda.com/v1`) | `ws://<ip>:7777` | deletes the instance and permanently deletes its OS volume |
+
+The target column shows what **terminate** does. Each target also has a cheaper
+**stop** (pause), described under [Cost guard](#cost-guard).
 
 All three run the **same worker image** — there is no per-provider image work. Local
 or LAN workers are also supported, but unmanaged: run the worker container
@@ -139,6 +143,7 @@ nodetool worker profile add hf-a40 \
   --target runpod \
   --image ghcr.io/nodetool-ai/nodetool-worker:latest \
   --gpu "NVIDIA A40" \
+  --disk 100 \
   --idle-timeout 15 \
   --max-lifetime 120
 
@@ -148,11 +153,15 @@ nodetool worker create --profile hf-a40 --attach
 # 4. Watch what's live (and what it's costing)
 nodetool worker list
 
-# 5. Tear it down when you're done
+# 5. Pause it when you're done (keeps the volume and model cache)
 nodetool worker stop <instance-id>
-# or, the panic button:
+# or pause every live worker:
 nodetool worker stop --all
 ```
+
+`worker stop` pauses. The CLI has no terminate command. To destroy a worker and
+its volume, use **Terminate** in the Workers panel, or let `--max-lifetime`
+destroy it.
 
 `worker create` prints the new instance id, its `wsUrl`, a **redacted** bearer
 token, and its status. With `--attach` it also points your bridge at the worker
@@ -172,7 +181,7 @@ only the token so it pipes cleanly into `NODETOOL_WORKER_TOKEN`.
 
 ```bash
 nodetool worker profile add <name> --target <runpod|vast|verda> --image <img> \
-    [--gpu <type>] [--vcpu <n>] \
+    [--gpu <type>] [--vcpu <n>] [--disk <gb>] [--ssh-key <pubkey-file>] \
     [--token-policy <generate|fixed>] \
     [--idle-timeout <minutes>] [--max-lifetime <minutes>]
 nodetool worker profile list [--json]
@@ -180,30 +189,61 @@ nodetool worker profile rm <name>
 
 nodetool worker create --profile <name> [--attach]
 nodetool worker create --target <t> --image <img> [--gpu <g>] [--attach]   # inline, one-off
+                       # the inline form also takes --vcpu, --disk, --ssh-key,
+                       # --token-policy, --idle-timeout, --max-lifetime
 nodetool worker list [--json]
 nodetool worker status <id>          # refresh status from the provider
 nodetool worker token <id>           # print the decrypted bearer token (pipeable)
-nodetool worker stop <id>
-nodetool worker stop --all
+nodetool worker stop <id>             # pause: release the GPU, keep the volume
+nodetool worker stop --all            # pause every live worker
+
+nodetool worker models list [worker-id] [--json]
+nodetool worker models download [worker-id] --repo-id <owner/name> \
+    [--file-path <path>] [-a <glob>]... [-i <glob>]...
+nodetool worker models delete [worker-id] --repo-id <owner/name>
 ```
 
-The inline form of `create` synthesises a throwaway profile from the flags, so
-you don't have to define one first.
+The inline form of `create` synthesises a throwaway profile named
+`inline-<target>-<timestamp>` from the flags, so you don't have to define one
+first.
+
+Flag notes:
+
+- `--disk <gb>` sizes the persistent volume. The worker's `HF_HOME` is
+  `/workspace/huggingface`, so the Hugging Face cache lives there and survives
+  pause and resume. The default is 100.
+- `--ssh-key <file>` takes an OpenSSH **public** key file. It exposes port 22
+  and passes the key to the worker as `PUBLIC_KEY`, so you can log in to debug.
+  Without it, the bridge is the only way in.
+- `--token-policy generate` (the default) mints a random bearer token for each
+  instance. `fixed` mints none.
+- `--idle-timeout` and `--max-lifetime` take positive whole minutes.
+
+`worker models` manages the Hugging Face cache on a worker over its bridge. Pass
+a worker id, or omit it to use the attached worker. `download` sends your
+`HF_TOKEN` (from the secret store, then the environment) because the worker has
+no Hugging Face credential of its own, and `-a` and `-i` filter files by glob.
+The worker image must report bridge protocol version 2 or later.
 
 ---
 
 ## Attaching from the UI
 
-The **Workers** panel (in Settings) is the desktop-first surface:
+The **Workers** tab in the bottom panel is the main surface:
 
-1. **Profiles editor** — pick a target, image, GPU, idle timeout, and token
-   policy, and save a reusable profile.
-2. **Provision** — "Start" launches an instance and shows live progress
-   (`provisioning → running → attached`).
-3. **Live-instances table** — every running worker with its status, uptime, and
-   **estimated cost**, plus attach/detach and stop actions.
-4. **Status-bar indicator** — when a worker is attached, a status-bar badge shows
-   it and offers a one-click quick-stop.
+1. **Manage Profiles** — pick a provider, name, GPU, vCPU, disk (GB), idle
+   timeout, max lifetime, worker image, and token policy, and save a reusable
+   profile. The dialog warns when the provider's API key is missing.
+2. **Start Worker** — choose a profile and launch an instance. Progress runs
+   `provisioning → running → attached`. **Attach** stays disabled until the
+   worker answers a health probe.
+3. **Instance rows** — each live or paused worker shows its status, uptime, and
+   **estimated cost**, with **Attach**, **Detach**, **Resume**, **Stop** (pause),
+   and **Terminate** (destroy) actions.
+4. **Reconcile** and **Stop All** — Reconcile runs the orphan check on demand.
+   Stop All pauses every listed worker.
+5. **Status-bar indicator** — when a worker is attached, a badge shows it and
+   offers **Stop attached worker**, which pauses it.
 
 Attaching re-points NodeTool's Python bridge at the worker's `wss://` URL and
 bearer token **without a restart**; detaching reverts to the local stdio worker.
@@ -216,15 +256,29 @@ Docker server can adopt a worker by the same mechanism.
 ## Cost guard
 
 GPU pods and Vast instances bill **continuously** — there's no scale-to-zero in
-pod mode. The laptop sleeps, the app crashes, a tab gets forgotten. Four
-mechanisms keep a stray worker from quietly billing for days:
+pod mode. The laptop sleeps, the app crashes, a tab gets forgotten. Two
+operations release a worker, and they differ in what keeps billing:
+
+| Operation | Effect | Still billing |
+|-----------|--------|---------------|
+| **Stop** (pause) | Releases the GPU, keeps the volume and cached models. The instance is marked `stopped` and can be resumed. | The volume, at a lower rate |
+| **Terminate** | Destroys the worker and its volume. The instance is marked `terminated`. | Nothing |
+
+`worker stop`, **Stop**, **Stop All**, and the status-bar quick-stop all pause.
+Only **Terminate** and the hard TTL destroy. Four mechanisms keep a stray worker
+from quietly billing for days:
 
 | Guard | What it does |
 |-------|--------------|
-| **Real teardown** | Every `stop` issues the provider's true delete/destroy — never just a status flip. |
-| **Idle auto-stop** | The reaper stops an instance after its profile's `idle_timeout_minutes` of bridge inactivity (the bridge tracks `last_activity_at`). |
-| **Hard TTL** | Optional `max_lifetime_minutes` — an absolute kill switch regardless of activity. |
-| **Orphan reconcile** | On startup/refresh, NodeTool diffs the DB's `running` instances against the provider's live list. Workers killed out-of-band are marked stopped; provider-live boxes the DB doesn't track are surfaced as **orphans** with a "N workers live, ~$X/hr" summary and a one-click stop-all. |
+| **Terminate** | Issues the provider's real delete/destroy for the worker and its volume, never just a status flip. Available in the Workers panel. |
+| **Idle auto-pause** | The reaper **pauses** an instance after its profile's `idle_timeout_minutes` of bridge inactivity (the bridge tracks `last_activity_at`). Attaching or resuming resets the clock. |
+| **Hard TTL** | Optional `max_lifetime_minutes`. The reaper **terminates** an instance older than this regardless of activity. If both limits fire, the TTL wins. |
+| **Orphan reconcile** | At server startup and on **Reconcile**, NodeTool diffs the DB's `running` and `attached` instances against the provider's live list. Workers killed out-of-band are marked `stopped`. Running provider workers the DB doesn't track are reported as **orphans** with a live count and estimated cost. The panel banner tells you to stop them in your provider console, because NodeTool holds no record to act on. |
+
+The reaper runs inside the NodeTool server and checks every 60 seconds. If you
+provision from the CLI with no server running, nothing enforces the idle timeout
+or TTL, so terminate by hand. A failed database write during `provision` also
+terminates the new worker, so no untracked resource is left billing.
 
 Set both `--idle-timeout` and `--max-lifetime` on every profile you provision
 from. A profile that sets neither opts its instances out of the reaper entirely
@@ -238,8 +292,9 @@ from. A profile that sets neither opts its instances out of the reaper entirely
    target's provider (RunPod, Vast or Verda).
 2. If the profile's `token_policy` is `generate`, it mints a high-entropy bearer
    token for the worker.
-3. The provider launches the image on the chosen GPU/spec, polls until the box
-   is running, and derives the WebSocket URL.
+3. The provider launches the image on the chosen GPU/spec with persistent
+   storage for the model cache (`HF_HOME=/workspace/huggingface`), polls until the box is running, and derives the
+   WebSocket URL.
 4. A `worker_instances` row is written and transitioned `provisioning → running`.
 5. On `attach`, the manager writes the active-worker pointer, marks the instance
    `attached`, and hands the `{ wsUrl, token }` to the bridge.

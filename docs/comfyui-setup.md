@@ -53,7 +53,7 @@ finished files from `/view`, reconciles anything it missed from
 posts `/interrupt` when you cancel. A stock ComfyUI serves all of it on one
 port. See [ComfyUI's documentation](https://docs.comfy.org) for how to start it.
 
-Nothing is sent on this path except the prompt, so the endpoint has to accept an
+No credential is sent on this path, so the endpoint has to accept an
 unauthenticated submit.
 
 ### Where `127.0.0.1` is resolved from
@@ -97,15 +97,16 @@ tunnel with its own auth in front of it, or use the worker below.
 
 Deploy `ghcr.io/nodetool-ai/nodetool-worker-comfy:latest`, which runs a
 co-located ComfyUI that stays loopback-only inside the container, and drive it
-with `lib.comfy.RunWorkflowOnWorker`. The node talks to the worker's bridge over
-`wss://`, authenticated with the worker's bearer token in the `worker_token`
-property. ComfyUI's own ports are never published.
+with `lib.comfy.RunWorkflowOnWorker`. The node talks to the worker's bridge at
+`worker_url` (default `ws://127.0.0.1:7777/ws`, use `wss://` for a proxied pod),
+authenticated with the worker's bearer token in the `worker_token` property. ComfyUI's own ports are never published.
 
 Provisioning, the profile and instance model, and the idle-stop and TTL guards
 that stop a forgotten pod billing are in
 [Worker Deployment](worker-deployment.md). Pick the ComfyUI image from the
 **Worker image preset** dropdown, or pass
-`--image ghcr.io/nodetool-ai/nodetool-worker-comfy:latest` on the CLI.
+`--image ghcr.io/nodetool-ai/nodetool-worker-comfy:latest` to
+`nodetool worker create` or `nodetool worker profile add`.
 
 The worker node has no workflow loader in the editor, so its `workflow` property
 and dynamic handles are filled in by hand. That and the bridge path's slot naming
@@ -211,8 +212,8 @@ Use the smallest workflow you have, a text-to-image with one checkpoint and one
 `SaveImage`, before anything ambitious.
 
 1. Export it from ComfyUI with **Save (API Format)**.
-2. Add **Run ComfyUI Workflow** to a graph and load the JSON with the header
-   button. See [Loading a workflow](comfyui.md#loading-a-workflow).
+2. Add **Run ComfyUI Workflow** to a graph and load the JSON with the node
+   header's **Load Workflow** icon. See [Loading a workflow](comfyui.md#loading-a-workflow).
 3. Set `endpoint` if it is not `127.0.0.1:8188`.
 4. Run it.
 
