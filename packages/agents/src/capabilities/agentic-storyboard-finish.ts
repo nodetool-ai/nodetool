@@ -65,6 +65,35 @@ function json(value: unknown): string {
   return JSON.stringify(value);
 }
 
+/** Compare authored composition, excluding resource/baseline and animation IDs. */
+function composition(document: FinishedStoryboardDocument): string {
+  const trackIndices = new Map(
+    document.tracks.map((track) => [track.id, track.index])
+  );
+  return json(
+    document.clips
+      .map((clip) => ({
+        id: clip.id,
+        trackIndex: trackIndices.get(clip.trackId),
+        mediaType: clip.mediaType,
+        transform: clip.transform,
+        textStyle: clip.textStyle,
+        shapeStyle: clip.shapeStyle,
+        opacity: clip.opacity ?? 1,
+        hidden: clip.hidden ?? false,
+        blendMode: clip.blendMode ?? "normal",
+        parentId: clip.parentId,
+        matte: clip.matte,
+        crop: clip.crop,
+        effects: clip.effects,
+        animations: (clip.animations ?? []).map(
+          ({ id: _id, ...animation }) => animation
+        )
+      }))
+      .sort((a, b) => a.id.localeCompare(b.id))
+  );
+}
+
 /** A child authors only an in-memory draft. Existing CAS is the sole write. */
 export async function finishStoryboardAgentically(
   run: CapabilityRun,
@@ -79,6 +108,8 @@ export async function finishStoryboardAgentically(
   costUsd: number;
 }> {
   const initialCost = runtime.provider.getTotalCost();
+  const needsInitialAuthoring = !input.current;
+  const scaffoldComposition = composition(scaffold);
   if (input.shots.length === 0 || input.shots.length > 24) {
     throw new Error(
       "Agentic finishing supports 1–24 shots per reviewed cut. Split a larger board before finishing."
@@ -155,7 +186,7 @@ export async function finishStoryboardAgentically(
   const submit: ProviderTool = {
     name: "submit_finished_cut",
     description:
-      "Submit this draft for mandatory policy, structure, render and visual review. No document is saved yet.",
+      "Submit an authored draft for mandatory policy, structure, render and visual review. A new cut requires actual editable composition or motion changes from its deterministic scaffold. Existing reviewed cuts may remain unchanged. No document is saved yet.",
     inputSchema: { type: "object", properties: {}, additionalProperties: false }
   };
   const edit: ProviderTool = {
@@ -308,7 +339,7 @@ export async function finishStoryboardAgentically(
         {
           role: "system",
           content:
-            "Materialize the approved WHOLE CUT, not an isolated shot. Use real editable Timeline primitives and existing edit_timeline operations. Preserve all source assets, exact copy/colors, semantic IDs, shot windows and manual edits. Do not invent or generate replacement media. Read the full draft and submit_finished_cut when ready. At a revision, fix every reported defect. Storyboard contains semantic intent, never an animation implementation. The Timeline is execution truth."
+            "Finish the approved WHOLE CUT, not an isolated shot. The deterministic scaffold establishes faithful source layers and timing; it is your starting point, not evidence of agentic finishing. Inspect all derived design references and semantic graphic/motion direction, then deliberately author an editable composition: readable type hierarchy, balanced product/copy layout, graphic rhythm and continuity across the cut. Use existing Timeline operations and their exact operationContracts. Make meaningful layout, typography, decorative or animation choices that serve this board. Do not make arbitrary nudges, metadata changes or add empty layers merely to satisfy authoring. On a new cut, author actual layout or motion before submitting; on an existing finished cut, preserve good prior work and submit unchanged if no revision is needed. Preserve all source assets, exact copy/colors, semantic IDs, shot windows and manual edits. Do not invent or generate replacement media. Read every edit result, correct rejected edits, then submit_finished_cut when ready. At a revision, fix every reported defect. Storyboard contains semantic intent, never an animation implementation. The Timeline is execution truth."
         },
         {
           role: "user",
@@ -325,6 +356,7 @@ export async function finishStoryboardAgentically(
                   fps: sequence.fps
                 },
                 previousReview: feedback,
+                needsInitialAuthoring,
                 operationContracts,
                 finishingConstraints: scopeInstructions
               })
@@ -344,6 +376,14 @@ export async function finishStoryboardAgentically(
           return json(document);
         }
         if (call.name === submit.name) {
+          if (
+            needsInitialAuthoring &&
+            composition(document) === scaffoldComposition
+          ) {
+            return recordEditResult(
+              "This new cut is still the unchanged deterministic scaffold. Author meaningful editable layout or motion from the full-board direction with edit_timeline, read its result, then submit again. Read-only, no-op and metadata-only edits do not finish a new agentic cut."
+            );
+          }
           submitted = true;
           return "Candidate submitted for mandatory review.";
         }

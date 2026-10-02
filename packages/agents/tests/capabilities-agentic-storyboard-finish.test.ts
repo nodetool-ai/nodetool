@@ -77,6 +77,7 @@ function authorContext(args: Parameters<BaseProvider["generateMessages"]>[0]) {
         storyboardElementId: string;
         storyboardShotId: string;
         trackId: string;
+        textStyle?: { fontSizePx?: number };
       }[];
     };
     previousReview: unknown;
@@ -87,6 +88,18 @@ function authorContext(args: Parameters<BaseProvider["generateMessages"]>[0]) {
   };
 }
 const done: Turn = () => [];
+const craft: Turn = (args) => [
+  call("edit_timeline", {
+    ops: authorContext(args)
+      .scaffold.clips.filter((clip) => clip.storyboardElementId === "price")
+      .map((clip) => ({
+        op: "set_clip_params",
+        target: clip.id,
+        fontSizePx: 170
+      }))
+  }),
+  call("submit_finished_cut")
+];
 const approve: Turn = () => [
   call("review_finished_cut", {
     passed: true,
@@ -207,6 +220,107 @@ async function execute(
 
 describe("finish_storyboard whole-cut agentic finishing", () => {
   beforeEach(() => initTestDb());
+  it("refuses to finish a new agentic cut with only an unchanged scaffold", async () => {
+    const { board, context } = await fixture();
+    const provider = new FinishingProvider([
+      () => [
+        call("edit_timeline", { ops: [{ op: "get_state" }] }),
+        call("submit_finished_cut")
+      ],
+      done,
+      approve,
+      done
+    ]);
+    const result = await execute(provider, context, board);
+    expect(result.error).toMatch(/author.*layout.*motion/i);
+    expect((await Storyboard.findById(board.id))?.timeline_id).toBeFalsy();
+    expect(
+      provider.requests.some((request) =>
+        request.tools?.some((tool) => tool.name === "review_finished_cut")
+      )
+    ).toBe(false);
+  });
+  it("requires a real composition change after no-op and metadata edits before accepting a new cut", async () => {
+    const { board, context } = await fixture();
+    const provider = new FinishingProvider([
+      (args) => {
+        const price = authorContext(args).scaffold.clips.find(
+          (clip) => clip.storyboardElementId === "price"
+        )!;
+        return [
+          call("edit_timeline", {
+            ops: [
+              {
+                op: "set_clip_params",
+                target: price.id,
+                fontSizePx: price.textStyle?.fontSizePx,
+                name: "Editorial price"
+              }
+            ]
+          }),
+          call("submit_finished_cut")
+        ];
+      },
+      (args) => {
+        expect(JSON.stringify(args.messages)).toContain(
+          "unchanged deterministic scaffold"
+        );
+        return craft(args);
+      },
+      done,
+      approve,
+      done
+    ]);
+    const result = await execute(provider, context, board);
+    expect(result.error).toBeUndefined();
+    const timeline = (await TimelineSequence.findById(result.timelineId!))!;
+    expect(
+      timeline
+        .toDocument()
+        .clips.filter((clip) => clip.storyboardElementId === "price")
+        .every((clip) => clip.textStyle?.fontSizePx === 170)
+    ).toBe(true);
+  });
+  it("allows an unchanged existing cut to finish after full visual review", async () => {
+    const { board, context } = await fixture();
+    const initial = (await finishStoryboard.impl(
+      createCapabilityRun({ context, gate: UNGATED }),
+      {
+        storyboardId: board.id,
+        expectedStoryboardRevision: board.revision
+      }
+    )) as { timelineId: string };
+    const before = (await TimelineSequence.findById(initial.timelineId))!;
+    const latestBoard = (await Storyboard.findById(board.id))!;
+    const provider = new FinishingProvider([
+      () => [call("submit_finished_cut")],
+      done,
+      approve,
+      done
+    ]);
+    const result = await finishStoryboard.impl(
+      createCapabilityRun({
+        context,
+        gate: UNGATED,
+        subAgent: {
+          provider,
+          model: "review",
+          parentTools: () => [],
+          forwardMessage: () => undefined
+        }
+      }),
+      {
+        storyboardId: board.id,
+        expectedStoryboardRevision: latestBoard.revision,
+        expectedTimelineRevision: before.revision,
+        strategy: "agentic"
+      }
+    );
+    expect(result).not.toHaveProperty("error");
+    expect(
+      (await TimelineSequence.findById(before.id))?.toDocument().clips
+    ).toEqual(before.toDocument().clips);
+  });
   it("authors the full cut through existing ops, reviews real frames, revises a visual defect, then commits editable layers", async () => {
     const { board, context, asset } = await fixture();
     const provider = new FinishingProvider([
@@ -230,7 +344,17 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
         ).toHaveProperty("fontSizePx");
         return [
           call("edit_timeline", {
-            ops: [{ op: "get_state" }, { op: "list_animation_presets" }]
+            ops: [
+              { op: "get_state" },
+              { op: "list_animation_presets" },
+              ...data.scaffold.clips
+                .filter((clip) => clip.storyboardElementId === "price")
+                .map((clip) => ({
+                  op: "set_clip_params",
+                  target: clip.id,
+                  fontSizePx: 140
+                }))
+            ]
           }),
           call("submit_finished_cut")
         ];
@@ -437,7 +561,7 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
   it("fails when visual findings are unresolved and the agent submits the unchanged draft", async () => {
     const { board, context } = await fixture();
     const provider = new FinishingProvider([
-      () => [call("submit_finished_cut")],
+      craft,
       done,
       () => [
         call("review_finished_cut", {
@@ -513,8 +637,9 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
               typeof content === "string" && content.includes("currentAssetId")
           )
         ).toBe(true);
-        return [];
+        return craft(args);
       },
+      done,
       approve,
       done
     ]);
@@ -701,7 +826,7 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
     for (const cancel of [false, true]) {
       const { board, context } = await fixture();
       const provider = new FinishingProvider([
-        () => [call("submit_finished_cut")],
+        craft,
         done,
         async () => {
           if (cancel) {
@@ -793,12 +918,7 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
   });
   it("runs agentic finishing from a normal JS script capability mount with an explicit model and no subAgent runtime", async () => {
     const { board, context } = await fixture();
-    const provider = new FinishingProvider([
-      () => [call("submit_finished_cut")],
-      done,
-      approve,
-      done
-    ]);
+    const provider = new FinishingProvider([craft, done, approve, done]);
     const resolve = vi.fn(async (id: string) => {
       expect(id).toBe("fake");
       return provider;
@@ -925,12 +1045,7 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
   });
   it("revokes an unawaited finishing call after the script returns successfully", async () => {
     const { board, context } = await fixture();
-    const provider = new FinishingProvider([
-      () => [call("submit_finished_cut")],
-      done,
-      approve,
-      done
-    ]);
+    const provider = new FinishingProvider([craft, done, approve, done]);
     context.setProviderResolver(async () => provider);
     context.set(PERMISSION_GATE_CONTEXT_KEY, UNGATED);
     const result = await runCodeBody(context, {
