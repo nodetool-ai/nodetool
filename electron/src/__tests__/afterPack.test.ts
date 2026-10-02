@@ -269,3 +269,172 @@ describe("pruneDawnBinaries", () => {
     expect(remaining).toEqual(["darwin-universal.dawn.node"]);
   });
 });
+
+const afterPackArch = require("../../scripts/after-pack.cjs") as {
+  retargetPlatformPackages: (
+    nodeModulesPath: string,
+    platform: string,
+    arch: string,
+    fetchPackage: (name: string, version: string, destDir: string) => void
+  ) => { from: string; to: string }[];
+  pruneWebAudioPrebuilds: (backendDir: string, platform: string, arch: string) => void;
+  machOArch: (filePath: string) => string | null;
+  findForeignArchModules: (nodeModulesPath: string, arch: string) => string[];
+};
+
+async function writePackage(
+  nodeModules: string,
+  name: string,
+  json: Record<string, unknown>
+): Promise<void> {
+  const dir = path.join(nodeModules, ...name.split("/"));
+  await fs.promises.mkdir(dir, { recursive: true });
+  await fs.promises.writeFile(
+    path.join(dir, "package.json"),
+    JSON.stringify({ name, ...json })
+  );
+}
+
+describe("retargetPlatformPackages", () => {
+  let nodeModules: string;
+  beforeEach(async () => {
+    nodeModules = await fs.promises.mkdtemp(path.join(os.tmpdir(), "nt-retarget-"));
+  });
+  afterEach(async () => {
+    await fs.promises.rm(nodeModules, { recursive: true, force: true });
+  });
+
+  // An x64 app packed from a bundle staged on an arm64 runner (issue #5994).
+  it("replaces arm64 prebuilds with the x64 counterpart in an x64 mac app", async () => {
+    await writePackage(nodeModules, "@napi-rs/canvas", {
+      version: "0.1.100",
+      optionalDependencies: {
+        "@napi-rs/canvas-darwin-arm64": "0.1.100",
+        "@napi-rs/canvas-darwin-x64": "0.1.100",
+      },
+    });
+    await writePackage(nodeModules, "@napi-rs/canvas-darwin-arm64", {
+      version: "0.1.100",
+      os: ["darwin"],
+      cpu: ["arm64"],
+    });
+    const fetched: string[] = [];
+    const fetchPackage = (name: string, version: string, destDir: string): void => {
+      fetched.push(`${name}@${version}`);
+      fs.mkdirSync(destDir, { recursive: true });
+      fs.writeFileSync(
+        path.join(destDir, "package.json"),
+        JSON.stringify({ name, version, os: ["darwin"], cpu: ["x64"] })
+      );
+    };
+
+    const swapped = afterPackArch.retargetPlatformPackages(
+      nodeModules,
+      "darwin",
+      "x64",
+      fetchPackage
+    );
+
+    expect(fetched).toEqual(["@napi-rs/canvas-darwin-x64@0.1.100"]);
+    expect(swapped).toEqual([
+      { from: "@napi-rs/canvas-darwin-arm64", to: "@napi-rs/canvas-darwin-x64" },
+    ]);
+    expect(fs.readdirSync(path.join(nodeModules, "@napi-rs")).sort()).toEqual([
+      "canvas",
+      "canvas-darwin-x64",
+    ]);
+  });
+
+  it("leaves packages that match the target arch alone", async () => {
+    await writePackage(nodeModules, "@img/sharp-darwin-arm64", {
+      version: "0.35.3",
+      os: ["darwin"],
+      cpu: ["arm64"],
+    });
+    const fetchPackage = jest.fn();
+
+    const swapped = afterPackArch.retargetPlatformPackages(
+      nodeModules,
+      "darwin",
+      "arm64",
+      fetchPackage
+    );
+
+    expect(swapped).toEqual([]);
+    expect(fetchPackage).not.toHaveBeenCalled();
+  });
+
+  it("fails when a foreign-arch package has no declared counterpart", async () => {
+    await writePackage(nodeModules, "orphan-darwin-arm64", {
+      version: "1.0.0",
+      os: ["darwin"],
+      cpu: ["arm64"],
+    });
+
+    expect(() =>
+      afterPackArch.retargetPlatformPackages(nodeModules, "darwin", "x64", jest.fn())
+    ).toThrow(/orphan-darwin-arm64 is built for arm64, not x64/);
+  });
+});
+
+describe("pruneWebAudioPrebuilds", () => {
+  let backendDir: string;
+  beforeEach(async () => {
+    backendDir = await fs.promises.mkdtemp(path.join(os.tmpdir(), "nt-web-audio-"));
+  });
+  afterEach(async () => {
+    await fs.promises.rm(backendDir, { recursive: true, force: true });
+  });
+
+  it("keeps only the target arch's darwin prebuild", async () => {
+    const pkgDir = path.join(backendDir, "node_modules", "node-web-audio-api");
+    await fs.promises.mkdir(pkgDir, { recursive: true });
+    for (const f of [
+      "node-web-audio-api.darwin-arm64.node",
+      "node-web-audio-api.darwin-x64.node",
+      "index.cjs",
+    ]) {
+      await fs.promises.writeFile(path.join(pkgDir, f), "x");
+    }
+
+    afterPackArch.pruneWebAudioPrebuilds(backendDir, "darwin", "x64");
+
+    expect(fs.readdirSync(pkgDir).sort()).toEqual([
+      "index.cjs",
+      "node-web-audio-api.darwin-x64.node",
+    ]);
+  });
+});
+
+describe("findForeignArchModules", () => {
+  let nodeModules: string;
+  beforeEach(async () => {
+    nodeModules = await fs.promises.mkdtemp(path.join(os.tmpdir(), "nt-macho-"));
+  });
+  afterEach(async () => {
+    await fs.promises.rm(nodeModules, { recursive: true, force: true });
+  });
+
+  async function writeMachO(name: string, cpuType: number): Promise<string> {
+    const releaseDir = path.join(nodeModules, name, "build", "Release");
+    await fs.promises.mkdir(releaseDir, { recursive: true });
+    await fs.promises.writeFile(path.join(nodeModules, name, "binding.gyp"), "{}");
+    const header = Buffer.alloc(32);
+    header.writeUInt32LE(0xfeedfacf, 0);
+    header.writeUInt32LE(cpuType, 4);
+    const file = path.join(releaseDir, `${name}.node`);
+    await fs.promises.writeFile(file, header);
+    return file;
+  }
+
+  it("reports node-gyp builds compiled for another Mach-O arch", async () => {
+    const keytar = await writeMachO("keytar", 0x0100000c);
+    await writeMachO("cpu-features", 0x01000007);
+
+    expect(afterPackArch.machOArch(keytar)).toBe("arm64");
+    expect(afterPackArch.findForeignArchModules(nodeModules, "x64")).toEqual(["keytar"]);
+    expect(afterPackArch.findForeignArchModules(nodeModules, "arm64")).toEqual([
+      "cpu-features",
+    ]);
+  });
+});

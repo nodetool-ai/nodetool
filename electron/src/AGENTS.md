@@ -12,6 +12,7 @@ Desktop application wrapping the NodeTool web UI with native capabilities (local
 - Use `nvm use` from the repo root (reads `.nvmrc`).
 - `npm install`/`npm ci` runs the rebuild automatically (from the root `postinstall`, after reify). To force a rebuild: `npm run rebuild:native` (root) or `npm --prefix electron run rebuild:native`.
 - **electron-builder does not rebuild native modules** (`npmRebuild: false` in `electron-builder.json`). The app `files` exclude every ABI-locked module, and the packed backend's copies are rebuilt against the bundled Node inside `afterPack` (`scripts/after-pack.cjs`) — so the default Electron-ABI rebuild only ever clobbered the workspace's Node-ABI `better-sqlite3`, breaking the dev backend until the next `rebuild:native`.
+- **One macOS backend bundle feeds both the arm64 and x64 apps.** The release job stages it on an arm64 runner, so npm installs only arm64 per-arch packages. `afterPack` retargets the x64 app: it swaps each foreign-arch package (`@napi-rs/canvas-darwin-*`, `@img/sharp-*`, `@seydx/node-av-*`, `@msgpackr-extract/*`) for its counterpart from the registry, prunes `node-web-audio-api` prebuilds, and rebuilds node-gyp modules whose Mach-O arch differs. A foreign-arch package with no declared counterpart fails the build.
 
 ## Build, Lint & Test
 
