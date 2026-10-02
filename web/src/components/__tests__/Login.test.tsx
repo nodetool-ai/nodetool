@@ -16,11 +16,11 @@ describe("Login", () => {
         <Login />
       </ThemeProvider>
     );
-    expect(screen.getByText(/Cloud · Alpha/)).toBeInTheDocument();
+    expect(screen.getByText(/Cloud alpha/)).toBeInTheDocument();
     expect(
-      screen.getByText(/You direct the vision\. The agent builds the film\./)
+      screen.getByRole("heading", { name: "Sign in to NodeTool Cloud" })
     ).toBeInTheDocument();
     expect(screen.getByText(/Sign in with Google/)).toBeInTheDocument();
-    expect(screen.getByText(/published prices/)).toBeInTheDocument();
+    expect(screen.getByText(/list prices/)).toBeInTheDocument();
   });
 });
