@@ -66,7 +66,7 @@ describe("example games", () => {
   it("finds the shipped games, their posters, and every bound media file", () => {
     expect(resolveExampleGamesDir(options)).toBe(nodePath.join(baseNodes, "examples", "games"));
     const games = listExampleGames(options);
-    expect(games.map((game) => game.slug)).toEqual(["kindle", "lumen", "neon-drift"]);
+    expect(games.map((game) => game.slug)).toEqual(["blacksite", "kindle", "lumen", "neon-drift"]);
     let checked = 0;
     for (const game of games) {
       const poster = parsePackageAssetUri(game.posterUri);
@@ -85,18 +85,21 @@ describe("example games", () => {
     expect(readExampleGameFile(options, "package://nodetool-base/../../examples/games/kindle.game.json")).toBeNull();
   });
 
-  it("installs a playable copy whose slots bind the user's own asset rows", async () => {
+  it.each(["neon-drift", "blacksite"])("installs %s with owned media and its original dimension", async (slug) => {
     const caller = createCaller(makeCtx());
-    const bundle = getExampleGameBundle(options, "neon-drift")!;
-    const installed = await caller.games.installExample({ slug: "neon-drift", projectId: PROJECT_ID });
+    const bundle = getExampleGameBundle(options, slug)!;
+    const installed = await caller.games.installExample({ slug, projectId: PROJECT_ID });
 
-    expect(installed.game.name).toBe("Neon Drift");
+    expect(installed.game.name).toBe(bundle.name);
+    expect(installed.document.schemaVersion).toBe(bundle.document.schemaVersion);
     expect(installed.document.scenes.map((scene) => scene.id)).toEqual(bundle.document.scenes.map((scene) => scene.id));
     expect(Object.keys(installed.document.assets)).toEqual(Object.keys(bundle.document.assets));
     for (const [slot, binding] of Object.entries(installed.document.assets)) {
       const asset = await Asset.find(USER_ID, binding.assetId);
       expect(asset, slot).not.toBeNull();
       expect(asset!.project_id).toBe(PROJECT_ID);
+      expect(binding.assetId).toMatch(/^[a-f0-9]{32}$/);
+      if (slot === "facility") { expect(asset!.content_type).toBe("model/gltf-binary"); }
       const stored = await retrieveAssetBytes(getAssetAdapter(), USER_ID, asset!.id, asset!.content_type);
       expect(stored, slot).not.toBeNull();
       expect(createHash("sha256").update(stored!).digest("hex")).toBe(binding.digest);

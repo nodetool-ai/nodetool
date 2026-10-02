@@ -31,13 +31,14 @@ export function blockoutFrame(): GameRenderFrame3D {
     lights: [], environment: { background: "#202838", ambient: { color: "#ffffff", intensity: 2 }, shadows: { enabled: false, mapSize: 512, extent: 20 } }, hud: [] });
 }
 
-export function skinnedGlb(): Uint8Array {
-  const pieces = [new Float32Array([-0.5, -0.5, 0, 0.5, -0.5, 0, 0, 0.5, 0]),
+export function skinnedGlb(texture?: Uint8Array): Uint8Array {
+  const pieces: Array<Float32Array | Uint16Array | Uint8Array> = [new Float32Array([-0.5, -0.5, 0, 0.5, -0.5, 0, 0, 0.5, 0]),
     new Uint16Array(12), new Float32Array([1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 0, 0]),
     new Float32Array([1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1, 0, 0, 0, 0, 1]),
     new Float32Array([0, 1]), new Float32Array([0, 0, 0, 1.5, 0, 0]),
     new Float32Array([0, 0, 0, 0, 0, 0]), new Float32Array([0, 0, 0, 0, 1, 0]),
     new Float32Array([0, 0, 0, 1, 0, 0, Math.SQRT1_2, Math.SQRT1_2])];
+  if (texture) { pieces.push(new Float32Array([0, 0, 1, 0, 0.5, 1]), texture); }
   let offset = 0;
   const views = pieces.map((piece) => { const view = { buffer: 0, byteOffset: offset, byteLength: piece.byteLength }; offset += piece.byteLength; return view; });
   const binary = new Uint8Array(offset);
@@ -49,9 +50,11 @@ export function skinnedGlb(): Uint8Array {
       { bufferView: 3, componentType: 5126, count: 1, type: "MAT4" }, { bufferView: 4, componentType: 5126, count: 2, type: "SCALAR", min: [0], max: [1] },
       { bufferView: 5, componentType: 5126, count: 2, type: "VEC3" },
       { bufferView: 6, componentType: 5126, count: 2, type: "VEC3" }, { bufferView: 7, componentType: 5126, count: 2, type: "VEC3" },
-      { bufferView: 8, componentType: 5126, count: 2, type: "VEC4" }],
-    meshes: [{ primitives: [{ attributes: { POSITION: 0, JOINTS_0: 1, WEIGHTS_0: 2 }, material: 0 }] }],
-    materials: [{ doubleSided: true }],
+      { bufferView: 8, componentType: 5126, count: 2, type: "VEC4" },
+      ...(texture ? [{ bufferView: 9, componentType: 5126, count: 3, type: "VEC2" }] : [])],
+    meshes: [{ primitives: [{ attributes: { POSITION: 0, JOINTS_0: 1, WEIGHTS_0: 2, ...(texture ? { TEXCOORD_0: 9 } : {}) }, material: 0 }] }],
+    materials: [{ doubleSided: true, ...(texture ? { pbrMetallicRoughness: { metallicFactor: 0, baseColorTexture: { index: 0 } } } : {}) }],
+    ...(texture ? { images: [{ bufferView: 10, mimeType: "image/png" }], textures: [{ source: 0 }] } : {}),
     nodes: [{ mesh: 0, skin: 0 }, { name: "joint" }], skins: [{ joints: [1], inverseBindMatrices: 3 }], scenes: [{ nodes: [0, 1] }], scene: 0,
     animations: [6, 5, 7, 8].map((output, index) => ({ name: ["idle", "run", "jump", "turn"][index], samplers: [{ input: 4, output, interpolation: "LINEAR" }], channels: [{ sampler: 0, target: { node: 1, path: index === 3 ? "rotation" : "translation" } }] }))
   }, binary);

@@ -1099,7 +1099,7 @@ const installExample: CapabilityExport = {
     if (!getExampleGameBundle({}, slug)) return { error: "Example game not found" };
     const installed = await installExampleGameAssets(user, projectId, {}, slug, storage);
     try {
-      const created = await createNativeGame(user, projectId, typeof name === "string" ? name.trim() : installed.bundle.name, installed.document);
+      const created = await createNativeGame(user, projectId, typeof name === "string" ? name.trim() : installed.bundle.name, installed.document, installed.document.schemaVersion === 3 ? "3d" : "2d");
       if ("error" in created) {
         await installed.rollback();
         return created;

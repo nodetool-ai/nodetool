@@ -7,9 +7,11 @@
 // packages/base-nodes/nodetool/examples/games/<slug>.game.json with every asset
 // slot bound to its `package://` file. Installing a bundle copies those files
 // into the user's assets (packages/websocket/src/lib/example-games.ts).
+// BLACKSITE uses packages/game-runtime/samples/blacksite. Use --slug=blacksite
+// to build only that bundle without the external source projects.
 //
-// Add `--posters` to capture each poster again with the WebGPU game capture.
-// The capture needs the local Dawn adapter. A script that runs past its time
+// Add `--posters` to capture each poster again. 2D uses Dawn, 3D uses Chromium.
+// A script that runs past its time
 // budget on a loaded machine fails the capture, so each one is retried.
 import { spawnSync } from "node:child_process";
 import { createHash } from "node:crypto";
@@ -25,6 +27,16 @@ const SOURCE = process.env.NODETOOL_GAMES_DIR ?? path.join(homedir(), "workspace
 const POSTERS = process.argv.includes("--posters");
 
 const GAMES = [
+  {
+    slug: "blacksite",
+    name: "BLACKSITE",
+    description: "A first-person mission through an industrial reactor facility. Destroy five security drones, use cover, and reach extraction.",
+    controls: "WASD to move · Hold right mouse to aim · F to fire · R to reload · Space to jump",
+    sourceDir: path.join(ROOT, "packages/game-runtime/samples/blacksite"),
+    posterTick: 2,
+    inputs: "completion.inputs.json",
+    backend: "webgl2"
+  },
   {
     slug: "kindle",
     name: "Kindle",
@@ -62,7 +74,7 @@ function capturePoster(game, sourceDir, out) {
       "--ticks", String(game.posterTick),
       "--inputs", path.join(sourceDir, game.inputs),
       "--assets-dir", path.join(sourceDir, "assets"),
-      "--backend", "webgpu",
+      "--backend", game.backend ?? "webgpu",
       "--out", png
     ], { cwd: ROOT, encoding: "utf8" });
     if (result.status === 0 && /Captured tick/.test(result.stdout + result.stderr)) {
@@ -73,8 +85,10 @@ function capturePoster(game, sourceDir, out) {
   throw new Error(`Could not capture the ${game.slug} poster`);
 }
 
-for (const game of GAMES) {
-  const sourceDir = path.join(SOURCE, game.slug);
+const slug = process.argv.find((arg) => arg.startsWith("--slug="))?.slice(7);
+if (slug && !GAMES.some((game) => game.slug === slug)) throw new Error(`Unknown game: ${slug}`);
+for (const game of GAMES.filter((game) => !slug || game.slug === slug)) {
+  const sourceDir = game.sourceDir ?? path.join(SOURCE, game.slug);
   const document = JSON.parse(readFileSync(path.join(sourceDir, "game.json"), "utf8"));
   const mediaDir = path.join(BASE, "assets/nodetool-base/games", game.slug);
   const poster = path.join(mediaDir, "poster.jpg");

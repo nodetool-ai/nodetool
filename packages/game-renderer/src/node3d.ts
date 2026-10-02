@@ -105,7 +105,7 @@ export async function captureGameFrame3D(value: GameRenderFrame3D, options: Capt
       await context.route("**/*", async (route) => {
         const url = route.request().url();
         if (url === "http://127.0.0.1/") {
-          await route.fulfill({ status: 200, contentType: "text/html", body: '<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'self\'; img-src blob:; style-src \'unsafe-inline\'"></head><body style="margin:0"><canvas></canvas><script src="/capture.js"></script></body></html>' });
+          await route.fulfill({ status: 200, contentType: "text/html", body: '<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src \'none\'; script-src \'self\'; connect-src blob:; img-src blob:; style-src \'unsafe-inline\'"></head><body style="margin:0"><canvas></canvas><script src="/capture.js"></script></body></html>' });
         } else if (url === "http://127.0.0.1/capture.js") {
           await route.fulfill({ status: 200, contentType: "text/javascript", body: bundle });
         } else { await route.abort("blockedbyclient"); }

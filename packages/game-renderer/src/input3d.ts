@@ -2,6 +2,7 @@ import type { GameDocument3D, GameInputFrame3D } from "@nodetool-ai/protocol";
 
 const MOVEMENT_KEYS_3D = new Set(["KeyW", "KeyA", "KeyS", "KeyD", "ArrowUp", "ArrowLeft", "ArrowDown", "ArrowRight"]);
 function actionKeys3D(action: string): readonly string[] {
+  if (action === "fire") { return ["Mouse0", "KeyF"]; }
   return action === "jump" ? ["Space"] : action === "respawn" ? ["KeyR"] : [`Key${action.toUpperCase()}`, action];
 }
 
