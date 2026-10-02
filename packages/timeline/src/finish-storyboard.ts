@@ -54,6 +54,11 @@ const baseline = (clip: TimelineClip): string => JSON.stringify({
   animations: clip.animations
 });
 
+/** Record the fields owned by the materializer after an accepted finishing pass. */
+export function stampStoryboardMaterializationBaseline(clip: TimelineClip): void {
+  clip.storyboardMaterializationBaseline = baseline(clip);
+}
+
 /** Validate actual layers, rather than a caller's description of intended edits. */
 export function validateProducedTimeline(
   input: Pick<FinishStoryboardInput, "boardId" | "shots" | "production" | "width" | "height">,
@@ -208,7 +213,17 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
   const foreignClips = current.clips.filter((clip) => clip.storyboardBoardId !== input.boardId);
   const ownedTrackIds = new Set(current.clips.filter((clip) => clip.storyboardBoardId === input.boardId).map((clip) => clip.trackId));
   const tracks = current.tracks.filter((track) => !ownedTrackIds.has(track.id) || foreignClips.some((clip) => clip.trackId === track.id)).map((track) => ({ ...track }));
-  const clips: TimelineClip[] = [...foreignClips];
+  for (const key of previousKeys) {
+    if (key.includes("/$agent:") && !existing.has(key)) conflicts.push({ code: "manual_conflict", shotId: key.split("/")[0], elementId: key.slice(key.indexOf("/") + 1), message: `Agent-owned layer ${key} was manually deleted. Restore it before finishing again.` });
+  }
+  const agentClips = [...existing.values()].filter((clip) => clip.storyboardElementId?.startsWith("$agent:"));
+  for (const clip of agentClips) {
+    if (clip.storyboardMaterializationBaseline !== baseline(clip)) conflicts.push({ code: "manual_conflict", shotId: clip.storyboardShotId ?? "", elementId: clip.storyboardElementId ?? "", message: `Agent-owned layer ${clip.id} was manually edited. Use a separate Timeline or restore the accepted layer before finishing again.` });
+    if (!input.shots.some((shot) => shot.id === clip.storyboardShotId)) conflicts.push({ code: "manual_conflict", shotId: clip.storyboardShotId ?? "", elementId: clip.storyboardElementId ?? "", message: `Agent-owned layer ${clip.id} belongs to a removed shot. Remove it explicitly before rebuilding.` });
+    const track = current.tracks.find((value) => value.id === clip.trackId);
+    if (track && !tracks.some((value) => value.id === track.id)) tracks.push({ ...track });
+  }
+  const clips: TimelineClip[] = [...foreignClips, ...agentClips.map((clip) => structuredClone(clip))];
   let startMs = 0;
   for (const shot of [...input.shots].sort((a, b) => a.index - b.index)) {
     const durationMs = Math.max(1, (shot.duration_seconds ?? 4) * 1000);

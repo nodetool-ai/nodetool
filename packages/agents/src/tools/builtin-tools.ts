@@ -101,6 +101,7 @@ export const BUILTIN_TOOL_NAMES: readonly string[] = [
   "revise_storyboard_clip",
   "assemble_storyboard_timeline",
   "finish_storyboard",
+  "preview_storyboard_design",
   "edit_storyboard",
   "extract_script_from_storyboard",
 

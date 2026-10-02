@@ -73,3 +73,27 @@ npm run test:journeys --workspace=web -- recipe-builder.spec.ts
 The actual Timeline validator mechanically checks
 asset identity, copy, declared transforms and provenance. It does not claim
 pixel-level semantic recognition of every rendered object.
+
+`finish_storyboard` also accepts `strategy: "agentic"` in a provider-backed
+agent session. The default remains deterministic and needs no model.
+The opt-in pass receives the whole board, preservation rules and editable
+scaffold. It renders design references derived from the expected Storyboard
+revision and compares actual composited cut frames with those references.
+These are derived references, not a separate historical pixel approval.
+The agent uses existing Timeline operations and cannot invoke media generation
+or replace accepted media. Policy and structural checks run before visual
+review. Findings require a changed draft and another render and review, with
+at most three candidates. An unreviewed, unresolved, cancelled or stale cut
+is not saved.
+
+Additional decorative layers need explicit stable semantic names within a shot.
+Rerunning an addition with that name reuses its existing identity. Use
+`set_clip_params` to change it. Extra layers carry board, shot and element
+provenance. Manual edits or deletion of agent-owned decorative layers produce
+an explicit conflict on rebuild. Existing manual placement edits to source
+layers retain the deterministic materializer's preservation behavior.
+Protected layers cannot inherit an unproven group transform. Unsupported
+protected animation, mask or effect paths fail policy validation rather than
+silently weakening source fidelity. A visual review checks sampled frames,
+not every frame or perfect visual equivalence. The returned review report
+contains frame hashes, timecodes and derived-reference fingerprints.

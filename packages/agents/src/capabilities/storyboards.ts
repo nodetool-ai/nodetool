@@ -1,4 +1,4 @@
-import { finishStoryboard } from "./finish-storyboard.js";
+import { finishStoryboard, previewStoryboardDesign } from "./finish-storyboard.js";
 /**
  * The `storyboards` capability module.
  *
@@ -2925,6 +2925,7 @@ const deleteStoryboard: CapabilityExport = {
 };
 export const STORYBOARD_CAPABILITIES: readonly CapabilityExport[] = [
   finishStoryboard,
+  previewStoryboardDesign,
   listStoryboards,
   createStoryboard,
   getStoryboard,
@@ -2945,6 +2946,7 @@ export const module: CapabilityModule = {
 
 export {
   finishStoryboard,
+  previewStoryboardDesign,
   listStoryboards,
   createStoryboard,
   getStoryboard,
