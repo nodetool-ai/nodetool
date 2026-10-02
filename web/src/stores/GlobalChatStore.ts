@@ -340,19 +340,17 @@ export interface GlobalChatState {
   /**
    * Send a message to `threadId`, or to the current thread when omitted
    * (creating one if none exists). Threads generate independently, so a
-   * send to a background thread does not disturb the current one.
+   * send to a background thread does not disturb the current one. Rejects
+   * when no model is selected or the message cannot reach the socket.
    */
   sendMessage: (
     message: Message | ChatOutgoingMessage,
     threadId?: string
   ) => Promise<void>;
   /**
-   * The same send, with its outcome reported instead of swallowed.
-   *
-   * `sendMessage` returns without throwing when nothing could be sent — no
-   * model is selected, or the socket refused to connect — so a caller that
-   * consumed something to build the turn (the project agent's staged first
-   * prompt) cannot tell a delivered turn from a dropped one. This reports it.
+   * The same send, with pre-send refusals returned as an outcome instead of
+   * thrown. Callers holding staged prompts can distinguish a refusal before
+   * the turn entered history from a transport error after it was recorded.
    */
   trySendMessage: (
     message: Message | ChatOutgoingMessage,
@@ -981,7 +979,10 @@ const useGlobalChatStore = create<GlobalChatState>()(
         message: Message | ChatOutgoingMessage,
         targetThreadId?: string
       ) => {
-        await get().trySendMessage(message, targetThreadId);
+        const outcome = await get().trySendMessage(message, targetThreadId);
+        if (!outcome.ok) {
+          throw new Error(outcome.error);
+        }
       },
 
       trySendMessage: async (

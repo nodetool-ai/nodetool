@@ -10,7 +10,10 @@ interface QueuedMessage {
 interface UseMessageQueueOptions {
   isLoading: boolean;
   isStreaming: boolean;
-  onSendMessage: (content: MessageContent[], prompt: string) => void;
+  onSendMessage: (
+    content: MessageContent[],
+    prompt: string
+  ) => void | boolean | Promise<void | boolean>;
   onStop?: () => void;
   textareaRef?: React.RefObject<HTMLTextAreaElement | null>;
 }
@@ -19,10 +22,10 @@ interface UseMessageQueueReturn {
   queuedMessage: QueuedMessage | null;
   /**
    * Send or queue a message. Returns `true` when the message was sent or
-   * queued, `false` when it was dropped because one is already queued (so the
-   * caller can keep the prompt/attachments instead of clearing them).
+   * queued, `false` when a send failed or another turn is already pending.
+   * The caller keeps its prompt and attachments until this resolves.
    */
-  sendMessage: (content: MessageContent[], prompt: string) => boolean;
+  sendMessage: (content: MessageContent[], prompt: string) => Promise<boolean>;
   cancelQueued: () => void;
   sendQueuedNow: () => void;
 }
@@ -35,8 +38,12 @@ export function useMessageQueue({
   onStop,
   textareaRef
 }: UseMessageQueueOptions): UseMessageQueueReturn {
-  const [queuedMessage, setQueuedMessage] = useState<QueuedMessage | null>(null);
+  const [queuedMessage, setQueuedMessage] = useState<QueuedMessage | null>(
+    null
+  );
   const sendMessageRef = useRef(onSendMessage);
+  const sending = useRef(false);
+  const attemptedQueuedMessage = useRef<QueuedMessage | null>(null);
   const keepFocusAfterSend = useAutoFocusEnabled();
 
   useEffect(() => {
@@ -44,36 +51,51 @@ export function useMessageQueue({
   }, [onSendMessage]);
 
   const sendMessageNow = useCallback(
-    (content: MessageContent[], messagePrompt: string) => {
-      sendMessageRef.current(content, messagePrompt);
-      if (!textareaRef?.current) {
-        return;
+    async (
+      content: MessageContent[],
+      messagePrompt: string
+    ): Promise<boolean> => {
+      if (sending.current) {
+        return false;
       }
-      if (keepFocusAfterSend) {
-        // Keep focus in the textarea after sending
-        requestAnimationFrame(() => {
-          textareaRef.current?.focus();
-        });
-        return;
+      sending.current = true;
+      try {
+        const accepted = sendMessageRef.current(content, messagePrompt);
+        if (textareaRef?.current && keepFocusAfterSend) {
+          // Keep focus in the textarea after sending
+          requestAnimationFrame(() => {
+            textareaRef.current?.focus();
+          });
+        } else if (textareaRef?.current) {
+          // On touch the focus holds the virtual keyboard open over the reply that
+          // just started streaming. Drop it synchronously so the dismissal still
+          // rides the send gesture (iOS Safari ignores a deferred blur).
+          textareaRef.current.blur();
+        }
+        return (await accepted) !== false;
+      } catch {
+        // The sending surface reports the error. Keep the draft for retry.
+        return false;
+      } finally {
+        sending.current = false;
       }
-      // On touch the focus holds the virtual keyboard open over the reply that
-      // just started streaming. Drop it synchronously so the dismissal still
-      // rides the send gesture (iOS Safari ignores a deferred blur).
-      textareaRef.current.blur();
     },
     [textareaRef, keepFocusAfterSend]
   );
 
   const sendMessage = useCallback(
-    (content: MessageContent[], messagePrompt: string): boolean => {
+    async (
+      content: MessageContent[],
+      messagePrompt: string
+    ): Promise<boolean> => {
       // A queued message is already pending; drop this one and report it so
       // the caller does not clear the prompt/attachments it still holds.
-      if (queuedMessage) {
+      if (queuedMessage || sending.current) {
         return false;
       }
 
       if (!isLoading && !isStreaming) {
-        sendMessageNow(content, messagePrompt);
+        return sendMessageNow(content, messagePrompt);
       } else {
         setQueuedMessage({
           content,
@@ -85,27 +107,41 @@ export function useMessageQueue({
     [isLoading, isStreaming, queuedMessage, sendMessageNow]
   );
 
-  // Send queued message when streaming/loading stops
+  const sendQueued = useCallback(
+    async (message: QueuedMessage) => {
+      attemptedQueuedMessage.current = message;
+      if (await sendMessageNow(message.content, message.prompt)) {
+        setQueuedMessage((current) => (current === message ? null : current));
+      }
+    },
+    [sendMessageNow]
+  );
+
+  // Attempt each queued turn once automatically. A failed turn stays available
+  // for an explicit retry instead of repeatedly reconnecting on every render.
   useEffect(() => {
-    if (!isLoading && !isStreaming && queuedMessage) {
-      const messageToSend = queuedMessage;
-      setQueuedMessage(null);
-      sendMessageNow(messageToSend.content, messageToSend.prompt);
+    if (
+      !isLoading &&
+      !isStreaming &&
+      queuedMessage &&
+      attemptedQueuedMessage.current !== queuedMessage
+    ) {
+      void sendQueued(queuedMessage);
     }
-  }, [isLoading, isStreaming, queuedMessage, sendMessageNow]);
+  }, [isLoading, isStreaming, queuedMessage, sendQueued]);
 
   const cancelQueued = useCallback(() => {
     setQueuedMessage(null);
   }, []);
 
   const sendQueuedNow = useCallback(() => {
-    if (queuedMessage && onStop) {
-      const messageToSend = queuedMessage;
-      setQueuedMessage(null);
-      onStop();
-      sendMessageNow(messageToSend.content, messageToSend.prompt);
+    if (queuedMessage && ((!isLoading && !isStreaming) || onStop)) {
+      if (isLoading || isStreaming) {
+        onStop?.();
+      }
+      void sendQueued(queuedMessage);
     }
-  }, [queuedMessage, onStop, sendMessageNow]);
+  }, [queuedMessage, onStop, isLoading, isStreaming, sendQueued]);
 
   return {
     queuedMessage,

@@ -413,6 +413,21 @@ describe("ChatView", () => {
       });
     });
 
+    it("does not offer to retry the previous message after a new send fails", async () => {
+      const consoleSpy = jest.spyOn(console, "error").mockImplementation(() => {});
+      mockSendMessage.mockRejectedValueOnce(new Error("offline"));
+      useGlobalChatStore.setState({ currentThreadId: "failed-send-thread", error: "offline" });
+      renderWithProviders(<ChatView {...baseProps} messages={[{
+        id: "previous", type: "message", role: "user",
+        content: [{ type: "text", text: "Previous message" }]
+      }]} />);
+      expect(screen.getByRole("button", { name: "Retry" })).toBeInTheDocument();
+      await userEvent.click(screen.getByTestId("send-message-btn"));
+      await waitFor(() => expect(screen.queryByRole("button", { name: "Retry" })).not.toBeInTheDocument());
+      expect(mockSendMessage).toHaveBeenCalledTimes(1);
+      consoleSpy.mockRestore();
+    });
+
     it("handles sendMessage errors gracefully", async () => {
       const consoleSpy = jest
         .spyOn(console, "error")

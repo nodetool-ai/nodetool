@@ -91,13 +91,18 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
 
   const handleRowKeyDown = useCallback(
     (e: React.KeyboardEvent) => {
-      if (isEditing || (e.key !== "Enter" && e.key !== " ")) {
+      if (e.target !== e.currentTarget || isEditing || (e.key !== "Enter" && e.key !== " ")) {
         return;
       }
       e.preventDefault();
-      onOpenWorkflow(workflow);
+      cancelPendingOpen();
+      if (showCheckboxes) {
+        onSelect(workflow);
+      } else {
+        onOpenWorkflow(workflow);
+      }
     },
-    [isEditing, onOpenWorkflow, workflow]
+    [isEditing, showCheckboxes, onSelect, onOpenWorkflow, cancelPendingOpen, workflow]
   );
 
   const handleNameDoubleClick = useCallback(
@@ -170,22 +175,22 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
     const hasGraph = !showGraphPreview && workflow.graph && (workflow.graph.nodes?.length > 0 || workflow.graph.edges?.length > 0);
 
     return (
-      <FlexColumn gap={1} sx={{ width: hasGraph ? 320 : "auto", maxWidth: 320, padding: getSpacingPx(SPACING.xl) }}>
-        <Text size="normal" weight={500}>
+      <FlexColumn gap={SPACING.xs} sx={{ width: hasGraph ? 320 : "auto", maxWidth: 320, padding: getSpacingPx(SPACING.xl) }}>
+        <Text size="small" weight={500}>
           {workflow.name}
         </Text>
         {hasDescription && (
-          <Text size="small" color="secondary" sx={{ mt: 1 }}>
+          <Text size="smaller" color="secondary" sx={{ mt: SPACING.xs }}>
             {workflow.description}
           </Text>
         )}
         {hasTags && (
-          <FlexRow gap={0.5} sx={{ flexWrap: "wrap", mt: 1 }}>
+          <FlexRow gap={SPACING.micro} sx={{ flexWrap: "wrap", mt: SPACING.xs }}>
             {workflow.tags?.map((tag) => (
               <Text
                 key={tag}
                 size="smaller"
-                weight={600}
+                weight={400}
                 family="secondary"
                 sx={{
                   color: "grey.900",
@@ -202,7 +207,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         )}
         {hasGraph && (
           <Box sx={{ 
-            mt: 1,
+            mt: SPACING.xs,
             "& .MuiPaper-root": {
               border: "none",
               borderRadius: 0
@@ -232,7 +237,8 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
       }
       role="button"
       tabIndex={0}
-      aria-label={`Open workflow ${workflow.name}`}
+      aria-label={`${showCheckboxes ? "Select" : "Open"} workflow ${workflow.name}`}
+      aria-pressed={showCheckboxes ? isSelected : undefined}
       onClick={handleRowClick}
       onKeyDown={handleRowKeyDown}
       onContextMenu={handleContextMenu}
@@ -242,10 +248,11 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           className="checkbox"
           size="small"
           checked={isSelected}
+          slotProps={{ input: { "aria-label": `Select workflow ${workflow.name}` } }}
           onClick={handleCheckboxClick}
         />
       )}
-      <Box className="preview-container" sx={{ flexGrow: 1, width: "100%", mr: 0 }}>
+      <Box className="preview-container" sx={{ flexGrow: 1, width: "100%", mr: SPACING.none }}>
         {showGraphPreview && (
           <WorkflowMiniPreview
             workflow={workflow}
@@ -265,7 +272,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
           <Text
             className="name"
             size="small"
-            weight={600}
+            weight={500}
             sx={{ lineHeight: 1.35 }}
             onDoubleClick={handleNameDoubleClick}
             title="Double-click to rename"
@@ -291,7 +298,7 @@ const WorkflowListItem: React.FC<WorkflowListItemProps> = ({
         {!hideDate && (
           <Text
             className="date"
-            size="small"
+            size="smaller"
             color="secondary"
             sx={{ lineHeight: 2.4, textTransform: "uppercase" }}
           >
