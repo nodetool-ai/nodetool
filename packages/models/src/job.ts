@@ -258,6 +258,47 @@ export class Job extends DBModel {
   // ── Static queries ───────────────────────────────────────────────
 
   /**
+   * Fail every run a previous process left in flight.
+   *
+   * A run lives in the process that started it, so a `scheduled`, `queued` or
+   * `running` row created before this process started has nothing left that
+   * could finish it. Without this the row advertises a live run forever: the
+   * editor reattaches to it on every open and the jobs list shows it running.
+   *
+   * `instanceId` scopes the sweep the same way `runner_instance` scopes
+   * ownership. Null means a single-machine deployment, where every such row
+   * belonged to a dead process. With an id, only rows this instance stamped
+   * are swept: an unstamped or foreign row may belong to a live peer.
+   */
+  static async sweepInterrupted(
+    createdBeforeIso: string,
+    instanceId: string | null
+  ): Promise<Job[]> {
+    const db = getDb();
+    const now = new Date().toISOString();
+    const error = "Run was interrupted because the server restarted.";
+    const rows = await db
+      .update(jobs)
+      .set({
+        status: "failed",
+        error,
+        error_message: error,
+        failed_at: now,
+        finished_at: now,
+        updated_at: now
+      })
+      .where(
+        and(
+          inArray(jobs.status, ["scheduled", "queued", "running"]),
+          lt(jobs.created_at, createdBeforeIso),
+          ...(instanceId ? [eq(jobs.runner_instance, instanceId)] : [])
+        )
+      )
+      .returning();
+    return rows.map((r: Record<string, unknown>) => new Job(r));
+  }
+
+  /**
    * Cancel a run without reading it first.
    *
    * A cancel arriving on an instance that does not own the run races the
