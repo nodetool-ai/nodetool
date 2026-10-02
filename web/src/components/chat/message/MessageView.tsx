@@ -50,7 +50,7 @@ import AgentExecutionView from "./AgentExecutionView";
 import CompactionCard, { isCompactionMessage } from "./CompactionCard";
 import MediaOutputGroup from "./MediaOutputGroup";
 import { isMediaOnlyContent } from "./MediaOutputGroup.helpers";
-import { ToolResult } from "./toolResults";
+import { ToolResult } from "./toolResults/ToolResult";
 import PlanDocument from "./PlanDocument";
 import { parsePlanDocument } from "./parsePlanDocument";
 import { formatDuration, formatToolName } from "../../../utils/formatUtils";
