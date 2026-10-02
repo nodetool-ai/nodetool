@@ -11,7 +11,7 @@ function setup(id: string) {
   const preset = findInstrumentPreset(id)!;
   function Editor() {
     const [instrument, setInstrument] = useState<MidiInstrument>(preset.instrument);
-    if (instrument.type === "subtractive") throw new Error("Expected a Fable instrument");
+    if (instrument.type === "subtractive" || instrument.type === "sampler") throw new Error("Expected a Fable instrument");
     return <FableSynthInstrumentEditor instrument={instrument} onChange={(next, pitch) => {
       setInstrument(next);
       onChange(next, pitch);

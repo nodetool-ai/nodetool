@@ -421,7 +421,29 @@ export type DrumPad = z.infer<typeof drumPad>;
  * FableSynth instruments (github.com/georgi/fablesynth): WT-1 the wavetable
  * synth, BL-1 the acid bassline, DR-1 the drum machine.
  */
+export const samplerZone = z.object({
+  id: z.string().min(1),
+  name: z.string(),
+  assetId: z.string().regex(/^[a-f0-9]{32}$/, "Use a full audio asset id"),
+  rootNote: z.number().int().min(0).max(127),
+  lowNote: z.number().int().min(0).max(127),
+  highNote: z.number().int().min(0).max(127),
+  gainDb: z.number().min(-60).max(12)
+}).refine(zone => zone.lowNote <= zone.highNote, {
+  message: "The lowest key must not exceed the highest key"
+});
+
+export const samplerMidiInstrument = z.object({
+    type: z.literal("sampler"),
+    zones: z.array(samplerZone).max(32),
+    oneShot: z.boolean(),
+    attackMs: z.number().min(0).max(10000),
+    releaseMs: z.number().min(0).max(30000),
+    gainDb: z.number().min(-60).max(12)
+  });
+
 export const midiInstrument = z.discriminatedUnion("type", [
+  samplerMidiInstrument,
   z.object({
     type: z.literal("subtractive"),
     waveform: z.enum(["saw", "square", "triangle", "sine"]),

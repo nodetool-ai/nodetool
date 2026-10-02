@@ -54,7 +54,7 @@ function isSpawnEnoent(err: unknown): boolean {
 /** Run ffmpeg, mapping a missing binary to {@link MissingBinaryError}. */
 export async function execFfmpeg(
   args: string[],
-  options: { maxBuffer?: number } = {}
+  options: { maxBuffer?: number; signal?: AbortSignal } = {}
 ): Promise<{ stdout: string; stderr: string }> {
   try {
     return await execFile("ffmpeg", args, options);
@@ -67,7 +67,7 @@ export async function execFfmpeg(
 /** Run ffprobe, mapping a missing binary to {@link MissingBinaryError}. */
 export async function execFfprobe(
   args: string[],
-  options: { maxBuffer?: number } = {}
+  options: { maxBuffer?: number; signal?: AbortSignal } = {}
 ): Promise<{ stdout: string; stderr: string }> {
   try {
     return await execFile("ffprobe", args, options);

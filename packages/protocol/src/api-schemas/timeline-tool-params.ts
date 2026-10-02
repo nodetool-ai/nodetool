@@ -32,6 +32,8 @@ import {
   clipShapeStyle,
   clipTextStyle,
   midiInstrument,
+  samplerMidiInstrument,
+  samplerZone,
   KNOWN_CLIP_EFFECT_TYPE_LIST,
   KNOWN_TRANSITION_TYPE_LIST,
   MIDI_MAX_NOTES_PER_CLIP,
@@ -1613,7 +1615,7 @@ export const midiInstrumentPresetRef = z.object({
   preset: z
     .string()
     .describe(
-      "A shipped voice by id: saw-lead, square-lead, soft-pad, pluck, bass, bell, wt1-prime-lead, wt1-bloom-pad, wt1-vox-morph, wt1-chime-bell, bl1-acid, bl1-deep, bl1-rubber, dr1-tr-void."
+      "A shipped voice by id. sampler starts an empty sample instrument. For recordings pass a full sampler instrument: type sampler, zones [{id, name, assetId (full audio asset id), rootNote, lowNote, highNote, gainDb}], oneShot, attackMs, releaseMs, gainDb. One-shot plays full recordings; gated mode releases on note-off. Recordings must be at most 60 seconds. Soundtrack presets: wt1-cinematic-strings, wt1-chamber-strings, wt1-short-strings, wt1-low-strings, wt1-warm-brass, wt1-air-choir, wt1-dark-swell, wt1-soft-keys, wt1-glass-mallet, wt1-muted-pluck, bl1-cinematic-sub, bl1-score-pulse, bl1-rounded-bass, dr1-cinematic. Also available: saw-lead, square-lead, soft-pad, pluck, bass, bell, wt1-prime-lead, wt1-bloom-pad, wt1-vox-morph, wt1-chime-bell, bl1-acid, bl1-deep, bl1-rubber, dr1-tr-void. Orchestral voices are synthesized. Play low strings around MIDI 36–55, ensembles around 48–79, and basses around 28–48. Drum pads use MIDI 36–51."
     )
 });
 export type MidiInstrumentPresetRef = z.infer<typeof midiInstrumentPresetRef>;
@@ -1622,9 +1624,13 @@ export type MidiInstrumentPresetRef = z.infer<typeof midiInstrumentPresetRef>;
 export const setTrackInstrumentParams = z.object({
   track: trackTargetParam.describe("Midi track, by id or name."),
   instrument: z
-    .union([midiInstrument, midiInstrumentPresetRef])
+    .union([midiInstrument, midiInstrumentPresetRef, samplerMidiInstrument.extend({
+      zones: z.array(samplerZone.safeExtend({
+        assetId: z.string().regex(/^(?:[a-f0-9]{12}|[a-f0-9]{32})$/)
+      })).max(32)
+    })])
     .describe(
-      'The voice this track\'s clips play, either way round. Named: `{"preset": "soft-pad"}` — one of saw-lead, square-lead, soft-pad, pluck, bass, bell, wt1-prime-lead, wt1-bloom-pad, wt1-vox-morph, wt1-chime-bell, bl1-acid, bl1-deep, bl1-rubber, dr1-tr-void. Spelled out, there are four synths. `subtractive` is one oscillator through a lowpass filter and an ADSR envelope: `waveform` saw/square/triangle/sine, `attackMs`/`decayMs`/`releaseMs` in milliseconds, `sustain` 0..1 of the peak, `cutoffHz` the filter frequency in Hz, `resonance` its Q, `gainDb` the output level in dB. The other three are the FableSynth instruments: `wavetable` (WT-1) is two morphing wavetable oscillators plus a sub and noise through one filter swept by `modEnv`; `bass` (BL-1) is a monophonic acid line where a note at or above `accentVelocity` hits harder and a note overlapping the one before it glides over `slideMs`; `drum` (DR-1) is a kit of pads played one per note from `baseNote`, each ringing for its own decay however short the note is.'
+      'The voice this track\'s clips play, either way round. Named: `{"preset": "wt1-cinematic-strings"}`. See the preset field for available voices. Spelled out, there are four synths. `subtractive` is one oscillator through a lowpass filter and an ADSR envelope: `waveform` saw/square/triangle/sine, `attackMs`/`decayMs`/`releaseMs` in milliseconds, `sustain` 0..1 of the peak, `cutoffHz` the filter frequency in Hz, `resonance` its Q, `gainDb` the output level in dB. The other three are the FableSynth instruments: `wavetable` (WT-1) is two morphing wavetable oscillators plus a sub and noise through one filter swept by `modEnv`; `bass` (BL-1) is a monophonic acid line where a note at or above `accentVelocity` hits harder and a note overlapping the one before it glides over `slideMs`; `drum` (DR-1) is a kit of pads played one per note from `baseNote`, each ringing for its own decay however short the note is.'
     )
 });
 export type SetTrackInstrumentParams = z.infer<typeof setTrackInstrumentParams>;

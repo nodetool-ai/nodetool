@@ -17,6 +17,7 @@ import type {
   TimelineTempo,
   TimelineTrack
 } from "@nodetool-ai/timeline";
+import { getSamplerAudio } from "../preview/samplerAudio";
 import { AudioGraph, type ScheduledAudioClip } from "../preview/AudioGraph";
 
 interface RenderAudioOptions {
@@ -88,6 +89,7 @@ export async function renderTimelineAudio(
           clip,
           bpm,
           instrument: instrumentOf(clip.trackId),
+          samples: await getSamplerAudio(offline, instrumentOf(clip.trackId), resolveUrl),
           sampleRate
         });
         const buffer = offline.createBuffer(

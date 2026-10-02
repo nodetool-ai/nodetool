@@ -16,6 +16,7 @@ import type {
   SubtractiveMidiInstrument,
   TimelineClip
 } from "../types.js";
+import { renderSamplerVoices, samplerTailMs, type SamplerSamples } from "./sampler.js";
 import { instrumentTailMs } from "./instrument.js";
 import { renderBassVoices } from "./engines/bl1.js";
 import { renderDrumVoice } from "./engines/dr1.js";
@@ -383,7 +384,8 @@ export function renderInstrumentEvents(
   events: ReadonlyArray<VoiceEvent>,
   totalFrames: number,
   instrument: MidiInstrument,
-  sampleRate: number
+  sampleRate: number,
+  samples: SamplerSamples = {}
 ): Float32Array {
   if (instrument.type === "subtractive") {
     return renderVoiceEvents(events, totalFrames, instrument, sampleRate);
@@ -393,6 +395,9 @@ export function renderInstrumentEvents(
   let soundingAtEnd = false;
 
   switch (instrument.type) {
+    case "sampler":
+      soundingAtEnd = renderSamplerVoices(out, events, instrument, sampleRate, samples);
+      break;
     case "wavetable":
       for (const event of events) {
         if (renderWavetableVoice(out, event, instrument, sampleRate)) {
@@ -416,6 +421,7 @@ export function renderInstrumentEvents(
 }
 
 export interface RenderMidiClipInput {
+  samples?: SamplerSamples;
   clip: Pick<TimelineClip, "notes" | "inPointMs" | "durationMs">;
   bpm: number;
   instrument: MidiInstrument;
@@ -454,10 +460,11 @@ export function renderMidiClip(input: RenderMidiClipInput): Float32Array {
     };
   });
 
-  return renderInstrumentEvents(events, totalFrames, instrument, sampleRate);
+  return renderInstrumentEvents(events, totalFrames, instrument, sampleRate, input.samples);
 }
 
 export interface RenderAuditionNoteInput {
+  samples?: SamplerSamples;
   pitch: number;
   velocity: number;
   durationMs: number;
@@ -475,7 +482,7 @@ export function renderAuditionNote(
 ): Float32Array {
   const { pitch, velocity, durationMs, instrument, sampleRate } = input;
   const totalFrames = Math.round(
-    ((durationMs + instrumentTailMs(instrument)) / 1000) * sampleRate
+    ((durationMs + (instrument.type === "sampler" ? Math.min(30000, samplerTailMs(instrument, pitch, input.samples ?? {})) : instrumentTailMs(instrument))) / 1000) * sampleRate
   );
   const gateOffFrame = Math.round((durationMs / 1000) * sampleRate);
   return renderInstrumentEvents(
@@ -489,6 +496,7 @@ export function renderAuditionNote(
     ],
     totalFrames,
     instrument,
-    sampleRate
+    sampleRate,
+    input.samples
   );
 }
