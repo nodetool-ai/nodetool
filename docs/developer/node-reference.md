@@ -61,11 +61,13 @@ export class MultiOutputNode extends BaseNode {
   @prop({ type: "any", default: [], title: "Value" })
   declare value: any;
 
+  // Return only the taken branch. A missing key sends nothing on that
+  // output, so nodes wired only to it do not run.
   async process(): Promise<Record<string, unknown>> {
     if (this.condition) {
-      return { if_true: this.value, if_false: null };
+      return { if_true: this.value };
     }
-    return { if_true: null, if_false: this.value };
+    return { if_false: this.value };
   }
 }
 
@@ -209,7 +211,7 @@ declare config: any;
 
 ## ProcessingContext Essentials
 
-The optional argument to `process()` and `genProcess()` is a **`ProcessingContext`** from `@nodetool-ai/runtime`. It provides access to provider predictions, secrets, and runtime services. Property values for declared `@prop` fields are assigned to `this` before `process()` is called — read them directly from `this.<field>`.
+The optional argument to `process()` and `genProcess()` is a **`ProcessingContext`** from `@nodetool-ai/runtime`. It provides access to provider predictions, secrets, storage, the workspace, the cache, and HTTP helpers. See the [Custom Nodes Guide §10](custom-nodes-guide.md#10-processingcontext--the-runtime-surface) for the full surface. Property values for declared `@prop` fields are assigned to `this` before `process()` is called — read them directly from `this.<field>`.
 
 ```ts
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -221,7 +223,7 @@ async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
   const apiKey = this._secrets.MY_API_KEY ?? process.env.MY_API_KEY ?? "";
 
   // Run a provider prediction (image generation, TTS, etc.)
-  if (context && typeof context.runProviderPrediction === "function") {
+  if (context) {
     const output = await context.runProviderPrediction({
       provider: "openai",
       capability: "text_to_image",
@@ -231,7 +233,7 @@ async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
   }
 
   // Stream a provider prediction (e.g., TTS chunks)
-  if (context && typeof context.streamProviderPrediction === "function") {
+  if (context) {
     for await (const chunk of context.streamProviderPrediction({
       provider: "openai",
       capability: "text_to_speech",
@@ -242,8 +244,8 @@ async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
     }
   }
 
-  // Resolve a secret manually (bypasses requiredSettings)
-  if (context && typeof context.getSecret === "function") {
+  // Resolve a secret manually (returns null when missing)
+  if (context) {
     const secret = await context.getSecret("SOME_KEY");
   }
 
@@ -256,39 +258,22 @@ async process(context?: ProcessingContext): Promise<Record<string, unknown>> {
 Nodes handle media as ref objects. Extract bytes, process them, and return a new ref:
 
 ```ts
-// Image: load bytes from ref
-async function imageBytesAsync(image: unknown): Promise<Uint8Array> {
-  if (!image || typeof image !== "object") return new Uint8Array();
-  const ref = image as { uri?: string; data?: Uint8Array | string };
-  if (ref.data) {
-    return ref.data instanceof Uint8Array
-      ? ref.data
-      : Uint8Array.from(Buffer.from(ref.data as string, "base64"));
-  }
-  if (ref.uri) {
-    const res = await fetch(ref.uri);
-    return new Uint8Array(await res.arrayBuffer());
-  }
-  return new Uint8Array();
-}
+import { imageRefFromBytes, loadMediaRefBytes } from "@nodetool-ai/runtime";
 
-// Image: create ref from bytes
-function imageRef(data: Uint8Array, extras: Record<string, unknown> = {}): Record<string, unknown> {
-  return { data: Buffer.from(data).toString("base64"), ...extras };
-}
+// Load bytes from any ref: inline data, asset://, storage URIs, http(s)
+const bytes = await loadMediaRefBytes(this.image, context); // Uint8Array | null
 
-// Audio: same pattern
-function audioRefFromBytes(data: Uint8Array, uri?: string): Record<string, unknown> {
-  return { uri: uri ?? "", data: Buffer.from(data).toString("base64") };
-}
+// Create an image ref from encoded bytes (sets type, base64 data, MIME, size)
+const ref = await imageRefFromBytes(outputBytes);
 ```
 
-`@nodetool-ai/runtime` exports a shared `loadMediaRefBytes(ref, context?)` helper that handles `data`, `uri`, and storage-backed refs in one call.
+`loadMediaRefBytes(ref, context?)` returns `null` when it finds no bytes, so check the result. Reading `ref.data` or calling `fetch(ref.uri)` directly misses `asset://` references. Audio and video have helpers in their packages, such as `audioBytesAsync` and `audioRefFromBytes` in `packages/audio-nodes`.
 
 ## Static Class Properties
 
 ```ts
-// Declare output types (required for UI connectors)
+// Declare output types (required for UI connectors). Every key a node
+// returns must be declared here.
 static readonly metadataOutputTypes = { output: "str", count: "int" };
 
 // Enable dynamic (user-added) input connectors. Read/write extra inputs at
@@ -298,6 +283,9 @@ static readonly supportsDynamicInputs = true;
 // Support dynamic output slots
 static readonly supportsDynamicOutputs = true;
 
+// Restrict which types a user may pick for a dynamic input slot
+static readonly allowedDynamicSlotTypes = [{ type: "str", type_args: [] }, { type: "int", type_args: [] }];
+
 // Field split for the UI: inlineFields render compactly on the node body;
 // inputFields render as the larger expanded inputs.
 static readonly inlineFields = ["prompt"];
@@ -306,7 +294,7 @@ static readonly inputFields = ["model"];
 // Input consumption mode (default is undefined → buffered):
 //   "buffered"   — collect a matched set of inputs, call process() once
 //   "stream"     — consume inputs as an async stream via run()
-//   "controlled" — node manages its own input/output flow
+//   "controlled" — node runs when control events arrive (see isControlled)
 static readonly inputMode = "buffered";
 
 // Accept streaming input (used together with inputMode = "stream")
@@ -323,6 +311,12 @@ static readonly outputCorrelation = {
 
 // Declare required secrets — injected onto this._secrets
 static readonly requiredSettings = ["OPENAI_API_KEY"];
+
+// Run-planning hints
+static readonly effect = "pure";       // "pure" | "read" | "write" | "external" (default "external")
+static readonly cacheTtl = "forever";  // reuse results of partial runs: "forever" or seconds
+static readonly retrySafe = true;      // re-running with identical inputs is safe
+static readonly platforms = ["node"];  // deployment targets (default ["node"])
 ```
 
 > There is no `isStreamingOutput`, `syncMode`, `isDynamic`, or `basicFields`
@@ -333,15 +327,16 @@ static readonly requiredSettings = ["OPENAI_API_KEY"];
 ## Lifecycle Hooks
 
 ```ts
-// Called once at the start of a workflow run -- reset state here
+// Called once per node before the run starts -- reset state here
 async initialize(): Promise<void> {
   this._items = [];
 }
 
-// Called before each process() invocation
+// Called once when the node's actor starts, before its first invocation
+// (not before every process() call)
 async preProcess(): Promise<void> {}
 
-// Called after all processing is complete
+// Called when the node finishes, including after an error
 async finalize(): Promise<void> {}
 ```
 
@@ -368,33 +363,57 @@ async *genProcess(): AsyncGenerator<Record<string, unknown>> {
 
 ## Input Node Quick List
 
+Types in the `nodetool.input` namespace (`packages/core-nodes/src/nodes/input.ts`). The generated catalog under `docs/nodes/nodetool/input/` documents each one.
+
 ```text
 StringInput           - Text value
 IntegerInput          - Whole number (min/max)
 FloatInput            - Decimal (min/max)
 BooleanInput          - True/False toggle
+SelectInput           - Choice from a fixed set of options
+ColorInput            - Color picker
+ImageSizeInput        - Image width and height
+ValueInput            - Any value, passed through unconverted
+
 StringListInput       - List of strings
+TextListInput         - List of text values
+ImageListInput        - List of images
+AudioListInput        - List of audio clips
+VideoListInput        - List of videos
 
 LanguageModelInput    - Select LLM
 ImageModelInput       - Select image model
+VideoModelInput       - Select video model
+TTSModelInput         - Select text-to-speech model
+ASRModelInput         - Select speech-recognition model
+EmbeddingModelInput   - Select embedding model
+HuggingFaceModelInput - Select a Hugging Face model
 
 ImageInput            - Image asset reference
 AudioInput            - Audio asset reference
 VideoInput            - Video asset reference
 DocumentInput         - Document asset reference
+Model3DInput          - 3D model asset reference
+DataframeInput        - Tabular data
 AssetFolderInput      - Folder asset reference
-ColorInput            - Color picker
-CollectionInput       - Vector DB collection
 
 FolderPathInput       - Local folder path
 FilePathInput         - Local file path
 DocumentFileInput     - Load document from file
+
+MessageInput          - Chat message
+MessageListInput      - List of chat messages
+MessageDeconstructor  - Split a message into its fields
+RealtimeAudioInput    - Live audio stream
 ```
+
+Vector collections come from `vector.Collection`, not an input node.
 
 ## Output Node Quick List
 
 ```text
-Output                - Generic output for any data type
+nodetool.output.Output                 - Named output for any data type
+nodetool.workflows.base_node.Preview   - Show values inside the graph
 ```
 
 ## Docstring Keywords by Category
@@ -449,15 +468,17 @@ describe("MyNode", () => {
 });
 ```
 
+For nodes that read the context, build one with `createFakeContext()` from `@nodetool-ai/runtime` and pass `handle.context` to `process()`. To run a single registered node from the shell, use `nodetool node run mypackage.MyNode --props '{"value":"hello"}'`.
+
 ## Key Reminders
 
 1. All `process()` and `genProcess()` methods must be **async**
 2. Always declare **`metadataOutputTypes`** -- it drives the UI output connectors
 3. Use **`@prop`** for every input -- it provides validation, defaults, and UI hints
 4. Read input values from `this.<field>` -- the engine assigns them before `process()` runs
-5. Return a plain object whose keys match the `metadataOutputTypes` keys
+5. Return a plain object whose keys are declared in `metadataOutputTypes` (omit a key to send nothing on that output)
 6. Use **`genProcess()`** with `yield` for streaming outputs
 7. Use **`initialize()`** to reset state in stateful / collector nodes
 8. Declare **`requiredSettings`** for API keys; read them from `this._secrets`
-9. Node discovery is automatic when classes are registered in the package index
+9. A class exists to the runtime only after something registers it. Packs do that in their `register` function
 10. Test with `vitest` -- nodes are plain classes, easy to instantiate and call

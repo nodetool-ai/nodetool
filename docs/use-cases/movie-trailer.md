@@ -46,7 +46,9 @@ graph LR
 {% endmermaid %}
 
 1. **Start with one line.** Type the logline. Two more inputs set the visual
-   style and the shot count — that's the entire brief.
+   style and the shot count (1 to 20, default 6). That's the entire brief. The
+   shipped template is named *Movie Trailer Generator* (**Examples** in the
+   sidebar, **Workflows** tab).
    *(e.g. "A getaway driver outruns a collapsing bridge · gritty daylight · 6 shots")*
 2. **Direct the storyboard.** The Director node writes the screenplay: one shot
    per beat, each with framing, lens, angle, and movement, under a single style

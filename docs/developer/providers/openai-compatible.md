@@ -79,9 +79,9 @@ with NodeTool. That is the rest of this guide.
 ## TL;DR
 
 - Models appear automatically: each provider fetches its `/models` endpoint at runtime, so new upstream models show up in the model picker without a code change.
-- Adding a whole new provider is three small edits: one constant in `@nodetool-ai/protocol`, one `~90-line` file in `packages/runtime/src/providers/`, one `registerBuiltinProvider` call in the runtime index.
+- Adding a whole new provider is three small edits: one constant in `@nodetool-ai/protocol`, one file of about 45 lines in `packages/runtime/src/providers/`, one `registerBuiltinProvider` call in the runtime index.
 - Cohere is the only exception: it subclasses `BaseProvider` directly (embeddings only, no chat).
-- Moonshot is another exception: it subclasses `AnthropicProvider` (Kimi exposes an Anthropic-compatible endpoint, not OpenAI).
+- Every other provider here subclasses `OpenAICompatProvider`, which owns the chat path. Moonshot (Kimi) uses the same pattern against its OpenAI-compatible endpoint, with its own `/models` fetch.
 
 ---
 
@@ -89,10 +89,11 @@ with NodeTool. That is the rest of this guide.
 
 | What | Path |
 |------|------|
-| Provider ID constants | `packages/protocol/src/api-types.ts` (`PROVIDER_IDS` const, line 858) |
+| Provider ID constants | `packages/protocol/src/api-types.ts` (`PROVIDER_IDS` const) |
 | Provider source files | `packages/runtime/src/providers/<name>-provider.ts` |
 | Registration + exports | `packages/runtime/src/providers/index.ts` |
-| OpenAI base class | `packages/runtime/src/providers/openai-provider.ts` |
+| Compat base class (chat, model listing helpers) | `packages/runtime/src/providers/openai-compat-provider.ts` |
+| OpenAI base class (images, ASR, TTS, embeddings) | `packages/runtime/src/providers/openai-provider.ts` |
 | Base class for all providers | `packages/runtime/src/providers/base-provider.ts` |
 | Provider types (`LanguageModel`, etc.) | `packages/runtime/src/providers/types.ts` |
 
@@ -100,92 +101,68 @@ with NodeTool. That is the rest of this guide.
 
 ## The shared pattern
 
-DeepSeek is the canonical example. The full 93-line file is annotated below.
+DeepSeek is the canonical example. The whole file is about 45 lines.
 
 ```ts
 // packages/runtime/src/providers/deepseek-provider.ts
 
-import OpenAI from "openai";
-import { OpenAIProvider } from "./openai-provider.js";        // (1) inherit chat, streaming, tools
+import {
+  OpenAICompatProvider,
+  type OpenAICompatProviderOptions
+} from "./openai-compat-provider.js";                         // (1) inherit chat, streaming, tools
 import type { LanguageModel } from "./types.js";
 
 const DEEPSEEK_BASE_URL = "https://api.deepseek.com/v1";     // (2) provider's OpenAI-compatible base
 
-interface DeepSeekProviderOptions {
-  client?: OpenAI;
-  clientFactory?: (apiKey: string) => OpenAI;
-  fetchFn?: typeof fetch;                                     // (3) injected for testability
-}
-
-export class DeepSeekProvider extends OpenAIProvider {
-  // (4) requiredSecrets() names the env/DB key the registry resolves at call time
+export class DeepSeekProvider extends OpenAICompatProvider {
+  // (3) requiredSecrets() names the settings key the registry resolves at call time
   static override requiredSecrets(): string[] {
     return ["DEEPSEEK_API_KEY"];
   }
 
-  private _deepseekFetch: typeof fetch;
-
   constructor(
     secrets: { DEEPSEEK_API_KEY?: string },
-    options: DeepSeekProviderOptions = {}
+    options: OpenAICompatProviderOptions = {}               // (4) fetchFn, client, compatClient for tests
   ) {
     const apiKey = secrets.DEEPSEEK_API_KEY;
     if (!apiKey) {
       throw new Error("DEEPSEEK_API_KEY is required");
     }
 
-    const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
-
-    // (5) pass key as OPENAI_API_KEY; supply a clientFactory that sets baseURL
+    // (5) providerId labels spans and model objects; baseURL is the chat endpoint root
     super(
-      { OPENAI_API_KEY: apiKey },
-      {
-        client: options.client,
-        clientFactory:
-          options.clientFactory ??
-          ((key) => new OpenAI({ apiKey: key, baseURL: DEEPSEEK_BASE_URL })),
-        fetchFn
-      }
+      { providerId: "deepseek", apiKey, baseURL: DEEPSEEK_BASE_URL },
+      options
     );
-
-    // (6) override the `provider` field so spans and model objects carry the right id
-    (this as { provider: string }).provider = "deepseek";
-    this._deepseekFetch = fetchFn;
   }
 
-  // (7) export the provider-specific key to Docker/subprocess environments
-  override getContainerEnv(): Record<string, string> {
+  // (6) export the provider-specific key to Docker/subprocess environments
+  override getContainerEnv() {
     return { DEEPSEEK_API_KEY: this.apiKey };
   }
 
-  // (8) true when the API supports function/tool calling; override per-model if mixed
+  // (7) true when the API supports function/tool calling; override per-model if mixed
   override async hasToolSupport(_model: string): Promise<boolean> {
     return true;
   }
 
-  // (9) fetch the live model list; return [] on failure (graceful degradation)
+  // (8) GET <baseURL>/models, mapped to LanguageModel rows tagged with providerId.
+  // A failed request is logged and answers [] so one broken provider does not block the model menu.
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const response = await this._deepseekFetch(
-      `${DEEPSEEK_BASE_URL}/models`,
-      { headers: { Authorization: `Bearer ${this.apiKey}` } }
-    );
-    if (!response.ok) return [];
-
-    const payload = (await response.json()) as {
-      data?: Array<{ id?: string; name?: string }>;
-    };
-    const rows = payload.data ?? [];
-    return rows
-      .filter(
-        (row): row is { id: string; name?: string } =>
-          typeof row.id === "string" && row.id.length > 0
-      )
-      .map((row) => ({ id: row.id, name: row.name ?? row.id, provider: "deepseek" }));
+    return this.listCompatModels();
   }
 }
 ```
 
-Groq, Mistral, Cerebras, Alibaba Cloud, and OpenRouter follow this pattern exactly. Alibaba Cloud reads `DASHSCOPE_API_KEY` and points at Model Studio's international DashScope endpoint, `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`. OpenRouter adds a few extras: `defaultHeaders` on the `OpenAI` client (HTTP-Referer, X-Title), `textToImage`, and a `hasToolSupport` override that returns `false` for o1/o3 model IDs. Requesty sends the same attribution headers and builds its model list from `/models/managed` followed by `/models`, keeping only `api: "chat"` rows.
+The config object also takes `defaultHeaders`, sent on every chat request and `/models` fetch. `OpenAICompatProvider` extends `OpenAIProvider`, so image, ASR, TTS, and embedding surfaces are inherited. Those return empty lists unless the subclass declares its own catalog (see `servesOpenAICatalog()` in the [OpenAI guide](openai.md)).
+
+Groq, Mistral, Cerebras, Moonshot, and Alibaba Cloud follow this pattern. Differences:
+
+- **Alibaba Cloud** reads `DASHSCOPE_API_KEY`. The base URL defaults to the international DashScope endpoint, `https://dashscope-intl.aliyuncs.com/compatible-mode/v1`. A key from another region needs `DASHSCOPE_BASE_URL` set to that region's `/compatible-mode/v1` URL. `hasToolSupport` returns `false` for families DashScope excludes from function calling (`qwen-math`, `qvq`, `qwen-vl-ocr`, `qwen-mt`, audio, TTS, and embedding ids). The provider sends `max_tokens` in place of `max_completion_tokens`.
+- **Groq** annotates request failures with a token estimate and detects context-exceeded errors (`groq-request.ts`).
+- **Moonshot** reads `KIMI_API_KEY`, targets `https://api.moonshot.ai/v1`, and fetches `/models` itself.
+- **OpenRouter** sends attribution headers (`HTTP-Referer`, `X-Title`) through `defaultHeaders`. It adds image, video, TTS, ASR, and embedding methods, and `hasToolSupport` returns `false` for ids containing `o1` or `o3`.
+- **Requesty** sends the same attribution headers and builds its model list from `/models/managed` followed by `/models`, keeping only rows whose `api` is `"chat"`. It reads `supports_tool_calling` per model, and only an explicit `false` disables tools.
 
 ---
 
@@ -196,7 +173,7 @@ Groq, Mistral, Cerebras, Alibaba Cloud, and OpenRouter follow this pattern exact
 Open `packages/protocol/src/api-types.ts` and add a key to `PROVIDER_IDS`:
 
 ```ts
-// packages/protocol/src/api-types.ts  (around line 858)
+// packages/protocol/src/api-types.ts
 
 export const PROVIDER_IDS = {
   // ... existing entries ...
@@ -204,7 +181,7 @@ export const PROVIDER_IDS = {
 } as const;
 ```
 
-The comment above the const (line 855) says: "Adding a provider? Add it here first, then register it in `@nodetool-ai/runtime`'s provider index." Follow that order.
+The comment above the const says: "Adding a provider? Add it here first, then register it in `@nodetool-ai/runtime`'s provider index." Follow that order.
 
 Build the protocol package so downstream packages see the new constant:
 
@@ -222,9 +199,8 @@ Create `packages/runtime/src/providers/acme-provider.ts`. Copy the DeepSeek temp
 | `DEEPSEEK_API_KEY` | `ACME_API_KEY` |
 | `DEEPSEEK_BASE_URL` / `https://api.deepseek.com/v1` | ACME's base URL |
 | `"deepseek"` (the wire id string) | `"acme"` |
-| `this._deepseekFetch` | `this._acmeFetch` |
 
-If the provider's `/models` response uses a different shape (not `{ data: [{ id, name }] }`), adjust the `getAvailableLanguageModels` parser accordingly.
+If the provider's `/models` response uses a different shape (not `{ data: [{ id, name }] }`), replace `listCompatModels()` with your own parser. `fetchCompatModelRows(url)` returns the raw rows when you need vendor fields.
 
 If the provider does not support tool calling for some or all models, implement `hasToolSupport` to return `false` where appropriate (see the OpenRouter implementation for a model-name heuristic).
 
@@ -240,7 +216,7 @@ import { AcmeProvider } from "./acme-provider.js";
 export { AcmeProvider };
 ```
 
-And one `registerBuiltinProvider` call in the registration block (around line 199):
+And one `registerBuiltinProvider` call in the registration block, before the local-only `if (!_cloudProfile)` section:
 
 ```ts
 registerBuiltinProvider(PROVIDER_IDS.ACME, AcmeProvider, { ACME_API_KEY: "" });
@@ -258,7 +234,7 @@ If Groq, DeepSeek, Mistral, Cerebras, Alibaba Cloud, OpenRouter, or Requesty add
 
 ### Tool-support overrides
 
-`hasToolSupport(model: string)` controls whether the UI offers tool/function calling for a given model. All five OpenAI-subclass providers currently return `true` unconditionally. OpenRouter overrides per-model-id:
+`hasToolSupport(model: string)` controls whether the UI offers tool/function calling for a given model. Groq, Mistral, Cerebras, DeepSeek, and Moonshot return `true` unconditionally. OpenRouter, Alibaba Cloud, and Requesty decide per model. OpenRouter checks the model id:
 
 ```ts
 // packages/runtime/src/providers/openrouter-provider.ts
@@ -273,15 +249,15 @@ Apply the same pattern to any other provider where some models lack tool support
 
 ### Embedding models (Mistral)
 
-Mistral is the only OpenAI-subclass provider that also exposes embeddings. The model list is static (one entry, `mistral-embed`) and lives in `getAvailableEmbeddingModels()` in `packages/runtime/src/providers/mistral-provider.ts`. To add an embedding model, append to that array.
+Mistral is the only provider here that subclasses `OpenAICompatProvider` and also lists embeddings (OpenRouter lists embeddings from its own catalog). The model list is static (one entry, `mistral-embed`) and lives in `getAvailableEmbeddingModels()` in `packages/runtime/src/providers/mistral-provider.ts`. To add an embedding model, append to that array.
 
 ### Cohere — embeddings-only, different base class
 
-Cohere subclasses `BaseProvider` directly, not `OpenAIProvider`. It has no chat support. Its embedding model list is the static `COHERE_EMBEDDING_MODELS` array at the top of `packages/runtime/src/providers/cohere-provider.ts`. Append there to add a new Cohere embedding model.
+Cohere subclasses `BaseProvider` directly, not `OpenAICompatProvider`. It has no chat support. Its embedding model list is the static `COHERE_EMBEDDING_MODELS` array at the top of `packages/runtime/src/providers/cohere-provider.ts`. Append there to add a new Cohere embedding model.
 
-### Moonshot — Anthropic-compatible endpoint
+### Moonshot
 
-Moonshot subclasses `AnthropicProvider` and uses a hardcoded `knownModels` list in `getAvailableLanguageModels()` (not a live fetch). To add a Kimi model, add its id to that array in `packages/runtime/src/providers/moonshot-provider.ts`.
+Moonshot fetches `GET https://api.moonshot.ai/v1/models` live, so new Kimi models need no code change.
 
 ---
 
@@ -304,7 +280,7 @@ npm run typecheck
 **3. Confirm the provider returns models** (requires the API key in secrets or env).
 
 ```bash
-npm run dev:nodetool -- info --json | grep acme
+npm run dev:nodetool -- models by-provider acme --kind llm
 ```
 
 Or run a single chat to exercise the full path:
@@ -320,26 +296,13 @@ npm run dev:nodetool -- node run nodetool.agents.Agent \
   --props '{"prompt":"hello","model":{"type":"language_model","provider":"acme","id":"<model-id>"}}'
 ```
 
-**5. Full suite.**
+**5. Affected tests, lint, and the harness gate.**
 
 ```bash
-npm run check
+npm run test:affected
+npm run lint
+npm run dev:nodetool -- harness gate --base origin/main
 ```
-
----
-
-## How past PRs did it
-
-The seven OpenAI-subclass providers arrived across four commits, not one:
-
-- `4469fd80` ("Add TypeScript backend packages from nodetool-core/ts") — `cerebras-provider.ts`, `groq-provider.ts`, `mistral-provider.ts`, `openrouter-provider.ts`
-- `377d2304` ("feat: add Moonshot AI (Kimi) provider via Anthropic-compatible endpoint") — `moonshot-provider.ts`
-- `e2118f8e` ("feat(runtime): add DeepSeek and xAI (Grok) providers") — `deepseek-provider.ts`
-- `a21a5131` ("feat(runtime): add Cohere, Voyage AI, and Jina AI embedding providers") — `cohere-provider.ts`
-
-Each wired its provider into `index.ts` in the same commit — that pairing, not the batch, is the pattern to copy.
-
-**Commit `34599547`** ("refactor(providers): centralize provider IDs in protocol") moved provider id strings out of scattered literals and into `PROVIDER_IDS` in `@nodetool-ai/protocol`. Any new provider follows the post-refactor convention: constant in protocol, `PROVIDER_IDS.X` everywhere else.
 
 ---
 
@@ -347,5 +310,5 @@ Each wired its provider into `index.ts` in the same commit — that pairing, not
 
 - Repository: <https://github.com/nodetool-ai/nodetool>
 - Discord: <https://discord.gg/WmQTWZRcYE>
-- Run `npm run check` (typecheck + lint + tests) before opening a PR. PRs that break any of the three will not merge.
+- Run the Verify steps above before opening a PR.
 - Follow [docs/WRITING_STYLE.md](https://github.com/nodetool-ai/nodetool/blob/main/docs/WRITING_STYLE.md) for any Markdown you touch.

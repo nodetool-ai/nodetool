@@ -4,75 +4,83 @@ title: "Templates Gallery"
 description: "Browse ready-to-run example workflows and use them as starting points."
 ---
 
-The **Templates Gallery** is a curated library of example workflows you can run and customize without starting from scratch. Templates live on the **Examples** page — open it from the **Examples** item in the app menu (the logo dropdown), from **Browse examples** on the workspace's empty state, or by navigating to `/examples`.
+The **Examples** page is a library of shipped example workflows, apps, storyboards, timelines, and games that you can copy into your own project. Open it from the **Examples** item in the **More** panel, or from **Browse examples** on the new-project surface. It opens as a workspace tab, not as a URL route.
 
 ---
 
-## What's in the Gallery
+## Tabs
 
-Every template is a real, runnable workflow exported from the editor. Templates ship with NodeTool and cover:
+| Tab | What a card does |
+|-----|------------------|
+| **Apps** | **Add to your apps** installs the app and the workflows it runs |
+| **Workflows** | Click a card to copy the workflow into your project |
+| **Storyboards** | Adds an editable copy of the board |
+| **Timelines** | **Open editable timeline** adds a copy |
+| **Games** | **Play and edit** adds a copy |
 
-| Category | Examples |
-|----------|----------|
-| **Image generation** | Movie Posters, Character Sheets, Product Shots |
-| **Image editing** | Background Removal, Upscaling, Style Transfer |
-| **Agents** | Research agents, RAG Q&A, multi-step tool runners |
-| **Document intelligence** | Chat-with-Docs, PDF extraction, data enrichment |
-| **Audio & video** | Transcription, summarization, text-to-speech |
-| **Data pipelines** | CSV ingestion, chart generation, scheduled reports |
-| **Realtime** | Voice agents, streaming transcription |
-
-Browse the full list on the [Workflow Examples]({{ '/workflows/' | relative_url }}) page.
+The rest of this page covers the **Workflows** tab, which is the template gallery.
 
 ---
 
 ## Opening a Template
 
-1. Click a template tile to preview its graph.
-2. Hit **Open** (or double-click) to load it into the editor as a new workflow.
-3. Save a copy with `Ctrl/⌘ + S` — edits never modify the original template.
+Click a template card. NodeTool creates a private copy named after the template, tagged `example`, in your current project, and opens it in a workspace tab. The original is never modified, so you can edit and save the copy freely.
 
 ![Examples page](assets/screenshots/examples-page.png)
+
+Templates ship with NodeTool and are loaded from the `workflows.examples` tRPC query. They are grouped by tag into the categories below.
+
+| Category | Tags that match |
+|----------|-----------------|
+| **Image** | `image`, `design` |
+| **Video** | `video`, `youtube` |
+| **Audio** | `audio` |
+| **Multimodal** | `multimodal` |
+| **Agents** | `agent`, `agents`, `ai`, `claude`, `huggingface` |
+| **Data & Web** | `data`, `web`, `search`, `serp`, `google`, `news`, `reddit`, `amazon`, `trends`, `analysis`, `research`, `rag` |
+
+Browse walkthroughs of individual templates on the [Workflow Examples]({{ '/workflows/' | relative_url }}) page.
 
 ---
 
 ## Filtering and Searching
 
-The gallery supports:
+- **Category pills** filter the list. **All** shows everything.
+- **Search** matches the template name, description, and tags. Press `/` to focus the search box.
+- Templates tagged `getting-started` or `start` sort first in the unfiltered list. Everything else sorts by name.
 
-- **Tag filter** — click any tag (e.g., "agent", "image") to narrow the list.
-- **Search bar** — match by title, tags, or node names used inside the workflow.
-- **Sort** — recently added, most popular, shortest.
-
-![Template Filters](assets/screenshots/screenshot-placeholder.svg)
+If nothing matches, the page offers **Clear search** or **Show all templates**.
 
 ---
 
 ## Anatomy of a Template Card
 
-Each tile shows:
+Each card shows:
 
-- **Thumbnail** — a static render of the graph.
-- **Title and description** — a one-line summary.
-- **Input badges** — the required inputs (e.g., "Text", "Image").
-- **Output badges** — what the workflow produces.
-- **Required models** — any models you need downloaded first.
+- **Thumbnail**, or a category-colored placeholder when the template has none.
+- **Title and description**.
+- **Inputs**, each marked required, optional, or requirement unknown.
+- **Provider/model**, the models the graph selects, or the providers it uses.
+- **Execution**, whether it runs locally, on provider-hosted models, or both.
+- **Required setup** and **Runtime**, when the graph needs them.
+- **Estimated cost**, computed from published node prices. A graph with unpriced nodes shows "at least" or "unknown" with the count of unpriced nodes.
+- **Category** label.
 
-If a template requires a model you don't have, opening it shows the **Recommended Models** dialog so you can install them in one click.
+Model fields in shipped templates are empty. When you open one, NodeTool fills each from your own default model for that type. If a model is missing, the **Recommended Models** dialog offers to install it.
 
 ![Recommended Models from Template](assets/screenshots/recommended-models.png)
 
 ---
 
-## Submitting Your Own Template
+## Adding Your Own Template
 
-Community templates ship through the `examples/` directory of the NodeTool repo:
+Shipped templates are JSON files in `packages/base-nodes/nodetool/examples/nodetool-base/`. Their listing metadata (name, description, tags) lives in `packages/base-nodes/nodetool/package_metadata/nodetool-base.json`. A new template needs:
 
-1. Save your workflow, then use `nodetool workflows export-dsl <id>` to export it as a TypeScript DSL file.
-2. Add it to `examples/<category>/<slug>.ts` in a PR.
-3. Include a short README — 1 paragraph, 1 screenshot of the graph.
+1. A graph that does real work and is not a re-skin of an existing example.
+2. Empty model fields, a description under 80 characters, and a thumbnail at `packages/base-nodes/nodetool/assets/nodetool-base/<name>.jpg`.
+3. A passing `npm run dev:nodetool -- validate "<file>.json"`.
 
-See the [Developer Guide]({{ '/developer/' | relative_url }}) for full contribution guidelines.
+The full checklist, including thumbnail generation and the marketing catalog step, is in `packages/base-nodes/nodetool/examples/nodetool-base/README_EXAMPLES.md`. To turn a saved workflow into code, use `nodetool workflows export-dsl <id>`.
 
 ---
 

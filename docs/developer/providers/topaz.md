@@ -28,15 +28,15 @@ description: "Runbook for adding new Topaz image/video API endpoints and model v
 | Runtime provider (upscale only) | `packages/runtime/src/providers/topaz-provider.ts` |
 | Manifest loader (for ImageModel list) | `packages/runtime/src/providers/manifest-models.ts` |
 | Provider registration | `packages/runtime/src/providers/index.ts` |
-| Unit tests | `packages/topaz-nodes/tests/topaz-base.test.ts` |
+| Unit tests | `packages/topaz-nodes/tests/topaz-base.test.ts`, `topaz-factory.test.ts`, `packages/runtime/tests/providers/topaz-provider.test.ts` |
 
 ---
 
 ## How Topaz models and nodes are defined
 
-**The manifest is the single source of truth.** Every Topaz node is described by one JSON object in `packages/topaz-nodes/src/topaz-manifest.json`. There is no code-generation script — the manifest is hand-maintained. At package load time `src/index.ts` reads the JSON and calls `loadTopazNodesFromManifest`, which feeds each entry to `createTopazNodeClass` in `topaz-factory.ts`. The factory builds a full `BaseNode` subclass at runtime — no decorators, no separate `.ts` file per node.
+**The manifest is the single source of truth.** Every Topaz node is described by one JSON object in `packages/topaz-nodes/src/topaz-manifest.json`. There is no code-generation script. The manifest is hand-maintained. At package load time `src/index.ts` loads the JSON with `loadPackageAssetJson` and calls `loadTopazNodesFromManifest`, which feeds each entry to `createTopazNodeClass` in `topaz-factory.ts`. The factory builds a full `BaseNode` subclass at runtime — no decorators, no separate `.ts` file per node.
 
-The build script (`package.json` `build`) compiles the TypeScript and then copies `src/topaz-manifest.json` to `dist/topaz-manifest.json` so the `package.json` `exports` entry `"./topaz-manifest.json"` resolves correctly. The runtime provider (`topaz-provider.ts`) loads the same file via `require()` to build its list of `ImageModel` objects, but only exposes the `enhance` and `enhance-gen` endpoints as upscale-task models. All other endpoints (sharpen, denoise, lighting, matting, restore) live solely as workflow nodes.
+The build script (`package.json` `build`) compiles the TypeScript and then copies `src/topaz-manifest.json` to `dist/topaz-manifest.json` so the `package.json` `exports` entry `"./topaz-manifest.json"` resolves correctly. The runtime provider (`topaz-provider.ts`) loads the same file through `loadManifest` in `manifest-models.ts` to build its list of `ImageModel` objects, but only exposes the `enhance` and `enhance-gen` endpoints as upscale-task models. All other endpoints (sharpen, sharpen-gen, denoise, denoise-gen, lighting, matting, restore-gen) live solely as workflow nodes. The manifest holds nine image endpoints and two video endpoints (`EnhanceVideo`, `InterpolateVideo`).
 
 **Image nodes** call a single multipart POST → poll status → download flow implemented in `topazExecuteImageTask` (`topaz-base.ts`).
 
@@ -121,7 +121,7 @@ Key rules:
 - `modelId` — slash-separated string, unique across the manifest. Used as the primary key in the provider's variant map.
 - Exactly one field must set `"uploadField": true`. This is the asset (image or video) the factory reads and sends to Topaz.
 - `submitEndpoint` must be an absolute URL. `statusEndpoint` and `downloadEndpoint` use `{process_id}` as a placeholder.
-- `pollInterval` is in milliseconds; `maxAttempts` × `pollInterval` sets the total timeout budget.
+- `pollInterval` is in milliseconds. `maxAttempts` × `pollInterval` sets the total timeout budget. Image entries use 3000 ms and 400 attempts. Video entries use 15000 ms and 1000 attempts.
 
 ### Case C — new video endpoint
 
@@ -151,8 +151,9 @@ npm run typecheck
 # 3. Lint
 npm run lint
 
-# 4. Run the topaz-nodes unit tests
+# 4. Run the topaz-nodes and provider unit tests
 npm run test --workspace=packages/topaz-nodes
+npm run test --workspace=packages/runtime -- topaz-provider
 
 # 5. Run a node in isolation to confirm it loads from the manifest
 #    (replace 'topaz.image.SharpenImage' with your new className)
@@ -168,28 +169,9 @@ Step 5 will hit a missing-API-key error in `--no-secrets` mode, which is expecte
 
 ---
 
-## How past PRs did it
-
-The Topaz package was introduced in commit `96d0a9f5` ("Add Topaz Labs image and video enhancement nodes", PR #3266), which added the manifest (3 entries then, 11 today), the factory, base utilities, and the runtime provider together. The full file set is visible in `git show --stat 96d0a9f5 | grep topaz`:
-
-```
-packages/runtime/src/providers/topaz-provider.ts         |  331 +
-packages/runtime/tests/providers/topaz-provider.test.ts  |  225 +
-packages/topaz-nodes/package.json                        |   46 +
-packages/topaz-nodes/src/index.ts                        |   45 +
-packages/topaz-nodes/src/topaz-base.ts                   |  532 +
-packages/topaz-nodes/src/topaz-factory.ts                |  252 +
-packages/topaz-nodes/src/topaz-manifest.json             |  359 +
-packages/topaz-nodes/tests/topaz-base.test.ts            |  386 +
-```
-
-The pattern for adding a single new endpoint is smaller: one manifest entry, no other files.
-
----
-
 ## Contributing
 
 Source: <https://github.com/nodetool-ai/nodetool>  
 Discord: <https://discord.gg/WmQTWZRcYE>
 
-Before opening a PR, run `npm run check` (typecheck + lint + tests). The manifest is the right place to document API-level details (endpoint URL, poll interval, field constraints) — keep the description field useful for future readers.
+Before opening a PR, run `npm run test:affected`, `npm run typecheck`, `npm run lint`, and `npm run dev:nodetool -- harness gate --base origin/main`. The manifest is the right place to document API-level details (endpoint URL, poll interval, field constraints) — keep the description field useful for future readers.

@@ -4,7 +4,7 @@ title: "xAI (Grok): Add Models"
 description: "How to add new Grok chat, image, and video models to NodeTool's xAI provider."
 ---
 
-`XAIProvider` sits at `packages/runtime/src/providers/xai-provider.ts`. It overrides every model-discovery method and every generation method to call xAI's REST API directly. Each modality lists the static `XAI_KNOWN_MODELS` catalog first, then any further models from xAI's `/v1/models` listing.
+`XAIProvider` sits at `packages/runtime/src/providers/xai-provider.ts`. It extends `OpenAICompatProvider`, so chat uses xAI's OpenAI-compatible Chat Completions endpoint. It overrides model discovery and the four image and video generation methods to call xAI's REST API directly. Each modality lists the static `XAI_KNOWN_MODELS` catalog first, then any further models from xAI's `/v1/models` listing.
 
 > **Audience:** coding agents and contributors adding new xAI Grok models (chat, image generation, video generation).
 
@@ -17,7 +17,7 @@ To support a new model:
 1. Add it to the matching modality in `XAI_KNOWN_MODELS` with a display name. The catalog keeps the model listed when `/v1/models` omits it or cannot be reached.
 2. Update the `KNOWN_*_IDS` constants in `packages/runtime/tests/providers/xai-provider.test.ts`.
 3. If the id is ambiguous, check that `classifyModel()` assigns the live row the same modality. Otherwise the model appears twice, once under each modality.
-4. Run `npm run check`.
+4. Run `npm run test:affected`, `npm run typecheck`, and `npm run lint`.
 
 xAI's `/v1/models` rows carry no modality fields, so `classifyModel()` usually falls back to the model id. Models the listing returns that the catalog lacks are still offered, after the catalog entries.
 
@@ -30,7 +30,7 @@ xAI's `/v1/models` rows carry no modality fields, so `classifyModel()` usually f
 | Provider class | `packages/runtime/src/providers/xai-provider.ts` |
 | Provider registration | `packages/runtime/src/providers/index.ts` (`registerBuiltinProvider(PROVIDER_IDS.XAI, XAIProvider, …)`) |
 | Provider ID constant | `packages/protocol/src/api-types.ts` (`PROVIDER_IDS.XAI = "xai"`) |
-| Cloud profile denylist | `packages/protocol/src/cloud-profile.ts` (`NON_CLOUD_PROVIDER_IDS`, `CLOUD_NODE_NAMESPACES`) |
+| Cloud profile node namespaces | `packages/protocol/src/cloud-profile.ts` (`CLOUD_NODE_NAMESPACES` lists `xai`. `NON_CLOUD_PROVIDER_IDS` does not) |
 | Provider tests | `packages/runtime/tests/providers/xai-provider.test.ts` |
 | Type definitions | `packages/runtime/src/providers/types.ts` |
 
@@ -66,7 +66,7 @@ Generation calls go directly to xAI's REST API:
 |---|---|
 | `textToImage` | `POST /v1/images/generations` |
 | `imageToImage` | `POST /v1/images/edits` |
-| `textToVideo` / `imageToVideo` | `POST /v1/videos/generations` (async, polls `/v1/videos/{request_id}`) |
+| `textToVideo` / `imageToVideo` | `POST /v1/videos/generations` (async, polls `/v1/videos/{request_id}` until `done`, `failed`, or `expired`, with a 600 second default timeout) |
 
 Image inputs are converted to base64 data URIs before sending — xAI's JSON API rejects multipart uploads.
 
@@ -115,7 +115,7 @@ Add the model to `XAI_KNOWN_MODELS.video`. A live row reaches the video list whe
 
 The async polling loop in `generateVideo()` handles all video models uniformly. xAI video parameters:
 
-- `duration`: 1–15 seconds (mapped from `params.durationSeconds` or derived from `numFrames`)
+- `duration`: 1–15 whole seconds (from `params.durationSeconds`, or `numFrames` at an assumed 24 fps, rounded and clamped)
 - `aspect_ratio`: passed through if set
 - `resolution`: passed through if set
 
@@ -156,10 +156,11 @@ npm run lint
 npm run test --workspace=packages/runtime
 
 # 4. Smoke-test: list available models via the CLI (requires XAI_API_KEY set)
-npm run dev:nodetool -- info --json | jq '.providers[] | select(.id=="xai")'
+npm run dev:nodetool -- models by-provider xai --kind video
 
-# 5. Full check
-npm run check
+# 5. Affected tests and the harness gate
+npm run test:affected
+npm run dev:nodetool -- harness gate --base origin/main
 ```
 
 If you changed `classifyModel()` or any generation method, also run the provider unit tests directly:
@@ -170,30 +171,14 @@ npm run test --workspace=packages/runtime -- --reporter=verbose xai-provider
 
 ---
 
-## How PR #3951 did it
-
-Commit `69dd6f88` ("Add image and video generation support to XAI provider", [PR #3951](https://github.com/nodetool-ai/nodetool/pull/3951)) is the canonical reference for this provider.
-
-**Before the PR**, `XAIProvider` had no `classifyModel()` logic. It called `super.getAvailableLanguageModels()`, which returned every model from `/v1/models` — including Grok Imagine image and video models — as language models. `getAvailableImageModels()` and `getAvailableVideoModels()` were not overridden, so they returned the parent `OpenAIProvider`'s lists (OpenAI models, not xAI ones).
-
-**What the PR changed** (two commits):
-
-1. **Commit 1** — added `classifyModel()`, `fetchModelRows()`, and three overriding `getAvailable*()` methods. Chat models now come from rows whose `output_modalities` contains `"text"`. Image and video models come from the same listing, classified and returned with `provider: "xai"` and the correct `supportedTasks`.
-
-2. **Commit 2** — overrode all four generation methods (`textToImage`, `imageToImage`, `textToVideo`, `imageToVideo`) to call xAI's REST API directly instead of using the OpenAI SDK's multipart upload path (which xAI rejects). Added `detectImageMime()` and `bytesToDataUri()` to inline image bytes as base64 data URIs. Added the `generateVideo()` async polling loop for the `/v1/videos/generations` → `/v1/videos/{id}` flow.
-
-The PR also added 276 lines of unit tests in `packages/runtime/tests/providers/xai-provider.test.ts`, covering all four generation methods and the model classification logic with mocked fetch responses.
-
-**The pattern to mirror**: if xAI adds a new endpoint category (e.g., audio generation), follow the same two-step shape — first add classification + discovery in the appropriate `getAvailable*()` override, then add the generation method calling xAI's REST API directly with `this._xaiFetch`.
-
----
-
 ## Contributing
 
 Open PRs at <https://github.com/nodetool-ai/nodetool>. Before pushing:
 
 ```bash
-npm run check   # typecheck + lint + test across all workspaces
+npm run test:affected
+npm run typecheck
+npm run lint
 ```
 
 Join the discussion on [Discord](https://discord.gg/WmQTWZRcYE).

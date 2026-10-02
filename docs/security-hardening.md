@@ -15,7 +15,7 @@ These apply to **every** deployment, regardless of environment:
 ### Network Security
 
 - **Require TLS** at the proxy or ingress layer. Use real certificates (e.g., Let's Encrypt) and redirect HTTP to HTTPS.
-- **Restrict Docker access**: Run the proxy with a dedicated network (`docker_network`) and avoid exposing the Docker socket beyond the host.
+- **Restrict Docker access**: Run the proxy on a dedicated Docker network and avoid exposing the Docker socket beyond the host.
 - **Firewall rules**: Only expose the ports you need (typically 443 for HTTPS). Block direct access to internal service ports.
 
 ### Authentication
@@ -32,13 +32,18 @@ These apply to **every** deployment, regardless of environment:
 - **Enforce auth on any network-accessible deployment.** The server enforces authentication only when it is in Supabase mode — that is, when **both** `SUPABASE_URL` and `SUPABASE_KEY` are set. Without them it runs in Local mode and trusts loopback connections (and any `NODETOOL_TRUST_LOCAL_NETWORKS` you configure). See [Authentication](authentication.md#authentication-modes).
 - **Lock down localhost trust.** Behind a reverse proxy or in a container, set `NODETOOL_TRUST_LOCALHOST=false` (it already defaults off when auth is enforced) and list only your real proxies in `NODETOOL_TRUSTED_PROXIES`, so a proxy connecting from loopback cannot silently bypass auth.
 - **Keep `NODETOOL_TRUST_LOCAL_NETWORKS` tight.** Trust the smallest range that works (the Docker bridge, not `0.0.0.0/0`), and firewall the published port. It is ignored in Supabase mode.
-- **Rotate keys regularly** -- set calendar reminders to rotate Supabase service-role keys.
+- **Rotate keys regularly**: set calendar reminders to rotate Supabase service-role keys.
+- **Know what the server ignores.** `SERVER_AUTH_TOKEN` and `~/.config/nodetool/deployment.yaml` are read only by the `@nodetool-ai/deploy` helpers. The running server does not check them, so they do not protect the API. See [Authentication](authentication.md#deploy-token-helpers).
+- **Use access tokens for agents.** A signed-in person can mint a revocable `ntk_` token for an MCP client or script. It works in every auth mode, so there is no need to widen `NODETOOL_TRUST_LOCAL_NETWORKS` to reach `/mcp`.
+- **Keep `/mcp` off unless needed.** With `NODETOOL_ENV=production` the `/mcp` mount is not registered unless `NODETOOL_ENABLE_MCP=1`. It carries the full agent toolbelt, so enable it only when clients authenticate. See [MCP production](mcp-production.md).
+- **Keep rate limits on.** The per-IP HTTP limiter defaults to 1000 requests per 60 seconds and exempts loopback. Behind a proxy set `NODETOOL_TRUSTED_PROXIES` and `NODETOOL_RATE_LIMIT_TRUST_PROXY` so clients are keyed by their real address. See [Authentication](authentication.md#rate-limiting).
 
 ### Secrets Management
 
 - **Keep secrets out of Git**: Load provider API keys and tokens from environment variables or a secrets manager.
 - **Never commit `.env` files** with secrets. Add `.env` to `.gitignore`.
-- Provide the encryption master key (`SECRETS_MASTER_KEY`) on every server so they share one key, and store all other deployment secrets in your platform's secrets manager.
+- Provide the encryption master key (`SECRETS_MASTER_KEY`) on every server so they share one key, and store all other deployment secrets in your platform's secrets manager. Rotating the master key also invalidates every delegated (messaging bridge) token and deployed-app session token, which are signed with keys derived from it.
+- **Set `NODETOOL_INTEGRATION_TOKEN`** to a random value of 16 or more characters only if you use messaging integrations. Shorter values are ignored and the `/api/integrations` routes are not registered.
 
 ### Asset Storage
 
@@ -96,7 +101,7 @@ Local development has the lowest risk but still deserves basic hygiene:
 | Action | Details |
 |--------|---------|
 | Bind to localhost only | Use `127.0.0.1` for all services; avoid publishing container ports to the LAN |
-| Use temporary tokens | Generate throwaway tokens for demos; clear `~/.config/nodetool/deployment.yaml` when finished |
+| Use temporary tokens | Mint throwaway `ntk_` access tokens for demos and revoke them when finished |
 | Don't expose to the internet | Never use `ngrok` or similar tunneling without authentication in place |
 
 ---
@@ -126,12 +131,12 @@ Production deployments require the strictest security posture:
 - Keep `NODETOOL_TRUST_LOCALHOST` off and restrict `NODETOOL_TRUSTED_PROXIES` to your real proxy addresses
 - **Unset `NODETOOL_TRUST_LOCAL_NETWORKS`** (or leave it ignored under Supabase mode) — never carry a `0.0.0.0/0` trust rule into production
 - Use **dedicated service accounts** for each deployment; avoid shared credentials
-- Keep `proxy.yaml` free of embedded secrets -- distribute bearer tokens via your secrets manager
-- **Public app links are a production-only surface** (`NODETOOL_ENV=production`). An owner can deploy a published mini app to `/a/<token>`, where anyone with the link runs it without logging in — on the owner's provider keys, against the app's spend budget. Set a budget on every deployed app (**Governance › Spend budget**), and treat the link as the credential it is: withdrawing it is the only way to invalidate it, and outstanding run sessions expire within the hour rather than immediately
+- Distribute bearer tokens and keys through your secrets manager, not through files in the image or repository
+- **Public app links are a production-only surface** (`NODETOOL_ENV=production`). An owner can deploy a published mini app to `/a/<token>`, where anyone with the link runs it without logging in — on the owner's provider keys, against the app's spend budget. Set a budget on every deployed app (**Governance › Spend budget**), and treat the link as the credential it is: withdrawing it is the only way to invalidate it, and outstanding run sessions expire after one hour rather than immediately
 
 ### Infrastructure
 
-- Set **`idle_timeout`** and per-service resource caps to prevent runaway workloads on multi-tenant hosts
+- Set per-container resource caps to prevent runaway workloads on multi-tenant hosts
 - Use **separate networks** for the proxy, API server, and worker containers
 - Pin container image versions (avoid `latest` tags in production)
 
@@ -153,7 +158,7 @@ Production deployments require the strictest security posture:
 
 - **Encrypt data at rest** -- Use encrypted volumes for workspace and database storage
 - **Encrypt data in transit** -- TLS everywhere, including internal service communication
-- **Minimize data retention** -- Clear temporary assets (`assets-temp` bucket) on a schedule
+- **Minimize data retention** -- Clear temporary assets on a schedule. The temp bucket is set with `TEMP_BUCKET`, separate from `ASSET_BUCKET`, so it can have its own retention policy
 - **Backup strategy** -- Regular automated backups with tested restore procedures
 
 ---

@@ -173,11 +173,12 @@ const config = yaml.load(inputs.text);
 await output("config", config);
 ```
 
-NodeTool ships thirty-eight (`packages/sandbox-packs/`): `-dates` (date-fns),
+NodeTool ships these packs (`packages/sandbox-packs/`, one directory each): `-dates` (date-fns),
 `-yaml` (js-yaml), `-markdown` (marked), `-qr` (uqr), `-color` (culori),
 `-decimal` (decimal.js), `-jmespath` (jmespath), `-stats` (simple-statistics),
-`-rrule` (rrule), `-gif` (gifenc), `-dsl` (NodeTool's graph builder) and
-`-flow` (NodeTool's node callables) run
+`-rrule` (rrule), `-gif` (gifenc), `-dsl` (NodeTool's graph builder),
+`-flow` (NodeTool's node callables), `-game` (NodeTool's game document
+builder) and `-timeline` (motion-graphics timelines as code) run
 inside the guest; `-csv` (papaparse), `-html` (cheerio + turndown), `-xml`
 (fast-xml-parser), `-xlsx` (exceljs), `-diff` (diff), `-zip` (fflate), `-ocr`
 (tesseract.js), `-tfjs` (TensorFlow.js and its model zoo), `-docx` (docx),
@@ -193,7 +194,7 @@ NodeTool's own code rather than a library — `-aws` signs a request with SigV4,
 and `-notion`, `-supabase` and `-twilio` build an authenticated one —
 and none of them sends it:
 the guest passes what comes back to its own `fetch`, under the run's fetch cap
-and SSRF guard. Every shipped pack is available out of the box — a checkout, the
+and SSRF guard. Every shipped pack is available by default — a checkout, the
 desktop app and the server image each read them from where their own build put
 them. A third-party pack is installed through the Package Manager and is
 discovered the same way. See
@@ -222,7 +223,7 @@ Every default below is overridable per invocation through
 | Host module text input | 5 MB | `host-modules/limits.ts` | — |
 | Host module byte input | 10 MB | `host-modules/limits.ts` | — |
 | Image input | 25 MB, 32 M pixels, 16384 px longest edge | `assertSurfaceSize` | — |
-| Run media handles | 256 MB total encoded payload | `SandboxMediaStore` | — |
+| Run media handles | 256 MB total encoded payload | `SandboxMediaStore` (`runMediaBytes`) | 2 GB |
 | Canvas ops | 10 000 per render | `renderCanvas` | — |
 | Tool calls per action | 50 | `DEFAULT_MAX_TOOL_CALLS_PER_ACTION` | — |
 

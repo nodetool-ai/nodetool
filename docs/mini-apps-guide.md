@@ -1,10 +1,10 @@
 ---
 layout: page
 title: "Building Mini Apps"
-description: "Nine kinds of Mini App, each built step by step: one-shot generators, streaming text, galleries, sliders that re-run, two-step approvals, and more."
+description: "Eleven kinds of Mini App, each built step by step: one-shot generators, streaming text, galleries, sliders that re-run, two-step approvals, chat, and more."
 ---
 
-Nine kinds of app, each built step by step. They all start from the same short
+Eleven kinds of app, each built step by step. They all start from the same short
 recipe; what differs is which widgets you place and what you wire them to.
 
 New here? Read [Mini Apps](mini-apps.md) first — it explains what a widget, a
@@ -31,13 +31,14 @@ the app itself is twenty minutes of layout.
 
 Every app below begins here.
 
-1. Open the **Apps** panel in the left sidebar. The two icons in its header are
-   **New app from workflow** and **New app**.
+1. Open the **Apps** panel in the left sidebar. The two buttons in its header are
+   **Create app from workflow** and **New app**.
 
    ![The Apps panel in the left sidebar](assets/screenshots/editor-left-panel-apps.png)
 
-2. Click **New app** for an empty screen, or **New app from workflow** to get a
-   starting layout with one widget per Input and Output node. Either way the app
+2. Click **New app** for an empty screen, or **Create app from workflow** to get a
+   starting layout with one widget per Input and Output node, a Run and Cancel
+   button, a progress bar, and an error alert. Either way the app
    opens as its own workspace tab.
 3. Switch the tab to **Design**. That's App Builder: palette on the left, the app
    screen in the middle, the selected widget's settings on the right.
@@ -71,8 +72,9 @@ click the workflow. It opens as a normal workflow tab; the app tab stays put.
 The assistant on the right of App Builder can read the app's workflows and
 edit the app for you: place widgets, wire them up, declare variables and
 operations, and add the Input, Output, or Set Variable nodes a layout needs.
-It is the quickest route to the parts the visual editor doesn't expose —
-several operations, typed variables, and resources.
+Operations, variables, and resources are also editable by hand in the **App Data**
+panel (the button in the Design header). Resource actions beyond the four in the
+event menu go through the assistant.
 
 ---
 
@@ -90,7 +92,7 @@ This is the default app, and what most workflows should get.
 2. Place a **Button** named after the result, not the machinery: "Write the
    caption" beats "Run".
 3. Place one display widget per Output node, wired to it: **Markdown** for prose,
-   **Image**, **Audio**, **Video**, **Json** for structured data, **Table** for
+   **Image**, **Audio**, **Video**, **JSON** for structured data, **Table** for
    rows, **Output** when the type varies.
 4. Give each display widget a **placeholder** ("Your caption appears here") so
    the app looks finished before the first run.
@@ -148,9 +150,8 @@ about Mini Apps. Add it.
 4. If a new set should replace the old one, give the operation the `replace`
    rule, so a second click cancels the run in flight first.
 
-The example apps NodeTool ships use this pattern. Install one from the
-[Templates Gallery](templates-gallery.md) and open it in Design to see how it's
-wired.
+The example apps NodeTool ships use this pattern. Add one from **Start
+from an app** on the start page and open it in Design to see how it's wired.
 
 ## 5. A slider that re-runs
 
@@ -181,35 +182,39 @@ five-second workflow builds a backlog the user can't escape.
 **Good for:** draft then publish, extract then post, analyze then act, generate
 then upscale.
 
-This needs two operations and a variable, so build it with the assistant or by
-editing the document directly.
+This needs two operations and two variables. Declare them in the **App Data**
+panel or ask the assistant.
 
-1. Declare a variable — call it `draft` — and a boolean variable `approved`,
-   defaulting to `false`.
+1. Declare a text variable called `draft` and a text variable called `decision`.
 2. Declare an operation `draft` running the drafting workflow, with its text
    output wired into `draft` (`to: "variable"`).
 3. Declare an operation `publish` running the publishing workflow, with its input
    reading `draft` (`from: "variable"`).
 4. Place a **Markdown** widget wired to `var:draft`, so the user reads what's
    about to be published.
-5. Add an explicit approval control bound to `var:approved`, and reset it to
-   `false` whenever a draft input changes. Do not use the draft's non-empty
-   value itself as approval.
-6. Place a Run button for `draft`, and make the `publish` button visible only
-   when `var:approved` equals `true`, `op:draft/exec#running` is empty, and
-   `op:draft/exec#error` is empty.
+5. Add an **Approval** widget bound to `var:decision`. It writes `approved` or
+   `rejected` when the person picks one. Do not use the draft's non-empty value
+   itself as approval.
+6. Place a Run button for `draft` with two click events: **Run workflow** for
+   `draft`, and **Set variable** on `decision` with an empty value, so every new
+   draft starts unapproved.
+7. Place a Run button for `publish`. Set its `visibleWhen` to `var:decision`
+   `equals` `approved`, and its `disabledWhen` to `op:draft/exec#running`
+   `is not empty`.
 
 The draft output is cleared when its source run starts and after a failed or
-cancelled run, so a partial or stale result cannot satisfy the gate. The
-publishing workflow should still validate that its input is the approved
-artifact before performing an irreversible action.
+cancelled run, so a partial or stale result is never shown as the draft. A
+condition holds one test against one value, so the gate is the single `decision`
+variable. The publishing workflow should still validate that its input is the
+approved artifact before performing an irreversible action.
 
 ## 7. Settings that stick
 
 **Shape:** a tool used every day that should remember how it's set up.
 **Good for:** tone of voice, target language, output format, default model.
 
-1. Declare a variable with `scope: "user"` and `persist: true`. Only user-scoped
+1. In **App Data**, declare a variable with scope **Per user** and **Remember
+   between visits** on (`scope: "user"`, `persist: true`). Only user-scoped
    variables can be remembered; marking an instance-scoped one as persistent
    raises a warning instead of quietly working.
 2. Give it a default, which seeds the first session. A remembered value is
@@ -231,8 +236,9 @@ section, an app that switches between two workflows.
    and `text`, and an **On change** event using the **Set variable** action.
 2. Give each mode-specific widget a `visibleWhen` of `var:mode` `equals` `image`
    (or `text`).
-3. For an advanced section, wrap the widgets in a **Panel** and put the condition
-   on the panel — one condition instead of nine.
+3. For an advanced section, put the widgets in an **Accordion** that starts
+   closed, or in **Tabs**. Layout widgets take no condition, so a condition has to
+   go on each widget it should hide.
 4. To switch workflows rather than fields, declare two operations and give each
    Run button its own operation and its own condition.
 
@@ -245,9 +251,10 @@ graph: emit one flag from a node and condition on that.
 **Shape:** the app reads and writes a real document rather than loose values.
 **Good for:** storyboard editing, sketch iteration, curated asset collections.
 
-1. Declare a **resource**: its kind (`asset`, `timeline`, `storyboard`, or
-   `sketch`), what it may point at (a project, or one fixed document), and what
-   the app may do with it (`read`, `create`, `update`, `delete`).
+1. Declare a **resource** in **App Data**: its kind (`asset`, `timeline`,
+   `storyboard`, or `sketch`) and what it may point at (all documents of that
+   kind, or one fixed document). A resource added there allows `read`. Ask the
+   assistant to grant `create`, `update`, or `delete`.
 2. Place a **Resource Picker** to choose one, or a **Resource Gallery** to show a
    grid of them.
 3. Have the operation input that uses it read `from: "resource"`, naming that

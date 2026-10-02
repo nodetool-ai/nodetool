@@ -8,15 +8,21 @@ NodeTool packages bundle reusable nodes, assets, and example workflows. The pack
 
 ## Manage packs in the app
 
-The **Package Manager** (`/packages`, or **Packages** in the app menu) is where installed packs are turned on and off. Included packs ship with NodeTool; the Registry and Third-party tabs list what can be installed. Provider packs light up on their own once you set the matching API key.
+The **Package Manager** (**Tools > Package Manager** in the desktop app, or `/packages` in the web UI) has two tabs: **Software** for runtimes such as Python and FFmpeg, and **Node Packs**. Node Packs has three lists:
+
+- **Included** shows the packs that ship with NodeTool. Each has an Enabled/Disabled switch, except the core pack, which is always on. Provider packs that need an API key are not listed here. Their nodes appear once you set the matching key.
+- **Registry** lists the Python node packs in the public registry, with Install, Update, and Uninstall buttons.
+- **Third-party** installs an npm package by name and lists the packs the app has installed. See [Node Packs](node-packs.md).
+
+Installing and removing run only in the desktop app. The web UI shows status.
 
 ![Package Manager](assets/screenshots/packages-manager.png)
 
-Toggling a pack takes effect after the NodeTool server restarts.
+Toggling a pack takes effect after the NodeTool server restarts. The choices are saved in `~/.config/nodetool/packs.json` (`enabledBuiltins` and `disabledBuiltins`).
 
 ## Package Anatomy
 
-A package is a standard npm workspace package that exports node classes and a registration function:
+A first-party package is an npm workspace package under `packages/` that exports node classes and a registration function:
 
 - `package.json` -- declares the package name, dependencies, and build scripts.
 - `src/nodes/` -- node implementations, one file per domain (e.g. `list.ts`, `audio.ts`).
@@ -25,27 +31,33 @@ A package is a standard npm workspace package that exports node classes and a re
 - `examples/` -- optional workflow examples.
 - `assets/` -- optional static assets used by nodes.
 
+A third-party pack has the same layout plus a `nodetool` field in `package.json`. See the [Custom Nodes Guide](developer/custom-nodes-guide.md).
+
 ### Example `package.json`
+
+This is the shape of `packages/text-nodes/package.json`, trimmed:
 
 ```json
 {
-  "name": "@nodetool-ai/base-nodes",
+  "name": "@nodetool-ai/text-nodes",
   "type": "module",
-  "version": "0.1.0",
+  "version": "0.8.1",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
   "scripts": {
-    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc",
-    "test": "vitest run",
-    "lint": "tsc --noEmit"
+    "build": "node ../../scripts/build-typescript-workspace.mjs",
+    "test": "node ../../scripts/run-vitest.mjs run",
+    "lint": "node ../../scripts/run-tsc.mjs --noEmit"
   },
   "dependencies": {
-    "@nodetool-ai/node-sdk": "latest"
+    "@nodetool-ai/node-sdk": "*",
+    "@nodetool-ai/protocol": "*",
+    "@nodetool-ai/runtime": "*"
   }
 }
 ```
 
-Every node package depends on **`@nodetool-ai/node-sdk`**, which provides `BaseNode`, the `@prop` decorator, and the `NodeRegistry` type.
+Every node package depends on **`@nodetool-ai/node-sdk`**, which provides `BaseNode`, the `@prop` decorator, and the `NodeRegistry` type. The `lint` script is a type check, not ESLint.
 
 ### Example `tsconfig.json`
 
@@ -56,7 +68,8 @@ Every node package depends on **`@nodetool-ai/node-sdk`**, which provides `BaseN
     "outDir": "dist",
     "rootDir": "src"
   },
-  "include": ["src"]
+  "include": ["src"],
+  "references": [{ "path": "../node-sdk" }]
 }
 ```
 
@@ -82,7 +95,13 @@ export function registerBaseNodes(registry: NodeRegistry): void {
 }
 ```
 
-At startup, the runtime creates a `NodeRegistry` and calls each package's registration function. Workflows referencing `nodetool.text.Concat` or `mypack.math.AddOffset` resolve through the registry without manual imports.
+At startup the server (`packages/websocket/src/node-registry-setup.ts`) creates one `NodeRegistry` and fills it in three steps:
+
+1. `registerBuiltinPacks` calls the registration function of each first-party pack that is enabled. The catalog is `BUILTIN_NODE_PACKS` in `packages/protocol/src/builtin-packs.ts`: `base` (always on), `elevenlabs`, `minimax`, `transformers-js`, `fal`, `kie`, `topaz`, `reve`, `atlascloud`, `higgsfield`, `together`, `replicate`, and `huggingface`. Only packs marked `defaultEnabled` load on a fresh install.
+2. `loadInstalledPacks` scans `node_modules` directories for packages with a `nodetool` field and calls the export it names (`register` by default). Trust rules apply. See [Custom Nodes Guide](developer/custom-nodes-guide.md#4-trust-model-and-governance).
+3. Metadata from a running Python worker fills any node type the registry does not know yet.
+
+Workflows referencing `nodetool.text.Concat` or `mypack.math.AddOffset` resolve through the registry without manual imports.
 
 ## Managing Packages via CLI
 
@@ -93,7 +112,7 @@ nodetool package list
 nodetool package list --available    # fetch registry index
 ```
 
-Displays installed packages (local metadata) or remote entries hosted at the package index URL.
+Without `--available`, it lists packages whose metadata it finds under a `nodetool/package_metadata/` directory in the current workspace. With `--available`, it fetches `index.json` from the [registry repository](https://github.com/nodetool-ai/nodetool-registry) (override the URL with `NODETOOL_PACKAGE_REGISTRY_URL`) and prints name, `repo_id`, and description. Add `--json` for machine-readable output.
 
 ### Initialize a Package
 
@@ -101,44 +120,41 @@ Displays installed packages (local metadata) or remote entries hosted at the pac
 nodetool package init
 ```
 
-Scaffolds a new package in the current directory.
+Prompts for a name, description, and author, then writes `package.json`, `tsconfig.json`, `src/index.ts`, and empty `nodetool/package_metadata/`, `examples/`, and `assets/` directories. It asks before overwriting an existing `package.json`.
+
+The scaffold exports `registerNodes` and does not add the `nodetool` field that the pack loader needs. Add `"nodetool": { "apiVersion": 1, "register": "registerNodes" }` to `package.json`, or rename the export to `register`.
 
 ### Generate Documentation
 
 ```bash
-nodetool package docs                 # single index.md in ./docs
+nodetool package docs                     # single index.md in ./docs
 nodetool package docs --output-dir docs   # custom directory (default: docs)
-nodetool package docs --compact       # shorter summaries for LLM prompts
+nodetool package docs --compact           # shorter summaries for LLM prompts
 ```
 
-`package docs` writes a single `index.md` overview. For per-node Markdown pages, use `node-docs`:
+`package docs` reads `nodetool/package_metadata/` in the current directory and writes a single `index.md` overview. It fails when that directory is missing. For per-node Markdown pages, use `node-docs`:
 
 ```bash
-nodetool package node-docs            # one page per node (default: docs/nodes)
-nodetool package workflow-docs        # docs for workflow examples (default: docs/workflows)
+nodetool package node-docs                          # one page per node (default: docs/nodes)
+nodetool package node-docs --package-name mypack    # only nodes whose namespace starts with mypack
+nodetool package workflow-docs --examples-dir examples   # docs for workflow JSON files (default output: docs/workflows)
 ```
+
+`workflow-docs` requires `--examples-dir` and accepts `--package-name` to filter on the `package_name` field of each workflow.
 
 The full set of `package` subcommands is: `list`, `init`, `docs`, `node-docs`, and `workflow-docs`. (Note: `nodetool mcp install` / `nodetool mcp uninstall` configure the MCP server, not node packages.)
 
 ## Building Packages
 
-Compile TypeScript and prepare the package for use:
+Run these from the repository root against one workspace, or from inside the package directory:
 
 ```bash
-npm run build
+npm run build --workspace=packages/<name>   # compile
+npm run lint --workspace=packages/<name>    # type check, no emit
+npm run test --workspace=packages/<name>    # Vitest
 ```
 
-For type checking without emitting output:
-
-```bash
-npm run lint
-```
-
-For running tests:
-
-```bash
-npm run test
-```
+`npm run build:packages` builds every backend package in dependency order.
 
 ## Publishing Packages
 
@@ -152,7 +168,7 @@ To add the package to the public index, create an entry in the [registry reposit
 
 ## Workflow Integration
 
-Installed packages automatically register nodes with the runtime:
+Enabled and trusted packs register nodes with the runtime at startup:
 
 - Node metadata is merged during startup so workflows referencing `package.namespace.Node` resolve without manual imports.
 - Run `npm run codegen --workspace=packages/dsl` to regenerate typed factory functions from node metadata.

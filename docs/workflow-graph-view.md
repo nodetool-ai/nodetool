@@ -4,7 +4,7 @@ title: "Workflow Graph View"
 description: "Read-only visualization of a NodeTool workflow."
 ---
 
-The **Workflow Graph View** is a read-only rendering of a saved workflow. It's useful for sharing a visual snapshot, embedding workflow diagrams in documentation, and giving stakeholders a look without handing them the editor.
+The **Workflow Graph View** is a read-only rendering of a workflow. Use it for visual snapshots, screenshots for documentation, and showing a graph without handing over the editor.
 
 ![Workflow Graph View](assets/screenshots/workflow-graph-view.png)
 
@@ -12,55 +12,46 @@ The **Workflow Graph View** is a read-only rendering of a saved workflow. It's u
 
 ## Opening the View
 
-The graph view lives at `/graph/:workflowId`. You can link directly to it from the workflow's **Share** menu, or paste the URL into a Markdown file — Jekyll will render the image when the page is exported statically.
+Two pages render the graph, and both take the same inline-data option.
+
+| Page | Source | Use |
+|------|--------|-----|
+| `/graph/:workflowId` in the app | Fetches the workflow with the signed-in session | Look at a stored workflow |
+| `graph.html` (the standalone viewer) | `?data=<base64 JSON>` only, no backend | Screenshots and static embeds |
 
 Unlike the [Workflow Editor]({{ '/workflow-editor' | relative_url }}), the graph view:
 
-- Does **not** load the Node Menu, Inspector, or the panel drawers.
-- Does **not** allow editing — nodes can't be added, moved, or deleted.
-- Does **not** require authentication on localhost deployments.
+- Does **not** load the Node Menu, Inspector, or panel drawers.
+- Does **not** allow editing. Nodes can't be added, moved, connected, selected, or deleted.
+- Lays the graph out automatically instead of using the saved node positions.
 
-This makes it lightweight (~5× smaller bundle) and safe to expose behind a read-only proxy.
+There is no link to it in the editor. Build the URL yourself.
 
 ---
 
 ## Interactions
 
-The graph view is fully static — it's a snapshot, not an interactive canvas. Nodes can't be dragged, connected, or selected; panning, scroll-zoom, pinch-zoom, and double-click-zoom are all disabled.
+The view is a snapshot. Panning, scroll-zoom, pinch-zoom, and double-click-zoom are disabled. The view fits the whole graph to the viewport once when it loads. Running the workflow is not possible here. Open it in the editor first.
 
-The view **auto-fits the whole graph to the viewport once** when it loads, so the entire workflow is visible without any interaction. Running the workflow is not possible from this view — open it in the editor first.
+Query parameters:
 
-To pass a workflow inline (without a stored ID), supply base64-encoded workflow JSON via the `?data=` query parameter. Optional `?bg=` and `?padding=` parameters control the background color and fit padding.
+| Parameter | Default | Effect |
+|-----------|---------|--------|
+| `data` | none | Base64-encoded workflow JSON. Renders it instead of fetching a stored workflow. Accepts a full workflow (`graph.nodes` and `graph.edges`) or `{ nodes, edges }` at the top level. |
+| `bg` | `#1a1a2e` | Background color (in-app route only) |
+| `padding` | `60` | Fit-view padding, as a percentage (in-app route only) |
 
----
+For `/graph/json`, `data` is required. Without a workflow ID or `data`, the page shows an error.
 
-## Embedding in Docs
+Once the graph is laid out and fitted, the container gets `data-ready="true"` (and `data-ready="error"` on failure), so headless Chrome can wait on `[data-ready="true"]`. The in-app route also sets `data-workflow-name`. The standalone viewer uses a fixed 15% fit padding.
 
-You can embed the graph view inside another page with an iframe:
-
-```html
-<iframe
-  src="https://your-nodetool-host/graph/WORKFLOW_ID"
-  width="100%"
-  height="540"
-  loading="lazy"
-  referrerpolicy="no-referrer">
-</iframe>
-```
-
-For stored Markdown docs, take a screenshot instead so the graph is captured even when the server is offline.
+To screenshot a workflow JSON file, run `npx tsx scripts/screenshot-workflow.ts <workflow.json> [output.png]` from `web/`. It accepts `--width`, `--height`, `--bg`, and `--port`.
 
 ---
 
 ## Access Control
 
-The graph view inherits the workflow's own visibility:
-
-- **Private** — requires the user to be signed in with access to the workflow.
-- **Shared** — accessible to anyone with the link.
-- **Public** — indexed and crawlable.
-
-For localhost deployments, all workflows are effectively local and the view is open to anyone who can reach your server.
+`/graph/:workflowId` loads the workflow through the same authenticated `workflows.get` call the editor uses. You need at least viewer access to the workflow. On a local install, loopback requests are trusted, so any workflow on your own machine opens. Inline `?data=` payloads need no access check because nothing is fetched.
 
 ---
 

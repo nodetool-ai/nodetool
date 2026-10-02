@@ -57,7 +57,7 @@ description: "Why NodeTool exists, what makes it unique, and how it compares to 
   <article class="why-own">
     <span class="why-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7.5" cy="15.5" r="5.5"/><path d="m21 2-9.6 9.6"/><path d="m15.5 7.5 3 3L22 7l-3-3"/></svg></span>
     <h3>Bring your own keys</h3>
-    <p>Connect OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, and the video specialists. Keys stay on your disk in Studio and encrypted in Cloud.</p>
+    <p>Connect OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, and the video specialists. Keys are stored encrypted, with the encryption key in your operating system's keychain in Studio.</p>
   </article>
   <article class="why-own">
     <span class="why-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/><path d="M12 18V6"/></svg></span>
@@ -67,7 +67,7 @@ description: "Why NodeTool exists, what makes it unique, and how it compares to 
   <article class="why-own">
     <span class="why-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg></span>
     <h3>A project file that opens anywhere</h3>
-    <p>The board, the script with its takes, and the multi-track cut are ordinary files on your disk. Export a <code>.nodetool</code> bundle and open it anywhere.</p>
+    <p>The board, the script with its takes, and the multi-track cut are documents you can open and edit again. Workflows and mini apps export as a <code>.nodetool</code> bundle you can import anywhere.</p>
   </article>
   <article class="why-own">
     <span class="why-icon"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 13c0 5-3.5 7.5-7.66 8.95a1 1 0 0 1-.67-.01C7.5 20.5 4 18 4 13V6a1 1 0 0 1 1-1c2 0 4.5-1.2 6.24-2.72a1.17 1.17 0 0 1 1.52 0C14.51 3.81 17 5 19 5a1 1 0 0 1 1 1z"/></svg></span>

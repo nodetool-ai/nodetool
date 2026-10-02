@@ -38,7 +38,7 @@ Pick the best provider per node:
 
 NodeTool reaches thousands of cloud models across 30+ providers, all through the same generic nodes. The catalog below is grouped by what you're generating — text, images, video, speech and music, 3D, embeddings. Every model runs on your own API key (BYOK): you're billed by the provider at the provider's price, with no NodeTool markup. Add a key in **Settings → Models & Providers** and the models show up in the node's model dropdown.
 
-Chat models are fetched live from each provider's API, so a provider's list always reflects its newest releases; the families below are the ones you'll find there. Image, video, audio, and 3D models are drawn from the manifests each provider node package ships (`packages/*-nodes/`), so they track what NodeTool actually exposes.
+Most chat providers fetch their model list live from the provider's API, so the list reflects new releases. A few use fixed lists, such as kie.ai's chat gateway and Meta AI's offline fallback. Image, video, audio, and 3D models come from manifests or static lists that each provider ships (`packages/runtime/src/providers/` and the `packages/*-nodes/` packages), so they track what NodeTool exposes. The model names below are examples and drift as providers release.
 
 ### Text & chat models (LLMs)
 
@@ -57,18 +57,20 @@ The generic `nodetool.agents.Agent` and chat nodes route to whichever provider o
 | Alibaba Cloud | Qwen3-Max, Qwen-Plus, Qwen-Flash, Qwen-Turbo, Qwen3-VL |
 | GMI Cloud | Llama, DeepSeek, Qwen (open-weight) |
 | Moonshot | Kimi K2, Kimi latest |
-| <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax | MiniMax-Text, MiniMax M2 |
+| Meta AI | Muse Spark |
+| <img src="assets/icons/minimax.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> MiniMax | MiniMax M2.7, M2.5, M2.1, M2 (plus high-speed variants) |
 | OpenRouter | 300+ models proxied through one key (Claude, GPT, Gemini, Llama, Qwen, DeepSeek, …) |
 | Requesty | Claude, GPT, Gemini, DeepSeek, Grok and more through one OpenAI-compatible router |
 | Together AI | Llama, Qwen, DeepSeek, Mixtral, GLM, Kimi, and more open models |
 | Evolink | GPT, Claude, Gemini, DeepSeek through one gateway key |
-| kie.ai | GPT-5.5, Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5, Gemini 3.1 Pro, Gemini 3 Flash (chat gateway) |
+| kie.ai | GPT, Claude, Grok, Kimi, DeepSeek, and Gemini models through its chat gateway |
 | Codex (OpenAI OAuth) | GPT chat models via your ChatGPT/Codex login |
 | Claude Agent SDK | Claude via your local `claude` CLI subscription |
-| Ollama · vLLM · LM Studio · llama.cpp | Any local open-weight model — Llama, Qwen, Gemma, DeepSeek, Mistral, Phi, GPT-OSS |
-| HuggingFace | Chat inference over Hub models (500,000+) |
+| Ollama · vLLM · LM Studio · llama.cpp · llama.cpp local | Any local open-weight model served by your own engine (Llama, Qwen, Gemma, DeepSeek, Mistral, Phi, GPT-OSS) |
+| HuggingFace | The most-liked warm inference models on the Hub, through Inference Providers |
+| FAL | Chat through fal's OpenAI-compatible route (OpenRouter's catalog) |
 
-Reasoning, tool calling, and vision input are exposed where the provider supports them. For local text generation without an API key, see [Supported Models](models.md#local-inference-engines) (llama.cpp, MLX, Transformers).
+Reasoning, tool calling, and vision input are exposed where the provider supports them. For local text generation without an API key, see [Supported Models](models.md#local-inference-engines) (Ollama, llama.cpp, MLX, Transformers.js).
 
 ### Image generation models
 
@@ -100,7 +102,7 @@ Generate and edit images through `nodetool.image.TextToImage` and `nodetool.imag
 | Others | Kolors, HiDream, Hunyuan Image 3, OmniGen v1/v2, Sana, PixArt-Σ, Aura Flow, CogView4, Luma Photon, GLM Image, Reve, Bria, ERNIE Image, Emu 3.5, Lumina, F-Lite, Fibo, Playground v2.5, Juggernaut, DreamShaper, Proteus, Recraft, Chroma, Janus, MiniMax Image-01, xAI Grok Imagine |
 | Upscale & restore | Topaz, Real-ESRGAN, ESRGAN, SUPIR, Clarity Upscaler, SeedVR, GFPGAN, CodeFormer, AuraSR, SwinIR, DDColor |
 
-Access aggregators — <img src="assets/icons/fal.svg" width="16" height="16" style="vertical-align: middle;" alt="" /> [FAL](https://fal.ai/) (450+ image endpoints), [Replicate](https://replicate.com/) (170+), and [kie.ai](https://kie.ai/) — carry most of these families plus hundreds of community fine-tunes, LoRAs, and control variants.
+Access aggregators ([FAL](https://fal.ai/), [Replicate](https://replicate.com/), [kie.ai](https://kie.ai/), and AtlasCloud) carry most of these families, plus community fine-tunes, LoRAs, and control variants.
 
 ### Video generation models
 
@@ -181,7 +183,7 @@ Generate 3D assets through `nodetool.model3d.TextTo3D` and `nodetool.model3d.Ima
 | **Meshy AI** | Meshy (`MESHY_API_KEY`) | T2M/I2M | Textured mesh generation |
 | **Rodin AI** | Rodin (`RODIN_API_KEY`) | T2M/I2M | High-fidelity 3D creation |
 
-Open 3D families — Hunyuan3D (v2.1/v3), Trellis / Trellis 2, TripoSR / Tripo, Shap-E, Point-E, OmniPart, Era3D — run through HuggingFace / base-node 3D nodes (`HFTextTo3D`, `HFImageTo3D`) and FAL/Replicate rather than dedicated runtime providers. See [Providers](providers.md) for details.
+AtlasCloud also lists 3D models. Open 3D families such as Hunyuan3D and Trellis run through provider-specific FAL and Replicate nodes, not the generic nodes. See [Providers](providers.md) for details.
 
 ### Embedding models
 
@@ -196,7 +198,8 @@ Power RAG and semantic search through embedding nodes.
 | Voyage AI | voyage-3.5 and the Voyage line |
 | Jina AI | jina-embeddings-v3 |
 | Together AI | m2-bert, BGE, and other open embedding models |
-| Ollama · HuggingFace | nomic-embed, mxbai-embed, sentence-transformers (local, no key) |
+| Ollama · llama.cpp local · Transformers.js | Embedding models that run on your machine with no key (Transformers.js downloads ONNX models on first use) |
+| vLLM · OpenRouter · Replicate · HuggingFace | Any embedding model the server or provider lists |
 
 ### Using these models
 
@@ -205,7 +208,7 @@ Access these models through NodeTool's **generic nodes**:
 1. **For Video**: Use `nodetool.video.TextToVideo` or `nodetool.video.ImageToVideo`
 2. **For Images**: Use `nodetool.image.TextToImage`
 3. **For 3D**: Use `nodetool.model3d.TextTo3D` or `nodetool.model3d.ImageTo3D`
-4. **For Music**: Use kie.ai-backed Suno nodes (Suno Generate, Extend, Cover)
+4. **For Music**: Use the kie.ai Suno nodes (Generate Music, Extend Music, Upload And Cover Audio, Add Vocals, and others)
 5. **Select Provider**: Click the model dropdown in the node properties
 6. **Configure API**: Add provider API keys in `Settings → Models & Providers`
 
@@ -226,12 +229,10 @@ Many of these models are available through [kie.ai](https://kie.ai/), an AI prov
 
 ### Option 1: Start with Local Models (Recommended)
 
-1. Open **Models → Model Manager** in NodeTool
-2. Install these starter models:
-   - **GPT-OSS** (~4 GB) – Text generation and chat
-   - **Flux** (~12 GB) – High-quality image generation
-3. Wait for downloads to complete
-4. Run templates – they'll work offline!
+1. Open the logo menu and choose **Model Manager**
+2. On an empty install it opens on **Get Started**, which detects your hardware and lists current models that fit it. Pick a chat model and an image model.
+3. Download them. Progress shows under **Downloads** in the logo menu.
+4. Run templates that use those models. They work offline.
 
 ### Option 2: Start with Cloud Providers
 

@@ -96,14 +96,14 @@ the node that produced it finishes. That is the default `native` API; setting
 
 | Property | Default | Meaning |
 |---|---|---|
-| `endpoint` | `127.0.0.1:8188` | Host:port or full URL. `https://…` and `wss://` proxies (RunPod pods, Cloudflare tunnels) work — the scheme is derived from the endpoint. |
+| `endpoint` | `127.0.0.1:8188` | Host:port or an `http://` or `https://` URL. A bare host:port gets `http://`, and the WebSocket scheme follows the HTTP one, so `https://` proxies (RunPod pods, Cloudflare tunnels) work. A `ws://` or `wss://` URL is not accepted. |
 | `workflow` | *empty* | The API-format prompt as a JSON string: a map of node id to `{ class_type, inputs }`. |
-| `timeout` | `600` | Seconds to wait for the run. Also bounds the WebSocket handshake and the submit request. |
+| `timeout` | `600` | Seconds to wait for the run, minimum 1. Also bounds the WebSocket handshake and the submit request. |
 | `api` | `native` | Which API the endpoint speaks. `native` is ComfyUI's own `/prompt` plus WebSocket. `v2` treats `endpoint` as a Comfy API v2 origin. |
 
 ### Loading a workflow
 
-In the editor, the node has a **Load Workflow** button in its header. It accepts:
+In the editor, the node header has an upload icon with the tooltip **Load Workflow**. It opens a **Load ComfyUI Workflow** dialog that accepts:
 
 - **Pasted JSON** in API format. In ComfyUI, use **Save (API Format)** — not the
   regular save, which writes the UI format with a `nodes` array. Pasting the UI
@@ -115,7 +115,7 @@ In the editor, the node has a **Load Workflow** button in its header. It accepts
 A wrapper object with the prompt nested under a `prompt` key is unwrapped
 automatically.
 
-Applying a workflow writes three things onto the node: the normalized prompt into
+The dialog summarizes what it found (node count, typed inputs, outputs). Choose **Apply** to write three things onto the node: the normalized prompt into
 the `workflow` property, the derived `dynamic_inputs`/`dynamic_outputs`, and
 default values for the exposed inputs. Values you had already edited on handles
 that still exist are preserved.
@@ -367,12 +367,12 @@ Comfy's own, not NodeTool's:
 ## The `comfy.*` bridge surface
 
 `comfy.execute` is the only call a shipped node makes, but the bridge exposes the
-whole proxy family. Every method is gated by `supportsComfy()`.
+whole proxy family. The bridge does not check `supportsComfy()` for you, so callers test it first.
 
 | Bridge method | Wire message | Returns |
 |---|---|---|
 | `comfyExecute(workflow, options, onEvent, requestId)` | `comfy.execute` | `{prompt_id, status, outputs, blobs}` |
-| `cancelComfyExecute(requestId)` | `cancel` | — (settles the local promise itself) |
+| `cancelComfyExecute(requestId)` | `cancel` | — (rejects the local promise itself) |
 | `comfyQueue()` | `comfy.queue` | `{queue_running, queue_pending}` |
 | `comfyInterrupt()` | `comfy.interrupt` | — (global stop; admin-only) |
 | `comfyCancelPrompt(promptId)` | `comfy.cancel` | — (per-prompt, the user-facing cancel) |
@@ -394,7 +394,7 @@ worker. `comfy.models.list` has no server-side folder filter, so the bridge
 fetches the whole volume and narrows it locally.
 
 Cancel a run with `cancelComfyExecute(requestId)` rather than the bare `cancel`:
-it sends the cancel frame *and* settles the local promise, because the worker may
+it sends the cancel frame *and* rejects the local promise, because the worker may
 never emit a terminal frame after a cancel.
 
 Wire-level details live in [Python Bridge Protocol](python-bridge-protocol.md);
@@ -453,6 +453,8 @@ repository (engineering specs are not part of the published site).
 | `WebSocket connection failed` | Wrong host/port, or ComfyUI isn't listening. Check `endpoint`. |
 | `Submit failed (400)` | ComfyUI rejected the prompt — usually a missing model or an unknown `class_type` on that server. The response body is included. |
 | `Timeout waiting for ComfyUI result` | The run exceeded `timeout` seconds. Raise it for large video or upscale graphs. |
+| `ComfyUI workflow did not finish within <n>s` | The same timeout on a `v2` path of the direct or worker node. |
+| `Comfy job <id> failed in <class_type> (#<node>): …` | The job ran and a ComfyUI node raised. The text after the colon is ComfyUI's own message and error code. |
 | `The connected worker does not front a ComfyUI server` | The worker isn't running the ComfyUI image, or reports `comfy.enabled: false`. |
 | A submit that answers `404` on `/api/v2/jobs` | `api` is `v2` but the endpoint is a plain ComfyUI, which serves no `/api/v2`. Put `comfy-api-proxy` in front of it, or set `api` back to `native`. |
 | `Comfy account has insufficient credits` | Comfy Cloud answered `402`. Top the account up at [platform.comfy.org](https://platform.comfy.org). |

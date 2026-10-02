@@ -17,7 +17,7 @@ The Gemini provider supports seven modalities: text/chat, image generation, vide
 - **Video models** (Veo, Gemini Omni): add one entry to `GEMINI_VIDEO_MODELS`.
 - **Music models** (Lyria): add one entry to `getAvailableMusicModels()`.
 - **TTS / ASR / embedding models**: add one entry to the matching method.
-- Run `npm run check` before committing.
+- Run `npm run test:affected`, `npm run typecheck`, and `npm run lint` before committing.
 
 ---
 
@@ -35,7 +35,7 @@ The Gemini provider supports seven modalities: text/chat, image generation, vide
 | Embedding model listing (static) | `GeminiProvider.getAvailableEmbeddingModels()` |
 | Token/chat cost | `@pydantic/genai-prices` catalog (automatic — no edit needed) |
 | Non-token cost tiers | `packages/runtime/src/providers/cost-calculator.ts` — `PRICING_TIERS` / `MODEL_TO_TIER` |
-| Provider registration | `packages/runtime/src/providers/index.ts` line 211 |
+| Provider registration | `packages/runtime/src/providers/index.ts` (`registerBuiltinProvider(PROVIDER_IDS.GEMINI, ...)`) |
 
 ---
 
@@ -43,7 +43,7 @@ The Gemini provider supports seven modalities: text/chat, image generation, vide
 
 ### Language models — dynamic
 
-`getAvailableLanguageModels()` calls `GET https://generativelanguage.googleapis.com/v1beta/models?key=<GEMINI_API_KEY>`, filters entries whose `supportedGenerationMethods` includes `"generateContent"`, and maps each to `{ id, name, provider: "gemini" }`. A new text/chat model becomes available when Google adds it to that endpoint.
+`getAvailableLanguageModels()` calls `GET https://generativelanguage.googleapis.com/v1beta/models?key=<GEMINI_API_KEY>` with `pageSize=1000` and follows `nextPageToken`. It keeps entries whose `supportedGenerationMethods` includes `"generateContent"`, drops names that match `embedding`, `aqa`, `imagen`, `veo`, `image`, or `tts`, removes duplicate ids, and maps each to `{ id, name, provider: "gemini" }`. A failed request returns an empty list. A new text/chat model becomes available when Google adds it to that endpoint and its name passes the filter.
 
 ### Image models — static array
 
@@ -92,6 +92,7 @@ async getAvailableImageModels(): Promise<ImageModel[]> {
       provider: "gemini"
     },
     { id: "gemini-3-pro-image", name: "Gemini 3 Pro Image", provider: "gemini" }
+    // plus gemini-3.1-flash-lite-image and any other existing entries
   ];
 }
 ```
@@ -120,7 +121,8 @@ Veo IDs must start with `"veo-"` and Omni IDs with `"gemini-omni-"`. The prefix 
 ```typescript
 override async getAvailableMusicModels(): Promise<MusicModel[]> {
   return [
-    { id: "lyria-3.5", name: "Lyria 3.5", provider: "gemini", supportedTasks: ["text_to_music"] }
+    { id: "lyria-3.5", name: "Lyria 3.5", provider: "gemini", supportedTasks: ["text_to_music"] },
+    { id: "lyria-3-clip-preview", name: "Lyria 3 Clip Preview", provider: "gemini", supportedTasks: ["text_to_music"] }
   ];
 }
 ```
@@ -132,6 +134,7 @@ Lyria IDs must start with `"lyria-"`.
 ```typescript
 async getAvailableASRModels(): Promise<ASRModel[]> {
   return [
+    { id: "gemini-3.5-transcribe", name: "Gemini 3.5 Transcribe", provider: "gemini" },
     { id: "gemini-3.5-flash", name: "Gemini 3.5 Flash", provider: "gemini" },
     { id: "gemini-3.1-flash-lite", name: "Gemini 3.1 Flash-Lite", provider: "gemini" }
   ];
@@ -148,6 +151,7 @@ async getAvailableTTSModels(): Promise<TTSModel[]> {
   return [
     { id: "gemini-3.8-flash-tts", name: "Gemini 3.8 Flash TTS", provider: "gemini", voices },
     { id: "gemini-3.8-flash-lite-tts", name: "Gemini 3.8 Flash-Lite TTS", provider: "gemini", voices }
+    // plus gemini-3.1-flash-tts-preview
   ];
 }
 ```
@@ -174,22 +178,22 @@ npm run typecheck
 # 2. Lint
 npm run lint
 
-# 3. Run all tests
-npm run test
+# 3. Run the affected tests
+npm run test:affected
 
 # 4. Smoke-test a new image node (requires GEMINI_API_KEY in env or DB)
 npm run dev:nodetool -- node run nodetool.image.TextToImage \
   --props '{"prompt": "a red apple", "model": {"type": "image_model", "id": "gemini-3.1-flash-image", "provider": "gemini", "name": "Gemini 3.1 Flash Image"}}'
 
-# 5. Smoke-test via chat agent (text model — auto-discovered, no list change needed)
+# 5. Smoke-test via chat agent (text model, auto-discovered, no list change needed)
 npm run dev:chat -- --provider gemini --model gemini-3.5-flash
 
-# Combined (typecheck + lint + test):
-npm run check
+# 6. Harness gate
+npm run dev:nodetool -- harness gate --base origin/main
 ```
 
 ---
 
 ## Contributing
 
-Open a PR at <https://github.com/nodetool-ai/nodetool>. Run `npm run check` (typecheck + lint + test) before pushing. Join the discussion on [Discord](https://discord.gg/WmQTWZRcYE).
+Open a PR at <https://github.com/nodetool-ai/nodetool>. Run the checks in the Verify section before pushing. Join the discussion on [Discord](https://discord.gg/WmQTWZRcYE).

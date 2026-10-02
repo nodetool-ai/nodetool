@@ -45,7 +45,7 @@ set up.
 ## Windows
 
 1. Download the installer (`Nodetool-Setup-<version>.exe`) from
-   [nodetool.ai](https://nodetool.ai).
+   [nodetool.ai](https://nodetool.ai). It is built for 64-bit x64 Windows.
 2. Run it. You choose where it installs. It then adds a desktop shortcut and
    opens NodeTool when it finishes.
 3. Approve the Windows firewall prompt. NodeTool runs a small server on your own
@@ -85,8 +85,8 @@ before your first workflow.
 Two ways to get one, and you can mix them:
 
 **A cloud provider (fastest).** Open **Settings → Models & Providers** and
-connect one. Some providers sign you in without a key — a Claude subscription,
-an OpenAI account, Hugging Face. For the rest, paste an **API key**: a
+connect one. Some providers sign you in without a key: a Claude subscription
+(desktop app only), a ChatGPT account (Codex), and Hugging Face. For the rest, paste an **API key**: a
 password-like string you create on that company's website, which lets NodeTool
 use your account there.
 
@@ -94,14 +94,17 @@ use your account there.
   transcription, embeddings. The broadest single key.
 - [Anthropic](https://www.anthropic.com) — Claude chat models, the usual choice
   for agents. Text only.
-- [Google Gemini](https://ai.google.dev) — chat, Imagen images, Veo video,
-  transcription.
+- [Google Gemini](https://ai.google.dev) — chat, images, Veo video, speech,
+  transcription, embeddings.
 - [FAL](https://fal.ai) or [Replicate](https://replicate.com) — image, video,
   and audio generation across many models.
 
 NodeTool is bring-your-own-key: it never marks up a provider's price, and the
 provider bills you directly. Keys are stored encrypted (AES-256-GCM) in a local
-database, not in a plaintext config file.
+database, not in a plaintext config file. The encryption key lives in your
+operating system's keychain (macOS Keychain, Windows Credential Manager, or the
+Linux Secret Service). The `SECRETS_MASTER_KEY` environment variable overrides
+it.
 
 **Local models (no key, no bill).** Install [Ollama](https://ollama.com), pull a
 model with `ollama pull <model>`, and it shows up in NodeTool automatically.
@@ -121,6 +124,7 @@ confirm the key still works. From the terminal:
 ```bash
 nodetool secrets store OPENAI_API_KEY   # prompts for the value, stores it encrypted
 nodetool secrets list                   # list stored keys (values are never shown)
+nodetool secrets get OPENAI_API_KEY     # print one stored value
 ```
 
 The full list of 30+ providers, what each one can generate, and which key it
@@ -130,17 +134,19 @@ needs is in [Providers](providers.md).
 
 ## What downloads later
 
-The app itself is small. These pieces arrive the first time a workflow needs
-them:
+The app itself is small. NodeTool starts without a Python environment. These
+pieces arrive only when you install them:
 
-- **Python and Conda** (about 3-5 GB, once) — some nodes are written in Python
-  rather than JavaScript, and they need this to run. It downloads the first time
-  you run a workflow containing one, such as a HuggingFace, MLX, or Apple
-  integration node. A workflow with no Python nodes never triggers it.
+- **Python and Conda** — some nodes are written in Python rather than
+  JavaScript, and they need this to run. Install it from **Tools → Package
+  Manager**, or accept the **Install required runtimes** prompt that appears
+  when a workflow contains nodes that need a runtime. This covers HuggingFace
+  and MLX nodes, for example. A workflow with no Python nodes never needs it.
+  Allow several GB of disk space.
 - **Model runners** — Ollama and llama.cpp are the programs that run AI models
-  on your own machine. They download when you install or run a model that needs
-  one, from the **Models** panel.
-- **The models themselves** — usually 4-20 GB each, depending on the model.
+  on your own machine. Install them from the Package Manager or the model
+  manager (**Tools → Model Manager**).
+- **The models themselves** — several GB each, depending on the model.
 
 No graphics card, or no room for the downloads? Use a cloud provider with your
 own API key instead — see [Connect an AI provider](#connect-an-ai-provider)
@@ -167,18 +173,20 @@ card:
 
 If you don't want the desktop app:
 
-**Command line only** — install just the `nodetool` command, without the desktop
-app:
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/nodetool-ai/nodetool/main/install.sh | bash
-```
-
-or with npm:
+**Command line only** — install the `nodetool` command without the desktop app.
+With npm (Node.js 22 or newer):
 
 ```bash
 npm install -g @nodetool-ai/cli
-nodetool serve
+nodetool serve   # API on 127.0.0.1:7777; use --host and --port to change
+```
+
+`install.sh` is a separate path. It sets up a micromamba Python environment in
+`~/.nodetool` (override with `NODETOOL_HOME` or `--prefix DIR`, add `-y` to skip
+prompts) and installs the Python `nodetool-core` and `nodetool-base` packages:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/nodetool-ai/nodetool/main/install.sh | bash
 ```
 
 See the [CLI Reference](cli.md).
@@ -203,7 +211,7 @@ npm run build:packages
 npm run dev
 ```
 
-Needs Node.js 22.22.1 (see `.nvmrc`) and, for Python nodes, Python 3.11+ with
+Needs the Node.js version in `.nvmrc` (24.18.0) and, for Python nodes, Python 3.11+ with
 conda. Full setup in the
 [repo README](https://github.com/nodetool-ai/nodetool#development-setup).
 
@@ -220,12 +228,11 @@ no images, FAL runs no chat). Connect one in **Settings → Models & Providers**
 and press **Test**; the [capability matrix](providers.md#capability-matrix)
 shows which provider covers which modality.
 
-**The Python download fails** — it needs an internet connection and about 5 GB
-of free disk space. Restart NodeTool; a partial download picks up where it left
-off.
+**The Python install fails** — it needs an internet connection and free disk
+space. Retry from **Tools → Package Manager**.
 
 **NodeTool doesn't see my graphics card** — open a terminal and run
-`nvidia-smi`. That is the same check NodeTool runs in Help → System Information.
+`nvidia-smi`. That is the same check NodeTool runs for Help → System Information.
 If you have no dedicated graphics card, NodeTool falls back to the CPU, or you
 can use an online service instead.
 
@@ -239,7 +246,7 @@ NodeTool's local server on port 7777. Running the Docker version instead? See
 
 **Still stuck** — ask on [Discord](https://discord.gg/WmQTWZRcYE) or open a
 [GitHub Issue](https://github.com/nodetool-ai/nodetool/issues). Include your
-operating system and your NodeTool version (Help → About).
+operating system and your NodeTool version (Help → System Information).
 
 ---
 

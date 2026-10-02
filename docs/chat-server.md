@@ -25,6 +25,8 @@ The server provides:
 - `GET /v1/models` — OpenAI-compatible model list.
 - `/ws` — the WebSocket endpoint used by the editor and `nodetool chat --url`.
 
+`/v1` passes the request straight to one provider. It does not run the NodeTool agent, so there are no tools beyond the `tools` you send. The agent loop is reached over `/ws`. Requests go through the server's normal authentication. See [Authentication](authentication.md#authentication-modes).
+
 ## Chat Completions: `POST /v1/chat/completions`
 
 **URL:** `http://localhost:7777/v1/chat/completions`
@@ -41,13 +43,34 @@ curl http://localhost:7777/v1/chat/completions \
 ```
 
 Set `"stream": true` to receive Server-Sent Events with OpenAI-compatible `chat.completion.chunk` payloads, terminated
-by `data: [DONE]`.
+by `data: [DONE]`. Without it the response is one `chat.completion` object.
+
+The request accepts `model`, `messages`, `stream`, `tools`, `temperature`, `top_p`, `max_tokens`, `presence_penalty`, and
+`frequency_penalty`. A response with tool calls has `finish_reason` `tool_calls`. Non-streaming `usage` reports `0` for
+every count.
+
+### How the model picks the provider
+
+The server chooses the provider from the `model` prefix:
+
+| Model starts with | Provider | Credential |
+|---|---|---|
+| `gpt-`, `o1`, `o3` | OpenAI | `OPENAI_API_KEY` |
+| `claude-` | Anthropic | `ANTHROPIC_API_KEY` |
+| anything else | Ollama | `OLLAMA_API_URL` (default `http://127.0.0.1:11434`) |
+
+The key comes from the caller's secret store, then the environment. Without `model` the request uses `llama3.2:latest`.
+Invalid JSON returns `400`. A provider that fails to initialize returns `500` with an OpenAI-style `error` object.
 
 ## Models: `GET /v1/models`
 
 ```bash
 curl http://localhost:7777/v1/models
 ```
+
+The list is fixed, not queried from your providers: `llama3.2:latest`, `gpt-4`, `gpt-4o`, `gpt-4o-mini`,
+`claude-sonnet-4-20250514`, and `claude-opus-4-20250514`. Chat completions accept any model ID the prefix rules route.
+Use `nodetool models list` to see the models your install can run.
 
 ## Integration Example (JavaScript)
 

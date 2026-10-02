@@ -12,29 +12,29 @@ This guide teaches you how to debug NodeTool workflows when they don't work as e
 
 When a workflow isn't working:
 
-- [ ] Check node status colors (gray/yellow/green/red)
-- [ ] Click on failed (red) nodes to see error messages
+- [ ] Look for a moving ring (running), a **Completed in** badge, or a **Failed in** badge on each node
+- [ ] Read the red error panel on failed nodes
 - [ ] Add Preview nodes after suspicious nodes
 - [ ] Verify all required inputs are connected
 - [ ] Check data types match between connections
-- [ ] Review the console/logs for detailed errors
-- [ ] Test problem nodes in isolation
+- [ ] Review the Logs panel for detailed errors
+- [ ] Test problem nodes in isolation with **Run Node**
+- [ ] Run `nodetool validate` on the graph
 
 ---
 
 ## Understanding Node Status
 
-Nodes display their execution status through border colors:
+Nodes show their execution status on the canvas:
 
-| Color | Status | Meaning |
-|-------|--------|---------|
-| **Gray** | Not started | Node hasn't been processed yet |
-| **Yellow** | Running | Node is currently executing |
-| **Green** | Completed | Node finished successfully |
-| **Red** | Failed | Node encountered an error |
-| **Blue outline** | Selected | Node is currently selected |
+| Sign | Status | Meaning |
+|------|--------|---------|
+| **Moving colored ring** around the node | Running | Node is currently executing. A progress bar appears when the node reports progress. |
+| **Completed in 1.2s** badge above the node | Completed | Node finished successfully |
+| **Failed in 1.2s** badge above the node, and a red error panel | Failed | Node encountered an error |
+| **Model is booting, taking minutes.** | Booting | A model is starting up. This is not a failure. |
 
-When a node fails (red), click it to see the error message in the properties panel.
+When a node fails, the error text appears on the node. The panel has **View logs** (opens the [Logs panel]({{ '/editor-panels' | relative_url }}#logs) filtered to that node and run), **Report** (starts a bug report), and a copy button. Select the node and open the Inspector (`i`) to see validation issues for its properties before you run.
 
 ---
 
@@ -48,6 +48,8 @@ Preview nodes are your primary debugging tool. They show exactly what data is fl
 2. Type "Preview" and select the Preview node
 3. Connect the output you want to inspect to the Preview node
 4. Run the workflow
+
+A faster route: drop a connection on empty canvas, or right-click an output port, and choose **Preview** in the menu. It creates a Preview node already connected.
 
 ### Preview Node Strategies
 
@@ -70,17 +72,19 @@ Input →
 
 ### What Preview Shows
 
-Preview nodes display data based on type:
+Preview nodes render the value by type:
 
 | Data Type | Preview Display |
 |-----------|-----------------|
-| **Text/String** | Full text content, scrollable |
-| **Image** | Rendered image with dimensions |
+| **Text/String** | Text content, scrollable |
+| **Image** | Rendered image |
 | **Audio** | Playable audio widget |
-| **List** | JSON array with items |
+| **Video** | Video player |
+| **List** | The items, rendered per type |
 | **Object/Dict** | Formatted JSON |
-| **Number** | Numeric value |
-| **Boolean** | True/False |
+| **DataFrame** | Table |
+| **Number, Boolean** | The value |
+| **HTML, 3D model, sketch, timeline, chart** | A rendered view of each |
 
 ---
 
@@ -91,79 +95,83 @@ Every NodeTool workflow is stored as JSON. Inspecting this JSON can help debug c
 ### Exporting Workflow JSON
 
 1. Open your workflow in the editor
-2. Open the floating toolbar's **⋮** menu and choose **Download JSON** (also available in the command menu)
+2. Open the composer's **⋮** menu and choose **Download JSON**. The command menu (`Ctrl/⌘ + K`) has **Download Workflow as JSON** and **Copy Workflow as JSON**.
 3. Save the `.json` file
 4. Open in any text editor or JSON viewer
 
 ### Workflow JSON Structure
 
+The file is the workflow with its graph under `graph`. Download JSON blanks the `id`. This trimmed example leaves out several fields, such as `access`, `tags`, and `settings`:
+
 ```json
 {
-  "id": "workflow_abc123",
+  "id": "",
   "name": "My Workflow",
   "description": "...",
-  "nodes": [
-    {
-      "id": "node_1",
-      "type": "nodetool.input.StringInput",
-      "data": {
-        "value": "Hello world"
+  "graph": {
+    "nodes": [
+      {
+        "id": "node_1",
+        "type": "nodetool.input.StringInput",
+        "data": { "name": "text", "value": "Hello world" },
+        "ui_properties": { "position": { "x": 100, "y": 100 }, "width": 280 }
       },
-      "position": { "x": 100, "y": 100 }
-    },
-    {
-      "id": "node_2", 
-      "type": "nodetool.agents.Agent",
-      "data": {
-        "prompt": "...",
-        "model": { "provider": "openai", "id": "gpt-5.6" }
-      },
-      "position": { "x": 300, "y": 100 }
-    }
-  ],
-  "edges": [
-    {
-      "id": "edge_1",
-      "source": "node_1",
-      "sourceHandle": "output",
-      "target": "node_2",
-      "targetHandle": "text"
-    }
-  ]
+      {
+        "id": "node_2",
+        "type": "nodetool.agents.Agent",
+        "data": { "prompt": "..." },
+        "ui_properties": { "position": { "x": 400, "y": 100 }, "width": 280 }
+      }
+    ],
+    "edges": [
+      {
+        "id": "edge_1",
+        "source": "node_1",
+        "sourceHandle": "output",
+        "target": "node_2",
+        "targetHandle": "prompt",
+        "edge_type": "data"
+      }
+    ]
+  }
 }
 ```
+
+Properties fed by a connection are left out of a node's `data`, because the edge supplies the value. `ui_properties` also holds the title, color, size, and a `bypassed` flag for disabled nodes.
 
 ### What to Look For
 
 **Missing connections:** Check that `edges` correctly connect outputs to inputs
 
-**Incorrect values:** Look at `data` for each node to verify settings
+**Incorrect values:** Look at `data` for each node to verify settings. A node with `"bypassed": true` in `ui_properties` is disabled.
 
 **Node types:** Ensure `type` matches expected node (typos happen in programmatic workflows)
 
-**Position issues:** If nodes overlap or are off-canvas, check `position` values
+**Position issues:** If nodes overlap or are off-canvas, check `ui_properties.position`
 
 ---
 
 ## Reading Error Logs
 
+### In the Editor
+
+Open the [Logs panel]({{ '/editor-panels' | relative_url }}#logs) with `l`. It lists log lines for the open workflow, newest first. Filter by **Info**, **Warn**, or **Error**. The [Trace panel]({{ '/editor-panels' | relative_url }}#trace) (`Ctrl/⌘ + Shift + T`) shows per-node timing for a run.
+
 ### Desktop App Logs
 
-**Enable debug logging:**
-1. Open **Settings → Advanced**
-2. Enable **Debug Logging**
-3. Logs appear in the console panel (View → Developer Tools)
+Open **Tools → Log Viewer** to read the backend log in its own window. The desktop app writes the log file here:
 
-**Log location:**
-- Windows: `%USERPROFILE%\.nodetool\logs\`
-- macOS: `~/Library/Logs/NodeTool/` or `~/.nodetool/logs/`
-- Linux: `~/.nodetool/logs/`
+- Windows: `%LOCALAPPDATA%\nodetool\logs\nodetool.log`
+- macOS and Linux: `~/.local/share/nodetool/logs/nodetool.log`
+
+For renderer errors, open the developer tools from the **View** menu.
 
 ### CLI/Server Logs
 
 When running NodeTool from the command line, `serve` accepts only `--host` and
 `--port`. The log level comes from the environment (`NODETOOL_LOG_LEVEL`,
-falling back to `LOG_LEVEL`, default `info`):
+falling back to `LOG_LEVEL`, default `info`). Valid levels are `debug`, `info`,
+`warn`, and `error`:
 
 ```bash
 # Debug logging
@@ -175,32 +183,34 @@ NODETOOL_LOG_FILE=/tmp/nodetool.log nodetool serve
 
 ### Understanding Error Messages
 
-**Common error patterns:**
+Messages you are likely to meet:
 
 ```
-Error: Type mismatch - cannot connect 'List[String]' to 'String'
+Select a model
 ```
-→ Use a node to extract a single item from the list (e.g. a `nodetool.code.Code` node that returns one item)
+→ An Agent node has no model chosen. Pick one in the Inspector.
 
 ```
-Error: Required input 'prompt' is not connected
+COHERE_API_KEY is not configured
 ```
-→ Connect something to the `prompt` input, or set a default value
+→ A provider key is missing. The name in the message is the key to set. Add it in **Settings → Models & Providers**.
 
 ```
-Error: Model not found: 'gpt-5.6'
+Missing required workflow input "prompt"
 ```
-→ Check API key configuration in Settings → Models & Providers
+→ Give the input node a value, or pass the input when you run the workflow.
 
 ```
-Error: CUDA out of memory
+Cycle detected in graph; a cycle may only close on the "next" or "condition" input of a Loop node.
 ```
-→ Use a smaller model, reduce batch size, or close other GPU applications
+→ Remove the connection that loops back. Only a Loop node's `next` and `condition` inputs may close a cycle.
 
 ```
-Error: Connection refused on localhost:7777
+Python node "<type>" cannot execute: Python worker is not connected.
 ```
-→ NodeTool server isn't running, or firewall is blocking
+→ The node needs the Python bridge. Check that Python is installed and the worker started. See [Troubleshooting]({{ '/troubleshooting' | relative_url }}).
+
+The editor refuses a connection between incompatible types, so a type mismatch shows up as a wire that will not connect, not as a run error. Add a conversion node between the two.
 
 ---
 
@@ -209,7 +219,7 @@ Error: Connection refused on localhost:7777
 ### LLM Not Responding
 
 1. **Check model availability**
-   - Open Models → Model Manager
+   - Open **More → Model Manager** on the left rail
    - Verify model is installed (local) or API key is set (cloud)
 
 2. **Test with Preview**
@@ -227,7 +237,7 @@ Error: Connection refused on localhost:7777
 ### Image Generation Fails
 
 1. **Check model installation**
-   - Open Model Manager
+   - Open **More → Model Manager**
    - Ensure Flux/Qwen Image/etc. is downloaded
 
 2. **Verify VRAM**
@@ -265,11 +275,11 @@ Error: Connection refused on localhost:7777
 ### Workflow Runs Forever
 
 1. **Check for loops**
-   - While NodeTool prevents circular connections, complex logic can create infinite loops
+   - The validator rejects cycles except one closing on a Loop node's `next` or `condition` input, but a Loop with a condition that never ends still runs forever
    - Look for conditional nodes that might never exit
 
 2. **Monitor node status**
-   - Which node is stuck on "running" (yellow)?
+   - Which node still shows the moving running ring?
    - That node is the bottleneck
 
 3. **Check network calls**
@@ -289,8 +299,8 @@ Error: Connection refused on localhost:7777
 When you have a complex workflow and something's wrong:
 
 1. **Disable half the workflow**
-   - Disconnect nodes in the middle
-   - Run first half only
+   - Select the downstream nodes and press `B` (or right-click → **Disable All**)
+   - A disabled node and its connections are left out of the run, so only the first half executes
 
 2. **Check results**
    - Working? Problem is in second half
@@ -303,10 +313,9 @@ When you have a complex workflow and something's wrong:
 
 Create a minimal test workflow:
 
-1. **New workflow** with just the suspicious node
-2. **Add input nodes** with known good test data
-3. **Add Preview/Output** to see results
-4. **Run and verify**
+1. **Right-click the node → Run Node.** It runs as its own job using previous results as inputs. **Run Selected** does the same for a selection.
+2. Or make a **new workflow** with just the suspicious node, add input nodes with known good test data, add Preview/Output, and run it
+3. Or, from a terminal, `nodetool node run <node_type> --props '{...}'` runs one node with no workflow
 
 If the node works in isolation, the problem is with the data it receives in the full workflow.
 
@@ -314,7 +323,7 @@ If the node works in isolation, the problem is with the data it receives in the 
 
 If a workflow used to work:
 
-1. **Export both versions** (working and broken) as JSON
+1. **Export both versions** (working and broken) as JSON, or compare two entries in the **Versions** panel
 2. **Diff the files** to see what changed
 3. **Focus on changed nodes/edges**
 
@@ -324,16 +333,33 @@ diff working_workflow.json broken_workflow.json
 
 ---
 
+## Command-Line Debugging
+
+Three `nodetool` commands cover the same ground without the editor. See the [CLI reference]({{ '/cli' | relative_url }}) for all options.
+
+| Command | Use |
+|---------|-----|
+| `nodetool validate <workflow_id_or_file>` | Static check in under a second: unknown node types, missing required properties, dangling or mis-typed edges, bad model references. Run it before an expensive run. |
+| `nodetool debug <workflow_id_or_file>` | Run the workflow and write a bundle with every message, log line, node input and output, and error, plus a verdict. Add `--trace` for timing and cost, `--watch` to re-run a file on save. |
+| `nodetool node run <node_type> --props '{...}'` | Run one node in isolation. |
+
+---
+
 ## Debugging Tools Summary
 
 | Tool | When to Use | How to Access |
 |------|-------------|---------------|
 | **Preview nodes** | See intermediate data | Space → search "Preview" |
-| **Node click** | See error messages | Click red (failed) nodes |
-| **Console/DevTools** | View detailed logs | View → Developer Tools |
+| **Node error panel** | See error messages | On the failed node |
+| **Logs panel** | Run log lines by severity | `l` |
+| **Trace panel** | Per-node timing | `Ctrl/⌘ + Shift + T` |
+| **Run Node / Run Selected** | Test part of a graph | Right-click a node or selection |
+| **Disable Node** | Exclude part of a graph from a run | `B` |
+| **Versions panel** | Compare or restore earlier saves | Bottom panel → Versions |
 | **JSON export** | Inspect workflow structure | ⋮ menu → Download JSON |
+| **Log Viewer** | Backend log (desktop) | Tools → Log Viewer |
 | **Debug logging** | CLI debugging | `NODETOOL_LOG_LEVEL=debug nodetool serve` |
-| **Log files** | Historical debugging | `~/.nodetool/logs/` |
+| **`nodetool validate` / `debug`** | Headless checks | Terminal |
 
 ---
 
@@ -341,14 +367,13 @@ diff working_workflow.json broken_workflow.json
 
 | Problem | Solution |
 |---------|----------|
-| "Type mismatch" | Add conversion node between incompatible types |
-| "Not connected" | Wire up all required inputs |
-| "Model not found" | Install model in Model Manager or configure API key |
-| "Out of memory" | Use smaller model, reduce batch size, close apps |
-| "Timeout" | Check internet, increase timeout setting |
-| "Empty output" | Add Preview to find where data is lost |
-| "Wrong format" | Use FormatText or conversion nodes |
-| "Permission denied" | Check file paths and permissions |
+| Wire will not connect | Types are incompatible. Add a conversion node between them |
+| "Select a model" | Choose a model on the Agent node, or set a default in Settings → Default Models |
+| "... is not configured" | Add the named key in Settings → Models & Providers |
+| Model not available | Install it in More → Model Manager or configure its API key |
+| Empty output | Add Preview to find where data is lost |
+| Wrong format | Use the **Format Text** node or a conversion node |
+| Large run warning | Review the cost, or change **Large-Run Threshold** in Settings → General → Execution |
 
 ---
 

@@ -14,10 +14,12 @@ Shortcuts, hidden features, and workflow efficiency tips.
 |----------|--------|
 | `Space` | Open node menu |
 | `Ctrl/⌘ + Enter` | Run workflow |
+| `Esc` | Stop workflow |
 | `Ctrl/⌘ + S` | Save |
 | `F` | Fit view |
 | `Ctrl/⌘ + Z` | Undo |
 | `Ctrl/⌘ + K` | Command menu |
+| `Ctrl/⌘ + /` | Show all keyboard shortcuts |
 
 ---
 
@@ -38,7 +40,11 @@ Shortcuts, hidden features, and workflow efficiency tips.
 
 - **Drag from header**: Move nodes by grabbing the header bar (top of node)
 - **Group related nodes**: Select multiple, press `Ctrl/⌘ + G`
-- **Align selection**: Press `A` to align, `Shift + A` to align and distribute evenly
+- **Align selection**: Press `A` to align, `Shift + A` to align with even spacing
+- **Collapse a node**: Press `C`
+- **Disable a node**: Press `B`
+- **Select connected nodes**: `Shift + C` (all), `Shift + I` (inputs), `Shift + O` (outputs)
+- **Duplicate vertically**: `Ctrl/⌘ + Shift + D`
 
 ---
 
@@ -46,12 +52,13 @@ Shortcuts, hidden features, and workflow efficiency tips.
 
 | Action | How |
 |--------|-----|
-| **Pan around** | `Space` + drag, or right-click drag |
-| **Zoom** | `Ctrl/⌘` + scroll wheel |
+| **Pan around** | Left-drag on empty canvas (Windows/Linux default) or right/middle-drag (macOS default). Change it in **Settings → General → Canvas → Left-Click Drag** |
+| **Zoom** | Scroll wheel (Windows/Linux), pinch or `Ctrl/⌘` + scroll (macOS, where plain scroll pans) |
 | **Fit to screen** | Press `F` |
 | **Focus on selection** | Select nodes, then press `F` |
 | **Reset zoom** | `Ctrl/⌘ + 0` |
-| **Snap to grid** | Enable in the View menu, the command menu, or Settings |
+| **Zoom in / out** | `Ctrl/⌘ + =` / `Ctrl/⌘ + -` |
+| **Snap to grid** | Enable in the desktop View menu, the command menu, or **Settings → General → Canvas** |
 
 ---
 
@@ -75,9 +82,9 @@ Shortcuts, hidden features, and workflow efficiency tips.
 
 ### Organization
 
-- **Save often**: `Ctrl/⌘ + S` – your work auto-saves, but manual saves create versions
+- **Save often**: `Ctrl/⌘ + S` – autosave is on by default, and each manual save also creates a version (**Settings → General → Autosave**)
 - **Use descriptive names**: Rename workflows and nodes for clarity
-- **Templates**: Save common patterns as templates
+- **Examples**: Open the Examples page from the sidebar menu to start from a working graph
 
 ### History & Undo
 
@@ -85,12 +92,11 @@ Shortcuts, hidden features, and workflow efficiency tips.
 |--------|----------|
 | Undo | `Ctrl/⌘ + Z` |
 | Redo | `Ctrl/⌘ + Shift + Z` |
-| Full history | Available in Edit menu |
+| Saved versions | Created on each manual save |
 
 ### Layout Recovery
 
-- **Lost panels?** View → Reset Layout restores default
-- **Auto layout**: Click the Auto Layout button to tidy up
+- **Auto layout**: Click the Auto Layout button (or use the command menu) to tidy up
 
 ---
 
@@ -102,7 +108,7 @@ Shortcuts, hidden features, and workflow efficiency tips.
 2. **Check node errors** – red borders or icons indicate issues
 3. **Verify connections** – ensure types match
 4. **Test incrementally** – run partial workflows first
-5. **Disable nodes** – right-click → Disable to exclude suspicious nodes and their connections from the run
+5. **Disable nodes** – select and press `B`, or right-click → Disable Node, to exclude suspicious nodes and their connections from the run
 
 ### Disabling Nodes for Debugging
 
@@ -114,7 +120,7 @@ Shortcuts, hidden features, and workflow efficiency tips.
 
 | Problem | Solution |
 |---------|----------|
-| "Missing Model" | Click the indicator to install |
+| A node reports a missing model | Use the model picker's Recommended Models list or Model Manager to install it |
 | Wrong output | Check input data and node settings |
 | Workflow won't run | Look for disconnected required inputs |
 | Slow execution | Try cloud providers for heavy tasks |
@@ -136,17 +142,20 @@ Press `Ctrl/⌘ + K` to open the command menu – the fastest way to:
 
 - **Multiple workflows**: Open in tabs, switch with `Ctrl/⌘ + 1-9`
 - **Reference between**: Copy nodes from one workflow to another
-- **Side by side**: Drag tabs to split view
+- **Reorder**: Drag tabs to change their order
 
 ### Keyboard Navigation
 
 | Shortcut | Action |
 |----------|--------|
-| `1-5` | Switch left panel |
+| `1` / `2` | Toggle Workflows / Assets panel |
 | `i` | Toggle Inspector (right panel) |
+| `w` | Toggle Workflow Settings panel |
+| `o` | Toggle Operator panel |
 | `Ctrl/⌘ + F` | Search nodes on canvas by label |
 | `Arrow keys` | Nudge selected nodes |
-| `Shift + ?` | Open node documentation |
+| `Ctrl/⌘ + Shift + A` | Quick add node |
+| `Ctrl/⌘ + Alt + N` / `P` | Move focus to next / previous node |
 
 ---
 
@@ -171,7 +180,7 @@ Press `Ctrl/⌘ + K` to open the command menu – the fastest way to:
 ### Working with Files
 
 - **Drag and drop**: Drop files directly onto the canvas
-- **Asset panel**: Press `3` to open (or click the Assets icon)
+- **Asset panel**: Press `2` to open (or click the Assets icon)
 - **Preview**: Click any asset to preview it
 
 ### Organizing
@@ -204,14 +213,13 @@ Press `Ctrl/⌘ + K` to open the command menu – the fastest way to:
 
 | Issue | Try This |
 |-------|----------|
-| Layout broken | View → Reset Layout |
 | Node menu won't open | Refresh page, check for modals |
 | Connection won't attach | Check type compatibility |
 | Workflow stuck | Press `Esc` to stop, check error messages |
 
 ### Getting Help
 
-- **Node docs**: Hover `?` on any node, or press `Shift + ?`
+- **Node info**: Select a node and press `Ctrl/⌘ + I`
 - **Discord**: Ask the community
 - **GitHub Issues**: Report bugs
 

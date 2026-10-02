@@ -4,15 +4,15 @@ title: "Connect OpenAI, Anthropic, Gemini & Ollama to NodeTool"
 description: "Bring your own keys: connect OpenAI, Anthropic, Gemini, Ollama, and 30+ providers to NodeTool workflows. Local or cloud, swap models without rewiring the graph."
 ---
 
-A provider is the adapter between a NodeTool node and an AI service — OpenAI, Anthropic, Gemini, a local Ollama daemon, or one of the 30+ others below. Every node that calls an LLM or a media model exposes a `model` property backed by a provider id. Pick a different provider from that same dropdown and the rest of the graph — edges, other nodes — doesn't change.
+A provider is the adapter between a NodeTool node and an AI service: OpenAI, Anthropic, Gemini, a local Ollama daemon, or one of the 40+ others below. Every node that calls an LLM or a media model exposes a `model` property backed by a provider id. Pick a different provider from that same dropdown and the rest of the graph stays the same.
 
-This is bring-your-own-key (BYOK): NodeTool never marks up a provider's price, and cloud usage is billed directly by the provider. Add a key in **Settings → Models & Providers**, or skip keys entirely and run everything through local models (Ollama, vLLM, LM Studio, llama.cpp).
+This is bring-your-own-key (BYOK). NodeTool does not mark up a provider's price, and cloud usage is billed directly by the provider. The one exception is the `nodetool` provider, which exists only in NodeTool's hosted cloud (see [NodeTool managed models](#nodetool-managed-models)). Add a key in **Settings → Models & Providers**, or skip keys and run everything through local models (Ollama, vLLM, LM Studio, llama.cpp).
 
 New to models and providers generally? Start with [Models & Providers](models-and-providers.md) for the local-vs-cloud overview, or [Supported Models](models.md) for the full model catalog. This page is the provider reference: what each one does, which key it needs, and where to read more.
 
 ## Capability matrix
 
-Checked against each provider's implementation in `packages/runtime/src/providers/` — a blank cell means that provider doesn't expose the modality through NodeTool's generic nodes, even where the underlying service might.
+Checked against each provider's implementation in `packages/runtime/src/providers/`. A blank cell means that provider doesn't expose the modality through NodeTool's generic nodes, even where the underlying service might.
 
 | Provider | Text | Image | Video | TTS | ASR | Embeddings | 3D |
 |---|:---:|:---:|:---:|:---:|:---:|:---:|:---:|
@@ -26,35 +26,40 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 | Cerebras | ✅ | | | | | | |
 | Alibaba Cloud | ✅ | | | | | | |
 | GMI Cloud | ✅ | | | | | | |
-| OpenRouter | ✅ | ✅ | ✅ | | | | |
+| OpenRouter | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Requesty | ✅ | | | | | | |
 | Together AI | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
 | Moonshot (Kimi) | ✅ | | | | | | |
+| Meta AI | ✅ | | | | | | |
 | MiniMax | ✅ | ✅ | ✅ | ✅ | | | |
 | Codex (OpenAI OAuth) | ✅ | ✅ | | | | | |
 | Claude Agent SDK | ✅ | | | | | | |
 | Evolink | ✅ | ✅ | ✅ | | | | |
 | kie.ai | ✅¹ | ✅ | ✅ | ✅ | | | |
 | AKI | ✅ | ✅ | | | | | |
+| Higgsfield | | ✅ | ✅ | | | | |
+| UseAPI | | ✅ | ✅ | | | | |
 | Replicate | ✅ | ✅ | ✅ | ✅ | ✅ | ✅ | |
-| FAL | | ✅ | ✅ | ✅ | | | |
+| FAL | ✅ | ✅ | ✅ | ✅ | | | |
 | Comfy Cloud | | ⁵ | ⁵ | | | | |
 | HuggingFace | ✅ | ✅ | ✅² | ✅ | ✅ | ✅ | |
 | Ollama | ✅ | | | | | ✅ | |
-| vLLM | ✅ | | | | | | |
+| vLLM | ✅ | | | | ✅ | ✅ | |
 | LM Studio | ✅ | | | | | | |
 | llama.cpp | ✅ | | | | | | |
+| llama.cpp local | ✅ | | | | | ✅ | |
+| Transformers.js | ✅ | | | ✅ | ✅ | ✅ | |
 | ElevenLabs | | | | ✅ | ✅³ | | |
 | Topaz | | ✅⁴ | | | | | |
 | Reve | | ✅ | | | | | |
-| AtlasCloud | | ✅ | ✅ | | | | |
+| AtlasCloud | | ✅ | ✅ | ✅ | ✅ | | ✅ |
 | Cohere | | | | | | ✅ | |
 | Voyage AI | | | | | | ✅ | |
 | Jina AI | | | | | | ✅ | |
 | Meshy AI | | | | | | | ✅ |
 | Rodin AI | | | | | | | ✅ |
 
-¹ Chat only for a short gateway list (GPT-5.5, Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5, Gemini 3.1 Pro, Gemini 3 Flash) — most kie.ai models are image, video, or audio.
+¹ Chat only for a fixed gateway list of GPT, Claude, Grok, Kimi, DeepSeek, and Gemini models (`KIE_CHAT_MODELS` in `kie-provider.ts`). Most kie.ai models are image, video, or audio.
 ² Text-to-video only; no image-to-video.
 ³ Via a dedicated Speech-to-Text node, not the generic ASR picker.
 ⁴ Upscale and enhancement, not text-to-image generation.
@@ -62,7 +67,7 @@ Checked against each provider's implementation in `packages/runtime/src/provider
 
 ### Provider capabilities
 
-Each provider lists the operations it implements by overriding `BaseProvider.declaredCapabilities()` (`packages/runtime/src/providers/base-provider.ts`). Chat is always included. To make a model usable outside the node graph (an agent, the `generate` CLI command, the generation API), implement the matching method on the provider and declare its capability. The contract test `packages/runtime/tests/providers/provider-capabilities-contract.test.ts` fails when a declared capability has no implementation or a model in the provider's catalog offers an undeclared task.
+Each provider lists the operations it implements by overriding `BaseProvider.declaredCapabilities()` (`packages/runtime/src/providers/base-provider.ts`). `getCapabilities()` always adds the two chat methods, so providers with no chat models (Meshy, Rodin, Higgsfield) throw when asked to chat. Some providers declare more than the matrix shows. Video-to-video, lip sync, upscaling, and music are examples, and they surface through agent tools and dedicated nodes, not the generic pickers. To make a model usable outside the node graph (an agent, the `generate` CLI command, the generation API), implement the matching method on the provider and declare its capability. The contract test `packages/runtime/tests/providers/provider-capabilities-contract.test.ts` fails when a declared capability has no implementation or a model in the provider's catalog offers an undeclared task.
 
 ## OpenAI
 
@@ -74,7 +79,7 @@ Anthropic runs Claude chat models with tool calling and image input for vision t
 
 ## Google Gemini
 
-Gemini handles chat with native multimodal input (images, audio, video as Blobs), Nano Banana / Imagen image generation, Veo video, audio transcription, and text embeddings. Cloud only, keyed by `GEMINI_API_KEY`. Text models auto-fetch; Imagen and Veo are static lists. See the [Gemini provider guide](developer/providers/gemini.md).
+Gemini handles chat with native multimodal input (images, audio, video as Blobs), Nano Banana image generation (the `gemini-*-image` models), Veo video, Gemini TTS, Lyria music, audio transcription, and text embeddings. Cloud only, keyed by `GEMINI_API_KEY`. Text models auto-fetch. The image, video, TTS, and music models are static lists. Imagen is not available because Google shut it down in the Gemini API. See the [Gemini provider guide](developer/providers/gemini.md).
 
 ## xAI (Grok)
 
@@ -118,19 +123,23 @@ Together AI is one of the broadest providers in NodeTool: chat, manifest-driven 
 
 ## Moonshot (Kimi)
 
-Moonshot runs Kimi chat models over an Anthropic-compatible endpoint — it subclasses the Anthropic provider, not OpenAI. Text only. Cloud only, keyed by `KIMI_API_KEY`. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
+Moonshot runs Kimi chat models over its OpenAI-compatible endpoint (`https://api.moonshot.ai/v1`). Text only. Cloud only, keyed by `KIMI_API_KEY`. See the [OpenAI-compatible providers guide](developer/providers/openai-compatible.md).
 
 ## MiniMax
 
 MiniMax covers chat, image (Image-01), video (Hailuo 2.3), TTS, and music generation in one provider. ASR and embeddings exist in MiniMax's API but are disabled in NodeTool's provider (embeddings need a GroupId NodeTool doesn't manage) — use another provider for those. Cloud only, keyed by `MINIMAX_API_KEY`. See the [MiniMax provider guide](developer/providers/minimax.md).
 
+## Meta AI
+
+Meta AI serves the Muse Spark chat models through an OpenAI-compatible endpoint (`https://api.meta.ai/v1`) with tool calling. If the model list cannot be fetched, the picker falls back to three built-in Muse Spark ids. Text only. Cloud only, keyed by `META_API_KEY`.
+
 ## Codex (OpenAI OAuth)
 
-Codex reaches GPT chat models and GPT-Image 2 generation through your logged-in ChatGPT/Codex OAuth session instead of an API key — usage bills against that subscription. Cloud only, keyed by the stored `CODEX_ACCESS_TOKEN`; no `OPENAI_API_KEY` needed.
+Codex reaches GPT chat models and GPT Image generation (GPT Image 2 and 1.5) through your ChatGPT/Codex OAuth session instead of an API key, and usage bills against that subscription. Sign in with the **Codex** card in Settings → Models & Providers. The provider reads the stored `CODEX_ACCESS_TOKEN`, so no `OPENAI_API_KEY` is needed.
 
 ## Claude Agent SDK
 
-Claude Agent SDK reaches Claude by spawning your local, logged-in `claude` CLI instead of calling the Anthropic API directly, billing against your Claude subscription rather than per-token API spend. It supports tool calls through an in-process MCP bridge; images in the prompt are not forwarded to the CLI, so vision input doesn't work through this path. No API key — requires the `claude` CLI installed and logged in. See the [Anthropic provider guide](developer/providers/anthropic.md).
+Claude Agent SDK reaches Claude by spawning your local, logged-in `claude` CLI instead of calling the Anthropic API directly, billing against your Claude subscription rather than per-token API spend. It supports tool calls through an in-process MCP bridge. Images in the prompt are forwarded when they are inline PNG, JPEG, GIF, or WebP data. A remote image URL is rejected, so resolve media references before the call. There is no API key. Sign in with the **Claude Code** card in Settings → Models & Providers or run `nodetool auth claude login` (add `--manual` on a headless host). The provider is not available in NodeTool's hosted cloud because it needs a local executable. See the [Anthropic provider guide](developer/providers/anthropic.md).
 
 ## Evolink
 
@@ -138,11 +147,19 @@ Evolink is an OpenAI/Anthropic-compatible gateway: one key for GPT, Claude, Gemi
 
 ## kie.ai
 
-kie.ai is a multi-model aggregator: manifest-driven image, video, TTS, and music models (Seedance, Runway, Wan, Kling, FLUX.2, Suno, and more), plus chat for a short list of gateway models (GPT-5.5, Claude Opus 4.6, Claude Sonnet 4.6, Claude Haiku 4.5, Gemini 3.1 Pro, Gemini 3 Flash). One key covers all of it, often at a lower price than the upstream provider directly. Cloud only, keyed by `KIE_API_KEY`. See the [KIE provider guide](developer/providers/kie.md).
+kie.ai is a multi-model aggregator: manifest-driven image, video, TTS, and music models (Seedance, Runway, Wan, Kling, FLUX.2, Suno, and more), plus chat for a fixed list of gateway models (GPT, Claude, Grok, Kimi, DeepSeek, and Gemini families). One key covers all of it. kie.ai often lists lower prices than the upstream provider, so compare before you commit. Cloud only, keyed by `KIE_API_KEY`. See the [KIE provider guide](developer/providers/kie.md).
 
 ## AKI
 
 AKI is an OpenAI-compatible gateway for chat plus text-to-image and image-to-image generation. Cloud only, keyed by `AKI_API_KEY`.
+
+## Higgsfield
+
+Higgsfield generates image and video from a manifest of models (text-to-image, image-to-image, text-to-video, image-to-video, reference-to-video, video-to-video, extend). No chat. Cloud only. It needs two secrets, `HIGGSFIELD_API_KEY_ID` and `HIGGSFIELD_API_KEY_SECRET`. The Higgsfield card in Settings accepts them as one pasted `key-id:secret` value.
+
+## UseAPI
+
+UseAPI generates image and video through your own Google Flow and Dreamina accounts on useapi.net: Nano Banana and Veo models through Google Flow, Seedream, Seedance, and Sora 2 through Dreamina. No chat. Cloud only, keyed by `USEAPI_API_TOKEN`. Set `USEAPI_GOOGLE_FLOW_EMAIL` (Google Flow account email) and `USEAPI_DREAMINA_ACCOUNT` (`region:email`) so reference image uploads use the right account.
 
 ## Replicate
 
@@ -150,7 +167,7 @@ Replicate runs chat, image, video, and music, plus curated TTS, ASR, and embeddi
 
 ## FAL
 
-FAL generates image, video, TTS, and music from models whose nodes are generated straight from FAL's OpenAPI schemas. No chat. Cloud only, keyed by `FAL_API_KEY`. See the [FAL provider guide](developer/providers/fal.md).
+FAL generates image, video, TTS, and music from models whose nodes are generated straight from FAL's OpenAPI schemas. Chat goes through fal's OpenAI-compatible route, which is OpenRouter's router, so chat model ids are OpenRouter's catalog. Cloud only, keyed by `FAL_API_KEY` (`FAL_KEY` also works). See the [FAL provider guide](developer/providers/fal.md).
 
 ## Comfy Cloud
 
@@ -158,23 +175,43 @@ Comfy Cloud runs a ComfyUI workflow graph on cloud.comfy.org — no local ComfyU
 
 ## HuggingFace
 
-HuggingFace exposes chat, image, text-to-video, TTS, ASR, and embeddings backed by Hub model discovery, plus a hand-written node pack for models the generic providers don't cover, including 3D nodes (`HFTextTo3D`, `HFImageTo3D`). Optional `HF_TOKEN` — needed for gated or private models and higher rate limits. See [HuggingFace Integration](huggingface.md).
+HuggingFace routes chat, image, text-to-video, TTS, ASR, and embeddings to Hugging Face Inference Providers. The model lists are the most-liked warm inference models for each task, fetched from the Hub and cached for 10 minutes. Tool calling is off for this provider. A `HF_TOKEN` is required: paste a token with the Inference Providers permission into the HuggingFace card, or set `HF_TOKEN` in the environment. The 19 `huggingface.*` task nodes use the same token. See [HuggingFace Integration](huggingface.md).
 
 ## Ollama
 
-Ollama runs chat and embedding models locally — no API key, no per-token cost. Pull a model with `ollama pull <model>` and it appears in NodeTool automatically. Configured via `OLLAMA_API_URL` (default `http://127.0.0.1:11434`). See the [Ollama provider guide](developer/providers/ollama.md).
+Ollama runs chat and embedding models locally, with no API key and no per-token cost. Pull a model with `ollama pull <model>` and it appears in NodeTool automatically. The server URL comes from `OLLAMA_API_URL` (default `http://127.0.0.1:11434`). See the [Ollama provider guide](developer/providers/ollama.md).
 
 ## vLLM
 
-vLLM points NodeTool at a self-hosted, OpenAI-compatible vLLM server for chat — models appear automatically from its `/v1/models` endpoint once the URL is set. Set `VLLM_BASE_URL` (and `VLLM_API_KEY` if your deployment requires one; no default). See [Local Inference](developer/providers/local-inference.md).
+vLLM points NodeTool at a self-hosted, OpenAI-compatible vLLM server for chat, embeddings (`/v1/embeddings`), and transcription (`/v1/audio/transcriptions`). Models appear from its `/v1/models` endpoint once the URL is set. `/v1/models` does not report a model's task, so every served model is offered for each task and the server rejects an unsupported call. Set `VLLM_BASE_URL` (no default) and `VLLM_API_KEY` if your deployment requires one. See [Local Inference](developer/providers/local-inference.md).
 
 ## LM Studio
 
-LM Studio connects to the local server LM Studio's desktop app exposes — enable it in LM Studio → Local Server and NodeTool picks up loaded models automatically. Default URL `http://127.0.0.1:1234`, overridden with `LMSTUDIO_API_URL`. See [Local Inference](developer/providers/local-inference.md).
+LM Studio connects to the local server that LM Studio's desktop app exposes. Enable it in LM Studio → Local Server and NodeTool picks up loaded models automatically. The default URL is `http://127.0.0.1:1234`, overridden with `LMSTUDIO_API_URL`. `LMSTUDIO_API_KEY` is optional. See [Local Inference](developer/providers/local-inference.md).
 
 ## llama.cpp
 
-llama.cpp points NodeTool at a local `llama-server` instance for chat. The OpenAI tool-call wire format isn't reliably supported, so NodeTool falls back to parsing emulated function-call syntax out of the model's text output. Set `LLAMA_CPP_URL` (required, no default). See [Local Inference](developer/providers/local-inference.md).
+llama.cpp points NodeTool at a local `llama-server` instance for chat. `llama-server` constrains generation with a grammar built from the tool schemas, so tool calling works for any model it serves. Set `LLAMA_CPP_URL` (required, no default). See [Local Inference](developer/providers/local-inference.md).
+
+## llama.cpp local
+
+llama.cpp local (provider id `node_llama_cpp`) runs GGUF models inside the NodeTool backend through the `node-llama-cpp` binding, with no separate server. It serves chat and embeddings. Models are GGUF files in `NODE_LLAMA_CPP_MODELS_DIR`, which defaults to the shared llama.cpp cache. `NODE_LLAMA_CPP_GPU_BACKEND` selects `auto`, `metal`, `cuda`, `vulkan`, or `cpu`. No key. Local only.
+
+## Transformers.js
+
+Transformers.js (provider id `transformers_js`) runs small ONNX models in-process: chat, TTS, ASR, and embeddings. Models download from the Hugging Face Hub on first use into `<data-dir>/transformers-js-cache`, or the directory in `TRANSFORMERS_JS_CACHE_DIR`. Tool calling is off. No key. Local only. The matching workflow nodes are the `transformers.*` nodes in [HuggingFace Integration](huggingface.md#transformersjs-nodes-local-onnx).
+
+## Local Python providers
+
+When the Python worker is installed, it registers its own providers over the stdio bridge, such as MLX on Apple Silicon and local Hugging Face execution. The worker's `huggingface` provider appears as `huggingface-local` because the TypeScript runtime already owns the `huggingface` id for the hosted API. These providers offer image, video, TTS, music, ASR, and embedding models from the worker's pack.
+
+## NodeTool managed models
+
+The `nodetool` provider runs a curated model catalog on NodeTool's own platform keys and meters usage against a credit balance. It exists only in NodeTool's hosted cloud. Desktop and self-hosted installs do not register it, and they use your own keys for every provider here.
+
+## Custom OpenAI-compatible endpoints
+
+Any endpoint that speaks the OpenAI API can be a provider. In **Settings → Models & Providers**, use **Add endpoint** and enter a name, a slug, a base URL, and an optional API key. Chat models come from `GET <base_url>/models` unless you list ids yourself. Image models (`/images/generations`) and video models (`/videos`) are detected from the list, and you can add ids the detection misses. The provider id is `custom_<slug>`. On a server you can skip the UI and set `CUSTOM_<SLUG>_BASE_URL` and `CUSTOM_<SLUG>_API_KEY` as environment variables.
 
 ## ElevenLabs
 
@@ -190,7 +227,7 @@ Reve creates, edits, and remixes images through three dedicated nodes (`CreateIm
 
 ## AtlasCloud
 
-AtlasCloud generates image and video from a hand-maintained manifest (Seedance, GPT Image 2, Nano Banana, and more). No chat. Cloud only, keyed by `ATLASCLOUD_API_KEY`. See the [AtlasCloud provider guide](developer/providers/atlascloud.md).
+AtlasCloud generates image, video, speech, music, and 3D assets from a hand-maintained manifest (Seedance, GPT Image 2, Nano Banana, and more), transcribes audio, and lists chat models from its API. Cloud only, keyed by `ATLASCLOUD_API_KEY`. See the [AtlasCloud provider guide](developer/providers/atlascloud.md).
 
 ## Cohere
 
@@ -223,25 +260,25 @@ Nodes in the `nodetool.*` namespace take a `model` property and route to whichev
 | `nodetool.image.ImageToImage` | HuggingFace, local servers, cloud services |
 | `nodetool.video.TextToVideo` | Sora 2 Pro, Veo 3.1, Seedance 2.0, Runway, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 3.0, HuggingFace |
 | `nodetool.video.ImageToVideo` | Sora 2 Pro, Veo 3.1, Seedance 2.0, Runway, Luma, Grok Imagine, Wan 2.6, Hailuo 2.3, Kling 3.0 |
-| `nodetool.model3d.TextTo3D` / `ImageTo3D` | Meshy AI, Rodin AI, plus HuggingFace 3D nodes (Hunyuan3D, Trellis, TripoSR, Shap-E, Point-E) |
+| `nodetool.model3d.TextTo3D` / `ImageTo3D` | Meshy AI, Rodin AI, AtlasCloud |
 | `nodetool.audio.TextToSpeech` | OpenAI TTS, ElevenLabs, HuggingFace, local TTS |
 | `nodetool.text.AutomaticSpeechRecognition` | OpenAI Whisper, HuggingFace, local ASR |
 
-A generic node drops parameters the selected provider doesn't support instead of erroring — negative prompt, guidance scale, and seed apply mostly to HuggingFace/diffusion-style backends; GPT-Image and similar API-only models ignore them.
+A generic node drops parameters the selected provider doesn't support instead of erroring. Negative prompt, guidance scale, and seed apply mostly to diffusion-style backends, and GPT-Image and similar API-only models ignore them.
 
-Reach for a provider-specific node only when you need something the generic interface doesn't carry: Claude's thinking mode, OpenAI's vision detail parameter, MiniMax's emotion and pitch controls.
+Reach for a provider-specific node only when you need something the generic interface doesn't carry, such as MiniMax text to speech with its `emotion` and `pitch` controls.
 
 ## Getting keys in
 
-Wherever a missing provider blocks you — a model dropdown, a node warning, the getting-started checklist — NodeTool opens the connect dialog in place. It leads with the providers you can sign into without a key (Claude subscription, OpenAI, Hugging Face), takes a pasted key for the rest, and points at Ollama for running locally at no cost.
+Wherever a missing provider blocks you (a model dropdown, a node warning, the getting-started checklist), NodeTool opens the **Connect an AI provider** dialog in place. It groups providers under **Sign in with your account** (Claude subscription, OpenAI, Hugging Face) and **Use an API key**. On desktop and localhost it also points at Ollama for running locally at no cost. A pasted key is checked against the provider before it is saved. If the provider rejects it, the dialog does not save it unless you choose to. If the provider cannot be reached, the key is saved and the dialog says it is unverified.
 
 ![Connect an AI provider](assets/screenshots/provider-onboarding-dialog.png)
 
-**Settings → Models & Providers** is the full list. A key is validated when you save it, and each connected provider carries a **Test** button that calls the provider to confirm the key still works.
+**Settings → Models & Providers** is the full list, grouped as Popular, Language Models, Media Generation, Gateways & Hubs, Web Search, Compute & Local, and Services & Advanced. Each configured provider has a **Test** button that calls the provider to confirm the key still works, and a **Manage** button to replace it. Codex and Claude Code offer sign-in with your account instead of a key. The dialog's OpenAI sign-in stores a ChatGPT Codex token, so it enables the `codex` provider and leaves `openai` unconfigured until you paste an API key. Claude Code sign-in is hidden on hosted deployments because it finishes on the server's own machine.
 
 ![Models & Providers settings](assets/screenshots/settings-providers-test.png)
 
-NodeTool stores every key encrypted (AES-256-GCM) in a local SQLite database, not in a plaintext config file — see [Configuration](configuration.md#secret-storage-and-master-key) for how the encryption key itself is managed.
+NodeTool stores every key encrypted (AES-256-GCM) in a local SQLite database, not in a plaintext config file. See [Configuration](configuration.md#secret-storage-and-master-key) for how the encryption key itself is managed.
 
 From the CLI:
 
@@ -251,21 +288,21 @@ nodetool secrets list                   # list stored keys (values are never sho
 nodetool secrets get OPENAI_API_KEY     # print a stored value
 ```
 
-Or set the variable directly in `.env.development.local` (or your shell environment) — environment variables always take precedence over stored secrets. See [Configuration](configuration.md) for the full load order.
+Or set the variable directly in `.env.development.local` or your shell environment. A secret stored in the database wins over an environment variable of the same name, and the environment variable is the fallback when nothing is stored (the exceptions are `SUPABASE_URL`, `SUPABASE_KEY`, `SUPABASE_SERVICE_ROLE_KEY`, and `SERVER_AUTH_TOKEN`, where the environment wins). `FAL_KEY` is accepted in place of `FAL_API_KEY`. See [Configuration](configuration.md) for the full load order.
 
-Local providers (Ollama, vLLM, LM Studio, llama.cpp) don't need a key — point NodeTool at the server's URL instead, either in Settings → Models & Providers or via the matching `*_URL` environment variable.
+Local providers (Ollama, vLLM, LM Studio, llama.cpp) don't need a key. Point NodeTool at the server's URL instead. For vLLM (`VLLM_BASE_URL`), llama.cpp (`LLAMA_CPP_URL`), and LM Studio (`LMSTUDIO_API_URL`), set it under **Settings → Integrations → Local Model Servers** or as an environment variable. Ollama reads `OLLAMA_API_URL` from the environment or the secret store. In NodeTool's hosted cloud these local providers are not registered, unless the server runs with `NODETOOL_NODE_PROFILE=full`.
 
 ## Tracking spend
 
-Every cloud call records its token counts and cost. The **Costs** page (`/costs`, or **Costs** in the app menu) aggregates them by day, provider, model, and workflow, so you can see which pipeline is expensive before the invoice does.
+Every cloud call records its token counts and cost. The **Costs** page (`/costs`, or **Costs** in the app menu) shows them over 7, 14, 30, or 90 days, grouped by execution, node type, workflow, provider, or model, so you can see which pipeline is expensive before the invoice does.
 
 ![Costs dashboard](assets/screenshots/costs-dashboard.png)
 
-The same records are readable from the terminal with `nodetool costs summary`.
+The same records are readable from the terminal: `nodetool costs summary`, `costs list` (filter with `--provider` and `--model`), `costs by-provider`, and `costs by-model`. Each takes `--json`.
 
 ## Adding a new provider
 
-Every provider is a class in `packages/runtime/src/providers/` extending `BaseProvider` (or `OpenAIProvider` / `AnthropicProvider` for OpenAI- or Anthropic-compatible APIs), registered in `provider-registry.ts` with the environment variables it needs. The right approach differs by provider — live model discovery, a hand-maintained manifest, or codegen from upstream schemas — so follow the [Provider Guides](developer/providers/index.md) runbook for your case rather than reverse-engineering it from an existing provider. Run `npm run check` (typecheck, lint, test) before opening a PR.
+Every provider is a class in `packages/runtime/src/providers/` extending `BaseProvider` (or `OpenAIProvider` / `AnthropicProvider` for OpenAI- or Anthropic-compatible APIs), registered in `provider-registry.ts` with the environment variables it needs. The right approach differs by provider — live model discovery, a hand-maintained manifest, or codegen from upstream schemas — so follow the [Provider Guides](developer/providers/index.md) runbook for your case rather than reverse-engineering it from an existing provider. Before opening a PR, run `npm run test:affected`, `npm run typecheck`, and `npm run lint`.
 
 ## See also
 

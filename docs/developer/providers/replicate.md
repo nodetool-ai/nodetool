@@ -63,12 +63,21 @@ Pick the config whose module matches the model's task:
 | File | Module key | Covers |
 |---|---|---|
 | `image-generate.ts` | `image.generate` | Text-to-image, image-to-image |
+| `image-analyze.ts` | `image.analyze` | Captioning and image analysis |
+| `image-ocr.ts` | `image.ocr` | OCR |
+| `image-face.ts` | `image.face` | Face restoration and swap |
+| `image-process.ts` | `image.process` | Other image processing |
+| `image-3d.ts` | `image.3d` | Image to 3D (`returnType: "str"`) |
 | `image-enhance.ts` | `image.enhance` | Enhancement, retouching |
 | `image-upscale.ts` | `image.upscale` | Upscaling |
 | `image-background.ts` | `image.background` | Background removal |
 | `video-generate.ts` | `video.generate` | Text/image to video |
 | `video-enhance.ts` | `video.enhance` | Video enhancement |
+| `video-face.ts` | `video.face` | Video face swap and restoration |
+| `video-process.ts` | `video.process` | Other video processing |
 | `audio-generate.ts` | `audio.generate` | Music, sound generation |
+| `audio-enhance.ts` | `audio.enhance` | Audio enhancement |
+| `audio-separate.ts` | `audio.separate` | Stem separation |
 | `audio-speech.ts` | `audio.speech` | TTS |
 | `audio-transcribe.ts` | `audio.transcribe` | ASR |
 | `text-generate.ts` | `text.generate` | Text LLMs via Replicate |
@@ -117,7 +126,7 @@ interface NodeConfig {
 }
 ```
 
-`returnType` is required for media-producing models. Without it the factory cannot map the output to the right `AssetRef` type.
+`returnType` is required for media-producing models. Without it the factory cannot map the output to the right `AssetRef` type. Use `"str"` for outputs that are not an asset, such as a 3D mesh URL.
 
 Asset input `propType` rules — Replicate schemas type all URLs as `string`. Override these manually:
 
@@ -133,13 +142,13 @@ Asset input `propType` rules — Replicate schemas type all URLs as `string`. Ov
 If no existing module fits, create `packages/replicate-codegen/src/configs/<domain>-<task>.ts`:
 
 ```typescript
-// packages/replicate-codegen/src/configs/image-3d.ts
+// packages/replicate-codegen/src/configs/image-depth.ts
 import type { ModuleConfig } from "../types.js";
 
-export const image3dConfig: ModuleConfig = {
+export const imageDepthConfig: ModuleConfig = {
   configs: {
-    "acme-org/mesh-gen": {
-      className: "MeshGen",
+    "acme-org/depth-map": {
+      className: "DepthMap",
       returnType: "image"
     }
   }
@@ -149,15 +158,15 @@ export const image3dConfig: ModuleConfig = {
 Then register it in `packages/replicate-codegen/src/configs/index.ts`:
 
 ```typescript
-import { image3dConfig } from "./image-3d.js";
+import { imageDepthConfig } from "./image-depth.js";
 // ...
 export const allConfigs: Record<string, ModuleConfig> = {
   // ...existing entries...
-  "image.3d": image3dConfig,
+  "image.depth": imageDepthConfig,
 };
 ```
 
-The module key (`"image.3d"`) becomes the `moduleName` in the manifest (stored as `"image-3d"`) and the middle segment of every node's type string (`replicate.image.3d.<ClassName>`).
+The module key (`"image.depth"`) becomes the `moduleName` in the manifest (stored as `"image-depth"`) and the middle segment of every node's type string (`replicate.image.depth.<ClassName>`). To regenerate one module, run `npm run generate --workspace=packages/replicate-codegen -- --module image-depth --strict`.
 
 ---
 
@@ -186,23 +195,13 @@ npm run test --workspace=packages/replicate-codegen
 npm run dev:nodetool -- node run replicate.image.generate.MyFluxVariant \
   --props '{"prompt": "a red fox"}' --no-secrets --json
 
-# 7. Full check
-npm run check
+# 7. Affected tests, lint, and the harness gate
+npm run test:affected
+npm run lint
+npm run dev:nodetool -- harness gate --base origin/main
 ```
 
 If the model id is wrong or the model is private/unavailable, the generator exits with an error listing the failures. Fix the id or remove the entry.
-
----
-
-## How past PRs did it
-
-The Replicate codegen and node packages were scaffolded on 2026-03-15, in `58c561d6` ("feat: scaffold replicate-codegen with types, fetcher, parser, generator") and `3de4d89f` ("feat: scaffold replicate-nodes package with base runtime"). To see how a specific model was added, look for commits that touch `packages/replicate-codegen/src/configs/` and `packages/replicate-nodes/src/replicate-manifest.json` together:
-
-```bash
-git log --oneline -- packages/replicate-codegen/src/configs packages/replicate-nodes/src/replicate-manifest.json
-```
-
-The pattern is always: one config file edit + the regenerated manifest in the same commit.
 
 ---
 
@@ -211,8 +210,10 @@ The pattern is always: one config file edit + the regenerated manifest in the sa
 Open a PR against `main` at [github.com/nodetool-ai/nodetool](https://github.com/nodetool-ai/nodetool). Before pushing:
 
 ```bash
-npm run lint        # must pass
-npm run typecheck   # must pass
+npm run test:affected
+npm run typecheck
+npm run lint
+npm run dev:nodetool -- harness gate --base origin/main
 ```
 
 Questions? Join the [Discord](https://discord.gg/WmQTWZRcYE).

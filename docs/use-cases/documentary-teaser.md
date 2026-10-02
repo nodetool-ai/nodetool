@@ -26,7 +26,9 @@ shots and 26 seconds.
 ## How it works
 
 The storyboard editor runs the whole thing. Each step leaves something you can
-read and change before the next one spends anything.
+read and change before the next one spends anything. This is an editor
+workflow, not a workflow template, and NodeTool does not ship the DEEP board.
+The shipped boards are under **Examples** in the sidebar, **Storyboards** tab.
 
 {% mermaid %}
 graph LR
@@ -41,16 +43,19 @@ graph LR
   clips --> timeline
 {% endmermaid %}
 
-1. **Write the premise.** One sentence about the film, the look you want, and
-   how many shots.
+1. **Write the premise.** In the Screenplay section, fill in Title, Brief, and
+   Style. Under Direction, pick the screenplay model, the aspect ratio, and the
+   number of shots (3, 4, 5, 6, 8, 10, or 12).
    *(e.g. "A dive from the surface to the abyssal plain · IMAX documentary look · 6 shots")*
-2. **Direct the board.** Press Direct and the cards fill in — one beat each,
+2. **Direct the board.** Press **Direct** and the cards fill in — one beat each,
    with action, framing, and movement, all under one style bible.
-3. **Approve the stills.** Every card renders a still first. Stills cost cents,
-   so re-roll a card until it looks right; the rest of the board stays put.
-4. **Animate and cut.** Animate only the cards you approved, then send the board
-   to the timeline: the clips arrive in shot order, ready to trim, narrate,
-   score, and export.
+3. **Review the stills.** **Render stills** opens a dialog where you pick the
+   still model and see the estimated cost. Re-render a single card from its
+   edit panel until it looks right; the rest of the board stays put.
+4. **Animate and cut.** **Render clips** animates every shot that has a still
+   and no clip yet, with a video model you pick per clip type. Then **Create
+   timeline** (or **Rebuild linked timeline** on later passes) sends the clips
+   to the timeline in shot order, ready to trim, narrate, score, and export.
 
 ## Six shots, one teaser
 
@@ -90,14 +95,15 @@ film grain, 16:9.
 Nothing here is locked. Change the look, change the model, change one shot.
 
 - **Swap the video model.** Veo, Seedance, Kling, Runway. Render that shot
-  again; the board, the stills, and the clips you approved stay as they are.
+  again; the board, the stills, and the other clips stay as they are.
 - **Restyle the series.** The visual style you typed is the style bible behind
   every card. Change one line and the next pass boards it that way.
 - **Fix one shot, not the reel.** Revise a single clip and it swaps back into
   its card. The other five never re-roll.
 - **Keep the subjects consistent.** Save the vessel, the submersible, and the
-  creatures as named entities; naming one in a shot rides its description into
-  that shot's prompt.
+  creatures as named entities. A shot picks up an entity when its text names
+  it, or when you attach it on the shot, and the entity's description goes
+  into that shot's prompt.
 
 ## Models in this use case
 
@@ -109,7 +115,7 @@ better model the day it ships.
 | --- | --- | --- |
 | Director | Writes the shot list, action, and camera notes | Gemini, Anthropic, OpenAI |
 | Stills | Renders each card's still | GPT Image, Flux, Nano Banana |
-| Motion | Animates approved stills into clips | Veo, Seedance, Kling |
+| Motion | Animates each still into a clip | Veo, Seedance, Kling |
 
 See [Models &amp; Providers]({{ '/models-and-providers' | relative_url }}) to set up keys.
 

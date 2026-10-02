@@ -11,7 +11,7 @@ description: "How to add ElevenLabs TTS models, voices, and nodes to NodeTool �
 1. Add the model id to the `MODELS` array in `elevenlabs-provider.ts` **and** the `@prop` `values` array in the relevant node file.
 2. To add a voice, add one entry to `VOICE_ID_MAP` in both `elevenlabs-base.ts` and `elevenlabs-provider.ts`.
 3. To add a node, create `packages/elevenlabs-nodes/src/nodes/<name>.ts`, export a `readonly NodeClass[]`, and add it to `src/index.ts`.
-4. Run `npm run build:packages` (required — this package loads from `dist/`), then `npm run check`.
+4. Run `npm run build:packages` (required — this package loads from `dist/`), then `npm run test:affected`, `npm run typecheck`, and `npm run lint`.
 
 ---
 
@@ -27,7 +27,7 @@ description: "How to add ElevenLabs TTS models, voices, and nodes to NodeTool �
 | Realtime TTS node (WebSocket) | `packages/elevenlabs-nodes/src/nodes/realtime-tts.ts` |
 | Realtime STT node (WebSocket) | `packages/elevenlabs-nodes/src/nodes/realtime-stt.ts` |
 | Standard voice picker node | `packages/elevenlabs-nodes/src/nodes/standard-voice.ts` |
-| Provider registration | `packages/runtime/src/providers/index.ts` line 219 |
+| Provider registration | `packages/runtime/src/providers/index.ts` (`registerBuiltinProvider(PROVIDER_IDS.ELEVENLABS, ...)`) |
 | Node tests | `packages/elevenlabs-nodes/tests/` |
 
 ---
@@ -60,7 +60,7 @@ const MODELS: Array<{ id: string; name: string }> = [
 declare model_id: any;
 ```
 
-The two lists are independent. Keep them in sync when adding a model.
+The two lists are independent and not identical. The node's `model_id` enum also carries the speech-to-speech models `eleven_multilingual_sts_v2` and `eleven_english_sts_v2`, which the provider omits. Keep them in sync when adding a TTS model.
 
 ### Voices
 
@@ -69,7 +69,7 @@ Voices are also static. The canonical map lives in two files that mirror each ot
 - `packages/elevenlabs-nodes/src/elevenlabs-base.ts` — used by all nodes (voice ID resolution, the `StandardVoice` node enum)
 - `packages/runtime/src/providers/elevenlabs-provider.ts` — used by the provider to surface voices in the unified TTS picker
 
-`VOICE_ID_MAP` maps display name to voice id. `VOICE_NAMES = Object.keys(VOICE_ID_MAP)` is passed to `StandardVoiceNode`'s enum values and to `getAvailableTTSModels()` voice lists.
+`VOICE_ID_MAP` maps display name to voice id. `VOICE_NAMES = Object.keys(VOICE_ID_MAP)` is passed to `StandardVoiceNode`'s enum values and to `getAvailableTTSModels()` voice lists. The `TextToSpeech` node's `voice_id` prop is a plain string that defaults to the Aria id, so it accepts any ElevenLabs voice id. The provider resolves a voice name through the map and passes an unknown value through as an id.
 
 ### Nodes
 
@@ -215,17 +215,15 @@ npm run dev:nodetool -- node run elevenlabs.TextToSpeech \
 # Validate a workflow that uses the node (if you have one)
 npm run dev:nodetool -- validate workflow.json
 
-# Full check before committing
-npm run check
+# Affected tests and the harness gate before committing
+npm run test:affected
+npm run lint
+npm run dev:nodetool -- harness gate --base origin/main
 ```
 
 ---
 
-## How past PRs did it
-
-- **`00d96654`** `feat(elevenlabs): add v3 model and standard voice node` — added `"eleven_v3"` to `TextToSpeechNode`'s `model_id` enum and introduced `StandardVoiceNode` as a new node file. Changed files: `src/index.ts`, `src/nodes/standard-voice.ts`, `src/nodes/text-to-speech.ts`, `tests/registration.test.ts`, `tests/standard-voice.test.ts`, `tests/text-to-speech.test.ts`. That's the canonical pattern: one file per node, export a `readonly NodeClass[]`, add it to `index.ts`, add a test.
-
-- **`7c7b5157`** `test(elevenlabs): assert enum values via getDeclaredProperties` — shows the correct testing pattern: `TextToSpeechNode.getDeclaredProperties().find(p => p.name === "model_id")?.options.values` to assert enum contents, rather than inspecting `toDescriptor()`.
+The `tests/` files assert enum contents through `getDeclaredProperties()`, for example `TextToSpeechNode.getDeclaredProperties().find(p => p.name === "model_id")`. Follow that pattern in new tests.
 
 ---
 
@@ -234,4 +232,4 @@ npm run check
 Source and issues: <https://github.com/nodetool-ai/nodetool>  
 Community discussion: <https://discord.gg/WmQTWZRcYE>
 
-Run `npm run check` (typecheck + lint + tests) and ensure it passes before opening a PR. Two things catch most mistakes before review: `npm run build:packages` (catches missing exports, wrong import paths) and `npm run test --workspace=packages/elevenlabs-nodes` (catches registration gaps and API contract regressions).
+Run the Verify steps and make sure they pass before opening a PR. Two things catch most mistakes before review: `npm run build:packages` (catches missing exports, wrong import paths) and `npm run test --workspace=packages/elevenlabs-nodes` (catches registration gaps and API contract regressions).

@@ -1,11 +1,16 @@
 ---
 layout: page
 title: "Node Implementation Examples"
+description: "Annotated Python node examples for the Python bridge. TypeScript node guides are linked at the top."
 ---
 
 ## Real Examples from Codebase
 
-This document provides annotated examples of real nodes from the NodeTool codebase. Each example highlights specific patterns and implementation details to help you build your own nodes.
+This document provides annotated examples of **Python** nodes. Each example highlights specific patterns and implementation details to help you build your own nodes.
+
+To write a **TypeScript** node, use the [Custom Nodes Guide](custom-nodes-guide.md), [Node Patterns](node-patterns.md), and [Node Reference](node-reference.md) instead.
+
+The Python base classes (`BaseNode`, `HuggingFacePipelineNode`, `ProcessingContext`) live in the separate `nodetool-core` and `nodetool-huggingface` repositories, which this repository does not contain. This repository runs those nodes through the Python bridge: it reads the metadata the worker reports (`is_dynamic`, `is_streaming_output`, `is_streaming_input`, `required_settings`, properties, outputs) and sends `execute` and `execute.stream` calls. The Python API shown below is not checked against source here.
 
 ---
 
@@ -244,7 +249,7 @@ class If(BaseNode):
 **Key Takeaways:**
 
 - Control flow nodes often use `gen_process` to conditionally yield results.
-- By yielding `None` for a specific output, you effectively stop execution on that branch (downstream nodes won't trigger).
+- The TypeScript `nodetool.control.If` returns only the taken branch's key. A key that is absent sends no message, so nodes wired only to the untaken branch do not run. In TypeScript, `null` is a value and does send a message. Check how the Python worker treats `None` before relying on it to stop a branch.
 
 ---
 

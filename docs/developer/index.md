@@ -30,7 +30,7 @@ export class UppercaseTextNode extends BaseNode {
 }
 ```
 
-Export a `register(registry)` function from your package and NodeTool discovers the node automatically.
+Export a `register(registry)` function and add a `nodetool` field to `package.json` (`{ "apiVersion": 1, "register": "register" }`). At startup the server scans installed packages for that field and calls the export. In production, only packs on the allowlist load.
 
 **-> [Full Custom Nodes Guide (TypeScript)](custom-nodes-guide.md)** -- End-to-end walkthrough: packaging, governance, streaming, testing, distribution.
 
@@ -65,6 +65,14 @@ Export a `register(registry)` function from your package and NodeTool discovers 
 
 - [TypeScript DSL Guide](ts-dsl-guide.md) -- Type-safe workflow definitions with auto-generated factory functions
 
+### Architecture
+
+- [Architecture](../architecture.md) -- Packages, execution engine, message types, providers, storage
+- [Execution Strategies](../execution-strategies.md) -- How the kernel schedules actors and how the Code node is sandboxed
+- [Packages](../packages.md) -- How node packages are structured, registered, and managed from the CLI
+- [Node Packs](../node-packs.md) -- Built-in packs, the Package Manager, and installing third-party packs
+- [Python Bridge Protocol](../python-bridge-protocol.md) -- Wire protocol between the TypeScript runtime and the Python worker
+
 ### API Integration
 
 - [API Reference](../api-reference.md) -- REST API endpoints and authentication
@@ -82,6 +90,6 @@ Contribute to [NodeTool on GitHub](https://github.com/nodetool-ai/nodetool).
 
 Options:
 
-1. Publish as a separate package
-2. Contribute to the core node library
+1. Publish as a separate npm package, and list it in the [registry repository](https://github.com/nodetool-ai/nodetool-registry)
+2. Contribute to the core node library in the repository
 3. Share workflow examples on Discord

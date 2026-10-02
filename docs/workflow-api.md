@@ -10,15 +10,71 @@ NodeTool exposes workflow REST endpoints under `/api/workflows` from a single se
 `/api/workflows` for CRUD and query operations, and `POST /api/workflows/{id}/run` to run a workflow.
 
 This page collects the basics from the project README. See [API Reference](api-reference.md) for
-the canonical endpoint list and auth requirements. When `AUTH_PROVIDER` is `static` or `supabase`, include
-`Authorization: Bearer <token>`; tokens are optional only in `local`/`none` modes.
+the canonical endpoint list and auth requirements. Send `Authorization: Bearer <token>` on every
+request except the public routes noted below. A server in Local mode trusts loopback callers without a
+token, and a server in Supabase mode requires one for everything else. See [Authentication](authentication.md).
 
 ## Loading Workflows
 
 ```javascript
 const response = await fetch("http://localhost:7777/api/workflows/");
-const workflows = await response.json();
+const { workflows, next } = await response.json();
 ```
+
+`GET /api/workflows` lists the caller's workflows, full graphs included. Query
+parameters:
+
+| Parameter | Effect |
+|---|---|
+| `limit` | Page size. Defaults to 100 and caps at 500 |
+| `cursor` | The `next` value from the previous page |
+| `run_mode` | Only workflows saved with this run mode |
+| `project_id` | Only workflows in this project |
+
+`GET /api/workflows/{id}` returns one workflow. The caller must own it, hold a
+collaborator grant, or find it marked `access: "public"`. Anything else is a `404`
+with `{ "detail": "Workflow not found" }`.
+
+## Creating, Updating, and Deleting
+
+`POST /api/workflows` creates a workflow and returns it. `name` and a `graph` with
+`nodes` and `edges` arrays are required, and a missing one is a `400`.
+
+```bash
+curl -X POST "http://localhost:7777/api/workflows" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "name": "Greeting",
+    "description": "Says hi",
+    "graph": { "nodes": [], "edges": [] },
+    "access": "private"
+  }'
+```
+
+Optional body fields are `description`, `tags`, `tool_name`, `package_name`,
+`path`, `thumbnail`, `thumbnail_url`, `access` (`"public"` or anything else for
+private), `settings`, `run_mode` (default `"workflow"`), `workspace_id`,
+`project_id` (default `"default"`), `html_app`, and `app_doc`. A `project_id` the
+caller does not own is refused.
+
+To start from a shipped example, add `?from_example_name=<name>` and optionally
+`&from_example_package=<package>` (default `nodetool-base`). When the body carries
+no graph nodes, the example's graph and app UI are copied in.
+
+`PUT /api/workflows/{id}` replaces the workflow's name, description, tags,
+`tool_name`, `package_name`, and graph. It takes the same body, and `name` and `graph` are required again. Other
+fields change only when the body includes them. The call creates the workflow under
+that `id` when none exists. An owner or an editor collaborator may update, and only
+the owner changes `access` and `project_id`. Saves are optimistic. Send
+`expected_updated_at` with the `updated_at` you last read, and a stale value is a
+`409`. An `expected_updated_at` for a workflow that does not exist is a `404`.
+
+`DELETE /api/workflows/{id}` removes a workflow the caller owns, along with its
+collaborator and share rows, and answers `204` with no body. It is a `404` for a
+workflow the caller does not own.
+
+Workflow responses carry the stored fields plus an `etag`.
 
 ## Running a Workflow
 
@@ -68,6 +124,32 @@ const body = await response.json();
 single JSON response — it does not stream. For real-time progress (job and node
 updates, incremental output), run the workflow over the WebSocket endpoint
 instead.
+
+The body is optional. Its fields:
+
+| Field | Effect |
+|---|---|
+| `params` | Input values keyed by input node name |
+| `background` | Return a receipt at once and keep running. The response has `status: "running"`, `background: true`, `job_id`, `id`, and a `poll` hint. Read the settled job and its outputs through the `jobs` tRPC procedures |
+| `interactive` | Park on a failed node and hand the decision to the caller. See [Interactive Runs](api-reference.md#interactive-runs-answering-a-failed-node) |
+| `max_decisions`, `max_retries_per_node`, `decision_timeout_ms` | Bounds for an interactive run |
+| `project_id` | Must match the workflow's project, or the call is a `400` |
+
+`POST /api/workflows/{id}/debug` takes the same body. It returns a debug report
+instead of the run summary: `job_id`, `workflow_id`, `status`, `outputs`, `error`,
+a per-node `summary` (status, errors, logs, edges, LLM calls), and a `verdict`
+with a `headline`. Use it when a caller needs to know what happened inside the run.
+
+Failures before the run starts:
+
+| Status | Meaning |
+|---|---|
+| `404` | The caller has no workflow with that id |
+| `400` | The workflow's `run_mode` is not `"workflow"`, a provider the graph needs has no key (the detail names the secret), or `project_id` names another project |
+| `429` | An interactive run was refused because the caller already holds the maximum of 8 live debug sessions |
+
+A node that fails during the run does not change the HTTP status. The response
+is `200` with `status: "failed"` and an `error` string.
 
 ## Listing Names and Tools
 

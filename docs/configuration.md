@@ -26,26 +26,27 @@ This hierarchy allows committed defaults, per-environment overrides, and develop
 
 ## Managing Settings & Secrets
 
-The in-app Settings dialog is the easiest way to manage everything. It has a sidebar with subsections:
+The in-app Settings page is the easiest way to manage everything. It has four tabs, each with its own sidebar of sections:
 
-| Section | What it covers |
+| Tab | What it covers |
 |---------|---------------|
-| **General** | Theme, startup behavior, language |
-| **Providers** | API keys for OpenAI, Anthropic, Google, etc. |
-| **Default Models** | Pick the default LLM, image model, and embedding model |
-| **Folders** | Workspace, cache, and asset directories |
-| **Secrets** | Encrypted provider tokens and credentials |
-| **Remote** | Point the app at a remote NodeTool server |
-| **About** | Version and build info |
+| **General** | Editor, Updates and Vaults (desktop app only), Appearance, Execution, Canvas, Default Models, Autosave |
+| **Models & Providers** | Provider API keys, stored as encrypted secrets |
+| **Integrations** | Configuration groups (including Folders), Connected Accounts, MCP Servers and Browser Extension (local server only), Nodetool API Token (hosted only) |
+| **About** | Application, operating system, features and versions, installation paths (development builds), links |
+
+Stored settings are defined in `setting-catalog.ts` in `@nodetool-ai/config`. A setting read through the server checks the database first, then the environment variable of the same name (`getSetting` in `packages/websocket/src/settings-registry.ts`).
 
 ![Settings Subviews](assets/screenshots/settings-api-keys.png)
 
 From the command line:
 
-- `nodetool settings show [--json]` – print the resolved environment configuration.
+- `nodetool settings show [--json]` – print a fixed set of variables read from the process environment (`ENV`, `LOG_LEVEL`, `PORT`, `HOST`, `DB_PATH`, `NODETOOL_API_URL`, the main provider keys, `HF_TOKEN`, `VECTORSTORE_DB_PATH`, `ASSET_BUCKET`, `S3_ENDPOINT_URL`). Names ending in `KEY` or `TOKEN` print as `***`, and unset variables print empty. It does not read `.env` files or stored secrets.
 - `nodetool secrets list` – list stored secret keys (values are never shown).
-- `nodetool secrets store <key>` – store or update a secret (prompts for the value).
+- `nodetool secrets store <key> [--description <text>]` – store or update a secret (prompts for the value).
 - `nodetool secrets get <key>` – print a stored secret value.
+
+The three `secrets` commands take `--user-id <id>` (default `1`).
 
 Secrets are encrypted and persisted in a local SQLite database, not in YAML files. There is no `nodetool settings edit` command and no `--secrets` option.
 
@@ -59,7 +60,7 @@ Secrets saved through the CLI are encrypted with AES-256-GCM, using a per-user k
 
 For shared deployments you **must** pre-provision the master key (via the `SECRETS_MASTER_KEY` environment variable) so every server can decrypt secrets generated locally. On a headless host with no keychain and no provisioned key, master-key initialization (and therefore startup) fails because there is no place to persist a generated key.
 
-### Migrating Secrets to a Server
+### Moving Secrets to a Server
 
 1. Export the master key once and set it on every server instance using the value from your deployment pipeline or secrets manager:
 
@@ -67,24 +68,21 @@ For shared deployments you **must** pre-provision the master key (via the `SECRE
    export SECRETS_MASTER_KEY="<your-base64-master-key>"
    ```
 
-2. The `nodetool deploy apply` command automatically synchronizes all secrets from your local database to the target server right after a successful deploy. If you ever need to do it manually, POST the encrypted payload to the admin endpoint using the worker bearer token:
+2. Enter the secrets on the server itself, through Settings or the `nodetool secrets store` command run against that server's database. `nodetool deploy apply` does not copy local secrets. The `POST /admin/secrets/import` route exists but answers `501` ("Secrets import not available in standalone mode").
 
-   ```bash
-   curl -H "Authorization: Bearer $NODETOOL_WORKER_TOKEN" \
-        -H "Content-Type: application/json" \
-        -X POST https://your-server.example.com/admin/secrets/import \
-        --data-binary @secrets-export.json
-   ```
+   Ciphertext is encrypted per user with the master key, so a database copied between machines decrypts only where `SECRETS_MASTER_KEY` is the same value.
 
-   The server stores the ciphertext verbatim, so both sides must share the same master key.
+   For a container deployment, `nodetool deploy add` and the deploy config generate a `SECRETS_MASTER_KEY` (32 random bytes, base64) in `container.environment` when none is set.
 
 ## Storage Backend Selection
 
 The storage backend is selected explicitly by `NODETOOL_STORAGE_BACKEND` (one of `file`, `s3`, or `supabase`; defaults to `file`). It is **not** auto-detected from the presence of S3 or Supabase credentials.
 
 - `file` (default) — assets are written to the local assets directory.
-- `s3` — requires `ASSET_BUCKET` (and, for the temp store, `TEMP_BUCKET`); reads `S3_REGION` and `S3_ENDPOINT` as needed.
+- `s3` — requires `ASSET_BUCKET` (and, for the temp store, `TEMP_BUCKET`); reads `S3_REGION` and `S3_ENDPOINT` (or `S3_ENDPOINT_URL`) as needed.
 - `supabase` — requires `SUPABASE_URL`, `SUPABASE_KEY`, and the relevant bucket var.
+
+A missing required variable throws `Missing required env var <name> for NODETOOL_STORAGE_BACKEND=<backend>`, and an unknown backend value throws.
 
 The asset store uses `ASSET_BUCKET`; the temp store uses `TEMP_BUCKET`. See `storage-config.ts` in `@nodetool-ai/config`.
 
@@ -106,7 +104,7 @@ nodetool secrets store OPENAI_API_KEY  # encrypt a provider key into the secrets
 nodetool settings show               # verify resolved configuration
 ```
 
-Use `.env.<env>.local` for machine-specific overrides and keep secrets out of version control. When deploying, provide environment variables via your orchestrator or the `deployment.yaml` `env` section—NodeTool will merge them automatically at runtime.
+Use `.env.<env>.local` for machine-specific overrides and keep secrets out of version control. When deploying, provide environment variables via your orchestrator or the `container.environment` map of a deployment in `deployment.yaml`.
 
 ## Supabase Settings
 
@@ -479,7 +477,9 @@ missing binary.
 
 | Variable | Purpose | Secret | Notes |
 |----------|---------|--------|-------|
-| `NODE_ENV` | Environment name (`development`, `test`, `production`) | no | Defaults to `development`; controls `.env` file load order |
+| `NODE_ENV` | Environment name (`development`, `test`, `production`) | no | Defaults to `development`; selects which `.env.<NODE_ENV>` files load. It does not switch production behavior. See `NODETOOL_ENV` |
+| `NODETOOL_ENV` | Production mode switch | no | `production` turns off local-only features: the file browser and local-file previews, the Python bridge, the `/mcp` mount and `/ws/extension` bridge (unless re-enabled), the `fake` provider, Transformers.js, and unmanaged workspaces. Public app deployment routes are available only in production. It also makes the default bind address `0.0.0.0`, makes `cloud` the default workspace storage, and tightens the node-pack allowlist default. The Docker image and desktop app set it. Separate from `NODE_ENV` |
+| `PORT` / `HOST` | Port and address the server binds | no | Default `7777`. `HOST` defaults to `127.0.0.1`, or `0.0.0.0` when `NODETOOL_ENV=production`. `nodetool serve --port` and `--host` set both variables, and `--host` defaults to `127.0.0.1` |
 | `STATIC_FOLDER` | Directory the server serves the built web app from | no | Unset, or naming a directory that is not there, no static handler is registered and anything outside the API routes answers `404`. Set, the directory is served at `/`, `/` and `/apps/index.html` send `index.html`, and other extension-less `GET`s fall back to it so client-side routing survives a reload. See [Serving the Web UI and TLS](#serving-the-web-ui-and-tls) |
 | `TLS_CERT` / `TLS_KEY` | PEM certificate and private key that put the server on HTTPS/WSS | no | Both are paths, and both must resolve or TLS stays off. A path that does not exist is ignored — the server then walks up to five directories from its working directory looking for `cert.pem` and `key.pem`, so a stray pair beside the process turns TLS on with neither variable set |
 | `REDIRECT_PORT` | Port of the plain-HTTP listener that redirects to the HTTPS one | no | Default `80`, and only bound when TLS is active. Answers `301` to `https://<request Host>:<server port><path>`. A port below 1024 needs elevated privileges; on `EACCES` the server logs that the redirect listener was skipped and keeps serving HTTPS |

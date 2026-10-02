@@ -13,10 +13,14 @@ All of it is defined in `packages/app-runtime`, shared by the browser, the
 
 ## Widgets
 
-A widget is one thing on the app screen. Every widget can be wired to a value
-(`binding`), shown only under a condition (`visibleWhen`), greyed out under a
-condition (`disabledWhen`), and reformatted before display (`format`), on top of
-its own settings.
+A widget is one thing on the app screen. Every widget except the layout widgets
+can be wired to a value (`binding`), shown only under a condition
+(`visibleWhen`), and greyed out under a condition (`disabledWhen`), on top of its
+own settings. `format` is offered on the widgets that show text: Heading, Text,
+Markdown, JSON, Output, Alert, Code, List, and Stat. The widget catalog
+(`WIDGET_CATALOG` in `packages/app-runtime/src/widgets.ts`) is the single list the
+editor, the debug harness, and the assistant all read. The editor palette groups
+widgets as Inputs, Chat & AI, Actions, Display, and Layout.
 
 ### Widgets that show something
 
@@ -25,15 +29,24 @@ its own settings.
 | Heading | Fixed text at H1–H3. |
 | Text | Fixed or formatted text. |
 | Markdown | Rendered Markdown. The right choice for streamed prose. |
-| Image | An image. Fit `contain` or `cover`, fixed height, placeholder. |
-| Audio | An audio file, with a player. |
-| Video | A video, with a player, max height, placeholder. |
+| Image | An image. Fit `contain` or `cover`, fixed height, placeholder, optional download button and filename. |
+| Audio | An audio file, with a player, placeholder, optional download button and filename. |
+| Video | A video, with a player, max height, placeholder, optional download button and filename. |
 | Sketch | A sketch document, layers composited. Max height, optional canvas size. |
 | Timeline | A timeline sequence, with its tracks and clips. Max height, optional metadata. |
 | JSON | Structured data, formatted. |
 | Table | A list, as rows. Max height, placeholder. |
-| Output | A value whose type varies; picks a display based on what arrives. |
+| List | A list as bullets, or numbered with **Numbered**. Placeholder. |
+| Key/Value | A record as label and value pairs. Placeholder. |
+| Output | A value whose type varies; picks a display based on what arrives. Optional media download. |
 | Progress | How far along the run is. |
+| Stat | One number with a label and a caption, for reading at a glance. Placeholder. |
+| Alert | A message box. Severity `info`, `success`, `warning`, or `error`, optional title and text. Pair it with `visibleWhen` to show an error only when there is one. |
+| Code | Text in a code block. Language label, max height. |
+| Download | A button that saves the bound file. Label, file name, placeholder. |
+| 3D Model | A 3D model viewer. Height, placeholder. |
+| Chart | Plots a bound dataframe, list of records, or list of numbers. Chart type `line`, `bar`, `scatter`, or `pie`, height, placeholder. |
+| PDF | A PDF viewer. Height, placeholder. |
 | Gallery | A list of images as tiles. Tile size, placeholder. Set `selectionBinding` and a tap picks one. |
 | Image Compare | Two images under one wipe handle. `binding` is before, `compareBinding` after. Max height, placeholder. |
 
@@ -41,8 +54,9 @@ Sketch and Timeline take a document reference — `{type: "sketch", id}` or
 `{type: "timeline", id}` — which is what the nodes that produce them emit. They
 also accept the document inline, so a node that returns the payload rather than
 a saved id renders too. Binding one to Image or Video instead shows nothing: a
-reference is not a media URL. On mobile these summarize the document (canvas
-size and layer count; duration, tracks, and clips) rather than drawing it.
+reference is not a media URL. On mobile a Sketch draws the composited image and
+falls back to a size and layer summary when it cannot load it, and a Timeline
+shows a summary of duration, tracks, and clips rather than the sequence.
 
 ### Widgets the user changes
 
@@ -59,6 +73,11 @@ That's what makes on-release pacing possible — see
 | Slider | A number. Min, max, step. | yes |
 | Switch | On or off. | no |
 | Select | One option from a fixed list. | no |
+| Radio Group | One option from a fixed list, stacked or inline. | no |
+| Checkbox Group | Any number of options from a fixed list, written as a list. Stacked or inline. | no |
+| Choice Cards | One option shown as a card with title, description, and image. Options are authored, or read from a bound output through `optionsBinding`. Columns. | no |
+| Guided Steps | One step of an ordered list, as buttons. Writes the step's value, starts on the first step, and `allowBack` can forbid going back. | no |
+| Date Input | A date, or a date and time with **Include time**. Writes text. | yes |
 | Image Input | An image. | no |
 | Sketch Pad | A drawing the user makes on the spot. Canvas size, white or transparent paper. | yes |
 | Audio Input | An audio file. | no |
@@ -67,9 +86,18 @@ That's what makes on-release pacing possible — see
 | Camera Capture | Video recorded from the camera, then and there. | no |
 | Document Input | A document. | no |
 | Color Input | A color. | no |
+| Data Table Input | A table of rows. Max height. | no |
+| File Path Input | A file path as text. | no |
+| Folder Path Input | A folder path as text. | no |
+| 3D Model Input | A 3D model. | no |
+| Image Size Input | A width and height. | no |
+| Media List Input | A list of images, videos, audio files, or text (**List of**). | no |
 | Resource Picker | Picks which document a resource points at. | no |
 | Resource Gallery | The same, from a grid of tiles. Tile size. | no |
 | Storyboard Scenes | Edits the bound storyboard directly. Fires no event. | no |
+
+Choice Cards and Guided Steps suit the pick-then-continue step of an approval
+flow. See [recipe 6](mini-apps-guide.md#6-approve-then-continue).
 
 A Workflow Form is one widget where placing each input by hand would be several.
 It renders the inputs of the operation it names — the app's only operation
@@ -121,9 +149,17 @@ and `streamBinding` is an output.
 | Widget | Does |
 | --- | --- |
 | Button | Runs its click action. Style `contained`/`outlined`/`text`, color `primary`/`secondary`/`warning`. |
+| Approval | Two buttons that write `approved` or `rejected` to its binding. Label, description, and button labels (defaults **Approve** and **Needs changes**). Fires a change event. |
 | Panel | A titled box holding other widgets. |
 | Columns | Two side-by-side slots, `left` and `right`. |
+| Tabs | Up to three tabs, each a slot (`tab1`, `tab2`, `tab3`) with its own label. |
+| Accordion | A titled section that opens and closes. `defaultOpen` sets its first state. |
+| Spacer | Empty vertical space of a set height. |
 | Divider | A horizontal line. |
+
+Layout widgets carry no binding, condition, or format. To show or hide a group
+under a condition, set `visibleWhen` on each widget inside it. Tabs and Accordion
+let the person using the app hide a group themselves.
 
 ## Bindings
 
@@ -218,18 +254,21 @@ points at nothing renders as nothing.
 The rest of this page is the saved shape of an app — useful when editing a
 document by hand or reading one the agent wrote.
 
-An app is stored as one `ApplicationDocument`. Version 3 is current; version 1
-and 2 documents are upgraded on load, gaining one implicit `main` operation bound
-to the workflow they came from.
+An app is stored as one `ApplicationDocument`. Ordinary apps use schema version 4.
+Version 5 is for apps that carry a [recipe manifest](#recipe-manifest), and a
+document with a higher version is rejected. Embedded version 1 and 2 documents
+(`{ version, data }` on a workflow) are upgraded on load, gaining one implicit
+`main` operation bound to the workflow they came from.
 
 ```ts
 interface ApplicationDocument {
-  schemaVersion: number;      // 3
+  schemaVersion: number;      // 4, or 5 with a recipe
   ui: PuckData;               // the layout: { root, content, zones }
   operations: OperationBinding[];
   resources: ResourceBinding[];
   variables: VariableDeclaration[];
-  theme?: { id: string };
+  theme?: { id: string };     // "default" | "centered" | "card"
+  recipe?: RecipeManifest;
 }
 ```
 
@@ -241,8 +280,11 @@ One operation is one workflow the app can run, plus its wiring.
 interface OperationBinding {
   id: string;
   name: string;
-  workflowId: string;
+  workflowId: string;         // empty for a script operation
   workflowVersion?: number;   // fixed in a published app, latest in a draft
+  target?:                    // set when the operation runs a script
+    | { kind: "workflow"; workflowId: string; workflowVersion?: number }
+    | { kind: "script"; scriptId: string; scriptVersion: number };
   inputs: Record<string, InputMapping>;    // keyed by node id
   outputs: Record<string, OutputMapping>;  // keyed by node id
   policy: "parallel" | "replace" | "queue";
@@ -271,6 +313,11 @@ interface OperationBinding {
 Several operations may point at the same workflow with different wiring, and an
 app that runs three workflows declares three operations.
 
+A script operation runs a saved JS script at a pinned version instead of a
+workflow. The script's declared input and output names stand in for node ids, so
+`inputs` and `outputs` key on those names. Publishing checks that the pinned
+version exists. A public link cannot serve a script operation.
+
 ### Variables
 
 ```ts
@@ -285,8 +332,9 @@ interface VariableDeclaration {
 ```
 
 The visual editor's variable picker lists the Set Variable channels the graph
-publishes. Typed variables with a scope, default, and persistence are declared
-through the agent or by editing the document.
+publishes. The **App Data** panel in the Design header declares variables with a
+type, default, scope, and persistence. Operations and resources are edited there
+too, and the assistant edits the same lists.
 
 ### Resources
 
@@ -302,6 +350,18 @@ interface ResourceBinding {
 }
 ```
 
+### Recipe manifest
+
+A `recipe` is optional metadata that marks an app as a recipe: named, typed
+inputs, a fixed set of operations, and declared outputs. It holds a `slug`, typed
+`inputs` (`text`, `number`, `boolean`, `image`, `video`, `audio`, `color`, `asset`,
+`entity`, `storyboard`, `timeline`), the `operations` it uses with their intent,
+`outputs`, and optional creative strategy, preservation rules, media policy,
+presentation, and marketing fields. The document is rejected unless every recipe
+input has an app variable with the same id and a compatible type, every required
+input is mapped into a recipe operation, and every output binding resolves.
+An ordinary update cannot strip the manifest from an app that has one.
+
 ## Bundles
 
 A bundle is an app packaged for sharing: the app plus the full graph of every
@@ -311,16 +371,26 @@ all use it.
 ```ts
 interface ApplicationBundle {
   schemaVersion: number;        // 1
-  app: ApplicationDocument;     // operations reference workflows[].key
-  workflows: { key: string; name: string; graph: Graph }[];
+  name: string;
+  description: string;
+  app: ApplicationDocument;     // operations reference workflows[].key and scripts[].key
+  workflows: {
+    key: string; name: string; description?: string; graph: Graph;
+    sourceId?: string;          // stable identity across installs
+    version?: number | null; graphHash?: string | null;
+  }[];
+  scripts: { key: string; name: string; document: JsScriptDocument;
+             sourceId?: string; version?: number | null }[];
 }
 ```
 
-Inside a bundle, each operation's `workflowId` holds a local nickname (`key`)
-instead of a real id. Importing creates the workflows and swaps the nicknames for
-the new ids — the same trick `.nodetool` workflow bundles use for their asset
-references. A bundle exported from a published app carries the locked-in graphs,
-so it reproduces exactly what that release ran.
+Inside a bundle, each operation's `workflowId` (or script id) holds a local
+nickname (`key`) instead of a real id. Importing creates the workflows and swaps
+the nicknames for the new ids, the same trick `.nodetool` workflow bundles use for
+their asset references. A workflow with a `sourceId` gets a stable row id, so
+importing two bundles that ship the same workflow reuses one row. A bundle
+exported with `--released` carries the locked-in graphs, so it reproduces exactly
+what that release ran.
 
 ## What one open app holds
 
@@ -350,6 +420,36 @@ id is never accepted; the workflows an app runs are named by
 | Variables | `ui_app_list_variables`, `ui_app_declare_variable`, `ui_app_update_variable`, `ui_app_remove_variable` |
 | Resources | `ui_app_list_resources`, `ui_app_add_resource`, `ui_app_remove_resource` |
 | Bindings | `ui_app_get_binding_targets` |
+| Checking | `ui_app_debug` |
+
+`ui_app_debug` sends the open draft, unsaved edits included, to the server and
+returns the same verdict as `nodetool app debug`. With `run` false (the default)
+it is a free wiring check. With `run` true it executes the workflows and spends
+money, so run it once at the end. It also takes `params`, `interact`, and
+`timeout_ms`.
+
+## REST API
+
+The same service backs the web app's tRPC calls and these routes, which mobile,
+the CLI, and other clients use.
+
+| Route | Does |
+| --- | --- |
+| `GET /api/applications` | List apps. |
+| `POST /api/applications` | Create an app, empty or from a workflow. |
+| `GET`, `PUT`, `PATCH`, `DELETE /api/applications/:id` | Read, replace, update, or delete one app. |
+| `GET /api/applications/:id/released-document` | The released snapshot and the graphs it pinned, or null. |
+| `GET /api/applications/:id/export-bundle` | Download the app as a bundle. |
+| `POST /api/applications/import-bundle` | Create an app and its workflows from a bundle. |
+| `POST /api/applications/debug` | Run the debug harness on a document. |
+| `POST /api/applications/build` | Build an app from a prompt. |
+| `GET /api/applications/examples` | List the shipped example apps. |
+| `GET /api/applications/examples/:slug` | One example as a bundle. |
+| `POST /api/applications/examples/:slug/install` | Add an example to your apps. |
+
+Publishing, versions, rollback, the budget, and the public link are tRPC
+procedures on `applications` (`publish`, `versions`, `release`, `setBudget`,
+`deploy`, and others). A public link is served at `/a/<token>`.
 
 ## CLI
 
@@ -364,11 +464,26 @@ npm run dev:nodetool -- app debug <id> --interact \
   '[{"set":{"key":"prompt","value":"hi"}},{"click":"Button-1"}]'
 npm run dev:nodetool -- app debug <id> --interact \
   '[{"set":{"key":"tone","value":"terse","operationId":"draft"}},{"run":"draft"}]'
+
+# Timeout, report folder, build, and bundles
+npm run dev:nodetool -- app debug <id> --timeout 60000 --out ./app-report
+npm run dev:nodetool -- app build "<prompt>" -p anthropic -m claude-sonnet-5
+npm run dev:nodetool -- apps list
+npm run dev:nodetool -- apps export-bundle <id> -o my.app.json --released
+npm run dev:nodetool -- apps import-bundle my.app.json --project <project_id>
 ```
+
+An interaction step is one of `{"set":{"key","value","operationId"}}`,
+`{"change":"<widget>","value":…}`, `{"click":"<widget>"}`, `{"run":"<operationId>"}`,
+`{"cancel":"<operationId>"}`, or `{"seedResource":{"id","items"}}`. `--params` sets
+values before the steps run. The command exits 0 when the verdict is ok.
+`app build` and the `apps` commands are covered in
+[the harness reference](harnesses.md#nodetool-app-build-mini-app-build-harness)
+and [CLI](cli.md#nodetool-apps).
 
 The harness runs every operation the app declares, not just the first. Widgets
 are clicked by component id, by type if only one exists, or by label if it's
-unique. Results land in `nodetool-debug/app-<id>-<ts>/` as `report.json`,
+unique. Results land in `nodetool-debug/app-<id>-<ts>/` (or the `--out` folder) as `report.json`,
 `report.md`, `app.json`, `workflow.json`, and one
 `server/run-N.messages.jsonl` per run.
 

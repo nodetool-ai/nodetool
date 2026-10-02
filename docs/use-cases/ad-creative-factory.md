@@ -25,6 +25,11 @@ video. This workflow moves that line item onto your canvas.
 
 ## How it works
 
+This page describes a graph design. NodeTool does not ship it as a template, so
+there is nothing to open under Examples. Build it on the canvas from the nodes
+named below, or start from one of the shipped ad workflows listed under
+[Next steps](#next-steps).
+
 Four inputs, one fan-out. The strategist plans once; everything after the list
 generator runs once per variant.
 
@@ -93,8 +98,8 @@ count, and the strategist plans the next generation around them.
 
 ## Models in this workflow
 
-The template ships with no models selected — pick one per role when you open
-it. Called with your own keys; the bill comes from the provider.
+Pick one model per role when you build it. Called with your own keys, so the
+bill comes from the provider.
 
 | Role | Node | Works well with |
 | --- | --- | --- |
@@ -108,7 +113,10 @@ See [Models &amp; Providers]({{ '/models-and-providers' | relative_url }}) to se
 
 ## Next steps
 
-- Open the template: **Examples → Ad Creative Factory** in the app menu
+- Shipped ad workflows (**Examples** in the sidebar, **Workflows** tab):
+  *Ad Loop from a Product Photo* animates one photo into a looping hero shot
+  with Kling 2.6 on Kie, and *Per-SKU Ad Factory* turns one approved storyboard
+  into one ad per product.
 - [Product Video Generator]({{ '/use-cases/product-video' | relative_url }}) — one cinematic hero video instead of a test batch
 - [Movie Trailer Generator]({{ '/use-cases/movie-trailer' | relative_url }}) — the same fan-out pattern, pointed at film
 - [All use cases]({{ '/use-cases' | relative_url }})

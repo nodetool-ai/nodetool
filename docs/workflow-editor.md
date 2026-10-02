@@ -31,8 +31,10 @@ See [Key Concepts → How everything fits together](key-concepts.md#how-everythi
 | Area | Where | What It Does |
 |------|-------|--------------|
 | **Canvas** | Center | Place and connect nodes |
-| **Side Panels** | Left | Workflows, nodes, assets, timelines, sketches, favorites |
-| **Composer** | Bottom | Chat, run, save, auto-layout |
+| **Left panel** | Left | Documents, chats, library, and nodes, plus a **More** panel with favorites, recent nodes, workflow settings, and app pages |
+| **Inspector** | Right | Properties, I/O, and help for the selected node |
+| **Bottom panel** | Bottom | Logs, queue, workers, versions, and trace |
+| **Composer** | Floating over the canvas | Chat and media prompt, add node, auto-layout, save, run |
 
 ---
 
@@ -46,14 +48,21 @@ Your infinite workspace.
 
 | Do This | How |
 |---------|-----|
-| Pan | `Space` + drag, or right-click drag |
-| Zoom | `Ctrl/⌘` + scroll |
+| Pan | Left-drag on empty canvas (default on Windows and Linux). On macOS, two-finger scroll, or right or middle-button drag |
+| Zoom | Scroll wheel, or pinch. On macOS, pinch |
 | Fit everything | `F` |
 | Reset zoom (to 50%) | `Ctrl/⌘ + 0` |
+| Zoom in or out | `Ctrl/⌘ + =` / `Ctrl/⌘ + -` |
+| Zoom to 50%, 100%, 200% | `Ctrl/⌘ + Alt + 5` / `1` / `2` |
+
+**Left-Click Drag** in Settings → General → Canvas swaps the mouse roles. With **Select nodes (box)**, left-drag draws a selection box and panning moves to right or middle-button drag. The default is **Pan canvas** on Windows and Linux and **Select nodes (box)** on macOS. **Node Selection Mode** decides whether a box must enclose nodes (**Full**) or only touch them (**Partial**, the default).
 
 **The grid** helps align nodes. Turn on **Snap to Grid** in the View menu of the
-desktop app, from the command menu (`Ctrl/⌘ + K`), or in Settings → General.
-The grid size is the **Grid Snap Precision** setting.
+desktop app, from the command menu (`Ctrl/⌘ + K`), or in Settings → General →
+Canvas. The grid size is the **Grid Snap Precision** setting, and **Connection
+Snap Range** sets how close a dragged connection must get to a port to snap.
+
+The **⋮** menu on the composer has a **Mini Map** toggle.
 
 ---
 
@@ -75,7 +84,7 @@ Each node does one thing.
 **Smart connect:**
 1. Drag from a node's output
 2. Drop on empty space
-3. See compatible nodes
+3. Pick from the compatible nodes, or choose **Preview**, **Reroute**, or a **Save** node for that type
 
 ### Node Structure
 
@@ -89,21 +98,23 @@ Each node does one thing.
 | Do This | How |
 |---------|-----|
 | One | Click it |
-| Multiple | `Shift` + click, or drag box |
+| Multiple | `Ctrl/⌘` + click, or draw a selection box (`Shift` + drag, or plain drag when **Left-Click Drag** is set to select) |
 | All | `Ctrl/⌘ + A` |
+| Connected nodes | `Shift + C` (inputs and outputs), `Shift + I` (inputs), `Shift + O` (outputs) |
 | None | Click canvas |
 
 ### Move Nodes
 
 - **Drag** header to move
-- **Arrow keys** to nudge
+- **Arrow keys** to nudge by 10 px
 - **Auto Layout** button to organize
+- `C` collapses or expands the selected nodes
 
 ### Disable Nodes
 
 Exclude nodes from a run without deleting them:
 
-1. Right-click node
+1. Right-click the node (or select it and press `B`)
 2. Select **Disable Node**
 3. The node dims
 
@@ -115,13 +126,13 @@ Good for:
 - **Debugging** - Exclude a failing or costly branch
 - **Editing** - Keep unfinished nodes on the canvas without executing them
 
-Re-enable: Right-click → **Enable Node**
+Re-enable: right-click → **Enable Node**, or press `B` again. With several nodes selected, the context menu offers **Disable All** or **Enable All**.
 
 ---
 
 ## Connections
 
-Connections are the lines between nodes that show how data flows through your workflow. Data always flows **left to right** — from output ports (right side of a node) to input ports (left side of another node).
+Connections are the lines between nodes that show how data flows through your workflow. Data flows **left to right**, from output ports (right side of a node) to input ports (left side of another node).
 
 ### Make Connections
 
@@ -137,17 +148,18 @@ Connections are the lines between nodes that show how data flows through your wo
 
 ### Removing Connections
 
-- Click a connection line, then press `Delete`
-- Right-click a connection for options
+- Right-click a connection and choose **Delete Edge**, or **Insert Reroute** to add a reroute node at that point
 - Drag the connection away from its target and release
 
 ### Smart Connections
 
-When you drag a connection and release on **empty space**, the **Connection Menu** appears:
+When you drag a connection and release on **empty space**, a connection menu appears:
 
-- **Auto-create** common nodes for that data type
-- **Browse compatible nodes** filtered by what can receive the data
-- **Cancel** by pressing `Esc`
+- A search box over the nodes that can receive (or produce) that data type
+- Shortcuts for **Preview**, **Reroute**, and a **Save** node matching the type
+- `Esc` cancels
+
+Releasing on a node's body instead connects to a matching input on that node. On a node that supports dynamic inputs, it creates a new input named after the source node.
 
 ---
 
@@ -163,13 +175,19 @@ When you drag a connection and release on **empty space**, the **Connection Menu
 
 All three methods run the entire enabled graph. They use the same checks for
 missing models, search-provider setup, large runs, and additional concurrent
-runs.
+runs. The large-run warning is controlled by **Warn Before Large Runs** and
+**Large-Run Threshold** in Settings → General → Execution.
+
+To run part of a graph, right-click a node and choose **Run Node**, or
+right-click a multi-node selection and choose **Run Selected**. Each runs as its
+own job and uses previous results as inputs.
 
 ### Watching Progress
 
 - **Streaming nodes** show output as it's generated
 - **Preview nodes** display intermediate results
-- **Node borders** indicate status (running, complete, error)
+- **A moving colored ring** around a node marks it as running
+- **Completed in** and **Failed in** badges above a node show how long it took
 - **Edge animations** show data flowing between nodes
 - The main run control shows **Starting**, **Queued**, **Running**, **Stopping**,
   or **Error** without requiring a tooltip
@@ -190,14 +208,11 @@ runs.
 
 ![Auto Layout Toolbar](assets/screenshots/editor-floating-toolbar.png)
 
-Click the **Auto Layout** button in the floating toolbar to automatically arrange your nodes in a clean, readable layout. The editor also auto-arranges nodes when Chat creates or modifies workflows. (There is no keyboard shortcut for auto-layout — it's a toolbar button only.)
+Click the **Auto Layout** button in the composer bar to arrange your nodes in a readable layout. The editor also auto-arranges nodes when Chat creates or modifies workflows. There is no keyboard shortcut for auto-layout. It is a toolbar button only.
 
 ### Grouping Nodes
 
-Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups:
-- Keep related nodes together
-- Can be collapsed to save space
-- Move as a unit
+Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups keep related nodes together and move as a unit. The node context menu also offers **Group into Subgraph**, and the canvas context menu offers **Add Group**, **Add Comment**, **Add Subgraph**, and **Add Workflow**.
 
 ### Aligning Nodes
 
@@ -205,20 +220,23 @@ Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups:
 |----------|--------|
 | `A` | Align selected nodes |
 | `Shift + A` | Align and distribute evenly |
+| `Shift + ←/→/↑/↓` | Align left, right, top, or bottom edges |
+| `Shift + H` / `Shift + V` | Align centers horizontally or vertically |
+| `Shift + D` | Distribute horizontally |
 
 ---
 
 ### Left Panel
 
-Access these views by clicking icons on the left rail: **Nodes**, **Workflows**, **Sketches**, **Timelines**, **Settings**, **History**, **Favorites**, **Assets**, and **Agent**. See [Editor Panels → Left Panel](editor-panels.md#left-panel) for details on each.
+The left rail has **Documents**, **Chats**, **Library**, **Nodes**, and **More**. See [Editor Panels → Left Panel](editor-panels.md#left-panel) for details on each.
 
 ### Right Panel (Inspector)
 
-- Detailed properties for selected nodes
-- Input/output documentation
-- Validation errors and warnings
+- Properties for the selected node, on the **Params** tab
+- Input and output slots on the **I/O** tab, and node documentation on the **Help** tab
+- Validation errors for the selected node
 
-The right panel hosts only the Inspector. Logs, Queue, Trace, Version History, and Workspace live in the [Bottom Panel](editor-panels.md#bottom-panel).
+The Inspector opens automatically when you select a node. With several nodes selected it edits their shared properties. Logs, Queue, Trace, and Version History live in the [Bottom Panel](editor-panels.md#bottom-panel).
 
 ---
 
@@ -232,13 +250,13 @@ Press `Space` to open, then:
 
 - **Search**: Just start typing ("whisper", "image", "agent")
 - **Browse**: Explore the category tree on the left
-- **Filter**: Click the filter icon to show only nodes with specific input/output types
-- **Move**: Drag the menu to reposition it
-- **Close**: `Esc` or click outside
+- **Filter**: Use the input and output type chips next to the search box (All, Image, Text, Audio, Video, Number) to show only nodes that take or produce a type
+- **Move**: Drag the menu header to reposition it, and drag its edges to resize it
+- **Close**: `Esc`, `Space` on an empty search box, or click outside
 
 ### Quick Add
 
-`Ctrl/⌘ + Shift + A` skips the browsing and goes straight to a search box — type a node name, hit Enter, and it lands on the canvas.
+`Ctrl/⌘ + Shift + A` skips the browsing and goes straight to a search box. Type a node name, press Enter, and it lands on the canvas.
 
 ![Quick add node](assets/screenshots/editor-quick-add-node.png)
 
@@ -265,12 +283,13 @@ Right-click for options anywhere:
 
 | Location | Options |
 |----------|---------|
-| **Canvas** | Add node, paste, select all |
-| **Node header** | Copy, copy as JSON, duplicate, delete, group, disable |
-| **Input/Output** | Disconnect, add compatible node |
-| **Connection** | Delete, add node in middle |
+| **Canvas** | Paste, Fit Screen, your favorite nodes, Add Constant Node, Add Input Node, Add Comment, Add Group, Add Workflow, Add Subgraph |
+| **Node** | Copy, Cut, Copy Node as JSON, Duplicate, Duplicate Vertical, Run Node, Disable or Enable Node, Collapse or Expand Node, Add Comment, Group into Subgraph, Convert to Input or Constant Node, Show Templates, select all nodes of the same type, Delete Node |
+| **Selection** | Duplicate, Copy, Cut, Run Selected, Align, Arrange, Disable All, Collapse / Expand, Surround With Group, Group into Subgraph, Select All Connected, Select Inputs, Select Outputs, Delete |
+| **Input or output port** | Searchable list of compatible nodes, plus Preview, Reroute, and Save shortcuts |
+| **Connection** | Insert Reroute, Delete Edge |
 
-**Copy as JSON** puts the node's data — its property values, title, and dynamic slots — on the clipboard as formatted JSON. Paste it into a bug report, or hand it to an agent.
+**Copy Node as JSON** puts the node's data — its property values, title, and dynamic slots — on the clipboard as formatted JSON. Paste it into a bug report, or hand it to an agent.
 
 ---
 
@@ -282,7 +301,7 @@ NodeTool includes professional editing tools for creative work.
 
 ![Sketch Editor](assets/screenshots/sketch-editor.png)
 
-Open a blank canvas (**+ New → New image** in the workspace tab bar) or edit an existing image to use the full layered editor:
+Open a blank canvas (**+ New → New sketch** in the workspace tab bar) or edit an existing image to use the full layered editor:
 
 - **Layers**: Control blend modes, opacity, and visibility.
 - **Painting**: Brush, pencil, eraser, fill, gradient, blur, and clone stamp tools.
@@ -290,7 +309,7 @@ Open a blank canvas (**+ New → New image** in the workspace tab bar) or edit a
 - **AI Generation**: Create a layer directly from a text prompt or connect it to a workflow.
 - **History**: Unlimited undo and redo steps.
 
-> **📖 Full Guide:** See [Sketch Editor](sketch-editor.md) for complete documentation with tool reference, shortcuts, and workflows.
+> **Full guide:** See [Sketch Editor](sketch-editor.md) for complete documentation with tool reference, shortcuts, and workflows.
 
 ### Text and Code Editor
 
@@ -317,7 +336,7 @@ Preview nodes with before/after images show a slider. Drag it left or right to c
 The color picker appears when selecting colors in properties:
 
 - **Visual Selection**: Saturation/brightness picker with hue slider
-- **Multiple Formats**: Enter values as HEX, RGB, or HSL
+- **Multiple Formats**: Enter values as HEX, RGB, HSL, or CMYK
 - **Harmony Modes**: Complementary, triadic, analogous color suggestions
 - **Gradient Builder**: Create and edit color gradients
 - **Swatches**: Save and reuse favorite colors
@@ -350,12 +369,31 @@ The color picker appears when selecting colors in properties:
 | `Ctrl/⌘ + Shift + D` | Duplicate vertically |
 | `Ctrl/⌘ + G` | Group selection |
 | `Ctrl/⌘ + 0` | Reset zoom to 50% |
+| `Ctrl/⌘ + =` / `Ctrl/⌘ + -` | Zoom in / out |
+| `Ctrl/⌘ + Alt + 1` / `2` / `5` | Zoom to 100% / 200% / 50% |
 | `Ctrl/⌘ + 1-9` | Switch to tab 1-9 |
+| `Ctrl + PageUp` / `PageDown` | Previous / next tab |
+| `Ctrl/⌘ + F` | Find in workflow |
+| `Ctrl/⌘ + Shift + A` | Quick add node |
+| `Ctrl/⌘ + I` | Node info panel |
+| `Ctrl/⌘ + /` | Show keyboard shortcuts |
+| `Ctrl/⌘ + ,` | Open Settings |
+| `B` | Disable or enable selected nodes |
+| `C` | Collapse or expand selected nodes |
+| `Shift + C` / `Shift + I` / `Shift + O` | Select connected / input / output nodes |
+| `Shift + ←/→/↑/↓` | Align left, right, top, bottom |
+| `Shift + H` / `Shift + V` | Align centers horizontally / vertically |
+| `Shift + D` | Distribute horizontally |
 | `A` | Align selected nodes |
 | `Shift + A` | Align and distribute |
 | `Arrow keys` | Nudge selected nodes |
 | `Delete` / `Backspace` | Delete selection |
 | `i` | Toggle Inspector |
+| `w` | Toggle Workflow Settings panel |
+| `l` | Toggle Logs panel |
+| `Ctrl + Shift + T` | Toggle Trace panel |
+
+Alt-based keyboard navigation moves focus between nodes without the mouse: `Ctrl/⌘ + Alt + N` and `P` step to the next and previous node, `Alt + arrows` move focus to the nearest node in that direction, `Enter` selects the focused node, `Esc` leaves navigation mode, and `Ctrl/⌘ + Alt + B` goes back. `Ctrl/⌘ + T` (new workflow) and `Ctrl/⌘ + W` (close tab) work in the desktop app only.
 
 ---
 
@@ -372,9 +410,9 @@ The color picker appears when selecting colors in properties:
 
 - **Add Preview nodes** between steps to see exactly what data each node produces
 - **Check connections** — verify data types match (connection colors indicate type)
-- **Look at node borders** — red = error, yellow = running, green = completed
+- **Look at node badges** — a **Failed in** badge and an error panel mark a failed node, and a **Completed in** badge marks a finished one
 - **Test incrementally** — disable downstream nodes and run smaller graphs to isolate problems
-- **Use the Inspector** — press `i` to see detailed error messages and validation warnings
+- **Use the Inspector** — press `i` to see validation warnings for the selected node. Run errors appear on the node itself
 
 ### Performance
 

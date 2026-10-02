@@ -24,8 +24,8 @@ description: "How to add new MiniMax models or workflow nodes to the NodeTool re
 | Node implementations | `packages/minimax-nodes/src/nodes/*.ts` |
 | Node pack entry point | `packages/minimax-nodes/src/index.ts` |
 | Node pack tests | `packages/minimax-nodes/tests/*.ts` |
-| Provider ID constant | `packages/protocol/src/api-types.ts` line 872 (`MINIMAX: "minimax"`) |
-| Provider registration | `packages/runtime/src/providers/index.ts` line 215 |
+| Provider ID constant | `packages/protocol/src/api-types.ts` (`PROVIDER_IDS.MINIMAX`) |
+| Provider registration | `packages/runtime/src/providers/index.ts` (`registerBuiltinProvider(PROVIDER_IDS.MINIMAX, ...)`) |
 | API docs | <https://platform.minimax.io/docs/api-reference/api-overview> |
 
 ---
@@ -34,7 +34,7 @@ description: "How to add new MiniMax models or workflow nodes to the NodeTool re
 
 **Provider catalogue (static arrays)**
 
-`MinimaxProvider` in `minimax-provider.ts` overrides six `getAvailable*` methods. Each returns a hardcoded array — there is no live API discovery. The arrays are the source of truth for the generic nodes (chat, generic TTS, generic video).
+`MinimaxProvider` in `minimax-provider.ts` overrides five `getAvailable*` methods (language, image, video, TTS, music). Each returns a hardcoded array. There is no live API discovery. The arrays are the source of truth for the generic nodes (chat, generic TTS, generic video).
 
 ```ts
 // packages/runtime/src/providers/minimax-provider.ts
@@ -55,7 +55,6 @@ override async getAvailableVideoModels(): Promise<VideoModel[]> {
 // packages/minimax-nodes/src/minimax-base.ts
 export const MINIMAX_T2V_MODELS: string[] = [
   "MiniMax-Hailuo-2.3",
-  "MiniMax-Hailuo-2.3-Fast",
   "MiniMax-Hailuo-02",
   "T2V-01-Director"
 ];
@@ -90,13 +89,13 @@ export const MINIMAX_T2V_MODELS: string[] = [
    ];
    ```
 
-   Do the same for `MINIMAX_I2V_MODELS` if the model supports image-to-video.
+   Do the same for `MINIMAX_I2V_MODELS` if the model supports image-to-video. TTS, music, and image models have matching constants (`MINIMAX_TTS_MODELS`, `MINIMAX_MUSIC_MODELS`). Chat models exist only in the provider, because the pack has no chat node.
 
 3. The node's `@prop` enum picks up the new entry automatically — no change to the node file needed.
 
 ### Case B: new node type
 
-Say MiniMax releases a new endpoint, e.g. `POST /v1/text_to_3d`.
+Say MiniMax releases a new endpoint, for example `POST /v1/text_to_3d`. The 3D node below is an illustrative sketch. The pack has no 3D node today.
 
 1. **Create `packages/minimax-nodes/src/nodes/text-to-3d.ts`**, modelled on an existing node:
 
@@ -220,24 +219,6 @@ panic surfaces before that.
 
 ---
 
-## How past commits did it
-
-The minimax node pack and provider were introduced before the current git window,
-but the two most recent commits that touched these files are:
-
-- **`ca742050`** — version bump to `0.7.0-rc.26` (touched `packages/minimax-nodes/package.json` along with all other packages)
-- **`f900e7a6`** — version bump to `0.7.0-rc.25`
-
-These are housekeeping commits. The substantive minimax work (node pack creation, provider implementation) predates the visible history on this branch, but the pattern matches the `elevenlabs-nodes` pack (same direct-fetch approach, same `minimax-base.ts` ↔ `minimax-provider.ts` split).
-
-To find the original introduction commit across all branches:
-
-```bash
-git log --all --oneline -- packages/minimax-nodes/src/index.ts | tail -1
-```
-
----
-
 ## Contributing
 
 Source: <https://github.com/nodetool-ai/nodetool>  
@@ -246,7 +227,10 @@ Discord: <https://discord.gg/WmQTWZRcYE>
 Before opening a PR:
 
 ```bash
-npm run check   # runs typecheck + lint + test for all packages
+npm run test:affected
+npm run typecheck
+npm run lint
+npm run dev:nodetool -- harness gate --base origin/main
 ```
 
-All three must pass. Do not commit if either `npm run typecheck` or `npm run lint` fails.
+All four must pass.

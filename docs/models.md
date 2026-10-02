@@ -6,23 +6,27 @@ description: "Every model NodeTool runs — local engines (llama.cpp, MLX, GGUF)
 
 > **The model catalog.** For how to connect a provider, see [Providers](providers.md). For the desktop app's download panel, see [Models Manager](models-manager.md). New here? Start with [Models & Providers](models-and-providers.md).
 
-NodeTool runs models from many providers — proprietary and open. Generic nodes (TextToImage, Agent, RealtimeAgent, ...) work across providers, so swapping a model doesn't change the graph.
+NodeTool runs models from many providers, proprietary and open. Generic nodes (TextToImage, Agent, and others) work across providers, so swapping a model doesn't change the graph.
 
 ## Local inference engines
 
-1,655+ local models across the engines below.
+The engines below run on your machine. The Model Manager's **Get Started** tab lists them with the formats each one loads and matches model suggestions to your hardware. For engines that run as a separate server (Ollama, vLLM, LM Studio, llama.cpp `llama-server`), see the [Providers documentation](providers.md).
 
-For provider-based local inference (Ollama, vLLM), please refer to the [Providers documentation](providers.md).
+### Ollama
+
+**Ollama** pulls and runs GGUF chat and embedding models by name. The desktop app bundles it. Models you pull appear in NodeTool automatically, and the Model Manager lists them under the `llama_model` type.
 
 ### llama.cpp & GGUF Format
 
-**llama.cpp** is a highly optimized C/C++ inference library that enables efficient LLM inference on CPU and GPU hardware using the GGUF format. It supports 1.5-bit through 8-bit integer quantization for significantly reduced memory usage.
+**llama.cpp** is a C/C++ inference library for LLMs on CPU and GPU using the GGUF format. It supports 1.5-bit through 8-bit integer quantization for lower memory use. NodeTool reaches it two ways. The `llama.cpp` provider talks to a `llama-server` you run. The `llama.cpp local` provider (`node-llama-cpp`) runs GGUF files inside the NodeTool backend, with no server. Install it as a runtime from the Package Manager.
 
-**Models**: Supports 300+ GGUF quantized models including Qwen, Llama, Gemma, DeepSeek, and GPT variants.
+### Transformers.js
+
+**Transformers.js** runs small ONNX models (embeddings, speech, classification, text generation) in-process through ONNX Runtime. It works on any platform with no Python. Install it as a runtime from the Package Manager. See [HuggingFace Integration](huggingface.md#transformersjs-nodes-local-onnx).
 
 ### MLX Framework (Apple Silicon)
 
-**MLX** is Apple's open-source machine learning framework specifically optimized for Apple Silicon's unified memory architecture. It enables efficient on-device AI for Mac users.
+**MLX** is Apple's open-source machine learning framework, optimized for Apple Silicon's unified memory. It is Apple Silicon only and runs through the Python worker.
 
 **Capabilities**:
 
@@ -32,20 +36,22 @@ For provider-based local inference (Ollama, vLLM), please refer to the [Provider
 
 ### Nunchaku (NVIDIA GPU)
 
-**Nunchaku** is a high-performance inference engine specifically designed for 4-bit diffusion models on NVIDIA GPUs. It implements SVDQuant to maintain visual fidelity while reducing memory usage by 3.6x compared to BF16 models. It is ideal for running large diffusion models (like FLUX.1) on consumer NVIDIA GPUs.
+**Nunchaku** is an inference engine for 4-bit diffusion models on NVIDIA GPUs. It implements SVDQuant to keep visual fidelity while cutting memory use compared to BF16 models, which makes large diffusion models such as FLUX.1 practical on consumer NVIDIA GPUs.
 
 ### HuggingFace Transformers
 
-**Transformers** is the standard library for working with ML models across text, vision, audio, and multimodal tasks. It provides access to the HuggingFace Hub with over 500,000 pre-trained models and supports automatic device detection (GPU/Apple Silicon/CPU).
+**Transformers** and **Diffusers** are the Python libraries behind the optional `nodetool-huggingface` node pack, which you install from the Package Manager. They run Hub models locally on GPU, Apple Silicon, or CPU. See [HuggingFace Integration](huggingface.md).
 
 ### Comparison Matrix
 
-| Framework        | Throughput | Memory Efficiency | Ease of Use | Best Hardware | Use Case                       |
-| ---------------- | ---------- | ----------------- | ----------- | ------------- | ------------------------------ |
-| **llama.cpp**    | Medium     | Excellent         | Medium      | CPU, GPU      | Quantized models, edge devices |
-| **MLX**          | Good       | Excellent         | Good        | Apple Silicon | Mac, iOS, privacy              |
-| **Nunchaku**     | Excellent  | Excellent         | Medium      | NVIDIA GPU    | High-performance Diffusion     |
-| **Transformers** | Medium     | Good              | Excellent   | Any           | Research, flexibility          |
+| Framework        | Formats                  | Best Hardware | Use Case                       |
+| ---------------- | ------------------------ | ------------- | ------------------------------ |
+| **Ollama**       | GGUF                     | CPU, GPU      | Simplest local chat models     |
+| **llama.cpp**    | GGUF                     | CPU, GPU      | Quantized models, edge devices |
+| **Transformers.js** | ONNX                  | Any           | Small models, no Python        |
+| **MLX**          | MLX                      | Apple Silicon | Mac on-device models           |
+| **Nunchaku**     | 4-bit diffusion weights  | NVIDIA GPU    | Large diffusion models         |
+| **Transformers / Diffusers** | Safetensors, PyTorch | Any   | Research, flexibility          |
 
 ______________________________________________________________________
 
@@ -169,7 +175,6 @@ In addition to local models, NodeTool provides access to cloud-based models thro
 | **Ideogram V3** | Ideogram | Exceptional typography, artistic style control | High |
 | **Z-Image Turbo** | Z-AI | Fast generation with strong prompt adherence | High |
 | **Seedream 4.5** | ByteDance | High-fidelity generation and instruction-based editing | High |
-| **Imagen 4** | Google | Ultra-detailed photorealistic images | Very High |
 
 **Access via**: `nodetool.image.TextToImage` node
 
@@ -182,7 +187,7 @@ In addition to local models, NodeTool provides access to cloud-based models thro
 | **ElevenLabs TTS Turbo 2.5** | ElevenLabs | Ultra-fast, natural text-to-speech |
 | **ElevenLabs Sound Effect** | ElevenLabs | Generate sound effects and ambient audio from text |
 
-**Access via**: `nodetool.audio.TextToSpeech` node; Suno and ElevenLabs advanced features via kie.ai
+**Access via**: `nodetool.audio.TextToSpeech` for speech. ElevenLabs has its own provider and `elevenlabs.*` nodes. Suno runs through the kie.ai nodes.
 
 ### Advantages of Cloud Models
 
@@ -198,17 +203,8 @@ In addition to local models, NodeTool provides access to cloud-based models thro
 - **Data Privacy**: Content is processed on provider servers
 - **Rate Limits**: Subject to provider API quotas
 
-### Cost-Effective Alternative: kie.ai
+### Where the cloud models come from
 
-All the cloud models listed above are available through [kie.ai](https://kie.ai/), an AI provider aggregator that:
+Most models above are offered by more than one provider, and the set changes as providers add models. The generic nodes list what your configured providers serve, so open the node's model dropdown to see your options. The aggregators ([kie.ai](https://kie.ai/), FAL, Replicate, AtlasCloud, Evolink, OpenRouter) carry many of these families under one key. Prices differ between an aggregator and the upstream provider, so compare them before committing to a large run.
 
-- Offers unified access to multiple providers through a single API
-- Often provides competitive or lower pricing than upstream providers
-- Simplifies API key management (one key for all models)
-- Enables easy cost comparison and optimization across providers
-
-**Important**: Many models (ByteDance Seedance, Runway, Luma, xAI Grok Imagine, Alibaba Wan 2.6, Kling 3.0, Ideogram V3, Z-Image Turbo, Suno) currently require kie.ai for access. Models with direct NodeTool API key support include OpenAI Sora 2 Pro, Google Veo 3.1, MiniMax Hailuo 2.3, and OpenAI GPT Image 2.
-
-This can be particularly beneficial for workflows using multiple SOTA models from different providers.
-
-For detailed provider configuration and usage, see the [Providers Guide](providers.md).
+For provider configuration and the capability matrix, see the [Providers Guide](providers.md).

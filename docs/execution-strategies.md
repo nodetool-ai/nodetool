@@ -19,7 +19,7 @@ the scheduler relies on.
 
 ## Workflow Execution: the actor model
 
-A workflow is a DAG. The runtime lives in `packages/kernel/`:
+A workflow is a DAG. The one allowed cycle is a loop that closes on a `Loop` node's feedback input. The runtime lives in `packages/kernel/`:
 
 - **`WorkflowRunner`** (`packages/kernel/src/runner.ts`) orchestrates one job.
 - **`NodeActor`** (`packages/kernel/src/actor.ts`) runs a single node.
@@ -32,7 +32,9 @@ one event loop via async actors that pass messages to each other's inboxes.
 
 ### What WorkflowRunner does
 
-`WorkflowRunner.run(request, graphData)` performs, in order:
+`WorkflowRunner.run(request, graphData)` first emits `job_update` with status
+`running`, so a run that fails validation still tells clients it started. Then
+it performs, in order:
 
 1. **Bypass rewrite** — `rewriteBypassedNodes` re-routes around nodes flagged
    `ui_properties.bypassed`.
@@ -41,8 +43,10 @@ one event loop via async actors that pass messages to each other's inboxes.
 3. **Correlation analysis** — `analyzeCorrelation` (mandatory) computes the
    static lineage scope of every node input/output. Issues abort the run with a
    `GraphValidationError` before any actor starts.
-4. **Graph + node validation** — structural validation plus an optional
-   per-node `validateNode` callback (e.g. missing required fields).
+4. **Graph + node validation** — structural validation, an optional per-node
+   `validateNode` callback, and a check that every workflow input node
+   (`nodetool.input.*`) has a value, either in the request params or in its own
+   `value` property.
 5. **Inbox initialization** — one `NodeInbox` per node, seeded with the count of
    incoming data edges per handle (and one `__control__` upstream per unique
    controller).
@@ -70,7 +74,7 @@ closes every inbox to unblock waiting actors.
 
 ### The four actor modes
 
-`NodeActor._runImpl` picks a mode from the node's hydrated behavior flags. (The
+`NodeActor` picks a mode from the node's hydrated behavior flags. (The
 runner requires a *hydrated* graph: the flags below must be set, or streaming
 nodes would silently run as one-shot `process()` calls.)
 
@@ -84,6 +88,17 @@ nodes would silently run as one-shot `process()` calls.)
 Buffered and streaming-output nodes share the same correlation-aware gather
 path (`_runCorrelated`); the difference is whether the executor exposes
 `process()` or `genProcess()`.
+
+Two cases are checked before those modes:
+
+- **Trigger entry.** When a delivered trigger event targets a node with
+  `is_trigger`, the node does not listen. It emits the event payload on its
+  declared outputs and completes. A run started from the editor's Run button
+  falls through to the normal modes.
+- **Loop.** `nodetool.control.Loop` runs in a kernel-owned loop mode. The kernel
+  handles iteration, feedback matching, and termination, and the node's
+  `process()` is never called. `max_iterations` defaults to 10 and is clamped to
+  1000. See [Workflow Loops](https://github.com/nodetool-ai/nodetool/blob/main/docs/workflow-loops.md).
 
 ### Correlation-aware scheduling (`_runCorrelated`)
 
@@ -141,10 +156,13 @@ user JavaScript in a QuickJS WebAssembly guest — see
 workflow, and runs the same way in the browser and on the server: no Docker, no
 subprocess, no host interpreter.
 
-The guest gets standard JavaScript plus a fixed set of bridges — `fetch()`,
-workspace file access, `getSecret()`, `sleep()`, `progress()`,
-`crypto`, `format`, and CSV/HTML `data` helpers. Dynamic inputs arrive on the
-`inputs` object; the keys of the returned object become the node's outputs.
+The guest gets standard JavaScript plus a fixed set of bridges: `fetch()`,
+`workspace`, `getSecret()`, `sleep()`, `progress()`, `crypto`, `format`, the
+`image`, `audio`, `video`, `media`, and `canvas` helpers, and `emit()` and
+`output()` for results. Dynamic inputs arrive on the `inputs` object. Libraries
+come from sandbox packs that the body imports. See
+[JavaScript Sandbox](javascript-sandbox.md) for the full surface, limits, and
+security model.
 
 
 ## Cancellation and shutdown

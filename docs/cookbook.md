@@ -5,7 +5,7 @@ description: "Creative workflow patterns worth automating: storyboards, timeline
 ---
 
 The storyboard, timeline, sketch, and script editors are where you make one
-thing and judge it. A workflow graph is where you make the same thing again —
+thing and judge it. A workflow graph is where you make the same thing again,
 for the next brief, the next SKU, the next language, the next aspect ratio.
 
 This cookbook covers the second half: creative work that repeats often enough
@@ -28,9 +28,9 @@ to be worth wiring up.
 
 ## Sections
 
-1. [**Core Concepts**]({{ '/cookbook/core-concepts' | relative_url }}) — typed edges, documents as values, fan-out versus chain, and how to check a graph before it spends.
-2. [**Creative Patterns**]({{ '/cookbook/patterns' | relative_url }}) — eight patterns, each with its graph, its nodes, and the shipped template closest to it.
-3. [**Templates Gallery**]({{ '/templates-gallery' | relative_url }}) — every shipped workflow, runnable from the Examples page.
+1. [**Core Concepts**]({{ '/cookbook/core-concepts' | relative_url }}): typed edges, documents as values, fan-out versus chain, and how to check a graph before it spends.
+2. [**Creative Patterns**]({{ '/cookbook/patterns' | relative_url }}): eight patterns, each with its graph, its nodes, and the shipped templates closest to it.
+3. [**Templates Gallery**]({{ '/templates-gallery' | relative_url }}): shipped workflows, runnable from the Examples page.
 
 ## Choose a pattern
 
@@ -39,22 +39,24 @@ to be worth wiring up.
 | Turn a brief into a rendered film, unattended | [1 · Brief to cut]({{ '/cookbook/patterns' | relative_url }}#pattern-1-brief-to-cut) | `Director`, `ShotBatch`, `ShotChain`, `RenderTimeline` |
 | Gate each shot on a cheap still first | [2 · Shot fan-out]({{ '/cookbook/patterns' | relative_url }}#pattern-2-shot-fan-out) | `ScreenplayShots`, `TextToImage`, `ImageToVideo` |
 | Hold one cast and look across a batch | [3 · Entities]({{ '/cookbook/patterns' | relative_url }}#pattern-3-entities) | `ApplyEntities`, `ListGenerator`, `TextToImage` |
-| Voice a script and caption the cut | [4 · Script to voiced cut]({{ '/cookbook/patterns' | relative_url }}#pattern-4-script-to-voiced-cut) | `VoiceScript`, `ScriptToTimeline`, `ScriptToSubtitles` |
+| Voice a script and caption the cut | [4 · Script to voiced cut]({{ '/cookbook/patterns' | relative_url }}#pattern-4-script-to-voiced-cut) | `WriteScript`, `VoiceScript`, `ScriptToTimeline`, `ScriptToSubtitles` |
 | Drive generation from a drawn composition | [5 · Sketch as control]({{ '/cookbook/patterns' | relative_url }}#pattern-5-sketch-as-control) | `RenderSketch`, `SketchLayers`, `ImageToImage` |
 | Get a gallery of variants from one brief | [6 · Variant fan-out]({{ '/cookbook/patterns' | relative_url }}#pattern-6-variant-fan-out) | `Agent`, `ListGenerator`, `TextToImage`, `Collect` |
-| Ship one cut in every required shape | [7 · Derivatives]({{ '/cookbook/patterns' | relative_url }}#pattern-7-derivatives) | `Transcript`, `RenderTimeline`, `Resize`, `AddSubtitles` |
+| Ship one cut in every required shape | [7 · Derivatives]({{ '/cookbook/patterns' | relative_url }}#pattern-7-derivatives) | `Transcript`, `RetargetTimeline`, `RenderTimeline`, `AddSubtitles` |
 | Handle naming, packaging, subtitle math | [8 · Code node]({{ '/cookbook/patterns' | relative_url }}#pattern-8-code-glue) | `Code` |
 
 ## Start from a template
 
-Every pattern names shipped workflows that already implement it. Open the
-**Examples** page in the app menu, load one, and edit it — templates are never
-modified in place.
+Each pattern names the shipped workflows closest to it. Open the **Examples**
+page in the app menu and load one. NodeTool opens a private copy, so the
+original is never modified.
 
-- **Direct a Short Film** — brief in, cut film out, no surface interaction.
-- **Directed Film to Timeline** — the same trip with a still per shot.
-- **Concept Art Iteration Board** — one brief, a gallery of directions.
-- **Podcast Repurposing Studio** — one recording, a whole content pack.
+- **Direct a Short Film**: brief in, cut film out, no surface interaction.
+- **Directed Film to Timeline**: the same trip with a still per shot.
+- **Concept Art Iteration Board**: one brief, a gallery of directions.
+- **Localized Explainer**: one brief, a voiced and captioned explainer per language.
+- **Three Ratios**: one approved cut, delivered at 9:16, 1:1, and 16:9.
+- **Podcast Repurposing Studio**: one recording, a whole content pack.
 
 ## Building a graph
 

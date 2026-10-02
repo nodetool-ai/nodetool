@@ -20,16 +20,16 @@ Workspaces have their own full-screen page at `/workspaces` (not a Settings tab)
 
 1. Open the app menu (click the logo at the top of the left rail).
 2. Choose **Workspaces**.
-3. Add one or more workspace directories on the Workspaces page.
+3. Click **Add Workspace** and pick a directory. The path must be absolute, exist, be a directory, and be writable.
+4. Use the star on a row to make it the default workspace. The default workspace has no remove button.
 
 ![Workspaces page](assets/screenshots/workspaces-page.png)
 
-After adding a workspace, NodeTool can browse files, list folders, and read/write files inside the configured root.
+After adding a workspace, NodeTool can browse files, list folders, and read/write files inside the configured root. A row marked **Inaccessible** points at a folder the server can no longer reach.
 
-Workspaces also appear in the **Workspace** tab of the bottom panel, which
-browses the current one as a file tree; on the composer chip, which names the
-workspace a chat run writes into; and under **Advanced** in the workflow form,
-which pins a workflow to one.
+Workspaces also appear in the **Workspace** view of the left panel, which
+browses the current one as a file tree, and under **Advanced** in the workflow
+form, which pins a workflow to one. Every user gets a default workspace the first time the list loads.
 
 ## What a cloud deployment allows
 
@@ -47,8 +47,11 @@ Workspace**, which would open a folder picker with nothing to browse.
 ## Where workspaces are used
 
 - **Agents and chat tools** for file operations
-- **Workflow nodes** in the `lib.os` namespace (file read/write, path, and filesystem operations)
-- **Project organization** when working with local assets and generated outputs
+- **The Code node**, whose `workspace.*` API (`read`, `write`, `list`, `stat`, `mkdir`, `remove`, `copy`, `move`) is confined to the workspace unless **Allow Host Filesystem** is on
+
+## API
+
+The tRPC `workspace` router has `list`, `create`, `update`, `delete`, `listFiles`, `readFile`, and `writeFile` (`packages/websocket/src/trpc/routers/workspace.ts`). Paths passed to the file procedures are workspace-relative. Absolute paths are refused and traversal answers `403`. Binary reads use `GET /api/workspaces/:id/download/:path` (`packages/websocket/src/workspace-api.ts`).
 
 ## Related docs
 

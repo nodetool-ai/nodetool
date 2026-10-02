@@ -5,13 +5,13 @@ title: "Image To Audio Story"
 
 ## Overview
 
-Transforms images into narrated stories by combining vision AI with language generation and speech synthesis.
+Turns an image into a narrated story. A vision agent writes the story and a text-to-speech model reads it aloud.
 
 **How it works:**
-1. **Image Input** - Your photo, artwork, or any visual
-2. **AI Vision + Story** - AI analyzes the image and writes a narrative
-3. **Text-to-Speech** - Converts the story to spoken audio
-4. **Audio Output** - Narration you can save or share
+1. **Image Input** (`nodetool.input.ImageInput`, named `image`) - Your photo, artwork, or any visual
+2. **Agent** (`nodetool.agents.Agent`) - Receives the image on its `image` input and writes a 150 to 250 word story with a title line. The template selects `gpt-5-mini`.
+3. **Text-to-Speech** (`nodetool.audio.TextToSpeech`) - Reads the agent's `text` output. The template selects OpenAI `tts-1` with the `alloy` voice.
+4. **Output** - The `narration` audio you can save or share
 
 **Prompt examples:**
 - "Describe this image as if you're a museum curator"
@@ -26,24 +26,26 @@ Transforms images into narrated stories by combining vision AI with language gen
 
 ## Tags
 
-start, multimodal, creative, audio, storytelling
+start, multimodal, example
 
 ## Workflow Diagram
 
 {% mermaid %}
 graph TD
-  image_1["Image"]
-  agent_77a9cf["Agent"]
-  texttospeech_ffb9de["TextToSpeech"]
-  image_1 --> agent_77a9cf
-  agent_77a9cf --> texttospeech_ffb9de
+  image["ImageInput (image)"]
+  agent["Agent"]
+  tts["TextToSpeech"]
+  narration["Output (narration)"]
+  image --> agent
+  agent -->|text| tts
+  tts -->|audio| narration
 {% endmermaid %}
 
 ## How to Use
 
-1. Open NodeTool and find "Image to Audio Story" template
+1. Open NodeTool, click **Examples** in the app menu, and load "Image To Audio Story"
 2. Load your image
-3. Customize the AI prompt in the Agent node (default: "Create a story inspired by this image")
+3. Edit the prompt in the Agent node (the default asks for a short story with a beginning, middle, and end)
 4. Choose your voice in the TextToSpeech node
 5. Press <kbd>Ctrl/⌘ + Enter</kbd> to run
 

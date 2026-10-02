@@ -19,10 +19,12 @@ NodeTool is organized into distinct packages, each responsible for a specific la
 
 | Package | Purpose |
 |---------|---------|
-| **@nodetool-ai/kernel** | DAG execution engine -- graph validation, node actors, inbox routing, edge counting |
-| **@nodetool-ai/runtime** | Processing context, cache adapters, storage adapters, asset handling |
-| **@nodetool-ai/protocol** | Shared message types (JobUpdate, NodeUpdate, EdgeUpdate, TaskUpdate) |
-| **@nodetool-ai/agents** | Agent executor, task planner, step executor, multi-mode agent, 20+ tool types |
+| **@nodetool-ai/kernel** | Workflow execution engine -- graph validation, correlation analysis, node actors, inbox routing, edge counting |
+| **@nodetool-ai/runtime** | `ProcessingContext`, model providers, workspace, Python bridge |
+| **@nodetool-ai/protocol** | Shared message types and schemas (`job_update`, `node_update`, `edge_update`, `task_update`, and the rest) |
+| **@nodetool-ai/node-sdk** | `BaseNode`, the `@prop` decorator, `NodeRegistry`, and the pack loader |
+| **@nodetool-ai/agents** | CodeAct sessions, task planner and executors, agent tools and capabilities, the JavaScript sandbox |
+| **@nodetool-ai/websocket** | HTTP, WebSocket, and MCP server |
 | **@nodetool-ai/dsl** | TypeScript DSL for building workflows programmatically with type-safe factories |
 | **@nodetool-ai/config** | Settings management and environment configuration |
 
@@ -30,17 +32,21 @@ NodeTool is organized into distinct packages, each responsible for a specific la
 
 | Package | Purpose |
 |---------|---------|
-| **@nodetool-ai/deploy** | Deployment automation for self-hosted, RunPod, and GCP Cloud Run |
-| **@nodetool-ai/storage** | Asset storage backends (local filesystem, S3, Supabase) |
+| **@nodetool-ai/deploy** | Docker image builds and self-hosted server provisioning over SSH |
+| **@nodetool-ai/storage** | Asset storage backends (local filesystem, S3, Supabase, in-memory) |
 | **@nodetool-ai/vectorstore** | Vector database integration (SQLite-vec, Pinecone, Supabase pgvector) for RAG workflows |
 | **@nodetool-ai/cli** | Command-line interface for workflow execution, deployment, and package management |
-| **@nodetool-ai/base-nodes** | Core node implementations and dynamic node generation |
+| **@nodetool-ai/base-nodes** | Compatibility shell that re-exports the domain node packages and registers the built-in packs |
+
+See [Packages](packages.md) for how node packages are structured and registered.
 
 ### Frontend
 
 | Package | Purpose |
 |---------|---------|
 | **web** | React application -- workflow editor, asset explorer, model manager, global chat |
+| **electron** | Desktop app that runs the backend and the web UI |
+| **mobile** | React Native / Expo app |
 
 ---
 
@@ -58,7 +64,7 @@ The `WorkflowRunner` is the DAG orchestrator that executes workflow graphs. It h
 
 ### NodeActor
 
-Each node in a workflow runs as a `NodeActor` with one of four execution modes:
+Each node in a workflow runs as a `NodeActor` with one of four execution modes. Two special cases come first: a trigger node started by a trigger event emits the event payload and completes, and `nodetool.control.Loop` runs in a kernel-owned loop mode. See [Execution Strategies](execution-strategies.md).
 
 | Mode | Behavior | When to Use |
 |------|----------|-------------|
@@ -92,8 +98,9 @@ See [correlation-design.md](https://github.com/nodetool-ai/nodetool/blob/main/do
 The `ProcessingContext` provides the runtime environment for node execution:
 
 - **Message queue** -- Collects `ProcessingMessage` events for streaming to clients
-- **Cache interface** -- Pluggable cache adapters (memory, disk) for intermediate results
+- **Cache interface** -- A `CacheAdapter` (`get`, `set`, `has`, `delete`) for intermediate results. The default is the in-memory `MemoryCache`.
 - **Asset storage** -- `StorageAdapter` interface supporting local filesystem, S3, or Supabase
+- **Workspace** -- `context.workspace` reads and writes the run's files without branching on local or cloud storage
 - **Asset output modes** -- `native` (the default), `data_uri`, `temp_url`, `storage_url`, `workspace`, `raw`
 - **User context** -- Authentication tokens, user data, workspace information
 
@@ -104,7 +111,9 @@ The `ProcessingContext` provides the runtime environment for node execution:
 Workflow execution uses the actor model: `WorkflowRunner` validates the graph,
 spawns one `NodeActor` per node, and routes values between actors over inboxes.
 Each actor runs in one of the four modes described above (Buffered, Streaming
-input, Streaming output, Controlled). There is no separate
+input, Streaming output, Controlled). The editor runs workflows over the
+WebSocket with `run_job`. `POST /api/workflows/{id}/run` is the HTTP route for
+agents and the CLI. There is no separate
 `JobExecutionManager` class or pluggable threaded/subprocess/docker "execution
 strategy" — actors run in-process and stream their results out.
 
@@ -116,14 +125,14 @@ sequenceDiagram
     participant Actor as NodeActor (per node)
     participant Msg as Messaging/WS
 
-    Client->>API: POST /api/workflows/{id}/run
+    Client->>API: run_job (WebSocket) or POST /api/workflows/{id}/run
     API->>Runner: Validate graph + spawn actors
     Runner->>Actor: Dispatch inputs, run per execution mode
     Actor->>Msg: Emit streaming events (node/edge updates)
     Msg-->>Client: token/output events
-    Client-->>API: reconnect with thread/job id
+    Client-->>API: reconnect_job with the job id
     API-->>Msg: resume stream
-    Client->>API: cancel_job over the WebSocket (or jobs.cancel)
+    Client->>API: cancel_job over the WebSocket (or the jobs.cancel tRPC procedure)
     API->>Runner: cancel run
     Runner-->>Actor: teardown and cleanup
     Runner-->>Msg: end event
@@ -132,75 +141,64 @@ sequenceDiagram
 
 ### Message Types
 
-The protocol layer defines several message types for tracking execution state:
+The protocol layer (`packages/protocol/src/messages.ts`) defines the messages a run emits. The main ones:
 
 | Message | Purpose |
 |---------|---------|
-| **JobUpdate** | Overall job status (queued, running, completed, failed, cancelled) |
-| **NodeUpdate** | Per-node progress (started, output produced, completed, errored) |
-| **EdgeUpdate** | Data flowing through connections between nodes |
-| **TaskUpdate** | Agent task lifecycle (created, step started/completed/failed, task completed) |
+| **`job_update`** | Overall job status: `queued` (with `queue_position`), `running`, `completed`, `failed`, `cancelled` |
+| **`node_update`** | Per-node status: `running`, `completed`, `error`, `warning`, with the node's result or error |
+| **`node_progress`** | Progress inside a running node |
+| **`edge_update`** | Data flowing through a connection, with a message counter |
+| **`output_update`** | A value produced by an output node |
+| **`log_update`** | Log lines from a node |
+| **`task_update`** | Agent task lifecycle: `task_planned`, `task_created`, `step_started`, `step_completed`, `step_failed`, `task_completed`, `task_failed`, and others |
+| **`tool_call_update`** / **`tool_result_update`** | Agent tool calls and their results |
+
+The file also defines `planning_update`, `chunk`, `notification`, `error`, and more. Each message type has a Zod schema.
 
 ---
 
 ## Agent System
 
-NodeTool includes a full agent execution framework for autonomous task completion:
+One loop drives every agent. A host (a chat turn, `nodetool agent run`, an MCP client) builds a **CodeAct session** over a gated toolbelt and hands it the user's message. The model acts by writing JavaScript that runs in the QuickJS [sandbox](javascript-sandbox.md). Decomposition is something the model can ask for, not a stage the host imposes.
 
 ### Components
 
-- **Agent** -- Top-level entry point. Takes an objective (+ optional pre-built task) and orchestrates planning + execution.
-- **TaskPlanner** -- Breaks complex goals into ordered subtasks with dependencies
-- **TaskExecutor** -- Manages the execution of a complete task plan
-- **StepExecutor** -- Runs individual steps within a task, including tool calls
-- **CompilerAgent** -- Final synthesis pass that reads accumulated memory and produces the deliverable
+- **CodeActExecutor** -- The action loop: one step or one turn of sandboxed JavaScript over the toolbelt
+- **TaskPlanner** -- Breaks an objective into tasks with dependencies when the model calls `create_plan`
+- **ParallelTaskExecutor** -- Runs a plan's independent tasks concurrently when the model calls `execute_plan`
+- **TaskExecutor** -- Walks one task's step DAG in dependency order
+- **StepExecutor** -- Runs individual steps, each through a CodeActExecutor
+- **SubAgentTool** -- `run_subtask`, `start_subtask`, and `run_search` start a child loop under the parent's budget
 
-### Available Tools (20+)
+Each task's result goes to `context.memory` under `task:<id>`. There is no synthesis stage: the session's next turn reads those results and writes the answer. See [Agent System](https://github.com/nodetool-ai/nodetool/blob/main/docs/AGENTS.md) for the full design.
 
-Agents can use a wide range of tools during execution:
+### Tools
 
-| Category | Tools |
-|----------|-------|
-| **Web** | Browser, HTTP requests, web search, Google APIs |
-| **Files** | Filesystem operations, workspace management, asset tools |
-| **Code** | JavaScript sandbox execution, code analysis |
-| **Data** | Calculator, math operations, vector DB queries |
-| **Documents** | PDF processing, email integration |
-| **AI** | MCP (Model Context Protocol) tools for external service integration |
+Tools are grouped into capability modules under `packages/agents/src/capabilities/`. Examples: `web`, `browser`, `files`, `assets`, `workflows`, `jobs`, `models`, `collections`, `documents`, `email`, `google`, `memory`, `shared`, `apps`, and `timelines`. The model calls them as imports from `@nodetool-ai/sandbox-nodetool/<namespace>`. External MCP servers add more through the same belt.
 
 ---
 
 ## Providers
 
-NodeTool supports 20+ AI model providers through a unified provider interface:
+Model providers share one interface (`BaseProvider` in `packages/runtime/src/providers/`). A provider handles authentication, model listing, and inference calls. Which modalities each provider offers (text, image, video, speech, transcription, embeddings, 3D) is in the capability matrix on the [Providers](providers.md) page.
 
-| Provider | Types |
-|----------|-------|
-| **OpenAI** | Text, image, audio, embeddings |
-| **Anthropic** | Text (Claude models) |
-| **Google Gemini** | Text, image, video, audio |
-| **Ollama** | Local LLMs |
-| **LM Studio** | Local LLMs |
-| **Hugging Face** | All model types |
-| **Replicate** | Image, video, audio |
-| **FAL** | Image generation |
-| **Groq** | Fast text inference |
-| **Mistral** | Text generation |
-| **Together** | Text, embeddings |
-| **Cerebras** | Fast text inference |
-| **Alibaba Cloud** | Text (Qwen models) |
-| **GMI Cloud** | Open-weight text inference |
-| **OpenRouter** | Multi-provider routing |
-| **Requesty** | Multi-provider routing |
-| **vLLM** | Self-hosted inference |
+| Kind | Providers |
+|------|-----------|
+| **Cloud text and multimodal** | OpenAI, Anthropic, Google Gemini, xAI, DeepSeek, Mistral, Groq, Cerebras, Cohere, Alibaba Cloud, GMI Cloud, Moonshot, MiniMax, Together |
+| **Media and model hosts** | FAL, Replicate, Hugging Face, Kie.ai, AtlasCloud, ElevenLabs, Topaz, Reve, Higgsfield |
+| **Routers** | OpenRouter, Requesty |
+| **Local and self-hosted** | Ollama, LM Studio, vLLM, llama.cpp, and Python-bridge providers such as MLX |
+| **Agent and OAuth backends** | Claude Agent SDK, Codex |
+| **Custom** | OpenAI-compatible endpoints you register |
 
-Each provider implements a base interface that handles authentication, model listing, and inference calls. A built-in cost calculator tracks token usage across providers.
+A built-in cost calculator tracks usage across providers. Credentials resolve from the secret store first, then from environment variables.
 
 ---
 
 ## Storage Architecture
 
-NodeTool uses a pluggable storage system with three backends:
+NodeTool uses a pluggable storage system with three backends. An in-memory adapter also exists for tests:
 
 | Backend | Use Case | Pros | Cons |
 |---------|----------|------|------|
@@ -208,16 +206,16 @@ NodeTool uses a pluggable storage system with three backends:
 | **S3-compatible** | Production (AWS, MinIO) | Scalable, durable, multi-region | Requires cloud account, network latency |
 | **Supabase Storage** | Supabase deployments | Integrated auth + storage, managed | Requires Supabase project |
 
-The storage adapter is selected automatically based on environment configuration. Assets are stored in two buckets: `assets` (permanent) and `assets-temp` (intermediate results, auto-cleaned). See [Storage](storage.md) for configuration details.
+`NODETOOL_STORAGE_BACKEND` selects the backend (`file`, `s3`, or `supabase`, default `file`). Assets and temp files use the same backend with separate buckets: `ASSET_BUCKET` for permanent assets and `TEMP_BUCKET` for intermediate results. See [Storage](storage.md) for configuration details.
 
 ---
 
 ## Python Worker Bridge
 
-Python nodes and Python-only local providers run in a separate worker process. The TS backend spawns the worker with `python -m nodetool.worker --stdio` and communicates over a local stdio protocol:
+Python nodes and Python-only local providers run in a separate worker process. By default the TS backend spawns the worker with `python -m nodetool.worker --stdio` and communicates over a local stdio protocol. When `NODETOOL_WORKER_URL` is set, it connects to a running worker over WebSocket instead:
 
 - binary-safe MessagePack payloads
-- 4-byte big-endian length framing
+- 4-byte big-endian length framing on stdio, one frame per message on WebSocket
 - in-band discovery, execution, status, progress, chunk, and error messages
 - structured `load_errors` so import failures are visible without parsing logs
 
@@ -226,7 +224,7 @@ See [Python Bridge Protocol](python-bridge-protocol.md) for the full wire protoc
 ## Notes
 
 - All endpoints and examples use `http://127.0.0.1:7777` by default; update host/port when deploying.
-- Messaging emits both JSON and optional MessagePack; see [Chat Server](chat-server.md) for protocol details.
+- The WebSocket uses MessagePack by default and can switch to JSON. See [Chat Server](chat-server.md) for protocol details.
 - Execution strategies are detailed in [Execution Strategies](execution-strategies.md).
 
 ## Related

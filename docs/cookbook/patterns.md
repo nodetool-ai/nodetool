@@ -34,8 +34,10 @@ graph LR
 
 `ShotChain` seeds each shot from the previous clip's last frame, which is what
 holds continuity across a cut nobody is watching. Shot 1 has nothing to seed
-from, so it runs text-to-video while the rest run image-to-video — on providers
-that publish those as separate model ids, fill in **Continuation Model** too.
+from unless its screenplay shot carries a keyframe, so it runs text-to-video
+while the rest run image-to-video. On providers that publish those as separate
+model ids (kie does), fill in **Continuation Model** too. Leave it empty to
+reuse **Model**.
 
 **Nodes**: `nodetool.creative.Director`, `nodetool.creative.ShotBatch`,
 `nodetool.creative.ShotChain`, `nodetool.timeline.AddClips`,
@@ -54,8 +56,8 @@ ______________________________________________________________________
 ### Pattern 2 · Shot fan-out through stills
 
 The same trip from brief to cut, but with a keyframe in the middle:
-`ScreenplayShots` streams one prompt per shot, each prompt becomes a still, and
-each still is animated.
+`ScreenplayShots` streams one prompt per shot (`shot_prompt`), each prompt
+becomes a still, and each still is animated.
 
 <video controls preload="metadata" poster="{{ '/assets/cookbook/storyboard-to-video.jpg' | relative_url }}">
   <source src="{{ '/assets/cookbook/storyboard-to-video.mp4' | relative_url }}" type="video/mp4">
@@ -76,9 +78,9 @@ graph LR
 
 A still costs cents and a clip costs dollars, so the keyframe is both a control
 point and a cheap thing to inspect after an unattended run. Anchoring every
-keyframe to one style frame — generate it first, then run the shot stills
-through `ImageToImage` against it — is what keeps thirty shots looking like one
-film.
+keyframe to one style frame keeps thirty shots looking like one film. Generate
+the style frame first, then run the shot stills through `ImageToImage` against
+it.
 
 **Nodes**: `nodetool.creative.ScreenplayShots`, `nodetool.image.TextToImage`,
 `nodetool.image.ImageToImage`, `nodetool.video.ImageToVideo`,
@@ -87,8 +89,9 @@ film.
 **Automate it when** the shot count is large enough that clicking through the
 board is the slow part.
 
-**Templates**: *Directed Film to Timeline*, *Script to Screen*,
-*Movie Trailer Generator*
+**Templates**: *Directed Film to Timeline* (ends in `AddClips` and
+`RenderTimeline`), *Movie Trailer Generator* (ends in `Concat`), *Script to
+Screen* (an `Agent` writes the direction document instead of `Director`)
 
 ______________________________________________________________________
 
@@ -104,26 +107,30 @@ text is what holds a face or a palette steady across a batch.
 graph LR
   brief["StringInput (Brief)"]
   prompts["ListGenerator (one prompt per asset)"]
+  cast["Entity (constant)"]
   apply["ApplyEntities"]
   image["TextToImage"]
   collect["Collect"]
   out["Output"]
   brief --> prompts --> apply
+  cast -->|entities| apply
   apply -->|prompt| image
-  apply -->|reference_images| image
   image --> collect --> out
 {% endmermaid %}
 
-`TextToImage`, `ImageToImage`, and `ImageToVideo` take an **entities** property
-directly — reach for `nodetool.creative.ApplyEntities` when something else needs
-the seasoned text, since it returns the composed prompt and the reference images
-as separate outputs.
+`TextToImage`, `ImageToImage`, `TextToVideo`, and `ImageToVideo` take an
+**entities** property directly, so the graph above also works with the entities
+set on `TextToImage` and no `ApplyEntities`. `ImageToImage` also appends each
+entity's reference images to its input images. Reach for
+`nodetool.creative.ApplyEntities` when something else needs the seasoned text.
+It returns the composed `prompt` and the `reference_images` as separate outputs,
+and an empty `text` applies every entity.
 
-**Nodes**: `nodetool.creative.ApplyEntities`, `nodetool.generators.ListGenerator`,
-`nodetool.image.TextToImage`
+**Nodes**: `nodetool.constant.Entity`, `nodetool.creative.ApplyEntities`,
+`nodetool.generators.ListGenerator`, `nodetool.image.TextToImage`
 
 **Automate it when** a campaign needs the same cast in thirty frames.
-**Do it by hand** for a single hero image — the picker in the Prompt node is one
+**Do it by hand** for a single hero image. The picker in the Prompt node is one
 `@` away.
 
 ______________________________________________________________________
@@ -132,13 +139,14 @@ ______________________________________________________________________
 
 ### Pattern 4 · Script to voiced cut and captions
 
-A script is a document with cast voices attached to its lines. `VoiceScript`
-synthesizes every line that is draft or stale, using each line's own voice, and
-saves the takes back onto the script.
+A script is a document with cast voices attached to its lines. `WriteScript`
+writes one from a brief, or a `Script` constant loads one you already have.
+`VoiceScript` synthesizes every line that is draft or stale, using each line's
+own voice, and saves the takes back onto the script.
 
 {% mermaid %}
 graph LR
-  script["Script (constant)"]
+  script["Script (constant) or WriteScript"]
   voice["VoiceScript"]
   tl["ScriptToTimeline"]
   render["RenderTimeline"]
@@ -154,15 +162,23 @@ changed lines only. That is what makes the whole chain worth wiring: the script
 is the source of truth, and the cut plus the subtitle file are both derived from
 it.
 
-**Nodes**: `nodetool.constant.Script`, `nodetool.script.VoiceScript`,
-`nodetool.script.ScriptToTimeline`, `nodetool.script.ScriptToSubtitles`,
-`nodetool.timeline.RenderTimeline`
+`ScriptToTimeline` raises an error when no line has a take, so voice first.
+`ScriptToSubtitles` writes SRT or WebVTT (`format`) with one cue per line or per
+word (`granularity`), from the takes' word timings.
+
+**Nodes**: `nodetool.constant.Script`, `nodetool.script.WriteScript`,
+`nodetool.script.VoiceScript`, `nodetool.script.ScriptToTimeline`,
+`nodetool.script.ScriptToSubtitles`, `nodetool.timeline.RenderTimeline`
 
 **Automate it when** copy changes often, or when the same script ships in
-several languages — put an `Agent` translation step in front of the voicing and
-you have a localised master per language.
+several languages. `WriteScript` takes a `language`, so a list of languages in
+front of it gives one voiced master per language. `FillScript` fills a template
+script's {% raw %}`{{key}}`{% endraw %} placeholders from a value bag when the copy is fixed and the
+values change.
 
-**Templates**: *Narrate a Script*, *Localise a Script and Revoice It*
+**Template**: *Localized Explainer* implements this chain. *Narrate a Script*
+and *Localise a Script and Revoice It* are string-to-speech chains without a
+script document.
 
 ______________________________________________________________________
 
@@ -171,8 +187,8 @@ ______________________________________________________________________
 ### Pattern 5 · Sketch as the control input
 
 A sketch document carries layers and a mask. `RenderSketch` flattens it to an
-image and returns that mask alongside — the composition and the region to
-change, in one node.
+image and returns the mask alongside when the sketch has a visible mask layer.
+That gives you the composition and the region to change in one node.
 
 <video controls preload="metadata" poster="{{ '/assets/cookbook/style-transfer.jpg' | relative_url }}">
   <source src="{{ '/assets/cookbook/style-transfer.mp4' | relative_url }}" type="video/mp4">
@@ -196,9 +212,9 @@ That is the whole-frame version. For a masked edit, send the same node's
 the white areas and leaves the rest alone — the mask is painted once and every
 variant reuses it.
 
-`SketchLayers` is the other half: it hands you each visible layer as its own
-image with its name, so foreground and background can go through different
-pipelines and be composited back together with `Compositor`.
+`SketchLayers` is the other half. It returns `layers` and `names` for each
+visible layer, so foreground and background can go through different pipelines
+and be composited back together with `Compositor`.
 
 **Nodes**: `nodetool.constant.Sketch`, `nodetool.sketch.RenderSketch`,
 `nodetool.sketch.SketchLayers`, `nodetool.image.ImageToImage`,
@@ -227,22 +243,25 @@ graph LR
   brief["StringInput (Brief)"]
   count["IntegerInput (Count)"]
   direction["Agent (Art Director)"]
+  ask["Prompt (direction + count)"]
   prompts["ListGenerator"]
   image["TextToImage"]
   preview["Preview"]
   collect["Collect"]
   out["Output"]
-  brief --> direction --> prompts --> image --> collect --> out
-  count --> prompts
+  brief --> direction --> ask --> prompts --> image --> collect --> out
+  count --> ask
   prompts --> preview
 {% endmermaid %}
 
-`ListGenerator` streams, so the first prompts render while the last are still
-being written, and a `Preview` on the prompt stream shows you what is coming
-before the images arrive.
+`ListGenerator` has no count property. State the count in the prompt that feeds
+it, which is why a `Prompt` node sits in front. It streams its `item` output, so
+the first prompts render while the last are still being written, and a `Preview`
+on the prompt stream shows you what is coming before the images arrive.
 
-**Nodes**: `nodetool.agents.Agent`, `nodetool.generators.ListGenerator`,
-`nodetool.image.TextToImage`, `nodetool.control.Collect`
+**Nodes**: `nodetool.agents.Agent`, `nodetool.text.Prompt`,
+`nodetool.generators.ListGenerator`, `nodetool.image.TextToImage`,
+`nodetool.control.Collect`
 
 **Automate it when** you want variety to pick from — concepts, thumbnails,
 poster directions, a social kit.
@@ -256,26 +275,33 @@ ______________________________________________________________________
 
 ### Pattern 7 · Derivatives from a finished cut
 
-One master, many deliverables. `Transcript` reads the timeline's own text, so
-titles, show notes, and social copy come from the cut rather than from a second
-transcription pass.
+One master, many deliverables. `Transcript` reads the timeline's own transcript
+lines, so titles, show notes, and social copy come from the cut rather than from
+a second transcription pass. `RetargetTimeline` derives a new timeline on another
+aspect ratio from the approved cut and keeps every trim and placement.
 
 {% mermaid %}
 graph LR
   tl["Timeline (constant)"]
   transcript["Transcript"]
   agent["Agent (titles, notes, posts)"]
+  retarget["RetargetTimeline (9:16)"]
   render["RenderTimeline"]
-  vertical["Resize (9:16)"]
   audio["ExtractAudio"]
   asr["Transcribe (segments)"]
   subs["AddSubtitles"]
   copy["Output (Copy)"]
   post["Output (Vertical cut)"]
   tl --> transcript --> agent --> copy
-  tl --> render --> vertical --> subs --> post
+  tl --> retarget --> render --> subs --> post
   render --> audio --> asr --> subs
 {% endmermaid %}
+
+`RetargetTimeline` takes `aspect_ratio` (the short edge is 1080 px) and `fit`.
+`cover` fills the frame and crops, and its `cropped` output lists the clips it
+cut into. `contain` letterboxes. The source timeline is never written.
+`nodetool.video.Resize` is different: it scales to the exact width and height
+you give it, so a 16:9 clip resized to 1080 by 1920 is squashed, not cropped.
 
 Burned-in captions need timings, not prose: `AddSubtitles` takes
 `list[audio_chunk]`, which `openai.audio.Transcribe` returns as `segments` or
@@ -283,15 +309,17 @@ Burned-in captions need timings, not prose: `AddSubtitles` takes
 burn.
 
 **Nodes**: `nodetool.constant.Timeline`, `nodetool.timeline.Transcript`,
-`nodetool.timeline.RenderTimeline`, `nodetool.video.Resize`,
+`nodetool.timeline.RetargetTimeline`, `nodetool.timeline.RenderTimeline`,
 `nodetool.video.ExtractAudio`, `openai.audio.Transcribe`,
 `nodetool.video.AddSubtitles`, `nodetool.agents.Agent`
 
 **Automate it when** every cut ships in more than one shape. Re-running the
 graph after an edit rebuilds every derivative from the same master.
 
-**Templates**: *Cut a Landscape Clip for Vertical*,
-*Podcast Repurposing Studio*, *Subtitle Text from a Recording*
+**Templates**: *Three Ratios* (one cut to 9:16, 1:1, and 16:9),
+*Podcast Repurposing Studio* (one recording to titles, notes, a newsletter,
+posts, and quote cards), *Subtitle Text from a Recording*. *Cut a Landscape Clip
+for Vertical* uses `Resize` on a clip, so it stretches the frame.
 
 ______________________________________________________________________
 
@@ -324,7 +352,7 @@ cover the file formats a delivery step usually needs —
 **Automate it when** the step has one right answer: a slug, a manifest, a
 per-shot cost table, a subtitle file assembled from timings.
 
-**Template**: *Name a File from Its Narration*
+**Template**: *Name a File from Its Narration* (one `Code` node truncates the transcript, a second slugifies it)
 
 ______________________________________________________________________
 

@@ -18,7 +18,7 @@ See [Key Concepts → How everything fits together](key-concepts.md#how-everythi
 
 ## Asset Explorer
 
-The **Asset Explorer** is the central hub for managing your files. Open it from the left sidebar.
+The **Asset Explorer** is the central hub for managing your files. Open **Assets** from the app menu (it opens as a tab, at `/assets`), or use the Assets view in the left panel.
 
 ![Asset Explorer](assets/screenshots/asset-explorer.png)
 
@@ -27,25 +27,37 @@ The **Asset Explorer** is the central hub for managing your files. Open it from 
 - **Grid view** -- Thumbnails with previews, best for visual assets like images and videos
 - **List view** -- Compact rows with metadata columns, best for large libraries
 
-Switch between views using the toggle in the toolbar.
+Switch between views with the toggle in the toolbar.
+
+### Toolbar
+
+- **Select all** and **Deselect**
+- **Sort assets** by Name, Date, or Size
+- **Filter by file size**: All, Empty, < 1 MB, 1-10 MB, 10-100 MB, > 100 MB
+- **Type filter**: All, Images, Videos, Audio, 3D Models, Text, Documents, Other
+- **Item Size** slider for the grid
+- **Create folder** and **Upload files**
+
+The page header shows the total size, folder count, and file count of the current folder.
 
 ### Navigation
 
 - **Folder tree** -- Browse your directory hierarchy in the left panel
-- **Search** -- Full-text search across file names, tags, and metadata
-- **Infinite scrolling** -- Large libraries load progressively for performance
+- **Search** -- Matches file names only, with a substring match. The input searches the current folder (**Search current folder...**). The toggle next to it switches to **Search all assets...**, which searches every folder and shows each result's folder path. Global search starts at two characters.
 
 ### Uploading Files
 
 - **Drag and drop** files directly into the Asset Explorer
-- Use the **Upload** button in the toolbar
-- Drop files onto a workflow node to create an input node automatically
+- Use the **Upload files** button in the toolbar
+- Drop files from your computer onto the workflow canvas. NodeTool uploads them and adds a matching constant node.
+
+The server rejects a single upload above `NODETOOL_MAX_UPLOAD_BYTES` (1 GiB by default).
 
 ### Working with Assets in Workflows
 
 ![Drag Asset to Canvas](assets/screenshots/screenshot-placeholder.svg)
 
-Drag any asset from the Asset Explorer directly into the workflow canvas. NodeTool automatically creates the appropriate input node based on the file type (image input, audio input, etc.).
+Drag any asset from the Asset Explorer onto the workflow canvas. NodeTool adds a constant node for its type, such as `nodetool.constant.Image`, `Video`, `Audio`, `Document`, or `Model3D`. Dragging several selected assets adds one node each. An unsupported type shows an "Unsupported file type" error.
 
 ---
 
@@ -57,14 +69,14 @@ NodeTool includes specialized viewers for common file types:
 
 | File Type | Viewer Features |
 |-----------|----------------|
-| **Images** | Zoom, pan, pixel inspection |
-| **Audio** | Waveform display, playback controls, scrubbing |
-| **Video** | Frame-by-frame playback, timeline scrubbing |
-| **PDF** | Page navigation, text selection, zoom |
-| **Text** | Syntax highlighting, line numbers, copy excerpts |
-| **3D Models** | Interactive 3D preview with rotation and zoom |
+| **Images** | Zoom up to 16x, pan |
+| **Audio** | Waveform with zoom and minimap |
+| **Video** | Browser video controls |
+| **PDF** | Previous and next page, zoom in, zoom out, reset zoom |
+| **Text** | Markdown rendering, code, CSV, and plain text |
+| **3D Models** | Orbit and zoom, grid, axes, wireframe toggle, fullscreen |
 
-Open any asset in its viewer by double-clicking it in the Asset Explorer. Use the toolbar within the viewer to zoom, scrub, or copy content.
+Open any asset in its viewer by double-clicking it in the Asset Explorer.
 
 ---
 
@@ -72,36 +84,26 @@ Open any asset in its viewer by double-clicking it in the Asset Explorer. Use th
 
 ![Collections Explorer](assets/screenshots/collections-explorer.png)
 
-Collections group related assets for use in RAG (Retrieval-Augmented Generation) workflows and organized project management.
-
-### Creating Collections
-
-1. Open **Collections** from the app menu
-2. Click **Create Collection**, give it a name, and choose an embedding model
-3. Drag files from your computer onto the collection tile to index them
-
-### Using Collections in Workflows
-
-Collections integrate with document indexing and vector search nodes. When you connect a collection to an indexing node, all assets in the collection are processed and made searchable.
+Collections hold text chunks for semantic search in RAG (Retrieval-Augmented Generation) workflows. They are separate from the asset library: a collection stores indexed text, not asset files. Open **Collections** from the app menu to create one and drop text files onto it. See [Collections](collections.md) for the upload route, its limits, and how workflows use collections.
 
 ---
 
-## Metadata and Tags
+## Metadata
 
-- Assets automatically track metadata: file size, type, dimensions (for images/video), duration (for audio/video)
-- **Tag files** to make searching easier as projects grow
-- Tags are searchable from the Asset Explorer search bar
+- Assets track `size`, `content_type`, and `duration` (audio and video), plus a free-form `metadata` object.
+- On the desktop app, an imported video whose longer side is at least `NODETOOL_VIDEO_PROXY_MIN_SIZE_PX` pixels (default 1920) gets a smaller preview proxy built in the background so timeline scrubbing seeks fast. Export reads the original.
+- Files at or above `NODETOOL_EXTERNAL_ASSET_THRESHOLD_BYTES` (default 1 GiB) stay at their original path and the asset references them in place. See [External assets](storage.md#external-assets).
 
 ---
 
 ## Document Indexing
 
-Text-based assets (PDFs, text files, documents) can be indexed for vector search:
+Text-based files can be indexed for vector search:
 
-1. Add documents to a **Collection**
-2. Connect the collection to an **Index** node in your workflow
-3. Use **Vector Search** nodes to query the indexed documents
-4. Combine with language models for Retrieval-Augmented Generation (RAG)
+1. Extract text from binary formats first, for example with `lib.pdf.ExtractText`
+2. Index the text into a **Collection** with an index node, or drop text files onto the collection tile
+3. Use query nodes (`vector.QueryText`, `vector.HybridSearch`) to search the indexed text
+4. Combine with language models for RAG
 
 See [Indexing](indexing.md) for detailed setup instructions.
 
@@ -109,7 +111,7 @@ See [Indexing](indexing.md) for detailed setup instructions.
 
 ## Storage
 
-Assets are stored locally under the NodeTool data directory (`~/.local/share/nodetool/assets` on macOS/Linux; `%APPDATA%\nodetool\assets` on Windows) by default. You keep full control of your data.
+Assets are stored locally under the NodeTool data directory by default: `$XDG_DATA_HOME/nodetool/assets`, falling back to `~/.local/share/nodetool/assets` on macOS and Linux, and `%APPDATA%\nodetool\assets` on Windows. Set `ASSET_FOLDER` or `STORAGE_PATH` to move it.
 
 For deployed instances, assets can be stored in:
 - **S3-compatible storage** -- AWS S3, MinIO, or compatible services

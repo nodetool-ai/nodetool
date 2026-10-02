@@ -15,22 +15,29 @@ A tour of the interface. Same views on desktop and in the browser.
 | View | What it is | Docs |
 |---|---|---|
 | **Workspace** `/workspace` | Where the app opens: your tabs, or the new-project surface when you have none | [Getting Started](getting-started.md) |
-| **Projects** — Projects panel | Documents grouped by the job they belong to, with their own agent | [Projects](#projects) |
+| **Projects** — rail button | Documents grouped by the job they belong to, with their own agent | [Projects](#projects) |
 | **Workflow Editor** — workspace tab | The node canvas, with panels on every edge | [Workflow Editor](workflow-editor.md) · [Panels](editor-panels.md) |
 | **Chain Editor** `/chain/:workflowId?` | Linear card pipeline instead of a graph | [Chain Editor](chain-editor.md) |
 | **Chat** — Chats panel | Threads open as workspace tabs; the agent edits what you have open | [Chat](global-chat.md) |
-| **Mini-Apps** — Apps panel | A form over one or more workflows | [Mini Apps](mini-apps.md) |
+| **Mini-Apps** — Documents panel | A form over one or more workflows | [Mini Apps](mini-apps.md) |
 | **Assets** `/assets` | Every file your workflows touch | [Assets](asset-management.md) · [Sketch Editor](sketch-editor.md) |
 | **Video Editor** `/timeline/:sequenceId` | Multi-track timeline; clips can be live workflow outputs | [Video Editor](video-editor.md) |
 | **Collections** `/collections` | Indexed documents for RAG | [Collections](collections.md) · [Indexing](indexing.md) |
-| **Examples** `/examples` | Ready-to-run workflows by tag | [Templates Gallery](templates-gallery.md) |
-| **Models** `/models` | Find, install, and manage local and cloud models | [Models Manager](models-manager.md) |
+| **Examples** — workspace tab | Ready-to-run workflows, apps, storyboards, timelines, and games | [Templates Gallery](templates-gallery.md) |
+| **Models** `/models` and **Model Manager** tab | Find, install, and manage local and cloud models | [Models Manager](models-manager.md) |
 | **Settings** — workspace tab | API keys, folders, secrets, remote | [Configuration](configuration.md) · [Providers](models-and-providers.md) |
 
-The logo at the top of the left rail opens the app menu: **Tutorials**,
-**Examples**, **Costs**, **Model Manager**, **Assets**, **Collections**,
-**Workspaces**, **Settings**, **Help**, and **Downloads**. Everything but Help
-and Downloads opens as a workspace tab.
+The logo at the top of the left rail opens the app menu: **Settings**, **Help**,
+and **Downloads**. Settings opens as a workspace tab.
+
+The other app pages are in the **More** panel on the left rail: **Tutorials**,
+**Examples**, **Costs**, **Model Manager**, **Package Manager** (development
+builds only), **Assets**, **Collections**, **Workspaces**, and **Memory**. Each
+opens as a workspace tab. **More** also holds **Favorite Nodes**, **Recent
+Nodes**, **Workflow Settings**, **Skills**, and **Workspace** files.
+
+The left rail's direct icons are **Documents**, **Chats**, **Library**, and
+**Nodes**.
 
 Two extras: [Mobile](mobile-app.md) gives you a touch-optimized Chat,
 Mini-Apps, and Graph Editor, and the [desktop app](electron-views.md) adds an
@@ -41,29 +48,28 @@ install wizard, a system tray, and frameless mini-app windows.
 ## Projects
 
 A project is a name over the documents that belong to one job — a board, a
-script, a cut, the key art — plus the conversation that built them. Open one
-and its documents come back as a tab group.
+script, a cut, the key art — plus the conversation that built them.
 
 ![Projects list](assets/screenshots/project-list.png)
 
 The list is every project as a card: what it has rendered, when it last
 changed, and what it has cost at provider rates. Underneath sit the documents
-in no project; drag one onto a card to file it there.
+in no project. Drag one onto a card to file it there.
 
 ![Start a project](assets/screenshots/project-new.png)
 
-**New project** asks what you want made. Pick a shape — 30s spot, trailer,
-music video, mini app — and the agent plans the documents that shape needs and
-builds them. Reference images and library entities go in with the prompt. The
-estimate is read off what your own past projects of that shape cost, so it
-appears once you have two of them to read.
+**New project** asks what you want made. Pick a starter or type `/` in the
+prompt to choose one. A starter is a skill, either one NodeTool ships (for
+example `product-commercial` or `short-film`) or one you wrote, and you can also
+start with none. The agent plans the documents the work needs and builds them.
+Reference images and library entities go in with the prompt. The estimate is
+read off what your own past projects of the same kind cost, so it appears once
+you have two finished ones with fully priced spend.
 
-![Project overview](assets/screenshots/project-overview.png)
-
-The overview is the project's agent on the left and what it has made on the
-right. Every card opens its document as a tab in the group; the button in the
-header opens whichever one the project is waiting on. The bar along the bottom
-splits the spend into stills, clips, voice, and pipeline.
+The **Project** selector at the left of the tab bar switches the active
+project, or returns to **Personal**. New documents you create land in the active
+project, and the **Documents** panel lists them by kind: Workflows, Apps,
+Creative documents, and Agents & code.
 
 ---
 
@@ -71,12 +77,14 @@ splits the spend into stills, clips, voice, and pipeline.
 
 ![Workflow Editor](assets/screenshots/editor-empty-state.png)
 
-An infinite canvas. Pan with `Space`+drag or right-click drag, zoom with
-`Ctrl/⌘`+scroll, and press `F` when you have lost the graph off-screen.
+An infinite canvas. Pan by dragging empty canvas with the left mouse button (the
+default on Windows and Linux) or, on macOS, by two-finger scroll or right or
+middle-button drag. Scroll to zoom, and press `F` when you have lost the graph
+off-screen. The **Left-Click Drag** setting under Settings → General → Canvas
+switches between panning and box selection.
 
-**Add a node**: press `Space` or double-click empty canvas. The node library
-opens — type what you want ("generate image"), or browse Image / Video / Audio /
-Text on the left.
+**Add a node**: press `Space` or double-click empty canvas. The node menu opens.
+Type what you want ("generate image"), or browse the categories on the left.
 
 **Connect two nodes**: drag from an output circle on the right of one node to an
 input circle on the left of another.
@@ -84,7 +92,8 @@ input circle on the left of another.
 > **Tip**: drop a connection on empty space and NodeTool offers only the nodes
 > that accept that type.
 
-Select a node and the right panel shows its inputs, settings, and output.
+Select a node and the Inspector on the right shows its properties, input and
+output slots, and help.
 
 ---
 
@@ -110,12 +119,12 @@ A form or dashboard over your workflows, with the graph hidden — the version y
 hand to someone who has never heard of NodeTool.
 
 1. Build the workflows in the editor.
-2. In the **Apps** panel, click **New app**, or **New app from workflow** to
-   scaffold one from a graph.
+2. Choose **+ New → New app** in the tab bar. To scaffold one from a graph, use
+   the from-workflow button in the left panel's **Apps** list.
 3. Lay out input widgets, a run button, and display widgets in the app's tab.
 4. Flip the tab to **Run**, then publish.
 
-The workflows stay separate resources; **Linked workflows** on the app tab opens
+The workflows stay separate resources. **Linked workflows** on the app tab opens
 one in its own tab. On desktop, right-click the tray icon to launch any app in
 its own window.
 
@@ -139,9 +148,10 @@ explorer and in node results.
 ![Workspace tab bar](assets/screenshots/editor-tabs-bar.png)
 
 Open documents share one tab bar: workflows, sketches, timelines, storyboards,
-apps. Drag a panel tab elsewhere to move it, drag it to another panel's edge to
-split, drag a border to resize. Layout saves itself; **View → Reset Layout**
-puts it back.
+apps, chats, and app pages such as Settings. Drag a tab to reorder it. The left
+panel, Inspector, and bottom panel each open from their own edge and resize by
+dragging their inner border. Open or collapsed state and size are remembered
+between sessions.
 
 With nothing open, the workspace is a chat composer and a few sample prompts.
 
@@ -153,8 +163,10 @@ With nothing open, the workspace is a chat composer and a few sample prompts.
 
 ![Command Menu](assets/screenshots/editor-command-menu.png)
 
-`Ctrl+K` / `⌘+K`, then start typing. Opens workflows, jumps between sections,
-reaches settings — the fastest route to anywhere.
+`Ctrl+K` / `⌘+K` while a workflow is open, then start typing. It runs workflow
+actions (Run Entire Workflow, Save, Auto Layout, import and export as JSON or
+bundle), edit and align commands, view and zoom commands, panel toggles, and
+Report a Bug, and it opens your workflows by name.
 
 ---
 
@@ -171,26 +183,35 @@ The six worth memorizing:
 | `F` | Fit view |
 | `Esc` | Stop workflow |
 
+Press `Ctrl/⌘+/` for the full list inside the app.
+
 ### Global
 
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl/⌘+K` | Command Menu |
-| `Ctrl/⌘+N` | New workflow |
-| `Ctrl/⌘+O` | Open workflow |
+| `Ctrl/⌘+,` | Settings |
 | `Ctrl/⌘+Shift+Z` | Redo |
-| `Ctrl/⌘+1…9` | Switch tabs |
+| `Ctrl/⌘+1…9` | Switch to tab 1 to 9 |
+| `Ctrl+PageUp` / `Ctrl+PageDown` | Previous or next tab |
+| `Ctrl/⌘+T` | New workflow (desktop app) |
+| `Ctrl/⌘+W` | Close tab (desktop app) |
 
 ### Editor
 
 | Shortcut | Action |
 |----------|--------|
-| `Space + Drag` | Pan |
-| `Ctrl/⌘ + Scroll` | Zoom |
+| `Ctrl/⌘+F` | Find in workflow |
+| `Ctrl/⌘+Shift+A` | Quick add node |
 | `Ctrl/⌘+D` | Duplicate |
 | `Ctrl/⌘+G` | Group |
+| `B` | Disable or enable selected nodes |
 | `A` | Align nodes |
+| `I` | Toggle Inspector |
+| `L` | Toggle Logs panel |
 | `Delete` / `Backspace` | Delete selection |
+
+See the [Workflow Editor](workflow-editor.md#keyboard-shortcuts) for the complete editor list.
 
 ### Chat
 

@@ -4,7 +4,7 @@ title: "Vector Storage"
 description: "Pluggable vector storage backends for NodeTool: SQLite-vec, Supabase/pgvector, Pinecone."
 ---
 
-NodeTool stores embeddings through a pluggable provider abstraction in `@nodetool-ai/vectorstore`. The same `VectorProvider` / `VectorCollection` interface backs the local SQLite-vec store, Supabase/pgvector, and (stubbed) Pinecone, so every caller — base nodes, the tRPC `collections` router, the file-upload REST handler, and agent tools — works identically against any backend.
+NodeTool stores embeddings through a pluggable provider abstraction in `@nodetool-ai/vectorstore`. The same `VectorProvider` / `VectorCollection` interface backs the local SQLite-vec store, Supabase/pgvector, and a Pinecone stub, so every caller (core nodes, the tRPC `collections` router, the file-upload REST handler, and agent tools) uses the same interface for any backend.
 
 ## Choosing a Backend
 
@@ -12,9 +12,9 @@ NodeTool stores embeddings through a pluggable provider abstraction in `@nodetoo
 |---|---|---|
 | `sqlite-vec` (default) | Local-first, single-machine deployments. Embedded, zero-config. | None — first use creates `vectorstore.db` in the NodeTool data dir. |
 | `supabase` | Hosted multi-user deployments backed by a Supabase / Postgres+pgvector project. | Install [`packages/vectorstore/sql/supabase-migration.sql`](https://github.com/nodetool-ai/nodetool/blob/main/packages/vectorstore/sql/supabase-migration.sql) once on the project, then set `SUPABASE_URL` + `SUPABASE_KEY`. |
-| `pinecone` | Stub — surfaces a clear `notImplemented` error today. | — |
+| `pinecone` | Stub. Every collection method throws `PineconeProvider is not yet implemented`. | Selecting it requires `PINECONE_API_KEY`. `PINECONE_ENVIRONMENT` and `PINECONE_CONTROLLER_HOST` are optional. |
 
-Selection happens in `createVectorProviderFromEnv()` (`packages/vectorstore/src/provider-factory.ts`), which is called by `getDefaultVectorProvider()` on first use.
+Selection happens in `createVectorProviderFromEnv()` (`packages/vectorstore/src/provider-factory.ts`), which is called by `getDefaultVectorProvider()` on first use. An unknown value throws a `ProviderConfigError` listing the three valid kinds.
 
 ## Configuration
 
@@ -36,7 +36,9 @@ The provider re-uses the process-wide `getDefaultStore()` so any code that touch
 | `SUPABASE_KEY` *or* `SUPABASE_SERVICE_ROLE_KEY` | API key. Service-role is recommended server-side; anon-key requires RLS policies that grant the role access to the registry/records tables. |
 | `NODETOOL_VECTOR_SCHEMA` | Optional Postgres schema; defaults to `public`. |
 
-These match the env vars the Supabase **storage** backend already uses, so a single Supabase project can back both file storage and vector data.
+When both key variables are set, `SUPABASE_SERVICE_ROLE_KEY` wins. Constructing `SupabaseProvider` directly also accepts `registryTable`, `recordsTable`, and `matchRpc` to rename the two tables and the RPC.
+
+`SUPABASE_URL` and `SUPABASE_KEY` are the same variables the Supabase **storage** backend uses, so one Supabase project can back both file storage and vector data.
 
 #### One-time SQL install
 
@@ -60,7 +62,7 @@ Once the dimension is fixed for a collection, you can add an `ivfflat` index for
 | `{field: { $in: [...] }}` | — | — |
 | `{$and: [...]}` | — | yes (flattens into the metadata predicate) |
 | `{$or: [...]}` | — | — |
-| `{$document: { $contains: "text" }}` | yes | yes |
+| `{$document: { $contains: "text" }}` | yes | yes (case-insensitive `ILIKE`) |
 | `{$document: { $or: [{$contains}, ...] }}` | yes | — |
 
 If you need a richer filter on Supabase, extend the SQL function and the `splitFilter()` translator in `packages/vectorstore/src/supabase-provider.ts` together — the JS-side translator is the contract.
@@ -103,15 +105,15 @@ For tests or migrations, swap the active provider with `setDefaultVectorProvider
 import { SupabaseProvider } from "@nodetool-ai/vectorstore";
 
 const provider = new SupabaseProvider({
-  client: fakeSupabaseClient   // any object satisfying SupabaseClient
+  client: fakePostgrestClient   // any object satisfying PostgrestClientApi
 });
 ```
 
 ## Where it's used
 
-- **Workflow nodes** — every node under `vector.*` in `@nodetool-ai/core-nodes` (`packages/core-nodes/src/nodes/vector.ts`) goes through the default provider.
-- **Collections REST/tRPC API** — `packages/websocket/src/trpc/routers/collections.ts` and `packages/websocket/src/collection-api.ts`.
-- **Agent tools** — `vector_text_search`, `vector_hybrid_search`, `vector_recursive_split_and_index`, etc. in the `collections` capability module (`packages/agents/src/capabilities/collections.ts`). The collection each tool works on rides on the run (`CapabilityRun.vectorCollection`) rather than being a constructor argument.
+- **Workflow nodes**: every node under `vector.*` in `@nodetool-ai/core-nodes` (`packages/core-nodes/src/nodes/vector.ts`) goes through the default provider.
+- **Collections REST/tRPC API**: `packages/websocket/src/trpc/routers/collections.ts` and `packages/websocket/src/collection-api.ts`.
+- **Agent tools**: `list_collections`, `query_collection`, `create_collection`, `delete_collection`, `vector_index`, `vector_text_search`, `vector_hybrid_search`, `vector_recursive_split_and_index`, `vector_markdown_split_and_index`, and `vector_batch_index` in the `collections` capability module (`packages/agents/src/capabilities/collections.specs.ts`, `collections.ts`). The collection each tool works on rides on the run (`CapabilityRun.vectorCollection`) rather than being a constructor argument.
 
 ## Adding a New Backend
 

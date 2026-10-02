@@ -1,505 +1,102 @@
 ---
 layout: page
 title: "HuggingFace Integration"
-description: "Guide to HuggingFace nodes in NodeTool."
+description: "How NodeTool uses Hugging Face: the hosted Inference Providers nodes, local Transformers.js nodes, Hub downloads, tokens, and gated models."
 ---
 
 # <img src="assets/icons/huggingface.svg" width="28" height="28" style="vertical-align: middle; display: inline-block;" alt="HuggingFace" /> HuggingFace Integration
 
-Nodes for running HuggingFace Hub models in NodeTool workflows. Supports text, image, audio, and multimodal tasks with optional quantization, CPU offload, and LoRA adapters.
-
-All HuggingFace nodes live in the `huggingface.*` namespace.
-
-## Node Categories
-
-### 🎨 Image Generation
-
-#### Text-to-Image Nodes
-
-**Stable Diffusion** - Generate high-quality images from text prompts
-- Custom width/height settings (256-1024px)
-- Configurable inference steps and guidance scale
-- Support for negative prompts
-- Use cases: Art creation, concept visualization, content generation
-
-**Stable Diffusion XL** - Enhanced image generation with SDXL models
-- Higher resolution outputs (up to 1024px)
-- Improved image quality and detail
-- Support for IP adapters and LoRA models
-- Use cases: Marketing materials, game assets, interior design concepts
-
-**Qwen-Image** - High-quality general-purpose text-to-image generation
-- Nunchaku quantization support for efficient memory usage
-- True CFG scale control for precise guidance
-- Supports MLX for Apple Silicon optimization
-- Use cases: General-purpose image generation, quick prototyping, production workflows
-
-**Flux** - Image generation with memory-efficient quantization
-- Supports *schnell* (fast) and *dev* (high-quality) variants
-- Nunchaku quantization (FP16, FP4, INT4) for reduced VRAM usage
-- CPU offload support for large models
-- Configurable max_sequence_length for prompt complexity
-- Use cases: High-fidelity image generation with limited hardware
-
-**Flux Control** - Controlled image generation with depth/canny guidance
-- Depth-aware and edge-guided generation
-- Control image input for structural guidance
-- Quantization support (FP16, FP4, INT4)
-- Use cases: Controlled composition, maintaining structure while changing style
-
-**Chroma** - Flux-based model with advanced attention masking
-- Professional-quality color control
-- Attention slicing for memory optimization
-- Use cases: Professional photography effects, precise color grading
-
-**Text2Image (AutoPipeline)** - Automatic pipeline selection for any text-to-image model
-- Auto-detects best pipeline for given model
-- Flexible generation without pipeline-specific knowledge
-- Use cases: Testing different models, rapid prototyping
-
-#### Image-to-Image Transformation
-
-**Image to Image** - Transform existing images using Stable Diffusion
-- Strength parameter controls transformation amount
-- Support for style transfer and image variations
-- Use cases: Style transfer, image enhancement, creative remixing
-
-### 🗣️ Speech & Audio Processing
-
-#### Audio Classification
-
-**Audio Classifier** - Classify audio into predefined categories
-- Recommended models:
-  - `MIT/ast-finetuned-audioset-10-10-0.4593`
-  - `ehcalabres/wav2vec2-lg-xlsr-en-speech-emotion-recognition`
-- Use cases: Music genre classification, speech detection, environmental sounds, emotion recognition
-
-**Zero-Shot Audio Classifier** - Classify audio without predefined categories
-- Flexible classification with custom labels
-- Use cases: Dynamic audio categorization, sound identification
-
-#### Automatic Speech Recognition
-
-**Whisper** - Convert speech to text with multilingual support
-- Supports 100+ languages
-- Translation mode (translate any language to English)
-- Timestamp options (word-level or sentence-level)
-- Multiple model sizes (tiny to large-v3)
-- Recommended models:
-  - `openai/whisper-large-v3` - Best accuracy
-  - `openai/whisper-large-v3-turbo` - Fast inference
-  - `openai/whisper-small` - Lightweight option
-- Use cases: Transcription, translation, subtitle generation, voice interfaces
-
-**ChunksToSRT** - Convert transcription chunks to SRT subtitle format
-- Automatic timestamp formatting
-- Time offset support
-- Use cases: Video subtitling, accessibility features
-
-#### Audio Generation
-
-**Text-to-Speech** - Generate natural-sounding speech from text
-- Multiple voice options
-- Configurable speaking rate and pitch
-- Use cases: Voiceovers, accessibility, content creation
-
-**Text-to-Audio** - Generate audio effects and sounds from text descriptions
-- Creative sound generation
-- Use cases: Sound effects, audio design, music production
-
-### 📝 Text Processing
-
-#### Text Generation
-
-**Text Generation** - Generate text using large language models
-- Streaming output support
-- Extensive model support including:
-  - Qwen3 series (0.6B to 32B parameters)
-  - Meta Llama 3.1 series
-  - Ministral 3 series
-  - Gemma 3 series
-  - TinyLlama for lightweight deployment
-- Quantized model support (BitsAndBytes 4-bit)
-- Configurable parameters:
-  - Temperature (0.0-2.0) - Controls randomness
-  - Top-p (0.0-1.0) - Controls diversity
-  - Max tokens (up to 512 default)
-- GGUF model support for efficient inference
-- Use cases: Chatbots, content generation, code completion, creative writing
-
-#### Text Analysis
-
-**Text Classification** - Classify text into categories
-- Sentiment analysis
-- Topic categorization
-- Use cases: Content moderation, sentiment analysis, document organization
-
-**Token Classification** - Identify and classify tokens in text
-- Named entity recognition (NER)
-- Part-of-speech tagging
-- Use cases: Information extraction, text analysis
-
-**Fill Mask** - Predict masked tokens in text
-- BERT-style masked language modeling
-- Use cases: Text completion, grammar correction
-
-#### Question Answering
-
-**Question Answering** - Extract answers from context
-- Recommended models:
-  - `distilbert-base-cased-distilled-squad`
-  - `bert-large-uncased-whole-word-masking-finetuned-squad`
-- Returns answer with confidence score and position
-- Use cases: Document Q&A, customer support, information retrieval
-
-**Table Question Answering** - Query tabular data with natural language
-- Works with DataFrames
-- Recommended models:
-  - `google/tapas-base-finetuned-wtq`
-  - `microsoft/tapex-large-finetuned-tabfact`
-- Use cases: Database queries, spreadsheet analysis
-
-#### Text Transformation
-
-**Translation** - Translate text between languages
-- Multiple language pairs
-- Use cases: Localization, multilingual content
-
-**Summarization** - Generate concise summaries of long text
-- Extractive and abstractive summarization
-- Use cases: Document summarization, news digests
-
-### 🖼️ Image Analysis
-
-#### Image Classification
-
-**Image Classifier** - Classify images into predefined categories
-- Recommended models:
-  - `google/vit-base-patch16-224` - Vision Transformer
-  - `microsoft/resnet-50` - ResNet architecture
-  - `Falconsai/nsfw_image_detection` - Content moderation
-  - `nateraw/vit-age-classifier` - Age estimation
-- Returns confidence scores for each category
-- Use cases: Content moderation, photo organization, age detection
+NodeTool uses Hugging Face in five ways. Each has different requirements.
 
-**Zero-Shot Image Classifier** - Classify images without training data
-- Uses CLIP models for flexible classification
-- Custom candidate labels
-- Recommended models:
-  - `openai/clip-vit-base-patch32`
-  - `laion/CLIP-ViT-H-14-laion2B-s32B-b79K`
-- Use cases: Dynamic categorization, custom tagging
+| Surface | Runs | Needs | Where it appears |
+|---|---|---|---|
+| **HuggingFace provider** | Hosted, on Hugging Face Inference Providers | `HF_TOKEN` | Generic nodes (chat, image, video, TTS, ASR, embeddings) |
+| **`huggingface.*` nodes** | Hosted, on the same router | `HF_TOKEN` | One node per Inference Providers task |
+| **`transformers.*` nodes** | Locally, in-process, ONNX | The Transformers.js runtime, no key | Local small models |
+| **`nodetool-huggingface` pack** | Locally, Python (Diffusers, Transformers) | The pack, from the Package Manager | Local image, audio, and speech models |
+| **Model Manager Hub source** | Downloads Hub repos to disk | A token for gated repos | [Models Manager](models-manager.md) |
 
-#### Image Understanding
+## HuggingFace provider
 
-**Image Segmentation** - Segment images into different regions
-- Instance and semantic segmentation
-- Use cases: Object isolation, background removal
+The provider (id `huggingface`) routes generic nodes to Hugging Face Inference Providers through the `@huggingface/inference` client. It offers text-to-image, image-to-image, text-to-video, text-to-speech, speech recognition, and embeddings, plus chat. Tool calling is off.
 
-**Object Detection** - Detect and locate objects in images
-- Bounding box outputs
-- Multi-object detection
-- Use cases: Surveillance, counting, automation
+Model lists come from the Hub. For each task NodeTool asks for models with warm inference, sorted by likes, limited to 100, and caches the answer for 10 minutes. A token is required. Without one the provider does not register as configured. If the `@huggingface/inference` package is missing, the provider reports it instead of failing at the first call. See [Providers](providers.md#huggingface) for how it fits with other providers.
 
-**Depth Estimation** - Estimate depth from 2D images
-- Monocular depth prediction
-- Use cases: 3D reconstruction, AR/VR, robotics
+## `huggingface.*` task nodes
 
-### 🎭 Multimodal Processing
+Nineteen nodes call the Inference Providers router at `https://router.huggingface.co`. Chat completion uses the OpenAI-compatible `/v1/chat/completions` route. Every other task posts to `/hf-inference/models/{model}`. Each node has a `model` field that defaults to a recommended model for its task. Enter any repo id that serves that pipeline to use another.
 
-#### Video Generation
+| Group | Nodes |
+|---|---|
+| Text | Chat Completion, Text Generation, Summarization, Translation, Fill Mask, Question Answering, Table Question Answering, Feature Extraction, Text Classification, Token Classification, Zero Shot Classification |
+| Image | Text to Image, Image to Image, Image Classification, Image Segmentation, Object Detection |
+| Audio | Automatic Speech Recognition, Audio Classification |
+| Video | Text to Video |
 
-**Text-to-Video (CogVideoX)** - Generate videos from text prompts
-- Large diffusion transformer model
-- High-quality, consistent video generation
-- Longer video sequences
-- Use cases: Video content creation, animated storytelling, marketing videos, cinematic content
+Text to Image takes a prompt, negative prompt, width, height, guidance scale, inference steps, and seed. Node references are in the [`huggingface` namespace](nodes/huggingface/index.md).
 
-**Image-to-Video** - Convert static images into video sequences
-- Animate still images
-- Add motion to photographs
-- Use cases: Photo animation, creating video from stills, dynamic presentations
+These nodes need a Hugging Face access token with the **Inference Providers** permission, stored as `HF_TOKEN`. `HUGGINGFACE_API_KEY` is also accepted. Without a token the node fails with `HF_TOKEN is not configured`.
 
-#### Image-Text Models
+## Transformers.js nodes (local ONNX)
 
-**Image to Text** - Generate captions for images
-- Automatic image captioning
-- Use cases: Accessibility, content tagging, image search
+The `transformers.*` nodes run ONNX models inside the NodeTool backend. They need no key and no Python.
 
-**Image-Text-to-Text** - Process images with text queries
-- Visual question answering
-- Image reasoning with text context
-- Use cases: Document understanding, visual Q&A, scene description
+- **Text:** Text Classification, Token Classification, Question Answering, Summarization, Translation, Text Generation, Fill Mask, Feature Extraction, Zero Shot Classification
+- **Vision:** Image Classification, Object Detection, Image To Text, Zero Shot Image Classification
+- **Audio:** Automatic Speech Recognition, Audio Classification, Text To Speech
 
-**Multimodal** - Process both image and text inputs
-- Vision-language models
-- Combined visual and textual understanding
-- Use cases: Complex visual reasoning, document analysis, multimodal search
+Install the **Transformers.js** runtime from the Package Manager first. Without it, the first run fails and names the missing runtime. Models must be ONNX exports, usually from the `Xenova/*` or `onnx-community/*` Hub organizations. Each node defaults to a recommended repo. Models download on first use into `<data-dir>/transformers-js-cache`, or the directory in the `TRANSFORMERS_JS_CACHE_DIR` setting. This cache is separate from the Hugging Face Hub cache. The same models also serve the `transformers_js` provider for chat, TTS, ASR, and embeddings. Node references are in the [`transformers` namespace](nodes/transformers/index.md).
 
-### 🎯 Model Customization
+## Local Python pack
 
-#### LoRA (Low-Rank Adaptation)
-
-**LoRA Selector** - Apply LoRA models to Stable Diffusion
-- Combine up to 5 LoRA models
-- Adjustable strength per LoRA (0.0-2.0)
-- 60+ pre-configured style LoRAs including:
-  - Art styles (anime, pixel art, 3D render)
-  - Character styles (Ghibli, Arcane, One Piece)
-  - Visual effects (fire, lightning, water)
-- Use cases: Style customization, character consistency, artistic effects
+The optional `nodetool-huggingface` pack adds local Diffusers and Transformers nodes for image, audio, and speech models. Install it from the Package Manager. It depends on PyTorch, and the desktop Package Manager handles it as a PyTorch-dependent package. NodeTool does not install it by default. When the Python worker runs, its local Hugging Face provider appears as `huggingface-local`, so it does not clash with the hosted `huggingface` provider.
 
-**LoRA Selector XL** - Apply LoRA models to Stable Diffusion XL
-- SDXL-specific LoRA support
-- Enhanced quality for high-resolution outputs
-- Use cases: High-quality style transfer, professional artwork
+The Model Manager recognizes the model types this pack uses, such as Flux (including Kontext, Canny, Depth, and Redux), Stable Diffusion 1.5, XL, and 3, Qwen Image and Qwen Image Edit, ControlNet, IP Adapter, and LoRA. Variants such as Nunchaku 4-bit and MLX are also detected. The pack's own node reference ships with the pack.
 
-### 🔧 Utility Nodes
+## Authentication and gated models
 
-**Feature Extraction** - Extract embeddings from text or images
-- Generate vector representations
-- Use cases: Semantic search, similarity matching, clustering
+Create a token at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens). Which token a feature reads depends on the feature.
 
-**Sentence Similarity** - Compute similarity between text pairs
-- Use cases: Duplicate detection, semantic search
+| Feature | Token source |
+|---|---|
+| HuggingFace provider and `huggingface.*` nodes | The stored `HF_TOKEN` secret, then the `HF_TOKEN` environment variable. Paste it into the HuggingFace card in **Settings → Models & Providers**, or run `nodetool secrets store HF_TOKEN` |
+| Local Hub downloads | The `HF_TOKEN`, `HF_API_TOKEN`, or `HUGGING_FACE_HUB_TOKEN` environment variable, then the token file from `hf auth login` (`$HF_TOKEN_PATH`, or `token` under `$HF_HOME`, default `~/.cache/huggingface/token`) |
+| Hub search in the Model Manager | The `HF_TOKEN` or `HUGGING_FACE_HUB_TOKEN` environment variable, sent when set |
+| Downloads to an attached worker | The stored `HF_TOKEN` secret first, then the same environment and token file. The server sends it to the worker, which has no token of its own |
 
-**Ranking** - Rank documents by relevance
-- Use cases: Search engines, recommendation systems
-
-## Installation & Setup
-
-### Requirements
-
-- Python 3.10+
-- PyTorch 2.9.0+
-- CUDA support recommended for optimal performance
+A token pasted in Settings therefore does not authenticate local Hub downloads. For a gated repo on your own machine, set `HF_TOKEN` in the environment before starting NodeTool, or run `hf auth login`, and restart the server.
 
-HuggingFace nodes are included with NodeTool by default. No additional installation is required for basic usage.
+### Gated models
 
-### Model Downloads
+Some repos, such as FLUX.1 dev, require you to accept a license:
 
-Models are automatically downloaded from HuggingFace Hub on first use. Downloaded models are cached in `~/.cache/huggingface/` by default.
-
-### Authentication
+1. Open the model page on huggingface.co while signed in.
+2. Accept the license or choose **Request access**, and wait if approval is manual.
+3. Make sure the token above has read access, then retry the download.
 
-Some models require HuggingFace authentication:
+A blocked download shows a message starting `Hugging Face blocked this download` with these steps.
 
-1. Create a HuggingFace account at [https://huggingface.co](https://huggingface.co)
-2. Generate an access token at [https://huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
-3. Set your token in NodeTool:
-   - **Desktop App**: Settings → Models & Providers → HuggingFace Token
-   - **Environment Variable**: `HF_TOKEN=your_token_here`
-
-### Gated Models
-
-Some models (like FLUX) require accepting terms on HuggingFace:
-1. Visit the model page on HuggingFace Hub
-2. Click "Agree and access repository"
-3. Ensure your `HF_TOKEN` is set in NodeTool settings
-
-## Usage Examples
-
-### Example 1: Text Generation Workflow
-
-Create a text generation workflow:
+## Model cache
 
-1. Add a **Text Generation** node from `huggingface.text_generation`
-2. Configure the node:
-   - Model: `Qwen/Qwen2.5-7B-Instruct`
-   - Prompt: "Write a short story about a robot learning to paint"
-   - Max tokens: 512
-   - Temperature: 0.8
-3. Connect to an output node
-4. Run the workflow
-
-### Example 2: Image Generation with Stable Diffusion
-
-Generate images from text:
-
-1. Add a **Stable Diffusion** node from `huggingface.text_to_image`
-2. Configure the node:
-   - Prompt: "A serene landscape with mountains and a lake at sunset, highly detailed"
-   - Negative prompt: "blurry, low quality, distorted"
-   - Width: 512, Height: 512
-   - Inference steps: 50
-   - Guidance scale: 7.5
-3. Connect to an image output node
-4. Run and view the generated image
-
-### Example 3: Speech-to-Text Transcription
-
-Transcribe audio files:
-
-1. Add an **Audio Input** node with your audio file
-2. Add a **Whisper** node from `huggingface.automatic_speech_recognition`
-3. Configure Whisper:
-   - Model: `openai/whisper-large-v3`
-   - Task: Transcribe
-   - Language: English
-   - Timestamps: Word level
-4. Connect audio input to Whisper node
-5. Connect Whisper output to text output
-6. Run to get transcription with timestamps
-
-### Example 4: Image Classification
-
-Classify images into categories:
-
-1. Add an **Image Input** node with your image
-2. Add an **Image Classifier** node from `huggingface.image_classification`
-3. Configure classifier:
-   - Model: `google/vit-base-patch16-224`
-4. Connect image input to classifier
-5. Connect classifier output to output node
-6. Run to see classification results with confidence scores
-
-### Example 5: Complete Workflow - Audio to Summary with Image
-
-Build a multi-modal workflow:
-
-1. **Audio Transcription**:
-   - Audio Input → Whisper node
-2. **Text Summarization**:
-   - Whisper output → Text Generation node
-   - Prompt: "Summarize the following text in 2-3 sentences: {transcription}"
-3. **Image Generation**:
-   - Summary output → Stable Diffusion node
-   - Prompt: "Create an illustration for: {summary}"
-4. **Outputs**:
-   - Connect all outputs to appropriate output nodes
-
-This workflow transcribes audio, generates a summary, and creates a matching image.
-
-## Performance Tips
-
-### Memory Optimization
-
-- Use quantized models (INT4, FP4) for reduced VRAM usage
-- Enable CPU offload for large models in node properties
-- Use smaller model variants when possible (e.g., whisper-small vs whisper-large)
-- Enable attention slicing for memory-intensive operations
-- Close other GPU applications when running large models
-
-### Speed Optimization
-
-- Use CUDA/GPU when available for best performance
-- Select appropriate model sizes based on your needs:
-  - Development: Use tiny/small/turbo variants
-  - Production: Use large/optimized variants
-- Use optimized models (e.g., whisper-large-v3-turbo vs whisper-large-v3)
-- Enable PyTorch compilation for frequently-used models
-- Pre-download models before production runs
-
-### Quality vs Performance Trade-offs
-
-- **Fast + Low Memory**: Quantized models with CPU offload
-  - Example: FLUX Schnell with INT4 quantization
-- **Balanced**: FP16 models on GPU with moderate inference steps
-  - Example: Stable Diffusion with 30 steps
-- **Best Quality**: Full precision models with high inference steps
-  - Example: FLUX Dev with 50 steps
-
-## Available Workflow Examples
-
-The HuggingFace integration includes pre-built workflow examples:
-
-- **Image to Image** - Transform images using Stable Diffusion
-- **Movie Posters** - Generate movie poster-style images
-- **Transcribe Audio** - Convert speech to text with Whisper
-- **Pokemon Maker** - Generate Pokemon-style creatures
-- **Depth Estimation** - Extract depth information from images
-- **Add Subtitles To Video** - Automatically generate and add subtitles
-- **Object Detection** - Detect and locate objects in images
-- **Summarize Audio** - Transcribe and summarize audio content
-- **Segmentation** - Segment images into regions
-- **Audio To Spectrogram** - Visualize audio as spectrograms
-
-These examples demonstrate best practices and can be customized for your needs.
+Hub downloads use the standard Hugging Face hub cache, `~/.cache/huggingface/hub` by default. `HF_HOME` or `HF_HUB_CACHE` relocate it. The Model Manager's **Installed** source lists what is in it and can delete cached models. See [Models Manager](models-manager.md#storage-location).
 
 ## Troubleshooting
 
-### Common Issues
+**`HF_TOKEN is not configured`.** A `huggingface.*` node ran without a token. Add `HF_TOKEN` in Settings or the environment. The token needs the Inference Providers permission.
 
-**CUDA Out of Memory**
-```
-RuntimeError: CUDA out of memory
-```
-Solutions:
-- Enable CPU offload in node advanced properties
-- Use quantized models (INT4/FP4)
-- Reduce image size or inference steps
-- Close other GPU applications
-- Use smaller model variants
+**`@huggingface/inference is required for HuggingFaceProvider`.** The optional client package is not installed. Install it with `npm install @huggingface/inference`.
 
-**Model Not Found**
-```
-OSError: Model not found
-```
-Solutions:
-- Ensure model name is correct (check HuggingFace Hub)
-- Verify internet connection for model download
-- Check `HF_TOKEN` is set for gated models
-- Clear cache and retry: `rm -rf ~/.cache/huggingface/`
+**401 or 403 on a download.** The repo is gated or private, or the token is missing. Follow [Gated models](#gated-models). Remember that local downloads read the environment or token file, not the Settings secret.
 
-**Slow Inference**
-Solutions:
-- Verify CUDA is available: Check Settings → System Info
-- Use smaller or quantized models
-- Enable attention optimizations in node properties
-- Consider using turbo/fast model variants
-- Pre-compile models with torch.compile
+**A `transformers.*` node fails on first run.** Install the Transformers.js runtime from the Package Manager.
 
-**Authentication Errors**
-```
-HTTPError: 401 Client Error: Unauthorized
-```
-Solutions:
-- Generate a new token at https://huggingface.co/settings/tokens
-- Set token in Settings → Models & Providers → HuggingFace Token
-- Accept model terms on HuggingFace Hub for gated models
-- Ensure token has appropriate permissions
+**A model is missing from the HuggingFace provider's picker.** The list contains only the 100 most-liked models with warm inference per task. Use a `huggingface.*` node and enter the repo id, or download the model through the Model Manager.
 
-**Import Errors**
-```
-ModuleNotFoundError: No module named 'transformers'
-```
-Solutions:
-- Restart NodeTool to ensure dependencies are loaded
-- Check Python environment has all required packages
-- Reinstall NodeTool if issues persist
+## Related documentation
 
-## Model Recommendations
-
-### Text Generation
-- **Best Quality**: `Qwen/Qwen2.5-32B-Instruct`
-- **Balanced**: `meta-llama/Llama-3.1-8B-Instruct`
-- **Fast/Lightweight**: `TinyLlama/TinyLlama-1.1B-Chat-v1.0`
-
-### Image Generation
-- **Best Quality**: FLUX Dev with 50 steps
-- **Balanced**: Stable Diffusion XL with 30 steps
-- **Fast**: FLUX Schnell with 4 steps
-
-### Speech Recognition
-- **Best Accuracy**: `openai/whisper-large-v3`
-- **Fast**: `openai/whisper-large-v3-turbo`
-- **Lightweight**: `openai/whisper-small`
-
-### Image Classification
-- **General Purpose**: `google/vit-base-patch16-224`
-- **Content Moderation**: `Falconsai/nsfw_image_detection`
-- **Zero-Shot**: `openai/clip-vit-base-patch32`
-
-## Related Documentation
-
-- [Models Guide](models.md) - Overview of all model types in NodeTool
-- [Providers Guide](providers.md) - Provider configuration and usage
-- [Nodes Reference](nodes/index.md) - Complete node documentation
-- [Workflow Examples](/workflows/) - Pre-built workflow templates
-- [Cookbook](cookbook.md) - Workflow patterns and recipes
-
-## External Resources
-
-- [HuggingFace Hub](https://huggingface.co/models) - Browse available models
-- [HuggingFace Transformers](https://huggingface.co/docs/transformers) - Library documentation
-- [Diffusers Documentation](https://huggingface.co/docs/diffusers) - Image generation library
+- [Models Manager](models-manager.md): browse, download, and delete local models
+- [Supported Models](models.md): local engines and model types
+- [Providers](providers.md): every provider and its key
+- [`huggingface` nodes](nodes/huggingface/index.md) and [`transformers` nodes](nodes/transformers/index.md): node reference
+- [Hugging Face provider guide](developer/providers/huggingface.md): how the provider is built
+- [Hugging Face Hub](https://huggingface.co/models)

@@ -3,13 +3,13 @@ layout: page
 title: "Workflow Gallery"
 ---
 
-Ready-to-use workflow examples. Each includes explanations and visual diagrams.
+Small workflows with a node-by-node walkthrough and a diagram. Most load from the **Examples** page. Categorize Mails, Creative Story Ideas, Fetch Papers, and Summarize RSS do not ship as templates, and each says so at the top.
 
 For the flagship, end-to-end showcases, see
 [Use Cases]({{ '/use-cases' | relative_url }}). See
 [Workflow Patterns]({{ '/cookbook/patterns' | relative_url }}) for reusable techniques.
 
-## 🎨 Start Here: Beginner-Friendly Workflows
+## Start Here: Beginner-Friendly Workflows
 
 Good starting points for learning NodeTool:
 
@@ -17,7 +17,7 @@ Good starting points for learning NodeTool:
 - [Image Enhance](image-enhance.md) - Polish photos with sharpening and auto-contrast
 - [Transcribe Audio](transcribe-audio.md) - Convert speech to text with AI
 
-## 🖼️ Visual Creation & Image Workflows
+## Visual Creation & Image Workflows
 
 Create and transform images:
 
@@ -25,34 +25,34 @@ Create and transform images:
 - [Image Enhance](image-enhance.md) - Image enhancement pipeline
 - [Image To Audio Story](image-to-audio-story.md) - Turn images into narrated stories
 
-## 🎬 Video & Motion Workflows
+## Video & Motion Workflows
 
 Create and enhance video content:
 
 - [Color Boost Video](color-boost-video.md) - AI-powered color enhancement for video
 
-## 🎵 Audio & Voice Workflows
+## Audio & Voice Workflows
 
 Work with sound, music, and voice:
 
 - [Transcribe Audio](transcribe-audio.md) - Speech-to-text with word-level timestamps
 - [Image To Audio Story](image-to-audio-story.md) - Generate narrated stories from visuals
 
-## ✍️ Content Creation & Writing
+## Content Creation & Writing
 
 Generate and transform written content:
 
 - [Creative Story Ideas](creative-story-ideas.md) - Brainstorming for writers and creators
 - [Flashcard Generator](flashcard-generator.md) - Turn content into study materials
 
-## 📚 Document Workflows
+## Document Workflows
 
 Work with documents and knowledge:
 
 - [Chat with Docs](chat-with-docs.md) - Ask questions about your documents with AI
 - [Fetch Papers](fetch-papers.md) - Retrieve and process academic papers
 
-## 🤖 Productivity & Automation
+## Productivity & Automation
 
 Save time with these workflows:
 
@@ -60,7 +60,7 @@ Save time with these workflows:
 - [Categorize Mails](categorize-mails.md) - Organize emails automatically
 - [Summarize RSS](summarize-rss.md) - Stay updated with feed summaries
 
-## 📊 Data & Visualization
+## Data & Visualization
 
 Generate and visualize data:
 
@@ -70,7 +70,7 @@ Generate and visualize data:
 
 ## All Workflows (Alphabetical)
 
-{% assign workflow_pages = site.pages | where_exp: "page", "page.path contains 'workflows/'" | where_exp: "page", "page.title != 'Creative Workflow Gallery'" | sort: "title" %}
+{% assign workflow_pages = site.pages | where_exp: "page", "page.path contains 'workflows/'" | where_exp: "page", "page.title != 'Workflow Gallery'" | sort: "title" %}
 
 {% for page in workflow_pages %}
 - [{{ page.title }}]({{ page.url | relative_url }})
@@ -80,17 +80,16 @@ Generate and visualize data:
 
 ## How to Use These Workflows
 
-**Option 1: One-Click Import (Easiest)**
+**Option 1: Load from Examples**
 1. Open NodeTool
-2. Click **Examples** in the app menu (the logo dropdown)
-3. Browse and click any workflow
-4. Start creating immediately!
+2. Click **Examples** in the app menu
+3. Click a workflow. NodeTool opens a private copy and leaves the original unchanged.
+4. Run it with <kbd>Ctrl/⌘ + Enter</kbd>
 
-**Option 2: Build Manually (Learning)**
-1. View any workflow page
-2. Follow the visual diagram
+**Option 2: Build manually**
+1. Open a workflow page
+2. Follow the diagram
 3. Add nodes and connect them yourself
-4. Great for understanding how it works!
 
 ---
 

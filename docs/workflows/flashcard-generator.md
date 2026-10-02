@@ -5,7 +5,13 @@ title: "Flashcard Generator"
 
 ## Overview
 
-Generate study flashcards using AI, then compute a study plan from them: no repeated questions, categories interleaved, and a review schedule per card.
+Generates study flashcards as structured rows, then computes a study plan from them: no repeated questions, categories interleaved, and a review schedule per card.
+
+1. **Inputs** - `topic` (`nodetool.input.StringInput`) and `num_cards` (`nodetool.input.IntegerInput`, 3 to 15, default 5).
+2. **Prompt** (`nodetool.text.Prompt`) - Fills {% raw %}`{{TOPIC}}`{% endraw %} and {% raw %}`{{NUM_CARDS}}`{% endraw %} into the card-writing instructions.
+3. **DataGenerator** (`nodetool.generators.DataGenerator`) - Returns rows with `front`, `back`, and `category` columns. The `dataframe` output goes to the `Flashcards` output and to the next step.
+4. **Code** (`nodetool.code.Code`) - Drops repeated questions, deals one card from each category in turn, and assigns each card `review_after_days` of `[0, 2, 5]`.
+5. **Outputs** - `Flashcards` and `study_plan`.
 
 ## Demo
 
@@ -21,15 +27,17 @@ education, structured-data, ai, flashcards, learning
 
 {% mermaid %}
 graph TD
-  topic_topic_["topic"]
-  num_cards_input["num_cards"]
-  formattext_format["Prompt"]
-  datagenerator_genera["DataGenerator"]
-  plan_study["Code (dedupe & order)"]
-  plan_output["study_plan"]
-  topic_topic_ --> formattext_format
-  num_cards_input --> formattext_format
-  formattext_format --> datagenerator_genera
-  datagenerator_genera --> plan_study
-  plan_study --> plan_output
+  topic["StringInput (topic)"]
+  count["IntegerInput (num_cards)"]
+  prompt["Prompt"]
+  generator["DataGenerator"]
+  plan["Code (study plan)"]
+  cards["Output (Flashcards)"]
+  planOut["Output (study_plan)"]
+  topic -->|TOPIC| prompt
+  count -->|NUM_CARDS| prompt
+  prompt --> generator
+  generator -->|dataframe| cards
+  generator -->|dataframe| plan
+  plan -->|study_plan| planOut
 {% endmermaid %}

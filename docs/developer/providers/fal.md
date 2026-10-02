@@ -13,9 +13,9 @@ FAL nodes in NodeTool are **generated**, not hand-written. A codegen pipeline fe
 ## TL;DR
 
 1. Add the endpoint ID + `NodeConfig` to the right `src/configs/<category>.ts` file in `packages/fal-codegen/`.
-2. Run `npm run generate:fal` from the repo root.
+2. Run `npm run generate:fal` from the repo root. To fetch only endpoints the manifest lacks, run `npx tsx scripts/append-new-endpoints.ts` from `packages/fal-codegen/`.
 3. Run `npm run build:packages` (fal-nodes loads from `dist/`).
-4. Run `npm run lint --workspace=packages/fal-codegen` and `npm run test --workspace=packages/fal-nodes`.
+4. Run `npm run lint --workspace=packages/fal-codegen`, `npm run test --workspace=packages/fal-nodes`, and `npm run generate:fal:check`.
 5. Open a PR — never commit manual edits to `fal-manifest.json`.
 
 ---
@@ -165,7 +165,7 @@ Then reference it via `enumRef: "MyAspectRatio"` in a `fieldOverrides` entry.
 npm run generate:fal
 ```
 
-This fetches the schema (or reads from `.codegen-cache/` if cached), writes `packages/fal-nodes/src/fal-manifest.json`, and updates pricing bundles under `packages/fal-nodes/src/generated/` when `FAL_API_KEY` is set.
+This fetches the schema (or reads from `.codegen-cache/` if cached), writes `packages/fal-nodes/src/fal-manifest.json`, and updates pricing bundles under `packages/fal-nodes/src/generated/` when `FAL_API_KEY` is set. Without the key, existing pricing bundles stay untouched. Pass `--no-pricing` to silence the warning.
 
 To force a fresh schema fetch (bypass cache):
 
@@ -186,8 +186,9 @@ npm run generate:fal
 # 2. Check for TypeScript errors in codegen
 npm run lint --workspace=packages/fal-codegen
 
-# 3. Run codegen tests
+# 3. Run codegen tests and the fixture drift gate
 npm run test --workspace=packages/fal-codegen
+npm run generate:fal:check
 
 # 4. Build fal-nodes (loads manifest from dist/)
 npm run build:packages
@@ -213,16 +214,7 @@ Confirm the new entry appears with the expected `className`, `inputFields`, and 
 
 ---
 
-## How past commits did it
-
-The FAL codegen and node system was built over a run of commits on 2026-03-12, starting with `09bb4d60` ("feat(fal-codegen): add SchemaFetcher with SHA-256 caching and tests") and `2e0df019` ("feat(fal-codegen): add SchemaParser and tests"); `54ee1cce` scaffolded `src/configs/`, and the Python configs were ported over in batches (`7b6a609f`, `8af2c275`). The manifest-driven factory came later, in `85787419` ("feat(fal): replace codegen with manifest-driven dynamic registry") — that commit is the reference for the runtime loading path.
-
-Subsequent behavioral fixes follow a clear split:
-
-- **`ff5824a6`** — fixed `schema-parser.ts` to collapse single-asset wrapper structs (`list[ImageInput]`) to `list[image]` with a `nestedAssetKey` hint; the fix lived in codegen, not the manifest.
-- **`2997a678`** — added FAL billing reconciliation; changes touched `fal-base.ts`, `fal-factory.ts`, and `fal-billing.ts` in `fal-nodes/`.
-
-Both commits follow the rule: **parser/codegen bugs go in `packages/fal-codegen/`; runtime bugs go in `packages/fal-nodes/`; never patch `fal-manifest.json`**.
+Parser and codegen bugs go in `packages/fal-codegen/`. Runtime bugs go in `packages/fal-nodes/`. Never patch `fal-manifest.json`.
 
 ---
 
@@ -244,7 +236,10 @@ Both commits follow the rule: **parser/codegen bugs go in `packages/fal-codegen/
 PRs are welcome. Open one at <https://github.com/nodetool-ai/nodetool>. Before pushing, run:
 
 ```bash
-npm run check   # typecheck + lint + test across all workspaces
+npm run test:affected
+npm run typecheck
+npm run lint
+npm run dev:nodetool -- harness gate --base origin/main
 ```
 
 Join the discussion on [Discord](https://discord.gg/WmQTWZRcYE).

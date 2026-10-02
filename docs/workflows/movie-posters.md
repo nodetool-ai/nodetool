@@ -5,14 +5,16 @@ title: "Movie Posters"
 
 ## Overview
 
-An AI-powered poster generator: a strategy agent plans the visual concept, then an image model renders poster variations.
+A poster generator. An art-direction step writes a creative strategy, then an image model renders one poster per concept.
 
 **How it works:**
-1. **Input** - Movie title, genre, and target audience
-2. **Strategy Agent** - Creates a marketing approach and visual concept
-3. **Prompt Generator** - Converts strategy into image prompts for multiple variations
-4. **Image Generator** - Renders 512×768px posters with Stable Diffusion/Flux
-5. **Preview** - Shows the strategy and all generated posters
+1. **Inputs** - Three `StringInput` nodes: Movie Title, Genre, and Visual Style.
+2. **Strategy prompt** (`nodetool.text.Prompt`) - Frames the art-director brief from the three inputs.
+3. **Structured output** (`nodetool.generators.StructuredOutputGenerator`) - Returns four fields: `positioning`, `audience_insight`, `design`, and `core_visual_concept`.
+4. **Concept list** (`nodetool.text.Prompt` into `nodetool.generators.ListGenerator`) - Writes one line per poster concept, using the title, genre, positioning, and audience insight. Each line streams out as `item`.
+5. **Poster prompt** (`nodetool.text.Prompt`) - Combines each concept with the genre, title, design, and core visual concept.
+6. **Image generator** (`nodetool.image.TextToImage`) - Renders each poster at 3:4 and 2K. The template selects `fal-ai/flux/schnell`.
+7. **Output** - The `Poster` output receives each rendered poster.
 
 ## Demo
 
@@ -22,44 +24,50 @@ An AI-powered poster generator: a strategy agent plans the visual concept, then 
 
 ## Tags
 
-start, image, creative, design, posters
+start, image, example
 
 ## Workflow Diagram
 
 {% mermaid %}
 graph TD
-  agent_strate["Agent"]
-  string_strate["String"]
-  formattext_strate["FormatText"]
-  movie_title_movie_["Movie Title"]
-  genre_genre_["Genre"]
-  primary_audience_audien["Primary Audience"]
-  listgenerator_prompt["ListGenerator"]
-  string_design["String"]
-  texttoimage_d31191["TextToImage"]
-  string_strate --> formattext_strate
-  formattext_strate --> agent_strate
-  agent_strate --> listgenerator_prompt
-  string_design --> listgenerator_prompt
-  primary_audience_audien --> formattext_strate
-  movie_title_movie_ --> formattext_strate
-  genre_genre_ --> formattext_strate
-  listgenerator_prompt --> texttoimage_d31191
+  title["StringInput (Movie Title)"]
+  genre["StringInput (Genre)"]
+  style["StringInput (Visual Style)"]
+  strategyPrompt["Prompt (strategy)"]
+  strategy["StructuredOutputGenerator"]
+  pitch["Prompt (concepts)"]
+  list["ListGenerator"]
+  posterPrompt["Prompt (poster)"]
+  image["TextToImage"]
+  out["Output (Poster)"]
+  title --> strategyPrompt
+  genre --> strategyPrompt
+  style --> strategyPrompt
+  strategyPrompt --> strategy
+  strategy -->|positioning, audience_insight| pitch
+  title --> pitch
+  genre --> pitch
+  pitch --> list
+  list -->|item| posterPrompt
+  strategy -->|design, core_visual_concept| posterPrompt
+  title --> posterPrompt
+  genre --> posterPrompt
+  posterPrompt --> image --> out
 {% endmermaid %}
 
 ## How to Use
 
-1. Open NodeTool and find "Movie Posters" in Templates
+1. Open NodeTool, click **Examples** in the app menu, and load "Movie Posters"
 2. Fill in your movie details:
-   - **Movie Title**: "Quantum Horizon" (or your movie name)
+   - **Movie Title**: "Singularity" (or your movie name)
    - **Genre**: "Sci-Fi Thriller" (choose any genre)
-   - **Primary Audience**: "Adults 25-40 who love space mysteries"
+   - **Visual Style**: "Neo-noir, high-contrast, cinematic"
 3. Press <kbd>Ctrl/⌘ + Enter</kbd> or click Run
-4. View the AI strategy in the top preview, posters in the bottom gallery
+4. View the posters in the Poster output
 
 **Tips:**
 - Try different genres for the same title to see how styles change
-- Be specific about audience to get more targeted designs
+- Be specific about the visual style to get more targeted designs
 
 ## Next Steps
 
