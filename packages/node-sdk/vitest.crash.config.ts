@@ -9,6 +9,13 @@ import base from "./vitest.config.js";
 // silently pull the whole suite back in.
 export default defineConfig({
   ...base,
+  // CI runs the corpus without build:packages, so workspace packages must
+  // resolve to source. The base config aliases only a few of them.
+  ssr: {
+    resolve: {
+      conditions: ["nodetool-dev"]
+    }
+  },
   test: {
     include: ["tests/fuzz/**/*.test.ts"]
   }
