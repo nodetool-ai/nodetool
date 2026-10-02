@@ -36,6 +36,13 @@ type Turn = (
 class FinishingProvider extends BaseProvider {
   readonly turns: Turn[];
   requests: Parameters<BaseProvider["generateMessages"]>[0][] = [];
+  loopRequests: Parameters<BaseProvider["generateLoop"]>[0][] = [];
+  override async *generateLoop(
+    args: Parameters<BaseProvider["generateLoop"]>[0]
+  ): AsyncGenerator<ProviderStreamItem> {
+    this.loopRequests.push(args);
+    yield* super.generateLoop(args);
+  }
   constructor(turns: Turn[]) {
     super("fake");
     this.turns = turns;
@@ -224,6 +231,25 @@ async function execute(
 
 describe("finish_storyboard whole-cut agentic finishing", () => {
   beforeEach(() => initTestDb());
+  it("limits authoring and visual review to their supplied tool scopes", async () => {
+    const { board, context } = await fixture();
+    const provider = new FinishingProvider([craft, done, approve, done]);
+    const result = await execute(provider, context, board);
+    expect(result.error).toBeUndefined();
+    expect(provider.loopRequests).toHaveLength(2);
+    expect(
+      provider.loopRequests.every((args) => args.providedToolsOnly === true)
+    ).toBe(true);
+    expect(provider.loopRequests[0].tools?.map((tool) => tool.name)).toEqual([
+      "get_timeline",
+      "edit_timeline",
+      "submit_finished_cut"
+    ]);
+    expect(provider.loopRequests[1].tools?.map((tool) => tool.name)).toEqual([
+      "review_finished_cut"
+    ]);
+  });
+
   it("refuses to finish a new agentic cut with only an unchanged scaffold", async () => {
     const { board, context } = await fixture();
     const provider = new FinishingProvider([

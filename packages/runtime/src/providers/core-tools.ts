@@ -8,7 +8,8 @@
  *    definitions instead of finding them behind `execute_code`. They are the
  *    shapes every frontier model is trained on, so a tool call costs less than
  *    a sandbox round trip that only forwards one.
- * 2. **The built-in wins on the Claude Agent SDK.** That provider runs the
+ * 2. **The built-in wins by default on the Claude Agent SDK.** Supplied-only
+ *    loops keep caller-owned dispatch. Normally that provider runs the
  *    SDK's own agent loop, which already ships `Read`/`Write`/`Grep`/… . A
  *    NodeTool copy next to the built-in is a second surface for one capability,
  *    so {@link SDK_NATIVE_TOOL_REPLACEMENTS} names the ones the built-in

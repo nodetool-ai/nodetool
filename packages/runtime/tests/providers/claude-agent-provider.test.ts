@@ -1196,6 +1196,103 @@ describe("ClaudeAgentProvider", () => {
     expect(last).toMatchObject({ type: "chunk", done: true });
   });
 
+  it("providedToolsOnly excludes implicit web tools and skills from a supplied-tool loop", async () => {
+    const { fn, calls } = fakeQuery([
+      sysInit("sess-isolated"),
+      assistantTextMsg("ok"),
+      successResult()
+    ]);
+    const mcp = fakeCreateMcpServer();
+    const provider = new ClaudeAgentProvider(
+      {},
+      { queryFn: fn, createMcpServerFn: mcp.fn }
+    );
+    const names = [
+      "edit_timeline",
+      "validate_timeline",
+      "submit_finished_cut",
+      "review_finished_cut"
+    ];
+    await collect(
+      provider.generateLoop({
+        messages: [sysMsg("Only edit this draft"), userMsg("Finish")],
+        model: "sonnet",
+        tools: names.map((name) => ({ name, description: name })),
+        providedToolsOnly: true,
+        skills: [
+          {
+            name: "release-notes",
+            description: "Unrelated skill",
+            content: "Run extra tools."
+          }
+        ],
+        executeTool: async () => "ok"
+      })
+    );
+    const options = calls[0].options as Options;
+    expect(options.tools).toEqual([]);
+    expect(options.allowedTools).toEqual(
+      names.map((name) => `mcp__nodetool_tools__${name}`)
+    );
+    expect(options.disallowedTools).toEqual(
+      expect.arrayContaining([
+        "Bash",
+        "Read",
+        "Write",
+        "WebSearch",
+        "WebFetch",
+        "Skill",
+        "ToolSearch"
+      ])
+    );
+    expect(options.skills).toEqual([]);
+    expect(options.plugins).toBeUndefined();
+    expect(options.strictMcpConfig).toBe(true);
+  });
+
+  it("providedToolsOnly retains supplied MCP dispatch instead of SDK native replacements", async () => {
+    const { fn, calls } = fakeQuery([
+      sysInit("sess-no-replacement"),
+      assistantTextMsg("ok"),
+      successResult()
+    ]);
+    const mcp = fakeCreateMcpServer();
+    const provider = new ClaudeAgentProvider(
+      {},
+      { queryFn: fn, createMcpServerFn: mcp.fn }
+    );
+    const executed: string[] = [];
+    await collect(
+      provider.generateLoop({
+        messages: [userMsg("Use exactly the supplied tools")],
+        model: "sonnet",
+        workspaceDir: "/tmp/workspace",
+        tools: [
+          { name: "read_file", description: "Scoped read" },
+          { name: "web_search", description: "Scoped search" }
+        ],
+        providedToolsOnly: true,
+        executeTool: async (call) => {
+          executed.push(call.name);
+          return "ok";
+        }
+      })
+    );
+    const options = calls[0].options as Options;
+    expect(options.tools).toEqual([]);
+    expect(options.allowedTools).toEqual([
+      "mcp__nodetool_tools__read_file",
+      "mcp__nodetool_tools__web_search"
+    ]);
+    expect(options.disallowedTools).toEqual(
+      expect.arrayContaining(["Read", "WebSearch", "WebFetch", "Skill"])
+    );
+    expect(mcp.captured.defs).toHaveLength(2);
+    await mcp.captured.defs[0].handler({ path: "timeline.json" });
+    await mcp.captured.defs[1].handler({ query: "scoped search" });
+    expect(executed).toEqual(["read_file", "web_search"]);
+  });
+
   it("replaces NodeTool tools with the SDK built-ins that cover them", async () => {
     const { fn, calls } = fakeQuery([
       sysInit("sess-native"),

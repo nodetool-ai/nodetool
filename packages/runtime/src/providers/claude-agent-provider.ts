@@ -174,9 +174,12 @@ interface TurnConfig {
   /**
    * Whether the caller offered tools at all. Distinct from `mcp`, which is null
    * both on the tool-free path and when every offered tool was replaced by an
-   * SDK built-in. Only the first case may disable the built-ins.
+   * SDK built-in. Built-ins are disabled on the tool-free path or when
+   * the caller explicitly sets `providedToolsOnly`.
    */
   toolsOffered: boolean;
+  /** Restrict availability to the supplied MCP tools, with no SDK built-ins. */
+  providedToolsOnly?: boolean;
   /**
    * The SDK built-ins the turn may use, passed as `tools`. Every other
    * built-in stays out of the prompt, where its schema would be re-read on
@@ -328,6 +331,7 @@ export class ClaudeAgentProvider extends BaseProvider {
       executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
       resolveMedia?: (messages: Message[]) => Promise<Message[]>;
       maxIterations?: number;
+      providedToolsOnly?: boolean;
       turnBudget?: TurnBudget | RunBudget;
       workspaceDir?: string;
       /**
@@ -361,14 +365,12 @@ export class ClaudeAgentProvider extends BaseProvider {
       }
       reservations.push(first);
     }
-    // Drop every NodeTool tool the SDK ships a built-in for. Those built-ins
-    // are live under bypassPermissions, so keeping the MCP copy would give one
-    // capability two surfaces and make the model pick between them.
+    // Normally prefer native equivalents to duplicate MCP surfaces. A caller
+    // restricting the loop keeps its own dispatch instead.
     const offered = args.tools ?? [];
-    const replaced = sdkNativeReplacements(
-      offered.map((t) => t.name),
-      args.workspaceDir
-    );
+    const replaced = args.providedToolsOnly
+      ? new Set<string>()
+      : sdkNativeReplacements(offered.map((t) => t.name), args.workspaceDir);
     const tools = offered.filter((t) => !replaced.has(t.name));
     if (replaced.size > 0) {
       log.debug("Using SDK built-ins in place of NodeTool tools", {
@@ -437,7 +439,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     // native skill loader discovers. Best-effort: a disk failure drops skills
     // for the turn, it does not sink it. Cleaned up in the `finally` below.
     let skillsPlugin: { dir: string; names: string[] } | null = null;
-    if ((args.skills?.length ?? 0) > 0) {
+    if (!args.providedToolsOnly && (args.skills?.length ?? 0) > 0) {
       try {
         skillsPlugin = await materializeSkillsPlugin(args.skills ?? []);
       } catch (err) {
@@ -463,11 +465,10 @@ export class ClaudeAgentProvider extends BaseProvider {
             offered.length > 0 ? (args.maxIterations ?? DEFAULT_TOOL_TURNS) : 1,
           mcp,
           toolsOffered: offered.length > 0,
-          builtinTools: turnBuiltins(
-            replaced,
-            offered.length > 0,
-            skillsPlugin !== null
-          ),
+          providedToolsOnly: args.providedToolsOnly,
+          builtinTools: args.providedToolsOnly
+            ? []
+            : turnBuiltins(replaced, offered.length > 0, skillsPlugin !== null),
           cwd: args.workspaceDir,
           skillsPlugin
         }
@@ -728,9 +729,13 @@ export class ClaudeAgentProvider extends BaseProvider {
       // deferred, and NodeTool defers none — it registers its handful of tools
       // in-process — so the search always comes back empty. A model that fell
       // back to it after a mis-named tool call got nothing and stalled the turn.
-      disallowedTools: plan.config.toolsOffered
-        ? ["ToolSearch"]
-        : [...SDK_BUILTIN_TOOLS, "ToolSearch"],
+      // Supplied-only loops also disable Skill and keep all supplied dispatch
+      // inside the caller's MCP boundary.
+      disallowedTools: plan.config.providedToolsOnly
+        ? [...SDK_BUILTIN_TOOLS, "Skill", "ToolSearch"]
+        : plan.config.toolsOffered
+          ? ["ToolSearch"]
+          : [...SDK_BUILTIN_TOOLS, "ToolSearch"],
       tools: plan.config.builtinTools,
       // Only the in-process NodeTool server. Without this the child also loads
       // the account's claude.ai connectors and the user's MCP servers, and

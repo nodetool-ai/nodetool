@@ -473,6 +473,7 @@ export async function finishStoryboardAgentically(
       effort: "medium",
       thinking: { type: "disabled" },
       tools,
+      providedToolsOnly: true,
       executeTool: (call) => {
         const pending = executionTail.then(() => {
           signal?.throwIfAborted();

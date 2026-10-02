@@ -358,6 +358,35 @@ describe("toolResultToText", () => {
 });
 
 describe("BaseProvider.generateLoop – turn boundary", () => {
+  it("keeps providedToolsOnly out of upstream generation arguments without changing supplied tools", async () => {
+    class CapturingProvider extends TestProvider {
+      requests: Parameters<BaseProvider["generateMessages"]>[0][] = [];
+      override async *generateMessages(
+        args: Parameters<BaseProvider["generateMessages"]>[0]
+      ): AsyncGenerator<ProviderStreamItem> {
+        this.requests.push(args);
+        yield { type: "chunk", content: "ok", done: true };
+      }
+    }
+    const provider = new CapturingProvider();
+    const tools = [
+      { name: "edit_timeline", description: "Edit the isolated draft" }
+    ];
+    const events: ProviderStreamItem[] = [];
+    for await (const event of provider.generateLoop({
+      messages: [{ role: "user", content: "Finish" }],
+      model: "test",
+      tools,
+      providedToolsOnly: true
+    })) {
+      events.push(event);
+    }
+    expect(events.length).toBeGreaterThan(0);
+    expect(provider.requests).toHaveLength(1);
+    expect(provider.requests[0]).not.toHaveProperty("providedToolsOnly");
+    expect(provider.requests[0].tools).toEqual(tools);
+  });
+
   /**
    * Mirrors what every real provider does: tool calls are yielded first, then a
    * terminal `done: true` chunk closing THAT completion. Anthropic, OpenAI,
