@@ -40,6 +40,7 @@ export const PACKAGE_RUNTIME_ASSETS: readonly PackageAssetRef[] = [
   { pkg: "@nodetool-ai/together-nodes", path: "together-manifest.json" },
   { pkg: "@nodetool-ai/topaz-nodes", path: "topaz-manifest.json" },
   { pkg: "@nodetool-ai/video-nodes", path: "render3d-page.js" },
+  { pkg: "@nodetool-ai/game-renderer", path: "player-v1.js" },
   { pkg: "@nodetool-ai/game-renderer", path: "game3d-capture-page.js" },
   { pkg: "@nodetool-ai/game-renderer", path: "game3d-player.js" }
 ];

@@ -1,7 +1,11 @@
+import { execFile } from "node:child_process";
 import { createHash } from "node:crypto";
-import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
+import { copyFile, mkdtemp, readFile, readdir, rm, symlink } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { join, resolve } from "node:path";
+import { pathToFileURL } from "node:url";
+import { promisify } from "node:util";
+import { build as bundle } from "esbuild";
 import { createCanvas } from "@napi-rs/canvas";
 import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 import { afterEach, describe, expect, it } from "vitest";
@@ -89,4 +93,24 @@ describe("standalone game build", () => {
     expect(exported.assets.music.assetId).toBe(`./assets/${digest}.wav`);
     expect(await readFile(join(built.outputDir, "assets", `${digest}.wav`))).toEqual(bytes);
   });
+});
+
+it("exports from a flattened backend using its staged player bundle", async () => {
+  const directory = await mkdtemp(join(tmpdir(), "nodetool-packaged-game-export-"));
+  directories.push(directory);
+  const game = createTopDownRoomGame("packaged-export");
+  const staged = await buildStandaloneGame({ document: game, outputDir: join(directory, "staged"), resolveAsset: async () => null });
+  await copyFile(staged.playerPath, join(directory, "player-v1.js"));
+  await symlink(resolve("../../node_modules"), join(directory, "node_modules"), "junction");
+  const backend = join(directory, "server.mjs");
+  await bundle({ entryPoints: [resolve("src/build.ts")], outfile: backend,
+    bundle: true, platform: "node", format: "esm", packages: "external" });
+  const output = join(directory, "export");
+  const script = `import { readFile } from "node:fs/promises";
+    import { buildStandaloneGame } from ${JSON.stringify(pathToFileURL(backend).href)};
+    const document = JSON.parse(await readFile(${JSON.stringify(staged.gamePath)}, "utf8"));
+    await buildStandaloneGame({ document, outputDir: ${JSON.stringify(output)}, resolveAsset: async () => null });`;
+  await promisify(execFile)(process.execPath, ["--conditions=nodetool-dev", "--import=tsx", "--input-type=module", "-e", script]);
+  expect(await readFile(join(output, "player-v1.js"))).toEqual(await readFile(staged.playerPath));
+  expect(JSON.parse(await readFile(join(output, "game.json"), "utf8")).id).toBe(game.id);
 });

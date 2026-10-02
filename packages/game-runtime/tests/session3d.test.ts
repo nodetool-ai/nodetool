@@ -129,6 +129,39 @@ describe("3D fixed-step session", () => {
 });
 
 describe("3D controller boundaries", () => {
+  it("lets script character intent suppress player jump input", async () => {
+    const source = `input => ({state:null,commands:[{kind:'characterIntent',movement:{x:0,y:0,z:0},jump:false}]})`;
+    const session = await createGameSession3D(fixture([], { behaviors: [{ kind: "script", maxTickMs: 50, source }] }), 1);
+    try {
+      stepTicks(session, 10);
+      expect(session.inspect({ entityId: "player" }).entities[0].grounded).toBe(true);
+      session.step(input({}, ["jump"]));
+      const player = session.inspect({ entityId: "player" }).entities[0];
+      expect(player.grounded).toBe(true);
+      expect(player.velocity.y).toBe(0);
+    } finally { session.dispose(); }
+  });
+
+  it("integrates kinematic angular velocity and replays rotation from a snapshot", async () => {
+    const initialComponent = Math.SQRT1_2;
+    const document = fixture([{ id: "rotator", transform3d: { position: { x: 4, y: 2, z: 0 }, rotation: [initialComponent, 0, 0, initialComponent] },
+      body3d: { type: "kinematic", angularVelocity: { x: 0, y: 1, z: 0 } },
+      collider3d: { kind: "box", halfExtents: { x: 1, y: 0.2, z: 1 } } }]);
+    const session = await createGameSession3D(document, 1);
+    try {
+      stepTicks(session, 30);
+      const checkpoint = session.snapshot();
+      stepTicks(session, 30);
+      const rotation = session.inspect({ entityId: "rotator" }).entities[0].transform.rotation;
+      expect(rotation[0]).toBeCloseTo(initialComponent * Math.cos(0.5), 3);
+      expect(rotation[1]).toBeCloseTo(initialComponent * Math.sin(0.5), 3);
+      expect(rotation[2]).toBeCloseTo(-initialComponent * Math.sin(0.5), 3);
+      expect(rotation[3]).toBeCloseTo(initialComponent * Math.cos(0.5), 3);
+      const replayed = await replayGame3D(document, 1, Array.from({ length: 30 }, () => input()), checkpoint);
+      expect(replayed.snapshot).toEqual(session.snapshot());
+    } finally { session.dispose(); }
+  });
+
   it("climbs configured steps and carries a grounded actor on a moving platform", async () => {
     const step = { id: "step", transform3d: { position: { x: 0, y: 0.1, z: -1.6 } }, body3d: { type: "static" }, collider3d: { kind: "box", halfExtents: { x: 2, y: 0.1, z: 1 } } };
     const session = await createGameSession3D(fixture([step]), 5);
@@ -209,6 +242,24 @@ describe("3D controller boundaries", () => {
 });
 
 describe("3D instance lifecycle", () => {
+  it("applies vertical spawn velocity to a character controller", async () => {
+    const document = fixture();
+    const player = document.scenes[0].entities.find((entity) => entity.id === "player")!;
+    document.prefabs.actor = { rootId: "player", externalAssets: [], externalScenes: [], entities: [{ ...player, behaviors: [] }] };
+    player.behaviors = [{ kind: "script", maxTickMs: 50, maxCommands: 64,
+      source: `input => ({state:null,commands:input.tick===0?[{kind:'spawn',prefabId:'actor',position:{x:5,y:10,z:0},velocity:{x:0,y:6,z:0}}]:[]})` }];
+    const session = await createGameSession3D(document, 1);
+    try {
+      session.step(input());
+      const spawned = session.inspect({ entityId: "actor#1/player" }).entities[0];
+      expect(spawned.controller?.verticalVelocity).toBe(6);
+      session.step(input());
+      const moved = session.inspect({ entityId: "actor#1/player" }).entities[0];
+      expect(moved.transform.position.y).toBeGreaterThan(10);
+      expect(moved.velocity.y).toBeCloseTo(6 + document.scenes[0].gravity.y / 60);
+    } finally { session.dispose(); }
+  });
+
   it("spawns a rooted prefab once, remaps children, restores scripts, and removes its subtree", async () => {
     const document = fixture([], { behaviors: [{ kind: "script", maxTickMs: 50, source: `(input) => ({state: null,commands: input.tick===0 ? [{kind:'spawn',prefabId:'actor',position:{x:2,y:1,z:0}}] : input.tick===3 ? [{kind:'despawn',entityId:'actor#1/root'}] : []})` }] });
     document.prefabs.actor = { rootId: "root", externalAssets: [], externalScenes: [], entities: gameDocument3D.parse({ ...document, scenes: [{ ...document.scenes[0], entities: [

@@ -1,6 +1,7 @@
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
+import { AssetCache, Canvas2DGameRenderer } from "../src/canvas2d.js";
 import { visibleItems } from "../src/frame.js";
 import { captureGameFrame } from "../src/node.js";
 
@@ -214,5 +215,35 @@ describe("headless blending", () => {
     const context = canvas.getContext("2d");
     context.drawImage(image, 0, 0);
     expect([...context.getImageData(256, 144, 1, 1).data]).toEqual([184, 210, 240, 255]);
+  });
+});
+
+describe("translucent sprite tinting", () => {
+  it.each(["capture", "canvas2d"])("preserves alpha and multiplies color in %s", async (backend) => {
+    const source = createCanvas(2, 1);
+    const sourceContext = source.getContext("2d");
+    sourceContext.fillStyle = "rgba(255, 0, 0, 0.5)";
+    sourceContext.fillRect(0, 0, 1, 1);
+    sourceContext.fillStyle = "#ffffff";
+    sourceContext.fillRect(1, 0, 1, 1);
+    const input = frame();
+    input.tiles = [];
+    input.sprites = [{ ...input.sprites[0]!, assetId: "tinted", x: 0, previousX: 0, width: 2, tint: "#00ff00" }];
+    const output = createCanvas(512, 288);
+    if (backend === "capture") {
+      const bytes = await captureGameFrame(input, { resolveAsset: async () => source.toBuffer("image/png") });
+      output.getContext("2d").drawImage(await loadImage(Buffer.from(bytes)), 0, 0);
+    } else {
+      vi.stubGlobal("document", { createElement: () => createCanvas(1, 1) });
+      vi.stubGlobal("HTMLImageElement", class {});
+      // Native canvases provide the 2D methods used by the browser renderer and its image cache.
+      const renderer = new Canvas2DGameRenderer(output as unknown as HTMLCanvasElement,
+        new AssetCache(async () => source as unknown as ImageBitmap));
+      try { await renderer.render(input, 1); }
+      finally { renderer.dispose(); vi.unstubAllGlobals(); }
+    }
+    const context = output.getContext("2d");
+    expect([...context.getImageData(240, 144, 1, 1).data]).toEqual([0, 0, 0, 127]);
+    expect([...context.getImageData(272, 144, 1, 1).data]).toEqual([0, 255, 0, 255]);
   });
 });

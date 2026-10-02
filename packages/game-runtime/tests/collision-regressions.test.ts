@@ -13,6 +13,69 @@ function game(entities: unknown[], scenes?: unknown[]): GameDocument {
 }
 
 describe("game collision and session boundaries", () => {
+  it.each([
+    { x: -2, y: 0, vx: 240, vy: 0, endX: 3, endY: 0, normalX: 1, normalY: 0 },
+    { x: 2, y: 0, vx: -240, vy: 0, endX: -3, endY: 0, normalX: -1, normalY: 0 },
+    { x: 0, y: -2, vx: 0, vy: 240, endX: 0, endY: 3, normalX: 0, normalY: 1 },
+    { x: 0, y: 2, vx: 0, vy: -240, endX: 0, endY: -3, normalX: 0, normalY: -1 },
+    { x: -2, y: -0.5, vx: 240, vy: 60, endX: 3, endY: 0, normalX: 1, normalY: 0 }
+  ])("pushes bodies swept by a fast platform ($vx, $vy)", ({ x, y, vx, vy, endX, endY, normalX, normalY }) => {
+    const session = createGameSession(game([
+      { id: "platform", transform2d: { x, y }, body2d: { type: "static", velocity: { x: vx, y: vy } }, collider2d: { width: 1, height: 1 } },
+      { id: "hero", transform2d: { x: 0, y: 0 }, body2d: { type: "kinematic" }, collider2d: { width: 1, height: 1 } }
+    ]), 0);
+    const step = session.step(idle);
+    expect(session.inspect({ entityId: "hero" }).entities[0]).toMatchObject({ x: endX, y: endY });
+    expect(step.events).toContainEqual(expect.objectContaining({ kind: "contact", entityId: "hero", otherId: "platform", phase: "enter", normalX, normalY }));
+    session.dispose();
+  });
+
+  it("stops a platform-pushed body at a wall", () => {
+    const session = createGameSession(game([
+      { id: "platform", transform2d: { x: -2, y: 0 }, body2d: { type: "static", velocity: { x: 240, y: 0 } }, collider2d: { width: 1, height: 1 } },
+      { id: "hero", transform2d: { x: 0, y: 0 }, body2d: { type: "kinematic" }, collider2d: { width: 1, height: 1 } },
+      { id: "wall", transform2d: { x: 2, y: 0 }, body2d: { type: "static" }, collider2d: { width: 1, height: 1 } }
+    ]), 0);
+    const step = session.step(idle);
+    expect(session.inspect({ entityId: "hero" }).entities[0].x).toBe(1);
+    expect(step.events).toContainEqual(expect.objectContaining({ kind: "contact", entityId: "hero", otherId: "wall", normalX: -1 }));
+    session.dispose();
+  });
+
+  it("ignores a diagonal platform whose swept bounds overlap but path misses", () => {
+    const session = createGameSession(game([
+      { id: "platform", transform2d: { x: -2, y: 2 }, body2d: { type: "static", velocity: { x: 240, y: -60 } }, collider2d: { width: 1, height: 1 } },
+      { id: "hero", transform2d: { x: 0, y: 0 }, body2d: { type: "kinematic" }, collider2d: { width: 1, height: 1 } }
+    ]), 0);
+    expect(session.step(idle).events).toEqual([]);
+    expect(session.inspect({ entityId: "hero" }).entities[0]).toMatchObject({ x: 0, y: 0 });
+    session.dispose();
+  });
+
+  it.each(["x", "y"] as const)("centers a spawned patrol on its final %s coordinate", async (axis) => {
+    const document = game([
+      { id: "spawner", transform2d: { x: 0, y: 0 }, behaviors: [{ kind: "script", maxTickMs: 50,
+        source: "() => ({ state: null, commands: [{ kind: 'spawn', prefabId: 'enemy', x: 20, y: 30 }, { kind: 'despawn', entityId: 'spawner' }] })" }] },
+      { id: "enemy", templateOnly: true, transform2d: { x: 0, y: 0 }, body2d: { type: "kinematic" },
+        behaviors: [{ kind: "patrol", axis, speed: 6, distance: 1 }] }
+    ]);
+    const session = await createScriptedGameSession(document, 0);
+    session.step(idle);
+    const start = axis === "x" ? 20 : 30;
+    session.step(idle);
+    expect(session.inspect({ entityId: "enemy#1" }).entities[0][axis]).toBeCloseTo(start + 0.1);
+    const restored = await createScriptedGameSession(document, 0, session.snapshot());
+    for (let tick = 0; tick < 30; tick += 1) {
+      session.step(idle);
+      restored.step(idle);
+      expect(session.inspect({ entityId: "enemy#1" }).entities[0][axis]).toBeGreaterThanOrEqual(start - 1.11);
+      expect(session.inspect({ entityId: "enemy#1" }).entities[0][axis]).toBeLessThanOrEqual(start + 1.11);
+    }
+    expect(restored.snapshot()).toEqual(session.snapshot());
+    session.dispose();
+    restored.dispose();
+  });
+
   it("stops a fast body at a thin wall and reports the impact normal", () => {
     const session = createGameSession(game([
       { id: "bullet", transform2d: { x: 0, y: 0 }, body2d: { type: "kinematic", velocity: { x: 240, y: 0 } }, collider2d: { width: 0.2, height: 0.2 } },

@@ -137,6 +137,16 @@ export function parseTint(tint: string | undefined): readonly [number, number, n
   ];
 }
 
+/** Multiplies straight RGB channels without blending tint into translucent edges. */
+export function tintPixels(pixels: Uint8ClampedArray, tint: string): void {
+  const channels = parseTint(tint);
+  for (let index = 0; index < pixels.length; index += 4) {
+    pixels[index] = Math.round(pixels[index] * channels[0]);
+    pixels[index + 1] = Math.round(pixels[index + 1] * channels[1]);
+    pixels[index + 2] = Math.round(pixels[index + 2] * channels[2]);
+  }
+}
+
 /** The subset of a 2D canvas context that HUD painting needs, shared by DOM and headless canvases. */
 export interface HudContext {
   fillStyle: unknown;

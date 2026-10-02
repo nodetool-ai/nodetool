@@ -391,7 +391,12 @@ export async function createGameSession3D(value: GameDocument3D, seed: number, s
                 if (!root) throw new Error("Prefab root is missing");
                 if ("position" in spawn && spawn.position) root.transform.position = root.localTransform.position = { ...spawn.position };
                 if ("rotation" in spawn && spawn.rotation) root.transform.rotation = root.localTransform.rotation = spawn.rotation;
-                if ("velocity" in spawn && spawn.velocity) root.velocity = { ...spawn.velocity };
+                if ("velocity" in spawn && spawn.velocity) {
+                  root.velocity = { ...spawn.velocity };
+                  if (root.controller) {
+                    root.controller.verticalVelocity = spawn.velocity.y;
+                  }
+                }
                 updateVisualHierarchy3D(spawned);
                 for (const state of spawned) { state.previousTransform = structuredClone(state.transform); currentSpatial().add(state); }
                 states.push(...spawned);

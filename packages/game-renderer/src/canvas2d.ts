@@ -1,6 +1,6 @@
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import type { GameRenderer, GameRendererCapabilities, GameRendererEffect, GameRendererStats } from "./index.js";
-import { paintHud, pixelRect, projectedCamera, visibleItems, type VisibleItem } from "./frame.js";
+import { paintHud, pixelRect, projectedCamera, tintPixels, visibleItems, type VisibleItem } from "./frame.js";
 import { applyLighting, spritePixelBounds } from "./lighting.js";
 
 export type GameImage = ImageBitmap | HTMLImageElement;
@@ -184,11 +184,9 @@ export class Canvas2DGameRenderer implements GameRenderer {
       throw new Error("Canvas2D tint target is unavailable");
     }
     context.drawImage(image, source.x, source.y, source.width, source.height, 0, 0, source.width, source.height);
-    context.globalCompositeOperation = "multiply";
-    context.fillStyle = tint;
-    context.fillRect(0, 0, source.width, source.height);
-    context.globalCompositeOperation = "destination-in";
-    context.drawImage(image, source.x, source.y, source.width, source.height, 0, 0, source.width, source.height);
+    const pixels = context.getImageData(0, 0, source.width, source.height);
+    tintPixels(pixels.data, tint);
+    context.putImageData(pixels, 0, 0);
     const bytes = source.width * source.height * 4;
     if (bytes <= 16 * 1024 * 1024) {
       while (this.tinted.size >= 64 || this.tintedBytes + bytes > 16 * 1024 * 1024) {

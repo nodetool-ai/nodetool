@@ -4,6 +4,7 @@ import { mkdir, mkdtemp, readFile, readdir, rename, rm, rmdir, writeFile } from 
 import { dirname, join, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
+import { resolvePackageAssetPath } from "@nodetool-ai/config";
 import { GlobalFonts } from "@napi-rs/canvas";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import { validateGame } from "@nodetool-ai/game-runtime";
@@ -125,6 +126,32 @@ body.touch .touch-layer{display:block;position:fixed;inset:0;z-index:2;pointer-e
 .touch-button.active{background:#ffffff59;transform:scale(.94)}
 @media (orientation:portrait){body.touch.landscape-game .rotate{display:flex;position:fixed;inset:0;z-index:4;align-items:center;justify-content:center;padding:2rem;text-align:center;font-size:1.25rem;background:#000e}}`;
 
+async function playerBundle(): Promise<Uint8Array> {
+  const sourceEntry = fileURLToPath(new URL("./standalone-player.ts", import.meta.url));
+  const compiledEntry = fileURLToPath(new URL("./standalone-player.js", import.meta.url));
+  if (!existsSync(sourceEntry) && !existsSync(compiledEntry)) {
+    return readFile(resolvePackageAssetPath({ pkg: "@nodetool-ai/game-renderer", path: PLAYER_FILE }, import.meta.url));
+  }
+  const entry = existsSync(sourceEntry) ? sourceEntry : compiledEntry;
+  const bundled = await build({
+    entryPoints: [entry],
+    outfile: PLAYER_FILE,
+    bundle: true,
+    platform: "browser",
+    format: "esm",
+    target: "es2022",
+    minify: true,
+    write: false,
+    conditions: ["nodetool-dev"],
+    logLevel: "silent",
+  });
+  const player = bundled.outputFiles?.[0];
+  if (!player) {
+    throw new Error("Standalone player bundle was empty");
+  }
+  return player.contents;
+}
+
 /** Builds a self-contained web player with local content-addressed media. */
 export async function buildStandaloneGame(options: BuildStandaloneGameOptions): Promise<StandaloneGameBuild> {
   const validation = validateGame(options.document);
@@ -136,24 +163,7 @@ export async function buildStandaloneGame(options: BuildStandaloneGameOptions): 
   await mkdir(dirname(outputDir), { recursive: true });
   const staging = await mkdtemp(join(dirname(outputDir), ".nodetool-game-build-"));
   try {
-    const sourceEntry = fileURLToPath(new URL("./standalone-player.ts", import.meta.url));
-    const entry = existsSync(sourceEntry) ? sourceEntry : fileURLToPath(new URL("./standalone-player.js", import.meta.url));
-    const bundled = await build({
-      entryPoints: [entry],
-      outfile: PLAYER_FILE,
-      bundle: true,
-      platform: "browser",
-      format: "esm",
-      target: "es2022",
-      minify: true,
-      write: false,
-      conditions: ["nodetool-dev"],
-      logLevel: "silent",
-    });
-    const player = bundled.outputFiles?.[0];
-    if (!player) {
-      throw new Error("Standalone player bundle was empty");
-    }
+    const player = await playerBundle();
     const wasmPath = fileURLToPath(import.meta.resolve("@jitl/quickjs-ng-wasmfile-release-sync/wasm"));
     const scriptRuntime = await readFile(wasmPath);
     const exportedAssets: GameDocument["assets"] = {};
@@ -230,7 +240,7 @@ export async function buildStandaloneGame(options: BuildStandaloneGameOptions): 
       writeFile(join(staging, "index.html"), html()),
       writeFile(join(staging, "style.css"), CSS),
       writeFile(join(staging, "game.json"), JSON.stringify(exportedDocument)),
-      writeFile(join(staging, PLAYER_FILE), player.contents),
+      writeFile(join(staging, PLAYER_FILE), player),
       writeFile(join(staging, "emscripten-module.wasm"), scriptRuntime),
     ]);
     let existing: string[] | undefined;
