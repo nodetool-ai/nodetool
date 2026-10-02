@@ -1,5 +1,5 @@
 import { assert, describe, expect, it } from "vitest";
-import { applyBundle, parseApplicationBundle } from "@nodetool-ai/app-runtime";
+import { applyBundle, parseApplicationBundle, compileRecipeApplication } from "@nodetool-ai/app-runtime";
 import { applicationDocument } from "@nodetool-ai/protocol/api-schemas/applications.js";
 import { bundleTarget, simulateApp } from "@nodetool-ai/execution/app-debug";
 import { COMPILED_RECIPE_FIXTURES, TESTIMONIAL_MANIFEST } from "../example-apps/recipe-manifests.mjs";
@@ -59,6 +59,26 @@ describe("shared executable Recipe operations", () => {
       expect(report.validation.errors).toEqual([]);
       expect(report.verdict.ok).toBe(true);
     }
+  });
+  it("validates a compiled explicit workflow target through the normal app-debug binding path", async () => {
+    const recipe = {schemaVersion: 1, slug: "pinned-quote", inputs: [{id: "quote", label: "Quote", kind: "text", required: true}], operations: [{id: "plan", bindingId: "plan", intent: "quote"}], outputs: [{id: "result", kind: "value"}]};
+    const contract = {id: "quote", version: 1, inputs: {quote: {type: "str", required: true}}, outputs: {result: {type: "str", required: true}}, spend: "none", sideEffects: [], preservation: [], mediaStrategies: [], idempotency: "read_only", staleness: "none"};
+    const binding = {id: "plan", name: "Quote", workflowId: "", target: {kind: "workflow", workflowId: "pinned-workflow", workflowVersion: 7}, inputs: {quote: {from: "variable", variableId: "quote"}}, outputs: {result: {to: "variable", variableId: "result"}}, policy: "replace"};
+    const compiled = compileRecipeApplication(recipe, {operations: [{contract, binding}]});
+    assert(compiled.status === "ok");
+    expect(compiled.document.operations[0].workflowId).toBe("pinned-workflow");
+    expect(compiled.document.operations[0].workflowVersion).toBe(7);
+    const bundle = parseApplicationBundle({schemaVersion: 1, name: "Pinned quote", description: "", app: compiled.document, scripts: [], workflows: [{key: "pinned-workflow", name: "Quote", version: 7, graph: {nodes: [{id: "quote", type: "nodetool.input.StringInput", properties: {name: "quote"}}, {id: "result", type: "nodetool.output.StringOutput", properties: {name: "result"}}], edges: []}}]});
+    assert(bundle);
+    const dependencies = {runOnServer: async () => {throw new Error("Static validation must not execute");}};
+    const report = await simulateApp(bundleTarget(bundle, "pinned-quote"), {run: false}, dependencies);
+    expect(report.validation.errors).toEqual([]);
+    expect(report.verdict.ok).toBe(true);
+    const broken = structuredClone(bundle);
+    broken.app.operations[0].workflowId = "missing-workflow";
+    const invalid = await simulateApp(bundleTarget(broken, "broken-pinned-quote"), {run: false}, dependencies);
+    expect(invalid.validation.errors.length).toBeGreaterThan(0);
+    expect(invalid.verdict.ok).toBe(false);
   });
   it("normal bundle installation preserves concrete pins and semantic contract versions", async () => {
     const source = COMPILED_RECIPE_FIXTURES[0];

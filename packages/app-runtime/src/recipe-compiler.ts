@@ -217,7 +217,13 @@ export const compileRecipeApplication = (
     }
   }
   recipe.outputs.forEach(emitOutput);
-  const document: ApplicationDocument = {schemaVersion: APP_SCHEMA_VERSION, recipe: structuredClone(recipe), variables: [...variables.values()], operations: selected.map(({binding}) => structuredClone(binding)), resources: [], ui: {root: {props: {title: options.title ?? recipe.slug}}, content}};
+  const operations = selected.map(({binding}) => {
+    const target = operationTarget(binding);
+    return structuredClone(target.kind === "workflow"
+      ? {...binding, workflowId: target.workflowId, workflowVersion: target.workflowVersion}
+      : binding);
+  });
+  const document: ApplicationDocument = {schemaVersion: APP_SCHEMA_VERSION, recipe: structuredClone(recipe), variables: [...variables.values()], operations, resources: [], ui: {root: {props: {title: options.title ?? recipe.slug}}, content}};
   for (const message of validateRecipeBindings(document)) {error("recipe.bindings", message);}
   if (diagnostics.length > 0) {return {status: "error", diagnostics};}
   if (content.some((entry) => !isRecord(entry) || !isString(entry.type) || !isKnownWidget(entry.type))) {return {status: "error", diagnostics: [{path: "application.ui", message: "Compiled Recipe contains an unsupported widget."}]};}

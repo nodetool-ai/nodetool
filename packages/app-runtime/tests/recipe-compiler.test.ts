@@ -150,6 +150,17 @@ describe("Recipe compiler", () => {
     value.creativeStrategy.shots![0].elements[0].inputId = "missing";
     expect(messages(value)).toContain("Malformed");
   });
+  it.each(["", "old-workflow", "pinned-workflow"])("normalizes an explicit workflow target without losing its pin when legacy ID is %s", legacyId => {
+    const bound = operation();
+    bound.binding.workflowId = legacyId;
+    bound.binding.target = {kind: "workflow", workflowId: "pinned-workflow", workflowVersion: 7};
+    const original = structuredClone(bound);
+    const result = compileRecipeApplication(manifest(), {operations: [bound]});
+    if (result.status !== "ok") { throw new Error(JSON.stringify(result.diagnostics)); }
+    expect(result.document.operations[0]).toMatchObject({workflowId: "pinned-workflow", workflowVersion: 7});
+    expect(parseApplicationDocument(result.document)).toEqual(result.document);
+    expect(bound).toEqual(original);
+  });
   it("requires a concrete pinned target and retains a normal pinned workflow", () => {
     const bound = operation(); bound.binding.target = {kind: "script", scriptId: "", scriptVersion: 0};
     expect(messages(manifest(), [bound])).toContain("pin a positive target version");
