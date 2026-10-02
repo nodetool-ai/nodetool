@@ -1717,35 +1717,54 @@ describe("GlobalChatStore", () => {
   });
 
   describe("State Persistence", () => {
-    it("partialize function returns only threads and currentThreadId", () => {
-      const mockState = {
-        status: "connected" as const,
-        statusMessage: "test",
-        progress: { current: 5, total: 10 },
-        error: "test error",
-        workflowId: "workflow-123",
-        socket: {} as WebSocket,
-        threads: { "thread-1": {} as any },
-        currentThreadId: "thread-1"
-        // ... other properties would be here in real state
-      } as any;
-
-      // Access the partialize function from the store config
-      // Note: This tests the partialize logic conceptually
-      const persistedState = {
-        threads: mockState.threads,
-        currentThreadId: mockState.currentThreadId
-      };
-
-      expect(persistedState).toEqual({
-        threads: { "thread-1": {} },
-        currentThreadId: "thread-1"
+    it("does not write conversations to localStorage", () => {
+      const options = store.persist.getOptions();
+      const persisted = options.partialize!({
+        ...store.getState(),
+        threads: {
+          "thread-1": {
+            id: "thread-1",
+            title: "secret",
+            created_at: "2026-01-01T00:00:00Z",
+            updated_at: "2026-01-01T00:00:00Z"
+          }
+        } as any,
+        messageCache: { "thread-1": [] },
+        workflowThreadId: { "wf-1": "thread-1" },
+        threadWorkflowId: { "thread-1": "wf-1" },
+        lastUsedThreadId: "thread-1"
       });
 
-      // Verify that connection state is not persisted
-      expect(persistedState).not.toHaveProperty("status");
-      expect(persistedState).not.toHaveProperty("socket");
-      expect(persistedState).not.toHaveProperty("error");
+      expect(Object.keys(persisted).sort()).toEqual([
+        "lastPermissionMode",
+        "lastUsedThreadId",
+        "permissionMode",
+        "selectedModel",
+        "threadModel"
+      ]);
+      expect(JSON.stringify(persisted)).not.toContain("secret");
+    });
+
+    it("drops conversations from a version 1 payload", async () => {
+      const options = store.persist.getOptions();
+      const migrated = await options.migrate!(
+        {
+          threads: { "thread-1": { id: "thread-1", title: "old" } },
+          workflowThreadId: { "wf-1": "thread-1" },
+          threadWorkflowId: { "thread-1": "wf-1" },
+          lastUsedThreadId: "thread-1",
+          selectedModel: null,
+          permissionMode: { "thread-1": "plan" },
+          lastPermissionMode: "plan"
+        },
+        1
+      );
+
+      expect(migrated).not.toHaveProperty("threads");
+      expect(migrated).not.toHaveProperty("workflowThreadId");
+      expect(migrated).not.toHaveProperty("threadWorkflowId");
+      expect(migrated.lastUsedThreadId).toBe("thread-1");
+      expect(migrated.permissionMode).toEqual({ "thread-1": "plan" });
     });
   });
 });
