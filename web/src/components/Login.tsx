@@ -4,7 +4,6 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
 import GoogleAuthButton from "./buttons/GoogleAuthButton";
-import Logo from "./Logo";
 import {
   Text,
   Caption,
@@ -19,6 +18,7 @@ import {
 
 const STUDIO_URL = "https://nodetool.ai/studio";
 const CONTENT_WIDTH = "380px";
+const LOGO_SIZE = "64px";
 
 const styles = (theme: Theme) =>
   css({
@@ -27,6 +27,11 @@ const styles = (theme: Theme) =>
     ".login-card": {
       width: "100%",
       maxWidth: CONTENT_WIDTH
+    },
+    ".logo": {
+      display: "block",
+      width: LOGO_SIZE,
+      height: LOGO_SIZE
     },
     ".alpha-badge": {
       color: theme.vars.palette.warning.main,
@@ -79,14 +84,7 @@ function Login() {
     >
       <Card className="login-card" variant="outlined" padding="spacious">
         <FlexColumn align="center" gap={SPACING.xl}>
-          <Logo
-            width="80px"
-            height="80px"
-            fontSize="28px"
-            borderRadius={BORDER_RADIUS.lg}
-            small={false}
-            enableText
-          />
+          <img className="logo" src="/logo192.png" alt="NodeTool" />
           <FlexColumn align="center" gap={SPACING.md}>
             <Caption className="alpha-badge" size="smaller" color="warning">
               Cloud alpha
