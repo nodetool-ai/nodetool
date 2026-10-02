@@ -667,6 +667,76 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
       current.revision
     );
   });
+  it("rolls back added protected copy with its mixed batch and accepts corrected authoring", async () => {
+    const { board, context } = await fixture();
+    let original: ReturnType<typeof authorContext>["scaffold"]["clips"][number];
+    const provider = new FinishingProvider([
+      (args) => {
+        original = authorContext(args).scaffold.clips.find(
+          (clip) => clip.storyboardElementId === "price"
+        )!;
+        return [
+          call("edit_timeline", {
+            ops: [
+              { op: "set_clip_params", target: original.id, fontSizePx: 999 },
+              {
+                op: "add_text_clip",
+                name: "duplicate-price",
+                text: " €29 ",
+                trackId: original.trackId,
+                startMs: original.startMs,
+                durationMs: original.durationMs
+              }
+            ]
+          })
+        ];
+      },
+      (args) => {
+        const response = args.messages
+          .filter((message) => message.role === "tool")
+          .at(-1)?.content;
+        expect(JSON.parse(String(response))).toMatchObject({
+          ok: false,
+          rolledBack: true,
+          error: expect.stringContaining(
+            "Additional text must use approved unprotected Storyboard copy"
+          )
+        });
+        expect(String(response)).toContain("set_clip_params");
+        return [call("get_timeline")];
+      },
+      (args) => {
+        const response = args.messages
+          .filter((message) => message.role === "tool")
+          .at(-1)?.content;
+        expect(JSON.parse(String(response))).toMatchObject({
+          clips: expect.arrayContaining([
+            expect.objectContaining({
+              id: original.id,
+              textStyle: expect.objectContaining({
+                fontSizePx: original.textStyle!.fontSizePx
+              })
+            })
+          ])
+        });
+        expect(String(response)).not.toContain("duplicate-price");
+        return craft(args);
+      },
+      done,
+      approve,
+      done
+    ]);
+    const result = await execute(provider, context, board);
+    expect(result.error).toBeUndefined();
+    const timeline = await TimelineSequence.findById(String(result["timelineId"]));
+    expect(
+      timeline?.toDocument().clips.some((clip) => clip.name === "duplicate-price")
+    ).toBe(false);
+    expect(
+      timeline?.toDocument().clips.find((clip) => clip.id === original.id)
+        ?.textStyle?.fontSizePx
+    ).toBe(170);
+  });
   it("rolls back forbidden source timing at the edit boundary and accepts a corrected authored candidate", async () => {
     const { board, context } = await fixture();
     let original:

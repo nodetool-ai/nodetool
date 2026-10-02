@@ -245,6 +245,127 @@ export async function finishStoryboardAgentically(
         ),
       duration: Math.max(1, (shot.duration_seconds ?? 4) * 1000)
     }));
+  const assertCandidateOwnership = (
+    candidate: FinishedStoryboardDocument
+  ): void => {
+    for (const clip of candidate.clips) {
+      const before = initial.get(clip.id);
+      if (before) {
+        if (
+          clip.storyboardBoardId !== before.storyboardBoardId ||
+          clip.storyboardShotId !== before.storyboardShotId ||
+          clip.storyboardElementId !== before.storyboardElementId
+        ) {
+          throw new Error(
+            `Finishing cannot replace semantic ownership on ${clip.id}.`
+          );
+        }
+      } else {
+        const window = windows.find(
+          (value) =>
+            clip.startMs >= value.start &&
+            clip.startMs + clip.durationMs <= value.start + value.duration
+        );
+        if (!window || !["text", "shape", "group"].includes(clip.mediaType)) {
+          throw new Error(
+            "New finishing layers must be editable text/shapes/groups inside an existing shot window. Add source media to the Storyboard first."
+          );
+        }
+        if (clip.mediaType === "text") {
+          const shot = input.shots.find((value) => value.id === window.shotId);
+          const allowedCopy = (shot?.graphics?.elements ?? [])
+            .filter(
+              (element) =>
+                element.kind === "text" && !element.protected_input_id
+            )
+            .map((element) => element.text);
+          if (!allowedCopy.includes(clip.textStyle?.text)) {
+            throw new Error(
+              "Additional text must use approved unprotected Storyboard copy. Protected copy already has its exact semantic layer."
+            );
+          }
+        }
+      }
+      const current = input.current?.clips.find(
+        (value) => value.id === clip.id
+      );
+      if (current && clip.name !== current.name) {
+        throw new Error(
+          `Finishing cannot rename existing Timeline layer ${clip.id}. Preserve its current user-owned name.`
+        );
+      }
+      if (current && current.storyboardMaterializationBaseline) {
+        const baseline: unknown = JSON.parse(
+          current.storyboardMaterializationBaseline
+        );
+        if (isRecord(baseline)) {
+          for (const field of [
+            "transform",
+            "startMs",
+            "durationMs",
+            "layout",
+            "flexItem",
+            "mask",
+            "transitionIn"
+          ] as const) {
+            if (
+              json(current[field]) !== json(baseline[field]) &&
+              json(clip[field]) !== json(current[field])
+            ) {
+              throw new Error(
+                `Manual ${field} edit on ${clip.id} conflicts with finishing. Keep the manual value or use a separate Timeline.`
+              );
+            }
+          }
+        }
+      }
+    }
+    if (json(candidate.markers) !== json(scaffold.markers)) {
+      throw new Error(
+        "Finishing cannot modify manually owned Timeline markers."
+      );
+    }
+    for (const track of scaffold.tracks) {
+      if (
+        input.current?.tracks.some((value) => value.id === track.id) &&
+        json(candidate.tracks.find((value) => value.id === track.id)) !==
+          json(track)
+      ) {
+        throw new Error(
+          `Finishing cannot change an existing track's manually owned configuration: ${track.id}.`
+        );
+      }
+    }
+    for (const before of scaffold.clips) {
+      const after = candidate.clips.find((value) => value.id === before.id);
+      if (!after) {
+        throw new Error(`Finishing cannot delete source layer ${before.id}.`);
+      }
+      if (
+        before.storyboardBoardId !== input.boardId &&
+        json(before) !== json(after)
+      ) {
+        throw new Error(
+          `Finishing cannot change manually owned layer ${before.id}.`
+        );
+      }
+      if (
+        before.storyboardBoardId === input.boardId &&
+        (before.mediaType !== after.mediaType ||
+          before.currentAssetId !== after.currentAssetId ||
+          before.sourceType !== after.sourceType ||
+          json(before.versions) !== json(after.versions))
+      ) {
+        throw new Error(
+          `Finishing cannot replace accepted source media on ${before.id}.`
+        );
+      }
+      const windowError = sourceWindowConflict(before, after, input.boardId);
+      if (windowError) {
+        throw new Error(windowError);
+      }
+    }
+  };
   const permittedOpNames = [
     "get_state",
     "list_animation_presets",
@@ -287,7 +408,7 @@ export async function finishStoryboardAgentically(
     "set_clip_params uses fontSizePx (not fontSize), textStyle and transform.position.x/y in sequence pixels relative to frame center. " +
     "Protected layers may use only fade (requires allowed opacity), slide (opacity+position) or pop (opacity+scale). " +
     "Other protected presets/custom curves, group inheritance, masks/effects fail policy validation. Unprotected decorative layers can use existing animation presets/custom curves. " +
-    "New editable decorative layers require stable name/startMs/durationMs inside one shot window. Read every edit result and fix failures before submitting.";
+    "New editable decorative layers require stable name/startMs/durationMs inside one shot window. New text may only use approved unprotected Storyboard copy; protected copy already has its exact semantic layer, so use set_clip_params on that existing clip to author its presentation. Read every edit result and fix failures before submitting.";
   let previousCandidateImages: MessageContent[] = [];
   const inspect: ProviderTool = {
     name: "get_timeline",
@@ -438,6 +559,7 @@ export async function finishStoryboardAgentically(
   for (let round = 0; round < 3; round += 1) {
     const beforeRevision = json(document);
     let submitted = false;
+    let rejectedEdit: string | undefined;
     const editResults: string[] = [];
     const recordEditResult = (result: string): string => {
       editResults.push(result.slice(0, 1600));
@@ -490,6 +612,11 @@ export async function finishStoryboardAgentically(
           return json(document);
         }
         if (call.name === submit.name) {
+          if (rejectedEdit) {
+            return recordEditResult(
+              `Correct the rejected edit before submitting: ${rejectedEdit}`
+            );
+          }
           if (
             needsInitialAuthoring &&
             composition(document) === scaffoldComposition
@@ -605,24 +732,7 @@ export async function finishStoryboardAgentically(
           mediaTracks: outcome.state.mediaTracks,
           tempo: outcome.state.tempo
         };
-        const windowError = candidate.clips
-          .map((clip) =>
-            sourceWindowConflict(initial.get(clip.id), clip, input.boardId)
-          )
-          .find((error) => error !== undefined);
-        if (windowError) {
-          return recordEditResult(
-            json({
-              ok: false,
-              rolledBack: true,
-              error: windowError,
-              resolution:
-                "No changes from this batch were applied. Remove source timing changes, then retry the intended layout or animation edits."
-            })
-          );
-        }
-        document = candidate;
-        for (const clip of document.clips) {
+        for (const clip of candidate.clips) {
           if (initial.has(clip.id) || clip.storyboardBoardId) {
             continue;
           }
@@ -637,6 +747,22 @@ export async function finishStoryboardAgentically(
             clip.storyboardElementId = `$agent:${clip.mediaType}:${encodeURIComponent(clip.name.trim())}`;
           }
         }
+        try {
+          assertCandidateOwnership(candidate);
+        } catch (error) {
+          rejectedEdit = error instanceof Error ? error.message : String(error);
+          return recordEditResult(
+            json({
+              ok: false,
+              rolledBack: true,
+              error: rejectedEdit,
+              resolution:
+                "No changes from this batch were applied. Preserve source timing, ownership and manual edits. Edit existing protected copy with set_clip_params for presentation only. New text must use approved unprotected Storyboard copy. Retry the corrected batch."
+            })
+          );
+        }
+        document = candidate;
+        rejectedEdit = undefined;
         return recordEditResult(json([...existingResults, ...outcome.records]));
       }
     );
@@ -650,126 +776,7 @@ export async function finishStoryboardAgentically(
         `Finishing did not revise the draft after reported defects: ${diagnostics()}`
       );
     }
-    for (const clip of document.clips) {
-      const before = initial.get(clip.id);
-      if (before) {
-        if (
-          clip.storyboardBoardId !== before.storyboardBoardId ||
-          clip.storyboardShotId !== before.storyboardShotId ||
-          clip.storyboardElementId !== before.storyboardElementId
-        ) {
-          throw new Error(
-            `Finishing cannot replace semantic ownership on ${clip.id}.`
-          );
-        }
-      } else {
-        const window = windows.find(
-          (value) =>
-            clip.startMs >= value.start &&
-            clip.startMs + clip.durationMs <= value.start + value.duration
-        );
-        if (!window || !["text", "shape", "group"].includes(clip.mediaType)) {
-          throw new Error(
-            "New finishing layers must be editable text/shapes/groups inside an existing shot window. Add source media to the Storyboard first."
-          );
-        }
-        if (clip.mediaType === "text") {
-          const shot = input.shots.find((value) => value.id === window.shotId);
-          const allowedCopy = (shot?.graphics?.elements ?? [])
-            .filter(
-              (element) =>
-                element.kind === "text" && !element.protected_input_id
-            )
-            .map((element) => element.text);
-          if (!allowedCopy.includes(clip.textStyle?.text)) {
-            throw new Error(
-              "Additional text must use approved unprotected Storyboard copy. Protected copy already has its exact semantic layer."
-            );
-          }
-        }
-        clip.storyboardBoardId = input.boardId;
-        clip.storyboardShotId = window.shotId;
-        clip.storyboardElementId ??= `$agent:${clip.mediaType}:${encodeURIComponent(clip.name.trim())}`;
-      }
-      const current = input.current?.clips.find(
-        (value) => value.id === clip.id
-      );
-      if (current && clip.name !== current.name) {
-        throw new Error(
-          `Finishing cannot rename existing Timeline layer ${clip.id}. Preserve its current user-owned name.`
-        );
-      }
-      if (current && current.storyboardMaterializationBaseline) {
-        const baseline: unknown = JSON.parse(
-          current.storyboardMaterializationBaseline
-        );
-        if (isRecord(baseline)) {
-          for (const field of [
-            "transform",
-            "startMs",
-            "durationMs",
-            "layout",
-            "flexItem",
-            "mask",
-            "transitionIn"
-          ] as const) {
-            if (
-              json(current[field]) !== json(baseline[field]) &&
-              json(clip[field]) !== json(current[field])
-            ) {
-              throw new Error(
-                `Manual ${field} edit on ${clip.id} conflicts with finishing. Keep the manual value or use a separate Timeline.`
-              );
-            }
-          }
-        }
-      }
-    }
-    if (json(document.markers) !== json(scaffold.markers)) {
-      throw new Error(
-        "Finishing cannot modify manually owned Timeline markers."
-      );
-    }
-    for (const track of scaffold.tracks) {
-      if (
-        input.current?.tracks.some((value) => value.id === track.id) &&
-        json(document.tracks.find((value) => value.id === track.id)) !==
-          json(track)
-      ) {
-        throw new Error(
-          `Finishing cannot change an existing track's manually owned configuration: ${track.id}.`
-        );
-      }
-    }
-    for (const before of scaffold.clips) {
-      const after = document.clips.find((value) => value.id === before.id);
-      if (!after) {
-        throw new Error(`Finishing cannot delete source layer ${before.id}.`);
-      }
-      if (
-        before.storyboardBoardId !== input.boardId &&
-        json(before) !== json(after)
-      ) {
-        throw new Error(
-          `Finishing cannot change manually owned layer ${before.id}.`
-        );
-      }
-      if (
-        before.storyboardBoardId === input.boardId &&
-        (before.mediaType !== after.mediaType ||
-          before.currentAssetId !== after.currentAssetId ||
-          before.sourceType !== after.sourceType ||
-          json(before.versions) !== json(after.versions))
-      ) {
-        throw new Error(
-          `Finishing cannot replace accepted source media on ${before.id}.`
-        );
-      }
-      const windowError = sourceWindowConflict(before, after, input.boardId);
-      if (windowError) {
-        throw new Error(windowError);
-      }
-    }
+    assertCandidateOwnership(document);
     const policy = validateProducedTimeline(input, document);
     const structural = validateTimelineSequence(document, {
       fps: sequence.fps,
