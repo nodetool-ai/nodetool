@@ -32,10 +32,13 @@ Authenticated endpoints use a Bearer token:
 Authorization: Bearer <TOKEN>
 ```
 
-Token source depends on the auth provider:
-- `static`: `SERVER_AUTH_TOKEN` env var
-- `supabase`: Supabase JWT
-- `local` / `none`: no auth required
+The server picks its mode from the Supabase credentials:
+- Supabase mode (`SUPABASE_URL` and `SUPABASE_KEY` both set): send a Supabase
+  JWT. Every non-public endpoint requires it.
+- Local mode (default): loopback requests need no token and run as user
+  `"1"`. Other sources get `401`.
+
+The server does not accept `SERVER_AUTH_TOKEN` as a bearer token.
 
 # REST Endpoints
 

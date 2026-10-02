@@ -11,7 +11,7 @@ import { writeFileSync } from "fs";
 import yaml from "js-yaml";
 import type { ContainerConfig, DockerDeployment } from "./deployment-config.js";
 import { imageConfigFullName } from "./deployment-config.js";
-import { INTERNAL_API_PORT, APP_ENV_PORT } from "./docker-run.js";
+import { INTERNAL_API_PORT } from "./docker-run.js";
 
 interface ComposeService {
   image: string;
@@ -148,8 +148,10 @@ export class ComposeGenerator {
       ? { ...container.environment }
       : {};
 
-    env["PORT"] = String(APP_ENV_PORT);
-    env["NODETOOL_API_URL"] = `http://localhost:${container.port}`;
+    // The server binds PORT, so it must match the published container port
+    // and the health check. NODETOOL_API_URL is read inside the container.
+    env["PORT"] = String(INTERNAL_API_PORT);
+    env["NODETOOL_API_URL"] = `http://localhost:${INTERNAL_API_PORT}`;
 
     return Object.entries(env).map(([key, value]) => `${key}=${value}`);
   }

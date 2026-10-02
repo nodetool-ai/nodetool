@@ -7,9 +7,11 @@ import {
   type SdkV1ModelDownloadStartRequest,
   type SdkV1ModelDownloadState
 } from "@nodetool-ai/protocol/api-schemas/sdk-models-v1.js";
+import { getSecret as getStoredSecret } from "@nodetool-ai/models";
 import {
   getDownloadManager,
   getExistingDownloadManager,
+  resolveWorkerHfToken,
   type DownloadStateSnapshot,
   type DownloadUpdate
 } from "@nodetool-ai/huggingface";
@@ -131,9 +133,12 @@ export function createSdkV1ModelDownloadService(
   const byUser = new Map<string, Map<string, DownloadRun>>();
   const startHuggingFaceDownload =
     options.startHuggingFaceDownload ??
-    ((userId, request, onProgress) =>
+    (async (userId, request, onProgress) =>
       getDownloadManager(userId).startDownload(request.repo_id, {
         path: request.path ?? null,
+        token:
+          (await resolveWorkerHfToken((key) => getStoredSecret(key, userId))) ??
+          null,
         allowPatterns: request.path
           ? [request.path]
           : (request.allow_patterns ?? null),

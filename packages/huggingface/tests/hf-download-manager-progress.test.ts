@@ -56,4 +56,22 @@ describe("DownloadManager terminal progress", () => {
       total_bytes: 100
     });
   });
+
+  it("authenticates with a per-download token over the manager's", async () => {
+    listFilesMock.mockImplementation(async function* () {
+      yield { type: "file", path: "model.json", size: 1 };
+    });
+    asyncHfDownloadMock.mockResolvedValue("Z:/cache/model.json");
+
+    await new DownloadManager("manager-token").startDownload("org/gated", {
+      token: "settings-token"
+    });
+
+    expect(listFilesMock.mock.calls[0][0]).toMatchObject({
+      accessToken: "settings-token"
+    });
+    expect(asyncHfDownloadMock.mock.calls[0][2]).toMatchObject({
+      token: "settings-token"
+    });
+  });
 });

@@ -175,6 +175,7 @@ describe("package docs", () => {
       const { stderr, exitCode } = await runCommand(["docs"]);
       expect(exitCode).toBe(1);
       expect(stderr.join("\n")).toContain("package_metadata");
+      expect(stderr.join("\n")).toContain("python -m nodetool.package_tools scan");
     } finally {
       process.chdir(cwd);
     }
@@ -311,12 +312,14 @@ describe("package init", () => {
       );
       expect(pkg.name).toBe("nodetool-foo");
       expect(pkg.description).toBe("A test package");
+      // The pack loader skips any package.json without this field.
+      expect(pkg.nodetool).toEqual({ apiVersion: 1, register: "register" });
 
       const src = fs.readFileSync(
         path.join(tmp, "src", "index.ts"),
         "utf8"
       );
-      expect(src).toContain("registerNodes");
+      expect(src).toContain("export function register(");
       expect(src).toContain("NodeRegistry");
     } finally {
       process.chdir(cwd);

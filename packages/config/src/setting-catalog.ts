@@ -89,7 +89,7 @@ s(
 s(
   "USERS_FILE",
   "Folders",
-  "Path to users.yaml file for multi-user bearer token authentication. Defaults to ~/.config/nodetool/users.yaml for local deployments."
+  "Path to the users.json registry of API users and hashed bearer tokens. Defaults to ~/.config/nodetool/users.json, or %APPDATA%\\nodetool\\users.json on Windows."
 );
 s(
   "TRANSFORMERS_JS_CACHE_DIR",
