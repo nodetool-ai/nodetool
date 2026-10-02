@@ -28,7 +28,7 @@ import LogPanel from "./LogPanel";
 import QueuePanel from "./jobs/QueuePanel";
 import WorkersPanel from "../workers/WorkersPanel";
 import WorkerStatusIndicator from "../workers/WorkerStatusIndicator";
-import { VersionHistoryPanel } from "../version";
+import { VersionHistoryPanel } from "../version/VersionHistoryPanel";
 import PanelHeadline from "../ui/PanelHeadline";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
