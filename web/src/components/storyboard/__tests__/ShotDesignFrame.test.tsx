@@ -35,9 +35,17 @@ let queryClient: QueryClient;
 const getAssetQuery = trpcClient.assets.get.query as jest.Mock;
 const canonical = "a".repeat(32);
 const replacement = "b".repeat(32);
-const sourceAsset = (id = canonical, projectId = "another-project", referenceId?: string) => ({
-  id, user_id: "owned-user", project_id: projectId, name: "Product", content_type: "image/png", created_at: "", metadata: {nodetool_entity: {kind: "prop", name: "Product", descriptor: "Exact product", ...(referenceId ? {reference_asset_id: referenceId} : {})}}
-});
+const sourceAsset = (id = canonical, projectId = "another-project", referenceId?: string) => {
+  const marker: {kind: string; name: string; descriptor: string; reference_asset_id?: string} = {
+    kind: "prop", name: "Product", descriptor: "Exact product"
+  };
+  if (referenceId) {
+    marker.reference_asset_id = referenceId;
+  }
+  return {
+    id, user_id: "owned-user", project_id: projectId, name: "Product", content_type: "image/png", created_at: "", metadata: {nodetool_entity: marker}
+  };
+};
 const render = (view: React.ReactElement) => renderComponent(view, {
   wrapper: ({children}) => <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
 });
