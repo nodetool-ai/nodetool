@@ -1540,27 +1540,25 @@ function attachMattes(
     }
     const matte = layer.clip.matte;
     const mode = matte ? parseMatteMode(matte.mode) : null;
-    if (!matte || mode === null) {
-      out.push(layer);
-      continue;
+    if (matte && mode !== null) {
+      const source = matteLayers.get(matte.sourceClipId);
+      if (source) {
+        layer.matte = { mode, invert: matte.invert ?? false, layer: source };
+      } else {
+        // A source that is not in the document, and an adjustment — which has
+        // no pixels of its own — are the same case: no matte, and the layer
+        // draws.
+        const sourceClip = clipById.get(matte.sourceClipId);
+        if (sourceClip && sourceClip.mediaType !== "adjustment") {
+          droppedLayers.push({
+            clipId: layer.clipId,
+            reason: "matte_source_inactive"
+          });
+          continue;
+        }
+      }
     }
-    const source = matteLayers.get(matte.sourceClipId);
-    if (source) {
-      layer.matte = { mode, invert: matte.invert ?? false, layer: source };
-      out.push(layer);
-      continue;
-    }
-    // A source that is not in the document, and an adjustment — which has no
-    // pixels of its own — are the same case: no matte, and the layer draws.
-    const sourceClip = clipById.get(matte.sourceClipId);
-    if (!sourceClip || sourceClip.mediaType === "adjustment") {
-      out.push(layer);
-      continue;
-    }
-    droppedLayers.push({
-      clipId: layer.clipId,
-      reason: "matte_source_inactive"
-    });
+    out.push(layer);
   }
   return out;
 }
