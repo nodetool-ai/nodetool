@@ -9,7 +9,8 @@ async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Recor
     const explicitModel = params["model"];
     if (explicitModel !== undefined && (!isRecord(explicitModel) || typeof explicitModel["provider"] !== "string" || !explicitModel["provider"].trim() || typeof explicitModel["id"] !== "string" || !explicitModel["id"].trim())) { return { error: "Finishing model must have a non-empty provider and id." }; }
     if (strategy === "agentic" && !explicitModel && !run.subAgent) { return { error: "Agentic finishing requires an explicit model reference or the session's provider and model." }; }
-    run.context.signal?.throwIfAborted();
+    const signal = run.signal ?? run.context.signal;
+    signal?.throwIfAborted();
     const userId = run.context.userId;
     if (!userId) return { error: "No user is bound to this session." };
     const { findFinishResourceIds, Storyboard, TimelineSequence, Asset, entityFromAsset, commitFinishedStoryboard } = await import("@nodetool-ai/models");
@@ -126,6 +127,7 @@ async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Recor
         reviews = candidate.reviews;
         costUsd = candidate.costUsd;
       }
+      signal?.throwIfAborted();
       run.context.signal?.throwIfAborted();
       const saved = await commitFinishedStoryboard({ board, timeline, document, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, durationMs: result.durationMs });
       return { timelineId: saved.timeline.id, timelineRevision: saved.timeline.revision, storyboardRevision: saved.board.revision, validation: [], ...(reviews && { reviews, costUsd }) };

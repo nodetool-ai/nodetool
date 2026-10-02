@@ -78,7 +78,7 @@ export async function finishStoryboardAgentically(
       "Agentic finishing supports 1–24 shots per reviewed cut. Split a larger board before finishing."
     );
   }
-  const signal = run.context.signal;
+  const signal = run.signal ?? run.context.signal;
   let document = structuredClone(scaffold);
   const reviews: FinishedCutReview[] = [];
   let feedback: unknown = [];

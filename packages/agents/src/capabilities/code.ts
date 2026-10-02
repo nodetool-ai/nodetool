@@ -97,114 +97,136 @@ export async function runCodeBody(
     duration_ms: Date.now() - started
   });
 
-  let modules;
-  let capabilities;
-  if (params.withToolbelt) {
-    const { mountJsScriptSandbox } = await import("../js-script-sandbox.js");
-    const mounted = await mountJsScriptSandbox(params.code, context);
-    if (!mounted.ok) {
-      return fail(mounted.error);
+  // The same deadline reaches both the guest and in-flight capabilities.
+  // Aborting this invocation must not cancel or copy the caller's context.
+  const completion = new AbortController();
+  const signal = AbortSignal.any([context.signal, completion.signal]);
+  const deadline = setTimeout(
+    () => completion.abort(new Error("Script execution deadline exceeded.")),
+    Math.max(1, Math.ceil(params.timeoutSeconds * 1000))
+  );
+  deadline.unref();
+  try {
+    let modules;
+    let capabilities;
+    if (params.withToolbelt) {
+      const { mountJsScriptSandbox } = await import("../js-script-sandbox.js");
+      const mounted = await mountJsScriptSandbox(params.code, context, {
+        signal
+      });
+      if (!mounted.ok) {
+        return fail(mounted.error);
+      }
+      modules = mounted.modules;
+      capabilities = mounted.capabilities;
+    } else {
+      // Hermetic: the body's pack imports still resolve against the installed
+      // catalog, but no platform module is mounted, so importing one fails in
+      // the guest the way any unserved specifier does.
+      const { resolveImportedPacks } = await import("../js-script-sandbox.js");
+      const packs = resolveImportedPacks(params.code, context, {
+        subject: "The code"
+      });
+      if (!packs.ok) {
+        return fail(packs.error);
+      }
+      modules = packs.modules;
     }
-    modules = mounted.modules;
-    capabilities = mounted.capabilities;
-  } else {
-    // Hermetic: the body's pack imports still resolve against the installed
-    // catalog, but no platform module is mounted, so importing one fails in
-    // the guest the way any unserved specifier does.
-    const { resolveImportedPacks } = await import("../js-script-sandbox.js");
-    const packs = resolveImportedPacks(params.code, context, {
-      subject: "The code"
-    });
-    if (!packs.ok) {
-      return fail(packs.error);
+
+    const code = params.code;
+    // The emit/output contract names its outputs, so nothing is inferred from
+    // the body's shape and nothing is rewritten: it runs exactly as written.
+    const emitContract = usesEmitOutputContract(code);
+    const streaming = !emitContract && hasYieldStatement(code);
+    const body = emitContract
+      ? code
+      : streaming
+        ? `const __yielded = [];
+  function yield_(value) { __yielded.push(value); }
+  ${code.replace(/\byield\b/g, "yield_")}
+  return __yielded;`
+        : hasReturnStatement(code)
+          ? code
+          : wrapImplicitReturn(code);
+
+    const globals: Record<string, unknown> = {
+      inputs: params.inputs,
+      state: {}
+    };
+    let source = body;
+    if (params.withToolbelt) {
+      const {
+        NODETOOL_PRELUDE,
+        assembleJsScriptToolbelt,
+        sandboxToolBridgeGlobals
+      } = await import("../sandbox-toolbelt.js");
+      source = `${NODETOOL_PRELUDE}\n${body}`;
+      Object.assign(
+        globals,
+        sandboxToolBridgeGlobals(
+          context,
+          await assembleJsScriptToolbelt(context),
+          { signal }
+        )
+      );
     }
-    modules = packs.modules;
-  }
 
-  const code = params.code;
-  // The emit/output contract names its outputs, so nothing is inferred from
-  // the body's shape and nothing is rewritten: it runs exactly as written.
-  const emitContract = usesEmitOutputContract(code);
-  const streaming = !emitContract && hasYieldStatement(code);
-  const body = emitContract
-    ? code
-    : streaming
-      ? `const __yielded = [];
-function yield_(value) { __yielded.push(value); }
-${code.replace(/\byield\b/g, "yield_")}
-return __yielded;`
-      : hasReturnStatement(code)
-        ? code
-        : wrapImplicitReturn(code);
+    // A body reading `stream` needs a source, or every verb throws. Only a call
+    // that staged items gets one — without `inputStreams` the harness behaves
+    // exactly as before.
+    const staged = params.inputStreams
+      ? stagedInputStreams(params.inputStreams)
+      : undefined;
 
-  const globals: Record<string, unknown> = {
-    inputs: params.inputs,
-    state: {}
-  };
-  let source = body;
-  if (params.withToolbelt) {
-    const {
-      NODETOOL_PRELUDE,
-      assembleJsScriptToolbelt,
-      sandboxToolBridgeGlobals
-    } = await import("../sandbox-toolbelt.js");
-    source = `${NODETOOL_PRELUDE}\n${body}`;
-    Object.assign(
+    const sandboxOptions: RunSandboxOptions = {
+      code: source,
+      context,
+      signal,
+      timeoutMs: params.timeoutSeconds * 1000,
       globals,
-      sandboxToolBridgeGlobals(context, await assembleJsScriptToolbelt(context))
-    );
-  }
+      limits: { secretScope: [...params.secrets] },
+      ...(staged ?? {})
+    };
+    if (modules) sandboxOptions.modules = modules;
+    if (capabilities) sandboxOptions.capabilities = capabilities;
 
-  // A body reading `stream` needs a source, or every verb throws. Only a call
-  // that staged items gets one — without `inputStreams` the harness behaves
-  // exactly as before.
-  const staged = params.inputStreams
-    ? stagedInputStreams(params.inputStreams)
-    : undefined;
+    const result = await runInSandbox(sandboxOptions);
 
-  const sandboxOptions: RunSandboxOptions = {
-    code: source,
-    context,
-    timeoutMs: params.timeoutSeconds * 1000,
-    globals,
-    limits: { secretScope: [...params.secrets] },
-    ...(staged ?? {})
-  };
-  if (modules) sandboxOptions.modules = modules;
-  if (capabilities) sandboxOptions.capabilities = capabilities;
-
-  const result = await runInSandbox(sandboxOptions);
-
-  const logs = result.logs ?? [];
-  if (!result.success) {
-    return fail(result.error ?? "Code execution failed", logs);
-  }
-  if (emitContract) {
-    // No `onEmit` sink is passed, so the host accumulates the emits and hands
-    // them back in call order; the return value carries no output semantics.
+    const logs = result.logs ?? [];
+    if (!result.success) {
+      return fail(result.error ?? "Code execution failed", logs);
+    }
+    if (emitContract) {
+      // No `onEmit` sink is passed, so the host accumulates the emits and hands
+      // them back in call order; the return value carries no output semantics.
+      return {
+        ok: true,
+        outputs: result.outputs ?? {},
+        streamed: result.emitted ?? [],
+        logs,
+        duration_ms: Date.now() - started
+      };
+    }
+    if (streaming) {
+      const items = Array.isArray(result.result) ? result.result : [];
+      return {
+        ok: true,
+        streamed: items.map(normalizeCodeOutput),
+        logs,
+        duration_ms: Date.now() - started
+      };
+    }
     return {
       ok: true,
-      outputs: result.outputs ?? {},
-      streamed: result.emitted ?? [],
+      outputs: normalizeCodeOutput(result.result),
       logs,
       duration_ms: Date.now() - started
     };
+  } finally {
+    clearTimeout(deadline);
+    // Revoke unawaited capabilities after both successful and failed scripts.
+    completion.abort(new Error("Script invocation has finished."));
   }
-  if (streaming) {
-    const items = Array.isArray(result.result) ? result.result : [];
-    return {
-      ok: true,
-      streamed: items.map(normalizeCodeOutput),
-      logs,
-      duration_ms: Date.now() - started
-    };
-  }
-  return {
-    ok: true,
-    outputs: normalizeCodeOutput(result.result),
-    logs,
-    duration_ms: Date.now() - started
-  };
 }
 
 /**

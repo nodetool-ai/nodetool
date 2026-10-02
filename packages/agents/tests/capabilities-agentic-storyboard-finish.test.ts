@@ -1,6 +1,11 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
+import { runCodeBody } from "../src/capabilities/code.js";
 import { mountJsScriptSandbox } from "../src/js-script-sandbox.js";
+import {
+  hasTemporaryImageHandle,
+  registerTemporaryImageHandle
+} from "../src/tools/image-injection.js";
 import { PERMISSION_GATE_CONTEXT_KEY } from "../src/types.js";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import {
@@ -734,6 +739,120 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
       (await TimelineSequence.findById(result.timelineId))?.toDocument().clips
         .length
     ).toBeGreaterThan(0);
+  });
+  it.each(["import", "native toolbelt"])(
+    "prevents a late finishing commit when the normal JS script deadline expires through %s",
+    async (surface) => {
+      const { board, context } = await fixture();
+      let completedProvider: () => void = () => undefined;
+      const completion = new Promise<void>((resolve) => {
+        completedProvider = resolve;
+      });
+      const provider = new FinishingProvider([
+        async () => {
+          await new Promise((resolve) => setTimeout(resolve, 3000));
+          completedProvider();
+          return [call("submit_finished_cut")];
+        },
+        done,
+        approve,
+        done
+      ]);
+      context.setProviderResolver(async () => provider);
+      context.set(PERMISSION_GATE_CONTEXT_KEY, UNGATED);
+      const result = await runCodeBody(context, {
+        code:
+          surface === "import"
+            ? `import { finish_storyboard } from "${sandboxCapabilitySpecifier("storyboards")}"; return await finish_storyboard(inputs);`
+            : "return await nodetool.storyboards.finish(inputs);",
+        inputs: {
+          storyboardId: board.id,
+          expectedStoryboardRevision: board.revision,
+          strategy: "agentic",
+          model: { provider: "fake", id: "vision" }
+        },
+        secrets: [],
+        timeoutSeconds: 2,
+        withToolbelt: true
+      });
+      expect(provider.requests.length).toBeGreaterThan(0);
+      expect(result.ok).toBe(false);
+      await completion;
+      await new Promise((resolve) => setTimeout(resolve, 600));
+      expect((await Storyboard.findById(board.id))?.timeline_id).toBeFalsy();
+      expect(context.signal.aborted).toBe(false);
+    },
+    12000
+  );
+  it("keeps caller state, accounting and temporary-handle identity while revoking the finished script signal", async () => {
+    const { board, context } = await fixture();
+    context.set(PERMISSION_GATE_CONTEXT_KEY, UNGATED);
+    const original = finishStoryboard.impl;
+    let invocationSignal: AbortSignal | undefined;
+    const spy = vi
+      .spyOn(finishStoryboard, "impl")
+      .mockImplementation(async (run, params) => {
+        expect(run.context).toBe(context);
+        invocationSignal = run.signal;
+        expect(invocationSignal?.aborted).toBe(false);
+        run.context.set("finishing-test-state", "shared");
+        run.context.trackOperationCost("finishing-test", 0.25);
+        registerTemporaryImageHandle(
+          run.context,
+          "finished-script-capture.png"
+        );
+        return original(run, params);
+      });
+    try {
+      const result = await runCodeBody(context, {
+        code: `import { finish_storyboard } from "${sandboxCapabilitySpecifier("storyboards")}"; return await finish_storyboard(inputs);`,
+        inputs: {
+          storyboardId: board.id,
+          expectedStoryboardRevision: board.revision
+        },
+        secrets: [],
+        timeoutSeconds: 10,
+        withToolbelt: true
+      });
+      expect(result.ok).toBe(true);
+      expect(context.get("finishing-test-state")).toBe("shared");
+      expect(context.getTotalCost()).toBe(0.25);
+      expect(
+        hasTemporaryImageHandle(context, "finished-script-capture.png")
+      ).toBe(true);
+      expect(invocationSignal?.aborted).toBe(true);
+      expect(context.signal.aborted).toBe(false);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+  it("revokes an unawaited finishing call after the script returns successfully", async () => {
+    const { board, context } = await fixture();
+    const provider = new FinishingProvider([
+      () => [call("submit_finished_cut")],
+      done,
+      approve,
+      done
+    ]);
+    context.setProviderResolver(async () => provider);
+    context.set(PERMISSION_GATE_CONTEXT_KEY, UNGATED);
+    const result = await runCodeBody(context, {
+      code: `import { finish_storyboard } from "${sandboxCapabilitySpecifier("storyboards")}"; finish_storyboard(inputs); return { finished:true };`,
+      inputs: {
+        storyboardId: board.id,
+        expectedStoryboardRevision: board.revision,
+        strategy: "agentic",
+        model: { provider: "fake", id: "vision" }
+      },
+      secrets: [],
+      timeoutSeconds: 10,
+      withToolbelt: true
+    });
+    expect(result.ok).toBe(true);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+    expect(provider.requests).toHaveLength(0);
+    expect((await Storyboard.findById(board.id))?.timeline_id).toBeFalsy();
+    expect(context.signal.aborted).toBe(false);
   });
   it("fails closed for an invalid explicit model instead of falling back to the session provider", async () => {
     const { board, context } = await fixture();

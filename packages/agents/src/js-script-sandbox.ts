@@ -94,7 +94,8 @@ export type JsScriptSandboxMount =
  */
 export async function mountJsScriptSandbox(
   code: string,
-  context: ProcessingContext
+  context: ProcessingContext,
+  options: { signal?: AbortSignal } = {}
 ): Promise<JsScriptSandboxMount> {
   // A script's capability calls go through the gate its host set (invariant
   // I-1): a script a chat turn ran is bound by that turn's mode, and one with
@@ -104,6 +105,7 @@ export async function mountJsScriptSandbox(
     code,
     createCapabilityRun({
       context,
+      signal: options.signal,
       gate: gateFromContext(context, "JS script"),
       availableSecrets: contextSecretAvailability(context)
     })

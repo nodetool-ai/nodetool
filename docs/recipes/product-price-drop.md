@@ -102,3 +102,7 @@ silently weakening source fidelity. A visual review checks sampled frames,
 not every frame or perfect visual equivalence. The returned review report
 contains frame hashes, timecodes and derived-reference fingerprints.
 Agentic results report the provider's measured cost delta as `costUsd`.
+Normal JS script execution scopes both imported capability calls and native
+`nodetool` aliases to the script deadline. Finishing checks that signal before
+provider calls and the final save. Returning from the script also revokes
+unawaited finishing calls without cancelling the caller's processing context.
