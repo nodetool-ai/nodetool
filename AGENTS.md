@@ -305,10 +305,12 @@ Slash commands are in [.claude/README.md](.claude/README.md).
   `npm run build:packages` after edits and before `npm run dev`.
 - Give a new worktree its dependencies with `scripts/setup-agent-env.sh`,
   which clones every `node_modules/` and `dist/` from the main checkout
-  instead of running `npm install`. Rebuild with `npm run build:packages`. After a
+  instead of running `npm install`. It uses copy-on-write clones on macOS
+  (APFS) and Linux reflink file systems (btrfs, XFS).
+  Rebuild with `npm run build:packages`. After a
   dependency change, check the package's placement with `npm explain` and
   run `npm run fix:lockfile-libc`. See
-  [worktrees with cloned dependencies](docs/dev-environment.md#worktrees-with-cloned-dependencies-macos).
+  [worktrees with cloned dependencies](docs/dev-environment.md#worktrees-with-cloned-dependencies-macos-and-linux).
 
 ## Build, Lint & Test Commands
 
