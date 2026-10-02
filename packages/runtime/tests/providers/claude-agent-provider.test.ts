@@ -318,6 +318,18 @@ describe("ClaudeAgentProvider", () => {
     expect(calls).toHaveLength(0);
   });
 
+  it.each([
+    {thinking: {type: "adaptive"} as const, expected: {type: "adaptive"}},
+    {thinking: {type: "manual", budgetTokens: 2048} as const, expected: {type: "enabled", budgetTokens: 2048}},
+    {thinking: {type: "disabled"} as const, expected: {type: "disabled"}}
+  ])("honors caller reasoning controls: $thinking.type", async ({thinking, expected}) => {
+    const {fn, calls} = fakeQuery(PING_SCRIPT);
+    const provider = new ClaudeAgentProvider({}, {queryFn: fn});
+    await collect(provider.generateMessages({messages: [userMsg("hi")], model: "sonnet", effort: "medium", thinking}));
+    expect(calls[0].options?.effort).toBe("medium");
+    expect(calls[0].options?.thinking).toEqual(expected);
+  });
+
   it("runs a tool-free, single-turn, settings-free query", async () => {
     const { fn, calls } = fakeQuery(PING_SCRIPT);
     const provider = new ClaudeAgentProvider({}, { queryFn: fn });
@@ -331,6 +343,8 @@ describe("ClaudeAgentProvider", () => {
     expect(calls[0].prompt).toBe("hi");
     expect(opts.systemPrompt).toBe("Be terse.");
     expect(opts.model).toBe("haiku");
+    expect(opts.effort).toBeUndefined();
+    expect(opts.thinking).toBeUndefined();
     expect(opts.maxTurns).toBe(1);
     expect(opts.allowedTools).toEqual([]);
     expect(opts.settingSources).toEqual([]);

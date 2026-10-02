@@ -746,6 +746,15 @@ export class ClaudeAgentProvider extends BaseProvider {
       env: buildChildEnv(),
       abortController
     };
+    if (args.effort !== undefined) {
+      options.effort = args.effort;
+    }
+    if (args.thinking) {
+      options.thinking =
+        args.thinking.type === "manual"
+          ? { type: "enabled", budgetTokens: args.thinking.budgetTokens }
+          : { type: args.thinking.type };
+    }
     if (plan.config.outputFormat) {
       options.outputFormat = plan.config.outputFormat;
     }
