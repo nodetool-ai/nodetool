@@ -14,7 +14,12 @@ import {
   emptyJsScriptDocument,
   type JsScriptDocument
 } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
-import { JsScript, ModelObserver, initTestDb } from "@nodetool-ai/models";
+import {
+  JsScript,
+  JsScriptVersion,
+  ModelObserver,
+  initTestDb
+} from "@nodetool-ai/models";
 import { FileStorageAdapter, type StorageAdapter } from "@nodetool-ai/storage";
 import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
 
@@ -81,6 +86,84 @@ describe("POST /api/js-scripts/:id/run", () => {
     expect(body.outputs).toEqual({ greeting: "done" });
     expect(body.streamed).toEqual([{ name: "greeting", value: "hi world" }]);
     expect(typeof body.duration_ms).toBe("number");
+  });
+
+  it("runs an owned pinned version after the live script changes", async () => {
+    const script = await seedScript({
+      code: "await output('result', 'pinned');",
+      outputs: [{ name: "result", type: "str" }]
+    });
+    const version = await JsScriptVersion.snapshot(script, {
+      saveType: "manual"
+    });
+    script.document = JSON.stringify({
+      ...script.toDocument(),
+      code: "await output('result', 'latest');"
+    });
+    await script.save();
+    app = await buildServer(USER_ID);
+    const pinned = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: { script_version: version.version }
+    });
+    expect(pinned.statusCode).toBe(200);
+    expect(pinned.json().outputs).toEqual({ result: "pinned" });
+    const latest = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: {}
+    });
+    expect(latest.json().outputs).toEqual({ result: "latest" });
+    const missing = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: { script_version: 999 }
+    });
+    expect(missing.statusCode).toBe(404);
+  });
+
+  it("fails closed for a malformed pinned snapshot", async () => {
+    const script = await seedScript({
+      code: "await output('result', 'live');",
+      outputs: [{ name: "result", type: "str" }]
+    });
+    const version = await JsScriptVersion.snapshot(script, {
+      saveType: "manual"
+    });
+    version.document = JSON.stringify({
+      schemaVersion: 999,
+      code: "await output('result', 'bad');"
+    });
+    await version.save();
+    app = await buildServer(USER_ID);
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: { script_version: version.version }
+    });
+    expect(response.statusCode).toBe(400);
+    expect(response.json().detail).toBe("Invalid JS script version document");
+  });
+
+  it("rejects another owner's pinned version", async () => {
+    const script = await seedScript(
+      {
+        code: "await output('result', 'secret');",
+        outputs: [{ name: "result", type: "str" }]
+      },
+      "other-owner"
+    );
+    const version = await JsScriptVersion.snapshot(script, {
+      saveType: "manual"
+    });
+    app = await buildServer(USER_ID);
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: { script_version: version.version }
+    });
+    expect(response.statusCode).toBe(404);
   });
 
   it("stages input_streams for a body that reads them with stream()", async () => {
@@ -219,7 +302,10 @@ describe("POST /api/js-scripts/:id/run", () => {
   });
 
   it("404s on another user's script", async () => {
-    const script = await seedScript({ code: "await output('a', 1);" }, "user-2");
+    const script = await seedScript(
+      { code: "await output('a', 1);" },
+      "user-2"
+    );
     app = await buildServer(USER_ID);
 
     const response = await app.inject({
@@ -277,8 +363,7 @@ describe("POST /api/js-scripts/:id/run", () => {
       createAsset: async () => ({ id: "frame-1" })
     });
     const script = await seedScript({
-      code:
-        'await output("image", await image.toAsset(new Uint8Array([1, 2, 3]), { mimeType: "image/png" }));',
+      code: 'await output("image", await image.toAsset(new Uint8Array([1, 2, 3]), { mimeType: "image/png" }));',
       outputs: [{ name: "image", type: "image" }]
     });
     app = await buildServer(USER_ID);

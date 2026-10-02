@@ -10,13 +10,14 @@
 import type { Data } from "@puckeditor/core";
 import {
   APP_SCHEMA_VERSION,
+  BASE_APP_SCHEMA_VERSION,
   createEmptyDocument as createEmptyApplicationDocument,
   createEmptyPuckData,
   parseApplicationDocument,
   type ApplicationDocument
 } from "@nodetool-ai/app-runtime";
 
-export { APP_SCHEMA_VERSION, parseApplicationDocument };
+export { APP_SCHEMA_VERSION, BASE_APP_SCHEMA_VERSION, parseApplicationDocument };
 export type { ApplicationDocument };
 
 export type AppDocument = ApplicationDocument;

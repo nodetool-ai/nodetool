@@ -288,6 +288,25 @@ describe("bindingTargets", () => {
     expect(targets.operations[1].inputs[0].binding).toBe("op:calc_op/in:in-9");
   });
 
+  it("binds each operation to its pinned ports when scripts share an id", () => {
+    const meta: AppDocMeta = {
+      ...EMPTY_DOC_META,
+      operations: [1, 2].map(version => ({
+        id: `version-${version}`, name: `Version ${version}`, workflowId: "",
+        target: {kind: "script", scriptId: "same-script", scriptVersion: version},
+        inputs: {}, outputs: {}, policy: "queue"
+      }))
+    };
+    const documents = new Map([
+      ["version-1", {inputs: [{name: "oldInput"}], outputs: [{name: "oldOutput"}]}],
+      ["version-2", {inputs: [{name: "newInput"}], outputs: [{name: "newOutput"}]}]
+    ]);
+    const targets = bindingTargets(meta, "wf-1", workflow, documents);
+    expect(targets.operations.map(operation => operation.ioAvailable)).toEqual([true, true]);
+    expect(targets.operations[0].inputs[0].binding).toBe("op:version-1/in:oldInput");
+    expect(targets.operations[1].outputs[0].binding).toBe("op:version-2/out:newOutput");
+  });
+
   it("includes declared variables and the graph's SetVariable channels", () => {
     const { meta } = declareVariable(EMPTY_DOC_META, {
       id: "lang",

@@ -138,7 +138,8 @@ const AppBuilderShell: React.FC<AppBuilderShellProps> = ({
   const [meta, setMeta] = useState<AppDocMeta>(() => ({
     operations: document.operations,
     resources: document.resources,
-    variables: document.variables
+    variables: document.variables,
+    recipe: document.recipe
   }));
   const containerRef = useRef<HTMLDivElement>(null);
   const [containerWidth, setContainerWidth] = useState(0);

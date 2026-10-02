@@ -12,6 +12,7 @@ import {
 } from "../src/bundle.js";
 import {
   APP_SCHEMA_VERSION,
+  BASE_APP_SCHEMA_VERSION,
   createEmptyPuckData,
   type ApplicationDocument,
   type OperationBinding
@@ -105,6 +106,83 @@ describe("bundleFromApplication", () => {
       "draft-copy",
       "wf-2"
     ]);
+  });
+});
+
+describe("Recipe Application manifest", () => {
+  const recipe = {
+    schemaVersion: 1 as const,
+    slug: "product-price-drop",
+    category: "social-ad",
+    tags: ["product", "motion-graphics"],
+    inputs: [
+      { id: "product", label: "Product image", kind: "image" as const, required: true },
+      { id: "price", label: "Price", kind: "text" as const, required: true }
+    ],
+    creativeStrategy: { objective: "Drive conversion", structure: "hook > offer > CTA" },
+    preservationRules: [
+      { inputId: "product", policy: "exact_asset" as const, allowedTransformations: ["position", "scale", "crop", "composite"] as const },
+      { inputId: "price", policy: "exact_text" as const }
+    ],
+    mediaPolicy: { defaultStrategy: "still_motion_graphics" as const, allowGeneratedVideo: false },
+    operations: [
+      { id: "build", bindingId: "draft", intent: "build_social_ad" }
+    ],
+    outputs: [{ id: "timeline", kind: "timeline" as const, label: "Editable ad" }],
+    marketing: { shortDescription: "Animate a faithful product offer." }
+  };
+
+  it("round-trips recipe metadata through export/import", () => {
+    const recipeApp: BundleApplicationSource = {
+      ...app,
+      document: { ...app.document, recipe, variables: ["product", "price", "timeline"].map((id) => ({ id, name: id, scope: "instance" as const, persist: false })), operations: app.document.operations.map((operation) => operation.id === "draft" ? { ...operation, inputs: { product: { from: "variable" as const, variableId: "product" }, price: { from: "variable" as const, variableId: "price" } } } : operation) }
+    };
+    const bundle = bundleFromApplication(recipeApp, sources);
+    expect(bundle.app.recipe).toEqual(recipe);
+
+    const wire = parseApplicationBundle(JSON.parse(serializeApplicationBundle(bundle)));
+    expect(wire?.app.recipe).toEqual(recipe);
+    const installed = applyBundle(wire!, { newWorkflowId: (_workflow, index) => `new-${index + 1}` });
+    expect(installed.app.document.recipe).toEqual(recipe);
+  });
+
+  it("represents a real product-ad recipe as an Application manifest", () => {
+    const manifest = {
+      schemaVersion: 1 as const,
+      slug: "product-hero-offer",
+      inputs: [
+        { id: "product", label: "Product", kind: "image" as const, required: true },
+        { id: "logo", label: "Logo", kind: "image" as const, required: true },
+        { id: "headline", label: "Headline", kind: "text" as const, required: true },
+        { id: "cta", label: "CTA", kind: "text" as const, required: true }
+      ],
+      creativeStrategy: { structure: "hook > product hero > offer > CTA" },
+      preservationRules: [
+        { inputId: "product", policy: "exact_asset" as const, allowedTransformations: ["position", "scale", "crop", "composite"] as const },
+        { inputId: "logo", policy: "exact_asset" as const, allowedTransformations: ["position", "scale", "opacity"] as const },
+        { inputId: "headline", policy: "exact_text" as const },
+        { inputId: "cta", policy: "exact_text" as const }
+      ],
+      mediaPolicy: { defaultStrategy: "still_motion_graphics" as const, allowGeneratedVideo: true },
+      operations: [
+        { id: "plan", bindingId: "draft", intent: "plan_storyboard" },
+        { id: "finish", bindingId: "refine", intent: "build_finished_cut" }
+      ],
+      outputs: [
+        { id: "storyboard", kind: "storyboard" as const },
+        { id: "timeline", kind: "timeline" as const }
+      ]
+    };
+    const bundle = bundleFromApplication(
+      { name: "Product hero offer", document: { ...app.document, recipe: manifest, variables: ["product", "logo", "headline", "cta", "storyboard", "timeline"].map((id) => ({ id, name: id, scope: "instance" as const, persist: false })), operations: app.document.operations.map((operation) => ({ ...operation, inputs: Object.fromEntries(["product", "logo", "headline", "cta"].map((id) => [id, { from: "variable" as const, variableId: id }])) })) } },
+      sources
+    );
+    expect(bundle.app.recipe?.mediaPolicy?.defaultStrategy).toBe("still_motion_graphics");
+    expect(bundle.app.recipe?.outputs.map((output) => output.kind)).toEqual(["storyboard", "timeline"]);
+  });
+
+  it("leaves ordinary Applications unchanged", () => {
+    expect(parseApplicationBundle(bundleFromApplication(app, sources))?.app.recipe).toBeUndefined();
   });
 });
 
@@ -204,7 +282,7 @@ describe("parseApplicationBundle", () => {
       workflows: []
     });
 
-    expect(bundle?.app.schemaVersion).toBe(APP_SCHEMA_VERSION);
+    expect(bundle?.app.schemaVersion).toBe(BASE_APP_SCHEMA_VERSION);
     expect(bundle?.app.operations).toEqual([]);
   });
 });

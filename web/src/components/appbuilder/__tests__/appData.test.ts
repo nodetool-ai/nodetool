@@ -2,7 +2,7 @@ import {
   createEmptyData,
   createEmptyDocument,
   parseApplicationDocument,
-  APP_SCHEMA_VERSION
+  BASE_APP_SCHEMA_VERSION
 } from "../appData";
 
 describe("appData", () => {
@@ -14,7 +14,7 @@ describe("appData", () => {
 
   it("creates a document with a title in root props", () => {
     const doc = createEmptyDocument("My App");
-    expect(doc.schemaVersion).toBe(APP_SCHEMA_VERSION);
+    expect(doc.schemaVersion).toBe(BASE_APP_SCHEMA_VERSION);
     expect(doc.ui.root.props?.title).toBe("My App");
     expect(doc.operations).toEqual([]);
   });
@@ -40,7 +40,7 @@ describe("appData", () => {
         { hostWorkflowId: "wf1" }
       );
       expect(doc).not.toBeNull();
-      expect(doc!.schemaVersion).toBe(APP_SCHEMA_VERSION);
+      expect(doc!.schemaVersion).toBe(BASE_APP_SCHEMA_VERSION);
       expect(doc!.ui.content).toHaveLength(1);
       expect(doc!.operations[0]).toMatchObject({ workflowId: "wf1" });
     });
