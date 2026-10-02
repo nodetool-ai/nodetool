@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import type { Shot } from "@nodetool-ai/protocol";
 import mockTheme from "../../../__mocks__/themeMock";
@@ -60,6 +60,64 @@ describe("Storyboard design frame adapter", () => {
         board: { ...state.boards.board, shots: [shot], aspectRatio: "9:16" }
       }
     }));
+  });
+  it("plays a policy-allowed composed video using its local Timeline playback", async () => {
+    const videoShot: Shot = {
+      ...shot,
+      clip: { type: "video", asset_id: "accepted-video" }
+    };
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ShotDesignFrame boardId="board" shot={videoShot} />
+      </ThemeProvider>
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Play composed shot" })
+      ).toBeVisible()
+    );
+    expect(screen.getByTestId("timeline-compositor-input")).toHaveTextContent(
+      '"mediaType":"video"'
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Play composed shot" }));
+    expect(
+      screen.getByRole("button", { name: "Pause composed shot" })
+    ).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Pause composed shot" })
+    );
+    expect(
+      screen.getByRole("button", { name: "Play composed shot" })
+    ).toBeVisible();
+  });
+  it("does not play or prefer an old video under still-motion-graphics policy", async () => {
+    const stillShot: Shot = {
+      ...shot,
+      clip: { type: "video", asset_id: "old-video" },
+      production: {
+        schema_version: 1,
+        speech_mode: "none",
+        requested_take_count: 1,
+        media_strategy: "still_motion_graphics",
+        protected_inputs: []
+      }
+    };
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ShotDesignFrame boardId="board" shot={stillShot} />
+      </ThemeProvider>
+    );
+    await waitFor(() =>
+      expect(screen.getByTestId("timeline-compositor-input")).toHaveTextContent(
+        "original-product"
+      )
+    );
+    expect(
+      screen.queryByRole("button", { name: "Play composed shot" })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByTestId("timeline-compositor-input")
+    ).not.toHaveTextContent("old-video");
   });
   it("feeds exact separate layers to the existing compositor and replaces stale draft copy", async () => {
     const view = render(

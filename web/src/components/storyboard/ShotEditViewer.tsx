@@ -15,6 +15,7 @@
 
 import React, { memo, useCallback, useRef, useState } from "react";
 import type { ImageRef, Shot, VideoRef } from "@nodetool-ai/protocol";
+import { resolveEffectiveProductionRequirement } from "@nodetool-ai/protocol";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -152,7 +153,7 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
 }) => {
   const stillVersions = stillVersionsOf(shot);
   const clipVersions = clipVersionsOf(shot);
-  const hasClip = clipVersions.length > 0;
+  const hasClip = clipVersions.length > 0 && resolveEffectiveProductionRequirement(undefined, shot.production)?.media_strategy !== "still_motion_graphics";
   const [mediumState, setMediumState] = useState(() => ({
     shotId: shot.id,
     value: defaultMedium(shot)
