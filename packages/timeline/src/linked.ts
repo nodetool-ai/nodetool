@@ -88,6 +88,7 @@ export function buildLinkedTimeline(
   const sources = shotSources(input.shots);
   let cursorMs = 0;
   const trimmedShots: TrimmedShot[] = [];
+  const shotWindows = new Map<string, { start: number; end: number }>();
   for (const shot of ordered) {
     const lineIds = shot.script_line_ids ?? [];
     const resolved = resolveShotSource(shot, input.production, sources.get(shot.id)?.assetId);
@@ -111,6 +112,7 @@ export function buildLinkedTimeline(
       linkedShotDurationMs(shot, linesById) ??
       source?.availableMs ??
       shotDurationMs(shot);
+    shotWindows.set(shot.id, { start: cursorMs, end: cursorMs + durationMs });
     const sourceMs = source?.availableMs ?? null;
     if (sourceMs !== null && sourceMs !== durationMs) {
       trimmedShots.push({ shotId: shot.id, usedMs: durationMs, sourceMs });
@@ -215,6 +217,7 @@ export function buildLinkedTimeline(
     trimmedShots,
     // Nothing is reported as retimed: a linked shot is meant to run as long
     // as its lines, so differing from `duration_seconds` is the point.
+    shotWindows,
     retimedShots: []
   };
 }

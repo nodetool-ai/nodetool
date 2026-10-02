@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { Shot } from "@nodetool-ai/protocol";
 import { timelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
-import type { TimelineSequence } from "../src/types.js";
+import { buildStoryboardTimeline } from "../src/storyboard.js";
+import type { TimelineClip, TimelineSequence } from "../src/types.js";
 import { materializeStoryboard, validateProducedTimeline, stampStoryboardMaterializationBaseline } from "../src/finish-storyboard.js";
 
 const shot = (): Shot => ({
@@ -374,4 +375,138 @@ describe("agent-owned finishing layers", () => {
     expect(result.validation).toEqual(expect.arrayContaining([expect.objectContaining({ code: "manual_conflict", elementId: "$agent:shape:accent", message: expect.stringContaining("timing changed") })]));
     expect(current.clips.find((clip) => clip.id === "extra")!.startMs).toBe(4000);
   });
+});
+
+
+describe("canonical finishing regressions", () => {
+  it("keeps video audio and accepted coverage windows with neutral framing", () => {
+    const shots: Shot[] = [
+      { type: "shot", id: "a", index: 0, action: "A", status: "rendered", duration_seconds: 2, clip: { type: "video", asset_id: "video", duration: 8 } },
+      { type: "shot", id: "b", index: 1, action: "B", status: "rendered", covered_by: { shot_id: "a", start_seconds: 3, end_seconds: 8 } }
+    ];
+    const result = materializeStoryboard({ ...input(), shots });
+    expect(result.validation).toEqual([]);
+    expect(result.durationMs).toBe(8000);
+    const video = result.document.clips.find(clip => clip.storyboardShotId === "b" && clip.mediaType === "video")!;
+    const audio = result.document.clips.find(clip => clip.storyboardShotId === "b" && clip.mediaType === "audio")!;
+    expect(video).toMatchObject({ startMs: 3000, durationMs: 5000, inPointMs: 3000, outPointMs: 8000 });
+    expect(video.transform).toBeUndefined();
+    expect(video.animations ?? []).toEqual([]);
+    expect(audio).toMatchObject({ linkId: video.linkId, currentAssetId: "video", startMs: 3000, durationMs: 5000, inPointMs: 3000, outPointMs: 8000 });
+  });
+  const fieldEdits: Array<[string, Partial<TimelineClip>]> = [
+    ["layout", { layout: { display: "flex", gap: 10 } }],
+    ["flexItem", { flexItem: { grow: 2 } }],
+    ["mask", { mask: { kind: "ellipse", x: 0, y: 0, width: 0.5, height: 1 } }],
+    ["transitionIn", { transitionIn: { type: "push", durationMs: 300 } }],
+    ["mediaType", { mediaType: "video" }],
+    ["blendMode", { blendMode: "multiply" }],
+    ["currentAssetId", { currentAssetId: "replacement" }],
+    ["textStyle", { textStyle: { text: "Manual", color: "#FF0000" } }],
+    ["shapeStyle", { shapeStyle: { kind: "ellipse", fill: "#FF0000" } }],
+    ["opacity", { opacity: 0.3 }],
+    ["hidden", { hidden: true }],
+    ["matte", { matte: { sourceClipId: "mask", mode: "alpha" } }],
+    ["crop", { crop: { top: 0.1, left: 0, bottom: 0, right: 0 } }],
+    ["effects", { effects: [{ type: "blur", radius: 4 }] }],
+    ["parentId", { parentId: "manual-group" }],
+    ["animations", { animations: [] }],
+    ["inPointMs", { inPointMs: 500 }],
+    ["outPointMs", { outPointMs: 1000 }],
+    ["linkId", { linkId: "manual-link" }],
+    ["scriptId", { scriptId: "manual-script" }],
+    ["scriptLineId", { scriptLineId: "manual-line" }]
+  ];
+  it.each(fieldEdits)("does not discard manual %s", (_field, edit) => {
+    const args = input();
+    args.shots[0].production!.protected_inputs![0].allowed_transformations.push("mask");
+    const current = materializeStoryboard(args).document;
+    Object.assign(current.clips[1], edit);
+    const result = materializeStoryboard({ ...args, current });
+    expect(result.validation.some(issue => issue.code === "manual_conflict")).toBe(true);
+  });
+  it.each([false, true])("rejects deletion of edited semantic elements or shots: %s", wholeShot => {
+    const args = input();
+    const current = materializeStoryboard(args).document;
+    current.clips[1].transform!.position.x = 42;
+    if (wholeShot) args.shots = [];
+    else args.shots[0].graphics!.elements = args.shots[0].graphics!.elements.filter(element => element.id !== "product");
+    expect(materializeStoryboard({ ...args, current }).validation.some(issue => issue.code === "manual_conflict")).toBe(true);
+  });
+});
+
+
+describe("finishing canonical reconciliation", () => {
+  const videoShots = (): Shot[] => [{ type: "shot", id: "video", index: 0, action: "Video", status: "rendered", duration_seconds: 2, clip: { type: "video", asset_id: "video-asset", duration: 5 } }];
+  it("preserves measured timing and stable linked audio on rerun", () => {
+    const args = { ...input(), shots: videoShots() };
+    const first = materializeStoryboard(args);
+    const next = materializeStoryboard({ ...args, current: timelineDocument.parse(first.document) });
+    expect(first.durationMs).toBe(5000);
+    expect(next.validation).toEqual([]);
+    expect(next.document.clips).toEqual(first.document.clips);
+  });
+  it("rejects legacy trimmed or moved assembly without silently dropping clips", () => {
+    const args = { ...input(), shots: videoShots() };
+    const current = buildStoryboardTimeline(args);
+    current.clips[0].startMs = 900;
+    current.clips[0].inPointMs = 300;
+    const before = structuredClone(current);
+    const result = materializeStoryboard({ ...args, current });
+    expect(result.validation.some(issue => issue.code === "manual_conflict")).toBe(true);
+    expect(current).toEqual(before);
+  });
+  it("preserves linked script timing, voice assets and script provenance", () => {
+    const shots = videoShots();
+    shots[0].script_line_ids = ["line"];
+    const script = { scriptId: "script", cast: [], sections: [{ id: "section", title: "Section", lines: [{ id: "line", text: "Spoken", currentTakeId: "take", takes: [{ id: "take", assetId: "voice", durationMs: 7000, words: [], textSnapshot: "Spoken", voiceSnapshot: null, createdAt: "2026-01-01T00:00:00.000Z" }] }] }] };
+    script.sections[0].lines.push({ ...script.sections[0].lines[0], id: "unlinked", text: "Not assigned to any shot", currentTakeId: "unlinked-take", takes: [{ ...script.sections[0].lines[0].takes[0], id: "unlinked-take", assetId: "unlinked-voice" }] });
+    const args = { ...input(), shots, script };
+    const first = materializeStoryboard(args);
+    expect(first.document.clips.filter(clip => clip.scriptLineId).map(clip => clip.scriptLineId)).toEqual(["line"]);
+    expect(first.document.clips.every(clip => clip.storyboardShotId === "video")).toBe(true);
+    expect(first.validation).toEqual([]);
+    expect(first.durationMs).toBe(7000);
+    expect(first.document.clips.find(clip => clip.scriptLineId === "line")).toMatchObject({ currentAssetId: "voice", scriptId: "script", startMs: 0, durationMs: 7000 });
+    const next = materializeStoryboard({ ...args, current: first.document });
+    expect(next.validation).toEqual([]);
+    expect(next.document.clips).toEqual(first.document.clips);
+  });
+});
+
+
+it("preserves manual audio track order and existing markers when finishing again", () => {
+  const args = { ...input(), shots: [{ ...shot(), production: { media_strategy: "generated_video" as const }, clip: { type: "video" as const, asset_id: "video" } }] };
+  args.shots[0].graphics = { mode: "none", elements: [] };
+  const first = materializeStoryboard(args).document;
+  const audio = first.clips.find(clip => clip.mediaType === "audio")!;
+  first.tracks.find(track => track.id === audio.trackId)!.index = 77;
+  first.markers = [{ id: "manual", timeMs: 700, label: "Keep" }];
+  const result = materializeStoryboard({ ...args, current: first });
+  expect(result.validation).toEqual([]);
+  expect(result.document.tracks.find(track => track.id === audio.trackId)!.index).toBe(77);
+  expect(result.document.markers).toEqual(first.markers);
+});
+
+
+it("keeps source/audio links and timing on a large assembled cut", () => {
+  const shots: Shot[] = Array.from({ length: 500 }, (_, index) => ({ type: "shot", id: `shot-${index}`, index, action: "Source", status: "rendered", clip: { type: "video", asset_id: `asset-${index}`, duration: 3 } }));
+  const result = materializeStoryboard({ ...input(), shots });
+  expect(result.validation).toEqual([]);
+  expect(result.durationMs).toBe(1500000);
+  expect(result.document.clips).toHaveLength(1000);
+  const links = new Map<string, TimelineClip[]>();
+  for (const clip of result.document.clips) {
+    expect(clip.linkId).toBeTruthy();
+    const linked = links.get(clip.linkId!) ?? [];
+    linked.push(clip);
+    links.set(clip.linkId!, linked);
+  }
+  expect(links.size).toBe(500);
+  for (const pair of links.values()) {
+    expect(pair).toHaveLength(2);
+    expect(pair[0].mediaType).toBe("video");
+    expect(pair[1].mediaType).toBe("audio");
+    expect(pair[1]).toMatchObject({ startMs: pair[0].startMs, durationMs: pair[0].durationMs, inPointMs: pair[0].inPointMs, outPointMs: pair[0].outPointMs });
+  }
 });

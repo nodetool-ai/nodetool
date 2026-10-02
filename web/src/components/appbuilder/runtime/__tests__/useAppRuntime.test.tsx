@@ -869,6 +869,24 @@ describe("useAppRuntime — script operations", () => {
     ]);
   });
 
+  it("retains a persistent checkpoint when refresh fails and reloads it", async () => {
+    runJsScript.mockRejectedValue(new Error("Storyboard revision conflict"));
+    const document = scriptDoc();
+    document.variables = [{id: "total", name: "Checkpoint", scope: "user", persist: true}];
+    window.localStorage.setItem(variableStorageKey("application:app-checkpoint"), JSON.stringify({total: 42}));
+    const render = () => renderHook(() => useAppRuntime(workflowA, false, {document, application: {id: "app-checkpoint"}}), {wrapper});
+    const app = render();
+    await waitFor(() => expect(app.result.current.ioFor("main").outputs).toHaveLength(1));
+    await act(async () => {app.result.current.dispatch({kind: "run", operationId: "main"});});
+    await waitFor(() => expect(Object.values(app.result.current.store.getState().invocations).some(invocation => invocation.status === "failed")).toBe(true));
+    expect(app.result.current.store.getState().variables.total).toBe(42);
+    expect(JSON.parse(window.localStorage.getItem(variableStorageKey("application:app-checkpoint")) ?? "{}")).toEqual({total: 42});
+    app.unmount();
+    disposeAppRuntimeStore(appInstanceId("app-checkpoint"));
+    const resumed = render();
+    expect(resumed.result.current.store.getState().variables.total).toBe(42);
+  });
+
   it("runs the script and folds its result the way a workflow run folds", async () => {
     runJsScript.mockResolvedValue({
       ok: true,

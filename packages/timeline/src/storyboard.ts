@@ -78,6 +78,8 @@ export function shotAudioClip(
     status: "generated",
     currentAssetId: videoClip.currentAssetId,
     linkId: videoClip.linkId,
+    inPointMs: videoClip.inPointMs,
+    outPointMs: videoClip.outPointMs,
     storyboardBoardId: videoClip.storyboardBoardId,
     storyboardShotId: videoClip.storyboardShotId,
     versions: []
@@ -96,6 +98,7 @@ export interface StoryboardAssemblyInput {
 }
 
 export interface AssembledTimeline {
+  shotWindows: Map<string, { start: number; end: number }>;
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   /** Total duration of the shot track in ms. */
@@ -417,9 +420,11 @@ export function buildStoryboardTimeline(
 
   let cursorMs = 0;
   const retimedShots: RetimedShot[] = [];
+  const shotWindows = new Map<string, { start: number; end: number }>();
   for (const shot of assemblable) {
     const resolved = resolvedSources.get(shot.id);
     if (resolved?.kind === "graphics") {
+      shotWindows.set(shot.id, { start: cursorMs, end: cursorMs + shotDurationMs(shot) });
       cursorMs += shotDurationMs(shot);
       continue;
     }
@@ -429,6 +434,7 @@ export function buildStoryboardTimeline(
       ? layoutShot(shot, source)
       : { durationMs: shotDurationMs(shot), directedMs: shotDurationMs(shot) };
     const durationMs = layout.durationMs;
+    shotWindows.set(shot.id, { start: cursorMs, end: cursorMs + durationMs });
     // A shot cut to a coverage window is exactly as long as the caller asked
     // for when they split the generation; only a shot playing a clip of its
     // own can come back off the length it was directed at.
@@ -525,7 +531,8 @@ export function buildStoryboardTimeline(
     // Nothing is trimmed: every shot is laid down at the length of the
     // footage it holds, so no clip leaves any of its render unplayed.
     trimmedShots: [],
-    retimedShots
+    retimedShots,
+    shotWindows
   };
 }
 

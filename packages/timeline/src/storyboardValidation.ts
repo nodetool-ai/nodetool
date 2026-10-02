@@ -1,5 +1,10 @@
 import type { Screenplay, Shot } from "@nodetool-ai/protocol";
 
+/** Disabled graphics remain editable intent but never participate in composition. */
+export function activeStoryboardGraphics(shot: Shot): NonNullable<NonNullable<Shot["graphics"]>["elements"]> {
+  return shot.graphics?.mode === "none" ? [] : shot.graphics?.elements ?? [];
+}
+
 export interface StoryboardSemanticContext {
   assetIds: ReadonlySet<string>;
   entityIds: ReadonlySet<string>;
@@ -19,7 +24,10 @@ export function validateStoryboardSemantics(
   for (const shot of shots) {
     const ids = new Set<string>();
     const protectedIds = new Set(shot.production?.protected_inputs?.map((input) => input.id) ?? []);
-    for (const element of shot.graphics?.elements ?? []) {
+    if (shot.graphics?.mode === "none" && shot.production?.protected_inputs?.some((input) => input.kind !== "source_asset")) {
+      errors.push(`${shot.id}: graphics mode none disables required protected content.`);
+    }
+    for (const element of activeStoryboardGraphics(shot)) {
       const label = `${shot.id}/${element.id}`;
       if (!element.id.trim() || ids.has(element.id)) {
         errors.push(`${label}: graphics element ids must be non-empty and unique within the shot.`);

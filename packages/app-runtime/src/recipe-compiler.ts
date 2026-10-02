@@ -96,6 +96,7 @@ export const compileRecipeApplication = (
     if (previous && previous.type?.type !== type) {error(path, `Variable ${id} has conflicting types ${previous.type?.type} and ${type}.`);}
     else if (!previous) {variables.set(id, {id, name, type: {type}, scope: "instance", persist: false});}
   };
+  const checkpointIds = new Set([...recipe.inputs.map(input => input.id), "storyboardId", "storyboardRevision", "timelineId", "timelineRevision", "plannedFingerprint", "linkedScriptFingerprint", "approval", "timeline", "step", "finishStatus"]);
   const selected: BoundRecipeOperation[] = [];
   const outputVariables = new Set<string>();
   const sourceVariables = new Set(recipe.inputs.map((input) => input.id));
@@ -175,6 +176,10 @@ export const compileRecipeApplication = (
     if (type && output.kind === "storyboard" && type !== "storyboard" && type !== "str") {error(`recipe.outputs[${index}]`, `Storyboard output requires a storyboard reference or ID, received ${type}.`);}
     if (type && output.kind === "asset" && !["asset", "image", "video", "audio", "document", "str"].includes(type)) {error(`recipe.outputs[${index}]`, `Asset output requires a media reference or URI, received ${type}.`);}
   }
+  const approvalIds = selected.flatMap(({binding, contract}) => {
+    const mapping = contract.approvalInput ? binding.inputs[contract.approvalInput] : undefined;
+    return mapping?.from === "variable" ? [mapping.variableId] : [];
+  });
   const content: unknown[] = [];
   if (variables.has("step")) {content.push(widget("Stepper", "steps", {binding: "var:step", steps: [{value: "inputs", title: "Inputs"}, {value: "review", title: "Plan and review"}, {value: "result", title: "Editable result"}], allowBack: true}));}
   const emittedInputs = new Set<string>();
@@ -185,6 +190,7 @@ export const compileRecipeApplication = (
     const type = input.choices ? "ChoiceCards" : inputWidgets[input.kind];
     if (!type) {return;}
     const props: Record<string, unknown> = {label: input.label, binding: `var:${input.id}`};
+    if (approvalIds.length) {props.events = [...new Set(approvalIds)].map(id => ({trigger: "change", kind: "setVariable", key: `var:${id}`, value: "pending"}));}
     if (input.choices) {props.options = structuredClone(input.choices);}
     content.push(widget(type, input.id, props)); emittedInputs.add(id);
   };
@@ -197,7 +203,11 @@ export const compileRecipeApplication = (
   const displayedOutputs = new Set<string>();
   const emitOutput = (output: RecipeManifest["outputs"][number]): void => {
     if (displayedOutputs.has(output.id)) {return;}
-    const type = output.kind === "timeline" ? "Timeline" : output.kind === "asset" ? "Download" : "Json";
+    const readable = output.binding ?? `var:${output.id}`;
+    const port = /^op:([^/]+)\/out:(.+)$/.exec(readable);
+    const outputType = readable.startsWith("var:") ? variables.get(readable.slice(4))?.type?.type : port ? selected.find(({binding}) => binding.id === port[1])?.contract.outputs[port[2]]?.type : undefined;
+    const mediaWidget = outputType === "image" ? "Image" : outputType === "video" ? "Video" : outputType === "audio" ? "Audio" : "Download";
+    const type = output.kind === "timeline" ? "Timeline" : output.kind === "asset" ? mediaWidget : "Json";
     content.push(widget(type, `output-${output.id}`, {binding: output.binding ?? `var:${output.id}`, label: output.label ?? output.id}));
     displayedOutputs.add(output.id);
   };
@@ -205,11 +215,13 @@ export const compileRecipeApplication = (
     if (contract.approvalInput) {
       const mapping = binding.inputs[contract.approvalInput];
       if (mapping?.from === "variable" && !approvalWidgets.has(mapping.variableId)) {
-        content.push(widget("Approval", mapping.variableId, {binding: `var:${mapping.variableId}`, label: "Approve exact sources and copy", description: "Changing any input requires a new plan and approval."}));
+        content.push(widget("Approval", mapping.variableId, {binding: `var:${mapping.variableId}`, label: "Approve exact sources and copy", description: "Saved approval is rechecked against the Storyboard revision and inputs before building. Refresh after editing the Storyboard, then approve again."}));
         approvalWidgets.add(mapping.variableId);
       }
     }
-    content.push(widget("Button", binding.id, {label: binding.name, disabledWhen: {binding: `op:${binding.id}/exec#running`, op: "notEmpty"}, events: [{trigger: "click", kind: "run", operationId: binding.id}]}));
+    const approval = contract.approvalInput ? binding.inputs[contract.approvalInput] : undefined;
+    const ready = approval?.from === "variable" ? {visibleWhen: {binding: `var:${approval.variableId}`, op: "eq", value: "approved"}} : {};
+    content.push(widget("Button", binding.id, {...ready, label: binding.name, disabledWhen: {binding: `op:${binding.id}/exec#running`, op: "notEmpty"}, events: [{trigger: "click", kind: "run", operationId: binding.id}]}));
     content.push(widget("Text", `${binding.id}-error`, {binding: `op:${binding.id}/exec#error`}));
     for (const output of recipe.outputs) {
       const readable = output.binding ?? `var:${output.id}`;
@@ -223,6 +235,10 @@ export const compileRecipeApplication = (
       ? {...binding, workflowId: target.workflowId, workflowVersion: target.workflowVersion}
       : binding);
   });
+  for (const variable of variables.values()) {
+    if (checkpointIds.has(variable.id)) { variable.scope = "user"; variable.persist = true; }
+  }
+  if (variables.has("finishStatus")) {content.push(widget("Text", "finish-status", {binding: "var:finishStatus"}));}
   const document: ApplicationDocument = {schemaVersion: APP_SCHEMA_VERSION, recipe: structuredClone(recipe), variables: [...variables.values()], operations, resources: [], ui: {root: {props: {title: options.title ?? recipe.slug}}, content}};
   for (const message of validateRecipeBindings(document)) {error("recipe.bindings", message);}
   if (diagnostics.length > 0) {return {status: "error", diagnostics};}

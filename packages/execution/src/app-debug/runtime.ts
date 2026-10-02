@@ -790,6 +790,7 @@ export class HeadlessAppRuntime {
       variableKeys: Object.values(operation.binding.outputs)
         .filter((mapping) => mapping.to === "variable")
         .map((mapping) => mapping.variableId)
+        .filter(id => !this.init.variables?.some(variable => variable.id === id && variable.scope === "user" && variable.persist))
     });
     this.runCount += 1;
 

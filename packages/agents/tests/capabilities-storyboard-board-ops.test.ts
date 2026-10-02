@@ -23,6 +23,7 @@ import {
 } from "@nodetool-ai/protocol";
 import type { RenderInputs, Scene, Shot } from "@nodetool-ai/protocol";
 import type { StoryboardDocument } from "@nodetool-ai/models";
+import { editStoryboard } from "../src/capabilities/storyboards.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 
 const PNG = new Uint8Array([0x89, 0x50, 0x4e, 0x47, 1, 2, 3, 4]);
@@ -146,6 +147,15 @@ async function makeStyleEntity(
 
 beforeEach(() => initTestDb());
 afterEach(() => ModelObserver.clear());
+
+it("rejects a stale Recipe edit without overwriting a concurrently edited direction", async () => {
+  const board = await makeBoard();
+  const context = ctx();
+  await edit(context, board.id, [{op: "set_board", motion_design: {direction: "User edited direction"}}]);
+  const result = await editStoryboard.impl(run(context), {storyboard_id: board.id, expected_revision: board.revision, ops: [{op: "set_board", motion_design: {direction: "Stale Recipe direction"}}]});
+  expect(result).toMatchObject({error: expect.stringContaining("revision conflict")});
+  expect((await reread(board.id)).screenplay?.motion_design?.direction).toBe("User edited direction");
+});
 
 describe("set_setup", () => {
   it("writes brief, genre and stage together", async () => {

@@ -533,7 +533,7 @@ export const useAppRuntime = (
       const entry = operationRuntimesRef.current.get(operationId);
       const variableKeys =
         clearOutputs && entry
-          ? outputVariableTargets(entry.operation).map((target) => target.variableId)
+          ? outputVariableTargets(entry.operation).map((target) => target.variableId).filter(id => !document?.variables.some(variable => variable.id === id && variable.scope === "user" && variable.persist))
           : [];
       const invocation: InvocationState = {
         id,
@@ -556,7 +556,7 @@ export const useAppRuntime = (
       });
       return id;
     },
-    [outputKey, store]
+    [document, outputKey, store]
   );
 
   /** Register a run this app started and flush anything buffered for it. */
@@ -620,7 +620,7 @@ export const useAppRuntime = (
               : [],
           variableKeys:
             clearOutputs && entry
-              ? outputVariableTargets(entry.operation).map((target) => target.variableId)
+              ? outputVariableTargets(entry.operation).map((target) => target.variableId).filter(id => !document?.variables.some(variable => variable.id === id && variable.scope === "user" && variable.persist))
               : []
         });
       }
@@ -651,7 +651,7 @@ export const useAppRuntime = (
       pendingRef.current.delete(jobId);
       for (const message of buffered) foldRef.current(message);
     },
-    [outputKey, stopJob, store]
+    [document, outputKey, stopJob, store]
   );
 
   /** Record a run that never started as a failed invocation the app can show. */

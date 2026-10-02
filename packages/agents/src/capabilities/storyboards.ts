@@ -77,7 +77,8 @@ import {
   extractScriptFromStoryboardSpec,
   deleteStoryboardSpec
 } from "./storyboards.specs.js";
-import { clampConcurrency, mapWithConcurrency } from "./concurrency.js";
+import { measureStoryboardSources } from "./storyboard-measured-sources.js";
+import { clampConcurrency } from "./concurrency.js";
 import {
   isNonBlankString,
   isNumber,
@@ -1145,35 +1146,7 @@ const assembleStoryboardTimeline: CapabilityExport = {
       );
     }
 
-    const { loadMediaRefBytes, probeVideoDurationSeconds } =
-      await import("@nodetool-ai/runtime");
-    const { applyMeasuredShotClipDurations } =
-      await import("@nodetool-ai/timeline");
-    const signal = context.signal ?? new AbortController().signal;
-    const measurements = await mapWithConcurrency(
-      doc.shots,
-      clampConcurrency(undefined),
-      async (shot) => {
-        const clip = shot.clip;
-        const assetId = clip?.asset_id;
-        if (shot.status !== "rendered" || !assetId) return null;
-        try {
-          const bytes = await loadMediaRefBytes(clip, context);
-          const seconds = bytes?.length
-            ? await probeVideoDurationSeconds(bytes, signal)
-            : null;
-          return seconds === null ? null : ([assetId, seconds] as const);
-        } catch (error) {
-          if (signal.aborted) throw error;
-          return null;
-        }
-      }
-    );
-    const durations = new Map<string, number>();
-    for (const measurement of measurements) {
-      if (measurement) durations.set(...measurement);
-    }
-    const measuredShots = applyMeasuredShotClipDurations(doc.shots, durations);
+    const measuredShots = await measureStoryboardSources(doc.shots, context);
 
     const assembled = script
       ? buildLinkedTimeline({
@@ -2496,6 +2469,9 @@ const editStoryboard: CapabilityExport = {
       const board = await loadBoard(run, params["storyboard_id"]);
       if (isError(board)) return board;
       const { row, doc } = board;
+      if (params["expected_revision"] !== undefined && params["expected_revision"] !== row.revision) {
+        return { error: "Storyboard revision conflict. Refresh the board before editing." };
+      }
 
       // A failing op is recorded and the script continues: stopping at the
       // first error hides every problem behind it.
