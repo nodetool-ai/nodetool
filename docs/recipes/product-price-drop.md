@@ -97,7 +97,9 @@ presentation must pass the current production policy before model dispatch. It r
 revision and compares actual composited cut frames with those references.
 These are derived references, not a separate historical pixel approval.
 The agent uses existing Timeline operations and cannot invoke media generation
-or replace accepted media. Policy and structural checks run before visual
+or replace accepted media. A batch that changes an accepted layer's start or
+duration is rejected and rolled back. Motion delay and duration belong in
+Timeline animations within that window. Policy and structural checks run before visual
 review. Findings require a changed draft and another render and review, with
 at most three candidates. An unreviewed, unresolved, cancelled or stale cut
 is not saved.

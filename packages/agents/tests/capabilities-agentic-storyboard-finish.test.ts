@@ -77,6 +77,8 @@ function authorContext(args: Parameters<BaseProvider["generateMessages"]>[0]) {
         storyboardElementId: string;
         storyboardShotId: string;
         trackId: string;
+        startMs: number;
+        durationMs: number;
         textStyle?: { fontSizePx?: number };
       }[];
     };
@@ -664,6 +666,83 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
     expect((await TimelineSequence.findById(before.id))?.revision).toBe(
       current.revision
     );
+  });
+  it("rolls back forbidden source timing at the edit boundary and accepts a corrected authored candidate", async () => {
+    const { board, context } = await fixture();
+    let original:
+      | ReturnType<typeof authorContext>["scaffold"]["clips"][number]
+      | undefined;
+    const provider = new FinishingProvider([
+      (args) => {
+        original = authorContext(args).scaffold.clips.find(
+          (clip) => clip.storyboardElementId === "price"
+        )!;
+        return [
+          call("edit_timeline", {
+            ops: [
+              {
+                op: "set_clip_params",
+                target: original.id,
+                startMs: original.startMs + 100,
+                durationMs: original.durationMs - 100,
+                fontSizePx: 999
+              }
+            ]
+          })
+        ];
+      },
+      (args) => {
+        const response = args.messages
+          .filter((message) => message.role === "tool")
+          .at(-1)?.content;
+        expect(typeof response).toBe("string");
+        expect(JSON.parse(String(response))).toMatchObject({
+          ok: false,
+          rolledBack: true,
+          error: expect.stringContaining(
+            "preserve the deterministic shot window"
+          )
+        });
+        expect(String(response)).toContain(
+          "No changes from this batch were applied"
+        );
+        return [call("get_timeline")];
+      },
+      (args) => {
+        const response = args.messages
+          .filter((message) => message.role === "tool")
+          .at(-1)?.content;
+        expect(JSON.parse(String(response))).toMatchObject({
+          clips: expect.arrayContaining([
+            expect.objectContaining({
+              id: original!.id,
+              startMs: original!.startMs,
+              durationMs: original!.durationMs,
+              textStyle: expect.objectContaining({
+                fontSizePx: original!.textStyle!.fontSizePx
+              })
+            })
+          ])
+        });
+        return craft(args);
+      },
+      done,
+      approve,
+      done
+    ]);
+    const result = await execute(provider, context, board);
+    expect(result.error).toBeUndefined();
+    const document = (await TimelineSequence.findById(
+      result.timelineId!
+    ))!.toDocument();
+    expect(
+      document.clips.find((clip) => clip.id === original!.id)
+    ).toMatchObject({
+      startMs: original!.startMs,
+      durationMs: original!.durationMs,
+      textStyle: { fontSizePx: 170 }
+    });
+    expect(result.reviews).toEqual([expect.objectContaining({ passed: true })]);
   });
   it("allows an unchanged existing cut to finish after full visual review", async () => {
     const { board, context } = await fixture();

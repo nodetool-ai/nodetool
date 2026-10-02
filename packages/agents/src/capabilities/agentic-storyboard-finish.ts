@@ -27,7 +27,8 @@ import {
   validateProducedTimeline,
   stampStoryboardMaterializationBaseline,
   type FinishStoryboardInput,
-  type FinishedStoryboardDocument
+  type FinishedStoryboardDocument,
+  type TimelineClip
 } from "@nodetool-ai/timeline";
 import type { CapabilityRun } from "./types.js";
 import { applyOps, parseOps } from "./timelines.js";
@@ -99,6 +100,20 @@ function composition(document: FinishedStoryboardDocument): string {
       }))
       .sort((a, b) => a.id.localeCompare(b.id))
   );
+}
+
+function sourceWindowConflict(
+  before: TimelineClip | undefined,
+  after: TimelineClip,
+  boardId: string
+): string | undefined {
+  if (
+    before?.storyboardBoardId === boardId &&
+    (before.startMs !== after.startMs || before.durationMs !== after.durationMs)
+  ) {
+    return `Finishing must preserve the deterministic shot window on ${before.id}. Keep startMs=${before.startMs} and durationMs=${before.durationMs}; use animation delay/duration for motion within that window.`;
+  }
+  return undefined;
 }
 
 /** Existing authored presentation survives while semantic source truth is refreshed. */
@@ -581,7 +596,7 @@ export async function finishStoryboardAgentically(
             json([...existingResults, ...outcome.records])
           );
         }
-        document = {
+        const candidate = {
           ...document,
           tracks: outcome.state.documentTracks,
           clips: outcome.state.documentClips,
@@ -590,6 +605,23 @@ export async function finishStoryboardAgentically(
           mediaTracks: outcome.state.mediaTracks,
           tempo: outcome.state.tempo
         };
+        const windowError = candidate.clips
+          .map((clip) =>
+            sourceWindowConflict(initial.get(clip.id), clip, input.boardId)
+          )
+          .find((error) => error !== undefined);
+        if (windowError) {
+          return recordEditResult(
+            json({
+              ok: false,
+              rolledBack: true,
+              error: windowError,
+              resolution:
+                "No changes from this batch were applied. Remove source timing changes, then retry the intended layout or animation edits."
+            })
+          );
+        }
+        document = candidate;
         for (const clip of document.clips) {
           if (initial.has(clip.id) || clip.storyboardBoardId) {
             continue;
@@ -733,14 +765,9 @@ export async function finishStoryboardAgentically(
           `Finishing cannot replace accepted source media on ${before.id}.`
         );
       }
-      if (
-        before.storyboardBoardId === input.boardId &&
-        (before.startMs !== after.startMs ||
-          before.durationMs !== after.durationMs)
-      ) {
-        throw new Error(
-          `Finishing must preserve the deterministic shot window on ${before.id}.`
-        );
+      const windowError = sourceWindowConflict(before, after, input.boardId);
+      if (windowError) {
+        throw new Error(windowError);
       }
     }
     const policy = validateProducedTimeline(input, document);
