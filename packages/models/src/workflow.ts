@@ -10,7 +10,8 @@ import {
   ModelChangeEvent,
   ModelChangeMeta,
   ModelObserver,
-  createTimeOrderedUuid
+  createTimeOrderedUuid,
+  nextUpdatedAtAfter
 } from "./base-model.js";
 import { getDb } from "./db.js";
 import { workflows } from "./schema/workflows.js";
@@ -39,15 +40,6 @@ function ensureSqlCondition(condition: SQL<unknown> | undefined): SQL<unknown> {
     throw new Error("Expected SQL condition");
   }
   return condition;
-}
-
-function nextUpdatedAtAfter(previous: string): string {
-  const now = new Date();
-  const previousMs = Date.parse(previous);
-  if (Number.isFinite(previousMs) && now.getTime() <= previousMs) {
-    return new Date(previousMs + 1).toISOString();
-  }
-  return now.toISOString();
 }
 
 export type WorkflowUpdateFields = Partial<{

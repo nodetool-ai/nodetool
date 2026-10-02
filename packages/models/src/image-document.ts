@@ -8,7 +8,8 @@ import {
   ModelChangeEvent,
   ModelChangeMeta,
   ModelObserver,
-  createTimeOrderedUuid
+  createTimeOrderedUuid,
+  nextUpdatedAtAfter
 } from "./base-model.js";
 import { getDb } from "./db.js";
 import { imageDocuments } from "./schema/image-documents.js";
@@ -53,15 +54,6 @@ function assertValidDocumentData(data: ImageDocumentData): void {
   if (!data.sketch || !Array.isArray(data.layerBindings)) {
     throw new Error("document must contain sketch and layerBindings");
   }
-}
-
-function nextUpdatedAtAfter(previous: string): string {
-  const now = new Date();
-  const previousMs = Date.parse(previous);
-  if (Number.isFinite(previousMs) && now.getTime() <= previousMs) {
-    return new Date(previousMs + 1).toISOString();
-  }
-  return now.toISOString();
 }
 
 export class ImageDocument extends DBModel {

@@ -9,7 +9,8 @@ import {
   DBModel,
   ModelChangeEvent,
   ModelObserver,
-  createTimeOrderedUuid
+  createTimeOrderedUuid,
+  nextUpdatedAtAfter
 } from "./base-model.js";
 import { getDb, getDbType, type DbTransaction } from "./db.js";
 import { games } from "./schema/games.js";
@@ -42,15 +43,6 @@ export interface GameDraftWriteContext {
   actor: "agent" | "user";
   threadId?: string;
   messageId?: string;
-}
-
-function nextUpdatedAtAfter(previous: string): string {
-  const now = new Date();
-  const previousMs = Date.parse(previous);
-  if (Number.isFinite(previousMs) && now.getTime() <= previousMs) {
-    return new Date(previousMs + 1).toISOString();
-  }
-  return now.toISOString();
 }
 
 function draftVersionPath(game: Game, versionId: string): string {

@@ -15,7 +15,8 @@ import {
   ModelChangeEvent,
   ModelChangeMeta,
   ModelObserver,
-  createTimeOrderedUuid
+  createTimeOrderedUuid,
+  nextUpdatedAtAfter
 } from "./base-model.js";
 import { getDb } from "./db.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
@@ -58,17 +59,6 @@ export function timelineDocumentDurationMs(doc: TimelineDocument): number {
     const length = Number(clip?.durationMs) || 0;
     return Math.max(end, start + length);
   }, 0);
-}
-
-// Guarantees a strictly increasing updated_at so a mutation is never a no-op
-// against the CAS predicate even when two writes land within the same ms.
-function nextUpdatedAtAfter(previous: string): string {
-  const now = new Date();
-  const previousMs = Date.parse(previous);
-  if (Number.isFinite(previousMs) && now.getTime() <= previousMs) {
-    return new Date(previousMs + 1).toISOString();
-  }
-  return now.toISOString();
 }
 
 export interface TimelineDocument {

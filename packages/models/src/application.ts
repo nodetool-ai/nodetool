@@ -25,7 +25,8 @@ import {
   ModelChangeEvent,
   ModelChangeMeta,
   ModelObserver,
-  createTimeOrderedUuid
+  createTimeOrderedUuid,
+  nextUpdatedAtAfter
 } from "./base-model.js";
 import { getDb, getDbType, type DbTransaction, forUpdate } from "./db.js";
 import {
@@ -191,15 +192,6 @@ function parseDocumentOrThrow(raw: string): ApplicationDocument {
     );
   }
   return parsed;
-}
-
-function nextUpdatedAtAfter(previous: string): string {
-  const now = new Date();
-  const previousMs = Date.parse(previous);
-  if (Number.isFinite(previousMs) && now.getTime() <= previousMs) {
-    return new Date(previousMs + 1).toISOString();
-  }
-  return now.toISOString();
 }
 
 export class Application extends DBModel {

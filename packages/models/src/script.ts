@@ -4,7 +4,8 @@ import {
   ModelChangeEvent,
   ModelChangeMeta,
   ModelObserver,
-  createTimeOrderedUuid
+  createTimeOrderedUuid,
+  nextUpdatedAtAfter
 } from "./base-model.js";
 import { getDb } from "./db.js";
 import { scripts } from "./schema/scripts.js";
@@ -122,15 +123,6 @@ function assertValidDocument(doc: ScriptDocument): void {
   ) {
     throw new Error("script document must contain cast and sections arrays");
   }
-}
-
-function nextUpdatedAtAfter(previous: string): string {
-  const now = new Date();
-  const previousMs = Date.parse(previous);
-  if (Number.isFinite(previousMs) && now.getTime() <= previousMs) {
-    return new Date(previousMs + 1).toISOString();
-  }
-  return now.toISOString();
 }
 
 /** Total lines across sections — the cheap list summary. */
