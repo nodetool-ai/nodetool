@@ -170,6 +170,16 @@ describe("Storyboard finishing", () => {
     result.document.tracks[1].effects = [{ type: "blur", radius: 20 }] as never;
     expect(validateProducedTimeline(args, result.document).some((issue) => issue.code === "forbidden_transform")).toBe(true);
   });
+  it("rejects forbidden source masks and unproven transitions on protected clips", () => {
+    const args = input();
+    const document = materializeStoryboard(args).document;
+    const product = document.clips.find(clip => clip.storyboardElementId === "product")!;
+    product.mask = { kind: "ellipse", x: 0, y: 0, width: 0.5, height: 1 };
+    expect(validateProducedTimeline(args, document).some(issue => issue.code === "forbidden_transform" && issue.message.includes("mask is forbidden"))).toBe(true);
+    delete product.mask;
+    product.transitionIn = { type: "push", durationMs: 300 };
+    expect(validateProducedTimeline(args, document).some(issue => issue.code === "forbidden_transform" && issue.message.includes("Transition push"))).toBe(true);
+  });
   it("uses motion design for cut animations and continuity without rerun duplication", () => {
     const args = input();
     const second = structuredClone(args.shots[0]);

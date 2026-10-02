@@ -46,6 +46,10 @@ const baseline = (clip: TimelineClip): string => JSON.stringify({
   crop: clip.crop,
   effects: clip.effects,
   parentId: clip.parentId,
+  layout: clip.layout,
+  flexItem: clip.flexItem,
+  mask: clip.mask,
+  transitionIn: clip.transitionIn,
   text: clip.textStyle?.text,
   color: clip.textStyle?.color ?? clip.shapeStyle?.fill,
   transform: clip.transform,
@@ -173,9 +177,10 @@ function validateTransforms(
   forbidden("scale", !!transform && (transform.scale.x !== 1 || transform.scale.y !== 1));
   forbidden("rotate", !!transform && (transform.rotation !== 0 || !!transform.rotationX || !!transform.rotationY));
   forbidden("opacity", clip.opacity !== undefined && clip.opacity !== 1);
-  forbidden("mask", !!clip.matte);
+  forbidden("mask", !!clip.matte || !!clip.mask);
   forbidden("crop", !!clip.crop);
   if (clip.blendMode && clip.blendMode !== "normal") issue("forbidden_transform", `Color-changing blending on ${protection.id} cannot preserve protected values.`);
+  if (clip.transitionIn) issue("forbidden_transform", `Transition ${clip.transitionIn.type} has no proven protected transformation policy.`);
   if (clip.parentId || clip.effects?.length) issue("forbidden_transform", `Inherited transforms or effects on ${protection.id} cannot be proven faithful by this materializer.`);
   for (const animation of clip.animations ?? []) {
     if (animation.enabled === false) continue;

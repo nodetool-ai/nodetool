@@ -663,12 +663,10 @@ export class ClaudeAgentProvider extends BaseProvider {
 
   /** Drive one SDK `query` turn and translate its messages into stream items. */
   private async *runTurn(
-    args: {
-      model: string;
-      messages: Message[];
-      maxTurns?: number;
-      signal?: AbortSignal;
-    },
+    args: Pick<
+      Parameters<BaseProvider["generateMessages"]>[0],
+      "model" | "messages" | "maxTurns" | "signal" | "thinking" | "effort"
+    >,
     plan: {
       prompt: PromptContent;
       resume: string | undefined;

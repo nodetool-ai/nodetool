@@ -86,7 +86,10 @@ scaffold. A new agentic cut must author editable layout or motion before
 submission. Read-only, no-op and metadata-only edits do not satisfy this
 requirement. An existing cut may stay unchanged after visual review. This
 authoring check proves a composition change, while the visual review assesses
-its quality. It renders design references derived from the expected Storyboard
+its quality. Agentic reruns reuse accepted layer presentation and refresh
+Storyboard-owned source identity, exact copy, protected colors and timing.
+Typography and permitted manual placement survive input changes. Retained
+presentation must pass the current production policy before model dispatch. It renders design references derived from the expected Storyboard
 revision and compares actual composited cut frames with those references.
 These are derived references, not a separate historical pixel approval.
 The agent uses existing Timeline operations and cannot invoke media generation

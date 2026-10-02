@@ -195,7 +195,8 @@ async function fixture() {
 async function execute(
   provider: FinishingProvider,
   context: ProcessingContext,
-  board: Storyboard
+  board: Storyboard,
+  expectedTimelineRevision?: number
 ) {
   const run = createCapabilityRun({
     context,
@@ -210,7 +211,8 @@ async function execute(
   return finishStoryboard.impl(run, {
     storyboardId: board.id,
     expectedStoryboardRevision: board.revision,
-    strategy: "agentic"
+    strategy: "agentic",
+    ...(expectedTimelineRevision !== undefined && { expectedTimelineRevision })
   }) as Promise<{
     timelineId?: string;
     error?: string;
@@ -319,6 +321,217 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
         )?.transitionIn
     ).toMatchObject({ type: "crossfade", durationMs: 300 });
   });
+  it("preserves accepted agent-authored typography on an unchanged rerun", async () => {
+    const { board, context } = await fixture();
+    const first = await execute(
+      new FinishingProvider([craft, done, approve, done]),
+      context,
+      board
+    );
+    const before = (await TimelineSequence.findById(first.timelineId!))!;
+    const latestBoard = (await Storyboard.findById(board.id))!;
+    const result = await execute(
+      new FinishingProvider([
+        () => [call("submit_finished_cut")],
+        done,
+        approve,
+        done
+      ]),
+      context,
+      latestBoard,
+      before.revision
+    );
+    expect(result.error).toBeUndefined();
+    expect(
+      (await TimelineSequence.findById(before.id))
+        ?.toDocument()
+        .clips.filter((clip) => clip.storyboardElementId === "price")
+        .map((clip) => clip.textStyle?.fontSizePx)
+    ).toEqual([170, 170]);
+  });
+  it("refreshes exact copy and protected color while preserving authored typography and manual product placement", async () => {
+    const { board, context } = await fixture();
+    const initialBoard = board.toDocument();
+    for (const shot of initialBoard.shots) {
+      shot.production!.protected_inputs!.push({
+        id: "brand",
+        kind: "brand_color",
+        value: "#0033AA",
+        allowed_transformations: ["opacity"]
+      });
+      shot.graphics!.elements!.find(
+        (element) => element.id === "background"
+      )!.protected_input_id = "brand";
+    }
+    board.document = JSON.stringify(initialBoard);
+    await board.save();
+    const first = await execute(
+      new FinishingProvider([craft, done, approve, done]),
+      context,
+      board
+    );
+    const before = (await TimelineSequence.findById(first.timelineId!))!;
+    const manual = before.toDocument();
+    for (const clip of manual.clips.filter(
+      (clip) => clip.storyboardElementId === "product"
+    ))
+      clip.transform!.position.x = 80;
+    await TimelineSequence.updateDocumentIfUnchanged(
+      before.id,
+      before.updated_at,
+      manual
+    );
+    const updated = (await TimelineSequence.findById(before.id))!;
+    const latestBoard = (await Storyboard.findById(board.id))!;
+    const changed = latestBoard.toDocument();
+    const replacement = await Asset.create<Asset>({
+      user_id: "u1",
+      name: "Updated product input",
+      content_type: "image/png"
+    });
+    for (const shot of changed.shots) {
+      shot.production!.protected_inputs!.find(
+        (input) => input.id === "product"
+      )!.asset_id = replacement.id;
+      shot.production!.protected_inputs!.find(
+        (input) => input.id === "price"
+      )!.value = " €19 ";
+      shot.production!.protected_inputs!.find(
+        (input) => input.id === "brand"
+      )!.value = "#AA3300";
+    }
+    latestBoard.document = JSON.stringify(changed);
+    await latestBoard.save();
+    const result = await execute(
+      new FinishingProvider([
+        () => [call("submit_finished_cut")],
+        done,
+        approve,
+        done
+      ]),
+      context,
+      latestBoard,
+      updated.revision
+    );
+    expect(result.error).toBeUndefined();
+    const clips = (await TimelineSequence.findById(before.id))!.toDocument()
+      .clips;
+    expect(
+      clips
+        .filter((clip) => clip.storyboardElementId === "price")
+        .map((clip) => [clip.textStyle?.fontSizePx, clip.textStyle?.text])
+    ).toEqual([
+      [170, " €19 "],
+      [170, " €19 "]
+    ]);
+    expect(
+      clips
+        .filter((clip) => clip.storyboardElementId === "product")
+        .map((clip) => clip.transform?.position.x)
+    ).toEqual([80, 80]);
+    expect(
+      clips
+        .filter((clip) => clip.storyboardElementId === "product")
+        .map((clip) => clip.currentAssetId)
+    ).toEqual([replacement.id, replacement.id]);
+    expect(
+      clips
+        .filter((clip) => clip.storyboardElementId === "background")
+        .map((clip) => clip.shapeStyle?.fill)
+    ).toEqual(["#AA3300", "#AA3300"]);
+  });
+  it.each(["mask", "transition"])(
+    "refuses retained forbidden protected %s before provider spend or save",
+    async (feature) => {
+      const { board, context } = await fixture();
+      const first = await execute(
+        new FinishingProvider([craft, done, approve, done]),
+        context,
+        board
+      );
+      const before = (await TimelineSequence.findById(first.timelineId!))!;
+      const manual = before.toDocument();
+      const product = manual.clips.find(
+        (clip) => clip.storyboardElementId === "product"
+      )!;
+      if (feature === "mask")
+        product.mask = { kind: "ellipse", x: 0, y: 0, width: 0.5, height: 1 };
+      else product.transitionIn = { type: "push", durationMs: 300 };
+      await TimelineSequence.updateDocumentIfUnchanged(
+        before.id,
+        before.updated_at,
+        manual
+      );
+      const current = (await TimelineSequence.findById(before.id))!;
+      const provider = new FinishingProvider([]);
+      const result = await execute(
+        provider,
+        context,
+        (await Storyboard.findById(board.id))!,
+        current.revision
+      );
+      expect(result.error).toMatch(/production requirements/);
+      expect(result.error).toContain(
+        feature === "mask" ? "mask is forbidden" : "Transition push"
+      );
+      expect(provider.requests).toHaveLength(0);
+      expect((await TimelineSequence.findById(before.id))?.revision).toBe(
+        current.revision
+      );
+    }
+  );
+  it("conflicts instead of overwriting a manually added transition on a rerun", async () => {
+    const { board, context } = await fixture();
+    const first = await execute(
+      new FinishingProvider([craft, done, approve, done]),
+      context,
+      board
+    );
+    const before = (await TimelineSequence.findById(first.timelineId!))!;
+    const manual = before.toDocument();
+    const accent = manual.clips.find(
+      (clip) => clip.storyboardElementId === "accent"
+    )!;
+    accent.transitionIn = { type: "crossfade", durationMs: 300 };
+    await TimelineSequence.updateDocumentIfUnchanged(
+      before.id,
+      before.updated_at,
+      manual
+    );
+    const current = (await TimelineSequence.findById(before.id))!;
+    const provider = new FinishingProvider([
+      (args) => [
+        call("edit_timeline", {
+          ops: [
+            {
+              op: "set_transition",
+              target: authorContext(args).scaffold.clips.find(
+                (clip) => clip.id === accent.id
+              )!.id,
+              transition: { type: "zoom", durationMs: 300 }
+            }
+          ]
+        }),
+        call("submit_finished_cut")
+      ],
+      done
+    ]);
+    const result = await execute(
+      provider,
+      context,
+      (await Storyboard.findById(board.id))!,
+      current.revision
+    );
+    expect(result.error).toMatch(/Manual transitionIn edit/);
+    expect((await TimelineSequence.findById(before.id))?.revision).toBe(
+      current.revision
+    );
+    expect(
+      (await TimelineSequence.findById(before.id))
+        ?.toDocument()
+        .clips.find((clip) => clip.id === accent.id)?.transitionIn
+    ).toEqual(accent.transitionIn);
+  });
   it("allows an unchanged existing cut to finish after full visual review", async () => {
     const { board, context } = await fixture();
     const initial = (await finishStoryboard.impl(
@@ -364,6 +577,7 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
     const provider = new FinishingProvider([
       (args) => {
         const data = authorContext(args);
+        expect(args.effort).toBe("medium");
         expect(data.storyboard.shots.map((shot) => shot.id)).toEqual([
           "hook",
           "cta"

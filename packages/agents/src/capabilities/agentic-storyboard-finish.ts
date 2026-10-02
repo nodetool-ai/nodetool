@@ -12,7 +12,10 @@ import {
   type TurnBudget,
   type RunBudget
 } from "@nodetool-ai/runtime";
-import { isRecord } from "@nodetool-ai/protocol";
+import {
+  isRecord,
+  resolveEffectiveProductionRequirement
+} from "@nodetool-ai/protocol";
 import { buildTimelineToolContracts } from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
 import { uiToolParams } from "@nodetool-ai/protocol/api-schemas/ui-tool-contract.js";
 import { validateTimelineSequence } from "@nodetool-ai/execution/timeline-debug";
@@ -98,6 +101,84 @@ function composition(document: FinishedStoryboardDocument): string {
   );
 }
 
+/** Existing authored presentation survives while semantic source truth is refreshed. */
+function reuseAcceptedPresentation(
+  input: FinishStoryboardInput,
+  scaffold: FinishedStoryboardDocument
+): FinishedStoryboardDocument {
+  const document = structuredClone(scaffold);
+  const accepted = new Map(input.current?.clips.map((clip) => [clip.id, clip]));
+  const protectedColors = new Set<string>();
+  for (const shot of input.shots) {
+    const protections = new Map(
+      (
+        resolveEffectiveProductionRequirement(input.production, shot.production)
+          ?.protected_inputs ?? []
+      ).map((protection) => [protection.id, protection])
+    );
+    for (const element of shot.graphics?.elements ?? []) {
+      if (
+        element.protected_input_id &&
+        protections.get(element.protected_input_id)?.kind === "brand_color"
+      ) {
+        protectedColors.add(`${shot.id}/${element.id}`);
+      }
+    }
+  }
+  for (const clip of document.clips) {
+    const prior = accepted.get(clip.id);
+    if (
+      !prior ||
+      clip.storyboardBoardId !== input.boardId ||
+      prior.mediaType !== clip.mediaType ||
+      prior.storyboardShotId !== clip.storyboardShotId ||
+      prior.storyboardElementId !== clip.storyboardElementId
+    ) {
+      continue;
+    }
+    const protectedColor = protectedColors.has(
+      `${clip.storyboardShotId}/${clip.storyboardElementId}`
+    );
+    Object.assign(
+      clip,
+      structuredClone({
+        transform: prior.transform,
+        layout: prior.layout,
+        flexItem: prior.flexItem,
+        opacity: prior.opacity,
+        hidden: prior.hidden,
+        blendMode: prior.blendMode,
+        parentId: prior.parentId,
+        mask: prior.mask,
+        matte: prior.matte,
+        crop: prior.crop,
+        effects: prior.effects,
+        animations: prior.animations,
+        transitionIn: prior.transitionIn
+      })
+    );
+    if (clip.textStyle && prior.textStyle) {
+      clip.textStyle = {
+        ...prior.textStyle,
+        text: clip.textStyle.text,
+        ...(protectedColor && {
+          color: clip.textStyle.color
+        })
+      };
+    }
+    if (clip.shapeStyle && prior.shapeStyle) {
+      clip.shapeStyle = {
+        ...prior.shapeStyle,
+        kind: clip.shapeStyle.kind,
+        ...(protectedColor && {
+          fill: clip.shapeStyle.fill
+        })
+      };
+    }
+  }
+  return document;
+}
+
 /** A child authors only an in-memory draft. Existing CAS is the sole write. */
 export async function finishStoryboardAgentically(
   run: CapabilityRun,
@@ -120,7 +201,18 @@ export async function finishStoryboardAgentically(
     );
   }
   const signal = run.signal ?? run.context.signal;
-  let document = structuredClone(scaffold);
+  let document = reuseAcceptedPresentation(input, scaffold);
+  const preflightPolicy = validateProducedTimeline(input, document);
+  const preflightStructure = validateTimelineSequence(document, {
+    fps: sequence.fps,
+    width: input.width,
+    height: input.height
+  });
+  if (preflightPolicy.length || !preflightStructure.ok) {
+    throw new Error(
+      `Accepted presentation cannot honor the current production requirements: ${json({ policy: preflightPolicy, structural: preflightStructure })}`
+    );
+  }
   const reviews: FinishedCutReview[] = [];
   let feedback: unknown = [];
   const initial = new Map(scaffold.clips.map((clip) => [clip.id, clip]));
@@ -241,6 +333,7 @@ export async function finishStoryboardAgentically(
     for await (const event of runtime.provider.generateLoop({
       messages,
       model: runtime.model,
+      effort: "medium",
       tools,
       executeTool: (call) => {
         const pending = executionTail.then(() => {
@@ -343,7 +436,7 @@ export async function finishStoryboardAgentically(
         {
           role: "system",
           content:
-            "Finish the approved WHOLE CUT, not an isolated shot. The deterministic scaffold establishes faithful source layers and timing; it is your starting point, not evidence of agentic finishing. Inspect all derived design references and semantic graphic/motion direction, then deliberately author an editable composition: readable type hierarchy, balanced product/copy layout, graphic rhythm and continuity across the cut. Use existing Timeline operations and their exact operationContracts. Make meaningful layout, typography, decorative or animation choices that serve this board. Do not make arbitrary nudges, metadata changes or add empty layers merely to satisfy authoring. On a new cut, author actual layout or motion before submitting; on an existing finished cut, preserve good prior work and submit unchanged if no revision is needed. Preserve all source assets, exact copy/colors, semantic IDs, shot windows and manual edits. Do not invent or generate replacement media. Read every edit result, correct rejected edits, then submit_finished_cut when ready. At a revision, fix every reported defect. Storyboard contains semantic intent, never an animation implementation. The Timeline is execution truth."
+            "Finish the approved WHOLE CUT, not an isolated shot. The deterministic scaffold establishes faithful source layers and timing; it is your starting point, not evidence of agentic finishing. Inspect all derived design references and semantic graphic/motion direction, then deliberately author an editable composition: readable type hierarchy, balanced product/copy layout, graphic rhythm and continuity across the cut. Use the supplied full scaffold and operationContracts directly; do not request get_timeline or list_animation_presets redundantly when their data is already present. Author a focused batch of deliberate edits rather than redesigning every layer. Use existing Timeline operations and their exact operationContracts. Make meaningful layout, typography, decorative or animation choices that serve this board. Do not make arbitrary nudges, metadata changes or add empty layers merely to satisfy authoring. On a new cut, author actual layout or motion before submitting; on an existing finished cut, preserve good prior work and submit unchanged if no revision is needed. Preserve all source assets, exact copy/colors, semantic IDs, shot windows and manual edits. Do not invent or generate replacement media. Read every edit result, correct rejected edits, then submit_finished_cut when ready. At a revision, fix every reported defect. Storyboard contains semantic intent, never an animation implementation. The Timeline is execution truth."
         },
         {
           role: "user",
@@ -572,7 +665,15 @@ export async function finishStoryboardAgentically(
           current.storyboardMaterializationBaseline
         );
         if (isRecord(baseline)) {
-          for (const field of ["transform", "startMs", "durationMs"] as const) {
+          for (const field of [
+            "transform",
+            "startMs",
+            "durationMs",
+            "layout",
+            "flexItem",
+            "mask",
+            "transitionIn"
+          ] as const) {
             if (
               json(current[field]) !== json(baseline[field]) &&
               json(clip[field]) !== json(current[field])
