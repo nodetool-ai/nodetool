@@ -451,20 +451,20 @@ const ensureThreadSubscription = (
 };
 
 /**
- * The slice written to localStorage. Newer keys are optional because a
+ * The slice written to localStorage: the user's model and permission
+ * selections only. Conversations (`threads`) and their workflow bindings come
+ * from the server on every load; the in-memory `threads` and `messageCache`
+ * maps are request caches for the session. Newer keys are optional because a
  * payload persisted before they existed does not carry them, and `migrate`
  * rebuilds what it can — persist merges the rest from the store's initial
  * state.
  */
 interface PersistedChatState {
-  threads: Record<string, Thread>;
   lastUsedThreadId: string | null;
   selectedModel: LanguageModel | null;
   threadModel?: Record<string, LanguageModel>;
   permissionMode: Record<string, PermissionMode>;
   lastPermissionMode?: PermissionMode;
-  workflowThreadId?: Record<string, string>;
-  threadWorkflowId?: Record<string, string | null>;
 }
 
 const useGlobalChatStore = create<GlobalChatState>()(
@@ -1825,37 +1825,30 @@ const useGlobalChatStore = create<GlobalChatState>()(
     }),
     {
       name: "global-chat-storage",
-      version: 1,
-      // Persist minimal subset incl. selections; do not persist message cache
-      partialize: (state) =>
-        ({
-          threads: state.threads || {},
-          lastUsedThreadId: state.lastUsedThreadId,
-          selectedModel: state.selectedModel,
-          threadModel: state.threadModel,
-          permissionMode: state.permissionMode,
-          lastPermissionMode: state.lastPermissionMode,
-          // Per-workflow thread binding so the editor side panel restores the
-          // right conversation across reloads.
-          workflowThreadId: state.workflowThreadId,
-          threadWorkflowId: state.threadWorkflowId
-        }),
+      // Version 2 stopped persisting conversations; `migrate` drops the
+      // `threads` and workflow-binding maps an older payload carries.
+      version: 2,
+      // Persist selections only. Threads and messages are server state,
+      // fetched by `fetchThreads`/`loadMessages` and cached in memory.
+      partialize: (state) => ({
+        lastUsedThreadId: state.lastUsedThreadId,
+        selectedModel: state.selectedModel,
+        threadModel: state.threadModel,
+        permissionMode: state.permissionMode,
+        lastPermissionMode: state.lastPermissionMode
+      }),
       // Default persist merge is shallow, so a rehydrate that finishes after
-      // createNewThread would replace `threads` and drop the new conversation.
+      // a thread was created would replace the per-thread maps.
       merge: (persistedState, currentState) => {
         if (!isObjectLike(persistedState) || Array.isArray(persistedState)) {
           return currentState;
         }
         const persisted = persistedState as Partial<PersistedChatState>;
-        // SAFETY: overlay is a persisted subset; the four maps are rebuilt so
+        // SAFETY: overlay is a persisted subset; the two maps are rebuilt so
         // in-memory keys win over a late rehydrate.
         return {
           ...currentState,
           ...persisted,
-          threads: {
-            ...(persisted.threads ?? {}),
-            ...currentState.threads
-          },
           permissionMode: {
             ...(persisted.permissionMode ?? {}),
             ...currentState.permissionMode
@@ -1863,24 +1856,15 @@ const useGlobalChatStore = create<GlobalChatState>()(
           threadModel: {
             ...(persisted.threadModel ?? {}),
             ...currentState.threadModel
-          },
-          workflowThreadId: {
-            ...(persisted.workflowThreadId ?? {}),
-            ...currentState.workflowThreadId
-          },
-          threadWorkflowId: {
-            ...(persisted.threadWorkflowId ?? {}),
-            ...currentState.threadWorkflowId
           }
         } as GlobalChatState;
       },
       migrate: (persistedState, _version) => {
         // Corrupt localStorage (string, null, etc.) must yield a usable
         // default rather than passing the raw value through; selectors
-        // that read `threads`/`permissionMode` would otherwise see
+        // that read `permissionMode`/`threadModel` would otherwise see
         // `undefined` and crash.
         const fallback = {
-          threads: {},
           lastUsedThreadId: null as string | null,
           selectedModel: null as LanguageModel | null,
           threadModel: {} as Record<string, LanguageModel>,
@@ -1892,12 +1876,6 @@ const useGlobalChatStore = create<GlobalChatState>()(
         }
         const state = persistedState as Record<string, unknown>;
         return {
-          threads:
-            state.threads &&
-            isObjectLike(state.threads) &&
-            !Array.isArray(state.threads)
-              ? (state.threads as Record<string, Thread>)
-              : fallback.threads,
           lastUsedThreadId:
             isString(state.lastUsedThreadId)
               ? state.lastUsedThreadId
