@@ -59,5 +59,6 @@ export * from "./midi/index.js";
 export * from "./fonts/index.js";
 export * from "./finish-storyboard.js";
 export * from "./storyboardValidation.js";
+export { stableSerialize } from "./stableSerialize.js";
 
 export * from "./storyboardDesignFrame.js";

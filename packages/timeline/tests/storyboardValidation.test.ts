@@ -3,6 +3,13 @@ import type { Screenplay, Shot } from "@nodetool-ai/protocol";
 import { validateStoryboardSemantics } from "../src/storyboardValidation.js";
 
 describe("finish-time storyboard semantics", () => {
+  it("ignores disabled optional graphics but rejects disabled protected graphics", () => {
+    const shot: Shot = { type: "shot", id: "s", index: 0, action: "", status: "planned", graphics: { mode: "none", elements: [{ id: "copy", kind: "text", asset_id: "unavailable", text: "Sale" }] } };
+    const context = { assetIds: new Set<string>(), entityIds: new Set<string>() };
+    expect(validateStoryboardSemantics([shot], null, context)).toEqual([]);
+    shot.production = { protected_inputs: [{ id: "copy", kind: "exact_text", value: "Sale" }] };
+    expect(validateStoryboardSemantics([shot], null, context)).toContain("s: graphics mode none disables required protected content.");
+  });
   it("reports missing protected, asset and entity references without mutating drafts", () => {
     const shots: Shot[] = [{ type: "shot", id: "s", index: 0, action: "", status: "planned", graphics: { elements: [
       { id: "product", kind: "asset", asset_id: "foreign", entity_id: "missing", protected_input_id: "unknown" },

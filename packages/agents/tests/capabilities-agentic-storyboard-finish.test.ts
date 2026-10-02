@@ -528,7 +528,7 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
       );
       expect(result.error).toMatch(/production requirements/);
       expect(result.error).toContain(
-        feature === "mask" ? "mask is forbidden" : "Transition push"
+        feature === "mask" ? "mask" : "transitionIn"
       );
       expect(provider.requests).toHaveLength(0);
       expect((await TimelineSequence.findById(before.id))?.revision).toBe(
@@ -578,7 +578,7 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
       (await Storyboard.findById(board.id))!,
       current.revision
     );
-    expect(result.error).toMatch(/Manual transitionIn edit/);
+    expect(result.error).toMatch(/manually changed.*transitionIn/);
     expect((await TimelineSequence.findById(before.id))?.revision).toBe(
       current.revision
     );
@@ -1046,8 +1046,11 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
         const images = Array.isArray(content)
           ? content.filter((block) => block.type === "image_url")
           : [];
-        expect(images).toHaveLength(6);
-        const image = images[2];
+        expect(images.length).toBeGreaterThan(6);
+        expect(candidateFrameReviews(args).some((frame) => frame.timeMs === 1850)).toBe(true);
+        const holdIndex = candidateFrameReviews(args).findIndex((frame) => frame.timeMs === 1000);
+        expect(holdIndex).toBeGreaterThanOrEqual(0);
+        const image = images[2 + holdIndex];
         if (!image || image.type !== "image_url" || !image.image.uri) {
           throw new Error("Missing rendered image.");
         }
@@ -1084,9 +1087,9 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
         )?.content;
         expect(
           Array.isArray(content)
-            ? content.filter((block) => block.type === "image_url")
-            : []
-        ).toHaveLength(6);
+            ? content.filter((block) => block.type === "image_url").length
+            : 0
+        ).toBeGreaterThan(6);
         expect(JSON.stringify(content)).toContain(
           "Previous candidate cut frame"
         );
@@ -1547,7 +1550,7 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
         strategy: "agentic"
       })
     ).toMatchObject({
-      error: "Produced Timeline violates production requirements.",
+      error: expect.stringContaining("Produced Timeline violates production requirements"),
       validation: expect.arrayContaining([
         expect.objectContaining({ code: "manual_conflict" })
       ])

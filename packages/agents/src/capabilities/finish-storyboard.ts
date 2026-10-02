@@ -1,4 +1,7 @@
-import { isRecord } from "@nodetool-ai/protocol";
+import { createHash } from "node:crypto";
+import { measureStoryboardSources } from "./storyboard-measured-sources.js";
+import type { ScriptAssemblyInput } from "@nodetool-ai/timeline";
+import { isRecord, type Shot } from "@nodetool-ai/protocol";
 import { budgetFromContext } from "@nodetool-ai/runtime";
 import type { CapabilityExport, CapabilityRun } from "./types.js";
 import { finishStoryboardSpec, previewStoryboardDesignSpec } from "./storyboards.specs.js";
@@ -14,7 +17,7 @@ async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Recor
     const userId = run.context.userId;
     if (!userId) return { error: "No user is bound to this session." };
     const { findFinishResourceIds, Storyboard, TimelineSequence, Asset, entityFromAsset, commitFinishedStoryboard } = await import("@nodetool-ai/models");
-    const { materializeStoryboard, resolveShotSource, validateStoryboardSemantics, frameSizeForAspect, makeSequence } = await import("@nodetool-ai/timeline");
+    const { materializeStoryboard, stableSerialize, activeStoryboardGraphics, shotSources, resolveShotSource, validateStoryboardSemantics, frameSizeForAspect, makeSequence } = await import("@nodetool-ai/timeline");
     const { resolveEffectiveProductionRequirement } = await import("@nodetool-ai/protocol");
     const boardId = String(params["storyboardId"] ?? "");
     const boardRows = await findFinishResourceIds("storyboard", boardId, userId, run.projectId);
@@ -24,7 +27,7 @@ async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Recor
     if (run.projectId && run.projectId !== board.project_id) return { error: "Storyboard was not found in this project." };
     if (board.revision !== params["expectedStoryboardRevision"]) return { error: "Storyboard revision conflict." };
     const doc = board.toDocument();
-    const shots = structuredClone(doc.shots).map((shot) => ({ ...shot, production: resolveEffectiveProductionRequirement(undefined, shot.production) }));
+    let shots: Shot[] = structuredClone(doc.shots).map((shot) => ({ ...shot, production: resolveEffectiveProductionRequirement(undefined, shot.production) }));
     const assets = new Set<string>();
     const assetContentTypes = new Map<string, string>();
     const entities = new Set<string>();
@@ -33,17 +36,18 @@ async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Recor
       if (matches.length !== 1) throw new Error(matches.length ? `Asset prefix ${id} is ambiguous.` : `Asset ${id} is unavailable.`);
       return matches[0];
     };
+    const sources = shotSources(shots, { requireRendered: false });
     try {
       for (const shot of shots) {
         for (const protection of shot.production?.protected_inputs ?? []) {
           if (protection.asset_id) protection.asset_id = await resolveAssetId(protection.asset_id);
           if (protection.entity_id) protection.entity_id = await resolveAssetId(protection.entity_id);
         }
-        for (const element of shot.graphics?.elements ?? []) {
+        for (const element of activeStoryboardGraphics(shot)) {
           if (element.asset_id) element.asset_id = await resolveAssetId(element.asset_id);
           if (element.entity_id) element.entity_id = await resolveAssetId(element.entity_id);
         }
-        const source = resolveShotSource(shot);
+        const source = resolveShotSource(shot, undefined, sources.get(shot.id)?.assetId);
         if (source && source.kind !== "graphics") {
           const canonical = await resolveAssetId(source.assetId);
           if (source.kind === "still" && shot.keyframe) shot.keyframe.asset_id = canonical;
@@ -54,13 +58,13 @@ async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Recor
         const protectionsById = new Map((shot.production?.protected_inputs ?? []).map((input) => [input.id, input]));
         const imageIds = new Set((shot.production?.protected_inputs ?? []).filter((input) => ["product", "logo"].includes(input.kind)).map((input) => input.asset_id));
         if (source?.kind === "still") { imageIds.add(source.assetId); }
-        for (const element of shot.graphics?.elements ?? []) {
+        for (const element of activeStoryboardGraphics(shot)) {
           if (element.kind === "asset") {
             imageIds.add(element.asset_id);
             if (element.protected_input_id) { imageIds.add(protectionsById.get(element.protected_input_id)?.asset_id); }
           }
         }
-        const refs = [selectedAssetId, ...(shot.production?.protected_inputs ?? []).map((input) => input.asset_id), ...(shot.graphics?.elements ?? []).map((element) => element.asset_id)];
+        const refs = [selectedAssetId, ...(shot.production?.protected_inputs ?? []).map((input) => input.asset_id), ...(activeStoryboardGraphics(shot)).map((element) => element.asset_id)];
         for (const id of refs) {
           if (!id) { continue; }
           let contentType = assetContentTypes.get(id);
@@ -74,7 +78,7 @@ async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Recor
           if (imageIds.has(id) && !contentType.startsWith("image/")) { return { error: `Asset ${id} must be an image for this editable graphics/still layer.` }; }
           if (source?.kind === "video" && selectedAssetId === id && !contentType.startsWith("video/")) { return { error: `Asset ${id} must be a video for this selected shot source.` }; }
         }
-        for (const element of shot.graphics?.elements ?? []) {
+        for (const element of activeStoryboardGraphics(shot)) {
           const protection = element.protected_input_id ? shot.production?.protected_inputs?.find((input) => input.id === element.protected_input_id) : undefined;
           const entityId = element.entity_id ?? protection?.entity_id;
           if (!entityId) continue;
@@ -105,13 +109,33 @@ async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Recor
       if (!timeline) return { error: "Timeline was not found." };
       if (timeline.revision !== params["expectedTimelineRevision"]) return { error: "Timeline revision conflict. Supply expectedTimelineRevision for an existing result." };
     } else if (params["expectedTimelineRevision"] !== undefined) return { error: "expectedTimelineRevision requires an existing timeline." };
+    let script: ScriptAssemblyInput | undefined;
+    let linkedScriptFingerprint = "";
+    if (doc.screenplay?.script_id) {
+      const { Script } = await import("@nodetool-ai/models");
+      const row = await Script.findById(doc.screenplay.script_id);
+      if (!row || row.user_id !== userId) { return { error: "Linked script is unavailable." }; }
+      const scriptDoc = row.toDocument();
+      script = { scriptId: row.id, cast: scriptDoc.cast, sections: scriptDoc.sections };
+      linkedScriptFingerprint = createHash("sha256").update(stableSerialize(script)).digest("hex");
+      if (!previewOnly && params["expectedLinkedScriptFingerprint"] !== linkedScriptFingerprint) { return { error: "Linked script changed or has not been reviewed. Refresh the design preview before finishing." }; }
+      for (const section of script.sections) {
+        for (const line of section.lines) {
+          const take = line.takes.find((value) => value.id === line.currentTakeId);
+          if (!take) { continue; }
+          const asset = await Asset.get<InstanceType<typeof Asset>>(take.assetId);
+          if (!asset || asset.user_id !== userId || !asset.content_type.startsWith("audio/")) { return { error: "Linked script audio is unavailable." }; }
+        }
+      }
+    }
+    shots = await measureStoryboardSources(shots, run.context, signal);
     const size = frameSizeForAspect(doc.aspectRatio ?? "9:16");
-    const result = materializeStoryboard({ boardId: board.id, shots, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, motionDesign: doc.screenplay?.motion_design, current: timeline ? JSON.parse(timeline.document) : undefined });
-    if (result.validation.length) return { error: "Produced Timeline violates production requirements.", validation: result.validation };
+    const result = materializeStoryboard({ boardId: board.id, shots, script, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, motionDesign: doc.screenplay?.motion_design, current: timeline ? JSON.parse(timeline.document) : undefined });
+    if (result.validation.length) return { error: `Produced Timeline violates production requirements: ${result.validation.map((issue) => issue.message).join(" ")}`, validation: result.validation };
     const { validateTimelineSequence } = await import("@nodetool-ai/execution/timeline-debug");
     const structural = validateTimelineSequence(result.document, { fps: timeline?.fps ?? 30, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height });
     if (!structural.ok) return { error: "Produced Timeline is structurally invalid.", validation: structural };
-    if (previewOnly) { return { timeline: { type: "timeline", data: makeSequence({ ...result.document, id: board.id, projectId: board.project_id, name: `Design preview: ${board.name}`, width: size.width, height: size.height, fps: 30, durationMs: result.durationMs }) }, storyboardRevision: board.revision, validation: [] }; }
+    if (previewOnly) { return { timeline: { type: "timeline", data: makeSequence({ ...result.document, id: board.id, projectId: board.project_id, name: `Design preview: ${board.name}`, width: size.width, height: size.height, fps: 30, durationMs: result.durationMs }) }, storyboardRevision: board.revision, linkedScriptFingerprint, validation: [] }; }
     try {
       let document = result.document;
       let reviews;
@@ -122,15 +146,22 @@ async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Recor
           ? { provider: await run.context.getProvider(explicitModel["provider"]), model: explicitModel["id"], budget: run.budget ?? budgetFromContext(run.context) }
           : run.subAgent;
         if (!runtime) { return { error: "No finishing model is bound to this run." }; }
-        const candidate = await finishStoryboardAgentically(run, { boardId: board.id, shots, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, motionDesign: doc.screenplay?.motion_design, current: timeline?.toDocument() }, doc, timeline ?? new TimelineSequence({ user_id: userId, project_id: board.project_id, name: board.name, width: size.width, height: size.height, duration_ms: result.durationMs, document: JSON.stringify(result.document) }), result.document, runtime);
+        const candidate = await finishStoryboardAgentically(run, { boardId: board.id, shots, script, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, motionDesign: doc.screenplay?.motion_design, current: timeline?.toDocument() }, doc, timeline ?? new TimelineSequence({ user_id: userId, project_id: board.project_id, name: board.name, width: size.width, height: size.height, duration_ms: result.durationMs, document: JSON.stringify(result.document) }), result.document, runtime);
         document = candidate.document;
         reviews = candidate.reviews;
         costUsd = candidate.costUsd;
       }
       signal?.throwIfAborted();
       run.context.signal?.throwIfAborted();
+      if (script) {
+        const { Script } = await import("@nodetool-ai/models");
+        const latest = await Script.findById(script.scriptId);
+        const latestDoc = latest?.toDocument();
+        const latestFingerprint = latestDoc ? createHash("sha256").update(stableSerialize({ scriptId: script.scriptId, cast: latestDoc.cast, sections: latestDoc.sections })).digest("hex") : "";
+        if (latest?.user_id !== userId || latestFingerprint !== linkedScriptFingerprint) { return { error: "Linked script changed during finishing. Refresh the design preview before finishing again." }; }
+      }
       const saved = await commitFinishedStoryboard({ board, timeline, document, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, durationMs: result.durationMs });
-      return { timelineId: saved.timeline.id, timelineRevision: saved.timeline.revision, storyboardRevision: saved.board.revision, validation: [], ...(reviews && { reviews, costUsd }) };
+      return { status: strategy === "agentic" ? "reviewed_finished" : "unreviewed_draft", reviewed: strategy === "agentic", reviews: reviews ?? [], timelineId: saved.timeline.id, timelineRevision: saved.timeline.revision, storyboardRevision: saved.board.revision, validation: [], ...(costUsd !== undefined && { costUsd }) };
     } catch (error) { return { error: error instanceof Error ? error.message : String(error) }; }
 }
 

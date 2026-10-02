@@ -83,6 +83,17 @@ describe("HeadlessAppRuntime", () => {
     expect(rt.state.variables).not.toHaveProperty("empty");
   });
 
+  it("keeps persistent checkpoint outputs and clears transient outputs when a refresh fails", async () => {
+    const rt = new HeadlessAppRuntime({
+      operations: [operation(async () => [{type: "job_update", status: "failed", error: "revision conflict"}], {outputs: {out1: {to: "variable", variableId: "checkpoint"}, transient: {to: "variable", variableId: "transient"}}})],
+      defaultOperationId: "main",
+      variables: [{id: "checkpoint", name: "Checkpoint", default: "board-id", scope: "user", persist: true}, {id: "transient", name: "Transient", default: "old", scope: "instance", persist: false}]
+    });
+    await rt.dispatch({kind: "run", operationId: "main"});
+    expect(rt.state.variables.checkpoint).toBe("board-id");
+    expect(rt.state.variables.transient).toBeUndefined();
+  });
+
   it("folds a run's stream into the output slot", async () => {
     const run = vi.fn(async () => [
       { type: "output_update", node_id: "out1", output_name: "output", value: "a" },

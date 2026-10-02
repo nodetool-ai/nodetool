@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { Asset, Storyboard, TimelineSequence, commitFinishedStoryboard, initTestDb } from "@nodetool-ai/models";
+import { Asset, Script, Storyboard, TimelineSequence, commitFinishedStoryboard, initTestDb } from "@nodetool-ai/models";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { finishStoryboard, previewStoryboardDesign } from "../src/capabilities/finish-storyboard.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
@@ -15,6 +15,7 @@ describe("finish_storyboard", () => {
     const { board, asset } = await fixture();
     const result = await finishStoryboard.impl(run(), { storyboardId: board.id.slice(0, 12), expectedStoryboardRevision: board.revision }) as { timelineId: string; storyboardRevision: number; validation: unknown[] };
     expect(result.validation).toEqual([]);
+    expect(result).toMatchObject({ status: "unreviewed_draft", reviewed: false, reviews: [] });
     const savedBoard = (await Storyboard.findById(board.id))!;
     expect(savedBoard.timeline_id).toBe(result.timelineId);
     expect(savedBoard.revision).toBe(result.storyboardRevision);
@@ -23,6 +24,71 @@ describe("finish_storyboard", () => {
     expect(timeline.width).toBe(1080);
     expect(timeline.toTimelineSequence().storyboardMaterializations).toEqual([{ boardId: board.id, elementKeys: ["hook/product"] }]);
     expect(JSON.parse(TimelineSequence.fromTimelineSequence("u1", timeline.toTimelineSequence()).document).storyboardMaterializations).toEqual(timeline.toDocument().storyboardMaterializations);
+  });
+  it("never certifies a metadata-only source that has no renderable bytes", async () => {
+    const { board } = await fixture();
+    const result = await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision });
+    expect(result).toMatchObject({ status: "unreviewed_draft", reviewed: false, reviews: [] });
+  });
+  it("ignores retained disabled optional layers in both preview and draft output", async () => {
+    const { board, asset } = await fixture();
+    const doc = board.toDocument();
+    doc.shots[0].production = { media_strategy: "still_motion_graphics" };
+    doc.shots[0].keyframe = { type: "image", asset_id: asset.id };
+    doc.shots[0].graphics = { mode: "none", elements: [{ id: "disabled", kind: "asset", asset_id: "unavailable" }] };
+    board.document = JSON.stringify(doc); await board.save();
+    const preview = await previewStoryboardDesign.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision }) as { timeline: { data: { clips: { storyboardElementId?: string }[] } } };
+    expect(preview.timeline.data.clips.some((clip) => clip.storyboardElementId === "disabled")).toBe(false);
+    const result = await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision }) as { timelineId: string };
+    expect((await TimelineSequence.findById(result.timelineId))!.toDocument().clips.some((clip) => clip.storyboardElementId === "disabled")).toBe(false);
+  });
+  it("authorizes covered video through its canonical source and retains audio windows", async () => {
+    const { board, asset } = await fixture();
+    asset.content_type = "video/mp4"; await asset.save();
+    const doc = board.toDocument();
+    doc.shots = [
+      { type: "shot", id: "a", index: 0, action: "A", status: "rendered", clip: { type: "video", asset_id: asset.id, duration: 8 }, duration_seconds: 3 },
+      { type: "shot", id: "b", index: 1, action: "B", status: "rendered", covered_by: { shot_id: "a", start_seconds: 3, end_seconds: 8 } }
+    ];
+    board.document = JSON.stringify(doc); await board.save();
+    const result = await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision }) as { timelineId: string };
+    const clips = (await TimelineSequence.findById(result.timelineId))!.toDocument().clips;
+    expect(clips.filter((clip) => clip.storyboardShotId === "b")).toEqual(expect.arrayContaining([
+      expect.objectContaining({ mediaType: "video", currentAssetId: asset.id, inPointMs: 3000, outPointMs: 8000 }),
+      expect.objectContaining({ mediaType: "audio", currentAssetId: asset.id, inPointMs: 3000, outPointMs: 8000 })
+    ]));
+  });
+  it("measures source bytes before preview and finishing when the video ref lacks duration", async () => {
+    const { board, asset } = await fixture();
+    asset.content_type = "video/mp4"; await asset.save();
+    const doc = board.toDocument();
+    doc.shots = [{ type: "shot", id: "a", index: 0, action: "A", status: "rendered", clip: { type: "video", asset_id: asset.id }, duration_seconds: 1.5 }];
+    board.document = JSON.stringify(doc); await board.save();
+    const bytes = new Uint8Array(116);
+    const view = new DataView(bytes.buffer);
+    view.setUint32(0, 116); bytes.set(new TextEncoder().encode("moov"), 4);
+    view.setUint32(8, 108); bytes.set(new TextEncoder().encode("mvhd"), 12);
+    view.setUint32(28, 1000); view.setUint32(32, 5184);
+    const measuredRun = createCapabilityRun({ context: { userId: "u1", resolveAssetBytes: async () => ({ bytes }) } as unknown as ProcessingContext, gate: UNGATED });
+    const preview = await previewStoryboardDesign.impl(measuredRun, { storyboardId: board.id, expectedStoryboardRevision: board.revision }) as { timeline: { data: { durationMs: number } } };
+    expect(preview.timeline.data.durationMs).toBe(5184);
+    const result = await finishStoryboard.impl(measuredRun, { storyboardId: board.id, expectedStoryboardRevision: board.revision }) as { timelineId: string };
+    expect((await TimelineSequence.findById(result.timelineId))!.toDocument().clips.map((clip) => clip.durationMs)).toEqual([5184, 5184]);
+  });
+  it("binds linked script finishing to the script fingerprint returned by preview", async () => {
+    const { board } = await fixture();
+    const script = await Script.create<Script>({ user_id: "u1", project_id: "default", name: "Words", document: JSON.stringify({ cast: [], sections: [] }) });
+    const doc = board.toDocument();
+    doc.screenplay = { type: "screenplay", id: "play", title: "", shots: doc.shots, script_id: script.id };
+    board.document = JSON.stringify(doc); await board.save();
+    const preview = await previewStoryboardDesign.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision }) as { linkedScriptFingerprint: string };
+    expect(preview.linkedScriptFingerprint).toMatch(/^[a-f0-9]{64}$/);
+    expect(await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision })).toHaveProperty("error", "Linked script changed or has not been reviewed. Refresh the design preview before finishing.");
+    script.document = JSON.stringify({ cast: [], sections: [{ id: "changed", lines: [] }] }); await script.save();
+    expect(await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision, expectedLinkedScriptFingerprint: preview.linkedScriptFingerprint })).toHaveProperty("error", "Linked script changed or has not been reviewed. Refresh the design preview before finishing.");
+    expect(await TimelineSequence.listByUser("u1")).toHaveLength(0);
+    const refreshed = await previewStoryboardDesign.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision }) as { linkedScriptFingerprint: string };
+    expect(await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision, expectedLinkedScriptFingerprint: refreshed.linkedScriptFingerprint })).toHaveProperty("status", "unreviewed_draft");
   });
   it.each(["owned", "ambiguous", "foreign"])("resolves protected short assets only when uniquely owned: %s", async (kind) => {
     const { board, asset } = await fixture();

@@ -1,7 +1,7 @@
 # Shared Recipe operations and compilation
 
 A Recipe remains a normal Application. `compileRecipeApplication` in
-[`@nodetool-ai/app-runtime`](../../packages/app-runtime/src/recipe-compiler.ts)
+[`@nodetool-ai/app-runtime`](https://github.com/nodetool-ai/nodetool/blob/main/packages/app-runtime/src/recipe-compiler.ts)
 turns a manifest and concrete operation bindings into the document edited by
 the App Builder. It returns either that document or diagnostics identifying
 the unsatisfied manifest field or operation. Compilation executes no provider,
@@ -23,12 +23,12 @@ fidelity still run through the existing Storyboard and finishing capabilities.
 The compiler rejects unsupported preservation or media policy before execution.
 
 The first shared library is
-[`scripts/recipe-operations.mjs`](../../scripts/recipe-operations.mjs):
+[`scripts/recipe-operations.mjs`](https://github.com/nodetool-ai/nodetool/blob/main/scripts/recipe-operations.mjs):
 
 | Semantic operation | Inputs and outputs | Resource writes | Spend and rerun behavior |
 | --- | --- | --- | --- |
-| `plan_storyboard@1` | Typed Recipe inputs and a constant manifest, optional Storyboard ID, then Storyboard ID/revision, visual preview, plan, source fingerprint and approval state | Updates source Asset entity metadata and creates or updates a normal Storyboard | No generation spend. Upserts shots by stable semantic label and resets approval. A changed shot order, set or aspect ratio causes an explicit conflict. |
-| `finish_storyboard@1` | The same sources, approved fingerprint and Storyboard revision, optional Timeline ID/revision, then Timeline reference/revision and validation | Creates or updates a normal Timeline and its Storyboard link | Default deterministic mode has no model spend. Explicit agentic mode declares model spend. Requires approval, rejects stale source or policy changes, then uses existing revision-checked finishing and reconciliation. |
+| `plan_storyboard@1` | Typed Recipe inputs and a constant manifest, optional Storyboard ID, then Storyboard ID/revision, visual preview, plan, source fingerprint and approval state | Updates source Asset entity metadata and creates or updates a normal Storyboard | No generation spend. Creates shots by stable semantic label. Refreshing unchanged inputs adopts current Storyboard edits, regenerates the preview and resets approval. Changed bound inputs are reconciled separately from creative direction. A changed shot order, set or aspect ratio causes an explicit conflict. |
+| `finish_storyboard@1` | The same sources, approved fingerprint and Storyboard revision, optional Timeline ID/revision, then Timeline reference/revision and validation | Creates or updates a normal Timeline and its Storyboard link | Default deterministic mode produces an explicitly unreviewed editable draft with no model spend. Agentic mode declares model spend and requires rendered visual review before reporting a reviewed finished cut. Requires approval, rejects stale source or policy changes, then uses existing revision-checked finishing and reconciliation. |
 
 Both use exact source assets, text and colors. Both support
 `still_motion_graphics`. Neither dispatches generative video or image editing.
@@ -53,7 +53,9 @@ To opt into agentic finishing, declare `strategy: "agentic"` and an existing
 constant input mappings. Compilation rejects an absent model. Execution
 rejects a missing or changed strategy/model and stale approval before provider
 dispatch. This allows normal Mini App script execution without requiring an
-ambient chat session. Omitting the strategy retains deterministic finishing.
+ambient chat session. Omitting the strategy produces an unreviewed draft. Structural and fidelity checks
+do not certify legible rendered pixels. Only agentic finishing that passes the
+rendered review gate reports a reviewed finished cut.
 Agentic script execution uses the protocol's bounded 120-second timeout.
 Deterministic planning and finishing retain 60-second timeouts.
 
@@ -88,12 +90,14 @@ Defaults preserve original values, including text whitespace. Named input
 groups become normal headings and controls. Choice values must be unique and
 their defaults must resolve.
 
-Timeline outputs use Timeline. Asset outputs use Download. Storyboard and
+Timeline outputs use Timeline. Typed image, video and audio outputs use their
+media preview widgets. Other asset outputs use Download. Storyboard and
 structured value outputs use Json for review. Outputs are placed after the
 operation that produces them, before the next approval or action. Operations
 remain separate Buttons with ordinary run events and execution error bindings.
 Shared production scripts also expose the existing Stepper state and Approval
-control. UI and variables remain editable through the App Builder.
+control. Input changes invalidate approval, and Finish appears after approval.
+UI and variables remain editable through the App Builder.
 
 Semantic shot intent declares an ID, title, duration, source input references
 and asset/text/shape roles. It can select an existing Storyboard aspect ratio.
@@ -101,6 +105,15 @@ It contains no tracks, clip IDs, keyframes, easing, masks or transforms.
 Shared planning requires an appropriate exact-preservation rule for every
 visible source. Compilation rejects protected inputs with no visible element.
 Storyboard IDs and Timeline references remain ordinary durable resources.
+The generated Application persists its inputs, resource references and
+revision-bound approval through normal user-scoped variable persistence.
+A failed refresh preserves the previous checkpoint. Approval is checked against
+current inputs, the Storyboard revision and any linked Script fingerprint
+before building. Refresh the Storyboard and approve again after editing it.
+
+Script-backed Recipes require NodeTool on the web or desktop. Mobile displays
+this limitation before collecting inputs because it cannot execute those
+production steps or edit the resulting Timeline.
 
 ## Authoring and verification
 
@@ -110,14 +123,14 @@ plan/finish bindings and script documents. Its result passes ordinary document
 and executable-bundle validation.
 
 The manifests in
-[`recipe-manifests.mjs`](../../scripts/example-apps/recipe-manifests.mjs)
+[`recipe-manifests.mjs`](https://github.com/nodetool-ai/nodetool/blob/main/scripts/example-apps/recipe-manifests.mjs)
 compile without hand-authored UI:
 
-1. Product Price Drop has two vertical shots, separate product/logo assets and
+1. **O1 — Product Price Drop** has two vertical shots, separate product/logo assets and
    exact headline, prices and CTA.
-2. Testimonial Card has a portrait, exact quotation and attribution in one 4:5
+2. **O2 — Testimonial Card** has a portrait, exact quotation and attribution in one 4:5
    shot. It does not fabricate a generated spokesperson.
-3. Catalogue Visual Set has three different product assets and names across
+3. **O3 — Catalogue Visual Set** has three different product assets and names across
    three square product cards in an editable Timeline.
 
 The existing example build script regenerates the shipped Price Drop bundle:
@@ -144,7 +157,6 @@ npm run test --workspace=packages/websocket -- tests/product-price-drop.test.ts
 Adding a new generative operation, new widget strategy or arbitrary layout
 generator is separate work. It must provide an actual executable binding,
 runtime policy enforcement and a headless proof before a manifest can use it.
-
 
 An optional live provider proof uses the same installed Application and pinned
 Script operations. It declares agentic finishing with

@@ -33,6 +33,14 @@ describe("Recipe compiler", () => {
     expect(result.document.recipe?.operations[0].version).toBe(1);
     expect({recipe, bound}).toEqual(original);
   });
+  it.each(["image", "video", "audio"])("renders typed %s assets with a visual player", type => {
+    const value = manifest(); value.outputs = [{id: "storyboard", kind: "asset"}];
+    const base = operation();
+    const bound = {...base, contract: {...base.contract, outputs: {storyboard: {type, required: true}}}};
+    const result = compileRecipeApplication(value, {operations: [bound]});
+    if (result.status !== "ok") {throw new Error(JSON.stringify(result.diagnostics));}
+    expect(result.document.ui.content).toContainEqual({type: type === "image" ? "Image" : type === "video" ? "Video" : "Audio", props: {id: "output-storyboard", binding: "var:storyboard", label: "storyboard"}});
+  });
   it("rejects malformed, absent and unsupported Recipe metadata", () => {
     expect(messages({...manifest(), schemaVersion: 99})).toContain("Unsupported Recipe version 99");
     expect(messages({...manifest(), inputs: [{id: "x", kind: "unknown"}]})).toContain("Malformed");

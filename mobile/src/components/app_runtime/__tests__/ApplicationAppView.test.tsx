@@ -173,6 +173,36 @@ describe("ApplicationAppView", () => {
     expect(screen.getByText("Run")).toBeTruthy();
   });
 
+  it("discloses unsupported Script Recipes before collecting inputs", () => {
+    const recipeDocument: ApplicationDocument = {
+      ...document,
+      recipe: {
+        schemaVersion: 1,
+        slug: "quote-card",
+        inputs: [{ id: "quote", label: "Quote", kind: "text", required: true }],
+        operations: [{ id: "main", bindingId: "main", intent: "plan_storyboard" }],
+        outputs: [{ id: "storyboard", kind: "storyboard" }]
+      },
+      operations: document.operations.map((operation) => ({
+        ...operation,
+        target: { kind: "script", scriptId: "plan-recipe", scriptVersion: 1 }
+      }))
+    };
+    render(
+      <ApplicationAppView
+        document={recipeDocument}
+        workflow={makeWorkflow("wf-recipe")}
+      />
+    );
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "Open this Recipe in NodeTool on the web or desktop. Mobile cannot run its production steps or edit the finished Timeline yet."
+    );
+    expect(screen.queryByText("Prompt")).toBeNull();
+    expect(screen.queryByText("Run")).toBeNull();
+    expect(mockRun).not.toHaveBeenCalled();
+  });
+
   it("sends the widget's value as a name-keyed run param", async () => {
     render(
       <ApplicationAppView

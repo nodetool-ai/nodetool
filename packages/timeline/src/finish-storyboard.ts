@@ -1,7 +1,10 @@
 import { isRecord, resolveEffectiveProductionRequirement, type StoryboardMotionDesign, type ProductionRequirement, type ProductionProtectedInput, type Shot } from "@nodetool-ai/protocol";
 import { createTimeOrderedUuid, makeClip, makeTrack } from "./defaults.js";
 import { moveTrackOrder } from "./trackOrder.js";
-import { resolveShotSource } from "./storyboard.js";
+import { buildStoryboardTimeline } from "./storyboard.js";
+import { activeStoryboardGraphics } from "./storyboardValidation.js";
+import { buildLinkedTimeline } from "./linked.js";
+import type { ScriptAssemblyInput } from "./script.js";
 import { isKnownShapeKind } from "./types.js";
 import { buildTransformMatrix, IDENTITY_TRANSFORM } from "./render/transform.js";
 import { compileClipAnimations } from "./animation/compile.js";
@@ -21,6 +24,7 @@ export interface FinishStoryboardInput {
   height: number;
   production?: ProductionRequirement;
   motionDesign?: StoryboardMotionDesign;
+  script?: ScriptAssemblyInput;
   current?: Partial<TimelineSequence> & Pick<TimelineSequence, "tracks" | "clips">;
 }
 
@@ -33,30 +37,12 @@ function parseBaseline(value: string | undefined): Record<string, unknown> | und
 }
 
 const identity = (shotId: string, elementId: string): string => `${shotId}/${elementId}`;
-const same = (a: unknown, b: unknown): boolean => JSON.stringify(a) === JSON.stringify(b);
-const baseline = (clip: TimelineClip): string => JSON.stringify({
-  mediaType: clip.mediaType,
-  blendMode: clip.blendMode ?? "normal",
-  currentAssetId: clip.currentAssetId,
-  textStyle: clip.textStyle,
-  shapeStyle: clip.shapeStyle,
-  opacity: clip.opacity,
-  hidden: clip.hidden,
-  matte: clip.matte,
-  crop: clip.crop,
-  effects: clip.effects,
-  parentId: clip.parentId,
-  layout: clip.layout,
-  flexItem: clip.flexItem,
-  mask: clip.mask,
-  transitionIn: clip.transitionIn,
-  text: clip.textStyle?.text,
-  color: clip.textStyle?.color ?? clip.shapeStyle?.fill,
-  transform: clip.transform,
-  startMs: clip.startMs,
-  durationMs: clip.durationMs,
-  animations: clip.animations
-});
+const serialize = (value: unknown): string => JSON.stringify(value, (_key, entry: unknown) => isRecord(entry) ? Object.fromEntries(Object.keys(entry).sort().map(key => [key, entry[key]])) : entry);
+const same = (a: unknown, b: unknown): boolean => serialize(a) === serialize(b);
+const baseline = (clip: TimelineClip): string => {
+  const { storyboardMaterializationBaseline: _baseline, id: _id, ...owned } = clip;
+  return serialize(owned);
+};
 
 /** Record the fields owned by the materializer after an accepted finishing pass. */
 export function stampStoryboardMaterializationBaseline(clip: TimelineClip): void {
@@ -78,14 +64,14 @@ export function validateProducedTimeline(
   const tracks = new Map(document.tracks.map((track) => [track.id, track]));
   for (const shot of input.shots) {
     const protectedInputs = new Map((resolveEffectiveProductionRequirement(input.production, shot.production)?.protected_inputs ?? []).map((value) => [value.id, value]));
-    const referencedProtection = new Set((shot.graphics?.elements ?? []).map((element) => element.protected_input_id));
+    const referencedProtection = new Set(activeStoryboardGraphics(shot).map((element) => element.protected_input_id));
     for (const protection of protectedInputs.values()) {
       if (document.camera2d != null || (document.mediaTracks != null && (!Array.isArray(document.mediaTracks) || document.mediaTracks.length > 0))) {
         issues.push({ code: "forbidden_transform", shotId: shot.id, elementId: protection.id, message: `Global camera or media tracking transforms on ${protection.id} cannot be proven faithful. Remove these transforms before production validation.` });
       }
       if (!referencedProtection.has(protection.id)) issues.push({ code: "missing_element", shotId: shot.id, elementId: protection.id, message: `Protected input ${protection.id} has no editable visible graphics element.` });
     }
-    for (const element of shot.graphics?.elements ?? []) {
+    for (const element of activeStoryboardGraphics(shot)) {
       const clips = layers.get(identity(shot.id, element.id)) ?? [];
       const issue = (code: ProducedTimelineIssue["code"], message: string): void => {
         issues.push({ code, shotId: shot.id, elementId: element.id, message });
@@ -209,7 +195,11 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
   const existing = new Map<string, TimelineClip>();
   const conflicts: ProducedTimelineIssue[] = [];
   for (const clip of current.clips) {
-    if (clip.storyboardBoardId !== input.boardId || !clip.storyboardShotId || !clip.storyboardElementId) continue;
+    if (clip.storyboardBoardId !== input.boardId) continue;
+    if (!clip.storyboardShotId || !clip.storyboardElementId) {
+      conflicts.push({ code: "manual_conflict", shotId: clip.storyboardShotId ?? "", elementId: "$source", message: `Legacy assembled layer ${clip.id} has no materializer baseline. Preserve it in a separate Timeline before rebuilding.` });
+      continue;
+    }
     const key = identity(clip.storyboardShotId, clip.storyboardElementId);
     if (existing.has(key)) conflicts.push({ code: "duplicate_element", shotId: clip.storyboardShotId, elementId: clip.storyboardElementId, message: `Duplicate owned layer ${key}.` });
     existing.set(key, clip);
@@ -219,18 +209,15 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
   const ownedTrackIds = new Set(current.clips.filter((clip) => clip.storyboardBoardId === input.boardId).map((clip) => clip.trackId));
   const tracks = current.tracks.filter((track) => !ownedTrackIds.has(track.id) || foreignClips.some((clip) => clip.trackId === track.id)).map((track) => ({ ...track }));
   for (const key of previousKeys) {
-    if (key.includes("/$agent:") && !existing.has(key)) conflicts.push({ code: "manual_conflict", shotId: key.split("/")[0], elementId: key.slice(key.indexOf("/") + 1), message: `Agent-owned layer ${key} was manually deleted. Restore it before finishing again.` });
+    if (!existing.has(key)) conflicts.push({ code: "manual_conflict", shotId: key.split("/")[0], elementId: key.slice(key.indexOf("/") + 1), message: `Owned layer ${key} was manually deleted. Restore it before finishing again.` });
   }
-  const shotWindows = new Map<string, { start: number; end: number }>();
-  let shotStart = 0;
-  for (const shot of [...input.shots].sort((a, b) => a.index - b.index)) {
-    const end = shotStart + Math.max(1, (shot.duration_seconds ?? 4) * 1000);
-    shotWindows.set(shot.id, { start: shotStart, end });
-    shotStart = end;
-  }
+  const assemblyInput = { boardId: input.boardId, shots: [...input.shots], production: input.production };
+  const assembly = input.script ? buildLinkedTimeline({ ...assemblyInput, script: input.script }) : buildStoryboardTimeline(assemblyInput);
+  const shotWindows = assembly.shotWindows;
+  const sourceClips = new Map(assembly.clips.filter(clip => clip.mediaType !== "audio").map(clip => [clip.storyboardShotId, clip]));
   const agentClips = [...existing.values()].filter((clip) => clip.storyboardElementId?.startsWith("$agent:"));
   for (const clip of agentClips) {
-    if (clip.storyboardMaterializationBaseline !== baseline(clip)) conflicts.push({ code: "manual_conflict", shotId: clip.storyboardShotId ?? "", elementId: clip.storyboardElementId ?? "", message: `Agent-owned layer ${clip.id} was manually edited. Use a separate Timeline or restore the accepted layer before finishing again.` });
+    if (!same(parseBaseline(clip.storyboardMaterializationBaseline), parseBaseline(baseline(clip)))) conflicts.push({ code: "manual_conflict", shotId: clip.storyboardShotId ?? "", elementId: clip.storyboardElementId ?? "", message: `Agent-owned layer ${clip.id} was manually edited. Use a separate Timeline or restore the accepted layer before finishing again.` });
     if (!input.shots.some((shot) => shot.id === clip.storyboardShotId)) conflicts.push({ code: "manual_conflict", shotId: clip.storyboardShotId ?? "", elementId: clip.storyboardElementId ?? "", message: `Agent-owned layer ${clip.id} belongs to a removed shot. Restore the shot or use a separate Timeline before rebuilding.` });
     const window = shotWindows.get(clip.storyboardShotId ?? "");
     if (window && (clip.startMs < window.start || clip.startMs + clip.durationMs > window.end)) conflicts.push({ code: "manual_conflict", shotId: clip.storyboardShotId ?? "", elementId: clip.storyboardElementId ?? "", message: `Storyboard timing changed around agent-owned layer ${clip.id}. Restore the accepted shot timing or use a separate Timeline before rebuilding.` });
@@ -240,20 +227,21 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
   const clips: TimelineClip[] = [...foreignClips, ...agentClips.map((clip) => ({ ...structuredClone(clip), animations: (clip.animations ?? []).filter((animation) => ![`${clip.id}:cut-in`, `${clip.id}:cut-out`].includes(animation.id)) }))];
   let startMs = 0;
   for (const shot of [...input.shots].sort((a, b) => a.index - b.index)) {
-    const durationMs = Math.max(1, (shot.duration_seconds ?? 4) * 1000);
+    const window = shotWindows.get(shot.id);
+    const durationMs = window ? window.end - window.start : 0;
+    startMs = window?.start ?? startMs;
     const protectedInputs = new Map((resolveEffectiveProductionRequirement(input.production, shot.production)?.protected_inputs ?? []).map((value) => [value.id, value]));
-    const source = resolveShotSource(shot, input.production);
-    if (!source) {
+    const source = sourceClips.get(shot.id);
+    if (!window) {
       conflicts.push({ code: "missing_element", shotId: shot.id, elementId: "$source", message: `Shot ${shot.id} has no source allowed by its media strategy.` });
     }
-    const elements = [...(shot.graphics?.elements ?? [])];
-    if (source && source.kind !== "graphics") {
-      elements.unshift({ id: "$source", kind: "asset", asset_id: source.assetId });
+    const elements = [...activeStoryboardGraphics(shot)];
+    if (source) {
+      elements.unshift({ id: "$source", kind: "asset", asset_id: source.currentAssetId });
     }
     for (const [index, element] of elements.entries()) {
       const key = identity(shot.id, element.id);
       const previous = existing.get(key);
-      if (!previous && previousKeys.has(key)) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Owned layer ${key} was manually deleted. Restore it before finishing again.` });
       const track = current.tracks.find((value) => value.id === previous?.trackId) ?? makeTrack({ type: "overlay", name: `${shot.slug ?? shot.id}: ${element.id}`, index: tracks.length });
       if (!tracks.some((value) => value.id === track.id)) tracks.push({ ...track, index: previous ? track.index : Math.max(-1, ...tracks.map((value) => value.index)) + 1 });
       const protection = element.protected_input_id ? protectedInputs.get(element.protected_input_id) : undefined;
@@ -266,9 +254,9 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
       const priceIntent = element.role === "price" ? element.direction?.trim().toLowerCase() : undefined;
       const priceY = priceIntent === "superseded price" ? 0.65 : priceIntent === "current price" ? 0.76 : undefined;
       const y = priceY ?? (element.role === "product" ? 0.42 : element.role === "logo" ? 0.1 : element.role === "headline" ? 0.18 : element.role === "cta" ? 0.84 : 0.66 + (index % 2) * 0.1);
-      const clip = makeClip({
+      const generatedClip = makeClip({
         id: previous?.id ?? createTimeOrderedUuid(), trackId: track.id, name: previous?.name ?? element.id,
-        startMs, durationMs, mediaType: element.id === "$source" && source?.kind === "video" ? "video" : element.kind === "asset" ? "image" : element.kind,
+        startMs, durationMs, mediaType: element.id === "$source" && source?.mediaType === "video" ? "video" : element.kind === "asset" ? "image" : element.kind,
         sourceType: "imported", status: "generated", versions: [],
         storyboardBoardId: input.boardId, storyboardShotId: shot.id,
         storyboardElementId: element.id, storyboardElementRole: element.role,
@@ -278,21 +266,46 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
         shapeStyle: element.kind === "shape" ? { kind: "rect", fill: protection?.kind === "brand_color" ? protection.value : "#21263A", x: isBackground ? 0 : 0.12, y: isBackground ? 0 : 0.74, width: isBackground ? 1 : 0.76, height: isBackground ? 1 : 0.008 } : undefined,
         animations: isBackground || !allowedMotion ? [] : [{ id: previous?.animations?.[0]?.id ?? createTimeOrderedUuid(), role: "in", preset: bold && slideAllowed ? "slide" : "fade", durationMs: quiet ? 700 : 400, delayMs: (quiet ? 40 : 80) * index, params: bold && slideAllowed ? { direction: "up", distance: 0.12 } : undefined }]
       });
+      const clip = element.id === "$source" && source
+        ? { ...structuredClone(source), id: previous?.id ?? source.id, trackId: track.id, name: previous?.name ?? source.name, storyboardElementId: "$source", linkId: previous?.linkId ?? source.linkId }
+        : generatedClip;
       clip.storyboardMaterializationBaseline = baseline(clip);
       if (previous) {
         const prior = parseBaseline(previous.storyboardMaterializationBaseline);
         if (!prior) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Layer ${key} has no valid materializer baseline.` });
         else {
-          if (!same(previous.blendMode ?? "normal", prior.blendMode ?? "normal") || !same(previous.mediaType, prior.mediaType ?? clip.mediaType) || !same(previous.currentAssetId, prior.currentAssetId) || !same(previous.textStyle?.text, prior.text) || !same(previous.textStyle?.color ?? previous.shapeStyle?.fill, prior.color) || !same(previous.textStyle, prior.textStyle) || !same(previous.shapeStyle, prior.shapeStyle) || !same(previous.opacity, prior.opacity) || !same(previous.hidden, prior.hidden) || !same(previous.matte, prior.matte) || !same(previous.crop, prior.crop) || !same(previous.effects, prior.effects) || !same(previous.parentId, prior.parentId)) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Source or exact copy was manually changed on ${key}.` });
+          const actual = parseBaseline(baseline(previous)) ?? {};
+          const preserved = new Set(["name", "trackId", "transform", "startMs", "durationMs"]);
+          const changed = [...new Set([...Object.keys(prior), ...Object.keys(actual)])].filter(field => !preserved.has(field) && !same(actual[field], prior[field]));
+          if (changed.length) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Owned fields were manually changed on ${key}: ${changed.join(", ")}.` });
           if (!same(previous.transform, prior.transform)) clip.transform = previous.transform;
           if (!same(previous.startMs, prior.startMs)) clip.startMs = previous.startMs;
           if (!same(previous.durationMs, prior.durationMs)) clip.durationMs = previous.durationMs;
-          if (!same(previous.animations, prior.animations)) conflicts.push({ code: "manual_conflict", shotId: shot.id, elementId: element.id, message: `Animations were manually changed on ${key}.` });
         }
       }
       clips.push(clip);
     }
     startMs += durationMs;
+  }
+  const materializedSources = new Map(clips.filter(clip => clip.storyboardElementId === "$source").map(clip => [clip.storyboardShotId, clip]));
+  for (const source of assembly.clips.filter(clip => clip.mediaType === "audio")) {
+    const shotId = source.storyboardShotId ?? "";
+    const elementId = source.scriptLineId ? `$voice:${source.scriptLineId}` : "$source-audio";
+    const key = identity(shotId, elementId);
+    const previous = existing.get(key);
+    const track = current.tracks.find(track => track.id === previous?.trackId) ?? assembly.tracks.find(track => track.id === source.trackId);
+    if (!track) throw new Error(`Missing canonical audio track ${source.trackId}.`);
+    if (!tracks.some(value => value.id === track.id)) tracks.push({ ...track, index: previous ? track.index : tracks.length });
+    const video = materializedSources.get(shotId);
+    const clip = { ...source, id: previous?.id ?? source.id, trackId: track.id, name: previous?.name ?? source.name, storyboardElementId: elementId, linkId: source.scriptLineId ? source.linkId : video?.linkId };
+    if (previous && !same(parseBaseline(previous.storyboardMaterializationBaseline), parseBaseline(baseline(previous)))) conflicts.push({ code: "manual_conflict", shotId, elementId, message: `Audio layer ${key} was manually edited.` });
+    if (!source.scriptLineId && video) Object.assign(clip, { startMs: video.startMs, durationMs: video.durationMs, inPointMs: video.inPointMs, outPointMs: video.outPointMs });
+    stampStoryboardMaterializationBaseline(clip);
+    clips.push(clip);
+  }
+  const retainedKeys = new Set(clips.filter(clip => clip.storyboardBoardId === input.boardId).map(clip => identity(clip.storyboardShotId ?? "", clip.storyboardElementId ?? "")));
+  for (const [key, previous] of existing) {
+    if (!retainedKeys.has(key) && !same(parseBaseline(previous.storyboardMaterializationBaseline), parseBaseline(baseline(previous)))) conflicts.push({ code: "manual_conflict", shotId: previous.storyboardShotId ?? "", elementId: previous.storyboardElementId ?? "", message: `Removed layer ${key} contains manual edits.` });
   }
   // New backgrounds belong beneath overlays. Existing track order is a user-owned edit.
   for (const clip of clips) {
@@ -313,8 +326,8 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
       conflicts.push({ code: "forbidden_transform", shotId: transition.to_shot_id, elementId: "$transition", message: `Unsupported transition direction ${direction}. Use cut or fade. Crossfade requires overlapping composition and is not supported by this materializer.` });
       continue;
     }
-    const outgoing = clips.filter((clip) => clip.storyboardBoardId === input.boardId && clip.storyboardShotId === transition.from_shot_id);
-    const incoming = clips.filter((clip) => clip.storyboardBoardId === input.boardId && clip.storyboardShotId === transition.to_shot_id);
+    const outgoing = clips.filter((clip) => clip.storyboardBoardId === input.boardId && clip.storyboardShotId === transition.from_shot_id && clip.mediaType !== "audio");
+    const incoming = clips.filter((clip) => clip.storyboardBoardId === input.boardId && clip.storyboardShotId === transition.to_shot_id && clip.mediaType !== "audio");
     for (const clip of outgoing) clip.animations = [...(clip.animations ?? []), { id: `${clip.id}:cut-out`, role: "out", preset: "fade", durationMs: 300 }];
     for (const clip of incoming) clip.animations = [...(clip.animations ?? []), { id: `${clip.id}:cut-in`, role: "in", preset: "fade", durationMs: 300 }];
   }
@@ -345,8 +358,8 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
     const owned = parseBaseline(clip.storyboardMaterializationBaseline);
     if (!owned) continue;
     owned.animations = clip.animations;
-    clip.storyboardMaterializationBaseline = JSON.stringify(owned);
+    clip.storyboardMaterializationBaseline = serialize(owned);
   }
-  const document: FinishedStoryboardDocument = { ...current, tracks, clips, markers: current.markers ?? [], storyboardMaterializations: [...(current.storyboardMaterializations ?? []).filter((entry) => entry.boardId !== input.boardId), { boardId: input.boardId, elementKeys: clips.filter((clip) => clip.storyboardBoardId === input.boardId).map((clip) => identity(clip.storyboardShotId!, clip.storyboardElementId!)) }] };
-  return { document, durationMs: Math.max(startMs, ...clips.map((clip) => clip.startMs + clip.durationMs)), validation: [...conflicts, ...validateProducedTimeline(input, document)] };
+  const document: FinishedStoryboardDocument = { ...current, tracks, clips, markers: current.markers ?? [], storyboardMaterializations: [...(current.storyboardMaterializations ?? []).filter((entry) => entry.boardId !== input.boardId), { boardId: input.boardId, elementKeys: clips.filter((clip) => clip.storyboardBoardId === input.boardId).flatMap((clip) => clip.storyboardShotId && clip.storyboardElementId ? [identity(clip.storyboardShotId, clip.storyboardElementId)] : []) }] };
+  return { document, durationMs: Math.max(assembly.durationMs, ...clips.map((clip) => clip.startMs + clip.durationMs)), validation: [...conflicts, ...validateProducedTimeline(input, document)] };
 }

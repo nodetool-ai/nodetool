@@ -62,7 +62,7 @@ test("finish rejects stale approval before invoking finishing", async () => {
   await assert.rejects(execute(FINISH_CODE, {...input, approval: "pending", plannedFingerprint}, {finish_storyboard}), /Approve/);
   await assert.rejects(execute(FINISH_CODE, {...input, newPrice: "€19", approval: "approved", plannedFingerprint}, {finish_storyboard}), /Inputs changed/);
   assert.equal(calls, 0);
-  const output = await execute(FINISH_CODE, {...input, approval: "approved", plannedFingerprint, storyboardId: "b", storyboardRevision: "r"}, {finish_storyboard});
+  const output = await execute(FINISH_CODE, {...input, approval: "approved", plannedFingerprint, storyboardId: "b", storyboardRevision: 3}, {finish_storyboard, get_storyboard: async () => ({revision: 3})});
   assert.deepEqual(output.timeline, {type: "timeline", id: "t"});
   assert.equal(output.storyboardRevision, 4);
 });

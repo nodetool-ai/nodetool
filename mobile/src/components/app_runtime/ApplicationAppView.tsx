@@ -102,8 +102,16 @@ const ApplicationAppView: React.FC<ApplicationAppViewProps> = ({
         {heading ? (
           <Text style={[styles.title, { color: colors.text }]}>{heading}</Text>
         ) : null}
-        <RuntimeError />
-        <ComponentList nodes={content} />
+        {document.recipe && document.operations.some((operation) => operation.target?.kind === "script") ? (
+          <Text accessibilityRole="alert" style={[styles.errorText, { color: colors.text }]}>
+            Open this Recipe in NodeTool on the web or desktop. Mobile cannot run its production steps or edit the finished Timeline yet.
+          </Text>
+        ) : (
+          <>
+            <RuntimeError />
+            <ComponentList nodes={content} />
+          </>
+        )}
       </ScrollView>
     </AppRuntimeContext.Provider>
   );
@@ -120,7 +128,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 22,
-    fontWeight: "700",
+    fontWeight: "600",
     letterSpacing: -0.4
   },
   errorBanner: {

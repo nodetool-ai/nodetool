@@ -64,38 +64,82 @@ const shots = recipe.creativeStrategy.shots.map(intent => {
 const board = inputs.storyboardId ? await get_storyboard({storyboard_id: inputs.storyboardId}) : await create_storyboard({name: recipe.slug, aspect_ratio: recipe.creativeStrategy.aspectRatio || "9:16"});
 if (board.error) throw new Error(board.error);
 if (inputs.storyboardId && (board.aspect_ratio || "16:9") !== (recipe.creativeStrategy.aspectRatio || "9:16")) throw new Error("Storyboard aspect ratio differs from this Recipe. Start a new plan without storyboardId.");
+let linkedTimeline;
 if (board.timeline_id) {
   const linked = await get_timeline({timeline_id: board.timeline_id});
   if (linked.error) throw new Error(linked.error);
-  await output("timelineId", linked.timeline.id);
-  await output("timelineRevision", linked.revision);
+  linkedTimeline = linked;
 }
 const existingShots = Array.isArray(board.shots) ? board.shots : [];
 if (existingShots.length && JSON.stringify(existingShots.map(shot => shot.slug)) !== JSON.stringify(shots.map(shot => shot.slug))) throw new Error("Storyboard shot structure differs from this Recipe. Start a new plan without storyboardId or explicitly reconcile the board before planning.");
+if (existingShots.some(shot => shot.production?.media_strategy !== "still_motion_graphics")) throw new Error("Storyboard media strategy conflict. This Recipe supports still motion graphics only.");
+const inputsChanged = inputs.plannedFingerprint && inputs.plannedFingerprint !== fingerprint;
+if (existingShots.length && inputsChanged && board.revision !== inputs.storyboardRevision) throw new Error("Storyboard revision conflict. Restore the reviewed inputs and refresh the edited Storyboard before changing inputs.");
+if (existingShots.length && inputsChanged) {
+  const previous = JSON.parse(inputs.plannedFingerprint);
+  if (!Array.isArray(previous) || JSON.stringify(previous[0]) !== JSON.stringify(recipe)) throw new Error("Recipe manifest conflict. Reconcile the Storyboard before applying changed Recipe intent.");
+  const boundInputs = new Set(recipe.creativeStrategy.shots.flatMap(shot => shot.elements.map(element => element.inputId)));
+  for (const [index, key] of keys.entries()) {
+    if (!boundInputs.has(key) && JSON.stringify(previous[index + 1]) !== JSON.stringify(inputs[key])) throw new Error("Creative input conflict for " + key + ". Edit the Storyboard direction and refresh before continuing.");
+  }
+}
+if (existingShots.length && !inputsChanged) {
+  const sameAsset = async (left, right) => {
+    if (left === right) return true;
+    if (!left || !right) return false;
+    const a = await get_asset({asset_id: left});
+    const b = await get_asset({asset_id: right});
+    return a.id && a.id === b.id;
+  };
+  for (const shot of shots) {
+    const existing = existingShots.find(candidate => candidate.slug === shot.slug);
+    for (const expected of shot.production.protected_inputs) {
+      const actual = existing.production?.protected_inputs?.find(input => input.id === expected.id);
+      if (!actual || actual.kind !== expected.kind || actual.value !== expected.value || !(await sameAsset(actual.asset_id, expected.asset_id)) || JSON.stringify([...(actual.allowed_transformations || [])].sort()) !== JSON.stringify([...expected.allowed_transformations].sort())) throw new Error("Storyboard bound source conflict for " + expected.id + ". Restore the reviewed inputs or explicitly reconcile the Storyboard.");
+    }
+    for (const expected of shot.graphics.elements) {
+      const actual = existing.graphics?.elements?.find(element => element.id === expected.id);
+      if (!actual || actual.kind !== expected.kind || actual.protected_input_id !== expected.protected_input_id || actual.text !== expected.text || !(await sameAsset(actual.asset_id, expected.asset_id))) throw new Error("Storyboard bound source conflict for " + expected.id + ". Restore the reviewed inputs or explicitly reconcile the Storyboard.");
+    }
+  }
+}
 const ops = shots.map(shot => {
   const existing = existingShots.find(candidate => candidate.slug === shot.slug);
-  return existing ? {op: "update_shot", target: existing.id, ...shot} : {op: "add_shot", ...shot};
+  if (!existing) return {op: "add_shot", ...shot};
+  if (!inputsChanged) return null;
+  if (JSON.stringify(existing.graphics?.elements?.map(element => element.id)) !== JSON.stringify(shot.graphics.elements.map(element => element.id))) throw new Error("Storyboard graphic structure conflict. Reconcile edited elements before changing inputs.");
+  return {op: "update_shot", target: existing.id, production: {...existing.production, ...shot.production}, graphics: {...existing.graphics, elements: existing.graphics.elements.map(element => {
+    const bound = shot.graphics.elements.find(candidate => candidate.id === element.id);
+    if (bound.kind !== element.kind) throw new Error("Storyboard graphic kind conflict.");
+    return {...element, ...(bound.kind === "text" ? {text: bound.text} : bound.kind === "asset" ? {asset_id: bound.asset_id, ...(bound.entity_id ? {entity_id: bound.entity_id} : {})} : {}), protected_input_id: bound.protected_input_id};
+  })}};
 });
-const saved = await edit_storyboard({storyboard_id: board.id, ops});
+const updates = ops.filter(Boolean);
+const saved = updates.length ? await edit_storyboard({storyboard_id: board.id, expected_revision: board.revision, ops: updates}) : board;
 if (saved.error || saved.failed) throw new Error(saved.error || JSON.stringify(saved.ops));
 const ids = shots.map(shot => saved.shots.find(savedShot => savedShot.slug === shot.slug)?.id);
 if (ids.some(id => !id)) throw new Error("Planned shot identity was not returned.");
 const backgrounds = recipe.creativeStrategy.shots.map(shot => shot.elements.find(element => element.kind === "shape")?.id);
 const continuity = backgrounds[0] && backgrounds.every(id => id === backgrounds[0]) ? [{id: backgrounds[0], shot_ids: ids, direction: "continue"}] : [];
 const motion = {direction: recipe.creativeStrategy.direction || "One consistent editorial rhythm", transitions: ids.slice(1).map((id, index) => ({from_shot_id: ids[index], to_shot_id: id, direction: "fade"})), continuities: continuity};
-const directed = await edit_storyboard({storyboard_id: board.id, ops: [{op: "set_board", motion_design: motion}]});
+const directed = existingShots.length ? saved : await edit_storyboard({storyboard_id: board.id, expected_revision: saved.revision, ops: [{op: "set_board", motion_design: motion}]});
 if (directed.error || directed.failed) throw new Error(directed.error || JSON.stringify(directed.ops));
 const preview = await preview_storyboard_design({storyboardId: board.id, expectedStoryboardRevision: directed.revision});
 if (preview.error) throw new Error(preview.error);
+if (linkedTimeline) {
+  await output("timelineId", linkedTimeline.timeline.id);
+  await output("timelineRevision", linkedTimeline.revision);
+}
+await output("linkedScriptFingerprint", preview.linkedScriptFingerprint || "");
 await output("designPreview", preview.timeline);
 await output("storyboardId", board.id);
 await output("storyboardRevision", directed.revision);
 await output("plannedFingerprint", fingerprint);
 await output("approval", "pending");
-await output("planPreview", {shots: shots.map(shot => ({title: shot.action, duration: shot.duration_seconds, elements: shot.graphics.elements})), motionDesign: motion.direction});
+await output("planPreview", {shots: shots.map(shot => { const existing = existingShots.find(candidate => candidate.slug === shot.slug); const update = updates.find(candidate => candidate.target === existing?.id); const reviewed = existing ? {...existing, ...update} : shot; return {title: reviewed.action, duration: reviewed.duration_seconds, elements: reviewed.graphics?.elements || []}; }), motionDesign: (existingShots.length ? board.motion_design : motion)?.direction || ""});
 await output("step", "review");`;
 
-export const FINISH_STORYBOARD_CODE = `import { finish_storyboard } from "@nodetool-ai/sandbox-nodetool/storyboards";
+export const FINISH_STORYBOARD_CODE = `import { finish_storyboard, get_storyboard } from "@nodetool-ai/sandbox-nodetool/storyboards";
 const fingerprint = JSON.stringify([inputs.recipe, ...inputs.recipe.inputs.map(input => inputs[input.id])]);
 if (inputs.approval !== "approved") throw new Error("Approve the plan before building.");
 if (inputs.plannedFingerprint !== fingerprint) throw new Error("Inputs changed after planning. Plan and approve again.");
@@ -106,7 +150,13 @@ if (inputs.finishStrategy !== undefined && inputs.finishStrategy !== declaredStr
 if (declaredStrategy === "agentic" && inputs.finishStrategy !== "agentic") throw new Error("Agentic strategy must be explicitly bound.");
 if (declaredStrategy === "agentic" && (!inputs.finishModel || JSON.stringify(inputs.finishModel) !== JSON.stringify(declaredOperation.model))) throw new Error("Agentic finishing requires the approved provider and model.");
 if (inputs.finishModel !== undefined && JSON.stringify(inputs.finishModel) !== JSON.stringify(declaredOperation.model)) throw new Error("Finish model differs from the approved Recipe.");
-const result = await finish_storyboard({storyboardId: inputs.storyboardId, expectedStoryboardRevision: inputs.storyboardRevision, ...(inputs.finishStrategy ? {strategy: inputs.finishStrategy} : {}), ...(inputs.finishModel ? {model: inputs.finishModel} : {}), ...(inputs.timelineId ? {timelineId: inputs.timelineId, expectedTimelineRevision: inputs.timelineRevision} : {})});
+const current = await get_storyboard({storyboard_id: inputs.storyboardId});
+if (current.error) throw new Error(current.error);
+if (current.revision !== inputs.storyboardRevision) {
+  await output("approval", "pending");
+  throw new Error("Storyboard revision conflict. Refresh and approve the edited Storyboard before building.");
+}
+const result = await finish_storyboard({storyboardId: inputs.storyboardId, expectedStoryboardRevision: inputs.storyboardRevision, ...(inputs.linkedScriptFingerprint ? {expectedLinkedScriptFingerprint: inputs.linkedScriptFingerprint} : {}), ...(inputs.finishStrategy ? {strategy: inputs.finishStrategy} : {}), ...(inputs.finishModel ? {model: inputs.finishModel} : {}), ...(inputs.timelineId ? {timelineId: inputs.timelineId, expectedTimelineRevision: inputs.timelineRevision} : {})});
 if (result.error) throw new Error(result.error);
 await output("timelineId", result.timelineId);
 await output("timelineRevision", result.timelineRevision);
@@ -114,12 +164,14 @@ await output("storyboardRevision", result.storyboardRevision);
 await output("timeline", {type: "timeline", id: result.timelineId});
 await output("validation", result.validation);
 await output("reviews", result.reviews || []);
+await output("finishStatus", result.status === "reviewed_finished" ? "Reviewed finished cut" : "Unreviewed editable draft");
+await output("approval", "pending");
 await output("step", "result");`;
 
 const statePorts = {
   storyboardId: {type: "str"}, storyboardRevision: {type: "int"},
   timelineId: {type: "str"}, timelineRevision: {type: "int"},
-  plannedFingerprint: {type: "str"}, approval: {type: "str"}, planPreview: {type: "dict"}, designPreview: {type: "timeline"}, step: {type: "str"}
+  linkedScriptFingerprint: {type: "str"}, plannedFingerprint: {type: "str"}, approval: {type: "str"}, planPreview: {type: "dict"}, designPreview: {type: "timeline"}, step: {type: "str"}
 };
 const preservation = ["exact_asset", "exact_text", "exact_color"];
 
@@ -130,7 +182,7 @@ export const sharedRecipeOperations = recipe => {
   recipe = inspected.manifest;
   if (recipe.mediaPolicy?.defaultStrategy !== "still_motion_graphics") throw new Error("recipe.mediaPolicy.defaultStrategy: shared planning requires explicit still_motion_graphics policy");
   if (!recipe.creativeStrategy?.shots?.length) throw new Error("recipe.creativeStrategy.shots: shared planning requires semantic shot intent");
-  const reserved = new Set(["recipe", "recipeOperationId", "finishStrategy", "finishModel", ...Object.keys(statePorts), "timeline", "validation", "reviews"]);
+  const reserved = new Set(["recipe", "recipeOperationId", "finishStrategy", "finishModel", ...Object.keys(statePorts), "timeline", "validation", "reviews", "finishStatus"]);
   for (const input of recipe.inputs) if (reserved.has(input.id)) throw new Error(`recipe.inputs.${input.id}: reserved shared-operation state port`);
   for (const shot of recipe.creativeStrategy?.shots ?? []) for (const element of shot.elements) {
     const policy = element.kind === "asset" ? "exact_asset" : element.kind === "shape" ? "exact_color" : "exact_text";
@@ -139,21 +191,21 @@ export const sharedRecipeOperations = recipe => {
   const sourcePorts = Object.fromEntries(recipe.inputs.map(input => [input.id, {type: recipeInputType(input.kind), required: input.required}]));
   const plan = {
     id: "plan_storyboard", version: 1,
-    inputs: {recipe: {type: "dict", required: true}, ...sourcePorts, storyboardId: statePorts.storyboardId},
+    inputs: {recipe: {type: "dict", required: true}, ...sourcePorts, storyboardId: statePorts.storyboardId, storyboardRevision: statePorts.storyboardRevision, plannedFingerprint: statePorts.plannedFingerprint},
     outputs: Object.fromEntries(Object.entries(statePorts).map(([id, port]) => [id, {...port, required: !id.startsWith("timeline")} ])),
     spend: "none", sideEffects: [{resource: "asset", operations: ["update"]}, {resource: "storyboard", operations: ["create", "update"]}],
     preservation, mediaStrategies: ["still_motion_graphics"], idempotency: "semantic_upsert", staleness: "input_fingerprint"
   };
   const finish = {
     id: "finish_storyboard", version: 1,
-    inputs: {recipe: {type: "dict", required: true}, recipeOperationId: {type: "str", required: true}, ...sourcePorts, finishStrategy: {type: "str"}, finishModel: {type: "dict"}, storyboardId: {type: "str", required: true}, storyboardRevision: {type: "int", required: true}, timelineId: statePorts.timelineId, timelineRevision: statePorts.timelineRevision, approval: {type: "str", required: true}, plannedFingerprint: {type: "str", required: true}},
-    outputs: {timelineId: {type: "str", required: true}, timelineRevision: {type: "int", required: true}, storyboardRevision: {type: "int", required: true}, timeline: {type: "timeline", required: true}, validation: {type: "list[dict]", required: true}, reviews: {type: "list[dict]", required: true}, step: {type: "str", required: true}},
+    inputs: {recipe: {type: "dict", required: true}, recipeOperationId: {type: "str", required: true}, ...sourcePorts, finishStrategy: {type: "str"}, finishModel: {type: "dict"}, storyboardId: {type: "str", required: true}, storyboardRevision: {type: "int", required: true}, linkedScriptFingerprint: statePorts.linkedScriptFingerprint, timelineId: statePorts.timelineId, timelineRevision: statePorts.timelineRevision, approval: {type: "str", required: true}, plannedFingerprint: {type: "str", required: true}},
+    outputs: {approval: {type: "str", required: true}, finishStatus: {type: "str", required: true}, timelineId: {type: "str", required: true}, timelineRevision: {type: "int", required: true}, storyboardRevision: {type: "int", required: true}, timeline: {type: "timeline", required: true}, validation: {type: "list[dict]", required: true}, reviews: {type: "list[dict]", required: true}, step: {type: "str", required: true}},
     spend: "none", sideEffects: [{resource: "timeline", operations: ["create", "update"]}, {resource: "storyboard", operations: ["update"]}],
     preservation, mediaStrategies: ["still_motion_graphics"], idempotency: "revision_checked", staleness: "resource_revision", approvalInput: "approval"
   };
   const contracts = [plan, finish];
   const codes = {plan_storyboard: PLAN_STORYBOARD_CODE, finish_storyboard: FINISH_STORYBOARD_CODE};
-  const names = {plan_storyboard: "Plan", finish_storyboard: "Build editable ad"};
+  const names = {plan_storyboard: "Plan or refresh Storyboard", finish_storyboard: "Build editable cut"};
   const operations = [];
   const scripts = [];
   for (const spec of recipe.operations) {

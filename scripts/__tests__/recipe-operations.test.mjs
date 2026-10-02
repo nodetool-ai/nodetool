@@ -1,7 +1,8 @@
-import { assert, describe, expect, it } from "vitest";
+import { assert, describe, expect, it, vi } from "vitest";
 import { applyBundle, parseApplicationBundle, compileRecipeApplication } from "@nodetool-ai/app-runtime";
 import { applicationDocument } from "@nodetool-ai/protocol/api-schemas/applications.js";
 import { bundleTarget, simulateApp } from "@nodetool-ai/execution/app-debug";
+import { loadPersistedVariables, savePersistedVariables } from "../../web/src/components/appbuilder/runtime/variablePersistence.ts";
 import { COMPILED_RECIPE_FIXTURES, TESTIMONIAL_MANIFEST } from "../example-apps/recipe-manifests.mjs";
 import { compileSharedRecipeBundle, sharedRecipeOperations, PLAN_STORYBOARD_CODE, FINISH_STORYBOARD_CODE } from "../recipe-operations.mjs";
 
@@ -18,14 +19,14 @@ const plan = async (recipe, extra = {}) => {
   const inputs = {...values(recipe), recipe, ...extra};
   const outputs = await execute(PLAN_STORYBOARD_CODE, inputs, {
     get_entity: async ({entity_id}) => ({entity: {id: entity_id, reference_images: [{asset_id: entity_id}]}}),
-    preview_storyboard_design: async () => ({timeline: {type: "timeline", data: {durationMs: 6000, tracks: [], clips: []}}}),
+    preview_storyboard_design: async () => ({linkedScriptFingerprint: "approved-script", timeline: {type: "timeline", data: {durationMs: 6000, tracks: [], clips: []}}}),
     create_storyboard: async () => ({id: "board", shots: []}),
     edit_storyboard: async ({ops}) => {
       for (const op of ops) {
         if (op.op === "add_shot") shots.push({...op, id: "shot-" + shots.length});
         if (op.op === "update_shot") shots = shots.map(shot => shot.id === op.target ? {...shot, ...op} : shot);
       }
-      return {shots, failed: 0, revision: ++revision};
+      return {shots: shots.map(({id, slug, action}) => ({id, slug, action})), failed: 0, revision: ++revision};
     }
   });
   return {inputs, outputs, shots};
@@ -55,7 +56,7 @@ describe("shared executable Recipe operations", () => {
   it("passes the real app-debug no-run binding validator for every emitted bundle", async () => {
     for (const raw of COMPILED_RECIPE_FIXTURES) {
       const bundle = parseApplicationBundle(raw); assert(bundle);
-      const report = await simulateApp(bundleTarget(bundle, bundle.app.recipe.slug), {run: false}, {runOnServer: async () => {throw new Error("Must not execute during compilation validation");}, runScript: async () => {throw new Error("Must not execute a script during static validation");}});
+      const report = await simulateApp(bundleTarget(bundle, bundle.app.recipe.slug), {run: false, params: {"var:approval": "approved"}}, {runOnServer: async () => {throw new Error("Must not execute during compilation validation");}, runScript: async () => {throw new Error("Must not execute a script during static validation");}});
       expect(report.validation.errors).toEqual([]);
       expect(report.verdict.ok).toBe(true);
     }
@@ -107,7 +108,92 @@ describe("shared executable Recipe operations", () => {
         }
       }
       expect(outputs.approval).toBe("pending");
+      expect(outputs.planPreview.shots[0].elements).toEqual(shots[0].graphics.elements);
       expect(outputs.plannedFingerprint).toBe(JSON.stringify([recipe, ...recipe.inputs.map(input => inputs[input.id])]));
+    }
+  });
+  it("adopts edited direction without rewriting the board and preserves it on copy changes", async () => {
+    const planned = await plan(TESTIMONIAL_MANIFEST);
+    const shots = structuredClone(planned.shots);
+    shots[0].graphics.direction = "My edited art direction";
+    const board = {id: "board", aspect_ratio: TESTIMONIAL_MANIFEST.creativeStrategy.aspectRatio, revision: 9, shots, motion_design: {direction: "My motion"}};
+    let writes = 0;
+    const capabilities = {
+      get_storyboard: async () => board,
+      get_entity: async ({entity_id}) => ({entity: {reference_images: [{asset_id: entity_id}]}}),
+      preview_storyboard_design: async () => ({timeline: {type: "timeline", data: {clips: []}}}),
+      edit_storyboard: async ({ops}) => {
+        writes++;
+        for (const op of ops) {
+          if (op.op === "update_shot") Object.assign(shots.find(shot => shot.id === op.target), op);
+          if (op.op === "set_board") board.motion_design = op.motion_design;
+        }
+        return {...board, revision: ++board.revision};
+      }
+    };
+    const adopted = await execute(PLAN_STORYBOARD_CODE, {...planned.inputs, ...planned.outputs}, capabilities);
+    expect(writes).toBe(0);
+    expect(adopted.storyboardRevision).toBe(9);
+    expect(adopted.approval).toBe("pending");
+    expect(adopted.planPreview.motionDesign).toBe("My motion");
+    await execute(PLAN_STORYBOARD_CODE, {...planned.inputs, ...adopted, quote: "Updated exact quote", brandColor: "#FFFFFF"}, capabilities);
+    expect(shots[0].graphics.direction).toBe("My edited art direction");
+    expect(board.motion_design.direction).toBe("My motion");
+    expect(shots[0].production.protected_inputs.find(input => input.id === "brandColor").value).toBe("#FFFFFF");
+    expect(shots[0].graphics.elements.find(element => element.kind === "text" && element.role === "quote")?.text ?? shots[0].graphics.elements.find(element => element.id === "quote")?.text).toBe("Updated exact quote");
+  });
+  it("rejects an edited hybrid strategy before refresh or input reconciliation", async () => {
+    const planned = await plan(TESTIMONIAL_MANIFEST);
+    planned.shots[0].production.media_strategy = "hybrid";
+    const capabilities = {
+      get_entity: async ({entity_id}) => ({entity: {reference_images: [{asset_id: entity_id}]}}),
+      get_storyboard: async () => ({id: "board", aspect_ratio: TESTIMONIAL_MANIFEST.creativeStrategy.aspectRatio, revision: 2, shots: planned.shots})
+    };
+    for (const change of [{}, {quote: "New copy"}]) {
+      await expect(execute(PLAN_STORYBOARD_CODE, {...planned.inputs, ...planned.outputs, ...change}, capabilities)).rejects.toThrow("media strategy conflict");
+    }
+  });
+  it("refuses to adopt an existing board whose bound copy differs without a checkpoint", async () => {
+    const planned = await plan(TESTIMONIAL_MANIFEST);
+    const capabilities = {
+      get_entity: async ({entity_id}) => ({entity: {reference_images: [{asset_id: entity_id}]}}),
+      get_storyboard: async () => ({id: "board", aspect_ratio: TESTIMONIAL_MANIFEST.creativeStrategy.aspectRatio, revision: 2, shots: planned.shots}),
+      preview_storyboard_design: async () => ({timeline: {type: "timeline", data: {clips: []}}})
+    };
+    await expect(execute(PLAN_STORYBOARD_CODE, {...planned.inputs, storyboardId: "board", quote: "Unreviewed different quote"}, capabilities)).rejects.toThrow("bound source conflict");
+  });
+  it("persists recipe checkpoints while keeping design preview pixels transient", () => {
+    const bundle = compileSharedRecipeBundle(TESTIMONIAL_MANIFEST, "Resume", "");
+    for (const id of ["quote", "storyboardId", "storyboardRevision", "timelineId", "timelineRevision", "approval", "plannedFingerprint", "timeline"]) {
+      expect(bundle.app.variables.find(variable => variable.id === id)).toMatchObject({scope: "user", persist: true});
+    }
+    expect(bundle.app.variables.find(variable => variable.id === "designPreview")).toMatchObject({scope: "instance", persist: false});
+  });
+  it("resumes the same approved board through browser persistence and rejects a changed revision", async () => {
+    const recipe = TESTIMONIAL_MANIFEST;
+    const {inputs, outputs} = await plan(recipe);
+    const bundle = compileSharedRecipeBundle(recipe, "Resume", "");
+    const storage = new Map();
+    vi.stubGlobal("window", {localStorage: {getItem: key => storage.get(key), setItem: (key, value) => storage.set(key, value)}});
+    try {
+      savePersistedVariables("application:resume", bundle.app.variables, {...inputs, ...outputs, approval: "approved"});
+      const resumed = loadPersistedVariables("application:resume", bundle.app.variables);
+      expect(resumed.storyboardId).toBe(outputs.storyboardId);
+      expect(resumed.quote).toBe(inputs.quote);
+      let calls = 0;
+      const capabilities = {
+        get_storyboard: async () => ({revision: outputs.storyboardRevision}),
+        finish_storyboard: async () => { calls++; return {status: "unreviewed_draft", timelineId: "same-timeline", timelineRevision: 1, storyboardRevision: 3, validation: []}; }
+      };
+      const finished = await execute(FINISH_STORYBOARD_CODE, {...resumed, recipe, recipeOperationId: "finish"}, capabilities);
+      expect(finished.finishStatus).toBe("Unreviewed editable draft");
+      savePersistedVariables("application:resume", bundle.app.variables, {...resumed, ...finished});
+      expect(loadPersistedVariables("application:resume", bundle.app.variables).timeline).toEqual({type: "timeline", id: "same-timeline"});
+      capabilities.get_storyboard = async () => ({revision: outputs.storyboardRevision + 1});
+      await expect(execute(FINISH_STORYBOARD_CODE, {...resumed, recipe, recipeOperationId: "finish"}, capabilities)).rejects.toThrow("Refresh and approve");
+      expect(calls).toBe(1);
+    } finally {
+      vi.unstubAllGlobals();
     }
   });
   it("fails before resource writes if policy or protected sources are invalid", async () => {
@@ -121,7 +207,7 @@ describe("shared executable Recipe operations", () => {
   it("invalidates approval for copy, asset or manifest-policy changes before finish dispatch", async () => {
     const {inputs, outputs} = await plan(TESTIMONIAL_MANIFEST);
     let calls = 0;
-    const capability = {finish_storyboard: async () => {calls++; return {timelineId: "timeline", timelineRevision: 1, storyboardRevision: 2, validation: {valid: true}};}};
+    const capability = {get_storyboard: async () => ({revision: 2}), finish_storyboard: async () => {calls++; return {timelineId: "timeline", timelineRevision: 1, storyboardRevision: 2, validation: {valid: true}};}};
     const approved = {...inputs, ...outputs, approval: "approved", recipeOperationId: "finish"};
     await expect(execute(FINISH_STORYBOARD_CODE, {...approved, quote: "changed"}, capability)).rejects.toThrow("Inputs changed");
     await expect(execute(FINISH_STORYBOARD_CODE, {...approved, portrait: {asset_id: "replacement"}}, capability)).rejects.toThrow("Inputs changed");
@@ -152,8 +238,9 @@ describe("shared executable Recipe operations", () => {
     const planned = await plan(recipe);
     let invoked;
     const inputs = {...planned.inputs, ...planned.outputs, recipeOperationId: "finish", approval: "approved", finishStrategy: "agentic", finishModel: recipe.operations[1].model};
-    const capability = {finish_storyboard: async args => {invoked = args; return {timelineId: "t", timelineRevision: 1, storyboardRevision: 2, validation: []};}};
+    const capability = {get_storyboard: async () => ({revision: 2}), finish_storyboard: async args => {invoked = args; return {timelineId: "t", timelineRevision: 1, storyboardRevision: 2, validation: []};}};
     await execute(FINISH_STORYBOARD_CODE, inputs, capability);
+    expect(invoked.expectedLinkedScriptFingerprint).toBe("approved-script");
     expect(invoked.strategy).toBe("agentic"); expect(invoked.model).toEqual(recipe.operations[1].model);
     invoked = undefined;
     await expect(execute(FINISH_STORYBOARD_CODE, {...inputs, finishStrategy: undefined}, capability)).rejects.toThrow("explicitly bound");

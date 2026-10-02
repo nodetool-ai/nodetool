@@ -123,6 +123,9 @@ it("installs, plans, finishes, renders and reopens the exact editable Price Drop
   expect(values.timelineId).toBeUndefined();
   values.approval = "approved";
   await run("finish");
+  expect(values.finishStatus).toBe("Unreviewed editable draft");
+  expect(values.approval).toBe("pending");
+  values.approval = "approved";
   await run("finish");
   const timeline = await TimelineSequence.findById(String(values.timelineId));
   expect(timeline).not.toBeNull();

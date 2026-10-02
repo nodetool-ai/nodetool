@@ -20,6 +20,7 @@ import { buildTimelineToolContracts } from "@nodetool-ai/protocol/api-schemas/ti
 import { uiToolParams } from "@nodetool-ai/protocol/api-schemas/ui-tool-contract.js";
 import { validateTimelineSequence } from "@nodetool-ai/execution/timeline-debug";
 import {
+  activeStoryboardGraphics,
   ANIMATED_PROPERTIES,
   STAGGER_UNITS,
   DEFAULT_BEAT_TOLERANCE_MS,
@@ -33,6 +34,7 @@ import {
 import type { CapabilityRun } from "./types.js";
 import { applyOps, parseOps } from "./timelines.js";
 import { editTimelineSpec } from "./timelines.specs.js";
+import { storyboardReviewTimes } from "./storyboard-review-times.js";
 import { renderTimelineFrames } from "../timeline-preview/frames.js";
 
 const frameReviewSchema = z.object({
@@ -142,7 +144,7 @@ function reuseAcceptedPresentation(
           ?.protected_inputs ?? []
       ).map((protection) => [protection.id, protection])
     );
-    for (const element of shot.graphics?.elements ?? []) {
+    for (const element of activeStoryboardGraphics(shot)) {
       if (
         element.protected_input_id &&
         protections.get(element.protected_input_id)?.kind === "brand_color"
@@ -243,19 +245,12 @@ export async function finishStoryboardAgentically(
   const reviews: FinishedCutReview[] = [];
   let feedback: unknown = [];
   const initial = new Map(scaffold.clips.map((clip) => [clip.id, clip]));
-  const windows = [...input.shots]
-    .sort((a, b) => a.index - b.index)
-    .map((shot, index, shots) => ({
-      shotId: shot.id,
-      start: shots
-        .slice(0, index)
-        .reduce(
-          (sum, prior) =>
-            sum + Math.max(1, (prior.duration_seconds ?? 4) * 1000),
-          0
-        ),
-      duration: Math.max(1, (shot.duration_seconds ?? 4) * 1000)
-    }));
+  const windows = input.shots.map((shot) => {
+    const clips = scaffold.clips.filter((clip) => clip.storyboardShotId === shot.id);
+    const start = Math.min(...clips.map((clip) => clip.startMs));
+    const end = Math.max(...clips.map((clip) => clip.startMs + clip.durationMs));
+    return { shotId: shot.id, start, duration: end - start };
+  });
   const assertCandidateOwnership = (
     candidate: FinishedStoryboardDocument
   ): void => {
@@ -284,7 +279,7 @@ export async function finishStoryboardAgentically(
         }
         if (clip.mediaType === "text") {
           const shot = input.shots.find((value) => value.id === window.shotId);
-          const allowedCopy = (shot?.graphics?.elements ?? [])
+          const allowedCopy = (shot ? activeStoryboardGraphics(shot) : [])
             .filter(
               (element) =>
                 element.kind === "text" && !element.protected_input_id
@@ -796,10 +791,7 @@ export async function finishStoryboardAgentically(
       feedback = { policy, structural };
       continue;
     }
-    const timesMs = windows.flatMap((window) => [
-      window.start + Math.min(500, window.duration * 0.25),
-      window.start + window.duration * 0.75
-    ]);
+    const timesMs = storyboardReviewTimes(document.clips, input.width, input.height, sequence.fps);
     signal?.throwIfAborted();
     const frames = await renderTimelineFrames({
       sequence: { ...sequence.toTimelineSequence(), ...document },
@@ -879,7 +871,7 @@ export async function finishStoryboardAgentically(
         {
           role: "system",
           content:
-            "You are the visual finishing reviewer. Inspect the actual supplied composited frame pixels. Design references and actual candidate frames are labeled separately. Review each actual candidate timeMs exactly once. Call review_finished_cut with an internally consistent overall and per-frame verdict. Findings are ONLY current unresolved actionable material defects. Put positive observations and withdrawn suspicions in summary, not findings. If no material defect remains, explicitly set passed true with empty findings for every frame and overall. If any frame has a material defect, set that frame and overall passed false with the exact defect in both findings lists. Never approve without inspecting the whole cut. Never reject merely to report positive observations or previously resolved issues."
+            "You are the visual finishing reviewer. Inspect the actual supplied composited frame pixels. Design references and actual candidate frames are labeled separately. Review each actual candidate timeMs exactly once. The schedule deliberately includes entrance and exit boundaries where intended fades can be transparent. Judge legibility during holds and motion continuity across neighboring event frames, not constant visibility at intentionally transparent boundaries. Call review_finished_cut with an internally consistent overall and per-frame verdict. Findings are ONLY current unresolved actionable material defects. Put positive observations and withdrawn suspicions in summary, not findings. If no material defect remains, explicitly set passed true with empty findings for every frame and overall. If any frame has a material defect, set that frame and overall passed false with the exact defect in both findings lists. Never approve without inspecting the whole cut. Never reject merely to report positive observations or previously resolved issues."
         },
         { role: "user", content }
       ],
