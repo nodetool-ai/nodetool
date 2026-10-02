@@ -9,7 +9,8 @@ import {
   ModelChangeEvent,
   ModelChangeMeta,
   ModelObserver,
-  createTimeOrderedUuid
+  createTimeOrderedUuid,
+  nextUpdatedAtAfter
 } from "./base-model.js";
 import { getDb } from "./db.js";
 import { jsScripts } from "./schema/js-scripts.js";
@@ -29,15 +30,6 @@ export class JsScriptConflictError extends Error {
     super(`JS script ${id} was modified concurrently`);
     this.name = "JsScriptConflictError";
   }
-}
-
-function nextUpdatedAtAfter(previous: string): string {
-  const now = new Date();
-  const previousMs = Date.parse(previous);
-  if (Number.isFinite(previousMs) && now.getTime() <= previousMs) {
-    return new Date(previousMs + 1).toISOString();
-  }
-  return now.toISOString();
 }
 
 export class JsScript extends DBModel {

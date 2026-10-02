@@ -108,6 +108,17 @@ export function createTimeOrderedUuid(): string {
   return randomUUID().replace(/-/g, "");
 }
 
+// Guarantees a strictly increasing updated_at so a mutation is never a no-op
+// against the CAS predicate even when two writes land within the same ms.
+export function nextUpdatedAtAfter(previous: string): string {
+  const now = new Date();
+  const previousMs = Date.parse(previous);
+  if (Number.isFinite(previousMs) && now.getTime() <= previousMs) {
+    return new Date(previousMs + 1).toISOString();
+  }
+  return now.toISOString();
+}
+
 /**
  * A deterministic row id for something that must exist at most once per owner —
  * the same `(namespace, key)` pair always yields the same id, so a second

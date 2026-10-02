@@ -1,10 +1,11 @@
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import {
   DBModel,
   ModelObserver,
   ModelChangeEvent,
   createTimeOrderedUuid,
-  computeEtag
+  computeEtag,
+  nextUpdatedAtAfter
 } from "../src/base-model.js";
 import { initTestDb } from "../src/db.js";
 import { Job } from "../src/job.js";
@@ -248,5 +249,33 @@ describe("DBModel", () => {
       });
       expect(model.toRow()).toEqual({ id: "row-1", name: "legacy" });
     });
+  });
+});
+
+describe("nextUpdatedAtAfter", () => {
+  afterEach(() => {
+    vi.useRealTimers();
+  });
+
+  it("returns the current time when it is after the previous timestamp", () => {
+    vi.useFakeTimers({ now: new Date("2026-01-01T00:00:10.000Z") });
+    expect(nextUpdatedAtAfter("2026-01-01T00:00:00.000Z")).toBe(
+      "2026-01-01T00:00:10.000Z"
+    );
+  });
+
+  it("advances one millisecond past a previous timestamp that is not behind the clock", () => {
+    vi.useFakeTimers({ now: new Date("2026-01-01T00:00:00.000Z") });
+    expect(nextUpdatedAtAfter("2026-01-01T00:00:00.000Z")).toBe(
+      "2026-01-01T00:00:00.001Z"
+    );
+    expect(nextUpdatedAtAfter("2026-01-01T00:01:00.000Z")).toBe(
+      "2026-01-01T00:01:00.001Z"
+    );
+  });
+
+  it("falls back to the clock when the previous timestamp is unparseable", () => {
+    vi.useFakeTimers({ now: new Date("2026-01-01T00:00:00.000Z") });
+    expect(nextUpdatedAtAfter("not-a-date")).toBe("2026-01-01T00:00:00.000Z");
   });
 });
