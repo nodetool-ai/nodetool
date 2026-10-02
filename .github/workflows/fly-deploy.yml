@@ -1,176 +1,112 @@
-name: Deploy to Fly
+name: Deploy to Docker
 
-# Auto-deploy the NodeTool server to Fly.io (https://nodetool.fly.dev).
-#
-# The deploy unit is the GHCR image published by the "Docker" workflow
-# (.github/workflows/docker.yml). We therefore trigger on that workflow's
-# COMPLETION rather than on push, so we never release an image before it has
-# been built + pushed. On success we release the image tag that corresponds to
-# the exact triggering commit — `main-<shortsha>`, which "Docker" publishes via
-# `type=sha,prefix={{branch}}-`. We deliberately do NOT deploy `:latest` on
-# workflow_run: if two main builds finish out of order, `:latest` may point at a
-# newer commit and we'd deploy the wrong image. `:latest` is used only for a
-# manual re-deploy (workflow_dispatch).
-#
-# Ring 1 gate (docs/RELIABILITY_ARCHITECTURE.md §11, docs/RELIABILITY_TASKS.md
-# F2): a deploy must also wait on "User Journeys"' `reliability-ring1` job —
-# the full hermetic + differential + packaged-journey suite — for the SAME
-# commit, not just on the Docker build. Both "Docker" and "User Journeys" fire
-# independently off the same `push: main`, so this workflow now also
-# workflow_run-triggers on "User Journeys" completion; whichever of the two
-# finishes second is the one that actually reaches the `deploy` job, because
-# the `gate` job below polls the OTHER workflow's status for the same
-# head_sha and only proceeds once both are green. This is the least invasive
-# option that doesn't require restructuring either upstream workflow into a
-# reusable `workflow_call` (which would also entail duplicating docker.yml's
-# and user-journeys.yml's own triggers).
-#
-# Requires a repo secret FLY_API_TOKEN scoped to the `nodetool` app:
-#   fly tokens create deploy -a nodetool --expiry 8760h
+# Keep the historical filename so existing workflow links remain valid.
+# Pages follows this workflow's successful "Deploy server" job.
 on:
   workflow_run:
     workflows: ["Docker", "User Journeys"]
     types: [completed]
     branches: [main]
-  # Manual re-deploy of the current :latest image.
   workflow_dispatch:
 
-# `gate` additionally needs `actions: read` to poll the sibling workflow's run
-# status via the GitHub API (GITHUB_TOKEN, not FLY_API_TOKEN).
 permissions:
   contents: read
   actions: read
 
 concurrency:
-  group: fly-deploy
-  cancel-in-progress: true
+  group: docker-production-deploy
+  cancel-in-progress: false
 
 jobs:
-  # Confirms BOTH "Docker" and "User Journeys" (specifically its
-  # reliability-ring1 job) succeeded for the exact commit that triggered this
-  # run, regardless of which of the two workflow_run events fired us. Polls
-  # because the two workflows run independently and finish in either order —
-  # this job is a no-op wait until the other one lands (or times out).
   gate:
     name: Wait for Docker build + reliability Ring 1
     runs-on: ubuntu-latest
-    if: github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success'
+    if: >
+      github.ref == 'refs/heads/main' &&
+      (github.event_name == 'workflow_dispatch' ||
+       (github.event.workflow_run.conclusion == 'success' &&
+        github.event.workflow_run.head_repository.full_name == github.repository))
     timeout-minutes: 65
     outputs:
-      sha: ${{ github.event.workflow_run.head_sha }}
+      sha: ${{ steps.poll.outputs.sha }}
       deploy: ${{ steps.poll.outputs.deploy }}
     env:
       GH_TOKEN: ${{ github.token }}
+      RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
+      RELEASE_REPO: ${{ github.repository }}
     steps:
-      - name: Poll for both workflows' success on this commit
+      - name: Wait for both workflows on the exact commit
         id: poll
         shell: bash
         run: |
           set -euo pipefail
-          sha="${{ github.event.workflow_run.head_sha }}"
-          repo="${{ github.repository }}"
+          sha="$RELEASE_SHA"
+          repo="$RELEASE_REPO"
+          [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || exit 1
+          echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
           conclusion_for() {
-            local workflow_file="$1"
-            gh api "repos/${repo}/actions/workflows/${workflow_file}/runs?head_sha=${sha}&status=completed&per_page=1" \
+            gh api "repos/$repo/actions/workflows/$1/runs?head_sha=$sha&status=completed&per_page=1" \
               --jq '.workflow_runs[0].conclusion // "pending"'
           }
 
-          # True once a newer commit has landed on main. That commit's own
-          # fly-deploy run releases the newer image, so anything this run could
-          # still conclude about ${sha} is moot — and a red X here would be
-          # noise, not a broken deploy.
-          superseded() {
-            [ "$(gh api "repos/${repo}/commits/main" --jq .sha)" != "${sha}" ]
-          }
-
-          skip() {
-            echo "::notice::${1} Superseded on main; skipping the deploy of ${sha}."
-            echo "deploy=false" >> "$GITHUB_OUTPUT"
-            exit 0
-          }
-
           for attempt in $(seq 1 60); do
+            if [[ "$(gh api "repos/$repo/commits/main" --jq .sha)" != "$sha" ]]; then
+              echo "::notice::Skipping superseded commit $sha."
+              echo "deploy=false" >> "$GITHUB_OUTPUT"
+              exit 0
+            fi
             docker_conclusion="$(conclusion_for docker.yml)"
             journeys_conclusion="$(conclusion_for user-journeys.yml)"
-            echo "attempt ${attempt}/60: docker.yml=${docker_conclusion} user-journeys.yml=${journeys_conclusion}"
-
-            if [ "${docker_conclusion}" = "success" ] && [ "${journeys_conclusion}" = "success" ]; then
-              echo "Both workflows succeeded for ${sha}."
+            echo "Attempt $attempt: Docker=$docker_conclusion User Journeys=$journeys_conclusion"
+            if [[ "$docker_conclusion" == success && "$journeys_conclusion" == success ]]; then
               echo "deploy=true" >> "$GITHUB_OUTPUT"
               exit 0
             fi
-            case "${docker_conclusion}" in
-              failure|cancelled|timed_out)
-                if superseded; then skip "docker.yml concluded '${docker_conclusion}' for ${sha}."; fi
-                echo "::error::docker.yml concluded '${docker_conclusion}' for ${sha}; not deploying."
-                exit 1
-                ;;
-            esac
-            case "${journeys_conclusion}" in
-              failure|cancelled|timed_out)
-                if superseded; then skip "user-journeys.yml (reliability-ring1) concluded '${journeys_conclusion}' for ${sha}."; fi
-                echo "::error::user-journeys.yml (reliability-ring1) concluded '${journeys_conclusion}' for ${sha}; not deploying."
-                exit 1
-                ;;
-            esac
+            for conclusion in "$docker_conclusion" "$journeys_conclusion"; do
+              case "$conclusion" in
+                failure|cancelled|timed_out|action_required|startup_failure|stale)
+                  echo "::error::Release checks did not pass for $sha."
+                  exit 1
+                  ;;
+              esac
+            done
             sleep 60
           done
-
-          if superseded; then
-            skip "Timed out waiting for docker.yml and user-journeys.yml on ${sha}."
-          fi
-          echo "::error::Timed out waiting for docker.yml and user-journeys.yml to both complete for ${sha}."
+          echo "::error::Timed out waiting for release checks for $sha."
           exit 1
 
   deploy:
-    # The job name "Deploy server" is load-bearing: web-deploy.yml chains off
-    # this workflow's completion and releases the SPA only when a job with this
-    # exact name concluded `success` — renaming it silently parks the web deploy.
     name: Deploy server
     needs: [gate]
+    if: needs.gate.result == 'success' && needs.gate.outputs.deploy == 'true'
     runs-on: ubuntu-latest
-    # Skip when the image build (or the reliability Ring 1 gate) failed/was
-    # cancelled. workflow_dispatch always runs (manual re-deploy); on
-    # workflow_run, `gate` must have completed successfully AND still consider
-    # this commit worth releasing — it reports deploy=false for a commit main
-    # has already moved past, whose own run does the releasing.
-    if: >
-      always() &&
-      (github.event_name == 'workflow_dispatch' ||
-       (needs.gate.result == 'success' && needs.gate.outputs.deploy == 'true'))
+    timeout-minutes: 110
+    env:
+      DEPLOY_SHA: ${{ needs.gate.outputs.sha }}
+      DEPLOY_HOST: ${{ vars.DOCKER_DEPLOY_HOST }}
+      DEPLOY_USER: ${{ vars.DOCKER_DEPLOY_USER }}
+      DEPLOY_SSH_KEY: ${{ secrets.DOCKER_DEPLOY_SSH_KEY }}
+      DEPLOY_KNOWN_HOSTS: ${{ secrets.DOCKER_DEPLOY_KNOWN_HOSTS }}
     steps:
-      - uses: actions/checkout@v7
-        with:
-          # Deploy the fly.toml as it was at the built commit (falls back to the
-          # dispatch ref for manual runs).
-          ref: ${{ needs.gate.outputs.sha || github.sha }}
-
-      - name: Resolve image tag
-        id: img
+      - name: Rolling Docker release over restricted SSH
+        shell: bash
         run: |
           set -euo pipefail
-          if [ "${{ github.event_name }}" = "workflow_run" ]; then
-            # Pin to the exact commit that was just built (main-<7-char-sha>),
-            # matching docker.yml's `type=sha,prefix={{branch}}-`.
-            sha="${{ github.event.workflow_run.head_sha }}"
-            echo "ref=ghcr.io/nodetool-ai/nodetool:main-${sha:0:7}" >> "$GITHUB_OUTPUT"
-          else
-            echo "ref=ghcr.io/nodetool-ai/nodetool:latest" >> "$GITHUB_OUTPUT"
-          fi
-
-      - uses: superfly/flyctl-actions/setup-flyctl@v1.4
-
-      # Rolls the machines one at a time, draining each before it is replaced,
-      # instead of `flyctl deploy` — which restarts a machine with SIGTERM and
-      # gives it 300 s, while a chat turn can run for half an hour. The script
-      # also runs the migration fly.toml's release_command runs, since
-      # `machine update` has no release phase.
-      #
-      # It hands over between machines, so the app wants two of them:
-      # `fly scale count 2` once, by hand. With one machine the drain is an
-      # outage window rather than a handover.
-      - name: fly rolling deploy (server)
-        run: bash scripts/fly-rolling-deploy.sh "${{ steps.img.outputs.ref }}"
-        env:
-          FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}
+          [[ "$DEPLOY_SHA" =~ ^[0-9a-f]{40}$ ]] || exit 1
+          [[ "$DEPLOY_HOST" =~ ^[a-zA-Z0-9][a-zA-Z0-9.-]*$ ]] || exit 1
+          [[ "$DEPLOY_USER" =~ ^[a-z_][a-z0-9_-]*$ ]] || exit 1
+          [[ -n "$DEPLOY_SSH_KEY" && -n "$DEPLOY_KNOWN_HOSTS" ]] || {
+            echo '::error::Missing Docker deployment SSH secrets.'
+            exit 1
+          }
+          ssh_dir="$(mktemp -d)"
+          trap 'rm -f "$ssh_dir/key" "$ssh_dir/known_hosts"; rmdir "$ssh_dir"' EXIT
+          umask 077
+          printf '%s\n' "$DEPLOY_SSH_KEY" > "$ssh_dir/key"
+          printf '%s\n' "$DEPLOY_KNOWN_HOSTS" > "$ssh_dir/known_hosts"
+          ssh -T -i "$ssh_dir/key" \
+            -o IdentitiesOnly=yes -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -o UserKnownHostsFile="$ssh_dir/known_hosts" -o ConnectTimeout=15 \
+            -o ServerAliveInterval=30 -o ServerAliveCountMax=6 \
+            "$DEPLOY_USER@$DEPLOY_HOST" "$DEPLOY_SHA"

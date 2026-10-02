@@ -33,7 +33,7 @@ hatch. The same workflow's **`reliability-ring1`** job runs on every push to
 | `page-load-smoke.yml` | Playwright: every route loads against a seeded backend | 0 | Required |
 | `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack | 1 | Required (also gates PRs today, ahead of the ring split) |
 | `docker.yml` | Build and push the GHCR image (main, `preview/**`, tags) | 1 | Required |
-| `fly-deploy.yml` | Deploy the GHCR image to Fly.io, gated on `docker.yml` + `user-journeys.yml`'s `reliability-ring1` both succeeding for the same commit | 1 | Required |
+| `fly-deploy.yml` | **Deploy to Docker**: release the GHCR image to the production host over restricted SSH, gated on Docker + User Journeys succeeding for the same commit | 1 | Required |
 | `web-deploy.yml` | Build the web app and deploy to Cloudflare Pages | 1 | Required |
 | `user-journeys.yml` | `journeys`: Playwright journey suite on pull requests, nightly, and dispatch (build a graph and run it, chat, mini app, library). `reliability-ring1` (on push to `main`, schedule, dispatch): full `reliability/journeys/*` suite on kernel+ws-server with `--diff`, plus one packaged-backend journey — gates `fly-deploy.yml` | 1 | Required |
 | `release.yaml` | Cross-platform signed release artifacts, packed-tree smoke, a packed-backend reliability journey per OS, updater assets | 2 | Required |
@@ -81,8 +81,6 @@ hatch. The same workflow's **`reliability-ring1`** job runs on every push to
 | `useless-test-pruner.yaml` | Scheduled agent deletes or strengthens tests proven unable to fail under mutation | none/maintenance | Advisory (`continue-on-error`) |
 | `workflow-example-validation.yaml` | Weekly `nodetool validate` + repair of shipped example workflows | none/maintenance | Advisory (`continue-on-error`) |
 
-51 workflow files, 10 in the three rings (3 Ring 0, 5 Ring 1, 2 Ring 2), 41 none/maintenance.
-
 F2 wires this table into the actual gates:
 
 - **Ring 0**: `quality-checks.yml`'s `built` matrix runs `npm run
@@ -106,9 +104,9 @@ F2 wires this table into the actual gates:
   workflow_run-triggers on both `docker.yml` and `user-journeys.yml`
   completing, and its new `gate` job polls the GitHub API for both
   workflows' conclusion on the triggering commit before `deploy` runs —
-  whichever of the two finishes second is the run that actually reaches
-  `deploy` (the other is superseded by `fly-deploy`'s existing
-  `cancel-in-progress` concurrency group). Because that gate reads a
+  releases run serially with `cancel-in-progress: false`, so a later event
+  cannot interrupt a draining replica. The host rechecks the release gates.
+  Because the gate reads a
   per-commit conclusion, `user-journeys.yml` does not cancel superseded runs
   on `main` — a run cancelled by the next merge would read as "Ring 1 failed"
   and block the release. And when the gate does see a red or cancelled
