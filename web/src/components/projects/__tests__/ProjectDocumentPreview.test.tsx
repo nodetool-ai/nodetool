@@ -6,6 +6,7 @@
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
+import { TYPE_GLYPH } from "../../workspace/tabTypeIdentity";
 import type { ProjectDocument } from "../projectStatus";
 
 jest.mock("../../ui_primitives", () => {
@@ -70,6 +71,40 @@ describe("ProjectDocumentPreview", () => {
     expect(screen.getByText("V1")).toBeInTheDocument();
     expect(screen.getByText("A1")).toBeInTheDocument();
     expect(screen.getByText("M1")).toBeInTheDocument();
+  });
+
+  it("lays out one bar per clip and names an unnamed track by its type", () => {
+    renderPreview(
+      document({
+        type: "timeline",
+        preview: {
+          kind: "timeline",
+          durationMs: 0,
+          tracks: [
+            {
+              type: "video",
+              name: "",
+              clips: [
+                { startMs: 0, durationMs: 4_000 },
+                { startMs: 4_000, durationMs: 6_000 }
+              ]
+            }
+          ]
+        }
+      })
+    );
+    expect(screen.getByText("Video")).toBeInTheDocument();
+    expect(screen.getAllByTestId("preview-clip")).toHaveLength(2);
+  });
+
+  it("shows the glyph for a cut with no tracks", () => {
+    const { container } = renderPreview(
+      document({
+        type: "timeline",
+        preview: { kind: "timeline", durationMs: 0, tracks: [] }
+      })
+    );
+    expect(container.textContent).toBe(TYPE_GLYPH.timeline);
   });
 
   it("falls back to the type's glyph when there is nothing to draw", () => {
