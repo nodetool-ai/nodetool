@@ -105,6 +105,50 @@ describe("computeActiveLayers — track mattes", () => {
     expect(result.droppedLayers).toEqual([]);
   });
 
+  it("draws unmatted when the matte source is an adjustment", () => {
+    const result = layersAt([
+      clip({ id: "shot", matte: { sourceClipId: "grade", mode: "alpha" } }),
+      clip({ id: "grade", mediaType: "adjustment" })
+    ]);
+    expect(result.layers.map((l) => l.clipId)).toEqual(["shot"]);
+    expect(result.layers[0]?.matte).toBeUndefined();
+    expect(result.droppedLayers).toEqual([]);
+  });
+
+  it("carries the authored invert flag onto the matte", () => {
+    const result = layersAt([
+      clip({
+        id: "shot",
+        matte: { sourceClipId: "key", mode: "luma", invert: true }
+      }),
+      clip({ id: "key" })
+    ]);
+    expect(result.layers[0]?.matte).toMatchObject({
+      mode: "luma",
+      invert: true
+    });
+  });
+
+  it("falls back to the authored matte while a generated matte is not ready", () => {
+    const result = layersAt([
+      clip({
+        id: "shot",
+        matte: { sourceClipId: "key", mode: "alpha" },
+        generatedMatte: {
+          assetId: "mask-1",
+          sourceAssetId: "asset-1",
+          sourceRange: { fromMs: 0, toMs: 1000 },
+          settings: { model: "fal-ai/birefnet/v2/video" },
+          status: "generating"
+        }
+      }),
+      clip({ id: "key" })
+    ]);
+    expect(result.layers.map((l) => l.clipId)).toEqual(["shot"]);
+    expect(result.layers[0]?.matte?.mode).toBe("alpha");
+    expect(result.layers[0]?.matte?.layer.clipId).toBe("key");
+  });
+
   it("leaves both clips drawing when the mode is one this build cannot read", () => {
     // I2: a mode from a newer build parses, so the source has to keep drawing —
     // holding it back would lose a layer over a field nothing applied.
