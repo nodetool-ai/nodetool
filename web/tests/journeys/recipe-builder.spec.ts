@@ -109,7 +109,7 @@ test("Recipe metadata survives a real App Builder UI edit and save", async ({
     .getByTestId("application-run-layer")
     .locator('.appbuilder-runtime[data-focus-id="app-runtime"]');
   await expect(
-    runtime.getByRole("button", { name: "Plan", exact: true })
+    runtime.getByRole("button", { name: "Plan or refresh Storyboard", exact: true })
   ).toBeVisible();
   const images = runtime.locator(".image-property");
   await expect(images).toHaveCount(2);
@@ -160,7 +160,7 @@ test("Recipe metadata survives a real App Builder UI edit and save", async ({
       response.url().includes("/api/js-scripts/") &&
       response.url().endsWith("/run")
   );
-  await runtime.getByRole("button", { name: "Plan", exact: true }).click();
+  await runtime.getByRole("button", { name: "Plan or refresh Storyboard", exact: true }).click();
   const planResult = await (await planned).json();
   expect(planResult.ok, JSON.stringify(planResult)).toBe(true);
   await expect(
@@ -177,7 +177,7 @@ test("Recipe metadata survives a real App Builder UI edit and save", async ({
   ).toHaveCount(0);
   await runtime.getByRole("button", { name: "Approve", exact: true }).click();
   await runtime
-    .getByRole("button", { name: "Build editable ad", exact: true })
+    .getByRole("button", { name: "Build editable cut", exact: true })
     .click();
   const openTimeline = runtime.getByRole("link", {
     name: "Open editable timeline",
