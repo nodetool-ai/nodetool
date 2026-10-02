@@ -407,7 +407,7 @@ export async function finishStoryboardAgentically(
     "Keep existing source layer startMs/durationMs, assets, exact protected text/colors and semantic ownership unchanged. " +
     "set_clip_params uses fontSizePx (not fontSize), textStyle and transform.position.x/y in sequence pixels relative to frame center. " +
     "Protected layers may use only fade (requires allowed opacity), slide (opacity+position) or pop (opacity+scale). " +
-    "Other protected presets/custom curves, group inheritance, masks/effects fail policy validation. Unprotected decorative layers can use existing animation presets/custom curves. " +
+    "Other protected presets/custom curves, group inheritance, masks/effects fail policy validation. set_transition is forbidden on every protected layer, including crossfade; use permitted fade animations instead. Unprotected decorative layers can use existing animation presets/custom curves. " +
     "New editable decorative layers require stable name/startMs/durationMs inside one shot window. New text may only use approved unprotected Storyboard copy; protected copy already has its exact semantic layer, so use set_clip_params on that existing clip to author its presentation. Read every edit result and fix failures before submitting.";
   let previousCandidateImages: MessageContent[] = [];
   const inspect: ProviderTool = {
@@ -749,6 +749,12 @@ export async function finishStoryboardAgentically(
         }
         try {
           assertCandidateOwnership(candidate);
+          const policy = validateProducedTimeline(input, candidate);
+          if (policy.length) {
+            throw new Error(
+              `Produced Timeline violates production requirements: ${json(policy)}`
+            );
+          }
         } catch (error) {
           rejectedEdit = error instanceof Error ? error.message : String(error);
           return recordEditResult(

@@ -667,6 +667,94 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
       current.revision
     );
   });
+  it("rolls back protected transitions on a rerun and permits a corrected reviewed candidate", async () => {
+    const { board, context } = await fixture();
+    const first = await execute(
+      new FinishingProvider([craft, done, approve, done]),
+      context,
+      board
+    );
+    const current = (await TimelineSequence.findById(first.timelineId!))!;
+    const original = current.toDocument();
+    const product = original.clips.find(
+      (clip) => clip.storyboardElementId === "product"
+    )!;
+    const price = original.clips.find(
+      (clip) => clip.storyboardElementId === "price"
+    )!;
+    let untouched: ReturnType<typeof authorContext>["scaffold"];
+    const provider = new FinishingProvider([
+      (args) => {
+        untouched = authorContext(args).scaffold;
+        expect(args.tools?.find((tool) => tool.name === "edit_timeline")?.description)
+          .toContain("set_transition is forbidden on every protected layer");
+        return [
+          call("edit_timeline", {
+            ops: [
+              {
+                op: "set_transition",
+                target: product.id,
+                transition: { type: "crossfade", durationMs: 300 }
+              },
+              { op: "set_clip_params", target: price.id, fontSizePx: 999 }
+            ]
+          })
+        ];
+      },
+      (args) => {
+        const response = args.messages
+          .filter((message) => message.role === "tool")
+          .at(-1)?.content;
+        expect(JSON.parse(String(response))).toMatchObject({
+          ok: false,
+          rolledBack: true,
+          error: expect.stringContaining(
+            "Transition crossfade has no proven protected transformation policy"
+          )
+        });
+        expect(String(response)).toContain("forbidden_transform");
+        return [call("get_timeline")];
+      },
+      (args) => {
+        const response = args.messages
+          .filter((message) => message.role === "tool")
+          .at(-1)?.content;
+        expect(JSON.parse(String(response))).toEqual(untouched);
+        return [
+          call("edit_timeline", {
+            ops: [
+              { op: "set_transition", target: product.id, transition: null },
+              { op: "set_clip_params", target: price.id, fontSizePx: 180 }
+            ]
+          }),
+          call("submit_finished_cut")
+        ];
+      },
+      done,
+      approve,
+      done
+    ]);
+    const result = await execute(
+      provider,
+      context,
+      (await Storyboard.findById(board.id))!,
+      current.revision
+    );
+    expect(result.error).toBeUndefined();
+    const produced = (await TimelineSequence.findById(current.id))!;
+    expect(produced.revision).toBe(current.revision + 1);
+    expect(
+      produced.toDocument().clips.find((clip) => clip.id === product.id)
+        ?.transitionIn
+    ).toBeUndefined();
+    expect(
+      produced.toDocument().clips.find((clip) => clip.id === price.id)
+        ?.textStyle?.fontSizePx
+    ).toBe(180);
+    expect(result["reviews"]).toEqual(
+      expect.arrayContaining([expect.objectContaining({ passed: true })])
+    );
+  });
   it("rolls back added protected copy with its mixed batch and accepts corrected authoring", async () => {
     const { board, context } = await fixture();
     let original: ReturnType<typeof authorContext>["scaffold"]["clips"][number];
@@ -1085,7 +1173,8 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
       done
     ]);
     const result = await execute(provider, context, board);
-    expect(result.error).toMatch(/did not revise/);
+    expect(result.error).toMatch(/requires its exact editable text/);
+    expect(result.error).toContain("rolledBack");
     expect((await Storyboard.findById(board.id))?.timeline_id).toBeFalsy();
     expect(
       provider.requests.some((request) =>
