@@ -295,6 +295,7 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
   // interpret the same document.
   ChoiceCards: {
     label: "Choice Cards",
+    bindingProps: [{ prop: "optionsBinding", mode: "read" }],
     mode: "write",
     trigger: "change",
     commits: false,
@@ -302,6 +303,7 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
       binding: "custom",
       label: "text",
       options: "array",
+      optionsBinding: "custom",
       columns: "number",
       events: "array"
     }

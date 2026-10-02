@@ -355,6 +355,7 @@ export function parseAppSpec(
         stateKey: ref ? stateKey(ref) : null,
         canonicalBinding: ref ? encodeBinding(ref) : null,
         resourceBindingId,
+        ...(item.type === "ChoiceCards" ? { choiceOptions: item.props.options } : {}),
         extraBindings: widgetBindingProps(item.type).flatMap(
           ({ prop, mode }) => {
             const value = str(item.props[prop]);

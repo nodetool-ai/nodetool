@@ -425,3 +425,63 @@ describe("app debug — static binding checks", () => {
     expect(report.widgets.find((w) => w.id === "Markdown-1")?.visible).toBe(true);
   });
 });
+
+
+describe("app debug — dynamic ChoiceCards", () => {
+  const target = () => resolvedWorkflow(graph, {
+    schemaVersion: 4,
+    operations: [{ id: "main", name: "Run", workflowId: "wf1", inputs: {}, outputs: {}, policy: "replace" }],
+    resources: [],
+    variables: [{ id: "choices", name: "choices", scope: "instance", persist: false, default: [{ value: "hero", title: "Hero" }, { value: "locked", disabled: true }] }],
+    ui: { root: { props: { title: "Choices" } }, content: [
+      { type: "ChoiceCards", props: { id: "directions", binding: "prompt", optionsBinding: "var:choices" } },
+      runButton
+    ], zones: {} }
+  });
+  it("resolves a readable options binding and writes only available selections", async () => {
+    const { report } = await run(target(), [
+      { change: "directions", value: "hero" },
+      { change: "directions", value: "locked" },
+      { change: "directions", value: "missing" },
+      { set: { key: "var:choices", value: [{ value: "new", title: "New" }] } },
+      { change: "directions", value: "hero" },
+      { change: "directions", value: "new" }
+    ]);
+    expect(report.validation.errors).toEqual([]);
+    expect(report.interactions.map((interaction) => interaction.error)).toEqual([
+      null,
+      'changed "directions" to an unavailable or disabled choice.',
+      'changed "directions" to an unavailable or disabled choice.',
+      null,
+      'changed "directions" to an unavailable or disabled choice.',
+      null
+    ]);
+    expect(report.interactions[0].actions).toEqual(["set main:in1"]);
+    expect(report.interactions[1].actions).toEqual([]);
+  });
+  it("diagnoses a missing operation output in optionsBinding", async () => {
+    const { report } = await run(appTarget([
+      { type: "ChoiceCards", props: { id: "directions", binding: "prompt", optionsBinding: "op:main/out:missing" } },
+      runButton
+    ]), []);
+    expect(report.validation.errors.join("\n")).toMatch(/optionsBinding.*missing/);
+  });
+});
+
+it("app debug selects choices delivered by a real output message fold", async () => {
+  const target = appTarget([
+    { type: "ChoiceCards", props: { id: "directions", binding: "prompt", optionsBinding: "op:main/out:out1" } },
+    runButton
+  ]);
+  const runner = stubRunner();
+  const report = await simulateApp(target, { interact: [{ click: "Button-1" }, { change: "directions", value: "hero" }] }, {
+    loadFromDb: async () => null,
+    runOnServer: async (input) => {
+      const outcome = await runner(input);
+      const messages = [{ type: "output_update", node_id: "out1", output_name: "output", value: [{ value: "hero", title: "Product hero", image: "asset://hero" }] }, { type: "job_update", status: "completed" }];
+      return { ...outcome, rawMessages: messages as never[], report: { ...outcome.report, summary: collectExecutionSummary(messages) } };
+    }
+  });
+  expect(report.interactions.map((interaction) => interaction.error)).toEqual([null, null]);
+  expect(report.interactions[1].actions).toEqual(["set main:in1"]);
+});

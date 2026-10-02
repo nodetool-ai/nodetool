@@ -3,9 +3,10 @@ import { RENDERERS } from "../widgets";
 const mockSetValue = jest.fn();
 const mockEmit = jest.fn();
 let mockValue: unknown;
+let mockOptions: unknown;
 jest.mock("../useWidgetRuntime", () => ({
-  useWidgetRuntime: () => ({
-    value: mockValue,
+  useWidgetRuntime: ({ bindingMode }: { bindingMode: string }) => ({
+    value: bindingMode === "read" ? mockOptions : mockValue,
     setValue: mockSetValue,
     emit: mockEmit
   })
@@ -21,6 +22,7 @@ jest.mock("@react-navigation/native", () => ({
 beforeEach(() => {
   jest.clearAllMocks();
   mockValue = undefined;
+  mockOptions = undefined;
 });
 it("ChoiceCards renders asset-resolved images and rejects disabled presses", () => {
   const Widget = RENDERERS.ChoiceCards;
@@ -72,4 +74,27 @@ it("Approval reflects selection and blocks disabled decisions", () => {
   ).toMatchObject({ selected: true, disabled: true });
   fireEvent.press(screen.getByRole("button", { name: "Needs changes" }));
   expect(mockSetValue).not.toHaveBeenCalled();
+});
+
+it("ChoiceCards consumes reactive operation options and emits its selected value", () => {
+  mockOptions = [{ value: "hero", title: "Product hero" }, { value: "locked", title: "Locked", disabled: true }];
+  const Widget = RENDERERS.ChoiceCards;
+  const props = { optionsBinding: "op:plan/out:directions", options: [{ value: "fallback" }] };
+  const mounted = render(<Widget id="directions" props={props} />);
+  fireEvent.press(screen.getByRole("radio", { name: "Product hero" }));
+  expect(mockSetValue).toHaveBeenCalledWith("hero");
+  expect(mockEmit).toHaveBeenCalledWith("change");
+  mockSetValue.mockClear();
+  fireEvent.press(screen.getByRole("radio", { name: "Locked" }));
+  expect(mockSetValue).not.toHaveBeenCalled();
+  mockOptions = [{ value: "detail", title: "Product detail" }];
+  mounted.rerender(<Widget id="directions" props={props} />);
+  expect(screen.queryByText("Product hero")).toBeNull();
+  expect(screen.getByText("Product detail")).toBeTruthy();
+});
+it("ChoiceCards refuses malformed dynamic options without static fallback", () => {
+  mockOptions = [{ value: "x" }, { value: "x" }];
+  const Widget = RENDERERS.ChoiceCards;
+  render(<Widget id="directions" props={{ optionsBinding: "op:plan/out:directions", options: [{ value: "fallback" }] }} />);
+  expect(screen.queryByRole("radio")).toBeNull();
 });

@@ -102,3 +102,19 @@ binding, action, and condition in tables:
 [docs/mini-apps-guide.md](../../docs/mini-apps-guide.md). The headless harness
 that drives this package: `nodetool app debug`, in
 [docs/cli.md](../../docs/cli.md).
+
+## Guided choices
+
+`ChoiceCards` uses `binding` for its selected value. Its optional
+`optionsBinding` reads a list from normal Application state, such as
+`op:plan/out:directions`. Each choice has a unique non-empty string `value`,
+optional `title`, `description`, media-identifier `image`, and boolean `disabled`.
+The same shape works in authored `options` and operation output. A supplied
+`optionsBinding` is authoritative. Missing or malformed output renders no
+choices instead of substituting an authored list. Web, mobile and `app debug`
+share option parsing, and disabled choices cannot write a selection.
+
+Use existing input widgets inside a named input group for product and brand
+information. Use the existing Storyboard resource surface for shot review.
+These compositions keep the Price Drop Recipe editable in App Builder without
+adding Recipe-specific widgets.

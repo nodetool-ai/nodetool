@@ -32,6 +32,7 @@ import {
 } from "react-native";
 import {
   composeUserMessage,
+  parseChoiceCardOptions,
   encodeBinding,
   formatDuration,
   messagesFrom,
@@ -2582,7 +2583,8 @@ const ChatComposerWidget: React.FC<WidgetProps> = (widget) => {
 const ChoiceCardsWidget: React.FC<WidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { value, setValue, emit } = useWidgetRuntime({ ...widget, bindingMode: "write" });
-  const options = Array.isArray(widget.props.options) ? widget.props.options.filter(isRecord) : [];
+  const { value: boundOptions } = useWidgetRuntime({ id: `${widget.id}-options`, bindingMode: "read", binding: str(widget.props.optionsBinding) || undefined });
+  const options = parseChoiceCardOptions(widget.props.optionsBinding ? boundOptions : widget.props.options);
   const images = useResolvedMediaUris(options.map((option) => str(option.image)));
   return <View style={styles.field}>
     <FieldLabel text={str(widget.props.label)} colors={colors} />

@@ -6,9 +6,10 @@ import { ChoiceCardsWidget, StepperWidget, ApprovalWidget } from "../widgets";
 const mockSetValue = jest.fn();
 const mockEmit = jest.fn();
 let mockValue: unknown;
+let mockOptions: unknown;
 jest.mock("../useWidgetRuntime", () => ({
-  useWidgetRuntime: () => ({
-    value: mockValue,
+  useWidgetRuntime: ({ bindingMode }: { bindingMode: string }) => ({
+    value: bindingMode === "read" ? mockOptions : mockValue,
     setValue: mockSetValue,
     emit: mockEmit
   })
@@ -24,6 +25,7 @@ const view = (child: React.ReactNode) =>
 beforeEach(() => {
   jest.clearAllMocks();
   mockValue = undefined;
+  mockOptions = undefined;
 });
 it("disabled ChoiceCards reject pointer and keyboard edits and leave tab order", () => {
   view(
@@ -82,4 +84,24 @@ it("passes ChoiceCards asset identifiers through the media rendering boundary", 
   expect(screen.getByTestId("choice-image")).toHaveTextContent(
     "asset://product"
   );
+});
+
+
+it("renders reactive operation output choices and writes the selected value", () => {
+  mockOptions = [{ value: "hero", title: "Product hero", image: "asset://hero" }];
+  const props = { id: "directions", optionsBinding: "op:plan/out:directions", binding: "var:direction" };
+  const mounted = view(<ChoiceCardsWidget {...props} />);
+  fireEvent.keyDown(screen.getByRole("radio", { name: "Product hero" }), { key: "Enter" });
+  expect(mockSetValue).toHaveBeenCalledWith("hero");
+  expect(mockEmit).toHaveBeenCalledWith("change");
+  mockOptions = [{ value: "detail", title: "Product detail" }];
+  mounted.rerender(<ThemeProvider theme={mockTheme}><ChoiceCardsWidget {...props} /></ThemeProvider>);
+  expect(screen.queryByText("Product hero")).not.toBeInTheDocument();
+  expect(screen.getByRole("radio", { name: "Product detail" })).toBeInTheDocument();
+});
+
+it("does not substitute static choices for missing or malformed bound output", () => {
+  mockOptions = [{ value: "same", title: "First" }, { value: "same", title: "Second" }];
+  view(<ChoiceCardsWidget id="directions" optionsBinding="op:plan/out:directions" options={[{ value: "fallback" }]} />);
+  expect(screen.queryByRole("radio")).not.toBeInTheDocument();
 });
