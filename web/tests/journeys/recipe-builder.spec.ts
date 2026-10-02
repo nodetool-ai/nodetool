@@ -166,6 +166,15 @@ test("Recipe metadata survives a real App Builder UI edit and save", async ({
   await expect(
     runtime.getByText("Fresh coffee. Lower price.", { exact: false }).last()
   ).toBeVisible();
+  // Review the real composed cut before approving a persistent result.
+  await expect(runtime.getByTestId("preview-compositor")).toHaveAttribute(
+    "data-preview-ready",
+    "true",
+    { timeout: 60_000 }
+  );
+  await expect(
+    runtime.getByRole("link", { name: "Open editable timeline", exact: true })
+  ).toHaveCount(0);
   await runtime.getByRole("button", { name: "Approve", exact: true }).click();
   await runtime
     .getByRole("button", { name: "Build editable ad", exact: true })
@@ -175,7 +184,7 @@ test("Recipe metadata survives a real App Builder UI edit and save", async ({
     exact: true
   });
   await expect(openTimeline).toBeVisible({ timeout: 60_000 });
-  await expect(runtime.getByTestId("preview-compositor")).toHaveAttribute(
+  await expect(runtime.getByTestId("preview-compositor").last()).toHaveAttribute(
     "data-preview-ready", "true", {timeout: 60_000}
   );
   await openTimeline.click();

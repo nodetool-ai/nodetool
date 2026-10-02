@@ -976,6 +976,7 @@ export const appConfig: Config = {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
         options: choiceCardsField,
+        optionsBinding: bindingField("read"),
         columns: { type: "number", label: "Columns" },
         events: eventsField("change", { commits: false }),
         ...conditionalFields({ format: false })

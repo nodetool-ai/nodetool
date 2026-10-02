@@ -192,6 +192,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "revise_storyboard_clip",
     "assemble_storyboard_timeline",
     "finish_storyboard",
+    "preview_storyboard_design",
     "edit_storyboard"
   ]
 };
@@ -1450,6 +1451,7 @@ const nodetool = (() => {
       voice: (id, opts) =>
         __need("voice_script_lines")(__merge(opts, { script_id: id })),
       finish: (args) => __need("finish_storyboard")(args),
+      previewDesign: (args) => __need("preview_storyboard_design")(args),
       assembleTimeline: (id, opts) =>
         __need("assemble_script_timeline")(__merge(opts, { script_id: id })),
       /** Apply cast/line edits to a saved script, server-side. */
@@ -1477,6 +1479,7 @@ const nodetool = (() => {
           })
         ),
       finish: (args) => __need("finish_storyboard")(args),
+      previewDesign: (args) => __need("preview_storyboard_design")(args),
       assembleTimeline: (id, opts) =>
         __need("assemble_storyboard_timeline")(
           __merge(opts, { storyboard_id: id })

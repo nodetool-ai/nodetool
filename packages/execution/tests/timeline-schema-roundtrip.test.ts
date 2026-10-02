@@ -11,6 +11,7 @@
  * fixture value cannot pass by not being exercised.
  */
 import { describe, expect, it } from "vitest";
+import type { TimelineDocument as ModelDocument } from "@nodetool-ai/models";
 
 import {
   timelineDocument,
@@ -128,12 +129,6 @@ type SameVariantKeys<
   A extends { type: string },
   B extends { type: string }
 > = Record<VariantKeyDiff<A, B>, never>;
-
-/** The document half of the model's `TimelineSequence` — what a save writes. */
-type ModelDocument = Pick<
-  ModelSequence,
-  "tracks" | "clips" | "markers" | "transcript" | "scriptEnabled"
->;
 
 /** Unwrap an optional property so its own key set can be compared. */
 type Prop<T, K extends keyof T> = NonNullable<T[K]>;

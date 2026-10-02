@@ -377,3 +377,23 @@ export class AssetsPage {
     await this.page.getByTestId("asset-search-clear-btn").click();
   }
 }
+
+/** The visual board and its semantic shot inspector. */
+export class StoryboardPage {
+  constructor(private readonly page: Page) {}
+
+  async open(name: string): Promise<void> {
+    await goto(this.page, "/workspace");
+    await this.page.getByRole("button", { name: "Documents", exact: true }).click();
+    await this.page.getByRole("treeitem", { name: `${name} Storyboard`, exact: true }).click();
+  }
+
+  firstShot(): Locator {
+    // Shot cards expose controls but no container role.
+    return this.page.locator(".shot-card").first();
+  }
+
+  shotEditor(): Locator {
+    return this.page.getByTestId("shot-edit-panel");
+  }
+}

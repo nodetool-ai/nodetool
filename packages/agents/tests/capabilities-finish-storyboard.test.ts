@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from "vitest";
 import { Asset, Storyboard, TimelineSequence, commitFinishedStoryboard, initTestDb } from "@nodetool-ai/models";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { finishStoryboard } from "../src/capabilities/finish-storyboard.js";
+import { finishStoryboard, previewStoryboardDesign } from "../src/capabilities/finish-storyboard.js";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 const run = (userId = "u1") => createCapabilityRun({ context: { userId } as ProcessingContext, gate: UNGATED });
 async function fixture() {
@@ -166,4 +166,42 @@ describe("finish_storyboard", () => {
     expect((await Storyboard.findById(board.id))!.timeline_id).toBeFalsy();
   });
 
+});
+
+
+describe("finishing source MIME contracts", () => {
+  beforeEach(() => initTestDb());
+  it.each(["graphics", "still", "video"])("rejects wrong MIME for %s before provider dispatch or a save", async (kind) => {
+    const { board, asset } = await fixture();
+    asset.content_type = kind === "video" ? "image/png" : "video/mp4"; await asset.save();
+    const document = board.toDocument();
+    if (kind === "still") document.shots[0].keyframe = { type: "image", asset_id: asset.id };
+    if (kind === "video") { document.shots[0].production = { media_strategy: "generated_video" }; document.shots[0].graphics = undefined; document.shots[0].clip = { type: "video", asset_id: asset.id }; }
+    board.document = JSON.stringify(document); await board.save();
+    expect(await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision })).toMatchObject({ error: expect.stringMatching(/must be an image|must be a video/) });
+    expect(await previewStoryboardDesign.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision })).toHaveProperty("error");
+    expect(await TimelineSequence.listByUser("u1")).toHaveLength(0);
+  });
+});
+
+describe("preview_storyboard_design", () => {
+  beforeEach(() => initTestDb());
+  it("returns a fully shaped inline Timeline envelope without saving or dispatching a provider", async () => {
+    const { board, asset } = await fixture();
+    const result = await previewStoryboardDesign.impl(run(), { storyboardId: board.id.slice(0, 12), expectedStoryboardRevision: board.revision }) as { timeline: { type: string; data: { id: string; width: number; height: number; fps: number; clips: { currentAssetId: string; storyboardElementId: string }[] } }; storyboardRevision: number; validation: unknown[] };
+    expect(result).toMatchObject({ storyboardRevision: board.revision, validation: [], timeline: { type: "timeline", data: { id: board.id, width: 1080, height: 1920, fps: 30 } } });
+    expect(result.timeline).not.toHaveProperty("id");
+    expect(result.timeline.data.clips[0]).toMatchObject({ currentAssetId: asset.id, storyboardElementId: "product" });
+    expect(await TimelineSequence.listByUser("u1")).toHaveLength(0);
+    expect((await Storyboard.findById(board.id))!.revision).toBe(board.revision);
+    expect((await Storyboard.findById(board.id))!.timeline_id).toBeFalsy();
+  });
+  it("rejects stale/foreign boards and inaccessible assets instead of returning an unconstrained preview", async () => {
+    const { board, asset } = await fixture();
+    expect(await previewStoryboardDesign.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision + 1 })).toHaveProperty("error");
+    expect(await previewStoryboardDesign.impl(run("foreign"), { storyboardId: board.id, expectedStoryboardRevision: board.revision })).toHaveProperty("error");
+    asset.user_id = "foreign"; await asset.save();
+    expect(await previewStoryboardDesign.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision })).toHaveProperty("error");
+    expect(await TimelineSequence.listByUser("u1")).toHaveLength(0);
+  });
 });

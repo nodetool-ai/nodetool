@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { Shot } from "@nodetool-ai/protocol";
 import { timelineDocument } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 import type { TimelineSequence } from "../src/types.js";
-import { materializeStoryboard, validateProducedTimeline } from "../src/finish-storyboard.js";
+import { materializeStoryboard, validateProducedTimeline, stampStoryboardMaterializationBaseline } from "../src/finish-storyboard.js";
 
 const shot = (): Shot => ({
   type: "shot", id: "hook", index: 0, action: "Price drop", status: "planned", duration_seconds: 4,
@@ -170,6 +170,26 @@ describe("Storyboard finishing", () => {
     result.document.tracks[1].effects = [{ type: "blur", radius: 20 }] as never;
     expect(validateProducedTimeline(args, result.document).some((issue) => issue.code === "forbidden_transform")).toBe(true);
   });
+  it("rejects forbidden source masks and unproven transitions on protected clips", () => {
+    const args = input();
+    const document = materializeStoryboard(args).document;
+    const product = document.clips.find(clip => clip.storyboardElementId === "product")!;
+    product.mask = { kind: "ellipse", x: 0, y: 0, width: 0.5, height: 1 };
+    expect(validateProducedTimeline(args, document).some(issue => issue.code === "forbidden_transform" && issue.message.includes("mask is forbidden"))).toBe(true);
+    delete product.mask;
+    product.transitionIn = { type: "push", durationMs: 300 };
+    expect(validateProducedTimeline(args, document).some(issue => issue.code === "forbidden_transform" && issue.message.includes("Transition push"))).toBe(true);
+  });
+  it("preserves user layer names independently from semantic element identity", () => {
+    const args = input();
+    const first = materializeStoryboard(args).document;
+    const price = first.clips.find(clip => clip.storyboardElementId === "price")!;
+    price.name = "Human price";
+    const result = materializeStoryboard({...args, current: first});
+    expect(result.validation).toEqual([]);
+    expect(result.document.clips.find(clip => clip.id === price.id)?.name).toBe("Human price");
+    expect(result.document.clips.find(clip => clip.id === price.id)?.storyboardElementId).toBe("price");
+  });
   it("uses motion design for cut animations and continuity without rerun duplication", () => {
     const args = input();
     const second = structuredClone(args.shots[0]);
@@ -323,4 +343,35 @@ describe("Storyboard finishing", () => {
     expect(result.document.storyboardMaterializations).toContainEqual({ boardId: "other", elementKeys: ["other/clip"] });
   });
 
+});
+
+
+describe("agent-owned finishing layers", () => {
+  it("does not duplicate reserved transition animations on repeated materialization", () => {
+    const firstShot = shot(); const secondShot = { ...shot(), id: "close", index: 1 };
+    for (const value of [firstShot, secondShot]) value.production!.protected_inputs!.find((input) => input.id === "brand")!.allowed_transformations = ["opacity"];
+    const args = { ...input(), shots: [firstShot, secondShot], motionDesign: { transitions: [{ from_shot_id: "hook", to_shot_id: "close", direction: "fade" }] } };
+    let document = materializeStoryboard(args).document;
+    const extra = structuredClone(document.clips.find((clip) => clip.storyboardElementId === "background")!);
+    extra.id = "extra"; extra.storyboardElementId = "$agent:shape:accent"; extra.animations = [];
+    stampStoryboardMaterializationBaseline(extra); document.clips.push(extra);
+    document.storyboardMaterializations![0].elementKeys.push("hook/$agent:shape:accent");
+    for (let count = 0; count < 4; count += 1) {
+      const result = materializeStoryboard({ ...args, current: document });
+      expect(result.validation).toEqual([]); document = result.document;
+      const animations = document.clips.find((clip) => clip.id === "extra")!.animations ?? [];
+      expect(animations.filter((animation) => animation.id === "extra:cut-out")).toHaveLength(1);
+    }
+  });
+  it("conflicts if a retained agent layer leaves its provenance shot after a duration change", () => {
+    const args = { ...input(), shots: [shot(), { ...shot(), id: "close", index: 1 }] };
+    const current = materializeStoryboard(args).document;
+    const extra = structuredClone(current.clips.find((clip) => clip.storyboardShotId === "close" && clip.storyboardElementId === "background")!);
+    extra.id = "extra"; extra.storyboardElementId = "$agent:shape:accent"; stampStoryboardMaterializationBaseline(extra); current.clips.push(extra);
+    current.storyboardMaterializations![0].elementKeys.push("close/$agent:shape:accent");
+    args.shots[0].duration_seconds = 8;
+    const result = materializeStoryboard({ ...args, current });
+    expect(result.validation).toEqual(expect.arrayContaining([expect.objectContaining({ code: "manual_conflict", elementId: "$agent:shape:accent", message: expect.stringContaining("timing changed") })]));
+    expect(current.clips.find((clip) => clip.id === "extra")!.startMs).toBe(4000);
+  });
 });

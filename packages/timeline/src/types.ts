@@ -35,7 +35,7 @@ import type {
   TimelineSetup,
   TimelineSetupStage
 } from "@nodetool-ai/protocol/api-schemas/timeline.js";
-import type { ProductionGenerationSnapshot } from "@nodetool-ai/protocol";
+import type { ProductionCandidateResult, ProductionGenerationSnapshot } from "@nodetool-ai/protocol";
 import type { LineDeliveryRequest } from "./lineDelivery.js";
 export type { TimelineBeat, TimelineSetup, TimelineSetupStage };
 export type { ProductionGenerationSnapshot } from "@nodetool-ai/protocol";
@@ -2047,6 +2047,8 @@ export interface ClipVersion {
   variationIndex?: number;
   /** Immutable resolved production inputs captured before provider dispatch. */
   productionSnapshot?: ProductionGenerationSnapshot;
+  /** Authoritative returned source window, already carried by the wire schema. */
+  productionResult?: ProductionCandidateResult;
   /** Immutable direct-generation inputs for recipe-based New take replay. */
   generationRecipe?: VideoGenerationRecipe;
   /** Immutable Script context for a Change line delivery candidate. */

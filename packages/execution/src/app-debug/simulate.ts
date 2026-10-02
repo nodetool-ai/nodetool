@@ -23,6 +23,7 @@ import type {
 import { previewValue } from "../debug/collector.js";
 import {
   DEFAULT_OPERATION_ID,
+  parseChoiceCardOptions,
   eventToAction,
   parseBinding,
   operationTarget,
@@ -1117,6 +1118,15 @@ export async function simulateApp(
         if (refusal) {
           record.error = `changed "${named}", whose binding "${found.binding ?? ""}" ${refusal}.`;
           continue;
+        }
+        if (found.type === "ChoiceCards") {
+          const boundOptions = found.extraBindings.find((binding) => binding.prop === "optionsBinding");
+          const options = parseChoiceCardOptions(boundOptions ? runtime.read(boundOptions.ref) : found.choiceOptions);
+          const option = options.find((candidate) => candidate.value === step.value);
+          if (!option || option.disabled) {
+            record.error = `changed "${named}" to an unavailable or disabled choice.`;
+            continue;
+          }
         }
         runtime.write(found.ref, step.value);
         record.actions.push(`set ${found.stateKey ?? found.id}`);

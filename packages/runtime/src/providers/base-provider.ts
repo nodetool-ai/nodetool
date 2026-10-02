@@ -1213,6 +1213,12 @@ export abstract class BaseProvider {
        */
       sequentialTools?: boolean;
       /**
+       * Restrict this loop to the supplied tools. Defaults to false, retaining
+       * provider-specific tool defaults. Overrides must not add implicit native
+       * tools or skill tools outside the supplied set when true.
+       */
+      providedToolsOnly?: boolean;
+      /**
        * Spend admission, consulted before every model turn. A refusal ends the
        * loop without making the call.
        *
@@ -1283,6 +1289,7 @@ export abstract class BaseProvider {
       executeTool,
       maxIterations: _omitMax,
       sequentialTools,
+      providedToolsOnly: _omitProvidedToolsOnly,
       turnBudget: budgetArg,
       workspaceDir: _omitWorkspaceDir,
       skills: _omitSkills,

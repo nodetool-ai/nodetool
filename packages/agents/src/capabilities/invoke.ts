@@ -85,6 +85,8 @@ export function contextSecretAvailability(
 
 export interface CreateCapabilityRunOptions {
   context: ProcessingContext;
+  /** Invocation-local cancellation without copying the processing context. */
+  signal?: AbortSignal;
   gate: CapabilityGate;
   client?: ClientToolRouter;
   /** The project this run works in; see {@link CapabilityRun.projectId}. */
@@ -134,6 +136,7 @@ export function createCapabilityRun(
 
   const run: CapabilityRun = {
     context: options.context,
+    signal: options.signal,
     gate: options.gate,
     client: options.client,
     projectId: options.projectId ?? options.context.projectId ?? undefined,
@@ -194,6 +197,7 @@ export async function invokeCapability(
   entry: CapabilityExport,
   rawArgs: Record<string, unknown>
 ): Promise<unknown> {
+  run.signal?.throwIfAborted();
   const { spec, impl } = entry;
   const checked = validateCapabilityArgs(spec, withSnakeCaseAliases(rawArgs));
   if (!checked.ok) return checked.error;
@@ -298,6 +302,7 @@ async function runImpl(
       };
     }
   }
+  run.signal?.throwIfAborted();
   return entry.impl(run, args);
 }
 

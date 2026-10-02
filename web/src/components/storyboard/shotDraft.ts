@@ -10,7 +10,12 @@
  * decided in one testable place rather than inside the dialog's callbacks.
  */
 
-import type { Scene, Shot, ShotDurationSource, ShotRenderMode } from "@nodetool-ai/protocol";
+import type {
+  Scene,
+  Shot,
+  ShotDurationSource,
+  ShotRenderMode
+} from "@nodetool-ai/protocol";
 
 /** The dialog's editable state. Every value is a string so an empty field and
  * an unset field are the same thing to the form. */
@@ -42,6 +47,8 @@ export interface ShotDraft {
   /** Notes → `notes`. */
   notes: string;
   renderMode: ShotRenderMode;
+  graphics: Shot["graphics"];
+  motion: string;
 }
 
 export type ShotDraftKey = keyof ShotDraft;
@@ -60,7 +67,9 @@ const DRAFT_KEYS = [
   "equipment",
   "lens",
   "notes",
-  "renderMode"
+  "renderMode",
+  "graphics",
+  "motion"
 ] as const satisfies readonly ShotDraftKey[];
 
 /** The draft a freshly opened dialog starts from. */
@@ -79,7 +88,9 @@ export const draftFromShot = (shot: Shot, scene: Scene | null): ShotDraft => ({
   equipment: shot.camera?.equipment ?? "",
   lens: shot.camera?.lens ?? "",
   notes: shot.notes ?? "",
-  renderMode: shot.render_mode ?? "keyframe"
+  renderMode: shot.render_mode ?? "keyframe",
+  graphics: shot.graphics,
+  motion: shot.motion ?? ""
 });
 
 /** Whether the creator has changed anything since the dialog opened. */
@@ -90,7 +101,10 @@ export const isDraftDirty = (draft: ShotDraft, original: ShotDraft): boolean =>
 export const changedDraftKeys = (
   draft: ShotDraft,
   original: ShotDraft
-): ShotDraftKey[] => DRAFT_KEYS.filter((key) => draft[key] !== original[key]);
+): ShotDraftKey[] =>
+  DRAFT_KEYS.filter(
+    (key) => JSON.stringify(draft[key]) !== JSON.stringify(original[key])
+  );
 
 /** Locally changed fields whose stored value also changed after open. */
 export const conflictingDraftKeys = (
@@ -99,7 +113,7 @@ export const conflictingDraftKeys = (
   current: ShotDraft
 ): ShotDraftKey[] =>
   changedDraftKeys(draft, original).filter(
-    (key) => current[key] !== original[key]
+    (key) => JSON.stringify(current[key]) !== JSON.stringify(original[key])
   );
 
 /** The header row's two fields; everything else belongs to the shot itself. */
@@ -115,7 +129,9 @@ export const hasShotFieldChanges = (
   original: ShotDraft
 ): boolean =>
   DRAFT_KEYS.some(
-    (key) => !HEADER_KEYS.includes(key) && draft[key] !== original[key]
+    (key) =>
+      !HEADER_KEYS.includes(key) &&
+      JSON.stringify(draft[key]) !== JSON.stringify(original[key])
   );
 
 /** A typed length, or null when the field is empty or not a positive number. */
@@ -195,7 +211,9 @@ export const shotPatchFromDraft = (draft: ShotDraft): Partial<Shot> => {
     duration_seconds: seconds ?? undefined,
     duration_source: draft.durationSource,
     camera: hasCamera ? camera : undefined,
-    render_mode: draft.renderMode
+    render_mode: draft.renderMode,
+    graphics: draft.graphics,
+    motion: orUndefined(draft.motion)
   };
 };
 
@@ -232,6 +250,8 @@ export const shotPatchFromChangedDraft = (
     patch.duration_source = draft.durationSource;
   }
   if (changed.has("renderMode")) patch.render_mode = draft.renderMode;
+  if (changed.has("graphics")) patch.graphics = draft.graphics;
+  if (changed.has("motion")) patch.motion = orUndefined(draft.motion);
 
   if (CAMERA_KEYS.some((key) => changed.has(key))) {
     const camera = { ...current.camera };

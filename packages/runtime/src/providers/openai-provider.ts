@@ -1359,17 +1359,18 @@ export class OpenAIProvider extends BaseProvider {
   // Responses API path (used for OpenAI models matched by isOpenAIResponsesModel)
   // ---------------------------------------------------------------------------
 
-  /** Tool shapes for the Responses API: native web_search / image_generation. */
+  /** Responses uses native equivalents by default, caller dispatch when restricted. */
   private formatResponsesTools(
-    tools: ProviderTool[]
+    tools: ProviderTool[],
+    providedToolsOnly = false
   ): Array<Record<string, unknown>> {
     const formatted: Array<Record<string, unknown>> = [];
     for (const tool of tools) {
-      if (tool.name === WEB_SEARCH_TOOL_NAME) {
+      if (!providedToolsOnly && tool.name === WEB_SEARCH_TOOL_NAME) {
         formatted.push(RESPONSE_WEB_SEARCH_TOOL);
         continue;
       }
-      if (tool.name === IMAGE_GENERATION_TOOL_NAME) {
+      if (!providedToolsOnly && tool.name === IMAGE_GENERATION_TOOL_NAME) {
         formatted.push(RESPONSE_IMAGE_GENERATION_TOOL);
         continue;
       }
@@ -1470,6 +1471,7 @@ export class OpenAIProvider extends BaseProvider {
       executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
       maxIterations?: number;
       sequentialTools?: boolean;
+      providedToolsOnly?: boolean;
       turnBudget?: TurnBudget | RunBudget;
       resolveMedia?: (messages: Message[]) => Promise<Message[]>;
     }
@@ -1483,6 +1485,7 @@ export class OpenAIProvider extends BaseProvider {
       executeTool,
       maxIterations: _omitMaxIterations,
       sequentialTools,
+      providedToolsOnly,
       turnBudget: budgetArg,
       resolveMedia,
       ...turnArgs
@@ -1505,6 +1508,7 @@ export class OpenAIProvider extends BaseProvider {
           args: turnArgs,
           resolveMedia,
           executeTool,
+          providedToolsOnly,
           sequentialTools: sequentialTools === true,
           maxIterations,
           firstMessages,
@@ -1532,6 +1536,7 @@ export class OpenAIProvider extends BaseProvider {
       args: turnArgs,
       resolveMedia,
       executeTool,
+      providedToolsOnly,
       sequentialTools: sequentialTools === true,
       maxIterations,
       firstMessages: freshMessages,
@@ -1553,6 +1558,7 @@ export class OpenAIProvider extends BaseProvider {
       stream: boolean;
       store: boolean;
       previousResponseId?: string | null;
+      providedToolsOnly?: boolean;
     }
   ): Promise<Record<string, unknown>> {
     const request: Record<string, unknown> = {
@@ -1569,12 +1575,16 @@ export class OpenAIProvider extends BaseProvider {
     if (args.temperature != null) request.temperature = args.temperature;
     if (args.topP != null) request.top_p = args.topP;
 
-    const tools = this.formatResponsesTools(args.tools ?? []);
+    const tools = this.formatResponsesTools(
+      args.tools ?? [],
+      config.providedToolsOnly
+    );
     if (tools.length > 0) {
       request.tools = tools;
-      const hostedToolChoice = args.toolChoice
-        ? RESPONSE_HOSTED_TOOL_CHOICES[args.toolChoice]
-        : undefined;
+      const hostedToolChoice =
+        !config.providedToolsOnly && args.toolChoice
+          ? RESPONSE_HOSTED_TOOL_CHOICES[args.toolChoice]
+          : undefined;
       request.tool_choice = hostedToolChoice
         ? { type: hostedToolChoice }
         : (responseToolChoice(args.toolChoice) ?? "auto");
@@ -1621,6 +1631,7 @@ export class OpenAIProvider extends BaseProvider {
     resolveMedia?: (messages: Message[]) => Promise<Message[]>;
     executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
     sequentialTools: boolean;
+    providedToolsOnly?: boolean;
     maxIterations: number;
     firstMessages: Message[];
     firstPreviousResponseId: string | null;
@@ -1683,7 +1694,8 @@ export class OpenAIProvider extends BaseProvider {
           input,
           stream: true,
           store: true,
-          previousResponseId
+          previousResponseId,
+          providedToolsOnly: config.providedToolsOnly
         });
         yield* this.collectResponsesTurn(
           config.args,

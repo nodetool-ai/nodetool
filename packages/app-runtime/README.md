@@ -27,10 +27,18 @@ run's messages their own way and disagreed about what an app was showing.
 | `doc-ops.ts` | Immutable edits to the non-UI half of a document (operations, variables, resources) |
 | `bundle.ts` | The `ApplicationBundle`: an app plus the full graphs it binds, as one JSON artifact |
 | `script-run.ts` | The contract for an operation that runs a JS script instead of a workflow |
+| `recipe-compiler.ts` | Deterministic Recipe authoring into normal Application documents, using typed contracts and concrete pinned operations |
 | `chat.ts` | Reading a bound value as a conversation, for the thread and composer widgets |
 | `documents.ts` | Unwrapping sketch and timeline refs out of a bound value |
 
 ## Usage
+
+Recipe authoring uses `compileRecipeApplication(manifest, {operations, title})`.
+Its output uses the same widgets, bindings, variables and resource declarations
+as an Application authored through the App Builder. Unsupported inputs,
+unbound IO, unresolved versions and unmet preservation guarantees return
+field-specific diagnostics before execution. See the
+[shared operation contracts and compiler mapping](../../docs/recipes/shared-operations.md).
 
 Everything is a pure function, so a host drives the reducer itself. Folding a
 run's messages into the state an app displays:
@@ -102,3 +110,20 @@ binding, action, and condition in tables:
 [docs/mini-apps-guide.md](../../docs/mini-apps-guide.md). The headless harness
 that drives this package: `nodetool app debug`, in
 [docs/cli.md](../../docs/cli.md).
+
+## Guided choices
+
+`ChoiceCards` uses `binding` for its selected value. Its optional
+`optionsBinding` reads a list from normal Application state, such as
+`op:plan/out:directions`. Each choice has a unique non-empty string `value`,
+optional `title`, `description`, media-identifier `image`, and boolean `disabled`.
+The same shape works in authored `options` and operation output. A supplied
+`optionsBinding` is authoritative. Missing or malformed output renders no
+choices instead of substituting an authored list. Web, mobile and `app debug`
+share option parsing, and disabled choices cannot write a selection.
+
+Use existing input widgets inside a named input group for product and brand
+information. Bind the existing Timeline widget to a read-only composed
+Storyboard preview for plan review before Approval.
+These compositions keep the Price Drop Recipe editable in App Builder without
+adding Recipe-specific widgets.

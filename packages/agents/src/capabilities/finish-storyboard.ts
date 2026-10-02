@@ -1,13 +1,20 @@
-import type { CapabilityExport } from "./types.js";
-import { finishStoryboardSpec } from "./storyboards.specs.js";
+import { isRecord } from "@nodetool-ai/protocol";
+import { budgetFromContext } from "@nodetool-ai/runtime";
+import type { CapabilityExport, CapabilityRun } from "./types.js";
+import { finishStoryboardSpec, previewStoryboardDesignSpec } from "./storyboards.specs.js";
 
-export const finishStoryboard: CapabilityExport = {
-  spec: finishStoryboardSpec,
-  impl: async (run, params) => {
+async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Record<string, unknown>, previewOnly: boolean): Promise<unknown> {
+    const strategy = params["strategy"] ?? "deterministic";
+    if (strategy !== "deterministic" && strategy !== "agentic") { return { error: "Unsupported finishing strategy." }; }
+    const explicitModel = params["model"];
+    if (explicitModel !== undefined && (!isRecord(explicitModel) || typeof explicitModel["provider"] !== "string" || !explicitModel["provider"].trim() || typeof explicitModel["id"] !== "string" || !explicitModel["id"].trim())) { return { error: "Finishing model must have a non-empty provider and id." }; }
+    if (strategy === "agentic" && !explicitModel && !run.subAgent) { return { error: "Agentic finishing requires an explicit model reference or the session's provider and model." }; }
+    const signal = run.signal ?? run.context.signal;
+    signal?.throwIfAborted();
     const userId = run.context.userId;
     if (!userId) return { error: "No user is bound to this session." };
     const { findFinishResourceIds, Storyboard, TimelineSequence, Asset, entityFromAsset, commitFinishedStoryboard } = await import("@nodetool-ai/models");
-    const { materializeStoryboard, resolveShotSource, validateStoryboardSemantics, frameSizeForAspect } = await import("@nodetool-ai/timeline");
+    const { materializeStoryboard, resolveShotSource, validateStoryboardSemantics, frameSizeForAspect, makeSequence } = await import("@nodetool-ai/timeline");
     const { resolveEffectiveProductionRequirement } = await import("@nodetool-ai/protocol");
     const boardId = String(params["storyboardId"] ?? "");
     const boardRows = await findFinishResourceIds("storyboard", boardId, userId, run.projectId);
@@ -19,6 +26,7 @@ export const finishStoryboard: CapabilityExport = {
     const doc = board.toDocument();
     const shots = structuredClone(doc.shots).map((shot) => ({ ...shot, production: resolveEffectiveProductionRequirement(undefined, shot.production) }));
     const assets = new Set<string>();
+    const assetContentTypes = new Map<string, string>();
     const entities = new Set<string>();
     const resolveAssetId = async (id: string): Promise<string> => {
       const matches = await findFinishResourceIds("asset", id, userId);
@@ -43,12 +51,28 @@ export const finishStoryboard: CapabilityExport = {
           source.assetId = canonical;
         }
         const selectedAssetId = source && source.kind !== "graphics" ? source.assetId : undefined;
+        const protectionsById = new Map((shot.production?.protected_inputs ?? []).map((input) => [input.id, input]));
+        const imageIds = new Set((shot.production?.protected_inputs ?? []).filter((input) => ["product", "logo"].includes(input.kind)).map((input) => input.asset_id));
+        if (source?.kind === "still") { imageIds.add(source.assetId); }
+        for (const element of shot.graphics?.elements ?? []) {
+          if (element.kind === "asset") {
+            imageIds.add(element.asset_id);
+            if (element.protected_input_id) { imageIds.add(protectionsById.get(element.protected_input_id)?.asset_id); }
+          }
+        }
         const refs = [selectedAssetId, ...(shot.production?.protected_inputs ?? []).map((input) => input.asset_id), ...(shot.graphics?.elements ?? []).map((element) => element.asset_id)];
         for (const id of refs) {
-          if (!id || assets.has(id)) continue;
-          const asset = await Asset.get<InstanceType<typeof Asset>>(id);
-          if (asset?.user_id === userId) assets.add(id);
-          else return { error: `Asset ${id} is unavailable.` };
+          if (!id) { continue; }
+          let contentType = assetContentTypes.get(id);
+          if (!contentType) {
+            const asset = await Asset.get<InstanceType<typeof Asset>>(id);
+            if (asset?.user_id !== userId) { return { error: `Asset ${id} is unavailable.` }; }
+            contentType = asset.content_type;
+            assets.add(id);
+            assetContentTypes.set(id, contentType);
+          }
+          if (imageIds.has(id) && !contentType.startsWith("image/")) { return { error: `Asset ${id} must be an image for this editable graphics/still layer.` }; }
+          if (source?.kind === "video" && selectedAssetId === id && !contentType.startsWith("video/")) { return { error: `Asset ${id} must be a video for this selected shot source.` }; }
         }
         for (const element of shot.graphics?.elements ?? []) {
           const protection = element.protected_input_id ? shot.production?.protected_inputs?.find((input) => input.id === element.protected_input_id) : undefined;
@@ -71,7 +95,7 @@ export const finishStoryboard: CapabilityExport = {
     } catch (error) { return { error: error instanceof Error ? error.message : String(error) }; }
     const semanticErrors = validateStoryboardSemantics(shots, doc.screenplay, { assetIds: assets, entityIds: entities });
     if (semanticErrors.length) return { error: "Storyboard cannot be finished.", validation: semanticErrors };
-    const requestedTimelineId = params["timelineId"] ?? board.timeline_id;
+    const requestedTimelineId = previewOnly ? undefined : params["timelineId"] ?? board.timeline_id;
     let timeline: InstanceType<typeof TimelineSequence> | undefined;
     if (requestedTimelineId) {
       const id = String(requestedTimelineId);
@@ -87,9 +111,35 @@ export const finishStoryboard: CapabilityExport = {
     const { validateTimelineSequence } = await import("@nodetool-ai/execution/timeline-debug");
     const structural = validateTimelineSequence(result.document, { fps: timeline?.fps ?? 30, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height });
     if (!structural.ok) return { error: "Produced Timeline is structurally invalid.", validation: structural };
+    if (previewOnly) { return { timeline: { type: "timeline", data: makeSequence({ ...result.document, id: board.id, projectId: board.project_id, name: `Design preview: ${board.name}`, width: size.width, height: size.height, fps: 30, durationMs: result.durationMs }) }, storyboardRevision: board.revision, validation: [] }; }
     try {
-      const saved = await commitFinishedStoryboard({ board, timeline, document: result.document, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, durationMs: result.durationMs });
-      return { timelineId: saved.timeline.id, timelineRevision: saved.timeline.revision, storyboardRevision: saved.board.revision, validation: [] };
+      let document = result.document;
+      let reviews;
+      let costUsd;
+      if (strategy === "agentic") {
+        const { finishStoryboardAgentically } = await import("./agentic-storyboard-finish.js");
+        const runtime = isRecord(explicitModel) && typeof explicitModel["provider"] === "string" && typeof explicitModel["id"] === "string"
+          ? { provider: await run.context.getProvider(explicitModel["provider"]), model: explicitModel["id"], budget: run.budget ?? budgetFromContext(run.context) }
+          : run.subAgent;
+        if (!runtime) { return { error: "No finishing model is bound to this run." }; }
+        const candidate = await finishStoryboardAgentically(run, { boardId: board.id, shots, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, motionDesign: doc.screenplay?.motion_design, current: timeline?.toDocument() }, doc, timeline ?? new TimelineSequence({ user_id: userId, project_id: board.project_id, name: board.name, width: size.width, height: size.height, duration_ms: result.durationMs, document: JSON.stringify(result.document) }), result.document, runtime);
+        document = candidate.document;
+        reviews = candidate.reviews;
+        costUsd = candidate.costUsd;
+      }
+      signal?.throwIfAborted();
+      run.context.signal?.throwIfAborted();
+      const saved = await commitFinishedStoryboard({ board, timeline, document, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, durationMs: result.durationMs });
+      return { timelineId: saved.timeline.id, timelineRevision: saved.timeline.revision, storyboardRevision: saved.board.revision, validation: [], ...(reviews && { reviews, costUsd }) };
     } catch (error) { return { error: error instanceof Error ? error.message : String(error) }; }
-  }
+}
+
+export const finishStoryboard: CapabilityExport = {
+  spec: finishStoryboardSpec,
+  impl: (run, params) => materializeAuthorizedStoryboard(run, params, false)
+};
+
+export const previewStoryboardDesign: CapabilityExport = {
+  spec: previewStoryboardDesignSpec,
+  impl: (run, params) => materializeAuthorizedStoryboard(run, params, true)
 };

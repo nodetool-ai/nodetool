@@ -1,5 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import React from "react";
+import { parseChoiceCardOptions, type ChoiceCardOption } from "@nodetool-ai/app-runtime";
+export type { ChoiceCardOption } from "@nodetool-ai/app-runtime";
 import { keyframes } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
 import type { SystemStyleObject } from "@mui/system";
@@ -1197,25 +1199,19 @@ export const RadioGroupWidget: React.FC<
   );
 };
 
-export interface ChoiceCardOption {
-  value: string;
-  title?: string;
-  description?: string;
-  image?: string;
-  disabled?: boolean;
-}
-
 export const ChoiceCardsWidget: React.FC<
   WidgetCommon & {
     label?: string;
     options?: ChoiceCardOption[];
+    optionsBinding?: string;
     columns?: number;
     disabled?: boolean;
   }
 > = (props) => {
   const { value, setValue, emit } = useBinding(props, "write");
   const selected = str(value);
-  const options = props.options ?? [];
+  const { value: boundOptions } = useBinding({ id: `${props.id}-options`, binding: props.optionsBinding }, "read");
+  const options = parseChoiceCardOptions(props.optionsBinding ? boundOptions : props.options);
   return (
     <FlexColumn gap={SPACING.sm} fullWidth>
       {props.label ? <Label>{props.label}</Label> : null}
@@ -1251,6 +1247,7 @@ export const ChoiceCardsWidget: React.FC<
             >
               <Box
                 role="radio"
+                aria-label={option.title || option.value}
                 aria-checked={active}
                 aria-disabled={disabled || undefined}
                 tabIndex={disabled ? -1 : 0}

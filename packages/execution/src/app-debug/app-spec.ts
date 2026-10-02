@@ -381,6 +381,7 @@ export function parseAppSpec(
       if (format) {
         widget.format = format;
       }
+      if (item.type === "ChoiceCards") { widget.choiceOptions = item.props.options; }
       widgets.push(widget);
       const slots = WIDGET_CATALOG[item.type]?.slots;
       for (const [prop, value] of Object.entries(item.props)) {

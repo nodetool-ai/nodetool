@@ -11,7 +11,8 @@ import {
   type Message,
   type MessageContent,
   type MessageImageContent,
-  type ProviderStreamItem
+  type ProviderStreamItem,
+  type ProviderSession
 } from "../../src/providers/types.js";
 
 function makeAsyncIterable(
@@ -102,6 +103,79 @@ describe("OpenAIProvider Responses path", () => {
       tool_choice: { type: "image_generation" }
     });
   });
+
+  it.each([false, true])(
+    "providedToolsOnly keeps caller-owned dispatch (resume=%s)",
+    async (resume) => {
+      const create = vi
+        .fn()
+        .mockResolvedValueOnce(
+          makeAsyncIterable([
+            {
+              type: "response.output_item.added",
+              item: {
+                type: "function_call",
+                id: "fc_scope",
+                call_id: "call_scope",
+                name: "web_search",
+                arguments: ""
+              }
+            },
+            {
+              type: "response.function_call_arguments.done",
+              item_id: "fc_scope",
+              arguments: '{"query":"scoped"}'
+            },
+            { type: "response.completed", response: { id: "resp_scope" } }
+          ])
+        )
+        .mockResolvedValueOnce(
+          makeAsyncIterable([
+            { type: "response.completed", response: { id: "resp_done" } }
+          ])
+        );
+      const provider = providerWithCreate(create);
+      const executeTool = vi.fn().mockResolvedValue("scoped result");
+      const providerSession: ProviderSession | undefined = resume
+        ? {
+            providerId: PROVIDER_IDS.OPENAI,
+            model: "gpt-5",
+            token: "previous_response",
+            checkpoint: 0
+          }
+        : undefined;
+      await collect(
+        provider.generateLoop({
+          model: "gpt-5",
+          messages: [{ role: "user", content: "Use the supplied tools" }],
+          providerSession,
+          tools: [{ name: "web_search" }, { name: IMAGE_GENERATION_TOOL_NAME }],
+          toolChoice: "web_search",
+          providedToolsOnly: true,
+          executeTool
+        })
+      );
+      expect(create.mock.calls[0][0]).toMatchObject({
+        tools: [
+          { type: "function", name: "web_search" },
+          { type: "function", name: IMAGE_GENERATION_TOOL_NAME }
+        ],
+        tool_choice: { type: "function", name: "web_search" }
+      });
+      expect(create.mock.calls[0][0]).not.toHaveProperty("providedToolsOnly");
+      expect(executeTool).toHaveBeenCalledOnce();
+      expect(executeTool).toHaveBeenCalledWith(
+        expect.objectContaining({ name: "web_search", args: { query: "scoped" } })
+      );
+      expect(create.mock.calls[1][0].input).toEqual([
+        {
+          type: "function_call_output",
+          call_id: "call_scope",
+          output: "scoped result"
+        }
+      ]);
+    }
+  );
 
   it('maps the cross-provider "any" choice to required', async () => {
     const create = vi.fn().mockResolvedValue({

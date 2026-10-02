@@ -50,6 +50,7 @@ export interface RecipeInput {
   kind: RecipeInputKind;
   required: boolean;
   description?: string;
+  choices?: Array<{ value: string; title: string; description?: string; image?: string }>;
 }
 
 export interface RecipeOperationSpec {
@@ -59,6 +60,25 @@ export interface RecipeOperationSpec {
   bindingId: string;
   /** Human/agent-readable intent, e.g. plan_storyboard or render_stills. */
   intent: string;
+  /** Shared operation contract version, independent of the pinned target version. */
+  version?: number;
+  strategy?: "deterministic" | "agentic";
+  /** Existing language-model reference for an explicitly agentic operation. */
+  model?: {provider: string; id: string};
+}
+
+/** Semantic composition intent. Timeline owns layout and animation implementation. */
+export interface RecipeShotIntent {
+  id: string;
+  title: string;
+  durationSeconds: number;
+  elements: Array<{
+    id: string;
+    kind: "asset" | "text" | "shape";
+    role: "product" | "logo" | "headline" | "price" | "cta" | "decorative";
+    inputId: string;
+    direction?: string;
+  }>;
 }
 
 export interface RecipeOutputSpec {
@@ -88,6 +108,8 @@ export interface RecipeManifest {
     objective?: string;
     structure?: string;
     direction?: string;
+    shots?: RecipeShotIntent[];
+    aspectRatio?: "9:16" | "4:5" | "1:1" | "16:9";
   };
   preservationRules?: RecipePreservationRule[];
   mediaPolicy?: {
@@ -281,12 +303,29 @@ const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
     if (!isRecord(raw) || !isNonEmptyString(raw.id) || !isNonEmptyString(raw.label) || !recipeInputKinds.has(raw.kind as RecipeInputKind) || (raw.required !== true && raw.required !== false)) return undefined;
     const input: RecipeInput = { id: raw.id, label: raw.label, kind: raw.kind as RecipeInputKind, required: raw.required };
     if (isString(raw.description)) input.description = raw.description;
+    if (raw.choices !== undefined) {
+      if (!Array.isArray(raw.choices) || raw.choices.length === 0 || !raw.choices.every((choice) => isRecord(choice) && isNonEmptyString(choice.value) && isNonEmptyString(choice.title) && (choice.description === undefined || isString(choice.description)) && (choice.image === undefined || isString(choice.image)))) return undefined;
+      input.choices = raw.choices.map((choice) => {
+        const parsed: NonNullable<RecipeInput["choices"]>[number] = {value: choice.value, title: choice.title};
+        if (choice.description !== undefined) parsed.description = choice.description;
+        if (choice.image !== undefined) parsed.image = choice.image;
+        return parsed;
+      });
+      if (new Set(input.choices.map((choice) => choice.value)).size !== input.choices.length || input.kind !== "text") return undefined;
+    }
     inputs.push(input);
   }
   const operations: RecipeOperationSpec[] = [];
   for (const raw of value.operations) {
     if (!isRecord(raw) || !isNonEmptyString(raw.id) || !isNonEmptyString(raw.bindingId) || !isNonEmptyString(raw.intent)) return undefined;
-    operations.push({ id: raw.id, bindingId: raw.bindingId, intent: raw.intent });
+    if (raw.version !== undefined && (!isInteger(raw.version) || raw.version < 1)) return undefined;
+    if (raw.strategy !== undefined && raw.strategy !== "deterministic" && raw.strategy !== "agentic") return undefined;
+    if (raw.model !== undefined && (!isRecord(raw.model) || !isNonEmptyString(raw.model.provider) || !isNonEmptyString(raw.model.id))) return undefined;
+    const operation: RecipeOperationSpec = {id: raw.id, bindingId: raw.bindingId, intent: raw.intent};
+    if (raw.version !== undefined) operation.version = raw.version as number;
+    if (raw.strategy !== undefined) operation.strategy = raw.strategy as RecipeOperationSpec["strategy"];
+    if (isRecord(raw.model) && isString(raw.model.provider) && isString(raw.model.id)) operation.model = {provider: raw.model.provider, id: raw.model.id};
+    operations.push(operation);
   }
   const outputs: RecipeOutputSpec[] = [];
   for (const raw of value.outputs) {
@@ -331,6 +370,30 @@ const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
     if (isString(objective)) manifest.creativeStrategy.objective = objective;
     if (isString(structure)) manifest.creativeStrategy.structure = structure;
     if (isString(direction)) manifest.creativeStrategy.direction = direction;
+    const aspectRatio = value.creativeStrategy.aspectRatio;
+    if (aspectRatio !== undefined) {
+      if (aspectRatio !== "9:16" && aspectRatio !== "4:5" && aspectRatio !== "1:1" && aspectRatio !== "16:9") return undefined;
+      manifest.creativeStrategy.aspectRatio = aspectRatio;
+    }
+    if (value.creativeStrategy.shots !== undefined) {
+      const shots = value.creativeStrategy.shots;
+      if (!Array.isArray(shots) || shots.length === 0) return undefined;
+      const parsedShots: RecipeShotIntent[] = [];
+      for (const shot of shots) {
+        if (!isRecord(shot) || !isNonEmptyString(shot.id) || !isNonEmptyString(shot.title) || !isNumber(shot.durationSeconds) || !Number.isFinite(shot.durationSeconds) || shot.durationSeconds <= 0 || !Array.isArray(shot.elements)) return undefined;
+        const elements: RecipeShotIntent["elements"] = [];
+        for (const element of shot.elements) {
+          if (!isRecord(element) || !isNonEmptyString(element.id) || !isNonEmptyString(element.inputId) || !inputIds.has(element.inputId) || (element.kind !== "asset" && element.kind !== "text" && element.kind !== "shape") || (element.role !== "product" && element.role !== "logo" && element.role !== "headline" && element.role !== "price" && element.role !== "cta" && element.role !== "decorative") || (element.direction !== undefined && !isString(element.direction))) return undefined;
+          const parsedElement: RecipeShotIntent["elements"][number] = {id: element.id, inputId: element.inputId, kind: element.kind, role: element.role};
+          if (element.direction !== undefined) parsedElement.direction = element.direction;
+          elements.push(parsedElement);
+        }
+        if (new Set(elements.map((element) => element.id)).size !== elements.length) return undefined;
+        parsedShots.push({id: shot.id, title: shot.title, durationSeconds: shot.durationSeconds, elements});
+      }
+      if (new Set(parsedShots.map((shot) => shot.id)).size !== parsedShots.length) return undefined;
+      manifest.creativeStrategy.shots = parsedShots;
+    }
   }
   if (preservationRules) manifest.preservationRules = preservationRules;
   if (value.mediaPolicy !== undefined) {

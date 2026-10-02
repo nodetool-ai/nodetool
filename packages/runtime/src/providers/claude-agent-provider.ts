@@ -45,6 +45,10 @@ import type {
   SDKUserMessage
 } from "@anthropic-ai/claude-agent-sdk";
 import { z, type ZodTypeAny } from "zod";
+import type {
+  ImageBlockParam,
+  TextBlockParam
+} from "@anthropic-ai/sdk/resources/messages";
 import {
   BaseProvider,
   budgetStopItem,
@@ -125,12 +129,11 @@ const NESTED_SESSION_ENV =
 
 /**
  * The subset of the SDK `query` signature this provider depends on. We only
- * ever pass a string prompt and consume the result as an async iterable, so the
- * real `query` (which also accepts an async-iterable prompt and returns the
- * richer `Query`) is assignable to this. Injectable for tests.
+ * pass a string for text-only turns or a structured user message for images,
+ * and consume the result as an async iterable. Injectable for tests.
  */
 export type ClaudeQueryFn = (params: {
-  prompt: string;
+  prompt: string | AsyncIterable<SDKUserMessage>;
   options?: Options;
 }) => AsyncIterable<SDKMessage>;
 
@@ -171,9 +174,12 @@ interface TurnConfig {
   /**
    * Whether the caller offered tools at all. Distinct from `mcp`, which is null
    * both on the tool-free path and when every offered tool was replaced by an
-   * SDK built-in. Only the first case may disable the built-ins.
+   * SDK built-in. Built-ins are disabled on the tool-free path or when
+   * the caller explicitly sets `providedToolsOnly`.
    */
   toolsOffered: boolean;
+  /** Restrict availability to the supplied MCP tools, with no SDK built-ins. */
+  providedToolsOnly?: boolean;
   /**
    * The SDK built-ins the turn may use, passed as `tools`. Every other
    * built-in stays out of the prompt, where its schema would be re-read on
@@ -325,6 +331,7 @@ export class ClaudeAgentProvider extends BaseProvider {
       executeTool?: (toolCall: ToolCall) => Promise<string | MessageContent[]>;
       resolveMedia?: (messages: Message[]) => Promise<Message[]>;
       maxIterations?: number;
+      providedToolsOnly?: boolean;
       turnBudget?: TurnBudget | RunBudget;
       workspaceDir?: string;
       /**
@@ -358,14 +365,12 @@ export class ClaudeAgentProvider extends BaseProvider {
       }
       reservations.push(first);
     }
-    // Drop every NodeTool tool the SDK ships a built-in for. Those built-ins
-    // are live under bypassPermissions, so keeping the MCP copy would give one
-    // capability two surfaces and make the model pick between them.
+    // Normally prefer native equivalents to duplicate MCP surfaces. A caller
+    // restricting the loop keeps its own dispatch instead.
     const offered = args.tools ?? [];
-    const replaced = sdkNativeReplacements(
-      offered.map((t) => t.name),
-      args.workspaceDir
-    );
+    const replaced = args.providedToolsOnly
+      ? new Set<string>()
+      : sdkNativeReplacements(offered.map((t) => t.name), args.workspaceDir);
     const tools = offered.filter((t) => !replaced.has(t.name));
     if (replaced.size > 0) {
       log.debug("Using SDK built-ins in place of NodeTool tools", {
@@ -434,7 +439,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     // native skill loader discovers. Best-effort: a disk failure drops skills
     // for the turn, it does not sink it. Cleaned up in the `finally` below.
     let skillsPlugin: { dir: string; names: string[] } | null = null;
-    if ((args.skills?.length ?? 0) > 0) {
+    if (!args.providedToolsOnly && (args.skills?.length ?? 0) > 0) {
       try {
         skillsPlugin = await materializeSkillsPlugin(args.skills ?? []);
       } catch (err) {
@@ -460,11 +465,10 @@ export class ClaudeAgentProvider extends BaseProvider {
             offered.length > 0 ? (args.maxIterations ?? DEFAULT_TOOL_TURNS) : 1,
           mcp,
           toolsOffered: offered.length > 0,
-          builtinTools: turnBuiltins(
-            replaced,
-            offered.length > 0,
-            skillsPlugin !== null
-          ),
+          providedToolsOnly: args.providedToolsOnly,
+          builtinTools: args.providedToolsOnly
+            ? []
+            : turnBuiltins(replaced, offered.length > 0, skillsPlugin !== null),
           cwd: args.workspaceDir,
           skillsPlugin
         }
@@ -660,14 +664,12 @@ export class ClaudeAgentProvider extends BaseProvider {
 
   /** Drive one SDK `query` turn and translate its messages into stream items. */
   private async *runTurn(
-    args: {
-      model: string;
-      messages: Message[];
-      maxTurns?: number;
-      signal?: AbortSignal;
-    },
+    args: Pick<
+      Parameters<BaseProvider["generateMessages"]>[0],
+      "model" | "messages" | "maxTurns" | "signal" | "thinking" | "effort"
+    >,
     plan: {
-      prompt: string;
+      prompt: PromptContent;
       resume: string | undefined;
       systemPrompt: string;
       systemHash: string;
@@ -727,9 +729,13 @@ export class ClaudeAgentProvider extends BaseProvider {
       // deferred, and NodeTool defers none — it registers its handful of tools
       // in-process — so the search always comes back empty. A model that fell
       // back to it after a mis-named tool call got nothing and stalled the turn.
-      disallowedTools: plan.config.toolsOffered
-        ? ["ToolSearch"]
-        : [...SDK_BUILTIN_TOOLS, "ToolSearch"],
+      // Supplied-only loops also disable Skill and keep all supplied dispatch
+      // inside the caller's MCP boundary.
+      disallowedTools: plan.config.providedToolsOnly
+        ? [...SDK_BUILTIN_TOOLS, "Skill", "ToolSearch"]
+        : plan.config.toolsOffered
+          ? ["ToolSearch"]
+          : [...SDK_BUILTIN_TOOLS, "ToolSearch"],
       tools: plan.config.builtinTools,
       // Only the in-process NodeTool server. Without this the child also loads
       // the account's claude.ai connectors and the user's MCP servers, and
@@ -743,6 +749,15 @@ export class ClaudeAgentProvider extends BaseProvider {
       env: buildChildEnv(),
       abortController
     };
+    if (args.effort !== undefined) {
+      options.effort = args.effort;
+    }
+    if (args.thinking) {
+      options.thinking =
+        args.thinking.type === "manual"
+          ? { type: "enabled", budgetTokens: args.thinking.budgetTokens }
+          : { type: args.thinking.type };
+    }
     if (plan.config.outputFormat) {
       options.outputFormat = plan.config.outputFormat;
     }
@@ -830,7 +845,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     };
 
     try {
-      for await (const msg of queryFn({ prompt: plan.prompt, options })) {
+      for await (const msg of queryFn({ prompt: sdkPrompt(plan.prompt), options })) {
         if (msg.type === "system" && msg.subtype === "init") {
           // Capture the session and surface it immediately so a streaming
           // consumer can persist it onto the assistant message it creates.
@@ -1477,10 +1492,15 @@ function extractSystemPrompt(messages: Message[]): string {
  * replayed (re-feeding them would present the model its own prior answer as
  * user input).
  */
-function buildResumeDelta(messages: Message[], checkpoint: number): string {
-  return messages
-    .slice(checkpoint)
-    .filter((m) => m.role === "user")
+function buildResumeDelta(messages: Message[], checkpoint: number): PromptContent {
+  const delta = messages.slice(checkpoint).filter((m) => m.role === "user");
+  if (hasImages(delta)) {
+    return delta.flatMap((message, index) => [
+      ...(index ? [{type: "text", text: "\n\n"} satisfies TextBlockParam] : []),
+      ...promptBlocks(message.content)
+    ]);
+  }
+  return delta
     .map((m) => textOf(m.content))
     .filter(Boolean)
     .join("\n\n");
@@ -1492,19 +1512,37 @@ function buildResumeDelta(messages: Message[], checkpoint: number): string {
  * edited/branched conversation) we prime context ONCE with a single delimited
  * user message instead of rebuilding a `Human:/Assistant:` transcript — the SDK
  * cannot import external assistant turns, so this is deliberate context priming,
- * not a faithful reconstruction. Only final assistant TEXT is included
- * (thinking is stripped by {@link textOf}).
+ * not a faithful reconstruction. Text and inline images are retained, while
+ * thinking is stripped.
  */
-function buildFreshPrompt(messages: Message[]): string {
+function buildFreshPrompt(messages: Message[]): PromptContent {
   const convo = messages.filter((m) => m.role !== "system");
   if (convo.length === 0) return "";
   if (convo.length === 1 && convo[0].role === "user") {
-    return textOf(convo[0].content);
+    return hasImages(convo) ? promptBlocks(convo[0].content) : textOf(convo[0].content);
   }
 
   const last = convo[convo.length - 1];
   const newTurn = last.role === "user" ? textOf(last.content) : "";
   const prior = last.role === "user" ? convo.slice(0, -1) : convo;
+  if (hasImages(convo)) {
+    const blocks: PromptBlock[] = [];
+    if (prior.length) {
+      blocks.push({type: "text", text: "<conversation_so_far>\n"});
+      for (const message of prior) {
+        blocks.push(
+          {type: "text", text: `${message.role === "assistant" ? "Assistant" : "User"}: `},
+          ...promptBlocks(message.content),
+          {type: "text", text: "\n\n"}
+        );
+      }
+      blocks.push({type: "text", text: "</conversation_so_far>\n\n"});
+    }
+    if (last.role === "user") {
+      blocks.push(...promptBlocks(last.content));
+    }
+    return blocks;
+  }
   const transcript = prior
     .map((m) => {
       const text = textOf(m.content);
@@ -1518,4 +1556,51 @@ function buildFreshPrompt(messages: Message[]): string {
     ? `<conversation_so_far>\n${transcript}\n</conversation_so_far>`
     : "";
   return [primed, newTurn].filter(Boolean).join("\n\n");
+}
+
+type PromptBlock = TextBlockParam | ImageBlockParam;
+type PromptContent = string | PromptBlock[];
+
+function hasImages(messages: readonly Message[]): boolean {
+  return messages.some(
+    (message) => Array.isArray(message.content) &&
+      message.content.some((part) => part.type === "image_url")
+  );
+}
+
+/** Images must already be inline. This boundary never fetches caller URLs. */
+function promptBlocks(content: Message["content"]): PromptBlock[] {
+  if (isString(content)) {
+    return [{type: "text", text: content}];
+  }
+  const blocks: PromptBlock[] = [];
+  for (const part of content ?? []) {
+    if (part.type === "text") {
+      blocks.push({type: "text", text: part.text});
+    } else if (part.type === "image_url") {
+      const image = toMcpImageBlock(part.image);
+      if (!image) {
+        throw new Error("Claude Agent image messages require inline image data. Resolve the media reference before dispatch.");
+      }
+      const mime = image.mimeType;
+      if (mime !== "image/png" && mime !== "image/jpeg" && mime !== "image/gif" && mime !== "image/webp") {
+        throw new Error(`Claude Agent image messages do not support ${mime}. Convert the image before dispatch.`);
+      }
+      blocks.push({type: "image", source: {type: "base64", media_type: mime, data: image.data}});
+    }
+  }
+  return blocks;
+}
+
+function sdkPrompt(content: PromptContent): string | AsyncIterable<SDKUserMessage> {
+  if (isString(content)) {
+    return content;
+  }
+  return (async function* () {
+    yield {
+      type: "user",
+      parent_tool_use_id: null,
+      message: {role: "user", content}
+    } satisfies SDKUserMessage;
+  })();
 }

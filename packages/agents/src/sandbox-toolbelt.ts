@@ -33,6 +33,11 @@ import {
 } from "./tools/external-capability-tools.js";
 import { getAllMcpTools } from "./tools/mcp-tools.js";
 import { buildToolBridge, TOOLS_PRELUDE } from "./codeact/tool-api.js";
+import { createCapabilityRun } from "./capabilities/invoke.js";
+import {
+  nativeCapabilityTool,
+  toolFromLazyCapability
+} from "./capabilities/lazy-tool.js";
 import { NODETOOL_API_PRELUDE_FULL } from "./codeact/nodetool-api.js";
 
 export const NODETOOL_PRELUDE = `${TOOLS_PRELUDE}\n${NODETOOL_API_PRELUDE_FULL}`;
@@ -77,7 +82,25 @@ export async function assembleJsScriptToolbelt(
 
 export function sandboxToolBridgeGlobals(
   context: ProcessingContext,
-  tools: Tool[] = assembleSandboxToolbelt()
+  tools: Tool[] = assembleSandboxToolbelt(),
+  options: { signal?: AbortSignal } = {}
 ): Record<string, unknown> {
-  return buildToolBridge({ tools, context }).globals;
+  const scopedTools = options.signal
+    ? tools.map((tool) => {
+        const native = nativeCapabilityTool(tool);
+        if (!native) {
+          return tool;
+        }
+        const entry = native.capability();
+        const sourceRun = native.run(context);
+        const run = createCapabilityRun({
+          ...sourceRun,
+          availableSecrets: sourceRun.availableSecrets,
+          signal: options.signal,
+          capabilities: [entry]
+        });
+        return toolFromLazyCapability(entry.spec, run, entry.impl);
+      })
+    : tools;
+  return buildToolBridge({ tools: scopedTools, context }).globals;
 }

@@ -103,6 +103,8 @@ export interface AppWidgetSpec {
    * state, so this is their binding rather than {@link binding}.
    */
   resourceBindingId: string | null;
+  /** Authored fallback choices when no optionsBinding is supplied. */
+  choiceOptions?: unknown;
   /**
    * Bindings the widget carries besides {@link binding} — a chat thread's live
    * reply, a composer's conversation variable. Same resolution rules; `ref` is

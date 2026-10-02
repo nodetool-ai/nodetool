@@ -218,6 +218,7 @@ describe("storyboards capability module", () => {
     expect(capabilityModuleIssues("storyboards", storyboards)).toEqual([]);
     expect(storyboards.exports.map((e) => e.spec.name)).toEqual([
       "finish_storyboard",
+      "preview_storyboard_design",
       "list_storyboards",
       "create_storyboard",
       "get_storyboard",
@@ -475,6 +476,47 @@ describe("storyboards capability behaviour", () => {
     expect((await Storyboard.findById(board.id))?.toDocument().shots[0].production).toEqual(
       productionRequirement.parse(policy)
     );
+  });
+
+  it("stores full owned source IDs from add/update graphics, production and board cast edits", async () => {
+    const id = "a".repeat(32);
+    await new Asset({id, user_id: "u1", name: "Product", content_type: "image/png"}).save();
+    const board = await makeBoard([shot({id: "s1", index: 0})]);
+    const graphics = (assetId: string) => ({mode: "graphics_first", elements: [{id: "product", kind: "asset", role: "product", asset_id: assetId, entity_id: assetId}]});
+    const edited = await run(ctx()).invoke("edit_storyboard", {
+      storyboard_id: board.id,
+      ops: [
+        {op: "add_shot", action: "Product", graphics: graphics(id.slice(0, 12))},
+        {op: "update_shot", target: "s1", graphics: graphics(id), production: {protected_inputs: [{id: "product", kind: "product", asset_id: id.slice(0, 12), entity_id: id.slice(0, 12)}]}},
+        {op: "set_board", entity_ids: [id.slice(0, 12)]}
+      ]
+    });
+    expect(edited).toMatchObject({applied: 3, failed: 0});
+    const document = (await Storyboard.findById(board.id))!.toDocument();
+    expect(document.entityIds).toEqual([id]);
+    for (const saved of document.shots) expect(saved.graphics?.elements?.[0]).toMatchObject({asset_id: id, entity_id: id});
+    expect(document.shots[0].production?.protected_inputs[0]).toMatchObject({asset_id: id, entity_id: id});
+  });
+
+  it("rejects ambiguous and foreign source refs before persisting any edit in the batch", async () => {
+    const prefix = "abcdef123456";
+    for (const suffix of ["a", "b"]) await new Asset({id: prefix + suffix.repeat(20), user_id: "u1", name: "Product", content_type: "image/png"}).save();
+    const foreign = "c".repeat(32);
+    await new Asset({id: foreign, user_id: "another-user", name: "Private", content_type: "image/png"}).save();
+    const board = await makeBoard([shot({id: "s1", index: 0})]);
+    const before = board.toDocument();
+    for (const assetId of [prefix, foreign, foreign.slice(0, 12)]) {
+      const result = await run(ctx()).invoke("edit_storyboard", {
+        storyboard_id: board.id,
+        ops: [
+          {op: "update_shot", target: "s1", action: "Must not persist"},
+          {op: "add_shot", action: "Invalid source", graphics: {mode: "graphics_first", elements: [{id: "product", kind: "asset", asset_id: assetId}]}}
+        ]
+      });
+      expect(result).toMatchObject({error: expect.stringMatching(/more than one row|unavailable/)});
+      expect((await Storyboard.findById(board.id))!.toDocument()).toEqual(before);
+      expect((await Storyboard.findById(board.id))!.revision).toBe(board.revision);
+    }
   });
 
   it("refuses malformed storyboard graphics intent without saving it", async () => {

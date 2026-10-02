@@ -15,6 +15,7 @@
 
 import React, { memo, useCallback, useRef, useState } from "react";
 import type { ImageRef, Shot, VideoRef } from "@nodetool-ai/protocol";
+import { resolveEffectiveProductionRequirement } from "@nodetool-ai/protocol";
 import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import ArrowForwardIcon from "@mui/icons-material/ArrowForward";
@@ -50,6 +51,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
 import { getErrorMessage } from "../../utils/errorHandling";
+import ShotDesignFrame from "./ShotDesignFrame";
 import { copiedStill, flippedStill } from "./shotImageEdits";
 import { syncShotClipToTimeline } from "../../stores/storyboard/timelineSync";
 
@@ -151,7 +153,7 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
 }) => {
   const stillVersions = stillVersionsOf(shot);
   const clipVersions = clipVersionsOf(shot);
-  const hasClip = clipVersions.length > 0;
+  const hasClip = clipVersions.length > 0 && resolveEffectiveProductionRequirement(undefined, shot.production)?.media_strategy !== "still_motion_graphics";
   const [mediumState, setMediumState] = useState(() => ({
     shotId: shot.id,
     value: defaultMedium(shot)
@@ -405,11 +407,22 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
           sx={{
             transform: `translate(${pan.x}px, ${pan.y}px) scale(${zoom})`,
             transformOrigin: "center",
+            width: shot.graphics && shot.graphics.mode !== "none" ? "100%" : undefined,
+            height: shot.graphics && shot.graphics.mode !== "none" ? "100%" : undefined,
             maxWidth: "100%",
             maxHeight: "100%"
           }}
         >
-          {previewedClip ? (
+          {shot.graphics && shot.graphics.mode !== "none" ? (
+            <ShotDesignFrame
+              boardId={boardId}
+              shot={{
+                ...shot,
+                keyframe: previewedStill ?? shot.keyframe,
+                clip: previewedClip ?? shot.clip
+              }}
+            />
+          ) : previewedClip ? (
             <VideoPlayer
               locator={previewedClip}
               label={`Shot ${shot.index + 1}`}

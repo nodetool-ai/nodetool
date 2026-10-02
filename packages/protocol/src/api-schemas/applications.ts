@@ -105,7 +105,8 @@ const recipeInput = z.object({
   label: z.string().min(1),
   kind: z.enum(["text", "number", "boolean", "image", "video", "audio", "color", "asset", "entity", "storyboard", "timeline"]),
   required: z.boolean(),
-  description: z.string().optional()
+  description: z.string().optional(),
+  choices: z.array(z.object({value: z.string().min(1), title: z.string().min(1), description: z.string().optional(), image: z.string().optional()})).min(1).optional()
 });
 
 const recipePreservationRule = z.object({
@@ -124,7 +125,12 @@ export const recipeManifest = z.object({
   creativeStrategy: z.object({
     objective: z.string().optional(),
     structure: z.string().optional(),
-    direction: z.string().optional()
+    direction: z.string().optional(),
+    aspectRatio: z.enum(["9:16", "4:5", "1:1", "16:9"]).optional(),
+    shots: z.array(z.object({
+      id: z.string().min(1), title: z.string().min(1), durationSeconds: z.number().positive(),
+      elements: z.array(z.object({id: z.string().min(1), inputId: z.string().min(1), kind: z.enum(["asset", "text", "shape"]), role: z.enum(["product", "logo", "headline", "price", "cta", "decorative"]), direction: z.string().optional()}))
+    })).min(1).optional()
   }).optional(),
   preservationRules: z.array(recipePreservationRule).optional(),
   mediaPolicy: z.object({
@@ -134,7 +140,10 @@ export const recipeManifest = z.object({
   operations: z.array(z.object({
     id: z.string().min(1),
     bindingId: z.string().min(1),
-    intent: z.string().min(1)
+    intent: z.string().min(1),
+    version: z.number().int().positive().optional(),
+    strategy: z.enum(["deterministic", "agentic"]).optional(),
+    model: z.object({provider: z.string().min(1), id: z.string().min(1)}).optional()
   })),
   outputs: z.array(z.object({
     id: z.string().min(1),
@@ -161,6 +170,17 @@ export const recipeManifest = z.object({
   const preservationIds = manifest.preservationRules?.map((rule) => rule.inputId) ?? [];
   if (new Set(preservationIds).size !== preservationIds.length) context.addIssue({ code: "custom", path: ["preservationRules"], message: "Recipe preservation inputs must be unique." });
   const knownInputs = new Set(inputIds);
+  manifest.inputs.forEach((input, index) => {
+    if (input.choices && (input.kind !== "text" || new Set(input.choices.map((choice) => choice.value)).size !== input.choices.length)) context.addIssue({code: "custom", path: ["inputs", index, "choices"], message: "Choices require a text input and unique values."});
+  });
+  const shots = manifest.creativeStrategy?.shots ?? [];
+  if (new Set(shots.map((shot) => shot.id)).size !== shots.length) context.addIssue({code: "custom", path: ["creativeStrategy", "shots"], message: "Recipe shot ids must be unique."});
+  shots.forEach((shot, index) => {
+    if (new Set(shot.elements.map((element) => element.id)).size !== shot.elements.length) context.addIssue({code: "custom", path: ["creativeStrategy", "shots", index, "elements"], message: "Graphic element ids must be unique in a shot."});
+    shot.elements.forEach((element, elementIndex) => {
+      if (!knownInputs.has(element.inputId)) context.addIssue({code: "custom", path: ["creativeStrategy", "shots", index, "elements", elementIndex, "inputId"], message: "Graphic source must reference a Recipe input."});
+    });
+  });
   manifest.preservationRules?.forEach((rule, index) => {
     if (!knownInputs.has(rule.inputId)) context.addIssue({ code: "custom", path: ["preservationRules", index, "inputId"], message: "Preservation rule must reference a declared Recipe input." });
   });

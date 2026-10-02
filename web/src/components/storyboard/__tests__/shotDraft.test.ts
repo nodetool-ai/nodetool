@@ -49,6 +49,8 @@ describe("draftFromShot", () => {
 
     expect(draft).toEqual({
       renderMode: "keyframe",
+      graphics: undefined,
+      motion: "",
       slug: "Opening",
       sceneId: null,
       lighting: "hard key",

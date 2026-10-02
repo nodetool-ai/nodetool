@@ -154,6 +154,8 @@ export interface CapabilityLoaders {
 /** Everything a capability call needs that only exists per run. */
 export interface CapabilityRun {
   readonly context: ProcessingContext;
+  /** Invocation cancellation, including a script deadline. Context state stays shared. */
+  readonly signal?: AbortSignal;
   /** The one gate. decide → (ask ↔ UI) → monitor → run; owns the session allow-set. */
   readonly gate: CapabilityGate;
   /** Browser round trip for `ui_*` capabilities; absent on headless runs. */

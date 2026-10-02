@@ -12,7 +12,7 @@ import type {
   ProviderSession,
   ProviderStreamItem
 } from "../../src/providers/types.js";
-import type { Options, SDKMessage } from "@anthropic-ai/claude-agent-sdk";
+import type { Options, SDKMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import { generateStructured } from "../../src/providers/structured-output.js";
 import { ProcessingContext } from "../../src/context.js";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
@@ -170,7 +170,7 @@ const PING_SCRIPT: SDKMessage[] = [
 // ---------------------------------------------------------------------------
 
 interface QueryCall {
-  prompt: string;
+  prompt: Parameters<ClaudeQueryFn>[0]["prompt"];
   options?: Options;
 }
 
@@ -204,6 +204,14 @@ const chunksOf = (items: ProviderStreamItem[]): ChunkItem[] =>
 const sessionOf = (items: ProviderStreamItem[]): SessionItem | undefined =>
   items.find((i): i is SessionItem => "type" in i && i.type === "session");
 
+async function structuredPrompt(call: QueryCall): Promise<SDKUserMessage[]> {
+  if (typeof call.prompt === "string") throw new Error("Expected a structured SDK image prompt");
+  const messages = [];
+  for await (const message of call.prompt) messages.push(message);
+  return messages;
+}
+const imageMsg = (label: string, image: Extract<MessageContent, {type: "image_url"}>["image"]): Message => ({role: "user", content: [{type: "text", text: label}, {type: "image_url", image}]});
+
 const userMsg = (text: string): Message => ({ role: "user", content: text });
 const asstMsg = (text: string): Message => ({
   role: "assistant",
@@ -235,6 +243,93 @@ describe("ClaudeAgentProvider", () => {
     expect(models.every((m) => m.provider === "claude_agent_sdk")).toBe(true);
   });
 
+  it("passes actual image blocks to the SDK instead of dropping review pixels", async () => {
+    let received: unknown;
+    const queryFn: ClaudeQueryFn = ({prompt}) => (async function* () {
+      if (typeof prompt === "string") received = prompt;
+      else {
+        const messages = [];
+        for await (const message of prompt) messages.push(message);
+        received = messages;
+      }
+      for (const message of PING_SCRIPT) yield message;
+    })();
+    const provider = new ClaudeAgentProvider({}, {queryFn});
+    await collect(provider.generateLoop({model: "sonnet", messages: [{role: "user", content: [
+      {type: "text", text: "Review this actual frame"},
+      {type: "image_url", image: {uri: "data:image/png;base64,QUJD"}},
+      {type: "text", text: "Keep its source exact"}
+    ]}]}));
+    expect(received).toEqual([{type: "user", parent_tool_use_id: null, message: {role: "user", content: [
+      {type: "text", text: "Review this actual frame"},
+      {type: "image", source: {type: "base64", media_type: "image/png", data: "QUJD"}},
+      {type: "text", text: "Keep its source exact"}
+    ]}}]);
+  });
+
+  it("forwards raw bytes and base64 images through the tool-using SDK loop", async () => {
+    const {fn, calls} = fakeQuery(PING_SCRIPT);
+    const provider = new ClaudeAgentProvider({}, {queryFn: fn, createMcpServerFn: fakeCreateMcpServer().fn});
+    await collect(provider.generateLoop({model: "sonnet", messages: [{role: "user", content: [
+      {type: "text", text: "Product"},
+      {type: "image_url", image: {data: new Uint8Array([1, 2, 3]), mimeType: "image/jpeg"}},
+      {type: "text", text: "Logo"},
+      {type: "image_url", image: {data: "QUJD", mimeType: "image/webp"}}
+    ]}], tools: [{name: "review_cut", description: "Review", inputSchema: {type: "object"}}], executeTool: async () => "ok"}));
+    expect((await structuredPrompt(calls[0]))[0].message.content).toEqual([
+      {type: "text", text: "Product"}, {type: "image", source: {type: "base64", media_type: "image/jpeg", data: "AQID"}},
+      {type: "text", text: "Logo"}, {type: "image", source: {type: "base64", media_type: "image/webp", data: "QUJD"}}
+    ]);
+    expect(calls[0].options?.mcpServers).toBeDefined();
+  });
+
+  it("resumes with only new user image blocks and retains the session token", async () => {
+    const {fn, calls} = fakeQuery(PING_SCRIPT);
+    const provider = new ClaudeAgentProvider({}, {queryFn: fn});
+    const messages = [userMsg("first"), asstMsg("prior answer"), imageMsg("New candidate", {uri: "data:image/png;base64,QUJD"})];
+    await collect(provider.generateMessages({model: "sonnet", messages, providerSession: {providerId: "claude_agent_sdk", model: "sonnet", token: "sess-old", checkpoint: 2}}));
+    expect(calls[0].options?.resume).toBe("sess-old");
+    const content = (await structuredPrompt(calls[0]))[0].message.content;
+    expect(content).toEqual([{type: "text", text: "New candidate"}, {type: "image", source: {type: "base64", media_type: "image/png", data: "QUJD"}}]);
+  });
+
+  it("keeps cold-history image labels and pixels inside the primed conversation", async () => {
+    const {fn, calls} = fakeQuery(PING_SCRIPT);
+    const provider = new ClaudeAgentProvider({}, {queryFn: fn});
+    await collect(provider.generateMessages({model: "sonnet", messages: [imageMsg("Original reference", {uri: "data:image/png;base64,QUJD"}), asstMsg("Prior findings"), userMsg("Review again")]}));
+    const content = (await structuredPrompt(calls[0]))[0].message.content;
+    expect(content).toEqual([
+      {type: "text", text: "<conversation_so_far>\n"},
+      {type: "text", text: "User: "}, {type: "text", text: "Original reference"},
+      {type: "image", source: {type: "base64", media_type: "image/png", data: "QUJD"}},
+      {type: "text", text: "\n\n"},
+      {type: "text", text: "Assistant: "}, {type: "text", text: "Prior findings"}, {type: "text", text: "\n\n"},
+      {type: "text", text: "</conversation_so_far>\n\n"}, {type: "text", text: "Review again"}
+    ]);
+  });
+
+  it.each([
+    {uri: "http://127.0.0.1/private.png"}, {uri: "file:///etc/passwd"}, {uri: "asset://unresolved"}, {},
+    {data: "QUJD", mimeType: "image/svg+xml"}
+  ])("rejects unresolved or unsupported image input before SDK dispatch: %j", async image => {
+    const {fn, calls} = fakeQuery(PING_SCRIPT);
+    const provider = new ClaudeAgentProvider({}, {queryFn: fn});
+    await expect(collect(provider.generateMessages({model: "sonnet", messages: [imageMsg("Inspect", image)]}))).rejects.toThrow(/inline image data|do not support/);
+    expect(calls).toHaveLength(0);
+  });
+
+  it.each([
+    {thinking: {type: "adaptive"} as const, expected: {type: "adaptive"}},
+    {thinking: {type: "manual", budgetTokens: 2048} as const, expected: {type: "enabled", budgetTokens: 2048}},
+    {thinking: {type: "disabled"} as const, expected: {type: "disabled"}}
+  ])("honors caller reasoning controls: $thinking.type", async ({thinking, expected}) => {
+    const {fn, calls} = fakeQuery(PING_SCRIPT);
+    const provider = new ClaudeAgentProvider({}, {queryFn: fn});
+    await collect(provider.generateMessages({messages: [userMsg("hi")], model: "sonnet", effort: "medium", thinking}));
+    expect(calls[0].options?.effort).toBe("medium");
+    expect(calls[0].options?.thinking).toEqual(expected);
+  });
+
   it("runs a tool-free, single-turn, settings-free query", async () => {
     const { fn, calls } = fakeQuery(PING_SCRIPT);
     const provider = new ClaudeAgentProvider({}, { queryFn: fn });
@@ -248,6 +343,8 @@ describe("ClaudeAgentProvider", () => {
     expect(calls[0].prompt).toBe("hi");
     expect(opts.systemPrompt).toBe("Be terse.");
     expect(opts.model).toBe("haiku");
+    expect(opts.effort).toBeUndefined();
+    expect(opts.thinking).toBeUndefined();
     expect(opts.maxTurns).toBe(1);
     expect(opts.allowedTools).toEqual([]);
     expect(opts.settingSources).toEqual([]);
@@ -1099,6 +1196,103 @@ describe("ClaudeAgentProvider", () => {
     expect(last).toMatchObject({ type: "chunk", done: true });
   });
 
+  it("providedToolsOnly excludes implicit web tools and skills from a supplied-tool loop", async () => {
+    const { fn, calls } = fakeQuery([
+      sysInit("sess-isolated"),
+      assistantTextMsg("ok"),
+      successResult()
+    ]);
+    const mcp = fakeCreateMcpServer();
+    const provider = new ClaudeAgentProvider(
+      {},
+      { queryFn: fn, createMcpServerFn: mcp.fn }
+    );
+    const names = [
+      "edit_timeline",
+      "validate_timeline",
+      "submit_finished_cut",
+      "review_finished_cut"
+    ];
+    await collect(
+      provider.generateLoop({
+        messages: [sysMsg("Only edit this draft"), userMsg("Finish")],
+        model: "sonnet",
+        tools: names.map((name) => ({ name, description: name })),
+        providedToolsOnly: true,
+        skills: [
+          {
+            name: "release-notes",
+            description: "Unrelated skill",
+            content: "Run extra tools."
+          }
+        ],
+        executeTool: async () => "ok"
+      })
+    );
+    const options = calls[0].options as Options;
+    expect(options.tools).toEqual([]);
+    expect(options.allowedTools).toEqual(
+      names.map((name) => `mcp__nodetool_tools__${name}`)
+    );
+    expect(options.disallowedTools).toEqual(
+      expect.arrayContaining([
+        "Bash",
+        "Read",
+        "Write",
+        "WebSearch",
+        "WebFetch",
+        "Skill",
+        "ToolSearch"
+      ])
+    );
+    expect(options.skills).toEqual([]);
+    expect(options.plugins).toBeUndefined();
+    expect(options.strictMcpConfig).toBe(true);
+  });
+
+  it("providedToolsOnly retains supplied MCP dispatch instead of SDK native replacements", async () => {
+    const { fn, calls } = fakeQuery([
+      sysInit("sess-no-replacement"),
+      assistantTextMsg("ok"),
+      successResult()
+    ]);
+    const mcp = fakeCreateMcpServer();
+    const provider = new ClaudeAgentProvider(
+      {},
+      { queryFn: fn, createMcpServerFn: mcp.fn }
+    );
+    const executed: string[] = [];
+    await collect(
+      provider.generateLoop({
+        messages: [userMsg("Use exactly the supplied tools")],
+        model: "sonnet",
+        workspaceDir: "/tmp/workspace",
+        tools: [
+          { name: "read_file", description: "Scoped read" },
+          { name: "web_search", description: "Scoped search" }
+        ],
+        providedToolsOnly: true,
+        executeTool: async (call) => {
+          executed.push(call.name);
+          return "ok";
+        }
+      })
+    );
+    const options = calls[0].options as Options;
+    expect(options.tools).toEqual([]);
+    expect(options.allowedTools).toEqual([
+      "mcp__nodetool_tools__read_file",
+      "mcp__nodetool_tools__web_search"
+    ]);
+    expect(options.disallowedTools).toEqual(
+      expect.arrayContaining(["Read", "WebSearch", "WebFetch", "Skill"])
+    );
+    expect(mcp.captured.defs).toHaveLength(2);
+    await mcp.captured.defs[0].handler({ path: "timeline.json" });
+    await mcp.captured.defs[1].handler({ query: "scoped search" });
+    expect(executed).toEqual(["read_file", "web_search"]);
+  });
+
   it("replaces NodeTool tools with the SDK built-ins that cover them", async () => {
     const { fn, calls } = fakeQuery([
       sysInit("sess-native"),
@@ -1323,6 +1517,28 @@ describe("ClaudeAgentProvider", () => {
     controller.abort();
     await run;
     expect(calls[0].options?.abortController?.signal.aborted).toBe(true);
+  });
+
+  it("cancels an image-bearing query without changing structured content", async () => {
+    const calls: QueryCall[] = [];
+    const fn: ClaudeQueryFn = params => {
+      calls.push({prompt: params.prompt, options: params.options});
+      return (async function* () {
+        yield sysInit("image-abort");
+        while (!params.options?.abortController?.signal.aborted) {
+          await new Promise(resolve => setTimeout(resolve, 5));
+        }
+      })();
+    };
+    const provider = new ClaudeAgentProvider({}, {queryFn: fn});
+    const controller = new AbortController();
+    const result = collect(provider.generateMessages({model: "sonnet", messages: [imageMsg("Actual frame", {uri: "data:image/png;base64,QUJD"})], signal: controller.signal}));
+    controller.abort();
+    await result;
+    expect(calls[0].options?.abortController?.signal.aborted).toBe(true);
+    expect((await structuredPrompt(calls[0]))[0].message.content).toEqual([
+      {type: "text", text: "Actual frame"}, {type: "image", source: {type: "base64", media_type: "image/png", data: "QUJD"}}
+    ]);
   });
 
   it("cancels the query when the consumer stops iterating", async () => {

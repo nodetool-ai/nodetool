@@ -32,4 +32,21 @@ describe("Recipe Application API validation", () => {
   it("retains ordinary legacy Application compatibility", () => {
     expect(applicationDocument.parse({ schemaVersion: 3, ui: { root: {}, content: [] } }).schemaVersion).toBe(3);
   });
+  it("round-trips compiler choices, semantic shot intent and pinned agentic operation configuration", () => {
+    const value = document();
+    const recipe = {...value.recipe,
+      inputs: [{...value.recipe.inputs[0], choices: [{value: "€29", title: "Price", image: "asset://preview"}]}],
+      creativeStrategy: {aspectRatio: "4:5", shots: [{id: "hook", title: "Hook", durationSeconds: 3, elements: [{id: "price", inputId: "price", kind: "text", role: "price"}]}]},
+      operations: [{...value.recipe.operations[0], version: 2, strategy: "agentic", model: {provider: "openai", id: "fixture-model"}}]
+    };
+    expect(applicationDocument.parse({...value, recipe}).recipe).toEqual(recipe);
+  });
+  it("rejects duplicate choices, invalid source references and unsupported authoring configuration", () => {
+    const value = document();
+    const choices = {...value.recipe, inputs: [{...value.recipe.inputs[0], choices: [{value: "same", title: "A"}, {value: "same", title: "B"}]}]};
+    expect(applicationDocument.safeParse({...value, recipe: choices}).success).toBe(false);
+    const creativeStrategy = {shots: [{id: "hook", title: "Hook", durationSeconds: 3, elements: [{id: "price", inputId: "missing", kind: "text", role: "price"}]}]};
+    expect(applicationDocument.safeParse({...value, recipe: {...value.recipe, creativeStrategy}}).success).toBe(false);
+    expect(applicationDocument.safeParse({...value, recipe: {...value.recipe, operations: [{...value.recipe.operations[0], strategy: "unknown"}]}}).success).toBe(false);
+  });
 });
