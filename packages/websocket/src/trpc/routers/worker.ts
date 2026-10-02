@@ -22,7 +22,7 @@ import type { RepointPythonBridge, ProbeWorkerHealth } from "../context.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 
-const targetSchema = z.enum(["runpod", "vast"]);
+const targetSchema = z.enum(["runpod", "vast", "verda"]);
 
 const profileCreateInput = z.object({
   name: z.string().min(1),
@@ -78,7 +78,8 @@ const workerInstanceOutput = z.object({
 const okOutput = z.object({ ok: z.literal(true) });
 const apiKeyStatusOutput = z.object({
   runpod: z.boolean(),
-  vast: z.boolean()
+  vast: z.boolean(),
+  verda: z.boolean()
 });
 const connectionOutput = z.object({
   wsUrl: z.string(),

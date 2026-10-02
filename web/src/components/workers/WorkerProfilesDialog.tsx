@@ -22,11 +22,13 @@ import type {
   TokenPolicy
 } from "../../hooks/useWorkers";
 
-// The secret each provider's API needs before a worker can be provisioned.
-const API_KEY_BY_TARGET = {
-  runpod: "RUNPOD_API_KEY",
-  vast: "VAST_API_KEY"
-} satisfies Record<WorkerTarget, string>;
+// The secrets each provider's API needs before a worker can be provisioned.
+// Verda authenticates with an OAuth2 client id AND secret, so this is a list.
+const API_KEYS_BY_TARGET = {
+  runpod: ["RUNPOD_API_KEY"],
+  vast: ["VAST_API_KEY"],
+  verda: ["VERDA_CLIENT_ID", "VERDA_CLIENT_SECRET"]
+} satisfies Record<WorkerTarget, readonly string[]>;
 
 // A profile is a reusable template (target, image, GPU spec, token policy,
 // lifecycle limits); provisioning rents a GPU box from it.
@@ -56,7 +58,8 @@ const CUSTOM_GPU = "__custom__";
 
 const TARGET_OPTIONS = [
   { value: "runpod", label: "RunPod" },
-  { value: "vast", label: "Vast" }
+  { value: "vast", label: "Vast" },
+  { value: "verda", label: "Verda" }
 ] as const;
 
 // GPU ids are PROVIDER-NATIVE and differ per target: RunPod wants the full
@@ -96,11 +99,20 @@ const VAST_GPU_OPTIONS = [
   { value: CUSTOM_GPU, label: "Other (enter GPU id)…" }
 ] as const;
 
-// Default GPU per target: a solid mid-range card for RunPod, and "Any cheapest"
-// for Vast.
+// Verda rents whole machines, so its selector is an INSTANCE TYPE
+// ("1H100.80S.30V" = 1x H100 80GB, 30 vCPU), not a GPU name. The catalog is
+// account- and region-specific, so it is entered rather than picked from a
+// list that could go stale: `GET /v1/instance-types` lists the live ids.
+const VERDA_INSTANCE_TYPE_OPTIONS = [
+  { value: CUSTOM_GPU, label: "Enter instance type…" }
+] as const;
+
+// Default GPU per target: a solid mid-range card for RunPod, "Any cheapest"
+// for Vast, and a typed instance type for Verda.
 const DEFAULT_GPU = {
   runpod: "NVIDIA A40",
-  vast: ""
+  vast: "",
+  verda: CUSTOM_GPU
 } satisfies Record<WorkerTarget, string>;
 
 // vCPU choices for a CPU-only RunPod pod. The provider passes this as the pod's
@@ -166,10 +178,15 @@ const WorkerProfilesDialog: React.FC<WorkerProfilesDialogProps> = ({
   // provider's API key isn't available yet — provisioning would fail without it.
   // `apiKeyStatus` reflects store OR env (the same resolution provisioning uses),
   // so an env-provided key does NOT false-warn. Only warn on an explicit false.
-  const apiKeyName = API_KEY_BY_TARGET[target];
+  const apiKeyName = API_KEYS_BY_TARGET[target].join(" and ");
   const apiKeyMissing = apiKeyStatus?.[target] === false;
 
-  const gpuOptions = target === "runpod" ? RUNPOD_GPU_OPTIONS : VAST_GPU_OPTIONS;
+  const gpuOptions =
+    target === "runpod"
+      ? RUNPOD_GPU_OPTIONS
+      : target === "verda"
+        ? VERDA_INSTANCE_TYPE_OPTIONS
+        : VAST_GPU_OPTIONS;
   // The provider-native GPU id we'll actually submit ("" means "any/none").
   const resolvedGpu = gpu === CUSTOM_GPU ? customGpu.trim() : gpu;
   // RunPod CPU-only pod: the curated "CPU only" entry (empty id) on RunPod.

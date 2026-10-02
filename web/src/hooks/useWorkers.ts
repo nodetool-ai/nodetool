@@ -13,7 +13,7 @@ import { trpcClient, type RouterOutputs } from "../trpc/client";
  * affected query after every lifecycle action so the panel stays current.
  */
 
-export type WorkerTarget = "runpod" | "vast";
+export type WorkerTarget = "runpod" | "vast" | "verda";
 export type TokenPolicy = "generate" | "fixed";
 type WorkerStatus =
   | "provisioning"
