@@ -84,7 +84,7 @@ export type LayerWorkflowBindingSchema = z.infer<typeof layerWorkflowBinding>;
 export const sketchLayerLike = z.object({
   id: z.string(),
   name: z.string(),
-  type: z.enum(["raster", "mask", "group"]),
+  type: z.enum(["raster", "mask", "group", "vector"]),
   visible: z.boolean(),
   locked: z.boolean(),
   parentId: z.string().nullable().optional(),

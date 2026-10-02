@@ -120,7 +120,7 @@ export interface SketchLayerLike {
   [key: string]: HashableValue;
   id: string;
   name: string;
-  type: "raster" | "mask" | "group";
+  type: "raster" | "mask" | "group" | "vector";
   visible: boolean;
   locked: boolean;
   parentId?: string | null;

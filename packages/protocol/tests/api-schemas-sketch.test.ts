@@ -109,11 +109,11 @@ describe("sketch.layerWorkflowBinding", () => {
 });
 
 describe("sketch.sketchLayerLike", () => {
-  it("accepts a raster layer", () => {
+  it.each(["raster", "mask", "group", "vector"])("accepts a %s layer", (type) => {
     const result = sketchLayerLike.safeParse({
       id: "l",
       name: "n",
-      type: "raster",
+      type,
       visible: true,
       locked: false
     });
@@ -124,7 +124,7 @@ describe("sketch.sketchLayerLike", () => {
     const result = sketchLayerLike.safeParse({
       id: "l",
       name: "n",
-      type: "vector",
+      type: "unknown",
       visible: true,
       locked: false
     });

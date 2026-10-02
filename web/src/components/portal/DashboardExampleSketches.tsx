@@ -88,7 +88,7 @@ const DashboardExampleSketches = () => {
           as your own editable copy with separate layers.
         </Text>
         <Caption>
-          1200 × 900 · Five paintable layers each · No model or API key needed
+          1200 × 900 · Five vector layers each · No model or API key needed
         </Caption>
       </FlexColumn>
       <TabGroup

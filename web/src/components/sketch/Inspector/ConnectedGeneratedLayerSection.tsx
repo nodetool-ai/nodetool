@@ -14,6 +14,7 @@ import { CollapsibleSection, Text, SPACING, TYPOGRAPHY, FONT_SIZE_SANS} from "..
 import { useSketchStore } from "../state/useSketchStore";
 import { useLayerBinding } from "../../../stores/sketch/SketchSessionStore";
 import { SketchAIToolbar } from "./SketchAIToolbar";
+import { ImportVectorLayer, VectorLayerPanel } from "./VectorLayerPanel";
 import { SketchInspector } from "./SketchInspector";
 
 const ConnectedGeneratedLayerSectionInner: React.FC = () => {
@@ -21,8 +22,14 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
   const activeLayerId = useSketchStore((s) => s.document.activeLayerId);
   const binding = useLayerBinding(activeLayerId);
 
-  if (!binding) {
-    return null;
+  const layer = useSketchStore((s) => s.document.layers.find((entry) => entry.id === activeLayerId));
+  if (!binding || layer?.type === "vector") {
+    return <>
+      <ImportVectorLayer />
+      {layer?.type === "vector" && <CollapsibleSection title="Vector layer" defaultOpen>
+        <VectorLayerPanel key={layer.id} layer={layer} />
+      </CollapsibleSection>}
+    </>;
   }
 
   const isWorkflowBound = !binding.kind || binding.kind === "workflow";

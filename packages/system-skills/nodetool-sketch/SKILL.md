@@ -45,6 +45,19 @@ stored one shows up as an empty layer.
 With the sketch open in a browser, `ui_sketch_place_image` does the same against
 the live canvas.
 
+## Vector layers
+
+The editor imports self-contained SVG files as vector layers. Each layer keeps
+its SVG source in the document. Use the vector inspector to edit SVG source,
+download it, or rasterize the layer for painting. Moving and transforming a
+vector layer preserves its source. Rasterization is undoable. Example sketches
+open with vector layers.
+
+SVG scripts, embedded HTML, animations, external images, and stylesheets are
+removed on import. Use presentation attributes for fills, strokes, and text.
+The headless stack operations can preserve existing vector layers. Creating or
+editing SVG source currently requires the editor.
+
 ## The guided brief
 
 `set_setup` writes the one-line brief. `refine_image_brief {image_document_id,

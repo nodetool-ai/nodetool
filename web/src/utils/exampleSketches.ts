@@ -1,13 +1,11 @@
 import {
-  encodeSketchLayerData,
   imageDocumentData,
   type ImageDocumentData
 } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 import {
-  createDefaultDocument,
-  createDefaultLayer
+  createDefaultDocument
 } from "../components/sketch/types/document";
-import { newDocumentId } from "../lib/newDocumentId";
+import { createVectorLayer } from "../components/sketch/vectorLayer";
 
 export interface ExampleSketch {
   readonly category: "NodeTool" | "Ads" | "Movies" | "Art studies";
@@ -222,59 +220,21 @@ export function exampleSketchUrl(slug: string, file: string): string {
   return `/examples/sketches/${slug}/${file}.svg`;
 }
 
-function rasterizeLayer(url: string): Promise<string> {
-  return new Promise((resolve, reject) => {
-    const image = new Image();
-    image.onload = () => {
-      const canvas = document.createElement("canvas");
-      canvas.width = EXAMPLE_SKETCH_WIDTH;
-      canvas.height = EXAMPLE_SKETCH_HEIGHT;
-      const context = canvas.getContext("2d");
-      if (!context) {
-        reject(new Error("A drawing canvas is unavailable."));
-        return;
-      }
-      try {
-        context.drawImage(image, 0, 0);
-        resolve(canvas.toDataURL("image/png"));
-      } catch (error) {
-        reject(error);
-      }
-    };
-    image.onerror = () =>
-      reject(new Error("Could not load the example artwork."));
-    image.src = url;
-  });
-}
-
-/** Own the pixels in the copy so it remains editable without the example files. */
 export async function buildExampleSketch(
   example: ExampleSketch
 ): Promise<ImageDocumentData> {
-  const bounds = {
-    x: 0,
-    y: 0,
-    width: EXAMPLE_SKETCH_WIDTH,
-    height: EXAMPLE_SKETCH_HEIGHT
-  };
   const layers = await Promise.all(
-    example.layers.map(async ([file, name]) => ({
-      ...createDefaultLayer(
-        name,
-        "raster",
-        EXAMPLE_SKETCH_WIDTH,
-        EXAMPLE_SKETCH_HEIGHT
-      ),
-      id: newDocumentId(),
-      data: encodeSketchLayerData(
-        await rasterizeLayer(exampleSketchUrl(example.slug, file)),
-        bounds
-      )
-    }))
+    example.layers.map(async ([file, name]) => {
+      const response = await fetch(exampleSketchUrl(example.slug, file));
+      if (!response.ok) {
+        throw new Error("Could not load the example artwork.");
+      }
+      return createVectorLayer(name, await response.text());
+    })
   );
   const activeLayer = layers.at(-1);
   if (!activeLayer) {
-    throw new Error("The example has no paint layers.");
+    throw new Error("The example has no layers.");
   }
   return imageDocumentData.parse({
     sketch: {
@@ -282,7 +242,7 @@ export async function buildExampleSketch(
       layers,
       activeLayerId: activeLayer.id,
       maskLayerId: null,
-      activeTool: "brush",
+      activeTool: "move",
       viewport: { zoom: 1, pan: { x: 0, y: 0 } },
       history: [],
       historyIndex: -1

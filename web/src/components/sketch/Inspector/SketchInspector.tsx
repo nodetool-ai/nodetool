@@ -22,6 +22,7 @@ import { EmptyState, ScrollArea } from "../../ui_primitives";
 import { GeneratedLayerPanel } from "./GeneratedLayerPanel";
 import { ImportedLayerPanel } from "./ImportedLayerPanel";
 import { PaintedLayerPanel } from "./PaintedLayerPanel";
+import { VectorLayerPanel } from "./VectorLayerPanel";
 import { DirectGenLayerPanel } from "./DirectGenLayerPanel";
 
 const SketchInspectorInner: React.FC = () => {
@@ -57,6 +58,8 @@ const SketchInspectorInner: React.FC = () => {
         description="Select a layer to inspect."
       />
     );
+  } else if (layer.type === "vector") {
+    body = <VectorLayerPanel key={layer.id} layer={layer} />;
   } else if (
     binding &&
     (binding.kind === "text-to-image" || binding.kind === "image-to-image")

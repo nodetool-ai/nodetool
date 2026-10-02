@@ -61,7 +61,8 @@ export function useCanvasImperativeHandle({
     ref,
     () => ({
       getLayerData: (layerId: string) => {
-        return runtime.getLayerData(layerId);
+        const layer = doc.layers.find((entry) => entry.id === layerId);
+        return layer?.type === "vector" ? layer.data : runtime.getLayerData(layerId);
       },
       setLayerData: (
         layerId: string,
@@ -148,6 +149,11 @@ export function useCanvasImperativeHandle({
       },
       cropCanvas: (x: number, y: number, width: number, height: number) => {
         runtime.cropLayers(x, y, width, height);
+        for (const layer of doc.layers) {
+          if (layer.type === "vector") {
+            runtime.setLayerData(layer.id, layer.data, layer.contentBounds, redraw);
+          }
+        }
         const displayCanvas = displayCanvasRef.current;
         if (displayCanvas) {
           displayCanvas.width = width;
