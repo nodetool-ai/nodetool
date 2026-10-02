@@ -64,9 +64,13 @@ const inputWidgets: Partial<Record<RecipeInputKind, string>> = {
 };
 const widget = (type: string, id: string, props: Record<string, unknown>): unknown => ({type, props: {id, ...props}});
 const constantMatches = (value: unknown, type: string): boolean => {
-  if (type === "str") return isString(value);
-  if (type === "bool") return isBoolean(value);
-  if (type === "float" || type === "int") return isNumber(value) && Number.isFinite(value) && (type !== "int" || isInteger(value));
+  if (type === "str") { return isString(value); }
+  if (type === "bool") { return isBoolean(value); }
+  if (type === "float" || type === "int") { return isNumber(value) && Number.isFinite(value) && (type !== "int" || isInteger(value)); }
+  if (type === "dict") { return isRecord(value); }
+  if (type === "list") { return Array.isArray(value); }
+  const list = /^list\[(.+)\]$/.exec(type);
+  if (list) { return Array.isArray(value) && value.every((item) => constantMatches(item, list[1])); }
   return isObjectLike(value);
 };
 
@@ -147,7 +151,7 @@ export const compileRecipeApplication = (
     const variable = variables.get(id);
     if (!variable) {error(`recipe.defaults.${id}`, "Default references an undeclared input or operation state variable."); continue;}
     const type = variable.type?.type;
-    if ((type === "str" && !isString(initial)) || (type === "bool" && !isBoolean(initial)) || ((type === "int" || type === "float") && (!isNumber(initial) || !Number.isFinite(initial) || (type === "int" && !isInteger(initial))))) error(`recipe.defaults.${id}`, `Default must have variable type ${type}.`);
+    if (type && !constantMatches(initial, type)) { error(`recipe.defaults.${id}`, `Default must have variable type ${type}.`); }
     variable.default = structuredClone(initial);
   }
   for (const [index, input] of recipe.inputs.entries()) {

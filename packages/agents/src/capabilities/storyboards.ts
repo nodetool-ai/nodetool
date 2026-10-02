@@ -2452,11 +2452,11 @@ async function resolveStoryboardEditSources(run: CapabilityRun, ops: readonly Pa
   const { Asset } = await import("@nodetool-ai/models");
   const canonical = new Map<string, string>();
   const resolve = async (id: string): Promise<string> => {
-    if (!isFullResourceId(id) && !isShortResourceId(id)) return id;
+    if (!isFullResourceId(id) && !isShortResourceId(id)) { return id; }
     const cached = canonical.get(id);
-    if (cached) return cached;
+    if (cached) { return cached; }
     const asset = run.context.userId ? await Asset.find(run.context.userId, id) : null;
-    if (!asset) throw new Error(`Source asset or entity ${id} is unavailable.`);
+    if (!asset) { throw new Error(`Source asset or entity ${id} is unavailable.`); }
     canonical.set(id, asset.id);
     return asset.id;
   };
@@ -2474,7 +2474,7 @@ async function resolveStoryboardEditSources(run: CapabilityRun, ops: readonly Pa
     for (const reference of references) {
       for (const field of ["asset_id", "entity_id", "location_id"]) {
         const id = reference[field];
-        if (isString(id)) reference[field] = await resolve(id);
+        if (isString(id)) { reference[field] = await resolve(id); }
       }
     }
     if (Array.isArray(args["entity_ids"])) {

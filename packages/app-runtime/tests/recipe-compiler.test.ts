@@ -66,6 +66,37 @@ describe("Recipe compiler", () => {
     const wrong: BoundRecipeOperation = {...operation(), contract: {...operation().contract, inputs: {quote: {type: "image", required: true}}}};
     expect(messages(manifest(), [wrong])).toContain("conflicting types str and image");
   });
+  it("rejects array constants for required dict ports", () => {
+    const original = operation();
+    const bound: BoundRecipeOperation = {...original, contract: {...original.contract, inputs: {...original.contract.inputs, recipe: {type: "dict", required: true}}}};
+    bound.binding.inputs.recipe = {from: "constant", value: []};
+    expect(messages(manifest(), [bound])).toContain("inputs.recipe: Constant must have operation input type dict");
+  });
+  it("validates list constant elements recursively against the declared port", () => {
+    const original = operation();
+    const bound: BoundRecipeOperation = {...original, contract: {...original.contract, inputs: {...original.contract.inputs, options: {type: "list[dict]", required: true}}}};
+    for (const value of [{}, [{valid: true}, []]]) {
+      bound.binding.inputs.options = {from: "constant", value};
+      expect(messages(manifest(), [bound])).toContain("inputs.options: Constant must have operation input type list[dict]");
+    }
+    bound.binding.inputs.options = {from: "constant", value: [{valid: true}]};
+    expect(compileRecipeApplication(manifest(), {operations: [bound]}).status).toBe("ok");
+    const nested: BoundRecipeOperation = {...bound, contract: {...bound.contract, inputs: {...bound.contract.inputs, options: {type: "list[list[dict]]", required: true}}}};
+    nested.binding.inputs.options = {from: "constant", value: [[{valid: true}]]};
+    expect(compileRecipeApplication(manifest(), {operations: [nested]}).status).toBe("ok");
+  });
+  it("validates structured state defaults while retaining exact typed values", () => {
+    const original = operation();
+    const bound: BoundRecipeOperation = {...original, contract: {...original.contract, outputs: {...original.contract.outputs, options: {type: "list[dict]"}}}};
+    bound.binding.outputs.options = {to: "variable", variableId: "options"};
+    const value = manifest(); value.defaults = {quote: "  €29  ", options: {wrong: "shape"}};
+    expect(messages(value, [bound])).toContain("recipe.defaults.options: Default must have variable type list[dict]");
+    value.defaults.options = [{label: "  Exact copy  "}];
+    const result = compileRecipeApplication(value, {operations: [bound]});
+    if (result.status !== "ok") { throw new Error(JSON.stringify(result.diagnostics)); }
+    expect(result.document.variables.find(variable => variable.id === "options")?.default).toEqual(value.defaults.options);
+    expect(result.document.variables.find(variable => variable.id === "quote")?.default).toBe("  €29  ");
+  });
   it("rejects unresolved or unreadable output bindings", () => {
     const value = manifest(); value.outputs[0].binding = "var:missing";
     expect(messages(value)).toContain("unresolved readable binding var:missing");
