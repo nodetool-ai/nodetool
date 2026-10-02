@@ -60,6 +60,7 @@ import {
 } from "../core/chat/threadRuntime";
 import { isObjectLike, isString } from "../utils/typePredicates";
 import { creationProjectId } from "./WorkspaceTabsStore";
+import useAuth from "./useAuth";
 
 // Include additional runtime statuses used during message streaming
 type ChatStatus =
@@ -1235,6 +1236,9 @@ const useGlobalChatStore = create<GlobalChatState>()(
       },
 
       fetchThreads: async () => {
+        if (useAuth.getState().state !== "logged_in" || get().isLoadingThreads) {
+          return;
+        }
         const threadsAtRequest = get().threads;
         const workflowIdsAtRequest = get().threadWorkflowId;
         set({ isLoadingThreads: true });
@@ -1269,7 +1273,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         } catch (error) {
           console.error("Failed to fetch threads:", error);
           set({
-            threadsLoaded: true,
+            threadsLoaded: false,
             error:
               error instanceof Error
                 ? error.message
@@ -1957,5 +1961,16 @@ export const useThreadRuntime = (threadId: string | null): ThreadRuntime =>
   );
 
 export type { ThreadRuntime } from "../core/chat/threadRuntime";
+
+// Defer outside Supabase's auth callback before the transport reads its session.
+useAuth.subscribe((state, previous) => {
+  if (state.state === "logged_in" && previous.state !== "logged_in") {
+    setTimeout(() => {
+      if (!useGlobalChatStore.getState().threadsLoaded) {
+        void useGlobalChatStore.getState().fetchThreads();
+      }
+    }, 0);
+  }
+});
 
 export default useGlobalChatStore;

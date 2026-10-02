@@ -12,6 +12,14 @@ jest.mock("../../lib/env", () => ({
   isLocalhost: true
 }));
 
+jest.mock("../useAuth", () => {
+  const { create } = jest.requireActual("zustand");
+  const useAuth = create(() => ({
+    state: "logged_in", user: null
+  }));
+  return { __esModule: true, default: useAuth, useAuth };
+});
+
 jest.mock("../../lib/auth", () => ({
   authHeader: jest.fn(async () => ({ Authorization: "Bearer test" }))
 }));
@@ -67,6 +75,7 @@ import { pack } from "msgpackr";
 import { Server } from "mock-socket";
 import useGlobalChatStore from "../GlobalChatStore";
 import { trpcClient } from "../../trpc/client";
+import useAuth from "../useAuth";
 
 jest.mock("../../trpc/client", () => ({
   trpcClient: {
@@ -183,6 +192,44 @@ describe("GlobalChatStore", () => {
     const state = store.getState();
     expect(state.currentThreadId).toBe(id);
     expect(state.threads[id]).toBeDefined();
+  });
+
+  it("does not fetch conversations before authentication is ready", async () => {
+    const list = jest.spyOn(trpcClient.threads.list, "query");
+    useAuth.setState({ state: "loading" });
+    await store.getState().fetchThreads();
+    expect(list).not.toHaveBeenCalled();
+    expect(store.getState().threadsLoaded).toBe(false);
+    useAuth.setState({ state: "logged_in" });
+    list.mockRestore();
+  });
+
+  it("keeps a failed conversation request retryable", async () => {
+    const list = jest.spyOn(trpcClient.threads.list, "query")
+      .mockRejectedValueOnce(new Error("Unauthorized"))
+      .mockResolvedValueOnce({ threads: [], next: null });
+    await store.getState().fetchThreads();
+    expect(store.getState().threadsLoaded).toBe(false);
+    await store.getState().fetchThreads();
+    expect(store.getState().threadsLoaded).toBe(true);
+    expect(store.getState().error).toBeNull();
+    list.mockRestore();
+  });
+
+  it("loads conversations after sign-in without another component mounting", async () => {
+    jest.useFakeTimers();
+    const list = jest.spyOn(trpcClient.threads.list, "query")
+      .mockResolvedValue({ threads: [], next: null });
+    useAuth.setState({ state: "logged_out" });
+    await store.getState().fetchThreads();
+    expect(list).not.toHaveBeenCalled();
+    useAuth.setState({ state: "logged_in" });
+    expect(list).not.toHaveBeenCalled();
+    await jest.runOnlyPendingTimersAsync();
+    expect(list).toHaveBeenCalledTimes(1);
+    expect(store.getState().threadsLoaded).toBe(true);
+    list.mockRestore();
+    jest.useRealTimers();
   });
 
   it("loads the newest page then prepends older history without losing live messages", async () => {
