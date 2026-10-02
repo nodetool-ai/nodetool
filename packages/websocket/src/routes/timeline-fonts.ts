@@ -34,7 +34,7 @@
 import { createReadStream } from "node:fs";
 import { readFile } from "node:fs/promises";
 import { statSync } from "node:fs";
-import { join } from "node:path";
+import { join, resolve, sep } from "node:path";
 import type { FastifyPluginAsync } from "fastify";
 import {
   BUNDLED_FONT_FILES,
@@ -196,7 +196,17 @@ const timelineFontRoutes: FastifyPluginAsync<RouteOptions> = async (
     "/api/assets/packages/timeline/fonts/google/:slug/:file",
     async (req, reply) => {
       const { slug, file } = req.params;
-      const manifestFile = join(googleFontsCacheDir(), slug, "manifest.json");
+      if (!/^[a-z0-9]+$/.test(slug)) {
+        await reply.status(404).send({ error: "Not found" });
+        return;
+      }
+      const familyDirectory = resolve(googleFontsCacheDir(), slug);
+      const path = resolve(familyDirectory, file);
+      if (!path.startsWith(familyDirectory + sep) || file.includes("\\")) {
+        await reply.status(404).send({ error: "Not found" });
+        return;
+      }
+      const manifestFile = join(familyDirectory, "manifest.json");
       let manifest: GoogleFontManifest;
       try {
         manifest = JSON.parse(
@@ -216,7 +226,6 @@ const timelineFontRoutes: FastifyPluginAsync<RouteOptions> = async (
         await reply.status(404).send({ error: "Not found" });
         return;
       }
-      const path = join(googleFontsCacheDir(), slug, file);
       let size: number;
       try {
         const stat = statSync(path);
