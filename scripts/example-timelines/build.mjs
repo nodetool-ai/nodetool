@@ -29,7 +29,7 @@ import { hashSceneSubtree } from "@nodetool-ai/timeline";
 const HERE = dirname(fileURLToPath(import.meta.url));
 const ROOT = join(HERE, "../..");
 const OUT_DIR = join(ROOT, "packages/base-nodes/nodetool/examples/timelines");
-const SLUGS = ["kite", "prism", "serein", "t-minus-30", "tidewater", "voltra"];
+const SLUGS = ["cadence", "kite", "prism", "serein", "t-minus-30", "tidewater", "voltra"];
 
 const slugs = process.argv.length > 2 ? process.argv.slice(2) : SLUGS;
 const unknown = slugs.filter((slug) => !SLUGS.includes(slug));

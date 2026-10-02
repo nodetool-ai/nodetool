@@ -691,8 +691,8 @@ showcase-only feature flags used (`repeater`, `motionBlur`, `layout`,
 `blendMode`, `mask`, `animationLinks`, `temporalEcho`), style tracks, text
 animators, authored transitions, and scene count (distinct clip start-time
 boundaries) — against the **reference band**: the same metrics computed at
-runtime for the shipped examples (`kite`, `prism`, `serein`, `tidewater`,
-`voltra`; `t-minus-30` is footage-based and excluded) via
+runtime for the shipped examples (`cadence`, `kite`, `prism`, `serein`,
+`tidewater`, `voltra`; `t-minus-30` is footage-based and excluded) via
 `@nodetool-ai/timeline/examples/node`, the loader the product installs and
 previews them from, so the band never drifts from a second copy of the set.
 
