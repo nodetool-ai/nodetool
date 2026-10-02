@@ -55,6 +55,3 @@ export const isPermanentSaveError = (error: unknown): boolean => {
   }
   return code !== null && PERMANENT_CODES.has(code);
 };
-
-/** Retries after the first failed attempt, for a transient failure only. */
-export const MAX_TRANSIENT_SAVE_RETRIES = 4;

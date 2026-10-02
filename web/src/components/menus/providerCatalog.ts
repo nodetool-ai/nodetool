@@ -588,29 +588,5 @@ export const PROVIDER_META: ProviderMeta[] = [
   }
 ];
 
-/**
- * Sections whose entries are AI model providers — connecting one of them means
- * NodeTool can run a model. `search` (web-search APIs), `compute` (GPU rental,
- * local-server auth) and `advanced` (tracing, mail, server auth) are
- * credentials for something else, so they don't count.
- */
-const MODEL_PROVIDER_SECTIONS: ReadonlySet<ProviderMeta["section"]> = new Set([
-  "popular",
-  "language",
-  "media",
-  "gateways"
-]);
-
-/**
- * Secret keys that, once configured, mean the user has an AI provider. OAuth-
- * only entries are excluded: their `key` is a display id, not a stored secret,
- * and their connection state comes from the OAuth token endpoints.
- */
-export const AI_PROVIDER_SECRET_KEYS: ReadonlySet<string> = new Set(
-  PROVIDER_META.filter(
-    (meta) => MODEL_PROVIDER_SECTIONS.has(meta.section) && !meta.oauthOnly
-  ).map((meta) => meta.key)
-);
-
 export const getProviderMeta = (key: string): ProviderMeta | undefined =>
   PROVIDER_META.find((p) => p.key === key);
