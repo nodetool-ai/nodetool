@@ -14,7 +14,7 @@ window rather than a handover.
 ## What triggers a deploy
 
 GitHub no longer releases to Fly. The historical
-[fly-deploy.yml](../.github/workflows/fly-deploy.yml) filename runs **Deploy to
+[fly-deploy.yml](https://github.com/nodetool-ai/nodetool/blob/main/.github/workflows/fly-deploy.yml) filename runs **Deploy to
 Docker** and Pages follows that workflow. A manual Fly release uses
 `scripts/fly-rolling-deploy.sh` with a previously built commit image or immutable
 digest. Review database compatibility and trigger dispatch before using Fly as
