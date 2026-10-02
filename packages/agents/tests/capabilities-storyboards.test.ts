@@ -372,6 +372,96 @@ describe("storyboards capability behaviour", () => {
     );
   });
 
+  it("edits and reads storyboard motion-graphics intent", async () => {
+    const board = await makeBoard([shot({ id: "s1", index: 0 })]);
+    const context = ctx();
+    const graphics = {
+      mode: "hybrid",
+      direction: "Keep the exact packshot while the offer builds around it.",
+      elements: [
+        {
+          id: "headline",
+          kind: "text",
+          role: "headline",
+          text: "NEW DROP",
+          direction: "Reveal from behind the product."
+        },
+        {
+          id: "logo",
+          kind: "asset",
+          role: "logo",
+          asset_id: "asset-logo"
+        }
+      ]
+    };
+    const motionDesign = {
+      direction: "A yellow line ties the whole cut together.",
+      transitions: [
+        {
+          from_shot_id: "s1",
+          to_shot_id: "s2",
+          direction: "Carry the line through the cut."
+        }
+      ],
+      continuities: [
+        {
+          id: "yellow-line",
+          shot_ids: ["s1", "s2"],
+          direction: "Persist across both shots."
+        }
+      ]
+    };
+
+    const edited = await run(context).invoke("edit_storyboard", {
+      storyboard_id: board.id,
+      ops: [
+        { op: "update_shot", target: "s1", graphics },
+        { op: "set_board", motion_design: motionDesign }
+      ]
+    });
+    expect(edited).toMatchObject({ applied: 2, failed: 0 });
+
+    const read = (await run(context).invoke("get_storyboard", {
+      storyboard_id: board.id
+    })) as {
+      motion_design: unknown;
+      shots: Array<{ id: string; graphics?: unknown }>;
+    };
+    expect(read.motion_design).toEqual(motionDesign);
+    expect(read.shots.find((entry) => entry.id === "s1")?.graphics).toEqual(
+      graphics
+    );
+
+    const saved = await Storyboard.findById(board.id);
+    expect(saved?.toDocument().screenplay?.motion_design).toEqual(motionDesign);
+    expect(saved?.toDocument().shots[0].graphics).toEqual(graphics);
+  });
+
+  it("refuses malformed storyboard graphics intent without saving it", async () => {
+    const board = await makeBoard([shot({ id: "s1", index: 0 })]);
+    const before = board.toDocument();
+
+    const result = await run(ctx()).invoke("edit_storyboard", {
+      storyboard_id: board.id,
+      ops: [
+        {
+          op: "update_shot",
+          target: "s1",
+          graphics: { mode: "magic" }
+        },
+        {
+          op: "set_board",
+          motion_design: {
+            transitions: [{ from_shot_id: "s1" }]
+          }
+        }
+      ]
+    });
+
+    expect(result).toMatchObject({ applied: 0, failed: 2 });
+    expect((await Storyboard.findById(board.id))?.toDocument()).toEqual(before);
+  });
+
   it("set_board changes only supplied screenplay direction and accepts empty text to clear it", async () => {
     const screenplay = {
       type: "screenplay",

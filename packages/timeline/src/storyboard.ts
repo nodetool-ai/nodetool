@@ -396,7 +396,10 @@ export function buildStoryboardTimeline(
   const retimedShots: RetimedShot[] = [];
   for (const shot of assemblable) {
     const source = sources.get(shot.id) ?? null;
-    const layout = layoutShot(shot, source);
+    const stillAssetId = source ? undefined : assetIdOf(shot.keyframe);
+    const layout = source
+      ? layoutShot(shot, source)
+      : { durationMs: shotDurationMs(shot), directedMs: shotDurationMs(shot) };
     const durationMs = layout.durationMs;
     // A shot cut to a coverage window is exactly as long as the caller asked
     // for when they split the generation; only a shot playing a clip of its
@@ -416,7 +419,7 @@ export function buildStoryboardTimeline(
       mediaType: source ? "video" : "image",
       sourceType: "imported",
       status: "generated",
-      currentAssetId: source?.assetId ?? assetIdOf(shot.keyframe),
+      currentAssetId: source?.assetId ?? stillAssetId,
       linkId: source ? createTimeOrderedUuid() : undefined,
       storyboardBoardId: input.boardId,
       storyboardShotId: shot.id,

@@ -124,6 +124,7 @@ describe("ui_storyboard_* tools", () => {
     };
     expect(schema.type).toBe("object");
     expect(schema.properties).toHaveProperty("action");
+    expect(schema.properties).toHaveProperty("graphics");
     expect(schema.properties).toHaveProperty("storyboard_id");
     expect(schema.required).toContain("action");
     expect(schema.required).toContain("storyboard_id");
@@ -228,6 +229,49 @@ describe("ui_storyboard_* tools", () => {
       "0",
       expect.objectContaining({ slug: "Lighthouse", durationSeconds: 6 })
     );
+  });
+
+  it("passes semantic graphics through update_shot", async () => {
+    const handler = createMockHandler();
+    const graphics = {
+      mode: "overlay" as const,
+      direction: "Keep the exact product image and animate the offer around it.",
+      elements: [
+        {
+          id: "price",
+          kind: "text" as const,
+          role: "price" as const,
+          text: "€29"
+        }
+      ]
+    };
+    handler.updateShot.mockReturnValue(shotNode({ graphics }));
+    setStoryboardAgentHandler(BOARD_ID, handler);
+
+    const result = (await FrontendToolRegistry.call(
+      "ui_storyboard_update_shot",
+      {
+        storyboard_id: BOARD_ID,
+        target: "0",
+        graphics
+      },
+      "tc-graphics-update",
+      ctx
+    )) as { ok: boolean; shot: StoryboardShotNode };
+
+    expect(handler.updateShot).toHaveBeenCalledWith(
+      "0",
+      expect.objectContaining({ graphics })
+    );
+    expect(result.shot.graphics).toEqual(graphics);
+  });
+
+  it("forwards graphics null as an explicit clear operation", async () => {
+    const handler = createMockHandler();
+    handler.updateShot.mockReturnValue(shotNode());
+    setStoryboardAgentHandler(BOARD_ID, handler);
+    await FrontendToolRegistry.call("ui_storyboard_update_shot", { storyboard_id: BOARD_ID, target: "0", graphics: null }, "tc-clear-graphics", ctx);
+    expect(handler.updateShot).toHaveBeenCalledWith("0", expect.objectContaining({ graphics: null }));
   });
 
   it("generates a keyframe through the handler", async () => {

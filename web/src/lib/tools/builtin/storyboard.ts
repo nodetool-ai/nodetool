@@ -92,6 +92,7 @@ const screenplayShotParam = z
     slug: z.string().optional().describe("Short human label for the shot."),
     camera: cameraParam.optional(),
     motion: z.string().optional(),
+    graphics: storyboards.storyboardShotGraphics.optional(),
     dialogue: z.string().optional(),
     narration: z.string().optional(),
     notes: z.string().optional(),
@@ -148,6 +149,7 @@ const screenplayParam = z
       ),
     narration: z.string().optional(),
     musicPrompt: z.string().optional(),
+    motionDesign: storyboards.storyboardMotionDesign.optional(),
     entityIds: z.array(z.string()).optional()
   })
   .passthrough();
@@ -185,7 +187,7 @@ const shotStatusEnum = z.enum([
 FrontendToolRegistry.register({
   name: "ui_storyboard_get_state",
   description:
-    "Read the specified storyboard: title, brief, style, genre, setup stage, aspect ratio, the entity ids cast on the board, the scenes with the shots under each, whether a screenplay is loaded, the selected shot, and every shot with its index, slug, action, camera, motion, duration, scene, dialogue, status, how many stills and takes it holds, and whether its selected still or clip is stale. Call this first to discover the shot and scene ids the other tools need.",
+    "Read the specified storyboard: title, brief, style, genre, setup stage, aspect ratio, entity ids, scenes, whole-board motionDesign, the selected shot, and every shot with its index, slug, action, camera, physical motion, graphics intent, duration, scene, dialogue, status, media counts and staleness. Call this first to discover the shot and scene ids the other tools need.",
   parameters: z.object({ storyboard_id: storyboardIdParam }),
   async execute({ storyboard_id }) {
     const snapshot = getStoryboardAgentHandler(storyboard_id).getSnapshot();
@@ -255,13 +257,14 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_add_shot",
   description:
-    "Add a new shot to the specified storyboard. `action` is the concrete visual (required). `slug` is the shot's short title, e.g. 'Lighthouse at dusk' — give every shot one. Optionally set `camera`, `motion`, `durationSeconds`, and where it lands: `afterShotId` inserts it directly after that shot in that shot's scene (the scene-safe way), `index` puts it at a board position. The shot starts in the 'planned' status.",
+    "Add a new shot to the specified storyboard. `action` is the concrete visual (required). `slug` is the shot's short title, e.g. 'Lighthouse at dusk' — give every shot one. Optionally set `camera`, physical `motion`, semantic `graphics` (exact text/assets plus design direction), `durationSeconds`, and where it lands: `afterShotId` inserts it directly after that shot in that shot's scene (the scene-safe way), `index` puts it at a board position. The shot starts in the 'planned' status.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
     action: z.string().min(1),
     slug: z.string().optional(),
     camera: cameraParam.optional(),
     motion: z.string().optional(),
+    graphics: storyboards.storyboardShotGraphics.optional(),
     durationSeconds: z.number().optional(),
     index: z.number().optional(),
     afterShotId: targetParam
@@ -276,6 +279,7 @@ FrontendToolRegistry.register({
     slug,
     camera,
     motion,
+    graphics,
     durationSeconds,
     index,
     afterShotId
@@ -285,6 +289,7 @@ FrontendToolRegistry.register({
       slug,
       camera,
       motion,
+      graphics,
       durationSeconds,
       index,
       afterShotId
@@ -302,7 +307,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_storyboard_update_shot",
   description:
-    "Edit an existing shot's `slug` (its short title), `action`, `camera` (including its `equipment` rig), `motion`, `dialogue`, `notes`, `durationSeconds` (which pins the shot to that length), `durationSource`, or `status`. Omit a field to leave it unchanged. A shot's scene is not a field here — move it with ui_storyboard_move_shot.",
+    "Edit an existing shot's `slug` (its short title), `action`, `camera` (including its `equipment` rig), physical `motion`, semantic `graphics`, `dialogue`, `notes`, `durationSeconds` (which pins the shot to that length), `durationSource`, or `status`. Pass `graphics: null` to clear the graphics intent; omit a field to leave it unchanged. A shot's scene is not a field here — move it with ui_storyboard_move_shot.",
   parameters: z.object({
     storyboard_id: storyboardIdParam,
     target: targetParam,
@@ -310,6 +315,7 @@ FrontendToolRegistry.register({
     slug: z.string().optional(),
     camera: cameraParam.optional(),
     motion: z.string().optional(),
+    graphics: storyboards.storyboardShotGraphics.nullable().optional(),
     dialogue: z
       .string()
       .optional()
@@ -336,6 +342,7 @@ FrontendToolRegistry.register({
     slug,
     camera,
     motion,
+    graphics,
     dialogue,
     notes,
     durationSeconds,
@@ -347,6 +354,7 @@ FrontendToolRegistry.register({
       slug,
       camera,
       motion,
+      graphics,
       dialogue,
       notes,
       durationSeconds,

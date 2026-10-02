@@ -94,6 +94,26 @@ interface UseDirectScreenplayResult {
   acceptFallback: () => void;
 }
 
+const preserveNonDirectorIntent = (
+  previous: Screenplay | null | undefined,
+  next: Screenplay
+): Screenplay => {
+  if (!previous) return next;
+  const oldById = new Map(previous.shots.map((shot) => [shot.id, shot]));
+  return {
+    ...next,
+    motion_design: previous.motion_design,
+    shots: next.shots.map((shot) => {
+      const old = oldById.get(shot.id);
+      if (!old) return shot;
+      const retained = { ...shot };
+      if (old.graphics !== undefined) retained.graphics = old.graphics;
+      if (old.production !== undefined) retained.production = old.production;
+      return retained;
+    })
+  };
+};
+
 export const useDirectScreenplay = (): UseDirectScreenplayResult => {
   const [directing, setDirecting] = useState(false);
   const [usedFallback, setUsedFallback] = useState(false);
@@ -242,12 +262,15 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
         // the same rule the Director node applies. The board keeps flowing
         // and the user can edit the beats; only a provider error throws.
         const fell = !parsed || parsed.shots.length === 0;
-        const screenplay = screenplayWithCreativeContext(
+        const directed = screenplayWithCreativeContext(
           fell
           ? fallbackScreenplay({ brief, style, shotCount, aspectRatio })
           : parsed,
           creativeContext
         );
+        // Director owns camera/story direction, not graphics, production policy,
+        // or whole-board motion design already approved on retained shot ids.
+        const screenplay = preserveNonDirectorIntent(board?.screenplay, directed);
         // The review step names it as locally written, so nobody edits a
         // placeholder believing the Director wrote it (F9).
         setUsedFallback(fell);
