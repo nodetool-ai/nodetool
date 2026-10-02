@@ -267,7 +267,7 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
       const priceY = priceIntent === "superseded price" ? 0.65 : priceIntent === "current price" ? 0.76 : undefined;
       const y = priceY ?? (element.role === "product" ? 0.42 : element.role === "logo" ? 0.1 : element.role === "headline" ? 0.18 : element.role === "cta" ? 0.84 : 0.66 + (index % 2) * 0.1);
       const clip = makeClip({
-        id: previous?.id ?? createTimeOrderedUuid(), trackId: track.id, name: element.id,
+        id: previous?.id ?? createTimeOrderedUuid(), trackId: track.id, name: previous?.name ?? element.id,
         startMs, durationMs, mediaType: element.id === "$source" && source?.kind === "video" ? "video" : element.kind === "asset" ? "image" : element.kind,
         sourceType: "imported", status: "generated", versions: [],
         storyboardBoardId: input.boardId, storyboardShotId: shot.id,

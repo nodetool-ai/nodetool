@@ -180,6 +180,16 @@ describe("Storyboard finishing", () => {
     product.transitionIn = { type: "push", durationMs: 300 };
     expect(validateProducedTimeline(args, document).some(issue => issue.code === "forbidden_transform" && issue.message.includes("Transition push"))).toBe(true);
   });
+  it("preserves user layer names independently from semantic element identity", () => {
+    const args = input();
+    const first = materializeStoryboard(args).document;
+    const price = first.clips.find(clip => clip.storyboardElementId === "price")!;
+    price.name = "Human price";
+    const result = materializeStoryboard({...args, current: first});
+    expect(result.validation).toEqual([]);
+    expect(result.document.clips.find(clip => clip.id === price.id)?.name).toBe("Human price");
+    expect(result.document.clips.find(clip => clip.id === price.id)?.storyboardElementId).toBe("price");
+  });
   it("uses motion design for cut animations and continuity without rerun duplication", () => {
     const args = input();
     const second = structuredClone(args.shots[0]);

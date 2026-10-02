@@ -81,6 +81,8 @@ pixel-level semantic recognition of every rendered object.
 agent session, or with an explicit `model: {provider, id}` in a Mini App
 operation or headless script. An explicit model is used exactly, with no
 silent fallback. The default remains deterministic and needs no model.
+The bounded invocation requests medium effort with extended thinking disabled.
+The model still authors composition and performs mandatory pixel review.
 The opt-in pass receives the whole board, preservation rules and editable
 scaffold. A new agentic cut must author editable layout or motion before
 submission. Read-only, no-op and metadata-only edits do not satisfy this
@@ -88,7 +90,9 @@ requirement. An existing cut may stay unchanged after visual review. This
 authoring check proves a composition change, while the visual review assesses
 its quality. Agentic reruns reuse accepted layer presentation and refresh
 Storyboard-owned source identity, exact copy, protected colors and timing.
-Typography and permitted manual placement survive input changes. Retained
+Typography and permitted manual placement survive input changes. Existing
+layer names stay user-owned. Manual typography, opacity or animation changes
+produce an explicit conflict before model dispatch. Retained
 presentation must pass the current production policy before model dispatch. It renders design references derived from the expected Storyboard
 revision and compares actual composited cut frames with those references.
 These are derived references, not a separate historical pixel approval.

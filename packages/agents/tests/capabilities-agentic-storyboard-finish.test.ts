@@ -532,6 +532,139 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
         .clips.find((clip) => clip.id === accent.id)?.transitionIn
     ).toEqual(accent.transitionIn);
   });
+  it.each(["font", "opacity", "animation"])(
+    "conflicts before author dispatch for manual %s changes after an accepted finish",
+    async (feature) => {
+      const { board, context } = await fixture();
+      const first = await execute(
+        new FinishingProvider([craft, done, approve, done]),
+        context,
+        board
+      );
+      const before = (await TimelineSequence.findById(first.timelineId!))!;
+      const manual = before.toDocument();
+      const price = manual.clips.find(
+        (clip) => clip.storyboardElementId === "price"
+      )!;
+      if (feature === "font") price.textStyle!.fontSizePx = 190;
+      else if (feature === "opacity") price.opacity = 0.8;
+      else price.animations![0].durationMs = 600;
+      await TimelineSequence.updateDocumentIfUnchanged(
+        before.id,
+        before.updated_at,
+        manual
+      );
+      const current = (await TimelineSequence.findById(before.id))!;
+      const provider = new FinishingProvider([craft, done, approve, done]);
+      const result = await execute(
+        provider,
+        context,
+        (await Storyboard.findById(board.id))!,
+        current.revision
+      );
+      expect(result).toMatchObject({
+        error: expect.any(String),
+        validation: expect.arrayContaining([
+          expect.objectContaining({ code: "manual_conflict" })
+        ])
+      });
+      expect(provider.requests).toHaveLength(0);
+      expect(
+        (await TimelineSequence.findById(before.id))?.toDocument()
+      ).toEqual(current.toDocument());
+      expect((await TimelineSequence.findById(before.id))?.revision).toBe(
+        current.revision
+      );
+    }
+  );
+  it("preserves manually renamed source layers and tracks on an unchanged agentic rerun", async () => {
+    const { board, context } = await fixture();
+    const first = await execute(
+      new FinishingProvider([craft, done, approve, done]),
+      context,
+      board
+    );
+    const before = (await TimelineSequence.findById(first.timelineId!))!;
+    const manual = before.toDocument();
+    const price = manual.clips.find(
+      (clip) => clip.storyboardElementId === "price"
+    )!;
+    price.name = "Human price";
+    manual.tracks.find((track) => track.id === price.trackId)!.name =
+      "Human price track";
+    await TimelineSequence.updateDocumentIfUnchanged(
+      before.id,
+      before.updated_at,
+      manual
+    );
+    const current = (await TimelineSequence.findById(before.id))!;
+    const provider = new FinishingProvider([
+      () => [call("submit_finished_cut")],
+      done,
+      approve,
+      done
+    ]);
+    const result = await execute(
+      provider,
+      context,
+      (await Storyboard.findById(board.id))!,
+      current.revision
+    );
+    expect(result.error).toBeUndefined();
+    const document = (await TimelineSequence.findById(before.id))!.toDocument();
+    expect(document.clips.find((clip) => clip.id === price.id)?.name).toBe(
+      "Human price"
+    );
+    expect(
+      document.tracks.find((track) => track.id === price.trackId)?.name
+    ).toBe("Human price track");
+  });
+  it("conflicts instead of overwriting a manually renamed source layer", async () => {
+    const { board, context } = await fixture();
+    const first = await execute(
+      new FinishingProvider([craft, done, approve, done]),
+      context,
+      board
+    );
+    const before = (await TimelineSequence.findById(first.timelineId!))!;
+    const manual = before.toDocument();
+    const price = manual.clips.find(
+      (clip) => clip.storyboardElementId === "price"
+    )!;
+    price.name = "Human price";
+    await TimelineSequence.updateDocumentIfUnchanged(
+      before.id,
+      before.updated_at,
+      manual
+    );
+    const current = (await TimelineSequence.findById(before.id))!;
+    const provider = new FinishingProvider([
+      () => [
+        call("edit_timeline", {
+          ops: [
+            { op: "set_clip_params", target: price.id, name: "Automatic price" }
+          ]
+        }),
+        call("submit_finished_cut")
+      ],
+      done
+    ]);
+    const result = await execute(
+      provider,
+      context,
+      (await Storyboard.findById(board.id))!,
+      current.revision
+    );
+    expect(result.error).toMatch(/cannot rename existing Timeline layer/);
+    expect(
+      (await TimelineSequence.findById(before.id))
+        ?.toDocument()
+        .clips.find((clip) => clip.id === price.id)?.name
+    ).toBe("Human price");
+    expect((await TimelineSequence.findById(before.id))?.revision).toBe(
+      current.revision
+    );
+  });
   it("allows an unchanged existing cut to finish after full visual review", async () => {
     const { board, context } = await fixture();
     const initial = (await finishStoryboard.impl(
@@ -578,6 +711,7 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
       (args) => {
         const data = authorContext(args);
         expect(args.effort).toBe("medium");
+        expect(args.thinking).toEqual({ type: "disabled" });
         expect(data.storyboard.shots.map((shot) => shot.id)).toEqual([
           "hook",
           "cta"

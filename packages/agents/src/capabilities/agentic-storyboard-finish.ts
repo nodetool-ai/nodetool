@@ -142,6 +142,7 @@ function reuseAcceptedPresentation(
     Object.assign(
       clip,
       structuredClone({
+        name: prior.name,
         transform: prior.transform,
         layout: prior.layout,
         flexItem: prior.flexItem,
@@ -334,6 +335,7 @@ export async function finishStoryboardAgentically(
       messages,
       model: runtime.model,
       effort: "medium",
+      thinking: { type: "disabled" },
       tools,
       executeTool: (call) => {
         const pending = executionTail.then(() => {
@@ -660,6 +662,11 @@ export async function finishStoryboardAgentically(
       const current = input.current?.clips.find(
         (value) => value.id === clip.id
       );
+      if (current && clip.name !== current.name) {
+        throw new Error(
+          `Finishing cannot rename existing Timeline layer ${clip.id}. Preserve its current user-owned name.`
+        );
+      }
       if (current && current.storyboardMaterializationBaseline) {
         const baseline: unknown = JSON.parse(
           current.storyboardMaterializationBaseline
