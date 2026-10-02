@@ -58,6 +58,7 @@ import {
   SPACING,
   TYPOGRAPHY
 } from "../ui_primitives";
+import ShotGraphicsEditor from "./ShotGraphicsEditor";
 import ShotEditViewer from "./ShotEditViewer";
 import ShotEditTable from "./ShotEditTable";
 import ShotTakesGallery from "./ShotTakesGallery";
@@ -156,7 +157,9 @@ const DRAFT_LABELS: Record<ShotDraftKey, string> = {
   equipment: "Equipment",
   lens: "Focal length",
   notes: "Notes",
-  renderMode: "Render mode"
+  renderMode: "Render mode",
+  graphics: "Graphics",
+  motion: "Motion design notes"
 };
 
 const shotNumberSx = {
@@ -598,7 +601,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         <Box sx={columnsSx}>
           <ShotEditViewer
             boardId={boardId}
-            shot={shot}
+            shot={previewShot}
             readOnly={readOnly}
             onLeave={onClose}
             onBeforeImageEditor={requestImageEditorLeave}
@@ -699,6 +702,8 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
           onEditInScript={linksLines ? handleEditInScript : undefined}
           onOpenBoardSettings={onOpenBoardSettings}
         />
+
+        <ShotGraphicsEditor shot={shot} draft={draft} onChange={setDraft} readOnly={readOnly} />
 
         {boardEntities.length > 0 && (
           <FlexRow gap={SPACING.micro} wrap>

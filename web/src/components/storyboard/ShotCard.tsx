@@ -48,6 +48,7 @@ import {
   runningGradientBackground
 } from "../ui_primitives";
 import { colorForType } from "../../config/data_types";
+import ShotDesignFrame from "./ShotDesignFrame";
 import ShotHoverToolbar from "./ShotHoverToolbar";
 import ShotMediaViewer from "./ShotMediaViewer";
 import ShotRenderDialog, { type ShotRenderStep } from "./ShotRenderDialog";
@@ -429,7 +430,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
         }}
         onDoubleClick={previewMedia ? handleOpenViewer : undefined}
       >
-        {previewClip ? (
+        {shot.graphics && shot.graphics.mode !== "none" ? (
+          <ShotDesignFrame boardId={boardId} shot={shot} />
+        ) : previewClip ? (
           <Box sx={{ width: "100%", height: "100%" }} onClick={swallowClick}>
             <VideoPlayer
               locator={previewClip}
