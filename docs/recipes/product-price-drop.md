@@ -7,11 +7,13 @@ and the foundations in PRs [#5988](https://github.com/nodetool-ai/nodetool/pull/
 [#5989](https://github.com/nodetool-ai/nodetool/pull/5989),
 [#5990](https://github.com/nodetool-ai/nodetool/pull/5990), and
 [#5991](https://github.com/nodetool-ai/nodetool/pull/5991).
-Broader design-frame review, shared operations, finishing and compilation work
-is tracked in issues [#5984](https://github.com/nodetool-ai/nodetool/issues/5984),
-[#5985](https://github.com/nodetool-ai/nodetool/issues/5985),
-[#5986](https://github.com/nodetool-ai/nodetool/issues/5986), and
+The Recipe is compiled from its manifest through the
+[shared plan/finish operations and compiler](shared-operations.md), corresponding
+to issues [#5985](https://github.com/nodetool-ai/nodetool/issues/5985) and
 [#5987](https://github.com/nodetool-ai/nodetool/issues/5987).
+Design-frame review and finishing work is tracked in issues
+[#5984](https://github.com/nodetool-ai/nodetool/issues/5984) and
+[#5986](https://github.com/nodetool-ai/nodetool/issues/5986).
 There is no separate Recipe resource or executor.
 
 Supply a stored product image, logo, headline, old price, new price, CTA, and

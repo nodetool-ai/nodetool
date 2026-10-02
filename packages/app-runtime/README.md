@@ -27,10 +27,18 @@ run's messages their own way and disagreed about what an app was showing.
 | `doc-ops.ts` | Immutable edits to the non-UI half of a document (operations, variables, resources) |
 | `bundle.ts` | The `ApplicationBundle`: an app plus the full graphs it binds, as one JSON artifact |
 | `script-run.ts` | The contract for an operation that runs a JS script instead of a workflow |
+| `recipe-compiler.ts` | Deterministic Recipe authoring into normal Application documents, using typed contracts and concrete pinned operations |
 | `chat.ts` | Reading a bound value as a conversation, for the thread and composer widgets |
 | `documents.ts` | Unwrapping sketch and timeline refs out of a bound value |
 
 ## Usage
+
+Recipe authoring uses `compileRecipeApplication(manifest, {operations, title})`.
+Its output uses the same widgets, bindings, variables and resource declarations
+as an Application authored through the App Builder. Unsupported inputs,
+unbound IO, unresolved versions and unmet preservation guarantees return
+field-specific diagnostics before execution. See the
+[shared operation contracts and compiler mapping](../../docs/recipes/shared-operations.md).
 
 Everything is a pure function, so a host drives the reducer itself. Folding a
 run's messages into the state an app displays:

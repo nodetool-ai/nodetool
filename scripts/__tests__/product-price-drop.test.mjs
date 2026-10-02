@@ -6,9 +6,10 @@ import { PRODUCT_PRICE_DROP_BUNDLE, PLAN_CODE, FINISH_CODE } from "../example-ap
 const input = {productImage: {asset_id: "a".repeat(32)}, logo: {asset_id: "b".repeat(32)}, headline: "  Better coffee  ", oldPrice: "€49", newPrice: "€29", cta: "Shop now", brandColor: "#1248AB", direction: "Bold editorial rhythm"};
 const execute = async (code, inputs, capabilities) => {
   const results = {};
+  capabilities = {get_entity: async ({entity_id}) => ({entity: {id: entity_id, reference_images: [{asset_id: entity_id}]}}), preview_storyboard_design: async () => ({timeline: {type: "timeline", data: {durationMs: 6000, tracks: [], clips: []}}}), ...capabilities};
   const body = code.replace(/^import .*;\n/gm, "");
   const fn = new Function("inputs", "output", ...Object.keys(capabilities), `return (async () => {${body}})();`);
-  await fn(inputs, async (name, value) => {results[name] = value;}, ...Object.values(capabilities));
+  await fn({recipe: PRODUCT_PRICE_DROP_BUNDLE.app.recipe, recipeOperationId: "finish", ...inputs}, async (name, value) => {results[name] = value;}, ...Object.values(capabilities));
   return results;
 };
 test("normal bundle preserves Recipe metadata and pinned operation mappings", () => {
@@ -17,7 +18,7 @@ test("normal bundle preserves Recipe metadata and pinned operation mappings", ()
   assert.deepEqual(parsed.app.recipe, PRODUCT_PRICE_DROP_BUNDLE.app.recipe);
   assert.equal(parsed.scripts.length, 2);
   assert.ok(parsed.app.ui.content.every(widget => isKnownWidget(widget.type)));
-  assert.deepEqual(JSON.parse(readFileSync(new URL("../../packages/base-nodes/nodetool/examples/apps/product-price-drop.app.json", import.meta.url))), PRODUCT_PRICE_DROP_BUNDLE);
+  assert.deepEqual(JSON.parse(readFileSync(new URL("../../packages/base-nodes/nodetool/examples/apps/product-price-drop.app.json", import.meta.url))), JSON.parse(JSON.stringify(PRODUCT_PRICE_DROP_BUNDLE)));
   assert.equal(parsed.app.operations[0].inputs.productImage.variableId, "productImage");
   assert.equal(parsed.app.operations[1].target.kind, "script");
 });
@@ -55,7 +56,7 @@ test("plan retains exact sources and whitespace with graphics-only strategy", as
   assert.equal(refreshed.timelineRevision, 7);
 });
 test("finish rejects stale approval before invoking finishing", async () => {
-  const plannedFingerprint = JSON.stringify([...Object.values(input)]);
+  const plannedFingerprint = JSON.stringify([PRODUCT_PRICE_DROP_BUNDLE.app.recipe, ...PRODUCT_PRICE_DROP_BUNDLE.app.recipe.inputs.map(spec => input[spec.id])]);
   let calls = 0;
   const finish_storyboard = async () => {calls++; return {timelineId: "t", timelineRevision: "r", storyboardRevision: 4, validation: {valid: true}};};
   await assert.rejects(execute(FINISH_CODE, {...input, approval: "pending", plannedFingerprint}, {finish_storyboard}), /Approve/);

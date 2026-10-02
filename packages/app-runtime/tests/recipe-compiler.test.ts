@@ -42,6 +42,10 @@ describe("Recipe compiler", () => {
     const value = manifest(); value.inputs[0].kind = "entity";
     expect(messages(value)).toContain("recipe.inputs[0].kind: No supported widget strategy for entity");
   });
+  it.each(["asset", "storyboard", "timeline"] as const)("does not emit a ResourcePicker that cannot write the %s variable", (kind) => {
+    const value = manifest(); value.inputs[0].kind = kind;
+    expect(messages(value)).toContain(`recipe.inputs[0].kind: No supported widget strategy for ${kind}`);
+  });
   it("rejects unavailable and ambiguously bound semantic operations", () => {
     const value = manifest(); value.operations[0].version = 9;
     expect(messages(value)).toContain("plan_storyboard@9");

@@ -59,8 +59,7 @@ export const recipeInputType = (kind: RecipeInputKind): string => {
 
 const inputWidgets: Partial<Record<RecipeInputKind, string>> = {
   text: "TextInput", number: "NumberInput", boolean: "Switch", image: "ImageInput",
-  video: "VideoInput", audio: "AudioInput", color: "ColorInput", asset: "ResourcePicker",
-  storyboard: "ResourcePicker", timeline: "ResourcePicker"
+  video: "VideoInput", audio: "AudioInput", color: "ColorInput"
 };
 const widget = (type: string, id: string, props: Record<string, unknown>): unknown => ({type, props: {id, ...props}});
 const constantMatches = (value: unknown, type: string): boolean => {
@@ -173,7 +172,6 @@ export const compileRecipeApplication = (
   }
   const content: unknown[] = [];
   if (variables.has("step")) content.push(widget("Stepper", "steps", {binding: "var:step", steps: [{value: "inputs", title: "Inputs"}, {value: "review", title: "Plan and review"}, {value: "result", title: "Editable result"}], allowBack: true}));
-  const resources: ApplicationDocument["resources"] = [];
   const emittedInputs = new Set<string>();
   const emitInput = (id: string): void => {
     if (emittedInputs.has(id)) return;
@@ -183,10 +181,6 @@ export const compileRecipeApplication = (
     if (!type) return;
     const props: Record<string, unknown> = {label: input.label, binding: `var:${input.id}`};
     if (input.choices) props.options = structuredClone(input.choices);
-    if (type === "ResourcePicker" && (input.kind === "asset" || input.kind === "timeline" || input.kind === "storyboard")) {
-      props.resourceBindingId = `input-${input.id}`;
-      resources.push({id: `input-${input.id}`, name: input.label, kind: input.kind, scope: {}, operations: ["read"]});
-    }
     content.push(widget(type, input.id, props)); emittedInputs.add(id);
   };
   for (const group of recipe.presentation?.groups ?? []) {
@@ -218,7 +212,7 @@ export const compileRecipeApplication = (
     }
   }
   recipe.outputs.forEach(emitOutput);
-  const document: ApplicationDocument = {schemaVersion: APP_SCHEMA_VERSION, recipe: structuredClone(recipe), variables: [...variables.values()], operations: selected.map(({binding}) => structuredClone(binding)), resources, ui: {root: {props: {title: options.title ?? recipe.slug}}, content}};
+  const document: ApplicationDocument = {schemaVersion: APP_SCHEMA_VERSION, recipe: structuredClone(recipe), variables: [...variables.values()], operations: selected.map(({binding}) => structuredClone(binding)), resources: [], ui: {root: {props: {title: options.title ?? recipe.slug}}, content}};
   for (const message of validateRecipeBindings(document)) error("recipe.bindings", message);
   if (diagnostics.length > 0) return {status: "error", diagnostics};
   if (content.some((entry) => !entry || typeof entry !== "object" || !("type" in entry) || typeof entry.type !== "string" || !isKnownWidget(entry.type))) return {status: "error", diagnostics: [{path: "application.ui", message: "Compiled Recipe contains an unsupported widget."}]};

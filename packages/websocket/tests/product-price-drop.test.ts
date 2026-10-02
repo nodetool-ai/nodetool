@@ -7,7 +7,7 @@ import sharp from "sharp";
 import { afterEach, expect, it, vi } from "vitest";
 import { createJsScriptAppRunner } from "@nodetool-ai/agents";
 import { parseApplicationBundle, type ApplicationDocument } from "@nodetool-ai/app-runtime";
-import { Application, Asset, JsScriptVersion, ModelObserver, Storyboard, TimelineSequence, initTestDb } from "@nodetool-ai/models";
+import { Application, Asset, JsScriptVersion, ModelObserver, Storyboard, TimelineSequence, initTestDb, entityFromAsset } from "@nodetool-ai/models";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import { RenderTimelineNode } from "@nodetool-ai/video-nodes";
 import { importApplicationBundle, exportApplicationBundle } from "../src/lib/applications-service.js";
@@ -47,6 +47,7 @@ it("installs, plans, finishes, renders and reopens the exact editable Price Drop
     const version = await JsScriptVersion.findByVersion(op.target.scriptId, op.target.scriptVersion);
     expect(version).not.toBeNull();
     const inputs = Object.fromEntries(Object.entries(op.inputs).map(([port, mapping]) => {
+      if (mapping.from === "constant") return [port, mapping.value];
       if (mapping.from !== "variable") throw new Error("Expected variable mapping");
       return [port, values[mapping.variableId]];
     }));
@@ -61,6 +62,13 @@ it("installs, plans, finishes, renders and reopens the exact editable Price Drop
   const board = await Storyboard.findById(String(values.storyboardId));
   expect(board!.toDocument().shots).toHaveLength(2);
   expect(board!.toDocument().screenplay?.motion_design?.continuities).toHaveLength(1);
+  for (const assetId of [PRODUCT, LOGO]) {
+    const asset = await Asset.find(USER, assetId);
+    expect(entityFromAsset(asset!)?.id).toBe(assetId);
+    expect(entityFromAsset(asset!)?.reference_images?.[0].asset_id).toBe(assetId);
+  }
+  expect(values.designPreview).toMatchObject({type: "timeline", data: {width: 1080, height: 1920, durationMs: 6000}});
+  expect(values.timelineId).toBeUndefined();
   values.approval = "approved";
   await run("finish");
   await run("finish");
