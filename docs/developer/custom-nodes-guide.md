@@ -596,7 +596,7 @@ static readonly outputCorrelation = {
 | `forward`   | Emits per input item and copies that item's lineage. `source` names the input handle. |
 | `aggregate` | A `stream`-mode node that consumes child items and emits at a collapsed scope. Requires `collapse: "innermost"`. |
 
-Grouped `iteration` outputs must be emitted together, so yield one object per item from `genProcess` (as `ForEach` does). Once you declare `outputCorrelation`, it needs one entry for every declared output and no entry for an undeclared one. Every entry needs a `source`, `forward` cannot use `__execution__`, and `aggregate` needs `collapse` and a non-buffered `inputMode`. `registry.register` throws a `CorrelationMetadataError` on any violation, and inside a pack that makes the whole pack fail to load. See [Correlation Design](../correlation-design.md) for the rules.
+Grouped `iteration` outputs must be emitted together, so yield one object per item from `genProcess` (as `ForEach` does). Once you declare `outputCorrelation`, it needs one entry for every declared output and no entry for an undeclared one. Every entry needs a `source`, `forward` cannot use `__execution__`, and `aggregate` needs `collapse` and a non-buffered `inputMode`. `registry.register` throws a `CorrelationMetadataError` on any violation, and inside a pack that makes the whole pack fail to load. See [Correlation Design](https://github.com/nodetool-ai/nodetool/blob/main/docs/correlation-design.md) for the rules.
 
 ### Streaming inputs (`run`)
 
