@@ -318,9 +318,9 @@ async function checkGame(file) {
   for (const key of ["name", "description", "controls"]) {
     if (!bundle?.[key]) problems.push(`bundle has no ${key}`);
   }
-  const { validateGame } = await import("@nodetool-ai/game-runtime");
-  const report = validateGame(bundle?.document);
-  if (!report.valid) problems.push(...report.errors.map((error) => `invalid game: ${error}`));
+  const { validateAnyGame } = await import("@nodetool-ai/game-runtime");
+  const report = validateAnyGame(bundle?.document);
+  if (!report.valid) problems.push(...report.diagnostics.map((error) => `invalid game: ${error.message}`));
   const media = Object.values(bundle?.document?.assets ?? {}).map((binding) => binding.assetId);
   for (const uri of [bundle?.posterUri, ...media]) {
     const match = /^package:\/\/([^/]+)\/(.+)$/.exec(uri ?? "");

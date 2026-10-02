@@ -4,6 +4,7 @@ import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { chromium } from "@playwright/test";
+import { createCanvas } from "@napi-rs/canvas";
 import { afterEach, describe, expect, it } from "vitest";
 import { gameModel3D, gameAnimator3D, gameNonSpatialBehavior } from "@nodetool-ai/protocol";
 import { createGameSession3D, createNative3DGame } from "@nodetool-ai/game-runtime";
@@ -35,7 +36,11 @@ describe("offline 3D export", () => {
     const document = createNative3DGame("offline-replay");
     document.inputActions.push("e");
     for (const scene of document.scenes) { for (const entity of scene.entities) { for (const behavior of entity.behaviors) { if (behavior.kind === "script") { behavior.maxTickMs = 50; } } } }
-    const prepared = await normalizeGameModel3D(skinnedGlb(), { assetId: "acceptance-rig", importSettings: { scale: 1.6, forward: "+z", origin: "centerGround" } });
+    const texture = createCanvas(2, 2);
+    const context = texture.getContext("2d");
+    context.fillStyle = "#ff6633";
+    context.fillRect(0, 0, 2, 2);
+    const prepared = await normalizeGameModel3D(skinnedGlb(texture.toBuffer("image/png")), { assetId: "acceptance-rig", importSettings: { scale: 1.6, forward: "+z", origin: "centerGround" } });
     if (!prepared.ok) { throw new Error(prepared.diagnostics.map((entry) => entry.message).join("; ")); }
     document.assets.character = prepared.binding;
     const visual = document.scenes[0].entities.find((entity) => entity.id === "player-visual");
@@ -72,6 +77,7 @@ describe("offline 3D export", () => {
       const loaded: string[] = [];
       const pageErrors: string[] = [];
       page.on("pageerror", (error) => pageErrors.push(error.message));
+      page.on("console", (message) => { if (message.type() === "error") { pageErrors.push(message.text()); } });
       await page.route("**/*", (route) => {
         if (route.request().url().startsWith(`${origin}/`)) { loaded.push(route.request().url()); return route.continue(); }
         outside.push(route.request().url()); return route.abort();

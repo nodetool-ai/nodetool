@@ -8,6 +8,22 @@ import { captureGameFrame3D } from "../src/node3d.js";
 import { blockoutFrame, triangleGlb, skinnedGlb } from "./fixtures/game3d.js";
 
 describe("real Chromium 3D capture", () => {
+  it("renders embedded model textures in catalog captures", async () => {
+    const texture = createCanvas(2, 2);
+    const textureContext = texture.getContext("2d");
+    textureContext.fillStyle = "#ff2200";
+    textureContext.fillRect(0, 0, 2, 2);
+    const frame = blockoutFrame();
+    const pose = frame.entities[0].transform;
+    frame.entities = [{ entityId: "textured", transform: pose, previousTransform: pose,
+      model: { assetId: "model", castShadow: false, receiveShadow: false } }];
+    const capture = await captureGameFrame3D(frame, { resolveAsset: async () => skinnedGlb(texture.toBuffer("image/png")) });
+    const canvas = createCanvas(128, 128);
+    const context = canvas.getContext("2d");
+    context.drawImage(await loadImage(Buffer.from(capture.png)), 0, 0);
+    const pixel = context.getImageData(64, 64, 1, 1).data;
+    expect(pixel[0]).toBeGreaterThan(pixel[1] + 50);
+  }, 40_000);
   it("renders placeholder geometry and reports the backend and committed hash", async () => {
     const capture = await captureGameFrame3D(blockoutFrame(), { stateHash: "verified-tick-state" });
     expect(capture.stateHash).toBe("verified-tick-state");

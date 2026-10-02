@@ -86,9 +86,19 @@ async function start(): Promise<void> {
     if (input.handlesKey(game, event.code)) { event.preventDefault(); }
   }, { signal: controller.signal });
   window.addEventListener("keyup", (event) => { input.keyUp(event.code); }, { signal: controller.signal });
-  canvas.addEventListener("pointerdown", (event) => { dragging = true; canvas.setPointerCapture(event.pointerId); }, { signal: controller.signal });
-  canvas.addEventListener("pointerup", () => { dragging = false; }, { signal: controller.signal });
-  canvas.addEventListener("pointermove", (event) => { if (dragging) { input.look(event.movementX, event.movementY); } }, { signal: controller.signal });
+  const mouseFire = game.inputActions.includes("fire");
+  canvas.addEventListener("pointerdown", (event) => {
+    dragging = true;
+    canvas.setPointerCapture(event.pointerId);
+    input.keyDown(`Mouse${event.button}`);
+    if (mouseFire && document.pointerLockElement !== canvas) {
+      void canvas.requestPointerLock().catch(() => { status("Mouse capture unavailable. Hold and drag to aim, or press F to fire."); });
+    }
+  }, { signal: controller.signal });
+  window.addEventListener("pointerup", (event) => { dragging = false; input.keyUp(`Mouse${event.button}`); }, { signal: controller.signal });
+  canvas.addEventListener("pointercancel", release, { signal: controller.signal });
+  document.addEventListener("pointerlockchange", () => { if (document.pointerLockElement !== canvas) { release(); } }, { signal: controller.signal });
+  canvas.addEventListener("pointermove", (event) => { if (dragging || document.pointerLockElement === canvas) { input.look(event.movementX, event.movementY); } }, { signal: controller.signal });
   window.addEventListener("blur", release, { signal: controller.signal });
   const clock = new FixedTickClock(game.tickRate);
   let animationId = 0;
@@ -148,7 +158,7 @@ async function start(): Promise<void> {
     inspect: () => session.inspect()
   });
   // A static HTTP host is required for browser modules and WASM.
-  status("Ready. Move with WASD or arrows, jump with Space, drag to turn the camera.");
+  status(mouseFire ? "Ready. Click to capture the mouse and fire. WASD moves, F fires, Space jumps, Escape releases the mouse." : "Ready. Move with WASD or arrows, jump with Space, drag to turn the camera.");
   await render(1);
   animationId = requestAnimationFrame(tick);
 }

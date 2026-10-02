@@ -4,6 +4,23 @@ import { GameInput3D } from "../src/input3d.js";
 import { FixedTickClock } from "../src/fixed-tick-host.js";
 
 describe("shared browser tick host", () => {
+  it("samples mouse firing and its keyboard fallback only for games that declare fire", () => {
+    const input = new GameInput3D();
+    const document = createNative3DGame("shooter");
+    input.keyDown("Mouse0");
+    expect(input.sample(document).pressed).toEqual([]);
+    document.inputActions.push("fire");
+    input.release();
+    input.keyDown("Mouse0");
+    expect(input.sample(document)).toMatchObject({ pressed: ["fire"], justPressed: ["fire"] });
+    expect(input.sample(document)).toMatchObject({ pressed: ["fire"], justPressed: [] });
+    input.keyUp("Mouse0");
+    expect(input.sample(document).pressed).toEqual([]);
+    input.keyDown("KeyF");
+    expect(input.sample(document)).toMatchObject({ pressed: ["fire"], justPressed: ["fire"] });
+    input.release();
+    expect(input.sample(document).pressed).toEqual([]);
+  });
   it("consumes action edges and look once, retains held movement and releases on focus loss", () => {
     const input = new GameInput3D();
     const document = createNative3DGame("input");
