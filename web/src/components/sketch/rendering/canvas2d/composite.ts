@@ -6,6 +6,8 @@
  * transform / opacity / blend-mode handling.
  */
 
+import { getVectorSourceImage } from "../vectorSource";
+
 import type {
   SketchDocument,
   LayerEffect,
@@ -35,12 +37,13 @@ export type EvaluateLayerEffectsFn = (
  * from the layer transform. When a matrix is available it is used directly;
  * otherwise falls back to decomposed values.
  */
-function drawWithTransform(
+export function drawWithTransform(
   ctx: CanvasRenderingContext2D,
   source: HTMLCanvasElement,
   compositeOffset: { x: number; y: number },
-  layer: Pick<Layer, "transform">
+  layer: Pick<Layer, "transform" | "type">
 ): void {
+  const drawable = layer.type === "vector" ? getVectorSourceImage(source) ?? source : source;
   const t = layer.transform;
   switch (t.kind) {
     case "quad":
@@ -56,9 +59,17 @@ function drawWithTransform(
         ctx.translate(cx, cy);
         ctx.rotate(rot);
         ctx.scale(sx, sy);
-        ctx.drawImage(source, -source.width / 2, -source.height / 2);
+        if (drawable === source) {
+          ctx.drawImage(source, -source.width / 2, -source.height / 2);
+        } else {
+          ctx.drawImage(drawable, -source.width / 2, -source.height / 2, source.width, source.height);
+        }
       } else {
-        ctx.drawImage(source, compositeOffset.x, compositeOffset.y);
+        if (drawable === source) {
+          ctx.drawImage(source, compositeOffset.x, compositeOffset.y);
+        } else {
+          ctx.drawImage(drawable, compositeOffset.x, compositeOffset.y, source.width, source.height);
+        }
       }
       return;
     }

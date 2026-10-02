@@ -49,6 +49,7 @@ function restoreEntry(
     return;
   }
 
+  const vectorIds = new Set(entry.layerStructure.filter((layer) => layer.type === "vector").map((layer) => layer.id));
   const boundsByLayerId = new Map(
     entry.layerStructure.map((layer) => [layer.id, layer.contentBounds])
   );
@@ -59,7 +60,7 @@ function restoreEntry(
       if (currentData === data && !entry.layerCanvasSnapshots?.[layerId]) {
         continue;
       }
-      const canvasSnapshot = entry.layerCanvasSnapshots?.[layerId];
+      const canvasSnapshot = vectorIds.has(layerId) ? undefined : entry.layerCanvasSnapshots?.[layerId];
       if (canvasSnapshot) {
         canvas.restoreLayerCanvas(layerId, canvasSnapshot);
       } else {
@@ -71,7 +72,7 @@ function restoreEntry(
   }
 
   for (const [layerId, data] of Object.entries(entry.layerSnapshots)) {
-    const canvasSnapshot = entry.layerCanvasSnapshots?.[layerId];
+    const canvasSnapshot = vectorIds.has(layerId) ? undefined : entry.layerCanvasSnapshots?.[layerId];
     if (canvasSnapshot) {
       canvas.restoreLayerCanvas(layerId, canvasSnapshot);
     } else {

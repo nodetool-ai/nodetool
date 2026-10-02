@@ -9,6 +9,8 @@
  * directly via ref during the migration.
  */
 
+import { getVectorSourceImage, setVectorSource } from "./vectorSource";
+
 import type {
   SketchRuntime,
   ActiveStrokeInfo,
@@ -267,6 +269,7 @@ export class Canvas2DRuntime implements SketchRuntime {
     const snapshot = window.document.createElement("canvas");
     snapshot.width = source.width;
     snapshot.height = source.height;
+    setVectorSource(snapshot, getVectorSourceImage(source) ?? null);
     const rasterBounds = getCanvasRasterBounds(source);
     if (rasterBounds) {
       setCanvasRasterBounds(snapshot, rasterBounds);
@@ -330,6 +333,7 @@ export class Canvas2DRuntime implements SketchRuntime {
       } else {
         canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
       }
+      setVectorSource(canvas, null);
       setCanvasRasterBounds(canvas, decoded.bounds);
       onComplete?.();
       return;
@@ -364,6 +368,7 @@ export class Canvas2DRuntime implements SketchRuntime {
         canvas.getContext("2d")?.clearRect(0, 0, canvas.width, canvas.height);
       }
       setCanvasRasterBounds(canvas, decoded.bounds);
+      setVectorSource(canvas, source instanceof HTMLImageElement && decoded.image?.startsWith("data:image/svg+xml") ? source : null);
       const ctx = canvas.getContext("2d");
       if (ctx) {
         ctx.drawImage(source, 0, 0);
@@ -466,6 +471,7 @@ export class Canvas2DRuntime implements SketchRuntime {
       canvas.width = source.width;
       canvas.height = source.height;
     }
+    setVectorSource(canvas, getVectorSourceImage(source) ?? null);
     setCanvasRasterBounds(
       canvas,
       getCanvasRasterBounds(source) ?? {

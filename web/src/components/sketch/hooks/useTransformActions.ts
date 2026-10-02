@@ -234,7 +234,7 @@ export function useTransformActions({
       return false;
     }
     const activeLayer = document.layers.find((layer) => layer.id === activeLayerId);
-    if (!activeLayer) {
+    if (!activeLayer || activeLayer.type === "vector") {
       return false;
     }
     const originalSnapshot = canvas.snapshotLayerCanvas(activeLayerId);
@@ -292,6 +292,12 @@ export function useTransformActions({
         return false;
       }
 
+      if (activeLayer.type === "vector") {
+        if (record.selectionScoped) { return false; }
+        setLayerTransform(layerId, cloneTransform(record.transform));
+        syncSketchOutputsNow();
+        return true;
+      }
       const originalSnapshot = canvas.snapshotLayerCanvas(layerId);
       if (!originalSnapshot) {
         return false;
@@ -434,7 +440,7 @@ export function useTransformActions({
       };
       const idSet = new Set(ids);
       for (const lyr of document.layers) {
-        if (!idSet.has(lyr.id)) {
+        if (!idSet.has(lyr.id) || lyr.type === "vector") {
           continue;
         }
         const layerId = lyr.id;
@@ -455,6 +461,14 @@ export function useTransformActions({
     const activeLayerId = document.activeLayerId;
     const activeLayer = document.layers.find((l) => l.id === activeLayerId);
     if (!activeLayer) {
+      return;
+    }
+
+    if (activeLayer.type === "vector") {
+      pushHistory("transform vector", undefined, { restoreMode: "structure-only" });
+      storeLastCommittedTransform(activeLayer.transform, false);
+      transformOriginalRef.current = null;
+      syncSketchOutputsNow();
       return;
     }
 
@@ -594,7 +608,7 @@ export function useTransformActions({
   const bakeLayerTransformIntoDocumentSpace = useCallback(
     (layerId: string) => {
       const layer = document.layers.find((entry) => entry.id === layerId);
-      if (!layer || !canvasRef.current) {
+      if (!layer || layer.type === "vector" || !canvasRef.current) {
         return;
       }
 

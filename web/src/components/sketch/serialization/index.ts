@@ -5,6 +5,9 @@
  * as well as flattened image/mask export.
  */
 
+import { setVectorSource } from "../rendering/vectorSource";
+import { drawWithTransform } from "../rendering/canvas2d/composite";
+
 import {
   SketchDocument,
   Layer,
@@ -132,6 +135,9 @@ export function dataUrlToCanvas(
         return;
       }
       ctx.drawImage(img, 0, 0, width, height);
+      if (dataUrl.startsWith("data:image/svg+xml")) {
+        setVectorSource(canvas, img);
+      }
       resolve(canvas);
     };
     img.onerror = () => reject(new Error("Failed to load image data"));
@@ -195,7 +201,11 @@ async function drawLayerToContext(
   ctx.globalCompositeOperation = blendModeToComposite(layer.blendMode ?? "normal");
   const tx = isAffineTransform(layer.transform) ? layer.transform.x : 0;
   const ty = isAffineTransform(layer.transform) ? layer.transform.y : 0;
-  ctx.drawImage(layerCanvas, tx + bounds.x, ty + bounds.y);
+  if (layer.type === "vector") {
+    drawWithTransform(ctx, layerCanvas, { x: tx + bounds.x, y: ty + bounds.y }, layer);
+  } else {
+    ctx.drawImage(layerCanvas, tx + bounds.x, ty + bounds.y);
+  }
   ctx.restore();
 }
 

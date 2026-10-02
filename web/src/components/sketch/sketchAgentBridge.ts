@@ -28,7 +28,7 @@ export type SketchGenerateKind = "text-to-image" | "image-to-image";
 export interface SketchLayerNode {
   id: string;
   name: string;
-  type: "raster" | "mask" | "group";
+  type: "raster" | "mask" | "group" | "vector";
   visible: boolean;
   /** 0..1 layer opacity. */
   opacity: number;

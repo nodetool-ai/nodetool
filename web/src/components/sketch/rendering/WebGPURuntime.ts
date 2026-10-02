@@ -15,6 +15,8 @@
  * Readback (flatten / mask export) goes through Canvas2DRuntime helpers.
  */
 
+import { drawWithTransform } from "./canvas2d/composite";
+
 import { blendModeGpuId } from "@nodetool-ai/gpu";
 import {
   FULLSCREEN_QUAD_VERTEX,
@@ -37,7 +39,6 @@ import {
 import { Canvas2DRuntime } from "./Canvas2DRuntime";
 import { checkerboardDocumentCellPx } from "../drawingUtils";
 import { getLayerGeometry } from "../transform/geometry/layerGeometry";
-import { drawImageToQuad } from "./canvas2d/quadTransform";
 import {
   combineMasks,
   trimSelectionMask,
@@ -1363,19 +1364,16 @@ export class WebGPURuntime implements SketchRuntime {
       const finalOpacity = layer.opacity * opacityScale;
       const blendModeId = blendModeGpuId(layer.blendMode);
 
-      // Compute inverse affine transform: screen pixel → layer texel.
-      // Quad transforms aren't affine, so the shader can't sample them
-      // directly. Pre-rasterize the (FX-evaluated) layer canvas through
-      // Canvas2D's projective `drawImageToQuad` onto a doc-sized surface and
-      // composite it with identity affine.
+      // SVG geometry and non-affine transforms render into document space
+      // before the GPU blends them. Raster affine layers sample directly.
       let invAffine: InverseAffine;
-      if (layer.transform.kind === "affine") {
+      if (layer.transform.kind === "affine" && layer.type !== "vector") {
         invAffine = this.computeInverseAffine(layer, srcTex.width, srcTex.height);
       } else {
         const baked = fxSurface
-          ? this.bakeQuadLayerToDocCanvas(
+          ? this.bakeLayerToDocCanvas(
               layer.id,
-              layer.transform,
+              layer,
               fxSurface,
               fullW,
               fullH
@@ -1472,7 +1470,7 @@ export class WebGPURuntime implements SketchRuntime {
 
     const t = layer.transform;
     // Quad transforms are baked to a doc-sized texture upstream
-    // (see `bakeQuadLayerToDocCanvas`), so by the time we get here the layer
+    // (see `bakeLayerToDocCanvas`), so by the time we get here the layer
     // is sampled at identity. Defensive fallback for unexpected callers.
     if (t.kind !== "affine") {
       return {
@@ -1542,13 +1540,12 @@ export class WebGPURuntime implements SketchRuntime {
   }
 
   /**
-   * Rasterize a quad layer onto a doc-sized CPU canvas using the
-   * Canvas2D projective drawer. Returns null when the bake fails (no 2D
-   * context, zero-sized doc, etc.). The canvas is cached per layer.
+   * Render vector geometry or a quad transform onto a document-sized surface.
+   * Reuse the surface per layer for the GPU upload.
    */
-  private bakeQuadLayerToDocCanvas(
+  private bakeLayerToDocCanvas(
     layerId: string,
-    transform: Exclude<Layer["transform"], { kind: "affine" }>,
+    layer: Layer,
     source: HTMLCanvasElement,
     docW: number,
     docH: number
@@ -1572,7 +1569,10 @@ export class WebGPURuntime implements SketchRuntime {
     }
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, docW, docH);
-    drawImageToQuad(ctx, source, transform.quad);
+    drawWithTransform(ctx, source, {
+      x: layer.contentBounds.x + (layer.transform.kind === "affine" ? layer.transform.x : 0),
+      y: layer.contentBounds.y + (layer.transform.kind === "affine" ? layer.transform.y : 0)
+    }, layer);
     return bake;
   }
 

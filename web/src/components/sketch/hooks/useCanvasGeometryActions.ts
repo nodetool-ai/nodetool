@@ -39,6 +39,7 @@ import {
   resolveSketchPasteImageCanvas,
   writeImageCanvasToSystemClipboardPng
 } from "../sketchClipboard";
+import { notifyMutationError } from "../../../utils/notifyMutationError";
 import { resolveAssetUri } from "../../node/output/hooks";
 
 // ── Module-level helpers ────────────────────────────────────────────
@@ -284,7 +285,7 @@ export function useCanvasGeometryActions({
           width,
           height
         },
-        layers: state.document.layers.map((layer) => ({
+        layers: state.document.layers.map((layer) => layer.type === "vector" ? layer : ({
           ...layer,
           transform: { ...IDENTITY_AFFINE },
           contentBounds: {
@@ -304,6 +305,10 @@ export function useCanvasGeometryActions({
         document: nextDocument
       }));
       for (const layer of nextDocument.layers) {
+        if (layer.type === "vector") {
+          useSketchStore.getState().offsetLayerTransform(layer.id, -x, -y);
+          continue;
+        }
         const data = canvasRef.current.getLayerData(layer.id);
         updateLayerData(layer.id, data);
       }
@@ -318,7 +323,7 @@ export function useCanvasGeometryActions({
       return;
     }
     const layer = document.layers.find((entry) => entry.id === activeLayerId);
-    if (!layer) {
+    if (!layer || layer.type === "vector") {
       return;
     }
     const sel = useSketchStore.getState().selection;
@@ -799,6 +804,9 @@ export function useCanvasGeometryActions({
         return;
       }
 
+      if (liveDoc.layers.some((layer) => layer.id === layerId && layer.type === "vector")) {
+        return;
+      }
       const imageToPaste = await resolveSketchPasteImageCanvas({
         internalBuffer: clipboardCanvasRef.current,
         preferInternalClipboardFirst
@@ -943,6 +951,17 @@ export function useCanvasGeometryActions({
         return;
       }
 
+      if (file.type === "image/svg+xml" || file.name.toLowerCase().endsWith(".svg")) {
+        try {
+          useSketchStore.getState().addVectorLayer(file.name.replace(/\.svg$/i, ""), await file.text());
+        } catch (error) {
+          notifyMutationError("import the SVG layer", error);
+        }
+        return;
+      }
+      if (useSketchStore.getState().document.layers.find((layer) => layer.id === layerId)?.locked) {
+        return;
+      }
       const bitmap = await createImageBitmap(file);
       const tmp = window.document.createElement("canvas");
       tmp.width = bitmap.width;
@@ -1034,6 +1053,9 @@ export function useCanvasGeometryActions({
       if (!layerId) {
         return;
       }
+      if (useSketchStore.getState().document.layers.some((layer) => layer.id === layerId && layer.type === "vector")) {
+        return;
+      }
       const allZero =
         brightness === 0 && contrast === 0 && saturation === 0;
       if (allZero) {
@@ -1102,6 +1124,9 @@ export function useCanvasGeometryActions({
     }
     const layerId = document.activeLayerId;
     if (!layerId) {
+      return;
+    }
+    if (useSketchStore.getState().document.layers.some((layer) => layer.id === layerId && layer.type === "vector")) {
       return;
     }
     const sel = useSketchStore.getState().selection;

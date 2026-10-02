@@ -323,7 +323,7 @@ export class MoveTool implements ToolHandler {
         const layer = doc.layers[i];
         const skipForHit =
           !isLayerCompositeVisible(doc.layers, layer, isolatedLayerId) ||
-          (layer.locked && !layer.imageReference);
+          (layer.locked && !layerAllowsTransformWhilePixelLocked(layer));
         if (skipForHit) {
           continue;
         }

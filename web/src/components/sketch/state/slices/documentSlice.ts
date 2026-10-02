@@ -2,6 +2,8 @@
  * Document Slice — document state, layer CRUD, group actions, canvas operations.
  */
 
+import { createVectorLayer } from "../../vectorLayer";
+
 import type { StateCreator } from "zustand";
 import type { SketchStore } from "../useSketchStore";
 import type { SketchSetup } from "@nodetool-ai/protocol/api-schemas/sketch.js";
@@ -157,6 +159,9 @@ export interface DocumentSlice {
   setSetup: (patch: Partial<SketchSetup>) => void;
 
   // Layer actions
+  addVectorLayer: (name: string, source: string) => string;
+  setVectorLayerSource: (layerId: string, source: string) => void;
+  rasterizeVectorLayer: (layerId: string, data: string, expectedSource: string | null) => void;
   setActiveLayer: (layerId: string) => void;
   addLayer: (name?: string, type?: "raster" | "mask") => string;
   removeLayer: (layerId: string) => void;
@@ -218,6 +223,54 @@ export const createDocumentSlice: StateCreator<
       layerShiftRangeAnchorId: null,
       transientMoveModifierHeld: false
     });
+  },
+
+  addVectorLayer: (name, source) => {
+    const layer = createVectorLayer(name, source);
+    get().pushHistory("before import SVG");
+    set((state) => ({
+      document: withUpdatedDocumentTimestamp({
+        ...state.document,
+        layers: [...state.document.layers, layer],
+        activeLayerId: layer.id
+      }),
+      selectedLayerIds: [],
+      activeTool: "move"
+    }));
+    return layer.id;
+  },
+
+  setVectorLayerSource: (layerId, source) => {
+    const current = get().document.layers.find((layer) => layer.id === layerId);
+    if (current?.type !== "vector") {
+      return;
+    }
+    const replacement = createVectorLayer(current.name, source);
+    get().pushHistory("edit SVG");
+    set((state) => ({
+      document: withUpdatedDocumentTimestamp({
+        ...state.document,
+        layers: state.document.layers.map((layer) => layer.id === layerId
+          ? { ...layer, data: replacement.data, contentBounds: replacement.contentBounds }
+          : layer)
+      })
+    }));
+  },
+
+  rasterizeVectorLayer: (layerId, data, expectedSource) => {
+    const current = get().document.layers.find((layer) => layer.id === layerId);
+    if (current?.type !== "vector" || current.data !== expectedSource) {
+      throw new Error("The vector layer changed. Try rasterizing it again.");
+    }
+    get().pushHistory("rasterize SVG");
+    set((state) => ({
+      document: withUpdatedDocumentTimestamp({
+        ...state.document,
+        layers: state.document.layers.map((layer) => layer.id === layerId
+          ? { ...layer, type: "raster" as const, locked: false, data }
+          : layer)
+      })
+    }));
   },
 
   setSetup: (patch: Partial<SketchSetup>) =>
@@ -357,7 +410,7 @@ export const createDocumentSlice: StateCreator<
         ...layer,
         id: generateLayerId(),
         name: copyName,
-        locked: false,
+        locked: layer.type === "vector",
         exposedAsInput: true,
         exposedAsOutput: true,
         imageReference: undefined
@@ -450,7 +503,7 @@ export const createDocumentSlice: StateCreator<
       document: {
         ...state.document,
         layers: state.document.layers.map((l) =>
-          l.id === layerId ? { ...l, data } : l
+          l.id === layerId && l.type !== "vector" ? { ...l, data } : l
         ),
         metadata: {
           ...state.document.metadata,
@@ -498,6 +551,9 @@ export const createDocumentSlice: StateCreator<
 
   setMaskLayer: (layerId: string | null) =>
     set((state) => {
+      if (state.document.layers.some((layer) => layer.id === layerId && layer.type === "vector")) {
+        return state;
+      }
       const layers = state.document.layers.map((l) => {
         if (l.id === layerId) {
           return { ...l, type: "mask" as const };
@@ -839,7 +895,7 @@ export const createDocumentSlice: StateCreator<
       document: withUpdatedDocumentTimestamp({
         ...state.document,
         layers: state.document.layers.map((layer) =>
-          layer.type === "raster" || layer.type === "mask"
+          layer.type === "raster" || layer.type === "mask" || layer.type === "vector"
             ? { ...layer, transform: offsetTransform(layer.transform, dx, dy) }
             : layer
         )
