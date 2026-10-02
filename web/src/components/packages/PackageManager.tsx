@@ -238,16 +238,20 @@ function PackageManager() {
       <FlexColumn sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>
         <FlexColumn
           gap={0}
-          sx={{ flexShrink: 0, pt: 2.75, px: { xs: 1.75, sm: 3.75 } }}
+          sx={{
+            flexShrink: 0,
+            pt: SPACING.lg,
+            px: { xs: SPACING.md, sm: SPACING.xl }
+          }}
         >
           {model.isSoftware && (
             <FlexRow
-              gap={1.75}
+              gap={SPACING.md}
               align="center"
               sx={(theme) => ({
-                mb: 2.5,
-                px: 1.875,
-                py: 1.375,
+                mb: SPACING.lg,
+                px: SPACING.md,
+                py: SPACING.sm,
                 borderRadius: BORDER_RADIUS.xl,
                 border: `1px solid ${theme.vars.palette.divider}`,
                 backgroundColor: theme.vars.palette.background.paper
@@ -277,8 +281,8 @@ function PackageManager() {
           )}
 
           <FlexRow gap={2} align="flex-start">
-            <FlexColumn gap={0.75} sx={{ flex: 1, minWidth: 0 }}>
-              <FlexRow gap={1.25} align="center">
+            <FlexColumn gap={SPACING.xs} sx={{ flex: 1, minWidth: 0 }}>
+              <FlexRow gap={SPACING.sm} align="center">
                 <Text size="big" weight={600}>
                   {model.title}
                 </Text>
@@ -329,7 +333,7 @@ function PackageManager() {
           </FlexRow>
 
           {showChips && (
-            <FlexRow gap={1} sx={{ flexWrap: "wrap", mt: 2.25 }}>
+            <FlexRow gap={1} sx={{ flexWrap: "wrap", mt: SPACING.md }}>
               {model.chips.map((chip) => (
                 <Chip
                   key={chip.id}
@@ -354,7 +358,14 @@ function PackageManager() {
 
         <FlexColumn
           gap={2}
-          sx={{ flex: 1, minHeight: 0, overflowY: "auto", pt: 2, px: 3.75, pb: 4 }}
+          sx={{
+            flex: 1,
+            minHeight: 0,
+            overflowY: "auto",
+            pt: 2,
+            px: SPACING.xl,
+            pb: 4
+          }}
         >
           {model.error && (
             <AlertBanner severity="error" compact>
@@ -367,7 +378,7 @@ function PackageManager() {
           ) : model.isThirdParty ? (
             <PackagesMenu />
           ) : model.rows.length > 0 ? (
-            <FlexColumn gap={1.75}>
+            <FlexColumn gap={SPACING.md}>
               {model.rows.map((row) => (
                 <PackageRowItem key={row.key} row={row} />
               ))}
