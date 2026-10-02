@@ -12,7 +12,7 @@ import { useTheme } from "@mui/material/styles";
 import useMediaQuery from "@mui/material/useMediaQuery";
 import AddIcon from "@mui/icons-material/Add";
 
-import { FlexRow, LoadingSpinner, Text } from "../../ui_primitives";
+import { FlexRow, LoadingSpinner, Text, SPACING } from "../../ui_primitives";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import useMediaGenerationStore, {
   resolveImageSize
@@ -67,7 +67,7 @@ interface MediaChatComposerProps {
     content: MessageContent[],
     prompt: string,
     mediaGeneration?: MediaGenerationRequest
-  ) => void;
+  ) => void | boolean | Promise<void | boolean>;
   onStop?: () => void;
   disabled?: boolean;
   selectedModel?: LanguageModel;
@@ -200,7 +200,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   }, []);
 
   // File handling (input images for image-to-image / motion-control later)
-  const { droppedFiles, removeFile, clearFiles, getFileContents, addDroppedFiles } =
+  const { droppedFiles, removeFile, getFileContents, addDroppedFiles } =
     useFileHandling();
 
   // Every local file — picked, dropped, or pasted — goes to the asset library
@@ -439,7 +439,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       isLoading,
       isStreaming,
       onSendMessage: (content, promptText) => {
-        onSendMessage(content, promptText, buildMediaGeneration());
+        return onSendMessage(content, promptText, buildMediaGeneration());
       },
       onStop,
       textareaRef
@@ -560,7 +560,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   const canGenerate = prompt.trim().length > 0 || droppedFiles.length > 0;
 
   const submitPrompt = useCallback(
-    (text: string) => {
+    async (text: string) => {
       if (text.trim().length === 0 && droppedFiles.length === 0) {
         return;
       }
@@ -584,17 +584,17 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       const fullContent = [...content, ...fileContents];
       // Only clear the input when the message was actually sent or queued; a
       // dropped message (one already queued) keeps its text and attachments.
-      if (sendMessage(fullContent, text)) {
+      if (await sendMessage(fullContent, text)) {
         recordHistory(text);
-        setPrompt("");
-        clearFiles();
+        setPrompt((current) => current === text ? "" : current);
+        droppedFiles.forEach((file) => removeFile(file.id));
       }
     },
     [
       droppedFiles,
       getFileContents,
       sendMessage,
-      clearFiles,
+      removeFile,
       recordHistory,
       providerSetup,
       needsModel,
@@ -769,14 +769,14 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
         {queuedMessage && (
           <FlexRow
-            gap={0.5}
+            gap={SPACING.micro}
             align="center"
-            sx={{ px: 1, color: "text.secondary" }}
+            sx={{ px: SPACING.xs, color: "text.secondary" }}
           >
             <Text size="small" color="secondary">
               Message queued - {queuedMessage.prompt.slice(0, 60)}
             </Text>
-            {onStop && (
+            {(onStop || (!isLoading && !isStreaming)) && (
               <Text
                 size="small"
                 component="button"
@@ -799,7 +799,7 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
               component="button"
               type="button"
               sx={{
-                ml: onStop ? 0 : "auto",
+                ml: 0,
                 background: "none",
                 border: "none",
                 padding: 0,

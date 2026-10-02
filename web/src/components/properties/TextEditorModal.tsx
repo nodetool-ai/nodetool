@@ -37,6 +37,7 @@ import isEqual from "../../utils/isEqual";
 
 import { TOOLTIP_ENTER_DELAY } from "../../config/constants";
 import { useGlobalCombo } from "../../stores/KeyPressedStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 
 import { CopyButton } from "../ui_primitives";
 import { useTheme } from "@mui/material/styles";
@@ -1022,6 +1023,8 @@ const TextEditorModal = ({
     debouncedExternalOnChange(original);
   }, [debouncedExternalOnChange, monacoRef]);
 
+  const addNotification = useNotificationStore((state) => state.addNotification);
+
   const handleQuickStart = useCallback(
     (prompt: string) => {
       const message: Message = {
@@ -1032,9 +1035,17 @@ const TextEditorModal = ({
         provider: selectedModel?.provider,
         model: selectedModel?.id
       };
-      void sendMessage(message);
+      void sendMessage(message).catch((error: unknown) => {
+        addNotification({
+          type: "error",
+          alert: true,
+          content: `Could not send the message: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        });
+      });
     },
-    [sendMessage, selectedModel]
+    [sendMessage, selectedModel, addNotification]
   );
 
   // Find/format dispatch to the active editor.

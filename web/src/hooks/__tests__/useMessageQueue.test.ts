@@ -211,7 +211,7 @@ describe("useMessageQueue", () => {
   });
 
   describe("automatic queue sending", () => {
-    it("sends queued message when loading stops", () => {
+    it("sends queued message when loading stops", async () => {
       const { result, rerender } = renderHook(
         ({ isLoading, isStreaming }) =>
           useMessageQueue({
@@ -233,13 +233,13 @@ describe("useMessageQueue", () => {
       expect(mockOnSendMessage).not.toHaveBeenCalled();
 
       // Stop loading
-      rerender({ isLoading: false, isStreaming: false });
+      await act(async () => rerender({ isLoading: false, isStreaming: false }));
 
       expect(mockOnSendMessage).toHaveBeenCalledWith(content, "test message");
       expect(result.current.queuedMessage).toBeNull();
     });
 
-    it("sends queued message when streaming stops", () => {
+    it("sends queued message when streaming stops", async () => {
       const { result, rerender } = renderHook(
         ({ isLoading, isStreaming }) =>
           useMessageQueue({
@@ -261,13 +261,13 @@ describe("useMessageQueue", () => {
       expect(mockOnSendMessage).not.toHaveBeenCalled();
 
       // Stop streaming
-      rerender({ isLoading: false, isStreaming: false });
+      await act(async () => rerender({ isLoading: false, isStreaming: false }));
 
       expect(mockOnSendMessage).toHaveBeenCalledWith(content, "test message");
       expect(result.current.queuedMessage).toBeNull();
     });
 
-    it("waits until both loading and streaming stop", () => {
+    it("waits until both loading and streaming stop", async () => {
       const { result, rerender } = renderHook(
         ({ isLoading, isStreaming }) =>
           useMessageQueue({
@@ -291,9 +291,31 @@ describe("useMessageQueue", () => {
       expect(mockOnSendMessage).not.toHaveBeenCalled();
 
       // Stop streaming
-      rerender({ isLoading: false, isStreaming: false });
+      await act(async () => rerender({ isLoading: false, isStreaming: false }));
       expect(mockOnSendMessage).toHaveBeenCalledWith(content, "test message");
     });
+  });
+
+  it("retains a failed queued turn with attachments until explicit retry succeeds", async () => {
+    const content: MessageContent[] = [
+      { type: "text", text: "queued prompt" },
+      { type: "image_url", image: { type: "image", uri: "asset://attachment" } }
+    ];
+    const onSendMessage = jest.fn().mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce(true);
+    const { result, rerender } = renderHook(({ isLoading }) =>
+      useMessageQueue({ isLoading, isStreaming: false, onSendMessage }),
+      { initialProps: { isLoading: true } }
+    );
+    await act(async () => {
+      await result.current.sendMessage(content, "queued prompt");
+    });
+    await act(async () => rerender({ isLoading: false }));
+    expect(result.current.queuedMessage).toEqual({ content, prompt: "queued prompt" });
+    expect(onSendMessage).toHaveBeenCalledTimes(1);
+    await act(async () => result.current.sendQueuedNow());
+    expect(onSendMessage).toHaveBeenLastCalledWith(content, "queued prompt");
+    expect(result.current.queuedMessage).toBeNull();
   });
 
   describe("cancelQueued", () => {
@@ -341,7 +363,7 @@ describe("useMessageQueue", () => {
   });
 
   describe("sendQueuedNow", () => {
-    it("sends queued message immediately and calls onStop", () => {
+    it("sends queued message immediately and calls onStop", async () => {
       const { result } = renderHook(
         ({ isLoading, isStreaming }) =>
           useMessageQueue({
@@ -361,7 +383,7 @@ describe("useMessageQueue", () => {
         result.current.sendMessage(content, "test message");
       });
 
-      act(() => {
+      await act(async () => {
         result.current.sendQueuedNow();
       });
 

@@ -278,6 +278,13 @@ const ChatView = ({
     (state) => state.addNotification
   );
 
+  const effectiveThreadId = useGlobalChatStore(
+    (state) => threadId ?? state.currentThreadId
+  );
+  const [failedSubmission, setFailedSubmission] = useState<{
+    threadId: string | null;
+  } | null>(null);
+
   const handleSendMessage = useCallback(
     async (
       content: MessageContent[],
@@ -286,7 +293,10 @@ const ChatView = ({
     ) => {
       try {
         await sendMessage(buildOutgoing(content, mediaGeneration));
+        setFailedSubmission(null);
+        return true;
       } catch (error) {
+        setFailedSubmission({ threadId: effectiveThreadId });
         console.error("Error sending message:", error);
         addNotification({
           type: "error",
@@ -294,18 +304,16 @@ const ChatView = ({
             error instanceof Error ? error.message : String(error)
           }`
         });
+        return false;
       }
     },
-    [sendMessage, buildOutgoing, addNotification]
+    [sendMessage, buildOutgoing, addNotification, effectiveThreadId]
   );
 
   const todos = useGlobalChatStore((state) => {
     const id = threadId ?? state.currentThreadId;
     return (id && state.todosByThread[id]) || NO_TODOS;
   });
-  const effectiveThreadId = useGlobalChatStore(
-    (state) => threadId ?? state.currentThreadId
-  );
   // The thread's own error, plus the top-level one when this surface renders
   // the current thread — a protocol error that arrives without a thread id
   // lands there and nowhere else.
@@ -448,7 +456,7 @@ const ChatView = ({
       <div className="chat-main">
         {((!isMobile && messages.length > 0) ||
           (showNewChatButton && onNewChat)) && (
-          <FlexRow className="chat-overlay-actions" align="center" gap={2}>
+          <FlexRow className="chat-overlay-actions" align="center" gap={SPACING.md}>
             {!isMobile && messages.length > 0 && (
               <ToolbarIconButton
                 onClick={handleCopyConversation}
@@ -531,7 +539,7 @@ const ChatView = ({
             <ChatErrorBanner
               error={chatError}
               onDismiss={handleDismissError}
-              onRetry={!isBusy && lastUserMessage ? handleRetry : undefined}
+              onRetry={!isBusy && failedSubmission?.threadId !== effectiveThreadId && lastUserMessage ? handleRetry : undefined}
             />
           </FlexColumn>
         )}

@@ -3,6 +3,7 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo, useMemo } from "react";
+import { CONTROL } from "../../ui_primitives";
 import MediaChatComposer from "../composer/MediaChatComposer";
 import { LanguageModel, MessageContent } from "../../../stores/ApiTypes";
 import { CHAT_COLUMN_MAX_WIDTH, type ChatStatus } from "../types/chat.types";
@@ -27,7 +28,7 @@ const styles = (_theme: Theme) =>
       flex: 1,
       minWidth: 0,
       width: "100%",
-      minHeight: "44px",
+      minHeight: CONTROL.height.xl,
       display: "flex",
       flexDirection: "column"
     }
@@ -39,7 +40,7 @@ type ChatInputSectionProps = {
     content: MessageContent[],
     prompt: string,
     mediaGeneration?: MediaGenerationRequest
-  ) => Promise<void> | void;
+  ) => Promise<void | boolean> | void | boolean;
   onStop?: () => void;
   selectedModel?: LanguageModel;
   onModelChange?: (model: LanguageModel) => void;

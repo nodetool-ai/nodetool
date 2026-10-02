@@ -375,11 +375,11 @@ describe("GlobalChatStore", () => {
       }
     } as any);
 
-    await store.getState().sendMessage({
+    await expect(store.getState().sendMessage({
       role: "user",
       type: "message",
       content: "hello"
-    } as Message);
+    } as Message)).rejects.toThrow("No model selected");
 
     expect(mockGlobalWebSocketManager.send).not.toHaveBeenCalled();
     expect(store.getState().error).toMatch(/No model selected/i);
@@ -1191,7 +1191,7 @@ describe("GlobalChatStore", () => {
       expect(Object.keys(store.getState().threads)).toHaveLength(1);
     });
 
-    it("sendMessage does nothing when socket is not connected", async () => {
+    it("sendMessage rejects when socket is not connected", async () => {
       store.getState().disconnect();
       mockGlobalWebSocketManager.disconnect();
       mockGlobalWebSocketManager.isConnectionOpen.mockReturnValue(false);
@@ -1210,7 +1210,7 @@ describe("GlobalChatStore", () => {
         content: "hello"
       } as Message;
 
-      await store.getState().sendMessage(message);
+      await expect(store.getState().sendMessage(message)).rejects.toThrow("Not connected");
       expect(store.getState().currentThreadId).toBeNull();
     });
 
@@ -1611,7 +1611,7 @@ describe("GlobalChatStore", () => {
         content: "hello"
       } as Message;
 
-      await store.getState().sendMessage(message);
+      await expect(store.getState().sendMessage(message)).rejects.toThrow("Connection timeout");
 
       expect(store.getState().error).toEqual(
         expect.stringContaining("Not connected to chat service")

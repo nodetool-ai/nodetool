@@ -203,6 +203,35 @@ describe("MediaChatComposer", () => {
     expect(promptBox().value).toBe("");
   });
 
+  it("keeps an unaccepted draft and prevents duplicate sends", async () => {
+    const user = userEvent.setup();
+    let accept: (accepted: boolean) => void = () => undefined;
+    const onSendMessage = jest.fn(() => new Promise<boolean>((resolve) => {
+      accept = resolve;
+    }));
+    renderComposer(onSendMessage);
+    await user.type(promptBox(), "keep this draft{Enter}");
+    expect(promptBox()).toHaveValue("keep this draft");
+    await user.keyboard("{Enter}");
+    expect(onSendMessage).toHaveBeenCalledTimes(1);
+    await act(async () => accept(false));
+    expect(promptBox()).toHaveValue("keep this draft");
+    await user.keyboard("{Enter}");
+    await act(async () => accept(true));
+    expect(promptBox()).toHaveValue("");
+  });
+
+  it("keeps edits made while a send is pending", async () => {
+    const user = userEvent.setup();
+    let accept: () => void = () => undefined;
+    renderComposer(jest.fn(() => new Promise<void>((resolve) => {
+      accept = resolve;
+    })));
+    await user.type(promptBox(), "first{Enter} plus edits");
+    await act(async () => accept());
+    expect(promptBox()).toHaveValue("first plus edits");
+  });
+
   it("keeps the prompt on Shift+Enter", async () => {
     const user = userEvent.setup();
     const onSendMessage = jest.fn();

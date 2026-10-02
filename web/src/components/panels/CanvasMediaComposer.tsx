@@ -106,7 +106,7 @@ const CanvasMediaComposer: React.FC<CanvasMediaComposerProps> = ({
         // The store still attaches the bound `workflow_id` as ambient context.
         media_generation: isMedia ? mediaGeneration : null
       } as ChatOutgoingMessage;
-      void sendMessage(outgoing);
+      return sendMessage(outgoing);
     },
     [selectedModel, sendMessage, nodeStore]
   );
