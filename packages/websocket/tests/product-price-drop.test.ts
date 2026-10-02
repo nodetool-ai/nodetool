@@ -235,7 +235,9 @@ it.runIf(process.env.RECIPE_LIVE_FINISH === "1")("finishes and renders a Price D
   recipe.operations[1].model = {provider: "claude_agent_sdk", id: "sonnet"};
   const bundle = compileSharedRecipeBundle(recipe, "Reviewed Price Drop", "Actual model finishing through normal Application operations.");
   const installed = await importApplicationBundle(USER, {bundle, projectId: null});
-  const doc = (await Application.findById(installed.id))!.toDocument() as ApplicationDocument;
+  const app = (await Application.findById(installed.id))!;
+  const doc = (await publishApplication(app)).document;
+  expect(doc.recipe).toEqual(recipe);
   for (const [id, name, contentType] of [[PRODUCT, "product.jpg", "image/jpeg"], [LOGO, "logo.svg", "image/svg+xml"]]) {
     await new Asset({id, user_id: USER, name, content_type: contentType}).save();
   }
@@ -321,4 +323,39 @@ it.runIf(process.env.RECIPE_LIVE_FINISH === "1")("finishes and renders a Price D
     await writeFile(`${proof}/agentic-probe.json`, JSON.stringify(probe, null, 2));
     for (const [name, seconds] of [["hook", "1.5"], ["cta", "4.5"]]) await promisify(execFile)("ffmpeg", ["-y", "-ss", seconds, "-i", outputPath, "-frames:v", "1", `${proof}/agentic-${name}.png`]);
   }
-}, 180_000);
+  const semanticKey = (clip: TimelineClip) => `${clip.storyboardShotId}/${clip.storyboardElementId}`;
+  const initialIdentities = new Map(layered.clips.map(clip => [semanticKey(clip), clip.id]));
+  expect(initialIdentities.size).toBe(layered.clips.length);
+  const productClip = layered.clips.find(clip => clip.currentAssetId === PRODUCT)!;
+  if (!productClip.transform) throw new Error("Expected editable product transform");
+  const manualX = productClip.transform.position.x + 12;
+  productClip.transform.position.x = manualX;
+  timeline.fromDocument({...timeline.toDocument(), clips: layered.clips});
+  await timeline.save();
+  values.newPrice = "€19";
+  await run("plan");
+  expect(values.timelineRevision).toBe(timeline.revision);
+  expect(values.approval).toBe("pending");
+  values.approval = "approved";
+  await run("finish");
+  expect(values.validation).toEqual([]);
+  expect(values.reviews).toEqual(expect.arrayContaining([expect.objectContaining({passed: true})]));
+  const rerun = (await TimelineSequence.findById(timeline.id))!.toTimelineSequence();
+  const rerunIdentities = new Map(rerun.clips.map(clip => [semanticKey(clip), clip.id]));
+  expect(rerunIdentities.size).toBe(rerun.clips.length);
+  for (const [identity, id] of initialIdentities) {
+    expect(rerunIdentities.get(identity)).toBe(id);
+  }
+  expect(rerun.clips.find(clip => clip.id === productClip.id)?.transform?.position.x).toBe(manualX);
+  expect(rerun.clips.some(clip => clip.mediaType === "text" && clip.textStyle?.text === "€19")).toBe(true);
+  expect(rerun.clips.some(clip => clip.mediaType === "text" && clip.textStyle?.text === "€29")).toBe(false);
+  expect(rerun.clips.filter(clip => clip.mediaType === "image").every(clip => clip.currentAssetId === PRODUCT || clip.currentAssetId === LOGO)).toBe(true);
+  for (const text of [values.headline, values.oldPrice, values.cta]) {
+    expect(rerun.clips.some(clip => clip.mediaType === "text" && clip.textStyle?.text === text)).toBe(true);
+  }
+  expect(generation).not.toHaveBeenCalled();
+  if (process.env.PRICE_DROP_PROOF_DIR) {
+    await writeFile(`${process.env.PRICE_DROP_PROOF_DIR}/agentic-rerun-timeline.json`, JSON.stringify(rerun, null, 2));
+    await writeFile(`${process.env.PRICE_DROP_PROOF_DIR}/agentic-rerun-review.json`, JSON.stringify(values.reviews, null, 2));
+  }
+}, 300_000);
