@@ -1,0 +1,786 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-10-02T19:38:54.484871+00:00",
+  "updated_at": "2026-10-02T19:38:54.484883+00:00",
+  "name": "Low-poly Seaside Starter Pack",
+  "tool_name": null,
+  "description": "Low-poly coastal models for games: boats, dock pieces, a lighthouse, a beach hut, fishing props and shore collectibles. Run to expose each GLB as a named output. No provider or API key required.",
+  "tags": [
+    "3d",
+    "game",
+    "low-poly",
+    "seaside",
+    "assets",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Low-poly Seaside Starter Pack\n\nLow-poly coastal models for games: boats, dock pieces, a lighthouse, a beach hut, fishing props and shore collectibles. Run to expose each GLB as a named output. No provider or API key required.\n\nModels use meters, Y up, forward -Z and bottom-level origins. Dock decks repeat on a 2 m grid with their top at Y 0.80 m. All models are static visuals. Add physics, buoyancy and gameplay in the game. Download a model output and upload it to your project before importing it into a 3D game."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -420
+          },
+          "width": 940,
+          "selectable": true,
+          "title": "Low-poly Seaside Starter Pack",
+          "height": 360
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "harbor-rowboat",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/harbor-rowboat.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Harbor rowboat"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "harbor-rowboat-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "harbor_rowboat"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Harbor rowboat output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "coastal-sailboat",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/coastal-sailboat.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Coastal sailboat"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "coastal-sailboat-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "coastal_sailboat"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Coastal sailboat output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dock-segment",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/dock-segment.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Dock segment"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dock-segment-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "dock_segment"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Dock segment output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dock-lookout",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/dock-lookout.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Dock lookout"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dock-lookout-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "dock_lookout"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Dock lookout output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "striped-lighthouse",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/striped-lighthouse.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Striped lighthouse"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "striped-lighthouse-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "striped_lighthouse"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Striped lighthouse output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "beach-hut",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/beach-hut.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Beach hut"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "beach-hut-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "beach_hut"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Beach hut output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "island-palm",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/island-palm.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Island palm"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "island-palm-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "island_palm"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Island palm output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "harbor-buoy",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/harbor-buoy.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Harbor buoy"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "harbor-buoy-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "harbor_buoy"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Harbor buoy output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "life-ring",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/life-ring.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Life ring"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "life-ring-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "life_ring"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Life ring output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "iron-anchor",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/iron-anchor.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Iron anchor"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "iron-anchor-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "iron_anchor"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Iron anchor output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "fish-crate",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/fish-crate.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Fish crate"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "fish-crate-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "fish_crate"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Fish crate output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "mooring-bollard",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/mooring-bollard.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Mooring bollard"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "mooring-bollard-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "mooring_bollard"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Mooring bollard output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tidepool-rocks",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/tidepool-rocks.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Tidepool rocks"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tidepool-rocks-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "tidepool_rocks"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Tidepool rocks output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "shore-crab",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/shore-crab.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Shore crab"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "shore-crab-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "shore_crab"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Shore crab output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "golden-starfish",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/golden-starfish.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Golden starfish"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "golden-starfish-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "golden_starfish"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Golden starfish output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "clam-shell",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/seaside/clam-shell.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Clam shell"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "clam-shell-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "clam_shell"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Clam shell output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "harbor-rowboat-edge",
+        "source": "harbor-rowboat",
+        "sourceHandle": "output",
+        "target": "harbor-rowboat-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "coastal-sailboat-edge",
+        "source": "coastal-sailboat",
+        "sourceHandle": "output",
+        "target": "coastal-sailboat-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "dock-segment-edge",
+        "source": "dock-segment",
+        "sourceHandle": "output",
+        "target": "dock-segment-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "dock-lookout-edge",
+        "source": "dock-lookout",
+        "sourceHandle": "output",
+        "target": "dock-lookout-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "striped-lighthouse-edge",
+        "source": "striped-lighthouse",
+        "sourceHandle": "output",
+        "target": "striped-lighthouse-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "beach-hut-edge",
+        "source": "beach-hut",
+        "sourceHandle": "output",
+        "target": "beach-hut-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "island-palm-edge",
+        "source": "island-palm",
+        "sourceHandle": "output",
+        "target": "island-palm-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "harbor-buoy-edge",
+        "source": "harbor-buoy",
+        "sourceHandle": "output",
+        "target": "harbor-buoy-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "life-ring-edge",
+        "source": "life-ring",
+        "sourceHandle": "output",
+        "target": "life-ring-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "iron-anchor-edge",
+        "source": "iron-anchor",
+        "sourceHandle": "output",
+        "target": "iron-anchor-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "fish-crate-edge",
+        "source": "fish-crate",
+        "sourceHandle": "output",
+        "target": "fish-crate-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "mooring-bollard-edge",
+        "source": "mooring-bollard",
+        "sourceHandle": "output",
+        "target": "mooring-bollard-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "tidepool-rocks-edge",
+        "source": "tidepool-rocks",
+        "sourceHandle": "output",
+        "target": "tidepool-rocks-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "shore-crab-edge",
+        "source": "shore-crab",
+        "sourceHandle": "output",
+        "target": "shore-crab-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "golden-starfish-edge",
+        "source": "golden-starfish",
+        "sourceHandle": "output",
+        "target": "golden-starfish-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "clam-shell-edge",
+        "source": "clam-shell",
+        "sourceHandle": "output",
+        "target": "clam-shell-out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

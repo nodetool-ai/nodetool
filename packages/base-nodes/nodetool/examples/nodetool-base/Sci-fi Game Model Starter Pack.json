@@ -1,0 +1,693 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-10-02T00:00:00.000Z",
+  "updated_at": "2026-10-02T00:00:00.000Z",
+  "name": "Sci-fi Game Model Starter Pack",
+  "tool_name": null,
+  "description": "Reusable sci-fi GLB models: a scout robot with an idle animation, a drone, cargo, crystals, and modular station pieces. Run to expose each model as a named output. No provider or API key required.",
+  "tags": [
+    "3d",
+    "game",
+    "sci-fi",
+    "assets",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Sci-fi Game Model Starter Pack\n\nReusable sci-fi GLB models: a scout robot with an idle animation, a drone, cargo, crystals, and modular station pieces. Run to expose each model as a named output. No provider or API key required.\n\nModels use meters, Y up, forward -Z, and ground-level origins. Station pieces use a 2 m grid. These are visual assets, so add gameplay colliders separately. Download a model from its preview and upload it to your project before importing it into a 3D game. Keep the model on a visual child of the physics root. The robot has an Idle clip, with no skeleton or locomotion clips."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -420
+          },
+          "width": 940,
+          "selectable": true,
+          "title": "Sci-fi Game Model Starter Pack",
+          "height": 360
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "scout-robot",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi/scout-robot.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Scout robot"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "scout-robot-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "scout_robot"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Scout robot output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "survey-drone",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi/survey-drone.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Survey drone"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "survey-drone-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "survey_drone"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Survey drone output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "cargo-crate",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi/cargo-crate.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Cargo crate"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "cargo-crate-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "cargo_crate"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Cargo crate output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "cargo-container",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi/cargo-container.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Cargo container"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "cargo-container-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "cargo_container"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Cargo container output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "power-cell",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi/power-cell.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Power cell"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "power-cell-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "power_cell"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Power cell output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "crystal-cluster",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi/crystal-cluster.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Crystal cluster"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "crystal-cluster-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "crystal_cluster"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Crystal cluster output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "crystal-shard",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi/crystal-shard.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Crystal shard"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "crystal-shard-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "crystal_shard"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Crystal shard output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "floor-tile",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi/floor-tile.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Floor tile"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "floor-tile-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "floor_tile"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Floor tile output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "wall-panel",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi/wall-panel.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Wall panel"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "wall-panel-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "wall_panel"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Wall panel output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "door-frame",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi/door-frame.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Door frame"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "door-frame-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "door_frame"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Door frame output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "support-column",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi/support-column.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Support column"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "support-column-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "support_column"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Support column output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ramp",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi/ramp.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Ramp"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ramp-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "ramp"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Ramp output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "terminal",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi/terminal.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Terminal"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "terminal-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "terminal"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Terminal output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "beacon",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi/beacon.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Beacon"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "beacon-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "beacon"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Beacon output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "scout-robot-edge",
+        "source": "scout-robot",
+        "sourceHandle": "output",
+        "target": "scout-robot-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "survey-drone-edge",
+        "source": "survey-drone",
+        "sourceHandle": "output",
+        "target": "survey-drone-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "cargo-crate-edge",
+        "source": "cargo-crate",
+        "sourceHandle": "output",
+        "target": "cargo-crate-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "cargo-container-edge",
+        "source": "cargo-container",
+        "sourceHandle": "output",
+        "target": "cargo-container-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "power-cell-edge",
+        "source": "power-cell",
+        "sourceHandle": "output",
+        "target": "power-cell-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "crystal-cluster-edge",
+        "source": "crystal-cluster",
+        "sourceHandle": "output",
+        "target": "crystal-cluster-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "crystal-shard-edge",
+        "source": "crystal-shard",
+        "sourceHandle": "output",
+        "target": "crystal-shard-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "floor-tile-edge",
+        "source": "floor-tile",
+        "sourceHandle": "output",
+        "target": "floor-tile-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "wall-panel-edge",
+        "source": "wall-panel",
+        "sourceHandle": "output",
+        "target": "wall-panel-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "door-frame-edge",
+        "source": "door-frame",
+        "sourceHandle": "output",
+        "target": "door-frame-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "support-column-edge",
+        "source": "support-column",
+        "sourceHandle": "output",
+        "target": "support-column-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "ramp-edge",
+        "source": "ramp",
+        "sourceHandle": "output",
+        "target": "ramp-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "terminal-edge",
+        "source": "terminal",
+        "sourceHandle": "output",
+        "target": "terminal-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "beacon-edge",
+        "source": "beacon",
+        "sourceHandle": "output",
+        "target": "beacon-out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

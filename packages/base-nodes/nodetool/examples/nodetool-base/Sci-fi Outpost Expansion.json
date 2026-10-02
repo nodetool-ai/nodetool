@@ -1,0 +1,601 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-10-02T00:00:00.000Z",
+  "updated_at": "2026-10-02T00:00:00.000Z",
+  "name": "Sci-fi Outpost Expansion",
+  "tool_name": null,
+  "description": "A matching sci-fi model pack with a rover, sentry turret, reactor, satellite dish, airlock and station props. Run to expose each GLB as a named output. No provider or API key required.",
+  "tags": [
+    "3d",
+    "game",
+    "sci-fi",
+    "assets",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Sci-fi Outpost Expansion\n\nA matching sci-fi model pack with a rover, sentry turret, reactor, satellite dish, airlock and station props. Run to expose each GLB as a named output. No provider or API key required.\n\nUse these alongside Sci-fi Game Model Starter Pack. Models use meters, Y up, forward -Z, ground-level origins and a 2 m station grid. These are static visuals. Add physics, interactions and vehicle behavior in the game. Download a model output and upload it to your project before importing it into a 3D game."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -420
+          },
+          "width": 940,
+          "selectable": true,
+          "title": "Sci-fi Outpost Expansion",
+          "height": 360
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "exploration-rover",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi-expansion/exploration-rover.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Exploration rover"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "exploration-rover-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "exploration_rover"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Exploration rover output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sentry-turret",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi-expansion/sentry-turret.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Sentry turret"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "sentry-turret-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "sentry_turret"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Sentry turret output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "reactor",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi-expansion/reactor.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Reactor"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "reactor-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "reactor"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Reactor output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "satellite-dish",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi-expansion/satellite-dish.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Satellite dish"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "satellite-dish-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "satellite_dish"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Satellite dish output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "airlock-door",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi-expansion/airlock-door.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Airlock door"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "airlock-door-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "airlock_door"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Airlock door output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "window-wall",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi-expansion/window-wall.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Window wall"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "window-wall-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "window_wall"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Window wall output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "bridge-segment",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi-expansion/bridge-segment.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Bridge segment"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "bridge-segment-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "bridge_segment"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Bridge segment output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "energy-gate",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi-expansion/energy-gate.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Energy gate"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "energy-gate-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "energy_gate"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Energy gate output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "landing-pad",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi-expansion/landing-pad.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Landing pad"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "landing-pad-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "landing_pad"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Landing pad output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "storage-barrel",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi-expansion/storage-barrel.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Storage barrel"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "storage-barrel-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "storage_barrel"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Storage barrel output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "repair-station",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi-expansion/repair-station.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Repair station"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "repair-station-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "repair_station"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Repair station output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "navigation-marker",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/scifi-expansion/navigation-marker.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Navigation marker"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "navigation-marker-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "navigation_marker"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Navigation marker output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "exploration-rover-edge",
+        "source": "exploration-rover",
+        "sourceHandle": "output",
+        "target": "exploration-rover-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "sentry-turret-edge",
+        "source": "sentry-turret",
+        "sourceHandle": "output",
+        "target": "sentry-turret-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "reactor-edge",
+        "source": "reactor",
+        "sourceHandle": "output",
+        "target": "reactor-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "satellite-dish-edge",
+        "source": "satellite-dish",
+        "sourceHandle": "output",
+        "target": "satellite-dish-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "airlock-door-edge",
+        "source": "airlock-door",
+        "sourceHandle": "output",
+        "target": "airlock-door-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "window-wall-edge",
+        "source": "window-wall",
+        "sourceHandle": "output",
+        "target": "window-wall-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "bridge-segment-edge",
+        "source": "bridge-segment",
+        "sourceHandle": "output",
+        "target": "bridge-segment-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "energy-gate-edge",
+        "source": "energy-gate",
+        "sourceHandle": "output",
+        "target": "energy-gate-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "landing-pad-edge",
+        "source": "landing-pad",
+        "sourceHandle": "output",
+        "target": "landing-pad-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "storage-barrel-edge",
+        "source": "storage-barrel",
+        "sourceHandle": "output",
+        "target": "storage-barrel-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "repair-station-edge",
+        "source": "repair-station",
+        "sourceHandle": "output",
+        "target": "repair-station-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "navigation-marker-edge",
+        "source": "navigation-marker",
+        "sourceHandle": "output",
+        "target": "navigation-marker-out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

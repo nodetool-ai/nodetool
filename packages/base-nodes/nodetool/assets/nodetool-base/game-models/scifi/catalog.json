@@ -1,0 +1,349 @@
+{
+  "name": "Sci-fi Game Model Starter Pack",
+  "format": "glTF 2.0 binary",
+  "units": "meters",
+  "up": "+Y",
+  "forward": "-Z",
+  "origin": "ground center",
+  "gridMeters": 2,
+  "models": [
+    {
+      "slug": "scout-robot",
+      "name": "Scout robot",
+      "file": "scout-robot.glb",
+      "uri": "package://nodetool-base/game-models/scifi/scout-robot.glb",
+      "sha256": "7fbe1b7c8c741e9c2d8b08dfb07a19b070b9a8f450256759189feb97180347a7",
+      "bytes": 154964,
+      "triangles": 2020,
+      "bounds": {
+        "min": [
+          -0.5600000014901161,
+          -3.5762786898541066e-9,
+          -0.309999994635582
+        ],
+        "max": [
+          0.5600000014901161,
+          1.956785794198513,
+          0.22499999403953552
+        ]
+      },
+      "clips": [
+        "Idle"
+      ],
+      "use": "Player or friendly NPC visual. Idle rotates the head.",
+      "collider": "Capsule on a separate gameplay root."
+    },
+    {
+      "slug": "survey-drone",
+      "name": "Survey drone",
+      "file": "survey-drone.glb",
+      "uri": "package://nodetool-base/game-models/scifi/survey-drone.glb",
+      "sha256": "16cb8a4259d9fae21f43e68c09011c5399c3d571041bc26e8f1ff557c366c011",
+      "bytes": 90732,
+      "triangles": 1228,
+      "bounds": {
+        "min": [
+          -0.759999994635582,
+          1.341104505225843e-9,
+          -0.3809999997764826
+        ],
+        "max": [
+          0.759999994635582,
+          0.8400000071525574,
+          0.32499998807907104
+        ]
+      },
+      "clips": [],
+      "use": "Hovering NPC or pickup carrier.",
+      "collider": "Box or sphere on a gameplay root."
+    },
+    {
+      "slug": "cargo-crate",
+      "name": "Cargo crate",
+      "file": "cargo-crate.glb",
+      "uri": "package://nodetool-base/game-models/scifi/cargo-crate.glb",
+      "sha256": "817e9fcf2c273c4d1286218b7989ddcdc183c458200b50e7373e06243f8b93af",
+      "bytes": 84928,
+      "triangles": 1080,
+      "bounds": {
+        "min": [
+          -0.5199999809265137,
+          0,
+          -0.5599999995529652
+        ],
+        "max": [
+          0.5199999809265137,
+          1.000000000745058,
+          0.5199999809265137
+        ]
+      },
+      "clips": [],
+      "use": "Stackable movable prop.",
+      "collider": "Box, half extents [0.52, 0.50, 0.55], center Y 0.50."
+    },
+    {
+      "slug": "cargo-container",
+      "name": "Cargo container",
+      "file": "cargo-container.glb",
+      "uri": "package://nodetool-base/game-models/scifi/cargo-container.glb",
+      "sha256": "0b2200cd29e5249bad4eb824ba9684d025f165708f20e76e2e9173b3384f7910",
+      "bytes": 118416,
+      "triangles": 1512,
+      "bounds": {
+        "min": [
+          -1.0399999986588955,
+          0,
+          -0.9299999993294478
+        ],
+        "max": [
+          1.0399999986588955,
+          2,
+          0.8399999986588955
+        ]
+      },
+      "clips": [],
+      "use": "Large obstacle or cover.",
+      "collider": "Box, half extents [1.05, 1, 0.94], center Y 1."
+    },
+    {
+      "slug": "power-cell",
+      "name": "Power cell",
+      "file": "power-cell.glb",
+      "uri": "package://nodetool-base/game-models/scifi/power-cell.glb",
+      "sha256": "211da00b89f3bbdcb5853b3beacec1eabf06c2e61896089677c769188e90de26",
+      "bytes": 51584,
+      "triangles": 684,
+      "bounds": {
+        "min": [
+          -0.3499999940395355,
+          -3.5762786898541066e-9,
+          -0.3499999940395355
+        ],
+        "max": [
+          0.3499999940395355,
+          1.0650000017881394,
+          0.3499999940395355
+        ]
+      },
+      "clips": [],
+      "use": "Collectible energy or mission item.",
+      "collider": "Sensor sphere or box."
+    },
+    {
+      "slug": "crystal-cluster",
+      "name": "Crystal cluster",
+      "file": "crystal-cluster.glb",
+      "uri": "package://nodetool-base/game-models/scifi/crystal-cluster.glb",
+      "sha256": "5a16adc0e28a241fd75e4da02d8d4fe91fc444c075a235bba0f17e9ae2502fd7",
+      "bytes": 15988,
+      "triangles": 148,
+      "bounds": {
+        "min": [
+          -0.5362103581428528,
+          5.960464483090178e-10,
+          -0.4955328702926636
+        ],
+        "max": [
+          0.5362103581428528,
+          1.7499999959468842,
+          0.550000011920929
+        ]
+      },
+      "clips": [],
+      "use": "Resource deposit or environmental landmark.",
+      "collider": "Prepared convex hull or a broad box."
+    },
+    {
+      "slug": "crystal-shard",
+      "name": "Crystal shard",
+      "file": "crystal-shard.glb",
+      "uri": "package://nodetool-base/game-models/scifi/crystal-shard.glb",
+      "sha256": "9ac9b3337257054832457ddb8cacb3e8345b620f93cb76e36b3b3870a980e516",
+      "bytes": 4012,
+      "triangles": 30,
+      "bounds": {
+        "min": [
+          -0.17119017243385315,
+          -5.960464455334602e-9,
+          -0.14562305808067322
+        ],
+        "max": [
+          0.17119017243385315,
+          0.8500000059604644,
+          0.18000000715255737
+        ]
+      },
+      "clips": [],
+      "use": "Small collectible.",
+      "collider": "Sensor sphere."
+    },
+    {
+      "slug": "floor-tile",
+      "name": "Floor tile",
+      "file": "floor-tile.glb",
+      "uri": "package://nodetool-base/game-models/scifi/floor-tile.glb",
+      "sha256": "38a0b2382241f03e74589be42d0100f3733b26f6f9ba51265582a695149c37b0",
+      "bytes": 21868,
+      "triangles": 252,
+      "bounds": {
+        "min": [
+          -1,
+          1.7881393449270533e-9,
+          -1
+        ],
+        "max": [
+          1,
+          0.21200000005215405,
+          1
+        ]
+      },
+      "clips": [],
+      "use": "Repeat on a 2 m X/Z grid. Walkable deck is Y 0.212.",
+      "collider": "Static box."
+    },
+    {
+      "slug": "wall-panel",
+      "name": "Wall panel",
+      "file": "wall-panel.glb",
+      "uri": "package://nodetool-base/game-models/scifi/wall-panel.glb",
+      "sha256": "dfcbed30519240816b03ec2301e92789b53598698a7987e4bf4c09adc3c10544",
+      "bytes": 47184,
+      "triangles": 576,
+      "bounds": {
+        "min": [
+          -1,
+          0,
+          -0.18000000715255737
+        ],
+        "max": [
+          1,
+          3,
+          0.18000000715255737
+        ]
+      },
+      "clips": [],
+      "use": "2 m wall segment. Place on tile boundaries, raised to deck height.",
+      "collider": "Static box, half extents [1, 1.5, 0.18]."
+    },
+    {
+      "slug": "door-frame",
+      "name": "Door frame",
+      "file": "door-frame.glb",
+      "uri": "package://nodetool-base/game-models/scifi/door-frame.glb",
+      "sha256": "64ef41e506371f4c9feb99f4d3053d3ade88c56c133edd9b26c54f8236c86394",
+      "bytes": 37288,
+      "triangles": 456,
+      "bounds": {
+        "min": [
+          -1.0000000059604646,
+          0,
+          -0.2875000000745058
+        ],
+        "max": [
+          1.0000000059604646,
+          3,
+          0.25
+        ]
+      },
+      "clips": [],
+      "use": "Open passage, 1.4 m clear width and 2.65 m clear height.",
+      "collider": "Three static boxes. Keep the opening clear."
+    },
+    {
+      "slug": "support-column",
+      "name": "Support column",
+      "file": "support-column.glb",
+      "uri": "package://nodetool-base/game-models/scifi/support-column.glb",
+      "sha256": "9fe3636d7162411334ddef0df6b4db688ecf1009679cc00a752fb1d360f6bf74",
+      "bytes": 30488,
+      "triangles": 360,
+      "bounds": {
+        "min": [
+          -0.36000001430511475,
+          2.682209010451686e-9,
+          -0.36000001430511475
+        ],
+        "max": [
+          0.36000001430511475,
+          2.999999997317791,
+          0.36000001430511475
+        ]
+      },
+      "clips": [],
+      "use": "3 m structural support.",
+      "collider": "Static box."
+    },
+    {
+      "slug": "ramp",
+      "name": "Ramp",
+      "file": "ramp.glb",
+      "uri": "package://nodetool-base/game-models/scifi/ramp.glb",
+      "sha256": "4d342651d91eb876ae4c1fe975cc1f88dfda36596ef691d45c0e49496ee347cf",
+      "bytes": 4844,
+      "triangles": 36,
+      "bounds": {
+        "min": [
+          -1,
+          0,
+          -1
+        ],
+        "max": [
+          1,
+          1.0164167268337092,
+          1
+        ]
+      },
+      "clips": [],
+      "use": "2 m square ramp rising toward -Z from 0.1 to 1 m.",
+      "collider": "Static triangle mesh or prepared convex hull."
+    },
+    {
+      "slug": "terminal",
+      "name": "Terminal",
+      "file": "terminal.glb",
+      "uri": "package://nodetool-base/game-models/scifi/terminal.glb",
+      "sha256": "e47d90ce87e77f54b70b7c97741e0e6bd7a8225bad20b530acf439b4903e2a36",
+      "bytes": 47720,
+      "triangles": 576,
+      "bounds": {
+        "min": [
+          -0.42500001192092896,
+          -2.98023217215615e-10,
+          -0.3500000059604645
+        ],
+        "max": [
+          0.42500001192092896,
+          1.5664018665971517,
+          0.32499998807907104
+        ]
+      },
+      "clips": [],
+      "use": "Interaction point for doors or mission objectives.",
+      "collider": "Static box plus an interaction sensor."
+    },
+    {
+      "slug": "beacon",
+      "name": "Beacon",
+      "file": "beacon.glb",
+      "uri": "package://nodetool-base/game-models/scifi/beacon.glb",
+      "sha256": "1cc141d1ea2a7d884d2692cb035d72853af1326e72917689f4074167df274da3",
+      "bytes": 12084,
+      "triangles": 160,
+      "bounds": {
+        "min": [
+          -0.3799999952316284,
+          1.7881393449270533e-9,
+          -0.3799999952316284
+        ],
+        "max": [
+          0.3799999952316284,
+          2.2899999986588955,
+          0.3799999952316284
+        ]
+      },
+      "clips": [],
+      "use": "Checkpoint or destination marker. Emissive material does not cast light.",
+      "collider": "Static capsule or box."
+    }
+  ]
+}

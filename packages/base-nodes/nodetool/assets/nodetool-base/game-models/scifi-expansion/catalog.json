@@ -1,0 +1,299 @@
+{
+  "name": "Sci-fi Outpost Expansion",
+  "format": "glTF 2.0 binary",
+  "units": "meters",
+  "up": "+Y",
+  "forward": "-Z",
+  "origin": "ground center",
+  "gridMeters": 2,
+  "models": [
+    {
+      "slug": "exploration-rover",
+      "name": "Exploration rover",
+      "file": "exploration-rover.glb",
+      "uri": "package://nodetool-base/game-models/scifi-expansion/exploration-rover.glb",
+      "sha256": "3f6a1a26be1d6cf4939ebdcde3eb5f24196ae4c3b3a88101b608c6087e1f00ed",
+      "bytes": 102616,
+      "triangles": 1388,
+      "bounds": {
+        "min": [
+          -0.9000000005960465,
+          4.768371530960991e-9,
+          -1.1599999986588956
+        ],
+        "max": [
+          0.9000000005960465,
+          2.110000001192093,
+          1.0999999952316284
+        ]
+      },
+      "clips": [],
+      "use": "Static vehicle prop or scripted visual. No vehicle physics is included.",
+      "collider": "Box for a parked rover."
+    },
+    {
+      "slug": "sentry-turret",
+      "name": "Sentry turret",
+      "file": "sentry-turret.glb",
+      "uri": "package://nodetool-base/game-models/scifi-expansion/sentry-turret.glb",
+      "sha256": "c943deabb48a3ff2cfff58ee3c5255b9e3e86babb199b8499f4d33294c5f01d4",
+      "bytes": 42752,
+      "triangles": 564,
+      "bounds": {
+        "min": [
+          -0.5299999713897705,
+          -3.5762786898541066e-9,
+          -1.0249999976158142
+        ],
+        "max": [
+          0.5299999713897705,
+          1.2850000035762787,
+          0.5299999713897705
+        ]
+      },
+      "clips": [],
+      "use": "Station defense prop. Add targeting and firing in game scripts.",
+      "collider": "Static box or capsule."
+    },
+    {
+      "slug": "reactor",
+      "name": "Reactor",
+      "file": "reactor.glb",
+      "uri": "package://nodetool-base/game-models/scifi-expansion/reactor.glb",
+      "sha256": "bd97b171a51a75f1001d72b6dad1099657427c93307bfbeeef399519bd52073f",
+      "bytes": 88492,
+      "triangles": 1200,
+      "bounds": {
+        "min": [
+          -0.8500000238418579,
+          -1.4305114648394124e-8,
+          -0.8500000238418579
+        ],
+        "max": [
+          0.8500000238418579,
+          2.3200000014901163,
+          0.8500000238418579
+        ]
+      },
+      "clips": [],
+      "use": "Power source or mission objective. Emission is visual only.",
+      "collider": "Static cylinder approximation or prepared convex hull."
+    },
+    {
+      "slug": "satellite-dish",
+      "name": "Satellite dish",
+      "file": "satellite-dish.glb",
+      "uri": "package://nodetool-base/game-models/scifi-expansion/satellite-dish.glb",
+      "sha256": "0b54e9c71816cdb136b7a9183ced8f67b31c62d59743530925d257ed8092bf6d",
+      "bytes": 37184,
+      "triangles": 664,
+      "bounds": {
+        "min": [
+          -0.9399999976158142,
+          1.7881393449270533e-9,
+          -1.0024970512114149
+        ],
+        "max": [
+          0.9399999976158142,
+          2.9032304049005395,
+          0.784629952270645
+        ]
+      },
+      "clips": [],
+      "use": "Communications landmark.",
+      "collider": "Simple base and mast colliders. Keep the dish nonphysical."
+    },
+    {
+      "slug": "airlock-door",
+      "name": "Airlock door",
+      "file": "airlock-door.glb",
+      "uri": "package://nodetool-base/game-models/scifi-expansion/airlock-door.glb",
+      "sha256": "300cb90af7123b72de07c9a823da93e0c71e36c88c1d0ec714929a588d4d5533",
+      "bytes": 82224,
+      "triangles": 1020,
+      "bounds": {
+        "min": [
+          -1.0000000059604646,
+          -4.768371586472142e-8,
+          -0.35999999977648256
+        ],
+        "max": [
+          1.0000000059604646,
+          3,
+          0.25
+        ]
+      },
+      "clips": [],
+      "use": "Closed 2 m airlock. Named leaves can be edited separately. No opening animation.",
+      "collider": "Static wall when closed. Rebuild colliders when opening."
+    },
+    {
+      "slug": "window-wall",
+      "name": "Window wall",
+      "file": "window-wall.glb",
+      "uri": "package://nodetool-base/game-models/scifi-expansion/window-wall.glb",
+      "sha256": "f0981d70879ff0e54989fd86ac663a3e531c25ed0a4de3c4811108a325196cba",
+      "bytes": 55344,
+      "triangles": 684,
+      "bounds": {
+        "min": [
+          -1.0000000035762788,
+          -5.960464455334602e-9,
+          -0.17499999701976776
+        ],
+        "max": [
+          1.0000000035762788,
+          3,
+          0.17499999701976776
+        ]
+      },
+      "clips": [],
+      "use": "2 m wall with an open observation window, without transparent glass.",
+      "collider": "Static wall or separate frame boxes."
+    },
+    {
+      "slug": "bridge-segment",
+      "name": "Bridge segment",
+      "file": "bridge-segment.glb",
+      "uri": "package://nodetool-base/game-models/scifi-expansion/bridge-segment.glb",
+      "sha256": "e62ca8b9185b424c111be56b0108094fd3335a2b0e79736c88049bf359e49af8",
+      "bytes": 73784,
+      "triangles": 912,
+      "bounds": {
+        "min": [
+          -1,
+          -1.4901161138336505e-9,
+          -1
+        ],
+        "max": [
+          1,
+          1.3550000017881394,
+          1
+        ]
+      },
+      "clips": [],
+      "use": "Repeat every 2 m along Z. Deck is Y 0.216. Rails run along X edges.",
+      "collider": "Static deck and two rail boxes."
+    },
+    {
+      "slug": "energy-gate",
+      "name": "Energy gate",
+      "file": "energy-gate.glb",
+      "uri": "package://nodetool-base/game-models/scifi-expansion/energy-gate.glb",
+      "sha256": "b5128d466b8377f0d4d8bb251ecce9426779a6b7aa21b031e1da21beb06e569d",
+      "bytes": 56868,
+      "triangles": 696,
+      "bounds": {
+        "min": [
+          -1.0000000059604646,
+          1.7881393449270533e-9,
+          -0.25
+        ],
+        "max": [
+          1.0000000059604646,
+          2.07000000089407,
+          0.25
+        ]
+      },
+      "clips": [],
+      "use": "Lit barrier or laser hazard visual. Opaque emissive beams.",
+      "collider": "Sensor box for a hazard. Posts can have solid boxes."
+    },
+    {
+      "slug": "landing-pad",
+      "name": "Landing pad",
+      "file": "landing-pad.glb",
+      "uri": "package://nodetool-base/game-models/scifi-expansion/landing-pad.glb",
+      "sha256": "3261378c8fb44d80b00c43902912b2b97d78ff63bffd92a66775d5c3f0beebee",
+      "bytes": 76528,
+      "triangles": 964,
+      "bounds": {
+        "min": [
+          -2,
+          -3.5762786898541066e-9,
+          -2
+        ],
+        "max": [
+          2,
+          0.3125000001862645,
+          2
+        ]
+      },
+      "clips": [],
+      "use": "4 m octagonal pad for a drone or destination marker.",
+      "collider": "Static box or prepared convex hull."
+    },
+    {
+      "slug": "storage-barrel",
+      "name": "Storage barrel",
+      "file": "storage-barrel.glb",
+      "uri": "package://nodetool-base/game-models/scifi-expansion/storage-barrel.glb",
+      "sha256": "31c9091adab302606ef0d38e9f8240f401f819768d396f03206291759e579016",
+      "bytes": 28716,
+      "triangles": 428,
+      "bounds": {
+        "min": [
+          -0.4399999976158142,
+          2.384185793236071e-9,
+          -0.4399999976158142
+        ],
+        "max": [
+          0.4399999976158142,
+          1.3665000008940698,
+          0.4399999976158142
+        ]
+      },
+      "clips": [],
+      "use": "Supply container or destructible prop.",
+      "collider": "Prepared convex hull or box."
+    },
+    {
+      "slug": "repair-station",
+      "name": "Repair station",
+      "file": "repair-station.glb",
+      "uri": "package://nodetool-base/game-models/scifi-expansion/repair-station.glb",
+      "sha256": "b4facd7df53bb04bccf916eb8222cd6701fcfb601da3b89b695d6985bc856025",
+      "bytes": 52588,
+      "triangles": 660,
+      "bounds": {
+        "min": [
+          -0.550000011920929,
+          1.7881393449270533e-9,
+          -0.639999993443489
+        ],
+        "max": [
+          0.5900000035762787,
+          1.6600000000000001,
+          0.44999998807907104
+        ]
+      },
+      "clips": [],
+      "use": "Interaction point for health or equipment repairs.",
+      "collider": "Static box plus a proximity sensor."
+    },
+    {
+      "slug": "navigation-marker",
+      "name": "Navigation marker",
+      "file": "navigation-marker.glb",
+      "uri": "package://nodetool-base/game-models/scifi-expansion/navigation-marker.glb",
+      "sha256": "3e1a295fce313a387e3144cc5fc7641ba7b2b73739f251dce4b7f0c0fb9b0bdf",
+      "bytes": 25856,
+      "triangles": 296,
+      "bounds": {
+        "min": [
+          -0.44999998807907104,
+          -2.98023217215615e-10,
+          -0.3799999952316284
+        ],
+        "max": [
+          0.44999998807907104,
+          1.949999993443489,
+          0.3799999952316284
+        ]
+      },
+      "clips": [],
+      "use": "Directional sign. Rotate around Y to orient it in the level.",
+      "collider": "Static capsule or a nonphysical visual."
+    }
+  ]
+}

@@ -1,0 +1,786 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-10-02T20:32:42.653741+00:00",
+  "updated_at": "2026-10-02T20:32:42.653750+00:00",
+  "name": "Platformer Playground Starter Pack",
+  "tool_name": null,
+  "description": "Low-poly playground models for platform games: floating islands, platforms, spring pads, checkpoints, switches, hazards and collectibles. Includes nine animation clips. Run to expose each GLB as a named output. No provider or API key required.",
+  "tags": [
+    "3d",
+    "game",
+    "low-poly",
+    "platformer",
+    "assets",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Platformer Playground Starter Pack\n\nLow-poly playground models for platform games: floating islands, platforms, spring pads, checkpoints, switches, hazards and collectibles. Includes nine animation clips. Run to expose each GLB as a named output. No provider or API key required.\n\nModels use meters, Y up, forward -Z and bottom-level origins. Deck tiles use a 2 m grid. Nine models include visual clips for spinning, bouncing, pressing, raising, opening, travel or breaking. Animate physics roots separately for moving platforms and hazards. Download a model output and upload it to your project before importing it into a 3D game."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -420
+          },
+          "width": 940,
+          "selectable": true,
+          "title": "Platformer Playground Starter Pack",
+          "height": 360
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "floating-island",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/floating-island.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Floating island"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "floating-island-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "floating_island"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Floating island output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "small-floating-island",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/small-floating-island.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Small floating island"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "small-floating-island-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "small_floating_island"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Small floating island output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "stepping-tile",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/stepping-tile.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Stepping tile"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "stepping-tile-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "stepping_tile"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Stepping tile output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "playground-ramp",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/playground-ramp.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Playground ramp"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "playground-ramp-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "playground_ramp"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Playground ramp output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "moving-platform",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/moving-platform.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Moving platform"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "moving-platform-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "moving_platform"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Moving platform output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "jump-pad",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/jump-pad.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Jump pad"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "jump-pad-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "jump_pad"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Jump pad output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "checkpoint-flag",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/checkpoint-flag.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Checkpoint flag"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "checkpoint-flag-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "checkpoint_flag"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Checkpoint flag output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "pressure-switch",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/pressure-switch.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Pressure switch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "pressure-switch-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "pressure_switch"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Pressure switch output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "breakable-block",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/breakable-block.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Breakable block"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "breakable-block-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "breakable_block"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Breakable block output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "collectible-gem",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/collectible-gem.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Collectible gem"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "collectible-gem-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "collectible_gem"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Collectible gem output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "collectible-star",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/collectible-star.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Collectible star"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "collectible-star-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "collectible_star"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Collectible star output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "spike-tile",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/spike-tile.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Spike tile"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "spike-tile-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "spike_tile"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Spike tile output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "rotating-sweeper",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/rotating-sweeper.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Rotating sweeper"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "rotating-sweeper-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "rotating_sweeper"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Rotating sweeper output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "goal-portal",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/goal-portal.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Goal portal"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "goal-portal-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "goal_portal"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Goal portal output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "route-arrow",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/route-arrow.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Route arrow"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "route-arrow-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "route_arrow"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Route arrow output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "cloud-platform",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/platformer/cloud-platform.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Cloud platform"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "cloud-platform-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "cloud_platform"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Cloud platform output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "floating-island-edge",
+        "source": "floating-island",
+        "sourceHandle": "output",
+        "target": "floating-island-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "small-floating-island-edge",
+        "source": "small-floating-island",
+        "sourceHandle": "output",
+        "target": "small-floating-island-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "stepping-tile-edge",
+        "source": "stepping-tile",
+        "sourceHandle": "output",
+        "target": "stepping-tile-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "playground-ramp-edge",
+        "source": "playground-ramp",
+        "sourceHandle": "output",
+        "target": "playground-ramp-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "moving-platform-edge",
+        "source": "moving-platform",
+        "sourceHandle": "output",
+        "target": "moving-platform-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "jump-pad-edge",
+        "source": "jump-pad",
+        "sourceHandle": "output",
+        "target": "jump-pad-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "checkpoint-flag-edge",
+        "source": "checkpoint-flag",
+        "sourceHandle": "output",
+        "target": "checkpoint-flag-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "pressure-switch-edge",
+        "source": "pressure-switch",
+        "sourceHandle": "output",
+        "target": "pressure-switch-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "breakable-block-edge",
+        "source": "breakable-block",
+        "sourceHandle": "output",
+        "target": "breakable-block-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "collectible-gem-edge",
+        "source": "collectible-gem",
+        "sourceHandle": "output",
+        "target": "collectible-gem-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "collectible-star-edge",
+        "source": "collectible-star",
+        "sourceHandle": "output",
+        "target": "collectible-star-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "spike-tile-edge",
+        "source": "spike-tile",
+        "sourceHandle": "output",
+        "target": "spike-tile-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "rotating-sweeper-edge",
+        "source": "rotating-sweeper",
+        "sourceHandle": "output",
+        "target": "rotating-sweeper-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "goal-portal-edge",
+        "source": "goal-portal",
+        "sourceHandle": "output",
+        "target": "goal-portal-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "route-arrow-edge",
+        "source": "route-arrow",
+        "sourceHandle": "output",
+        "target": "route-arrow-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "cloud-platform-edge",
+        "source": "cloud-platform",
+        "sourceHandle": "output",
+        "target": "cloud-platform-out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}
