@@ -1,0 +1,395 @@
+{
+  "name": "Low-poly Seaside Starter Pack",
+  "format": "glTF 2.0 binary",
+  "units": "meters",
+  "up": "+Y",
+  "forward": "-Z",
+  "origin": "ground center",
+  "gridMeters": 2,
+  "models": [
+    {
+      "slug": "harbor-rowboat",
+      "name": "Harbor rowboat",
+      "file": "harbor-rowboat.glb",
+      "uri": "package://nodetool-base/game-models/seaside/harbor-rowboat.glb",
+      "sha256": "5830ed6a887ad0ef22c4a544f7535977be5e92fae8272d2108781108b8f26f79",
+      "bytes": 53024,
+      "triangles": 672,
+      "bounds": {
+        "min": [
+          -0.8599999982118607,
+          3.469446951953614e-18,
+          -1.435355305671692
+        ],
+        "max": [
+          0.8599999982118607,
+          0.4800000134855515,
+          1.1749999523162842
+        ]
+      },
+      "clips": [],
+      "use": "Open hull with two seats and a pair of oars.",
+      "collider": "Separate simple hull boxes. Add buoyancy and controls in the game."
+    },
+    {
+      "slug": "coastal-sailboat",
+      "name": "Coastal sailboat",
+      "file": "coastal-sailboat.glb",
+      "uri": "package://nodetool-base/game-models/seaside/coastal-sailboat.glb",
+      "sha256": "21bcf7bf028143c8c0fe04770af17a1d7d9ffc8256358539fe3ec846f8032c14",
+      "bytes": 47056,
+      "triangles": 580,
+      "bounds": {
+        "min": [
+          -0.7199999904632566,
+          0,
+          -1.435355305671692
+        ],
+        "max": [
+          0.7999999904632566,
+          2.7249999761581423,
+          1.395
+        ]
+      },
+      "clips": [],
+      "use": "Small boat with a cream mainsail and coral jib.",
+      "collider": "Hull boxes. Sail and rigging can remain non-colliding."
+    },
+    {
+      "slug": "dock-segment",
+      "name": "Dock segment",
+      "file": "dock-segment.glb",
+      "uri": "package://nodetool-base/game-models/seaside/dock-segment.glb",
+      "sha256": "f64d221585cacb613cf2aabb74c688689808f9c23f4571b925580b7ff5b2cafb",
+      "bytes": 119008,
+      "triangles": 1552,
+      "bounds": {
+        "min": [
+          -1,
+          0,
+          -1
+        ],
+        "max": [
+          1,
+          1.0599999906122684,
+          1
+        ]
+      },
+      "clips": [],
+      "use": "Two-meter repeatable pier deck with four timber piles.",
+      "collider": "Deck box. Top at Y 0.80 m."
+    },
+    {
+      "slug": "dock-lookout",
+      "name": "Dock lookout",
+      "file": "dock-lookout.glb",
+      "uri": "package://nodetool-base/game-models/seaside/dock-lookout.glb",
+      "sha256": "5cb2255db19007bca5280bb40794cc68ce47357818db0d1588d8ef7aa5eec9d6",
+      "bytes": 134788,
+      "triangles": 1776,
+      "bounds": {
+        "min": [
+          -1,
+          0,
+          -1
+        ],
+        "max": [
+          1,
+          1.424999978542328,
+          1
+        ]
+      },
+      "clips": [],
+      "use": "Pier endpoint with three railings and an open approach on -Z.",
+      "collider": "Deck and separate rail boxes. Top at Y 0.80 m."
+    },
+    {
+      "slug": "striped-lighthouse",
+      "name": "Striped lighthouse",
+      "file": "striped-lighthouse.glb",
+      "uri": "package://nodetool-base/game-models/seaside/striped-lighthouse.glb",
+      "sha256": "d45bbda901a084b355653aabed2ac10ae1ecab77ef37743b7a0c58d70431588b",
+      "bytes": 64676,
+      "triangles": 852,
+      "bounds": {
+        "min": [
+          -0.7988874912261963,
+          0,
+          -0.8399999737739563
+        ],
+        "max": [
+          0.7988874912261963,
+          3.6300000074505805,
+          0.8399999737739563
+        ]
+      },
+      "clips": [],
+      "use": "Compact landmark with alternating cream and coral tower bands.",
+      "collider": "Cylinder or stacked tapered hull. Lantern is a static material."
+    },
+    {
+      "slug": "beach-hut",
+      "name": "Beach hut",
+      "file": "beach-hut.glb",
+      "uri": "package://nodetool-base/game-models/seaside/beach-hut.glb",
+      "sha256": "8607db3a2c1cc680c284c975b7ed4fab7b13ee15f24147a327205ec22c19e9a7",
+      "bytes": 413272,
+      "triangles": 5312,
+      "bounds": {
+        "min": [
+          -0.9159249472297175,
+          0,
+          -1.2200000041723251
+        ],
+        "max": [
+          0.9159249472297175,
+          2.121175372635464,
+          0.8500000238418579
+        ]
+      },
+      "clips": [],
+      "use": "Open doorway, raised timber floor and coral gable roof.",
+      "collider": "Separate wall, floor and step boxes. Keep doorway clear."
+    },
+    {
+      "slug": "island-palm",
+      "name": "Island palm",
+      "file": "island-palm.glb",
+      "uri": "package://nodetool-base/game-models/seaside/island-palm.glb",
+      "sha256": "0b39ef463e89e845b696582440cf0c4535bfd0ce07131ab4ddf635127798cbc2",
+      "bytes": 27548,
+      "triangles": 264,
+      "bounds": {
+        "min": [
+          -1.0343383633481298,
+          0,
+          -1.302878335163767
+        ],
+        "max": [
+          1.73433836334813,
+          2.5580830024464523,
+          1.3963818855006227
+        ]
+      },
+      "clips": [],
+      "use": "Seven faceted fronds and a leaning trunk.",
+      "collider": "Two trunk capsules. Leaves need no collision."
+    },
+    {
+      "slug": "harbor-buoy",
+      "name": "Harbor buoy",
+      "file": "harbor-buoy.glb",
+      "uri": "package://nodetool-base/game-models/seaside/harbor-buoy.glb",
+      "sha256": "05d9dbe6e935338921a0f52e7b7988abf1ad1a2b920839f829404edbee0f4321",
+      "bytes": 12144,
+      "triangles": 264,
+      "bounds": {
+        "min": [
+          -0.3423803448677063,
+          0,
+          -0.36000001430511475
+        ],
+        "max": [
+          0.3423803448677063,
+          1.202000005543232,
+          0.36000001430511475
+        ]
+      },
+      "clips": [],
+      "use": "Coral and cream floating route marker.",
+      "collider": "Small sensor or cylinder. Add water motion in gameplay."
+    },
+    {
+      "slug": "life-ring",
+      "name": "Life ring",
+      "file": "life-ring.glb",
+      "uri": "package://nodetool-base/game-models/seaside/life-ring.glb",
+      "sha256": "6db91386cf9fb14781ed84a3598690a53ccddc8c370141cc0dd92d985c628d62",
+      "bytes": 11412,
+      "triangles": 280,
+      "bounds": {
+        "min": [
+          -0.4480595328939891,
+          0,
+          -0.08464402705430984
+        ],
+        "max": [
+          0.44805953289398903,
+          0.8961190657879781,
+          0.08464402705430984
+        ]
+      },
+      "clips": [],
+      "use": "Standing rescue ring with four coral bands.",
+      "collider": "Sensor or simple sphere."
+    },
+    {
+      "slug": "iron-anchor",
+      "name": "Iron anchor",
+      "file": "iron-anchor.glb",
+      "uri": "package://nodetool-base/game-models/seaside/iron-anchor.glb",
+      "sha256": "8e1b855a93a20134a3b71283535efd1435d464ec3a36169890f61ffe2283768b",
+      "bytes": 22844,
+      "triangles": 392,
+      "bounds": {
+        "min": [
+          -0.5222989125437367,
+          -1.3877787807814457e-17,
+          -0.05999999865889549
+        ],
+        "max": [
+          0.5222989125437367,
+          1.0677058908518624,
+          0.05999999865889549
+        ]
+      },
+      "clips": [],
+      "use": "Stylized anchor with timber stock and ring shackle.",
+      "collider": "One convex hull or a pickup sensor."
+    },
+    {
+      "slug": "fish-crate",
+      "name": "Fish crate",
+      "file": "fish-crate.glb",
+      "uri": "package://nodetool-base/game-models/seaside/fish-crate.glb",
+      "sha256": "85b6259e80c7fcfbe31a60e256b51f85bee748b239f467bd15f1c7f0464856c1",
+      "bytes": 142304,
+      "triangles": 1764,
+      "bounds": {
+        "min": [
+          -0.44999998807907104,
+          0,
+          -0.3224999988079071
+        ],
+        "max": [
+          0.44999998807907104,
+          0.44499999910593036,
+          0.3224999988079071
+        ]
+      },
+      "clips": [],
+      "use": "Slatted open crate with three stylized fish.",
+      "collider": "Box. Fish are static parts of the model."
+    },
+    {
+      "slug": "mooring-bollard",
+      "name": "Mooring bollard",
+      "file": "mooring-bollard.glb",
+      "uri": "package://nodetool-base/game-models/seaside/mooring-bollard.glb",
+      "sha256": "12f02479ee460022fd13d608f467e74982983c8a96523f5922fb6a033981acd9",
+      "bytes": 20120,
+      "triangles": 576,
+      "bounds": {
+        "min": [
+          -0.28999999165534973,
+          0,
+          -0.28999999165534973
+        ],
+        "max": [
+          0.28999999165534973,
+          0.5450000049173832,
+          0.28999999165534973
+        ]
+      },
+      "clips": [],
+      "use": "Iron dock fixture with three modeled rope turns.",
+      "collider": "Simple box or cylinder."
+    },
+    {
+      "slug": "tidepool-rocks",
+      "name": "Tidepool rocks",
+      "file": "tidepool-rocks.glb",
+      "uri": "package://nodetool-base/game-models/seaside/tidepool-rocks.glb",
+      "sha256": "b8bf85ec209f15cab1a2cc59ee1f532f193c0723c486083215512908e65abd9b",
+      "bytes": 22284,
+      "triangles": 220,
+      "bounds": {
+        "min": [
+          -0.8587668228149414,
+          0,
+          -0.7377277755737304
+        ],
+        "max": [
+          0.86,
+          1.18,
+          0.67
+        ]
+      },
+      "clips": [],
+      "use": "Faceted shore rocks with pale shell details.",
+      "collider": "Simple convex hull or a few spheres."
+    },
+    {
+      "slug": "shore-crab",
+      "name": "Shore crab",
+      "file": "shore-crab.glb",
+      "uri": "package://nodetool-base/game-models/seaside/shore-crab.glb",
+      "sha256": "edc9978b368e8e693db827fc6789958811aedccdc1cdbfe818059859e40d0f92",
+      "bytes": 38596,
+      "triangles": 480,
+      "bounds": {
+        "min": [
+          -0.42931833267211916,
+          0,
+          -0.4720780944824219
+        ],
+        "max": [
+          0.42931833267211916,
+          0.44889062670216795,
+          0.22849709427748963
+        ]
+      },
+      "clips": [],
+      "use": "Static coral crab with six legs, claws and raised eyes.",
+      "collider": "Small capsule or sensor. No rig or locomotion clip."
+    },
+    {
+      "slug": "golden-starfish",
+      "name": "Golden starfish",
+      "file": "golden-starfish.glb",
+      "uri": "package://nodetool-base/game-models/seaside/golden-starfish.glb",
+      "sha256": "30ae7a1854f4703723eb259294ef27038cc161e973b9977693d2cb7ed9f4e85e",
+      "bytes": 17816,
+      "triangles": 176,
+      "bounds": {
+        "min": [
+          -0.33805859088897705,
+          0,
+          -0.35545584559440613
+        ],
+        "max": [
+          0.33805859088897705,
+          0.11190911068767315,
+          0.2875698208808899
+        ]
+      },
+      "clips": [],
+      "use": "Small five-point shore collectible.",
+      "collider": "Pickup sensor."
+    },
+    {
+      "slug": "clam-shell",
+      "name": "Clam shell",
+      "file": "clam-shell.glb",
+      "uri": "package://nodetool-base/game-models/seaside/clam-shell.glb",
+      "sha256": "9df1bd5542cc7476b012458ec5f44388a4a7198eebf92fc262c945387d77719b",
+      "bytes": 23036,
+      "triangles": 304,
+      "bounds": {
+        "min": [
+          -0.33,
+          0,
+          -0.3
+        ],
+        "max": [
+          0.33,
+          0.24,
+          0.3
+        ]
+      },
+      "clips": [],
+      "use": "Cream shell with seven raised fan ribs.",
+      "collider": "Small pickup sensor."
+    }
+  ]
+}

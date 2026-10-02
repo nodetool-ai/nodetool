@@ -1,0 +1,786 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-10-02T20:51:39.856223+00:00",
+  "updated_at": "2026-10-02T20:51:39.856259+00:00",
+  "name": "Dungeon and Ruins Starter Pack",
+  "tool_name": null,
+  "description": "Low-poly dungeon models for adventure games: modular stone rooms, doors, gates, traps, torches, tombs and treasure. Includes seven animation clips. Run to expose each GLB as a named output. No provider or API key required.",
+  "tags": [
+    "3d",
+    "game",
+    "low-poly",
+    "dungeon",
+    "assets",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Dungeon and Ruins Starter Pack\n\nLow-poly dungeon models for adventure games: modular stone rooms, doors, gates, traps, torches, tombs and treasure. Includes seven animation clips. Run to expose each GLB as a named output. No provider or API key required.\n\nModels use meters, Y up, forward -Z and bottom-level origins. Floors, walls, corners, stairs and spike traps fit a 2 m grid. Floor tops are Y 0.16 m. Place wall bases on top of floors. Add colliders, triggers, damage, loot and lights in the game. Download a model output and upload it to your project before importing it into a 3D game."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -420
+          },
+          "width": 940,
+          "selectable": true,
+          "title": "Dungeon and Ruins Starter Pack",
+          "height": 360
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dungeon-floor",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/dungeon-floor.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Dungeon floor"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dungeon-floor-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "dungeon_floor"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Dungeon floor output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dungeon-wall",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/dungeon-wall.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Dungeon wall"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dungeon-wall-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "dungeon_wall"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Dungeon wall output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dungeon-corner",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/dungeon-corner.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Dungeon corner"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dungeon-corner-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "dungeon_corner"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Dungeon corner output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "arched-oak-door",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/arched-oak-door.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Arched oak door"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "arched-oak-door-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "arched_oak_door"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Arched oak door output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "iron-portcullis",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/iron-portcullis.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Iron portcullis"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "iron-portcullis-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "iron_portcullis"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Iron portcullis output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "stone-stairs",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/stone-stairs.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Stone stairs"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "stone-stairs-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "stone_stairs"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Stone stairs output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "broken-column",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/broken-column.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Broken column"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "broken-column-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "broken_column"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Broken column output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "wall-torch",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/wall-torch.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Wall torch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "wall-torch-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "wall_torch"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Wall torch output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "spike-trap",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/spike-trap.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Spike trap"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "spike-trap-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "spike_trap"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Spike trap output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "rune-pressure-plate",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/rune-pressure-plate.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Rune pressure plate"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "rune-pressure-plate-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "rune_pressure_plate"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Rune pressure plate output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "stone-sarcophagus",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/stone-sarcophagus.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Stone sarcophagus"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "stone-sarcophagus-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "stone_sarcophagus"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Stone sarcophagus output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dungeon-key",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/dungeon-key.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Dungeon key"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "dungeon-key-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "dungeon_key"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Dungeon key output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "guardian-idol",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/guardian-idol.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Guardian idol"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "guardian-idol-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "guardian_idol"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Guardian idol output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "treasure-urn",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/treasure-urn.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Treasure urn"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "treasure-urn-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "treasure_urn"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Treasure urn output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "iron-brazier",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/iron-brazier.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Iron brazier"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "iron-brazier-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "iron_brazier"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Iron brazier output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "hanging-chain",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/dungeon/hanging-chain.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Hanging chain"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "hanging-chain-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "hanging_chain"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Hanging chain output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "dungeon-floor-edge",
+        "source": "dungeon-floor",
+        "sourceHandle": "output",
+        "target": "dungeon-floor-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "dungeon-wall-edge",
+        "source": "dungeon-wall",
+        "sourceHandle": "output",
+        "target": "dungeon-wall-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "dungeon-corner-edge",
+        "source": "dungeon-corner",
+        "sourceHandle": "output",
+        "target": "dungeon-corner-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "arched-oak-door-edge",
+        "source": "arched-oak-door",
+        "sourceHandle": "output",
+        "target": "arched-oak-door-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "iron-portcullis-edge",
+        "source": "iron-portcullis",
+        "sourceHandle": "output",
+        "target": "iron-portcullis-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "stone-stairs-edge",
+        "source": "stone-stairs",
+        "sourceHandle": "output",
+        "target": "stone-stairs-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "broken-column-edge",
+        "source": "broken-column",
+        "sourceHandle": "output",
+        "target": "broken-column-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "wall-torch-edge",
+        "source": "wall-torch",
+        "sourceHandle": "output",
+        "target": "wall-torch-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "spike-trap-edge",
+        "source": "spike-trap",
+        "sourceHandle": "output",
+        "target": "spike-trap-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "rune-pressure-plate-edge",
+        "source": "rune-pressure-plate",
+        "sourceHandle": "output",
+        "target": "rune-pressure-plate-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "stone-sarcophagus-edge",
+        "source": "stone-sarcophagus",
+        "sourceHandle": "output",
+        "target": "stone-sarcophagus-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "dungeon-key-edge",
+        "source": "dungeon-key",
+        "sourceHandle": "output",
+        "target": "dungeon-key-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "guardian-idol-edge",
+        "source": "guardian-idol",
+        "sourceHandle": "output",
+        "target": "guardian-idol-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "treasure-urn-edge",
+        "source": "treasure-urn",
+        "sourceHandle": "output",
+        "target": "treasure-urn-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "iron-brazier-edge",
+        "source": "iron-brazier",
+        "sourceHandle": "output",
+        "target": "iron-brazier-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "hanging-chain-edge",
+        "source": "hanging-chain",
+        "sourceHandle": "output",
+        "target": "hanging-chain-out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

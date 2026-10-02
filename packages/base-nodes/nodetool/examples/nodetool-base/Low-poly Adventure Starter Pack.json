@@ -1,0 +1,786 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-10-02T19:22:08.592138+00:00",
+  "updated_at": "2026-10-02T19:22:08.592150+00:00",
+  "name": "Low-poly Adventure Starter Pack",
+  "tool_name": null,
+  "description": "Low-poly woodland models for adventure games: a ranger, an animated slime, trees, camp props, treasure and modular scenery. Run to expose each GLB as a named output. No provider or API key required.",
+  "tags": [
+    "3d",
+    "game",
+    "low-poly",
+    "adventure",
+    "assets",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "intro",
+        "type": "nodetool.workflows.base_node.Comment",
+        "data": {
+          "comment": "# Low-poly Adventure Starter Pack\n\nLow-poly woodland models for adventure games: a ranger, an animated slime, trees, camp props, treasure and modular scenery. Run to expose each GLB as a named output. No provider or API key required.\n\nModels use meters, Y up, forward -Z and ground-level origins. The bridge repeats on a 2 m grid. The slime includes an Idle clip and the chest an Open clip. The ranger is static and has no skeleton. Add colliders and gameplay behavior in the game. Download a model output and upload it to your project before importing it into a 3D game."
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": -420
+          },
+          "width": 940,
+          "selectable": true,
+          "title": "Low-poly Adventure Starter Pack",
+          "height": 360
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "woodland-ranger",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/woodland-ranger.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Woodland ranger"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "woodland-ranger-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "woodland_ranger"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Woodland ranger output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "forest-slime",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/forest-slime.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Forest slime"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "forest-slime-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "forest_slime"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Forest slime output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "pine-tree",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/pine-tree.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Pine tree"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "pine-tree-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "pine_tree"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Pine tree output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "broadleaf-tree",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/broadleaf-tree.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Broadleaf tree"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "broadleaf-tree-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "broadleaf_tree"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 0
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Broadleaf tree output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "rock-cluster",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/rock-cluster.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Rock cluster"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "rock-cluster-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "rock_cluster"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Rock cluster output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "mushroom-patch",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/mushroom-patch.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Mushroom patch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "mushroom-patch-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "mushroom_patch"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Mushroom patch output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "treasure-chest",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/treasure-chest.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Treasure chest"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "treasure-chest-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "treasure_chest"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Treasure chest output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "wooden-crate",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/wooden-crate.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Wooden crate"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "wooden-crate-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "wooden_crate"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 450
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Wooden crate output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "supply-barrel",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/supply-barrel.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Supply barrel"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "supply-barrel-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "supply_barrel"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Supply barrel output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "campfire",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/campfire.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Campfire"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "campfire-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "campfire"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Campfire output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "canvas-tent",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/canvas-tent.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Canvas tent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "canvas-tent-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "canvas_tent"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Canvas tent output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "gold-coin",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/gold-coin.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Gold coin"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "gold-coin-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "gold_coin"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 900
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Gold coin output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "healing-potion",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/healing-potion.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Healing potion"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "healing-potion-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "healing_potion"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 340,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Healing potion output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "stone-arch",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/stone-arch.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 720,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Stone arch"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "stone-arch-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "stone_arch"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1060,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Stone arch output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "wooden-bridge",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/wooden-bridge.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1440,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Wooden bridge"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "wooden-bridge-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "wooden_bridge"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1780,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Wooden bridge output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "trail-sign",
+        "type": "nodetool.constant.Model3D",
+        "data": {
+          "value": {
+            "type": "model_3d",
+            "uri": "package://nodetool-base/game-models/adventure/trail-sign.glb"
+          }
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2160,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Trail sign"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "trail-sign-out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "trail_sign"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2500,
+            "y": 1350
+          },
+          "width": 300,
+          "selectable": true,
+          "title": "Trail sign output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "woodland-ranger-edge",
+        "source": "woodland-ranger",
+        "sourceHandle": "output",
+        "target": "woodland-ranger-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "forest-slime-edge",
+        "source": "forest-slime",
+        "sourceHandle": "output",
+        "target": "forest-slime-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "pine-tree-edge",
+        "source": "pine-tree",
+        "sourceHandle": "output",
+        "target": "pine-tree-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "broadleaf-tree-edge",
+        "source": "broadleaf-tree",
+        "sourceHandle": "output",
+        "target": "broadleaf-tree-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "rock-cluster-edge",
+        "source": "rock-cluster",
+        "sourceHandle": "output",
+        "target": "rock-cluster-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "mushroom-patch-edge",
+        "source": "mushroom-patch",
+        "sourceHandle": "output",
+        "target": "mushroom-patch-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "treasure-chest-edge",
+        "source": "treasure-chest",
+        "sourceHandle": "output",
+        "target": "treasure-chest-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "wooden-crate-edge",
+        "source": "wooden-crate",
+        "sourceHandle": "output",
+        "target": "wooden-crate-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "supply-barrel-edge",
+        "source": "supply-barrel",
+        "sourceHandle": "output",
+        "target": "supply-barrel-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "campfire-edge",
+        "source": "campfire",
+        "sourceHandle": "output",
+        "target": "campfire-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "canvas-tent-edge",
+        "source": "canvas-tent",
+        "sourceHandle": "output",
+        "target": "canvas-tent-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "gold-coin-edge",
+        "source": "gold-coin",
+        "sourceHandle": "output",
+        "target": "gold-coin-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "healing-potion-edge",
+        "source": "healing-potion",
+        "sourceHandle": "output",
+        "target": "healing-potion-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "stone-arch-edge",
+        "source": "stone-arch",
+        "sourceHandle": "output",
+        "target": "stone-arch-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "wooden-bridge-edge",
+        "source": "wooden-bridge",
+        "sourceHandle": "output",
+        "target": "wooden-bridge-out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "trail-sign-edge",
+        "source": "trail-sign",
+        "sourceHandle": "output",
+        "target": "trail-sign-out",
+        "targetHandle": "value"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

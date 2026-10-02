@@ -1,0 +1,399 @@
+{
+  "name": "Low-poly Adventure Starter Pack",
+  "format": "glTF 2.0 binary",
+  "units": "meters",
+  "up": "+Y",
+  "forward": "-Z",
+  "origin": "ground center",
+  "gridMeters": 2,
+  "models": [
+    {
+      "slug": "woodland-ranger",
+      "name": "Woodland ranger",
+      "file": "woodland-ranger.glb",
+      "uri": "package://nodetool-base/game-models/adventure/woodland-ranger.glb",
+      "sha256": "37a1bb365a16bacca340a7f797bca7eb616b20c87ff1982866e82393993d251b",
+      "bytes": 92924,
+      "triangles": 1116,
+      "bounds": {
+        "min": [
+          -0.5899999976158142,
+          0,
+          -0.3988047068042666
+        ],
+        "max": [
+          0.4403842524715762,
+          1.891623651087284,
+          0.3988047068042666
+        ]
+      },
+      "clips": [],
+      "use": "Player or friendly NPC visual with backpack and shield. Static, without a rig.",
+      "collider": "Capsule on a separate gameplay root."
+    },
+    {
+      "slug": "forest-slime",
+      "name": "Forest slime",
+      "file": "forest-slime.glb",
+      "uri": "package://nodetool-base/game-models/adventure/forest-slime.glb",
+      "sha256": "3f11e9f0f564634721f06821409dfb376cf993eaea6ee23d73f9c0b70f71b413",
+      "bytes": 45848,
+      "triangles": 548,
+      "bounds": {
+        "min": [
+          -0.63,
+          0,
+          -0.54
+        ],
+        "max": [
+          0.63,
+          1.1271431732177735,
+          0.54
+        ]
+      },
+      "clips": [
+        "Idle"
+      ],
+      "use": "Creature visual with a two-second squish Idle clip.",
+      "collider": "Sphere or capsule on a gameplay root."
+    },
+    {
+      "slug": "pine-tree",
+      "name": "Pine tree",
+      "file": "pine-tree.glb",
+      "uri": "package://nodetool-base/game-models/adventure/pine-tree.glb",
+      "sha256": "46ec87961676cc602db03da9ac67764e6355c38eda87a8b69bc4b02059779d44",
+      "bytes": 7996,
+      "triangles": 70,
+      "bounds": {
+        "min": [
+          -0.9359307885169983,
+          0,
+          -0.8649300932884216
+        ],
+        "max": [
+          0.9359307885169983,
+          2.8600000238418577,
+          0.9599999785423279
+        ]
+      },
+      "clips": [],
+      "use": "Faceted evergreen for woodland paths and forests.",
+      "collider": "Static trunk capsule. Keep foliage nonphysical."
+    },
+    {
+      "slug": "broadleaf-tree",
+      "name": "Broadleaf tree",
+      "file": "broadleaf-tree.glb",
+      "uri": "package://nodetool-base/game-models/adventure/broadleaf-tree.glb",
+      "sha256": "3fe8d91610655344671fdb03bc506e1b87330a9f7697d3d0a486ea90aaecbaed",
+      "bytes": 20020,
+      "triangles": 216,
+      "bounds": {
+        "min": [
+          -1.2709750747680664,
+          0,
+          -0.88
+        ],
+        "max": [
+          1.215455551147461,
+          3.0848709368705753,
+          0.88
+        ]
+      },
+      "clips": [],
+      "use": "Rounded faceted canopy for clearings and villages.",
+      "collider": "Static trunk capsule."
+    },
+    {
+      "slug": "rock-cluster",
+      "name": "Rock cluster",
+      "file": "rock-cluster.glb",
+      "uri": "package://nodetool-base/game-models/adventure/rock-cluster.glb",
+      "sha256": "8ab4d765a2feaf3b8b50b8bb0ca740af521e65b90161410c97e6a1d729c12247",
+      "bytes": 9584,
+      "triangles": 80,
+      "bounds": {
+        "min": [
+          -0.8729385481314095,
+          0,
+          -0.7260660782553772
+        ],
+        "max": [
+          1.0328399299623514,
+          1.0751952362060546,
+          0.7851022120932476
+        ]
+      },
+      "clips": [],
+      "use": "Cover, path borders or environmental clutter.",
+      "collider": "Prepared convex hull or simple static boxes."
+    },
+    {
+      "slug": "mushroom-patch",
+      "name": "Mushroom patch",
+      "file": "mushroom-patch.glb",
+      "uri": "package://nodetool-base/game-models/adventure/mushroom-patch.glb",
+      "sha256": "3d54b1f12bfe906e05c7cdc6284b927ac5feb718abd31a2e75bfbbcbc683a034",
+      "bytes": 41484,
+      "triangles": 561,
+      "bounds": {
+        "min": [
+          -0.5599999988079072,
+          0,
+          -0.30726539075374604
+        ],
+        "max": [
+          0.49726539075374604,
+          0.7706985870071331,
+          0.38000001192092897
+        ]
+      },
+      "clips": [],
+      "use": "Forest decoration or gatherable food.",
+      "collider": "Small sensor volumes if collectible."
+    },
+    {
+      "slug": "treasure-chest",
+      "name": "Treasure chest",
+      "file": "treasure-chest.glb",
+      "uri": "package://nodetool-base/game-models/adventure/treasure-chest.glb",
+      "sha256": "1ccf469db759810ecee4154da729005885927dd1fa8f265130d0bccc895fc4e5",
+      "bytes": 131396,
+      "triangles": 1620,
+      "bounds": {
+        "min": [
+          -0.5600000023841858,
+          0,
+          -0.48499999932944776
+        ],
+        "max": [
+          0.5600000023841858,
+          0.7924999955296516,
+          0.4300000071525574
+        ]
+      },
+      "clips": [
+        "Open"
+      ],
+      "use": "Treasure prop with an Open lid clip. Play once and clamp at the final frame.",
+      "collider": "Static box on the gameplay root."
+    },
+    {
+      "slug": "wooden-crate",
+      "name": "Wooden crate",
+      "file": "wooden-crate.glb",
+      "uri": "package://nodetool-base/game-models/adventure/wooden-crate.glb",
+      "sha256": "ac82923619e8694b06fefbcc97f1d09dad2117ac4e010cd1879bf1d4b445e3b6",
+      "bytes": 20668,
+      "triangles": 204,
+      "bounds": {
+        "min": [
+          -0.4500000007450581,
+          0,
+          -0.48500000037252905
+        ],
+        "max": [
+          0.4500000007450581,
+          0.8399999928474426,
+          0.48500000037252905
+        ]
+      },
+      "clips": [],
+      "use": "Stackable cargo or a movable puzzle prop.",
+      "collider": "Box collider."
+    },
+    {
+      "slug": "supply-barrel",
+      "name": "Supply barrel",
+      "file": "supply-barrel.glb",
+      "uri": "package://nodetool-base/game-models/adventure/supply-barrel.glb",
+      "sha256": "d1d2c29dd04dd92789cf6686eea2326add021c31c0c812852229a40fea5a9af2",
+      "bytes": 17516,
+      "triangles": 348,
+      "bounds": {
+        "min": [
+          -0.4129999876022339,
+          0,
+          -0.4129999876022339
+        ],
+        "max": [
+          0.4129999876022339,
+          1.020000000026077,
+          0.4129999876022339
+        ]
+      },
+      "clips": [],
+      "use": "Village, dungeon or campsite prop.",
+      "collider": "Prepared convex hull or box."
+    },
+    {
+      "slug": "campfire",
+      "name": "Campfire",
+      "file": "campfire.glb",
+      "uri": "package://nodetool-base/game-models/adventure/campfire.glb",
+      "sha256": "935d13858bc4acb4c9e352c58a264e96c47e4f866fb49bdaf0e22061d99bc61d",
+      "bytes": 30208,
+      "triangles": 274,
+      "bounds": {
+        "min": [
+          -0.7131171417236328,
+          0,
+          -0.6790911102294923
+        ],
+        "max": [
+          0.7131171417236328,
+          1.0702992451640836,
+          0.6790911102294923
+        ]
+      },
+      "clips": [],
+      "use": "Camp landmark with static emissive flames. Add a game light for illumination.",
+      "collider": "Sensor for warmth or damage. Stones can stay nonphysical."
+    },
+    {
+      "slug": "canvas-tent",
+      "name": "Canvas tent",
+      "file": "canvas-tent.glb",
+      "uri": "package://nodetool-base/game-models/adventure/canvas-tent.glb",
+      "sha256": "d7e51cc00ee20814ba551f6833c39c48368e150ac4a19e12152884c7675fea59",
+      "bytes": 12832,
+      "triangles": 113,
+      "bounds": {
+        "min": [
+          -1.232499998807907,
+          0,
+          -1.0650000001490116
+        ],
+        "max": [
+          1.232499998807907,
+          1.690000057220459,
+          1.0650000001490116
+        ]
+      },
+      "clips": [],
+      "use": "Open-front 2 m campsite shelter with side stakes.",
+      "collider": "Separate static panels or a nonphysical shelter. Keep the doorway clear."
+    },
+    {
+      "slug": "gold-coin",
+      "name": "Gold coin",
+      "file": "gold-coin.glb",
+      "uri": "package://nodetool-base/game-models/adventure/gold-coin.glb",
+      "sha256": "1501127ee05fd99fa72134a843241248caf93d543bc2c489f21594940ce91bf4",
+      "bytes": 8696,
+      "triangles": 116,
+      "bounds": {
+        "min": [
+          -0.28999999165534973,
+          0,
+          -0.08641561889648439
+        ],
+        "max": [
+          0.28999999165534973,
+          0.5799999833106995,
+          0.03750000149011618
+        ]
+      },
+      "clips": [],
+      "use": "Collectible currency. Animate the visual in game code if it should spin.",
+      "collider": "Sensor sphere."
+    },
+    {
+      "slug": "healing-potion",
+      "name": "Healing potion",
+      "file": "healing-potion.glb",
+      "uri": "package://nodetool-base/game-models/adventure/healing-potion.glb",
+      "sha256": "07660c0dfd1a8639f8d6a42204dda443c7fdfeccf1cf8667d9c558dffb823145",
+      "bytes": 24936,
+      "triangles": 308,
+      "bounds": {
+        "min": [
+          -0.25,
+          0,
+          -0.2559999998882413
+        ],
+        "max": [
+          0.25,
+          0.8349999997019768,
+          0.25
+        ]
+      },
+      "clips": [],
+      "use": "Opaque faceted health pickup.",
+      "collider": "Sensor sphere."
+    },
+    {
+      "slug": "stone-arch",
+      "name": "Stone arch",
+      "file": "stone-arch.glb",
+      "uri": "package://nodetool-base/game-models/adventure/stone-arch.glb",
+      "sha256": "cbcadbee3721e29df603bcdde2eec6a2851550ec6990a9ad6d1e189e2256dc58",
+      "bytes": 129300,
+      "triangles": 1640,
+      "bounds": {
+        "min": [
+          -1.049999993443489,
+          0,
+          -0.2750000059604645
+        ],
+        "max": [
+          1.049999993443489,
+          2.8149999910593033,
+          0.2750000059604645
+        ]
+      },
+      "clips": [],
+      "use": "Ruined gateway with an open center. Opening is at least 1.26 m wide below the arch.",
+      "collider": "Separate pier boxes and static arch colliders."
+    },
+    {
+      "slug": "wooden-bridge",
+      "name": "Wooden bridge",
+      "file": "wooden-bridge.glb",
+      "uri": "package://nodetool-base/game-models/adventure/wooden-bridge.glb",
+      "sha256": "559da52c547fade99f56a95ebe3f70fc64c8eba3e019894577338d0a63a7864f",
+      "bytes": 82132,
+      "triangles": 1032,
+      "bounds": {
+        "min": [
+          -1,
+          0,
+          -1
+        ],
+        "max": [
+          1,
+          1.3050000053644182,
+          1
+        ]
+      },
+      "clips": [],
+      "use": "2 × 2 m bridge segment. Repeat along Z. Deck is Y 0.26.",
+      "collider": "Static deck box and separate rails."
+    },
+    {
+      "slug": "trail-sign",
+      "name": "Trail sign",
+      "file": "trail-sign.glb",
+      "uri": "package://nodetool-base/game-models/adventure/trail-sign.glb",
+      "sha256": "a452099a3cb16540f4830a902465c2eed0e8df534c324790a372668f68147c3f",
+      "bytes": 26420,
+      "triangles": 296,
+      "bounds": {
+        "min": [
+          -0.4149194450059678,
+          0,
+          -0.07475976181030274
+        ],
+        "max": [
+          0.4826302023148031,
+          1.7000000476837158,
+          0.07000000029802322
+        ]
+      },
+      "clips": [],
+      "use": "Direction marker with an arrow and leaf-colored trail mark.",
+      "collider": "Static narrow capsule or a nonphysical visual."
+    }
+  ]
+}

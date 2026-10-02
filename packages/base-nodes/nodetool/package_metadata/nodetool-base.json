@@ -197,6 +197,486 @@
       "package_name": "nodetool-base",
       "name": "Directed Film to Timeline.jpg",
       "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "scout-robot.glb",
+      "path": "game-models/scifi"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "survey-drone.glb",
+      "path": "game-models/scifi"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "cargo-crate.glb",
+      "path": "game-models/scifi"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "cargo-container.glb",
+      "path": "game-models/scifi"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "power-cell.glb",
+      "path": "game-models/scifi"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "crystal-cluster.glb",
+      "path": "game-models/scifi"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "crystal-shard.glb",
+      "path": "game-models/scifi"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "floor-tile.glb",
+      "path": "game-models/scifi"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "wall-panel.glb",
+      "path": "game-models/scifi"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "door-frame.glb",
+      "path": "game-models/scifi"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "support-column.glb",
+      "path": "game-models/scifi"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "ramp.glb",
+      "path": "game-models/scifi"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "terminal.glb",
+      "path": "game-models/scifi"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "beacon.glb",
+      "path": "game-models/scifi"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Sci-fi Game Model Starter Pack.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "exploration-rover.glb",
+      "path": "game-models/scifi-expansion"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "sentry-turret.glb",
+      "path": "game-models/scifi-expansion"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "reactor.glb",
+      "path": "game-models/scifi-expansion"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "satellite-dish.glb",
+      "path": "game-models/scifi-expansion"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "airlock-door.glb",
+      "path": "game-models/scifi-expansion"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "window-wall.glb",
+      "path": "game-models/scifi-expansion"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "bridge-segment.glb",
+      "path": "game-models/scifi-expansion"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "energy-gate.glb",
+      "path": "game-models/scifi-expansion"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "landing-pad.glb",
+      "path": "game-models/scifi-expansion"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "storage-barrel.glb",
+      "path": "game-models/scifi-expansion"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "repair-station.glb",
+      "path": "game-models/scifi-expansion"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "navigation-marker.glb",
+      "path": "game-models/scifi-expansion"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Sci-fi Outpost Expansion.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "woodland-ranger.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "forest-slime.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "pine-tree.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "broadleaf-tree.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "rock-cluster.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "mushroom-patch.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "treasure-chest.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "wooden-crate.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "supply-barrel.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "campfire.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "canvas-tent.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "gold-coin.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "healing-potion.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "stone-arch.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "wooden-bridge.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "trail-sign.glb",
+      "path": "game-models/adventure"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Low-poly Adventure Starter Pack.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "harbor-rowboat.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "coastal-sailboat.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "dock-segment.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "dock-lookout.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "striped-lighthouse.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "beach-hut.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "island-palm.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "harbor-buoy.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "life-ring.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "iron-anchor.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "fish-crate.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "mooring-bollard.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "tidepool-rocks.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "shore-crab.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "golden-starfish.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "clam-shell.glb",
+      "path": "game-models/seaside"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Low-poly Seaside Starter Pack.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "floating-island.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "small-floating-island.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "stepping-tile.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "playground-ramp.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "moving-platform.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "jump-pad.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "checkpoint-flag.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "pressure-switch.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "breakable-block.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "collectible-gem.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "collectible-star.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "spike-tile.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "rotating-sweeper.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "goal-portal.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "route-arrow.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "cloud-platform.glb",
+      "path": "game-models/platformer"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Platformer Playground Starter Pack.jpg",
+      "path": ""
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "dungeon-floor.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "dungeon-wall.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "dungeon-corner.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "arched-oak-door.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "iron-portcullis.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "stone-stairs.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "broken-column.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "wall-torch.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "spike-trap.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "rune-pressure-plate.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "stone-sarcophagus.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "dungeon-key.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "guardian-idol.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "treasure-urn.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "iron-brazier.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "hanging-chain.glb",
+      "path": "game-models/dungeon"
+    },
+    {
+      "package_name": "nodetool-base",
+      "name": "Dungeon and Ruins Starter Pack.jpg",
+      "path": ""
     }
   ],
   "examples": [
@@ -574,6 +1054,82 @@
         "creative",
         "director",
         "storyboard",
+        "example"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Sci-fi Game Model Starter Pack",
+      "description": "Reusable sci-fi GLB models: a scout robot with an idle animation, a drone, cargo, crystals, and modular station pieces. Run to expose each model as a named output. No provider or API key required.",
+      "tags": [
+        "3d",
+        "game",
+        "sci-fi",
+        "assets",
+        "example"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Sci-fi Outpost Expansion",
+      "description": "A matching sci-fi model pack with a rover, sentry turret, reactor, satellite dish, airlock and station props. Run to expose each GLB as a named output. No provider or API key required.",
+      "tags": [
+        "3d",
+        "game",
+        "sci-fi",
+        "assets",
+        "example"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Low-poly Adventure Starter Pack",
+      "description": "Low-poly woodland models for adventure games: a ranger, an animated slime, trees, camp props, treasure and modular scenery. Run to expose each GLB as a named output. No provider or API key required.",
+      "tags": [
+        "3d",
+        "game",
+        "low-poly",
+        "adventure",
+        "assets",
+        "example"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Low-poly Seaside Starter Pack",
+      "description": "Low-poly coastal models for games: boats, dock pieces, a lighthouse, a beach hut, fishing props and shore collectibles. Run to expose each GLB as a named output. No provider or API key required.",
+      "tags": [
+        "3d",
+        "game",
+        "low-poly",
+        "seaside",
+        "assets",
+        "example"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Platformer Playground Starter Pack",
+      "description": "Low-poly playground models for platform games: floating islands, platforms, spring pads, checkpoints, switches, hazards and collectibles. Includes nine animation clips. Run to expose each GLB as a named output. No provider or API key required.",
+      "tags": [
+        "3d",
+        "game",
+        "low-poly",
+        "platformer",
+        "assets",
+        "example"
+      ]
+    },
+    {
+      "id": "",
+      "name": "Dungeon and Ruins Starter Pack",
+      "description": "Low-poly dungeon models for adventure games: modular stone rooms, doors, gates, traps, torches, tombs and treasure. Includes seven animation clips. Run to expose each GLB as a named output. No provider or API key required.",
+      "tags": [
+        "3d",
+        "game",
+        "low-poly",
+        "dungeon",
+        "assets",
         "example"
       ]
     }

@@ -1,0 +1,439 @@
+{
+  "name": "Dungeon and Ruins Starter Pack",
+  "format": "glTF 2.0 binary",
+  "units": "meters",
+  "up": "+Y",
+  "forward": "-Z",
+  "origin": "ground center",
+  "gridMeters": 2,
+  "models": [
+    {
+      "slug": "dungeon-floor",
+      "name": "Dungeon floor",
+      "file": "dungeon-floor.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/dungeon-floor.glb",
+      "sha256": "dda62c546154c51bba631f094f6c4bf247934d68075a43ae3bb43f5d455df86c",
+      "bytes": 35516,
+      "triangles": 444,
+      "bounds": {
+        "min": [
+          -1,
+          0,
+          -1
+        ],
+        "max": [
+          1,
+          0.16000000007450582,
+          1
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "Two-meter flagstone floor tile with four slabs.",
+      "collider": "Static box with its top at Y 0.16 m."
+    },
+    {
+      "slug": "dungeon-wall",
+      "name": "Dungeon wall",
+      "file": "dungeon-wall.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/dungeon-wall.glb",
+      "sha256": "5a739fcc81f1b08dd917ccab1836f51b958318cdfa1ce73e1b3275e8ac6fa0ea",
+      "bytes": 126316,
+      "triangles": 1620,
+      "bounds": {
+        "min": [
+          -1,
+          0,
+          -0.18000000715255737
+        ],
+        "max": [
+          1,
+          2.400000002980232,
+          0.18000000715255737
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "Two-meter straight masonry wall, 2.4 m tall.",
+      "collider": "Static box. Place its bottom at floor-top height."
+    },
+    {
+      "slug": "dungeon-corner",
+      "name": "Dungeon corner",
+      "file": "dungeon-corner.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/dungeon-corner.glb",
+      "sha256": "d87624d780f93cb73e67858d61970eb3c8629061d84232cd71c33231f2483616",
+      "bytes": 252332,
+      "triangles": 3240,
+      "bounds": {
+        "min": [
+          -1,
+          0,
+          -0.9999999928474426
+        ],
+        "max": [
+          1.0000000071525574,
+          2.400000002980232,
+          1.0000000071525572
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "L-shaped wall occupying a two-meter square, open toward -X and -Z.",
+      "collider": "Two separate wall boxes to preserve the interior."
+    },
+    {
+      "slug": "arched-oak-door",
+      "name": "Arched oak door",
+      "file": "arched-oak-door.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/arched-oak-door.glb",
+      "sha256": "3d6eb2ff4097610f6510bddf6896ed9131041dbdb2dd2b50fdfd2b69b81392b6",
+      "bytes": 121912,
+      "triangles": 1488,
+      "bounds": {
+        "min": [
+          -1,
+          0,
+          -0.24
+        ],
+        "max": [
+          1,
+          2.3808078289031984,
+          0.23999999463558197
+        ]
+      },
+      "clips": [
+        "Open"
+      ],
+      "animationDurations": {
+        "Open": 1
+      },
+      "use": "Stone arch with a hinged oak door. Open swings outward toward -Z.",
+      "collider": "Separate frame pieces and a door collider. Update or disable the door collider when opening."
+    },
+    {
+      "slug": "iron-portcullis",
+      "name": "Iron portcullis",
+      "file": "iron-portcullis.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/iron-portcullis.glb",
+      "sha256": "cc68f14a1b1955ec490332225e84e8f428158c858dbe6aadddf86707ca3467ff",
+      "bytes": 169956,
+      "triangles": 2124,
+      "bounds": {
+        "min": [
+          -1.0200000017881394,
+          0,
+          -0.25999999046325684
+        ],
+        "max": [
+          1.0200000017881394,
+          2.655000050663948,
+          0.25999999046325684
+        ]
+      },
+      "clips": [
+        "Raise"
+      ],
+      "animationDurations": {
+        "Raise": 1.2
+      },
+      "use": "Iron grate with a windlass and a Raise clip.",
+      "collider": "Frame boxes and a movable grate collider. Allow overhead clearance to Y 4.23 m."
+    },
+    {
+      "slug": "stone-stairs",
+      "name": "Stone stairs",
+      "file": "stone-stairs.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/stone-stairs.glb",
+      "sha256": "eba1a15dc889c9b642a2f2ac9bac793dc902ac3f6e44648305bd38c3d86f036b",
+      "bytes": 42324,
+      "triangles": 540,
+      "bounds": {
+        "min": [
+          -1,
+          0,
+          -1.0000000029802323
+        ],
+        "max": [
+          1,
+          1.000000011920929,
+          1.0000000029802323
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "Five 0.20 m steps rising toward +Z across a 2 × 2 m footprint.",
+      "collider": "Five step boxes or a walkable ramp collider. Top landing is Y 1.00 m."
+    },
+    {
+      "slug": "broken-column",
+      "name": "Broken column",
+      "file": "broken-column.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/broken-column.glb",
+      "sha256": "ab353e169e05ea89d69d1382d1ab45685be3e7184f1eab1824b317f2e8e3dced",
+      "bytes": 12324,
+      "triangles": 136,
+      "bounds": {
+        "min": [
+          -0.460584602355957,
+          0,
+          -0.510584602355957
+        ],
+        "max": [
+          0.6941561889648438,
+          1.5599999862909317,
+          0.4300000071525574
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "Octagonal column fragment with an uneven broken top and fallen stones.",
+      "collider": "Column capsule plus small rubble hulls."
+    },
+    {
+      "slug": "wall-torch",
+      "name": "Wall torch",
+      "file": "wall-torch.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/wall-torch.glb",
+      "sha256": "3a42b36bb5b06524e3d98d26162bc74ca0630f5ae1a3e08310411f1cb5a2d71f",
+      "bytes": 32624,
+      "triangles": 598,
+      "bounds": {
+        "min": [
+          -0.16291079075432535,
+          0,
+          -0.34567627295851705
+        ],
+        "max": [
+          0.16291079075432535,
+          1.1631929651692259,
+          0.17249999880790712
+        ]
+      },
+      "clips": [
+        "Flicker"
+      ],
+      "animationDurations": {
+        "Flicker": 1
+      },
+      "use": "Wall-mounted timber torch with an emissive flame and Flicker clip.",
+      "collider": "Nonphysical decoration. Mount the back plate against a wall and add a game light separately."
+    },
+    {
+      "slug": "spike-trap",
+      "name": "Spike trap",
+      "file": "spike-trap.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/spike-trap.glb",
+      "sha256": "e2c98c28e5ecc4a299e9368fd0eaa9d21f482b7a5e4086d771acce4fa6466610",
+      "bytes": 42604,
+      "triangles": 486,
+      "bounds": {
+        "min": [
+          -1,
+          0,
+          -1
+        ],
+        "max": [
+          1,
+          0.19499999828636644,
+          1
+        ]
+      },
+      "clips": [
+        "Extend"
+      ],
+      "animationDurations": {
+        "Extend": 0.3
+      },
+      "use": "Two-meter floor trap. Extend raises nine concealed iron spikes.",
+      "collider": "Static base and a hazard sensor enabled only while spikes are raised."
+    },
+    {
+      "slug": "rune-pressure-plate",
+      "name": "Rune pressure plate",
+      "file": "rune-pressure-plate.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/rune-pressure-plate.glb",
+      "sha256": "55c2afaf14bd5d7656ffc7f12117d2a484584cfa452bf4d7d33fec187fed8271",
+      "bytes": 35148,
+      "triangles": 432,
+      "bounds": {
+        "min": [
+          -0.4749999940395355,
+          0,
+          -0.4749999940395355
+        ],
+        "max": [
+          0.4749999940395355,
+          0.2885000028386712,
+          0.4749999940395355
+        ]
+      },
+      "clips": [
+        "Press"
+      ],
+      "animationDurations": {
+        "Press": 0.25
+      },
+      "use": "Stone puzzle switch with an amber and turquoise diamond rune.",
+      "collider": "Base box and trigger sensor. Hold Press while occupied and restore on release."
+    },
+    {
+      "slug": "stone-sarcophagus",
+      "name": "Stone sarcophagus",
+      "file": "stone-sarcophagus.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/stone-sarcophagus.glb",
+      "sha256": "401d5b0cb06b041f0b988d6d872ee70aa7d1625ed2d7abbe3af3d9c77a0fc366",
+      "bytes": 30976,
+      "triangles": 356,
+      "bounds": {
+        "min": [
+          -0.5199999809265137,
+          0,
+          -1
+        ],
+        "max": [
+          0.5199999809265137,
+          0.8185000004619363,
+          1.0000000000000002
+        ]
+      },
+      "clips": [
+        "Open"
+      ],
+      "animationDurations": {
+        "Open": 1.2
+      },
+      "use": "Hollow stone tomb with an inlaid lid. Open lifts the lid around its rear hinge.",
+      "collider": "Separate base and wall boxes. Disable or move the lid collider when opening."
+    },
+    {
+      "slug": "dungeon-key",
+      "name": "Dungeon key",
+      "file": "dungeon-key.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/dungeon-key.glb",
+      "sha256": "880517e78084de621f7d8e3f6b8d0ec941f369a10c6aa7d217820cec476e90da",
+      "bytes": 23364,
+      "triangles": 368,
+      "bounds": {
+        "min": [
+          -0.2329999953508377,
+          0,
+          -0.040895428508520126
+        ],
+        "max": [
+          0.2329999953508377,
+          1.0029999977350235,
+          0.040895428508520126
+        ]
+      },
+      "clips": [
+        "Spin"
+      ],
+      "animationDurations": {
+        "Spin": 3
+      },
+      "use": "Large golden key with a looping Spin clip.",
+      "collider": "Pickup sensor on a stationary gameplay root."
+    },
+    {
+      "slug": "guardian-idol",
+      "name": "Guardian idol",
+      "file": "guardian-idol.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/guardian-idol.glb",
+      "sha256": "15b4b00e5c69a13cb93a43903cc890294e388442ab8ad4784e27595e472da651",
+      "bytes": 66512,
+      "triangles": 816,
+      "bounds": {
+        "min": [
+          -0.44999998807907104,
+          0,
+          -0.42500001192092896
+        ],
+        "max": [
+          0.44999998807907104,
+          1.570000001490116,
+          0.42500001192092896
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "Hooded stone guardian holding a ceremonial sword.",
+      "collider": "Static simple hull."
+    },
+    {
+      "slug": "treasure-urn",
+      "name": "Treasure urn",
+      "file": "treasure-urn.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/treasure-urn.glb",
+      "sha256": "cb6e611cf0e80bdd1f7d8ab3c76d8cdd2590493d7bfe9cf417cd589705efd057",
+      "bytes": 19924,
+      "triangles": 720,
+      "bounds": {
+        "min": [
+          -0.5090000039339065,
+          0,
+          -0.4000000059604645
+        ],
+        "max": [
+          0.5090000039339065,
+          0.8068742992728949,
+          0.4000000059604645
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "Open-neck ceramic urn with gold bands and handles.",
+      "collider": "Simple convex hull. Add loot or break behavior in gameplay."
+    },
+    {
+      "slug": "iron-brazier",
+      "name": "Iron brazier",
+      "file": "iron-brazier.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/iron-brazier.glb",
+      "sha256": "d12d15f81e6d133a94aa057eefba63c2fd342649d8e4f8d66c8964b844599789",
+      "bytes": 23036,
+      "triangles": 316,
+      "bounds": {
+        "min": [
+          -0.43700000643730164,
+          0,
+          -0.43700000643730164
+        ],
+        "max": [
+          0.43700000643730164,
+          1.310459957626986,
+          0.452921328839333
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "Three-legged iron fire bowl with static emissive flames.",
+      "collider": "Small static hull. Add point lighting and damage sensors separately."
+    },
+    {
+      "slug": "hanging-chain",
+      "name": "Hanging chain",
+      "file": "hanging-chain.glb",
+      "uri": "package://nodetool-base/game-models/dungeon/hanging-chain.glb",
+      "sha256": "3b72da75e0439933a77efdea8b5be9a3d10c0e149ee88feb2ede9b6b50f9b43d",
+      "bytes": 24356,
+      "triangles": 840,
+      "bounds": {
+        "min": [
+          -0.15800000727176666,
+          0,
+          -0.15800000727176666
+        ],
+        "max": [
+          0.15800000727176666,
+          1.6360000145435334,
+          0.15800000727176666
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "Seven interlocking iron links. Use the catalog height to align its top with a ceiling.",
+      "collider": "Nonphysical decoration or simple sensor. No rope simulation."
+    }
+  ]
+}

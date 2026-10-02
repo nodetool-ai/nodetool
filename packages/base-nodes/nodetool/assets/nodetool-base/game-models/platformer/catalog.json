@@ -1,0 +1,447 @@
+{
+  "name": "Platformer Playground Starter Pack",
+  "format": "glTF 2.0 binary",
+  "units": "meters",
+  "up": "+Y",
+  "forward": "-Z",
+  "origin": "ground center",
+  "gridMeters": 2,
+  "models": [
+    {
+      "slug": "floating-island",
+      "name": "Floating island",
+      "file": "floating-island.glb",
+      "uri": "package://nodetool-base/game-models/platformer/floating-island.glb",
+      "sha256": "10bd37dcb0918e9272829a9831ba183432f1c82f0d096bf37d2e3a74b91ee1c3",
+      "bytes": 24664,
+      "triangles": 212,
+      "bounds": {
+        "min": [
+          -1.3161526918411255,
+          0,
+          -1.2163079977035522
+        ],
+        "max": [
+          1.3161526918411255,
+          1.3874446191408933,
+          1.350000023841858
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "Broad seven-sided island with a grass cap and a tapered underside.",
+      "collider": "Static convex top or flat deck collider. Walkable top Y 1.20 m."
+    },
+    {
+      "slug": "small-floating-island",
+      "name": "Small floating island",
+      "file": "small-floating-island.glb",
+      "uri": "package://nodetool-base/game-models/platformer/small-floating-island.glb",
+      "sha256": "12ce9d10b329cc41ad21954384ca29f61136dbfd86c95b98933be0998d4257ba",
+      "bytes": 16084,
+      "triangles": 164,
+      "bounds": {
+        "min": [
+          -0.6824495196342468,
+          0,
+          -0.6306782364845276
+        ],
+        "max": [
+          0.6824495196342468,
+          0.7800000050663948,
+          0.699999988079071
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "Compact landing island for jump sequences.",
+      "collider": "Static convex top. Walkable top Y 0.78 m."
+    },
+    {
+      "slug": "stepping-tile",
+      "name": "Stepping tile",
+      "file": "stepping-tile.glb",
+      "uri": "package://nodetool-base/game-models/platformer/stepping-tile.glb",
+      "sha256": "307e2c06ec2a80489dfc971c942febcf1c261d8f328f5dd9ccf2a497815cc248",
+      "bytes": 50972,
+      "triangles": 648,
+      "bounds": {
+        "min": [
+          -1,
+          0,
+          -1
+        ],
+        "max": [
+          1,
+          0.42500000614672895,
+          1
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "Two-meter tile for platform paths and blockouts.",
+      "collider": "Box with its main deck at Y 0.40 m. Corner decorations rise 0.025 m above it."
+    },
+    {
+      "slug": "playground-ramp",
+      "name": "Playground ramp",
+      "file": "playground-ramp.glb",
+      "uri": "package://nodetool-base/game-models/platformer/playground-ramp.glb",
+      "sha256": "a54d4cba5da17df891ee0e10221851cb7b38531acc56b480943be889eabfe7b8",
+      "bytes": 27204,
+      "triangles": 332,
+      "bounds": {
+        "min": [
+          -1,
+          0,
+          -1.0134164222473245
+        ],
+        "max": [
+          1.0000000000000002,
+          1.079429577431661,
+          1.0134164222473245
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "Two-meter-wide ramp rising toward +Z with pale edge guides.",
+      "collider": "Static wedge collider aligned to the sloping surface."
+    },
+    {
+      "slug": "moving-platform",
+      "name": "Moving platform",
+      "file": "moving-platform.glb",
+      "uri": "package://nodetool-base/game-models/platformer/moving-platform.glb",
+      "sha256": "647753462f213f9e42692a4e5e4b291026f3b4133d1602dfc33d88040e541918",
+      "bytes": 33840,
+      "triangles": 432,
+      "bounds": {
+        "min": [
+          -1,
+          0,
+          -1
+        ],
+        "max": [
+          1,
+          0.4309999990910292,
+          1
+        ]
+      },
+      "clips": [
+        "Travel"
+      ],
+      "animationDurations": {
+        "Travel": 4
+      },
+      "use": "Blue transport platform. Travel previews a 2 m lateral route and return.",
+      "collider": "Kinematic deck box. Drive the physics root in gameplay, with Travel disabled."
+    },
+    {
+      "slug": "jump-pad",
+      "name": "Jump pad",
+      "file": "jump-pad.glb",
+      "uri": "package://nodetool-base/game-models/platformer/jump-pad.glb",
+      "sha256": "39a5ae177dda449e436c85e802e2e5682c802357cf6e9c125c42ca9a818601ab",
+      "bytes": 27324,
+      "triangles": 720,
+      "bounds": {
+        "min": [
+          -0.6700000166893005,
+          0,
+          -0.6700000166893005
+        ],
+        "max": [
+          0.6700000166893005,
+          0.6880000010579825,
+          0.6700000166893005
+        ]
+      },
+      "clips": [
+        "Bounce"
+      ],
+      "animationDurations": {
+        "Bounce": 0.65
+      },
+      "use": "Coral spring pad with a squash-and-release Bounce clip.",
+      "collider": "Static base and trigger sensor. Apply a player impulse separately."
+    },
+    {
+      "slug": "checkpoint-flag",
+      "name": "Checkpoint flag",
+      "file": "checkpoint-flag.glb",
+      "uri": "package://nodetool-base/game-models/platformer/checkpoint-flag.glb",
+      "sha256": "7460763a52cda9ad765906e1d51c77b6d5e33d11bced955194c5ca7151a4bf1d",
+      "bytes": 15740,
+      "triangles": 180,
+      "bounds": {
+        "min": [
+          -0.3614014685153961,
+          0,
+          -0.3799999952316284
+        ],
+        "max": [
+          0.7799999713897705,
+          2.1599999986588956,
+          0.3799999952316284
+        ]
+      },
+      "clips": [
+        "Activate"
+      ],
+      "animationDurations": {
+        "Activate": 0.8
+      },
+      "use": "Yellow checkpoint pennant. Activate raises the banner up the pole.",
+      "collider": "Small base collider and checkpoint sensor."
+    },
+    {
+      "slug": "pressure-switch",
+      "name": "Pressure switch",
+      "file": "pressure-switch.glb",
+      "uri": "package://nodetool-base/game-models/platformer/pressure-switch.glb",
+      "sha256": "8040975ac3a57c15e29ea9a161dc8c3272ff6dac32111b13f0f132633d96edb1",
+      "bytes": 34960,
+      "triangles": 432,
+      "bounds": {
+        "min": [
+          -0.4749999940395355,
+          0,
+          -0.4749999940395355
+        ],
+        "max": [
+          0.4749999940395355,
+          0.3655000034086407,
+          0.4749999940395355
+        ]
+      },
+      "clips": [
+        "Press"
+      ],
+      "animationDurations": {
+        "Press": 0.25
+      },
+      "use": "Recessed gold floor button with a Press clip.",
+      "collider": "Base box and trigger sensor. Hold the pressed pose while occupied."
+    },
+    {
+      "slug": "breakable-block",
+      "name": "Breakable block",
+      "file": "breakable-block.glb",
+      "uri": "package://nodetool-base/game-models/platformer/breakable-block.glb",
+      "sha256": "2d66a212d856a5fac12b52bd65c3ddc739618192d5d8aba5cbfa31f5989c93ce",
+      "bytes": 80372,
+      "triangles": 864,
+      "bounds": {
+        "min": [
+          -0.48499999463558197,
+          0,
+          -0.48499999463558197
+        ],
+        "max": [
+          0.48499999463558197,
+          0.9699999892711639,
+          0.48499999463558197
+        ]
+      },
+      "clips": [
+        "Break"
+      ],
+      "animationDurations": {
+        "Break": 0.55
+      },
+      "use": "Eight separated chunks burst outward and shrink in the Break clip.",
+      "collider": "Box before breaking. Disable collision and despawn after playing Break."
+    },
+    {
+      "slug": "collectible-gem",
+      "name": "Collectible gem",
+      "file": "collectible-gem.glb",
+      "uri": "package://nodetool-base/game-models/platformer/collectible-gem.glb",
+      "sha256": "a5c74417dc77de00128fc64caee992898cad4737b9e1f6e72be24afc8ba18a84",
+      "bytes": 4016,
+      "triangles": 24,
+      "bounds": {
+        "min": [
+          -0.4300000071525574,
+          0,
+          -0.4300000071525574
+        ],
+        "max": [
+          0.4300000071525574,
+          0.8600000143051147,
+          0.4300000071525574
+        ]
+      },
+      "clips": [
+        "Spin"
+      ],
+      "animationDurations": {
+        "Spin": 2
+      },
+      "use": "Faceted turquoise gem with a looping Spin clip.",
+      "collider": "Pickup sensor on an unanimated gameplay root."
+    },
+    {
+      "slug": "collectible-star",
+      "name": "Collectible star",
+      "file": "collectible-star.glb",
+      "uri": "package://nodetool-base/game-models/platformer/collectible-star.glb",
+      "sha256": "2edf37ea39ccfcec4a6f9452a822ebf857ec00537a293d9f299c6d2d45ebdfc7",
+      "bytes": 26392,
+      "triangles": 356,
+      "bounds": {
+        "min": [
+          -0.49013206362724304,
+          0,
+          -0.10599999977648258
+        ],
+        "max": [
+          0.49013206362724304,
+          0.9322865903377533,
+          0.0900000011920929
+        ]
+      },
+      "clips": [
+        "Spin"
+      ],
+      "animationDurations": {
+        "Spin": 3
+      },
+      "use": "Chunky smiling star reward with a looping Spin clip.",
+      "collider": "Pickup sensor on an unanimated gameplay root."
+    },
+    {
+      "slug": "spike-tile",
+      "name": "Spike tile",
+      "file": "spike-tile.glb",
+      "uri": "package://nodetool-base/game-models/platformer/spike-tile.glb",
+      "sha256": "2dd300ad186b0de3475b01af5cc4c1aa1f0e78d231526304af88c9e9cd9587c6",
+      "bytes": 43196,
+      "triangles": 504,
+      "bounds": {
+        "min": [
+          -1,
+          0,
+          -1
+        ],
+        "max": [
+          1,
+          0.7500000089406966,
+          1
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "Two-meter hazard tile with nine pale spikes and coral sockets.",
+      "collider": "Static base and a damage sensor over the spikes."
+    },
+    {
+      "slug": "rotating-sweeper",
+      "name": "Rotating sweeper",
+      "file": "rotating-sweeper.glb",
+      "uri": "package://nodetool-base/game-models/platformer/rotating-sweeper.glb",
+      "sha256": "bc773aac3b2d81bea516ca1ae75e200760a34954e63d08d11a60443749f83c2e",
+      "bytes": 29716,
+      "triangles": 380,
+      "bounds": {
+        "min": [
+          -1.43,
+          0,
+          -0.3799999952316284
+        ],
+        "max": [
+          1.43,
+          0.9400000002980231,
+          0.3799999952316284
+        ]
+      },
+      "clips": [
+        "Spin"
+      ],
+      "animationDurations": {
+        "Spin": 4
+      },
+      "use": "Coral obstacle arm with a four-second Spin clip.",
+      "collider": "Drive a matching kinematic arm or sensor from gameplay."
+    },
+    {
+      "slug": "goal-portal",
+      "name": "Goal portal",
+      "file": "goal-portal.glb",
+      "uri": "package://nodetool-base/game-models/platformer/goal-portal.glb",
+      "sha256": "708e683d04963ce338b408c7e3ecdfcda19a54bfa948870fc1f8954bd4b9982d",
+      "bytes": 128456,
+      "triangles": 1628,
+      "bounds": {
+        "min": [
+          -1.1549999940395357,
+          0,
+          -0.30000001192092896
+        ],
+        "max": [
+          1.1549999940395357,
+          2.9500000047683717,
+          0.30000001192092896
+        ]
+      },
+      "clips": [
+        "Open"
+      ],
+      "animationDurations": {
+        "Open": 1
+      },
+      "use": "Blue finish arch with a lift gate and gold diamond emblem. Open raises the gate.",
+      "collider": "Separate posts and lintel, movable gate and a finish sensor."
+    },
+    {
+      "slug": "route-arrow",
+      "name": "Route arrow",
+      "file": "route-arrow.glb",
+      "uri": "package://nodetool-base/game-models/platformer/route-arrow.glb",
+      "sha256": "39092c61f65580505dea9fe35cb617b72e70e97461903f3d80eaf56e45b34fc4",
+      "bytes": 15712,
+      "triangles": 192,
+      "bounds": {
+        "min": [
+          -0.4950000047683716,
+          0,
+          -0.22499999403953552
+        ],
+        "max": [
+          0.5512132048606873,
+          1.58930100902915,
+          0.22499999403953552
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "Raised directional arrow for guiding jump routes.",
+      "collider": "Post capsule or a nonphysical visual."
+    },
+    {
+      "slug": "cloud-platform",
+      "name": "Cloud platform",
+      "file": "cloud-platform.glb",
+      "uri": "package://nodetool-base/game-models/platformer/cloud-platform.glb",
+      "sha256": "c7c1c71b7c615a42e46cd7a90d873fd65e9164cf5c0e07d3917e7e216b270d98",
+      "bytes": 40312,
+      "triangles": 508,
+      "bounds": {
+        "min": [
+          -1.1,
+          0,
+          -0.6
+        ],
+        "max": [
+          1.08,
+          0.7804000000000001,
+          0.583
+        ]
+      },
+      "clips": [],
+      "animationDurations": {},
+      "use": "Faceted cream cloud for floating rest stops and background clusters.",
+      "collider": "One gameplay deck box at a chosen landing height. Puffy silhouette is decorative."
+    }
+  ]
+}
