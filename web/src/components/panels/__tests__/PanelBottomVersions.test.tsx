@@ -5,7 +5,7 @@ import { PanelBodyContent } from "../PanelBottom";
 let mockTabType: string | null = "chat";
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({ useWorkspaceTabsStore: (select: (s: unknown) => unknown) => select({ tabs: mockTabType ? [{ id: "active", type: mockTabType, ref: "visible-workflow" }] : [], activeTabId: "active" }) }));
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({ useWorkflowManager: (select: (s: unknown) => unknown) => select({ currentWorkflowId: "previous-workflow", nodeStores: {} }) }));
-jest.mock("../../version", () => ({ VersionHistoryPanel: ({ workflowId }: { workflowId: string }) => <div>Versions for {workflowId}</div> }));
+jest.mock("../../version/VersionHistoryPanel", () => ({ VersionHistoryPanel: ({ workflowId }: { workflowId: string }) => <div>Versions for {workflowId}</div> }));
 jest.mock("../TracePanel", () => () => null);
 jest.mock("../LogPanel", () => () => null);
 jest.mock("../jobs/QueuePanel", () => () => null);
