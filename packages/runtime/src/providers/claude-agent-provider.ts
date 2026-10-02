@@ -45,6 +45,10 @@ import type {
   SDKUserMessage
 } from "@anthropic-ai/claude-agent-sdk";
 import { z, type ZodTypeAny } from "zod";
+import type {
+  ImageBlockParam,
+  TextBlockParam
+} from "@anthropic-ai/sdk/resources/messages";
 import {
   BaseProvider,
   budgetStopItem,
@@ -125,12 +129,11 @@ const NESTED_SESSION_ENV =
 
 /**
  * The subset of the SDK `query` signature this provider depends on. We only
- * ever pass a string prompt and consume the result as an async iterable, so the
- * real `query` (which also accepts an async-iterable prompt and returns the
- * richer `Query`) is assignable to this. Injectable for tests.
+ * pass a string for text-only turns or a structured user message for images,
+ * and consume the result as an async iterable. Injectable for tests.
  */
 export type ClaudeQueryFn = (params: {
-  prompt: string;
+  prompt: string | AsyncIterable<SDKUserMessage>;
   options?: Options;
 }) => AsyncIterable<SDKMessage>;
 
@@ -667,7 +670,7 @@ export class ClaudeAgentProvider extends BaseProvider {
       signal?: AbortSignal;
     },
     plan: {
-      prompt: string;
+      prompt: PromptContent;
       resume: string | undefined;
       systemPrompt: string;
       systemHash: string;
@@ -830,7 +833,7 @@ export class ClaudeAgentProvider extends BaseProvider {
     };
 
     try {
-      for await (const msg of queryFn({ prompt: plan.prompt, options })) {
+      for await (const msg of queryFn({ prompt: sdkPrompt(plan.prompt), options })) {
         if (msg.type === "system" && msg.subtype === "init") {
           // Capture the session and surface it immediately so a streaming
           // consumer can persist it onto the assistant message it creates.
@@ -1477,10 +1480,15 @@ function extractSystemPrompt(messages: Message[]): string {
  * replayed (re-feeding them would present the model its own prior answer as
  * user input).
  */
-function buildResumeDelta(messages: Message[], checkpoint: number): string {
-  return messages
-    .slice(checkpoint)
-    .filter((m) => m.role === "user")
+function buildResumeDelta(messages: Message[], checkpoint: number): PromptContent {
+  const delta = messages.slice(checkpoint).filter((m) => m.role === "user");
+  if (hasImages(delta)) {
+    return delta.flatMap((message, index) => [
+      ...(index ? [{type: "text", text: "\n\n"} satisfies TextBlockParam] : []),
+      ...promptBlocks(message.content)
+    ]);
+  }
+  return delta
     .map((m) => textOf(m.content))
     .filter(Boolean)
     .join("\n\n");
@@ -1492,19 +1500,37 @@ function buildResumeDelta(messages: Message[], checkpoint: number): string {
  * edited/branched conversation) we prime context ONCE with a single delimited
  * user message instead of rebuilding a `Human:/Assistant:` transcript — the SDK
  * cannot import external assistant turns, so this is deliberate context priming,
- * not a faithful reconstruction. Only final assistant TEXT is included
- * (thinking is stripped by {@link textOf}).
+ * not a faithful reconstruction. Text and inline images are retained, while
+ * thinking is stripped.
  */
-function buildFreshPrompt(messages: Message[]): string {
+function buildFreshPrompt(messages: Message[]): PromptContent {
   const convo = messages.filter((m) => m.role !== "system");
   if (convo.length === 0) return "";
   if (convo.length === 1 && convo[0].role === "user") {
-    return textOf(convo[0].content);
+    return hasImages(convo) ? promptBlocks(convo[0].content) : textOf(convo[0].content);
   }
 
   const last = convo[convo.length - 1];
   const newTurn = last.role === "user" ? textOf(last.content) : "";
   const prior = last.role === "user" ? convo.slice(0, -1) : convo;
+  if (hasImages(convo)) {
+    const blocks: PromptBlock[] = [];
+    if (prior.length) {
+      blocks.push({type: "text", text: "<conversation_so_far>\n"});
+      for (const message of prior) {
+        blocks.push(
+          {type: "text", text: `${message.role === "assistant" ? "Assistant" : "User"}: `},
+          ...promptBlocks(message.content),
+          {type: "text", text: "\n\n"}
+        );
+      }
+      blocks.push({type: "text", text: "</conversation_so_far>\n\n"});
+    }
+    if (last.role === "user") {
+      blocks.push(...promptBlocks(last.content));
+    }
+    return blocks;
+  }
   const transcript = prior
     .map((m) => {
       const text = textOf(m.content);
@@ -1518,4 +1544,51 @@ function buildFreshPrompt(messages: Message[]): string {
     ? `<conversation_so_far>\n${transcript}\n</conversation_so_far>`
     : "";
   return [primed, newTurn].filter(Boolean).join("\n\n");
+}
+
+type PromptBlock = TextBlockParam | ImageBlockParam;
+type PromptContent = string | PromptBlock[];
+
+function hasImages(messages: readonly Message[]): boolean {
+  return messages.some(
+    (message) => Array.isArray(message.content) &&
+      message.content.some((part) => part.type === "image_url")
+  );
+}
+
+/** Images must already be inline. This boundary never fetches caller URLs. */
+function promptBlocks(content: Message["content"]): PromptBlock[] {
+  if (isString(content)) {
+    return [{type: "text", text: content}];
+  }
+  const blocks: PromptBlock[] = [];
+  for (const part of content ?? []) {
+    if (part.type === "text") {
+      blocks.push({type: "text", text: part.text});
+    } else if (part.type === "image_url") {
+      const image = toMcpImageBlock(part.image);
+      if (!image) {
+        throw new Error("Claude Agent image messages require inline image data. Resolve the media reference before dispatch.");
+      }
+      const mime = image.mimeType;
+      if (mime !== "image/png" && mime !== "image/jpeg" && mime !== "image/gif" && mime !== "image/webp") {
+        throw new Error(`Claude Agent image messages do not support ${mime}. Convert the image before dispatch.`);
+      }
+      blocks.push({type: "image", source: {type: "base64", media_type: mime, data: image.data}});
+    }
+  }
+  return blocks;
+}
+
+function sdkPrompt(content: PromptContent): string | AsyncIterable<SDKUserMessage> {
+  if (isString(content)) {
+    return content;
+  }
+  return (async function* () {
+    yield {
+      type: "user",
+      parent_tool_use_id: null,
+      message: {role: "user", content}
+    } satisfies SDKUserMessage;
+  })();
 }
