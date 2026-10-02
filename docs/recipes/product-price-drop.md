@@ -75,7 +75,9 @@ asset identity, copy, declared transforms and provenance. It does not claim
 pixel-level semantic recognition of every rendered object.
 
 `finish_storyboard` also accepts `strategy: "agentic"` in a provider-backed
-agent session. The default remains deterministic and needs no model.
+agent session, or with an explicit `model: {provider, id}` in a Mini App
+operation or headless script. An explicit model is used exactly, with no
+silent fallback. The default remains deterministic and needs no model.
 The opt-in pass receives the whole board, preservation rules and editable
 scaffold. It renders design references derived from the expected Storyboard
 revision and compares actual composited cut frames with those references.
@@ -97,3 +99,4 @@ protected animation, mask or effect paths fail policy validation rather than
 silently weakening source fidelity. A visual review checks sampled frames,
 not every frame or perfect visual equivalence. The returned review report
 contains frame hashes, timecodes and derived-reference fingerprints.
+Agentic results report the provider's measured cost delta as `costUsd`.

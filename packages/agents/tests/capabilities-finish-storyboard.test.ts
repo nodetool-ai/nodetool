@@ -169,6 +169,21 @@ describe("finish_storyboard", () => {
 });
 
 
+describe("finishing source MIME contracts", () => {
+  beforeEach(() => initTestDb());
+  it.each(["graphics", "still", "video"])("rejects wrong MIME for %s before provider dispatch or a save", async (kind) => {
+    const { board, asset } = await fixture();
+    asset.content_type = kind === "video" ? "image/png" : "video/mp4"; await asset.save();
+    const document = board.toDocument();
+    if (kind === "still") document.shots[0].keyframe = { type: "image", asset_id: asset.id };
+    if (kind === "video") { document.shots[0].production = { media_strategy: "generated_video" }; document.shots[0].graphics = undefined; document.shots[0].clip = { type: "video", asset_id: asset.id }; }
+    board.document = JSON.stringify(document); await board.save();
+    expect(await finishStoryboard.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision })).toMatchObject({ error: expect.stringMatching(/must be an image|must be a video/) });
+    expect(await previewStoryboardDesign.impl(run(), { storyboardId: board.id, expectedStoryboardRevision: board.revision })).toHaveProperty("error");
+    expect(await TimelineSequence.listByUser("u1")).toHaveLength(0);
+  });
+});
+
 describe("preview_storyboard_design", () => {
   beforeEach(() => initTestDb());
   it("returns a fully shaped inline Timeline envelope without saving or dispatching a provider", async () => {

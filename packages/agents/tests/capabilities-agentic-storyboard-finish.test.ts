@@ -1,4 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
+import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
+import { mountJsScriptSandbox } from "../src/js-script-sandbox.js";
+import { PERMISSION_GATE_CONTEXT_KEY } from "../src/types.js";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
 import {
   Asset,
@@ -193,7 +196,7 @@ async function execute(
   }>;
 }
 
-describe("whole-cut agentic finishing", () => {
+describe("finish_storyboard whole-cut agentic finishing", () => {
   beforeEach(() => initTestDb());
   it("authors the full cut through existing ops, reviews real frames, revises a visual defect, then commits editable layers", async () => {
     const { board, context, asset } = await fixture();
@@ -616,6 +619,152 @@ describe("whole-cut agentic finishing", () => {
       expect(result.error).toBeTruthy();
       expect((await Storyboard.findById(board.id))?.timeline_id).toBeFalsy();
     }
+  });
+  it("keeps manual markers and refuses marker creation/deletion during finishing", async () => {
+    const { board, context } = await fixture();
+    const ordinary = createCapabilityRun({ context, gate: UNGATED });
+    const first = (await finishStoryboard.impl(ordinary, {
+      storyboardId: board.id,
+      expectedStoryboardRevision: board.revision
+    })) as { timelineId: string };
+    const timeline = (await TimelineSequence.findById(first.timelineId))!;
+    const document = timeline.toDocument();
+    document.markers = [
+      {
+        id: "manual-marker",
+        timeMs: 700,
+        label: "Human review",
+        color: "#FFFFFF"
+      }
+    ];
+    await TimelineSequence.updateDocumentIfUnchanged(
+      timeline.id,
+      timeline.updated_at,
+      document
+    );
+    const latest = (await TimelineSequence.findById(timeline.id))!;
+    const latestBoard = (await Storyboard.findById(board.id))!;
+    const provider = new FinishingProvider([
+      () => [
+        call("edit_timeline", {
+          ops: [
+            { op: "delete_marker", target: "manual-marker" },
+            { op: "add_marker", label: "Duplicate", timeMs: 800 }
+          ]
+        }),
+        call("submit_finished_cut")
+      ],
+      (args) => {
+        expect(
+          args.messages.some(
+            (message) =>
+              typeof message.content === "string" &&
+              message.content.includes("unavailable")
+          )
+        ).toBe(true);
+        return [];
+      },
+      approve,
+      done
+    ]);
+    const run = createCapabilityRun({
+      context,
+      gate: UNGATED,
+      subAgent: {
+        provider,
+        model: "review",
+        parentTools: () => [],
+        forwardMessage: () => undefined
+      }
+    });
+    expect(
+      await finishStoryboard.impl(run, {
+        storyboardId: board.id,
+        expectedStoryboardRevision: latestBoard.revision,
+        expectedTimelineRevision: latest.revision,
+        strategy: "agentic"
+      })
+    ).not.toHaveProperty("error");
+    expect(
+      (await TimelineSequence.findById(timeline.id))?.toDocument().markers
+    ).toEqual(document.markers);
+  });
+  it("runs agentic finishing from a normal JS script capability mount with an explicit model and no subAgent runtime", async () => {
+    const { board, context } = await fixture();
+    const provider = new FinishingProvider([
+      () => [call("submit_finished_cut")],
+      done,
+      approve,
+      done
+    ]);
+    const resolve = vi.fn(async (id: string) => {
+      expect(id).toBe("fake");
+      return provider;
+    });
+    context.setProviderResolver(resolve);
+    context.set(PERMISSION_GATE_CONTEXT_KEY, UNGATED);
+    const namespace = sandboxCapabilitySpecifier("storyboards");
+    const mounted = await mountJsScriptSandbox(
+      `import { finish_storyboard } from "${namespace}"; await finish_storyboard(inputs);`,
+      context
+    );
+    if (!mounted.ok || !mounted.capabilities)
+      throw new Error("Script capabilities failed to mount.");
+    const result = (await mounted.capabilities.call(
+      namespace,
+      "finish_storyboard",
+      [
+        {
+          storyboardId: board.id,
+          expectedStoryboardRevision: board.revision,
+          strategy: "agentic",
+          model: { provider: "fake", id: "explicit-vision-model" }
+        }
+      ]
+    )) as { timelineId: string; costUsd: number };
+    expect(result).not.toHaveProperty("error");
+    expect(resolve).toHaveBeenCalledExactlyOnceWith("fake");
+    expect(
+      provider.requests.every(
+        (request) => request.model === "explicit-vision-model"
+      )
+    ).toBe(true);
+    expect(result.costUsd).toBe(0);
+    expect(
+      (await TimelineSequence.findById(result.timelineId))?.toDocument().clips
+        .length
+    ).toBeGreaterThan(0);
+  });
+  it("fails closed for an invalid explicit model instead of falling back to the session provider", async () => {
+    const { board, context } = await fixture();
+    const provider = new FinishingProvider([]);
+    const run = createCapabilityRun({
+      context,
+      gate: UNGATED,
+      subAgent: {
+        provider,
+        model: "fallback",
+        parentTools: () => [],
+        forwardMessage: () => undefined
+      }
+    });
+    const resolve = vi.spyOn(context, "getProvider");
+    for (const model of [
+      { provider: "fake", id: " " },
+      { id: "explicit" },
+      "explicit"
+    ]) {
+      expect(
+        await finishStoryboard.impl(run, {
+          storyboardId: board.id,
+          expectedStoryboardRevision: board.revision,
+          strategy: "agentic",
+          model
+        })
+      ).toHaveProperty("error");
+    }
+    expect(provider.requests).toHaveLength(0);
+    expect(resolve).not.toHaveBeenCalled();
   });
   it("fails before dispatch without a session provider or after cancellation", async () => {
     const { board, context } = await fixture();

@@ -465,9 +465,10 @@ export const deleteStoryboardSpec: CapabilitySpec = {
 
 export const finishStoryboardSpec: CapabilitySpec = {
   name: "finish_storyboard",
-  description: "Materialize semantic storyboard graphics into separately editable Timeline layers without media generation. The default deterministic strategy needs no provider. Opt-in agentic strategy uses the session provider for whole-cut editable composition, real rendered-frame visual review and bounded revisions before the same atomic save. Requires current revisions and validates protected sources, text and colors.",
+  description: "Materialize semantic storyboard graphics into separately editable Timeline layers without media generation. The default deterministic strategy needs no provider. Opt-in agentic strategy uses an explicit {provider,id} model or the session provider for whole-cut editable composition, real rendered-frame visual review and bounded revisions before the same atomic save. Requires current revisions and validates protected sources, text and colors.",
   category: "write",
   inputSchema: { type: "object", properties: {
+    model: { type: "object", properties: { provider: { type: "string", minLength: 1 }, id: { type: "string", minLength: 1 } }, required: ["provider", "id"], additionalProperties: false },
     strategy: { type: "string", enum: ["deterministic", "agentic"], default: "deterministic" },
     storyboardId: { type: "string" }, expectedStoryboardRevision: { type: "integer", minimum: 0 },
     timelineId: { type: "string" }, expectedTimelineRevision: { type: "integer", minimum: 0 }

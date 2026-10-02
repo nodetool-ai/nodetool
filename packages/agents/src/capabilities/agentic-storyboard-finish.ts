@@ -6,7 +6,10 @@ import {
   isProviderStop,
   type Message,
   type MessageContent,
-  type ProviderTool
+  type ProviderTool,
+  type BaseProvider,
+  type TurnBudget,
+  type RunBudget
 } from "@nodetool-ai/runtime";
 import { isRecord } from "@nodetool-ai/protocol";
 import { validateTimelineSequence } from "@nodetool-ai/execution/timeline-debug";
@@ -27,6 +30,12 @@ const reviewSchema = z.object({
   findings: z.array(z.string().min(1)),
   summary: z.string().min(1)
 });
+export interface FinishedCutRuntime {
+  readonly provider: BaseProvider;
+  readonly model: string;
+  readonly budget?: TurnBudget | RunBudget;
+}
+
 export interface FinishedCutReview {
   readonly round: number;
   readonly passed: boolean;
@@ -56,17 +65,14 @@ export async function finishStoryboardAgentically(
   input: FinishStoryboardInput,
   board: StoryboardDocument,
   sequence: TimelineSequence,
-  scaffold: FinishedStoryboardDocument
+  scaffold: FinishedStoryboardDocument,
+  runtime: FinishedCutRuntime
 ): Promise<{
   document: FinishedStoryboardDocument;
   reviews: FinishedCutReview[];
+  costUsd: number;
 }> {
-  const runtime = run.subAgent;
-  if (!runtime) {
-    throw new Error(
-      "Agentic finishing requires the session's provider and model."
-    );
-  }
+  const initialCost = runtime.provider.getTotalCost();
   if (input.shots.length === 0 || input.shots.length > 24) {
     throw new Error(
       "Agentic finishing supports 1–24 shots per reviewed cut. Split a larger board before finishing."
@@ -219,9 +225,7 @@ export async function finishStoryboardAgentically(
     "set_transition",
     "set_parent",
     "set_matte",
-    "add_group",
-    "add_marker",
-    "delete_marker"
+    "add_group"
   ]);
   for (let round = 0; round < 3; round += 1) {
     const beforeRevision = json(document);
@@ -280,7 +284,7 @@ export async function finishStoryboardAgentically(
               !permittedOps.has(operation.op.replace("ui_timeline_", ""))
           )
         ) {
-          return "This finishing operation is unavailable. Only editable composition, animation, geometry and markers are allowed. No generation, replacement media or persistence.";
+          return "This finishing operation is unavailable. Only editable composition, animation and geometry are allowed. No generation, replacement media or persistence.";
         }
         const pending = [];
         const existingResults = [];
@@ -439,6 +443,11 @@ export async function finishStoryboardAgentically(
           }
         }
       }
+    }
+    if (json(document.markers) !== json(scaffold.markers)) {
+      throw new Error(
+        "Finishing cannot modify manually owned Timeline markers."
+      );
     }
     for (const track of scaffold.tracks) {
       if (
@@ -637,7 +646,11 @@ export async function finishStoryboardAgentically(
           .map((clip) => `${clip.storyboardShotId}/${clip.storyboardElementId}`)
       }
     ];
-    return { document, reviews };
+    return {
+      document,
+      reviews,
+      costUsd: Math.max(0, runtime.provider.getTotalCost() - initialCost)
+    };
   }
   throw new Error(
     `Finished cut still has unresolved defects after three candidates: ${json(feedback)}`

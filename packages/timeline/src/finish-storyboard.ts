@@ -216,14 +216,23 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
   for (const key of previousKeys) {
     if (key.includes("/$agent:") && !existing.has(key)) conflicts.push({ code: "manual_conflict", shotId: key.split("/")[0], elementId: key.slice(key.indexOf("/") + 1), message: `Agent-owned layer ${key} was manually deleted. Restore it before finishing again.` });
   }
+  const shotWindows = new Map<string, { start: number; end: number }>();
+  let shotStart = 0;
+  for (const shot of [...input.shots].sort((a, b) => a.index - b.index)) {
+    const end = shotStart + Math.max(1, (shot.duration_seconds ?? 4) * 1000);
+    shotWindows.set(shot.id, { start: shotStart, end });
+    shotStart = end;
+  }
   const agentClips = [...existing.values()].filter((clip) => clip.storyboardElementId?.startsWith("$agent:"));
   for (const clip of agentClips) {
     if (clip.storyboardMaterializationBaseline !== baseline(clip)) conflicts.push({ code: "manual_conflict", shotId: clip.storyboardShotId ?? "", elementId: clip.storyboardElementId ?? "", message: `Agent-owned layer ${clip.id} was manually edited. Use a separate Timeline or restore the accepted layer before finishing again.` });
-    if (!input.shots.some((shot) => shot.id === clip.storyboardShotId)) conflicts.push({ code: "manual_conflict", shotId: clip.storyboardShotId ?? "", elementId: clip.storyboardElementId ?? "", message: `Agent-owned layer ${clip.id} belongs to a removed shot. Remove it explicitly before rebuilding.` });
+    if (!input.shots.some((shot) => shot.id === clip.storyboardShotId)) conflicts.push({ code: "manual_conflict", shotId: clip.storyboardShotId ?? "", elementId: clip.storyboardElementId ?? "", message: `Agent-owned layer ${clip.id} belongs to a removed shot. Restore the shot or use a separate Timeline before rebuilding.` });
+    const window = shotWindows.get(clip.storyboardShotId ?? "");
+    if (window && (clip.startMs < window.start || clip.startMs + clip.durationMs > window.end)) conflicts.push({ code: "manual_conflict", shotId: clip.storyboardShotId ?? "", elementId: clip.storyboardElementId ?? "", message: `Storyboard timing changed around agent-owned layer ${clip.id}. Restore the accepted shot timing or use a separate Timeline before rebuilding.` });
     const track = current.tracks.find((value) => value.id === clip.trackId);
     if (track && !tracks.some((value) => value.id === track.id)) tracks.push({ ...track });
   }
-  const clips: TimelineClip[] = [...foreignClips, ...agentClips.map((clip) => structuredClone(clip))];
+  const clips: TimelineClip[] = [...foreignClips, ...agentClips.map((clip) => ({ ...structuredClone(clip), animations: (clip.animations ?? []).filter((animation) => ![`${clip.id}:cut-in`, `${clip.id}:cut-out`].includes(animation.id)) }))];
   let startMs = 0;
   for (const shot of [...input.shots].sort((a, b) => a.index - b.index)) {
     const durationMs = Math.max(1, (shot.duration_seconds ?? 4) * 1000);
