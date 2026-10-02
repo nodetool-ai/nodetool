@@ -70,7 +70,7 @@
     "@nodetool-ai/transformers-js-provider": "*",
     "@nodetool-ai/vectorstore": "*",
     "@trpc/server": "^11.17.0",
-    "fastify": "^5.12.1",
+    "fastify": "^5.12.5",
     "fflate": "^0.8.2",
     "msgpackr": "^1.11.2",
     "sharp": "^0.35.3",
