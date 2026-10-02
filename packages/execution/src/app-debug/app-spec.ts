@@ -355,7 +355,6 @@ export function parseAppSpec(
         stateKey: ref ? stateKey(ref) : null,
         canonicalBinding: ref ? encodeBinding(ref) : null,
         resourceBindingId,
-        ...(item.type === "ChoiceCards" ? { choiceOptions: item.props.options } : {}),
         extraBindings: widgetBindingProps(item.type).flatMap(
           ({ prop, mode }) => {
             const value = str(item.props[prop]);
@@ -382,6 +381,7 @@ export function parseAppSpec(
       if (format) {
         widget.format = format;
       }
+      if (item.type === "ChoiceCards") { widget.choiceOptions = item.props.options; }
       widgets.push(widget);
       const slots = WIDGET_CATALOG[item.type]?.slots;
       for (const [prop, value] of Object.entries(item.props)) {

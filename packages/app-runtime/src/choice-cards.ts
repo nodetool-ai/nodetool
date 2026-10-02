@@ -1,4 +1,5 @@
-import { isRecord } from "./predicates.js";
+import type { Mutable } from "./mutable.js";
+import { isBoolean, isRecord, isString } from "./predicates.js";
 
 export interface ChoiceCardOption {
   readonly value: string;
@@ -14,19 +15,19 @@ export function parseChoiceCardOptions(value: unknown): readonly ChoiceCardOptio
   const seen = new Set<string>();
   const options: ChoiceCardOption[] = [];
   for (const item of value) {
-    if (!isRecord(item) || typeof item.value !== "string" || !item.value || seen.has(item.value)) return [];
-    for (const key of ["title", "description", "image"]) {
-      if (item[key] !== undefined && typeof item[key] !== "string") return [];
+    if (!isRecord(item) || !isString(item.value) || !item.value || seen.has(item.value)) return [];
+    const option: Mutable<ChoiceCardOption> = { value: item.value };
+    for (const key of ["title", "description", "image"] as const) {
+      if (item[key] === undefined) { continue; }
+      if (!isString(item[key])) { return []; }
+      option[key] = item[key];
     }
-    if (item.disabled !== undefined && typeof item.disabled !== "boolean") return [];
+    if (item.disabled !== undefined) {
+      if (!isBoolean(item.disabled)) { return []; }
+      option.disabled = item.disabled;
+    }
     seen.add(item.value);
-    options.push({
-      value: item.value,
-      ...(typeof item.title === "string" ? { title: item.title } : {}),
-      ...(typeof item.description === "string" ? { description: item.description } : {}),
-      ...(typeof item.image === "string" ? { image: item.image } : {}),
-      ...(typeof item.disabled === "boolean" ? { disabled: item.disabled } : {})
-    });
+    options.push(option);
   }
   return options;
 }
