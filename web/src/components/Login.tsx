@@ -3,42 +3,41 @@ import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { memo } from "react";
+import GoogleAuthButton from "./buttons/GoogleAuthButton";
 import {
   Text,
   Caption,
-  Box,
+  Card,
+  FlexColumn,
   ExternalLink,
   BORDER_RADIUS,
+  CONTROL,
   SPACING,
   getSpacingPx
 } from "./ui_primitives";
-import GoogleAuthButton from "./buttons/GoogleAuthButton";
-import Logo from "./Logo";
 
 const STUDIO_URL = "https://nodetool.ai/studio";
+const CONTENT_WIDTH = "380px";
+const LOGO_SIZE = "64px";
 
 const styles = (theme: Theme) =>
   css({
-    display: "flex",
-    flexDirection: "column",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: getSpacingPx(SPACING.xxl),
     minHeight: "100vh",
-    padding: getSpacingPx(SPACING.xxl),
-    ".hero": {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.lg),
-      maxWidth: "420px",
-      textAlign: "center"
+    textAlign: "center",
+    ".login-card": {
+      width: "100%",
+      maxWidth: CONTENT_WIDTH
+    },
+    ".logo": {
+      display: "block",
+      width: LOGO_SIZE,
+      height: LOGO_SIZE
     },
     ".alpha-badge": {
       color: theme.vars.palette.warning.main,
       border: `1px solid ${theme.vars.palette.warning.main}`,
       borderRadius: BORDER_RADIUS.pill,
-      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.lg)}`,
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
       textTransform: "uppercase",
       letterSpacing: "0.08em"
     },
@@ -49,23 +48,26 @@ const styles = (theme: Theme) =>
       color: theme.vars.palette.grey[200]
     },
     ".footnotes": {
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      gap: getSpacingPx(SPACING.md),
-      maxWidth: "420px",
-      textAlign: "center"
+      maxWidth: CONTENT_WIDTH
     },
-    // The Google button ships a fixed-width, uppercase label that clipped to
-    // "SIGN IN WITH GOO…". Let it size to its own text.
+    // The shared Google button styles set a fixed width and an uppercase
+    // label. Here it fills the card and reads in sentence case.
     ".gsi-material-button": {
-      minWidth: "260px",
-      height: "48px",
+      width: "100%",
+      maxWidth: "none",
+      height: `${CONTROL.height.xl}px`,
       border: "none",
       background: theme.vars.palette.grey[0]
     },
     ".gsi-material-button:hover": {
       background: theme.vars.palette.grey[100]
+    },
+    ".gsi-material-button .gsi-material-button-content-wrapper": {
+      justifyContent: "center"
+    },
+    ".gsi-material-button .gsi-material-button-contents": {
+      flexGrow: 0,
+      textTransform: "none"
     }
   });
 
@@ -73,46 +75,47 @@ function Login() {
   const theme = useTheme();
 
   return (
-    <Box css={styles(theme)}>
-      <div className="hero">
-        <Logo
-          width="150px"
-          height="150px"
-          fontSize="48px"
-          borderRadius={BORDER_RADIUS.xl}
-          small={false}
-          enableText
-        />
-        <Caption className="alpha-badge" size="smaller" color="warning">
-          Cloud · Alpha
-        </Caption>
-        <Text component="h1" size="giant" className="headline">
-          You direct the vision. The agent builds the film.
-        </Text>
-        <Text component="p" size="normal" className="subhead">
-          Describe your idea. The agent writes the script, boards every scene,
-          generates the footage, and cuts a multi-track timeline you can still
-          edit.
-        </Text>
-      </div>
+    <FlexColumn
+      css={styles(theme)}
+      align="center"
+      justify="center"
+      gap={SPACING.xl}
+      padding={SPACING.xl}
+    >
+      <Card className="login-card" variant="outlined" padding="spacious">
+        <FlexColumn align="center" gap={SPACING.xl}>
+          <img className="logo" src="/logo192.png" alt="NodeTool" />
+          <FlexColumn align="center" gap={SPACING.md}>
+            <Caption className="alpha-badge" size="smaller" color="warning">
+              Cloud alpha
+            </Caption>
+            <Text component="h1" size="big" className="headline">
+              Sign in to NodeTool Cloud
+            </Text>
+            <Text component="p" size="normal" className="subhead">
+              Describe what you want. The agent builds it, and you can take
+              over at any step.
+            </Text>
+          </FlexColumn>
+          <FlexColumn fullWidth>
+            <GoogleAuthButton />
+          </FlexColumn>
+        </FlexColumn>
+      </Card>
 
-      <GoogleAuthButton />
-
-      <div className="footnotes">
+      <FlexColumn className="footnotes" align="center" gap={SPACING.xs}>
         <Caption size="small" color="secondary">
-          Bring your own keys. You pay every provider directly, at their
-          published prices.
+          Use your own API keys and pay providers at their list prices.
         </Caption>
         <Caption size="small" color="secondary">
-          Cloud is in alpha — expect rough edges and occasional downtime. For
-          work that has to ship today,{" "}
+          Cloud is in alpha. For production work, use{" "}
           <ExternalLink href={STUDIO_URL} size="small" iconVariant="arrow">
-            run NodeTool Studio on your own machine
+            NodeTool Studio
           </ExternalLink>
           .
         </Caption>
-      </div>
-    </Box>
+      </FlexColumn>
+    </FlexColumn>
   );
 }
 
