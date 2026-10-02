@@ -19,7 +19,7 @@ checked out at `/home/claude/nodetool-deploy` on that host.
 A push to `main` starts the Docker image build and User Journeys independently.
 The **Deploy to Docker** workflow waits for both to succeed for that exact commit
 and rejects a commit superseded on `main`. It retains the historical filename
-[fly-deploy.yml](../.github/workflows/fly-deploy.yml), but does not invoke Fly or
+[fly-deploy.yml](https://github.com/nodetool-ai/nodetool/blob/main/.github/workflows/fly-deploy.yml), but does not invoke Fly or
 use its credentials. Manual dispatch follows the same gates and uses the
 dispatch commit, never a mutable image tag.
 
@@ -30,7 +30,7 @@ gates and current `main`, and invokes the rolling script with
 immutable digest. GitHub serializes release runs without cancelling a rollout
 in progress. The host script also takes a deployment lock.
 
-[web-deploy.yml](../.github/workflows/web-deploy.yml) follows **Deploy to Docker**
+[web-deploy.yml](https://github.com/nodetool-ai/nodetool/blob/main/.github/workflows/web-deploy.yml) follows **Deploy to Docker**
 and checks that its **Deploy server** job succeeded before releasing the same
 commit to Cloudflare Pages. A skipped or failed server release cannot promote
 the frontend. Cloudflare Pages credentials remain in `web-production`.
