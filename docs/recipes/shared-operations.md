@@ -27,7 +27,7 @@ The first shared library is
 
 | Semantic operation | Inputs and outputs | Resource writes | Spend and rerun behavior |
 | --- | --- | --- | --- |
-| `plan_storyboard@1` | Typed Recipe inputs and a constant manifest, optional Storyboard ID, then Storyboard ID/revision, visual preview, plan, source fingerprint and approval state | Updates source Asset entity metadata and creates or updates a normal Storyboard | No generation spend. Upserts shots by stable semantic label and resets approval. A changed shot order or set causes an explicit conflict. |
+| `plan_storyboard@1` | Typed Recipe inputs and a constant manifest, optional Storyboard ID, then Storyboard ID/revision, visual preview, plan, source fingerprint and approval state | Updates source Asset entity metadata and creates or updates a normal Storyboard | No generation spend. Upserts shots by stable semantic label and resets approval. A changed shot order, set or aspect ratio causes an explicit conflict. |
 | `finish_storyboard@1` | The same sources, approved fingerprint and Storyboard revision, optional Timeline ID/revision, then Timeline reference/revision and validation | Creates or updates a normal Timeline and its Storyboard link | Default deterministic mode has no model spend. Explicit agentic mode declares model spend. Requires approval, rejects stale source or policy changes, then uses existing revision-checked finishing and reconciliation. |
 
 Both use exact source assets, text and colors. Both support
@@ -144,3 +144,20 @@ npm run test --workspace=packages/websocket -- tests/product-price-drop.test.ts
 Adding a new generative operation, new widget strategy or arbitrary layout
 generator is separate work. It must provide an actual executable binding,
 runtime policy enforcement and a headless proof before a manifest can use it.
+
+
+An optional live provider proof uses the same installed Application and pinned
+Script operations. It declares agentic finishing with
+`{provider: "claude_agent_sdk", id: "sonnet"}` and requires an authenticated
+Claude Agent SDK environment. CI skips this provider-spending test by default.
+It validates protected media and exact copy, requires rendered visual-review
+evidence and exports the actual layered cut. Normal media generation remains
+forbidden. The proof does not require a fixed decoration count from the agent.
+
+```bash
+RECIPE_LIVE_FINISH=1 PRICE_DROP_PROOF_DIR=/tmp/recipe-live-proof \
+  npm run test --workspace=packages/websocket -- tests/product-price-drop.test.ts
+```
+
+The proof directory includes the agentic MP4, composited sample frames, Timeline
+JSON, review evidence and ffprobe dimensions, duration and frame count.

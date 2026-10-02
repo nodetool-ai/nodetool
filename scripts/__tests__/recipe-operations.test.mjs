@@ -146,10 +146,11 @@ describe("shared executable Recipe operations", () => {
     const created = new Map();
     let shots = [];
     const capabilities = {
-      get_entity: async ({entity_id}) => created.has(entity_id) ? {entity: created.get(entity_id)} : {error: "not found"},
+      get_entity: async ({entity_id}) => {if (!created.has(entity_id)) throw new Error("SandboxCapabilityError: get_entity: Entity " + entity_id + " was not found."); return {entity: created.get(entity_id)};},
+      get_asset: async ({asset_id}) => ({id: asset_id}),
       create_entity: async ({asset_id}) => {writes++; created.set(asset_id, {id: asset_id, reference_images: [{asset_id}]}); return {entity_id: asset_id};},
       create_storyboard: async () => ({id: "board", shots: []}),
-      get_storyboard: async () => ({id: "board", shots}),
+      get_storyboard: async () => ({id: "board", aspect_ratio: "9:16", shots}),
       edit_storyboard: async ({ops}) => {
         for (const op of ops) if (op.op === "add_shot") shots.push({...op, id: "shot-" + shots.length});
         return {shots, revision: 1};
@@ -162,6 +163,14 @@ describe("shared executable Recipe operations", () => {
     expect(shots[0].production.protected_inputs.find(input => input.id === "productImage").entity_id).toBe(inputs.productImage.asset_id);
     await execute(PLAN_STORYBOARD_CODE, {...inputs, storyboardId: "board"}, capabilities);
     expect(writes).toBe(2); expect(shots).toHaveLength(2);
+    const compact = inputs.productImage.asset_id.slice(0, 12);
+    created.set(inputs.productImage.asset_id, {id: compact, reference_images: [{asset_id: compact}]});
+    capabilities.get_asset = async ({asset_id}) => ({id: asset_id === compact ? inputs.productImage.asset_id : asset_id});
+    await execute(PLAN_STORYBOARD_CODE, {...inputs, storyboardId: "board"}, capabilities);
+    expect(writes).toBe(2);
+    capabilities.get_asset = async ({asset_id}) => {if (asset_id === compact) throw new Error("short id matches more than one row"); return {id: asset_id};};
+    await expect(execute(PLAN_STORYBOARD_CODE, inputs, capabilities)).rejects.toThrow("more than one row");
+    capabilities.get_asset = async ({asset_id}) => ({id: asset_id});
     created.set(inputs.productImage.asset_id, {id: inputs.productImage.asset_id, reference_images: [{asset_id: "replacement"}]});
     await expect(execute(PLAN_STORYBOARD_CODE, inputs, capabilities)).rejects.toThrow("entity no longer points");
     expect(writes).toBe(2);
@@ -177,13 +186,15 @@ describe("shared executable Recipe operations", () => {
     const planned = await plan(original); let writes = 0;
     const capabilities = {
       get_entity: async ({entity_id}) => ({entity: {id: entity_id, reference_images: [{asset_id: entity_id}]}}),
-      get_storyboard: async () => ({id: "board", shots: planned.shots}),
+      get_storyboard: async () => ({id: "board", aspect_ratio: "9:16", shots: planned.shots}),
       edit_storyboard: async () => {writes++; throw new Error("Must not edit a structurally different board");}
     };
     const reordered = structuredClone(original); reordered.creativeStrategy.shots.reverse();
     await expect(execute(PLAN_STORYBOARD_CODE, {...planned.inputs, recipe: reordered, storyboardId: "board"}, capabilities)).rejects.toThrow("shot structure differs");
     const removed = structuredClone(original); removed.creativeStrategy.shots.pop();
     await expect(execute(PLAN_STORYBOARD_CODE, {...planned.inputs, recipe: removed, storyboardId: "board"}, capabilities)).rejects.toThrow("shot structure differs");
+    const reshaped = structuredClone(original); reshaped.creativeStrategy.aspectRatio = "1:1";
+    await expect(execute(PLAN_STORYBOARD_CODE, {...planned.inputs, recipe: reshaped, storyboardId: "board"}, capabilities)).rejects.toThrow("aspect ratio differs");
     expect(writes).toBe(0);
   });
 });

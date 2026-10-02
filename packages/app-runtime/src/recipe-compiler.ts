@@ -12,6 +12,7 @@ import {
   type ResourceKind,
   type VariableDeclaration
 } from "./document.js";
+import { isString, isBoolean, isNumber, isInteger, isObjectLike, isRecord } from "./predicates.js";
 import { isKnownWidget } from "./widgets.js";
 
 export interface RecipeOperationPort {
@@ -63,10 +64,10 @@ const inputWidgets: Partial<Record<RecipeInputKind, string>> = {
 };
 const widget = (type: string, id: string, props: Record<string, unknown>): unknown => ({type, props: {id, ...props}});
 const constantMatches = (value: unknown, type: string): boolean => {
-  if (type === "str") return typeof value === "string";
-  if (type === "bool") return typeof value === "boolean";
-  if (type === "float" || type === "int") return typeof value === "number" && Number.isFinite(value) && (type !== "int" || Number.isInteger(value));
-  return value !== null && typeof value === "object";
+  if (type === "str") return isString(value);
+  if (type === "bool") return isBoolean(value);
+  if (type === "float" || type === "int") return isNumber(value) && Number.isFinite(value) && (type !== "int" || isInteger(value));
+  return isObjectLike(value);
 };
 
 /**
@@ -146,7 +147,7 @@ export const compileRecipeApplication = (
     const variable = variables.get(id);
     if (!variable) {error(`recipe.defaults.${id}`, "Default references an undeclared input or operation state variable."); continue;}
     const type = variable.type?.type;
-    if ((type === "str" && typeof initial !== "string") || (type === "bool" && typeof initial !== "boolean") || ((type === "int" || type === "float") && (typeof initial !== "number" || !Number.isFinite(initial) || (type === "int" && !Number.isInteger(initial))))) error(`recipe.defaults.${id}`, `Default must have variable type ${type}.`);
+    if ((type === "str" && !isString(initial)) || (type === "bool" && !isBoolean(initial)) || ((type === "int" || type === "float") && (!isNumber(initial) || !Number.isFinite(initial) || (type === "int" && !isInteger(initial))))) error(`recipe.defaults.${id}`, `Default must have variable type ${type}.`);
     variable.default = structuredClone(initial);
   }
   for (const [index, input] of recipe.inputs.entries()) {
@@ -215,7 +216,7 @@ export const compileRecipeApplication = (
   const document: ApplicationDocument = {schemaVersion: APP_SCHEMA_VERSION, recipe: structuredClone(recipe), variables: [...variables.values()], operations: selected.map(({binding}) => structuredClone(binding)), resources: [], ui: {root: {props: {title: options.title ?? recipe.slug}}, content}};
   for (const message of validateRecipeBindings(document)) error("recipe.bindings", message);
   if (diagnostics.length > 0) return {status: "error", diagnostics};
-  if (content.some((entry) => !entry || typeof entry !== "object" || !("type" in entry) || typeof entry.type !== "string" || !isKnownWidget(entry.type))) return {status: "error", diagnostics: [{path: "application.ui", message: "Compiled Recipe contains an unsupported widget."}]};
+  if (content.some((entry) => !isRecord(entry) || !isString(entry.type) || !isKnownWidget(entry.type))) return {status: "error", diagnostics: [{path: "application.ui", message: "Compiled Recipe contains an unsupported widget."}]};
   const parsed = parseApplicationDocument(document);
   if (!parsed) return {status: "error", diagnostics: [{path: "application", message: "Compiled Application failed normal document validation."}]};
   return {status: "ok", document: parsed, diagnostics: []};

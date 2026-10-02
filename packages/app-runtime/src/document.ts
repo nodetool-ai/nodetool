@@ -305,7 +305,12 @@ const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
     if (isString(raw.description)) input.description = raw.description;
     if (raw.choices !== undefined) {
       if (!Array.isArray(raw.choices) || raw.choices.length === 0 || !raw.choices.every((choice) => isRecord(choice) && isNonEmptyString(choice.value) && isNonEmptyString(choice.title) && (choice.description === undefined || isString(choice.description)) && (choice.image === undefined || isString(choice.image)))) return undefined;
-      input.choices = raw.choices.map((choice) => ({value: choice.value, title: choice.title, ...(choice.description === undefined ? {} : {description: choice.description}), ...(choice.image === undefined ? {} : {image: choice.image})}));
+      input.choices = raw.choices.map((choice) => {
+        const parsed: NonNullable<RecipeInput["choices"]>[number] = {value: choice.value, title: choice.title};
+        if (choice.description !== undefined) parsed.description = choice.description;
+        if (choice.image !== undefined) parsed.image = choice.image;
+        return parsed;
+      });
       if (new Set(input.choices.map((choice) => choice.value)).size !== input.choices.length || input.kind !== "text") return undefined;
     }
     inputs.push(input);
@@ -316,7 +321,11 @@ const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
     if (raw.version !== undefined && (!isInteger(raw.version) || raw.version < 1)) return undefined;
     if (raw.strategy !== undefined && raw.strategy !== "deterministic" && raw.strategy !== "agentic") return undefined;
     if (raw.model !== undefined && (!isRecord(raw.model) || !isNonEmptyString(raw.model.provider) || !isNonEmptyString(raw.model.id))) return undefined;
-    operations.push({ id: raw.id, bindingId: raw.bindingId, intent: raw.intent, ...(raw.version === undefined ? {} : {version: raw.version}), ...(raw.strategy === undefined ? {} : {strategy: raw.strategy}), ...(isRecord(raw.model) && isString(raw.model.provider) && isString(raw.model.id) ? {model: {provider: raw.model.provider, id: raw.model.id}} : {}) });
+    const operation: RecipeOperationSpec = {id: raw.id, bindingId: raw.bindingId, intent: raw.intent};
+    if (raw.version !== undefined) operation.version = raw.version as number;
+    if (raw.strategy !== undefined) operation.strategy = raw.strategy as RecipeOperationSpec["strategy"];
+    if (isRecord(raw.model) && isString(raw.model.provider) && isString(raw.model.id)) operation.model = {provider: raw.model.provider, id: raw.model.id};
+    operations.push(operation);
   }
   const outputs: RecipeOutputSpec[] = [];
   for (const raw of value.outputs) {
@@ -375,7 +384,9 @@ const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
         const elements: RecipeShotIntent["elements"] = [];
         for (const element of shot.elements) {
           if (!isRecord(element) || !isNonEmptyString(element.id) || !isNonEmptyString(element.inputId) || !inputIds.has(element.inputId) || (element.kind !== "asset" && element.kind !== "text" && element.kind !== "shape") || (element.role !== "product" && element.role !== "logo" && element.role !== "headline" && element.role !== "price" && element.role !== "cta" && element.role !== "decorative") || (element.direction !== undefined && !isString(element.direction))) return undefined;
-          elements.push({id: element.id, inputId: element.inputId, kind: element.kind, role: element.role, ...(element.direction === undefined ? {} : {direction: element.direction})});
+          const parsedElement: RecipeShotIntent["elements"][number] = {id: element.id, inputId: element.inputId, kind: element.kind, role: element.role};
+          if (element.direction !== undefined) parsedElement.direction = element.direction;
+          elements.push(parsedElement);
         }
         if (new Set(elements.map((element) => element.id)).size !== elements.length) return undefined;
         parsedShots.push({id: shot.id, title: shot.title, durationSeconds: shot.durationSeconds, elements});

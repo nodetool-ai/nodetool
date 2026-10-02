@@ -27,7 +27,7 @@ test("plan retains exact sources and whitespace with graphics-only strategy", as
   const edits = [];
   const result = await execute(PLAN_CODE, input, {
     create_storyboard: async () => ({id: "c".repeat(32), shots: 0}),
-    get_storyboard: async () => ({id: "c".repeat(32), shots}),
+    get_storyboard: async () => ({id: "c".repeat(32), aspect_ratio: "9:16", shots}),
     edit_storyboard: async ({ops}) => {
       edits.push(ops);
       for (const op of ops) {
@@ -48,7 +48,7 @@ test("plan retains exact sources and whitespace with graphics-only strategy", as
   assert.equal(edits[1][0].motion_design.continuities[0].shot_ids.length, 2);
   const refreshed = await execute(PLAN_CODE, {...input, storyboardId: result.storyboardId}, {
     create_storyboard: async () => {throw Error("must reuse");},
-    get_storyboard: async () => ({id: result.storyboardId, shots, timeline_id: "linked"}),
+    get_storyboard: async () => ({id: result.storyboardId, aspect_ratio: "9:16", shots, timeline_id: "linked"}),
     get_timeline: async () => ({timeline: {id: "linked"}, revision: 7}),
     edit_storyboard: async ({ops}) => {assert.ok(ops.every(op => op.op !== "add_shot")); return {shots, failed: 0, revision: 2};}
   });

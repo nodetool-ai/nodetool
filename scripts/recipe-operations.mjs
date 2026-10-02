@@ -4,6 +4,7 @@ import { compileRecipeApplication, inspectRecipeManifest, parseApplicationBundle
 export const PLAN_STORYBOARD_CODE = `import { create_storyboard, get_storyboard, edit_storyboard, preview_storyboard_design } from "@nodetool-ai/sandbox-nodetool/storyboards";
 import { get_timeline } from "@nodetool-ai/sandbox-nodetool/timelines";
 import { get_entity, create_entity } from "@nodetool-ai/sandbox-nodetool/entities";
+import { get_asset } from "@nodetool-ai/sandbox-nodetool/assets";
 const recipe = inputs.recipe;
 if (recipe.mediaPolicy?.defaultStrategy !== "still_motion_graphics" || !recipe.creativeStrategy?.shots?.length) throw new Error("This operation requires still motion graphics shot intent.");
 const keys = recipe.inputs.map(input => input.id);
@@ -22,14 +23,25 @@ for (const input of recipe.inputs) {
   const role = recipe.creativeStrategy.shots.flatMap(shot => shot.elements).find(element => element.inputId === input.id)?.role;
   if (input.kind !== "image" || (role !== "product" && role !== "logo")) continue;
   const id = assetId(inputs[input.id], input.label);
-  const existing = await get_entity({entity_id: id});
+  let existing;
+  try { existing = await get_entity({entity_id: id}); }
+  catch (error) {
+    if (!String(error).includes("Entity " + id + " was not found.")) throw error;
+    existing = {};
+  }
   if (existing.entity) {
-    if (existing.entity.reference_images?.[0]?.asset_id !== id) throw new Error(input.label + " entity no longer points to the selected exact asset.");
-    sourceEntities[input.id] = existing.entity.id;
+    const reference = existing.entity.reference_images?.[0]?.asset_id;
+    if (!reference) throw new Error(input.label + " entity no longer points to the selected exact asset.");
+    if (reference !== id) {
+      const selected = await get_asset({asset_id: id});
+      const resolved = await get_asset({asset_id: reference});
+      if (selected.id !== resolved.id) throw new Error(input.label + " entity no longer points to the selected exact asset.");
+    }
+    sourceEntities[input.id] = id;
   } else {
     const created = await create_entity({asset_id: id, kind: "prop", name: input.label, descriptor: "The original uploaded " + role + " asset. Preserve its exact source identity."});
     if (created.error || !created.entity_id) throw new Error(created.error || "Source entity was not created.");
-    sourceEntities[input.id] = created.entity_id;
+    sourceEntities[input.id] = id;
   }
 }
 const protectedInputs = (recipe.preservationRules || []).map(rule => {
@@ -51,6 +63,7 @@ const shots = recipe.creativeStrategy.shots.map(intent => {
 });
 const board = inputs.storyboardId ? await get_storyboard({storyboard_id: inputs.storyboardId}) : await create_storyboard({name: recipe.slug, aspect_ratio: recipe.creativeStrategy.aspectRatio || "9:16"});
 if (board.error) throw new Error(board.error);
+if (inputs.storyboardId && (board.aspect_ratio || "16:9") !== (recipe.creativeStrategy.aspectRatio || "9:16")) throw new Error("Storyboard aspect ratio differs from this Recipe. Start a new plan without storyboardId.");
 if (board.timeline_id) {
   const linked = await get_timeline({timeline_id: board.timeline_id});
   if (linked.error) throw new Error(linked.error);
@@ -100,6 +113,7 @@ await output("timelineRevision", result.timelineRevision);
 await output("storyboardRevision", result.storyboardRevision);
 await output("timeline", {type: "timeline", id: result.timelineId});
 await output("validation", result.validation);
+await output("reviews", result.reviews || []);
 await output("step", "result");`;
 
 const statePorts = {
@@ -116,7 +130,7 @@ export const sharedRecipeOperations = recipe => {
   recipe = inspected.manifest;
   if (recipe.mediaPolicy?.defaultStrategy !== "still_motion_graphics") throw new Error("recipe.mediaPolicy.defaultStrategy: shared planning requires explicit still_motion_graphics policy");
   if (!recipe.creativeStrategy?.shots?.length) throw new Error("recipe.creativeStrategy.shots: shared planning requires semantic shot intent");
-  const reserved = new Set(["recipe", "recipeOperationId", "finishStrategy", "finishModel", ...Object.keys(statePorts), "timeline", "validation"]);
+  const reserved = new Set(["recipe", "recipeOperationId", "finishStrategy", "finishModel", ...Object.keys(statePorts), "timeline", "validation", "reviews"]);
   for (const input of recipe.inputs) if (reserved.has(input.id)) throw new Error(`recipe.inputs.${input.id}: reserved shared-operation state port`);
   for (const shot of recipe.creativeStrategy?.shots ?? []) for (const element of shot.elements) {
     const policy = element.kind === "asset" ? "exact_asset" : element.kind === "shape" ? "exact_color" : "exact_text";
@@ -133,7 +147,7 @@ export const sharedRecipeOperations = recipe => {
   const finish = {
     id: "finish_storyboard", version: 1,
     inputs: {recipe: {type: "dict", required: true}, recipeOperationId: {type: "str", required: true}, ...sourcePorts, finishStrategy: {type: "str"}, finishModel: {type: "dict"}, storyboardId: {type: "str", required: true}, storyboardRevision: {type: "int", required: true}, timelineId: statePorts.timelineId, timelineRevision: statePorts.timelineRevision, approval: {type: "str", required: true}, plannedFingerprint: {type: "str", required: true}},
-    outputs: {timelineId: {type: "str", required: true}, timelineRevision: {type: "int", required: true}, storyboardRevision: {type: "int", required: true}, timeline: {type: "timeline", required: true}, validation: {type: "list[dict]", required: true}, step: {type: "str", required: true}},
+    outputs: {timelineId: {type: "str", required: true}, timelineRevision: {type: "int", required: true}, storyboardRevision: {type: "int", required: true}, timeline: {type: "timeline", required: true}, validation: {type: "list[dict]", required: true}, reviews: {type: "list[dict]", required: true}, step: {type: "str", required: true}},
     spend: "none", sideEffects: [{resource: "timeline", operations: ["create", "update"]}, {resource: "storyboard", operations: ["update"]}],
     preservation, mediaStrategies: ["still_motion_graphics"], idempotency: "revision_checked", staleness: "resource_revision", approvalInput: "approval"
   };
