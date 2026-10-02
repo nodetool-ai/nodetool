@@ -46,6 +46,8 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 import {
   assertProductionGenerationAllowed,
+  isFullResourceId,
+  isShortResourceId,
   productionRequirement
 } from "@nodetool-ai/protocol";
 import type { ScriptAssemblyInput } from "@nodetool-ai/timeline";
@@ -2445,6 +2447,43 @@ async function loadStyleEntities(
   return [...cast, ...extra];
 }
 
+/** Resolve source refs before any edit writes. Guest IDs stay short, stored refs stay canonical. */
+async function resolveStoryboardEditSources(run: CapabilityRun, ops: readonly ParsedBoardOp[]): Promise<ParsedBoardOp[]> {
+  const { Asset } = await import("@nodetool-ai/models");
+  const canonical = new Map<string, string>();
+  const resolve = async (id: string): Promise<string> => {
+    if (!isFullResourceId(id) && !isShortResourceId(id)) return id;
+    const cached = canonical.get(id);
+    if (cached) return cached;
+    const asset = run.context.userId ? await Asset.find(run.context.userId, id) : null;
+    if (!asset) throw new Error(`Source asset or entity ${id} is unavailable.`);
+    canonical.set(id, asset.id);
+    return asset.id;
+  };
+  const resolved = structuredClone(ops) as ParsedBoardOp[];
+  for (const {args} of resolved) {
+    const references: Record<string, unknown>[] = [args];
+    const graphics = args["graphics"];
+    if (isRecord(graphics) && Array.isArray(graphics["elements"])) {
+      references.push(...graphics["elements"].filter(isRecord));
+    }
+    const production = args["production"];
+    if (isRecord(production) && Array.isArray(production["protected_inputs"])) {
+      references.push(...production["protected_inputs"].filter(isRecord));
+    }
+    for (const reference of references) {
+      for (const field of ["asset_id", "entity_id", "location_id"]) {
+        const id = reference[field];
+        if (isString(id)) reference[field] = await resolve(id);
+      }
+    }
+    if (Array.isArray(args["entity_ids"])) {
+      args["entity_ids"] = await Promise.all(args["entity_ids"].map(async (id) => isString(id) ? resolve(id) : id));
+    }
+  }
+  return resolved;
+}
+
 const editStoryboard: CapabilityExport = {
   spec: editStoryboardSpec,
   impl: async (run, params) => {
@@ -2461,10 +2500,13 @@ const editStoryboard: CapabilityExport = {
       // A failing op is recorded and the script continues: stopping at the
       // first error hides every problem behind it.
       const records: BoardOpRecord[] = [];
-      const entities = await loadStyleEntities(run, doc, ops);
+      let sourceOps: ParsedBoardOp[];
+      try { sourceOps = await resolveStoryboardEditSources(run, ops); }
+      catch (error) { return {error: error instanceof Error ? error.message : String(error)}; }
+      const entities = await loadStyleEntities(run, doc, sourceOps);
       const resolvedOps: { tool: string; input: Record<string, unknown> }[] =
         [];
-      for (const parsed of ops) {
+      for (const parsed of sourceOps) {
         try {
           const result = applyBoardOp(doc, parsed, entities) as
             | Record<string, unknown>

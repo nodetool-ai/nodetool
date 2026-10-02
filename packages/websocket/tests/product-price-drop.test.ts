@@ -64,7 +64,7 @@ it("installs, plans, finishes, renders and reopens the exact editable Price Drop
     await new Asset({id, user_id: USER, name, content_type: contentType}).save();
   }
   const generation = vi.spyOn(ProcessingContext.prototype, "runGeneration").mockRejectedValue(new Error("Recipe must not generate media"));
-  const values: Record<string, unknown> = {productImage: {type: "image", asset_id: PRODUCT}, logo: {type: "image", asset_id: LOGO}, headline: "  Better coffee  ", oldPrice: "€49", newPrice: "€29", cta: "Shop now", brandColor: "#1248AB", direction: "Bold editorial rhythm"};
+  const values: Record<string, unknown> = {productImage: {type: "image", asset_id: PRODUCT.slice(0, 12)}, logo: {type: "image", asset_id: LOGO.slice(0, 12)}, headline: "  Better coffee  ", oldPrice: "€49", newPrice: "€29", cta: "Shop now", brandColor: "#1248AB", direction: "Bold editorial rhythm"};
   const runner = createJsScriptAppRunner(USER);
   const run = async (operationId: string, expectSuccess = true) => {
     const op = doc.operations.find(operation => operation.id === operationId)!;
@@ -87,6 +87,16 @@ it("installs, plans, finishes, renders and reopens the exact editable Price Drop
   const board = await Storyboard.findById(String(values.storyboardId));
   expect(board!.toDocument().shots).toHaveLength(2);
   expect(board!.toDocument().screenplay?.motion_design?.continuities).toHaveLength(1);
+  for (const shot of board!.toDocument().shots) {
+    for (const element of shot.graphics?.elements ?? []) if (element.kind === "asset") {
+      expect([PRODUCT, LOGO]).toContain(element.asset_id);
+      expect(element.entity_id).toBe(element.asset_id);
+    }
+    for (const source of shot.production?.protected_inputs ?? []) if (source.asset_id) {
+      expect([PRODUCT, LOGO]).toContain(source.asset_id);
+      expect(source.entity_id).toBe(source.asset_id);
+    }
+  }
   for (const assetId of [PRODUCT, LOGO]) {
     const asset = await Asset.find(USER, assetId);
     expect(entityFromAsset(asset!)?.id).toBe(assetId);
