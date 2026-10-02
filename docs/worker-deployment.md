@@ -1,7 +1,7 @@
 ---
 layout: page
 title: "Worker Deployment"
-description: "Rent a GPU on RunPod or Vast.ai, attach it to NodeTool, and run Python nodes remotely — with a cost guard that tears it down."
+description: "Rent a GPU on RunPod, Vast.ai or Verda, attach it to NodeTool, and run Python nodes remotely — with a cost guard that tears it down."
 ---
 
 NodeTool runs most graphs on your machine. When a node needs a GPU you don't
@@ -41,7 +41,10 @@ tables live in NodeTool's SQLite DB so the UI and CLI share one source of truth.
 ## Prerequisites
 
 - A **RunPod** account and API key ([runpod.io console → settings](https://www.runpod.io/console/user/settings)),
-  or a **Vast.ai** account and API key.
+  a **Vast.ai** account and API key, or a **Verda** cloud API client id and
+  secret ([API credentials](https://docs.verda.com/welcome-to-verda/api-credentials/)).
+  Verda's cloud credentials are separate from its inference key, and are deleted
+  when the team member who created them is removed from the project.
 - A worker container image — the published NodeTool worker image, or your own
   built from a NodeTool Python package. It must run `python -m nodetool.worker`
   on port 7777 (msgpack RPC, bearer-token auth).
@@ -67,10 +70,12 @@ Store the API key in the secret store so the manager can read it:
 ```bash
 nodetool secrets store RUNPOD_API_KEY      # prompts for the value
 nodetool secrets store VAST_API_KEY        # for Vast.ai
+nodetool secrets store VERDA_CLIENT_ID     # for Verda (both are required)
+nodetool secrets store VERDA_CLIENT_SECRET
 ```
 
 If the secret store is unreachable (headless/sandboxed), the manager falls back
-to the `RUNPOD_API_KEY` / `VAST_API_KEY` environment variables.
+to the environment variables of the same names.
 
 ---
 
@@ -80,11 +85,46 @@ to the `RUNPOD_API_KEY` / `VAST_API_KEY` environment variables.
 |--------|----------|----------|----------|
 | `runpod` | RunPod **pod** (REST `rest.runpod.io/v1/pods`) | `wss://<podid>-7777.proxy.runpod.net` | deletes the pod |
 | `vast` | Vast.ai instance | `ws://<ip>:<port>` | destroys the instance |
+| `verda` | Verda **VM** (REST `api.verda.com/v1`) | `ws://<ip>:7777` | deletes the instance and permanently deletes its OS volume |
 
-Both run the **same worker image** — there is no per-provider image work. Local
+All three run the **same worker image** — there is no per-provider image work. Local
 or LAN workers are also supported, but unmanaged: run the worker container
 yourself and point `NODETOOL_WORKER_URL` (and `NODETOOL_WORKER_TOKEN`) at it.
 There is no provisioning provider for local Docker — you start and stop it.
+
+### Verda
+
+Verda rents **virtual machines**, not containers, so a Verda profile needs two
+images: the guest OS (`osImage`, a CUDA + Docker image from `GET /v1/images`)
+and the worker container (`image`, as on every target). Leave `osImage` unset
+and the provider picks a CUDA+Docker image from the live catalog.
+
+Its `gpu` field is a Verda **instance type** — `1H100.80S.30V`, not a GPU name.
+List the live ids with `GET /v1/instance-types`; availability is per-location,
+and a type absent from every location has no capacity right now.
+
+Three behaviours differ from RunPod and Vast, all of them cost-relevant:
+
+- **Verda bills a shut-down instance at the full rate**, and removed its
+  hibernate action for that reason. So NodeTool's pause does **not** shut the
+  machine down: it deletes the instance and retains the OS volume, which ends
+  the GPU charge while keeping the model cache. Resuming boots a **new machine**
+  from that volume, so its IP — and its provider handle — change.
+- **Terminate deletes the OS volume permanently.** A trashed volume still holds
+  storage quota and can be restored for a charge covering the deleted interval,
+  which is not what teardown promises. The cached models are gone for good.
+- **Only Pay As You Go is used.** Long-term contracts are prepaid, and spot
+  instances can be discontinued mid-workflow; neither is chosen for you.
+
+A Verda worker publishes port 7777 on a public IP, and Verda's own [security
+guide](https://docs.verda.com/cpu-and-gpu-instances/securing-your-instance/)
+warns that a UFW rule does not block a Docker-published port. The provider
+therefore refuses to launch a worker with no bearer token — keep
+`token_policy` on `generate` unless you have a specific reason not to.
+
+Pay As You Go bills in prepaid ten-minute increments, and running out of balance
+can discontinue instances and delete volumes. A low balance is not harmless
+billing metadata.
 
 ---
 
@@ -131,7 +171,7 @@ only the token so it pipes cleanly into `NODETOOL_WORKER_TOKEN`.
 ### CLI reference
 
 ```bash
-nodetool worker profile add <name> --target <runpod|vast> --image <img> \
+nodetool worker profile add <name> --target <runpod|vast|verda> --image <img> \
     [--gpu <type>] [--vcpu <n>] \
     [--token-policy <generate|fixed>] \
     [--idle-timeout <minutes>] [--max-lifetime <minutes>]
@@ -195,7 +235,7 @@ from. A profile that sets neither opts its instances out of the reaper entirely
 ## How provisioning works
 
 1. `WorkerManager.provision(profileName)` looks up the profile and resolves the
-   target's provider (RunPod or Vast).
+   target's provider (RunPod, Vast or Verda).
 2. If the profile's `token_policy` is `generate`, it mints a high-entropy bearer
    token for the worker.
 3. The provider launches the image on the chosen GPU/spec, polls until the box

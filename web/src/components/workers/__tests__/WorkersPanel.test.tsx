@@ -70,7 +70,7 @@ const makeHookValue = (
   instancesQuery: { isLoading: false } as ReturnType<
     typeof useWorkers
   >["instancesQuery"],
-  apiKeyStatus: { runpod: true, vast: true },
+  apiKeyStatus: { runpod: true, vast: true, verda: true },
   createProfile: jest.fn(async () => makeProfile()),
   deleteProfile: jest.fn(async () => undefined),
   provision: jest.fn(async () => makeInstance()),
