@@ -95,16 +95,18 @@ jest.mock("../compositeLayers", () => ({
   buildCompositeAdjustments: () => []
 }));
 
+const mockGetAsset = jest.fn(async (id: string) => ({
+  id,
+  get_url: `blob:${id}`,
+  content_type: "video/mp4"
+}));
+
 jest.mock("../../../../stores/AssetStore", () => ({
   useAssetStore: (
     selector: (state: { get: (id: string) => Promise<unknown> }) => unknown
   ) =>
     selector({
-      get: async (id: string) => ({
-        id,
-        get_url: `blob:${id}`,
-        content_type: "video/mp4"
-      })
+      get: (id: string) => mockGetAsset(id)
     })
 }));
 
@@ -184,6 +186,7 @@ const makePreviewInstance = () => {
 describe("native media editing preview comparison", () => {
   beforeEach(() => {
     mockBuildCompositeLayers.mockClear();
+    mockGetAsset.mockClear();
     Object.defineProperty(globalThis, "ResizeObserver", {
       configurable: true,
       value: class {
@@ -261,6 +264,137 @@ describe("native media editing preview comparison", () => {
       "asset-original"
     );
     view.unmount();
+  });
+
+  it("does not fetch assets for a preview whose render never commits", async () => {
+    const suspension = new Promise<void>(() => {});
+    const SuspendedSibling = (): null => {
+      throw suspension;
+    };
+    const instance = makePreviewInstance();
+    const view = render(
+      <React.Suspense fallback={<div>Loading</div>}>
+        <ThemeProvider theme={mockTheme}>
+          <TimelineProvider instance={instance}>
+            <PreviewCompositor />
+            <SuspendedSibling />
+          </TimelineProvider>
+        </ThemeProvider>
+      </React.Suspense>
+    );
+    await act(async () => {
+      await Promise.resolve();
+    });
+    expect(mockGetAsset).not.toHaveBeenCalled();
+    view.unmount();
+  });
+
+  it("resolves sources after StrictMode cancels the first mount's pending requests", async () => {
+    const instance = makePreviewInstance();
+    const view = render(
+      <React.StrictMode>
+        <ThemeProvider theme={mockTheme}>
+          <TimelineProvider instance={instance}>
+            <PreviewCompositor />
+          </TimelineProvider>
+        </ThemeProvider>
+      </React.StrictMode>
+    );
+    await waitFor(() => expect(capturedClip("asset-original")).toBeDefined());
+    await waitFor(() =>
+      expect(
+        view.container.querySelector('video[src="blob:asset-original"]')
+      ).not.toBeNull()
+    );
+    view.unmount();
+  });
+
+  it("loads the scene's matte source separately from the visible clip", async () => {
+    const instance = makePreviewInstance();
+    const maskTrack = makeTrack({
+      id: "mask-track",
+      type: "video",
+      name: "Mask"
+    });
+    const current = instance.doc.getState().clips[0];
+    instance.doc.setState({
+      tracks: [...instance.doc.getState().tracks, maskTrack],
+      clips: [
+        { ...current, matte: { sourceClipId: "mask", mode: "luma" } },
+        makeClip({
+          id: "mask",
+          trackId: maskTrack.id,
+          mediaType: "video",
+          status: "generated",
+          currentAssetId: "asset-mask",
+          startMs: 1_200,
+          durationMs: 4_000
+        })
+      ]
+    });
+    const view = render(
+      <ThemeProvider theme={mockTheme}>
+        <TimelineProvider instance={instance}>
+          <PreviewCompositor />
+        </TimelineProvider>
+      </ThemeProvider>
+    );
+    await waitFor(() =>
+      expect(mockGetAsset).toHaveBeenCalledWith("asset-mask")
+    );
+    await waitFor(() =>
+      expect(
+        view.container.querySelector('video[src="blob:asset-mask"]')
+      ).not.toBeNull()
+    );
+    view.unmount();
+  });
+
+  it("preloads the next source while a long clip's reactive playhead stays fixed", async () => {
+    jest.useFakeTimers();
+    const instance = makePreviewInstance();
+    const current = instance.doc.getState().clips[0];
+    instance.doc.setState({
+      clips: [
+        { ...current, durationMs: 20_000, outPointMs: 60_000 },
+        makeClip({
+          id: "next",
+          trackId: current.trackId,
+          mediaType: "video",
+          currentAssetId: "asset-next",
+          status: "generated",
+          startMs: 40_000,
+          durationMs: 2_000
+        })
+      ],
+      durationMs: 42_000
+    });
+    const view = render(
+      <ThemeProvider theme={mockTheme}>
+        <TimelineProvider instance={instance}>
+          <PreviewCompositor />
+        </TimelineProvider>
+      </ThemeProvider>
+    );
+    try {
+      await act(async () => {
+        await Promise.resolve();
+      });
+      expect(mockGetAsset).not.toHaveBeenCalledWith("asset-next");
+      act(() => {
+        instance.playback.getState().play();
+        instance.playback.getState().setTimeMs(10_000);
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2_100);
+        await Promise.resolve();
+      });
+      expect(instance.playback.getState().currentTimeMs).toBe(2_200);
+      expect(mockGetAsset).toHaveBeenCalledWith("asset-next");
+    } finally {
+      view.unmount();
+      jest.useRealTimers();
+    }
   });
 
   it("replaces a failed decoder and canvas while preserving timeline edits and the playhead", async () => {

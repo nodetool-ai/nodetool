@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Asset } from "@nodetool-ai/models";
+import { Asset, initTestDb } from "@nodetool-ai/models";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import type { ExtendVideoParams } from "@nodetool-ai/runtime";
 import { DirectInferenceHandler } from "../src/session/inference.js";
@@ -85,6 +85,7 @@ function handler(provider: ExtensionProvider): DirectInferenceHandler {
 
 describe("direct video extension dispatch", () => {
   beforeEach(() => {
+    initTestDb();
     vi.clearAllMocks();
     vi.spyOn(Asset, "find").mockResolvedValue(
       new Asset({

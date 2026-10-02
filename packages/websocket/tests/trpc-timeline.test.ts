@@ -550,6 +550,16 @@ describe("timeline router", () => {
       expect((await caller.timeline.get({ id: "seq-1" })).camera2d).toBeNull();
     });
 
+    it("preserves materialization ownership on ordinary saves and graphics-only duration", async () => {
+      const ownership = [{ boardId: "board-1", elementKeys: ["shot/product"] }];
+      const sequence = makeSeq({ document: JSON.stringify({ tracks: [], clips: [], markers: [], storyboardMaterializations: ownership }) });
+      TS.findById.mockResolvedValue(sequence);
+      const caller = createCaller(makeCtx());
+      await caller.timeline.update({ id: "seq-1", durationMs: 3000, document: { tracks: [], clips: [], markers: [] } });
+      expect(TS.update.mock.calls[0][1].duration_ms).toBe(3000);
+      expect(JSON.parse(TS.update.mock.calls[0][1].document).storyboardMaterializations).toEqual(ownership);
+    });
+
     it("persists tempo through update and returns it from get", async () => {
       TS.findById.mockResolvedValue(makeSeq());
       let savedDocumentJson = "";

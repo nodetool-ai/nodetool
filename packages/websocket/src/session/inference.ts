@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 
 import { createLogger } from "@nodetool-ai/config";
 import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
-import { Asset, Prediction, Project } from "@nodetool-ai/models";
+import { Asset, Prediction, Project, TimelineSequence, findFinishResourceIds, assertStoryboardClipGenerationAllowed } from "@nodetool-ai/models";
 import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
 import { resolveNodetoolDelegate } from "@nodetool-ai/protocol";
 import { GenerationAlreadyAcceptedError } from "@nodetool-ai/runtime";
@@ -90,6 +90,7 @@ export interface DirectMediaGenerationRequest {
   requestId?: string;
   /** Submission-time timeline mapping for a native video edit. */
   sourceContext?: DirectMediaSourceContext;
+  timelineContext?: { sequenceId: string; sourceClipId?: string; targetClipId?: string };
   capability?: "reference_to_video";
   referenceImages?: unknown[];
   referenceAssetIds?: readonly string[];
@@ -138,10 +139,10 @@ function trimTrailingDots(value: string): string {
   return value.slice(0, end);
 }
 
-async function resolveVideoEditReferences(
+async function resolveVideoEditReferenceIds(
   userId: string,
   req: DirectMediaGenerationRequest
-): Promise<VideoEditReferences> {
+): Promise<Omit<VideoEditReferences, "images">> {
   const ownedResolver = entityRefResolver(userId);
   const assets = new Map<string, ReturnType<typeof ownedResolver.getAssetInfo>>();
   const requestedEntities = new Set([
@@ -190,10 +191,7 @@ async function resolveVideoEditReferences(
       ref.uri.slice("asset://".length, ref.uri.lastIndexOf("."))
     )
   ])];
-  const images = assetIds.length
-    ? await resolveReferenceAssets(userId, assetIds.map((asset_id) => ({ asset_id })), "image")
-    : [];
-  return { prompt: expanded.prompt, assetIds, entityIds: [...resolvedEntityIds], images };
+  return { prompt: expanded.prompt, assetIds, entityIds: [...resolvedEntityIds] };
 }
 
 /**
@@ -709,10 +707,18 @@ export class DirectInferenceHandler {
     if (req.projectId && req.projectId !== "default") {
       await Project.requireOwned(userId, req.projectId);
     }
-    const provider = await this.session.resolveProvider(req.provider, userId);
-    const videoEditReferences = req.mode === "video_edit"
-      ? await resolveVideoEditReferences(userId, req)
+    await assertTimelineGenerationAllowed(userId, req);
+    const videoEditReferenceIds = req.mode === "video_edit"
+      ? await resolveVideoEditReferenceIds(userId, req)
       : undefined;
+    if (videoEditReferenceIds) {
+      await assertTimelineGenerationAllowed(userId, req, videoEditReferenceIds.assetIds);
+    }
+    const provider = await this.session.resolveProvider(req.provider, userId);
+    const videoEditReferences = videoEditReferenceIds ? {
+      ...videoEditReferenceIds,
+      images: await resolveReferenceAssets(userId, videoEditReferenceIds.assetIds.map(asset_id => ({ asset_id })), "image")
+    } : undefined;
     if (req.mode === "video_edit" || req.mode === "video_extend") {
       const extension = req.mode === "video_extend";
       const task = extension ? "extend_video" : "video_to_video";
@@ -1491,5 +1497,43 @@ export class DirectInferenceHandler {
       .filter((w) => w.word.length > 0);
 
     return { text: result.text, words };
+  }
+}
+
+/** Resolve protection from authorized persisted documents, never client-reported policy. */
+async function assertTimelineGenerationAllowed(userId: string, req: DirectMediaGenerationRequest, resolvedReferenceIds: readonly string[] = []): Promise<void> {
+  const context = req.timelineContext ?? (req.sourceContext ? { sequenceId: req.sourceContext.sequenceId, sourceClipId: req.sourceContext.clipId } : undefined);
+  if (!context) { return; }
+  const sequenceIds = await findFinishResourceIds("timeline", context.sequenceId, userId, req.projectId ?? undefined);
+  if (!req.timelineContext && sequenceIds.length === 0) { return; }
+  if (sequenceIds.length !== 1) { throw new Error("Timeline generation context was not found uniquely in the caller's project."); }
+  const sequence = await TimelineSequence.findById(sequenceIds[0]);
+  if (!sequence || sequence.user_id !== userId || (req.projectId && req.projectId !== sequence.project_id)) {
+    throw new Error("Timeline generation context was not found in the caller's project.");
+  }
+  const clips = sequence.toDocument().clips;
+  const resolveClip = (id: string) => {
+    const matches = clips.filter(clip => clip.id === id || (/^[a-f0-9]{12}$/.test(id) && clip.id.startsWith(id)));
+    if (matches.length > 1) { throw new Error("Timeline generation clip prefix is ambiguous."); }
+    return matches[0];
+  };
+  const source = context.sourceClipId ? resolveClip(context.sourceClipId) : undefined;
+  if (context.sourceClipId && (!source || source.currentAssetId !== req.sourceAssetId)) {
+    throw new Error("Timeline generation source changed or was not found. Save and retry.");
+  }
+  const target = context.targetClipId ? resolveClip(context.targetClipId) : undefined;
+  const referencedAssets = new Set([
+    ...(req.referenceAssetIds ?? []),
+    ...resolvedReferenceIds,
+    ...(req.referenceImages ?? []).map(ref => referenceAssetId(ref, "image")),
+    ...(req.referenceVideos ?? []).map(ref => referenceAssetId(ref, "video"))
+  ]);
+  const referencedClips = clips.filter(clip => clip.currentAssetId && referencedAssets.has(clip.currentAssetId));
+  for (const clip of [source, target, ...referencedClips]) {
+    if (!clip?.storyboardBoardId) { continue; }
+    const capability = req.mode === "video" ? (req.capability ?? (req.sourceAssetId ? "image_to_video" : "text_to_video"))
+      : req.mode === "video_edit" || req.mode === "video_extend" ? "video_to_video"
+      : req.mode === "image_edit" || req.mode === "inpaint" ? "image_to_image" : "text_to_image";
+    await assertStoryboardClipGenerationAllowed(userId, sequence.project_id, clip, capability);
   }
 }

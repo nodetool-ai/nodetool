@@ -1635,6 +1635,9 @@ export const timelineClip = z.object({
    * strips them on every PATCH, breaking shot→clip revision round-trips. */
   storyboardBoardId: z.string().optional(),
   storyboardShotId: z.string().optional(),
+  storyboardElementId: z.string().optional(),
+  storyboardElementRole: z.string().optional(),
+  storyboardMaterializationBaseline: z.string().optional(),
   /** Script provenance (script→timeline assemble bridge). Without these
    * fields Zod strips them on every PATCH, breaking line→clip re-voice
    * round-trips. */
@@ -1891,6 +1894,7 @@ export const timelineDocument = z.object({
   trackFolders: z.array(timelineTrackFolder).optional(),
   clips: z.array(timelineClip),
   markers: z.array(timelineMarker),
+  storyboardMaterializations: z.array(z.object({ boardId: z.string(), elementKeys: z.array(z.string()) })).optional(),
   transcript: z.array(transcriptLine).optional(),
   scriptEnabled: z.boolean().optional(),
   /** Constant tempo the midi clips are read against. Without this field Zod
@@ -1962,6 +1966,7 @@ export const timelineSequenceResponse = z.object({
   trackFolders: z.array(timelineTrackFolder).optional(),
   clips: z.array(timelineClip),
   markers: z.array(timelineMarker),
+  storyboardMaterializations: z.array(z.object({ boardId: z.string(), elementKeys: z.array(z.string()) })).optional(),
   transcript: z.array(transcriptLine).optional(),
   scriptEnabled: z.boolean().optional(),
   /** Constant tempo, mirroring the document's. Without this field Zod strips
@@ -2014,6 +2019,7 @@ export const patchTimelineInput = z
     fps: z.number().int().min(1).optional(),
     width: z.number().int().min(1).optional(),
     height: z.number().int().min(1).optional(),
+    durationMs: z.number().int().nonnegative().optional(),
     document: timelineDocument.optional()
   })
   .refine((v) => Object.keys(v).length > 0, {

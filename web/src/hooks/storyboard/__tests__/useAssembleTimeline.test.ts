@@ -261,7 +261,22 @@ describe("useAssembleTimeline", () => {
     );
   });
 
-  it("throws when no shot is rendered", async () => {
+  it("preserves graphics-only source timing without inventing picture clips", async () => {
+    seedBoard("board-graphics", { shots: [renderedShot("graphics", {
+      clip: null, graphics: { mode: "graphics_first", elements: [] }, duration_seconds: 3
+    })] });
+    createMutate.mockResolvedValue({ id: "tl-graphics" });
+    updateMutate.mockResolvedValue({});
+    const { result } = renderHook(() => useAssembleTimeline());
+    await act(async () => {
+      const assembled = await result.current.assemble("board-graphics");
+      expect(assembled.clipCount).toBe(0);
+      expect(assembled.skippedShotIds).toEqual([]);
+    });
+    expect(updateMutate).toHaveBeenCalledWith(expect.objectContaining({ durationMs: 3000 }));
+  });
+
+  it("rejects a board without a persisted picture before creating a timeline", async () => {
     seedBoard("board-2", {
       shots: [
         {
@@ -276,7 +291,7 @@ describe("useAssembleTimeline", () => {
     const { result } = renderHook(() => useAssembleTimeline());
     await act(async () => {
       await expect(result.current.assemble("board-2")).rejects.toThrow(
-        /No shots to assemble/
+        /No storyboard picture to assemble/
       );
     });
     expect(createMutate).not.toHaveBeenCalled();

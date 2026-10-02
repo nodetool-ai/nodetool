@@ -15,11 +15,30 @@
  * and still must not rebuild, because a person placed it.
  */
 
-import type { TimelineClip, TimelineTrack } from "./types.js";
+import type { TimelineClip, TimelineTrack, TimelineSequence } from "./types.js";
 
 export interface TimelineParts {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
+}
+
+/** Finished semantic layers require reconciliation, rather than legacy replacement. */
+export function assertStoryboardReassemblyAllowed(
+  previous: Pick<TimelineSequence, "clips" | "storyboardMaterializations">,
+  boardId: string
+): void {
+  if (
+    previous.storyboardMaterializations?.some(
+      (entry) => entry.boardId === boardId
+    ) ||
+    previous.clips.some(
+      (clip) => clip.storyboardBoardId === boardId && clip.storyboardElementId
+    )
+  ) {
+    throw new Error(
+      "This storyboard has finished editable layers. Use finish_storyboard to reconcile changes and preserve manual edits."
+    );
+  }
 }
 
 /**

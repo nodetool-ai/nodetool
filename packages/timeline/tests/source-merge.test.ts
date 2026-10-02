@@ -203,3 +203,9 @@ describe("mergeTimelineSource", () => {
     expect(again.conflicts.map((c) => c.scene)).toEqual(["a"]);
   });
 });
+
+it("preserves storyboard ownership when authored code rebuilds the document", () => {
+  const ledger = [{ boardId: "board", elementKeys: ["shot/product"] }];
+  const result = mergeTimelineSource({ clips: [], storyboardMaterializations: ledger }, { clips: [] }, {});
+  expect(result.document.storyboardMaterializations).toEqual(ledger);
+});

@@ -275,6 +275,7 @@ export interface TimelineStoreState {
    * document written before midi existed reads the same everywhere.
    */
   tempo?: TimelineTempo;
+  storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
   camera2d?: TimelineSequence["camera2d"];
   setCamera2D: (camera: TimelineSequence["camera2d"]) => void;
   /**
@@ -305,7 +306,8 @@ export interface TimelineStoreState {
     fps: number;
     width: number;
     height: number;
-    camera2d?: TimelineSequence["camera2d"];
+    storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
+  camera2d?: TimelineSequence["camera2d"];
   } | null;
 
   // ── Initialisation ───────────────────────────────────────────────────────
@@ -328,7 +330,8 @@ export interface TimelineStoreState {
     fps?: number;
     width?: number;
     height?: number;
-    camera2d?: TimelineSequence["camera2d"];
+    storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
+  camera2d?: TimelineSequence["camera2d"];
   }) => void;
   /**
    * Write back the document `applyTimelineOp` returned, in one `set` so one
@@ -342,6 +345,7 @@ export interface TimelineStoreState {
     clips: TimelineClip[];
     markers: TimelineMarker[];
     mediaTracks: MediaTrack[];
+    storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
     tempo?: TimelineTempo;
   }, options?: { preserveTiming: boolean }) => void;
   /** Reset the store to an empty document. */
@@ -1008,6 +1012,7 @@ type PartializedState = Pick<
   | "transcript"
   | "scriptEnabled"
   | "tempo"
+  | "storyboardMaterializations"
   | "camera2d"
 >;
 
@@ -1061,6 +1066,7 @@ function partializedEqual(
     pastState.tracks === currentState.tracks &&
     pastState.trackFolders === currentState.trackFolders &&
     pastState.clips === currentState.clips &&
+    pastState.storyboardMaterializations === currentState.storyboardMaterializations &&
     pastState.markers === currentState.markers &&
     pastState.mediaTracks === currentState.mediaTracks &&
     pastState.transcript === currentState.transcript
@@ -1079,6 +1085,7 @@ function partializedEqual(
     shallowArrayEqual(pastState.tracks, currentState.tracks) &&
     shallowArrayEqual(pastState.trackFolders, currentState.trackFolders) &&
     shallowArrayEqual(pastState.clips, currentState.clips) &&
+    pastState.storyboardMaterializations === currentState.storyboardMaterializations &&
     shallowArrayEqual(pastState.markers, currentState.markers) &&
     shallowArrayEqual(pastState.mediaTracks, currentState.mediaTracks) &&
     shallowArrayEqual(pastState.transcript, currentState.transcript) &&
@@ -1509,6 +1516,7 @@ const emptyState = {
   transcript: [],
   scriptEnabled: false,
   tempo: undefined,
+  storyboardMaterializations: undefined,
   camera2d: null,
   setup: null,
   linkedSelection: true,
@@ -1528,6 +1536,7 @@ const emptyState = {
   transcript: TranscriptLine[];
   scriptEnabled: boolean;
   tempo: TimelineTempo | undefined;
+  storyboardMaterializations: TimelineSequence["storyboardMaterializations"];
   camera2d: TimelineSequence["camera2d"];
   setup: TimelineSetup | null;
   linkedSelection: boolean;
@@ -1566,6 +1575,7 @@ const syncedSnapshotOf = (
     | "fps"
     | "width"
     | "height"
+    | "storyboardMaterializations"
     | "camera2d"
   >
 ): NonNullable<TimelineStoreState["syncedDocument"]> => ({
@@ -1579,6 +1589,7 @@ const syncedSnapshotOf = (
   fps: state.fps,
   width: state.width,
   height: state.height,
+  storyboardMaterializations: state.storyboardMaterializations,
   camera2d: state.camera2d ?? null
 });
 
@@ -1648,6 +1659,7 @@ function adoptServerSequence(
     fps: state.fps,
     width: state.width,
     height: state.height,
+    storyboardMaterializations: state.storyboardMaterializations,
     camera2d: state.camera2d ?? null
   };
   // A field the response leaves out is one the route did not write, so the
@@ -1663,6 +1675,7 @@ function adoptServerSequence(
     fps: sequence.fps ?? base.fps,
     width: sequence.width ?? base.width,
     height: sequence.height ?? base.height,
+    storyboardMaterializations: sequence.storyboardMaterializations ?? base.storyboardMaterializations,
     camera2d: sequence.camera2d === undefined ? base.camera2d : sequence.camera2d
   };
 
@@ -1678,7 +1691,8 @@ function adoptServerSequence(
     trackFolders: doc.trackFolders as TimelineTrackFolder[],
     clips: doc.clips as TimelineClip[],
     markers: doc.markers as TimelineMarker[],
-    mediaTracks: doc.mediaTracks as MediaTrack[]
+    mediaTracks: doc.mediaTracks as MediaTrack[],
+    storyboardMaterializations: doc.storyboardMaterializations
   });
   // The base for the next external change is what the SERVER holds, minus the
   // slots the draft refused, which keep the base they had — the rule
@@ -1694,6 +1708,7 @@ function adoptServerSequence(
     fps: nextBase.fps,
     width: nextBase.width,
     height: nextBase.height,
+    storyboardMaterializations: nextBase.storyboardMaterializations,
     camera2d: nextBase.camera2d ?? null
   };
   get().setBaseUpdatedAt(sequence.updatedAt, synced);
@@ -1781,6 +1796,7 @@ export const createTimelineStore = (
               transcript: [] as TranscriptLine[],
               scriptEnabled: seq.scriptEnabled ?? clips.some(isTranscriptClip),
               tempo: seq.tempo ?? impliedTempo(seq.tracks),
+              storyboardMaterializations: seq.storyboardMaterializations,
               camera2d: seq.camera2d ?? null,
               setup: seq.setup ?? null
             };
@@ -1807,6 +1823,7 @@ export const createTimelineStore = (
             scriptEnabled:
               seq.scriptEnabled ?? seq.clips.some(isTranscriptClip),
             tempo: seq.tempo ?? impliedTempo(seq.tracks),
+            storyboardMaterializations: seq.storyboardMaterializations,
             camera2d: seq.camera2d ?? null,
             setup: seq.setup ?? null
           };
@@ -1852,6 +1869,7 @@ export const createTimelineStore = (
                 }
               : reflowGenerated(next.clips);
             return {
+              storyboardMaterializations: next.storyboardMaterializations ?? state.storyboardMaterializations,
               tempo: next.tempo ?? state.tempo,
               tracks: next.tracks,
               trackFolders: next.trackFolders ?? state.trackFolders,
@@ -3841,6 +3859,7 @@ export const createTimelineStore = (
           transcript: state.transcript,
           scriptEnabled: state.scriptEnabled,
           tempo: state.tempo,
+          storyboardMaterializations: state.storyboardMaterializations,
           camera2d: state.camera2d ?? null
         })
       }

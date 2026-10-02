@@ -1294,6 +1294,13 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
     metadataRoots,
     registry
   };
+  const fontsDir = path.resolve(
+    path.dirname(fileURLToPath(import.meta.url)),
+    "../../timeline/fonts"
+  );
+  if (!resolvedApiOptions.bundledFontsDir && existsSync(fontsDir)) {
+    resolvedApiOptions.bundledFontsDir = fontsDir;
+  }
   // Pass the resolved examples directory so handleWorkflowExamples can serve
   // examples directly from the filesystem without requiring Python metadata.
   if (examplesDir) {

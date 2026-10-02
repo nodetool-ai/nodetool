@@ -26,6 +26,7 @@ describe("buildTimelineDocumentPayload", () => {
       "mediaTracks",
       "scriptEnabled",
       "setup",
+      "storyboardMaterializations",
       "tempo",
       "trackFolders",
       "tracks",
@@ -44,6 +45,12 @@ describe("buildTimelineDocumentPayload", () => {
   it("preserves the tracks array by reference", () => {
     const payload = buildTimelineDocumentPayload(baseState as never);
     expect(payload.tracks).toBe(baseState.tracks);
+  });
+
+  it("carries storyboard ownership through saves", () => {
+    const storyboardMaterializations = [{ boardId: "board-1", elementKeys: ["shot-1/product"] }];
+    expect(buildTimelineDocumentPayload({ ...baseState, storyboardMaterializations } as never).storyboardMaterializations)
+      .toBe(storyboardMaterializations);
   });
 
   it("preserves track folders by reference", () => {

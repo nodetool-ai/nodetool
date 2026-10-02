@@ -1,4 +1,5 @@
 import type { FastifyRequest, FastifyReply } from "fastify";
+import type {} from "../types/fastify.js";
 import { Readable } from "node:stream";
 import type { ReadableStream as NodeWebReadableStream } from "node:stream/web";
 import { gzipSync } from "node:zlib";

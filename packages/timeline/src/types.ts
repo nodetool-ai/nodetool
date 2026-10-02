@@ -55,6 +55,7 @@ export interface TimelineSequence {
   trackFolders?: TimelineTrackFolder[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
+  storyboardMaterializations?: Array<{ boardId: string; elementKeys: string[] }>;
   /**
    * Studio transcript lines. Optional so sequences written before Studio
    * existed load with no transcript. Persisted inside the document blob so
@@ -914,6 +915,10 @@ export interface TimelineClip {
    */
   storyboardBoardId?: string;
   storyboardShotId?: string;
+  storyboardElementId?: string;
+  storyboardElementRole?: string;
+  /** Last authored values used to detect manual overrides on a finishing rerun. */
+  storyboardMaterializationBaseline?: string;
   /**
    * Script provenance: the script/line this voiceover clip was assembled from.
    * Lets a re-voiced line round-trip its new take into the assembled sequence

@@ -35,6 +35,7 @@ export interface TimelineMergeDoc {
   fps: number;
   width: number;
   height: number;
+  storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
   camera2d?: TimelineSequence["camera2d"];
 }
 
@@ -174,6 +175,11 @@ export const timelineMergeAdapter: DocumentMergeAdapter<TimelineMergeDoc> = {
     collectionOf("transcript", "transcript", (l) => (l as { id: string }).id)
   ],
   scalars: [
+    {
+      name: "storyboardMaterializations",
+      read: (doc) => doc.storyboardMaterializations,
+      write: (doc, value) => ({ ...doc, storyboardMaterializations: value as TimelineSequence["storyboardMaterializations"] })
+    },
     {
       name: "camera2d",
       read: (doc) => doc.camera2d ?? null,

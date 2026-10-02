@@ -243,7 +243,12 @@ const ColorPickerModal: React.FC<ColorPickerModalProps> = ({
 
   useCombo(["escape"], onClose);
 
+  const publishedColor = useRef<{ color: string; alpha: number } | null>(null);
   useEffect(() => {
+    if (publishedColor.current?.color === color && publishedColor.current.alpha === alpha) {
+      return;
+    }
+    publishedColor.current = { color, alpha };
     onChange(color, alpha);
   }, [color, alpha, onChange]);
 

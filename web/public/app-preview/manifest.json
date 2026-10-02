@@ -1,5 +1,11 @@
 [
   {
+    "slug": "product-price-drop",
+    "name": "Product Price Drop",
+    "featured": true,
+    "workflows": 0
+  },
+  {
     "slug": "photo-studio",
     "name": "Photo Studio",
     "emoji": "📸",

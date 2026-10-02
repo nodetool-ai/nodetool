@@ -408,6 +408,7 @@ describe("timelines capability behaviour", () => {
     const read = (await run().invoke("get_timeline", {
       timeline_id: created.timeline_id
     })) as {
+      revision: number;
       timeline: {
         clips: Array<{
           mediaType: string;
@@ -419,6 +420,7 @@ describe("timelines capability behaviour", () => {
         }>;
       };
     };
+    expect(read.revision).toBe((await TimelineSequence.findById(created.timeline_id))!.revision);
     const placed = read.timeline.clips[0];
     expect(placed.mediaType).toBe("model3d");
     expect(placed.currentAssetId).toBe("asset_glb");

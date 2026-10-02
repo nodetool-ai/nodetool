@@ -1813,6 +1813,7 @@ function cloneState(state: TimelineOpState): TimelineOpState {
     tracks: state.tracks.map((t) => structuredClone(t)),
     clips: state.clips.map((c) => structuredClone(c)),
     markers: state.markers.map((m) => structuredClone(m)),
+    storyboardMaterializations: state.storyboardMaterializations?.map((entry) => structuredClone(entry)),
     mediaTracks: (state.mediaTracks ?? []).map((t) => structuredClone(t)),
     playheadMs: state.playheadMs,
     selectedClipIds: [...state.selectedClipIds]

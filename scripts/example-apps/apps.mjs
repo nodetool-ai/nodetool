@@ -26,6 +26,7 @@
 // `image`, `video`, and `audio` take a variable id or `{ input }`.
 // See buildControl() in the builder for the exact props each one emits.
 
+import { PRODUCT_PRICE_DROP_BUNDLE } from "./product-price-drop.mjs";
 import { DIRECTED_CAMPAIGN_KIT_APP } from "./directed-campaign-kit.mjs";
 import { PODCAST_PRODUCTION_DESK_APP } from "./podcast-production-desk.mjs";
 import { UGC_PRODUCT_VIDEO_APP } from "./ugc-product-video.mjs";
@@ -76,6 +77,7 @@ const OPENAI_TRANSCRIBE = {
 };
 
 export const EXAMPLE_APPS = [
+  {slug: "product-price-drop", name: "Product Price Drop", description: PRODUCT_PRICE_DROP_BUNDLE.description, tagline: "Exact product, editable prices, deterministic motion.", workflows: {}, featured: true, bundle: PRODUCT_PRICE_DROP_BUNDLE},
   // ── 1 ──────────────────────────────────────────────────────────────────────
   {
     slug: "photo-studio",

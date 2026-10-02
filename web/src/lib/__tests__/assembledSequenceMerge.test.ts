@@ -20,7 +20,10 @@ const audioTrack = (name: string, index: number): TimelineTrack =>
 const clipOn = (
   track: TimelineTrack,
   name: string,
-  provenance: Pick<TimelineClip, "storyboardBoardId" | "scriptId"> = {}
+  provenance: Pick<
+    TimelineClip,
+    "storyboardBoardId" | "scriptId" | "storyboardElementId"
+  > = {}
 ): TimelineClip =>
   makeClip({
     trackId: track.id,
@@ -91,6 +94,19 @@ describe("stampBoardProvenance", () => {
 });
 
 describe("mergeIntoSequence", () => {
+  it("rejects replacing finished semantic layers without changing manual placement", () => {
+    const track = videoTrack("Product", 0);
+    const product = clipOn(track, "product", {
+      storyboardBoardId: BOARD,
+      storyboardElementId: "product"
+    });
+    const previous = { tracks: [track], clips: [product] };
+    const snapshot = structuredClone(previous);
+    expect(() =>
+      mergeIntoSequence({ tracks: [], clips: [] }, previous, { boardId: BOARD })
+    ).toThrow("finish_storyboard");
+    expect(previous).toEqual(snapshot);
+  });
   describe("track retention", () => {
     it("drops a track these documents filled and no one else uses", () => {
       const old = videoTrack("Shots", 0);

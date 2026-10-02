@@ -46,6 +46,19 @@ export function timelineMediaEditGenerator(run: CapabilityRun) {
         "Pass provider and model together for a known video-to-video model when editing headlessly."
       );
     }
+    const { TimelineSequence, findFinishResourceIds, assertStoryboardClipGenerationAllowed } = await import("@nodetool-ai/models");
+    const sourceContext = request.sourceContext;
+    const userId = run.context.userId;
+    if (!userId) { throw new Error("No user is bound to this session."); }
+    const ids = await findFinishResourceIds("timeline", sourceContext.sequenceId, userId, run.projectId);
+    if (ids.length !== 1) { throw new Error("Timeline generation context was not found uniquely in the caller's project."); }
+    const sequence = await TimelineSequence.findById(ids[0]);
+    if (!sequence) { throw new Error("Timeline generation context was not found."); }
+    const clips = sequence.toDocument().clips.filter((clip) => clip.id === sourceContext.clipId || (/^[a-f0-9]{12}$/.test(sourceContext.clipId) && clip.id.startsWith(sourceContext.clipId)));
+    if (clips.length !== 1 || clips[0].currentAssetId !== sourceContext.sourceAssetId) {
+      throw new Error("Timeline generation source changed or was not found. Save and retry.");
+    }
+    await assertStoryboardClipGenerationAllowed(userId, sequence.project_id, clips[0], "video_to_video");
     const provider = await run.context.getProvider(request.provider);
     const models = await provider.getAvailableVideoModels();
     if (
@@ -76,6 +89,7 @@ export function timelineMediaEditGenerator(run: CapabilityRun) {
       source.sourceEndMs,
       run.context.signal
     );
+    await assertStoryboardClipGenerationAllowed(userId, sequence.project_id, clips[0], "video_to_video");
     const generation = await run.context.runGeneration({
       id: randomUUID().replaceAll("-", ""),
       provider: request.provider,

@@ -14,7 +14,7 @@ import { join } from "node:path";
 process.env.ASSET_FOLDER = mkdtempSync(join(tmpdir(), "nt-inference-test-"));
 
 import { describe, it, expect, beforeEach } from "vitest";
-import { closeDb, initTestDb, Asset, Prediction } from "@nodetool-ai/models";
+import { closeDb, initTestDb, Asset, Prediction, Storyboard, TimelineSequence, emptyStoryboardDocument } from "@nodetool-ai/models";
 import type { BaseProvider } from "@nodetool-ai/runtime";
 
 import {
@@ -505,6 +505,49 @@ describe("runDirectMediaGeneration", () => {
     ...overrides
   });
 
+  it.each(["product", "logo"])("rejects protected %s image editing before provider resolution", async (kind) => {
+    const sourceId = await createStoredAsset("1", "image/png", PNG_1x1);
+    const board = new Storyboard({ user_id: "1", project_id: "default", document: JSON.stringify({ ...emptyStoryboardDocument(), shots: [{ id: "shot", production: { media_strategy: "still_motion_graphics", protected_inputs: [{ id: kind, kind, asset_id: sourceId, allowed_transformations: ["position", "scale"] }] } }] }) });
+    await board.save();
+    const timeline = new TimelineSequence({ user_id: "1", project_id: "default", name: "protected", document: JSON.stringify({ tracks: [], clips: [{ id: "abc123abc12300000000000000000000", currentAssetId: sourceId, storyboardBoardId: board.id, storyboardShotId: "shot" }], markers: [] }) });
+    await timeline.save();
+    let resolved = 0;
+    const { handler } = makeHandler(asProvider({}), { onResolve: () => { resolved++; } });
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "image_edit", sourceAssetId: sourceId, timelineContext: { sequenceId: timeline.id.slice(0, 12), sourceClipId: "abc123abc123" } }))).rejects.toThrow("protected source fidelity");
+    expect(resolved).toBe(0);
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "video", timelineContext: { sequenceId: timeline.id.slice(0, 12), targetClipId: "abc123abc123" } }))).rejects.toThrow("forbids video generation");
+    expect(resolved).toBe(0);
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "video", capability: "reference_to_video", referenceImages: [{ asset_id: sourceId }], timelineContext: { sequenceId: timeline.id, targetClipId: "draft-video" } }))).rejects.toThrow("forbids video generation");
+    expect(resolved).toBe(0);
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "video", capability: "reference_to_video", referenceImages: [{ uri: `asset://${sourceId}.png` }], timelineContext: { sequenceId: timeline.id, targetClipId: "draft-video" } }))).rejects.toThrow("forbids video generation");
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "video_edit", sourceAssetId: "unprotected-video", referenceAssetIds: [sourceId], timelineContext: { sequenceId: timeline.id, targetClipId: "draft-video" } }))).rejects.toThrow("forbids video generation");
+    const entity = new Asset({ user_id: "1", name: "product entity", content_type: "image/png", metadata: { nodetool_entity: { name: "Product", reference_asset_id: sourceId } } });
+    await entity.save();
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "video_edit", sourceAssetId: "unprotected-video", entityIds: [entity.id], timelineContext: { sequenceId: timeline.id, targetClipId: "draft-video" } }))).rejects.toThrow("forbids video generation");
+    expect(resolved).toBe(0);
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "video_edit", sourceAssetId: sourceId, sourceContext: { sequenceId: timeline.id, clipId: "abc123abc12300000000000000000000", sourceAssetId: sourceId, sourceStartMs: 0, sourceEndMs: 1000, timelineStartMs: 0, timelineDurationMs: 1000, speedMultiplier: 1 } }))).rejects.toThrow("forbids video generation");
+    expect(resolved).toBe(0);
+  });
+
+  it("rejects foreign and stale Timeline source contexts before provider resolution", async () => {
+    const timeline = new TimelineSequence({ user_id: "foreign", project_id: "default", name: "foreign" });
+    await timeline.save();
+    let resolved = 0;
+    const { handler } = makeHandler(asProvider({}), { onResolve: () => { resolved++; } });
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "image_edit", sourceAssetId: "source", timelineContext: { sequenceId: timeline.id, sourceClipId: "clip" } }))).rejects.toThrow("caller");
+    timeline.user_id = "1";
+    timeline.fromDocument({ tracks: [], markers: [], clips: [] });
+    await timeline.save();
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "image_edit", sourceAssetId: "source", timelineContext: { sequenceId: timeline.id, sourceClipId: "clip" } }))).rejects.toThrow("source changed");
+    expect(resolved).toBe(0);
+    const board = new Storyboard({ user_id: "foreign", project_id: "default" });
+    await board.save();
+    timeline.document = JSON.stringify({ tracks: [], markers: [], clips: [{ id: "clip", currentAssetId: "source", storyboardBoardId: board.id, storyboardShotId: "shot" }] });
+    await timeline.save();
+    await expect(handler.runDirectMediaGeneration(mediaReq({ mode: "image_edit", sourceAssetId: "source", timelineContext: { sequenceId: timeline.id, sourceClipId: "clip" } }))).rejects.toThrow("Storyboard generation context");
+    expect(resolved).toBe(0);
+  });
+
   it("rejects a request with no resolver, no model, or a blank prompt", async () => {
     const { handler: noResolver } = makeHandler(null);
     await expect(noResolver.runDirectMediaGeneration(mediaReq())).rejects.toThrow(
@@ -790,6 +833,11 @@ describe("runDirectMediaGeneration", () => {
     );
     expect(editSources).toHaveLength(1);
     expect(Array.from(editSources[0])).toEqual(Array.from(PNG_1x1));
+    const timeline = new TimelineSequence({ user_id: "1", project_id: "default", name: "ordinary", document: JSON.stringify({ tracks: [], clips: [{ id: "source", currentAssetId: sourceId }], markers: [] }) });
+    await timeline.save();
+    await handler.runDirectMediaGeneration(mediaReq({ mode: "image_edit", sourceAssetId: sourceId, timelineContext: { sequenceId: timeline.id, sourceClipId: "source" } }));
+    expect(Array.from(editSources[0])).toEqual(Array.from(PNG_1x1));
+
   });
 
   it("stores provider-encoded audio under its own mime, defaulting an unknown one to .flac", async () => {

@@ -108,6 +108,16 @@ describe("timelineUnitsTouchedByOp", () => {
 });
 
 describe("mergeTimelineDocuments", () => {
+  it("adopts server ownership while preserving a local clip edit", () => {
+    const base = docOf([trackOf("T1")], [clipOf("C1", "T1")]);
+    const draft = docOf(base.tracks, [clipOf("C1", "T1", { durationMs: 400 })]);
+    const ledger = [{ boardId: "board-1", elementKeys: ["shot/product"] }];
+    const server = { ...base, storyboardMaterializations: ledger };
+    const { doc, conflicts } = mergeTimelineDocuments(base, draft, server, undefined, { mergeWithoutOps: true });
+    expect(doc.storyboardMaterializations).toEqual(ledger);
+    expect(doc.clips).toEqual(draft.clips);
+    expect(conflicts).toEqual([]);
+  });
   it("leaves an unrelated drifted dirty clip alone when the op adds a track", () => {
     const base = docOf([trackOf("T1")], [clipOf("C1", "T1")]);
     // The user trimmed C1 and has not saved.

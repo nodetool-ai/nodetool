@@ -217,6 +217,7 @@ describe("storyboards capability module", () => {
   it("is well-formed and declares itself as storyboards", () => {
     expect(capabilityModuleIssues("storyboards", storyboards)).toEqual([]);
     expect(storyboards.exports.map((e) => e.spec.name)).toEqual([
+      "finish_storyboard",
       "list_storyboards",
       "create_storyboard",
       "get_storyboard",
@@ -828,6 +829,26 @@ describe("storyboards capability behaviour", () => {
     expect(result.error).toContain("find_model");
   });
 
+  it.each([
+    productionRequirement.parse({ media_strategy: "still_motion_graphics" }),
+    productionRequirement.parse({ protected_inputs: [{ id: "product", kind: "product", asset_id: "exact-product" }] })
+  ])("refuses revision when policy changes while loading its source", async (policy) => {
+    const board = await makeBoard([renderedShot("s1", 0)]);
+    const context = ctx();
+    context.resolveAssetBytes = vi.fn(async () => {
+      const document = board.toDocument();
+      document.shots[0].production = policy;
+      board.document = JSON.stringify(document);
+      await board.save();
+      return { bytes: MP4, attempts: [] };
+    });
+    const result = await run(context).invoke("revise_storyboard_clip", {
+      storyboard_id: board.id, target: "s1", instruction: "make it darker"
+    });
+    expect(result).toHaveProperty("error");
+    expect(context.runProviderPrediction).not.toHaveBeenCalled();
+  });
+
   it("refuses to revise a shot with no clip", async () => {
     const board = await makeBoard([shot({ id: "s1", index: 0 })]);
     const result = (await run(ctx()).invoke("revise_storyboard_clip", {
@@ -1112,6 +1133,19 @@ describe("storyboards capability behaviour", () => {
 
     const document = (await sequenceOf(assembled.timeline_id)).toDocument();
     expect(document.tracks.map((t) => t.name)).toEqual(["Shots", "Shot Audio"]);
+  });
+
+  it("refuses legacy reassembly of finished layers without writing the timeline", async () => {
+    const board = await makeBoard([renderedShot("s1", 0)]);
+    const context = ctx();
+    const first = await run(context).invoke("assemble_storyboard_timeline", { storyboard_id: board.id }) as { timeline_id: string };
+    const sequence = await sequenceOf(first.timeline_id);
+    const previous = sequence.toDocument();
+    sequence.fromDocument({ ...previous, storyboardMaterializations: [{ boardId: board.id, elementKeys: ["s1/product"] }] });
+    await sequence.save();
+    const snapshot = sequence.toDocument();
+    await expect(run(context).invoke("assemble_storyboard_timeline", { storyboard_id: board.id })).rejects.toThrow("finish_storyboard");
+    expect((await sequenceOf(first.timeline_id)).toDocument()).toEqual(snapshot);
   });
 
   it("keeps tracks the board does not own when re-assembling", async () => {

@@ -298,7 +298,7 @@ describe("durable recovery of fal media responses", () => {
           };
         },
         getStoryboard: async () => {
-          if (interrupt) {
+          if (interrupt && submitted) {
             return null;
           }
           const row = (await Storyboard.findById(rowId))!;

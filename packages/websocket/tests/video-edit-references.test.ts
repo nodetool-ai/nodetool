@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { Asset } from "@nodetool-ai/models";
+import { Asset, initTestDb } from "@nodetool-ai/models";
 import { BaseProvider } from "@nodetool-ai/runtime";
 import type { VideoToVideoParams } from "@nodetool-ai/runtime";
 import { generateMediaDataSchema } from "@nodetool-ai/protocol";
@@ -60,6 +60,7 @@ function handler(provider: EditProvider): DirectInferenceHandler {
 
 describe("video edit references", () => {
   beforeEach(() => {
+    initTestDb();
     vi.clearAllMocks();
     vi.spyOn(Asset, "find").mockImplementation(async (_user, id) =>
       id === "missing" ? null : new Asset({

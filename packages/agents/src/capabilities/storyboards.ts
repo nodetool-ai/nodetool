@@ -1,3 +1,4 @@
+import { finishStoryboard } from "./finish-storyboard.js";
 /**
  * The `storyboards` capability module.
  *
@@ -474,7 +475,8 @@ const listStoryboards: CapabilityExport = {
           with_keyframe: doc.shots.filter((s) => !!s.keyframe).length,
           with_clip: doc.shots.filter((s) => !!s.clip).length,
           timeline_id: row.timeline_id ?? undefined,
-          updated_at: row.updated_at
+          updated_at: row.updated_at,
+    revision: row.revision
         };
       })
     };
@@ -494,7 +496,8 @@ function createdBoardSummary(row: Storyboard) {
     name: row.name,
     project_id: row.project_id,
     shots: doc.shots.length,
-    updated_at: row.updated_at
+    updated_at: row.updated_at,
+    revision: row.revision
   };
 }
 
@@ -564,6 +567,7 @@ const getStoryboard: CapabilityExport = {
     const drifted = new Set(link.drifted_shot_ids);
     return {
       id: row.id,
+      revision: row.revision,
       name: row.name,
       brief: doc.brief,
       style: doc.style,
@@ -1057,6 +1061,11 @@ const reviseStoryboardClip: CapabilityExport = {
           error: "The shot's clip could not be read back from storage."
         };
       }
+      const current = await loadBoard(run, row.id);
+      if (isError(current)) return current;
+      const currentShot = current.doc.shots.find((value) => value.id === shot.id);
+      if (!currentShot) return { error: `Shot ${shot.id} no longer exists.` };
+      assertProductionGenerationAllowed(currentShot.production, "video_to_video");
       const saved = await renderMedia(
         context,
         {
@@ -1115,6 +1124,7 @@ const assembleStoryboardTimeline: CapabilityExport = {
       buildLinkedTimeline,
       buildStoryboardTimeline,
       foreignTimelineParts,
+      assertStoryboardReassemblyAllowed,
       frameSizeForAspect
     } = await import("@nodetool-ai/timeline");
 
@@ -1211,10 +1221,10 @@ const assembleStoryboardTimeline: CapabilityExport = {
           `Re-render those shots at the length their lines need.`
       );
     }
-    if (assembled.clips.length === 0) {
+    if (assembled.durationMs === 0) {
       return {
         error:
-          "No shot has a rendered still or clip, so there is nothing to assemble. Run render_storyboard_stills or render_storyboard_clips.",
+          "No shot has an allowed still, video, or graphics source. Add graphics intent or use render_storyboard_stills / render_storyboard_clips where allowed by the shot production policy.",
         skipped_shot_ids: assembled.skippedShotIds,
         skipped_line_ids: skippedLineIds
       };
@@ -1296,6 +1306,7 @@ const assembleStoryboardTimeline: CapabilityExport = {
       }
 
       const previous = current.toDocument();
+      assertStoryboardReassemblyAllowed(previous, row.id);
       const foreign = foreignTimelineParts(
         previous,
         (clip) =>
@@ -1306,7 +1317,7 @@ const assembleStoryboardTimeline: CapabilityExport = {
       const clips = [...assembled.clips, ...foreign.clips];
       const durationMs = clips.reduce(
         (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
-        0
+        assembled.durationMs
       );
 
       const nextDocument = {
@@ -2514,6 +2525,7 @@ const editStoryboard: CapabilityExport = {
       return {
         storyboard_id: row.id,
         updated_at: saved.updated_at,
+        revision: saved.revision,
         applied: records.length - failed.length,
         failed: failed.length,
         ops: records,
@@ -2693,6 +2705,7 @@ const directStoryboard: CapabilityExport = {
       return {
         storyboard_id: current.row.id,
         updated_at: saved.updated_at,
+        revision: saved.revision,
         title: screenplay.title,
         genre: next.genre,
         redirected: params["redirect"] === true,
@@ -2911,6 +2924,7 @@ const deleteStoryboard: CapabilityExport = {
   }
 };
 export const STORYBOARD_CAPABILITIES: readonly CapabilityExport[] = [
+  finishStoryboard,
   listStoryboards,
   createStoryboard,
   getStoryboard,
@@ -2930,6 +2944,7 @@ export const module: CapabilityModule = {
 };
 
 export {
+  finishStoryboard,
   listStoryboards,
   createStoryboard,
   getStoryboard,

@@ -4,7 +4,11 @@
 
 import { describe, it, expect } from "vitest";
 import { makeClip, makeTrack } from "../src/defaults.js";
-import { foreignTimelineParts, refillShotClips } from "../src/reassemble.js";
+import {
+  foreignTimelineParts,
+  refillShotClips,
+  assertStoryboardReassemblyAllowed
+} from "../src/reassemble.js";
 import type { TimelineClip } from "../src/types.js";
 
 const track = (name: string, index: number) =>
@@ -21,6 +25,35 @@ const clip = (trackId: string, overrides: Partial<TimelineClip> = {}) =>
     versions: [],
     ...overrides
   });
+
+describe("finished storyboard ownership", () => {
+  it("rejects legacy replacement even after every semantic clip was manually deleted", () => {
+    expect(() =>
+      assertStoryboardReassemblyAllowed(
+        {
+          clips: [],
+          storyboardMaterializations: [
+            { boardId: "board", elementKeys: ["shot/product"] }
+          ]
+        },
+        "board"
+      )
+    ).toThrow("finish_storyboard");
+  });
+  it("allows assembling another board without taking ownership of finished layers", () => {
+    expect(() =>
+      assertStoryboardReassemblyAllowed(
+        {
+          clips: [],
+          storyboardMaterializations: [
+            { boardId: "other", elementKeys: ["shot/product"] }
+          ]
+        },
+        "board"
+      )
+    ).not.toThrow();
+  });
+});
 
 describe("foreignTimelineParts", () => {
   it("drops the owner's clips and the tracks that only held them", () => {

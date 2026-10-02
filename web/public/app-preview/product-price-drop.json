@@ -1,0 +1,882 @@
+{
+  "slug": "product-price-drop",
+  "name": "Product Price Drop",
+  "description": "Build a layered six-second vertical ad using your exact product, logo, prices and copy. No generated video.",
+  "tagline": "Exact product, editable prices, deterministic motion.",
+  "note": null,
+  "featured": true,
+  "image": null,
+  "app": {
+    "schemaVersion": 5,
+    "recipe": {
+      "schemaVersion": 1,
+      "slug": "product-price-drop",
+      "inputs": [
+        {
+          "id": "productImage",
+          "label": "Product image",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "logo",
+          "label": "Logo",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "headline",
+          "label": "Headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "oldPrice",
+          "label": "Old price",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "newPrice",
+          "label": "New price",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "cta",
+          "label": "Call to action",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "brandColor",
+          "label": "Brand color",
+          "kind": "color",
+          "required": true
+        }
+      ],
+      "preservationRules": [
+        {
+          "inputId": "productImage",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "logo",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "headline",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "oldPrice",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "newPrice",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "cta",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "brandColor",
+          "policy": "exact_color",
+          "allowedTransformations": [
+            "opacity",
+            "composite"
+          ]
+        }
+      ],
+      "mediaPolicy": {
+        "defaultStrategy": "still_motion_graphics",
+        "allowGeneratedVideo": false
+      },
+      "operations": [
+        {
+          "id": "plan",
+          "bindingId": "plan",
+          "intent": "plan_storyboard"
+        },
+        {
+          "id": "finish",
+          "bindingId": "finish",
+          "intent": "finish_storyboard"
+        }
+      ],
+      "outputs": [
+        {
+          "id": "storyboardId",
+          "kind": "storyboard"
+        },
+        {
+          "id": "timeline",
+          "kind": "timeline"
+        }
+      ]
+    },
+    "variables": [
+      {
+        "id": "productImage",
+        "name": "Product image",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "logo",
+        "name": "Logo",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "headline",
+        "name": "Headline",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "oldPrice",
+        "name": "Old price",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "newPrice",
+        "name": "New price",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "cta",
+        "name": "Call to action",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "brandColor",
+        "name": "Brand color",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "direction",
+        "name": "Creative direction",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": "Bold editorial rhythm"
+      },
+      {
+        "id": "step",
+        "name": "Step",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": "inputs"
+      },
+      {
+        "id": "storyboardId",
+        "name": "storyboardId",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "storyboardRevision",
+        "name": "storyboardRevision",
+        "type": {
+          "type": "int"
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "plannedFingerprint",
+        "name": "plannedFingerprint",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "approval",
+        "name": "approval",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "planPreview",
+        "name": "planPreview",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "timelineId",
+        "name": "timelineId",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "timelineRevision",
+        "name": "timelineRevision",
+        "type": {
+          "type": "int"
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "timeline",
+        "name": "timeline",
+        "type": {
+          "type": "timeline"
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "validation",
+        "name": "validation",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false
+      }
+    ],
+    "operations": [
+      {
+        "id": "plan",
+        "name": "Plan",
+        "workflowId": "",
+        "target": {
+          "kind": "script",
+          "scriptId": "plan",
+          "scriptVersion": 1
+        },
+        "policy": "queue",
+        "inputs": {
+          "productImage": {
+            "from": "variable",
+            "variableId": "productImage"
+          },
+          "logo": {
+            "from": "variable",
+            "variableId": "logo"
+          },
+          "headline": {
+            "from": "variable",
+            "variableId": "headline"
+          },
+          "oldPrice": {
+            "from": "variable",
+            "variableId": "oldPrice"
+          },
+          "newPrice": {
+            "from": "variable",
+            "variableId": "newPrice"
+          },
+          "cta": {
+            "from": "variable",
+            "variableId": "cta"
+          },
+          "brandColor": {
+            "from": "variable",
+            "variableId": "brandColor"
+          },
+          "direction": {
+            "from": "variable",
+            "variableId": "direction"
+          },
+          "storyboardId": {
+            "from": "variable",
+            "variableId": "storyboardId"
+          }
+        },
+        "outputs": {
+          "storyboardId": {
+            "to": "variable",
+            "variableId": "storyboardId"
+          },
+          "storyboardRevision": {
+            "to": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "plannedFingerprint": {
+            "to": "variable",
+            "variableId": "plannedFingerprint"
+          },
+          "approval": {
+            "to": "variable",
+            "variableId": "approval"
+          },
+          "planPreview": {
+            "to": "variable",
+            "variableId": "planPreview"
+          },
+          "step": {
+            "to": "variable",
+            "variableId": "step"
+          },
+          "timelineId": {
+            "to": "variable",
+            "variableId": "timelineId"
+          },
+          "timelineRevision": {
+            "to": "variable",
+            "variableId": "timelineRevision"
+          }
+        }
+      },
+      {
+        "id": "finish",
+        "name": "Build editable ad",
+        "workflowId": "",
+        "target": {
+          "kind": "script",
+          "scriptId": "finish",
+          "scriptVersion": 1
+        },
+        "policy": "queue",
+        "inputs": {
+          "productImage": {
+            "from": "variable",
+            "variableId": "productImage"
+          },
+          "logo": {
+            "from": "variable",
+            "variableId": "logo"
+          },
+          "headline": {
+            "from": "variable",
+            "variableId": "headline"
+          },
+          "oldPrice": {
+            "from": "variable",
+            "variableId": "oldPrice"
+          },
+          "newPrice": {
+            "from": "variable",
+            "variableId": "newPrice"
+          },
+          "cta": {
+            "from": "variable",
+            "variableId": "cta"
+          },
+          "brandColor": {
+            "from": "variable",
+            "variableId": "brandColor"
+          },
+          "direction": {
+            "from": "variable",
+            "variableId": "direction"
+          },
+          "storyboardId": {
+            "from": "variable",
+            "variableId": "storyboardId"
+          },
+          "storyboardRevision": {
+            "from": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "plannedFingerprint": {
+            "from": "variable",
+            "variableId": "plannedFingerprint"
+          },
+          "approval": {
+            "from": "variable",
+            "variableId": "approval"
+          },
+          "planPreview": {
+            "from": "variable",
+            "variableId": "planPreview"
+          },
+          "step": {
+            "from": "variable",
+            "variableId": "step"
+          },
+          "timelineId": {
+            "from": "variable",
+            "variableId": "timelineId"
+          },
+          "timelineRevision": {
+            "from": "variable",
+            "variableId": "timelineRevision"
+          }
+        },
+        "outputs": {
+          "timelineId": {
+            "to": "variable",
+            "variableId": "timelineId"
+          },
+          "timelineRevision": {
+            "to": "variable",
+            "variableId": "timelineRevision"
+          },
+          "storyboardRevision": {
+            "to": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "timeline": {
+            "to": "variable",
+            "variableId": "timeline"
+          },
+          "validation": {
+            "to": "variable",
+            "variableId": "validation"
+          },
+          "step": {
+            "to": "variable",
+            "variableId": "step"
+          }
+        }
+      }
+    ],
+    "resources": [],
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Product Price Drop"
+        }
+      },
+      "content": [
+        {
+          "type": "Stepper",
+          "props": {
+            "id": "steps",
+            "binding": "var:step",
+            "steps": [
+              {
+                "value": "inputs",
+                "title": "Inputs"
+              },
+              {
+                "value": "review",
+                "title": "Plan and review"
+              },
+              {
+                "value": "result",
+                "title": "Editable result"
+              }
+            ],
+            "allowBack": true
+          }
+        },
+        {
+          "type": "ImageInput",
+          "props": {
+            "id": "productImage",
+            "label": "Product image",
+            "binding": "var:productImage"
+          }
+        },
+        {
+          "type": "ImageInput",
+          "props": {
+            "id": "logo",
+            "label": "Logo",
+            "binding": "var:logo"
+          }
+        },
+        {
+          "type": "TextInput",
+          "props": {
+            "id": "headline",
+            "label": "Headline",
+            "binding": "var:headline"
+          }
+        },
+        {
+          "type": "TextInput",
+          "props": {
+            "id": "oldPrice",
+            "label": "Old price",
+            "binding": "var:oldPrice"
+          }
+        },
+        {
+          "type": "TextInput",
+          "props": {
+            "id": "newPrice",
+            "label": "New price",
+            "binding": "var:newPrice"
+          }
+        },
+        {
+          "type": "TextInput",
+          "props": {
+            "id": "cta",
+            "label": "Call to action",
+            "binding": "var:cta"
+          }
+        },
+        {
+          "type": "ColorInput",
+          "props": {
+            "id": "brandColor",
+            "label": "Brand color",
+            "binding": "var:brandColor"
+          }
+        },
+        {
+          "type": "ChoiceCards",
+          "props": {
+            "id": "direction",
+            "label": "Creative direction",
+            "binding": "var:direction",
+            "options": [
+              {
+                "value": "Bold editorial rhythm",
+                "title": "Bold editorial"
+              },
+              {
+                "value": "Quiet premium composition",
+                "title": "Quiet premium"
+              }
+            ]
+          }
+        },
+        {
+          "type": "Button",
+          "props": {
+            "id": "plan",
+            "label": "Plan",
+            "disabledWhen": {
+              "binding": "op:plan/exec#running",
+              "op": "notEmpty"
+            },
+            "events": [
+              {
+                "trigger": "click",
+                "kind": "run",
+                "operationId": "plan"
+              }
+            ]
+          }
+        },
+        {
+          "type": "Json",
+          "props": {
+            "id": "plan-preview",
+            "label": "Review the exact planned layers",
+            "binding": "var:planPreview"
+          }
+        },
+        {
+          "type": "Approval",
+          "props": {
+            "id": "approval",
+            "binding": "var:approval",
+            "label": "Approve exact sources and copy",
+            "description": "Changing any input requires a new plan and approval."
+          }
+        },
+        {
+          "type": "Button",
+          "props": {
+            "id": "finish",
+            "label": "Build editable ad",
+            "disabledWhen": {
+              "binding": "op:finish/exec#running",
+              "op": "notEmpty"
+            },
+            "events": [
+              {
+                "trigger": "click",
+                "kind": "run",
+                "operationId": "finish"
+              }
+            ]
+          }
+        },
+        {
+          "type": "Timeline",
+          "props": {
+            "id": "result",
+            "binding": "var:timeline"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "plan-error",
+            "binding": "op:plan/exec#error"
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "finish-error",
+            "binding": "op:finish/exec#error"
+          }
+        }
+      ]
+    }
+  },
+  "workflows": [],
+  "scripts": [
+    {
+      "key": "plan",
+      "name": "Price Drop plan",
+      "document": {
+        "schemaVersion": 1,
+        "code": "import { create_storyboard, get_storyboard, edit_storyboard } from \"@nodetool-ai/sandbox-nodetool/storyboards\";\nimport { get_timeline } from \"@nodetool-ai/sandbox-nodetool/timelines\";\nconst keys = [\"productImage\", \"logo\", \"headline\", \"oldPrice\", \"newPrice\", \"cta\", \"brandColor\", \"direction\"];\nconst fingerprint = JSON.stringify(keys.map(key => inputs[key]));\nfor (const key of keys.slice(0, 7)) {\n  if (inputs[key] === undefined || inputs[key] === null || (typeof inputs[key] === \"string\" && !inputs[key].trim())) throw new Error(key + \" is required.\");\n}\nconst assetId = (value, label) => {\n  const id = value.asset_id || (typeof value.uri === \"string\" && value.uri.startsWith(\"asset://\") ? value.uri.slice(8) : undefined);\n  if (!id) throw new Error(label + \" must be a stored asset.\");\n  return id;\n};\nconst brandColor = typeof inputs.brandColor === \"string\" ? inputs.brandColor : inputs.brandColor?.type === \"color\" ? inputs.brandColor.value : undefined;\nif (typeof brandColor !== \"string\" || !brandColor.trim()) throw new Error(\"Brand color must be an exact color value.\");\nconst product = assetId(inputs.productImage, \"Product image\");\nconst logo = assetId(inputs.logo, \"Logo\");\nconst board = inputs.storyboardId ? await get_storyboard({storyboard_id: inputs.storyboardId}) : await create_storyboard({name: \"Product Price Drop\", aspect_ratio: \"9:16\"});\nif (board.error) throw new Error(board.error);\nif (board.timeline_id) {\n  const linked = await get_timeline({timeline_id: board.timeline_id});\n  if (linked.error) throw new Error(linked.error);\n  await output(\"timelineId\", linked.timeline.id);\n  await output(\"timelineRevision\", linked.revision);\n}\nconst preservationRules = [{\"inputId\":\"productImage\",\"policy\":\"exact_asset\",\"allowedTransformations\":[\"position\",\"scale\",\"opacity\",\"composite\"]},{\"inputId\":\"logo\",\"policy\":\"exact_asset\",\"allowedTransformations\":[\"position\",\"scale\",\"opacity\",\"composite\"]},{\"inputId\":\"headline\",\"policy\":\"exact_text\",\"allowedTransformations\":[\"position\",\"scale\",\"opacity\",\"composite\"]},{\"inputId\":\"oldPrice\",\"policy\":\"exact_text\",\"allowedTransformations\":[\"position\",\"scale\",\"opacity\",\"composite\"]},{\"inputId\":\"newPrice\",\"policy\":\"exact_text\",\"allowedTransformations\":[\"position\",\"scale\",\"opacity\",\"composite\"]},{\"inputId\":\"cta\",\"policy\":\"exact_text\",\"allowedTransformations\":[\"position\",\"scale\",\"opacity\",\"composite\"]},{\"inputId\":\"brandColor\",\"policy\":\"exact_color\",\"allowedTransformations\":[\"opacity\",\"composite\"]}];\nconst allowed = id => preservationRules.find(rule => rule.inputId === id).allowedTransformations;\nconst protectedInputs = [\n  {id: \"productImage\", kind: \"product\", asset_id: product, allowed_transformations: allowed(\"productImage\")},\n  {id: \"logo\", kind: \"logo\", asset_id: logo, allowed_transformations: allowed(\"logo\")},\n  ...[\"headline\", \"oldPrice\", \"newPrice\", \"cta\"].map(id => ({id, kind: \"exact_text\", value: inputs[id], allowed_transformations: allowed(id)})),\n  {id: \"brandColor\", kind: \"brand_color\", value: brandColor, allowed_transformations: allowed(\"brandColor\")}\n];\nconst element = (id, kind, role) => ({id: kind === \"shape\" ? \"background\" : id, kind, role, protected_input_id: id, ...(id === \"oldPrice\" ? {direction: \"superseded price\"} : id === \"newPrice\" ? {direction: \"current price\"} : {}), ...(kind === \"text\" ? {text: inputs[id]} : kind === \"asset\" ? {asset_id: id === \"logo\" ? logo : product} : {})});\nconst production = ids => ({schema_version: 1, media_strategy: \"still_motion_graphics\", protected_inputs: protectedInputs.filter(input => ids.includes(input.id))});\nconst shots = [\n  {slug: \"Hook\", action: \"Present the original product and exact price drop.\", duration_seconds: 3, production: production([\"productImage\", \"headline\", \"oldPrice\", \"newPrice\", \"brandColor\"]), graphics: {mode: \"graphics_first\", direction: inputs.direction || \"Bold editorial rhythm\", elements: [element(\"brandColor\", \"shape\", \"decorative\"), element(\"productImage\", \"asset\", \"product\"), element(\"headline\", \"text\", \"headline\"), element(\"oldPrice\", \"text\", \"price\"), element(\"newPrice\", \"text\", \"price\")] }},\n  {slug: \"CTA\", action: \"Keep the original product and logo separately editable beside exact CTA.\", duration_seconds: 3, production: production([\"productImage\", \"logo\", \"cta\", \"brandColor\"]), graphics: {mode: \"graphics_first\", direction: inputs.direction || \"Bold editorial rhythm\", elements: [element(\"brandColor\", \"shape\", \"decorative\"), element(\"productImage\", \"asset\", \"product\"), element(\"logo\", \"asset\", \"logo\"), element(\"cta\", \"text\", \"cta\")] }}\n];\nconst ops = shots.map(shot => {\n  const existing = (Array.isArray(board.shots) ? board.shots : []).find(candidate => candidate.slug === shot.slug);\n  return existing ? {op: \"update_shot\", target: existing.id, ...shot} : {op: \"add_shot\", ...shot};\n});\nconst saved = await edit_storyboard({storyboard_id: board.id, ops});\nif (saved.error || saved.failed) throw new Error(saved.error || JSON.stringify(saved.ops));\nconst ids = saved.shots.map(shot => shot.id);\nconst directed = await edit_storyboard({storyboard_id: board.id, ops: [{op: \"set_board\", motion_design: {direction: \"One confident visual rhythm across the cut.\", transitions: [{from_shot_id: ids[0], to_shot_id: ids[1], direction: \"fade\"}], continuities: [{id: \"background\", shot_ids: ids, direction: \"continue\"}]}}]});\nif (directed.error || directed.failed) throw new Error(directed.error || JSON.stringify(directed.ops));\nawait output(\"storyboardId\", board.id);\nawait output(\"storyboardRevision\", directed.revision);\nawait output(\"plannedFingerprint\", fingerprint);\nawait output(\"approval\", \"pending\");\nawait output(\"planPreview\", {shots: shots.map(shot => ({title: shot.slug, duration: shot.duration_seconds, elements: shot.graphics.elements})), motionDesign: \"Fade with a continuous brand background\"});\nawait output(\"step\", \"review\");",
+        "inputs": [
+          {
+            "name": "productImage",
+            "type": "any"
+          },
+          {
+            "name": "logo",
+            "type": "any"
+          },
+          {
+            "name": "headline",
+            "type": "any"
+          },
+          {
+            "name": "oldPrice",
+            "type": "any"
+          },
+          {
+            "name": "newPrice",
+            "type": "any"
+          },
+          {
+            "name": "cta",
+            "type": "any"
+          },
+          {
+            "name": "brandColor",
+            "type": "any"
+          },
+          {
+            "name": "direction",
+            "type": "any"
+          },
+          {
+            "name": "storyboardId",
+            "type": "any"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "storyboardId",
+            "type": "any"
+          },
+          {
+            "name": "storyboardRevision",
+            "type": "any"
+          },
+          {
+            "name": "plannedFingerprint",
+            "type": "any"
+          },
+          {
+            "name": "approval",
+            "type": "any"
+          },
+          {
+            "name": "planPreview",
+            "type": "any"
+          },
+          {
+            "name": "step",
+            "type": "any"
+          },
+          {
+            "name": "timelineId",
+            "type": "any"
+          },
+          {
+            "name": "timelineRevision",
+            "type": "any"
+          }
+        ],
+        "packages": [],
+        "secrets": [],
+        "timeoutSeconds": 60,
+        "tests": []
+      }
+    },
+    {
+      "key": "finish",
+      "name": "Price Drop finish",
+      "document": {
+        "schemaVersion": 1,
+        "code": "import { finish_storyboard } from \"@nodetool-ai/sandbox-nodetool/storyboards\";\nconst keys = [\"productImage\", \"logo\", \"headline\", \"oldPrice\", \"newPrice\", \"cta\", \"brandColor\", \"direction\"];\nconst fingerprint = JSON.stringify(keys.map(key => inputs[key]));\nif (inputs.approval !== \"approved\") throw new Error(\"Approve the plan before building.\");\nif (inputs.plannedFingerprint !== fingerprint) throw new Error(\"Inputs changed after planning. Plan and approve again.\");\nconst result = await finish_storyboard({storyboardId: inputs.storyboardId, expectedStoryboardRevision: inputs.storyboardRevision, ...(inputs.timelineId ? {timelineId: inputs.timelineId, expectedTimelineRevision: inputs.timelineRevision} : {})});\nif (result.error) throw new Error(result.error);\nawait output(\"timelineId\", result.timelineId);\nawait output(\"timelineRevision\", result.timelineRevision);\nawait output(\"storyboardRevision\", result.storyboardRevision);\nawait output(\"timeline\", {type: \"timeline\", id: result.timelineId});\nawait output(\"validation\", result.validation);\nawait output(\"step\", \"result\");",
+        "inputs": [
+          {
+            "name": "productImage",
+            "type": "any"
+          },
+          {
+            "name": "logo",
+            "type": "any"
+          },
+          {
+            "name": "headline",
+            "type": "any"
+          },
+          {
+            "name": "oldPrice",
+            "type": "any"
+          },
+          {
+            "name": "newPrice",
+            "type": "any"
+          },
+          {
+            "name": "cta",
+            "type": "any"
+          },
+          {
+            "name": "brandColor",
+            "type": "any"
+          },
+          {
+            "name": "direction",
+            "type": "any"
+          },
+          {
+            "name": "storyboardId",
+            "type": "any"
+          },
+          {
+            "name": "storyboardRevision",
+            "type": "any"
+          },
+          {
+            "name": "plannedFingerprint",
+            "type": "any"
+          },
+          {
+            "name": "approval",
+            "type": "any"
+          },
+          {
+            "name": "planPreview",
+            "type": "any"
+          },
+          {
+            "name": "step",
+            "type": "any"
+          },
+          {
+            "name": "timelineId",
+            "type": "any"
+          },
+          {
+            "name": "timelineRevision",
+            "type": "any"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "timelineId",
+            "type": "any"
+          },
+          {
+            "name": "timelineRevision",
+            "type": "any"
+          },
+          {
+            "name": "storyboardRevision",
+            "type": "any"
+          },
+          {
+            "name": "timeline",
+            "type": "any"
+          },
+          {
+            "name": "validation",
+            "type": "any"
+          },
+          {
+            "name": "step",
+            "type": "any"
+          }
+        ],
+        "packages": [],
+        "secrets": [],
+        "timeoutSeconds": 60,
+        "tests": []
+      }
+    }
+  ],
+  "values": {}
+}

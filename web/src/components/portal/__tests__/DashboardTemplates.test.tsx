@@ -1,4 +1,7 @@
-import { render, screen, within } from "@testing-library/react";
+import { createServer, type Server } from "node:http";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
+import { fireEvent, render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@mui/material/styles";
@@ -70,6 +73,22 @@ const renderTemplates = (templates: Workflow[] = TEMPLATES) => {
     </QueryClientProvider>
   );
 };
+
+let thumbnailServer: Server;
+beforeAll(async () => {
+  const png = readFileSync(join(process.cwd(), "public", "favicon-16x16.png"));
+  thumbnailServer = createServer((_request, response) => {
+    response.writeHead(200, {"content-type": "image/png"});
+    response.end(png);
+  });
+  await new Promise<void>((resolve) => thumbnailServer.listen(0, "127.0.0.1", resolve));
+  const address = thumbnailServer.address();
+  if (!address || typeof address === "string") { throw new Error("Missing thumbnail server port"); }
+  TEMPLATES[0].thumbnail_url = `http://127.0.0.1:${address.port}/api/thumb/upscaler.jpg?v=1`;
+});
+afterAll(async () => {
+  await new Promise<void>((resolve, reject) => thumbnailServer.close((error) => error ? reject(error) : resolve()));
+});
 
 describe("DashboardTemplates", () => {
   beforeEach(() => {
@@ -171,6 +190,16 @@ describe("DashboardTemplates", () => {
       name: /podcast cutter/i
     });
     expect(withoutThumb.querySelector("img")).toBeNull();
+  });
+
+  it("removes a failed thumbnail while keeping the template usable", async () => {
+    renderTemplates();
+    const row = await screen.findByRole("button", {name: /image upscaler/i});
+    const image = row.querySelector("img");
+    expect(image).not.toBeNull();
+    fireEvent.error(image!);
+    expect(row.querySelector("img")).toBeNull();
+    expect(row).toBeEnabled();
   });
 
   it("narrows the list to the selected category", async () => {

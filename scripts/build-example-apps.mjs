@@ -874,6 +874,8 @@ function buildApp(app, templates) {
 }
 
 function buildBundle(app, templates) {
+  // Script-backed examples already carry normal pinned operation documents.
+  if (app.bundle) return {bundle: app.bundle, values: {}};
   const { document, values } = buildApp(app, templates);
   const workflows = Object.entries(app.workflows).map(([key, templateName]) => {
     const template = templates.get(templateName);

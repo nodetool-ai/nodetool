@@ -127,6 +127,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
             fps: before.fps,
             width: before.width,
             height: before.height,
+            storyboardMaterializations: before.storyboardMaterializations,
             camera2d: before.camera2d ?? null
           };
           const serverDoc: TimelineMergeDoc = {
@@ -140,6 +141,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
             fps: sequence.fps,
             width: sequence.width,
             height: sequence.height,
+            storyboardMaterializations: sequence.storyboardMaterializations,
             camera2d: sequence.camera2d ?? null
           };
           // The document as this editor last read or wrote it; without one
@@ -179,6 +181,7 @@ export function useTimelineExternalSync(sequenceId: string | null): void {
             fps: before.fps,
             width: before.width,
             height: before.height,
+            storyboardMaterializations: before.storyboardMaterializations,
             camera2d: before.camera2d ?? null
           };
           const rebasedTemporal = timelineTemporalOf(store);

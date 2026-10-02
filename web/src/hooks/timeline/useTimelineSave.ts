@@ -62,6 +62,7 @@ export async function persistTimelineDocument(
       fps: state.fps,
       width: state.width,
       height: state.height,
+      storyboardMaterializations: state.storyboardMaterializations,
       camera2d: state.camera2d ?? null
     });
   }

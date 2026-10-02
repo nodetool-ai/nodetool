@@ -8,6 +8,8 @@ import {
   DEFAULT_SHOT_MS,
   buildStoryboardPreviewTimeline,
   buildStoryboardTimeline,
+  resolveShotSource,
+  isAssemblableShot,
   frameSizeForAspect
 } from "../src/storyboard.js";
 import type { AssembledTimeline } from "../src/storyboard.js";
@@ -94,9 +96,7 @@ describe("buildStoryboardTimeline", () => {
     });
 
     expect(pictureClips(result.clips)).toHaveLength(2);
-    expect(pictureClips(result.clips)[0].currentAssetId).toBe("asset-a");
-    expect(pictureClips(result.clips)[1].mediaType).toBe("image");
-    expect(pictureClips(result.clips)[1].currentAssetId).toBe("still-b");
+    expect(pictureClips(result.clips).map((clip) => [clip.mediaType, clip.currentAssetId])).toEqual([["video", "asset-a"], ["image", "still-b"]]);
     expect(result.skippedShotIds).toEqual(["c"]);
     expect(result.durationMs).toBe(DEFAULT_SHOT_MS * 2);
   });
@@ -778,9 +778,15 @@ describe("scenes do not change the cut", () => {
     expect(normalize(scened)).toEqual(normalize(unscened));
 
     // The cut both sides produced, so the equality above is not two empties.
-    expect(pictureClips(unscened.clips).map((c) => c.storyboardShotId)).toEqual(
-      ["s0", "s1", "s2", "s3", "s4", "s5", "s7"]
-    );
+    expect(pictureClips(unscened.clips).map((c) => c.storyboardShotId)).toEqual([
+      "s0",
+      "s1",
+      "s2",
+      "s3",
+      "s4",
+      "s5",
+      "s7"
+    ]);
     expect(
       pictureClips(unscened.clips).map((c) => [c.startMs, c.durationMs])
     ).toEqual([
@@ -849,3 +855,31 @@ describe("scenes do not change the cut", () => {
     );
   });
 });
+
+ describe("policy source selection", () => {
+ it("uses the still instead of stale video in assembly and preview", () => {
+ const shot = makeShot({id:"s",index:0,clip:clipRef("stale"),keyframe:keyframeRef("exact")});
+ const input = {boardId:"b",shots:[shot],production:{media_strategy:"still_motion_graphics" as const}};
+ expect(resolveShotSource(shot,input.production)).toEqual({kind:"still",assetId:"exact"});
+ for (const build of [buildStoryboardTimeline,buildStoryboardPreviewTimeline]) {
+ const result=build(input);
+ expect(result.clips).toHaveLength(1);
+ expect(result.clips[0]).toMatchObject({mediaType:"image",currentAssetId:"exact"});
+ }
+ });
+ it("reserves graphics-only shot timing without inventing a source", () => {
+ const shot=makeShot({id:"g",index:0,graphics:{mode:"graphics_first",elements:[]}});
+ expect(resolveShotSource(shot)).toEqual({kind:"graphics"});
+ expect(isAssemblableShot(shot)).toBe(true);
+ const result=buildStoryboardTimeline({boardId:"b",shots:[shot]});
+ expect(result.durationMs).toBe(DEFAULT_SHOT_MS);
+ expect(result.skippedShotIds).toEqual([]);
+ expect(result.clips).toEqual([]);
+ });
+ it("does not substitute a still for an explicit generated-video strategy",()=>{
+ const shot=makeShot({id:"s",index:0,keyframe:keyframeRef("still"),production:{media_strategy:"generated_video"}});
+ expect(resolveShotSource(shot)).toBeNull();
+ expect(isAssemblableShot(shot)).toBe(false);
+ expect(buildStoryboardTimeline({boardId:"b",shots:[shot]}).skippedShotIds).toEqual(["s"]);
+ });
+ });

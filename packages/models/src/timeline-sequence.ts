@@ -76,6 +76,7 @@ export interface TimelineDocument {
   trackFolders?: TimelineSequenceDoc["trackFolders"];
   clips: TimelineClip[];
   markers: TimelineMarker[];
+  storyboardMaterializations?: TimelineSequenceDoc["storyboardMaterializations"];
   /** Studio transcript lines. Optional for documents written before Studio. */
   transcript?: TranscriptLine[];
   /** Whether the script lane + transcript panel are shown. Unset on legacy. */
@@ -167,6 +168,7 @@ export class TimelineSequence extends DBModel {
       trackFolders: doc.trackFolders,
       clips: doc.clips,
       markers: doc.markers,
+      storyboardMaterializations: doc.storyboardMaterializations,
       transcript: doc.transcript ?? [],
       scriptEnabled: doc.scriptEnabled,
       tempo: doc.tempo,
@@ -189,6 +191,7 @@ export class TimelineSequence extends DBModel {
       trackFolders: seq.trackFolders,
       clips: seq.clips,
       markers: seq.markers,
+      storyboardMaterializations: seq.storyboardMaterializations,
       transcript: seq.transcript ?? [],
       scriptEnabled: seq.scriptEnabled,
       tempo: seq.tempo,
