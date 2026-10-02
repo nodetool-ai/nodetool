@@ -731,6 +731,38 @@ describe("SetupFlow", () => {
     await waitFor(() => expect(onStageChange).toHaveBeenCalledWith("review"));
   });
 
+  it("clears canceled pending state when the document changes stage", async () => {
+    const user = userEvent.setup();
+    let finish: () => void = () => {};
+    const onAdvance = () =>
+      new Promise<void>((resolve) => {
+        finish = resolve;
+      });
+    const config: SetupFlowConfig<Stage> = {
+      labels: { title: "Storyboard" },
+      stage: "genre",
+      onStageChange: jest.fn(),
+      steps: steps.map((entry) =>
+        entry.stage === "genre" ? { ...entry, onAdvance } : entry
+      )
+    };
+    const { rerender } = render(flow(config));
+    await user.click(
+      screen.getByRole("button", { name: "Review your screenplay" })
+    );
+    await user.click(screen.getByRole("button", { name: "Cancel" }));
+    rerender(flow({ ...config, stage: "review" }));
+    finish();
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", {
+          name: "Continue to storyboard"
+        })
+      ).toBeEnabled()
+    );
+    expect(screen.getByRole("button", { name: "Back" })).toBeEnabled();
+  });
+
   it("names the wait generically when a step gives no label", () => {
     const waiting = steps.map((entry) =>
       entry.stage === "idea" ? { ...entry, pending: true } : entry

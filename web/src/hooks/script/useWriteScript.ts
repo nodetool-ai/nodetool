@@ -30,7 +30,7 @@
  * are the same artifact.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ATTRIBUTION_SYSTEM_PROMPT,
   ATTRIBUTION_TOOL_DESCRIPTION,
@@ -61,10 +61,7 @@ import {
   scriptSourcePatch,
   type ImportedScript
 } from "../../lib/script/importedScript";
-import {
-  writerSignature,
-  writerSignaturePatch
-} from "./scriptWriteSignature";
+import { writerSignature, writerSignaturePatch } from "./scriptWriteSignature";
 
 /** The length a script is written to when no step wrote one. */
 export const DEFAULT_SCRIPT_SECONDS = 60;
@@ -92,7 +89,11 @@ const lineIdsOf = (script: ScriptDraft): string[] =>
 /** Imported lines applied as they are — the source already named the cast. */
 function applyImportedAsIs(
   imported: ImportedScript,
-  options: { idPrefix: string; lineIds: readonly string[]; sectionTitle: string }
+  options: {
+    idPrefix: string;
+    lineIds: readonly string[];
+    sectionTitle: string;
+  }
 ): WrittenScript {
   const cast: Array<{ id: string; name: string }> = [];
   const byName = new Map<string, string>();
@@ -122,6 +123,7 @@ function applyImportedAsIs(
 export interface WriteScriptOptions {
   /** True for the review step's `Rewrite`. */
   rewrite?: boolean;
+  signal?: AbortSignal;
 }
 
 export interface UseWriteScriptResult {
@@ -133,6 +135,7 @@ export interface UseWriteScriptResult {
    * turns a `false` into the message on its button.
    */
   write: (scriptId: string, options?: WriteScriptOptions) => Promise<boolean>;
+  cancel: () => void;
   writing: boolean;
   error: string | null;
 }
@@ -152,8 +155,15 @@ export const useWriteScript = (): UseWriteScriptResult => {
   const [writing, setWriting] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const activeController = useRef<AbortController | null>(null);
+  const cancel = useCallback(() => activeController.current?.abort(), []);
+  useEffect(() => cancel, [cancel]);
+
   const write = useCallback(
     async (scriptId: string, options: WriteScriptOptions = {}) => {
+      if (options.signal?.aborted) {
+        return false;
+      }
       const store = useScriptStore.getState();
       const script = store.getScript(scriptId);
       if (!script) {
@@ -161,15 +171,10 @@ export const useWriteScript = (): UseWriteScriptResult => {
         return false;
       }
       const setup = script.setup ?? null;
-      // A rewrite gives the source up, so this and every later run write from
-      // the script the creator actually has in front of them. It is the one
-      // place a source is dropped, and the review says so beside the button.
-      if (options.rewrite === true && readScriptSource(setup) !== null) {
-        store.setSetup(scriptId, scriptSourcePatch(null));
-      }
-      const imported = readScriptSource(
-        store.getScript(scriptId)?.setup ?? null
-      );
+      // Rewrites use the edited script. Drop its imported source only after
+      // success, so cancelling keeps the original draft intact.
+      const source = readScriptSource(setup);
+      const imported = options.rewrite ? null : source;
       const brief = setup?.brief.trim() ?? "";
       if (brief === "" && !imported && lineIdsOf(script).length === 0) {
         setError("Write a brief before writing the script.");
@@ -201,6 +206,13 @@ export const useWriteScript = (): UseWriteScriptResult => {
       const idPrefix = nextIdPrefix();
       const heldLineIds = lineIdsOf(script);
 
+      const signature = writerSignature(setup, imported);
+      activeController.current?.abort();
+      const controller = new AbortController();
+      activeController.current = controller;
+      const abort = (): void => controller.abort();
+      options.signal?.addEventListener("abort", abort, { once: true });
+      const { signal } = controller;
       setError(null);
       setWriting(true);
       try {
@@ -214,16 +226,22 @@ export const useWriteScript = (): UseWriteScriptResult => {
           });
         } else if (imported) {
           const texts = imported.lines.map((line) => line.text);
-          const answer = await rpcRequest("generate_text", {
-            provider: model?.provider,
-            model: model?.id,
-            system: ATTRIBUTION_SYSTEM_PROMPT,
-            prompt: buildAttributionPrompt(texts, { brief, format }),
-            max_tokens: MAX_WRITER_TOKENS,
-            schema: buildAttributionSchema(texts.length),
-            schema_name: ATTRIBUTION_TOOL_NAME,
-            schema_description: ATTRIBUTION_TOOL_DESCRIPTION
-          });
+          const answer = await rpcRequest(
+            "generate_text",
+            {
+              provider: model?.provider,
+              model: model?.id,
+              system: ATTRIBUTION_SYSTEM_PROMPT,
+              prompt: buildAttributionPrompt(texts, { brief, format }),
+              max_tokens: MAX_WRITER_TOKENS,
+              schema: buildAttributionSchema(texts.length),
+              schema_name: ATTRIBUTION_TOOL_NAME,
+              schema_description: ATTRIBUTION_TOOL_DESCRIPTION
+            },
+            undefined,
+            signal
+          );
+          signal.throwIfAborted();
           written = applyAttribution(texts, answer.data, {
             idPrefix,
             lineIds: heldLineIds,
@@ -239,16 +257,22 @@ export const useWriteScript = (): UseWriteScriptResult => {
             language: setup?.language,
             existing: options.rewrite ? asWritten(script) : undefined
           };
-          const answer = await rpcRequest("generate_text", {
-            provider: model?.provider,
-            model: model?.id,
-            system: SCRIPT_WRITER_SYSTEM_PROMPT,
-            prompt: buildScriptWriterPrompt(input),
-            max_tokens: MAX_WRITER_TOKENS,
-            schema: buildScriptSchema({ retainIds: heldLineIds }),
-            schema_name: SCRIPT_TOOL_NAME,
-            schema_description: SCRIPT_TOOL_DESCRIPTION
-          });
+          const answer = await rpcRequest(
+            "generate_text",
+            {
+              provider: model?.provider,
+              model: model?.id,
+              system: SCRIPT_WRITER_SYSTEM_PROMPT,
+              prompt: buildScriptWriterPrompt(input),
+              max_tokens: MAX_WRITER_TOKENS,
+              schema: buildScriptSchema({ retainIds: heldLineIds }),
+              schema_name: SCRIPT_TOOL_NAME,
+              schema_description: SCRIPT_TOOL_DESCRIPTION
+            },
+            undefined,
+            signal
+          );
+          signal.throwIfAborted();
           const parseOptions = {
             idPrefix,
             retainIds: heldLineIds,
@@ -265,37 +289,43 @@ export const useWriteScript = (): UseWriteScriptResult => {
               : fallbackScript(input, parseOptions);
         }
 
+        signal.throwIfAborted();
+        if (options.rewrite && source !== null) {
+          store.setSetup(scriptId, scriptSourcePatch(null));
+        }
         store.applyWrittenScript(scriptId, written);
         // What this script was written from, so pressing step 2's button again
         // on unchanged inputs continues to it instead of paying for it twice
         // (F15).
-        store.setSetup(
-          scriptId,
-          writerSignaturePatch(
-            writerSignature(
-              useScriptStore.getState().getScript(scriptId)?.setup ?? null,
-              imported
-            )
-          )
-        );
+        store.setSetup(scriptId, writerSignaturePatch(signature));
         // Only a run that was waiting for its script moves the stage on: the
         // review's `Rewrite` fires the same call and must not throw the
         // creator back a step.
-        if (useScriptStore.getState().getScript(scriptId)?.setup?.stage === "format") {
+        if (
+          useScriptStore.getState().getScript(scriptId)?.setup?.stage ===
+          "format"
+        ) {
           store.setSetup(scriptId, { stage: "review" });
         }
         return true;
       } catch (cause) {
+        if (signal.aborted) {
+          return false;
+        }
         setError(cause instanceof Error ? cause.message : String(cause));
         return false;
       } finally {
-        setWriting(false);
+        options.signal?.removeEventListener("abort", abort);
+        if (activeController.current === controller) {
+          activeController.current = null;
+          setWriting(false);
+        }
       }
     },
     []
   );
 
-  return { write, writing, error };
+  return { write, cancel, writing, error };
 };
 
 export default useWriteScript;

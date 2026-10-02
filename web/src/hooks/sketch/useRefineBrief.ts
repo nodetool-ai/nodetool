@@ -18,7 +18,7 @@
  * the server as before.
  */
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
   REFINE_BRIEF_SCHEMA,
   REFINE_BRIEF_SYSTEM_PROMPT,
@@ -74,7 +74,8 @@ export async function requestRefinedBrief(
     /** Image URIs the creator attached to the prompt (F4). */
     references?: readonly string[];
   },
-  model?: RefineBriefModel
+  model?: RefineBriefModel,
+  signal?: AbortSignal
 ): Promise<SketchRefinedBrief> {
   const brief = setup.brief?.trim() ?? "";
   if (brief.length === 0) {
@@ -118,7 +119,7 @@ export async function requestRefinedBrief(
     request.provider = model.provider;
     request.model = model.id;
   }
-  const answer = await rpcRequest("generate_text", request);
+  const answer = await rpcRequest("generate_text", request, undefined, signal);
   const refined = parseRefinedBrief(answer.data);
   if (!refined) {
     throw new Error("The model did not return a brief. Try again.");
@@ -132,7 +133,8 @@ export interface RefineBriefResult {
    * leaving the stage at `review`. Resolves `false` when the run was refused
    * or the model answered with nothing usable; the reason is in `error`.
    */
-  expandBrief: () => Promise<boolean>;
+  expandBrief: (signal?: AbortSignal) => Promise<boolean>;
+  cancel: () => void;
   refining: boolean;
   error: string | null;
   /** The model the next expansion runs against, or null when none is set. */
@@ -159,55 +161,76 @@ export function useRefineBrief(): RefineBriefResult {
   // a newer one wrote nor clear the wait a newer one owns.
   const requestRef = useRef(0);
 
-  const expandBrief = useCallback(async (): Promise<boolean> => {
-    const token = (requestRef.current += 1);
-    const setup = useSketchStore.getState().document.setup;
-    const originStage = setup?.stage;
-    const chosen = useGlobalChatStore.getState().selectedModel;
-    setError(null);
-    setRefining(true);
-    try {
-      const refined = await requestRefinedBrief(
-        {
-          brief: setup?.brief,
-          use_case: setup?.use_case,
-          references: imageReferences(readReferences(setup)).map(
-            (reference) => reference.uri
-          )
-        },
-        chosen?.id
-          ? { id: chosen.id, provider: chosen.provider, name: chosen.name }
-          : undefined
-      );
-      // The creator left the stage this expansion was asked from, so the
-      // brief they are reading now stays: a late answer neither replaces it
-      // nor pulls them back to the review.
-      if (
-        token !== requestRef.current ||
-        useSketchStore.getState().document.setup?.stage !== originStage
-      ) {
-        return false;
-      }
-      useSketchStore.getState().setSetup({
-        refined,
-        stage: "review",
-        refined_from: briefInputSignature(setup)
-      });
-      return true;
-    } catch (cause) {
-      if (token !== requestRef.current) {
-        return false;
-      }
-      setError(cause instanceof Error ? cause.message : String(cause));
-      return false;
-    } finally {
-      if (token === requestRef.current) {
-        setRefining(false);
-      }
-    }
-  }, []);
+  const controllerRef = useRef<AbortController | null>(null);
+  const cancel = useCallback(() => controllerRef.current?.abort(), []);
+  useEffect(() => cancel, [cancel]);
 
-  return { expandBrief, refining, error, model };
+  const expandBrief = useCallback(
+    async (signal?: AbortSignal): Promise<boolean> => {
+      controllerRef.current?.abort();
+      const controller = new AbortController();
+      controllerRef.current = controller;
+      const abort = () => controller.abort();
+      signal?.addEventListener("abort", abort, { once: true });
+      if (signal?.aborted) {
+        controller.abort();
+      }
+      const token = (requestRef.current += 1);
+      const setup = useSketchStore.getState().document.setup;
+      const originStage = setup?.stage;
+      const chosen = useGlobalChatStore.getState().selectedModel;
+      setError(null);
+      setRefining(true);
+      try {
+        const refined = await requestRefinedBrief(
+          {
+            brief: setup?.brief,
+            use_case: setup?.use_case,
+            references: imageReferences(readReferences(setup)).map(
+              (reference) => reference.uri
+            )
+          },
+          chosen?.id
+            ? { id: chosen.id, provider: chosen.provider, name: chosen.name }
+            : undefined,
+          controller.signal
+        );
+        // The creator left the stage this expansion was asked from, so the
+        // brief they are reading now stays: a late answer neither replaces it
+        // nor pulls them back to the review.
+        if (
+          controller.signal.aborted ||
+          token !== requestRef.current ||
+          useSketchStore.getState().document.setup?.stage !== originStage
+        ) {
+          return false;
+        }
+        useSketchStore.getState().setSetup({
+          refined,
+          stage: "review",
+          refined_from: briefInputSignature(setup)
+        });
+        return true;
+      } catch (cause) {
+        if (controller.signal.aborted || token !== requestRef.current) {
+          return false;
+        }
+        setError(cause instanceof Error ? cause.message : String(cause));
+        return false;
+      } finally {
+        signal?.removeEventListener("abort", abort);
+        if (controllerRef.current === controller) {
+          controllerRef.current = null;
+        }
+        if (token === requestRef.current) {
+          setRefining(false);
+        }
+      }
+    },
+    []
+  );
+
+  return { expandBrief, cancel, refining, error, model };
 }
 
 export default useRefineBrief;

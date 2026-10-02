@@ -9,7 +9,7 @@
  * the flow existed keeps opening as it always did (D3).
  */
 
-import { createElement, useCallback, useMemo, useRef } from "react";
+import { createElement, useCallback, useMemo, useRef, useState } from "react";
 import type {
   ScriptDocumentSchema,
   ScriptSetup,
@@ -125,6 +125,7 @@ export const useScriptSetupFlow = ({
   onFinish
 }: ScriptSetupFlowOptions): SetupFlowConfig<ScriptSetupStage> => {
   const stage = useScriptSetupStage(scriptId);
+  const [formatError, setFormatError] = useState<string | null>(null);
   const chatModel = useGlobalChatStore((state) => state.selectedModel);
   const setup = useScriptSetup(scriptId);
   const setSetup = useScriptStore((state) => state.setSetup);
@@ -155,7 +156,7 @@ export const useScriptSetupFlow = ({
       (speaker) => speaking.has(speaker.id) && !speaker.voice
     ).length;
   });
-  const { write, writing, error: writeError } = useWriteScript();
+  const { write, cancel, writing, error: writeError } = useWriteScript();
   // The reason a refused run gives arrives as state, one render after the call
   // resolves, so the step's own closure cannot see it. Mirror it and read the
   // mirror; when the render has not landed yet the throw still names the step.
@@ -186,8 +187,8 @@ export const useScriptSetupFlow = ({
   }, [onFinish, scriptId, setSetup]);
 
   const runWriter = useCallback(
-    async (rewrite: boolean) => {
-      const written = await write(scriptId, { rewrite });
+    async (rewrite: boolean, signal?: AbortSignal) => {
+      const written = await write(scriptId, { rewrite, signal });
       if (!written) {
         throw new Error(
           writeErrorRef.current ?? "The writer did not return a script."
@@ -202,7 +203,9 @@ export const useScriptSetupFlow = ({
   }, [scriptId, write]);
 
   // What the format step's button is about to spend, when it spends anything.
-  const writeEstimate = useMemo<Pick<SetupStep<ScriptSetupStage>, "generation">>(
+  const writeEstimate = useMemo<
+    Pick<SetupStep<ScriptSetupStage>, "generation">
+  >(
     () =>
       needsWrite
         ? {
@@ -250,11 +253,12 @@ export const useScriptSetupFlow = ({
             : "Write the script"
           : "Continue to review",
         canAdvance:
+          formatError === null &&
           (setup?.format ?? "") !== "" &&
           (!needsModel || Boolean(writerModel?.id)),
-        blockedReason: !setup?.format
-          ? "Pick a script format"
-          : "Pick a writer model",
+        blockedReason:
+          formatError ??
+          (!setup?.format ? "Pick a script format" : "Pick a writer model"),
         // No model runs when the script already answers these inputs, so
         // nothing is estimated either (PRD § 6.2) — the step carries no
         // `generation` at all rather than an empty one.
@@ -266,13 +270,20 @@ export const useScriptSetupFlow = ({
             scriptId,
             readOnly: context.readOnly
           }),
-        render: () => createElement(FormatStep, { scriptId }),
+        render: () =>
+          createElement(FormatStep, {
+            scriptId,
+            onValidationChange: setFormatError
+          }),
         // The writer runs here, and a refused run must leave the creator on
         // the format step with the reason on the button (PRD § 9.2). It runs
         // only when something it reads has moved: coming back to look at the
         // cards and pressing on used to pay for a second script and throw the
         // edits made to the first away (F15).
-        onAdvance: needsWrite ? () => runWriter(false) : undefined
+        onAdvance: needsWrite
+          ? (context) => runWriter(false, context?.signal)
+          : undefined,
+        onCancel: cancel
       },
       {
         stage: "review",
@@ -289,6 +300,7 @@ export const useScriptSetupFlow = ({
         // lines they are reading are being replaced (F2).
         pending: writing,
         pendingLabel: "Rewriting your script",
+        onCancel: cancel,
         render: () =>
           createElement(ReviewStep, {
             scriptId,
@@ -331,6 +343,8 @@ export const useScriptSetupFlow = ({
       }
     ],
     [
+      cancel,
+      formatError,
       castNeedingVoice,
       cost.cost,
       cost.lineCount,

@@ -22,7 +22,11 @@ import {
 } from "../../../hooks/sketch/useRefineBrief";
 import { useUploadFirstLayer } from "../../../hooks/sketch/useUploadFirstLayer";
 import type { GenerationSummaryProps } from "../GenerationSummary";
-import type { SetupFlowConfig, SetupStep } from "../types";
+import type {
+  SetupFlowConfig,
+  SetupOperationContext,
+  SetupStep
+} from "../types";
 import { IdeaStep } from "./IdeaStep";
 import {
   ImageModelFooterField,
@@ -73,6 +77,7 @@ export const useImageSetupFlow = ({
   );
   const {
     expandBrief,
+    cancel,
     refining,
     error: refineError,
     model: refineModel
@@ -96,14 +101,17 @@ export const useImageSetupFlow = ({
     onFinish();
   }, [onFinish, setSetup]);
 
-  const refine = useCallback(async () => {
-    const refinedOk = await expandBrief();
-    if (!refinedOk) {
-      throw new Error(
-        refineErrorRef.current ?? "The model did not return a brief."
-      );
-    }
-  }, [expandBrief]);
+  const refine = useCallback(
+    async (context?: SetupOperationContext) => {
+      const refinedOk = await expandBrief(context?.signal);
+      if (!refinedOk) {
+        throw new Error(
+          refineErrorRef.current ?? "The model did not return a brief."
+        );
+      }
+    },
+    [expandBrief]
+  );
 
   const reRefine = useCallback(() => {
     void expandBrief();
@@ -170,7 +178,8 @@ export const useImageSetupFlow = ({
         render: () => createElement(UseCaseStep),
         // D4: this is the only thing the step does. No layer is added and no
         // job is started — the answer is text the creator reviews next.
-        onAdvance: briefIsCurrent ? undefined : refine
+        onAdvance: briefIsCurrent ? undefined : refine,
+        onCancel: cancel
       },
       {
         stage: "review",
@@ -183,6 +192,7 @@ export const useImageSetupFlow = ({
         // brief they are reading is being replaced (F2).
         pending: refining,
         pendingLabel: "Refining the brief",
+        onCancel: cancel,
         render: () =>
           createElement(ReviewStep, {
             onReRefine: reRefine,
@@ -216,6 +226,7 @@ export const useImageSetupFlow = ({
     [
       brief,
       briefIsCurrent,
+      cancel,
       look,
       onGenerated,
       promptIsWritable,

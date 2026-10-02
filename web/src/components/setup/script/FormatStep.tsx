@@ -7,7 +7,7 @@
  * writer left to run.
  */
 
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useEffect, useMemo, useState } from "react";
 
 import {
   Box,
@@ -60,6 +60,7 @@ const customSecondsError = (draft: string): string | null => {
 
 export interface FormatStepProps {
   scriptId: string;
+  onValidationChange?: (error: string | null) => void;
 }
 
 /** The writer model, for the shell's footer beside the estimate it prices. */
@@ -88,7 +89,10 @@ export const WriterModelFooterField: React.FC<{
   );
 };
 
-const FormatStepInternal: React.FC<FormatStepProps> = ({ scriptId }) => {
+const FormatStepInternal: React.FC<FormatStepProps> = ({
+  scriptId,
+  onValidationChange
+}) => {
   const setup = useScriptSetup(scriptId);
   const setSetup = useScriptStore((state) => state.setSetup);
   const seconds = setup?.length_seconds ?? DEFAULT_LENGTH_SECONDS;
@@ -97,7 +101,7 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({ scriptId }) => {
   );
   // The field holds what was typed, not what the document holds: rounding and
   // clamping mid-keystroke rewrote "90" to "9" the moment the 9 was typed, and
-  // clearing the field put the old number back (F21). It is read on blur.
+  // clearing the field put the old number back (F21). Commit on blur or submit.
   const [customDraft, setCustomDraft] = useState(() => String(seconds));
 
   const selectFormat = useCallback(
@@ -114,7 +118,10 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({ scriptId }) => {
   // them: picking any one unpicks the rest.
   const lengthOptions = useMemo(
     () => [
-      ...LENGTH_CHOICES.map((choice) => ({ id: choice.id, label: choice.label })),
+      ...LENGTH_CHOICES.map((choice) => ({
+        id: choice.id,
+        label: choice.label
+      })),
       { id: CUSTOM_LENGTH_ID, label: "Custom" }
     ],
     []
@@ -163,6 +170,23 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({ scriptId }) => {
   }, [customDraft, scriptId, setSetup]);
 
   const customError = custom ? customSecondsError(customDraft) : null;
+
+  useEffect(() => {
+    onValidationChange?.(customError);
+  }, [customError, onValidationChange]);
+
+  useEffect(() => () => onValidationChange?.(null), [onValidationChange]);
+
+  const handleCustomKeyDown = (event: React.KeyboardEvent) => {
+    if (event.key === "Enter" && (event.ctrlKey || event.metaKey)) {
+      if (customError) {
+        event.preventDefault();
+        event.stopPropagation();
+        return;
+      }
+      commitCustom();
+    }
+  };
 
   return (
     <FlexColumn gap={GAP.spacious}>
@@ -229,6 +253,7 @@ const FormatStepInternal: React.FC<FormatStepProps> = ({ scriptId }) => {
                 }
                 onChange={handleCustom}
                 onBlur={commitCustom}
+                onKeyDown={handleCustomKeyDown}
               />
             </Box>
           ) : null}
