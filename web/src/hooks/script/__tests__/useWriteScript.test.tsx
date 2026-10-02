@@ -17,6 +17,7 @@ jest.mock("../../../lib/websocket/rpcRequest", () => ({
 }));
 
 import { useWriteScript } from "../useWriteScript";
+import { readWriterSignature, writerSignature } from "../scriptWriteSignature";
 import { useScriptStore } from "../../../stores/script/ScriptStore";
 import useGlobalChatStore from "../../../stores/GlobalChatStore";
 import {
@@ -50,7 +51,11 @@ beforeEach(() => {
   rpcRequest.mockReset();
   useScriptStore.setState({ scripts: {}, history: {} } as never);
   useGlobalChatStore.setState({
-    selectedModel: { type: "language_model", id: "claude-sonnet-5", provider: "anthropic" }
+    selectedModel: {
+      type: "language_model",
+      id: "claude-sonnet-5",
+      provider: "anthropic"
+    }
   } as never);
   seed();
 });
@@ -102,6 +107,101 @@ describe("writeScript", () => {
     ]);
     expect(linesNow().every((line) => line.takes.length === 0)).toBe(true);
     expect(scriptNow().setup?.stage).toBe("review");
+  });
+
+  it("records the settings consumed by a pending write", async () => {
+    useScriptStore.getState().setSetup(SCRIPT, { length_seconds: 30 });
+    const requestedSignature = writerSignature(scriptNow().setup, null);
+    let finish = (_answer: typeof writerAnswer): void => {};
+    rpcRequest.mockReturnValue(
+      new Promise((resolve) => {
+        finish = resolve;
+      })
+    );
+    const { result } = renderHook(() => useWriteScript());
+    let pending: Promise<boolean>;
+    act(() => {
+      pending = result.current.write(SCRIPT);
+    });
+    act(() => {
+      useScriptStore.getState().setSetup(SCRIPT, {
+        length_seconds: 120,
+        format: "dialogue"
+      });
+    });
+    await act(async () => {
+      finish(writerAnswer);
+      expect(await pending).toBe(true);
+    });
+    expect(readWriterSignature(scriptNow().setup)).toBe(requestedSignature);
+    expect(readWriterSignature(scriptNow().setup)).not.toBe(
+      writerSignature(scriptNow().setup, null)
+    );
+    expect(scriptNow().setup?.length_seconds).toBe(120);
+  });
+
+  it.each([false, true])(
+    "ignores a late result after cancellation (import: %s)",
+    async (imported) => {
+      if (imported) {
+        setSource(importedFromText(IMPORTED));
+      }
+      const before = scriptNow();
+      let finish = (_answer: typeof writerAnswer): void => {};
+      rpcRequest.mockReturnValue(
+        new Promise((resolve) => {
+          finish = resolve;
+        })
+      );
+      const controller = new AbortController();
+      const { result } = renderHook(() => useWriteScript());
+      let pending: Promise<boolean>;
+      act(() => {
+        pending = result.current.write(SCRIPT, { signal: controller.signal });
+      });
+      act(() => {
+        controller.abort();
+      });
+      await act(async () => {
+        finish(writerAnswer);
+        expect(await pending).toBe(false);
+      });
+      expect(rpcRequest.mock.calls[0][3].aborted).toBe(true);
+      expect(scriptNow()).toEqual(before);
+      expect(result.current.writing).toBe(false);
+      expect(result.current.error).toBeNull();
+    }
+  );
+
+  it("cancels a review rewrite without reporting an error", async () => {
+    rpcRequest.mockResolvedValue(writerAnswer);
+    const { result } = renderHook(() => useWriteScript());
+    await act(async () => {
+      await result.current.write(SCRIPT);
+    });
+    setSource(importedFromText(IMPORTED));
+    const before = scriptNow();
+    rpcRequest.mockImplementation(
+      (_command, _payload, _timeout, signal: AbortSignal) =>
+        new Promise((_resolve, reject) => {
+          signal.addEventListener(
+            "abort",
+            () => reject(new DOMException("Aborted", "AbortError")),
+            { once: true }
+          );
+        })
+    );
+    let pending: Promise<boolean>;
+    act(() => {
+      pending = result.current.write(SCRIPT, { rewrite: true });
+    });
+    await act(async () => {
+      result.current.cancel();
+      expect(await pending).toBe(false);
+    });
+    expect(scriptNow()).toEqual(before);
+    expect(result.current.writing).toBe(false);
+    expect(result.current.error).toBeNull();
   });
 
   it("keeps imported words verbatim, whatever the answer says", async () => {
@@ -195,8 +295,12 @@ describe("writeScript", () => {
       "A tide clock has one hand.",
       "It goes round once a lunar day."
     ]);
-    expect(linesNow().map((line) => line.targetDurationMs)).toEqual([2750, 3750]);
-    expect(scriptNow().cast.map((speaker) => speaker.name)).toEqual(["Narrator"]);
+    expect(linesNow().map((line) => line.targetDurationMs)).toEqual([
+      2750, 3750
+    ]);
+    expect(scriptNow().cast.map((speaker) => speaker.name)).toEqual([
+      "Narrator"
+    ]);
   });
 
   // CI caught this and an isolated run did not: the id prefix came from
@@ -261,7 +365,11 @@ describe("writeScript", () => {
           {
             title: "Open",
             lines: [
-              { id: kept.id, speaker: "Narrator", text: "It started as a weekend build." },
+              {
+                id: kept.id,
+                speaker: "Narrator",
+                text: "It started as a weekend build."
+              },
               { speaker: "Narrator", text: "A brand new line." }
             ]
           }

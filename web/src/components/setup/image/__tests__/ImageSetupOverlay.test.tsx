@@ -194,7 +194,9 @@ describe("resume by stage (criterion 2)", () => {
       await waitFor(() =>
         expect(rpcRequest).toHaveBeenCalledWith(
           "generate_text",
-          expect.objectContaining({ model: "brief-model", provider: "openai" })
+          expect.objectContaining({ model: "brief-model", provider: "openai" }),
+          undefined,
+          expect.any(AbortSignal)
         )
       );
     }

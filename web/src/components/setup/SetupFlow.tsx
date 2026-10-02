@@ -289,7 +289,7 @@ export function SetupFlow<Stage extends string>({
     if (!step || !pending) {
       return;
     }
-    operationRef.current += 1;
+    const cancellation = (operationRef.current += 1);
     continueAfterUnmountRef.current = false;
     activeControllerRef.current?.abort();
     activeControllerRef.current = null;
@@ -301,7 +301,7 @@ export function SetupFlow<Stage extends string>({
       operation ?? Promise.resolve(),
       Promise.resolve(step.onCancel?.())
     ]).then(() => {
-      if (stageRef.current === step.stage) {
+      if (operationRef.current === cancellation) {
         setCancelingStage(null);
         setBusy(false);
       }

@@ -3,7 +3,7 @@
  * stage the document carries, and a last step that writes `done` before it
  * asks for a single take (PRD § 9.1–9.3, criteria 1 and 2).
  */
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -129,7 +129,7 @@ const seedWrittenScript = (): void => {
 };
 
 beforeEach(() => {
-  write.mockClear();
+  write.mockReset();
   write.mockResolvedValue(true);
   writeError = null;
   voiceAll.mockClear();
@@ -145,6 +145,52 @@ afterEach(() => {
 });
 
 describe("useScriptSetupFlow", () => {
+  it.each(["Control", "Meta"])(
+    "commits custom seconds before %s+Enter starts the writer",
+    async (modifier) => {
+      seedWrittenScript();
+      markWritten();
+      useScriptStore.getState().setSetup(SCRIPT_ID, { stage: "format" });
+      let writtenSeconds: number | undefined;
+      write.mockImplementationOnce(async () => {
+        writtenSeconds = setupOf()?.length_seconds;
+        return true;
+      });
+      renderFlow();
+      const user = userEvent.setup();
+      await user.click(screen.getByRole("radio", { name: "Custom" }));
+      const duration = screen.getByRole("spinbutton", {
+        name: "Custom seconds"
+      });
+      await user.clear(duration);
+      await user.type(duration, "90");
+      await user.keyboard(`{${modifier}>}{Enter}{/${modifier}}`);
+      await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+      expect(writtenSeconds).toBe(90);
+      expect(stageOf()).toBe("review");
+    }
+  );
+
+  it("blocks invalid custom seconds until corrected or a preset is selected", async () => {
+    seedWrittenScript();
+    useScriptStore.getState().setSetup(SCRIPT_ID, { stage: "format" });
+    renderFlow();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole("radio", { name: "Custom" }));
+    const duration = screen.getByRole("spinbutton", { name: "Custom seconds" });
+    await user.clear(duration);
+    expect(screen.getByRole("button", { name: "Rewrite" })).toBeDisabled();
+    await user.keyboard("{Control>}{Enter}{/Control}");
+    expect(write).not.toHaveBeenCalled();
+    expect(stageOf()).toBe("format");
+    await user.type(duration, "3601");
+    expect(screen.getByRole("button", { name: "Rewrite" })).toBeDisabled();
+    await user.click(screen.getByRole("radio", { name: "30s" }));
+    await user.click(screen.getByRole("button", { name: "Rewrite" }));
+    await waitFor(() => expect(write).toHaveBeenCalledTimes(1));
+    expect(setupOf()?.length_seconds).toBe(30);
+  });
+
   it("names the writer, text-only result and separate audio step before spending", async () => {
     seedWrittenScript();
     useScriptStore.getState().setSetup(SCRIPT_ID, { stage: "format" });
@@ -185,7 +231,10 @@ describe("useScriptSetupFlow", () => {
     // The lines were seeded without a record of what wrote them, so the inputs
     // read as changed and the button offers the rewrite.
     await user.click(screen.getByRole("button", { name: "Rewrite" }));
-    expect(write).toHaveBeenCalledWith(SCRIPT_ID, { rewrite: false });
+    expect(write).toHaveBeenCalledWith(SCRIPT_ID, {
+      rewrite: false,
+      signal: expect.any(AbortSignal)
+    });
     expect(stageOf()).toBe("review");
 
     await user.click(
@@ -272,7 +321,9 @@ describe("useScriptSetupFlow", () => {
     );
     renderFlow();
 
-    expect(screen.getByRole("button", { name: "Write the script" })).toBeEnabled();
+    expect(
+      screen.getByRole("button", { name: "Write the script" })
+    ).toBeEnabled();
     expect(
       screen.getByRole("region", { name: "Before you generate" })
     ).toHaveTextContent("No model call");
