@@ -1197,6 +1197,224 @@ export const RadioGroupWidget: React.FC<
   );
 };
 
+export interface ChoiceCardOption {
+  value: string;
+  title?: string;
+  description?: string;
+  image?: string;
+  disabled?: boolean;
+}
+
+export const ChoiceCardsWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    options?: ChoiceCardOption[];
+    columns?: number;
+    disabled?: boolean;
+  }
+> = (props) => {
+  const { value, setValue, emit } = useBinding(props, "write");
+  const selected = str(value);
+  const options = props.options ?? [];
+  return (
+    <FlexColumn gap={SPACING.sm} fullWidth>
+      {props.label ? <Label>{props.label}</Label> : null}
+      <Box
+        role="radiogroup"
+        aria-label={props.label || "Choices"}
+        sx={{
+          display: "grid",
+          gridTemplateColumns: {
+            xs: "minmax(0, 1fr)",
+            sm:
+              "repeat(" +
+              Math.max(1, Math.floor(numOr(props.columns, 2))) +
+              ", minmax(0, 1fr))"
+          },
+          gap: SPACING.sm
+        }}
+      >
+        {options.map((option) => {
+          const active = selected === option.value;
+          const disabled = props.disabled || option.disabled;
+          return (
+            <Card
+              key={option.value}
+              variant="outlined"
+              padding="none"
+              sx={{
+                p: SPACING.md,
+                cursor: disabled ? "not-allowed" : "pointer",
+                outline: active ? "2px solid currentColor" : "none",
+                opacity: disabled ? 0.5 : 1
+              }}
+            >
+              <Box
+                role="radio"
+                aria-checked={active}
+                aria-disabled={disabled || undefined}
+                tabIndex={disabled ? -1 : 0}
+                onClick={() => {
+                  if (!props.disabled && !option.disabled) {
+                    setValue(option.value);
+                    emit("change");
+                  }
+                }}
+                onKeyDown={(event) => {
+                  if (
+                    !props.disabled &&
+                    !option.disabled &&
+                    (event.key === "Enter" || event.key === " ")
+                  ) {
+                    event.preventDefault();
+                    setValue(option.value);
+                    emit("change");
+                  }
+                }}
+                sx={{ width: "100%" }}
+              >
+                <FlexColumn gap={SPACING.micro} fullWidth>
+                  {option.image ? (
+                    <ResponsiveImage
+                      locator={option.image}
+                      alt=""
+                      sx={{
+                        width: "100%",
+                        aspectRatio: "16 / 9",
+                        objectFit: "cover"
+                      }}
+                    />
+                  ) : null}
+                  <Text>{option.title || option.value}</Text>
+                  {option.description ? (
+                    <Caption color="secondary">{option.description}</Caption>
+                  ) : null}
+                </FlexColumn>
+              </Box>
+            </Card>
+          );
+        })}
+      </Box>
+    </FlexColumn>
+  );
+};
+
+export interface StepperStep {
+  value: string;
+  title: string;
+  description?: string;
+  disabled?: boolean;
+  completed?: boolean;
+}
+
+export const StepperWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    steps?: StepperStep[];
+    allowBack?: boolean;
+    disabled?: boolean;
+  }
+> = (props) => {
+  const { value, setValue, emit } = useBinding(props, "write");
+  const steps = props.steps ?? [];
+  const found = steps.findIndex((step) => step.value === str(value));
+  const current = found;
+  const firstStep = steps[0]?.value;
+  React.useEffect(() => {
+    if (value == null && firstStep !== undefined && !props.disabled) setValue(firstStep);
+  }, [props.disabled, setValue, firstStep, value]);
+  const choose = (index: number) => {
+    const step = steps[index];
+    if (
+      props.disabled ||
+      !step ||
+      step.disabled ||
+      (index < current && props.allowBack === false)
+    )
+      return;
+    setValue(step.value);
+    emit("change");
+  };
+  return (
+    <FlexColumn gap={SPACING.sm} fullWidth>
+      {props.label ? <Label>{props.label}</Label> : null}
+      <FlexRow gap={SPACING.sm} fullWidth sx={{ flexWrap: "wrap" }}>
+        {steps.map((step, index) => (
+          <EditorButton
+            key={step.value}
+            variant={index === current ? "contained" : "outlined"}
+            size="small"
+            disabled={
+              props.disabled ||
+              step.disabled ||
+              (index < current && props.allowBack === false)
+            }
+            aria-current={index === current ? "step" : undefined}
+            onClick={() => choose(index)}
+          >
+            {step.completed ? "✓ " : ""}
+            {step.title || step.value}
+          </EditorButton>
+        ))}
+      </FlexRow>
+      {steps[current]?.description ? (
+        <Caption color="secondary">{steps[current].description}</Caption>
+      ) : null}
+    </FlexColumn>
+  );
+};
+
+export const ApprovalWidget: React.FC<
+  WidgetCommon & {
+    label?: string;
+    description?: string;
+    approveLabel?: string;
+    rejectLabel?: string;
+    disabled?: boolean;
+  }
+> = (props) => {
+  const { value, setValue, emit } = useBinding(props, "write");
+  const choose = (next: "approved" | "rejected") => {
+    if (props.disabled) return;
+    setValue(next);
+    emit("change");
+  };
+  return (
+    <Card
+      variant="outlined"
+      padding="none"
+      sx={{ p: SPACING.md, width: "100%" }}
+    >
+      <FlexColumn gap={SPACING.sm} fullWidth>
+        {props.label ? <Label>{props.label}</Label> : null}
+        {props.description ? (
+          <Caption color="secondary">{props.description}</Caption>
+        ) : null}
+        <FlexRow gap={SPACING.sm} sx={{ flexWrap: "wrap" }}>
+          <EditorButton
+            aria-pressed={value === "approved"}
+            variant={value === "approved" ? "contained" : "outlined"}
+            size="small"
+            disabled={props.disabled}
+            onClick={() => choose("approved")}
+          >
+            {props.approveLabel || "Approve"}
+          </EditorButton>
+          <EditorButton
+            aria-pressed={value === "rejected"}
+            variant={value === "rejected" ? "contained" : "outlined"}
+            size="small"
+            disabled={props.disabled}
+            onClick={() => choose("rejected")}
+          >
+            {props.rejectLabel || "Needs changes"}
+          </EditorButton>
+        </FlexRow>
+      </FlexColumn>
+    </Card>
+  );
+};
+
 /**
  * Writes the checked options as an array, so it binds to a list-typed input
  * rather than to a scalar one.

@@ -290,6 +290,49 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
       placeholder: "text"
     }
   },
+  // Recipe / guided-production primitives. These remain ordinary serializable
+  // widgets: no callbacks or arbitrary code, so web, mobile and app-debug can
+  // interpret the same document.
+  ChoiceCards: {
+    label: "Choice Cards",
+    mode: "write",
+    trigger: "change",
+    commits: false,
+    fields: {
+      binding: "custom",
+      label: "text",
+      options: "array",
+      columns: "number",
+      events: "array"
+    }
+  },
+  Stepper: {
+    label: "Guided Steps",
+    mode: "write",
+    trigger: "change",
+    commits: false,
+    fields: {
+      binding: "custom",
+      label: "text",
+      steps: "array",
+      allowBack: "radio",
+      events: "array"
+    }
+  },
+  Approval: {
+    label: "Approval",
+    mode: "write",
+    trigger: "change",
+    commits: false,
+    fields: {
+      binding: "custom",
+      label: "text",
+      description: "textarea",
+      approveLabel: "text",
+      rejectLabel: "text",
+      events: "array"
+    }
+  },
   // Inputs
   //
   // Every input of one operation in a single widget, resolved from the graph at

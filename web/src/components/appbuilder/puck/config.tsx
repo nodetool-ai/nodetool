@@ -54,6 +54,9 @@ import {
   StatWidget,
   DownloadWidget,
   RadioGroupWidget,
+  ChoiceCardsWidget,
+  StepperWidget,
+  ApprovalWidget,
   CheckboxGroupWidget,
   DateInputWidget,
   TabsWidget,
@@ -198,6 +201,29 @@ const optionsField: ArrayField = {
   defaultItemProps: { value: "Option" },
   getItemSummary: (item: Record<string, unknown>) =>
     String(item.value ?? "option")
+};
+
+const choiceCardsField: ArrayField = {
+  type: "array", label: "Cards",
+  arrayFields: {
+    value: { type: "text", label: "Value" }, title: { type: "text", label: "Title" },
+    description: { type: "textarea", label: "Description" }, image: { type: "text", label: "Image URL" },
+    disabled: { type: "radio", label: "Disabled", options: [{ label: "No", value: false }, { label: "Yes", value: true }] }
+  },
+  defaultItemProps: { value: "option", title: "Option", description: "", image: "", disabled: false },
+  getItemSummary: (item: Record<string, unknown>) => String(item.title ?? item.value ?? "card")
+};
+
+const stepperField: ArrayField = {
+  type: "array", label: "Steps",
+  arrayFields: {
+    value: { type: "text", label: "Value" }, title: { type: "text", label: "Title" },
+    description: { type: "textarea", label: "Description" },
+    disabled: { type: "radio", label: "Disabled", options: [{ label: "No", value: false }, { label: "Yes", value: true }] },
+    completed: { type: "radio", label: "Completed", options: [{ label: "No", value: false }, { label: "Yes", value: true }] }
+  },
+  defaultItemProps: { value: "step", title: "Step", description: "", disabled: false, completed: false },
+  getItemSummary: (item: Record<string, unknown>) => String(item.title ?? item.value ?? "step")
 };
 
 /**
@@ -352,6 +378,8 @@ export const appConfig: Config = {
         "Switch",
         "Select",
         "RadioGroup",
+        "ChoiceCards",
+        "Stepper",
         "CheckboxGroup",
         "DateInput",
         "ResourcePicker",
@@ -377,7 +405,7 @@ export const appConfig: Config = {
       title: "Chat & AI",
       components: ["ChatThread", "ChatComposer", "ModelSelect"]
     },
-    actions: { title: "Actions", components: ["Button"] },
+    actions: { title: "Actions", components: ["Button", "Approval"] },
     display: {
       title: "Display",
       components: [
@@ -942,7 +970,47 @@ export const appConfig: Config = {
       },
       render: withConditions((props) => <RadioGroupWidget {...props} />)
     },
-    CheckboxGroup: {
+    ChoiceCards: {
+      label: "Choice Cards",
+      fields: {
+        binding: bindingField("write"),
+        label: { type: "text", label: "Label" },
+        options: choiceCardsField,
+        columns: { type: "number", label: "Columns" },
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { label: "Choose a direction", columns: 2, options: [{ value: "Option A" }, { value: "Option B" }] },
+      render: withConditions((props) => <ChoiceCardsWidget {...props} />)
+    },
+    Stepper: {
+      label: "Guided Steps",
+      fields: {
+        binding: bindingField("write"),
+        label: { type: "text", label: "Label" },
+        steps: stepperField,
+        allowBack: { type: "radio", label: "Allow back", options: [{ label: "Yes", value: true }, { label: "No", value: false }] },
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { label: "", allowBack: true, steps: [{ value: "Inputs" }, { value: "Review" }, { value: "Build" }] },
+      render: withConditions((props) => <StepperWidget {...props} />)
+    },
+    Approval: {
+      label: "Approval",
+      fields: {
+        binding: bindingField("write"),
+        label: { type: "text", label: "Label" },
+        description: { type: "textarea", label: "Description" },
+        approveLabel: { type: "text", label: "Approve label" },
+        rejectLabel: { type: "text", label: "Reject label" },
+        events: eventsField("change", { commits: false }),
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { label: "Review", description: "", approveLabel: "Approve", rejectLabel: "Needs changes" },
+      render: withConditions((props) => <ApprovalWidget {...props} />)
+    },
+        CheckboxGroup: {
       label: "Checkbox Group",
       fields: {
         binding: bindingField("write"),

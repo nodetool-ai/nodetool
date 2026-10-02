@@ -95,3 +95,16 @@ describe("Puck config ↔ widget catalog", () => {
     }
   });
 });
+
+it("offers every nested guided-widget property for authoring", () => {
+  const fields = appConfig.components as unknown as Record<
+    string,
+    { fields: Record<string, { arrayFields?: Record<string, unknown> }> }
+  >;
+  expect(
+    Object.keys(fields.ChoiceCards.fields.options.arrayFields ?? {}).sort()
+  ).toEqual(["description", "disabled", "image", "title", "value"]);
+  expect(
+    Object.keys(fields.Stepper.fields.steps.arrayFields ?? {}).sort()
+  ).toEqual(["completed", "description", "disabled", "title", "value"]);
+});
