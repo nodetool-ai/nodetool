@@ -45,7 +45,9 @@ beforeEach(() => {
   queryClient = new QueryClient({defaultOptions: {queries: {retry: false}}});
   getAssetQuery.mockReset();
   getAssetQuery.mockImplementation(async ({id}) => {
-    if (id === canonical || id === canonical.slice(0, 12)) return sourceAsset();
+    if (id === canonical || id === canonical.slice(0, 12)) {
+      return sourceAsset();
+    }
     throw new Error("Asset not found");
   });
 });
@@ -133,6 +135,17 @@ describe("Storyboard design frame adapter", () => {
     await act(async () => queryClient.invalidateQueries({queryKey: ["assets"]}));
     await waitFor(() => expect(screen.getByRole("alert")).toHaveTextContent("no longer points to the exact declared source asset"));
     expect(screen.queryByTestId("timeline-compositor-input")).not.toBeInTheDocument();
+  });
+
+  it.each([false, true])("reviews a complete shot while another draft shot has an unresolved entity (draft first: %s)", async draftFirst => {
+    const candidate: Shot = {...shot, index: draftFirst ? 1 : 0, graphics: {mode: "graphics_first", elements: [{id: "product", kind: "asset", role: "product", asset_id: canonical, entity_id: canonical}]}};
+    const incomplete: Shot = {...shot, id: "incomplete-draft", index: draftFirst ? 0 : 1, graphics: {mode: "graphics_first", elements: [{id: "pending-product", kind: "asset", entity_id: "missing-draft-entity"}]}};
+    useStoryboardStore.setState(state => ({boards: {...state.boards, board: {...state.boards.board, shots: draftFirst ? [incomplete, candidate] : [candidate, incomplete]}}}));
+    render(<ThemeProvider theme={mockTheme}><ShotDesignFrame boardId="board" shot={candidate} /></ThemeProvider>);
+    await waitFor(() => expect(screen.getByTestId("timeline-compositor-input")).toHaveTextContent(canonical));
+    expect(getAssetQuery).not.toHaveBeenCalledWith({id: "missing-draft-entity"});
+    expect(screen.getByTestId("timeline-compositor-input")).toHaveTextContent(`"time":${draftFirst ? 6000 : 2000}`);
+    expect(useStoryboardStore.getState().boards.board.shots[draftFirst ? 0 : 1]).toEqual(incomplete);
   });
 
   it("plays a policy-allowed composed video using its local Timeline playback", async () => {

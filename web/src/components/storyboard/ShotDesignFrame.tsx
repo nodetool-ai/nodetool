@@ -49,7 +49,7 @@ export default function ShotDesignFrame({
     () => board?.shots.map((value) => value.id === shot.id ? shot : value) ?? [],
     [board?.shots, shot]
   );
-  const sources = useStoryboardDesignSources(sourceShots);
+  const sources = useStoryboardDesignSources(board ? [shot] : []);
   const preview = useMemo(() => {
     if (!board) {
       return null;
@@ -64,6 +64,9 @@ export default function ShotDesignFrame({
         value.production
       );
       for (const element of value.graphics?.elements ?? []) {
+        if (value.id !== shot.id) {
+          continue;
+        }
         const protection = value.production?.protected_inputs?.find(
           (input) => input.id === element.protected_input_id
         );
