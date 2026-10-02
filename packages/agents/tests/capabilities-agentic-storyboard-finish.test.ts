@@ -80,6 +80,10 @@ function authorContext(args: Parameters<BaseProvider["generateMessages"]>[0]) {
       }[];
     };
     previousReview: unknown;
+    operationContracts: Record<
+      string,
+      { parameters: { properties?: Record<string, unknown> } }
+    >;
   };
 }
 const done: Turn = () => [];
@@ -213,7 +217,23 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
           "cta"
         ]);
         expect(data.storyboard.screenplay.motion_design).toBeTruthy();
-        return [call("submit_finished_cut")];
+        const editor = args.tools?.find(
+          (tool) => tool.name === "edit_timeline"
+        );
+        expect(editor?.inputSchema.required).toEqual(["ops"]);
+        expect(editor?.inputSchema.properties).not.toHaveProperty(
+          "timeline_id"
+        );
+        expect(editor?.description).not.toContain("add_media_clip");
+        expect(
+          data.operationContracts.set_clip_params.parameters.properties
+        ).toHaveProperty("fontSizePx");
+        return [
+          call("edit_timeline", {
+            ops: [{ op: "get_state" }, { op: "list_animation_presets" }]
+          }),
+          call("submit_finished_cut")
+        ];
       },
       done,
       async (args) => {
@@ -255,6 +275,17 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
       (args) => {
         const data = authorContext(args);
         expect(data.previousReview).toMatchObject({ passed: false });
+        const content = args.messages.find(
+          (message) => message.role === "user"
+        )?.content;
+        expect(
+          Array.isArray(content)
+            ? content.filter((block) => block.type === "image_url")
+            : []
+        ).toHaveLength(6);
+        expect(JSON.stringify(content)).toContain(
+          "Previous candidate cut frame"
+        );
         const prices = data.scaffold.clips.filter(
           (clip) => clip.storyboardElementId === "price"
         );
@@ -363,12 +394,25 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
         })
       ],
       done,
-      () => [call("submit_finished_cut")],
+      (args) => [
+        call("edit_timeline", {
+          ops: [
+            {
+              op: "set_clip_params",
+              target: authorContext(args).scaffold.clips[0].id,
+              fontSize: 99
+            }
+          ]
+        }),
+        call("submit_finished_cut")
+      ],
       done
     ]);
-    expect((await execute(provider, context, board)).error).toMatch(
-      /did not revise/
-    );
+    const result = await execute(provider, context, board);
+    expect(result.error).toMatch(/did not revise/);
+    expect(result.error).toContain("CTA absent in the closing frame");
+    expect(result.error).toContain("fontSize");
+    expect(result.error).toContain("lastEditResults");
     expect((await Storyboard.findById(board.id))?.timeline_id).toBeFalsy();
   });
   it("blocks generation and protected asset replacement before any provider media dispatch", async () => {

@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { z } from "zod";
 import type { StoryboardDocument, TimelineSequence } from "@nodetool-ai/models";
 import {
+  zodToJsonSchema,
   budgetFromContext,
   isProviderStop,
   type Message,
@@ -12,8 +13,16 @@ import {
   type RunBudget
 } from "@nodetool-ai/runtime";
 import { isRecord } from "@nodetool-ai/protocol";
+import {
+  buildTimelineToolContracts,
+  type TimelineToolName
+} from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
+import { uiToolParams } from "@nodetool-ai/protocol/api-schemas/ui-tool-contract.js";
 import { validateTimelineSequence } from "@nodetool-ai/execution/timeline-debug";
 import {
+  ANIMATED_PROPERTIES,
+  STAGGER_UNITS,
+  DEFAULT_BEAT_TOLERANCE_MS,
   buildStoryboardDesignFrame,
   validateProducedTimeline,
   stampStoryboardMaterializationBaseline,
@@ -96,6 +105,49 @@ export async function finishStoryboardAgentically(
         ),
       duration: Math.max(1, (shot.duration_seconds ?? 4) * 1000)
     }));
+  const permittedOps = new Set([
+    "get_state",
+    "list_animation_presets",
+    "add_track",
+    "move_track",
+    "delete_track",
+    "add_text_clip",
+    "add_shape_clip",
+    "set_clip_params",
+    "animate_clip",
+    "clear_animations",
+    "set_transition",
+    "set_parent",
+    "set_matte",
+    "add_group"
+  ]);
+  const contracts = buildTimelineToolContracts({
+    staggerUnits: STAGGER_UNITS,
+    animatedProperties: ANIMATED_PROPERTIES,
+    beatToleranceMs: DEFAULT_BEAT_TOLERANCE_MS
+  });
+  const operationContracts = Object.fromEntries(
+    [...permittedOps].map((op) => {
+      const contract = contracts[`ui_timeline_${op}` as TimelineToolName];
+      return [
+        op,
+        {
+          description: contract.description,
+          parameters: zodToJsonSchema(uiToolParams(contract))
+        }
+      ];
+    })
+  );
+  const scopeInstructions =
+    "Only these operations are available: " +
+    [...permittedOps].join(", ") +
+    ". Each op is {op, ...flat arguments} from operationContracts. There is no saved timeline_id requirement for this isolated draft. " +
+    "Keep existing source layer startMs/durationMs, assets, exact protected text/colors and semantic ownership unchanged. " +
+    "set_clip_params uses fontSizePx (not fontSize), textStyle and transform.position.x/y in sequence pixels relative to frame center. " +
+    "Protected layers may use only fade (requires allowed opacity), slide (opacity+position) or pop (opacity+scale). " +
+    "Other protected presets/custom curves, group inheritance, masks/effects fail policy validation. Unprotected decorative layers can use existing animation presets/custom curves. " +
+    "New editable decorative layers require stable name/startMs/durationMs inside one shot window. Read every edit result and fix failures before submitting.";
+  let previousCandidateImages: MessageContent[] = [];
   const inspect: ProviderTool = {
     name: "get_timeline",
     description:
@@ -110,8 +162,21 @@ export async function finishStoryboardAgentically(
   };
   const edit: ProviderTool = {
     ...editTimelineSpec,
+    inputSchema: {
+      type: "object",
+      properties: {
+        ops: {
+          type: "array",
+          items: { type: "object" },
+          description: scopeInstructions
+        }
+      },
+      required: ["ops"],
+      additionalProperties: false
+    },
     description:
-      "Apply existing Timeline operations to this isolated draft. No save, generation or external write is available. Use exact clip IDs from get_timeline."
+      "Apply existing Timeline operations to this isolated draft. No save, generation or external write is available. Use exact clip IDs from get_timeline. " +
+      scopeInstructions
   };
   const review: ProviderTool = {
     name: "review_finished_cut",
@@ -213,23 +278,19 @@ export async function finishStoryboardAgentically(
     ]
   );
 
-  const permittedOps = new Set([
-    "add_track",
-    "move_track",
-    "delete_track",
-    "add_text_clip",
-    "add_shape_clip",
-    "set_clip_params",
-    "animate_clip",
-    "clear_animations",
-    "set_transition",
-    "set_parent",
-    "set_matte",
-    "add_group"
-  ]);
   for (let round = 0; round < 3; round += 1) {
     const beforeRevision = json(document);
     let submitted = false;
+    const editResults: string[] = [];
+    const recordEditResult = (result: string): string => {
+      editResults.push(result.slice(0, 1600));
+      return result;
+    };
+    const diagnostics = (): string =>
+      json({
+        previousReview: feedback,
+        lastEditResults: editResults.slice(-4)
+      }).slice(0, 8000);
     await drive(
       [
         {
@@ -251,10 +312,13 @@ export async function finishStoryboardAgentically(
                   height: input.height,
                   fps: sequence.fps
                 },
-                previousReview: feedback
+                previousReview: feedback,
+                operationContracts,
+                finishingConstraints: scopeInstructions
               })
             },
-            ...referenceImages
+            ...referenceImages,
+            ...previousCandidateImages
           ]
         }
       ],
@@ -276,7 +340,7 @@ export async function finishStoryboardAgentically(
         }
         const ops = parseOps(call.args["ops"]);
         if (!Array.isArray(ops)) {
-          return json(ops);
+          return recordEditResult(json(ops));
         }
         if (
           ops.some(
@@ -284,7 +348,9 @@ export async function finishStoryboardAgentically(
               !permittedOps.has(operation.op.replace("ui_timeline_", ""))
           )
         ) {
-          return "This finishing operation is unavailable. Only editable composition, animation and geometry are allowed. No generation, replacement media or persistence.";
+          return recordEditResult(
+            "This finishing operation is unavailable. " + scopeInstructions
+          );
         }
         const pending = [];
         const existingResults = [];
@@ -313,11 +379,15 @@ export async function finishStoryboardAgentically(
               start + duration <= value.start + value.duration
           );
           if (typeof name !== "string" || !name.trim() || !window) {
-            return "New layers require an explicit stable semantic name, startMs and durationMs inside one shot window. Reuse that name on reruns; edit an existing layer with set_clip_params.";
+            return recordEditResult(
+              "New layers require an explicit stable semantic name, startMs and durationMs inside one shot window. Reuse that name on reruns; edit an existing layer with set_clip_params."
+            );
           }
           const key = `${window.shotId}/$agent:${kind}:${encodeURIComponent(name.trim())}`;
           if (identities.has(key)) {
-            return `Duplicate semantic addition ${key} in one batch.`;
+            return recordEditResult(
+              `Duplicate semantic addition ${key} in one batch.`
+            );
           }
           identities.add(key);
           const existing = document.clips.find(
@@ -341,12 +411,25 @@ export async function finishStoryboardAgentically(
           }
         }
         if (!pending.length) {
-          return json(existingResults);
+          return recordEditResult(json(existingResults));
         }
         // Hermetic mode removes generation, Blender rendering and DB-writing hooks.
         const outcome = await applyOps(run, sequence, document, pending, {
           hermetic: true
         });
+        if (
+          !outcome.records.some(
+            (record) =>
+              record.ok &&
+              !["get_state", "list_animation_presets"].includes(
+                record.op.replace("ui_timeline_", "")
+              )
+          )
+        ) {
+          return recordEditResult(
+            json([...existingResults, ...outcome.records])
+          );
+        }
         document = {
           ...document,
           tracks: outcome.state.documentTracks,
@@ -371,15 +454,17 @@ export async function finishStoryboardAgentically(
             clip.storyboardElementId = `$agent:${clip.mediaType}:${encodeURIComponent(clip.name.trim())}`;
           }
         }
-        return json([...existingResults, ...outcome.records]);
+        return recordEditResult(json([...existingResults, ...outcome.records]));
       }
     );
     if (!submitted) {
-      throw new Error("Finished-cut agent did not submit a candidate.");
+      throw new Error(
+        `Finished-cut agent did not submit a candidate: ${diagnostics()}`
+      );
     }
     if (round > 0 && beforeRevision === json(document)) {
       throw new Error(
-        "Finishing did not revise the draft after reported defects."
+        `Finishing did not revise the draft after reported defects: ${diagnostics()}`
       );
     }
     for (const clip of document.clips) {
@@ -537,6 +622,20 @@ export async function finishStoryboardAgentically(
       };
       continue;
     }
+    previousCandidateImages = frames.frames.flatMap(
+      (frame): MessageContent[] => [
+        {
+          type: "text",
+          text: `Previous candidate cut frame at ${frame.time_ms}ms. Revise defects identified in previousReview. This is the candidate, not the derived design reference.`
+        },
+        {
+          type: "image_url",
+          image: {
+            uri: `data:image/png;base64,${Buffer.from(frame.png).toString("base64")}`
+          }
+        }
+      ]
+    );
     let verdict: z.infer<typeof reviewSchema> | undefined;
     const content: MessageContent[] = [
       {
