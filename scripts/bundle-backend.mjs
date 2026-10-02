@@ -851,7 +851,8 @@ async function pruneTargetedPackages(modulesDir) {
  * load-native.cjs). Delete the prebuilds that can't load on the bundle
  * target. Guard: never delete anything unless a prebuild matching
  * TARGET_PLATFORM/TARGET_ARCH is confirmed present, so a wrong
- * NODETOOL_BUNDLE_PLATFORM leaves the package untouched. On linux both -gnu
+ * NODETOOL_BUNDLE_PLATFORM leaves the package untouched. On darwin every
+ * darwin prebuild is kept for after-pack.cjs to trim. On linux both -gnu
  * and -musl variants of the target arch are kept, and unknown-token files
  * (e.g. a local node-web-audio-api.build-release.node) are never touched.
  * Returns bytes reclaimed.
@@ -879,6 +880,10 @@ async function pruneWebAudioPrebuilds(modulesDir) {
     if (!KNOWN_PLATFORMS.has(platform)) continue; // local builds etc. — keep
     if (platform === TARGET_PLATFORM && arch === TARGET_ARCH) {
       targetMatched = true;
+    } else if (platform === "darwin" && TARGET_PLATFORM === "darwin") {
+      // One macOS bundle feeds both the arm64 and x64 apps. after-pack.cjs
+      // removes the other arch's prebuild from each app.
+      continue;
     } else {
       removable.push(file);
     }

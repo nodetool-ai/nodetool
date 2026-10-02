@@ -1,6 +1,7 @@
 const fs = require("fs");
 const fsp = fs.promises;
 const path = require("path");
+const os = require("os");
 const { spawnSync } = require("child_process");
 const yaml = require("js-yaml");
 
@@ -186,6 +187,186 @@ function pruneDawnBinaries(backendDir, platform, arch) {
   }
 }
 
+/**
+ * Delete node-web-audio-api prebuilds for other darwin arches. The macOS
+ * backend bundle is staged once and packed into both the arm64 and x64 apps,
+ * so bundle-backend.mjs keeps every darwin prebuild for this step to trim.
+ */
+function pruneWebAudioPrebuilds(backendDir, platform, arch) {
+  if (platform !== "darwin") return;
+  const pkgDir = path.join(backendDir, "node_modules", "node-web-audio-api");
+  if (!fs.existsSync(pkgDir)) return;
+  const binRe = /^node-web-audio-api\.darwin-([^-.]+)/;
+  for (const file of fs.readdirSync(pkgDir)) {
+    const match = file.match(binRe);
+    if (match && match[1] !== arch) {
+      fs.rmSync(path.join(pkgDir, file), { force: true });
+    }
+  }
+}
+
+/** Read a staged package.json, or null when the directory has none. */
+function readPackageJson(pkgDir) {
+  try {
+    return JSON.parse(fs.readFileSync(path.join(pkgDir, "package.json"), "utf8"));
+  } catch {
+    return null;
+  }
+}
+
+/** Every top-level and scoped package directory under node_modules. */
+function listStagedPackages(nodeModulesPath) {
+  const packages = [];
+  if (!fs.existsSync(nodeModulesPath)) return packages;
+  for (const entry of fs.readdirSync(nodeModulesPath, { withFileTypes: true })) {
+    if (!entry.isDirectory() || entry.name.startsWith(".")) continue;
+    if (entry.name.startsWith("@")) {
+      const scopeDir = path.join(nodeModulesPath, entry.name);
+      for (const sub of fs.readdirSync(scopeDir, { withFileTypes: true })) {
+        if (!sub.isDirectory()) continue;
+        packages.push({ name: `${entry.name}/${sub.name}`, dir: path.join(scopeDir, sub.name) });
+      }
+      continue;
+    }
+    packages.push({ name: entry.name, dir: path.join(nodeModulesPath, entry.name) });
+  }
+  return packages;
+}
+
+/** Download `<name>@<version>` from the registry and unpack it into destDir. */
+function fetchRegistryPackage(name, version, destDir) {
+  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), "nodetool-retarget-"));
+  try {
+    const pack = spawnSync(
+      "npm",
+      ["pack", `${name}@${version}`, "--pack-destination", tmpDir, "--json"],
+      { encoding: "utf8", shell: process.platform === "win32" }
+    );
+    if (pack.status !== 0) {
+      throw new Error(`npm pack ${name}@${version} failed: ${pack.stderr}`);
+    }
+    const [{ filename }] = JSON.parse(pack.stdout);
+    const extract = spawnSync("tar", ["-xzf", path.join(tmpDir, filename), "-C", tmpDir], {
+      stdio: "inherit",
+    });
+    if (extract.status !== 0) {
+      throw new Error(`Extracting ${filename} failed (exit ${extract.status})`);
+    }
+    fs.mkdirSync(path.dirname(destDir), { recursive: true });
+    fs.cpSync(path.join(tmpDir, "package"), destDir, { recursive: true });
+  } finally {
+    fs.rmSync(tmpDir, { recursive: true, force: true });
+  }
+}
+
+/** npm `os`/`cpu` semantics: positive entries allow-list, `!x` entries deny. */
+function npmFieldAdmits(list, value) {
+  if (!Array.isArray(list) || list.length === 0) return true;
+  if (list.includes(`!${value}`)) return false;
+  const allowed = list.filter((entry) => !entry.startsWith("!"));
+  return allowed.length === 0 || allowed.includes(value);
+}
+
+/**
+ * Swap per-arch prebuilt packages staged for another CPU with the build
+ * target's counterpart. npm installs only the host's optionalDependencies, and
+ * the macOS release job stages one backend on an arm64 runner for both the
+ * arm64 and x64 apps, so @napi-rs/canvas-darwin-arm64, @img/sharp-darwin-arm64
+ * and the like would otherwise ship in the x64 app.
+ *
+ * A package is foreign when its `os` admits the target platform and its `cpu`
+ * excludes the target arch. Its counterpart is the same name with the arch
+ * token replaced, which must be an optionalDependency of a staged package.
+ * The counterpart is fetched at the foreign package's version because these
+ * per-arch packages are published in lockstep.
+ */
+function retargetPlatformPackages(
+  nodeModulesPath,
+  platform,
+  arch,
+  fetchPackage = fetchRegistryPackage
+) {
+  const staged = listStagedPackages(nodeModulesPath).map((pkg) => ({
+    ...pkg,
+    json: readPackageJson(pkg.dir),
+  }));
+  const optionalNames = new Set();
+  for (const pkg of staged) {
+    for (const dep of Object.keys(pkg.json?.optionalDependencies ?? {})) {
+      optionalNames.add(dep);
+    }
+  }
+
+  const swapped = [];
+  for (const pkg of staged) {
+    const cpu = pkg.json?.cpu;
+    if (!Array.isArray(cpu) || npmFieldAdmits(cpu, arch)) continue;
+    if (!npmFieldAdmits(pkg.json.os, platform)) continue;
+
+    const counterpart = cpu
+      .map((fromArch) => pkg.name.replace(`-${platform}-${fromArch}`, `-${platform}-${arch}`))
+      .find((name) => name !== pkg.name && optionalNames.has(name));
+    if (!counterpart) {
+      throw new Error(
+        `${pkg.name} is built for ${cpu.join("/")}, not ${arch}, and no ` +
+          `${platform}-${arch} counterpart is declared by a staged package`
+      );
+    }
+
+    const destDir = path.join(nodeModulesPath, ...counterpart.split("/"));
+    if (!fs.existsSync(destDir)) {
+      console.info(`Fetching ${counterpart}@${pkg.json.version} for ${platform}-${arch}`);
+      fetchPackage(counterpart, pkg.json.version, destDir);
+    }
+    const fetched = readPackageJson(destDir);
+    if (!Array.isArray(fetched?.cpu) || !npmFieldAdmits(fetched.cpu, arch)) {
+      throw new Error(`${counterpart} does not declare cpu ${arch}`);
+    }
+    fs.rmSync(pkg.dir, { recursive: true, force: true });
+    swapped.push({ from: pkg.name, to: counterpart });
+  }
+  return swapped;
+}
+
+// Mach-O CPU types for the arches the macOS app ships.
+const MACH_O_CPU_TYPES = { x64: 0x01000007, arm64: 0x0100000c };
+const MACH_O_MAGIC_64 = 0xfeedfacf;
+
+/**
+ * CPU arch of a thin 64-bit Mach-O file, or null for anything else (fat
+ * binaries, ELF, PE). Used to spot node-gyp builds compiled for the host.
+ */
+function machOArch(filePath) {
+  const header = Buffer.alloc(8);
+  const fd = fs.openSync(filePath, "r");
+  try {
+    if (fs.readSync(fd, header, 0, 8, 0) < 8) return null;
+  } finally {
+    fs.closeSync(fd);
+  }
+  if (header.readUInt32LE(0) !== MACH_O_MAGIC_64) return null;
+  const cpuType = header.readUInt32LE(4);
+  return (
+    Object.keys(MACH_O_CPU_TYPES).find((a) => MACH_O_CPU_TYPES[a] === cpuType) ?? null
+  );
+}
+
+/**
+ * Names of native modules whose build/Release/*.node is a Mach-O for another
+ * arch, e.g. keytar and cpu-features compiled on the arm64 release runner.
+ */
+function findForeignArchModules(nodeModulesPath, arch) {
+  return findNativeModuleNames(nodeModulesPath).filter((name) => {
+    const releaseDir = path.join(nodeModulesPath, ...name.split("/"), "build", "Release");
+    if (!fs.existsSync(releaseDir)) return false;
+    return fs.readdirSync(releaseDir).some((file) => {
+      if (!file.endsWith(".node")) return false;
+      const found = machOArch(path.join(releaseDir, file));
+      return found !== null && found !== arch;
+    });
+  });
+}
+
 // Invoke `node-gyp rebuild` directly against the bundled Node's headers.
 // We resolve node-gyp's bin script via require.resolve and run it through the
 // current Node interpreter, which sidesteps PATH/npx surprises when the
@@ -220,7 +401,12 @@ async function rebuildNativeModulesForBackend(context) {
   const arch = resolveArch(context);
   const runtimeNodeModulesPath = path.join(backendDir, "node_modules");
   const found = findNativeModuleNames(runtimeNodeModulesPath);
-  const toRebuild = found.filter((n) => V8_LOCKED_MODULES.has(n));
+  const toRebuild = [
+    ...found.filter((n) => V8_LOCKED_MODULES.has(n)),
+    ...findForeignArchModules(runtimeNodeModulesPath, arch).filter(
+      (n) => !V8_LOCKED_MODULES.has(n)
+    ),
+  ];
 
   if (!toRebuild.includes("better-sqlite3")) {
     throw new Error(
@@ -246,11 +432,19 @@ module.exports = async function afterPack(context) {
       context,
       path.join(ELECTRON_DIR, ".node-runtime", NODE_RUNTIME_VERSION)
     );
-    pruneDawnBinaries(
-      path.join(resolveResourcesDir(context), "backend"),
-      context.electronPlatformName,
-      resolveArch(context)
+    const backendDir = path.join(resolveResourcesDir(context), "backend");
+    const platform = context.electronPlatformName;
+    const arch = resolveArch(context);
+    pruneDawnBinaries(backendDir, platform, arch);
+    pruneWebAudioPrebuilds(backendDir, platform, arch);
+    const swapped = retargetPlatformPackages(
+      path.join(backendDir, "node_modules"),
+      platform,
+      arch
     );
+    for (const { from, to } of swapped) {
+      console.info(`Replaced ${from} with ${to}`);
+    }
     await rebuildNativeModulesForBackend(context);
   } catch (error) {
     console.error("afterPack failed", error);
@@ -264,3 +458,7 @@ module.exports.findNativeModuleNames = findNativeModuleNames;
 module.exports.ensureAppUpdateConfig = ensureAppUpdateConfig;
 module.exports.placeNodeRuntime = placeNodeRuntime;
 module.exports.pruneDawnBinaries = pruneDawnBinaries;
+module.exports.pruneWebAudioPrebuilds = pruneWebAudioPrebuilds;
+module.exports.retargetPlatformPackages = retargetPlatformPackages;
+module.exports.machOArch = machOArch;
+module.exports.findForeignArchModules = findForeignArchModules;
