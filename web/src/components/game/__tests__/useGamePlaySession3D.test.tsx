@@ -3,6 +3,7 @@ import { deserialize, serialize } from "node:v8";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { gameAuthoring, gameDocument3D, type GameDocument3D } from "@nodetool-ai/protocol";
+import { createGameSession3D, decodePreparedGameCollider3D } from "@nodetool-ai/game-runtime";
 import { useGamePlaySession3D } from "../useGamePlaySession3D";
 import { asResolvedMediaUrl, resolveMediaUri } from "../../../utils/resolveMediaUri";
 
@@ -53,6 +54,14 @@ function Harness({ document, sceneId = "level" }: { document: GameDocument3D; sc
     <output data-testid="error">{session.error}</output>
   </>;
 }
+
+// Await the real WASM cold start outside the hook polling assertion.
+beforeAll(async () => {
+  const session = await createGameSession3D(fixture(), 1, undefined, {
+    resolveCollider: async (binding) => decodePreparedGameCollider3D(colliderBytes, binding)
+  });
+  session.dispose();
+});
 
 const originalFetch = global.fetch;
 const originalClone = global.structuredClone;
