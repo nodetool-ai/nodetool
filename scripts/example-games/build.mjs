@@ -28,6 +28,16 @@ const POSTERS = process.argv.includes("--posters");
 
 const GAMES = [
   {
+    slug: "aether",
+    name: "AETHER // Skybound",
+    description: "Cross 22 floating platforms, dodge pulsing lasers, escape collapsing steps, and ride two sky ferries to recover five aether prisms.",
+    controls: "WASD to move · Space to jump · Hold right mouse to look · R to return to checkpoint",
+    sourceDir: path.join(ROOT, "packages/game-runtime/samples/aether"),
+    posterTick: 15,
+    inputs: "completion.inputs.json",
+    backend: "webgl2"
+  },
+  {
     slug: "blacksite",
     name: "BLACKSITE",
     description: "A first-person mission through an industrial reactor facility. Destroy five security drones, use cover, and reach extraction.",

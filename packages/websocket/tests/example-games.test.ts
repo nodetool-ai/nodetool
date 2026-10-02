@@ -66,7 +66,7 @@ describe("example games", () => {
   it("finds the shipped games, their posters, and every bound media file", () => {
     expect(resolveExampleGamesDir(options)).toBe(nodePath.join(baseNodes, "examples", "games"));
     const games = listExampleGames(options);
-    expect(games.map((game) => game.slug)).toEqual(["blacksite", "kindle", "lumen", "neon-drift"]);
+    expect(games.map((game) => game.slug)).toEqual(["aether", "blacksite", "kindle", "lumen", "neon-drift"]);
     let checked = 0;
     for (const game of games) {
       const poster = parsePackageAssetUri(game.posterUri);
@@ -85,7 +85,7 @@ describe("example games", () => {
     expect(readExampleGameFile(options, "package://nodetool-base/../../examples/games/kindle.game.json")).toBeNull();
   });
 
-  it.each(["neon-drift", "blacksite"])("installs %s with owned media and its original dimension", async (slug) => {
+  it.each(["neon-drift", "blacksite", "aether"])("installs %s with owned media and its original dimension", async (slug) => {
     const caller = createCaller(makeCtx());
     const bundle = getExampleGameBundle(options, slug)!;
     const installed = await caller.games.installExample({ slug, projectId: PROJECT_ID });
