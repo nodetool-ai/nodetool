@@ -17,8 +17,8 @@ Design-frame review and finishing work is tracked in issues
 There is no separate Recipe resource or executor.
 
 Supply a stored product image, logo, headline, old price, new price, CTA, and
-brand color. Choose a creative direction, run **Plan**, review the exact layer
-list, approve it, then run **Build editable ad**. Changing a production input
+brand color. Choose a creative direction, run **Plan**, review the composed cut
+and exact layer list, approve it, then run **Build editable ad**. Changing a production input
 requires planning and approving again. Planning resets approval.
 
 The plan has a three-second hook and a three-second CTA. Product and logo use
@@ -64,7 +64,8 @@ The frontend interaction test exercises the same Recipe's normal input,
 ChoiceCards, and Approval bindings. The Playwright Recipe builder journey opens
 the real App Builder, edits its title through Puck, saves, reloads and confirms
 the original Recipe manifest survives. It then uploads both assets, fills every
-protected input, plans, approves, builds, verifies the inline preview, and opens
+protected input, plans, reviews the composed preview before approval, approves,
+builds, verifies the inline preview, and opens
 the editable Timeline. It also changes the live script heads to prove that
 operations still execute their pinned versions. Run it with:
 
