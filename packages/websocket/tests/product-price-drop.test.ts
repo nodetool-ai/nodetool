@@ -9,6 +9,7 @@ import { createJsScriptAppRunner } from "@nodetool-ai/agents";
 import { parseApplicationBundle, type ApplicationDocument } from "@nodetool-ai/app-runtime";
 import { Application, Asset, JsScriptVersion, ModelObserver, Storyboard, TimelineSequence, initTestDb, entityFromAsset } from "@nodetool-ai/models";
 import { ProcessingContext } from "@nodetool-ai/runtime";
+import type { TimelineClip } from "@nodetool-ai/timeline";
 import { RenderTimelineNode } from "@nodetool-ai/video-nodes";
 import { importApplicationBundle, exportApplicationBundle } from "../src/lib/applications-service.js";
 
@@ -17,6 +18,30 @@ const PRODUCT = "a".repeat(32);
 const LOGO = "b".repeat(32);
 const fixture = (name: string) => fileURLToPath(new URL(`./fixtures/price-drop/${name}`, import.meta.url));
 const bundlePath = new URL("../../base-nodes/nodetool/examples/apps/product-price-drop.app.json", import.meta.url);
+
+// Compare authored rendering fields, excluding regenerated IDs and ownership baselines.
+const authoredLayers = (timeline: {clips: TimelineClip[]}) => {
+  const identities = new Map(timeline.clips.map(clip => [clip.id, `${clip.storyboardShotId}/${clip.storyboardElementId}`]));
+  return timeline.clips.map(clip => ({
+    identity: identities.get(clip.id),
+    mediaType: clip.mediaType,
+    startMs: clip.startMs, durationMs: clip.durationMs,
+    transform: clip.transform, layout: clip.layout, flexItem: clip.flexItem,
+    parent: clip.parentId ? identities.get(clip.parentId) : undefined,
+    opacity: clip.opacity ?? 1, hidden: clip.hidden ?? false,
+    blendMode: clip.blendMode ?? "normal", crop: clip.crop, mask: clip.mask,
+    textStyle: clip.textStyle, shapeStyle: clip.shapeStyle, transitionIn: clip.transitionIn,
+    animations: (clip.animations ?? []).map(animation => ({
+      role: animation.role, preset: animation.preset, durationMs: animation.durationMs,
+      delayMs: animation.delayMs ?? 0, enabled: animation.enabled ?? true,
+      easing: animation.easing, params: animation.params, stagger: animation.stagger,
+      curves: animation.custom?.curves, timeBase: animation.custom?.timeBase,
+      customMask: animation.custom?.mask, styleTracks: animation.styleTracks,
+      textAnimator: animation.textAnimator
+    })).sort((left, right) => JSON.stringify(left).localeCompare(JSON.stringify(right)))
+  })).sort((left, right) => String(left.identity).localeCompare(String(right.identity)));
+};
+
 let temporary: string | undefined;
 afterEach(async () => {vi.restoreAllMocks(); ModelObserver.clear(); if (temporary) await rm(temporary, {recursive: true, force: true});});
 
@@ -84,6 +109,8 @@ it("installs, plans, finishes, renders and reopens the exact editable Price Drop
   expect(layered.clips.some(clip => clip.textStyle?.text === values.newPrice)).toBe(true);
   expect(layered.clips.some(clip => clip.textStyle?.text === values.headline)).toBe(true);
   expect(layered.clips.filter(clip => clip.mediaType === "image").map(clip => clip.currentAssetId).sort()).toEqual([PRODUCT, PRODUCT, LOGO].sort());
+  const scaffold = (values.designPreview as {data: Parameters<typeof authoredLayers>[0]}).data;
+  expect(authoredLayers(layered)).toEqual(authoredLayers(scaffold));
   expect(generation).not.toHaveBeenCalled();
 
   temporary = await mkdtemp(`${tmpdir()}/price-drop-proof-`);
@@ -222,6 +249,8 @@ it.runIf(process.env.RECIPE_LIVE_FINISH === "1")("finishes and renders a Price D
   }
   const timeline = (await TimelineSequence.findById(String(values.timelineId)))!;
   const layered = timeline.toTimelineSequence();
+  const scaffold = (values.designPreview as {data: Parameters<typeof authoredLayers>[0]}).data;
+  expect(authoredLayers(layered)).not.toEqual(authoredLayers(scaffold));
   const images = layered.clips.filter(clip => clip.mediaType === "image");
   expect(images.some(clip => clip.currentAssetId === PRODUCT)).toBe(true);
   expect(images.some(clip => clip.currentAssetId === LOGO)).toBe(true);
