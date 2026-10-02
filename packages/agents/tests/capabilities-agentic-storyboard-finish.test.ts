@@ -281,6 +281,44 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
         .every((clip) => clip.textStyle?.fontSizePx === 170)
     ).toBe(true);
   });
+  it("accepts an authored transition as the only first-pass finishing change", async () => {
+    const { board, context } = await fixture();
+    const provider = new FinishingProvider([
+      (args) => {
+        const accent = authorContext(args).scaffold.clips.find(
+          (clip) =>
+            clip.storyboardElementId === "accent" &&
+            clip.storyboardShotId === "cta"
+        )!;
+        return [
+          call("edit_timeline", {
+            ops: [
+              {
+                op: "set_transition",
+                target: accent.id,
+                transition: { type: "crossfade", durationMs: 300 }
+              }
+            ]
+          }),
+          call("submit_finished_cut")
+        ];
+      },
+      done,
+      approve,
+      done
+    ]);
+    const result = await execute(provider, context, board);
+    expect(result.error).toBeUndefined();
+    expect(
+      (await TimelineSequence.findById(result.timelineId!))
+        ?.toDocument()
+        .clips.find(
+          (clip) =>
+            clip.storyboardElementId === "accent" &&
+            clip.storyboardShotId === "cta"
+        )?.transitionIn
+    ).toMatchObject({ type: "crossfade", durationMs: 300 });
+  });
   it("allows an unchanged existing cut to finish after full visual review", async () => {
     const { board, context } = await fixture();
     const initial = (await finishStoryboard.impl(

@@ -65,7 +65,7 @@ function json(value: unknown): string {
   return JSON.stringify(value);
 }
 
-/** Compare authored composition, excluding resource/baseline and animation IDs. */
+/** Compare authored composition, excluding ownership baseline and animation IDs. */
 function composition(document: FinishedStoryboardDocument): string {
   const trackIndices = new Map(
     document.tracks.map((track) => [track.id, track.index])
@@ -77,6 +77,10 @@ function composition(document: FinishedStoryboardDocument): string {
         trackIndex: trackIndices.get(clip.trackId),
         mediaType: clip.mediaType,
         transform: clip.transform,
+        layout: clip.layout,
+        flexItem: clip.flexItem,
+        mask: clip.mask,
+        transitionIn: clip.transitionIn,
         textStyle: clip.textStyle,
         shapeStyle: clip.shapeStyle,
         opacity: clip.opacity ?? 1,
