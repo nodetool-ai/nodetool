@@ -7,7 +7,8 @@ import sharp from "sharp";
 import { afterEach, expect, it, vi } from "vitest";
 import { createJsScriptAppRunner } from "@nodetool-ai/agents";
 import { parseApplicationBundle, type ApplicationDocument } from "@nodetool-ai/app-runtime";
-import { Application, Asset, JsScriptVersion, ModelObserver, Storyboard, TimelineSequence, initTestDb, entityFromAsset } from "@nodetool-ai/models";
+import { jsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
+import { Application, Asset, JsScriptVersion, ModelObserver, Storyboard, TimelineSequence, initTestDb, entityFromAsset, publishApplication, releasedApplicationRelease } from "@nodetool-ai/models";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import { RenderTimelineNode } from "@nodetool-ai/video-nodes";
@@ -52,13 +53,29 @@ it("installs, plans, finishes, renders and reopens the exact editable Price Drop
   const installed = await importApplicationBundle(USER, {bundle: bundle!, projectId: null});
   const row = await Application.findById(installed.id);
   expect(row).not.toBeNull();
-  const doc = row!.toDocument() as ApplicationDocument;
+  let doc = row!.toDocument() as ApplicationDocument;
   expect(doc.recipe).toEqual(bundle!.app.recipe);
   // Save the same UI-only edit a builder emits through the ordinary document path.
   doc.ui.root.props.title = "My Price Drop";
   row!.document = JSON.stringify(doc);
   await row!.save();
-  const exported = await exportApplicationBundle(USER, installed.id);
+  const release = await publishApplication(row!);
+  expect(release.document.recipe).toEqual(bundle!.app.recipe);
+  expect(release.document.operations).toEqual(doc.operations);
+  expect(release.workflows).toEqual([]);
+  doc = (await releasedApplicationRelease(installed.id, USER))!.document;
+  const exported = await exportApplicationBundle(USER, installed.id, {released: true});
+  expect(exported.scripts).toHaveLength(2);
+  for (const operation of exported.app.operations) {
+    if (operation.target?.kind !== "script") throw new Error("Expected exported script binding");
+    const source = doc.operations.find(entry => entry.id === operation.id)!;
+    if (source.target?.kind !== "script") throw new Error("Expected released script binding");
+    const pinned = await JsScriptVersion.findByVersion(source.target.scriptId, source.target.scriptVersion);
+    const scriptKey = operation.target.scriptId;
+    const carried = exported.scripts.find(script => script.key === scriptKey);
+    expect(carried?.document).toEqual(jsScriptDocument.parse(JSON.parse(pinned!.document)));
+    expect(operation.target.scriptVersion).toBe(source.target.scriptVersion);
+  }
   expect(exported.app.recipe).toEqual(bundle!.app.recipe);
   for (const [id, name, contentType] of [[PRODUCT, "product.jpg", "image/jpeg"], [LOGO, "logo.svg", "image/svg+xml"]]) {
     await new Asset({id, user_id: USER, name, content_type: contentType}).save();

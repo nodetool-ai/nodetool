@@ -5,14 +5,16 @@
  * An app used to *be* a workflow — its document lived on `workflow.app_doc`, so
  * the workflow id was the app's identity and an app could expose exactly one
  * operation and carry no history. An application row separates the two: the app
- * owns a UI document plus typed bindings, and each binding names a workflow.
+ * owns a UI document plus typed bindings to workflows or pinned scripts.
  */
 import { createHash } from "node:crypto";
 import { eq, desc, and, max, sql } from "drizzle-orm";
+import { assertValidJsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import {
   APP_SCHEMA_VERSION,
   createEmptyDocument,
   parseApplicationDocument,
+  operationTarget,
   type ApplicationDocument,
   type ResourceKind,
   type ResourceOperation
@@ -37,11 +39,13 @@ import {
 } from "./schema/application-budgets.js";
 import { Workflow, type WorkflowGraph } from "./workflow.js";
 import { WorkflowVersion } from "./workflow-version.js";
+import { JsScript } from "./js-script.js";
+import { JsScriptVersion } from "./js-script-version.js";
 
 /**
- * What a release is allowed to do, derived from its bindings at publish time
- * rather than hand-written. There is nothing else to declare because there is
- * nothing else the app layer can do.
+ * Workflow and resource access derived from the bindings at publish time.
+ * Script operations carry their immutable version pins in the document's
+ * operation targets.
  */
 export interface ApplicationCapabilities {
   /**
@@ -153,6 +157,9 @@ export const deriveCapabilities = (
     { workflowId: string; version?: number; graphHash?: string }
   >();
   for (const operation of document.operations) {
+    if (operationTarget(operation).kind === "script") {
+      continue;
+    }
     const key = `${operation.workflowId}@${operation.workflowVersion ?? ""}`;
     workflows.set(key, {
       workflowId: operation.workflowId,
@@ -446,7 +453,12 @@ async function pinWorkflows(
     { version: number | null; graphHash: string; graph: WorkflowGraph }
   >();
   for (const operation of document.operations) {
-    if (pinned.has(operation.workflowId)) continue;
+    if (
+      operationTarget(operation).kind === "script" ||
+      pinned.has(operation.workflowId)
+    ) {
+      continue;
+    }
     const workflow = await Workflow.find(userId, operation.workflowId);
     if (!workflow) {
       throw new Error(
@@ -491,7 +503,9 @@ const toReleaseResponse = (
   const version = toVersionResponse(row);
   const graphs = parsePinnedGraphs(row.workflow_graphs);
   const workflowIds = new Set(
-    version.document.operations.map((operation) => operation.workflowId)
+    version.document.operations
+      .filter((operation) => operationTarget(operation).kind === "workflow")
+      .map((operation) => operation.workflowId)
   );
   return {
     ...version,
@@ -507,14 +521,48 @@ const toReleaseResponse = (
   };
 };
 
+/** Validate existing script pins before publishing creates any snapshots. */
+async function validateScriptPins(
+  document: ApplicationDocument,
+  userId: string
+): Promise<void> {
+  const checked = new Set<string>();
+  for (const operation of document.operations) {
+    const target = operationTarget(operation);
+    if (target.kind !== "script") {
+      continue;
+    }
+    const key = `${target.scriptId}@${target.scriptVersion}`;
+    if (checked.has(key)) {
+      continue;
+    }
+    const script = await JsScript.findById(target.scriptId);
+    const version =
+      script?.user_id === userId
+        ? await JsScriptVersion.findByVersion(target.scriptId, target.scriptVersion)
+        : null;
+    const message = `Cannot publish: script ${key} bound to operation ${operation.id}`;
+    if (!version || version.user_id !== userId) {
+      throw new Error(`${message} was not found`);
+    }
+    try {
+      assertValidJsScriptDocument(JSON.parse(version.document));
+    } catch (error) {
+      throw new Error(`${message} has an invalid document`, { cause: error });
+    }
+    checked.add(key);
+  }
+}
+
 /**
  * Publish the application's current draft as an immutable, released snapshot.
  * The release pointer moves to the new version; rollback is `release(id, n)`.
  *
- * Publishing pins: every operation's `workflowVersion` is set to a workflow
+ * Every workflow operation's `workflowVersion` is set to a workflow
  * version written now, and that version's graph is copied onto the snapshot.
  * Editing the workflow afterwards changes the draft's runs, never the
- * release's.
+ * release's. Script operations retain their existing immutable version pins.
+ * Missing, foreign or invalid script snapshots are rejected before publication.
  */
 export async function publishApplication(
   application: Application
@@ -529,13 +577,18 @@ export async function publishApplication(
   // gets is read again inside the transaction below, where it is authoritative.
   const nextVersion = Number(highest[0]?.value ?? 0) + 1;
 
+  await validateScriptPins(draft, application.user_id);
   const pinned = await pinWorkflows(draft, application.user_id, nextVersion);
   const document: ApplicationDocument = {
     ...draft,
-    operations: draft.operations.map((operation) => ({
-      ...operation,
-      workflowVersion: pinned.get(operation.workflowId)?.version ?? undefined
-    }))
+    operations: draft.operations.map((operation) =>
+      operationTarget(operation).kind === "script"
+        ? operation
+        : {
+            ...operation,
+            workflowVersion: pinned.get(operation.workflowId)?.version ?? undefined
+          }
+    )
   };
   const graphHashes = new Map(
     [...pinned].map(([workflowId, entry]) => [workflowId, entry.graphHash])
