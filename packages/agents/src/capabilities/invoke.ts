@@ -197,7 +197,7 @@ export async function invokeCapability(
   entry: CapabilityExport,
   rawArgs: Record<string, unknown>
 ): Promise<unknown> {
-  (run.signal ?? run.context.signal)?.throwIfAborted();
+  run.signal?.throwIfAborted();
   const { spec, impl } = entry;
   const checked = validateCapabilityArgs(spec, withSnakeCaseAliases(rawArgs));
   if (!checked.ok) return checked.error;
@@ -302,7 +302,7 @@ async function runImpl(
       };
     }
   }
-  (run.signal ?? run.context.signal)?.throwIfAborted();
+  run.signal?.throwIfAborted();
   return entry.impl(run, args);
 }
 

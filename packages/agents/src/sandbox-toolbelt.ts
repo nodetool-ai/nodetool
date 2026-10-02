@@ -92,8 +92,10 @@ export function sandboxToolBridgeGlobals(
           return tool;
         }
         const entry = native.capability();
+        const sourceRun = native.run(context);
         const run = createCapabilityRun({
-          ...native.run(context),
+          ...sourceRun,
+          availableSecrets: sourceRun.availableSecrets,
           signal: options.signal,
           capabilities: [entry]
         });
