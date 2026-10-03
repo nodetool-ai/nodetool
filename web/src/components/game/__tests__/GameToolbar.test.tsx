@@ -5,7 +5,7 @@ import GameToolbar from "../GameToolbar";
 
 const props = {
   name: "Neon Drift", playing: false, playSession: false, loading: false, saving: false,
-  saveStatus: "saved", tick: 0, score: 0, won: false, backend: "WebGPU", assistantOpen: false,
+  saveStatus: "saved", assistantOpen: false,
   sceneTreeOpen: true, inspectorOpen: true,
   playHref: "/game/game-1", onPlay: jest.fn(), onStop: jest.fn(), onStep: jest.fn(),
   onSave: jest.fn(), onLoad: jest.fn(), onPublish: jest.fn(), onAssistant: jest.fn(),
@@ -20,7 +20,7 @@ it("opens the saved game in a separate browser tab", () => {
   expect(link).toHaveAttribute("rel", "noopener noreferrer");
 
   view.rerender(<ThemeProvider theme={mockTheme}><GameToolbar {...props} saveStatus="unsaved" /></ThemeProvider>);
-  expect(screen.getByText("Play in new tab")).toHaveAttribute("aria-disabled", "true");
+  expect(screen.getByLabelText("Play in new tab")).toHaveAttribute("aria-disabled", "true");
 });
 
 it("toggles the scene tree and inspector panels", () => {

@@ -1,13 +1,32 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Box3, GridHelper, Matrix4, PerspectiveCamera, Quaternion, Vector3 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { FlyControls } from "three/addons/controls/FlyControls.js";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
 import type { GameDocument3D, GameRenderFrame3D, GameTransform3D } from "@nodetool-ai/protocol";
 import type { GameDocumentOp3D } from "@nodetool-ai/game-runtime";
-import { Box, Caption, EditorButton, FlexColumn, FlexRow, InspectorSelect, SPACING } from "../ui_primitives";
+import CenterFocusStrongOutlinedIcon from "@mui/icons-material/CenterFocusStrongOutlined";
+import FlightOutlinedIcon from "@mui/icons-material/FlightOutlined";
+import GridOnIcon from "@mui/icons-material/GridOn";
+import GridViewOutlinedIcon from "@mui/icons-material/GridViewOutlined";
+import LayersOutlinedIcon from "@mui/icons-material/LayersOutlined";
+import OpenInFullIcon from "@mui/icons-material/OpenInFull";
+import OpenWithIcon from "@mui/icons-material/OpenWith";
+import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined";
+import ThreeSixtyIcon from "@mui/icons-material/ThreeSixty";
+import { BORDER_RADIUS, Box, Caption, FlexColumn, FlexRow, FONT_SIZE_SANS, SPACING, ToolbarIconButton } from "../ui_primitives";
+import GamePanelHeader from "./GamePanelHeader";
 import { createGameViewportOverlays3D, disposeGameViewportOverlays3D } from "./gameViewportOverlays3D";
 import type { GamePlaySession3D } from "./useGamePlaySession3D";
+
+type TransformMode = "translate" | "rotate" | "scale";
+
+const TOOLS: readonly { mode: TransformMode; label: string; key: string; code: string; icon: ReactNode }[] = [
+  { mode: "translate", label: "Move", key: "W", code: "KeyW", icon: <OpenWithIcon fontSize="small" /> },
+  { mode: "rotate", label: "Rotate", key: "E", code: "KeyE", icon: <ThreeSixtyIcon fontSize="small" /> },
+  { mode: "scale", label: "Scale", key: "R", code: "KeyR", icon: <OpenInFullIcon fontSize="small" /> }
+];
+const HEADER_ICON_SX = { fontSize: FONT_SIZE_SANS.body, color: "text.secondary" } as const;
 
 interface GameViewport3DProps {
   readonly document: GameDocument3D;
@@ -34,7 +53,7 @@ function transform(matrixValue: Matrix4): GameTransform3D {
 }
 
 export default function GameViewport3D({ document, host, selectedId, sceneId, onSelect, onOps, playerOnly = false }: GameViewport3DProps) {
-  const [mode, setMode] = useState<"translate" | "rotate" | "scale">("translate");
+  const [mode, setMode] = useState<TransformMode>("translate");
   const [snap, setSnap] = useState(true);
   const [flyMode, setFlyMode] = useState(false);
   const [overlays, setOverlays] = useState(true);
@@ -209,31 +228,48 @@ export default function GameViewport3D({ document, host, selectedId, sceneId, on
     controls.orbit.update();
   };
 
-  return <FlexColumn gap={SPACING.xs} sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
-    {!playerOnly && !host.playDocument && <FlexRow gap={SPACING.xs} align="center" wrap>
-      <InspectorSelect label="Transform mode" value={mode} options={[{ value: "translate", label: "Move" }, { value: "rotate", label: "Rotate" }, { value: "scale", label: "Scale" }]}
-        onChange={(value) => { if (value === "translate" || value === "rotate" || value === "scale") { setMode(value); } }} />
-      <EditorButton onClick={() => setSnap((value) => !value)} aria-pressed={snap}>Snap</EditorButton>
-      <EditorButton onClick={() => setFlyMode((value) => !value)} aria-pressed={flyMode}>Fly camera</EditorButton>
-      <EditorButton onClick={() => setOverlays((value) => !value)} aria-pressed={overlays}>Overlays</EditorButton>
-      <EditorButton onClick={frameSelection} disabled={!selectedId}>Frame selection</EditorButton>
-      <Caption>{flyMode ? "WASD to fly. R/F to rise and descend. Drag to look." : "Drag to orbit. Shift-drag to pan. Scroll to zoom."}</Caption>
-    </FlexRow>}
-    <Box component="canvas" ref={host.canvasRef} tabIndex={0} aria-label="3D game viewport"
-      onKeyDown={(event) => {
-        if (host.playDocument) {
-          host.inputRef.current.keyDown(event.code);
-          if (["KeyW", "KeyA", "KeyS", "KeyD", "KeyR", "Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code)) { event.preventDefault(); }
-        }
-        else if (event.code === "KeyF" && !flyMode) { event.preventDefault(); frameSelection(); }
-        else if ((event.ctrlKey || event.metaKey) && event.code === "KeyZ") { event.preventDefault(); }
-      }}
-      onKeyUp={(event) => host.inputRef.current.keyUp(event.code)}
-      onBlur={() => host.inputRef.current.release()}
-      onPointerDown={() => host.canvasRef.current?.focus()}
-      onPointerMove={(event) => { if (host.playDocument && event.buttons === 2) { host.inputRef.current.look(event.movementX, event.movementY); } }}
-      onContextMenu={(event) => event.preventDefault()}
-      sx={{ flex: 1, minHeight: 0, width: "100%", height: "100%", bgcolor: "common.black", touchAction: "none" }} />
-    {host.playDocument && <Caption>WASD or arrows to move. Space to jump. Hold the right mouse button to look.</Caption>}
+  const editing = !playerOnly && !host.playDocument;
+  const hint = host.playDocument ? "WASD or arrows to move. Space to jump. Hold the right mouse button to look."
+    : flyMode ? "WASD to fly. R/F to rise and descend. Drag to look." : "Drag to orbit. Shift-drag to pan. Scroll to zoom.";
+  return <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
+    {!playerOnly && <GamePanelHeader title={host.playDocument ? "Game" : "Scene"}
+      icon={host.playDocument ? <SportsEsportsOutlinedIcon sx={HEADER_ICON_SX} /> : <GridViewOutlinedIcon sx={HEADER_ICON_SX} />}>
+      {editing && <>
+        <FlexRow gap={SPACING.micro} align="center" role="group" aria-label="Transform mode">
+          {TOOLS.map((tool) => <ToolbarIconButton key={tool.mode} icon={tool.icon} tooltip={tool.label} shortcut={[tool.key]}
+            aria-pressed={mode === tool.mode} active={mode === tool.mode} onClick={() => setMode(tool.mode)} />)}
+        </FlexRow>
+        <Box sx={{ width: "1px", alignSelf: "stretch", my: SPACING.sm, mx: SPACING.xs, bgcolor: "divider" }} />
+        <ToolbarIconButton icon={<GridOnIcon fontSize="small" />} tooltip="Snap" aria-pressed={snap} active={snap} onClick={() => setSnap((value) => !value)} />
+        <ToolbarIconButton icon={<LayersOutlinedIcon fontSize="small" />} tooltip="Overlays" aria-pressed={overlays} active={overlays} onClick={() => setOverlays((value) => !value)} />
+        <ToolbarIconButton icon={<FlightOutlinedIcon fontSize="small" />} tooltip="Fly camera" aria-pressed={flyMode} active={flyMode} onClick={() => setFlyMode((value) => !value)} />
+        <ToolbarIconButton icon={<CenterFocusStrongOutlinedIcon fontSize="small" />} tooltip="Frame selection" shortcut={["F"]} onClick={frameSelection} disabled={!selectedId} />
+      </>}
+    </GamePanelHeader>}
+    <Box sx={{ position: "relative", flex: 1, minHeight: 0, minWidth: 0, bgcolor: "common.black" }}>
+      <Box component="canvas" ref={host.canvasRef} tabIndex={0} aria-label="3D game viewport"
+        onKeyDown={(event) => {
+          if (host.playDocument) {
+            host.inputRef.current.keyDown(event.code);
+            if (["KeyW", "KeyA", "KeyS", "KeyD", "KeyR", "Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code)) { event.preventDefault(); }
+          }
+          else if (event.code === "KeyF" && !flyMode) { event.preventDefault(); frameSelection(); }
+          else if ((event.ctrlKey || event.metaKey) && event.code === "KeyZ") { event.preventDefault(); }
+          else if (!flyMode && !event.ctrlKey && !event.metaKey && !event.altKey) {
+            const tool = TOOLS.find((entry) => entry.code === event.code);
+            if (tool) { event.preventDefault(); setMode(tool.mode); }
+          }
+        }}
+        onKeyUp={(event) => host.inputRef.current.keyUp(event.code)}
+        onBlur={() => host.inputRef.current.release()}
+        onPointerDown={() => host.canvasRef.current?.focus()}
+        onPointerMove={(event) => { if (host.playDocument && event.buttons === 2) { host.inputRef.current.look(event.movementX, event.movementY); } }}
+        onContextMenu={(event) => event.preventDefault()}
+        sx={{ display: "block", width: "100%", height: "100%", touchAction: "none", outline: "none",
+          "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: "-2px" } }} />
+      {!playerOnly && <Caption sx={{ position: "absolute", left: SPACING.md, bottom: SPACING.md, px: SPACING.sm, py: SPACING.micro,
+        borderRadius: BORDER_RADIUS.sm, bgcolor: "background.paper", opacity: 0.85, pointerEvents: "none" }}>{hint}</Caption>}
+    </Box>
+    {playerOnly && host.playDocument && <Caption>{hint}</Caption>}
   </FlexColumn>;
 }

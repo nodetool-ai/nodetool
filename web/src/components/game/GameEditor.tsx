@@ -22,6 +22,7 @@ import GameInspector from "./GameInspector";
 import GameSceneTree from "./GameSceneTree";
 import GameRuntimeInspector from "./GameRuntimeInspector";
 import GameScriptPane from "./GameScriptPane";
+import GameStatusBar from "./GameStatusBar";
 import GameToolbar from "./GameToolbar";
 import GameViewport from "./GameViewport";
 import { pressGameKey } from "./gameInputFrame";
@@ -359,10 +360,10 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
 
   return (
     <EditorUiProvider scope="inspector">
-    <FlexColumn gap={SPACING.sm} sx={{ p: SPACING.md, height: "100%", minHeight: 0 }}>
+    <FlexColumn sx={{ height: "100%", minHeight: 0, bgcolor: "background.default" }}>
       <GameToolbar
         name={data.game.name} playing={playing} playSession={Boolean(playDocument)} loading={backend === "Initializing"} saving={saving}
-        saveStatus={saveStatus} tick={playState.tick} score={playState.score} won={playState.won} backend={backend}
+        saveStatus={saveStatus}
         assistantOpen={assistantOpen} sceneTreeOpen={sceneTreeOpen} inspectorOpen={inspectorOpen}
         playHref={`/game/${encodeURIComponent(refId)}`}
         onPlay={beginPlay}
@@ -375,19 +376,19 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
         onSceneTree={() => setSceneTreeOpen((current) => !current)}
         onInspector={() => setInspectorOpen((current) => !current)}
       />
-      {(error || draftError) && <FlexRow gap={SPACING.sm} align="center">
+      {(error || draftError) && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
         <Caption color="error" role="alert">{error ?? draftError}</Caption>
         <ReportBugButton context={{ source: "panel-crash", summary: "Game editor failed", errorText: error ?? draftError ?? "" }} />
       </FlexRow>}
       {conflicts.items.length > 0 && <ConflictBanner conflicts={conflicts.items} onAccept={conflicts.accept} onDiscard={conflicts.discard} />}
-      {needsPlayRestart && <Caption role="status">The draft changed. Stop and play again to apply it.</Caption>}
+      {needsPlayRestart && <Caption role="status" sx={{ px: SPACING.md, py: SPACING.xs }}>The draft changed. Stop and play again to apply it.</Caption>}
       <GameAuthoringPreview key={refId} gameId={refId} document={document} flush={flushDraft} onHighlight={setHighlightedIds} />
       <GameChanges gameId={refId} document={document} onOps={onOps} onHover={setHighlightedIds}
         onFocusMessage={(threadId, messageId) => {
           setFocusMessage({ threadId, messageId, requestId: ++focusRequestRef.current });
           setAssistantOpen(true);
         }} />
-      <FlexRow gap={SPACING.sm} sx={{ flex: 1, minHeight: 0 }}>
+      <FlexRow sx={{ flex: 1, minHeight: 0 }}>
         {!isMobile && sceneTreeOpen && <ResizableDock storageKey="sceneTree" storagePrefix="nodetool.gameEditor." side="left"
           defaultWidth={260} minWidth={220} maxWidth={480} ariaLabel="Resize scene tree">
           <FlexColumn gap={SPACING.sm} sx={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
@@ -452,6 +453,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
           <GameAgentPanel gameId={refId} name={data.game.name} selectedEntityIds={selectedIds} behaviorIndex={scriptKey?.index} onThreadId={setAssistantThreadId} focusMessage={focusMessage} />
         </ResizableDock>}
       </FlexRow>
+      <GameStatusBar tick={playState.tick} score={playState.score} won={playState.won} backend={backend} />
       {isMobile && <>
         {playDocument && !playing && <GameRuntimeInspector tick={playState.tick} entity={runtimeEntity} />}
         <GameSceneTree document={document} selectedIds={selectedIds} activeSceneId={activeSceneId ?? document.entrySceneId}

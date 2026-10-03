@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
+import AddIcon from "@mui/icons-material/Add";
+import CloseIcon from "@mui/icons-material/Close";
 import type { AnyGameDocument } from "@nodetool-ai/protocol";
 import type { GameValidationIssue } from "@nodetool-ai/game-runtime";
 
-import { Caption, Checkbox, CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, InspectorFieldRow, InspectorSelect, InspectorToggleRow, InspectorValueInput, Label, SPACING, TextInput, TYPOGRAPHY } from "../../ui_primitives";
+import { Box, Caption, Checkbox, CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, InspectorFieldRow, InspectorSelect, InspectorToggleRow, InspectorValueInput, Label, SPACING, TextInput, ToolbarIconButton, TYPOGRAPHY } from "../../ui_primitives";
 import type { FieldSchema } from "./schemaForm";
 import { schemaDefault, schemaVariant } from "./schemaForm";
+import { COMPONENT_SECTION_SX } from "./componentSection";
 
 interface SchemaFieldsProps {
   schema: FieldSchema;
@@ -15,6 +18,8 @@ interface SchemaFieldsProps {
   issues?: readonly GameValidationIssue[];
   assets?: AnyGameDocument["assets"];
   collisionLayers?: readonly string[];
+  /** Render this object's nested objects as full-width component sections, as in an engine inspector. */
+  componentSections?: boolean;
 }
 
 const FIELD_WIDTH = { width: "100%", minWidth: 0 } as const;
@@ -97,7 +102,7 @@ function NumberField({ label, value, schema, degrees, error, axis, onChange }: {
   </FlexColumn>;
 }
 
-export default function SchemaFields({ schema, value, onChange, path = "", issuePath = [], issues = [], assets, collisionLayers }: SchemaFieldsProps) {
+export default function SchemaFields({ schema, value, onChange, path = "", issuePath = [], issues = [], assets, collisionLayers, componentSections = false }: SchemaFieldsProps) {
   const selected = schemaVariant(schema, value);
   if (selected !== schema) {
     const variants = schema.oneOf ?? schema.anyOf ?? [];
@@ -143,16 +148,27 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
         const field = <SchemaFields schema={child} value={childValue} path={label} issuePath={childPath} issues={issues} assets={assets} collisionLayers={collisionLayers}
           onChange={(next) => onChange({ ...record, [key]: next })} />;
         const optional = !schema.required?.includes(key);
-        return child.type === "object" || child.properties || child.type === "array"
-          ? <CollapsibleSection key={key} title={fieldLabel(key)} compact sx={{ width: "100%", pt: SPACING.xs }}><FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>{field}{optional && <EditorButton onClick={() => {
-            const copy = { ...record }; delete copy[key]; onChange(copy);
-          }}>Remove {fieldLabel(key)}</EditorButton>}</FlexColumn></CollapsibleSection>
-          : <FlexColumn key={key} gap={SPACING.xs} sx={FIELD_WIDTH}>{field}{optional && <EditorButton aria-label={`Remove ${fieldLabel(key)}`} sx={{ alignSelf: "flex-end" }} onClick={() => {
-            const copy = { ...record }; delete copy[key]; onChange(copy);
-          }}>Remove</EditorButton>}</FlexColumn>;
+        const remove = (): void => { const copy = { ...record }; delete copy[key]; onChange(copy); };
+        if (child.type === "object" || child.properties || child.type === "array") {
+          return componentSections
+            ? <Box key={key} sx={{ position: "relative", width: "100%" }}>
+              <CollapsibleSection title={fieldLabel(key)} compact sx={COMPONENT_SECTION_SX}>
+                <FlexColumn gap={SPACING.xs} sx={{ ...FIELD_WIDTH, px: SPACING.md, py: SPACING.sm }}>{field}</FlexColumn>
+              </CollapsibleSection>
+              {optional && <ToolbarIconButton icon={<CloseIcon fontSize="small" />} tooltip={`Remove ${fieldLabel(key)}`} onClick={remove}
+                sx={{ position: "absolute", top: SPACING.micro, right: SPACING.xs }} />}
+            </Box>
+            : <CollapsibleSection key={key} title={fieldLabel(key)} compact sx={{ width: "100%", pt: SPACING.xs }}><FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>{field}{optional &&
+              <EditorButton onClick={remove}>Remove {fieldLabel(key)}</EditorButton>}</FlexColumn></CollapsibleSection>;
+        }
+        return <FlexRow key={key} gap={SPACING.xs} align="flex-start" sx={{ ...FIELD_WIDTH, px: componentSections ? SPACING.md : undefined }}>
+          <FlexColumn gap={SPACING.xs} sx={{ flex: 1, minWidth: 0 }}>{field}</FlexColumn>
+          {optional && <ToolbarIconButton icon={<CloseIcon fontSize="small" />} tooltip={`Remove ${fieldLabel(key)}`} onClick={remove} />}
+        </FlexRow>;
       })}
-      {absent.length > 0 && <FlexRow gap={SPACING.xs} sx={{ flexWrap: "wrap", pt: SPACING.xs }}>
-        {absent.map(([key, child]) => <EditorButton key={key} onClick={() => onChange({ ...record, [key]: schemaDefault(child) })}>Add {fieldLabel(key)}</EditorButton>)}
+      {absent.length > 0 && <FlexRow gap={SPACING.xs} sx={{ flexWrap: "wrap", pt: SPACING.xs, ...(componentSections ? { px: SPACING.md, py: SPACING.md, borderTop: 1, borderColor: "divider" } : {}) }}>
+        {absent.map(([key, child]) => <EditorButton key={key} variant="outlined" startIcon={<AddIcon fontSize="small" />}
+          onClick={() => onChange({ ...record, [key]: schemaDefault(child) })}>Add {fieldLabel(key)}</EditorButton>)}
       </FlexRow>}
       {fieldError(issues, issuePath) && <Caption color="error">{fieldError(issues, issuePath)}</Caption>}
     </FlexColumn>;
