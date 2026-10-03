@@ -11,6 +11,7 @@ import {
   Text
 } from "../../ui_primitives";
 import { getEntityKindChipSx } from "../../entities/entityKind";
+import { GalleryFrame } from "../MediaGallery";
 import { SETUP_CONTENT_WIDTH, SETUP_MEDIA_WIDTH } from "../layout";
 
 interface ReviewStepProps {
@@ -39,15 +40,21 @@ export const ReviewStep = ({
       </Text>
     </FlexColumn>
 
-    <ResponsiveImage
+    <GalleryFrame
       locator={`asset://${assetId}`}
-      alt={`${name} reference`}
-      aspectRatio="1/1"
-      fit="contain"
-      borderRadius={BORDER_RADIUS.md}
-      showErrorFallback
-      sx={{ width: SETUP_MEDIA_WIDTH, maxWidth: "100%", maxHeight: "44vh" }}
-    />
+      kind="image"
+      caption={`${name} reference`}
+    >
+      <ResponsiveImage
+        locator={`asset://${assetId}`}
+        alt={`${name} reference`}
+        aspectRatio="1/1"
+        fit="contain"
+        borderRadius={BORDER_RADIUS.md}
+        showErrorFallback
+        sx={{ width: SETUP_MEDIA_WIDTH, maxWidth: "100%", maxHeight: "44vh" }}
+      />
+    </GalleryFrame>
     <FlexRow gap={GAP.normal} align="center" wrap>
       <Text size="big">{name}</Text>
       <Chip

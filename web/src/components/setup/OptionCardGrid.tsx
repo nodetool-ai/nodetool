@@ -19,6 +19,7 @@ import {
 } from "../ui_primitives";
 import type { MediaLocator } from "../../hooks/useResolvedMediaUri";
 import { SetupCardButton, useRovingRadioGroup } from "./SetupCardButton";
+import { GalleryExpandButton, MEDIA_GALLERY_HOST_CLASS } from "./MediaGallery";
 import type { SetupCardGridMode } from "./SetupCardButton";
 
 export interface OptionCardItem {
@@ -160,7 +161,7 @@ const OptionCardGridInternal: React.FC<OptionCardGridProps> = ({
     >
       {options.map((option) => {
         const filled = variant === "media" && option.image !== undefined;
-        return (
+        const card = (
           <SetupCardButton
             key={option.id}
             {...(single
@@ -191,6 +192,25 @@ const OptionCardGridInternal: React.FC<OptionCardGridProps> = ({
               </FlexColumn>
             )}
           </SetupCardButton>
+        );
+        if (option.image === undefined) {
+          return card;
+        }
+        // The card is a button, so the expand control sits beside it in a
+        // shared frame rather than inside it.
+        return (
+          <Box
+            key={option.id}
+            className={MEDIA_GALLERY_HOST_CLASS}
+            sx={{ position: "relative", display: "grid" }}
+          >
+            {card}
+            <GalleryExpandButton
+              locator={option.image}
+              kind="image"
+              caption={option.title}
+            />
+          </Box>
         );
       })}
     </Box>

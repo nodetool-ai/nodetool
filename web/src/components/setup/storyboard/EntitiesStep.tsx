@@ -18,12 +18,12 @@ import EntityAssetPickerDialog from "../../entities/EntityAssetPickerDialog";
 import EntityEditorDialog from "../../entities/EntityEditorDialog";
 import ImageModelSelect from "../../properties/ImageModelSelect";
 import ReportBugButton from "../../support/ReportBugButton";
+import { GallerySource, useMediaGallery } from "../MediaGallery";
 import {
   AlertBanner,
   BORDER_RADIUS,
   Caption,
   Checkbox,
-  Dialog,
   EditorButton,
   EmptyState,
   FlexColumn,
@@ -90,7 +90,7 @@ export const EntitiesStep = ({
   const updateShot = useStoryboardStore((state) => state.updateShot);
   const setImageModel = useStoryboardStore((state) => state.setImageModel);
   const [pickerOpen, setPickerOpen] = useState(false);
-  const [previewEntity, setPreviewEntity] = useState<Entity | null>(null);
+  const openGallery = useMediaGallery();
   const [newAssetId, setNewAssetId] = useState<string | null>(null);
   const [search, setSearch] = useState("");
   const [onlySelected, setOnlySelected] = useState(false);
@@ -566,7 +566,9 @@ export const EntitiesStep = ({
                               <EditorButton
                                 variant="text"
                                 aria-label={`View ${entity.name} reference image`}
-                                onClick={() => setPreviewEntity(entity)}
+                                onClick={() =>
+                                  openGallery?.(entity.reference_images?.[0])
+                                }
                                 sx={{
                                   p: SPACING.none,
                                   width: ENTITY_PREVIEW_SIZE,
@@ -582,6 +584,15 @@ export const EntitiesStep = ({
                                   alt=""
                                   aspectRatio="1/1"
                                   borderRadius={BORDER_RADIUS.sm}
+                                />
+                                <GallerySource
+                                  locator={entity.reference_images[0]}
+                                  kind="image"
+                                  caption={
+                                    entity.descriptor
+                                      ? `${entity.name}: ${entity.descriptor}`
+                                      : entity.name
+                                  }
                                 />
                               </EditorButton>
                             ) : (
@@ -759,25 +770,6 @@ export const EntitiesStep = ({
         </FlexColumn>
       ) : null}
 
-      <Dialog
-        open={previewEntity !== null}
-        onClose={() => setPreviewEntity(null)}
-        title={previewEntity?.name}
-        maxWidth="md"
-        fullWidth
-      >
-        {previewEntity?.reference_images?.[0] ? (
-          <FlexColumn gap={SPACING.lg}>
-            <ResponsiveImage
-              locator={previewEntity.reference_images[0]}
-              alt={`${previewEntity.name} reference image`}
-              fit="contain"
-              sx={{ height: "70vh", bgcolor: "background.default" }}
-            />
-            <Text color="secondary">{previewEntity.descriptor}</Text>
-          </FlexColumn>
-        ) : null}
-      </Dialog>
       <EntityAssetPickerDialog
         open={pickerOpen}
         onClose={() => setPickerOpen(false)}
