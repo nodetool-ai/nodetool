@@ -394,25 +394,12 @@ A CodeAct action (`execute_code`) and the `CodeNode` workflow node both run user
 | Max `fetch` calls | 20 |
 | Max response body | 1 MB |
 
-The sandbox exposes a curated surface: vanilla JavaScript plus bridge globals (`fetch`, `workspace`, `getSecret`, `nodetool.secrets.*`, `sleep`, `crypto`, `console`, `media`, `image`/`audio`/`video`). Third-party libraries are not globals — each is a **sandbox package** the body imports (`import yaml from "@nodetool-ai/sandbox-yaml"`). NodeTool ships thirty-eight of them in `packages/sandbox-packs/`. See [javascript-sandbox.md](javascript-sandbox.md) for the full global table and the pack list.
-
-### Tool Registry
-
-Register custom tools so they can be resolved by name:
-
-```ts
-import { registerTool, resolveTool, getAllTools } from "@nodetool-ai/agents";
-
-registerTool(new MyCustomTool());
-const tool = resolveTool("my_custom_tool");
-const allTools = getAllTools(); // returns all registered tools
-```
+The sandbox exposes a curated surface: vanilla JavaScript plus bridge globals (`fetch`, `workspace`, `getSecret`, `nodetool.secrets.*`, `sleep`, `crypto`, `console`, `media`, `image`/`audio`/`video`). Third-party libraries are not globals — each is a **sandbox package** the body imports (`import yaml from "@nodetool-ai/sandbox-yaml"`). NodeTool ships them in `packages/sandbox-packs/`. See [javascript-sandbox.md](javascript-sandbox.md) for the full global table and the pack list.
 
 ### Builtin Tools in Tool-Agent Nodes (`runAgentLoop`)
 
-There is a **separate** registry for tools that workflow tool-agent nodes
-expose via `runAgentLoop` (in `@nodetool-ai/llm-nodes`) — distinct from the
-`@nodetool-ai/agents` `registerTool`/`resolveTool` registry above. Builtin
+Tools that workflow tool-agent nodes expose via `runAgentLoop` (in
+`@nodetool-ai/llm-nodes`) live in their own registry. Builtin
 node tools are registered into it at module load via
 `registerBuiltinAgentToolClasses` or, for lazily-built sets,
 `registerBuiltinAgentToolFactory` (which is what

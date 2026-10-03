@@ -122,7 +122,7 @@ nodetool package init
 
 Prompts for a name, description, and author, then writes `package.json`, `tsconfig.json`, `src/index.ts`, and empty `nodetool/package_metadata/`, `examples/`, and `assets/` directories. It asks before overwriting an existing `package.json`.
 
-The scaffold exports `registerNodes` and does not add the `nodetool` field that the pack loader needs. Add `"nodetool": { "apiVersion": 1, "register": "registerNodes" }` to `package.json`, or rename the export to `register`.
+The scaffold's `package.json` carries the `nodetool` field (`"apiVersion": 1, "register": "register"`) and `src/index.ts` exports an empty `register` function for you to fill in.
 
 ### Generate Documentation
 
