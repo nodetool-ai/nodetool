@@ -183,6 +183,8 @@ export const ToolbarIconButton = memo(
       return (
         <Tooltip
           title={tooltipContent}
+          // A node title would otherwise rename the button to "Undo Ctrl + Z" while the tooltip is open.
+          describeChild={Boolean(label) && !isString(tooltipContent)}
           enterDelay={delay ?? TOOLTIP_ENTER_DELAY}
           enterNextDelay={TOOLTIP_ENTER_NEXT_DELAY}
           placement={tooltipPlacement}

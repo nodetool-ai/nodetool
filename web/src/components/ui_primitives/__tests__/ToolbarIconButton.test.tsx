@@ -115,4 +115,22 @@ describe("ToolbarIconButton", () => {
 
     expect(screen.getByRole("button")).toHaveClass("custom-class");
   });
+
+  it("keeps its name when a shortcut tooltip opens", async () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ToolbarIconButton
+          icon={<SaveIcon />}
+          tooltip="Save"
+          shortcut={["Ctrl", "S"]}
+          delay={0}
+          onClick={mockOnClick}
+        />
+      </ThemeProvider>
+    );
+
+    fireEvent.mouseOver(screen.getByRole("button"));
+    expect(await screen.findByRole("tooltip")).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Save" })).toBeInTheDocument();
+  });
 });

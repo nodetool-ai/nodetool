@@ -52,7 +52,7 @@ test("edits, undoes, installs a model, plays and publishes the same 3D draft", a
     const center = { x: bounds.x + bounds.width / 2, y: bounds.y + bounds.height / 2 };
     await page.mouse.move(center.x, center.y);
     await page.mouse.down();
-    await page.mouse.move(center.x + 50, center.y - 30, { steps: 10 });
+    await page.mouse.move(center.x + 120, center.y - 80, { steps: 10 });
     await page.mouse.up();
     const lastPosition = async () => {
       const draft = (await client.games.getDraft.query({ id: created.game.id })).document;
