@@ -74,8 +74,8 @@ jobs:
           ELECTRON_SKIP_BINARY_DOWNLOAD: "1"
 
       # The corpus is hermetic — it builds its own registry from seed
-      # documents and imports the validators from source — so no
-      # build:packages is needed.
+      # documents and resolves every workspace package from source through
+      # the `nodetool-dev` export condition — so no build:packages is needed.
       - name: Sweep fresh inputs
         id: sweep
         continue-on-error: true
@@ -91,6 +91,9 @@ jobs:
           # Overwritten by the mutation leg; a skipped leg must not read as
           # "survivors found".
           echo "FUZZ_SURVIVORS=0" >> "$GITHUB_ENV"
+          # Without pipefail `tee` masks the exit status, and a corpus that
+          # fails to load reads as "no crash".
+          set -o pipefail
           npm run test:crash-fuzz -- --reporter=default --reporter=json \
             --outputFile=../../crash-sweep.json 2>&1 | tee ../../crash-sweep.log
 
