@@ -97,8 +97,10 @@ const RecommendedDownloadRow: React.FC<RecommendedDownloadRowProps> = ({
           minWidth: 0,
           cursor: downloaded ? "pointer" : "default",
           borderRadius: BORDER_RADIUS.sm,
-          "&:hover": downloaded
-            ? { background: theme.vars.palette.action.hover }
+          "@media (hover: hover)": downloaded
+            ? {
+                "&:hover": { background: theme.vars.palette.action.hover }
+              }
             : undefined
         }}
       >

@@ -15,10 +15,14 @@ const wrapperStyles = css({
   display: "inline-flex",
   alignItems: "center",
   transition: MOTION.all,
-  opacity: 0,
-  "&:hover": {
-    scale: 1.5,
-    transform: "rotate(42deg)"
+  // Revealed by the row's hover rule in ModelList, which only exists for a
+  // mouse; on touch the star is always visible.
+  "@media (hover: hover)": {
+    opacity: 0,
+    "&:hover": {
+      scale: 1.5,
+      transform: "rotate(42deg)"
+    }
   }
 });
 

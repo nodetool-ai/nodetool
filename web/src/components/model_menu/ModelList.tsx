@@ -86,11 +86,16 @@ const listStyles = (theme: Theme) =>
     "& .model-menu__model-item.is-unavailable .MuiListItemText-secondary": {
       color: theme.vars.palette.text.disabled
     },
-    "& .MuiListItemButton-root:hover .favorite-star": {
-      opacity: 1
-    },
-    "& .MuiListItemButton-root:hover .default-pin": {
-      opacity: 1
+    // Mouse only: the star and pin are revealed on hover. iOS Safari reads a
+    // tap on a row whose content changes on hover as the hover and drops the
+    // click, so on touch they stay visible and the row selects on one tap.
+    "@media (hover: hover)": {
+      "& .MuiListItemButton-root:hover .favorite-star": {
+        opacity: 1
+      },
+      "& .MuiListItemButton-root:hover .default-pin": {
+        opacity: 1
+      }
     },
     "& .model-menu__model-item.is-active": {
       background: theme.vars.palette.action.selected,

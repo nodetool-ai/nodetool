@@ -19,13 +19,16 @@ interface DefaultModelPinProps {
   size?: "small" | "medium";
 }
 
-// Hidden until the row is hovered (see ModelList's `.default-pin` hover rule),
-// except when this model is the active default — then it stays visible.
+// With a mouse, hidden until the row is hovered (see ModelList's `.default-pin`
+// hover rule), except when this model is the active default. Always visible on
+// touch.
 const wrapperStyles = css({
   display: "inline-flex",
   alignItems: "center",
   transition: MOTION.all,
-  opacity: 0
+  "@media (hover: hover)": {
+    opacity: 0
+  }
 });
 
 const DefaultModelPin: React.FC<DefaultModelPinProps> = memo(
