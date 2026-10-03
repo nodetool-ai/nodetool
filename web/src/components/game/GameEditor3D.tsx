@@ -1,4 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import { useStore } from "zustand";
 import { gameEntity3D, type GameDocument3D } from "@nodetool-ai/protocol";
 import type { AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
 import { trpc, trpcClient } from "../../trpc/client";
@@ -9,14 +11,18 @@ import { mergeByUnits } from "../../stores/documentMerge";
 import { useConflictStore } from "../../stores/ConflictStore";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
-import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorButton, EditorUiProvider, EmptyState, FlexColumn, FlexRow, InspectorSelect, LoadingSpinner, ResizableDock, SPACING, Text, TextInput } from "../ui_primitives";
+import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorButton, EditorUiProvider, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, LoadingSpinner, ResizableDock, SPACING, Text, TextInput } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./GameAgentPanel";
 import GameChanges from "./GameChanges";
 import GameAuthoringPreview from "./GameAuthoringPreview";
+import GameHierarchy3D from "./GameHierarchy3D";
 import GameInspector3D from "./GameInspector3D";
+import GamePanelHeader from "./GamePanelHeader";
 import GameScriptPane from "./GameScriptPane";
+import GameStatusBar from "./GameStatusBar";
 import GameToolbar from "./GameToolbar";
+import { GAME_EDITOR_ROOT_SX } from "./gameEditorStyles";
 import GameViewport3D from "./GameViewport3D";
 import { useGamePlaySession3D } from "./useGamePlaySession3D";
 
@@ -27,6 +33,8 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
   const selectedIds = useGameDraft(refId, (state) => state.selectedIds);
   const saveStatus = useGameDraft(refId, (state) => state.saveStatus);
   const draftError = useGameDraft(refId, (state) => state.error);
+  const canUndo = useStore(getGameDraftStore(refId).temporal, (state) => state.pastStates.length > 0);
+  const canRedo = useStore(getGameDraftStore(refId).temporal, (state) => state.futureStates.length > 0);
   const [sceneId, setSceneId] = useState(document.entrySceneId);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(true);
@@ -135,67 +143,70 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
   };
   const behavior = scriptIndex === null ? undefined : selected?.behaviors[scriptIndex];
   const restart = host.playDocument && JSON.stringify(host.playDocument) !== JSON.stringify(document);
-  return <EditorUiProvider scope="inspector"><FlexColumn gap={SPACING.sm} sx={{ height: "100%", minHeight: 0, p: SPACING.md }}>
+  const notice = host.error || draftError || operationError || restart;
+  return <EditorUiProvider scope="inspector"><FlexColumn sx={GAME_EDITOR_ROOT_SX}>
     <GameToolbar name={name} playing={host.playing} playSession={Boolean(host.playDocument)} loading={host.backend === "Initializing"}
-      saving={saveStatus === "saving"} saveStatus={saveStatus} tick={host.inspection?.tick ?? 0} score={host.inspection?.score ?? 0}
-      won={host.inspection?.won ?? false} backend={host.backend} assistantOpen={assistantOpen} sceneTreeOpen={treeOpen} inspectorOpen={inspectorOpen}
-      playHref={`/game/${encodeURIComponent(refId)}`} onPlay={host.beginPlay} onStop={host.stop} onStep={() => host.step()}
+      saving={saveStatus === "saving"} saveStatus={saveStatus} assistantOpen={assistantOpen} sceneTreeOpen={treeOpen} inspectorOpen={inspectorOpen}
+      playHref={`/game/${encodeURIComponent(refId)}`} canUndo={canUndo} canRedo={canRedo}
+      onUndo={() => getGameDraftStore(refId).getState().undo()} onRedo={() => getGameDraftStore(refId).getState().redo()}
+      onPlay={host.beginPlay} onStop={host.stop} onStep={() => host.step()}
       onSave={host.save} onLoad={() => void host.load()} onPublish={() => setPublishOpen(true)} onAssistant={() => setAssistantOpen((value) => !value)}
       onSceneTree={() => setTreeOpen((value) => !value)} onInspector={() => setInspectorOpen((value) => !value)} />
-    <FlexRow gap={SPACING.xs}>
-      <EditorButton disabled={getGameDraftStore(refId).temporal.getState().pastStates.length === 0} onClick={() => getGameDraftStore(refId).getState().undo()}>Undo</EditorButton>
-      <EditorButton disabled={getGameDraftStore(refId).temporal.getState().futureStates.length === 0} onClick={() => getGameDraftStore(refId).getState().redo()}>Redo</EditorButton>
-    </FlexRow>
-    {(host.error || draftError || operationError) && <FlexRow gap={SPACING.xs}><Caption color="error" role="alert">{host.error ?? draftError ?? operationError}</Caption>
-      {host.error && <EditorButton onClick={() => void host.replayBeforeError()}>Replay before error</EditorButton>}
-      <ReportBugButton context={{ source: "panel-crash", summary: "3D game editor failed", errorText: host.error ?? draftError ?? operationError ?? "",
-        nodeDetail: `Game: ${refId}\nScene: ${activeSceneId}\nEntity: ${selected?.id ?? "none"}\nTick: ${host.inspection?.tick ?? 0}` }} /></FlexRow>}
-    {restart && <Caption role="status">The draft changed. Stop and play again to apply it.</Caption>}
+    {notice && <FlexColumn gap={SPACING.xs} sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider", bgcolor: "background.paper" }}>
+      {(host.error || draftError || operationError) && <FlexRow gap={SPACING.xs} align="center"><Caption color="error" role="alert" sx={{ flex: 1, minWidth: 0 }}>{host.error ?? draftError ?? operationError}</Caption>
+        {host.error && <EditorButton onClick={() => void host.replayBeforeError()}>Replay before error</EditorButton>}
+        <ReportBugButton context={{ source: "panel-crash", summary: "3D game editor failed", errorText: host.error ?? draftError ?? operationError ?? "",
+          nodeDetail: `Game: ${refId}\nScene: ${activeSceneId}\nEntity: ${selected?.id ?? "none"}\nTick: ${host.inspection?.tick ?? 0}` }} /></FlexRow>}
+      {restart && <Caption role="status">The draft changed. Stop and play again to apply it.</Caption>}
+    </FlexColumn>}
     <GameAuthoringPreview key={refId} gameId={refId} document={document} flush={flush} onHighlight={(ids) => getGameDraftStore(refId).getState().selectMany(ids)} />
     {conflicts.items.length > 0 && <ConflictBanner conflicts={conflicts.items} onAccept={conflicts.accept} onDiscard={conflicts.discard} />}
     <GameChanges gameId={refId} document={document} onOps={onOps} onHover={() => undefined}
       onFocusMessage={(threadId, messageId) => { setAssistantOpen(true); setFocusMessage({ threadId, messageId, requestId: Date.now() }); }} />
-    <FlexRow gap={SPACING.sm} sx={{ flex: 1, minHeight: 0 }} onKeyDown={(event) => {
+    <FlexRow sx={{ flex: 1, minHeight: 0 }} onKeyDown={(event) => {
       if ((event.ctrlKey || event.metaKey) && event.code === "KeyZ") {
         event.preventDefault();
         if (event.shiftKey) { getGameDraftStore(refId).getState().redo(); } else { getGameDraftStore(refId).getState().undo(); }
       }
     }}>
       {treeOpen && <ResizableDock storageKey="sceneTree3d" storagePrefix="nodetool.gameEditor." side="left" defaultWidth={260} minWidth={220} maxWidth={480} ariaLabel="Resize 3D scene tree">
-        <FlexColumn gap={SPACING.sm} sx={{ height: "100%", overflowY: "auto" }}>
-          <InspectorSelect label="Scene" value={activeSceneId} options={document.scenes.map((item) => ({ value: item.id, label: item.name }))}
-            onChange={(value) => { setSceneId(value); getGameDraftStore(refId).getState().selectMany([]); }} />
-          <FlexRow gap={SPACING.xs} wrap><EditorButton onClick={() => add("box")}>Add box</EditorButton><EditorButton onClick={() => add("sphere")}>Add sphere</EditorButton><EditorButton onClick={() => add("light")}>Add light</EditorButton></FlexRow>
-          {scene?.entities.map((entity) => <EditorButton key={entity.id} aria-pressed={selectedIds.includes(entity.id)} onClick={() => select(entity.id)}>
-            {entity.parentId ? "↳ " : ""}{entity.name || entity.id}{entity.character3d ? " · Character" : entity.camera3d ? " · Camera" : ""}
-          </EditorButton>)}
-          <CollapsibleSection title="Model assets" compact defaultOpen={false}>
-            <TextInput label="Owned model asset ID" value={assetId} onChange={(event) => setAssetId(event.target.value)} />
-            <TextInput label="Model slot" value={assetSlot} onChange={(event) => setAssetSlot(event.target.value)} />
-            <EditorButton disabled={!assetId || !assetSlot} onClick={() => void installModel()}>Prepare and install model</EditorButton>
-            {Object.entries(document.assets).map(([slot, binding]) => <FlexRow key={slot} gap={SPACING.xs} align="center">
-              <Caption>{slot} · {binding.mediaKind}</Caption>
-              {binding.mediaKind === "model" && <EditorButton onClick={() => useWorkspaceTabsStore.getState().openTab({
-                type: "model3d", ref: binding.sourceAssetId ?? binding.assetId, mode: "edit", title: slot, projectId
-              })}>Edit model</EditorButton>}
-            </FlexRow>)}
-            <Caption>After saving model changes, prepare and install them again.</Caption>
-          </CollapsibleSection>
-        </FlexColumn>
+        <GameHierarchy3D document={document} scene={scene} selectedIds={selectedIds} onSelect={select} onAdd={add}
+          onSelectScene={(value) => { setSceneId(value); getGameDraftStore(refId).getState().selectMany([]); }}
+          footer={<CollapsibleSection title={<Label component="span" sx={{ mb: 0 }}>Model assets</Label>} compact defaultOpen={false}>
+            <FlexColumn gap={SPACING.sm} sx={{ pb: SPACING.md }}>
+              <TextInput label="Owned model asset ID" compact value={assetId} onChange={(event) => setAssetId(event.target.value)} />
+              <TextInput label="Model slot" compact value={assetSlot} onChange={(event) => setAssetSlot(event.target.value)} />
+              <EditorButton variant="outlined" disabled={!assetId || !assetSlot} onClick={() => void installModel()}>Prepare and install model</EditorButton>
+              {Object.entries(document.assets).map(([slot, binding]) => <FlexRow key={slot} gap={SPACING.xs} align="center">
+                <Caption sx={{ flex: 1, minWidth: 0 }}>{slot} · {binding.mediaKind}</Caption>
+                {binding.mediaKind === "model" && <EditorButton onClick={() => useWorkspaceTabsStore.getState().openTab({
+                  type: "model3d", ref: binding.sourceAssetId ?? binding.assetId, mode: "edit", title: slot, projectId
+                })}>Edit model</EditorButton>}
+              </FlexRow>)}
+              <Caption>After saving model changes, prepare and install them again.</Caption>
+            </FlexColumn>
+          </CollapsibleSection>} />
       </ResizableDock>}
-      <GameViewport3D document={document} host={host} selectedId={selected?.id} sceneId={activeSceneId} onSelect={select} onOps={onOps} />
-      {inspectorOpen && <ResizableDock storageKey="inspector3d" storagePrefix="nodetool.gameEditor." side="right" defaultWidth={320} minWidth={240} maxWidth={480} ariaLabel="Resize 3D inspector">
-        <GameInspector3D document={document} sceneId={activeSceneId} entityId={selected?.id} onOps={onOps} onScript={setScriptIndex} />
-        {host.playDocument && !host.playing && <CollapsibleSection title="Runtime state" compact><Caption>{JSON.stringify(host.inspection?.entities.find((entity) => entity.id === selected?.id))}</Caption></CollapsibleSection>}
+      <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
+        <GameViewport3D document={document} host={host} selectedId={selected?.id} sceneId={activeSceneId} onSelect={select} onOps={onOps} />
+        {selected && behavior?.kind === "script" && scriptIndex !== null && <FlexColumn sx={{ height: "40%", minHeight: 0, borderTop: 1, borderColor: "divider" }}>
+          <GameScriptPane dimension="3d" entityId={selected.id} entityName={selected.name} behaviorIndex={scriptIndex} behavior={behavior}
+            onChange={(source) => onOps([{ op: "set_script", scene_id: activeSceneId, entity_id: selected.id, index: scriptIndex, source }])} onClose={() => setScriptIndex(null)} />
+        </FlexColumn>}
+      </FlexColumn>
+      {inspectorOpen && <ResizableDock storageKey="inspector3d" storagePrefix="nodetool.gameEditor." side="right" defaultWidth={360} minWidth={300} maxWidth={560} ariaLabel="Resize 3D inspector">
+        <GamePanelHeader title="Inspector" icon={<TuneOutlinedIcon sx={{ fontSize: FONT_SIZE_SANS.body }} />} />
+        <FlexColumn sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
+          <GameInspector3D document={document} sceneId={activeSceneId} entityId={selected?.id} onOps={onOps} onScript={setScriptIndex} />
+          {host.playDocument && !host.playing && <CollapsibleSection title="Runtime state" compact sx={{ px: SPACING.md }}><Caption>{JSON.stringify(host.inspection?.entities.find((entity) => entity.id === selected?.id))}</Caption></CollapsibleSection>}
+        </FlexColumn>
       </ResizableDock>}
       {assistantOpen && <ResizableDock storageKey="assistant3d" storagePrefix="nodetool.gameEditor." side="right" defaultWidth={360} minWidth={280} maxWidth={640} ariaLabel="Resize game assistant">
         <GameAgentPanel gameId={refId} name={name} selectedEntityIds={selectedIds} behaviorIndex={scriptIndex ?? undefined} focusMessage={focusMessage} />
       </ResizableDock>}
     </FlexRow>
-    {selected && behavior?.kind === "script" && scriptIndex !== null && <FlexColumn sx={{ height: "40%", minHeight: 0 }}>
-      <GameScriptPane dimension="3d" entityId={selected.id} entityName={selected.name} behaviorIndex={scriptIndex} behavior={behavior}
-        onChange={(source) => onOps([{ op: "set_script", scene_id: activeSceneId, entity_id: selected.id, index: scriptIndex, source }])} onClose={() => setScriptIndex(null)} />
-    </FlexColumn>}
+    <GameStatusBar tick={host.inspection?.tick ?? 0} score={host.inspection?.score ?? 0} won={host.inspection?.won ?? false} backend={host.backend}
+      hint={selected ? `Selected: ${selected.name || selected.id}` : `${scene?.entities.length ?? 0} entities in ${scene?.name ?? "scene"}`} />
     <Dialog open={publishOpen} onClose={() => setPublishOpen(false)} title="Publish 3D game">
       <FlexColumn gap={SPACING.sm}><Text>Create an immutable revision from the current draft.</Text>
         <TextInput label="Revision message" value={publishMessage} onChange={(event) => setPublishMessage(event.target.value)} />
