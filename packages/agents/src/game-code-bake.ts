@@ -4,7 +4,7 @@ import { anyGameDocument, gameAuthoring, gameAuthoringProgram, type AnyGameDocum
 import { validateAnyGame } from "@nodetool-ai/game-runtime";
 import { getProcessSandboxModuleCatalog, type ProcessingContext } from "@nodetool-ai/runtime";
 import { runInSandbox } from "./js-sandbox.js";
-import { resolveImportedPacks } from "./js-script-sandbox.js";
+import { resolveImportedPacks } from "./sandbox-pack-resolution.js";
 
 export interface GameConstructionProgram {
   source: string;

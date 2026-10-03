@@ -34,6 +34,7 @@ import {
   type TimelineClip,
   type TimelineDocumentLike
 } from "@nodetool-ai/timeline";
+import { resolveImportedPacks } from "./sandbox-pack-resolution.js";
 
 /** Wall-clock ceiling on a bake. Building a document is arithmetic over a
  * bounded scene list; anything slower is a runaway script, and a caller
@@ -101,7 +102,6 @@ export async function bakeTimelineCode(
   if (!code.trim()) {
     return fail("The timeline's authoring code is empty.");
   }
-  const { resolveImportedPacks } = await import("./js-script-sandbox.js");
   // The same fallback a chat session uses: a context built before the host
   // installed its catalog still bakes against the process catalog.
   const { getProcessSandboxModuleCatalog } = await import("@nodetool-ai/runtime");

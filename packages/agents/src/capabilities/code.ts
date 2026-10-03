@@ -23,6 +23,7 @@
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { RunSandboxOptions } from "../js-sandbox.js";
+import { resolveImportedPacks } from "../sandbox-pack-resolution.js";
 import type {
   CapabilityExport,
   CapabilityImpl,
@@ -129,7 +130,6 @@ export async function runCodeBody(
       // Hermetic: the body's pack imports still resolve against the installed
       // catalog, but no platform module is mounted, so importing one fails in
       // the guest the way any unserved specifier does.
-      const { resolveImportedPacks } = await import("../js-script-sandbox.js");
       const packs = resolveImportedPacks(params.code, context, {
         subject: "The code"
       });
