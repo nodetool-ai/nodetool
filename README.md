@@ -256,7 +256,7 @@ template. It calls no model, so it needs no API key:
 ```bash
 git clone https://github.com/nodetool-ai/nodetool.git
 cd nodetool
-nvm use                         # Requires nvm and Node.js 22.22.1
+nvm use                         # Requires nvm, reads the version from .nvmrc
 npm install
 npm run build:packages
 npm run workflow -- ./examples/workflows/hello_input_output_cli.json \
@@ -285,7 +285,7 @@ providers and local setup. Do not add a key to a committed file.
 
 ## CLI
 
-Install the CLI with `npm install -g @nodetool-ai/cli`, using Node.js 22.22.1. The
+Install the CLI with `npm install -g @nodetool-ai/cli`, using Node.js 22 or later. The
 [CLI package guide](packages/cli/README.md) covers running workflows with the
 installed command.
 
@@ -313,7 +313,7 @@ environment without changing it, use `./start.sh doctor`. None of these launch
 the Electron desktop app.
 
 In a separate terminal, launch the desktop shell with `npm run electron`.
-Node.js 22.22.1 is pinned in [`.nvmrc`](.nvmrc). Python 3.11 and conda are
+The Node.js version is pinned in [`.nvmrc`](.nvmrc). Python 3.11 and conda are
 optional, for Python nodes. For locked-down environments or missing WebGPU, see
 [development environment](docs/dev-environment.md).
 

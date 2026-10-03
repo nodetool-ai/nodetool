@@ -75,11 +75,12 @@ lifecycle it always did — **Planned → Still ready → Rendering → Rendered
 Revision runs video-to-video on the existing clip and swaps the result in
 place, so fixing shot 3 never means re-rolling shots 1–5.
 
-Agents drive the same surface through fourteen `ui_storyboard_*` tools:
+Agents drive the same surface through the `ui_storyboard_*` tools, among them:
 `get_state`, `set_screenplay`, `set_entities`, `add_shot`, `update_shot`,
 `generate_keyframe`, `generate_clip`, `revise_shot`, `assemble_timeline`,
 `select_shot`, `extract_script`, `relink_script`, `reproject_shots`, and
-`set_duration_source`.
+`set_duration_source`. The full set is registered in
+`web/src/lib/tools/builtin/storyboard.ts`.
 
 ## Assemble: from storyboard to timeline
 

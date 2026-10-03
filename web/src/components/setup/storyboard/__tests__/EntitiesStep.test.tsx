@@ -64,9 +64,34 @@ jest.mock("../../../properties/ImageModelSelect", () => ({
 }));
 jest.mock("../../../entities/EntityAssetPickerDialog", () => () => null);
 jest.mock("../../../entities/EntityEditorDialog", () => () => null);
+// The gallery's viewer needs the router and the asset explorer; what the step
+// decides is which media it opens on and what it pages through.
+jest.mock("../../../assets/AssetViewer", () => ({
+  __esModule: true,
+  default: ({
+    asset,
+    sortedAssets,
+    captions,
+    onClose
+  }: {
+    asset: { id: string };
+    sortedAssets: { id: string }[];
+    captions: Record<string, string>;
+    onClose: () => void;
+  }) => (
+    <div role="dialog" aria-label="Gallery">
+      <p>{captions[asset.id]}</p>
+      <p>{`${sortedAssets.length} items`}</p>
+      <button type="button" onClick={onClose}>
+        Close gallery
+      </button>
+    </div>
+  )
+}));
 
 import { useStoryboardStore } from "../../../../stores/storyboard/StoryboardStore";
 import { EntitiesStep } from "../EntitiesStep";
+import { MediaGalleryProvider } from "../../MediaGallery";
 
 const BOARD_ID = "board";
 
@@ -78,7 +103,9 @@ const renderStep = () => {
     <StrictMode>
       <QueryClientProvider client={queryClient}>
         <ThemeProvider theme={mockTheme}>
-          <EntitiesStep boardId={BOARD_ID} />
+          <MediaGalleryProvider>
+            <EntitiesStep boardId={BOARD_ID} />
+          </MediaGalleryProvider>
         </ThemeProvider>
       </QueryClientProvider>
     </StrictMode>
@@ -223,7 +250,7 @@ it("filters the library without losing selections or shot assignments", async ()
   expect(screen.getAllByRole("checkbox", { name: "Mara" })[0]).toBeChecked();
 });
 
-it("opens a reference image without selecting the entity", async () => {
+it("opens a reference image fullscreen without selecting the entity", async () => {
   const user = userEvent.setup();
   renderStep();
 
@@ -235,13 +262,13 @@ it("opens a reference image without selecting the entity", async () => {
   );
 
   expect(checkbox).not.toBeChecked();
-  expect(screen.getByRole("dialog", { name: /Mara/ })).toBeInTheDocument();
+  const gallery = await screen.findByRole("dialog", { name: "Gallery" });
   expect(
-    screen.getByRole("img", { name: "Mara reference image" })
+    within(gallery).getByText("Mara: Mara wears a red raincoat")
   ).toBeInTheDocument();
-  await user.keyboard("{Escape}");
+  await user.click(within(gallery).getByRole("button", { name: "Close gallery" }));
   expect(
-    screen.queryByRole("dialog", { name: /Mara/ })
+    screen.queryByRole("dialog", { name: "Gallery" })
   ).not.toBeInTheDocument();
 });
 

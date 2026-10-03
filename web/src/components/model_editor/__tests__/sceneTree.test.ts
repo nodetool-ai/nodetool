@@ -1,5 +1,10 @@
 import * as THREE from "three";
-import { buildSceneTree, disposeObject } from "../sceneTree";
+import {
+  buildSceneTree,
+  disposeObject,
+  isLightTarget,
+  replaceSceneContent
+} from "../sceneTree";
 
 const makeMesh = (name: string) => {
   const mesh = new THREE.Mesh(
@@ -36,6 +41,16 @@ describe("buildSceneTree", () => {
     const tree = buildSceneTree(root);
     expect(tree[0].name).toBe("Group");
   });
+
+  it("leaves out a light's own target", () => {
+    const root = new THREE.Group();
+    const light = new THREE.DirectionalLight();
+    light.add(light.target);
+    root.add(light);
+
+    expect(isLightTarget(light.target)).toBe(true);
+    expect(buildSceneTree(root)[0].children).toEqual([]);
+  });
 });
 
 describe("disposeObject", () => {
@@ -48,5 +63,39 @@ describe("disposeObject", () => {
 
     expect(geometrySpy).toHaveBeenCalledTimes(1);
     expect(materialSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("disposeObject textures", () => {
+  it("disposes textures the material references", () => {
+    const texture = new THREE.Texture();
+    const mesh = new THREE.Mesh(
+      new THREE.BoxGeometry(),
+      new THREE.MeshStandardMaterial({ map: texture })
+    );
+    const textureSpy = jest.spyOn(texture, "dispose");
+
+    disposeObject(mesh);
+
+    expect(textureSpy).toHaveBeenCalledTimes(1);
+  });
+});
+
+describe("replaceSceneContent", () => {
+  it("adopts the loaded scene's top-level nodes and disposes the old ones", () => {
+    const root = new THREE.Group();
+    const old = makeMesh("Old");
+    const oldSpy = jest.spyOn(old.geometry, "dispose");
+    root.add(old);
+    const loaded = new THREE.Group();
+    const a = makeMesh("A");
+    const b = makeMesh("B");
+    loaded.add(a, b);
+
+    replaceSceneContent(root, loaded);
+
+    expect(root.children).toEqual([a, b]);
+    expect(a.parent).toBe(root);
+    expect(oldSpy).toHaveBeenCalledTimes(1);
   });
 });

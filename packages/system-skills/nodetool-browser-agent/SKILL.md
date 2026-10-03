@@ -16,8 +16,7 @@ Task description → Agent → (Plan steps → Use browser tools → Extract/int
 
 # Available Browser Tools
 
-These are the web-related tools the agent belt offers. Pass them to
-`nodetool agent run --tools` to narrow the belt to just these:
+These are the web-related tools the default agent belt offers:
 
 | Tool name | Description |
 |-----------|-------------|
@@ -36,31 +35,26 @@ These are the web-related tools the agent belt offers. Pass them to
 # CLI Usage
 
 `nodetool agent` takes arguments only — there is no config file. Put the
-instructions in the objective, and narrow the toolbelt with `--tools`.
+instructions in the objective. The CLI always runs the default toolbelt.
 
 ```bash
 # Scrape a page
 nodetool agent run -p openai -m gpt-5.4 \
-  --tools browser,write_file \
   --objective "Go to example.com, extract every product name and price, and save them as JSON with write_file"
 
 # Research a topic — final answer to stdout, trace to stderr
 nodetool agent run -p openai -m gpt-5.4 \
-  --tools web_search,browser,write_file \
   --objective "Research the latest developments in WebAssembly. Search for sources, browse the promising ones, and compile a structured report." \
   > research-report.md
 
 # Compare prices
 nodetool agent run -p openai -m gpt-5.4 \
-  --tools web_search,browser,write_file \
   --objective "Compare the price, availability, and shipping of <product> across three retailers, then recommend the best deal"
 
 # Objective via stdin
 echo "Screenshot example.com and describe the layout" | \
-  nodetool agent run -p openai -m gpt-5.4 --tools browser,screenshot
+  nodetool agent run -p openai -m gpt-5.4
 ```
-
-Omit `--tools` to give the agent the whole default belt.
 
 
 # Browser Agent as a Workflow Node

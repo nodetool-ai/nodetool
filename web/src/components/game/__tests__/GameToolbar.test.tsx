@@ -30,3 +30,8 @@ it("toggles the scene tree and inspector panels", () => {
   expect(props.onSceneTree).toHaveBeenCalledTimes(1);
   expect(props.onInspector).toHaveBeenCalledTimes(1);
 });
+
+it("reports a failed draft save instead of pending changes", () => {
+  render(<ThemeProvider theme={mockTheme}><GameToolbar {...props} saveStatus="error" /></ThemeProvider>);
+  expect(screen.getByText("Draft not saved")).toBeInTheDocument();
+});

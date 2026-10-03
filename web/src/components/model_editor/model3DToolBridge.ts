@@ -56,11 +56,21 @@ let handler: Model3DToolHandler | null = null;
 
 /**
  * Register (or clear, with null) the handler for the currently-open editor.
- * The editor calls this on mount and clears it on unmount so the ui_3d_* tools
- * always operate on the live scene — or fail cleanly when no editor is open.
+ * The editor calls this while it is the active tab and calls the returned
+ * disposer when it stops being active or unmounts, so the ui_3d_* tools always
+ * operate on the live scene — or fail cleanly when no editor is open. The
+ * disposer clears the handler only if it is still `next`, so one editor
+ * leaving never unregisters another that registered after it.
  */
-export function setModel3DToolHandler(next: Model3DToolHandler | null): void {
+export function setModel3DToolHandler(
+  next: Model3DToolHandler | null
+): () => void {
   handler = next;
+  return () => {
+    if (handler === next) {
+      handler = null;
+    }
+  };
 }
 
 export function getModel3DToolHandler(): Model3DToolHandler {
