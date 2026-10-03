@@ -227,6 +227,21 @@ describe("failure reasons", () => {
     });
   });
 
+  it("reports a provider-side crash as a failed job, not a refusal", async () => {
+    ready();
+    await start();
+    await replyWithError({
+      message:
+        "AtlasCloud job failed: [inference] AttributeError: module 'atlas_video.utils' has no attribute 'restore_letterbox_content_from_output' (flux_event.py:28) (predictionId: d691495695ac4155a69766e897a2f4cb)"
+    });
+    const failure = directGenFailure("layer-1");
+    expect(failure?.kind).toBe("provider");
+    expect(failure?.message).toBe(
+      "The provider's job failed. Try again, or use another model."
+    );
+    expect(failure?.message).not.toMatch(/refused/i);
+  });
+
   it("strips a credential out of a provider message", async () => {
     ready();
     await start();

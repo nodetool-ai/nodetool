@@ -195,11 +195,13 @@ const classifyProviderError = (error: {
       detail
     };
   }
+  // Nothing above matched, so this is not a refusal: the provider accepted
+  // the job and it broke on their side (a crashed worker, a failed render).
   return {
     kind: detail ? "provider" : "unknown",
     message: detail
-      ? "The provider refused the request."
-      : "The provider refused the request and gave no reason.",
+      ? "The provider's job failed. Try again, or use another model."
+      : "The provider's job failed and gave no reason.",
     detail
   };
 };
