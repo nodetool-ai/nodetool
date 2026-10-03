@@ -77,6 +77,30 @@ describe("owned media references with storage paths", () => {
     }
   );
 
+  it("reads a bare owned asset id when the owner listing leaves it out", async () => {
+    // Supabase lists at most 1000 children of the owner folder, so an owner
+    // with many objects gets a listing that misses this asset.
+    const storage = new InMemoryStorageAdapter();
+    await storage.store(`owner/${ID}.png`, BYTES, "image/png");
+    vi.spyOn(storage, "list").mockResolvedValue({
+      entries: [],
+      commonPrefixes: []
+    });
+    const context = new ProcessingContext({
+      jobId: "truncated-listing",
+      userId: "owner",
+      storage,
+      fetchFn: async () => new Response(null, { status: 404 }),
+      modelInterfaces: {
+        getAssetInfo: async ({ userId, assetId }) =>
+          userId === "owner" && assetId === ID
+            ? { id: ID, name: "logo.png", content_type: "image/png", metadata: null }
+            : null
+      }
+    });
+    expect(await loadMediaRefBytes({ asset_id: ID }, context)).toEqual(BYTES);
+  });
+
   it("refuses another owner's path before reading storage", async () => {
     const { context, storage, getAssetInfo } = await setup();
     const retrieve = vi.spyOn(storage, "retrieve");

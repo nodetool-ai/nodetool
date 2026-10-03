@@ -21,6 +21,7 @@ import type {
   ProviderCost
 } from "@nodetool-ai/protocol";
 import {
+  assetFileNameCandidates,
   buildAssetGenerationMetadata,
   isShortResourceId,
   packageAssetHttpPath,
@@ -2691,7 +2692,14 @@ export class ProcessingContext {
         attempts.push(`asset unavailable or not owned: ${trimmed}`);
         return { bytes: null, attempts };
       }
-      idCandidates = [ownedAsset.id];
+      // The stored key carries the extension (`<owner>/<id>.<ext>`), and the
+      // bare id alone only resolves through a listing, which is truncated for
+      // an owner with many objects on Supabase. The bare id stays last so the
+      // listing below can still find a legacy extension.
+      idCandidates = [
+        ...assetFileNameCandidates(ownedAsset.id, ownedAsset.content_type),
+        ownedAsset.id
+      ];
     }
 
     for (const adapter of adapters) {
