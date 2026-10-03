@@ -22,6 +22,7 @@
  */
 import { CAST_VERSION, type CastEvent, type DemoCast } from "./castTypes";
 import { castMessages, edge, meta, node, out, prop } from "./castHelpers";
+import { stringInputMeta } from "./cookbook/builders";
 import { EXAMPLE_IMAGE_DATA_URI } from "./assets/exampleImage";
 import type { Workflow } from "../stores/ApiTypes";
 
@@ -112,14 +113,7 @@ export const tutorialCast: DemoCast = {
   fps: 30,
   workflow,
   metadata: {
-    [INPUT_TYPE]: meta({
-      node_type: INPUT_TYPE,
-      title: "String Input",
-      properties: [prop("name", "str"), prop("value", "str")],
-      outputs: [out("output", "str")],
-      inline_fields: ["value"],
-      input_fields: [],
-    }),
+    [INPUT_TYPE]: stringInputMeta(),
     [ENHANCE_TYPE]: meta({
       node_type: ENHANCE_TYPE,
       title: "Enhance Prompt",

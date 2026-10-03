@@ -11,6 +11,7 @@
 import { PREVIEW_NODE_TYPE } from "../constants/nodeTypes";
 import { CAST_VERSION, type CastEvent, type DemoCast } from "./castTypes";
 import { castMessages, edge, meta, node, out, prop } from "./castHelpers";
+import { stringInputMeta } from "./cookbook/builders";
 import type { Workflow } from "../stores/ApiTypes";
 
 const INPUT_TYPE = "nodetool.input.StringInput";
@@ -93,14 +94,7 @@ export const templateMergeCast: DemoCast = {
   fps: 30,
   workflow,
   metadata: {
-    [INPUT_TYPE]: meta({
-      node_type: INPUT_TYPE,
-      title: "String Input",
-      properties: [prop("name", "str"), prop("value", "str")],
-      outputs: [out("output", "str")],
-      inline_fields: ["value"],
-      input_fields: [],
-    }),
+    [INPUT_TYPE]: stringInputMeta(),
     [PROMPT_TYPE]: meta({
       node_type: PROMPT_TYPE,
       title: "Prompt",
