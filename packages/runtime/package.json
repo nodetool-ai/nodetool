@@ -23,6 +23,7 @@
     "@nodetool-ai/storage": "*",
     "@opentelemetry/api": "^1.9.0",
     "@opentelemetry/exporter-trace-otlp-proto": "^0.221.0",
+    "@opentelemetry/instrumentation-undici": "^0.31.0",
     "@opentelemetry/resources": "^2.10.0",
     "@opentelemetry/sdk-node": "^0.221.0",
     "@opentelemetry/sdk-trace-base": "^2.10.0",

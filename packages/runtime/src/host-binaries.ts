@@ -28,6 +28,7 @@ import { spawn } from "node:child_process";
 import { stat } from "node:fs/promises";
 import path from "node:path";
 import { isNumber, isObjectLike } from "@nodetool-ai/protocol";
+import { withTaskSpan } from "./tracing-helpers.js";
 
 export type HostBinaryResult = {
   stdout: string;
@@ -237,15 +238,27 @@ export async function runHostBinary(
     opts.concurrencyClass === undefined || opts.concurrencyClass === ""
       ? DEFAULT_CONCURRENCY_CLASS
       : opts.concurrencyClass;
-  const queuedStart = Date.now();
-  await acquireSlot(concurrencyClass, opts.signal);
-  const queuedMs = Date.now() - queuedStart;
-  try {
-    const result = await spawnBounded(cmd, args, opts);
-    return { ...result, queuedMs };
-  } finally {
-    releaseSlot(concurrencyClass);
-  }
+  return withTaskSpan(
+    "cpu",
+    "subprocess.run",
+    {
+      "process.executable.name": path.basename(cmd),
+      "nodetool.subprocess.concurrency_class": concurrencyClass
+    },
+    async (span) => {
+      const queuedStart = Date.now();
+      await acquireSlot(concurrencyClass, opts.signal);
+      const queuedMs = Date.now() - queuedStart;
+      span?.setAttribute("nodetool.subprocess.queued_ms", queuedMs);
+      try {
+        const result = await spawnBounded(cmd, args, opts);
+        span?.setAttribute("process.exit_code", result.exitCode);
+        return { ...result, queuedMs };
+      } finally {
+        releaseSlot(concurrencyClass);
+      }
+    }
+  );
 }
 
 function spawnBounded(

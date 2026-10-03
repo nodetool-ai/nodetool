@@ -51,6 +51,7 @@ import {
   parseTrustedLocalNetworks,
   isTrustedLocalAddress
 } from "./lib/localhost-trust.js";
+import { registerHttpTracing } from "./lib/http-tracing.js";
 import {
   initTelemetry,
   shutdownTelemetry,
@@ -819,6 +820,9 @@ const serverOptions = {
 const app: FastifyInstance = (
   Fastify as (...args: unknown[]) => FastifyInstance
 )(httpsOptions ? { https: httpsOptions, ...serverOptions } : serverOptions);
+
+// First hook, so every later hook and handler runs inside the request span.
+registerHttpTracing(app);
 
 // ---------------------------------------------------------------------------
 // Request ID correlation

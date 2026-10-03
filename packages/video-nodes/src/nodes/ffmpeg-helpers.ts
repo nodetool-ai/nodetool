@@ -18,6 +18,7 @@ import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { promisify } from "node:util";
 import type { VideoRef } from "@nodetool-ai/node-sdk";
+import { withTaskSpan } from "@nodetool-ai/runtime";
 import {
   isNonEmptyString,
   isObjectLike,
@@ -57,7 +58,12 @@ export async function execFfmpeg(
   options: { maxBuffer?: number; signal?: AbortSignal } = {}
 ): Promise<{ stdout: string; stderr: string }> {
   try {
-    return await execFile("ffmpeg", args, options);
+    return await withTaskSpan(
+      "cpu",
+      "subprocess.run",
+      { "process.executable.name": "ffmpeg" },
+      () => execFile("ffmpeg", args, options)
+    );
   } catch (error) {
     if (isSpawnEnoent(error)) throw new MissingBinaryError("ffmpeg");
     throw error;
@@ -70,7 +76,12 @@ export async function execFfprobe(
   options: { maxBuffer?: number; signal?: AbortSignal } = {}
 ): Promise<{ stdout: string; stderr: string }> {
   try {
-    return await execFile("ffprobe", args, options);
+    return await withTaskSpan(
+      "cpu",
+      "subprocess.run",
+      { "process.executable.name": "ffprobe" },
+      () => execFile("ffprobe", args, options)
+    );
   } catch (error) {
     if (isSpawnEnoent(error)) throw new MissingBinaryError("ffprobe");
     throw error;

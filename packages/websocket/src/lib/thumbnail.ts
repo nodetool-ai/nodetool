@@ -36,6 +36,7 @@ import {
 } from "@nodetool-ai/storage";
 import { getAssetAdapter } from "./storage.js";
 import { assetFileNameCandidates, localAssetPath } from "./asset-paths.js";
+import { withTaskSpan } from "@nodetool-ai/runtime/tracing";
 
 const log = createLogger("nodetool.thumbnail");
 const execFileAsync = promisify(execFile);
@@ -75,16 +76,18 @@ function resizeAndEncode(pipeline: ReturnType<typeof sharp>): Promise<Buffer> {
  * (e.g. a fully uniform image trimmed to nothing) falls back to a single
  * untrimmed pass.
  */
-export async function generateImageThumb(
+export function generateImageThumb(
   input: Uint8Array | string
 ): Promise<Buffer> {
-  try {
-    return await resizeAndEncode(
-      sharp(input).rotate().trim({ threshold: 10 })
-    );
-  } catch {
-    return await resizeAndEncode(sharp(input).rotate());
-  }
+  return withTaskSpan("cpu", "image.thumbnail", {}, async () => {
+    try {
+      return await resizeAndEncode(
+        sharp(input).rotate().trim({ threshold: 10 })
+      );
+    } catch {
+      return await resizeAndEncode(sharp(input).rotate());
+    }
+  });
 }
 
 /**
@@ -106,9 +109,15 @@ async function runFfmpegThumb(
       inputPath = path.join(dir, "input");
       await fs.writeFile(inputPath, source.bytes);
     }
-    await execFileAsync("ffmpeg", buildArgs(inputPath, outputPath), {
-      maxBuffer: 16 * 1024 * 1024
-    });
+    await withTaskSpan(
+      "cpu",
+      "subprocess.run",
+      { "process.executable.name": "ffmpeg" },
+      () =>
+        execFileAsync("ffmpeg", buildArgs(inputPath, outputPath), {
+          maxBuffer: 16 * 1024 * 1024
+        })
+    );
     return await fs.readFile(outputPath);
   } finally {
     await fs.rm(dir, { recursive: true, force: true });

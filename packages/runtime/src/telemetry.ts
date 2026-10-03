@@ -10,7 +10,11 @@
  *
  *   OpenTelemetry / OTLP:
  *     TRACELOOP_API_KEY            — Traceloop cloud API key
- *     OTEL_EXPORTER_OTLP_ENDPOINT  — Any OTLP-compatible backend
+ *     OTEL_EXPORTER_OTLP_ENDPOINT  — Any OTLP-compatible backend (`/v1/traces`
+ *                                    is appended)
+ *     OTEL_EXPORTER_OTLP_TRACES_ENDPOINT — Full traces URL, used as given;
+ *                                    wins over OTEL_EXPORTER_OTLP_ENDPOINT
+ *     OTEL_EXPORTER_OTLP_HEADERS   — Extra exporter headers (read by the SDK)
  *     OTEL_SERVICE_NAME            — Service name tag (default: "nodetool")
  *     OTEL_TRACES_EXPORTER=console — Print spans to stdout via OTel SDK
  *     TRACELOOP_DISABLE_BATCH=true — Flush spans immediately (dev mode)
@@ -67,6 +71,7 @@ export async function initTelemetry(
 
   const traceloopKey = process.env["TRACELOOP_API_KEY"];
   const otlpEndpoint = process.env["OTEL_EXPORTER_OTLP_ENDPOINT"];
+  const otlpTracesEndpoint = process.env["OTEL_EXPORTER_OTLP_TRACES_ENDPOINT"];
   const consoleMode =
     options.console || process.env["OTEL_TRACES_EXPORTER"] === "console";
 
@@ -83,7 +88,7 @@ export async function initTelemetry(
 
   const traceFilePath = options.traceFile ?? process.env["NODETOOL_TRACE_FILE"];
 
-  const hasOtlp = !!(traceloopKey || otlpEndpoint);
+  const hasOtlp = !!(traceloopKey || otlpEndpoint || otlpTracesEndpoint);
   if (!hasOtlp && !consoleMode && !stdoutFormat && !traceFilePath) {
     _initialized = true;
     return false;
@@ -111,16 +116,18 @@ export async function initTelemetry(
     const { OTLPTraceExporter } = await import(
       "@opentelemetry/exporter-trace-otlp-proto"
     );
-    const url = otlpEndpoint
-      ? `${otlpEndpoint}/v1/traces`
-      : "https://api.traceloop.com/v1/traces";
+    const url = otlpTracesEndpoint
+      ? otlpTracesEndpoint
+      : otlpEndpoint
+        ? `${otlpEndpoint.replace(/\/+$/, "")}/v1/traces`
+        : "https://api.traceloop.com/v1/traces";
     const headers: Record<string, string> = traceloopKey
       ? { Authorization: `Bearer ${traceloopKey}` }
       : {};
     const exporter = new OTLPTraceExporter({ url, headers });
     const Proc = disableBatch ? SimpleSpanProcessor : BatchSpanProcessor;
     processors.push(new Proc(exporter));
-    destinations.push(traceloopKey ? "traceloop" : `otlp:${otlpEndpoint!}`);
+    destinations.push(traceloopKey ? "traceloop" : `otlp:${url}`);
   }
 
   if (consoleMode) {
@@ -146,9 +153,18 @@ export async function initTelemetry(
     destinations.push(`file:${traceFilePath}`);
   }
 
+  // Outbound `fetch` (provider APIs, S3, Supabase, safeFetch) becomes
+  // `HTTP <method>` client spans. undici publishes on diagnostics_channel, so
+  // this works in ESM and in the bundled backend without a loader hook. The
+  // OTLP exporter sends over `node:http`, so it never traces itself.
+  const { UndiciInstrumentation } = await import(
+    "@opentelemetry/instrumentation-undici"
+  );
+
   const sdk = new NodeSDK({
     resource: resourceFromAttributes({ [ATTR_SERVICE_NAME]: serviceName }),
-    spanProcessors: processors as never
+    spanProcessors: processors as never,
+    instrumentations: [new UndiciInstrumentation()]
   });
 
   // sdk.start() is typed as void in current SDK versions, but historically

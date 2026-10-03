@@ -12,6 +12,12 @@
  *       llm.chat / llm.stream        ← BaseProvider (existing)
  *
  *   agent.execute                    ← `withAgentSpan({ kind: "execute" })`
+ *
+ * IO- and CPU-bound work (storage, subprocesses, image codecs, Python worker
+ * calls) gets its own span through `withTaskSpan`, tagged with
+ * `nodetool.task.kind` so a backend can split wall time by resource.
+ * Outbound `fetch` calls get `HTTP <method>` spans from the undici
+ * instrumentation registered in `initTelemetry`.
  *     agent.plan                     ← `withAgentSpan({ kind: "plan" })`
  *     agent.step                     ← `withAgentSpan({ kind: "step" })`
  *       llm.chat / llm.stream        ← BaseProvider (existing)
@@ -336,6 +342,22 @@ function agentAttrs(
   }
   if (attributes.extra) Object.assign(attrs, attributes.extra);
   return attrs;
+}
+
+/** Which resource a task span spends: waiting on IO, or burning CPU. */
+export type TaskKind = "io" | "cpu";
+
+/**
+ * Wrap an IO- or CPU-bound task in a span named `name` carrying
+ * `nodetool.task.kind`. Pass-through when telemetry is disabled.
+ */
+export function withTaskSpan<T>(
+  kind: TaskKind,
+  name: string,
+  attributes: Record<string, unknown>,
+  fn: (span: Span | null) => Promise<T>
+): Promise<T> {
+  return withSpan(name, { "nodetool.task.kind": kind, ...attributes }, fn);
 }
 
 /** Wrap a single node execution (kernel Actor) in a span. */

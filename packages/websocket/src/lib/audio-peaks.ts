@@ -25,6 +25,7 @@ import { getAssetAdapter } from "./storage.js";
 import { localAssetPath, retrieveAssetBytes } from "./asset-paths.js";
 import { MediaToolingMissingError } from "./media.js";
 import { isObjectLike } from "./wire-values.js";
+import { withTaskSpan } from "@nodetool-ai/runtime/tracing";
 
 const execFile = promisify(execFileCb);
 
@@ -144,7 +145,19 @@ function reduceToPeaks(
  * reduce it to `count` abs-max peaks. Returns null when the file has no audio
  * stream. Throws {@link MediaToolingMissingError} when ffmpeg is missing.
  */
-export async function computeAudioPeaks(
+export function computeAudioPeaks(
+  filePath: string,
+  count: number
+): Promise<AudioPeaks | null> {
+  return withTaskSpan(
+    "cpu",
+    "audio.peaks",
+    { "nodetool.audio.peak_count": count },
+    () => computePeaks(filePath, count)
+  );
+}
+
+async function computePeaks(
   filePath: string,
   count: number
 ): Promise<AudioPeaks | null> {
