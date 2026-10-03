@@ -299,18 +299,18 @@ function providerFailureMessage(
   const gemini = geminiFailureSummary(error, providerId);
   const groq = groqRequestFailureMessage(error);
   const status = httpStatusFromError(error) ?? gemini?.status ?? null;
+  const statusCode = status ?? undefined;
   const rawMessage = groq ?? gemini?.message ?? safeClientErrorText(error);
-  let bodyMessage: string | null = null;
-  if (isObjectLike(error)) {
-    const body = error.body ?? error.response;
-    if (isObjectLike(body)) {
-      const bodyError = isObjectLike(body.error) ? body.error : body;
-      if (isObjectLike(bodyError) && isString(bodyError.message)) {
-        const safe = safeClientErrorText(bodyError.message);
-        bodyMessage = safe === GENERIC_CHAT_ERROR ? null : safe;
-      }
-    }
-  }
+
+  const body = isObjectLike(error) ? (error.body ?? error.response) : undefined;
+  const bodyError =
+    isObjectLike(body) && isObjectLike(body.error) ? body.error : body;
+  const bodyText =
+    isObjectLike(bodyError) && isString(bodyError.message)
+      ? safeClientErrorText(bodyError.message)
+      : null;
+  const bodyMessage = bodyText === GENERIC_CHAT_ERROR ? null : bodyText;
+
   if (
     providerId.toLowerCase() === "openai" &&
     /\borganization must be verified\b/i.test(bodyMessage ?? rawMessage)
@@ -318,7 +318,7 @@ function providerFailureMessage(
     return {
       errorType: status === null ? "error" : "http_status_error",
       message: "This model requires a verified OpenAI organization. Verify your provider organization or choose a model your account can access.",
-      statusCode: status ?? undefined
+      statusCode
     };
   }
   const detail = providerFailureDetail(error);
@@ -327,27 +327,28 @@ function providerFailureMessage(
     return {
       errorType: "error",
       message: `The ${target} request is too large for the model context window. Shorten the conversation or remove some attachments and try again.`,
-      statusCode: status ?? undefined
+      statusCode
     };
   }
   if (detail?.code === "provider_auth") {
     return {
       errorType: "error",
       message: `Authentication failed: ${detail.provider} rejected the configured credentials. Check the API key in Settings → Models & Providers.`,
-      statusCode: status ?? undefined
+      statusCode
     };
   }
   if (status === null) {
-    return { errorType: "error", message: rawMessage, statusCode: undefined };
+    return { errorType: "error", message: rawMessage, statusCode };
   }
 
-  let message = rawMessage;
+  const modelName = model || "requested";
+  let message: string;
   if (gemini?.kind === "quota") {
     message = `Account quota exhausted for ${providerId}/${model}. Check your ${providerId} quota or billing and try again later.`;
   } else if (gemini?.kind === "model") {
-    message = `Model ${model || "requested"} is unavailable on ${providerId}. Choose another model or check that your account has access to it.`;
+    message = `Model ${modelName} is unavailable on ${providerId}. Choose another model or check that your account has access to it.`;
   } else if (gemini?.kind === "tools") {
-    message = `Model ${model || "requested"} does not support the requested tools on ${providerId}. Choose a model with tool support or disable tools.`;
+    message = `Model ${modelName} does not support the requested tools on ${providerId}. Choose a model with tool support or disable tools.`;
   } else if (status === 400) {
     message = `Bad request: ${groq ?? bodyMessage ?? rawMessage}`;
   } else if (status === 401) {
@@ -358,18 +359,18 @@ function providerFailureMessage(
     message =
       "Access forbidden: You don't have permission for this resource. Check the provider key's model and account access.";
   } else if (status === 404) {
-    message = `Model ${model || "requested"} was not found or is unavailable on ${providerId}. Choose another model or check account access.`;
+    message = `Model ${modelName} was not found or is unavailable on ${providerId}. Choose another model or check account access.`;
   } else if (status === 413) {
-    const detail = groq ?? bodyMessage ?? rawMessage;
+    const bodyDetail = bodyMessage ?? rawMessage;
     message =
       groq ??
-      (detail === GENERIC_CHAT_ERROR
+      (bodyDetail === GENERIC_CHAT_ERROR
         ? "Request is too large for the provider. Shorten the conversation or remove some attachments and try again."
-        : `Request is too large for the provider (${detail}). Shorten the conversation or remove some attachments and try again.`);
+        : `Request is too large for the provider (${bodyDetail}). Shorten the conversation or remove some attachments and try again.`);
   } else if (status === 429) {
-    message = groq
-      ? groq
-      : "Rate limited: Too many requests or insufficient provider quota. Check your provider plan and try again later.";
+    message =
+      groq ??
+      "Rate limited: Too many requests or insufficient provider quota. Check your provider plan and try again later.";
   } else if (status >= 500) {
     message =
       groq ??
@@ -379,7 +380,7 @@ function providerFailureMessage(
     message = `HTTP error (${status}): ${rawMessage}`;
   }
 
-  return { errorType: "http_status_error", message, statusCode: status };
+  return { errorType: "http_status_error", message, statusCode };
 }
 
 /**
