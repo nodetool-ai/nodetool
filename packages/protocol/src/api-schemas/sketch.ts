@@ -52,6 +52,8 @@ export const layerWorkflowBinding = z.object({
   maskAssetId: z.string().nullable().optional(),
   width: z.number().optional(),
   height: z.number().optional(),
+  aspectRatio: z.string().optional(),
+  resolution: z.string().optional(),
   strength: z.number().optional(),
   numInferenceSteps: z.number().optional(),
   /**

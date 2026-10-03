@@ -114,7 +114,12 @@ const ConflictBannerHost: React.FC<{ documentId: string }> = ({ documentId }) =>
 };
 
 const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
-  function StandaloneSketchEditorBody({ documentId, headerActions, overlay }) {
+  function StandaloneSketchEditorBody({
+    documentId,
+    headerActions,
+    overlay,
+    active = true
+  }) {
     const theme = useTheme();
     const styles = useMemo(() => containerStyles(theme), [theme]);
     const editorRef = useRef<SketchEditorHandle | null>(null);
@@ -273,6 +278,9 @@ const StandaloneSketchEditorBody: React.FC<StandaloneSketchEditorProps> = memo(
           initialEditorState={initialEditorState ?? undefined}
           headerActions={headerActions}
           menuItems={documentMenuItems}
+          // Inactive workspace tabs stay mounted, so their window key
+          // listeners must not act on keys meant for the focused tab.
+          suspendKeyboardShortcuts={!active}
         />
         <SaveToFolderMenu
           anchorEl={saveAsAssetAnchor}
@@ -298,7 +306,7 @@ const StandaloneSketchEditor: React.FC<StandaloneSketchEditorProps> = ({
   ...bodyProps
 }) => (
   <SketchProvider active={active}>
-    <StandaloneSketchEditorBody {...bodyProps} />
+    <StandaloneSketchEditorBody active={active} {...bodyProps} />
   </SketchProvider>
 );
 
