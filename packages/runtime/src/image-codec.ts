@@ -10,6 +10,7 @@
  */
 import { importHidden } from "@nodetool-ai/config";
 import { isRawRgbaImage, type ImageRef } from "@nodetool-ai/protocol";
+import { withTaskSpan } from "./tracing-helpers.js";
 
 type SharpModuleNs = typeof import("sharp");
 type SharpFn = SharpModuleNs["default"];
@@ -58,7 +59,20 @@ async function loadSharp(): Promise<SharpFn | null> {
 }
 
 /** Encode raw straight-alpha RGBA8 pixels to PNG bytes. */
-export async function encodeRawRgbaToPng(
+export function encodeRawRgbaToPng(
+  data: Uint8Array,
+  width: number,
+  height: number
+): Promise<Uint8Array> {
+  return withTaskSpan(
+    "cpu",
+    "image.encode_png",
+    { "nodetool.image.width": width, "nodetool.image.height": height },
+    () => encodePng(data, width, height)
+  );
+}
+
+async function encodePng(
   data: Uint8Array,
   width: number,
   height: number
@@ -192,9 +206,21 @@ const MAX_SVG_RASTER_SIDE = 4096;
  *   up so the result is worth looking at, defaulting to
  *   {@link SVG_FALLBACK_SIDE}.
  */
-export async function rasterizeSvg(
+export function rasterizeSvg(
   bytes: Uint8Array,
   opts: { minSide?: number; maxSide?: number } = {}
+): Promise<{ data: Uint8Array; width: number; height: number }> {
+  return withTaskSpan(
+    "cpu",
+    "image.rasterize_svg",
+    { "nodetool.image.input_bytes": bytes.byteLength },
+    () => rasterize(bytes, opts)
+  );
+}
+
+async function rasterize(
+  bytes: Uint8Array,
+  opts: { minSide?: number; maxSide?: number }
 ): Promise<{ data: Uint8Array; width: number; height: number }> {
   if (bytes.byteLength > MAX_SVG_BYTES) {
     throw new Error(
@@ -272,9 +298,21 @@ export interface ImageRegion {
  * never mislabeled; it falls back to `image/png` only when the caller didn't
  * provide one.
  */
-export async function extractImageRegion(
+export function extractImageRegion(
   bytes: Uint8Array,
   opts: { region?: ImageRegion; maxSide?: number; sourceMime?: string } = {}
+): Promise<{ data: Uint8Array; mimeType: string; width: number; height: number }> {
+  return withTaskSpan(
+    "cpu",
+    "image.extract_region",
+    { "nodetool.image.input_bytes": bytes.byteLength },
+    () => extractRegion(bytes, opts)
+  );
+}
+
+async function extractRegion(
+  bytes: Uint8Array,
+  opts: { region?: ImageRegion; maxSide?: number; sourceMime?: string }
 ): Promise<{ data: Uint8Array; mimeType: string; width: number; height: number }> {
   const sharp = await loadSharp();
   if (!sharp) {

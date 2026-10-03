@@ -69,6 +69,7 @@
     "@nodetool-ai/transformers-js-nodes": "*",
     "@nodetool-ai/transformers-js-provider": "*",
     "@nodetool-ai/vectorstore": "*",
+    "@opentelemetry/api": "^1.9.0",
     "@trpc/server": "^11.17.0",
     "fastify": "^5.12.1",
     "fflate": "^0.8.2",

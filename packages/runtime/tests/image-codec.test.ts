@@ -127,10 +127,10 @@ describe("encodeRawRgbaToPng without a working sharp", () => {
   beforeEach(() => {
     vi.resetModules();
     importHiddenImpl = async () => null;
-    vi.doMock("@nodetool-ai/config", () => ({
-      importHidden: (name: string) => importHiddenImpl(name),
-      // Other exports the module may pull from config; unused here.
-      IS_NODE: true
+    vi.doMock("@nodetool-ai/config", async (importOriginal) => ({
+      // The codec's tracing import needs the real config exports.
+      ...(await importOriginal<typeof import("@nodetool-ai/config")>()),
+      importHidden: (name: string) => importHiddenImpl(name)
     }));
   });
 

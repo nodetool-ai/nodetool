@@ -11,6 +11,7 @@ import { getNodeBuiltinSync } from "@nodetool-ai/config";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { setWorkspaceFactory, type StorageAdapter } from "./context.js";
 import { PrefixedStorageAdapter } from "./prefixed-storage-adapter.js";
+import { withTaskSpan } from "./tracing-helpers.js";
 import {
   WorkspacePathError,
   type Workspace,
@@ -211,16 +212,19 @@ export class StorageWorkspace implements Workspace {
     return this.storage.uriForKey(this.key(path));
   }
 
-  async read(path: string): Promise<Uint8Array | null> {
-    await this.assertContained(path);
-    const bytes = await this.storage.retrieve(this.uri(path));
-    // The file backend answers with a Buffer, the object stores with a plain
-    // Uint8Array. A caller comparing or structured-cloning the result must not
-    // be able to tell which backend it got, so narrow to the common type.
-    if (bytes === null) return null;
-    return bytes instanceof Uint8Array && bytes.constructor === Uint8Array
-      ? bytes
-      : new Uint8Array(bytes);
+  read(path: string): Promise<Uint8Array | null> {
+    return withTaskSpan("io", "workspace.read", {}, async (span) => {
+      await this.assertContained(path);
+      const bytes = await this.storage.retrieve(this.uri(path));
+      span?.setAttribute("nodetool.workspace.bytes", bytes?.byteLength ?? 0);
+      // The file backend answers with a Buffer, the object stores with a plain
+      // Uint8Array. A caller comparing or structured-cloning the result must
+      // not be able to tell which backend it got, so narrow to the common type.
+      if (bytes === null) return null;
+      return bytes instanceof Uint8Array && bytes.constructor === Uint8Array
+        ? bytes
+        : new Uint8Array(bytes);
+    });
   }
 
   async readText(path: string): Promise<string | null> {
@@ -228,14 +232,21 @@ export class StorageWorkspace implements Workspace {
     return bytes === null ? null : textDecoder.decode(bytes);
   }
 
-  async write(
+  write(
     path: string,
     data: Uint8Array | string,
     contentType?: string
   ): Promise<void> {
-    await this.assertContained(path);
     const bytes = typeof data === "string" ? textEncoder.encode(data) : data;
-    await this.storage.store(this.key(path), bytes, contentType);
+    return withTaskSpan(
+      "io",
+      "workspace.write",
+      { "nodetool.workspace.bytes": bytes.byteLength },
+      async () => {
+        await this.assertContained(path);
+        await this.storage.store(this.key(path), bytes, contentType);
+      }
+    );
   }
 
   async exists(path: string): Promise<boolean> {
@@ -288,9 +299,21 @@ export class StorageWorkspace implements Workspace {
     return null;
   }
 
-  async list(
+  list(
     path = "",
     opts: { recursive?: boolean } = {}
+  ): Promise<WorkspaceEntry[]> {
+    return withTaskSpan(
+      "io",
+      "workspace.list",
+      { "nodetool.workspace.recursive": opts.recursive === true },
+      () => this.listEntries(path, opts)
+    );
+  }
+
+  private async listEntries(
+    path: string,
+    opts: { recursive?: boolean }
   ): Promise<WorkspaceEntry[]> {
     const key = normalize(path);
     if (key) await this.assertContained(key);
@@ -378,7 +401,13 @@ export class StorageWorkspace implements Workspace {
     await this.delete(from);
   }
 
-  async materialize(path: string): Promise<string> {
+  materialize(path: string): Promise<string> {
+    return withTaskSpan("io", "workspace.materialize", {}, () =>
+      this.stage(path)
+    );
+  }
+
+  private async stage(path: string): Promise<string> {
     await this.assertContained(path);
     const key = this.key(path);
     if (this.localDir) return resolvePath(this.localDir, key);
@@ -393,7 +422,13 @@ export class StorageWorkspace implements Workspace {
     return target;
   }
 
-  async absorb(localPath: string, path: string): Promise<void> {
+  absorb(localPath: string, path: string): Promise<void> {
+    return withTaskSpan("io", "workspace.absorb", {}, () =>
+      this.absorbFile(localPath, path)
+    );
+  }
+
+  private async absorbFile(localPath: string, path: string): Promise<void> {
     const node = requireNode();
     if (
       this.localDir &&

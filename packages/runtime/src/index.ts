@@ -83,12 +83,14 @@ export {
   withWorkflowSpan,
   withNodeSpan,
   withSpanGen,
+  withTaskSpan,
   setLastUsage,
   consumeLastUsage,
   peekLastUsage,
   createUsageSlot,
   type AgentSpanKind,
-  type LlmUsage
+  type LlmUsage,
+  type TaskKind
 } from "./tracing-helpers.js";
 export {
   RecoverableNodeError,

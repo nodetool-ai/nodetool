@@ -179,6 +179,7 @@ const COMMON_EXTERNAL_PACKAGES = [
   "@opentelemetry/resources",
   "@opentelemetry/sdk-trace-base",
   "@opentelemetry/exporter-trace-otlp-proto",
+  "@opentelemetry/instrumentation-undici",
   "@opentelemetry/semantic-conventions",
 
   // MCP SDK (deep-path imports like /server/mcp.js)

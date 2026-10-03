@@ -2368,6 +2368,21 @@ workflow.run                       (kernel WorkflowRunner)
         llm.chat / llm.stream
 ```
 
+IO- and CPU-bound work gets its own spans, tagged `nodetool.task.kind` =
+`io` or `cpu` so a backend can split wall time by resource:
+
+| Span | Kind | Where |
+|---|---|---|
+| `<METHOD> <route>` (server) | — | Every API request except `/health` and `/ready`. Continues an incoming `traceparent` |
+| `GET`, `POST`, … (client) | — | Every outbound `fetch`: provider APIs, S3, Supabase Storage, `safeFetch` |
+| `workspace.read` / `write` / `list` / `materialize` / `absorb` | io | `StorageWorkspace` |
+| `subprocess.run` | cpu | `runHostBinary`, the video nodes' ffmpeg/ffprobe, server-side thumbnails and audio extraction |
+| `image.encode_png` / `rasterize_svg` / `extract_region` / `thumbnail` | cpu | Image codec helpers and asset thumbnails |
+| `audio.peaks`, `video.encode_proxy`, `ffmpeg.trim_video_window` | cpu | Waveform peaks, preview proxies, video-edit source windows |
+
+Wrap new IO or CPU work with `withTaskSpan(kind, name, attributes, fn)` from
+`@nodetool-ai/runtime`. It runs `fn` directly when telemetry is off.
+
 Every `llm.chat` / `llm.stream` span carries `gen_ai.usage.input_tokens`,
 `gen_ai.usage.output_tokens`, `gen_ai.usage.total_tokens`, and
 `gen_ai.usage.cost_usd`. Token counts also appear in the `llm_call`
@@ -2392,6 +2407,8 @@ TRACELOOP_API_KEY=your-key npm run dev:chat -- --agent
 
 # OpenTelemetry — custom OTLP backend (Jaeger, Grafana, etc.)
 OTEL_EXPORTER_OTLP_ENDPOINT=http://localhost:4318 npm run dev:chat -- --agent
+# Full traces URL, used as given; OTEL_EXPORTER_OTLP_HEADERS adds auth headers
+OTEL_EXPORTER_OTLP_TRACES_ENDPOINT=https://otlp.example.com/v1/traces npm run dev:server
 
 # Debug logging (all LLM calls, planning details)
 NODETOOL_LOG_LEVEL=debug npm run dev:chat -- --agent

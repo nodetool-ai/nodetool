@@ -3,6 +3,7 @@ import { promisify } from "node:util";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
+import { withTaskSpan } from "./tracing-helpers.js";
 
 const execFile = promisify(execFileCallback);
 
@@ -35,25 +36,31 @@ export async function trimVideoWindow(
   const outputPath = path.join(dir, "window.mp4");
   try {
     await fs.writeFile(inputPath, input);
-    await execFile(
-      "ffmpeg",
-      [
-        "-y",
-        "-i",
-        inputPath,
-        "-ss",
-        String(startMs / 1000),
-        "-t",
-        String((endMs - startMs) / 1000),
-        "-c:v",
-        "libx264",
-        "-c:a",
-        "aac",
-        "-movflags",
-        "+faststart",
-        outputPath
-      ],
-      { maxBuffer: 50 * 1024 * 1024, signal }
+    await withTaskSpan(
+      "cpu",
+      "ffmpeg.trim_video_window",
+      { "nodetool.video.input_bytes": input.length },
+      () =>
+        execFile(
+          "ffmpeg",
+          [
+            "-y",
+            "-i",
+            inputPath,
+            "-ss",
+            String(startMs / 1000),
+            "-t",
+            String((endMs - startMs) / 1000),
+            "-c:v",
+            "libx264",
+            "-c:a",
+            "aac",
+            "-movflags",
+            "+faststart",
+            outputPath
+          ],
+          { maxBuffer: 50 * 1024 * 1024, signal }
+        )
     );
     return new Uint8Array(await fs.readFile(outputPath));
   } finally {
