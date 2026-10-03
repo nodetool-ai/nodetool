@@ -118,10 +118,12 @@ interface PlayheadProps {
   trackAreaOffsetPx?: number;
   /** Total height the playhead line should span (track area height). */
   heightPx: number;
+  /** Content end (last clip end or project duration). Defaults to the store's durationMs. */
+  endMs?: number;
 }
 
 export const Playhead: React.FC<PlayheadProps> = memo(
-  ({ trackAreaOffsetPx = 0, heightPx }) => {
+  ({ trackAreaOffsetPx = 0, heightPx, endMs }) => {
     const theme = useTheme();
 
     // Geometry inputs that DO change reactively (zoom/scroll). We keep them in
@@ -134,7 +136,8 @@ export const Playhead: React.FC<PlayheadProps> = memo(
       (s) => s.setCurrentTimeMs
     );
     const fps = useTimelineStore((s) => s.fps);
-    const durationMs = useTimelineStore((s) => s.durationMs);
+    const storeDurationMs = useTimelineStore((s) => s.durationMs);
+    const durationMs = Math.max(storeDurationMs, endMs ?? 0);
 
     const playbackStoreApi = useTimelinePlaybackStoreApi();
 

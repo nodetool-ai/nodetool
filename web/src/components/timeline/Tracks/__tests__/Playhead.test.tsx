@@ -8,7 +8,7 @@
  * live time pushes, and that those pushes don't trigger a component render.
  */
 
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../../__mocks__/themeMock";
@@ -17,11 +17,11 @@ import { TimelineProvider } from "../../../../stores/timeline/TimelineInstance";
 import { useTimelinePlaybackStore } from "../../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../../stores/timeline/TimelineUIStore";
 
-const renderPlayhead = () =>
+const renderPlayhead = (endMs?: number) =>
   render(
     <ThemeProvider theme={mockTheme}>
       <TimelineProvider>
-        <Playhead heightPx={300} trackAreaOffsetPx={0} />
+        <Playhead heightPx={300} trackAreaOffsetPx={0} endMs={endMs} />
       </TimelineProvider>
     </ThemeProvider>
   );
@@ -60,5 +60,11 @@ describe("Playhead", () => {
       useTimelinePlaybackStore.getState().setTimeMs(5000);
     });
     expect(pill.textContent).not.toBe("");
+  });
+
+  it("End jumps to the content end passed in, past a stale durationMs", () => {
+    renderPlayhead(8000);
+    fireEvent.keyDown(screen.getByTestId("playhead"), { key: "End" });
+    expect(useTimelinePlaybackStore.getState().getTimeMs()).toBe(8000);
   });
 });

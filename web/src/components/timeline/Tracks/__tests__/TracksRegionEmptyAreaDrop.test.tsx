@@ -145,6 +145,24 @@ describe("TracksRegion empty-area drop", () => {
     expect(audioClips[0].linkId).toBeUndefined();
   });
 
+  it("accepts a .glb dropped with a generic content type", async () => {
+    renderRegion();
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId("tracks-drop-area"), {
+        dataTransfer: dataTransferFor(
+          makeAsset({
+            id: "glb-1",
+            name: "robot.glb",
+            content_type: "application/octet-stream"
+          })
+        )
+      });
+    });
+    expect(
+      useTimelineStore.getState().clips.some((c) => c.mediaType === "model3d")
+    ).toBe(true);
+  });
+
   it("applies insert mode when an asset is dropped below the existing tracks", async () => {
     restFetchMock.mockResolvedValue({
       ok: true,

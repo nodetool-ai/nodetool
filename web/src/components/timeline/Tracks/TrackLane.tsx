@@ -337,7 +337,7 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
         return;
       }
 
-      const mediaType = assetMediaType(asset.content_type);
+      const mediaType = assetMediaType(asset.content_type, asset.name);
       if (!mediaType) {
         showWarning(`Cannot import "${asset.name}": unsupported media type.`);
         return;
