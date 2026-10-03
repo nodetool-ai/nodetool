@@ -34,9 +34,18 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Chain Editor]({{ site.url }}/chain-editor): Linear chain authoring mode.
 - [Graph View]({{ site.url }}/workflow-graph-view): Read-only graph navigation.
 - [Debugging]({{ site.url }}/workflow-debugging): Inspect runs, errors, logs.
-- [Sketch Editor]({{ site.url }}/sketch-editor): Mask, paint, layer, and generate images inline.
+- [Triggers]({{ site.url }}/triggers): Run a workflow on a schedule, on a file change, from a webhook, or manually.
 - [Templates Gallery]({{ site.url }}/templates-gallery): Browse and open starter workflows.
-- [App Builder]({{ site.url }}/app-builder): Design a Mini App's interface and bind it to workflows.
+
+## Creative Editors
+
+- [Creative Agent]({{ site.url }}/creative-agent): Brief to finished film through a Director agent, storyboard and timeline.
+- [AI Video Production]({{ site.url }}/ai-video-production): Guided video, storyboard and script flows.
+- [Video Editor]({{ site.url }}/video-editor): Multi-track timeline editing and export.
+- [AI Timeline Editing]({{ site.url }}/ai-timeline-editing): Generate and revise clips on the timeline.
+- [Sketch Editor]({{ site.url }}/sketch-editor): Mask, paint, layer, and generate images inline.
+- [3D Editor]({{ site.url }}/3d-editor): Block out a set with shapes and lights and render shot references.
+- [Game Editor]({{ site.url }}/game-editor): Build, play and publish 2D and 3D games.
 
 ## Mini Apps
 
@@ -44,11 +53,13 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Building Mini Apps]({{ site.url }}/mini-apps-guide): Recipes for generators, streaming apps, galleries, live tuning, and review flows.
 - [Mini App Reference]({{ site.url }}/mini-apps-reference): Widgets, binding grammar, actions, conditions, and the document schema.
 - [Mini Apps on Mobile]({{ site.url }}/mini-apps-mobile): Opening and running an app from the phone, and what the native runtime does differently.
+- [App Builder]({{ site.url }}/app-builder): Design a Mini App's interface and bind it to workflows.
 
 ## Chat & Agents
 
 - [Chat]({{ site.url }}/global-chat): Provider-agnostic chat interface.
 - [Chat & Agents]({{ site.url }}/global-chat-agents): Use agents from chat.
+- [Skills]({{ site.url }}/skills): Instruction packs agents load, how to write one, and the shipped catalog.
 - [Agent Memory]({{ site.url }}/agent-memory): How agents persist context.
 
 ## Models & Providers
@@ -61,6 +72,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [ComfyUI Setup]({{ site.url }}/comfyui-setup): Getting a ComfyUI endpoint NodeTool can reach, and what must be installed on it.
 - [ComfyUI Recipes]({{ site.url }}/comfyui-recipes): Composing a ComfyUI node with the rest of a graph, and running one headless.
 - [Models Manager]({{ site.url }}/models-manager): Download and manage local models.
+- [Costs & Credits]({{ site.url }}/costs-and-credits): Cost estimates, spend tracking, limits, and hosted credits.
 
 ## Examples
 
@@ -120,7 +132,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 
 ## Apps
 
-- [Desktop App]({{ site.url }}/desktop-app): NodeTool Studio (Electron).
+- [Desktop App]({{ site.url }}/desktop-app): Install, first launch, data locations, updates and logs.
 - [Desktop App Views]({{ site.url }}/electron-views): Windows and panels.
 - [Mobile App]({{ site.url }}/mobile-app): React Native client.
 

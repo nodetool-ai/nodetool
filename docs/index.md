@@ -140,6 +140,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
       <div class="surface-body">
         <h3>3D</h3>
         <p>Block out a set with simple shapes and lights, by hand or by asking the agent. Render it from any angle as a shot reference.</p>
+        <a href="{{ '/3d-editor' | relative_url }}">3D Editor →</a>
       </div>
     </article>
   </div>

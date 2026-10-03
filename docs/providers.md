@@ -294,11 +294,11 @@ Local providers (Ollama, vLLM, LM Studio, llama.cpp) don't need a key. Point Nod
 
 ## Tracking spend
 
-Every cloud call records its token counts and cost. The **Costs** page (`/costs`, or **Costs** in the app menu) shows them over 7, 14, 30, or 90 days, grouped by execution, node type, workflow, provider, or model, so you can see which pipeline is expensive before the invoice does.
+Every cloud call records its token counts and cost. The **Costs** page (`/costs`, or **Costs** under the app pages in the left panel's **More** tab) shows them over 7, 14, 30, or 90 days, grouped by execution, node type, workflow, provider, or model, so you can see which pipeline is expensive before the invoice does.
 
 ![Costs dashboard](assets/screenshots/costs-dashboard.png)
 
-The same records are readable from the terminal: `nodetool costs summary`, `costs list` (filter with `--provider` and `--model`), `costs by-provider`, and `costs by-model`. Each takes `--json`.
+The same records are readable from the terminal: `nodetool costs summary`, `costs list` (filter with `--provider` and `--model`), `costs by-provider`, and `costs by-model`. Each takes `--json`. For estimates before a run, spend limits, and hosted credits, see [Costs and credits](costs-and-credits.md).
 
 ## Adding a new provider
 

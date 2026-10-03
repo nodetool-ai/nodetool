@@ -4,7 +4,7 @@ title: "Templates Gallery"
 description: "Browse ready-to-run example workflows and use them as starting points."
 ---
 
-The **Examples** page is a library of shipped example workflows, apps, storyboards, timelines, and games that you can copy into your own project. Open it from the **Examples** item in the **More** panel, or from **Browse examples** on the new-project surface. It opens as a workspace tab, not as a URL route.
+The **Examples** page is a library of shipped example workflows, apps, storyboards, timelines, sketches, 3D models, and games that you can copy into your own project. Open it from the **Examples** item in the **More** panel, or from **Browse examples** on the new-project surface. It opens as a workspace tab, not as a URL route.
 
 ---
 
@@ -16,7 +16,11 @@ The **Examples** page is a library of shipped example workflows, apps, storyboar
 | **Workflows** | Click a card to copy the workflow into your project |
 | **Storyboards** | Adds an editable copy of the board |
 | **Timelines** | **Open editable timeline** adds a copy |
+| **Sketches** | **Open sketch** creates your own copy and opens it in the sketch editor |
+| **3D models** | **Open model** saves the model as an asset in your project and opens it in the 3D editor |
 | **Games** | **Play and edit** adds a copy |
+
+Sketches are 1200 × 900 with five vector layers each, and a category row filters them (All, NodeTool, Ads, Movies, Art studies). The 3D models tab groups low-poly glTF models into packs: Adventure, Dungeon, Platformer, Seaside, Sci-fi, and Sci-fi outpost. Neither tab needs a model or API key. See [Sketch Editor](sketch-editor.md) for editing sketches.
 
 The rest of this page covers the **Workflows** tab, which is the template gallery.
 

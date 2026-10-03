@@ -96,7 +96,7 @@ generation time.
 
 ## Slash commands: / for skills
 
-Type `/` at the start of a word in the composer to open a list of your skills. Picking one inserts `/<skill name> ` into the message so the agent loads that skill for the request. The list filters by skill name and description as you type.
+Type `/` at the start of a word in the composer to open a list of your skills and the skills NodeTool ships. Picking one inserts `/<skill name> ` into the message so the agent loads that skill for the request. The list filters by skill name and description as you type. See [Skills](skills.md) for how to write one and for the full catalog.
 
 ---
 
