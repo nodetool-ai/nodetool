@@ -398,6 +398,17 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "research-a-brand-from-its-website",
+        "name": "Research a Brand from Its Website",
+        "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. Uses Claude Sonnet 5 with browser and web search tools, and GPT-5 mini for extraction.",
+        "tags": [
+          "brand-asset",
+          "branding",
+          "research",
+          "agents"
+        ]
+      },
+      {
         "slug": "restyle-a-photo-as-an-illustration",
         "name": "Restyle a Photo as an Illustration",
         "description": "Keep the composition, change the medium. Strength is the dial: low preserves the photograph, high redraws it into something new.",
@@ -1256,7 +1267,7 @@ export const templateCatalog: CatalogCategory[] = [
       {
         "slug": "model-arena",
         "name": "Model Arena",
-        "description": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
+        "description": "One brief, three frontier models, answered side by side, then a fourth model judges them blind. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure. A judge reads the three answers as A, B and C without knowing which model wrote which, scores them against a fixed rubric, and names a winner. Swap the model on any lane, or the judge, to build your own bracket.",
         "tags": [
           "comparison",
           "llm",
