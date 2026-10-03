@@ -524,7 +524,7 @@ export async function generateFromBeats(
         startMs: 0,
         durationMs: startMs,
         mediaType: "audio",
-        bindingKind: "text-to-audio",
+        bindingKind: "text-to-music",
         prompt: musicPrompt(setup?.brief ?? ""),
         provider: options.musicProvider,
         model: options.musicModel,

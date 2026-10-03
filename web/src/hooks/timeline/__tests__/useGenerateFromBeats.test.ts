@@ -541,4 +541,17 @@ describe("generateFromBeats queues the music bed", () => {
     expect(bed?.model).toBe("nodetool/stable-audio");
     expect(bed?.provider).toBe("nodetool");
   });
+
+  it("binds the bed to text-to-music, which the direct-gen job sends as mode music (F14)", async () => {
+    const store = seeded();
+    const result = await generateFromBeats(store, {
+      ...options,
+      music: true,
+      startJob: jest.fn(async (clipId: string) => `req-${clipId}`)
+    });
+    const bed = store
+      .getState()
+      .clips.find((clip) => clip.id === result.musicClipId);
+    expect(bed?.bindingKind).toBe("text-to-music");
+  });
 });

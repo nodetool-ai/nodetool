@@ -11,6 +11,7 @@ import { useCallback, useMemo } from "react";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
 import { useTimelineDirectGenJob } from "./useTimelineDirectGenJob";
 
 /** The clips `Retry N failed` would re-run: failed, and driven by direct gen. */
@@ -24,6 +25,16 @@ export function failedDirectGenClips(
       clip.bindingKind !== "workflow"
   );
 }
+
+const reportRetryFailure = (err: unknown): null => {
+  useNotificationStore.getState().addNotification({
+    type: "error",
+    content: `Retry failed: ${err instanceof Error ? err.message : String(err)}`,
+    dedupeKey: "timeline-retry-failed",
+    replaceExisting: true
+  });
+  return null;
+};
 
 export interface UseRetryFailedClips {
   failedClipIds: string[];
@@ -44,14 +55,14 @@ export function useRetryFailedClips(): UseRetryFailedClips {
 
   const retry = useCallback(
     async (clipId: string) => {
-      await start(clipId).catch(() => null);
+      await start(clipId).catch(reportRetryFailure);
     },
     [start]
   );
 
   const retryAll = useCallback(async () => {
     await Promise.all(
-      failedClipIds.map((clipId) => start(clipId).catch(() => null))
+      failedClipIds.map((clipId) => start(clipId).catch(reportRetryFailure))
     );
   }, [failedClipIds, start]);
 

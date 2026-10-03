@@ -14,7 +14,10 @@ import {
   useTimelineStore,
   useTimelineStoreApi
 } from "../../stores/timeline/TimelineStore";
-import { reattachSequenceJobs } from "./useTimelineDirectGenJob";
+import {
+  detachSequenceJobs,
+  reattachSequenceJobs
+} from "./useTimelineDirectGenJob";
 
 export function useReattachSequenceJobs(sequenceId: string | null): void {
   const store = useTimelineStoreApi();
@@ -23,9 +26,17 @@ export function useReattachSequenceJobs(sequenceId: string | null): void {
   );
 
   useEffect(() => {
-    if (sequenceId && loaded) {
-      void reattachSequenceJobs(store, sequenceId);
-    }
+    if (!sequenceId || !loaded) return;
+    let current = true;
+    void reattachSequenceJobs(store, sequenceId, () => current);
+    // Closing the editor drops the live subscriptions and keeps the persisted
+    // entries. A reply that lands after this point would otherwise settle the
+    // entry and patch a store that no longer autosaves; the next open
+    // reattaches from the generation row instead.
+    return () => {
+      current = false;
+      detachSequenceJobs(sequenceId);
+    };
   }, [loaded, sequenceId, store]);
 }
 
