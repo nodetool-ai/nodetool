@@ -110,8 +110,20 @@ const AdaptFormatDialogInternal: React.FC<AdaptFormatDialogProps> = ({
     if (trackId) {
       options.trackId = trackId;
     }
-    const createdIds = await createAdaptations(options);
-    if (createdIds.length > 0) onClose();
+    const { createdAspectRatios, failures } = await createAdaptations(options);
+    if (failures.length === 0 && createdAspectRatios.length > 0) {
+      onClose();
+      return;
+    }
+    // Keep the dialog open on a partial failure, with only the formats that
+    // still need creating selected, so a retry cannot duplicate the rest.
+    if (createdAspectRatios.length > 0) {
+      setFormats((current) => {
+        const next = new Set(current);
+        for (const ratio of createdAspectRatios) next.delete(ratio);
+        return next;
+      });
+    }
   };
 
   const cannotCreate =

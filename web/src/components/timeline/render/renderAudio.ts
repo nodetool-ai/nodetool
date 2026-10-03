@@ -31,6 +31,43 @@ interface RenderAudioOptions {
   sampleRate?: number;
   /** Tempo the midi clips are read against. Defaults to `DEFAULT_TEMPO`. */
   tempo?: TimelineTempo;
+  /** Aborts the mixdown between steps and while assets are loading. */
+  signal?: AbortSignal;
+}
+
+function abortError(): DOMException {
+  return new DOMException("Render aborted", "AbortError");
+}
+
+function throwIfAborted(signal: AbortSignal | undefined): void {
+  if (signal?.aborted) throw abortError();
+}
+
+/** Settle with `promise`, or reject with an AbortError as soon as `signal` fires. */
+function abortable<T>(
+  promise: Promise<T>,
+  signal: AbortSignal | undefined
+): Promise<T> {
+  if (!signal) return promise;
+  if (signal.aborted) {
+    // The loser must not become an unhandled rejection.
+    promise.catch(() => undefined);
+    return Promise.reject(abortError());
+  }
+  return new Promise<T>((resolve, reject) => {
+    const onAbort = (): void => reject(abortError());
+    signal.addEventListener("abort", onAbort, { once: true });
+    promise.then(
+      (value) => {
+        signal.removeEventListener("abort", onAbort);
+        resolve(value);
+      },
+      (err) => {
+        signal.removeEventListener("abort", onAbort);
+        reject(err);
+      }
+    );
+  });
 }
 
 function isPlayableAudioClip(clip: TimelineClip): boolean {
@@ -53,10 +90,11 @@ function isPlayableAudioClip(clip: TimelineClip): boolean {
 export async function renderTimelineAudio(
   opts: RenderAudioOptions
 ): Promise<AudioBuffer | null> {
-  const { clips, tracks, durationMs, resolveUrl } = opts;
+  const { clips, tracks, durationMs, resolveUrl, signal } = opts;
   const sampleRate = opts.sampleRate ?? 48_000;
 
   if (durationMs <= 0) return null;
+  throwIfAborted(signal);
 
   // Midi tracks are mixed with the audio ones — same gain, mute/solo and DSP
   // chain — so the export hears the synth parts the preview plays.
@@ -74,36 +112,45 @@ export async function renderTimelineAudio(
   );
   if (audioClips.length === 0) return null;
 
-  const length = Math.max(1, Math.ceil((durationMs / 1000) * sampleRate));
+  const length = Math.max(1, Math.round((durationMs / 1000) * sampleRate));
   const offline = new OfflineAudioContext(2, length, sampleRate);
   const bpm = resolveTempo({ tempo: opts.tempo }).bpm;
   const instrumentOf = (trackId: string) =>
     tracks.find((t) => t.id === trackId)?.instrument ?? DEFAULT_MIDI_INSTRUMENT;
 
-  const resolved = await Promise.all(
-    audioClips.map(async (clip): Promise<ScheduledAudioClip | null> => {
-      if (clip.mediaType === "midi") {
-        // Rendered inline: the export already runs off the main thread's hot
-        // path, and one context per render makes a worker round trip pure cost.
-        const samples = renderMidiClip({
-          clip,
-          bpm,
-          instrument: instrumentOf(clip.trackId),
-          samples: await getSamplerAudio(offline, instrumentOf(clip.trackId), resolveUrl),
-          sampleRate
-        });
-        const buffer = offline.createBuffer(
-          1,
-          Math.max(1, samples.length),
-          sampleRate
-        );
-        buffer.getChannelData(0).set(samples);
-        return { clip, buffer };
-      }
-      const url = await resolveUrl(clip.currentAssetId!);
-      return url ? { clip, assetUrl: url } : null;
-    })
+  const resolved = await abortable(
+    Promise.all(
+      audioClips.map(async (clip): Promise<ScheduledAudioClip | null> => {
+        throwIfAborted(signal);
+        if (clip.mediaType === "midi") {
+          // Rendered inline: the export already runs off the main thread's hot
+          // path, and one context per render makes a worker round trip pure cost.
+          const samples = renderMidiClip({
+            clip,
+            bpm,
+            instrument: instrumentOf(clip.trackId),
+            samples: await getSamplerAudio(
+              offline,
+              instrumentOf(clip.trackId),
+              resolveUrl
+            ),
+            sampleRate
+          });
+          const buffer = offline.createBuffer(
+            1,
+            Math.max(1, samples.length),
+            sampleRate
+          );
+          buffer.getChannelData(0).set(samples);
+          return { clip, buffer };
+        }
+        const url = await resolveUrl(clip.currentAssetId!);
+        return url ? { clip, assetUrl: url } : null;
+      })
+    ),
+    signal
   );
+  throwIfAborted(signal);
   const validClips = resolved.filter(
     (c): c is ScheduledAudioClip => c !== null
   );
@@ -112,7 +159,8 @@ export async function renderTimelineAudio(
   const graph = new AudioGraph(offline);
   // currentTimeMs = 0: the renderer always mixes the whole timeline from t=0,
   // so each clip is scheduled at its absolute startMs on the offline clock.
-  await graph.scheduleClips(validClips, tracks, 0);
+  await abortable(graph.scheduleClips(validClips, tracks, 0), signal);
+  throwIfAborted(signal);
 
-  return offline.startRendering();
+  return abortable(offline.startRendering(), signal);
 }

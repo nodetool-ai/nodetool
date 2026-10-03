@@ -48,6 +48,7 @@ import {
   BORDER_RADIUS,
   MOTION
 } from "../ui_primitives";
+import ReportBugButton from "../support/ReportBugButton";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { exportTimelineZip } from "../../utils/timelineBundle";
@@ -189,14 +190,16 @@ const dragHandleStyles = (theme: Theme, tall: boolean) =>
     // Grip affordance — a bare 6px line reads as a border, not a control.
     ...(tall
       ? {
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
+          position: "relative",
           backgroundColor: theme.vars.palette.background.paper,
           borderTop: `1px solid ${theme.vars.palette.divider}`,
           borderBottom: `1px solid ${theme.vars.palette.divider}`,
           "&::after": {
             content: '""',
+            position: "absolute",
+            top: "50%",
+            left: "50%",
+            transform: "translate(-50%, -50%)",
             width: 36,
             height: 3,
             borderRadius: BORDER_RADIUS.sm,
@@ -1119,9 +1122,18 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
         actions={exportDialogActions}
       >
         {exportError != null ? (
-          <Text size="small" sx={{ color: "error.main" }}>
-            {exportError}
-          </Text>
+          <FlexColumn gap={SPACING.md}>
+            <Text size="small" sx={{ color: "error.main" }}>
+              {exportError}
+            </Text>
+            <ReportBugButton
+              context={{
+                source: "operation-failure",
+                summary: "Timeline export failed",
+                errorText: exportError
+              }}
+            />
+          </FlexColumn>
         ) : (
           <FlexColumn gap={1} sx={{ minWidth: 360, py: 1 }}>
             <ProgressBar
