@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
+import { useStore } from "zustand";
 import { gameEntity3D, type GameDocument3D } from "@nodetool-ai/protocol";
 import type { AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
 import { trpc, trpcClient } from "../../trpc/client";
@@ -32,6 +33,8 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
   const selectedIds = useGameDraft(refId, (state) => state.selectedIds);
   const saveStatus = useGameDraft(refId, (state) => state.saveStatus);
   const draftError = useGameDraft(refId, (state) => state.error);
+  const canUndo = useStore(getGameDraftStore(refId).temporal, (state) => state.pastStates.length > 0);
+  const canRedo = useStore(getGameDraftStore(refId).temporal, (state) => state.futureStates.length > 0);
   const [sceneId, setSceneId] = useState(document.entrySceneId);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(true);
@@ -140,12 +143,11 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
   };
   const behavior = scriptIndex === null ? undefined : selected?.behaviors[scriptIndex];
   const restart = host.playDocument && JSON.stringify(host.playDocument) !== JSON.stringify(document);
-  const history = getGameDraftStore(refId).temporal.getState();
   const notice = host.error || draftError || operationError || restart;
   return <EditorUiProvider scope="inspector"><FlexColumn sx={GAME_EDITOR_ROOT_SX}>
     <GameToolbar name={name} playing={host.playing} playSession={Boolean(host.playDocument)} loading={host.backend === "Initializing"}
       saving={saveStatus === "saving"} saveStatus={saveStatus} assistantOpen={assistantOpen} sceneTreeOpen={treeOpen} inspectorOpen={inspectorOpen}
-      playHref={`/game/${encodeURIComponent(refId)}`} canUndo={history.pastStates.length > 0} canRedo={history.futureStates.length > 0}
+      playHref={`/game/${encodeURIComponent(refId)}`} canUndo={canUndo} canRedo={canRedo}
       onUndo={() => getGameDraftStore(refId).getState().undo()} onRedo={() => getGameDraftStore(refId).getState().redo()}
       onPlay={host.beginPlay} onStop={host.stop} onStep={() => host.step()}
       onSave={host.save} onLoad={() => void host.load()} onPublish={() => setPublishOpen(true)} onAssistant={() => setAssistantOpen((value) => !value)}

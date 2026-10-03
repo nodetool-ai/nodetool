@@ -7,7 +7,7 @@ import type { GameValidationIssue } from "@nodetool-ai/game-runtime";
 import { Box, Caption, Checkbox, CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, InspectorFieldRow, InspectorSelect, InspectorToggleRow, InspectorValueInput, Label, SPACING, TextInput, ToolbarIconButton, TYPOGRAPHY } from "../../ui_primitives";
 import type { FieldSchema } from "./schemaForm";
 import { schemaDefault, schemaVariant } from "./schemaForm";
-import { AXIS_COLORS, COMPONENT_SECTION_SX } from "./componentSection";
+import { COMPONENT_SECTION_SX } from "./componentSection";
 
 interface SchemaFieldsProps {
   schema: FieldSchema;
@@ -23,6 +23,19 @@ interface SchemaFieldsProps {
 }
 
 const FIELD_WIDTH = { width: "100%", minWidth: 0 } as const;
+const ADD_FIELD_ROW_SX = { flexWrap: "wrap", pt: SPACING.xs } as const;
+const ADD_COMPONENT_ROW_SX = { flexWrap: "wrap", p: SPACING.md, borderTop: 1, borderColor: "divider" } as const;
+
+function isObjectSchema(schema: FieldSchema): boolean {
+  return schema.type === "object" || Boolean(schema.properties);
+}
+
+/** A required x/y or x/y/z number object renders as one row instead of a section. */
+function isVectorSchema(schema: FieldSchema): boolean {
+  const keys = Object.keys(schema.properties ?? {});
+  return (keys.length === 2 || keys.length === 3) && ["x", "y", "z"].slice(0, keys.length).every((key) =>
+    keys.includes(key) && ["number", "integer"].includes(schema.properties?.[key]?.type ?? "") && Boolean(schema.required?.includes(key)));
+}
 
 function asRecord(value: unknown): Record<string, unknown> {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
@@ -45,7 +58,7 @@ function fieldLabel(path: string): string {
   const parts = path.split(".");
   const key = parts.at(-1) ?? path;
   if (/^\d+$/.test(key)) return `Item ${Number(key) + 1}`;
-  return key.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/2d\b/i, "2D")
+  return key.replace(/([a-z0-9])([A-Z])/g, "$1 $2").replace(/([a-z])([23])d\b/i, "$1 $2D")
     .replace(/^./, (letter) => letter.toUpperCase()).replace(/\bId\b/g, "ID").replace(/\bHud\b/g, "HUD");
 }
 
@@ -87,7 +100,6 @@ function NumberField({ label, value, schema, degrees, error, axis, onChange }: {
     (schema.minimum !== undefined && actual < schema.minimum) || (schema.exclusiveMinimum !== undefined && actual <= schema.exclusiveMinimum) ||
     (schema.maximum !== undefined && actual > schema.maximum) || (schema.type === "integer" && !Number.isInteger(actual));
   const control = <FlexRow gap={SPACING.xs} align="center" sx={{ minWidth: 0, width: "100%" }}>
-    {axis && <Caption component="span" aria-hidden sx={{ color: AXIS_COLORS[axis] ?? "text.secondary" }}>{axis}</Caption>}
     <InspectorValueInput ariaLabel={label} value={local} unit={degrees ? "°" : undefined} size="medium" grow minWidth={axis ? CONTROL.height.xl : undefined} onCommit={(raw) => {
       setLocal(raw);
       const next = Number(raw);
@@ -124,7 +136,8 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
   }
   if (schema.type === "object" || schema.properties) {
     const record = asRecord(value);
-    const properties = Object.entries(schema.properties ?? {}).filter(([key]) => key !== "kind" && key !== "property");
+    // A const property is a union discriminator; the variant select above already edits it.
+    const properties = Object.entries(schema.properties ?? {}).filter(([key, child]) => key !== "kind" && key !== "property" && child.const === undefined);
     const pairs = [
       { label: fieldLabel(path || "value"), keys: ["x", "y", "z"], axes: ["X", "Y", "Z"] },
       { label: path.endsWith("transform2d") ? "Position" : "Axes", keys: ["x", "y"], axes: ["X", "Y"] },
@@ -151,7 +164,10 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
           onChange={(next) => onChange({ ...record, [key]: next })} />;
         const optional = !schema.required?.includes(key);
         const remove = (): void => { const copy = { ...record }; delete copy[key]; onChange(copy); };
-        if (child.type === "object" || child.properties || child.type === "array") {
+        if (isVectorSchema(child) && !optional) {
+          return <FlexRow key={key} sx={{ ...FIELD_WIDTH, px: componentSections ? SPACING.md : undefined }}>{field}</FlexRow>;
+        }
+        if (child.type === "object" || child.properties || child.type === "array" || (child.oneOf ?? child.anyOf)?.some(isObjectSchema)) {
           return componentSections
             ? <Box key={key} sx={{ position: "relative", width: "100%" }}>
               <CollapsibleSection title={fieldLabel(key)} compact sx={COMPONENT_SECTION_SX}>
@@ -168,7 +184,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
           {optional && <ToolbarIconButton icon={<CloseIcon fontSize="small" />} tooltip={`Remove ${fieldLabel(key)}`} onClick={remove} />}
         </FlexRow>;
       })}
-      {absent.length > 0 && <FlexRow gap={SPACING.xs} sx={{ flexWrap: "wrap", pt: SPACING.xs, ...(componentSections ? { px: SPACING.md, py: SPACING.md, borderTop: 1, borderColor: "divider" } : {}) }}>
+      {absent.length > 0 && <FlexRow gap={SPACING.xs} sx={componentSections ? ADD_COMPONENT_ROW_SX : ADD_FIELD_ROW_SX}>
         {absent.map(([key, child]) => <EditorButton key={key} variant="outlined" startIcon={<AddIcon fontSize="small" />}
           onClick={() => onChange({ ...record, [key]: schemaDefault(child) })}>Add {fieldLabel(key)}</EditorButton>)}
       </FlexRow>}

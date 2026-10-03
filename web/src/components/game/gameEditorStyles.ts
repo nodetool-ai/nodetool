@@ -9,7 +9,7 @@ export const GAME_EDITOR_ROOT_SX = {
   height: "100%",
   minHeight: 0,
   bgcolor: "background.default",
-  "& input, & textarea, & .MuiSelect-select": {
+  "& input, & textarea, & .MuiInputBase-root .MuiSelect-select": {
     fontFamily: TYPOGRAPHY.sans.label.fontFamily,
     fontSize: TYPOGRAPHY.sans.label.fontSize,
     fontVariantNumeric: "tabular-nums"

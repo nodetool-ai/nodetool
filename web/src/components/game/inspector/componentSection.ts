@@ -7,5 +7,3 @@ export const COMPONENT_SECTION_SX = {
   "& > [role='button'] > div": { ...TYPOGRAPHY.sans.label, color: "text.primary" }
 } as const;
 
-/** Axis letter colors shared by vector rows: X red, Y green, Z blue. */
-export const AXIS_COLORS: Readonly<Record<string, string>> = { X: "error.main", Y: "success.main", Z: "info.main" };

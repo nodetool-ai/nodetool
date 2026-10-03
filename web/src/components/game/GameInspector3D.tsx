@@ -9,7 +9,7 @@ import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import { Box, Caption, CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, FONT_SIZE_SANS, InspectorFieldRow, InspectorValueInput, SPACING, Text, ToolbarIconButton } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
 import SchemaFields from "./inspector/SchemaFields";
-import { AXIS_COLORS, COMPONENT_SECTION_SX } from "./inspector/componentSection";
+import { COMPONENT_SECTION_SX } from "./inspector/componentSection";
 import GameOverrideFields from "./GameOverrideFields";
 import { gameSchemaFields } from "./inspector/schemaForm";
 
@@ -60,8 +60,7 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
   const rotation = { x: angles.x * 180 / Math.PI, y: angles.y * 180 / Math.PI, z: angles.z * 180 / Math.PI };
   const transformField = (kind: "position" | "scale" | "rotation", values: { x: number; y: number; z: number }): ReactNode =>
     <InspectorFieldRow label={<Box component="span" title={TRANSFORM_UNITS[kind]}>{TRANSFORM_LABELS[kind]}</Box>}>
-      {(["x", "y", "z"] as const).map((axis) => <FlexRow key={axis} gap={SPACING.xs} align="center" sx={{ flex: 1, minWidth: 0 }}>
-        <Caption component="span" aria-hidden sx={{ color: AXIS_COLORS[axis.toUpperCase()] }}>{axis.toUpperCase()}</Caption>
+      {(["x", "y", "z"] as const).map((axis) => <FlexRow key={axis} sx={{ flex: 1, minWidth: 0 }}>
         <InspectorValueInput ariaLabel={`${kind} ${axis}`} grow minWidth={CONTROL.height.xl} value={String(Math.round(values[axis] * 1000) / 1000)}
           onCommit={(value) => {
             const numeric = Number(value);
