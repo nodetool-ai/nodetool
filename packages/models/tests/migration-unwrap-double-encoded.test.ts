@@ -70,18 +70,13 @@ describe("unwrap_double_encoded_pg_json_text", () => {
     ]);
   });
 
-  it("unwraps message text only from the affected window", async () => {
-    await seedMessage("new", JSON.stringify("hello"), "2026-10-02T00:00:00Z");
-    await seedMessage("old", '"quoted"', "2026-09-01T00:00:00Z");
+  it("leaves message content alone", async () => {
+    await seedMessage("text", JSON.stringify("Hi! How can I help?"), "2026-10-02T00:00:00Z");
 
     await unwrap.up(adapter);
 
-    const rows = await adapter.fetchall(
-      "SELECT id, content FROM nodetool_messages ORDER BY id"
-    );
-    expect(rows).toEqual([
-      { id: "new", content: "hello" },
-      { id: "old", content: '"quoted"' }
+    expect(await adapter.fetchall("SELECT content FROM nodetool_messages")).toEqual([
+      { content: JSON.stringify("Hi! How can I help?") }
     ]);
   });
 
@@ -96,6 +91,43 @@ describe("unwrap_double_encoded_pg_json_text", () => {
     await unwrap.up(sqlite);
     expect(await sqlite.fetchall("SELECT document FROM storyboards")).toEqual([
       { document: JSON.stringify(document) }
+    ]);
+  });
+});
+
+describe("reencode_raw_pg_message_content", () => {
+  const reencode = migrations.find((entry) => entry.version === "20261003_000001")!;
+  let adapter: SQLiteMigrationAdapter;
+
+  beforeEach(async () => {
+    const database = new Database(":memory:");
+    await new MigrationRunner(new SQLiteMigrationAdapter(database)).migrate({
+      target: UNWRAP
+    });
+    adapter = new PostgresReportingAdapter(database);
+  });
+
+  it("encodes raw text and keeps valid JSON content", async () => {
+    const seed = (id: string, content: string, createdAt = "2026-10-03T12:00:00Z") =>
+      adapter.execute(
+        `INSERT INTO nodetool_messages (id, user_id, thread_id, role, content, created_at)
+         VALUES (?, 'owner', 'thread', 'assistant', ?, ?)`,
+        [id, content, createdAt]
+      );
+    await seed("raw", "Here is the plan");
+    await seed("string", JSON.stringify("already encoded"));
+    await seed("parts", JSON.stringify([{ type: "text", text: "hi" }]));
+    await seed("old-raw", "untouched", "2026-09-01T00:00:00Z");
+
+    await reencode.up(adapter);
+
+    expect(
+      await adapter.fetchall("SELECT id, content FROM nodetool_messages ORDER BY id")
+    ).toEqual([
+      { id: "old-raw", content: "untouched" },
+      { id: "parts", content: JSON.stringify([{ type: "text", text: "hi" }]) },
+      { id: "raw", content: JSON.stringify("Here is the plan") },
+      { id: "string", content: JSON.stringify("already encoded") }
     ]);
   });
 });

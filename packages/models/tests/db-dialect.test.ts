@@ -4,6 +4,7 @@ import { Asset } from "../src/asset.js";
 import { ExternalIdentity } from "../src/external-identity.js";
 import { Workflow } from "../src/workflow.js";
 import { Storyboard, emptyStoryboardDocument } from "../src/storyboard.js";
+import { Message } from "../src/message.js";
 import { closeDb, getDatabase, initPostgresDb, initTestDb } from "../src/db.js";
 
 // Run real Drizzle Pg builders and transaction handles against a recording
@@ -96,6 +97,21 @@ describe("explicit database dialect", () => {
     expect(insert.params).toContain(document);
     expect(insert.params).not.toContain(JSON.stringify(document));
     expect(board.toDocument().entityIds).toEqual([]);
+  });
+
+  it("encodes string message content on PostgreSQL", async () => {
+    await initPostgresDb("postgres://unused/recording-driver");
+    await Message.create<Message>({
+      user_id: "owner",
+      thread_id: "thread",
+      role: "assistant",
+      content: "Hi! How can I help?"
+    });
+    const insert = driver.state.queries.find((query) =>
+      query.sql.includes("nodetool_messages")
+    );
+    expect(insert?.params).toContain(JSON.stringify("Hi! How can I help?"));
+    expect(insert?.params).not.toContain("Hi! How can I help?");
   });
 
   it("preserves create, update, and delete observer sequences on PostgreSQL", async () => {
