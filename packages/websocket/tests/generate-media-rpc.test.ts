@@ -205,6 +205,44 @@ describe("generate_media RPC (text-to-image)", () => {
 
     await runner.disconnect();
   });
+
+  it("refuses a bare prompt for a model the catalog lists as editing-only", async () => {
+    const textToImages = vi.fn();
+    const provider = {
+      provider: "atlascloud",
+      async getAvailableImageModels() {
+        return [
+          {
+            id: "black-forest-labs/flux-2-flex/edit",
+            name: "FLUX.2 Flex — Edit",
+            provider: "atlascloud",
+            supportedTasks: ["image_to_image"]
+          }
+        ];
+      },
+      textToImages
+    };
+    const runner = await makeRunner(ws, async () => provider as never);
+
+    const out = await runOne(ws, runner, {
+      command: "generate_media",
+      request_id: "g-edit",
+      data: {
+        mode: "image",
+        provider: "atlascloud",
+        model: "black-forest-labs/flux-2-flex/edit",
+        prompt: "a brass lantern"
+      }
+    });
+
+    expect(out.type).toBe("rpc_response");
+    expect(JSON.stringify(out.error)).toContain(
+      "FLUX.2 Flex — Edit only edits images and needs an input image"
+    );
+    expect(textToImages).not.toHaveBeenCalled();
+
+    await runner.disconnect();
+  });
 });
 
 describe("generate_media RPC (entity mentions)", () => {
