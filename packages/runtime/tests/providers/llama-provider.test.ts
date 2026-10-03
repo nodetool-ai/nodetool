@@ -22,6 +22,33 @@ describe("LlamaProvider", () => {
     expect(await provider.hasToolSupport("any")).toBe(true);
   });
 
+  it("sends LLAMA_API_KEY as bearer auth to chat and model listing", async () => {
+    const fetchMock = vi.fn(async (url: string | URL | Request) =>
+      String(url).endsWith("/v1/models")
+        ? new Response(JSON.stringify({ data: [{ id: "m" }] }))
+        : chatJsonResponse({ choices: [{ message: { content: "ok" } }] })
+    );
+    const provider = new LlamaProvider(
+      { LLAMA_CPP_URL: "http://127.0.0.1:8080", LLAMA_API_KEY: "secret-1" },
+      { fetchFn: fetchMock as unknown as typeof fetch }
+    );
+
+    await provider.getAvailableLanguageModels();
+    await provider.generateMessage({
+      model: "m",
+      messages: [{ role: "user", content: "hi" }]
+    });
+
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    for (const call of fetchMock.mock.calls) {
+      const init = (call as unknown[])[1] as RequestInit | undefined;
+      expect(new Headers(init?.headers).get("authorization")).toBe(
+        "Bearer secret-1"
+      );
+    }
+    expect(provider.getContainerEnv()).toEqual({ LLAMA_API_KEY: "secret-1" });
+  });
+
   it("lists available language models from /v1/models", async () => {
     const fetchFn = vi.fn().mockResolvedValue({
       ok: true,

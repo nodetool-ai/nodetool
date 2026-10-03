@@ -10,6 +10,7 @@ import { createLogger } from "@nodetool-ai/config";
 import { getMaxUploadBytes } from "@nodetool-ai/storage";
 import {
   getDefaultVectorProvider,
+  getProviderEmbeddingFunction,
   CollectionNotFoundError,
   splitDocument
 } from "@nodetool-ai/vectorstore";
@@ -28,6 +29,20 @@ function jsonResponse(data: unknown, status = 200): Response {
 
 function errorResponse(status: number, detail: string): Response {
   return jsonResponse({ detail }, status);
+}
+
+/**
+ * Decode an upload as UTF-8 text, or return null for binary content. This
+ * route has no PDF, Office, or OCR extraction, so indexing those bytes as a
+ * string would store garbage chunks.
+ */
+function decodeText(bytes: Uint8Array): string | null {
+  if (bytes.includes(0)) return null;
+  try {
+    return new TextDecoder("utf-8", { fatal: true }).decode(bytes);
+  } catch {
+    return null;
+  }
 }
 
 function normalizePath(pathname: string): string {
@@ -65,18 +80,42 @@ export async function handleCollectionRequest(
 
   try {
     const provider = getDefaultVectorProvider();
-    const collection = await provider.getCollection({ name: collectionName });
+    const stored = await provider.getCollection({ name: collectionName });
 
     // Same ownership rule the tRPC router enforces, and the same 404-not-403
     // response for someone else's collection so this endpoint can't be used to
     // probe for names. See @nodetool-ai/vectorstore collection-access.ts.
     if (
       !canAccessCollection(
-        collection.metadata as Record<string, string | number | boolean>,
+        stored.metadata as Record<string, string | number | boolean>,
         userId
       )
     ) {
       return errorResponse(404, "Collection not found");
+    }
+
+    // Upserted documents are embedded by the collection's embedding function,
+    // which only exists when it is attached here. The caller's ID selects
+    // their provider credentials.
+    const embeddingModel = stored.metadata?.embedding_model;
+    const embeddingProvider = stored.metadata?.embedding_provider;
+    if (typeof embeddingModel !== "string" || !embeddingModel) {
+      return errorResponse(
+        400,
+        "Collection has no embedding model, so its documents cannot be " +
+          "searched. Create a collection with an embedding model."
+      );
+    }
+    const embeddingFunction = getProviderEmbeddingFunction(
+      embeddingModel,
+      typeof embeddingProvider === "string" ? embeddingProvider : null,
+      { userId }
+    );
+    if (!embeddingFunction) {
+      return errorResponse(
+        400,
+        `No provider is configured for embedding model '${embeddingModel}'.`
+      );
     }
 
     const formData = await request.formData();
@@ -97,10 +136,22 @@ export async function handleCollectionRequest(
       );
     }
 
-    const text = await file.text();
+    const text = decodeText(new Uint8Array(await file.arrayBuffer()));
+    if (text === null) {
+      return errorResponse(
+        415,
+        "Only text files can be indexed here (plain text, Markdown, HTML, " +
+          "CSV, JSON). Use an indexing workflow for PDFs, Office files, " +
+          "and images."
+      );
+    }
     const chunks = splitDocument(text, file.name);
 
     if (chunks.length > 0) {
+      const collection = await provider.getCollection({
+        name: collectionName,
+        embeddingFunction
+      });
       await collection.upsert(
         chunks.map((c, i) => ({
           id: `${file.name}#${i}`,

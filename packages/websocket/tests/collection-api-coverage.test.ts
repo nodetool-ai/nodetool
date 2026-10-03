@@ -43,15 +43,18 @@ const notifyMock = notifyResourceChange as unknown as ReturnType<typeof vi.fn>;
 
 const options = {} as HttpApiOptions;
 
-function makeCollection() {
-  return { upsert: vi.fn().mockResolvedValue(undefined) };
+function makeCollection(metadata: Record<string, string> = {}) {
+  return {
+    metadata: { embedding_model: "text-embedding-3-small", ...metadata },
+    upsert: vi.fn().mockResolvedValue(undefined)
+  };
 }
 
 function uploadRequest(
   urlPath: string,
   opts: {
     method?: string;
-    file?: { name: string; content: string };
+    file?: { name: string; content: string | Uint8Array };
     contentType?: string;
     noForm?: boolean;
   } = {}
@@ -167,6 +170,14 @@ describe("successful upload", () => {
     );
 
     expect(getCollection).toHaveBeenCalledWith({ name: "my docs" });
+    // The upsert goes through a handle carrying the collection's embedding
+    // function, so the chunks get vectors.
+    expect(getCollection).toHaveBeenLastCalledWith({
+      name: "my docs",
+      embeddingFunction: expect.objectContaining({
+        generate: expect.any(Function)
+      })
+    });
     expect(res!.status).toBe(200);
     const body = await res!.json();
     expect(body).toEqual({ path: "note.txt", chunks: 1, error: null });
@@ -205,6 +216,74 @@ describe("successful upload", () => {
     expect(body).toEqual({ path: "empty.txt", chunks: 0, error: null });
     expect(collection.upsert).not.toHaveBeenCalled();
     expect(notifyMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("unindexable uploads", () => {
+  it("rejects a collection without an embedding model with 400", async () => {
+    const collection = { metadata: {}, upsert: vi.fn() };
+    providerMock.mockReturnValue({
+      getCollection: vi.fn().mockResolvedValue(collection)
+    });
+
+    const res = await handleCollectionRequest(
+      uploadRequest("/api/collections/docs/index", {
+        file: { name: "note.txt", content: "hello world" }
+      }),
+      "/api/collections/docs/index",
+      options
+    );
+
+    expect(res!.status).toBe(400);
+    expect((await res!.json()).detail).toContain("no embedding model");
+    expect(collection.upsert).not.toHaveBeenCalled();
+  });
+
+  it("rejects an embedding model no provider can serve with 400", async () => {
+    const savedOllama = process.env.OLLAMA_API_URL;
+    delete process.env.OLLAMA_API_URL;
+    try {
+      const collection = makeCollection({ embedding_model: "nomic-embed-text" });
+      providerMock.mockReturnValue({
+        getCollection: vi.fn().mockResolvedValue(collection)
+      });
+
+      const res = await handleCollectionRequest(
+        uploadRequest("/api/collections/docs/index", {
+          file: { name: "note.txt", content: "hello world" }
+        }),
+        "/api/collections/docs/index",
+        options
+      );
+
+      expect(res!.status).toBe(400);
+      expect((await res!.json()).detail).toContain("nomic-embed-text");
+      expect(collection.upsert).not.toHaveBeenCalled();
+    } finally {
+      if (savedOllama !== undefined) process.env.OLLAMA_API_URL = savedOllama;
+    }
+  });
+
+  it("rejects a binary file with 415 instead of indexing its bytes", async () => {
+    const collection = makeCollection();
+    providerMock.mockReturnValue({
+      getCollection: vi.fn().mockResolvedValue(collection)
+    });
+
+    const pdfBytes = new Uint8Array([
+      0x25, 0x50, 0x44, 0x46, 0x2d, 0x31, 0x2e, 0x37, 0x0a, 0x00, 0xe2, 0xe3
+    ]);
+    const res = await handleCollectionRequest(
+      uploadRequest("/api/collections/docs/index", {
+        file: { name: "report.pdf", content: pdfBytes }
+      }),
+      "/api/collections/docs/index",
+      options
+    );
+
+    expect(res!.status).toBe(415);
+    expect((await res!.json()).detail).toContain("Only text files");
+    expect(collection.upsert).not.toHaveBeenCalled();
   });
 });
 
@@ -282,10 +361,7 @@ describe("ownership", () => {
   }
 
   it("refuses to index into another user's collection", async () => {
-    const collection = {
-      ...makeCollection(),
-      metadata: { owner_user_id: "user-2" }
-    };
+    const collection = makeCollection({ owner_user_id: "user-2" });
     providerMock.mockReturnValue({
       getCollection: vi.fn().mockResolvedValue(collection)
     });
@@ -302,10 +378,7 @@ describe("ownership", () => {
   });
 
   it("indexes into the caller's own collection", async () => {
-    const collection = {
-      ...makeCollection(),
-      metadata: { owner_user_id: "user-1" }
-    };
+    const collection = makeCollection({ owner_user_id: "user-1" });
     providerMock.mockReturnValue({
       getCollection: vi.fn().mockResolvedValue(collection)
     });
@@ -321,7 +394,7 @@ describe("ownership", () => {
   });
 
   it("indexes into an unowned legacy collection", async () => {
-    const collection = { ...makeCollection(), metadata: {} };
+    const collection = makeCollection();
     providerMock.mockReturnValue({
       getCollection: vi.fn().mockResolvedValue(collection)
     });

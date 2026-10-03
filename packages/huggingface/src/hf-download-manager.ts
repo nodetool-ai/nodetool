@@ -43,6 +43,8 @@ interface StartDownloadOptions {
   ignorePatterns?: string[] | null;
   cacheDir?: string | null;
   modelType?: string | null;
+  /** Token for this download, in place of the manager's. See resolveWorkerHfToken. */
+  token?: string | null;
   onProgress?: ProgressCallback;
 }
 
@@ -244,6 +246,7 @@ export class DownloadManager {
       ignorePatterns = null,
       cacheDir = null,
       modelType = null,
+      token: requestToken = null,
       onProgress
     } = opts;
 
@@ -292,7 +295,7 @@ export class DownloadManager {
 
     try {
       // Resolve token
-      const token = await resolveHfToken(this.token);
+      const token = await resolveHfToken(requestToken ?? this.token);
 
       // List remote files via @huggingface/hub
       const treeEntries: HfTreeEntry[] = [];

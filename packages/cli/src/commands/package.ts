@@ -151,6 +151,10 @@ export function registerPackageCommands(program: Command): void {
               import: "./dist/index.js",
               types: "./dist/index.d.ts"
             }
+          },
+          nodetool: {
+            apiVersion: 1,
+            register: "register"
           }
         };
         fs.writeFileSync(
@@ -180,7 +184,7 @@ export function registerPackageCommands(program: Command): void {
           path.join(cwd, "src", "index.ts"),
           `import type { NodeRegistry } from "@nodetool-ai/node-sdk";\n` +
             `\n` +
-            `export function registerNodes(_registry: NodeRegistry): void {\n` +
+            `export function register(_registry: NodeRegistry): void {\n` +
             `  // register your nodes here\n` +
             `}\n`
         );
@@ -214,7 +218,7 @@ export function registerPackageCommands(program: Command): void {
         const metadataDir = path.join(cwd, "nodetool", "package_metadata");
         if (!fs.existsSync(metadataDir)) {
           throw new Error(
-            "No nodetool/package_metadata/ found. Run 'nodetool package scan' first."
+            "No nodetool/package_metadata/ found. Run 'python -m nodetool.package_tools scan --package-dir . --write' first."
           );
         }
         const loaded = loadPythonPackageMetadata({ roots: [cwd] });

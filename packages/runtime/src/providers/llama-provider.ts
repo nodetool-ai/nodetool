@@ -25,9 +25,11 @@ export class LlamaProvider extends OpenAICompatProvider {
 
   readonly baseUrl: string;
   private readonly _llamaFetch: typeof fetch;
+  /** Bearer token for a llama-server started with `--api-key`. */
+  private readonly _llamaApiKey: string | undefined;
 
   constructor(
-    secrets: { LLAMA_CPP_URL?: string },
+    secrets: { LLAMA_CPP_URL?: string; LLAMA_API_KEY?: string },
     options: LlamaProviderOptions = {}
   ) {
     const raw =
@@ -37,11 +39,12 @@ export class LlamaProvider extends OpenAICompatProvider {
     }
     const baseURL = trimTrailingSlashes(String(raw));
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
+    const llamaApiKey = secrets.LLAMA_API_KEY?.trim() || undefined;
 
     super(
       {
         providerId: "llama_cpp",
-        apiKey: "sk-no-key-required",
+        apiKey: llamaApiKey ?? "sk-no-key-required",
         baseURL: `${baseURL}/v1`
       },
       { ...options, fetchFn }
@@ -49,10 +52,11 @@ export class LlamaProvider extends OpenAICompatProvider {
 
     this.baseUrl = baseURL;
     this._llamaFetch = fetchFn;
+    this._llamaApiKey = llamaApiKey;
   }
 
-  override getContainerEnv() {
-    return {};
+  override getContainerEnv(): Record<string, string> {
+    return this._llamaApiKey ? { LLAMA_API_KEY: this._llamaApiKey } : {};
   }
 
   /**
@@ -66,7 +70,12 @@ export class LlamaProvider extends OpenAICompatProvider {
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     try {
-      const response = await this._llamaFetch(`${this.baseUrl}/v1/models`);
+      const response = await this._llamaFetch(
+        `${this.baseUrl}/v1/models`,
+        this._llamaApiKey
+          ? { headers: { Authorization: `Bearer ${this._llamaApiKey}` } }
+          : undefined
+      );
       if (!response.ok) return [];
       // llama-server answers with `data`; some builds and proxies use `models`.
       const payload = (await response.json()) as {

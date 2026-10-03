@@ -645,7 +645,7 @@ if (!_cloudProfile) {
     PROVIDER_IDS.LLAMA_CPP,
     LlamaProvider,
     { LLAMA_CPP_URL: "" },
-    {},
+    { LLAMA_API_KEY: "" },
     { access: "local_service", displayName: "llama.cpp server" }
   );
   // In-process llama.cpp via the native node-llama-cpp binding. No secret

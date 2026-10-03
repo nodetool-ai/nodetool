@@ -280,7 +280,7 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       log.info("Download WebSocket client connected");
 
       import("@nodetool-ai/huggingface")
-        .then(({ getDownloadManager }) => {
+        .then(({ getDownloadManager, resolveWorkerHfToken }) => {
           // TJS downloads are bookkept here so cancel can abort them.
           const tjsAborts = new Map<string, AbortController>();
           // In-flight worker-scoped downloads, keyed by the same composite id
@@ -321,9 +321,16 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
                   await handleTjsDownload(socket, repoId, modelType, tjsAborts);
                   return;
                 }
-                const manager = await getDownloadManager(req.userId ?? "1");
+                const userId = req.userId ?? "1";
+                const manager = await getDownloadManager(userId);
+                // The token pasted in Settings lives in the secret store, not
+                // in this process's environment, so resolve it per user.
+                const token = await resolveWorkerHfToken((key) =>
+                  getStoredSecret(key, userId)
+                );
                 await manager.startDownload(repoId, {
                   path: msg.path ?? null,
+                  token: token ?? null,
                   allowPatterns: msg.allow_patterns ?? null,
                   ignorePatterns: msg.ignore_patterns ?? null,
                   cacheDir: msg.cache_dir ?? null,
