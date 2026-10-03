@@ -23,6 +23,7 @@ to be worth wiring up.
 | That composition in twelve styles | [Pattern 5]({{ '/cookbook/patterns' | relative_url }}#pattern-5-sketch-as-control) |
 | Writing and hearing back a line | Script editor |
 | Re-voicing a script after every copy edit | [Pattern 4]({{ '/cookbook/patterns' | relative_url }}#pattern-4-script-to-voiced-cut) |
+| Building and play-testing one game | [Game editor]({{ '/game-editor' | relative_url }}) |
 | One hero image | Chat, or a single image node |
 | Thirty on-brand assets with one cast | [Pattern 3]({{ '/cookbook/patterns' | relative_url }}#pattern-3-entities) |
 

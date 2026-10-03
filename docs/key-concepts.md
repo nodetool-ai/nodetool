@@ -291,5 +291,7 @@ See the [Developer Guide](developer/) and
 - [Asset Management](asset-management.md)
 - [Sketch Editor](sketch-editor.md)
 - [Video Editor](video-editor.md)
+- [3D Editor](3d-editor.md)
+- [Game Editor](game-editor.md)
 - [Models & Providers](models-and-providers.md)
 - [Cookbook](cookbook.md)

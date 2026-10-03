@@ -45,6 +45,12 @@ const SURFACES: Surface[] = [
     poster: "/surface-3d-poster.webp",
     clip: "/surface-3d",
   },
+  {
+    title: "Games",
+    body: "Places entities, writes their behaviors, generates the art, and play-tests the level.",
+    poster: "/surface-game-poster.webp",
+    clip: "/surface-game",
+  },
 ];
 
 function SurfaceCard({ surface }: { surface: Surface }) {

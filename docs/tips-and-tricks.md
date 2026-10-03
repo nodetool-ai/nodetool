@@ -247,5 +247,6 @@ Press `Ctrl/⌘ + K` to open the command menu – the fastest way to:
 
 - **[Workflow Editor](workflow-editor.md)** – Full editor documentation
 - **[Sketch Editor](sketch-editor.md)** – Image editing guide
+- **[Game Editor](game-editor.md)** – Build, play, and export 2D and 3D games
 - **[Cookbook](cookbook.md)** – Workflow patterns
 - **[Keyboard Shortcuts](user-interface.md#keyboard-shortcuts)** – Complete list

@@ -58,7 +58,7 @@ spending on video, then assemble the clips on a timeline. Trim the cut, add
 narration, and export an MP4. Revise one shot without regenerating the film.
 The [film quick start](docs/getting-started.md) walks through each step.
 
-Five editors share one project, so a piece never leaves the studio to be
+Six editors share one project, so a piece never leaves the studio to be
 finished, and an agent drives every one of them through the actions you have.
 
 ### Storyboard
@@ -120,6 +120,18 @@ Place primitives and lights in a scene by hand or by asking, then capture a
 view as a depth or composition reference for an image or video model. The same
 scene builds and renders with no editor open, so it comes back the same way
 every time.
+[3D editor guide →](https://docs.nodetool.ai/3d-editor)
+
+### Game
+
+![NodeTool game editor](marketing/public/surface-game-poster.webp)
+
+Build a 2D or 3D game in a workspace tab and play it without leaving the
+editor. Place entities, give them behaviors or JavaScript, and bind generated
+sprites, sounds, and models to their slots. Ask the agent for a new enemy or a
+darker level and it edits the same draft. Publish a revision, then export it as
+a standalone web player that runs without NodeTool.
+[Game editor guide →](https://docs.nodetool.ai/game-editor)
 
 ## The node editor
 
@@ -215,6 +227,8 @@ Everything the film surfaces do is reachable on the canvas without the film.
 - **[JavaScript Sandbox](https://docs.nodetool.ai/javascript-sandbox)** — What JS scripts and Code nodes can reach
 - **[Video Editor](https://docs.nodetool.ai/video-editor)** — Sequence and generate clips on a timeline
 - **[Sketch Editor](https://docs.nodetool.ai/sketch-editor)** — Draw, mask, and generate on a layered canvas
+- **[3D Editor](https://docs.nodetool.ai/3d-editor)** — Place objects, lights, and cameras in a glTF scene
+- **[Game Editor](https://docs.nodetool.ai/game-editor)** — Build, play, and export 2D and 3D games
 - **[Node Packs](https://docs.nodetool.ai/packs)** — Available nodes and integrations
 - **[Custom Nodes](https://docs.nodetool.ai/developer/custom-nodes-guide)** — Extend NodeTool
 - **[Provider Guides](https://docs.nodetool.ai/developer/providers/)** — Add new models and nodes for any provider

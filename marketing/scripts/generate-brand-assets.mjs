@@ -380,8 +380,8 @@ async function productHuntSlides() {
     },
     {
       name: "ph-2-surfaces",
-      title: "Seven editors, one workspace",
-      support: "Graph · Timeline · Sketch · Storyboard · Script & voice · 3D · Mini apps",
+      title: "Eight editors, one workspace",
+      support: "Graph · Timeline · Sketch · Storyboard · Script & voice · 3D · Games · Mini apps",
       chips: ["Multi-track timeline", "Layered sketching", "glTF scenes"],
       file: "screen_storyboard.png",
     },

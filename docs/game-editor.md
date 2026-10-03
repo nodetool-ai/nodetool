@@ -6,6 +6,8 @@ description: "Build, play, publish, and export 2D and 3D games in NodeTool's bui
 
 Build a game in a workspace tab, play it without leaving the editor, and ask the agent to change it.
 
+![Game Editor with the Kindle example open: the scene tree, the level in the viewport with the hero selected, and the inspector](assets/screenshots/game-editor.png)
+
 > **Quick access:** Click **+ New** in the workspace tab bar and choose **Game** under **Guided flows**. The new game opens as a tab and is playable at once.
 
 ---
@@ -304,6 +306,7 @@ A game made from a construction program keeps that program in the document. The 
 ## Related
 
 - [Sketch Editor](sketch-editor.md) for the images you bind as sprites and backgrounds
+- [3D Editor](3d-editor.md) for the glTF models a 3D game binds
 - [Asset Management](asset-management.md) for the media in your project
 - [Workspaces](workspaces.md) for where game files and builds are stored
 - [CLI Reference](cli.md#nodetool-game) for `nodetool game validate`, `simulate`, `capture`, and `build`

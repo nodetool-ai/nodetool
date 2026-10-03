@@ -120,6 +120,7 @@ agents get the same tools over MCP: [NodeTool as an MCP Server](mcp-server.md).
 | Keep a character the same across shots | [Creative Agent → Entities](creative-agent.md) |
 | Build pipelines on a canvas | [Key Concepts](key-concepts.md) |
 | Turn a workflow into an app | [Mini Apps](mini-apps.md) |
+| Build a game you can play and export | [Game Editor](game-editor.md) |
 | Choose models or run them locally | [Models & Providers](models-and-providers.md) |
 | Fix something | [Troubleshooting](troubleshooting.md) |
 | Look up a word | [Glossary](glossary.md) |

@@ -77,7 +77,7 @@ export default function NodeToolHero() {
       <ul className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-3 text-sm font-medium text-slate-300 sm:grid-cols-3">
         <li className="flex items-center justify-center gap-2 rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-3">
           <Layers className="h-4 w-4 shrink-0 text-fuchsia-400" aria-hidden />
-          Script, storyboard, sketch, timeline, 3D
+          Script, storyboard, sketch, timeline, 3D, games
         </li>
         <li className="flex items-center justify-center gap-2 rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-3">
           <KeyRound className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden />

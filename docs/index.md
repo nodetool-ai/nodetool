@@ -67,7 +67,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
 
 <section class="home-block">
   <p class="section-kicker">Editors</p>
-  <h2 id="five-editors">Five editors. One project.</h2>
+  <h2 id="six-editors">Six editors. One project.</h2>
   <p class="section-lead">
     Everything the agent makes opens in an editor. The agent works each editor
     with the same tools you click.
@@ -101,7 +101,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
         <a href="{{ '/video-editor' | relative_url }}">Video Editor →</a>
       </div>
     </article>
-    <article class="surface-card">
+    <article class="surface-card wide">
       <div class="media-frame">
         <video class="inview-video" muted loop playsinline preload="none"
           poster="https://nodetool.ai/surface-script-poster.webp" aria-label="Script editor">
@@ -115,7 +115,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
         <a href="{{ '/ai-video-production' | relative_url }}#script-write-and-cast-the-words-first">Scripts →</a>
       </div>
     </article>
-    <article class="surface-card">
+    <article class="surface-card wide">
       <div class="media-frame">
         <video class="inview-video" muted loop playsinline preload="none"
           poster="https://nodetool.ai/surface-sketch-poster.webp" aria-label="Sketch editor">
@@ -129,7 +129,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
         <a href="{{ '/sketch-editor' | relative_url }}">Sketch Editor →</a>
       </div>
     </article>
-    <article class="surface-card">
+    <article class="surface-card wide">
       <div class="media-frame">
         <video class="inview-video" muted loop playsinline preload="none"
           poster="https://nodetool.ai/surface-3d-poster.webp" aria-label="3D editor">
@@ -143,10 +143,24 @@ description: "Open-source agent-first creative workspace. Create images, video, 
         <a href="{{ '/3d-editor' | relative_url }}">3D Editor →</a>
       </div>
     </article>
+    <article class="surface-card wide">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/surface-game-poster.webp" aria-label="Game editor">
+          <source src="https://nodetool.ai/surface-game.webm" type="video/webm">
+          <source src="https://nodetool.ai/surface-game.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="surface-body">
+        <h3>Game</h3>
+        <p>Build a 2D or 3D game and play it in the editor. Ask the agent for a new level, then export a web player.</p>
+        <a href="{{ '/game-editor' | relative_url }}">Game Editor →</a>
+      </div>
+    </article>
   </div>
   <p class="section-note">
     The <a href="{{ '/workflow-editor' | relative_url }}">node canvas</a> sits
-    under all five. Open it when you want to change how a step runs.
+    under all six. Open it when you want to change how a step runs.
   </p>
 </section>
 

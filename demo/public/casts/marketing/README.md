@@ -8,6 +8,11 @@ They were copied from `marketing/public/`, not downloaded or regenerated.
 - `conversation-project.mp4` is the published SCRAPHEART conversation demo.
 - `surface-storyboard.mp4`, `surface-script.mp4`, `surface-timeline.mp4`,
   `surface-sketch.mp4`, and `surface-3d.mp4` are the published editor loops.
+- `surface-game.mp4` is a recording of the game editor with the shipped Kindle
+  example, captured from the seeded journey backend at 1920 × 1080 and 30 fps.
+  The page clock advanced one frame per screenshot, so play runs at game
+  speed. The capture browser had no WebGPU, so the game renders through its
+  Canvas 2D path and the fallback notice row was hidden.
 
 Keep these sources separate from the delivery files. The
 [finishing catalog](../../../src/marketing/catalog.ts) specifies the source

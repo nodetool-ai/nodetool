@@ -361,6 +361,7 @@ The sketch type is also available as workflow nodes:
 
 - **[Asset Management](asset-management.md)** — organize and reuse generated images
 - **[Workflow Editor](workflow-editor.md)** — main editor documentation
+- **[Game Editor](game-editor.md)** — use finished images as sprites and backgrounds in a 2D game
 - **[CLI: nodetool sketch](cli.md#nodetool-sketch)** — validate a sketch, replay a scripted edit session headlessly, and manage saved versions
 
 ---
