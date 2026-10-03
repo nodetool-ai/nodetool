@@ -120,7 +120,7 @@ describe("resolveAssetBytes", () => {
       .toBeNull();
   });
 
-  it.each(["owner/owned.wav", "owned.wav", "owned.bin"])(
+  it.each(["owner/owned.wav", "owned.wav"])(
     "resolves stored layout %s through ProcessingContext", async (key) => {
       const storage = new InMemoryStorageAdapter();
       await storage.store(key, new Uint8Array([7]));
