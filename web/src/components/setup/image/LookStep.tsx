@@ -27,7 +27,6 @@ import { composeImagePrompt } from "@nodetool-ai/protocol/api-schemas/sketch.js"
 
 import {
   AlertBanner,
-  Box,
   EditorButton,
   FlexColumn,
   FlexRow,

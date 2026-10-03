@@ -11,10 +11,6 @@ export interface EntryWorkflowLike {
   required_models?: unknown;
 }
 
-export interface ExampleAppDetails {
-  workflows: EntryWorkflowLike[];
-}
-
 interface ModelRequirement {
   provider?: string;
   id: string;
@@ -170,11 +166,6 @@ export const getWorkflowCompatibility = (
   return getCompatibility(workflows, metadata);
 };
 
-export const getAppCompatibility = (
-  app: ExampleAppDetails,
-  metadata: Record<string, NodeMetadata>
-): EntryCompatibility => getCompatibility(app.workflows, metadata);
-
 const getCompatibility = (
   workflows: EntryWorkflowLike[],
   metadata: Record<string, NodeMetadata>
@@ -281,9 +272,6 @@ const getCompatibility = (
     unknowns: unique(unknowns)
   };
 };
-
-export const isExampleAppDetails = (value: unknown): value is ExampleAppDetails =>
-  isRecord(value) && Array.isArray(value.workflows);
 
 interface CompatibilityDetailsProps {
   compatibility: EntryCompatibility;

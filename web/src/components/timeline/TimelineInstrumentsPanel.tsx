@@ -1,4 +1,3 @@
-import React from "react";
 import { useTimelineStore } from "../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
 import { Caption, FlexColumn, SelectField, SPACING } from "../ui_primitives";
