@@ -43,8 +43,13 @@ import SceneOutliner from "./SceneOutliner";
 import PropertiesPanel from "./PropertiesPanel";
 import Model3DChatPanel from "./Model3DChatPanel";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
-import { buildSceneTree } from "./sceneTree";
-import { disposeObject } from "./sceneTree";
+import {
+  buildSceneTree,
+  clearScene,
+  disposeObject,
+  isLightTarget,
+  replaceSceneContent
+} from "./sceneTree";
 import {
   createPrimitive,
   PRIMITIVE_LABELS,
@@ -165,7 +170,7 @@ const styles = (theme: Theme) =>
       maxWidth: "80%",
       padding: `${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xxl)}`,
       textAlign: "center",
-      backgroundColor: "rgba(0,0,0,0.8)",
+      backgroundColor: theme.vars.palette.c_scrim,
       borderRadius: BORDER_RADIUS.lg
     }
   });
@@ -368,6 +373,12 @@ interface Model3DEditorProps {
    * resolves, the Canvas stays suspended, and the frame comes out blank.
    */
   offlineLighting?: boolean;
+  /**
+   * Whether this editor is the visible workspace tab. Only the active editor
+   * receives the agent's ui_3d_* tool calls. Defaults to true for hosts that
+   * mount a single editor.
+   */
+  active?: boolean;
 }
 
 const Model3DEditor = ({
@@ -376,9 +387,11 @@ const Model3DEditor = ({
   onSave,
   onClose,
   cameraPose,
-  offlineLighting = false
+  offlineLighting = false,
+  active = true
 }: Model3DEditorProps) => {
   const theme = useTheme();
+  const containerRef = useRef<HTMLDivElement>(null);
 
   // Persistent group that owns all editable content and is exported on save.
   const rootRef = useRef<THREE.Group>(null);
@@ -388,6 +401,8 @@ const Model3DEditor = ({
     rootRef.current = group;
   }
   const root = rootRef.current;
+  // Clips from the loaded file, written back on save so it keeps them.
+  const animationsRef = useRef<THREE.AnimationClip[]>([]);
 
   const [tick, setTick] = useState(0);
   const [selectedUuid, setSelectedUuid] = useState<string | null>(null);
@@ -446,14 +461,8 @@ const Model3DEditor = ({
           disposeObject(gltf.scene);
           return;
         }
-        // Dispose any previously loaded content before swapping in the new model.
-        while (root.children.length > 0) {
-          const child = root.children[0];
-          root.remove(child);
-          disposeObject(child);
-        }
-        gltf.scene.name = gltf.scene.name || "Model";
-        root.add(gltf.scene);
+        replaceSceneContent(root, gltf.scene);
+        animationsRef.current = gltf.animations;
         setSelectedUuid(null);
         setIsLoading(false);
         setFitTrigger((t) => t + 1);
@@ -476,11 +485,8 @@ const Model3DEditor = ({
     return () => {
       cancelled = true;
       // Release GPU resources for the current scene on URL change/unmount.
-      while (root.children.length > 0) {
-        const child = root.children[0];
-        root.remove(child);
-        disposeObject(child);
-      }
+      clearScene(root);
+      animationsRef.current = [];
     };
   }, [url, root, bump]);
 
@@ -611,7 +617,7 @@ const Model3DEditor = ({
     savingRef.current = true;
     setIsSaving(true);
     try {
-      const blob = await exportSceneToGlb(root);
+      const blob = await exportSceneToGlb(root, animationsRef.current);
       await onSave(blob);
     } catch (error) {
       console.error("[Model3DEditor] Failed to export GLB:", error);
@@ -625,8 +631,12 @@ const Model3DEditor = ({
   }, [root, onSave]);
 
   // Expose scene operations to the agent tooling layer (ui_3d_* tools) while
-  // this editor is mounted. Built from stable callbacks so it registers once.
+  // this editor is the active tab. Built from stable callbacks so it registers
+  // once per activation.
   useEffect(() => {
+    if (!active) {
+      return;
+    }
     const requireObject = (idOrName: string): THREE.Object3D => {
       const obj = findObject(idOrName);
       if (!obj) {
@@ -639,7 +649,7 @@ const Model3DEditor = ({
       listScene: () => {
         const nodes: Model3DSceneNode[] = [];
         root.traverse((child) => {
-          if (child !== root) {
+          if (child !== root && !isLightTarget(child)) {
             nodes.push(toNode(child));
           }
         });
@@ -745,21 +755,31 @@ const Model3DEditor = ({
       captureView
     };
 
-    setModel3DToolHandler(handler);
-    return () => setModel3DToolHandler(null);
-  }, [root, findObject, toNode, addPrimitiveObject, bump, captureView]);
+    return setModel3DToolHandler(handler);
+  }, [active, root, findObject, toNode, addPrimitiveObject, bump, captureView]);
 
   // The store's shared gate replaces this handler's own "am I typing?" check.
-  useGlobalCombo("control+s", handleSave);
-  useGlobalCombo("meta+s", handleSave);
-  useGlobalCombo("delete", handleDelete);
-  useGlobalCombo("backspace", handleDelete);
-  useGlobalCombo("g", () => setGizmoMode("translate"), { preventDefault: false });
-  useGlobalCombo("r", () => setGizmoMode("rotate"), { preventDefault: false });
-  useGlobalCombo("s", () => setGizmoMode("scale"), { preventDefault: false });
+  // `target` skips these bindings while the editor sits in an inert background
+  // workspace tab, so its keys reach the visible tab instead.
+  const getContainer = useCallback(() => containerRef.current, []);
+  const comboOptions = { target: getContainer };
+  const gizmoComboOptions = { target: getContainer, preventDefault: false };
+  useGlobalCombo("control+s", handleSave, comboOptions);
+  useGlobalCombo("meta+s", handleSave, comboOptions);
+  useGlobalCombo("delete", handleDelete, comboOptions);
+  useGlobalCombo("backspace", handleDelete, comboOptions);
+  useGlobalCombo("g", () => setGizmoMode("translate"), gizmoComboOptions);
+  useGlobalCombo("r", () => setGizmoMode("rotate"), gizmoComboOptions);
+  useGlobalCombo("s", () => setGizmoMode("scale"), gizmoComboOptions);
 
   return (
-    <FlexColumn css={styles(theme)} className="model-3d-editor" fullWidth fullHeight>
+    <FlexColumn
+      ref={containerRef}
+      css={styles(theme)}
+      className="model-3d-editor"
+      fullWidth
+      fullHeight
+    >
       <FlexRow className="editor-toolbar" fullWidth>
         <Text size="small" weight={600} className="editor-title" title={name}>
           {name || "3D Model"}
@@ -803,7 +823,7 @@ const Model3DEditor = ({
           active={showGrid}
           size="small"
         />
-        <FlexRow style={{ marginLeft: "auto" }} gap={1} align="center">
+        <FlexRow sx={{ marginLeft: "auto" }} gap={1} align="center">
           <ToolbarIconButton
             icon={<AutoAwesomeIcon fontSize="small" />}
             tooltip={showAssistant ? "Hide assistant" : "Show assistant"}

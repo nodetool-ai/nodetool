@@ -65,8 +65,14 @@ export const createPrimitive = (kind: PrimitiveKind): THREE.Object3D => {
         standardMaterial()
       );
     case "directionalLight": {
+      // glTF lights shine down their node's -Z, so the target rides along as a
+      // child at (0, 0, -1): the exported direction matches what the editor
+      // shows, and the rotate gizmo aims the light.
       const light = new THREE.DirectionalLight(0xffffff, 1);
       light.position.set(2, 3, 2);
+      light.target.position.set(0, 0, -1);
+      light.add(light.target);
+      light.lookAt(0, 0, 0);
       return light;
     }
     case "pointLight": {

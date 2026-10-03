@@ -52,7 +52,13 @@ export const GEOMETRY_PARAM_SPECS = {
   ],
   CylinderGeometry: [
     { key: "radiusTop", label: "Radius Top", kind: "float", min: 0, step: 0.1 },
-    { key: "radiusBottom", label: "Radius Bot", kind: "float", min: 0, step: 0.1 },
+    {
+      key: "radiusBottom",
+      label: "Radius Bot",
+      kind: "float",
+      min: 0,
+      step: 0.1
+    },
     { key: "height", label: "Height", kind: "float", min: 0.001, step: 0.1 },
     { key: "radialSegments", label: "Radial Segs", kind: "int", min: 3 },
     { key: "heightSegments", label: "Height Segs", kind: "int", min: 1 },
@@ -89,14 +95,41 @@ const num = (params: GeometryParams, key: string, fallback: number): number => {
 };
 
 /**
+ * Round `int` params and raise every param to its spec minimum. The numeric
+ * field commits on each keystroke and clamps only on blur, so a value typed
+ * on the way to another (a 0 before 05) must not reach the constructor:
+ * BoxGeometry with 0 segments divides by zero and fills the mesh with NaN.
+ */
+const clampToSpecs = (
+  type: EditableGeometryType,
+  params: GeometryParams
+): GeometryParams => {
+  const clamped = { ...params };
+  for (const spec of GEOMETRY_PARAM_SPECS[
+    type
+  ] as readonly GeometryParamSpec[]) {
+    const value = clamped[spec.key];
+    if (!isNumber(value)) {
+      continue;
+    }
+    const rounded = spec.kind === "int" ? Math.round(value) : value;
+    clamped[spec.key] =
+      spec.min === undefined ? rounded : Math.max(spec.min, rounded);
+  }
+  return clamped;
+};
+
+/**
  * Construct a fresh geometry from a (possibly edited) parameter object. The
  * caller disposes the previous geometry and assigns the result. Unedited keys
- * fall back to the geometry's defaults so partial parameter objects are safe.
+ * fall back to the geometry's defaults so partial parameter objects are safe,
+ * and values below a param's minimum are raised to it.
  */
 export const buildGeometry = (
   type: EditableGeometryType,
-  params: GeometryParams
+  rawParams: GeometryParams
 ): THREE.BufferGeometry => {
+  const params = clampToSpecs(type, rawParams);
   switch (type) {
     case "BoxGeometry":
       return new THREE.BoxGeometry(
