@@ -9,7 +9,7 @@ import { randomUUID } from "node:crypto";
 import { createHash } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 import {
-  and, Column, eq, getTableColumns, getTableName, like, Table
+  and, Column, eq, getTableColumns, getTableName, like, sql, Table
 } from "drizzle-orm";
 import { isShortResourceId } from "@nodetool-ai/protocol";
 import {
@@ -291,11 +291,19 @@ export abstract class DBModel {
       // concrete models retain that responsibility until their conversion.
       const targetTable: PgTable = pgTable;
       const columns = getTableColumns(targetTable);
-      const pgRow = Object.fromEntries(Object.entries(row).map(([key, value]) => [
-        key,
-        typeof value === "boolean" && columns[key]?.dataType === "number"
-          ? Number(value) : value
-      ]));
+      const pgRow = Object.fromEntries(Object.entries(row).map(([key, value]) => {
+        const column = columns[key];
+        if (typeof value === "boolean" && column?.dataType === "number") {
+          return [key, Number(value)];
+        }
+        // A model that keeps a JSON column as serialized text (documents) has
+        // already encoded it. Bypass the Pg `jsonText` encoder, which would
+        // encode it a second time; readers decode the column exactly once.
+        if (typeof value === "string" && column?.columnType === "PgCustomColumn") {
+          return [key, sql`${value}`];
+        }
+        return [key, value];
+      }));
       const pk = columns[ctor.primaryKey];
       if (!pk) throw new Error(`Column "${ctor.primaryKey}" not found on the table schema.`);
       const pgProjects = connection.schema.projects;

@@ -3,6 +3,7 @@ import { ModelChangeEvent, ModelObserver } from "../src/base-model.js";
 import { Asset } from "../src/asset.js";
 import { ExternalIdentity } from "../src/external-identity.js";
 import { Workflow } from "../src/workflow.js";
+import { Storyboard, emptyStoryboardDocument } from "../src/storyboard.js";
 import { closeDb, getDatabase, initPostgresDb, initTestDb } from "../src/db.js";
 
 // Run real Drizzle Pg builders and transaction handles against a recording
@@ -85,6 +86,16 @@ describe("explicit database dialect", () => {
     expect(insert.params).toContain(1);
     expect(insert.params.some((value) => typeof value === "boolean")).toBe(false);
     expect(insert.params).toContain(JSON.stringify({ nodes: [], edges: [] }));
+  });
+
+  it("writes a model's serialized JSON text verbatim on PostgreSQL", async () => {
+    await initPostgresDb("postgres://unused/recording-driver");
+    const document = JSON.stringify(emptyStoryboardDocument());
+    const board = await Storyboard.create<Storyboard>({ user_id: "owner", document });
+    const [insert] = driver.state.queries;
+    expect(insert.params).toContain(document);
+    expect(insert.params).not.toContain(JSON.stringify(document));
+    expect(board.toDocument().entityIds).toEqual([]);
   });
 
   it("preserves create, update, and delete observer sequences on PostgreSQL", async () => {
