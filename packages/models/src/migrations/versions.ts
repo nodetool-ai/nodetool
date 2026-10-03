@@ -84,6 +84,20 @@ const boundWorkflowIds = (rawDocument: unknown): string[] => {
     .filter((id): id is string => typeof id === "string" && id.length > 0);
 };
 
+/** Tables whose `document` column models keep as serialized JSON text. */
+const DOUBLE_ENCODED_DOCUMENT_TABLES = [
+  "storyboards",
+  "scripts",
+  "timeline_sequences",
+  "timeline_sequence_versions",
+  "image_documents",
+  "image_document_versions",
+  "js_scripts",
+  "js_script_versions",
+  "applications",
+  "application_versions"
+];
+
 export const migrations: MigrationDef[] = [
   // ── 001: Create workflows ──────────────────────────────────────────
   {
@@ -3714,8 +3728,72 @@ export const migrations: MigrationDef[] = [
     async down() {
       // Additive legacy compatibility has no destructive inverse.
     }
+  },
+  // ── Unwrap JSON text that PostgreSQL writes encoded twice ─────────────
+  // DBModel.persist briefly sent models' already-serialized JSON text through
+  // the Pg `jsonText` encoder, which stored it as a JSON string literal.
+  // Readers decode once and got a string where they expected a document.
+  // SQLite never took that path.
+  {
+    version: "20261003_000000",
+    name: "unwrap_double_encoded_pg_json_text",
+    createsTables: [],
+    modifiesTables: [...DOUBLE_ENCODED_DOCUMENT_TABLES, "nodetool_messages"],
+    async up(db) {
+      if (db.dbType !== "postgres") return;
+      for (const table of DOUBLE_ENCODED_DOCUMENT_TABLES) {
+        await unwrapDoubleEncoded(db, table, "document", (inner) => {
+          const value: unknown = JSON.parse(inner);
+          return value !== null && typeof value === "object";
+        });
+      }
+      // Message content may be a plain string, so only rows written while
+      // the encoder was in the write path are unwrapped.
+      await unwrapDoubleEncoded(
+        db,
+        "nodetool_messages",
+        "content",
+        () => true,
+        "2026-10-01"
+      );
+    },
+    async down() {
+      // Restoring the double encoding would only reintroduce the defect.
+    }
   }
 ];
+
+/**
+ * Replace each JSON string literal in `column` with the text it encodes, when
+ * `accept` says that text is what the column should hold.
+ */
+async function unwrapDoubleEncoded(
+  db: MigrationDBAdapter,
+  table: string,
+  column: string,
+  accept: (inner: string) => boolean,
+  createdSince?: string
+): Promise<void> {
+  if (!(await db.tableExists(table))) return;
+  const rows = await db.fetchall(
+    `SELECT id, ${column} AS value FROM ${table}
+      WHERE ${column} LIKE '"%'${createdSince ? " AND created_at >= ?" : ""}`,
+    createdSince ? [createdSince] : []
+  );
+  for (const row of rows) {
+    let inner: unknown;
+    try {
+      inner = JSON.parse(String(row.value));
+      if (typeof inner !== "string" || !accept(inner)) continue;
+    } catch {
+      continue;
+    }
+    await db.execute(`UPDATE ${table} SET ${column} = ? WHERE id = ?`, [
+      inner,
+      row.id
+    ]);
+  }
+}
 
 /**
  * Collapse what the missing constraints allowed: two snapshots sharing a
