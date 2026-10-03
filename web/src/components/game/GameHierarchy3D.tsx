@@ -88,7 +88,7 @@ export default function GameHierarchy3D({ document, scene, selectedIds, onSelect
             sx={selected ? { bgcolor: "primary.main", color: "primary.contrastText", "&:hover": { bgcolor: "primary.main" },
               "& svg": { color: "inherit" } } : undefined}>
             {entityIcon(entity)}
-            <Text size="small" truncate sx={{ flex: 1, minWidth: 0, color: "inherit", opacity: entity.templateOnly ? 0.6 : 1 }}>
+            <Text size="small" weight={400} truncate sx={{ flex: 1, minWidth: 0, color: "inherit", opacity: entity.templateOnly ? 0.6 : 1 }}>
               {entity.name || entity.id}
             </Text>
             {kind && <Caption sx={{ color: "inherit", opacity: 0.7 }}>{kind}</Caption>}

@@ -24,6 +24,7 @@ import GameRuntimeInspector from "./GameRuntimeInspector";
 import GameScriptPane from "./GameScriptPane";
 import GameStatusBar from "./GameStatusBar";
 import GameToolbar from "./GameToolbar";
+import { GAME_EDITOR_ROOT_SX } from "./gameEditorStyles";
 import GameViewport from "./GameViewport";
 import { pressGameKey } from "./gameInputFrame";
 import { EMPTY_INPUT, scriptFailure, useGamePlaySession } from "./useGamePlaySession";
@@ -360,7 +361,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
 
   return (
     <EditorUiProvider scope="inspector">
-    <FlexColumn sx={{ height: "100%", minHeight: 0, bgcolor: "background.default" }}>
+    <FlexColumn sx={GAME_EDITOR_ROOT_SX}>
       <GameToolbar
         name={data.game.name} playing={playing} playSession={Boolean(playDocument)} loading={backend === "Initializing"} saving={saving}
         saveStatus={saveStatus}

@@ -6,10 +6,10 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
-import { Box, Caption, CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, FONT_SIZE_SANS, InspectorValueInput, Label, SPACING, Text, ToolbarIconButton } from "../ui_primitives";
+import { Box, Caption, CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, FONT_SIZE_SANS, InspectorFieldRow, InspectorValueInput, SPACING, Text, ToolbarIconButton } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
 import SchemaFields from "./inspector/SchemaFields";
-import { COMPONENT_SECTION_SX } from "./inspector/componentSection";
+import { AXIS_COLORS, COMPONENT_SECTION_SX } from "./inspector/componentSection";
 import GameOverrideFields from "./GameOverrideFields";
 import { gameSchemaFields } from "./inspector/schemaForm";
 
@@ -23,8 +23,6 @@ interface GameInspector3DProps {
 
 const TRANSFORM_LABELS = { position: "Position", rotation: "Rotation", scale: "Scale" } as const;
 const TRANSFORM_UNITS = { position: "Position in meters", rotation: "Rotation in degrees", scale: "Scale factor" } as const;
-const TRANSFORM_LABEL_WIDTH = CONTROL.height.xl + CONTROL.height.xs;
-const AXIS_COLORS = { x: "error.main", y: "success.main", z: "info.main" } as const;
 const ENTITY_FIELDS = gameSchemaFields(gameEntity3D.omit({ id: true, transform3d: true, behaviors: true }));
 
 export default function GameInspector3D({ document, sceneId, entityId, onOps, onScript }: GameInspector3DProps) {
@@ -61,10 +59,9 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
   const angles = new Euler().setFromQuaternion(new Quaternion().fromArray(entity.transform3d.rotation), "YXZ");
   const rotation = { x: angles.x * 180 / Math.PI, y: angles.y * 180 / Math.PI, z: angles.z * 180 / Math.PI };
   const transformField = (kind: "position" | "scale" | "rotation", values: { x: number; y: number; z: number }): ReactNode =>
-    <FlexRow gap={SPACING.sm} align="center" sx={{ minWidth: 0 }}>
-      <Label component="span" title={TRANSFORM_UNITS[kind]} sx={{ mb: 0, width: TRANSFORM_LABEL_WIDTH, flexShrink: 0 }}>{TRANSFORM_LABELS[kind]}</Label>
+    <InspectorFieldRow label={<Box component="span" title={TRANSFORM_UNITS[kind]}>{TRANSFORM_LABELS[kind]}</Box>}>
       {(["x", "y", "z"] as const).map((axis) => <FlexRow key={axis} gap={SPACING.xs} align="center" sx={{ flex: 1, minWidth: 0 }}>
-        <Caption component="span" aria-hidden sx={{ color: AXIS_COLORS[axis] }}>{axis.toUpperCase()}</Caption>
+        <Caption component="span" aria-hidden sx={{ color: AXIS_COLORS[axis.toUpperCase()] }}>{axis.toUpperCase()}</Caption>
         <InspectorValueInput ariaLabel={`${kind} ${axis}`} grow minWidth={CONTROL.height.xl} value={String(Math.round(values[axis] * 1000) / 1000)}
           onCommit={(value) => {
             const numeric = Number(value);
@@ -76,7 +73,7 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
             } else { apply({ transform3d: { [kind]: { ...values, [axis]: numeric } } }); }
           }} />
       </FlexRow>)}
-    </FlexRow>;
+    </InspectorFieldRow>;
   const { id: _id, transform3d: _transform, behaviors: _behaviors, ...components } = entity;
   return <FlexColumn sx={{ minHeight: 0 }}>
     <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.sm }}>

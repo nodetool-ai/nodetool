@@ -7,7 +7,7 @@ import type { GameValidationIssue } from "@nodetool-ai/game-runtime";
 import { Box, Caption, Checkbox, CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, InspectorFieldRow, InspectorSelect, InspectorToggleRow, InspectorValueInput, Label, SPACING, TextInput, ToolbarIconButton, TYPOGRAPHY } from "../../ui_primitives";
 import type { FieldSchema } from "./schemaForm";
 import { schemaDefault, schemaVariant } from "./schemaForm";
-import { COMPONENT_SECTION_SX } from "./componentSection";
+import { AXIS_COLORS, COMPONENT_SECTION_SX } from "./componentSection";
 
 interface SchemaFieldsProps {
   schema: FieldSchema;
@@ -86,8 +86,9 @@ function NumberField({ label, value, schema, degrees, error, axis, onChange }: {
   const invalid = local.trim() === "" || !Number.isFinite(actual) ||
     (schema.minimum !== undefined && actual < schema.minimum) || (schema.exclusiveMinimum !== undefined && actual <= schema.exclusiveMinimum) ||
     (schema.maximum !== undefined && actual > schema.maximum) || (schema.type === "integer" && !Number.isInteger(actual));
-  const control = <FlexRow gap={SPACING.xs} sx={{ minWidth: 0, width: "100%" }}>
-    <InspectorValueInput ariaLabel={label} value={local} unit={degrees ? "°" : undefined} size="medium" grow onCommit={(raw) => {
+  const control = <FlexRow gap={SPACING.xs} align="center" sx={{ minWidth: 0, width: "100%" }}>
+    {axis && <Caption component="span" aria-hidden sx={{ color: AXIS_COLORS[axis] ?? "text.secondary" }}>{axis}</Caption>}
+    <InspectorValueInput ariaLabel={label} value={local} unit={degrees ? "°" : undefined} size="medium" grow minWidth={axis ? CONTROL.height.xl : undefined} onCommit={(raw) => {
       setLocal(raw);
       const next = Number(raw);
       const converted = degrees ? next * Math.PI / 180 : next;
@@ -125,6 +126,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
     const record = asRecord(value);
     const properties = Object.entries(schema.properties ?? {}).filter(([key]) => key !== "kind" && key !== "property");
     const pairs = [
+      { label: fieldLabel(path || "value"), keys: ["x", "y", "z"], axes: ["X", "Y", "Z"] },
       { label: path.endsWith("transform2d") ? "Position" : "Axes", keys: ["x", "y"], axes: ["X", "Y"] },
       { label: "Scale", keys: ["scaleX", "scaleY"], axes: ["X", "Y"] },
       { label: "Size", keys: ["width", "height"], axes: ["W", "H"] }
@@ -158,7 +160,7 @@ export default function SchemaFields({ schema, value, onChange, path = "", issue
               {optional && <ToolbarIconButton icon={<CloseIcon fontSize="small" />} tooltip={`Remove ${fieldLabel(key)}`} onClick={remove}
                 sx={{ position: "absolute", top: SPACING.micro, right: SPACING.xs }} />}
             </Box>
-            : <CollapsibleSection key={key} title={fieldLabel(key)} compact sx={{ width: "100%", pt: SPACING.xs }}><FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>{field}{optional &&
+            : <CollapsibleSection key={key} title={<Label component="span" sx={{ mb: 0, color: "text.primary" }}>{fieldLabel(key)}</Label>} compact sx={{ width: "100%", pt: SPACING.xs }}><FlexColumn gap={SPACING.xs} sx={FIELD_WIDTH}>{field}{optional &&
               <EditorButton onClick={remove}>Remove {fieldLabel(key)}</EditorButton>}</FlexColumn></CollapsibleSection>;
         }
         return <FlexRow key={key} gap={SPACING.xs} align="flex-start" sx={{ ...FIELD_WIDTH, px: componentSections ? SPACING.md : undefined }}>

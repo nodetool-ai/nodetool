@@ -43,11 +43,12 @@ interface GameToolbarProps {
 const DIVIDER_SX = { width: "1px", alignSelf: "stretch", my: SPACING.sm, bgcolor: "divider", flexShrink: 0 } as const;
 
 function SaveState({ saveStatus }: { saveStatus: string }) {
-  const color = saveStatus === "saved" ? "success.main" : saveStatus === "saving" ? "info.main" : "warning.main";
+  const color = saveStatus === "saved" ? "success.main" : saveStatus === "saving" ? "info.main" : saveStatus === "error" ? "error.main" : "warning.main";
   return <FlexRow gap={SPACING.xs} align="center" sx={{ minWidth: 0 }}>
     <Box sx={{ width: SPACING.md, height: SPACING.md, borderRadius: BORDER_RADIUS.circle, bgcolor: color, flexShrink: 0 }} />
     <Caption sx={{ whiteSpace: "nowrap" }}>
-      {saveStatus === "saved" ? "Draft saved" : saveStatus === "saving" ? "Saving draft" : "Unpublished changes"}
+      {saveStatus === "saved" ? "Draft saved" : saveStatus === "saving" ? "Saving draft"
+        : saveStatus === "error" ? "Draft not saved" : "Unsaved changes"}
     </Caption>
   </FlexRow>;
 }

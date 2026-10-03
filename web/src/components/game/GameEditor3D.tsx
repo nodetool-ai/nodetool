@@ -21,6 +21,7 @@ import GamePanelHeader from "./GamePanelHeader";
 import GameScriptPane from "./GameScriptPane";
 import GameStatusBar from "./GameStatusBar";
 import GameToolbar from "./GameToolbar";
+import { GAME_EDITOR_ROOT_SX } from "./gameEditorStyles";
 import GameViewport3D from "./GameViewport3D";
 import { useGamePlaySession3D } from "./useGamePlaySession3D";
 
@@ -141,7 +142,7 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
   const restart = host.playDocument && JSON.stringify(host.playDocument) !== JSON.stringify(document);
   const history = getGameDraftStore(refId).temporal.getState();
   const notice = host.error || draftError || operationError || restart;
-  return <EditorUiProvider scope="inspector"><FlexColumn sx={{ height: "100%", minHeight: 0, bgcolor: "background.default" }}>
+  return <EditorUiProvider scope="inspector"><FlexColumn sx={GAME_EDITOR_ROOT_SX}>
     <GameToolbar name={name} playing={host.playing} playSession={Boolean(host.playDocument)} loading={host.backend === "Initializing"}
       saving={saveStatus === "saving"} saveStatus={saveStatus} assistantOpen={assistantOpen} sceneTreeOpen={treeOpen} inspectorOpen={inspectorOpen}
       playHref={`/game/${encodeURIComponent(refId)}`} canUndo={history.pastStates.length > 0} canRedo={history.futureStates.length > 0}
@@ -191,7 +192,7 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
             onChange={(source) => onOps([{ op: "set_script", scene_id: activeSceneId, entity_id: selected.id, index: scriptIndex, source }])} onClose={() => setScriptIndex(null)} />
         </FlexColumn>}
       </FlexColumn>
-      {inspectorOpen && <ResizableDock storageKey="inspector3d" storagePrefix="nodetool.gameEditor." side="right" defaultWidth={320} minWidth={240} maxWidth={480} ariaLabel="Resize 3D inspector">
+      {inspectorOpen && <ResizableDock storageKey="inspector3d" storagePrefix="nodetool.gameEditor." side="right" defaultWidth={360} minWidth={300} maxWidth={560} ariaLabel="Resize 3D inspector">
         <GamePanelHeader title="Inspector" icon={<TuneOutlinedIcon sx={{ fontSize: FONT_SIZE_SANS.body }} />} />
         <FlexColumn sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
           <GameInspector3D document={document} sceneId={activeSceneId} entityId={selected?.id} onOps={onOps} onScript={setScriptIndex} />
