@@ -20,6 +20,7 @@
  */
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { execFileSync } from "node:child_process";
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
@@ -137,6 +138,37 @@ describe("openSourceFrameStream", () => {
       stream.close();
     }
   }, 60_000);
+
+  it.skipIf(process.platform === "win32")(
+    "keeps the decode window when the grid probe answers slowly",
+    async () => {
+      // A loaded CI runner can take over a second to start ffprobe. A shim
+      // that delays the real binary must not push the stream into seek mode.
+      const realFfprobe = execFileSync("which", ["ffprobe"], { encoding: "utf8" }).trim();
+      const shimDir = await fs.mkdtemp(path.join(os.tmpdir(), "slow-ffprobe-"));
+      const shim = path.join(shimDir, "ffprobe");
+      await fs.writeFile(shim, `#!/bin/sh\nsleep 2\nexec "${realFfprobe}" "$@"\n`, { mode: 0o755 });
+      const originalPath = process.env.PATH;
+      process.env.PATH = `${shimDir}${path.delimiter}${originalPath ?? ""}`;
+      const stream = openSourceFrameStream({
+        filePath: clipPath,
+        size: { width: WIDTH, height: HEIGHT },
+        fps: FPS,
+        startSec: 0
+      });
+      try {
+        for (let k = 0; k < SOURCE_FRAMES; k++) {
+          expect(await stream.frameAtSourceSec(k / FPS)).not.toBeNull();
+        }
+        expect(stream.reopens).toBe(0);
+      } finally {
+        stream.close();
+        process.env.PATH = originalPath;
+        await fs.rm(shimDir, { recursive: true, force: true });
+      }
+    },
+    60_000
+  );
 
   it("serves a reverse curve from a bounded window, and the frames descend", async () => {
     // The curve a reverse writes: t ascends over the clip, sourceMs descends.
