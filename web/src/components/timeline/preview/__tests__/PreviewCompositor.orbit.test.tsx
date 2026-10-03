@@ -146,6 +146,7 @@ const framedCameras: ClipModel3DCamera[] = [];
 
 jest.mock("../Model3DLayerSource", () => ({
   Model3DLayerSource: jest.fn().mockImplementation(() => ({
+    revive: jest.fn(),
     frame: (layer: { model3dStyle?: { camera: ClipModel3DCamera } }) => {
       if (layer.model3dStyle) framedCameras.push(layer.model3dStyle.camera);
       return null;

@@ -2,7 +2,10 @@ import { render, fireEvent, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import type { ClipTransform } from "@nodetool-ai/timeline";
 import mockTheme from "../../../../__mocks__/themeMock";
-import { TransformGizmoOverlay } from "../TransformGizmoOverlay";
+import {
+  TransformGizmoOverlay,
+  cssDeltaToPositionDelta
+} from "../TransformGizmoOverlay";
 
 // jsdom ships no PointerEvent, so testing-library would otherwise drop
 // clientX/clientY. Back it with MouseEvent (which carries the coords) and a
@@ -182,5 +185,89 @@ describe("TransformGizmoOverlay", () => {
     const [, next] = onChange.mock.calls.at(-1)!;
     expect(next.scale.x).toBeCloseTo(-1, 6);
     expect(next.scale.y).toBeCloseTo(1, 6);
+  });
+});
+
+describe("TransformGizmoOverlay drawn geometry (F28)", () => {
+  it("traces the drawn transform, not the stored one", () => {
+    const drawn: ClipTransform = {
+      position: { x: 40, y: 0 },
+      scale: { x: 1, y: 1 },
+      rotation: 0,
+      anchor: { x: 0.5, y: 0.5 }
+    };
+    const { container } = render(
+      <TransformGizmoOverlay
+        {...baseProps}
+        displayTransform={drawn}
+        onChange={() => {}}
+      />
+    );
+    // The stored (identity) box is 50..150; the drawn one moved 40 px right.
+    const xs = container
+      .querySelector("polygon")!
+      .getAttribute("points")!
+      .split(" ")
+      .map((pair) => Number(pair.split(",")[0]));
+    expect(xs[0]).toBeCloseTo(90, 3);
+    expect(xs[1]).toBeCloseTo(190, 3);
+  });
+
+  it("shrinks the box to the crop", () => {
+    const { container } = render(
+      <TransformGizmoOverlay
+        {...baseProps}
+        crop={{ left: 0.5, right: 0, top: 0, bottom: 0 }}
+        onChange={() => {}}
+      />
+    );
+    const points = container.querySelector("polygon")!.getAttribute("points")!;
+    // Cropped source is 50x100, contained at base scale {x:0.25,y:1}: 75..125.
+    const xs = points.split(" ").map((pair) => Number(pair.split(",")[0]));
+    expect(xs[0]).toBeCloseTo(75, 3);
+    expect(xs[1]).toBeCloseTo(125, 3);
+  });
+
+  it("maps a pointer delta through the inverse parent matrix", () => {
+    const space = {
+      sequenceWidth: 200,
+      sequenceHeight: 100,
+      frameWidth: 200,
+      frameHeight: 100
+    };
+    expect(cssDeltaToPositionDelta(10, 20, space)).toEqual({ x: 10, y: 20 });
+    // A group scaled 2x moves a child twice as far on screen per unit.
+    const parent = new Float32Array(16);
+    parent[0] = 2;
+    parent[5] = 2;
+    parent[10] = 1;
+    parent[15] = 1;
+    const mapped = cssDeltaToPositionDelta(10, 20, {
+      ...space,
+      parentMatrix: parent
+    });
+    expect(mapped.x).toBeCloseTo(5, 6);
+    expect(mapped.y).toBeCloseTo(10, 6);
+  });
+
+  it("drags the stored position at the inverse of the group scale", () => {
+    const parent = new Float32Array(16);
+    parent[0] = 2;
+    parent[5] = 2;
+    parent[10] = 1;
+    parent[15] = 1;
+    const onChange = jest.fn();
+    const { container } = render(
+      <TransformGizmoOverlay
+        {...baseProps}
+        parentMatrix={parent}
+        onChange={onChange}
+      />
+    );
+    const polygon = container.querySelector("polygon")!;
+    fireEvent.pointerDown(polygon, { clientX: 100, clientY: 50, pointerId: 1 });
+    fireEvent.pointerMove(polygon, { clientX: 120, clientY: 50, pointerId: 1 });
+    const [, next] = onChange.mock.calls.at(-1)!;
+    expect(next.position.x).toBeCloseTo(10, 6);
   });
 });

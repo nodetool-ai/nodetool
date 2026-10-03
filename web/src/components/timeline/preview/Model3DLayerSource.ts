@@ -272,6 +272,15 @@ export class Model3DLayerSource {
     if (entry.state.status === "ready") entry.state.session.dispose();
   }
 
+  /**
+   * Undo `dispose()` so the pool serves again. React StrictMode runs an
+   * effect's cleanup and then its setup against the same memoized instance;
+   * the setup calls this so the second mount is not left with a dead pool.
+   */
+  revive(): void {
+    this.disposed = false;
+  }
+
   dispose(): void {
     this.disposed = true;
     for (const clipId of [...this.entries.keys()]) this.release(clipId);

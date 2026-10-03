@@ -45,7 +45,9 @@ function mockElement() {
     play: jest.fn(async () => undefined),
     pause: jest.fn(),
     load: jest.fn(),
-    removeAttribute: jest.fn()
+    removeAttribute: jest.fn(),
+    addEventListener: jest.fn(),
+    removeEventListener: jest.fn()
   };
 }
 

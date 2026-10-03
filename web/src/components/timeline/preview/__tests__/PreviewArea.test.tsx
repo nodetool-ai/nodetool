@@ -508,7 +508,8 @@ describe("PreviewArea", () => {
         expect(mockAddClips).toHaveBeenCalledTimes(1);
         expect(mockAddClips.mock.calls[0][0]).toHaveLength(1);
         expect(mockAddClips.mock.calls[0][0][0].clip.id).toBe("audio-edited");
-        expect(mockAddClips.mock.calls[0][2]).toBe(4_000);
+        // The graph samples the playhead after decode, so it gets the reader.
+        expect((mockAddClips.mock.calls[0][2] as () => number)()).toBe(4_000);
         expect(mockScheduleClips).toHaveBeenCalledTimes(1);
       }
     );

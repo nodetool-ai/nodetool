@@ -140,6 +140,7 @@ jest.mock("../TransformGizmoOverlay", () => ({
 
 jest.mock("../Model3DLayerSource", () => ({
   Model3DLayerSource: jest.fn().mockImplementation(() => ({
+    revive: jest.fn(),
     frame: () => null,
     retain: jest.fn(),
     state: () => undefined,
