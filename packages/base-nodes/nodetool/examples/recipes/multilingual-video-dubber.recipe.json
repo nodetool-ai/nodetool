@@ -18,10 +18,6 @@
     {
       "app": "dubbing-desk",
       "role": "Transcribing writes the script into a field you can edit, and the revoice, subtitle and lip-sync steps all read what is in it."
-    },
-    {
-      "app": "ai-spokesperson",
-      "role": "Just the lip-sync step, for when the script is already settled and only the mouth has to match."
     }
   ],
   "steps": [

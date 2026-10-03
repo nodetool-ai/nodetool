@@ -22,6 +22,7 @@ import {
   isCallable,
   isNonEmptyString,
   isObjectLike,
+  isRecord,
   isString
 } from "@nodetool-ai/node-sdk";
 import {
@@ -58,7 +59,7 @@ import {
 } from "./agent-thinking.js";
 import { meterProviderSpend } from "./provider-spend.js";
 import { buildControlTools } from "./agent-control-tools.js";
-import { gateFromContext } from "@nodetool-ai/agents";
+import { agentActivityReporter, gateFromContext } from "@nodetool-ai/agents";
 import {
   SUMMARIZER_RECOMMENDED_MODELS,
   ENHANCE_PROMPT_RECOMMENDED_MODELS,
@@ -1356,6 +1357,33 @@ export class AgentNode extends BaseNode {
     // it without tripping control-flow narrowing at the read sites below.
     const finalText: { value: string | null } = { value: null };
 
+    // Tool calls and their results go on the run's context as
+    // `tool_call_update` / `tool_result_update`, which is what a mini app's
+    // Agent Activity widget folds into the transcript. A call the provider
+    // runs itself (a Claude Agent SDK built-in such as WebSearch) never
+    // reaches `execute`, so it stays open until the stream ends.
+    const activity = agentActivityReporter(context, this.__node_id ?? "agent");
+    const openToolCalls = new Map<string, string>();
+    // The Claude Agent SDK provider runs a tool under its own call id, not the
+    // one it streamed, so a result whose id was never announced settles the
+    // oldest open call of the same tool instead of adding a second row.
+    const settleToolCall = (
+      id: string | undefined,
+      name: string
+    ): string | undefined => {
+      if (id && openToolCalls.has(id)) {
+        openToolCalls.delete(id);
+        return id;
+      }
+      for (const [openId, openName] of openToolCalls) {
+        if (openName === name) {
+          openToolCalls.delete(openId);
+          return openId;
+        }
+      }
+      return id;
+    };
+
     // Each provider tool carries its own `execute` (generateLoop dispatches to
     // it directly) instead of a harness-level executeTool callback. Control
     // tools route through sendControlEvent; regular tools call tool.process;
@@ -1415,6 +1443,14 @@ export class AgentNode extends BaseNode {
                   result = { status: "error", error: message };
                 }
 
+                const reportedId = settleToolCall(toolCallId, tool.name);
+                if (reportedId) {
+                  activity.toolResult(
+                    { id: reportedId, name: tool.name },
+                    result,
+                    isRecord(result) && result.status === "error"
+                  );
+                }
                 return JSON.stringify(serializeToolResult(result));
               }
             };
@@ -1542,6 +1578,8 @@ export class AgentNode extends BaseNode {
             toolName: toolCall.name,
             argKeys: Object.keys(toolCall.args ?? {})
           });
+          openToolCalls.set(toolCall.id, toolCall.name);
+          activity.event(toolCall);
           yield {
             chunk: toolCallChunk(toolCall),
             thinking: null,
@@ -1625,6 +1663,11 @@ export class AgentNode extends BaseNode {
       // Flush any trailing turn for providers that stream final text without a
       // closing assistant message event (no-op once a turn has been finalized).
       yield* finalizeAssistantTurn();
+
+      for (const [id, name] of openToolCalls) {
+        activity.toolResult({ id, name }, "", false);
+      }
+      openToolCalls.clear();
 
       // A budget or deadline stop is a failure: the node did not finish the
       // job it was given, and returning its partial text as if it had would

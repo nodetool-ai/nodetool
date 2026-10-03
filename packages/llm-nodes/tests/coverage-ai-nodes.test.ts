@@ -942,6 +942,7 @@ describe("AgentNode", () => {
     });
     const streamed: any[] = [];
     for await (const item of n.genProcess({
+      emit: () => {},
       getProvider: async () => mockProvider
     } as any)) {
       streamed.push(item);
@@ -985,6 +986,7 @@ describe("AgentNode", () => {
     });
     const streamed: any[] = [];
     for await (const item of n.genProcess({
+      emit: () => {},
       getProvider: async () => mockProvider
     } as any)) {
       streamed.push(item);
@@ -1033,6 +1035,7 @@ describe("AgentNode", () => {
 
     const streamed: any[] = [];
     for await (const item of n.genProcess({
+      emit: () => {},
       getProvider: async () => mockProvider
     } as any)) {
       streamed.push(item);
@@ -1161,6 +1164,7 @@ describe("AgentNode", () => {
 
     const sentEvents: any[] = [];
     const mockContext = {
+      emit: () => {},
       getProvider: async () => mockProvider,
       hasControlEventSupport: true,
       sendControlEvent: async (targetNodeId: string, args: any) => {
@@ -1239,6 +1243,7 @@ describe("AgentNode", () => {
 
     const streamed: any[] = [];
     for await (const item of n.genProcess({
+      emit: () => {},
       getProvider: async () => sdkProvider
     } as any)) {
       streamed.push(item);
@@ -2073,6 +2078,7 @@ describe("AgentNode – injected tools", () => {
   // The agent workflow runner puts its live tools on the context; a node that
   // selects one by name must get that instance rather than a builtin stub.
   const makeContext = (tools: unknown[], onLoop: (args: any) => void) => ({
+    emit: () => {},
     getProvider: async () => ({
       provider: "test",
       async *generateLoop(args: any) {

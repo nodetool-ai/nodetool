@@ -2,9 +2,9 @@
   "slug": "model-arena",
   "name": "Model Arena",
   "emoji": "⚖️",
-  "description": "Three answers in three columns, each streaming independently. A missing provider key fails one column, not the run.",
-  "tagline": "One brief, three frontier models, answered side by side.",
-  "note": "Choose one configured language model per column.",
+  "description": "Three answers in three columns, each streaming independently, then a judge model scores them as A, B and C without knowing which model wrote which.",
+  "tagline": "Three models answer one brief. A fourth judges them blind.",
+  "note": "Choose one configured language model per column and one for the judge.",
   "featured": false,
   "image": "/app-preview/img/model-arena.jpg",
   "app": {
@@ -26,14 +26,14 @@
           "type": "Text",
           "props": {
             "id": "tagline",
-            "text": "One brief, three frontier models, answered side by side."
+            "text": "Three models answer one brief. A fourth judges them blind."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "Choose one configured language model per column."
+            "text": "Choose one configured language model per column and one for the judge."
           }
         },
         {
@@ -48,36 +48,6 @@
                   "id": "panel-the-brief",
                   "title": "The brief",
                   "content": [
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-compare-openai-lane-model",
-                        "binding": "op:compare/prop:openai_lane#model",
-                        "label": "Compare model",
-                        "modelKind": "language_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-compare-anthropic-lane-model",
-                        "binding": "op:compare/prop:anthropic_lane#model",
-                        "label": "Compare model",
-                        "modelKind": "language_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-compare-gemini-lane-model",
-                        "binding": "op:compare/prop:gemini_lane#model",
-                        "label": "Compare model",
-                        "modelKind": "language_model",
-                        "events": []
-                      }
-                    },
                     {
                       "type": "TextInput",
                       "props": {
@@ -99,6 +69,46 @@
                       }
                     },
                     {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-compare-openai-lane-model",
+                        "binding": "op:compare/prop:openai_lane#model",
+                        "label": "Model A",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-compare-anthropic-lane-model",
+                        "binding": "op:compare/prop:anthropic_lane#model",
+                        "label": "Model B",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-compare-gemini-lane-model",
+                        "binding": "op:compare/prop:gemini_lane#model",
+                        "label": "Model C",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-compare-judge-model",
+                        "binding": "op:compare/prop:judge#model",
+                        "label": "Judge",
+                        "modelKind": "language_model",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-compare",
@@ -113,7 +123,11 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:compare/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
                   ]
@@ -132,7 +146,21 @@
                       "props": {
                         "id": "progress-compare",
                         "binding": "op:compare/exec#progress",
-                        "label": "Asking three models…"
+                        "label": "Asking three models, then the judge…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-compare",
+                        "binding": "op:compare/exec#error",
+                        "title": "A model failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:compare/exec#error",
+                          "op": "notEmpty"
+                        }
                       }
                     },
                     {
@@ -180,6 +208,22 @@
                       "props": {
                         "id": "out-compare-gemini",
                         "binding": "op:compare/out:gemini_out",
+                        "text": ""
+                      }
+                    },
+                    {
+                      "type": "Heading",
+                      "props": {
+                        "id": "lbl-compare-verdict",
+                        "text": "Blind verdict",
+                        "level": "3"
+                      }
+                    },
+                    {
+                      "type": "Markdown",
+                      "props": {
+                        "id": "out-compare-verdict",
+                        "binding": "op:compare/out:verdict_out",
                         "text": ""
                       }
                     }
@@ -316,6 +360,26 @@
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
+          },
+          {
+            "id": "verdict_out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "verdict"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 2070,
+                "y": 1080
+              },
+              "zIndex": 0,
+              "width": 300,
+              "title": "⚖️ Verdict",
+              "selectable": true,
+              "bypassed": false
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
           }
         ],
         "edges": []
@@ -327,6 +391,7 @@
     "op:compare/in:context": "Audience: the founding team (technical). Constraints: 2 engineers can be spared for 6 weeks; weak reporting is a top-3 reason prospects churn; tooling budget is about $2k/month.",
     "op:compare/out:openai_out": "**Model A:** leads with a crisp three-point structure and ships a concrete next step.",
     "op:compare/out:anthropic_out": "**Model B:** longer reasoning, names the tradeoff explicitly, flags one risk the others miss.",
-    "op:compare/out:gemini_out": "**Model C:** tightest answer, strongest factual recall, lightest on caveats."
+    "op:compare/out:gemini_out": "**Model C:** tightest answer, strongest factual recall, lightest on caveats.",
+    "op:compare/out:verdict_out": "## Winner\n**B.** The only answer that ties the build-vs-buy call to the two spare engineers and the churn risk."
   }
 }

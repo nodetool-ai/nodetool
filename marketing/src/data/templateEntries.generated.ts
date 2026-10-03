@@ -13166,13 +13166,13 @@ export const templateEntries: TemplateEntry[] = [
   {
     "route": "/templates/model-arena",
     "title": "Model Arena — NodeTool AI Workflow Template",
-    "description": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
+    "description": "One brief, three frontier models, answered side by side, then a fourth model judges them blind. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure. A judge reads the three answers as A, B and C without knowing which model wrote which, scores them against a fixed rubric, and names a winner. Swap the model on any lane, or the judge, to build your own bracket.",
     "priority": 0.6,
     "changeFrequency": "monthly",
     "indexable": true,
     "slug": "model-arena",
     "name": "Model Arena",
-    "summary": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
+    "summary": "One brief, three frontier models, answered side by side, then a fourth model judges them blind. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure. A judge reads the three answers as A, B and C without knowing which model wrote which, scores them against a fixed rubric, and names a winner. Swap the model on any lane, or the judge, to build your own bracket.",
     "tags": [
       "comparison",
       "llm",
@@ -13185,25 +13185,25 @@ export const templateEntries: TemplateEntry[] = [
       {
         "type": "nodetool.agents.Agent",
         "label": "Agent",
-        "count": 3
+        "count": 4
       },
       {
         "type": "nodetool.output.Output",
         "label": "Output",
-        "count": 3
+        "count": 4
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 2
       },
       {
         "type": "nodetool.input.StringInput",
         "label": "String Input",
         "count": 2
-      },
-      {
-        "type": "nodetool.text.Prompt",
-        "label": "Prompt",
-        "count": 1
       }
     ],
-    "nodeCount": 9,
+    "nodeCount": 12,
     "thumbnail": "/templates/model-arena.jpg",
     "graph": {
       "nodes": [
@@ -13293,6 +13293,32 @@ export const templateEntries: TemplateEntry[] = [
           "x": 1250,
           "y": 700,
           "width": 300
+        },
+        {
+          "id": "judge_prompt",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 1250,
+          "y": 1080,
+          "width": 320,
+          "subtitle": "Brief: {{ BRIEF }} Audience & constraints: {{ CONTEXT }} Three anonymous analysts answered this brief. You do not know who wrote which answ…"
+        },
+        {
+          "id": "judge",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 1650,
+          "y": 1080,
+          "width": 340,
+          "subtitle": "claude-sonnet-5"
+        },
+        {
+          "id": "verdict_out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2070,
+          "y": 1080,
+          "width": 300
         }
       ],
       "edges": [
@@ -13349,6 +13375,55 @@ export const templateEntries: TemplateEntry[] = [
           "source": "gemini_lane",
           "sourceHandle": "text",
           "target": "gemini_out",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "brief",
+          "sourceHandle": "output",
+          "target": "judge_prompt",
+          "targetHandle": "BRIEF",
+          "color": "string"
+        },
+        {
+          "source": "context",
+          "sourceHandle": "output",
+          "target": "judge_prompt",
+          "targetHandle": "CONTEXT",
+          "color": "string"
+        },
+        {
+          "source": "openai_lane",
+          "sourceHandle": "text",
+          "target": "judge_prompt",
+          "targetHandle": "ANSWER_A",
+          "color": "string"
+        },
+        {
+          "source": "anthropic_lane",
+          "sourceHandle": "text",
+          "target": "judge_prompt",
+          "targetHandle": "ANSWER_B",
+          "color": "string"
+        },
+        {
+          "source": "gemini_lane",
+          "sourceHandle": "text",
+          "target": "judge_prompt",
+          "targetHandle": "ANSWER_C",
+          "color": "string"
+        },
+        {
+          "source": "judge_prompt",
+          "sourceHandle": "output",
+          "target": "judge",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "judge",
+          "sourceHandle": "text",
+          "target": "verdict_out",
           "targetHandle": "value",
           "color": "string"
         }
@@ -20866,6 +20941,216 @@ export const templateEntries: TemplateEntry[] = [
           "source": "research-agent",
           "sourceHandle": "text",
           "target": "output-brief",
+          "targetHandle": "value",
+          "color": "string"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/research-a-brand-from-its-website",
+    "title": "Research a Brand from Its Website — NodeTool AI Workflow Template",
+    "description": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. Uses Claude Sonnet 5 with browser and web search tools, and GPT-5 mini for extraction.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "research-a-brand-from-its-website",
+    "name": "Research a Brand from Its Website",
+    "summary": "Paste a website and an agent researches the brand behind it: it opens the site with a browser, searches the web for what the site leaves out, and writes cited notes. An extractor turns the notes into a brand name, audience, voice, description and tagline that a brand kit can use. Uses Claude Sonnet 5 with browser and web search tools, and GPT-5 mini for extraction.",
+    "tags": [
+      "brand-asset",
+      "branding",
+      "research",
+      "agents",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 6
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.agents.Extractor",
+        "label": "Extractor",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Prompt",
+        "label": "Prompt",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 10,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "comment",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 40,
+          "y": -300,
+          "width": 560,
+          "isComment": true
+        },
+        {
+          "id": "in_website",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 50,
+          "y": 60,
+          "width": 300,
+          "subtitle": "https://nodetool.ai"
+        },
+        {
+          "id": "research_prompt",
+          "type": "nodetool.text.Prompt",
+          "title": "Prompt",
+          "x": 430,
+          "y": 60,
+          "width": 320,
+          "subtitle": "Research the brand behind this website: {{ WEBSITE }} 1. Open the website with the browser tool. Open one or two more pages from it if the…"
+        },
+        {
+          "id": "research_agent",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 830,
+          "y": 60,
+          "width": 340,
+          "subtitle": "claude-sonnet-5"
+        },
+        {
+          "id": "extract_fields",
+          "type": "nodetool.agents.Extractor",
+          "title": "Extractor",
+          "x": 1250,
+          "y": 60,
+          "width": 320,
+          "subtitle": "Extract a brand profile from the research notes in <TEXT>. - brand_name: the brand name exactly as written in the notes. - audience: who th…"
+        },
+        {
+          "id": "out_notes",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1250,
+          "y": 460,
+          "width": 300
+        },
+        {
+          "id": "out_brand_name",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1650,
+          "y": 60,
+          "width": 280
+        },
+        {
+          "id": "out_audience",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1650,
+          "y": 200,
+          "width": 280
+        },
+        {
+          "id": "out_voice",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1650,
+          "y": 340,
+          "width": 280
+        },
+        {
+          "id": "out_brand_description",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1650,
+          "y": 480,
+          "width": 280
+        },
+        {
+          "id": "out_tagline",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1650,
+          "y": 620,
+          "width": 280
+        }
+      ],
+      "edges": [
+        {
+          "source": "in_website",
+          "sourceHandle": "output",
+          "target": "research_prompt",
+          "targetHandle": "WEBSITE",
+          "color": "string"
+        },
+        {
+          "source": "research_prompt",
+          "sourceHandle": "output",
+          "target": "research_agent",
+          "targetHandle": "prompt",
+          "color": "string"
+        },
+        {
+          "source": "research_agent",
+          "sourceHandle": "text",
+          "target": "extract_fields",
+          "targetHandle": "text",
+          "color": "string"
+        },
+        {
+          "source": "research_agent",
+          "sourceHandle": "text",
+          "target": "out_notes",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "extract_fields",
+          "sourceHandle": "brand_name",
+          "target": "out_brand_name",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "extract_fields",
+          "sourceHandle": "audience",
+          "target": "out_audience",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "extract_fields",
+          "sourceHandle": "voice",
+          "target": "out_voice",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "extract_fields",
+          "sourceHandle": "brand_description",
+          "target": "out_brand_description",
+          "targetHandle": "value",
+          "color": "string"
+        },
+        {
+          "source": "extract_fields",
+          "sourceHandle": "tagline",
+          "target": "out_tagline",
           "targetHandle": "value",
           "color": "string"
         }

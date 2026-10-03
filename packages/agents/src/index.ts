@@ -78,6 +78,10 @@ export {
 } from "./tools/tool-permissions.js";
 export { gateLegacyTools, capabilityRunForLegacyTool } from "./capabilities/legacy-tools.js";
 export { gateFromContext } from "./capabilities/gate-from-context.js";
+export {
+  agentActivityReporter,
+  type AgentActivityReporter
+} from "./capabilities/agent-activity.js";
 export type {
   PermissionCategory,
   PermissionMode,

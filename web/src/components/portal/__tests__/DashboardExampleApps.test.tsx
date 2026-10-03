@@ -45,8 +45,8 @@ const APPS = [
     thumbnailUrl: "/api/workflows/examples/thumbnails/Edit.jpg?v=1"
   },
   {
-    slug: "product-reshoot",
-    name: "Product Reshoot",
+    slug: "sku-factory",
+    name: "SKU Factory",
     description: "New setting, new light, or a clean cutout.",
     workflows: ["Backdrop", "Relight", "Cut out"],
     operationCount: 3,
@@ -83,8 +83,8 @@ describe("DashboardExampleApps", () => {
     expect(within(card).getByText("1 workflow")).toBeInTheDocument();
     expect(within(card).queryByText(/unknown/i)).not.toBeInTheDocument();
 
-    const reshoot = screen.getByRole("button", { name: /product reshoot/i });
-    expect(within(reshoot).getByText("3 workflows")).toBeInTheDocument();
+    const skuFactory = screen.getByRole("button", { name: /sku factory/i });
+    expect(within(skuFactory).getByText("3 workflows")).toBeInTheDocument();
     expect(screen.getByText("2 apps")).toBeInTheDocument();
   });
 

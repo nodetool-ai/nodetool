@@ -529,6 +529,24 @@ function buildResult(result, ctx) {
     return items;
   }
 
+  if (result.transcript !== undefined) {
+    if (!ctx.operations.has(result.transcript)) {
+      fail(
+        `${ctx.app.name}: transcript names unknown operation "${result.transcript}"`
+      );
+    }
+    items.push({
+      type: "AgentActivity",
+      props: {
+        id: nextId(["transcript", result.transcript]),
+        binding: execBinding(result.transcript, "transcript"),
+        label: result.label,
+        placeholder: result.placeholder ?? ""
+      }
+    });
+    return items;
+  }
+
   if (result.note !== undefined) {
     items.push({
       type: "Text",
