@@ -221,3 +221,4 @@ The editor has no direct link to the storyboard surface. Use a rendered image as
 - [Asset Management](asset-management.md)
 - [Video Editor](video-editor.md)
 - [Sketch Editor](sketch-editor.md)
+- [Game Editor](game-editor.md), where a 3D game binds glTF models to its entities

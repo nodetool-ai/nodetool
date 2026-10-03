@@ -1,6 +1,6 @@
 "use client";
 /**
- * The five editing surfaces, one tab each, over a six-second loop of the real
+ * The six editing surfaces, one tab each, over a six-second loop of the real
  * editor. The loops are rendered by the demo harness from product casts
  * (demo/src/hero/SurfaceLoop.tsx), so what a tab shows is what the app does.
  *
@@ -34,6 +34,7 @@ import {
   FileText,
   Film,
   Brush,
+  Gamepad2,
   Pause,
   Play,
   Box as BoxIcon,
@@ -92,6 +93,14 @@ const SURFACES: Surface[] = [
     body: "Block out a set with simple shapes and lights, by hand or by asking the agent. Render it from any angle as a reference for the shot.",
     asset: "surface-3d",
   },
+  {
+    id: "game",
+    label: "Game",
+    icon: Gamepad2,
+    headline: "Playable 2D and 3D games",
+    body: "Place the player, the enemies, and the level, then press Play without leaving the editor. Ask the agent for a new rule or a darker level, and export the result as a web player.",
+    asset: "surface-game",
+  },
 ];
 
 interface SurfaceShowcaseProps {
@@ -102,7 +111,7 @@ interface SurfaceShowcaseProps {
 
 export default function SurfaceShowcase({
   surfaceIds,
-  heading = "Five editors. One project.",
+  heading = "Six editors. One project.",
   intro =
     "Everything the agent made opens in an editor, and the agent works each one with the same tools you click.",
 }: SurfaceShowcaseProps) {

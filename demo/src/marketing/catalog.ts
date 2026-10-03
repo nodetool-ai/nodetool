@@ -246,6 +246,21 @@ export const MARKETING_EDITS: readonly MarketingEdit[] = [
         crop: [435, 50, 1200, 1030]
       }
     ]
+  },
+  {
+    slug: "surface-game",
+    category: "GAME",
+    posterFrame: 150,
+    shots: [
+      {
+        title: "Build a world, then play it.",
+        detail: "Place the level. Press Play in the editor.",
+        start: 0.9,
+        end: 6.9,
+        durationFrames: 180,
+        crop: [50, 40, 1870, 990]
+      }
+    ]
   }
 ];
 

@@ -234,7 +234,7 @@ const seeds: FaqSeed[] = [
     slug: "what-does-agent-first-mean",
     question: "What does it mean that NodeTool is agent-first?",
     answerMd:
-      "The node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, and app builder expose operations that agents can call as tools. The agent can change the workflow or project on the same surfaces you use, and the execution record shows tool calls, results, errors, and interventions. The toolbelt is also exposed over **MCP** for compatible external agents.",
+      "The node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, game editor, and app builder expose operations that agents can call as tools. The agent can change the workflow or project on the same surfaces you use, and the execution record shows tool calls, results, errors, and interventions. The toolbelt is also exposed over **MCP** for compatible external agents.",
     category: "general",
     relatedRoute: "/agents",
     surfaces: ["landing", "agents"],

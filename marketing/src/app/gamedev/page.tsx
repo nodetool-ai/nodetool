@@ -1,5 +1,5 @@
 import type { Metadata } from "next";
-import { Download } from "lucide-react";
+import { ArrowUpRight, Download } from "lucide-react";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import GameShowcase from "../../components/GameShowcase";
@@ -37,6 +37,21 @@ export default function GameDevelopmentPage() {
             </div>
           </section>
           <GameShowcase />
+          <section aria-labelledby="game-editor-title" className="mt-24 grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
+            <div>
+              <h2 id="game-editor-title" className="max-w-sm text-3xl font-semibold tracking-tight md:text-4xl">Edit the level where you play it.</h2>
+              <p className="mt-4 max-w-md leading-relaxed text-slate-300">The game editor opens each game as a workspace tab. Select an entity in the scene tree, change it in the inspector, and press Play without leaving the tab. The same editor builds 2D and 3D games.</p>
+              <a href="https://docs.nodetool.ai/game-editor" className="focus-ring mt-6 inline-flex items-center gap-1 rounded font-medium text-cyan-200 hover:text-cyan-100">Read the game editor guide<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></a>
+            </div>
+            <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src="/surface-game-poster.webp" alt="The NodeTool game editor with Kindle open: the scene tree, the level, and the inspector" width={1920} height={1080} loading="lazy" decoding="async" className="hidden h-auto w-full motion-reduce:block" />
+              <video autoPlay muted loop playsInline preload="metadata" poster="/surface-game-poster.webp" aria-label="The game editor: the hero is selected in Kindle, then the level is played in the editor" className="block h-auto w-full motion-reduce:hidden">
+                <source src="/surface-game.webm" type='video/webm; codecs="vp9"' />
+                <source src="/surface-game.mp4" type="video/mp4" />
+              </video>
+            </div>
+          </section>
           <section aria-labelledby="game-process-title" className="mt-24 grid gap-10 border-t border-slate-700 pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
             <h2 id="game-process-title" className="max-w-sm text-3xl font-semibold tracking-tight md:text-4xl">From first idea to the next level.</h2>
             <ol className="space-y-8">

@@ -222,7 +222,7 @@ export default function AgentsPage() {
           <SectionHeader
             id="agent-surfaces-title"
             eyebrow="Every editor"
-            title="One agent. Six editors. No export step."
+            title="One agent. Seven editors. No export step."
             body="The agent edits the same documents you open in Studio. When it stops, the work is already in the editor."
           />
           <div className="mt-12">

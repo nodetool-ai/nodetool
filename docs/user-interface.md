@@ -148,7 +148,7 @@ explorer and in node results.
 ![Workspace tab bar](assets/screenshots/editor-tabs-bar.png)
 
 Open documents share one tab bar: workflows, sketches, timelines, storyboards,
-apps, chats, and app pages such as Settings. Drag a tab to reorder it. The left
+games, apps, chats, and app pages such as Settings. Drag a tab to reorder it. The left
 panel, Inspector, and bottom panel each open from their own edge and resize by
 dragging their inner border. Open or collapsed state and size are remembered
 between sessions.

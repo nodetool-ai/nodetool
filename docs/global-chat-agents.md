@@ -16,6 +16,7 @@ Most tasks in NodeTool start with the agent. Describe what you want. The agent p
 | Create shots, stills, clips, or a cut | Storyboards | [Creative Agent](creative-agent.md) |
 | Add voiced lines or subtitles | Scripts | [Creative Agent](creative-agent.md) |
 | Build forms, fields, buttons, or outputs | Mini Apps | [App Builder](app-builder.md) |
+| Add a level, an enemy, or a rule | Games | [Game Editor](game-editor.md) |
 
 The agent uses the same actions the interface offers, so you can watch changes land as they happen. The result is a normal document you can keep editing yourself.
 
