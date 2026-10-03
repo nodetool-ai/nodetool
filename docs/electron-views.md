@@ -20,7 +20,7 @@ It shows the NodeTool logo and the latest boot message from the backend, for exa
 
 If the backend fails to start, the splash shows "Backend failed to start" with the error and three buttons: **Retry start**, **Open logs**, and **Reinstall environment**.
 
-There is no separate install wizard. The embedded Python environment and packages are checked and set up at startup, and node packs and runtimes are managed from the **Package Manager**.
+There is no separate install wizard. Python is an optional runtime. You install it from the Runtimes panel of the **Package Manager**, and it is also installed automatically the first time you install a Python package there. Node packs and runtimes are managed from the **Package Manager**.
 
 ---
 

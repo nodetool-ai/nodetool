@@ -61,7 +61,7 @@ A searchable list of additional panels, followed by the app pages.
 
 ## Right Panel (Inspector)
 
-The right panel hosts only the **Inspector**. It opens by itself when you select a node, and `i` toggles it. (Logs, Queue, Trace, and Version History are not here. They live in the [Bottom Panel](#bottom-panel).)
+The right panel hosts the **Inspector** with a **Cost estimate** section under it. The panel opens by itself when you select a node, and `i` toggles it. Closing it yourself stops selection from reopening it until you open it again. (Logs, Queue, Trace, and Version History are not here. They live in the [Bottom Panel](#bottom-panel).)
 
 ![Right Panel](assets/screenshots/editor-right-panel.png)
 
@@ -77,7 +77,11 @@ With several nodes selected, the Inspector edits the properties they share and s
 
 ![Node Properties](assets/screenshots/editor-right-panel.png)
 
-When no node is selected the Inspector has nothing to show. Edit the workflow's own name, description, and tags in **More → Workflow Settings**.
+When no node is selected the Inspector has nothing to show, but the Cost estimate section below it stays. Edit the workflow's own name, description, and tags in **More → Workflow Settings**.
+
+### Cost estimate
+
+Under the Inspector, a collapsed **Cost estimate** section prices the open workflow for one run. Its header shows the total, or `incomplete` when some nodes have no known price. Expand it for a table with a row per node that uses an AI model: the node, its provider and model, the units, and the cost. A `~` means the figure rests on an assumed default, `≥` means it leaves out a known cost, and a question mark marks a node with no known price, which is left out of the total. The section is present whenever a workflow tab is open, and it takes at most 45% of the panel's height. For how prices are found, what the markers mean, and the other places NodeTool shows costs, see [Costs and credits](costs-and-credits.md).
 
 ---
 
@@ -137,7 +141,7 @@ A dock floating over the canvas. Its top part is the chat and media prompt (gene
 | Conversation | Always | Show or hide the conversation above the dock, with a count badge |
 | Auto Layout | Graph view, not on mobile | Auto-arrange the graph |
 | Save | Not on mobile | Save the workflow |
-| Trigger toggle | Workflow has trigger nodes | Arm or disarm the workflow's triggers, with per-trigger schedule and last-fired details |
+| Trigger toggle | Workflow has trigger nodes | Arm or disarm the workflow's triggers, with per-trigger schedule and last-fired details. See [Triggers](triggers.md) |
 | Stop | While a run is starting, queued, or running | Cancel the run |
 | Run | Always | Run the entire workflow. The label reads **Run entire workflow**, **Starting**, **Queued #n**, **Running**, **Stopping**, or **Error · Retry**, and a badge counts additional queued runs. Elapsed time shows while running. |
 | ⋮ Workflow actions | Always | Overflow menu (see below) |
