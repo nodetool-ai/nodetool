@@ -301,6 +301,19 @@ describe("Model3DLayerSource", () => {
     expect(sessions[1].dispose).toHaveBeenCalledTimes(1);
   });
 
+  it("serves again after dispose then revive, as StrictMode remounts it", async () => {
+    const { source, createSession } = makeSource();
+    source.dispose();
+    expect(source.acquire(layer("clip-a"))).toBeNull();
+    expect(createSession).not.toHaveBeenCalled();
+
+    source.revive();
+    source.acquire(layer("clip-a"));
+    await settle();
+    expect(createSession).toHaveBeenCalledTimes(1);
+    expect(source.frame(layer("clip-a"), STILL, SIZE)).not.toBeNull();
+  });
+
   it("awaits the session on the export path", async () => {
     const { source, sessions } = makeSource();
 

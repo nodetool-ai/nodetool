@@ -56,6 +56,12 @@ import {
 import type { CompositeLayer, CompositePrecomposite, TimelineCompositor } from "./gpu/types";
 import { TransformGizmoOverlay } from "./TransformGizmoOverlay";
 import { ReframeFocusOverlay } from "./ReframeFocusOverlay";
+import {
+  clampVideoRate,
+  decideVideoDrift,
+  isClockAdvancing,
+  videoRateMode
+} from "./playbackSync";
 import { ClipTrackingOverlay } from "./ClipTrackingOverlay";
 import { Model3DOrbitOverlay } from "./Model3DOrbitOverlay";
 import {
@@ -307,6 +313,8 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   // pause/stop), never per playback frame. Drives the scene at rest.
   const reactiveTimeMs = useTimelinePlaybackStore((s) => s.currentTimeMs);
   const isPlaying = useTimelinePlaybackStore((s) => s.isPlaying);
+  /** The J/K/L shuttle rate; clip speed multiplies it. */
+  const globalRate = useTimelinePlaybackStore((s) => s.rate);
   const getTimeMs = useTimelinePlaybackStore((s) => s.getTimeMs);
 
   // The time the React scene (active-layer set, placeholders, gizmo, badges)
@@ -377,6 +385,8 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
 
   const assetUrlCache = useRef<Map<string, AssetUrlEntry>>(new Map());
   const [urlCacheVersion, setUrlCacheVersion] = useState(0);
+  /** Bumped when a bound video reports its dimensions, which the gizmo reads. */
+  const [videoMetaVersion, setVideoMetaVersion] = useState(0);
   const getAsset = useAssetStore((s) => s.get);
   const bumpAssetRevision = useAssetRevisionStore((s) => s.bump);
   // Stops the proxy polls below when the preview unmounts.
@@ -495,7 +505,10 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       }),
     [resolveUrl]
   );
-  useEffect(() => () => model3dSource.dispose(), [model3dSource]);
+  useEffect(() => {
+    model3dSource.revive();
+    return () => model3dSource.dispose();
+  }, [model3dSource]);
 
   /**
    * The pose an orbit gesture is mid-way through, before it is written to the
@@ -514,6 +527,15 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   const renderFrameRef = useRef<() => void>(() => {});
   const isPlayingRef = useRef(isPlaying);
   isPlayingRef.current = isPlaying;
+  /** True while the master clock is advancing. Elements stay paused until it
+   *  is, so the picture does not run ahead of audio still decoding on Play.
+   *  Reset before the pool effect each time `isPlaying` changes. */
+  const clockAdvancingRef = useRef(false);
+  const globalRateRef = useRef(globalRate);
+  globalRateRef.current = globalRate;
+  useEffect(() => {
+    clockAdvancingRef.current = false;
+  }, [isPlaying]);
   /** Stable `clipId:assetUrl` → hot-slot binding (`videoSlotPool`). Survives
    *  neighbor-clip churn during transition overlaps so an active clip keeps
    *  its HTMLVideoElement (no reload + seek glitch when the previous clip
@@ -765,7 +787,28 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     apply();
     const ro = new ResizeObserver(apply);
     ro.observe(container);
-    return () => ro.disconnect();
+    // Moving the window to another display, or browser zoom, changes only
+    // devicePixelRatio: the container keeps its size, so the observer stays
+    // silent. A resolution query fires once per change and must be re-armed
+    // for the new ratio.
+    let dprQuery: MediaQueryList | null = null;
+    const onDprChange = () => {
+      apply();
+      watchDpr();
+    };
+    const watchDpr = () => {
+      dprQuery?.removeEventListener("change", onDprChange);
+      dprQuery =
+        typeof window.matchMedia === "function"
+          ? window.matchMedia(`(resolution: ${window.devicePixelRatio || 1}dppx)`)
+          : null;
+      dprQuery?.addEventListener("change", onDprChange);
+    };
+    watchDpr();
+    return () => {
+      ro.disconnect();
+      dprQuery?.removeEventListener("change", onDprChange);
+    };
   }, [sequenceWidth, sequenceHeight, qualityScale, onFailure]);
 
   // transform.position is stored in sequence pixels; tell the compositor the
@@ -1101,13 +1144,27 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       return null;
     }
     if (w <= 0 || h <= 0) return null;
+    // The box traces what is drawn: the picture layer's transform carries the
+    // animation and group, and its crop shrinks the quad. Edits still go to
+    // the stored `clip.transform`.
+    const drawn = videoLayer ?? imageLayer;
     return {
       clipId: selectedClipId,
       transform: clip.transform,
+      displayTransform: drawn?.transform,
+      parentMatrix: drawn?.parentMatrix,
+      crop: drawn?.crop,
       sourceWidth: w,
       sourceHeight: h
     };
-  }, [selectedClipId, clipById, sceneLayers, resolveUrl, urlCacheVersion]);
+  }, [
+    selectedClipId,
+    clipById,
+    sceneLayers,
+    resolveUrl,
+    urlCacheVersion,
+    videoMetaVersion
+  ]);
 
   const selectedReframe = useMemo(() => {
     if (!selectedClipId) return null;
@@ -1242,6 +1299,14 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
           el.src = slot.assetUrl;
           el.setAttribute("data-asset", slot.assetUrl);
           el.load();
+          // `videoWidth` is 0 until metadata arrives, and the gizmo memo reads
+          // it. Without a render here it stays hidden until something else
+          // re-renders (a click-seek onto a new clip changes nothing else).
+          el.addEventListener(
+            "loadedmetadata",
+            () => setVideoMetaVersion((v) => v + 1),
+            { once: true }
+          );
           videoFrameCleanups.current.set(el, trackPreviewVideoFrames(el, () => {
             if (previewVideoFrameReady(el)) {
               const pendingPlay = pendingVideoPlays.current.get(el);
@@ -1272,7 +1337,12 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         // hold, accelerate, or run backwards, and `playbackRate` is positive-only.
         // Its element stays paused and is seeked to the curve instead — here on
         // every scene bump, and once per rAF tick while playing (below).
-        const remapped = hasTimeRemap(clip);
+        // A reverse or extreme shuttle rate is not one an element can play at,
+        // so it is scrubbed the same way.
+        const remapped =
+          hasTimeRemap(clip) ||
+          videoRateMode(slot.baked ? 1 : rate, globalRate).mode === "scrub";
+        const elementRate = slot.baked ? globalRate : rate * globalRate;
 
         // Setting currentTime before HAVE_METADATA is silently clamped to 0 and
         // a subsequent play() can reject with AbortError. Defer until the
@@ -1297,9 +1367,9 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             const toleranceSec = promotedKeys.has(key) || sourceChanged
               ? 0.5 / Math.max(1, sequenceFps)
               : isPlaying && !remapped ? 0.15 : 0.04;
-            el.playbackRate = remapped ? 1 : rate;
+            el.playbackRate = remapped ? 1 : clampVideoRate(elementRate);
             const play = (): void => {
-              if (!isPlayingRef.current || el.dataset.clipId !== slot.clipId || el.getAttribute("data-asset") !== slot.assetUrl) return;
+              if (!isPlayingRef.current || !clockAdvancingRef.current || el.dataset.clipId !== slot.clipId || el.getAttribute("data-asset") !== slot.assetUrl) return;
               void el.play().catch((error: unknown) => {
                 // A seek, pause or source replacement intentionally cancels play().
                 if (
@@ -1332,7 +1402,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
               }
               el.currentTime = targetSec;
             }
-            if (isPlaying && !remapped && el.paused && !el.seeking && !pendingVideoPlays.current.has(el)) {
+            if (isPlaying && !remapped && clockAdvancingRef.current && el.paused && !el.seeking && !pendingVideoPlays.current.has(el)) {
               play();
             } else if ((!isPlaying || remapped) && !el.paused) {
               el.pause();
@@ -1441,7 +1511,8 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     loadAsset,
     // Not read directly — bumped every 2s during playback purely to
     // re-evaluate cold-pool preloads mid-clip (see the effect above).
-    preloadTick
+    preloadTick,
+    globalRate
   ]);
 
   // Resolve / preload image elements for image layers.
@@ -1860,6 +1931,10 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   animatedLayoutRef.current = animatedLayout;
   const activeVideoClipsRef = useRef(new Map<string, TimelineClip>());
   activeVideoClipsRef.current = new Map(activeVideoSlots.map((slot) => [slot.clipId, slot.clip]));
+  const activeVideoSlotsRef = useRef(new Map<string, (typeof activeVideoSlots)[number]>());
+  activeVideoSlotsRef.current = new Map(
+    activeVideoSlots.map((slot) => [videoSlotKey(slot.clipId, slot.assetUrl), slot])
+  );
 
   // Change-horizon bookkeeping for the tick loop below: the `tracks`/`clips`
   // identities and playhead position the last signature+horizon computation
@@ -1894,6 +1969,8 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     // Force a composite on the very first frame after play starts so any
     // pending texture uploads flush even before a video reports as playing.
     let forceRender = true;
+    let lastTickLiveMs = seedMs;
+    let lastClockMoveMs = Number.NEGATIVE_INFINITY;
     const presentedGenerations = new Map<HTMLVideoElement, number>();
 
     const tick = () => {
@@ -1924,21 +2001,70 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         }
         lastLiveMsRef.current = liveMs;
 
-        // A remapped clip's element is paused on purpose — its curve is not a
-        // playback rate — so nothing advances it between scene bumps. Seek it
-        // every tick, and treat that as new pixels: `el.paused` is true, so the
-        // decoding-video check below would call the scene static.
+        // The master clock is advancing once the live position has moved
+        // recently. A seek moves it once and then it holds until the audio
+        // restart, so a stalled clock pauses the elements again.
+        if (liveMs !== lastTickLiveMs) {
+          lastTickLiveMs = liveMs;
+          lastClockMoveMs = performance.now();
+        }
+        const clockAdvancing = isClockAdvancing(performance.now(), lastClockMoveMs);
+        clockAdvancingRef.current = clockAdvancing;
+
+        // Per-frame element sync. A scrubbed element (time remap, reverse or
+        // extreme shuttle rate) is paused on purpose, since its curve is not a
+        // playback rate, so nothing advances it between scene bumps: seek it
+        // every tick. A playing element drifts from the clock after seeks,
+        // loop wraps and rate changes, so it is compared with its target each
+        // frame, hard-seeked past about a frame of error and nudged below that.
+        // Either way a seek is new pixels: `el.paused` or the frame-generation
+        // check would otherwise call the scene static.
         let remapSeeked = false;
-        for (const binding of clipSlotMap.current.values()) {
-          const clip = activeVideoClipsRef.current.get(binding.clipId);
-          if (!clip || !hasTimeRemap(clip)) continue;
+        for (const [key, binding] of clipSlotMap.current) {
+          const slot = activeVideoSlotsRef.current.get(key);
           const el = videoRefs.current[binding.index];
-          if (!el || el.readyState < 1 || el.seeking) continue;
-          const targetSec = clipSourceTimeSec(clip, liveMs);
-          if (Math.abs(el.currentTime - targetSec) > 0.01) {
+          if (!slot || !el || el.readyState < 1 || el.seeking) continue;
+          const clip = slot.clip;
+          const baseRate = slot.baked ? 1 : sourceRate(clip);
+          const rateMode = hasTimeRemap(clip)
+            ? ({ mode: "scrub" } as const)
+            : videoRateMode(baseRate, globalRateRef.current);
+          const targetSec = slot.baked
+            ? bakedClipSourceTimeSec(clip, liveMs)
+            : clipSourceTimeSec(clip, liveMs);
+          if (rateMode.mode === "scrub") {
+            if (!el.paused) el.pause();
+            if (Math.abs(el.currentTime - targetSec) > 0.01) {
+              expectPreviewVideoFrame(el, targetSec);
+              el.currentTime = targetSec;
+              if (previewVideoFrameGeneration(el) === undefined) remapSeeked = true;
+            }
+            continue;
+          }
+          const decision = decideVideoDrift({
+            elementSec: el.currentTime,
+            targetSec,
+            fps: sequenceFps,
+            baseRate: clampVideoRate(rateMode.rate)
+          });
+          if (decision.action === "seek") {
             expectPreviewVideoFrame(el, targetSec);
             el.currentTime = targetSec;
             if (previewVideoFrameGeneration(el) === undefined) remapSeeked = true;
+          }
+          if (el.playbackRate !== decision.rate) el.playbackRate = decision.rate;
+          if (!clockAdvancing) {
+            if (!el.paused) el.pause();
+          } else if (
+            el.paused &&
+            !el.ended &&
+            !pendingVideoPlays.current.has(el) &&
+            el.readyState >= 2
+          ) {
+            el.play().catch((error: unknown) => {
+              if (error instanceof DOMException && error.name === "AbortError") return;
+              onFailure({ stage: "video-play", resourceId: slot.clipId, error });
+            });
           }
         }
 
@@ -2013,7 +2139,7 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     };
     raf = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(raf);
-  }, [gpuReady, isPlaying, onFailure, previewBlur, renderFrame]);
+  }, [gpuReady, isPlaying, onFailure, previewBlur, renderFrame, sequenceFps]);
 
   const hasAnything = sceneLayers.length > 0 || placeholderLayers.length > 0;
 
@@ -2085,6 +2211,9 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
           <TransformGizmoOverlay
             clipId={selectedGizmo.clipId}
             transform={selectedGizmo.transform}
+            displayTransform={selectedGizmo.displayTransform}
+            parentMatrix={selectedGizmo.parentMatrix}
+            crop={selectedGizmo.crop}
             sourceWidth={selectedGizmo.sourceWidth}
             sourceHeight={selectedGizmo.sourceHeight}
             sequenceWidth={sequenceWidth}

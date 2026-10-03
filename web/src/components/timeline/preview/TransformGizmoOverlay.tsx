@@ -19,7 +19,7 @@
  */
 
 import React, { useRef, useState } from "react";
-import type { ClipTransform } from "@nodetool-ai/timeline";
+import type { ClipCrop, ClipTransform } from "@nodetool-ai/timeline";
 
 import {
   buildTransformMatrix,
@@ -78,8 +78,18 @@ const snapAnchor = (norm01: number, dimPx: number): number => {
 interface TransformGizmoOverlayProps {
   /** Selected clip id (target of mutations). */
   clipId: string;
-  /** Current transform (undefined → identity). */
+  /** Stored transform the gesture edits (undefined → identity). */
   transform: ClipTransform | undefined;
+  /**
+   * The transform the layer is drawn with this frame: animation, camera and
+   * group folded in. The box traces it, while edits still land on `transform`.
+   * Defaults to `transform`.
+   */
+  displayTransform?: ClipTransform;
+  /** Resolved matrix of the group the layer is parented to, as drawn. */
+  parentMatrix?: Float32Array;
+  /** Crop applied to the source, which shrinks the drawn quad. */
+  crop?: ClipCrop;
   /** Source pixel width of the clip's decoded media. */
   sourceWidth: number;
   /** Source pixel height of the clip's decoded media. */
@@ -123,6 +133,44 @@ interface BoxGeometry {
   pivot: Point;
 }
 
+/**
+ * Map a pointer delta in frame CSS px to a position delta in the clip's own
+ * sequence-pixel space. A clip inside a group is drawn through the group's
+ * matrix, so the screen delta goes through that matrix's inverse first;
+ * without a parent this is the plain frame-to-sequence scale.
+ */
+export function cssDeltaToPositionDelta(
+  dxCss: number,
+  dyCss: number,
+  space: {
+    sequenceWidth: number;
+    sequenceHeight: number;
+    frameWidth: number;
+    frameHeight: number;
+    parentMatrix?: Float32Array;
+  }
+): Point {
+  const { sequenceWidth, sequenceHeight, frameWidth, frameHeight, parentMatrix } =
+    space;
+  // Clip space has Y up, so a screen delta is flipped before and after.
+  let wx = (2 * dxCss) / frameWidth;
+  let wy = (-2 * dyCss) / frameHeight;
+  if (parentMatrix) {
+    const a = parentMatrix[0] ?? 1;
+    const b = parentMatrix[1] ?? 0;
+    const c = parentMatrix[4] ?? 0;
+    const d = parentMatrix[5] ?? 1;
+    const det = a * d - b * c;
+    if (Math.abs(det) > 1e-9) {
+      const lx = (d * wx - c * wy) / det;
+      const ly = (-b * wx + a * wy) / det;
+      wx = lx;
+      wy = ly;
+    }
+  }
+  return { x: (wx * sequenceWidth) / 2, y: (-wy * sequenceHeight) / 2 };
+}
+
 function computeGeometry(
   t: ClipTransform,
   srcW: number,
@@ -130,10 +178,14 @@ function computeGeometry(
   seqW: number,
   seqH: number,
   frameW: number,
-  frameH: number
+  frameH: number,
+  parentMatrix?: Float32Array,
+  crop?: ClipCrop
 ): BoxGeometry {
-  const base = containBaseScale(srcW, srcH, seqW, seqH);
-  const m = buildTransformMatrix(t, base, seqW, seqH);
+  const cropW = crop ? 1 - crop.left - crop.right : 1;
+  const cropH = crop ? 1 - crop.top - crop.bottom : 1;
+  const base = containBaseScale(srcW * cropW, srcH * cropH, seqW, seqH);
+  const m = buildTransformMatrix(t, base, seqW, seqH, parentMatrix);
   const at = (qx: number, qy: number): Point =>
     clipToCss(
       m[0] * qx + m[4] * qy + m[12],
@@ -170,6 +222,8 @@ const mid = (a: Point, b: Point): Point => ({
 interface DragSession {
   target: GizmoTarget;
   startTransform: ClipTransform;
+  /** The drawn transform at drag start, or null when it equals the stored one. */
+  startDisplay: ClipTransform | null;
   startPointer: Point;
   /** Fixed (anchored) point in CSS for scale ops. */
   fixed: Point;
@@ -238,6 +292,9 @@ function SquareHandle({ cx, cy, cursor, onDown }: SquareHandleProps) {
 export function TransformGizmoOverlay({
   clipId,
   transform,
+  displayTransform,
+  parentMatrix,
+  crop,
   sourceWidth,
   sourceHeight,
   sequenceWidth,
@@ -269,14 +326,17 @@ export function TransformGizmoOverlay({
   }
 
   const t = transform ?? IDENTITY_TRANSFORM;
+  const td = displayTransform ?? t;
   const geo = computeGeometry(
-    t,
+    td,
     sourceWidth,
     sourceHeight,
     sequenceWidth,
     sequenceHeight,
     frameWidth,
-    frameHeight
+    frameHeight,
+    parentMatrix,
+    crop
   );
   const [tl, tr, br, bl] = geo.corners;
 
@@ -292,11 +352,44 @@ export function TransformGizmoOverlay({
     y: topMid.y + outward.y * ROTATION_HANDLE_OFFSET
   };
 
-  /** CSS px → sequence-px position delta along each axis. */
-  const cssToPosX = (dxCss: number): number =>
-    (dxCss * sequenceWidth) / frameWidth;
-  const cssToPosY = (dyCss: number): number =>
-    (dyCss * sequenceHeight) / frameHeight;
+  /** CSS px → sequence-px position delta, through the parent group's matrix. */
+  const cssToPos = (dxCss: number, dyCss: number): Point =>
+    cssDeltaToPositionDelta(dxCss, dyCss, {
+      sequenceWidth,
+      sequenceHeight,
+      frameWidth,
+      frameHeight,
+      parentMatrix
+    });
+
+  /**
+   * Re-express a candidate built from the stored transform on top of the drawn
+   * one, so the box geometry after an edit matches what will be drawn. Equal to
+   * the candidate when nothing animates the clip.
+   */
+  const toDisplay = (
+    candidate: ClipTransform,
+    start: ClipTransform,
+    display: ClipTransform | null
+  ): ClipTransform => {
+    if (!display) return candidate;
+    const ratio = (c: number, s: number): number => (s === 0 ? 1 : c / s);
+    return {
+      position: {
+        x: display.position.x + (candidate.position.x - start.position.x),
+        y: display.position.y + (candidate.position.y - start.position.y)
+      },
+      scale: {
+        x: display.scale.x * ratio(candidate.scale.x, start.scale.x),
+        y: display.scale.y * ratio(candidate.scale.y, start.scale.y)
+      },
+      rotation: display.rotation + (candidate.rotation - start.rotation),
+      anchor: {
+        x: display.anchor.x + (candidate.anchor.x - start.anchor.x),
+        y: display.anchor.y + (candidate.anchor.y - start.anchor.y)
+      }
+    };
+  };
 
   const fixedPointFor = (target: ScaleHandle): Point => {
     switch (target) {
@@ -386,6 +479,7 @@ export function TransformGizmoOverlay({
         rotation: t.rotation,
         anchor: { ...t.anchor }
       },
+      startDisplay: displayTransform ? td : null,
       startPointer: pointer,
       fixed,
       axisU,
@@ -414,11 +508,12 @@ export function TransformGizmoOverlay({
     if (drag.target === "body") {
       const dx = pointer.x - drag.startPointer.x;
       const dy = pointer.y - drag.startPointer.y;
+      const delta = cssToPos(dx, dy);
       onChange(clipId, {
         ...start,
         position: {
-          x: start.position.x + cssToPosX(dx),
-          y: start.position.y + cssToPosY(dy)
+          x: start.position.x + delta.x,
+          y: start.position.y + delta.y
         }
       });
       return;
@@ -451,7 +546,10 @@ export function TransformGizmoOverlay({
         y: snapAnchor(1 - projV, drag.heightV)
       };
       const candidate: ClipTransform = { ...start, anchor };
-      onChange(clipId, keepCenter(candidate, start, drag.startCenter));
+      onChange(
+        clipId,
+        keepCenter(candidate, start, drag.startCenter, drag.startDisplay)
+      );
       return;
     }
 
@@ -511,23 +609,24 @@ export function TransformGizmoOverlay({
     drag: DragSession
   ): ClipTransform => {
     const g = computeGeometry(
-      candidate,
+      toDisplay(candidate, start, drag.startDisplay),
       sourceWidth,
       sourceHeight,
       sequenceWidth,
       sequenceHeight,
       frameWidth,
-      frameHeight
+      frameHeight,
+      parentMatrix,
+      crop
     );
     // Re-derive the fixed corner position under the new scale.
     const fixedNow = fixedPointFromGeometry(g, drag.target as ScaleHandle);
-    const dx = drag.fixed.x - fixedNow.x;
-    const dy = drag.fixed.y - fixedNow.y;
+    const delta = cssToPos(drag.fixed.x - fixedNow.x, drag.fixed.y - fixedNow.y);
     return {
       ...candidate,
       position: {
-        x: start.position.x + cssToPosX(dx),
-        y: start.position.y + cssToPosY(dy)
+        x: start.position.x + delta.x,
+        y: start.position.y + delta.y
       }
     };
   };
@@ -536,24 +635,26 @@ export function TransformGizmoOverlay({
   const keepCenter = (
     candidate: ClipTransform,
     start: ClipTransform,
-    startCenter: Point
+    startCenter: Point,
+    startDisplay: ClipTransform | null
   ): ClipTransform => {
     const g = computeGeometry(
-      candidate,
+      toDisplay(candidate, start, startDisplay),
       sourceWidth,
       sourceHeight,
       sequenceWidth,
       sequenceHeight,
       frameWidth,
-      frameHeight
+      frameHeight,
+      parentMatrix,
+      crop
     );
-    const dx = startCenter.x - g.center.x;
-    const dy = startCenter.y - g.center.y;
+    const delta = cssToPos(startCenter.x - g.center.x, startCenter.y - g.center.y);
     return {
       ...candidate,
       position: {
-        x: start.position.x + cssToPosX(dx),
-        y: start.position.y + cssToPosY(dy)
+        x: start.position.x + delta.x,
+        y: start.position.y + delta.y
       }
     };
   };

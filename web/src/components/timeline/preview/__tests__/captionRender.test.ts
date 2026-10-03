@@ -1,4 +1,8 @@
-import { CaptionRasterizer, captionSignature } from "../captionRender";
+import {
+  CAPTION_BITMAP_CACHE_BUDGET_BYTES,
+  CaptionRasterizer,
+  captionSignature
+} from "../captionRender";
 import type { ResolvedCaption } from "@nodetool-ai/timeline/render";
 import { BitmapFrameScope } from "../BitmapFrameScope";
 import { installGlobal, stub } from "../../../../test-utils/doubles";
@@ -8,6 +12,10 @@ describe("captionRender", () => {
     const original = globalThis.OffscreenCanvas;
     const bitmaps: ImageBitmap[] = [];
     class FakeOffscreenCanvas {
+      constructor(
+        private readonly w: number,
+        private readonly h: number
+      ) {}
       getContext() {
         return {
           measureText: (text: string) => ({ width: text.length * 8 }),
@@ -16,7 +24,7 @@ describe("captionRender", () => {
         };
       }
       transferToImageBitmap() {
-        const bitmap = stub<ImageBitmap>({ width: 640, height: 360, close: jest.fn() });
+        const bitmap = stub<ImageBitmap>({ width: this.w, height: this.h, close: jest.fn() });
         bitmaps.push(bitmap);
         return bitmap;
       }
@@ -26,7 +34,7 @@ describe("captionRender", () => {
     const frame = new BitmapFrameScope();
     try {
       for (let index = 0; index < 65; index++) {
-        rasterizer.rasterize({ words: [{ text: `Caption ${index}`, active: true }] }, 640, 360, frame);
+        rasterizer.rasterize({ words: [{ text: `Caption ${index}`, active: true }] }, 1920, 1080, frame);
       }
       expect(bitmaps).toHaveLength(65);
       expect(bitmaps[0]!.close).not.toHaveBeenCalled();
@@ -35,6 +43,48 @@ describe("captionRender", () => {
     } finally {
       rasterizer.dispose();
       frame.release();
+      globalThis.OffscreenCanvas = original;
+    }
+  });
+
+  it("caps resident bitmaps by bytes, not entry count (F30)", () => {
+    const original = globalThis.OffscreenCanvas;
+    const bitmaps: ImageBitmap[] = [];
+    class FakeOffscreenCanvas {
+      constructor(
+        private readonly w: number,
+        private readonly h: number
+      ) {}
+      getContext() {
+        return {
+          measureText: (text: string) => ({ width: text.length * 8 }),
+          strokeText: () => undefined,
+          fillText: () => undefined
+        };
+      }
+      transferToImageBitmap() {
+        const bitmap = stub<ImageBitmap>({ width: this.w, height: this.h, close: jest.fn() });
+        bitmaps.push(bitmap);
+        return bitmap;
+      }
+    }
+    installGlobal("OffscreenCanvas", FakeOffscreenCanvas);
+    const rasterizer = new CaptionRasterizer();
+    try {
+      // 4K frames are 33 MB each: the budget holds two, so 10 distinct
+      // captions must leave only the newest two resident.
+      for (let index = 0; index < 10; index++) {
+        const frame = new BitmapFrameScope();
+        rasterizer.rasterize({ words: [{ text: `Caption ${index}`, active: true }] }, 3840, 2160, frame);
+        frame.release();
+      }
+      expect(rasterizer.residentBytes).toBeLessThanOrEqual(
+        CAPTION_BITMAP_CACHE_BUDGET_BYTES
+      );
+      expect(bitmaps.filter((b) => (b.close as jest.Mock).mock.calls.length === 0)).toHaveLength(2);
+      expect(bitmaps[9]!.close).not.toHaveBeenCalled();
+    } finally {
+      rasterizer.dispose();
       globalThis.OffscreenCanvas = original;
     }
   });

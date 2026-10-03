@@ -61,6 +61,7 @@ jest.mock("../Model3DOrbitOverlay", () => ({
 
 jest.mock("../Model3DLayerSource", () => ({
   Model3DLayerSource: jest.fn().mockImplementation(() => ({
+    revive: jest.fn(),
     frame: jest.fn(() => null),
     retain: jest.fn(),
     state: jest.fn(() => undefined),
