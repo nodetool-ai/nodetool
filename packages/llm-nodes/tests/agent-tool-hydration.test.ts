@@ -156,6 +156,7 @@ function contextWithTool(
   return {
     getProvider: async () => provider,
     getInjectedTool: (name: string) => (name === tool.name ? tool : null),
+    emit: () => {},
     get: <T,>(key: string, defaultValue?: T) =>
       (key in variables ? variables[key] : defaultValue) as T
   } as unknown as ProcessingContext;
@@ -262,6 +263,7 @@ describe("the gate an AgentNode's tools run behind", () => {
     const context = {
       getProvider: async () => callToolProvider("run_target", recorded),
       getInjectedTool: () => null,
+      emit: () => {},
       hasControlEventSupport: true,
       sendControlEvent: async (targetId: string) => {
         dispatched.push({ targetId });
@@ -277,5 +279,99 @@ describe("the gate an AgentNode's tools run behind", () => {
 
     expect(recorded.toolResult).not.toContain("blocked_in_plan_mode");
     expect(dispatched).toEqual([{ targetId: "target_node" }]);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// What the node reports while its tools run
+// ---------------------------------------------------------------------------
+
+describe("the activity an AgentNode reports", () => {
+  it("emits each tool call and how it settled, closing calls the provider ran itself", async () => {
+    const emitted: Array<Record<string, unknown>> = [];
+    const provider = {
+      provider: "openai",
+      getTotalCost: () => 0,
+      async *generateLoop(args: {
+        tools?: Array<{
+          name: string;
+          execute?: (
+            params: Record<string, unknown>,
+            toolCallId?: string
+          ) => Promise<string>;
+        }>;
+      }) {
+        yield { id: "call_1", name: "delete_workflow", args: { workflow_id: "wf-1" } };
+        await args.tools
+          ?.find((t) => t.name === "delete_workflow")
+          ?.execute?.({ workflow_id: "wf-1" }, "call_1");
+        // A provider built-in (the Claude Agent SDK's WebSearch): announced,
+        // never routed through the node's own tools.
+        yield { id: "call_2", name: "WebSearch", args: { query: "nodetool" } };
+        yield { type: "chunk", content: "done", content_type: "text", done: true };
+      }
+    };
+    const table: WorkflowTable = new Map([["wf-1", { id: "wf-1" }]]);
+    const context = {
+      ...contextWithTool(new FakeDeleteWorkflowTool(table), provider, {
+        [PERMISSION_GATE_CONTEXT_KEY]: headlessGate("kernel workflow run")
+      }),
+      emit: (message: Record<string, unknown>) => emitted.push(message)
+    } as unknown as ProcessingContext;
+
+    const agent = deletingAgent();
+    agent.__node_id = "research_agent";
+    await runAgent(agent, context);
+
+    expect(
+      emitted.map((m) => [m.type, m.tool_call_id, m.node_id, m.is_error ?? null])
+    ).toEqual([
+      ["tool_call_update", "call_1", "research_agent", null],
+      ["tool_result_update", "call_1", "research_agent", false],
+      ["tool_call_update", "call_2", "research_agent", null],
+      ["tool_result_update", "call_2", "research_agent", false]
+    ]);
+    expect(String((emitted[1].result as { summary: string }).summary)).toContain(
+      '"deleted":true'
+    );
+  });
+
+  it("settles a call the provider executes under a different id on the row it announced", async () => {
+    const emitted: Array<Record<string, unknown>> = [];
+    const provider = {
+      provider: "claude_agent_sdk",
+      getTotalCost: () => 0,
+      async *generateLoop(args: {
+        tools?: Array<{
+          name: string;
+          execute?: (
+            params: Record<string, unknown>,
+            toolCallId?: string
+          ) => Promise<string>;
+        }>;
+      }) {
+        // The Claude Agent SDK streams the model's id, then runs the tool
+        // under one of its own.
+        yield { id: "toolu_1", name: "delete_workflow", args: { workflow_id: "wf-1" } };
+        await args.tools
+          ?.find((t) => t.name === "delete_workflow")
+          ?.execute?.({ workflow_id: "wf-1" }, "call_delete_workflow_x");
+        yield { type: "chunk", content: "done", content_type: "text", done: true };
+      }
+    };
+    const table: WorkflowTable = new Map([["wf-1", { id: "wf-1" }]]);
+    const context = {
+      ...contextWithTool(new FakeDeleteWorkflowTool(table), provider, {
+        [PERMISSION_GATE_CONTEXT_KEY]: headlessGate("kernel workflow run")
+      }),
+      emit: (message: Record<string, unknown>) => emitted.push(message)
+    } as unknown as ProcessingContext;
+
+    await runAgent(deletingAgent(), context);
+
+    expect(emitted.map((m) => [m.type, m.tool_call_id])).toEqual([
+      ["tool_call_update", "toolu_1"],
+      ["tool_result_update", "toolu_1"]
+    ]);
   });
 });

@@ -14,8 +14,8 @@ const slots = (values: Record<string, unknown>) =>
 
 describe("collectNodePropertyOverlays", () => {
   it("keeps each operation's override on the node id both operations share", () => {
-    // The `upscale-image` app: two operations whose bound workflows each carry
-    // a node called `up`, driven by their own slider.
+    // Two operations whose bound workflows each carry a node called `up`,
+    // driven by their own slider.
     const inputs = slots({
       "faithful:up#scale": 2,
       "clarity:up#scale": 4

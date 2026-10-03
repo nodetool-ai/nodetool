@@ -25,9 +25,21 @@ import {
   streamInterventionLines,
   type SupervisorRunConfig
 } from "../supervisor.js";
+import { isRecord } from "../predicates.js";
 import { collectExecutionSummary } from "./collector.js";
 import { readTraceSummary } from "./trace.js";
 import type { DebugGraph, ServerRunReport } from "./types.js";
+
+/** An output_update carrying a streamed audio chunk's samples. */
+const isAudioChunkOutputUpdate = (message: ProcessingMessage): boolean => {
+  if (message.type !== "output_update") return false;
+  const value = (message as { value?: unknown }).value;
+  return (
+    isRecord(value) &&
+    value.type === "chunk" &&
+    value.content_type === "audio"
+  );
+};
 
 export interface ServerRunInput {
   graph: DebugGraph;
@@ -113,6 +125,16 @@ export async function runOnServer(
     sessionOptions.supervisor = supervisor.handle;
     sessionOptions.captureMessages = true;
   }
+  // A live host relays everything emitted on the run's context. That is a
+  // superset of RunResult.messages: a node can emit on its own, and an Agent
+  // node's tool calls (what a mini app's Agent Activity widget shows) only
+  // ever travel that way. The realtime-audio firehose stays out, as it does
+  // from the runner's own retention.
+  const relayed: ProcessingMessage[] = [];
+  const detachRelay = context.addMessageListener((message) => {
+    if (!isAudioChunkOutputUpdate(message)) relayed.push(message);
+  });
+
   // A run this runtime cannot honour (unknown model, unregistered provider,
   // missing credential) is refused by `create()` before the kernel starts.
   // The harness's job is to report why a run did not happen, so the refusal
@@ -121,6 +143,7 @@ export async function runOnServer(
   try {
     session = await ExecutionSession.create(sessionOptions);
   } catch (err) {
+    detachRelay();
     if (!isExecutionPreflightError(err)) throw err;
     supervisor?.handle.close();
     const summary = collectExecutionSummary([]);
@@ -155,7 +178,8 @@ export async function runOnServer(
   supervisor?.handle.close();
   const timedOut = session.cancelReason === "timeout";
 
-  const messages = result.messages ?? [];
+  detachRelay();
+  const messages = relayed.length > 0 ? relayed : (result.messages ?? []);
   const summary = collectExecutionSummary(messages);
   // The runner's RunResult status is authoritative; fall back to the message
   // stream's view if it's missing.

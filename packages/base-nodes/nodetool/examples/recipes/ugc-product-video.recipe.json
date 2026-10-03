@@ -22,10 +22,6 @@
       "role": "One guided surface carries the offer, ordered reference images, native-audio testimonial, and final review."
     },
     {
-      "app": "ai-spokesperson",
-      "role": "Use the focused revoicing app only when preserving an existing recorded performance matters more than native video-model audio."
-    },
-    {
       "app": "product-launch-kit",
       "role": "Use the launch kit when product imagery matters more than the creator-led edit."
     }

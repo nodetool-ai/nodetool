@@ -208,6 +208,12 @@ unreadable on a canvas.
 
 ## Single-job apps
 
+Retired: Product Reshoot, Product Shot Video, Multi-Shot Video, Scene Builder,
+Video Restyle, AI Spokesperson, Vertical Cut and Upscale Image no longer ship.
+Each repeated one operation of a larger app (SKU Factory, Trailer Room, Film
+Studio, AI Video Post House, Dubbing Desk, Viral Ad Engine). Their templates
+still ship as workflows. The rows below record the original design.
+
 The studios above put several jobs behind one surface. These ten are the
 opposite shape, the one a Runway-style app has: one upload, a few choices, one
 result. Each is a media job somebody already knows they want, so the app is the

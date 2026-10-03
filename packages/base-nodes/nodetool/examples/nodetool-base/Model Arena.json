@@ -5,7 +5,7 @@
   "updated_at": "2026-07-17T00:00:00.000000",
   "name": "Model Arena",
   "tool_name": null,
-  "description": "One brief, three frontier models, answered side by side. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure — so you compare reasoning, not formatting. Swap the model on any lane to build your own bracket.",
+  "description": "One brief, three frontier models, answered side by side, then a fourth model judges them blind. The same prompt fans out to OpenAI, Anthropic, and Google in a single pass, each answering in the same structure. A judge reads the three answers as A, B and C without knowing which model wrote which, scores them against a fixed rubric, and names a winner. Swap the model on any lane, or the judge, to build your own bracket.",
   "tags": [
     "comparison",
     "llm",
@@ -21,7 +21,7 @@
         "id": "comment",
         "type": "nodetool.workflows.base_node.Comment",
         "data": {
-          "comment": "# ⚔️ Model Arena\n\nOne brief, three frontier models, side by side. The same prompt fans out to **OpenAI GPT-5 mini**, **Anthropic Claude Sonnet 5**, and **Google Gemini 3.5 Flash** — each answers in the same structure, so you compare reasoning, not formatting.\n\n**Differentiator:** a fan-out a chat box can't do — run one question against three providers in a single pass and read the answers next to each other.\n\n**Try this:** paste any decision, spec, or judgement call into the brief, then swap the model on any lane to build your own bracket."
+          "comment": "# ⚔️ Model Arena\n\nOne brief, three frontier models, side by side. The same prompt fans out to **OpenAI GPT-5 mini**, **Anthropic Claude Sonnet 5**, and **Google Gemini 3.5 Flash** — each answers in the same structure, so you compare reasoning, not formatting.\n\n**Blind judge:** a fourth model reads the answers as A, B and C, never the model names, scores each against one rubric, and picks a winner. The scorecard is the verdict output.\n\n**Try this:** paste any decision, spec, or judgement call into the brief, then swap the model on any lane, or the judge, to build your own bracket."
         },
         "ui_properties": {
           "position": {
@@ -281,6 +281,91 @@
         },
         "dynamic_properties": {},
         "dynamic_outputs": {}
+      },
+      {
+        "id": "judge_prompt",
+        "type": "nodetool.text.Prompt",
+        "data": {
+          "prompt": "Brief:\n{{ BRIEF }}\n\nAudience & constraints:\n{{ CONTEXT }}\n\nThree anonymous analysts answered this brief. You do not know who wrote which answer.\n\n<answer id=\"A\">\n{{ ANSWER_A }}\n</answer>\n\n<answer id=\"B\">\n{{ ANSWER_B }}\n</answer>\n\n<answer id=\"C\">\n{{ ANSWER_C }}\n</answer>\n\nScore each answer from 1 to 5 on four criteria:\n- **Decisive:** commits to one clear recommendation.\n- **Grounded:** reasoning uses the stated constraints, not generic advice.\n- **Honest:** the counterargument is the strongest real one, not a strawman.\n- **Actionable:** a decision-maker could act on it tomorrow.\n\nAn empty or failed answer scores 0 on every criterion.\n\nReply in Markdown with exactly these sections and nothing else:\n\n## Scorecard\nA table with columns Answer, Decisive, Grounded, Honest, Actionable, Total.\n\n## Winner\nOne line: the winning answer's letter and the deciding reason.\n\n## What every answer missed\nOne short paragraph, or \"Nothing material.\""
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1250,
+            "y": 1080
+          },
+          "zIndex": 0,
+          "width": 320,
+          "height": 420,
+          "title": "Judge prompt (answers as A, B, C)",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {
+          "BRIEF": "",
+          "CONTEXT": "",
+          "ANSWER_A": "",
+          "ANSWER_B": "",
+          "ANSWER_C": ""
+        },
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "judge",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "anthropic",
+            "id": "claude-sonnet-5",
+            "name": "Claude Sonnet 5",
+            "path": null,
+            "supported_tasks": []
+          },
+          "system": "You are an impartial judge of analytical writing. Score only what is on the page. Ignore length, style and confidence that the reasoning does not earn. Never guess which model wrote an answer.",
+          "audio": {
+            "type": "audio",
+            "uri": "",
+            "asset_id": null,
+            "data": null
+          },
+          "history": [],
+          "thread_id": null,
+          "max_tokens": 4000
+        },
+        "ui_properties": {
+          "position": {
+            "x": 1650,
+            "y": 1080
+          },
+          "zIndex": 0,
+          "width": 340,
+          "height": 340,
+          "title": "⚖️ Blind judge",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "verdict_out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "verdict"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 2070,
+            "y": 1080
+          },
+          "zIndex": 0,
+          "width": 300,
+          "title": "⚖️ Verdict",
+          "selectable": true,
+          "bypassed": false
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
       }
     ],
     "edges": [
@@ -366,6 +451,83 @@
         "source": "gemini_lane",
         "sourceHandle": "text",
         "target": "gemini_out",
+        "targetHandle": "value",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "ej1",
+        "source": "brief",
+        "sourceHandle": "output",
+        "target": "judge_prompt",
+        "targetHandle": "BRIEF",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "ej2",
+        "source": "context",
+        "sourceHandle": "output",
+        "target": "judge_prompt",
+        "targetHandle": "CONTEXT",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "ej3",
+        "source": "openai_lane",
+        "sourceHandle": "text",
+        "target": "judge_prompt",
+        "targetHandle": "ANSWER_A",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "ej4",
+        "source": "anthropic_lane",
+        "sourceHandle": "text",
+        "target": "judge_prompt",
+        "targetHandle": "ANSWER_B",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "ej5",
+        "source": "gemini_lane",
+        "sourceHandle": "text",
+        "target": "judge_prompt",
+        "targetHandle": "ANSWER_C",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "ej6",
+        "source": "judge_prompt",
+        "sourceHandle": "output",
+        "target": "judge",
+        "targetHandle": "prompt",
+        "ui_properties": {
+          "className": "str"
+        },
+        "edge_type": "data"
+      },
+      {
+        "id": "ej7",
+        "source": "judge",
+        "sourceHandle": "text",
+        "target": "verdict_out",
         "targetHandle": "value",
         "ui_properties": {
           "className": "str"

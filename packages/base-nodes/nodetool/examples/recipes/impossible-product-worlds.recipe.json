@@ -16,8 +16,8 @@
   "hero": "Put a Product on a Studio Backdrop",
   "apps": [
     {
-      "app": "product-reshoot",
-      "role": "Explore product scene treatments from one reference photo. Use Storyboard and Timeline for the complete three-shot commercial."
+      "app": "sku-factory",
+      "role": "Explore product scene treatments from one reference photo with the backdrop and relight steps. Use Storyboard and Timeline for the complete three-shot commercial."
     }
   ],
   "steps": [
