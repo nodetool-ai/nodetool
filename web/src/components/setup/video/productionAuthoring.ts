@@ -96,7 +96,7 @@ export function productionFields({
   // read-only field of its own, which read as a filled-in value and put the
   // explanation a row below the select it explains.
   const bindingHint = !canBind
-    ? "Add voiceover or dialogue before choosing a speech mode."
+    ? "Add a line before choosing a speech mode."
     : binding?.script_line_id
       ? "Bound to a Script line. Edit the words and the voice in Script."
       : binding?.audio_asset_id
@@ -104,14 +104,13 @@ export function productionFields({
         : binding?.text
           ? "Uses local speech. Production voice and audio resolution are unavailable in this setup."
           : undefined;
-  const availabilityHint =
-    "On-camera speech is unavailable in this guided flow. Choose Off-camera or None.";
-  const speechHint = [bindingHint, availabilityHint]
-    .filter((part): part is string => part !== undefined)
-    .join(" ");
-  // The enums are short values on a narrow column, so they pack into one row
-  // of properties rather than four full-width controls down the card.
-  return [
+  // The on-camera option names its own unavailability, so the hint only says
+  // what the speech is bound to.
+  const speechHint = bindingHint;
+  // Every production setting is optional and most shots keep the defaults, so
+  // they sit behind the block's "More options" toggle. The enums are short
+  // values, so they pack into one row of properties once it is open.
+  const fields: PlanReviewField[] = [
     {
       id: `${id}:purpose`,
       label: "Editorial purpose",
@@ -225,6 +224,7 @@ export function productionFields({
         })
     }
   ];
+  return fields.map((field) => ({ ...field, advanced: true }));
 }
 
 export function productionAuthoringBlocker(

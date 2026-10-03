@@ -12,6 +12,7 @@
 
 import React, { memo, useEffect, useRef, useState } from "react";
 import ClearIcon from "@mui/icons-material/Clear";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import type { SxProps, Theme } from "@mui/material/styles";
 
 import {
@@ -101,6 +102,12 @@ export interface PlanReviewField {
    * value, and the guidance ends up a row away from the control it explains.
    */
   hint?: string;
+  /**
+   * A setting most plans leave at its default. Advanced fields sit behind one
+   * "More options" toggle per block, so the block opens on its words and its
+   * length rather than on a wall of selects.
+   */
+  advanced?: boolean;
 }
 
 /**
@@ -319,8 +326,29 @@ const fieldSx = (row: PlanReviewField, packed: boolean): SxProps<Theme> => {
   return box;
 };
 
-/** A run of rows, packed into lines. Used by a section and by its groups. */
-const PlanReviewLines: React.FC<{ rows: readonly PlanReviewField[] }> = ({
+/**
+ * What a collapsed set of advanced fields holds, so a value the creator chose
+ * is never hidden without a trace: a select away from its first option, or a
+ * text field with text in it.
+ */
+export const advancedSummary = (rows: readonly PlanReviewField[]): string =>
+  rows
+    .flatMap((row) => {
+      if (row.options) {
+        if (row.value === (row.options[0]?.value ?? "")) {
+          return [];
+        }
+        const label =
+          row.options.find((option) => option.value === row.value)?.label ??
+          row.value;
+        return [`${row.label}: ${label}`];
+      }
+      return row.value.trim() ? [row.label] : [];
+    })
+    .join(" · ");
+
+/** Packs rows into lines, without the advanced split. */
+const PackedLines: React.FC<{ rows: readonly PlanReviewField[] }> = ({
   rows
 }) => (
   <FlexColumn gap={GAP.compact}>
@@ -344,6 +372,45 @@ const PlanReviewLines: React.FC<{ rows: readonly PlanReviewField[] }> = ({
     })}
   </FlexColumn>
 );
+
+/**
+ * A run of rows, packed into lines. Used by a section and by its groups.
+ * Advanced rows stay behind a toggle until the creator asks for them.
+ */
+const PlanReviewLines: React.FC<{ rows: readonly PlanReviewField[] }> = ({
+  rows
+}) => {
+  const [open, setOpen] = useState(false);
+  const basic = rows.filter((row) => !row.advanced);
+  const advanced = rows.filter((row) => row.advanced);
+  if (advanced.length === 0) {
+    return <PackedLines rows={rows} />;
+  }
+  const summary = open ? "" : advancedSummary(advanced);
+  return (
+    <FlexColumn gap={GAP.compact}>
+      {basic.length > 0 ? <PackedLines rows={basic} /> : null}
+      <FlexRow gap={GAP.normal} align="center" wrap>
+        <EditorButton
+          variant="text"
+          size="small"
+          aria-expanded={open}
+          onClick={() => setOpen((value) => !value)}
+          endIcon={
+            <ExpandMoreIcon
+              fontSize="small"
+              sx={{ transform: open ? "rotate(180deg)" : "none" }}
+            />
+          }
+        >
+          {open ? "Fewer options" : "More options"}
+        </EditorButton>
+        {summary ? <Caption color="muted">{summary}</Caption> : null}
+      </FlexRow>
+      {open ? <PackedLines rows={advanced} /> : null}
+    </FlexColumn>
+  );
+};
 
 /** One bounded, compact shot inside its scene. */
 const PlanReviewBlock: React.FC<{ group: PlanReviewGroup }> = ({ group }) => (

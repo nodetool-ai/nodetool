@@ -42,10 +42,19 @@ beforeEach(() => {
   useTimelineStore.getState().reset();
 });
 
+
+/** Production settings sit behind each block's "More options" toggle. */
+const openAllOptions = async (): Promise<void> => {
+  for (const toggle of screen.getAllByRole("button", { name: "More options" })) {
+    await userEvent.click(toggle);
+  }
+};
+
 describe("video ReviewStep (criterion 4)", () => {
   it("persists supported speech direction, its binding, and exactly three takes", async () => {
     seed(beats());
     renderStep();
+    await openAllOptions();
     await userEvent.type(
       screen.getAllByLabelText("Production direction")[1],
       "Look at camera"

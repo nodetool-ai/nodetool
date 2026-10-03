@@ -169,7 +169,7 @@ it("explains missing local speech and disables mode selection", () => {
     fields.find((field) => field.label === "Speech binding")
   ).toBeUndefined();
   expect(fields.find((field) => field.label === "Speech mode")?.hint).toContain(
-    "Add voiceover or dialogue"
+    "Add a line before choosing a speech mode."
   );
 });
 
@@ -186,7 +186,7 @@ it("marks on-camera speech unavailable at selection with an actionable alternati
     label: "On-camera (unavailable in guided flow)",
     disabled: true
   });
-  expect(speech?.hint).toContain("Choose Off-camera or None");
+  expect(speech?.advanced).toBe(true);
 });
 
 it("allows supported references and alternatives but blocks unsupported on-camera speech", () => {

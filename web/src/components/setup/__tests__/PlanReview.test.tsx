@@ -507,3 +507,52 @@ describe("PlanReview", () => {
     expect(screen.getByRole("button", { name: "Remove Beat 1" })).toHaveFocus();
   });
 });
+
+describe("advanced fields", () => {
+  const sections = (): PlanReviewSection[] => [
+    {
+      id: "scene",
+      header: "Scene 1",
+      rows: [],
+      groups: [
+        {
+          id: "shot",
+          header: "Shot 1",
+          rows: [
+            row("Action", { value: "The keeper climbs" }),
+            row("Requested takes", {
+              advanced: true,
+              value: "3",
+              options: [
+                { value: "1", label: "1" },
+                { value: "3", label: "3" }
+              ]
+            }),
+            row("Production direction", { advanced: true })
+          ]
+        }
+      ]
+    }
+  ];
+
+  it("hides advanced fields behind a toggle that names the values set", async () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <PlanReview sections={sections()} />
+      </ThemeProvider>
+    );
+    expect(screen.getByLabelText("Action")).toBeInTheDocument();
+    expect(screen.queryByLabelText("Production direction")).toBeNull();
+    expect(screen.getByText("Requested takes: 3")).toBeInTheDocument();
+
+    const toggle = screen.getByRole("button", { name: "More options" });
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    await userEvent.click(toggle);
+
+    expect(screen.getByLabelText("Production direction")).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Fewer options" })
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(screen.queryByText("Requested takes: 3")).toBeNull();
+  });
+});
