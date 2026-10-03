@@ -51,13 +51,14 @@ import {
   WorkflowNode,
   WORKFLOW_NODE_TYPE
 } from "../node/WorkflowNode";
-import { SubgraphNode, SUBGRAPH_NODE_TYPE } from "../node/SubgraphNode";
+import SubgraphNode from "../node/SubgraphNode/SubgraphNode";
 import {
   GROUP_NODE_TYPE,
   COMMENT_NODE_TYPE,
   PREVIEW_NODE_TYPE,
   REROUTE_NODE_TYPE,
   STRING_NODE_TYPE,
+  SUBGRAPH_NODE_TYPE,
   DYNAMIC_COMFY_NODE_TYPES
 } from "../../constants/nodeTypes";
 import {
