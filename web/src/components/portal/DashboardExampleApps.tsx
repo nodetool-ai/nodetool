@@ -2,7 +2,16 @@
 import { css } from "@emotion/react";
 import { alpha, type Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { lazy, memo, Suspense, useCallback, useState } from "react";
+import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
+import {
+  lazy,
+  memo,
+  Suspense,
+  useCallback,
+  useEffect,
+  useRef,
+  useState
+} from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import {
@@ -16,7 +25,6 @@ import {
   type ExampleAppSummary
 } from "../../utils/exampleApps";
 import {
-  Box,
   FlexColumn,
   FlexRow,
   BORDER_RADIUS,
@@ -122,6 +130,34 @@ const styles = (theme: Theme, compact: boolean) =>
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       ...(compact && { display: "none" })
+    },
+    ".app-focus-bar": {
+      display: "flex",
+      alignItems: "center",
+      justifyContent: "space-between",
+      gap: getSpacingPx(SPACING.sm),
+      paddingBottom: getSpacingPx(SPACING.md)
+    },
+    // The opened app grows to its natural height so the page scrolls, rather
+    // than clipping it inside a nested scroller.
+    ".app-focus-body": {
+      minHeight: 320,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      borderRadius: BORDER_RADIUS.lg,
+      overflow: "hidden",
+      marginBottom: getSpacingPx(SPACING.xl),
+      // On phones the app's own padding is the gutter: drop the frame and
+      // bleed to the screen edges so widgets keep their full width.
+      [theme.breakpoints.down("sm")]: {
+        border: "none",
+        borderRadius: 0,
+        margin: `0 -${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)}`
+      }
+    },
+    ".app-focus-loading": {
+      display: "flex",
+      justifyContent: "center",
+      padding: `${getSpacingPx(SPACING.xl)} 0`
     },
     ".apps-loading, .apps-empty": {
       display: "flex",
@@ -233,6 +269,11 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
     (app: ExampleAppSummary) => setUsingApp(app),
     []
   );
+  const sectionRef = useRef<HTMLElement>(null);
+  // Cards can sit far down a long catalog; bring the opened app to the top.
+  useEffect(() => {
+    if (usingApp) sectionRef.current?.scrollIntoView?.({ block: "start" });
+  }, [usingApp]);
   const theme = useTheme();
   const sectionWrap = useSectionWrap();
   const queryClient = useQueryClient();
@@ -295,40 +336,59 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
 
   return (
     <section
+      ref={sectionRef}
       css={styles(theme, compact)}
       aria-labelledby="dashboard-example-apps-title"
     >
       <div css={compact ? css({ maxWidth: "none", padding: 0 }) : sectionWrap}>
-        <SectionHeader title="Start from an app" count={countLabel}>
-          {compact && onBrowseAll && apps.length > visibleApps.length && (
+        {usingApp ? (
+          <div className="app-focus-bar">
             <EditorButton
               variant="text"
               density="compact"
-              onClick={onBrowseAll}
+              startIcon={<ArrowBackRoundedIcon fontSize="small" />}
+              onClick={() => setUsingApp(null)}
             >
-              See all apps
+              All apps
             </EditorButton>
-          )}
-        </SectionHeader>
-        <p className="apps-lede">
-          Use an app directly, or install a copy to customize its workflows.
-        </p>
+            <EditorButton
+              density="compact"
+              disabled={installingSlug === usingApp.slug}
+              onClick={() => handleInstall(usingApp)}
+            >
+              {installingSlug === usingApp.slug ? "Installing…" : "Install app"}
+            </EditorButton>
+          </div>
+        ) : (
+          <>
+            <SectionHeader title="Start from an app" count={countLabel}>
+              {compact && onBrowseAll && apps.length > visibleApps.length && (
+                <EditorButton
+                  variant="text"
+                  density="compact"
+                  onClick={onBrowseAll}
+                >
+                  See all apps
+                </EditorButton>
+              )}
+            </SectionHeader>
+            <p className="apps-lede">
+              Use an app directly, or install a copy to customize its workflows.
+            </p>
+          </>
+        )}
         {usingApp && (
-          <FlexColumn gap={SPACING.md} sx={{ mb: SPACING.xl }}>
-            <FlexRow justify="space-between">
-              <span>{usingApp.name}</span>
-              <EditorButton onClick={() => setUsingApp(null)}>
-                Close app
-              </EditorButton>
-            </FlexRow>
-            <Box sx={{ aspectRatio: "4 / 3", position: "relative" }}>
-              <Box sx={{ position: "absolute", inset: 0 }}>
-                <Suspense fallback={<LoadingSpinner text="Loading app" />}>
-                  <ExampleAppUseView key={usingApp.slug} slug={usingApp.slug} />
-                </Suspense>
-              </Box>
-            </Box>
-          </FlexColumn>
+          <div className="app-focus-body">
+            <Suspense
+              fallback={
+                <div className="app-focus-loading">
+                  <LoadingSpinner text="Loading app" />
+                </div>
+              }
+            >
+              <ExampleAppUseView key={usingApp.slug} slug={usingApp.slug} />
+            </Suspense>
+          </div>
         )}
         {usingApp ? null : isLoading ? (
           <div className="apps-loading">
