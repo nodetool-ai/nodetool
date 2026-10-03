@@ -9,6 +9,12 @@ const DashboardExampleStoryboards = lazy(
 const DashboardExampleTimelines = lazy(
   () => import("../portal/DashboardExampleTimelines")
 );
+const DashboardExampleSketches = lazy(
+  () => import("../portal/DashboardExampleSketches")
+);
+const DashboardExampleModels = lazy(
+  () => import("../portal/DashboardExampleModels")
+);
 const DashboardExampleGames = lazy(
   () => import("../portal/DashboardExampleGames")
 );
@@ -22,6 +28,8 @@ const EXAMPLE_TABS = [
   { value: "workflows", label: "Workflows" },
   { value: "storyboards", label: "Storyboards" },
   { value: "timelines", label: "Timelines" },
+  { value: "sketches", label: "Sketches" },
+  { value: "models", label: "3D models" },
   { value: "games", label: "Games" }
 ];
 
@@ -46,6 +54,10 @@ const StartExamples = ({ onBrowseAll }: StartExamplesProps) => {
           <DashboardExampleStoryboards />
         ) : activeTab === "timelines" ? (
           <DashboardExampleTimelines />
+        ) : activeTab === "sketches" ? (
+          <DashboardExampleSketches />
+        ) : activeTab === "models" ? (
+          <DashboardExampleModels />
         ) : (
           <DashboardExampleGames />
         )}
