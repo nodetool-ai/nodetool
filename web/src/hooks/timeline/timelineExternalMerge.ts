@@ -7,9 +7,10 @@ import type {
 } from "@nodetool-ai/timeline";
 import { timelineCamera2d } from "@nodetool-ai/protocol/api-schemas/timeline.js";
 
-import type {
-  TimelinePartializedState,
-  TimelineStoreState
+import {
+  timelineTemporalOf,
+  type TimelinePartializedState,
+  type TimelineStoreState
 } from "../../stores/timeline/TimelineStore";
 import {
   rebaseDocumentSnapshots,
@@ -35,11 +36,92 @@ export type TimelineTypedDocument = Pick<
   | "height"
   | "storyboardMaterializations"
   | "camera2d"
+  | "tempo"
+  | "setup"
 >;
 
 export const timelineTypedDocumentOf = (
   document: TimelineMergeDoc
 ): TimelineTypedDocument => document as unknown as TimelineTypedDocument;
+
+/** The merge-engine view of a store state or document snapshot. */
+export const timelineMergeDocumentOf = (
+  state: TimelineMergeDoc
+): TimelineMergeDoc => ({
+  tracks: state.tracks,
+  trackFolders: state.trackFolders,
+  clips: state.clips,
+  markers: state.markers,
+  mediaTracks: state.mediaTracks,
+  transcript: state.transcript,
+  scriptEnabled: state.scriptEnabled,
+  fps: state.fps,
+  width: state.width,
+  height: state.height,
+  storyboardMaterializations: state.storyboardMaterializations,
+  camera2d: state.camera2d ?? null,
+  tempo: state.tempo,
+  setup: state.setup ?? null
+});
+
+/**
+ * The merge-engine view of a fetched sequence. A field the wire copy omits
+ * (tempo on a sequence that never stored one) falls back to `base`, so an
+ * omission never reads as an external clear.
+ */
+export const timelineMergeDocumentOfSequence = (
+  sequence: {
+    tracks?: unknown[];
+    trackFolders?: unknown[];
+    clips?: unknown[];
+    markers?: unknown[];
+    mediaTracks?: unknown[];
+    transcript?: unknown[];
+    scriptEnabled?: boolean;
+    fps: number;
+    width: number;
+    height: number;
+    storyboardMaterializations?: TimelineMergeDoc["storyboardMaterializations"];
+    camera2d?: TimelineMergeDoc["camera2d"];
+    tempo?: TimelineMergeDoc["tempo"];
+    setup?: TimelineMergeDoc["setup"];
+  },
+  base: TimelineMergeDoc
+): TimelineMergeDoc => ({
+  tracks: sequence.tracks ?? [],
+  trackFolders: sequence.trackFolders ?? [],
+  clips: sequence.clips ?? [],
+  markers: sequence.markers ?? [],
+  mediaTracks: sequence.mediaTracks ?? [],
+  transcript: sequence.transcript ?? [],
+  scriptEnabled: sequence.scriptEnabled ?? false,
+  fps: sequence.fps,
+  width: sequence.width,
+  height: sequence.height,
+  storyboardMaterializations: sequence.storyboardMaterializations,
+  camera2d: sequence.camera2d ?? null,
+  tempo: sequence.tempo ?? base.tempo,
+  setup: sequence.setup ?? null
+});
+
+/**
+ * Run `apply` with undo recording paused, then restore the state it found. A
+ * merge that lands mid-gesture must not turn tracking back on under the
+ * gesture's open history batch.
+ */
+export function withHistoryPaused(
+  store: Parameters<typeof timelineTemporalOf>[0],
+  apply: () => void
+): void {
+  const temporal = timelineTemporalOf(store);
+  const wasTracking = temporal.isTracking;
+  temporal.pause();
+  try {
+    apply();
+  } finally {
+    if (wasTracking) temporal.resume();
+  }
+}
 
 export const listableTimelineConflicts = (
   conflicts: MergeConflict[]
@@ -183,7 +265,9 @@ export function rebaseTimelineSnapshots(
       width: before.width,
       height: before.height,
       storyboardMaterializations: snapshot.storyboardMaterializations,
-      camera2d: snapshot.camera2d ?? null
+      camera2d: snapshot.camera2d ?? null,
+      tempo: snapshot.tempo,
+      setup: before.setup ?? null
     })),
     before,
     after,
@@ -208,6 +292,7 @@ export function rebaseTimelineSnapshots(
       scriptEnabled: typedNext.scriptEnabled,
       storyboardMaterializations: typedNext.storyboardMaterializations,
       camera2d: typedNext.camera2d ?? null,
+      tempo: typedNext.tempo,
       durationMs: reflowed.durationMs
     } satisfies TimelinePartializedState;
   });

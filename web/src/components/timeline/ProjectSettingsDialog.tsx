@@ -198,6 +198,16 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
 
   const handleApply = async () => {
     if (!allValid) return;
+    // A failed canvas save keeps the dialog open; the hook reports the error
+    // and puts the previous canvas back.
+    if (canvasDirty) {
+      const saved = await save({
+        width: widthNum,
+        height: heightNum,
+        fps: fpsNum
+      });
+      if (!saved) return;
+    }
     if (tempoDirty) {
       setTempo({
         bpm: bpmNum,
@@ -207,9 +217,6 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
           beatUnit: beatUnitNum
         }
       });
-    }
-    if (canvasDirty) {
-      await save({ width: widthNum, height: heightNum, fps: fpsNum });
     }
     onClose();
   };

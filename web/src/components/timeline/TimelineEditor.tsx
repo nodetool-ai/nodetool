@@ -617,12 +617,15 @@ const TimelineEditorBody: React.FC<TimelineEditorProps> = memo(({
   const { data: sequence, isLoading, isError, refetch } =
     useTimeline(sequenceId);
 
+  // Persist subsequent edits back via trpc.timeline.update (debounced).
+  // Declared before the load hook on purpose: effect cleanups run in
+  // declaration order on unmount, so autosave's closing flush must come
+  // before the load hook's store reset or the last edits are lost.
+  const { flush: flushAutosave } = useTimelineAutosave();
+
   // Mirror the fetched sequence into the TimelineStore so store-bound
   // components (Tracks, Inspector, ActivityIndicator) render its content.
   useLoadTimelineIntoStore(sequence);
-
-  // Persist subsequent edits back via trpc.timeline.update (debounced).
-  const { flush: flushAutosave } = useTimelineAutosave();
 
   // Take in writes made outside this browser (agent doc-ops, CLI, another tab).
   useTimelineExternalSync(sequenceId ?? null);

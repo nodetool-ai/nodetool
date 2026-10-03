@@ -49,7 +49,7 @@ jest.mock("../../../stores/timeline/TimelineStore", () => ({
     selector(storeState)
 }));
 
-const mockSave = jest.fn().mockResolvedValue(undefined);
+const mockSave = jest.fn().mockResolvedValue(true);
 jest.mock("../../../hooks/timeline/useTimelineProjectSettings", () => ({
   useTimelineProjectSettings: () => ({ save: mockSave, isSaving: false })
 }));
@@ -112,6 +112,19 @@ describe("ProjectSettingsDialog", () => {
       })
     );
     await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it("stays open when the canvas save fails", async () => {
+    mockSave.mockResolvedValueOnce(false);
+    const onClose = jest.fn();
+    renderDialog(onClose);
+
+    fireEvent.change(fpsInput(), { target: { value: "60" } });
+    fireEvent.click(screen.getByRole("button", { name: "Apply" }));
+
+    await waitFor(() => expect(mockSave).toHaveBeenCalled());
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("keeps Apply disabled for an out-of-range dimension", () => {

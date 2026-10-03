@@ -105,6 +105,7 @@ import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
 import { useLastModelStore, modelKindForBinding } from "../lastModelStore";
 import { trpcClient } from "../../trpc/client";
 import { buildTimelineDocumentPayload } from "../../hooks/timeline/timelineDocumentPayload";
+import { saveTimelineThroughEditor } from "./timelineSaveRegistry";
 import {
   bakeAudioAnimation as postAudioAnimationBake,
   type BakeAudioAnimationBody,
@@ -309,6 +310,8 @@ export interface TimelineStoreState {
     height: number;
     storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
   camera2d?: TimelineSequence["camera2d"];
+    tempo?: TimelineTempo;
+    setup?: TimelineSetup | null;
   } | null;
 
   // ── Initialisation ───────────────────────────────────────────────────────
@@ -321,6 +324,8 @@ export interface TimelineStoreState {
    * Clips are reflowed and `durationMs` recomputed after the patch.
    */
   applyExternalMerge: (patch: {
+    tempo?: TimelineTempo;
+    setup?: TimelineSetup | null;
     tracks?: TimelineTrack[];
     trackFolders?: TimelineTrackFolder[];
     clips?: TimelineClip[];
@@ -1627,6 +1632,8 @@ const syncedSnapshotOf = (
     | "height"
     | "storyboardMaterializations"
     | "camera2d"
+    | "tempo"
+    | "setup"
   >
 ): NonNullable<TimelineStoreState["syncedDocument"]> => ({
   tracks: state.tracks,
@@ -1640,7 +1647,9 @@ const syncedSnapshotOf = (
   width: state.width,
   height: state.height,
   storyboardMaterializations: state.storyboardMaterializations,
-  camera2d: state.camera2d ?? null
+  camera2d: state.camera2d ?? null,
+  tempo: state.tempo,
+  setup: state.setup ?? null
 });
 
 // ── Server-write adoption ──────────────────────────────────────────────────
@@ -1664,6 +1673,36 @@ const clipWriteOps = (clipIds: readonly string[]): DocumentOp[] =>
     tool: "ui_timeline_update_clip",
     input: { clip_id: clipId }
   }));
+
+/**
+ * Make the server hold the open document before a route reads it, and return
+ * the document it now holds. An open editor's autosave controller does the
+ * write so it queues behind an in-flight save; with none, write directly and
+ * record the sent document as the merge base.
+ */
+async function persistOpenDocument(
+  get: () => TimelineStoreState,
+  sequenceId: string
+): Promise<TimelineSyncedDoc> {
+  const queued = saveTimelineThroughEditor(sequenceId);
+  if (queued) {
+    const result = await queued;
+    if (!result.ok) throw new Error(result.error);
+    if (result.sent) return result.sent;
+  }
+  const beforeSave = get();
+  const saved = await trpcClient.timeline.update.mutate({
+    id: sequenceId,
+    baseUpdatedAt: beforeSave.baseUpdatedAt ?? undefined,
+    document: buildTimelineDocumentPayload(beforeSave)
+  });
+  const sent = syncedSnapshotOf(beforeSave);
+  const savedAt = (saved as { updatedAt?: unknown } | undefined)?.updatedAt;
+  if (typeof savedAt === "string" && get().sequenceId === sequenceId) {
+    get().setBaseUpdatedAt(savedAt, sent);
+  }
+  return sent;
+}
 
 /**
  * Take back the document a server route wrote, keeping every edit the user
@@ -1710,7 +1749,9 @@ function adoptServerSequence(
     width: state.width,
     height: state.height,
     storyboardMaterializations: state.storyboardMaterializations,
-    camera2d: state.camera2d ?? null
+    camera2d: state.camera2d ?? null,
+    tempo: state.tempo,
+    setup: state.setup ?? null
   };
   // A field the response leaves out is one the route did not write, so the
   // base stands in for it rather than reading as an external clear.
@@ -1726,7 +1767,9 @@ function adoptServerSequence(
     width: sequence.width ?? base.width,
     height: sequence.height ?? base.height,
     storyboardMaterializations: sequence.storyboardMaterializations ?? base.storyboardMaterializations,
-    camera2d: sequence.camera2d === undefined ? base.camera2d : sequence.camera2d
+    camera2d: sequence.camera2d === undefined ? base.camera2d : sequence.camera2d,
+    tempo: sequence.tempo ?? base.tempo,
+    setup: sequence.setup ?? base.setup ?? null
   };
 
   const { doc, nextBase, conflicts, pending } = adoptGeneratedClipField(
@@ -1759,7 +1802,9 @@ function adoptServerSequence(
     width: nextBase.width,
     height: nextBase.height,
     storyboardMaterializations: nextBase.storyboardMaterializations,
-    camera2d: nextBase.camera2d ?? null
+    camera2d: nextBase.camera2d ?? null,
+    tempo: nextBase.tempo,
+    setup: nextBase.setup ?? null
   };
   get().setBaseUpdatedAt(sequence.updatedAt, synced);
 
@@ -3133,22 +3178,11 @@ export const createTimelineStore = (
           // edit. Autosave's own debounce may have the same bytes in flight;
           // it is single-flight against the same token, so the loser reports a
           // conflict rather than writing twice.
-          const beforeSave = get();
-          const saved = await trpcClient.timeline.update.mutate({
-            id: sequenceId,
-            baseUpdatedAt: beforeSave.baseUpdatedAt ?? undefined,
-            document: buildTimelineDocumentPayload(beforeSave)
-          });
           // What the server now holds, and so the base the bake's own write
           // is merged against below — captured from the document that was
           // SENT, not from the store after the save, which may already carry
           // an edit the user made while the save was in flight.
-          const base = syncedSnapshotOf(beforeSave);
-          const savedAt = (saved as { updatedAt?: unknown } | undefined)
-            ?.updatedAt;
-          if (typeof savedAt === "string" && get().sequenceId === sequenceId) {
-            get().setBaseUpdatedAt(savedAt);
-          }
+          const base = await persistOpenDocument(get, sequenceId);
 
           const result = await postAudioAnimationBake(sequenceId, body);
           const sequence = await trpcClient.timeline.get.query({
@@ -3398,20 +3432,7 @@ export const createTimelineStore = (
             // The segmentation reads the STORED document, so the open one is
             // persisted first — unconditionally, for the reason the audio bake
             // gives above.
-            const beforeSave = get();
-            const saved = await trpcClient.timeline.update.mutate({
-              id: sequenceId,
-              baseUpdatedAt: beforeSave.baseUpdatedAt ?? undefined,
-              document: buildTimelineDocumentPayload(beforeSave)
-            });
-            const savedAt = (saved as { updatedAt?: unknown } | undefined)
-              ?.updatedAt;
-            if (
-              typeof savedAt === "string" &&
-              get().sequenceId === sequenceId
-            ) {
-              get().setBaseUpdatedAt(savedAt);
-            }
+            const persisted = await persistOpenDocument(get, sequenceId);
 
             mark("generating");
             // What the server started from: the document that was SENT, with
@@ -3425,7 +3446,7 @@ export const createTimelineStore = (
             // save was in flight, and telling the merge those already existed
             // on the server is how a rename made during the save was silently
             // reverted to the server's copy.
-            const sent = syncedSnapshotOf(beforeSave);
+            const sent = persisted;
             const sentClip = sent.clips.find((c) => c.id === clipId);
             let base: TimelineSyncedDoc = sentClip
               ? {
