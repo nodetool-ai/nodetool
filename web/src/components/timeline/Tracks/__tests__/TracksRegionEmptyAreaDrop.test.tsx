@@ -178,4 +178,22 @@ describe("TracksRegion empty-area drop", () => {
         ?.startMs
     ).toBe(8000);
   });
+
+  it.each([
+    ["video", {}],
+    ["audio", { id: "aud-src", name: "song.mp3", content_type: "audio/mpeg" }]
+  ])("is one undo entry for a %s drop on empty space (F51)", async (_k, overrides) => {
+    const instance = createTimelineInstance();
+    renderRegion(instance);
+    instance.doc.temporal.getState().clear();
+
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId("tracks-drop-area"), {
+        dataTransfer: dataTransferFor(makeAsset(overrides as Partial<Asset>))
+      });
+    });
+
+    expect(instance.doc.getState().clips.length).toBeGreaterThan(0);
+    expect(instance.doc.temporal.getState().pastStates.length).toBe(1);
+  });
 });

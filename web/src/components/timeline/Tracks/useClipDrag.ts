@@ -116,11 +116,15 @@ export function useClipDrag({
   // on pointerdown, mark() after each mutation (pauses history once the
   // pre-gesture state has actually been checkpointed), end() on pointerup —
   // so one undo step reverts the whole drag.
-  const history = useTimelineHistoryBatch();
+  const history = useTimelineHistoryBatch({ survivesUnmount: true });
 
   const dragStartXRef = useRef(0);
   const dragStartMsRef = useRef(0);
   const isDraggingRef = useRef(false);
+  // Live zoom: the gesture is tracked in time units, so a zoom mid-drag must
+  // not reinterpret pixels travelled at the old scale (F22).
+  const msPerPxRef = useRef(msPerPx);
+  msPerPxRef.current = msPerPx;
 
   const handleDragPointerDown = useCallback(
     (e: React.PointerEvent<HTMLDivElement>) => {
@@ -167,7 +171,11 @@ export function useClipDrag({
       const scrollArea =
         e.currentTarget.closest<HTMLElement>(SCROLL_AREA_SELECTOR);
       const scrollAreaRect = scrollArea?.getBoundingClientRect() ?? null;
-      const scrollLeftAtStart = scrollArea?.scrollLeft ?? 0;
+      let scrollLeftAtStart = scrollArea?.scrollLeft ?? 0;
+      // Time already travelled before the last zoom change, plus the zoom it
+      // was measured at.
+      let travelledMs = 0;
+      let gestureMsPerPx = msPerPxRef.current;
 
       // Snapshot the snap candidates ONCE at gesture start. Only the dragged
       // clip (and, in a multi-selection, its companions) moves, and those are
@@ -244,6 +252,19 @@ export function useClipDrag({
           return;
         }
 
+        if (msPerPxRef.current !== gestureMsPerPx) {
+          // Zoom changed: bank the time moved at the old scale and re-anchor
+          // the pixel origin at the current pointer and scroll offset.
+          const oldDeltaPx =
+            lastPointer.x -
+            dragStartXRef.current +
+            ((scrollArea?.scrollLeft ?? 0) - scrollLeftAtStart);
+          travelledMs += oldDeltaPx * gestureMsPerPx;
+          dragStartXRef.current = lastPointer.x;
+          scrollLeftAtStart = scrollArea?.scrollLeft ?? 0;
+          gestureMsPerPx = msPerPxRef.current;
+        }
+        const msPerPx = gestureMsPerPx;
         const scrollDeltaPx = (scrollArea?.scrollLeft ?? 0) - scrollLeftAtStart;
         const deltaPx = lastPointer.x - dragStartXRef.current + scrollDeltaPx;
         if (!isDraggingRef.current && Math.hypot(deltaPx, lastPointer.y - dragStartY) < DRAG_THRESHOLD_PX) {
@@ -253,7 +274,7 @@ export function useClipDrag({
 
         const rawStartMs = Math.max(
           0,
-          dragStartMsRef.current + deltaPx * msPerPx
+          dragStartMsRef.current + travelledMs + deltaPx * msPerPx
         );
         const { startMs: targetStartMs, guideMs } =
           lastPointer.altKey || !useTimelineUIStore.getState().snapEnabled

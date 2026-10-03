@@ -48,6 +48,7 @@ import {
   visibleClipIdsByTrack
 } from "../../../stores/timeline/clipLookup";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
+import { runAsOneUndoEntry } from "../../../stores/timeline/useTimelineHistoryBatch";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { Clip } from "./Clip";
@@ -285,11 +286,16 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       if (!isAssetDrag(e)) {
         return;
       }
+      if (track.locked) {
+        // Locked lane: no drop affordance (no preventDefault).
+        e.dataTransfer.dropEffect = "none";
+        return;
+      }
       e.preventDefault();
       e.dataTransfer.dropEffect = "copy";
       setIsDragOver(true);
     },
-    [isAssetDrag]
+    [isAssetDrag, track.locked]
   );
 
   const handleAssetDragLeave = useCallback(
@@ -315,6 +321,11 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
 
       e.preventDefault();
       e.stopPropagation();
+
+      if (track.locked) {
+        showWarning("This track is locked.", true);
+        return;
+      }
 
       const dragData = deserializeDragData(e.dataTransfer);
       if (!dragData) {
@@ -365,14 +376,19 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
       if (mediaType === "video" && track.type === "video") {
         void importVideoWithAudio(asset, track.id, startMs, dropMode);
       } else {
-        const newId = addImportedClip(asset, track.id, startMs);
-        resolveDropInStore(new Set([newId]), dropMode);
+        // Add and drop resolution are one undo entry.
+        runAsOneUndoEntry(timelineStore, () => {
+          const newId = addImportedClip(asset, track.id, startMs);
+          resolveDropInStore(new Set([newId]), dropMode);
+        });
       }
     },
     [
       isAssetDrag,
       track.type,
       track.id,
+      track.locked,
+      timelineStore,
       msPerPx,
       addImportedClip,
       resolveDropInStore,
