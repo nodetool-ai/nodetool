@@ -19,6 +19,8 @@ const videoConfigs: Array<Record<string, unknown>> = [];
 const audioConfigs: Array<Record<string, unknown>> = [];
 
 const mockSetAlpha = jest.fn();
+const mockCancel = jest.fn().mockResolvedValue(undefined);
+const mockRenderAudio = jest.fn().mockResolvedValue({ length: 1 });
 
 jest.mock("../../preview/gpu/createCompositor", () => ({
   createCompositor: jest.fn().mockResolvedValue({
@@ -58,10 +60,19 @@ jest.mock("mediabunny", () => {
       this.target = target;
       outputFormats.push(format.name);
     }
+    state = "pending";
     addVideoTrack() {}
     addAudioTrack() {}
-    async start() {}
-    async finalize() {}
+    async start() {
+      this.state = "started";
+    }
+    async finalize() {
+      this.state = "finalized";
+    }
+    cancel = async () => {
+      this.state = "canceled";
+      await mockCancel();
+    };
   }
   class CanvasSource {
     add = mockAddFrame;
@@ -91,7 +102,7 @@ jest.mock("mediabunny", () => {
 
 /** A one-sample buffer, so the audio branch is exercised. */
 jest.mock("../renderAudio", () => ({
-  renderTimelineAudio: jest.fn().mockResolvedValue({ length: 1 })
+  renderTimelineAudio: (opts: unknown) => mockRenderAudio(opts)
 }));
 
 jest.mock("../../preview/textRender", () => ({
@@ -143,6 +154,15 @@ const clip = makeClip({
   durationMs: 1500,
   textStyle: { text: "Hi", fontSizePx: 96, color: "#ffffff" }
 });
+
+function blobBytes(blob: Blob): Promise<Uint8Array> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(new Uint8Array(reader.result as ArrayBuffer));
+    reader.onerror = () => reject(reader.error);
+    reader.readAsArrayBuffer(blob);
+  });
+}
 
 const render = (
   format?: "mp4" | "webm" | "png_sequence",
@@ -236,7 +256,9 @@ describe("renderTimeline — png_sequence", () => {
       extension: "zip"
     });
 
-    const entries = unzipSync(result.bytes);
+    // The archive comes back as a Blob built from per-frame parts (F34).
+    expect(result.bytes).toBeInstanceOf(Blob);
+    const entries = unzipSync(await blobBytes(result.bytes as Blob));
     expect(Object.keys(entries).sort()).toEqual([
       "frame_000001.png",
       "frame_000002.png",
@@ -252,5 +274,61 @@ describe("renderTimeline — png_sequence", () => {
       count: 3,
       pattern: "frame_%06d.png"
     });
+  });
+});
+
+describe("renderTimeline — cancel and length", () => {
+  it("cancels a started muxer when the render is aborted (F32)", async () => {
+    const controller = new AbortController();
+    mockAddFrame.mockImplementationOnce(async () => {
+      controller.abort();
+    });
+    await expect(
+      renderTimeline({
+        tracks: [track],
+        clips: [clip],
+        width: 32,
+        height: 32,
+        fps: 2,
+        durationMs: 1500,
+        resolveUrl: jest.fn().mockResolvedValue(undefined),
+        signal: controller.signal
+      })
+    ).rejects.toMatchObject({ name: "AbortError" });
+    expect(mockCancel).toHaveBeenCalledTimes(1);
+  });
+
+  it("does not cancel a muxer that finalized", async () => {
+    await render();
+    expect(mockCancel).not.toHaveBeenCalled();
+  });
+
+  it("passes the abort signal into the audio mix (F33)", async () => {
+    const controller = new AbortController();
+    await renderTimeline({
+      tracks: [track],
+      clips: [clip],
+      width: 32,
+      height: 32,
+      fps: 2,
+      durationMs: 1500,
+      resolveUrl: jest.fn().mockResolvedValue(undefined),
+      signal: controller.signal
+    });
+    expect(mockRenderAudio.mock.calls[0][0].signal).toBe(controller.signal);
+  });
+
+  it("mixes exactly totalFrames * 1000 / fps of audio (F62)", async () => {
+    // 1400 ms at 2 fps rounds to 3 frames = 1500 ms of video.
+    await renderTimeline({
+      tracks: [track],
+      clips: [clip],
+      width: 32,
+      height: 32,
+      fps: 2,
+      durationMs: 1400,
+      resolveUrl: jest.fn().mockResolvedValue(undefined)
+    });
+    expect(mockRenderAudio.mock.calls[0][0]).toMatchObject({ durationMs: 1500 });
   });
 });

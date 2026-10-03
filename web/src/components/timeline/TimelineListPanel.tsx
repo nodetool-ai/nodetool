@@ -53,7 +53,7 @@ function createTimelineDragImage(name: string): HTMLElement {
     gap: ${getSpacingPx(SPACING.lg)};
     padding: ${getSpacingPx(SPACING.md)};
     box-sizing: border-box;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    box-shadow: 0 4px 12px rgba(var(--palette-common-blackChannel) / 0.35);
     color: var(--palette-text-primary);
     font-family: Inter, sans-serif;
     pointer-events: none;

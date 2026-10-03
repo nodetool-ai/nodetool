@@ -150,4 +150,42 @@ describe("renderTimelineAudio — midi", () => {
     );
     expect(result).toBeNull();
   });
+
+  it("stops with an AbortError when cancelled while assets resolve (F33)", async () => {
+    const controller = new AbortController();
+    const audioClip: TimelineClip = {
+      ...midiClip,
+      id: "a1",
+      mediaType: "audio",
+      notes: undefined,
+      currentAssetId: "asset-1"
+    };
+    const audioTrack: TimelineTrack = { ...midiTrack, id: "t-midi", type: "audio" };
+    const resolveUrl = jest.fn(() => new Promise<string | undefined>(() => {}));
+    const pending = renderTimelineAudio({
+      clips: [audioClip],
+      tracks: [audioTrack],
+      durationMs: 1000,
+      resolveUrl,
+      signal: controller.signal
+    });
+    await Promise.resolve();
+    controller.abort();
+    await expect(pending).rejects.toMatchObject({ name: "AbortError" });
+    expect(scheduled).toEqual([]);
+  });
+
+  it("rejects immediately when already aborted", async () => {
+    const controller = new AbortController();
+    controller.abort();
+    await expect(
+      renderTimelineAudio({
+        clips: [midiClip],
+        tracks: [midiTrack],
+        durationMs: 1000,
+        resolveUrl: async () => undefined,
+        signal: controller.signal
+      })
+    ).rejects.toMatchObject({ name: "AbortError" });
+  });
 });

@@ -79,4 +79,28 @@ describe("useTimelineExport", () => {
     expect(result.current.error).toBeNull();
     expect(resolved).toEqual(["/api/storage/user-1/asset-video.mp4"]);
   });
+
+  it("aborts a running export when the editor unmounts (F31)", async () => {
+    let signal: AbortSignal | undefined;
+    renderTimelineMock.mockImplementation(
+      (options: { signal: AbortSignal }) =>
+        new Promise((_resolve, reject) => {
+          signal = options.signal;
+          options.signal.addEventListener("abort", () =>
+            reject(new DOMException("Render aborted", "AbortError"))
+          );
+        })
+    );
+
+    const { result, unmount } = renderHook(() => useTimelineExport());
+    let pending: Promise<void> | undefined;
+    await act(async () => {
+      pending = result.current.exportVideo("cut");
+    });
+    expect(signal?.aborted).toBe(false);
+
+    unmount();
+    expect(signal?.aborted).toBe(true);
+    await pending;
+  });
 });
