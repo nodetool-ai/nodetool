@@ -30,8 +30,12 @@ import { persistTimelineDocument } from "../useTimelineSave";
 import { useTimelineProjectSettings } from "../useTimelineProjectSettings";
 import { useDocumentDraftStore } from "../../../stores/DocumentDraftStore";
 
-const getQuery = trpcClient.timeline.get.query as jest.Mock;
-const updateMutate = trpcClient.timeline.update.mutate as jest.Mock;
+const getQuery = trpcClient.timeline.get.query as jest.Mock<
+  (...args: unknown[]) => Promise<unknown>
+>;
+const updateMutate = trpcClient.timeline.update.mutate as jest.Mock<
+  (...args: unknown[]) => Promise<unknown>
+>;
 
 const T0 = "2026-01-01T00:00:00.000Z";
 const T1 = "2026-01-01T00:00:01.000Z";
@@ -177,9 +181,7 @@ describe("F15: a clean reload is the new saved state", () => {
       useTimelineStore.getState().loadSequence(seqDoc(T0, [clip("C1")]));
     });
     act(() => {
-      useTimelineStore
-        .getState()
-        .loadSequence(seqDoc(T2, [clip("C1", 700)]));
+      useTimelineStore.getState().loadSequence(seqDoc(T2, [clip("C1", 700)]));
     });
     await act(async () => {
       await new Promise((resolve) => setTimeout(resolve, 80));
@@ -256,9 +258,7 @@ describe("F17: an external merge keeps a gesture's paused history", () => {
         event: "updated",
         id: "seq-1",
         updatedAt: T2,
-        ops: [
-          { tool: "ui_timeline_add_text_clip", input: { track_id: "T1" } }
-        ]
+        ops: [{ tool: "ui_timeline_add_text_clip", input: { track_id: "T1" } }]
       });
       for (let i = 0; i < 6; i += 1) await Promise.resolve();
     });

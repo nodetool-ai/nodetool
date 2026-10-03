@@ -144,13 +144,14 @@ export async function importVideoWithAudio(
       return;
     }
 
+    const extracted = data.asset;
     const durationMs =
-      data.asset.duration != null
-        ? Math.round(data.asset.duration * 1000)
+      extracted.duration != null
+        ? Math.round(extracted.duration * 1000)
         : audioClip.durationMs;
     untracked(() =>
       store.getState().patchClip(audioClip.id, {
-        currentAssetId: data.asset.id,
+        currentAssetId: extracted.id,
         durationMs,
         status: "generated"
       })
