@@ -291,15 +291,22 @@ export abstract class DBModel {
       // concrete models retain that responsibility until their conversion.
       const targetTable: PgTable = pgTable;
       const columns = getTableColumns(targetTable);
+      const sqliteColumns = getTableColumns(table);
       const pgRow = Object.fromEntries(Object.entries(row).map(([key, value]) => {
         const column = columns[key];
         if (typeof value === "boolean" && column?.dataType === "number") {
           return [key, Number(value)];
         }
-        // A model that keeps a JSON column as serialized text (documents) has
-        // already encoded it. Bypass the Pg `jsonText` encoder, which would
-        // encode it a second time; readers decode the column exactly once.
-        if (typeof value === "string" && column?.columnType === "PgCustomColumn") {
+        // Readers decode through the SQLite declaration. Where it is plain
+        // text, the model keeps the column as serialized JSON (documents), so
+        // bypass the Pg `jsonText` encoder, which would encode it a second
+        // time. Where SQLite is `jsonText` too, a string is a value (message
+        // content) and must be encoded.
+        if (
+          typeof value === "string" &&
+          column?.columnType === "PgCustomColumn" &&
+          sqliteColumns[key]?.columnType !== "SQLiteCustomColumn"
+        ) {
           return [key, sql`${value}`];
         }
         return [key, value];

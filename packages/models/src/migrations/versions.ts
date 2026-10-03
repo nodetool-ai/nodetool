@@ -3738,7 +3738,7 @@ export const migrations: MigrationDef[] = [
     version: "20261003_000000",
     name: "unwrap_double_encoded_pg_json_text",
     createsTables: [],
-    modifiesTables: [...DOUBLE_ENCODED_DOCUMENT_TABLES, "nodetool_messages"],
+    modifiesTables: DOUBLE_ENCODED_DOCUMENT_TABLES,
     async up(db) {
       if (db.dbType !== "postgres") return;
       for (const table of DOUBLE_ENCODED_DOCUMENT_TABLES) {
@@ -3747,18 +3747,46 @@ export const migrations: MigrationDef[] = [
           return value !== null && typeof value === "object";
         });
       }
-      // Message content may be a plain string, so only rows written while
-      // the encoder was in the write path are unwrapped.
-      await unwrapDoubleEncoded(
-        db,
-        "nodetool_messages",
-        "content",
-        () => true,
-        "2026-10-01"
-      );
     },
     async down() {
       // Restoring the double encoding would only reintroduce the defect.
+    }
+  },
+  // ── Re-encode message content stored as raw text ──────────────────────
+  // Message content is `jsonText` in both declarations, so a string message
+  // was always stored as a JSON string literal. The migration above used to
+  // unwrap those literals, and DBModel.persist briefly wrote string content
+  // without encoding it. Both left raw text that readers fail to decode,
+  // which made messages.list and threads.summarize return 500.
+  {
+    version: "20261003_000001",
+    name: "reencode_raw_pg_message_content",
+    createsTables: [],
+    modifiesTables: ["nodetool_messages"],
+    async up(db) {
+      if (db.dbType !== "postgres") return;
+      if (!(await db.tableExists("nodetool_messages"))) return;
+      const rows = await db.fetchall(
+        `SELECT id, content FROM nodetool_messages
+          WHERE content IS NOT NULL AND created_at >= ?`,
+        ["2026-10-01"]
+      );
+      for (const row of rows) {
+        const content = String(row.content);
+        try {
+          JSON.parse(content);
+          continue;
+        } catch {
+          // Raw text: encode it as the string it was saved as.
+        }
+        await db.execute(
+          "UPDATE nodetool_messages SET content = ? WHERE id = ?",
+          [JSON.stringify(content), row.id]
+        );
+      }
+    },
+    async down() {
+      // Removing the encoding would only reintroduce the defect.
     }
   }
 ];
@@ -3771,14 +3799,12 @@ async function unwrapDoubleEncoded(
   db: MigrationDBAdapter,
   table: string,
   column: string,
-  accept: (inner: string) => boolean,
-  createdSince?: string
+  accept: (inner: string) => boolean
 ): Promise<void> {
   if (!(await db.tableExists(table))) return;
   const rows = await db.fetchall(
     `SELECT id, ${column} AS value FROM ${table}
-      WHERE ${column} LIKE '"%'${createdSince ? " AND created_at >= ?" : ""}`,
-    createdSince ? [createdSince] : []
+      WHERE ${column} LIKE '"%'`
   );
   for (const row of rows) {
     let inner: unknown;
