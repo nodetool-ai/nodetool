@@ -42,10 +42,28 @@ function probeVideoDuration(url: string): Promise<number | null> {
   return probe;
 }
 
+/**
+ * Source lengths the hook has resolved, by asset id, so code outside React
+ * (keyboard trims) can read them synchronously.
+ */
+const knownSourceDurations = new Map<string, number>();
+
+export function getKnownSourceDurationMs(
+  assetId: string | null | undefined
+): number | undefined {
+  return assetId ? knownSourceDurations.get(assetId) : undefined;
+}
+
 /** Test seam: forget every probed duration. */
 export function resetVideoDurationCache(): void {
   videoDurationCache.clear();
   videoProbesInFlight.clear();
+  knownSourceDurations.clear();
+}
+
+/** Seed the synchronous registry (also used by tests). */
+export function recordSourceDurationMs(assetId: string, ms: number): void {
+  knownSourceDurations.set(assetId, ms);
 }
 
 function useVideoDuration(url: string | undefined): number | undefined {
@@ -84,6 +102,19 @@ export function useClipSourceDuration(
     mediaType === "audio" ? url : undefined
   );
   const videoMs = useVideoDuration(mediaType === "video" ? url : undefined);
+
+  const resolved =
+    mediaType === "audio"
+      ? audioMs
+      : mediaType === "video"
+        ? videoMs
+        : undefined;
+  const assetId = clip?.currentAssetId;
+  useEffect(() => {
+    if (assetId && resolved && resolved > 0) {
+      knownSourceDurations.set(assetId, resolved);
+    }
+  }, [assetId, resolved]);
 
   if (mediaType === "audio") {
     return audioMs && audioMs > 0 ? audioMs : undefined;

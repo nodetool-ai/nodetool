@@ -124,16 +124,61 @@ export function useClipSourceSlip({
 
       event.preventDefault();
       event.stopPropagation();
-      if (!slippingRef.current) {
-        slippingRef.current = true;
-        begin();
+      const state = useTimelineStore.getState();
+      const lockedTracks = new Set(
+        state.tracks.filter((t) => t.locked).map((t) => t.id)
+      );
+      // A linked A/V pair slips together or not at all, so lip sync holds.
+      const members =
+        state.linkedSelection && fresh.linkId !== undefined
+          ? state.clips.filter((c) => c.linkId === fresh.linkId)
+          : [fresh];
+      const slippable = members.every(
+        (c) =>
+          !c.locked &&
+          !lockedTracks.has(c.trackId) &&
+          !c.timeRemap &&
+          (c.mediaType === "video" || c.mediaType === "audio")
+      );
+      if (!slippable) {
+        return;
       }
-      const patch = slipSourceWindow(
+      const wantedPatch = slipSourceWindow(
         fresh,
         event.deltaX * msPerPx * sourceRate(fresh),
         sourceDurationMs
       );
-      patchClip(fresh.id, patch);
+      // Timeline-ms slip the primary actually achieved after clamping.
+      const appliedTimelineMs =
+        ((wantedPatch.inPointMs ?? 0) - (fresh.inPointMs ?? 0)) /
+        sourceRate(fresh);
+      const patches = members.map((c) => ({
+        id: c.id,
+        patch:
+          c.id === fresh.id
+            ? wantedPatch
+            : slipSourceWindow(
+                c,
+                appliedTimelineMs * sourceRate(c),
+                undefined
+              ),
+        wantedIn: (c.inPointMs ?? 0) + appliedTimelineMs * sourceRate(c)
+      }));
+      // Refuse the whole slip when a member would run out of source.
+      if (
+        patches.some(
+          (p) => Math.abs((p.patch.inPointMs ?? 0) - p.wantedIn) > 1e-6
+        )
+      ) {
+        return;
+      }
+      if (!slippingRef.current) {
+        slippingRef.current = true;
+        begin();
+      }
+      for (const p of patches) {
+        patchClip(p.id, p.patch);
+      }
       mark();
       if (idleTimerRef.current !== null) {
         window.clearTimeout(idleTimerRef.current);

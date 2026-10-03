@@ -362,10 +362,32 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       throw new Error(`Clip not found on the timeline: ${target}`);
     };
 
+    /**
+     * An item by exact id, or by an exact unique 12-character prefix of one
+     * (the form CodeAct shortens ids to). More than one prefix match is an
+     * ambiguity error, never a guess.
+     */
+    const findByIdOrShortId = <T extends { id: string }>(
+      items: readonly T[],
+      target: string,
+      noun: string
+    ): T | undefined => {
+      const exact = items.find((item) => item.id === target);
+      if (exact) return exact;
+      if (!isShortResourceId(target)) return undefined;
+      const matches = items.filter((item) => item.id.startsWith(target));
+      if (matches.length > 1) {
+        throw new Error(
+          `Short ${noun} id "${target}" matches more than one ${noun}; use the full id.`
+        );
+      }
+      return matches[0];
+    };
+
     /** Resolve a marker by id, or by case-insensitive label. */
     const requireMarker = (target: string): TimelineMarker => {
       const { markers } = doc.getState();
-      const byId = markers.find((m) => m.id === target);
+      const byId = findByIdOrShortId(markers, target, "marker");
       if (byId) return byId;
       const lower = target.toLowerCase();
       const byLabel = markers.find((m) => m.label.toLowerCase() === lower);
@@ -725,9 +747,11 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         // This operation intentionally accepts only a document id. Other
         // timeline tools accept names for convenience, but an edit request has
         // a durable destination and must never bind to a later name match.
-        const clip = doc
-          .getState()
-          .clips.find((candidate) => candidate.id === opts.clipId);
+        const clip = findByIdOrShortId(
+          doc.getState().clips,
+          opts.clipId,
+          "clip"
+        );
         if (!clip) {
           throw new Error(
             `No clip with id "${opts.clipId}" exists on this timeline. Call ui_timeline_get_state and pass the clip id.`
@@ -782,9 +806,7 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       },
 
       applyTake(clipId, takeId) {
-        const clip = doc
-          .getState()
-          .clips.find((candidate) => candidate.id === clipId);
+        const clip = findByIdOrShortId(doc.getState().clips, clipId, "clip");
         if (!clip) {
           throw new Error(
             `No clip with id "${clipId}" exists on this timeline. Call ui_timeline_get_state and pass the clip id.`
@@ -798,9 +820,9 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
             `Take "${takeId}" is not an AI edit candidate for "${clip.name}". Apply only the candidate returned by ui_timeline_generatively_edit_clip.`
           );
         }
-        const error = doc.getState().applyTake(clipId, takeId);
+        const error = doc.getState().applyTake(clip.id, takeId);
         if (error) throw new Error(error);
-        return clipNode(reReadClip(clipId));
+        return clipNode(reReadClip(clip.id));
       },
 
       async addMediaClip(opts: TimelineAddMediaClipOptions) {
@@ -1162,7 +1184,14 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         }
         doc.getState().patchClipBinding(clip.id, binding);
         if (patch.regenerate) {
-          await startDirectGen(clip.id);
+          const requestId = await startDirectGen(clip.id);
+          if (requestId === null) {
+            // The binding is saved, but no render was queued. Returning the
+            // clip as if regeneration had begun told the agent it succeeded.
+            throw new Error(
+              `The binding on "${clip.name}" was updated, but regeneration did not start. The clip may already be generating, or it lacks a provider, model or prompt. Check its status and try again.`
+            );
+          }
         }
         return clipNode(reReadClip(clip.id));
       },

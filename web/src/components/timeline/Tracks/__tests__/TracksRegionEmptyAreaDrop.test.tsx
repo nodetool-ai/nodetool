@@ -145,6 +145,24 @@ describe("TracksRegion empty-area drop", () => {
     expect(audioClips[0].linkId).toBeUndefined();
   });
 
+  it("accepts a .glb dropped with a generic content type", async () => {
+    renderRegion();
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId("tracks-drop-area"), {
+        dataTransfer: dataTransferFor(
+          makeAsset({
+            id: "glb-1",
+            name: "robot.glb",
+            content_type: "application/octet-stream"
+          })
+        )
+      });
+    });
+    expect(
+      useTimelineStore.getState().clips.some((c) => c.mediaType === "model3d")
+    ).toBe(true);
+  });
+
   it("applies insert mode when an asset is dropped below the existing tracks", async () => {
     restFetchMock.mockResolvedValue({
       ok: true,
@@ -177,5 +195,23 @@ describe("TracksRegion empty-area drop", () => {
       instance.doc.getState().clips.find((clip) => clip.id === existing.id)
         ?.startMs
     ).toBe(8000);
+  });
+
+  it.each([
+    ["video", {}],
+    ["audio", { id: "aud-src", name: "song.mp3", content_type: "audio/mpeg" }]
+  ])("is one undo entry for a %s drop on empty space (F51)", async (_k, overrides) => {
+    const instance = createTimelineInstance();
+    renderRegion(instance);
+    instance.doc.temporal.getState().clear();
+
+    await act(async () => {
+      fireEvent.drop(screen.getByTestId("tracks-drop-area"), {
+        dataTransfer: dataTransferFor(makeAsset(overrides as Partial<Asset>))
+      });
+    });
+
+    expect(instance.doc.getState().clips.length).toBeGreaterThan(0);
+    expect(instance.doc.temporal.getState().pastStates.length).toBe(1);
   });
 });

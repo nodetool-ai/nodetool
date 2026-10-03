@@ -453,10 +453,14 @@ describe("useTimelineExternalSync merge — token ordering", () => {
     act(() => {
       useTimelineStore.getState().loadSequence(seqDoc(T0, [clip("C1", "T1")]));
       getTimelineTemporal().clear();
+      // The first edit stays, so the draft is dirty; the second sits on the
+      // redo branch. (A document undone back to the saved one is clean and
+      // is replaced by the server copy instead of merged.)
       useTimelineStore.getState().patchClip("C1", { durationMs: 400 });
+      useTimelineStore.getState().patchClip("C1", { startMs: 100 });
       getTimelineTemporal().undo();
     });
-    expect(useTimelineStore.getState().clips[0]?.durationMs).toBe(1000);
+    expect(useTimelineStore.getState().clips[0]?.startMs).toBe(0);
 
     (
       getQuery as unknown as { mockResolvedValue: (v: unknown) => void }
@@ -484,9 +488,9 @@ describe("useTimelineExternalSync merge — token ordering", () => {
     act(() => {
       getTimelineTemporal().redo();
     });
-    expect(
-      useTimelineStore.getState().clips.find((c) => c.id === "C1")?.durationMs
-    ).toBe(400);
+    const redone = useTimelineStore.getState().clips.find((c) => c.id === "C1");
+    expect(redone?.startMs).toBe(100);
+    expect(redone?.durationMs).toBe(400);
     expect(useTimelineStore.getState().clips.map((c) => c.id)).toEqual([
       "C1",
       "C2"

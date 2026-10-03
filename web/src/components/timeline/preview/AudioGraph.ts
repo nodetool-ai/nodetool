@@ -160,6 +160,10 @@ const MEDIA_ELEMENT_MAX_RATE = 16;
 /** A streamed start this late (seconds) seeks forward to catch up. */
 const STREAM_LATE_START_SEC = 0.02;
 
+/** A streamed element still this far (seconds) behind when it starts playing
+ *  is seeked forward; smaller gaps are inaudible and a seek would stall it. */
+const STREAM_PLAYING_RESYNC_SEC = 0.08;
+
 /** A scheduled sound the graph can stop and release. */
 interface PlayingSource {
   stop(): void;
@@ -202,6 +206,21 @@ class StreamedSegment implements PlayingSource {
           if (late > STREAM_LATE_START_SEC) {
             this.element.currentTime = offsetSec + late * rate;
           }
+          // Buffering delays the first sample past this timer, so the element
+          // is late again once it really starts: re-sync when it reports
+          // `playing`, against the audio clock at that moment.
+          const onPlaying = (): void => {
+            this.element.removeEventListener("playing", onPlaying);
+            if (this.stopped) return;
+            const behind =
+              offsetSec +
+              Math.max(0, ctx.currentTime - startAt) * rate -
+              this.element.currentTime;
+            if (behind > STREAM_PLAYING_RESYNC_SEC) {
+              this.element.currentTime += behind;
+            }
+          };
+          this.element.addEventListener("playing", onPlaying);
           void this.element.play().catch(() => {
             // Autoplay refusal or a stop racing the start: stays silent.
           });
@@ -245,6 +264,11 @@ export interface AudioGraphOptions {
  */
 const BUFFER_CACHE_MAX = 16;
 
+/** Decoded-buffer cache key: the asset id plus the URL it was fetched from. */
+export function audioBufferCacheKey(assetId: string, url: string): string {
+  return `${assetId}\u0000${url}`;
+}
+
 export class AudioGraph {
   private ctx: BaseAudioContext | null = null;
   private masterGain: GainNode | null = null;
@@ -283,19 +307,21 @@ export class AudioGraph {
   }
 
   async loadBuffer(assetId: string, url: string): Promise<AudioBuffer | null> {
-    const cachedBuffer = this.bufferCache.get(assetId);
+    // Keyed by asset and URL: a relinked file keeps its id but not its URL.
+    const cacheKey = audioBufferCacheKey(assetId, url);
+    const cachedBuffer = this.bufferCache.get(cacheKey);
     if (cachedBuffer) {
       // LRU touch (delete+reinsert) only matters when eviction is imminent.
       // While the cache has spare capacity nothing is evicted, so skip the
       // reorder churn on the hot path.
       if (this.bufferCache.size >= BUFFER_CACHE_MAX) {
-        this.bufferCache.delete(assetId);
-        this.bufferCache.set(assetId, cachedBuffer);
+        this.bufferCache.delete(cacheKey);
+        this.bufferCache.set(cacheKey, cachedBuffer);
       }
       return cachedBuffer;
     }
-    if (this.loadingPromises.has(assetId)) {
-      return this.loadingPromises.get(assetId)!;
+    if (this.loadingPromises.has(cacheKey)) {
+      return this.loadingPromises.get(cacheKey)!;
     }
 
     const ctx = this.getContext();
@@ -308,25 +334,29 @@ export class AudioGraph {
       })
       .then((ab) => ctx.decodeAudioData(ab))
       .then((buffer) => {
-        this.bufferCache.set(assetId, buffer);
-        this.loadingPromises.delete(assetId);
+        // Drop the same asset's older revisions; nothing asks for them again.
+        for (const key of [...this.bufferCache.keys()]) {
+          if (key.startsWith(`${assetId}\u0000`)) this.bufferCache.delete(key);
+        }
+        this.bufferCache.set(cacheKey, buffer);
+        this.loadingPromises.delete(cacheKey);
         // Evict least-recently-used entries to bound memory. Sources that are
         // already running hold their own buffer reference, so eviction here
         // does not interrupt in-flight playback.
         while (this.bufferCache.size > BUFFER_CACHE_MAX) {
           const oldestKey = this.bufferCache.keys().next().value;
-          if (oldestKey === undefined || oldestKey === assetId) break;
+          if (oldestKey === undefined || oldestKey === cacheKey) break;
           this.bufferCache.delete(oldestKey);
         }
         return buffer;
       })
       .catch((err) => {
         console.warn("[AudioGraph] Failed to load buffer", assetId, err);
-        this.loadingPromises.delete(assetId);
+        this.loadingPromises.delete(cacheKey);
         return null;
       });
 
-    this.loadingPromises.set(assetId, promise);
+    this.loadingPromises.set(cacheKey, promise);
     return promise;
   }
 
@@ -649,7 +679,7 @@ export class AudioGraph {
   async addClips(
     clips: ScheduledAudioClip[],
     tracks: TimelineTrack[],
-    currentTimeMs: number,
+    currentTimeInput: number | (() => number),
     shouldCancel?: () => boolean,
     globalRate = 1
   ): Promise<void> {
@@ -717,6 +747,13 @@ export class AudioGraph {
       return;
     }
     const bufferMap = new Map(loadedBuffers.map((b) => [b.clipId, b]));
+    // The playhead moves while buffers fetch and decode, and `now` below is
+    // read after them. A reader is sampled here, beside `now`, so the position
+    // and the audio clock describe the same instant.
+    const currentTimeMs =
+      typeof currentTimeInput === "function"
+        ? currentTimeInput()
+        : currentTimeInput;
 
     for (const { clip } of clips) {
       if (this.clipSources.has(clip.id)) {

@@ -191,6 +191,20 @@ describe("fade handles", () => {
     expect(clipState().fadeInMs).toBe(490);
   });
 
+  it("records a held arrow key as one undo entry (F55)", () => {
+    seed(makeClip({ fadeInMs: 400 }));
+    renderLanes();
+    getTimelineTemporal().clear();
+    const el = screen.getByTestId("clip-fade-handle-in-a1");
+    for (let i = 0; i < 5; i++) {
+      fireEvent.keyDown(el, { key: "ArrowRight", repeat: i > 0 });
+    }
+    expect(clipState().fadeInMs).toBe(900);
+    expect(getTimelineTemporal().pastStates.length).toBe(1);
+    getTimelineTemporal().undo();
+    expect(clipState().fadeInMs).toBe(400);
+  });
+
   it("grows the out handle's fade when it is pushed left", () => {
     seed(makeClip({ fadeOutMs: 400 }));
     renderLanes();

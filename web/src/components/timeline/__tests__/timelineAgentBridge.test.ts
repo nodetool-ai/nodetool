@@ -110,6 +110,22 @@ describe("timelineAgentBridge", () => {
       expect(getTimelineAgentHandler("seq-1")).toBe(handler);
     });
 
+    it("accepts an exact unique 12-character prefix of an open sequence id (F41)", () => {
+      const handler = makeMockHandler();
+      const full = "0123456789abcdef0123456789abcdef";
+      setTimelineAgentHandler(full, handler);
+      expect(getTimelineAgentHandler(full.slice(0, 12))).toBe(handler);
+      expect(hasTimelineAgentHandler(full.slice(0, 12))).toBe(true);
+    });
+
+    it("rejects an ambiguous 12-character sequence prefix (F41)", () => {
+      setTimelineAgentHandler("0123456789abcdef0123456789abcdef", makeMockHandler());
+      setTimelineAgentHandler("0123456789abffffffffffffffffffff", makeMockHandler());
+      expect(() => getTimelineAgentHandler("0123456789ab")).toThrow(
+        "matches more than one open sequence"
+      );
+    });
+
     it("keeps concurrently open sequences independently addressable", () => {
       const first = makeMockHandler();
       const second = makeMockHandler();

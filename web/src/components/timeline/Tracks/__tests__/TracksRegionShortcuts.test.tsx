@@ -321,3 +321,38 @@ it("routes editing shortcuts only to the active timeline", () => {
   act(() => fireEvent.keyDown(window, { key: "Delete" }));
   expect(hidden.doc.getState().clips).toHaveLength(0);
 });
+
+describe("TracksRegion held-key undo batching (F55)", () => {
+  it("a held trim key is one undo entry", () => {
+    setup();
+    const clip = useTimelineStore.getState().clips[0];
+    act(() => {
+      useTimelineUIStore.getState().setSelectedEdit({ clipId: clip.id, edge: "end" });
+      getTimelineTemporal().clear();
+    });
+    for (let i = 0; i < 5; i++) {
+      act(() => {
+        fireEvent.keyDown(window, {
+          key: "ArrowLeft",
+          ctrlKey: true,
+          shiftKey: true,
+          repeat: i > 0
+        });
+      });
+    }
+    expect(useTimelineStore.getState().clips[0].durationMs).toBeLessThan(1000);
+    expect(getTimelineTemporal().pastStates.length).toBe(1);
+    act(() => getTimelineTemporal().undo());
+    expect(useTimelineStore.getState().clips[0].durationMs).toBe(1000);
+  });
+
+  it("holding M adds one marker", () => {
+    setup();
+    act(() => {
+      fireEvent.keyDown(window, { key: "m" });
+      fireEvent.keyDown(window, { key: "m", repeat: true });
+      fireEvent.keyDown(window, { key: "m", repeat: true });
+    });
+    expect(useTimelineStore.getState().markers).toHaveLength(1);
+  });
+});

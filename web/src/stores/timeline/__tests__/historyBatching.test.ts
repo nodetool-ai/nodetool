@@ -109,4 +109,56 @@ describe("useTimelineHistoryBatch", () => {
 
     expect(getTimelineTemporal().pastStates.length).toBe(pastBefore);
   });
+
+  it("still batches a gesture when the undo stack is at the 100 limit (F2)", () => {
+    const clipId = seed();
+    const { result } = renderHook(() => useTimelineHistoryBatch());
+    for (let i = 0; i < 105; i++) {
+      useTimelineStore.getState().moveClip(clipId, 1);
+    }
+    expect(getTimelineTemporal().pastStates.length).toBe(100);
+    const startBefore = useTimelineStore.getState().clips[0].startMs;
+
+    result.current.begin();
+    for (let i = 0; i < 10; i++) {
+      useTimelineStore.getState().moveClip(clipId, 5);
+      result.current.mark();
+    }
+    result.current.end();
+
+    expect(getTimelineTemporal().pastStates.length).toBe(100);
+    getTimelineTemporal().undo();
+    expect(useTimelineStore.getState().clips[0].startMs).toBe(startBefore);
+  });
+
+  it("survivesUnmount keeps the batch open across a remount (F3)", () => {
+    const clipId = seed();
+    const first = renderHook(() =>
+      useTimelineHistoryBatch({ survivesUnmount: true })
+    );
+    const history = first.result.current;
+    const pastBefore = getTimelineTemporal().pastStates.length;
+    history.begin();
+    useTimelineStore.getState().moveClip(clipId, 5);
+    history.mark();
+    first.unmount(); // the clip re-parents into another lane
+    for (let i = 0; i < 5; i++) {
+      useTimelineStore.getState().moveClip(clipId, 5);
+      history.mark();
+    }
+    history.end();
+    expect(getTimelineTemporal().pastStates.length).toBe(pastBefore + 1);
+    expect(getTimelineTemporal().isTracking).toBe(true);
+  });
+
+  it("a default hook still resumes tracking on unmount", () => {
+    const clipId = seed();
+    const h = renderHook(() => useTimelineHistoryBatch());
+    h.result.current.begin();
+    useTimelineStore.getState().moveClip(clipId, 5);
+    h.result.current.mark();
+    expect(getTimelineTemporal().isTracking).toBe(false);
+    h.unmount();
+    expect(getTimelineTemporal().isTracking).toBe(true);
+  });
 });

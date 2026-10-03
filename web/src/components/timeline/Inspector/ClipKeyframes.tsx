@@ -59,7 +59,9 @@ const KeyframeRow: React.FC<{
   clip: TimelineClip;
   property: KeyframeProperty;
   atMs: number;
-}> = memo(({ clip, property, atMs }) => {
+  /** False while the playhead is outside the clip: nothing is written then. */
+  inside: boolean;
+}> = memo(({ clip, property, atMs, inside }) => {
   const setClipKeyframe = useTimelineStore((s) => s.setClipKeyframe);
   const removeClipKeyframe = useTimelineStore((s) => s.removeClipKeyframe);
   const keyframeProperty = useTimelineUIStore((s) => s.keyframeProperty);
@@ -70,19 +72,21 @@ const KeyframeRow: React.FC<{
   const armed = keyframeProperty === property;
 
   const toggle = useCallback(() => {
+    if (!inside) return;
     if (keyed) removeClipKeyframe(clip.id, property, atMs);
     else setClipKeyframe(clip.id, property, atMs, value);
     setKeyframeProperty(property);
-  }, [keyed, removeClipKeyframe, setClipKeyframe, setKeyframeProperty, clip.id, property, atMs, value]);
+  }, [inside, keyed, removeClipKeyframe, setClipKeyframe, setKeyframeProperty, clip.id, property, atMs, value]);
 
   const commit = useCallback(
     (raw: string) => {
+      if (!inside) return;
       const next = Number.parseFloat(raw);
-      if (!Number.isFinite(next)) return;
+      if (!Number.isFinite(next) || raw.trim() === "") return;
       setClipKeyframe(clip.id, property, atMs, next);
       setKeyframeProperty(property);
     },
-    [setClipKeyframe, setKeyframeProperty, clip.id, property, atMs]
+    [inside, setClipKeyframe, setKeyframeProperty, clip.id, property, atMs]
   );
 
   return (
@@ -93,6 +97,7 @@ const KeyframeRow: React.FC<{
             size="small"
             onClick={toggle}
             isActive={keyed}
+            disabled={!inside}
             icon={<DiamondOutlinedIcon fontSize="inherit" />}
             activeIcon={<DiamondIcon fontSize="inherit" />}
             tooltip={
@@ -100,7 +105,7 @@ const KeyframeRow: React.FC<{
                 ? "Remove keyframe at playhead"
                 : `Add keyframe at playhead${armed ? " (Alt+K)" : ""}`
             }
-            aria-label={`${keyed ? "Remove" : "Add"} ${meta.label} keyframe`}
+            ariaLabel={`${keyed ? "Remove" : "Add"} ${meta.label} keyframe`}
           />
           <span>{meta.label}</span>
         </FlexRow>
@@ -111,6 +116,7 @@ const KeyframeRow: React.FC<{
         onCommit={commit}
         unit={meta.unit}
         ariaLabel={`${meta.label} at playhead`}
+        disabled={!inside}
         scrub={{ step: meta.step }}
       />
     </InspectorRow>
@@ -149,7 +155,13 @@ export const ClipKeyframes: React.FC<ClipKeyframesProps> = memo(({ clip }) => {
             </Caption>
           )}
           {keyframePropertiesFor(clip).map((property) => (
-            <KeyframeRow key={property} clip={clip} property={property} atMs={atMs} />
+            <KeyframeRow
+              key={property}
+              clip={clip}
+              property={property}
+              atMs={atMs}
+              inside={inside}
+            />
           ))}
         </FlexColumn>
       </CollapsibleSection>

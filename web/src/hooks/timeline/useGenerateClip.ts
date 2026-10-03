@@ -2,8 +2,14 @@ import { useCallback, useEffect } from "react";
 import { trpcClient } from "../../trpc/client";
 import { queryClient } from "../../queryClient";
 import { fetchWorkflowById, workflowQueryKey } from "../../serverState/useWorkflow";
-import { useTimelineStore } from "../../stores/timeline/TimelineStore";
-import { useTimelineGenerationStore } from "../../stores/timeline/TimelineGenerationStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../stores/timeline/TimelineStore";
+import {
+  getJobTimeline,
+  useTimelineGenerationStore
+} from "../../stores/timeline/TimelineGenerationStore";
 import { findClipById } from "../../stores/timeline/clipLookup";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
@@ -268,13 +274,12 @@ export const handleJobMessage = async (jobId: string, message: WebSocketMessage)
   }
 
   if (status === "cancelled") {
+    // Resolve the job's own timeline before the job record is cleared.
+    const jobTimeline = getJobTimeline(jobId);
     generationStore.clearJob(context.clipId);
-    const clip = findClipById(
-      useTimelineStore.getState().clips,
-      context.clipId
-    );
+    const clip = findClipById(jobTimeline.getState().clips, context.clipId);
     if (clip) {
-      useTimelineStore
+      jobTimeline
         .getState()
         .patchClip(context.clipId, { status: deriveIdleClipStatus(clip) });
     }
@@ -340,15 +345,16 @@ export const useTimelineGenerationSubscriptions = (): void => {
 
   useEffect(() => {
     const clipJobs = useTimelineGenerationStore.getState().clipJobs;
-    const clips = useTimelineStore.getState().clips;
     const activeJobs = Object.values(clipJobs)
       .filter((job) => isActiveStatus(job.status))
       .map((job) => ({
         clipId: job.clipId,
         jobId: job.jobId,
         workflowId: job.workflowId,
-        selectedOutputNodeId: findClipById(clips, job.clipId)
-          ?.selectedOutputNodeId
+        selectedOutputNodeId: findClipById(
+          getJobTimeline(job.jobId).getState().clips,
+          job.clipId
+        )?.selectedOutputNodeId
       }));
 
     const activeJobIdSet = new Set(activeJobs.map((job) => job.jobId));
@@ -391,6 +397,7 @@ interface UseGenerateClipResult {
 }
 
 export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
+  const timeline = useTimelineStoreApi();
   const clip = useTimelineStore((state) => findClipById(state.clips, clipId));
   const patchClip = useTimelineStore((state) => state.patchClip);
   const jobState = useTimelineGenerationStore((state) => state.clipJobs[clipId]);
@@ -447,6 +454,12 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
     }
 
     startingClips.add(clip.id);
+    // Frozen before the first await: edits made while the run is out must not
+    // be recorded as what was submitted.
+    const submittedParamOverrides = clip.paramOverrides
+      ? { ...clip.paramOverrides }
+      : {};
+    const submittedDependencyHash = clip.dependencyHash;
     patchClip(clip.id, { status: "queued" });
     try {
       const workflow = await queryClient.fetchQuery({
@@ -475,7 +488,15 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
         throw new Error("Workflow runner did not return a job id");
       }
 
-      registerJob(clip.id, jobId, workflowId);
+      // The run belongs to the timeline that started it. Its completion may
+      // arrive while another timeline is active, and must land on this one.
+      registerJob(clip.id, jobId, workflowId, {
+        timeline,
+        submitted: {
+          paramOverrides: submittedParamOverrides,
+          dependencyHash: submittedDependencyHash
+        }
+      });
       await subscribeJob(
         jobId,
         {
@@ -495,7 +516,7 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
     } finally {
       startingClips.delete(clip.id);
     }
-  }, [clip, registerJob, directGen, patchClip]);
+  }, [clip, registerJob, directGen, patchClip, timeline]);
 
   const cancelClipGeneration = useCallback(async () => {
     if (isDirectGen) {
@@ -511,11 +532,19 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
     unsubscribeJob(jobState.jobId);
     clearJob(clipId);
 
-    const currentClip = findClipById(useTimelineStore.getState().clips, clipId);
+    const currentClip = findClipById(timeline.getState().clips, clipId);
     if (currentClip) {
       patchClip(clipId, { status: deriveIdleClipStatus(currentClip) });
     }
-  }, [isDirectGen, directGen, jobState?.jobId, clearJob, clipId, patchClip]);
+  }, [
+    isDirectGen,
+    directGen,
+    jobState?.jobId,
+    clearJob,
+    clipId,
+    patchClip,
+    timeline
+  ]);
 
   if (isDirectGen) {
     return {

@@ -74,6 +74,12 @@ export interface PendingClipJob {
   lineDelivery?: LineDeliveryRequest;
   /** Candidate-only requests never replace the accepted clip on completion. */
   candidateOnly?: boolean;
+  /**
+   * The clip's generation parameters as they were when the request was sent.
+   * Recorded on the take instead of re-reading the clip at completion, which
+   * may have been edited while the render ran.
+   */
+  submittedParams?: Record<string, unknown>;
 }
 
 export type MediaEditSettlementStatus =
@@ -215,11 +221,22 @@ export const useDirectGenPendingStore = create<DirectGenPendingState>()(
             ...state.pending,
             [sequenceId]: prune(
               [
-                ...(state.pending[sequenceId] ?? []).filter((entry) =>
-                  job.production || job.candidateOnly
-                    ? entry.requestId !== job.requestId
-                    : entry.clipId !== job.clipId
-                ),
+                // Request-scoped: a new request replaces only its own entry,
+                // or a stale entry of the same plain kind for that clip. An
+                // in-flight edit, New take or production request on the same
+                // clip keeps its recovery entry.
+                ...(state.pending[sequenceId] ?? []).filter((entry) => {
+                  if (entry.requestId === job.requestId) return false;
+                  const isPlain = (candidate: PendingClipJob): boolean =>
+                    !candidate.production &&
+                    !candidate.candidateOnly &&
+                    !candidate.mediaEdit;
+                  return !(
+                    isPlain(job) &&
+                    isPlain(entry) &&
+                    entry.clipId === job.clipId
+                  );
+                }),
                 job
               ],
               Date.now()

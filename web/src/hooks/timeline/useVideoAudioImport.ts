@@ -13,6 +13,10 @@ import { assetToClip } from "../../components/timeline/dnd/assetToClipAdapter";
 import { restFetch } from "../../lib/rest-fetch";
 import { getAssetUrl } from "../../utils/assetHelpers";
 import { probeMediaDurationMs } from "../../utils/probeMediaDuration";
+import {
+  runAsOneUndoEntry,
+  runWithoutUndoEntry
+} from "../../stores/timeline/useTimelineHistoryBatch";
 
 interface ExtractAudioResponse {
   has_audio: boolean;
@@ -34,13 +38,20 @@ const EXTRACT_AUDIO_TIMEOUT_MS = 60_000;
 export async function importVideoWithAudio(
   store: TimelineStoreApi,
   asset: Asset,
-  videoTrackId: string,
+  videoTrackId: string | (() => string),
   startMs: number,
   dropMode: DropMode = "overlap"
 ): Promise<void> {
   const linkId = createTimeOrderedUuid();
 
-  let videoClip = { ...assetToClip(asset, videoTrackId, startMs), linkId };
+  let videoClip = {
+    ...assetToClip(
+      asset,
+      typeof videoTrackId === "string" ? videoTrackId : "",
+      startMs
+    ),
+    linkId
+  };
 
   // Resolve the real video span before applying overwrite/insert. Uploaded
   // assets often omit duration, and resolving against the fallback length
@@ -57,32 +68,40 @@ export async function importVideoWithAudio(
   // position. If every existing audio track already has a clip overlapping
   // this span, a new audio track is created. Remember whether THIS import
   // created the track so it can be cleaned up if the video has no audio.
-  const trackIdsBefore = new Set(
-    store.getState().tracks.map((t) => t.id)
+  // Track creation, both clips and the drop resolution are one undo entry.
+  const { audioTrackId, createdAudioTrack, audioClip } = runAsOneUndoEntry(
+    store,
+    () => {
+      if (typeof videoTrackId === "function") {
+        videoClip = { ...videoClip, trackId: videoTrackId() };
+      }
+      const trackIdsBefore = new Set(store.getState().tracks.map((t) => t.id));
+      const audioTrackId = store.getState().getOrCreateAudioTrack({
+        startMs,
+        durationMs: videoClip.durationMs
+      });
+      const createdAudioTrack = !trackIdsBefore.has(audioTrackId);
+
+      const audioClip = makeClip({
+        trackId: audioTrackId,
+        name: `${asset.name} (audio)`,
+        startMs,
+        durationMs: videoClip.durationMs,
+        mediaType: "audio",
+        sourceType: "imported",
+        status: "generating",
+        linkId
+      });
+
+      store.getState().addClips([videoClip, audioClip]);
+      // The audio track was chosen to be free across this span. Resolve the video
+      // mover only so a placeholder that is later removed cannot split or
+      // overwrite unrelated audio clips. Its link still protects the placeholder
+      // from the global insert shift.
+      store.getState().resolveDrop(new Set([videoClip.id]), dropMode);
+      return { audioTrackId, createdAudioTrack, audioClip };
+    }
   );
-  const audioTrackId = store.getState().getOrCreateAudioTrack({
-    startMs,
-    durationMs: videoClip.durationMs
-  });
-  const createdAudioTrack = !trackIdsBefore.has(audioTrackId);
-
-  const audioClip = makeClip({
-    trackId: audioTrackId,
-    name: `${asset.name} (audio)`,
-    startMs,
-    durationMs: videoClip.durationMs,
-    mediaType: "audio",
-    sourceType: "imported",
-    status: "generating",
-    linkId
-  });
-
-  store.getState().addClips([videoClip, audioClip]);
-  // The audio track was chosen to be free across this span. Resolve the video
-  // mover only so a placeholder that is later removed cannot split or
-  // overwrite unrelated audio clips. Its link still protects the placeholder
-  // from the global insert shift.
-  store.getState().resolveDrop(new Set([videoClip.id]), dropMode);
 
   // Abort the request if it hangs so the audio clip doesn't sit in
   // "generating" forever; the abort surfaces as a rejection in the catch.
@@ -92,6 +111,9 @@ export async function importVideoWithAudio(
     EXTRACT_AUDIO_TIMEOUT_MS
   );
 
+  // The fill-in follows the recorded drop and is not an undo step of its own.
+  const untracked = (fn: () => void) => runWithoutUndoEntry(store, fn);
+
   try {
     const res = await restFetch(`/api/assets/${asset.id}/extract-audio`, {
       method: "POST",
@@ -99,7 +121,9 @@ export async function importVideoWithAudio(
     });
     clearTimeout(timeout);
     if (!res.ok) {
-      store.getState().patchClip(audioClip.id, { status: "failed" });
+      untracked(() =>
+        store.getState().patchClip(audioClip.id, { status: "failed" })
+      );
       return;
     }
     const data = (await res.json()) as ExtractAudioResponse;
@@ -108,28 +132,35 @@ export async function importVideoWithAudio(
       // No audio in the video — remove the placeholder (which unlinks the
       // video automatically) and drop the audio track if we just created it
       // and it is now empty.
-      store.getState().deleteClip(audioClip.id);
-      if (
-        createdAudioTrack &&
-        !store.getState().clips.some((c) => c.trackId === audioTrackId)
-      ) {
-        store.getState().removeTrack(audioTrackId);
-      }
+      untracked(() => {
+        store.getState().deleteClip(audioClip.id);
+        if (
+          createdAudioTrack &&
+          !store.getState().clips.some((c) => c.trackId === audioTrackId)
+        ) {
+          store.getState().removeTrack(audioTrackId);
+        }
+      });
       return;
     }
 
+    const extracted = data.asset;
     const durationMs =
-      data.asset.duration != null
-        ? Math.round(data.asset.duration * 1000)
+      extracted.duration != null
+        ? Math.round(extracted.duration * 1000)
         : audioClip.durationMs;
-    store.getState().patchClip(audioClip.id, {
-      currentAssetId: data.asset.id,
-      durationMs,
-      status: "generated"
-    });
+    untracked(() =>
+      store.getState().patchClip(audioClip.id, {
+        currentAssetId: extracted.id,
+        durationMs,
+        status: "generated"
+      })
+    );
   } catch {
     clearTimeout(timeout);
-    store.getState().patchClip(audioClip.id, { status: "failed" });
+    untracked(() =>
+      store.getState().patchClip(audioClip.id, { status: "failed" })
+    );
   }
 }
 
@@ -139,7 +170,7 @@ export function useVideoAudioImport() {
   return useCallback(
     (
       asset: Asset,
-      videoTrackId: string,
+      videoTrackId: string | (() => string),
       startMs: number,
       dropMode: DropMode = "overlap"
     ) => importVideoWithAudio(store, asset, videoTrackId, startMs, dropMode),

@@ -14,7 +14,7 @@
 import React, { memo, useCallback, useState } from "react";
 import { parseEasing, type ShapeFill } from "@nodetool-ai/timeline";
 
-import { Caption, FlexColumn, SPACING, TextInput } from "../../ui_primitives";
+import { Caption, FlexColumn, SPACING, TextInput, BatchedColorInput } from "../../ui_primitives";
 import {
   InspectorPillInput,
   InspectorRow,
@@ -215,13 +215,10 @@ export const FillFields: React.FC<FillFieldsProps> = memo(
         </InspectorRow>
         {fill?.type === "solid" && (
           <InspectorRow label="Fill color">
-            <TextInput
-              type="color"
+            <BatchedColorInput
               value={fill.color}
-              onChange={(event) =>
-                onChange({ type: "solid", color: event.target.value })
-              }
-              inputProps={{ "aria-label": `${labelPrefix} color` }}
+              onChange={(color) => onChange({ type: "solid", color })}
+              ariaLabel={`${labelPrefix} color`}
             />
           </InspectorRow>
         )}

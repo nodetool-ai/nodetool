@@ -14,6 +14,7 @@ import mockTheme from "../../../__mocks__/themeMock";
 import TimelineVersionHistoryPanel from "../TimelineVersionHistoryPanel";
 import { TimelineProvider } from "../../../stores/timeline/TimelineInstance";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { registerTimelineSaver } from "../../../stores/timeline/timelineSaveRegistry";
 
 const createVersion = jest.fn();
 const restoreVersion = jest.fn();
@@ -80,7 +81,12 @@ beforeEach(() => {
   deleteVersion.mockResolvedValue({ ok: true });
   hookState = {
     versions: [
-      version({ id: "v-2", version: 2, saveType: "manual", name: "before cut" }),
+      version({
+        id: "v-2",
+        version: 2,
+        saveType: "manual",
+        name: "before cut"
+      }),
       version({ id: "v-1", version: 1, saveType: "autosave" })
     ],
     isLoading: false,
@@ -126,13 +132,71 @@ describe("TimelineVersionHistoryPanel", () => {
     await waitFor(() => expect(createVersion).toHaveBeenCalledWith("keeper"));
   });
 
+  it("flushes unsaved edits before saving a version, and stops if that fails", async () => {
+    const order: string[] = [];
+    const save = jest.fn(async () => {
+      order.push("flush");
+      return { ok: true as const, updatedAt: null, sent: null };
+    });
+    createVersion.mockImplementation(async () => {
+      order.push("create");
+      return version();
+    });
+    const unregister = registerTimelineSaver({
+      handles: (id) => id === "t-1",
+      save
+    });
+    const user = userEvent.setup();
+    renderPanel();
+    await user.click(screen.getByRole("button", { name: "Save version" }));
+    await user.click(screen.getByRole("button", { name: "Save version" }));
+    await waitFor(() => expect(createVersion).toHaveBeenCalled());
+    expect(order).toEqual(["flush", "create"]);
+    // Let the first dialog finish its exit transition so the next
+    // "Save version" lookup cannot land on the closing dialog's confirm button.
+    await waitFor(() =>
+      expect(screen.queryByLabelText("Name (optional)")).not.toBeInTheDocument()
+    );
+
+    createVersion.mockClear();
+    save.mockResolvedValueOnce({
+      ok: false as never,
+      error: "offline"
+    } as never);
+    await user.click(screen.getByRole("button", { name: "Save version" }));
+    await user.click(screen.getByRole("button", { name: "Save version" }));
+    await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
+    expect(createVersion).not.toHaveBeenCalled();
+    unregister();
+  });
+
+  it("flushes unsaved edits before restoring a version", async () => {
+    const order: string[] = [];
+    restoreVersion.mockImplementation(async () => {
+      order.push("restore");
+      return restoredSequence;
+    });
+    const unregister = registerTimelineSaver({
+      handles: (id) => id === "t-1",
+      save: async () => {
+        order.push("flush");
+        return { ok: true as const, updatedAt: null, sent: null };
+      }
+    });
+    const user = userEvent.setup();
+    renderPanel();
+    await user.click(screen.getByRole("button", { name: "Restore version 2" }));
+    await user.click(screen.getByRole("button", { name: "Restore" }));
+    await waitFor(() => expect(restoreVersion).toHaveBeenCalledWith(2));
+    expect(order).toEqual(["flush", "restore"]);
+    unregister();
+  });
+
   it("restores after confirming and reloads the store from the response", async () => {
     const user = userEvent.setup();
     renderPanel();
 
-    await user.click(
-      screen.getByRole("button", { name: "Restore version 2" })
-    );
+    await user.click(screen.getByRole("button", { name: "Restore version 2" }));
     expect(screen.getByText("Restore v2?")).toBeInTheDocument();
     expect(restoreVersion).not.toHaveBeenCalled();
 
@@ -154,9 +218,7 @@ describe("TimelineVersionHistoryPanel", () => {
     const user = userEvent.setup();
     renderPanel();
 
-    await user.click(
-      screen.getByRole("button", { name: "Restore version 1" })
-    );
+    await user.click(screen.getByRole("button", { name: "Restore version 1" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(restoreVersion).not.toHaveBeenCalled();

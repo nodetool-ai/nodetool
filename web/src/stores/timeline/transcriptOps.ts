@@ -18,7 +18,12 @@
  * unit-testable, mirroring `sceneModel`.
  */
 
-import { makeClip, createTimeOrderedUuid } from "@nodetool-ai/timeline";
+import {
+  makeClip,
+  createTimeOrderedUuid,
+  sourceRate,
+  splitClip
+} from "@nodetool-ai/timeline";
 import type {
   CaptionWord,
   CaptionWordKind,
@@ -353,29 +358,26 @@ export function resolveSelectionRange(
 }
 
 /**
- * Effective source-playback rate for a clip: one timeline-ms consumes this
- * many source-ms. Mirrors `sourceRate` in `@nodetool-ai/timeline`
- * (`splitClip`/`trimClip`) — not part of that package's public exports, so
- * duplicated here rather than reaching into its `src/`.
+ * Clips a transcript edit must leave exactly where they are: the ids of clips
+ * whose edit unit holds a lock (clip, track, link or group).
  */
-function sourceRate(clip: Pick<TimelineClip, "speedBaked" | "speedMultiplier">): number {
-  return clip.speedBaked ? 1 : Math.max(0.0001, clip.speedMultiplier ?? 1);
+export interface TranscriptEditLocks {
+  lockedClipIds?: ReadonlySet<string>;
 }
 
-/** The head remnant of `clip`, keeping clip-local [0, lengthMs). */
+/** Whether `clip` can be cut by `splitClip` (a time remap refuses a cut). */
+function isCuttable(clip: TimelineClip): boolean {
+  return clip.timeRemap === undefined;
+}
+
+/**
+ * The head remnant of `clip`, keeping clip-local [0, lengthMs). Built with
+ * `splitClip` so fades, transitions, animations and captions follow the same
+ * rules as a timeline cut. The head keeps the original id.
+ */
 function headRemnant(clip: TimelineClip, lengthMs: number): TimelineClip {
-  const rate = sourceRate(clip);
-  const inPointMs = clip.inPointMs ?? 0;
-  const words = (clip.caption?.words ?? []).filter((w) => w.endMs <= lengthMs);
-  return {
-    ...clip,
-    durationMs: lengthMs,
-    inPointMs,
-    // Source in/out points are source-space; one timeline-ms consumes `rate`
-    // source-ms (mirrors splitClip's `cutPointMs`).
-    outPointMs: inPointMs + lengthMs * rate,
-    caption: clip.caption ? { ...clip.caption, words } : undefined
-  };
+  const [head] = splitClip(clip, clip.startMs + lengthMs);
+  return { ...head, id: clip.id };
 }
 
 /** The tail remnant of `clip`, keeping clip-local [fromMs, dur), placed at `startMs`. */
@@ -384,23 +386,8 @@ function tailRemnant(
   fromMs: number,
   startMs: number
 ): TimelineClip {
-  const rate = sourceRate(clip);
-  const inPointMs = clip.inPointMs ?? 0;
-  const outPointMs = clip.outPointMs ?? inPointMs + clip.durationMs * rate;
-  const words = (clip.caption?.words ?? [])
-    .filter((w) => w.startMs >= fromMs)
-    .map((w) => ({ ...w, startMs: w.startMs - fromMs, endMs: w.endMs - fromMs }));
-  return {
-    ...clip,
-    id: createTimeOrderedUuid(),
-    startMs,
-    durationMs: clip.durationMs - fromMs,
-    // Cut point is source-space, `fromMs` timeline-ms in (mirrors splitClip's
-    // `cutPointMs`).
-    inPointMs: inPointMs + fromMs * rate,
-    outPointMs,
-    caption: clip.caption ? { ...clip.caption, words } : undefined
-  };
+  const [, tail] = splitClip(clip, clip.startMs + fromMs);
+  return { ...tail, startMs };
 }
 
 /**
@@ -413,7 +400,8 @@ function tailRemnant(
 export function rippleDeleteRange(
   clips: TimelineClip[],
   startMs: number,
-  endMs: number
+  endMs: number,
+  locks: TranscriptEditLocks = {}
 ): ReflowedClips {
   if (endMs <= startMs) return { clips, durationMs: maxEnd(clips) };
   const span = endMs - startMs;
@@ -423,12 +411,16 @@ export function rippleDeleteRange(
     const cStart = clip.startMs;
     const cEnd = clip.startMs + clip.durationMs;
 
-    if (cEnd <= startMs) {
-      next.push(clip); // entirely before the cut
+    if (cEnd <= startMs || locks.lockedClipIds?.has(clip.id)) {
+      next.push(clip); // entirely before the cut, or locked: never cut or moved
       continue;
     }
     if (cStart >= endMs) {
       next.push({ ...clip, startMs: cStart - span }); // entirely after → ripple
+      continue;
+    }
+    if (!isCuttable(clip)) {
+      next.push(clip); // a time remap cannot be cut: leave it whole
       continue;
     }
 
@@ -491,12 +483,15 @@ function fillerRanges(clips: TimelineClip[]): Array<{ startMs: number; endMs: nu
  * right-to-left so each deletion leaves the earlier (left) ranges' absolute
  * times valid — the bulk version of {@link rippleDeleteRange}.
  */
-export function removeFillers(clips: TimelineClip[]): ReflowedClips {
+export function removeFillers(
+  clips: TimelineClip[],
+  locks: TranscriptEditLocks = {}
+): ReflowedClips {
   const ranges = fillerRanges(clips).sort((a, b) => b.startMs - a.startMs);
   let result = clips;
   let durationMs = maxEnd(clips);
   for (const range of ranges) {
-    const out = rippleDeleteRange(result, range.startMs, range.endMs);
+    const out = rippleDeleteRange(result, range.startMs, range.endMs, locks);
     result = out.clips;
     durationMs = out.durationMs;
   }
@@ -526,7 +521,8 @@ interface SurvivingWord {
  */
 export function reconcileTranscript(
   clips: TimelineClip[],
-  survivors: SurvivingWord[]
+  survivors: SurvivingWord[],
+  locks: TranscriptEditLocks = {}
 ): ReflowedClips {
   const doc = buildTranscriptDoc(clips);
   const tokens = doc.segments.flatMap((s) => s.tokens);
@@ -547,15 +543,33 @@ export function reconcileTranscript(
     }
   }
 
-  // 2. Ripple-cut removed words, latest first.
-  const removed = tokens
-    .filter((tok) => !survivingText.has(key(tok.clipId, tok.wordIndex)))
-    .map((tok) => ({ startMs: tok.startMs, endMs: tok.endMs }))
-    .sort((a, b) => b.startMs - a.startMs);
+  // 2. Ripple-cut removed words, latest first. Adjacent removed words become
+  // one span so the silence between them goes too, instead of surviving as a
+  // tiny clip fragment.
+  const spans: Array<{ clipId: string; startMs: number; endMs: number }> = [];
+  let previousRemoved = false;
+  for (const tok of tokens) {
+    const isRemoved = !survivingText.has(key(tok.clipId, tok.wordIndex));
+    if (isRemoved) {
+      const last = spans[spans.length - 1];
+      if (previousRemoved && last && last.clipId === tok.clipId) {
+        last.startMs = Math.min(last.startMs, tok.startMs);
+        last.endMs = Math.max(last.endMs, tok.endMs);
+      } else {
+        spans.push({
+          clipId: tok.clipId,
+          startMs: tok.startMs,
+          endMs: tok.endMs
+        });
+      }
+    }
+    previousRemoved = isRemoved;
+  }
+  const removed = spans.sort((a, b) => b.startMs - a.startMs);
 
   let durationMs = doc.durationMs;
   for (const range of removed) {
-    const out = rippleDeleteRange(next, range.startMs, range.endMs);
+    const out = rippleDeleteRange(next, range.startMs, range.endMs, locks);
     next = out.clips;
     durationMs = out.durationMs;
   }
@@ -587,9 +601,10 @@ function isDraftBeat(clip: TimelineClip): boolean {
 export function applyEditorEdits(
   clips: TimelineClip[],
   edits: EditorEdits,
-  audioTrackId: string
+  audioTrackId: string,
+  locks: TranscriptEditLocks = {}
 ): ReflowedClips {
-  let next = reconcileTranscript(clips, edits.survivors).clips;
+  let next = reconcileTranscript(clips, edits.survivors, locks).clips;
 
   // Existing drafts: write back the edited prompt.
   const updateById = new Map(edits.draftUpdates.map((d) => [d.clipId, d.text.trim()]));
@@ -671,7 +686,8 @@ function midRemnant(
 export function cutWordRange(
   clips: TimelineClip[],
   startMs: number,
-  endMs: number
+  endMs: number,
+  locks: TranscriptEditLocks = {}
 ): CutResult {
   if (endMs <= startMs) {
     return { clips, durationMs: maxEnd(clips), extracted: [] };
@@ -682,11 +698,13 @@ export function cutWordRange(
     const cEnd = clip.startMs + clip.durationMs;
     const lo = Math.max(cStart, startMs);
     const hi = Math.min(cEnd, endMs);
-    if (hi <= lo) continue;
+    if (hi <= lo || locks.lockedClipIds?.has(clip.id) || !isCuttable(clip)) {
+      continue;
+    }
     extracted.push(midRemnant(clip, lo - cStart, hi - cStart, lo - startMs));
   }
   extracted.sort(byTimeline);
-  const removed = rippleDeleteRange(clips, startMs, endMs);
+  const removed = rippleDeleteRange(clips, startMs, endMs, locks);
   return { clips: removed.clips, durationMs: removed.durationMs, extracted };
 }
 
@@ -698,7 +716,8 @@ export function cutWordRange(
 export function pasteClipsAt(
   clips: TimelineClip[],
   targetMs: number,
-  block: TimelineClip[]
+  block: TimelineClip[],
+  locks: TranscriptEditLocks = {}
 ): ReflowedClips {
   if (block.length === 0) return { clips, durationMs: maxEnd(clips) };
   const blockLen = block.reduce((m, c) => Math.max(m, c.startMs + c.durationMs), 0);
@@ -707,10 +726,12 @@ export function pasteClipsAt(
   for (const clip of clips) {
     const cStart = clip.startMs;
     const cEnd = clip.startMs + clip.durationMs;
-    if (cEnd <= targetMs) {
+    if (cEnd <= targetMs || locks.lockedClipIds?.has(clip.id)) {
       next.push(clip);
     } else if (cStart >= targetMs) {
       next.push({ ...clip, startMs: cStart + blockLen });
+    } else if (!isCuttable(clip)) {
+      next.push(clip);
     } else {
       const headLen = targetMs - cStart;
       next.push(headRemnant(clip, headLen));

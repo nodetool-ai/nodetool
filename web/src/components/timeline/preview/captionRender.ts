@@ -13,9 +13,11 @@
 
 import type { ResolvedCaption } from "@nodetool-ai/timeline/render";
 import { captionSignature, drawCaption } from "@nodetool-ai/timeline/render";
-import { BitmapFrameScope } from "./BitmapFrameScope";
+import { BitmapFrameScope, bitmapByteSize } from "./BitmapFrameScope";
 
-const MAX_CACHE_ENTRIES = 64;
+/** Resident-bitmap budget, the same 64 MB `textRender` keeps. A caption bitmap
+ *  is a full frame, so an entry count alone would hold 530 MB at 1080p. */
+export const CAPTION_BITMAP_CACHE_BUDGET_BYTES = 64 * 1024 * 1024;
 
 export { captionSignature };
 
@@ -31,9 +33,20 @@ export class CaptionRasterizer {
   private pins = new Map<ImageBitmap, number>();
   private deferredClose = new Set<ImageBitmap>();
 
+  private ownedBytes = 0;
+
+  get residentBytes(): number {
+    return this.ownedBytes;
+  }
+
+  private close(bitmap: ImageBitmap): void {
+    this.ownedBytes -= bitmapByteSize(bitmap);
+    bitmap.close();
+  }
+
   private retire(bitmap: ImageBitmap): void {
     if (this.pins.has(bitmap)) this.deferredClose.add(bitmap);
-    else bitmap.close();
+    else this.close(bitmap);
   }
 
   private pin(bitmap: ImageBitmap, frameScope: BitmapFrameScope): void {
@@ -41,7 +54,7 @@ export class CaptionRasterizer {
       const remaining = (this.pins.get(bitmap) ?? 1) - 1;
       if (remaining === 0) {
         this.pins.delete(bitmap);
-        if (this.deferredClose.delete(bitmap)) bitmap.close();
+        if (this.deferredClose.delete(bitmap)) this.close(bitmap);
       } else {
         this.pins.set(bitmap, remaining);
       }
@@ -98,15 +111,19 @@ export class CaptionRasterizer {
     const bitmap = canvas.transferToImageBitmap();
     this.pin(bitmap, frameScope);
 
-    if (this.cache.size >= MAX_CACHE_ENTRIES) {
-      const oldest = this.cache.keys().next().value;
-      if (oldest !== undefined) {
-        const retired = this.cache.get(oldest);
-        if (retired) this.retire(retired);
-        this.cache.delete(oldest);
-      }
-    }
+    this.ownedBytes += bitmapByteSize(bitmap);
     this.cache.set(key, bitmap);
+    // Evict oldest first, but never the bitmap just drawn.
+    while (
+      this.ownedBytes > CAPTION_BITMAP_CACHE_BUDGET_BYTES &&
+      this.cache.size > 1
+    ) {
+      const oldest = this.cache.keys().next().value;
+      if (oldest === undefined) break;
+      const retired = this.cache.get(oldest);
+      this.cache.delete(oldest);
+      if (retired) this.retire(retired);
+    }
     return bitmap;
   }
 

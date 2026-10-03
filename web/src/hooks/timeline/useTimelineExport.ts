@@ -8,7 +8,7 @@
  * encode and the file extension — MP4, WebM, or a zip of PNGs.
  */
 
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -70,13 +70,17 @@ function sanitizeFilename(name: string): string {
 }
 
 function downloadBlob(
-  bytes: Uint8Array,
+  bytes: Uint8Array | Blob,
   mimeType: string,
   filename: string
 ): void {
-  // `bytes` is always backed by a plain ArrayBuffer from the muxer; the cast
-  // satisfies the BlobPart typing under the current TS lib.
-  const blob = new Blob([bytes as BlobPart], { type: mimeType });
+  // Muxer bytes are backed by a plain ArrayBuffer (the cast satisfies the
+  // BlobPart typing under the current TS lib). A PNG-sequence zip already is a
+  // Blob and is passed through without another copy.
+  const blob =
+    bytes instanceof Blob
+      ? bytes
+      : new Blob([bytes as BlobPart], { type: mimeType });
   const url = URL.createObjectURL(blob);
   const anchor = document.createElement("a");
   anchor.href = url;
@@ -116,6 +120,14 @@ export function useTimelineExport(): UseTimelineExportResult {
     abortRef.current?.abort();
   }, []);
 
+  // Closing the editor must not leave a render running against a dead view.
+  useEffect(
+    () => () => {
+      abortRef.current?.abort();
+    },
+    []
+  );
+
   const clearError = useCallback(() => setError(null), []);
 
   // Shared render core: renders the sequence to MP4 bytes and hands them to a
@@ -124,7 +136,7 @@ export function useTimelineExport(): UseTimelineExportResult {
   const runExport = useCallback(
     async (
       sink: (
-        bytes: Uint8Array,
+        bytes: Uint8Array | Blob,
         mimeType: string,
         name: string,
         extension: string

@@ -13,7 +13,11 @@ import {
 import mockTheme from "../../../__mocks__/themeMock";
 import { AdaptFormatDialog } from "../AdaptFormatDialog";
 
-const createAdaptations = jest.fn(async () => ["derived-1"]);
+const createAdaptations = jest.fn(async () => ({
+  createdIds: ["derived-1"],
+  createdAspectRatios: ["9:16"],
+  failures: [] as Array<{ aspectRatio: string; message: string }>
+}));
 
 jest.mock("../../../hooks/timeline/useCreateFormatAdaptation", () => ({
   useCreateFormatAdaptation: () => ({

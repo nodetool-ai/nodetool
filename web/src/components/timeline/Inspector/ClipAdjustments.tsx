@@ -50,7 +50,7 @@ import {
   InspectorSliderRow,
   InspectorToggleRow
 } from "./InspectorPrimitives";
-import { parseSeconds } from "./InspectorPrimitives.helpers";
+import { parseFiniteNumber, parseSeconds } from "./InspectorPrimitives.helpers";
 import { ClipEffectsList } from "./ClipEffectsList";
 import { ClipMaskMatte } from "./ClipMaskMatte";
 import { ClipTransitionSection } from "./ClipTransitionSection";
@@ -163,8 +163,8 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
 
     const onPatchNumber = useCallback(
       (field: string, raw: string, min?: number, max?: number) => {
-        const parsed = Number(raw);
-        if (!Number.isFinite(parsed)) return;
+        const parsed = parseFiniteNumber(raw);
+        if (parsed === null) return;
         const value =
           min != null && max != null ? clamp(parsed, min, max) : parsed;
         patchClip(clipRef.current.id, { [field]: value });
@@ -235,8 +235,8 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
     );
     const handlePositionXCommit = useCallback(
       (raw: string) => {
-        const n = Number(raw);
-        if (!Number.isFinite(n)) return;
+        const n = parseFiniteNumber(raw);
+        if (n === null) return;
         const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
         setTransform({ ...t, position: { ...t.position, x: n } });
       },
@@ -244,8 +244,8 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
     );
     const handlePositionYCommit = useCallback(
       (raw: string) => {
-        const n = Number(raw);
-        if (!Number.isFinite(n)) return;
+        const n = parseFiniteNumber(raw);
+        if (n === null) return;
         const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
         setTransform({ ...t, position: { ...t.position, y: n } });
       },
@@ -253,8 +253,8 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
     );
     const handleScaleXCommit = useCallback(
       (raw: string) => {
-        const n = Number(raw);
-        if (!Number.isFinite(n)) return;
+        const n = parseFiniteNumber(raw);
+        if (n === null || n <= 0) return;
         const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
         setTransform({ ...t, scale: { ...t.scale, x: n } });
       },
@@ -262,8 +262,8 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
     );
     const handleScaleYCommit = useCallback(
       (raw: string) => {
-        const n = Number(raw);
-        if (!Number.isFinite(n)) return;
+        const n = parseFiniteNumber(raw);
+        if (n === null || n <= 0) return;
         const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
         setTransform({ ...t, scale: { ...t.scale, y: n } });
       },
@@ -271,8 +271,8 @@ export const ClipAdjustments: React.FC<ClipAdjustmentsProps> = memo(
     );
     const handleRotationCommit = useCallback(
       (raw: string) => {
-        const n = Number(raw);
-        if (!Number.isFinite(n)) return;
+        const n = parseFiniteNumber(raw);
+        if (n === null) return;
         const t = clipRef.current.transform ?? IDENTITY_TRANSFORM;
         setTransform({ ...t, rotation: (n * Math.PI) / 180 });
       },

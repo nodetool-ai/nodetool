@@ -22,6 +22,7 @@ import {
   FlexColumn,
   FlexRow,
   SelectField,
+  SPACING,
   Text,
   TextInput
 } from "../ui_primitives";
@@ -197,6 +198,16 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
 
   const handleApply = async () => {
     if (!allValid) return;
+    // A failed canvas save keeps the dialog open; the hook reports the error
+    // and puts the previous canvas back.
+    if (canvasDirty) {
+      const saved = await save({
+        width: widthNum,
+        height: heightNum,
+        fps: fpsNum
+      });
+      if (!saved) return;
+    }
     if (tempoDirty) {
       setTempo({
         bpm: bpmNum,
@@ -206,9 +217,6 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
           beatUnit: beatUnitNum
         }
       });
-    }
-    if (canvasDirty) {
-      await save({ width: widthNum, height: heightNum, fps: fpsNum });
     }
     onClose();
   };
@@ -226,10 +234,10 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
       confirmDisabled={!allValid || !dirty || isSaving}
       minWidth="min(440px, 100vw - 32px)"
     >
-      <FlexColumn gap={4} sx={{ py: 1 }}>
+      <FlexColumn gap={SPACING.xl} sx={{ py: SPACING.xs }}>
         {/* ── Canvas size ─────────────────────────────────────────── */}
-        <FlexColumn gap={1.5}>
-          <Text size="small" weight={600} sx={{ mb: 1.5 }}>
+        <FlexColumn gap={SPACING.sm}>
+          <Text size="small" weight={600} sx={{ mb: SPACING.sm }}>
             Canvas size
           </Text>
           {/* Label hidden — the section header names it; an outlined variant
@@ -243,7 +251,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
             options={RESOLUTION_OPTIONS}
             size="small"
           />
-          <FlexRow gap={1.5} align="flex-start" sx={{ mt: 2 }}>
+          <FlexRow gap={SPACING.sm} align="flex-start" sx={{ mt: SPACING.md }}>
             <TextInput
               label="Width"
               type="number"
@@ -276,11 +284,11 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
         </FlexColumn>
 
         {/* ── Frame rate ──────────────────────────────────────────── */}
-        <FlexColumn gap={1.5}>
-          <Text size="small" weight={600} sx={{ mb: 1.5 }}>
+        <FlexColumn gap={SPACING.sm}>
+          <Text size="small" weight={600} sx={{ mb: SPACING.sm }}>
             Frame rate
           </Text>
-          <FlexRow gap={1.5} align="flex-start">
+          <FlexRow gap={SPACING.sm} align="flex-start">
             <FlexColumn sx={{ flex: 1 }}>
               <SelectField
                 label="Frame rate preset"
@@ -310,11 +318,11 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
         </FlexColumn>
 
         {/* ── Tempo ───────────────────────────────────────────────── */}
-        <FlexColumn gap={1.5}>
-          <Text size="small" weight={600} sx={{ mb: 1.5 }}>
+        <FlexColumn gap={SPACING.sm}>
+          <Text size="small" weight={600} sx={{ mb: SPACING.sm }}>
             Tempo
           </Text>
-          <FlexRow gap={1.5} align="flex-start">
+          <FlexRow gap={SPACING.sm} align="flex-start">
             <TextInput
               label="BPM"
               type="number"
@@ -366,7 +374,7 @@ const ProjectSettingsDialogInternal: React.FC<ProjectSettingsDialogProps> = ({
               offsetText !== "" && !offsetValid ? "0 or more" : undefined
             }
             inputProps={{ min: 0, step: 1 }}
-            sx={{ mt: 2, width: 160 }}
+            sx={{ mt: SPACING.md, width: 160 }}
           />
           {midiClipCount > 0 && (
             <Caption sx={{ color: "text.secondary" }}>

@@ -99,3 +99,39 @@ describe("bindingKeys", () => {
     expect(bindingKeys({ key: "z", shift: true })).toEqual(["Shift", "Z"]);
   });
 });
+
+describe("physical-key matching (macOS and US layouts)", () => {
+  it("fires Option+T as fades even though the key is a dagger", () => {
+    expect(
+      resolveTimelineAction(ev("†", { altKey: true, code: "KeyT" }), "nodetool")
+    ).toBe("applyFades");
+  });
+
+  it("fires Option+K and Option+Shift+K as keyframe actions", () => {
+    expect(
+      resolveTimelineAction(ev("˚", { altKey: true, code: "KeyK" }), "nodetool")
+    ).toBe("addKeyframe");
+    expect(
+      resolveTimelineAction(
+        ev("", { altKey: true, shiftKey: true, code: "KeyK" }),
+        "nodetool"
+      )
+    ).toBe("nextKeyframe");
+  });
+
+  it("fires Final Cut Shift+, and Option+, from their physical key", () => {
+    expect(
+      resolveTimelineAction(ev("<", { shiftKey: true, code: "Comma" }), "fcp")
+    ).toBe("nudgeLeftLarge");
+    expect(
+      resolveTimelineAction(ev("≤", { altKey: true, code: "Comma" }), "fcp")
+    ).toBe("trimEditLeft");
+    expect(resolveTimelineAction(ev(",", { code: "Comma" }), "fcp")).toBe("nudgeLeft");
+  });
+
+  it("still matches on key when the event has no code", () => {
+    expect(resolveTimelineAction(ev("t", { altKey: true }), "nodetool")).toBe(
+      "applyFades"
+    );
+  });
+});

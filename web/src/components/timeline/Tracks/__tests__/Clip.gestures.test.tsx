@@ -9,7 +9,13 @@
  */
 
 import { installGlobal } from "../../../../test-utils/doubles";
-import { act, render, screen, fireEvent } from "@testing-library/react";
+import {
+  act,
+  createEvent,
+  render,
+  screen,
+  fireEvent
+} from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 
@@ -266,6 +272,105 @@ describe("Clip drag across tracks", () => {
     pointerOverLane("t2");
     dragClip("a1", 100, 100 + DRAG_PX);
     expect(clipState("a1")).toEqual({ trackId: "t1", startMs: 2000 + DRAG_MS, durationMs: 1000 });
+  });
+});
+
+describe("Clip drag history and zoom", () => {
+  let rafSpy: jest.SpyInstance;
+  beforeEach(() => {
+    rafSpy = jest
+      .spyOn(window, "requestAnimationFrame")
+      .mockImplementation((cb) => {
+        cb(0);
+        return 1;
+      });
+    useTimelineUIStore.setState({ snapEnabled: false });
+  });
+  afterEach(() => {
+    rafSpy.mockRestore();
+    Reflect.deleteProperty(document, "elementsFromPoint");
+  });
+
+  it("a cross-track drag with several moves is one undo entry (F3)", () => {
+    renderLanes();
+    const lane = screen.getByTestId("track-lane-t2");
+    document.elementsFromPoint = () => [lane];
+    getTimelineTemporal().clear();
+    const el = screen.getByTestId("clip-a1");
+    fireEvent.pointerDown(el, { button: 0, buttons: 1, clientX: 100, clientY: 20, pointerId: 1 });
+    for (let i = 1; i <= 6; i++) {
+      fireEvent.pointerMove(window, { buttons: 1, clientX: 100 + i * 10, clientY: 20, pointerId: 1 });
+    }
+    fireEvent.pointerUp(window, { pointerId: 1, clientX: 160, clientY: 20 });
+    expect(clipState("a1").trackId).toBe("t2");
+    expect(getTimelineTemporal().pastStates.length).toBe(1);
+    expect(getTimelineTemporal().isTracking).toBe(true);
+    act(() => {
+      getTimelineTemporal().undo();
+    });
+    expect(clipState("a1")).toEqual({ trackId: "t1", startMs: 2000, durationMs: 1000 });
+  });
+
+  it("zooming mid-drag does not make the clip jump (F22)", () => {
+    renderLanes();
+    const el = screen.getByTestId("clip-a1");
+    fireEvent.pointerDown(el, { button: 0, buttons: 1, clientX: 100, clientY: 20, pointerId: 1 });
+    fireEvent.pointerMove(window, { buttons: 1, clientX: 130, clientY: 20, pointerId: 1 });
+    expect(clipState("a1").startMs).toBe(2300);
+    act(() => {
+      useTimelineUIStore.setState({ msPerPx: 20 });
+    });
+    // Same pointer position after the zoom: the clip stays where it was.
+    fireEvent.pointerMove(window, { buttons: 1, clientX: 130, clientY: 20, pointerId: 1 });
+    expect(clipState("a1").startMs).toBe(2300);
+    // 10 px more at the new scale is 200 ms.
+    fireEvent.pointerMove(window, { buttons: 1, clientX: 140, clientY: 20, pointerId: 1 });
+    expect(clipState("a1").startMs).toBe(2500);
+    fireEvent.pointerUp(window, { pointerId: 1, clientX: 140, clientY: 20 });
+  });
+});
+
+describe("Asset drop on a locked track (F50)", () => {
+  const assetTransfer = () => {
+    const data: Record<string, string> = {
+      asset: JSON.stringify({
+        id: "asset-1",
+        name: "clip.mp4",
+        content_type: "video/mp4",
+        duration: 5,
+        get_url: "https://cdn.example.com/clip.mp4"
+      })
+    };
+    return {
+      types: ["asset"],
+      dropEffect: "none",
+      getData: (k: string) => data[k] ?? ""
+    };
+  };
+
+  it("refuses the drop and shows no drop affordance", () => {
+    seed({ lockTrackB: true });
+    renderLanes();
+    const lane = screen.getByTestId("track-lane-t2");
+    const before = useTimelineStore.getState().clips.length;
+    const over = createEvent.dragOver(lane, { dataTransfer: assetTransfer() });
+    fireEvent(lane, over);
+    expect(over.defaultPrevented).toBe(false);
+    fireEvent.drop(lane, { dataTransfer: assetTransfer() });
+    expect(useTimelineStore.getState().clips).toHaveLength(before);
+  });
+
+  it("still accepts the drop on an unlocked track as one undo entry (F51)", () => {
+    seed();
+    renderLanes();
+    const lane = screen.getByTestId("track-lane-t2");
+    getTimelineTemporal().clear();
+    const before = useTimelineStore.getState().clips.length;
+    act(() => {
+      fireEvent.drop(lane, { dataTransfer: assetTransfer() });
+    });
+    expect(useTimelineStore.getState().clips.length).toBeGreaterThan(before);
+    expect(getTimelineTemporal().pastStates.length).toBe(1);
   });
 });
 

@@ -65,9 +65,24 @@ import { useCombo } from "../../../stores/KeyPressedStore";
 import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
 import { previewQualityScale } from "./previewQuality";
 import type { PreviewQuality } from "./previewQuality";
+import { resolvePlayStartMs } from "./playbackSync";
 
 function frameDeltaMs(fps: number): number {
   return 1000 / Math.max(1, fps);
+}
+
+/** The media URL of an asset already in the query cache, or null. A relinked
+ *  file keeps its asset id but changes URL, so the schedule key carries it. */
+function cachedAssetUrl(assetId: string | undefined): string | null {
+  if (!assetId) return null;
+  try {
+    const asset = useAssetStore
+      .getState()
+      .queryClient?.getQueryData(["asset", assetId]);
+    return asset ? getAssetMediaUrl(asset) : null;
+  } catch {
+    return null;
+  }
 }
 
 /** Schedule/top-up audio clips whose start falls within this horizon of the
@@ -485,6 +500,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         return JSON.stringify({
           mediaType: clip.mediaType,
           assetId: clip.currentAssetId ?? null,
+          assetUrl: cachedAssetUrl(clip.currentAssetId),
           midiKey,
           trackId: clip.trackId,
           startMs: clip.startMs,
@@ -586,10 +602,20 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         // `addClips` reuses scheduleClips' decode+schedule internals but
         // skips its "stop sources not in this list" prune, so sources
         // already playing from the initial window are left untouched.
+        // A clip that becomes audible mid-playback may find the context
+        // suspended (play began with nothing to hear, or it was suspended).
+        const ctx = graph.getContext();
+        if (ctx instanceof AudioContext && ctx.state === "suspended") {
+          await ctx.resume();
+          if (isStale()) return;
+        }
+
+        // Pass the clock reader: addClips awaits fetch and decode, and the
+        // playhead keeps moving meanwhile.
         await graph.addClips(
           validClips,
           timelineApi.getState().tracks,
-          getTimeMs(),
+          getTimeMs,
           isStale,
           playbackApi.getState().rate
         );
@@ -644,6 +670,9 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       [queueTopUpAudio, timelineApi]
     );
 
+    /** Set by the loop wrap so the seek-restart effect skips its debounce. */
+    const loopWrapRef = useRef(false);
+
     /** The rate the running clock was started with; the rate-change restart
      *  effect compares against it so a same-rate re-render is not a restart. */
     const startedRateRef = useRef(1);
@@ -674,23 +703,39 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       const endMs = rangeOut ?? contentEndMs;
       // Pressing Play while parked at the end restarts from the top (or the
       // in point).
-      if (endMs > 0 && startMs >= endMs - frameDeltaMs(fps)) {
-        startMs = loopStartMs;
-        setCurrentTimeMs(loopStartMs);
-      }
-
-      play();
-
       // Global playback speed, read fresh so a rate set before pressing play
       // (and the live rate-change restart below) takes effect. Feeds both the
       // clock and audio scheduling so the visual clock and audio stay locked.
       const globalRate = playbackApi.getState().rate;
+      // The restart rule follows the rate's sign: reverse playback parked at
+      // the end runs backwards from there instead of jumping to the top.
+      const resolvedStartMs = resolvePlayStartMs({
+        startMs,
+        rate: globalRate,
+        loopStartMs,
+        endMs,
+        frameMs: frameDeltaMs(fps)
+      });
+      if (resolvedStartMs !== startMs) {
+        startMs = resolvedStartMs;
+        setCurrentTimeMs(startMs);
+      }
+
+      play();
+
       startedRateRef.current = globalRate;
       const clockOptions = {
         floorMs: loopStartMs,
         // Only a marked out point loops; the content end still parks.
         onReachEnd:
-          rangeOut !== null ? () => playbackApi.getState().seek(loopStartMs) : undefined
+          rangeOut !== null
+            ? () => {
+                // A loop wrap restarts at once: there is no scrub burst to
+                // wait out, and the debounce would stall picture and audio.
+                loopWrapRef.current = true;
+                playbackApi.getState().seek(loopStartMs);
+              }
+            : undefined
       };
 
       // Read fresh rather than closing over the reactive `clips` value so
@@ -815,6 +860,12 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       clockRef.current.stop();
       graphRef.current.stopAll();
       stopAudioSession();
+
+      if (loopWrapRef.current) {
+        loopWrapRef.current = false;
+        void handlePlay();
+        return;
+      }
 
       seekDebounceRef.current = setTimeout(() => {
         seekDebounceRef.current = null;

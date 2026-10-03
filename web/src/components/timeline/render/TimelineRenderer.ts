@@ -139,7 +139,11 @@ interface RenderTimelineOptions {
 }
 
 export interface RenderResult {
-  bytes: Uint8Array;
+  /**
+   * The encoded file. A `png_sequence` zip comes back as a `Blob` assembled
+   * from per-frame parts, so the whole archive is never one contiguous buffer.
+   */
+  bytes: Uint8Array | Blob;
   mimeType: string;
   /** File extension the bytes should be saved under, without the dot. */
   extension: string;
@@ -171,49 +175,54 @@ async function canvasPng(canvas: HTMLCanvasElement): Promise<Uint8Array> {
 }
 
 /**
- * Pack the frames into one stored (uncompressed) zip with a manifest.
+ * Incremental stored (uncompressed) zip writer for a PNG sequence.
  *
  * Stored, because a PNG is already deflate-compressed and a second pass costs
- * seconds per frame for nothing. fflate's streaming writer is used so the PNG
- * buffers can be released as they go in rather than being held alongside a
- * second copy inside the archive.
+ * seconds per frame for nothing. Each frame is handed in as it is rendered and
+ * the archive bytes go straight into Blob parts, so the caller can drop the
+ * frame immediately and the finished zip is never concatenated into one
+ * contiguous buffer.
  */
-async function zipPngSequence(
-  frames: Uint8Array[],
-  manifest: PngSequenceManifest
-): Promise<Uint8Array> {
+async function createPngZipWriter(): Promise<{
+  addFrame: (index: number, bytes: Uint8Array) => void;
+  finish: (manifest: PngSequenceManifest) => Blob;
+}> {
   const { Zip, ZipPassThrough } = await import("fflate");
-  const chunks: Uint8Array[] = [];
+  const parts: Blob[] = [];
+  let pending: Uint8Array[] = [];
   let failure: Error | null = null;
   const zip = new Zip((error, data) => {
     if (error) failure = error;
-    else if (data.length > 0) chunks.push(data);
+    else if (data.length > 0) pending.push(data);
   });
-
+  const flush = (): void => {
+    if (pending.length > 0) {
+      parts.push(new Blob(pending as BlobPart[]));
+      pending = [];
+    }
+  };
   const push = (name: string, bytes: Uint8Array): void => {
     const entry = new ZipPassThrough(name);
     zip.add(entry);
     entry.push(bytes, true);
+    flush();
+    if (failure) throw failure;
   };
-
-  frames.forEach((bytes, i) => {
-    push(`frame_${String(i + 1).padStart(6, "0")}.png`, bytes);
-  });
-  push(
-    "manifest.json",
-    new TextEncoder().encode(`${JSON.stringify(manifest, null, 2)}\n`)
-  );
-  zip.end();
-  if (failure) throw failure;
-
-  const total = chunks.reduce((n, c) => n + c.length, 0);
-  const out = new Uint8Array(total);
-  let at = 0;
-  for (const chunk of chunks) {
-    out.set(chunk, at);
-    at += chunk.length;
-  }
-  return out;
+  return {
+    addFrame: (index, bytes) => {
+      push(`frame_${String(index + 1).padStart(6, "0")}.png`, bytes);
+    },
+    finish: (manifest) => {
+      push(
+        "manifest.json",
+        new TextEncoder().encode(`${JSON.stringify(manifest, null, 2)}\n`)
+      );
+      zip.end();
+      flush();
+      if (failure) throw failure;
+      return new Blob(parts, { type: "application/zip" });
+    }
+  };
 }
 
 function throwIfAborted(signal: AbortSignal | undefined): void {
@@ -350,6 +359,8 @@ export async function renderTimeline(
   const textRasterizer = new TextRasterizer();
   const shapeRasterizer = new ShapeRasterizer();
   const loadImage = makeImageLoader();
+  /** The muxer once built, so the `finally` can cancel it if it never finalized. */
+  let activeMuxer: { state: string; cancel: () => Promise<void> } | null = null;
 
   try {
     if (!init.ok) {
@@ -367,6 +378,7 @@ export async function renderTimeline(
             format === "webm" ? new WebMOutputFormat() : new Mp4OutputFormat(),
           target: new BufferTarget()
         });
+    activeMuxer = muxer;
 
     const videoSource = muxer
       ? new CanvasSource(frameCanvas, {
@@ -389,9 +401,12 @@ export async function renderTimeline(
       ? await renderTimelineAudio({
           clips,
           tracks,
-          durationMs,
+          // The video holds `totalFrames` whole frames, so the soundtrack is
+          // cut to that length rather than the unrounded timeline length.
+          durationMs: (totalFrames * 1000) / fps,
           resolveUrl: resolveCached,
-          tempo: opts.tempo
+          tempo: opts.tempo,
+          signal
         })
       : null;
     throwIfAborted(signal);
@@ -413,8 +428,8 @@ export async function renderTimeline(
       audioSource.close();
     }
 
-    /** PNG bytes per frame, filled only on the `png_sequence` path. */
-    const pngFrames: Uint8Array[] = [];
+    /** Streaming zip, built only on the `png_sequence` path. */
+    const pngZip = isSequence ? await createPngZipWriter() : null;
 
     // Video/overlay clips release their pooled source as soon as
     // their fixed time range has fully passed. Each clip is a single
@@ -660,8 +675,8 @@ export async function renderTimeline(
 
       if (videoSource) {
         await videoSource.add(frame * frameDurationSec, frameDurationSec);
-      } else {
-        pngFrames.push(await canvasPng(frameCanvas));
+      } else if (pngZip) {
+        pngZip.addFrame(frame, await canvasPng(frameCanvas));
       }
 
       onProgress?.({
@@ -682,12 +697,12 @@ export async function renderTimeline(
     });
 
     if (!muxer) {
-      const bytes = await zipPngSequence(pngFrames, {
+      const bytes = pngZip!.finish({
         format: "png_sequence",
         fps,
         width,
         height,
-        count: pngFrames.length,
+        count: totalFrames,
         pattern: "frame_%06d.png"
       });
       return {
@@ -711,6 +726,11 @@ export async function renderTimeline(
       degradations
     };
   } finally {
+    // Aborted or failed after `start()`: the encoder and its hardware session
+    // are still open until the output is cancelled.
+    if (activeMuxer && activeMuxer.state === "started") {
+      await activeMuxer.cancel().catch(() => undefined);
+    }
     compositor.dispose();
     videoPool.dispose();
     model3dSource.dispose();
