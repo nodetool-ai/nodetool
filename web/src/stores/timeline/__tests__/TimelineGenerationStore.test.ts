@@ -409,4 +409,55 @@ describe("TimelineGenerationStore", () => {
       expect(result).toBe("direct-id");
     });
   });
+
+  describe("job-bound timeline and submitted params (F4, F37)", () => {
+    it("writes completion to the timeline that started the job, not the active one (F4)", () => {
+      const ownPatch = jest.fn();
+      const own = {
+        getState: () => ({
+          clips: [makeMockClip({ id: "clip-1" })],
+          patchClip: ownPatch
+        })
+      };
+      mockClips = [];
+      act(() => {
+        useTimelineGenerationStore
+          .getState()
+          .registerJob("clip-1", "job-4", "wf-1", { timeline: own as never });
+        useTimelineGenerationStore
+          .getState()
+          .updateJobStatus("job-4", "completed", { assetId: "asset-4" });
+      });
+      expect(mockPatchClip).not.toHaveBeenCalled();
+      expect(ownPatch).toHaveBeenLastCalledWith(
+        "clip-1",
+        expect.objectContaining({ status: "generated", currentAssetId: "asset-4" })
+      );
+    });
+
+    it("records submitted params and marks a clip edited mid-run as stale (F37)", () => {
+      const ownPatch = jest.fn();
+      const own = {
+        getState: () => ({
+          clips: [makeMockClip({ id: "clip-1", paramOverrides: { a: 2 } })],
+          patchClip: ownPatch
+        })
+      };
+      act(() => {
+        useTimelineGenerationStore.getState().registerJob("clip-1", "job-5", "wf-1", {
+          timeline: own as never,
+          submitted: { paramOverrides: { a: 1 } }
+        });
+        useTimelineGenerationStore
+          .getState()
+          .updateJobStatus("job-5", "completed", { assetId: "asset-5" });
+      });
+      const patch = ownPatch.mock.calls.at(-1)?.[1] as {
+        status: string;
+        versions: Array<{ paramOverridesSnapshot: unknown }>;
+      };
+      expect(patch.status).toBe("stale");
+      expect(patch.versions[0].paramOverridesSnapshot).toEqual({ a: 1 });
+    });
+  });
 });

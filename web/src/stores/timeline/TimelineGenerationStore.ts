@@ -21,6 +21,7 @@ import { create } from "zustand";
 import { makeClipVersion } from "@nodetool-ai/timeline";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import { useTimelineStore } from "./TimelineStore";
+import type { TimelineStoreApi } from "./TimelineStore";
 import useResultsStore from "../ResultsStore";
 import { extractAssetId } from "../outputAssetId";
 import { isObjectLike } from "../../utils/typePredicates";
@@ -45,7 +46,36 @@ interface ClipJobState {
   assetId?: string;
   /** Human-readable error message on failure. */
   errorMessage?: string;
+  /** The clip's parameter overrides as submitted, not as they are at completion. */
+  submittedParamOverrides?: Record<string, unknown>;
+  /** The clip's dependency hash when the run was submitted. */
+  submittedDependencyHash?: string;
 }
+
+/** The document store a job writes to: the one that started it. */
+type TimelineStoreHandle = Pick<TimelineStoreApi, "getState">;
+
+interface RegisterJobOptions {
+  /** The starting timeline instance's store. Every write for the job goes here. */
+  timeline?: TimelineStoreHandle;
+  /** What the run was submitted with, snapshotted before the first await. */
+  submitted?: {
+    paramOverrides?: Record<string, unknown>;
+    dependencyHash?: string;
+  };
+}
+
+// Not in zustand state: a store handle cannot be serialised. A job restored
+// from sessionStorage has no entry and falls back to the active timeline.
+const jobTimelines = new Map<string, TimelineStoreHandle>();
+
+/**
+ * The store a job's results belong to. The surrounding timeline instance when
+ * the job recorded one, otherwise whichever timeline is active. Resolving the
+ * active one at completion time wrote another tab's clips.
+ */
+export const getJobTimeline = (jobId: string): TimelineStoreHandle =>
+  jobTimelines.get(jobId) ?? useTimelineStore;
 
 interface TimelineGenerationStoreState {
   /** clipId → active job state */
@@ -70,7 +100,12 @@ interface TimelineGenerationStoreState {
    * Register a new generation job for a clip.
    * Immediately transitions the clip to "queued" in TimelineStore.
    */
-  registerJob: (clipId: string, jobId: string, workflowId: string) => void;
+  registerJob: (
+    clipId: string,
+    jobId: string,
+    workflowId: string,
+    options?: RegisterJobOptions
+  ) => void;
 
   /**
    * Update the status of a running job (called by WebSocket event handlers).
@@ -233,14 +268,21 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
       generatingClipIds: deriveIds(persistedClipJobs, isGenerating),
       failedClipIds: deriveIds(persistedClipJobs, isFailed),
 
-      registerJob: (clipId, jobId, workflowId) => {
+      registerJob: (clipId, jobId, workflowId, options) => {
         const jobState: ClipJobState = {
           clipId,
           jobId,
           workflowId,
           status: "queued",
-          progress: 0
+          progress: 0,
+          ...(options?.submitted?.paramOverrides !== undefined && {
+            submittedParamOverrides: options.submitted.paramOverrides
+          }),
+          ...(options?.submitted?.dependencyHash !== undefined && {
+            submittedDependencyHash: options.submitted.dependencyHash
+          })
         };
+        if (options?.timeline) jobTimelines.set(jobId, options.timeline);
 
         set((state) => {
           const nextClipJobs = { ...state.clipJobs, [clipId]: jobState };
@@ -251,6 +293,7 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
           const previous = state.clipJobs[clipId];
           if (previous && previous.jobId !== jobId) {
             delete nextJobToClip[previous.jobId];
+            jobTimelines.delete(previous.jobId);
           }
           return {
             clipJobs: nextClipJobs,
@@ -260,7 +303,7 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
         });
 
         // Mirror into TimelineStore so clip.status reflects the queue.
-        useTimelineStore.getState().patchClip(clipId, { status: "queued" });
+        getJobTimeline(jobId).getState().patchClip(clipId, { status: "queued" });
       },
 
       updateJobStatus: (jobId, status, extra) => {
@@ -304,21 +347,22 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
 
         // ── Mirror status into TimelineStore ──────────────────────────────
 
+        const jobTimeline = getJobTimeline(jobId);
         if (effectiveStatus === "running") {
-          useTimelineStore
-            .getState()
-            .patchClip(clipId, { status: "generating" });
+          jobTimeline.getState().patchClip(clipId, { status: "generating" });
           return;
         }
 
         if (effectiveStatus === "failed") {
-          useTimelineStore.getState().patchClip(clipId, { status: "failed" });
+          jobTimeline.getState().patchClip(clipId, { status: "failed" });
+          jobTimelines.delete(jobId);
           return;
         }
 
         if (effectiveStatus === "completed" && extra?.assetId) {
+          jobTimelines.delete(jobId);
           const assetId = extra.assetId;
-          const timeline = useTimelineStore.getState();
+          const timeline = jobTimeline.getState();
           const clip = timeline.clips.find(
             (candidate) => candidate.id === clipId
           );
@@ -332,17 +376,30 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
             jobId,
             assetId,
             workflowUpdatedAt: new Date().toISOString(),
-            dependencyHash: clip.dependencyHash ?? "",
-            paramOverridesSnapshot: clip.paramOverrides ?? {}
+            dependencyHash:
+              existing.submittedDependencyHash ?? clip.dependencyHash ?? "",
+            paramOverridesSnapshot:
+              existing.submittedParamOverrides ?? clip.paramOverrides ?? {}
           });
+          // What was rendered is what was submitted. A clip edited while the
+          // run was out no longer matches it, so it is stale, not up to date.
+          const submittedHash =
+            existing.submittedDependencyHash ?? clip.dependencyHash;
+          const editedDuringRun =
+            (existing.submittedDependencyHash !== undefined &&
+              clip.dependencyHash !== undefined &&
+              clip.dependencyHash !== existing.submittedDependencyHash) ||
+            (existing.submittedParamOverrides !== undefined &&
+              JSON.stringify(clip.paramOverrides ?? {}) !==
+                JSON.stringify(existing.submittedParamOverrides));
           const patch: Partial<TimelineClip> = {
-            status: "generated",
+            status: editedDuringRun && !clip.locked ? "stale" : "generated",
             versions: [...(clip.versions ?? []), version]
           };
           if (!clip.locked) {
             patch.currentAssetId = assetId;
             patch.activeTakeId = version.id;
-            patch.lastGeneratedHash = clip.dependencyHash;
+            patch.lastGeneratedHash = submittedHash;
           }
           timeline.patchClip(clipId, patch);
         }
@@ -381,6 +438,7 @@ export const useTimelineGenerationStore = create<TimelineGenerationStoreState>(
         const newClipJobs = { ...clipJobs };
         delete newClipJobs[clipId];
 
+        jobTimelines.delete(jobState.jobId);
         persistClipJobs(newClipJobs);
         set((state) => ({
           clipJobs: newClipJobs,

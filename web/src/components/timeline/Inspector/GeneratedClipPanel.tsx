@@ -14,6 +14,7 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { useNotificationStore } from "../../../stores/NotificationStore";
 import { findClipById } from "../../../stores/timeline/clipLookup";
 import { useWorkflow } from "../../../serverState/useWorkflow";
 import { useWorkflowManager } from "../../../contexts/WorkflowManagerContext";
@@ -161,8 +162,17 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
       useGenerateClip(clipId);
     const handleGenerateClick = useCallback(() => {
       const action = isActive ? cancelClipGeneration() : generateClip();
-      // Errors surface via the clip's status badge / generation store.
-      action.catch(() => undefined);
+      action.catch((err: unknown) => {
+        useNotificationStore.getState().addNotification({
+          type: "error",
+          content: `Clip generation failed: ${
+            err instanceof Error ? err.message : String(err)
+          }`,
+          alert: true,
+          dedupeKey: "timeline-clip-generate-failed",
+          replaceExisting: true
+        });
+      });
     }, [isActive, cancelClipGeneration, generateClip]);
 
     if (!clip) {

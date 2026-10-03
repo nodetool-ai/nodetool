@@ -281,6 +281,89 @@ describe("useTimelineAgentBridge AI edit", () => {
   });
 });
 
+describe("useTimelineAgentBridge 12-character ids on id-only tools (F41)", () => {
+  it("resolves a marker by its 12-character prefix and rejects an ambiguous one", () => {
+    const first = "bb11cc22dd33ee44ff5566778899aabb";
+    mockDoc.setState({
+      markers: [{ id: first, timeMs: 1000, label: "Hook" }]
+    });
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    mockDoc.setState({
+      markers: [
+        { id: first, timeMs: 1000, label: "Hook" },
+        { id: "bb11cc22dd33ee44ff5566778899aabc", timeMs: 2000, label: "Two" }
+      ]
+    });
+    expect(() => handler.deleteMarker(first.slice(0, 12))).toThrow(
+      "matches more than one marker"
+    );
+    mockDoc.setState({
+      markers: [{ id: first, timeMs: 1000, label: "Hook" }]
+    });
+    expect(handler.deleteMarker(first.slice(0, 12)).id).toBe(first);
+  });
+
+  it("starts an AI edit from a 12-character clip id, with the full id", async () => {
+    mockDoc.getState().addTrack("video", "Video 1");
+    const trackId = mockDoc.getState().tracks[0].id;
+    const fullId = "fac9a239f3434aeea8215b680013f047";
+    mockDoc.getState().addClip(
+      makeClip({
+        id: fullId,
+        name: "Station",
+        trackId,
+        mediaType: "video",
+        sourceType: "imported",
+        startMs: 0,
+        durationMs: 4000,
+        currentAssetId: "asset-original"
+      })
+    );
+    mockStartEdit.mockResolvedValue("generation-edit");
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    await getTimelineAgentHandler(SEQ_ID).generativelyEditClip({
+      clipId: fullId.slice(0, 12),
+      instruction: "Make it nighttime",
+      provider: "fal",
+      model: "video-edit-model"
+    });
+    expect(mockStartEdit).toHaveBeenCalledWith(
+      expect.objectContaining({ clipId: fullId })
+    );
+  });
+
+  it("rejects an ambiguous clip prefix on an AI edit", async () => {
+    mockDoc.getState().addTrack("video", "Video 1");
+    const trackId = mockDoc.getState().tracks[0].id;
+    for (const id of [
+      "fac9a239f3434aeea8215b680013f047",
+      "fac9a239f3434aeea8215b680013f048"
+    ]) {
+      mockDoc.getState().addClip(
+        makeClip({
+          id,
+          name: id,
+          trackId,
+          mediaType: "video",
+          sourceType: "imported",
+          startMs: 0,
+          durationMs: 1000
+        })
+      );
+    }
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    await expect(
+      getTimelineAgentHandler(SEQ_ID).generativelyEditClip({
+        clipId: "fac9a239f343",
+        instruction: "x",
+        provider: "fal",
+        model: "m"
+      })
+    ).rejects.toThrow("matches more than one clip");
+  });
+});
+
 describe("useTimelineAgentBridge group-aware edits", () => {
   it("moves a group's children with it", () => {
     seedGroup();
