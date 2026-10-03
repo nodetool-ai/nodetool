@@ -172,6 +172,31 @@ describe("useStandaloneSketchDocument", () => {
     );
   });
 
+  it("keeps edits dirty after a failed save so the retry persists them", async () => {
+    (updateMutate as any).mockRejectedValueOnce(new Error("Network error"));
+    renderHook(() => useStandaloneSketchDocument(buildResponse(), true));
+
+    act(() => {
+      useSketchStore.setState((state) => ({ ...state, activeTool: "eraser" }));
+    });
+    act(() => {
+      jest.advanceTimersByTime(800);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+
+    // The controller re-arms its retry once the rejection settles.
+    for (let i = 0; i < 10 && updateMutate.mock.calls.length < 2; i += 1) {
+      await act(async () => {
+        jest.advanceTimersByTime(1_000);
+      });
+    }
+    expect(updateMutate).toHaveBeenCalledTimes(2);
+    const retried = updateMutate.mock.calls[1][0] as {
+      document: { sketch: Record<string, unknown> };
+    };
+    expect(retried.document.sketch.activeTool).toBe("eraser");
+  });
+
   it("externalizes oversized layer data into asset references before autosave", async () => {
     renderHook(() => useStandaloneSketchDocument(buildResponse(), true));
 
@@ -264,7 +289,9 @@ describe("renameSketchDocument", () => {
       "hash-1"
     );
     (updateMutate as any)
-      .mockRejectedValueOnce(new Error("Document was modified (concurrent)"))
+      .mockRejectedValueOnce(new Error(
+          "Document was modified since last read (optimistic concurrency conflict)"
+        ))
       .mockResolvedValueOnce({
         ...buildResponse(),
         name: "Fox",

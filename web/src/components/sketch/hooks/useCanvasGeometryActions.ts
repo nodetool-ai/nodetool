@@ -323,7 +323,12 @@ export function useCanvasGeometryActions({
       return;
     }
     const layer = document.layers.find((entry) => entry.id === activeLayerId);
-    if (!layer || layer.type === "vector") {
+    if (
+      !layer ||
+      layer.locked ||
+      layer.type === "vector" ||
+      layer.type === "group"
+    ) {
       return;
     }
     const sel = useSketchStore.getState().selection;
