@@ -267,6 +267,56 @@ describe("Time remap section", () => {
   });
 });
 
+describe("Time remap section fixes", () => {
+  it("keeps a row mounted while its time is edited past a neighbour (F48)", async () => {
+    const user = userEvent.setup();
+    renderInspector();
+    seedClip({
+      timeRemap: {
+        keyframes: [
+          { t: 0, sourceMs: 0 },
+          { t: 0.5, sourceMs: 500 },
+          { t: 1, sourceMs: 2000 }
+        ]
+      }
+    });
+
+    await openSection(user, "Time remap");
+    const field = screen.getByRole("textbox", {
+      name: /time remap keyframe 1 time/i
+    });
+    // 0.7 sorts the first row between the other two.
+    await commitField(user, /time remap keyframe 1 time/i, "0.7");
+    expect(
+      screen.getByRole("textbox", { name: /time remap keyframe 2 time/i })
+    ).toBe(field);
+  });
+
+  it("ignores a cleared source time and clamps a negative one (F47)", async () => {
+    const user = userEvent.setup();
+    renderInspector();
+    const clip = seedClip({
+      timeRemap: {
+        keyframes: [
+          { t: 0, sourceMs: 0 },
+          { t: 1, sourceMs: 2000 }
+        ]
+      }
+    });
+
+    await openSection(user, "Time remap");
+    const field = screen.getByRole("textbox", {
+      name: /time remap keyframe 2 source time/i
+    });
+    await user.clear(field);
+    await user.tab();
+    expect(clipById(clip.id)?.timeRemap?.keyframes[1].sourceMs).toBe(2000);
+
+    await commitField(user, /time remap keyframe 2 source time/i, "-50");
+    expect(clipById(clip.id)?.timeRemap?.keyframes[1].sourceMs).toBe(0);
+  });
+});
+
 describe("Custom curve keyframes", () => {
   it("removes one keyframe and keeps the others", async () => {
     const user = userEvent.setup();

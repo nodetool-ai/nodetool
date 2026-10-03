@@ -145,18 +145,11 @@ export function formatCurvePoints(
 }
 
 /**
- * Stable React keys for a keyframe list, from each row's own `t`.
- *
- * The editors keep `t` unique per curve, so it identifies a row across a sort
- * or a removal the way an index cannot. A document written elsewhere can still
- * carry two keyframes at one `t`, so a repeat gets a `#n` suffix rather than a
- * duplicate key.
+ * Parses a numeric field. A blank field and anything non-finite give `null`,
+ * so a cleared input is rejected instead of committing `Number("")` = 0.
  */
-export function keyframeRowKeys(times: readonly number[]): string[] {
-  const seen = new Map<number, number>();
-  return times.map((t) => {
-    const count = seen.get(t) ?? 0;
-    seen.set(t, count + 1);
-    return count === 0 ? `t-${t}` : `t-${t}#${count}`;
-  });
+export function parseFiniteNumber(raw: string): number | null {
+  if (raw.trim() === "") return null;
+  const value = Number(raw);
+  return Number.isFinite(value) ? value : null;
 }

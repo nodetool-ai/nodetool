@@ -26,7 +26,7 @@ import {
   CollapsibleSection,
   FlexColumn,
   SPACING,
-  TextInput,
+  BatchedColorInput,
   getSpacingPx
 } from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
@@ -181,21 +181,17 @@ export const ClipCaptionStyle: React.FC<ClipCaptionStyleProps> = memo(
               />
             </InspectorRow>
             <InspectorRow label="Color">
-              <TextInput
-                type="color"
+              <BatchedColorInput
                 value={style?.color ?? DEFAULT_COLOR}
-                onChange={(event) => setField("color", event.target.value)}
-                inputProps={{ "aria-label": "Caption color" }}
+                onChange={(color) => setField("color", color)}
+                ariaLabel="Caption color"
               />
             </InspectorRow>
             <InspectorRow label="Spoken">
-              <TextInput
-                type="color"
+              <BatchedColorInput
                 value={style?.activeColor ?? DEFAULT_ACTIVE_COLOR}
-                onChange={(event) =>
-                  setField("activeColor", event.target.value)
-                }
-                inputProps={{ "aria-label": "Caption spoken-word color" }}
+                onChange={(color) => setField("activeColor", color)}
+                ariaLabel="Caption spoken-word color"
               />
             </InspectorRow>
             <InspectorRow label="Bottom">
@@ -218,16 +214,12 @@ export const ClipCaptionStyle: React.FC<ClipCaptionStyleProps> = memo(
             </InspectorRow>
             {outline && (
               <InspectorRow label="Outline color">
-                <TextInput
-                  type="color"
+                <BatchedColorInput
                   value={outline.color}
-                  onChange={(event) =>
-                    setField("outline", {
-                      color: event.target.value,
-                      widthPx: outline.widthPx
-                    })
+                  onChange={(color) =>
+                    setField("outline", { color, widthPx: outline.widthPx })
                   }
-                  inputProps={{ "aria-label": "Caption outline color" }}
+                  ariaLabel="Caption outline color"
                 />
               </InspectorRow>
             )}
@@ -243,16 +235,12 @@ export const ClipCaptionStyle: React.FC<ClipCaptionStyleProps> = memo(
             {scrim && (
               <>
                 <InspectorRow label="Scrim color">
-                  <TextInput
-                    type="color"
+                  <BatchedColorInput
                     value={scrim.color}
-                    onChange={(event) =>
-                      setField("background", {
-                        ...scrim,
-                        color: event.target.value
-                      })
+                    onChange={(color) =>
+                      setField("background", { ...scrim, color })
                     }
-                    inputProps={{ "aria-label": "Caption scrim color" }}
+                    ariaLabel="Caption scrim color"
                   />
                 </InspectorRow>
                 <InspectorRow label="Scrim radius">

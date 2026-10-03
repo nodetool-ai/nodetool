@@ -34,7 +34,7 @@ import {
   InspectorRow,
   InspectorSectionTitle
 } from "./InspectorPrimitives";
-import { keyframeRowKeys } from "./InspectorPrimitives.helpers";
+import { parseFiniteNumber } from "./InspectorPrimitives.helpers";
 import {
   EASING_HINT,
   UNPARSEABLE_EASING_HINT
@@ -71,10 +71,25 @@ export const ClipTimeRemapSection: React.FC<ClipTimeRemapProps> = memo(
 
     const keyframes = clip.timeRemap?.keyframes;
 
+    // Row identity that survives the sort a `t` edit triggers, so a scrubbed
+    // row keeps its DOM node (and pointer capture) while it passes its neighbour.
+    const rowIdsRef = useRef<string[]>([]);
+    const nextRowIdRef = useRef(0);
+    const newRowId = () => `kf-${nextRowIdRef.current++}`;
+    const count = keyframes?.length ?? 0;
+    if (rowIdsRef.current.length !== count) {
+      rowIdsRef.current = Array.from({ length: count }, newRowId);
+    }
+
+    /** Write `next`; `ids` names its rows in the same order. */
     const setKeyframes = useCallback(
-      (next: RemapKeyframe[]) => {
+      (next: RemapKeyframe[], ids: string[]) => {
+        const order = next
+          .map((frame, i) => ({ frame, id: ids[i] }))
+          .sort((a, b) => byTime(a.frame, b.frame));
+        rowIdsRef.current = order.map((o) => o.id);
         patchClip(clipRef.current.id, {
-          timeRemap: { keyframes: [...next].sort(byTime) }
+          timeRemap: { keyframes: order.map((o) => o.frame) }
         });
       },
       [patchClip]
@@ -111,7 +126,8 @@ export const ClipTimeRemapSection: React.FC<ClipTimeRemapProps> = memo(
         }
         setDuplicate(false);
         setKeyframes(
-          current.map((frame, i) => (i === index ? { ...frame, ...patch } : frame))
+          current.map((frame, i) => (i === index ? { ...frame, ...patch } : frame)),
+          rowIdsRef.current
         );
       },
       [setKeyframes]
@@ -127,7 +143,10 @@ export const ClipTimeRemapSection: React.FC<ClipTimeRemapProps> = memo(
         ? (previous + (last?.t ?? 1)) / 2
         : candidate;
       if (taken.has(t)) return;
-      setKeyframes([...current, { t, sourceMs: last?.sourceMs ?? 0 }]);
+      setKeyframes(
+        [...current, { t, sourceMs: last?.sourceMs ?? 0 }],
+        [...rowIdsRef.current, `kf-${nextRowIdRef.current++}`]
+      );
     }, [setKeyframes]);
 
     const removeKeyframe = useCallback(
@@ -136,7 +155,8 @@ export const ClipTimeRemapSection: React.FC<ClipTimeRemapProps> = memo(
         setKeyframes(
           (clipRef.current.timeRemap?.keyframes ?? []).filter(
             (_, i) => i !== index
-          )
+          ),
+          rowIdsRef.current.filter((_, i) => i !== index)
         );
       },
       [setKeyframes]
@@ -166,7 +186,7 @@ export const ClipTimeRemapSection: React.FC<ClipTimeRemapProps> = memo(
               </Caption>
             ) : (
               <>
-                {keyframeRowKeys(keyframes.map((k) => k.t)).map((rowKey, index) => {
+                {rowIdsRef.current.map((rowKey, index) => {
                   const keyframe = keyframes[index];
                   const name = `Time remap keyframe ${index + 1}`;
                   const easingUnparseable =
@@ -181,8 +201,8 @@ export const ClipTimeRemapSection: React.FC<ClipTimeRemapProps> = memo(
                           minWidth={52}
                           scrub={SCRUB_T}
                           onCommit={(raw) => {
-                            const t = Number(raw);
-                            if (!Number.isFinite(t)) return;
+                            const t = parseFiniteNumber(raw);
+                            if (t === null) return;
                             patchKeyframe(index, {
                               t: Math.min(1, Math.max(0, t))
                             });
@@ -195,9 +215,11 @@ export const ClipTimeRemapSection: React.FC<ClipTimeRemapProps> = memo(
                           minWidth={72}
                           scrub={SCRUB_SOURCE}
                           onCommit={(raw) => {
-                            const sourceMs = Number(raw);
-                            if (!Number.isFinite(sourceMs)) return;
-                            patchKeyframe(index, { sourceMs });
+                            const sourceMs = parseFiniteNumber(raw);
+                            if (sourceMs === null) return;
+                            patchKeyframe(index, {
+                              sourceMs: Math.max(0, sourceMs)
+                            });
                           }}
                           ariaLabel={`${name} source time`}
                         />

@@ -160,6 +160,67 @@ describe("PianoRoll", () => {
     );
   });
 
+  it("snaps a click-added note to the drawn grid when the clip starts off the tempo grid (F44)", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    // 250 ms is 480 ticks at 120 BPM, so the beat lines sit at 480, 1440, ...
+    act(() => {
+      instance.doc.setState({
+        clips: instance.doc
+          .getState()
+          .clips.map((c) => (c.id === CLIP_ID ? { ...c, startMs: 250 } : c))
+      });
+    });
+    const grid = screen.getByTestId("piano-roll-grid");
+
+    // x = 100 → tick 1000, which the drawn grid floors to the 480 line.
+    await user.pointer({
+      target: grid,
+      coords: { clientX: 100, clientY: 166 },
+      keys: "[MouseLeft]"
+    });
+
+    const added = notesOf(instance).find(
+      (n) => !["n1", "n2", "n3"].includes(n.id)
+    );
+    expect(added?.startTick).toBe(480);
+  });
+
+  it("keeps an uncommitted inspector edit when a note is dragged right after (F45)", async () => {
+    const user = userEvent.setup();
+    const instance = setup();
+    const grid = screen.getByTestId("piano-roll-grid");
+
+    await user.pointer({
+      target: grid,
+      coords: { clientX: 100, clientY: 134 },
+      keys: "[MouseLeft]"
+    });
+    const velocity = screen.getByLabelText("Velocity");
+    await user.clear(velocity);
+    await user.type(velocity, "50");
+
+    await user.pointer([
+      { keys: "[MouseLeft>]", target: grid, coords: { clientX: 100, clientY: 134 } },
+      { target: grid, coords: { clientX: 148, clientY: 134 } },
+      { target: grid, coords: { clientX: 196, clientY: 134 } },
+      { keys: "[/MouseLeft]", target: grid, coords: { clientX: 196, clientY: 134 } }
+    ]);
+
+    expect(notesOf(instance).find((n) => n.id === "n2")).toMatchObject({
+      velocity: 50,
+      startTick: 1920
+    });
+  });
+
+  it("lists the keys the handler actually uses (F69)", async () => {
+    const user = userEvent.setup();
+    setup();
+    await user.click(screen.getByRole("button", { name: "Note editing shortcuts" }));
+    expect(screen.getByText("↑ / ↓ — Transpose one semitone")).toBeInTheDocument();
+    expect(screen.queryByText(/⌃⌥/)).not.toBeInTheDocument();
+  });
+
   it("deletes the selected note from the keyboard", async () => {
     const user = userEvent.setup();
     const instance = setup();

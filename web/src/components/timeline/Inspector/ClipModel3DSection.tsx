@@ -35,7 +35,7 @@ import {
   FlexColumn,
   LoadingSpinner,
   SPACING,
-  TextInput
+  BatchedColorInput
 } from "../../ui_primitives";
 import { useModel3DBake } from "../../../hooks/timeline/useModel3DBake";
 import { usePersistedFold } from "./usePersistedFold";
@@ -49,6 +49,7 @@ import {
   InspectorStaticValue,
   InspectorToggleRow
 } from "./InspectorPrimitives";
+import { parseFiniteNumber } from "./InspectorPrimitives.helpers";
 import {
   useModel3DSessionNames,
   type Model3DSessionNames
@@ -73,7 +74,6 @@ const SCRUB_ZOOM = { step: 0.01, min: 0.05 };
 const SCRUB_FOV = { step: 1, min: 1, max: 170 };
 const SCRUB_SPEED = { step: 0.01, min: 0.05, max: 8 };
 
-const BACKGROUND_COLOR_INPUT_PROPS = { "aria-label": "Background color" };
 
 /**
  * What an opaque background starts at. Scene content, not chrome: it is the
@@ -162,12 +162,12 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
     );
     const handleFovCommit = useCallback(
       (raw: string) =>
-        commitNumber(raw, (fovDeg) => patchStyle({ camera: { fovDeg } })),
+        commitNumber(raw, (fovDeg) => patchStyle({ camera: { fovDeg } }), 0, true),
       [patchStyle]
     );
     const handleZoomCommit = useCallback(
       (raw: string) =>
-        commitNumber(raw, (zoom) => patchStyle({ camera: { zoom } })),
+        commitNumber(raw, (zoom) => patchStyle({ camera: { zoom } }), 0, true),
       [patchStyle]
     );
     const handleSceneCameraChange = useCallback(
@@ -214,10 +214,8 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
       [patchStyle]
     );
     const handleBackgroundColorChange = useCallback(
-      (event: React.ChangeEvent<HTMLInputElement>) =>
-        patchStyle({
-          background: { transparent: false, color: event.target.value }
-        }),
+      (color: string) =>
+        patchStyle({ background: { transparent: false, color } }),
       [patchStyle]
     );
 
@@ -349,11 +347,10 @@ export const ClipModel3DSection: React.FC<ClipModel3DSectionProps> = memo(
             />
             {!background.transparent && (
               <InspectorRow label="Background color">
-                <TextInput
-                  type="color"
+                <BatchedColorInput
                   value={background.color}
                   onChange={handleBackgroundColorChange}
-                  inputProps={BACKGROUND_COLOR_INPUT_PROPS}
+                  ariaLabel="Background color"
                 />
               </InspectorRow>
             )}
@@ -457,10 +454,17 @@ const NamePickerRow: React.FC<NamePickerRowProps> = memo(
 );
 NamePickerRow.displayName = "NamePickerRow";
 
-/** Commit a numeric field, ignoring anything that does not parse. */
-function commitNumber(raw: string, apply: (value: number) => void): void {
-  const value = Number(raw);
-  if (Number.isFinite(value)) apply(value);
+/** Commit a numeric field, ignoring blank, non-numeric or out-of-range input. */
+function commitNumber(
+  raw: string,
+  apply: (value: number) => void,
+  min?: number,
+  exclusiveMin = false
+): void {
+  const value = parseFiniteNumber(raw);
+  if (value === null) return;
+  if (min !== undefined && (exclusiveMin ? value <= min : value < min)) return;
+  apply(value);
 }
 
 ClipModel3DSection.displayName = "ClipModel3DSection";
