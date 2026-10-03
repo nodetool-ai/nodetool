@@ -181,3 +181,14 @@ describe("describeThrown", () => {
     });
   });
 });
+
+describe("errorTraceFingerprint", () => {
+  it("masks quoted values and stays fast on runs of quotes", () => {
+    expect(errorTraceFingerprint("web", null, 'bad "a" value', null)).toBe(
+      errorTraceFingerprint("web", null, 'bad "b" value', null)
+    );
+    const started = performance.now();
+    errorTraceFingerprint("web", null, '"'.repeat(50_000) + "'".repeat(50_000), null);
+    expect(performance.now() - started).toBeLessThan(500);
+  });
+});

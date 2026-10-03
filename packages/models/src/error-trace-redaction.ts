@@ -285,7 +285,7 @@ export function errorTraceFingerprint(
   stack: string | null
 ): string {
   const normalizedMessage = message
-    .replace(/(["'`]).*?\1/g, "<v>")
+    .replace(/"[^"\n]*"|'[^'\n]*'|`[^`\n]*`/g, "<v>")
     .replace(/\b[0-9a-f]{8,}\b/gi, "<id>")
     .replace(/\d+/g, "<n>");
   const frames = (stack ?? "")
