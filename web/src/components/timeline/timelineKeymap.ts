@@ -227,6 +227,24 @@ export interface KeyEventLike {
   metaKey: boolean;
   shiftKey: boolean;
   altKey: boolean;
+  /** Physical key (`KeyboardEvent.code`). Optional so synthetic events still match on `key`. */
+  code?: string;
+}
+
+const SYMBOL_CODES: Record<string, string> = {
+  ",": "Comma",
+  ".": "Period",
+  "'": "Quote",
+  ";": "Semicolon",
+  "\\": "Backslash",
+  "=": "Equal",
+  "-": "Minus"
+};
+
+/** The `e.code` of a binding's physical key, or null when it has none to match. */
+function codeOf(key: string): string | null {
+  if (/^[a-z]$/i.test(key)) return `Key${key.toUpperCase()}`;
+  return SYMBOL_CODES[key] ?? null;
 }
 
 const isLetter = (key: string): boolean => /^[a-z]$/i.test(key);
@@ -234,7 +252,15 @@ const isLetter = (key: string): boolean => /^[a-z]$/i.test(key);
 function matches(binding: KeyBinding, e: KeyEventLike): boolean {
   const ctrl = e.ctrlKey || e.metaKey;
   const key = isLetter(e.key) ? e.key.toLowerCase() : e.key;
-  if (key !== binding.key) return false;
+  // Option+T types "†" and Shift+, types "<" on macOS and US layouts, so
+  // bindings that use Alt or Shift on a symbol match the physical key.
+  const bindingCode = codeOf(binding.key);
+  const symbolKey = binding.key.length === 1 && !isLetter(binding.key);
+  const byCode =
+    e.code !== undefined &&
+    bindingCode !== null &&
+    (binding.alt || (symbolKey && binding.shift));
+  if (byCode ? e.code !== bindingCode : key !== binding.key) return false;
   // "?" can arrive as AltGr on some layouts (ctrl+alt); match the character.
   if (binding.key === "?") return true;
   if (ctrl !== Boolean(binding.ctrl)) return false;
