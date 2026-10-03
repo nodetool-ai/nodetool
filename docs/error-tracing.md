@@ -36,7 +36,7 @@ parameters, URL credentials, the values of credential variables in the server
 environment, email addresses, non-loopback IPv4 addresses, home-directory
 names, `data:` URLs and long opaque strings. Messages are capped at 2,000
 characters and stacks at 40 frames. The table is in the
-[personal-data registry](../packages/models/src/personal-data-registry.ts), so
+[personal-data registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/models/src/personal-data-registry.ts), so
 account export includes the traces and account erasure deletes them.
 
 A process stores at most 10 traces of one fingerprint and 300 traces in total
