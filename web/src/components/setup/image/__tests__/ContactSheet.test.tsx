@@ -7,7 +7,7 @@
  * reason the losers stay on the document instead of being deleted.
  */
 import React from "react";
-import { act, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { LayerVersion } from "@nodetool-ai/image-editor";
@@ -194,6 +194,27 @@ describe("ContactSheet Pick (criterion 5)", () => {
     expect(onPick).toHaveBeenCalledWith(layerIds[2]);
   });
 
+  it("picks a variation from a click on its still", () => {
+    const layerIds = seedBatch();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ContactSheet
+          layerIds={layerIds}
+          onPick={onPick}
+          onMakeMore={onMakeMore}
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
+        />
+      </ThemeProvider>
+    );
+
+    // The still ignores the pointer so the press reaches its preview.
+    fireEvent.click(screen.getByRole("img", { name: "Variation 2" }));
+    expect(onPick).toHaveBeenCalledWith(layerIds[1]);
+  });
+
   it("regenerates one variation in place", async () => {
     const layerIds = seedBatch();
     render(
@@ -304,6 +325,14 @@ describe("a failed batch", () => {
         />
       </ThemeProvider>
     );
+
+  it("does nothing on a click on a preview with nothing rendered", () => {
+    const layerIds = seedFailedBatch();
+    renderSheet(layerIds);
+
+    fireEvent.click(screen.getByRole("group", { name: "Variation 1 preview" }));
+    expect(onPick).not.toHaveBeenCalled();
+  });
 
   it("leaves two ways out when nothing rendered", async () => {
     const layerIds = seedFailedBatch();
