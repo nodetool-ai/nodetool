@@ -2673,33 +2673,31 @@ export class ProcessingContext {
       }
     }
 
-    if (options?.requireOwnedAsset && this.hasModelInterface("getAssetInfo")) {
-      let ownedAsset: AssetInfoEntry | null = null;
+    // An asset row names the stored file exactly (`<owner>/<id>.<ext>`), so a
+    // reference that resolves to one is read by key and never by listing.
+    let assetRowFound = false;
+    if (this.hasModelInterface("getAssetInfo")) {
+      let asset: AssetInfoEntry | null = null;
       const ownerPrefix = `${this.userId}/`;
-      const ownedIdCandidates = new Set(idCandidates);
+      const rowIdCandidates = new Set(idCandidates);
       for (const candidate of idCandidates) {
         if (candidate.startsWith(ownerPrefix)) {
-          ownedIdCandidates.add(candidate.slice(ownerPrefix.length));
+          rowIdCandidates.add(candidate.slice(ownerPrefix.length));
         }
       }
-      for (const candidate of ownedIdCandidates) {
-        ownedAsset = await this.getAssetInfo(candidate);
-        if (ownedAsset) {
+      for (const candidate of rowIdCandidates) {
+        asset = await this.getAssetInfo(candidate);
+        if (asset) {
           break;
         }
       }
-      if (!ownedAsset) {
+      if (asset) {
+        assetRowFound = true;
+        idCandidates = assetFileNameCandidates(asset.id, asset.content_type);
+      } else if (options?.requireOwnedAsset) {
         attempts.push(`asset unavailable or not owned: ${trimmed}`);
         return { bytes: null, attempts };
       }
-      // The stored key carries the extension (`<owner>/<id>.<ext>`), and the
-      // bare id alone only resolves through a listing, which is truncated for
-      // an owner with many objects on Supabase. The bare id stays last so the
-      // listing below can still find a legacy extension.
-      idCandidates = [
-        ...assetFileNameCandidates(ownedAsset.id, ownedAsset.content_type),
-        ownedAsset.id
-      ];
     }
 
     for (const adapter of adapters) {
@@ -2713,9 +2711,10 @@ export class ProcessingContext {
       }
       // Extension-tolerant fallback: locate the stored file whose name starts
       // with the id, since the URN extension may differ from the one on disk
-      // (e.g. jpeg vs jpg). Only reached when the exact-key lookups all miss.
+      // (e.g. jpeg vs jpg). Only reached when the exact-key lookups all miss
+      // and no asset row named the file.
       const bareId = idCandidates[idCandidates.length - 1];
-      if (bareId) {
+      if (bareId && !assetRowFound) {
         for (const prefix of this.assetListingPrefixes(bareId)) {
           try {
             const listing = await adapter.list(prefix);

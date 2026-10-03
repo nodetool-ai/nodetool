@@ -4,6 +4,7 @@ import { ProcessingContext, setDefaultModelInterfaces } from "../src/context.js"
 import { loadMediaRefBytes } from "../src/media-ref-bytes.js";
 
 const ID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
+const MISSING = "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb";
 const BYTES = new Uint8Array([1, 2, 3]);
 
 async function setup() {
@@ -77,12 +78,12 @@ describe("owned media references with storage paths", () => {
     }
   );
 
-  it("reads a bare owned asset id when the owner listing leaves it out", async () => {
-    // Supabase lists at most 1000 children of the owner folder, so an owner
-    // with many objects gets a listing that misses this asset.
+  it("reads a bare owned asset id by its stored key without listing", async () => {
+    // Supabase lists at most 1000 children of the owner folder, so a listing
+    // can miss the asset for an owner with many objects. The row names the key.
     const storage = new InMemoryStorageAdapter();
     await storage.store(`owner/${ID}.png`, BYTES, "image/png");
-    vi.spyOn(storage, "list").mockResolvedValue({
+    const list = vi.spyOn(storage, "list").mockResolvedValue({
       entries: [],
       commonPrefixes: []
     });
@@ -93,12 +94,18 @@ describe("owned media references with storage paths", () => {
       fetchFn: async () => new Response(null, { status: 404 }),
       modelInterfaces: {
         getAssetInfo: async ({ userId, assetId }) =>
-          userId === "owner" && assetId === ID
-            ? { id: ID, name: "logo.png", content_type: "image/png", metadata: null }
+          userId === "owner" && [ID, MISSING].includes(assetId)
+            ? { id: assetId, name: "logo.png", content_type: "image/png", metadata: null }
             : null
       }
     });
     expect(await loadMediaRefBytes({ asset_id: ID }, context)).toEqual(BYTES);
+    expect(await context.resolveAssetBytes(`asset://${ID}`)).toMatchObject({
+      bytes: BYTES
+    });
+    // A row whose file is gone is a miss, not a reason to scan the folder.
+    expect(await loadMediaRefBytes({ asset_id: MISSING }, context)).toBeNull();
+    expect(list).not.toHaveBeenCalled();
   });
 
   it("refuses another owner's path before reading storage", async () => {
