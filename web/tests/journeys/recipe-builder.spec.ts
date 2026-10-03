@@ -70,6 +70,11 @@ test("Recipe metadata survives a real App Builder UI edit and save", async ({
     .locator('[role="treeitem"][aria-level="2"]')
     .filter({ hasText: "Product Price Drop" })
     .click();
+  // An app tab opens in View mode; the builder is the Edit surface.
+  await page
+    .locator(".mode-toggle")
+    .getByRole("button", { name: "Edit", exact: true })
+    .click();
   const builder = page.locator(".appbuilder-editor");
   await expect(
     builder.getByRole("button", { name: "Save", exact: true })

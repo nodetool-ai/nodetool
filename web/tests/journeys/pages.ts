@@ -259,7 +259,7 @@ export class ChatPage {
 export class MiniAppPage {
   constructor(private readonly page: Page) {}
 
-  /** Open the app named `appName` and switch its tab to Run. */
+  /** Open the app named `appName`. A tab opens in View mode, on the Run surface. */
   async open(appName: string): Promise<void> {
     await goto(this.page, "/workspace");
     await this.page
@@ -270,12 +270,6 @@ export class MiniAppPage {
       .filter({ hasText: /^Apps/ })
       .locator('[role="treeitem"][aria-level="2"]')
       .filter({ hasText: appName })
-      .click({ timeout: 30_000 });
-
-    // The tab opens in Design mode; Run is the surface a user runs the app on.
-    await this.page
-      .getByRole("button", { name: "Run", exact: true })
-      .first()
       .click({ timeout: 30_000 });
 
     await this.runButton().waitFor({ state: "visible", timeout: 30_000 });
