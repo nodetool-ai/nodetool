@@ -7,44 +7,23 @@
 
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import {
+  assetFileNameCandidates,
+  getAssetFileName,
+  hasAssetFileExtension
+} from "@nodetool-ai/protocol";
+import {
   assetKeyCandidates,
   assetObjectKey,
   type StorageAdapter
 } from "@nodetool-ai/storage";
 import type { StorageHandlerOptions } from "../storage-api.js";
 
-const CONTENT_TYPE_TO_EXTENSION: Record<string, string> = {
-  "image/jpeg": "jpg",
-  "image/png": "png",
-  "image/gif": "gif",
-  "image/svg+xml": "svg",
-  "image/webp": "webp",
-  "image/tiff": "tiff",
-  "image/bmp": "bmp",
-  "text/plain": "txt",
-  "text/csv": "csv",
-  "text/html": "html",
-  "application/json": "json",
-  "application/pdf": "pdf",
-  "application/zip": "zip",
-  "audio/mpeg": "mp3",
-  "audio/mp3": "mp3",
-  "audio/wav": "wav",
-  "audio/ogg": "ogg",
-  "audio/aac": "aac",
-  "audio/x-wav": "wav",
-  "audio/x-flac": "flac",
-  "audio/x-m4a": "m4a",
-  "video/mp4": "mp4",
-  "video/mpeg": "mpeg",
-  "video/quicktime": "mov",
-  "video/x-msvideo": "avi",
-  "video/webm": "webm",
-  "model/gltf-binary": "glb",
-  "model/gltf+json": "gltf",
-  "font/ttf": "ttf",
-  "font/otf": "otf"
-};
+/**
+ * `getAssetFileName` is the legacy key shape (no owner prefix). It stays
+ * exported because stored `asset://` refs and already-written objects use it.
+ * New writes go through `getAssetStorageKey`.
+ */
+export { assetFileNameCandidates, getAssetFileName };
 
 const EXTENSION_TO_INFERRED_TYPE: Record<string, string> = {
   mp3: "audio/mpeg",
@@ -70,10 +49,6 @@ const EXTENSION_TO_INFERRED_TYPE: Record<string, string> = {
 
 const GENERIC_CONTENT_TYPES = new Set(["", "application/octet-stream"]);
 
-function getFileExtension(contentType: string): string {
-  return CONTENT_TYPE_TO_EXTENSION[contentType] ?? "bin";
-}
-
 function fileExtensionOf(fileName: string | undefined): string | undefined {
   if (!fileName) {
     return undefined;
@@ -95,7 +70,7 @@ export function normalizeAssetContentType(
   contentType: string,
   fileName?: string
 ): string {
-  if (CONTENT_TYPE_TO_EXTENSION[contentType]) {
+  if (hasAssetFileExtension(contentType)) {
     return contentType;
   }
   const ext = fileExtensionOf(fileName);
@@ -104,34 +79,6 @@ export function normalizeAssetContentType(
     return inferred;
   }
   return contentType || "application/octet-stream";
-}
-
-/**
- * Names to try when reading an asset, newest first. Models and fonts used
- * to be stored as `.bin` before their content types had extension mappings.
- */
-export function assetFileNameCandidates(
-  assetId: string,
-  contentType: string
-): string[] {
-  const canonical = getAssetFileName(assetId, contentType);
-  if (canonical.endsWith(".glb") || canonical.endsWith(".gltf") ||
-      canonical.endsWith(".ttf") || canonical.endsWith(".otf")) {
-    return [canonical, `${assetId}.bin`];
-  }
-  return [canonical];
-}
-
-/**
- * The object's file name, with no owner prefix. This is the *legacy* key
- * shape and stays exported because stored `asset://` refs and already-written
- * objects use it; new writes go through `getAssetStorageKey`.
- */
-export function getAssetFileName(
-  assetId: string,
-  contentType: string
-): string {
-  return `${assetId}.${getFileExtension(contentType)}`;
 }
 
 /**
