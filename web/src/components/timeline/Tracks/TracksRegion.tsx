@@ -121,6 +121,7 @@ import { useTimelineIsMobile } from "../../../hooks/timeline/useTimelineIsMobile
 import { useVideoAudioImport } from "../../../hooks/timeline/useVideoAudioImport";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import { assetMediaType } from "../dnd/assetToClipAdapter";
+import { getKnownSourceDurationMs } from "./useClipSourceDuration";
 import { buildTypedIndexMap } from "./trackVisuals";
 import { partitionTimelineWheel, normalizeWheelDeltaPx } from "./timelineWheel";
 import {
@@ -419,7 +420,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
         if (!dragData || dragData.type !== "asset") return;
         const asset = dragData.payload;
 
-        const mediaType = assetMediaType(asset.content_type);
+        const mediaType = assetMediaType(asset.content_type, asset.name);
         if (!mediaType) return;
 
         const trackType: "video" | "audio" =
@@ -941,8 +942,19 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             else doc.trimClipStart(target.id, delta);
           } else {
             const delta = edgeTargetMs - (target.startMs + target.durationMs);
-            if (ui.rippleMode) doc.rippleTrimClipEnd(target.id, delta);
-            else doc.trimClipEnd(target.id, delta);
+            // Same cap as the pointer trim. Without a known source length a
+            // finite-source clip may not grow past its current out-point.
+            const known = getKnownSourceDurationMs(target.currentAssetId);
+            const finiteSource =
+              target.mediaType === "audio" || target.mediaType === "video";
+            const sourceMs =
+              known ??
+              (finiteSource
+                ? (target.outPointMs ??
+                  (target.inPointMs ?? 0) + target.durationMs)
+                : undefined);
+            if (ui.rippleMode) doc.rippleTrimClipEnd(target.id, delta, sourceMs);
+            else doc.trimClipEnd(target.id, delta, sourceMs);
           }
           return true;
         };
@@ -1632,6 +1644,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           <Playhead
             heightPx={RULER_HEIGHT + lanesHeight}
             trackAreaOffsetPx={0}
+            endMs={contentEndMs}
           />
         </div>
 

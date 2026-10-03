@@ -24,10 +24,7 @@ import type { Theme } from "@mui/material/styles";
 
 import { resolveTempo } from "@nodetool-ai/timeline";
 import type { TimelineMarker } from "@nodetool-ai/timeline";
-import {
-  useTimelinePlaybackStore,
-  useTimelinePlaybackStoreApi
-} from "../../../stores/timeline/TimelinePlaybackStore";
+import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { BORDER_RADIUS, FONT_SIZE_MONO } from "../../ui_primitives";
@@ -287,13 +284,13 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
     const { mode, systemMode } = useColorScheme();
     const activeMode = mode === "system" ? systemMode : mode;
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const ownsGestureRef = useRef(false);
 
     const msPerPx = useTimelineUIStore((s) => s.msPerPx);
     const scrollLeftPx = useTimelineUIStore((s) => s.scrollLeftPx);
     const rulerMode = useTimelineUIStore((s) => s.rulerMode);
     const tempo = useTimelineStore((s) => resolveTempo(s));
     const seek = useTimelinePlaybackStore((s) => s.seek);
-    const playbackStoreApi = useTimelinePlaybackStoreApi();
     const markers = useTimelineStore((s) => s.markers);
     const removeScene = useTimelineStore((s) => s.removeScene);
     const fps = useTimelineStore((s) => s.fps);
@@ -321,30 +318,6 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
       ro.observe(canvas);
       return () => ro.disconnect();
     }, []);
-
-    // Scrub/playhead aria value.
-    // aria-valuenow only needs to reflect the position for a11y, not track it
-    // at full frame rate — subscribing to reactive `currentTimeMs` would
-    // re-render this memoized ruler (and redraw its canvas) on every
-    // scrub/playback tick. Write the attribute imperatively off the playback
-    // store's transient channel instead, throttled to ~10 Hz, mirroring
-    // Playhead's subscribeTime effect.
-    const lastAriaBucketRef = useRef<number | null>(null);
-    useEffect(() => {
-      const applyAriaValue = (timeMs: number) => {
-        const bucket = Math.round(timeMs / 100);
-        if (bucket === lastAriaBucketRef.current) {
-          return;
-        }
-        lastAriaBucketRef.current = bucket;
-        canvasRef.current?.setAttribute(
-          "aria-valuenow",
-          String(Math.round(timeMs))
-        );
-      };
-      applyAriaValue(playbackStoreApi.getState().getTimeMs());
-      return playbackStoreApi.getState().subscribeTime(applyAriaValue);
-    }, [playbackStoreApi]);
 
     // Draw.
     // The draw inputs (scrollLeftPx especially) change on every scroll event,
@@ -569,6 +542,7 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
     const handlePointerDown = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
         e.currentTarget.setPointerCapture(e.pointerId);
+        ownsGestureRef.current = true;
         seek(pxToMs(e.clientX));
       },
       [pxToMs, seek]
@@ -576,13 +550,19 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
 
     const handlePointerMove = useCallback(
       (e: React.PointerEvent<HTMLCanvasElement>) => {
-        if (e.buttons !== 1) {
+        // Only scrub a drag that started on the ruler, not a clip dragged
+        // across it.
+        if (!ownsGestureRef.current || e.buttons !== 1) {
           return;
         }
         seek(pxToMs(e.clientX));
       },
       [pxToMs, seek]
     );
+
+    const handlePointerEnd = useCallback(() => {
+      ownsGestureRef.current = false;
+    }, []);
 
     return (
       <div
@@ -596,13 +576,14 @@ export const TimeRuler: React.FC<TimeRulerProps> = memo(
           style={{ width: "100%", height: "100%" }}
           onPointerDown={handlePointerDown}
           onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
+          onLostPointerCapture={handlePointerEnd}
           aria-label={
             rulerMode === "bars"
               ? "Bars ruler — click or drag to set playhead"
               : "Time ruler — click or drag to set playhead"
           }
-          role="slider"
-          aria-valuemin={0}
         />
         <MarkerOverlay
           markers={markers}
