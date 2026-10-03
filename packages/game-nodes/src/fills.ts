@@ -19,24 +19,26 @@ import {
   type SlotFill
 } from "@nodetool-ai/protocol";
 import type { MediaRefValue } from "@nodetool-ai/runtime";
+import { z } from "zod";
 
 /** The default extension per fill kind, when a ref's uri carries none. */
-const DEFAULT_EXTENSION: Record<SlotFill["kind"], string> = {
+const DEFAULT_EXTENSION = {
   spritesheet: "png",
   tileset: "png",
   image: "png",
   sfx: "wav",
   music: "wav"
-};
+} satisfies Record<SlotFill["kind"], "png" | "wav">;
 
 const isAudio = (kind: SlotFill["kind"]): boolean =>
   kind === "sfx" || kind === "music";
 
-const isRecord = (value: unknown): value is Record<string, unknown> =>
-  typeof value === "object" && value !== null && !Array.isArray(value);
-
-const text = (value: unknown): string =>
-  typeof value === "string" ? value.trim() : "";
+/** The fields read from a `fills` entry; a non-string `uri`/`asset_id` reads as "". */
+const fillEntry = z.looseObject({
+  uri: z.string().trim().catch(""),
+  asset_id: z.string().trim().catch(""),
+  metadata: z.looseObject({}).optional().catch(undefined)
+});
 
 /** `asset://player.png` → `player`; anything else → "". */
 function idFromUri(uri: string): string {
@@ -76,7 +78,8 @@ export function resolveFills(
 
   for (const [index, entry] of fills.entries()) {
     const at = `fills[${index}]`;
-    if (!isRecord(entry)) {
+    const fields = fillEntry.safeParse(entry);
+    if (!fields.success) {
       throw new Error(`${at} is not a slot fill.`);
     }
 
@@ -91,7 +94,7 @@ export function resolveFills(
     }
 
     const stamped = slotFill.safeParse(
-      isRecord(entry.metadata) ? entry.metadata[SLOT_METADATA_KEY] : undefined
+      fields.data.metadata?.[SLOT_METADATA_KEY]
     );
     if (!stamped.success) {
       const bare = slotFill.safeParse(entry);
@@ -107,9 +110,9 @@ export function resolveFills(
     }
 
     const fill = stamped.data;
-    const uri = text(entry.uri);
+    const { uri } = fields.data;
     const assetId =
-      text(entry.asset_id) || idFromUri(uri) || fill.slot_id.replace(/\./g, "_");
+      fields.data.asset_id || idFromUri(uri) || fill.slot_id.replace(/\./g, "_");
     const extension =
       extensionFromUri(uri) || DEFAULT_EXTENSION[fill.kind];
     slots.push({
@@ -121,6 +124,7 @@ export function resolveFills(
       },
       fill
     });
+    // SAFETY: `fillEntry` accepted an object and every MediaRefValue field is optional; the untrimmed original goes to `loadMediaRefBytes`.
     refs.set(assetId, entry as MediaRefValue);
   }
 

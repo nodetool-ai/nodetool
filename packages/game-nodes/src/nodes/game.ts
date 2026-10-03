@@ -1,15 +1,15 @@
 import { createHash } from "node:crypto";
 import { BaseNode, isString, prop } from "@nodetool-ai/node-sdk";
-import { checkSlotFill, gameSlotSpec, LEGACY_GAME_EXPORT_DIAGNOSTIC, slotPrompt, type Entity, type GameAssetBinding, type GameAssetManifest, type GameSlotSpec, type InputMode, type OutputCorrelation } from "@nodetool-ai/protocol";
+import { checkSlotFill, gameSlotSpec, LEGACY_GAME_EXPORT_DIAGNOSTIC, slotPrompt, type Entity, type GameAssetBinding, type GameAssetManifest, type GameSlotSpec, type InputMode, type OutputCorrelation, type SlotPromptResult } from "@nodetool-ai/protocol";
 import { loadMediaRefBytes, resolveEntities, type ProcessingContext } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import { resolveFills } from "../fills.js";
 import { getNativeTemplate, listNativeTemplates } from "../templates.js";
-import { imagePreparationMetadata, imagePreparationSettings, prepareGameImage } from "../image-preparation.js";
+import { imagePreparationMetadata, imagePreparationSettings, prepareGameImage, type ImagePreparationInput } from "../image-preparation.js";
 import { gameFontFormat } from "../font-preparation.js";
 
 const TEMPLATE_IDS = listNativeTemplates().map((template) => template.id);
-const trimmed = (value: unknown): string => isString(value) ? value.trim() : "";
+const trimmed = (value: string | undefined): string => isString(value) ? value.trim() : "";
 
 type LoadGameTemplateOutputs = { manifest: GameAssetManifest; slots: GameSlotSpec[]; slot: GameSlotSpec };
 
@@ -42,7 +42,7 @@ export class LoadGameTemplateNode extends BaseNode {
   }
 }
 
-type SlotPromptOutputs = { prompt: string; width: number; height: number; kind: string; checker: Record<string, unknown>; seconds: number;
+type SlotPromptOutputs = { prompt: string; width: number; height: number; kind: string; checker: SlotPromptResult["checker"]; seconds: number;
   reference_images: NonNullable<Entity["reference_images"]>; reference_asset_id: string };
 
 export class SlotPromptNode extends BaseNode {
@@ -92,7 +92,7 @@ export class StageGameAssetsNode extends BaseNode {
   @prop({ type: "list[union[image,audio]]", default: [], title: "Checked assets" })
   declare fills: unknown[];
   @prop({ type: "dict", default: {}, title: "Preparation by slot" })
-  declare preparation: Record<string, unknown>;
+  declare preparation: Record<string, ImagePreparationInput>;
   @prop({ type: "str", default: "", title: "Shared style image asset ID" })
   declare reference_asset_id: string;
   @prop({ type: "dict", default: {}, title: "Font asset URIs by logical ID" })
@@ -161,7 +161,7 @@ export class StageGameAssetsNode extends BaseNode {
       bindings[slot.slot_id] = binding;
     }
     for (const [fontId, uri] of Object.entries(this.fonts ?? {})) {
-      if (!/^[a-z][a-z0-9_.-]*$/.test(fontId) || typeof uri !== "string" || !uri.trim()) {
+      if (!/^[a-z][a-z0-9_.-]*$/.test(fontId) || !isString(uri) || !uri.trim()) {
         throw new Error(`Invalid font source for ${fontId}`);
       }
       if (bindings[fontId]) throw new Error(`Font ID conflicts with a template slot: ${fontId}`);
