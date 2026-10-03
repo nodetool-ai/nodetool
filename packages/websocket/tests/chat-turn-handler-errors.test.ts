@@ -11,6 +11,7 @@ import { describe, it, expect, beforeEach, vi } from "vitest";
 import { initTestDb, Memory, Message, Prediction } from "@nodetool-ai/models";
 import {
   annotateGroqRequestFailure,
+  markContextExceeded,
   annotateProviderError
 } from "@nodetool-ai/runtime";
 import { SUPERSEDED_TOOL_RESULT } from "../src/chat-tool-call-repair.js";
@@ -291,6 +292,379 @@ describe("provider error classification", () => {
     expect(await assistantErrorRow("t-err-groq-untrusted")).not.toContain(
       "private-value"
     );
+  });
+});
+
+const GROQ_DIAGNOSTIC = {
+  kind: "quota_exhausted",
+  requestedTokens: 8000,
+  limitTokens: 10000,
+  estimate: {
+    inputTokens: 8000,
+    systemTokens: 100,
+    messageTokens: 7500,
+    toolTokens: 400
+  }
+} as const;
+
+function geminiWrapped(code: number, message: string): Error {
+  const payload = JSON.stringify({ error: { code, message } });
+  return new Error(`Gemini API error ${code}: ${payload}`);
+}
+
+describe("provider failure message branches", () => {
+  beforeEach(() => {
+    initTestDb();
+  });
+
+  async function failureFor(
+    threadId: string,
+    error: unknown,
+    turn: Record<string, unknown> = {}
+  ): Promise<Record<string, unknown>> {
+    const harness = throwingProvider(error);
+    await harness.handler.handleChatMessage({ ...chatTurn(threadId), ...turn });
+    return errorFrame(harness);
+  }
+
+  describe("organization verification", () => {
+    const orgText = "Your organization must be verified to use this model.";
+    const verifiedMessage =
+      "This model requires a verified OpenAI organization. Verify your provider organization or choose a model your account can access.";
+
+    it("reports a plain error when the failure carries no status", async () => {
+      const frame = await failureFor("t-org-nostatus", new Error(orgText), {
+        provider: "openai"
+      });
+      expect(frame.error_type).toBe("error");
+      expect(frame.status_code).toBeUndefined();
+      expect(frame.message).toBe(verifiedMessage);
+    });
+
+    it("reports an HTTP status error when the failure carries one", async () => {
+      const frame = await failureFor(
+        "t-org-status",
+        Object.assign(new Error(orgText), { status: 403 }),
+        { provider: "openai" }
+      );
+      expect(frame.error_type).toBe("http_status_error");
+      expect(frame.status_code).toBe(403);
+      expect(frame.message).toBe(verifiedMessage);
+    });
+
+    it("applies only to the openai provider", async () => {
+      const frame = await failureFor(
+        "t-org-other-provider",
+        Object.assign(new Error(orgText), { status: 403 })
+      );
+      expect(String(frame.message)).toMatch(/^Access forbidden/);
+    });
+
+    it("reads the response body in preference to the error message", async () => {
+      const frame = await failureFor(
+        "t-org-body-wins",
+        Object.assign(new Error(orgText), {
+          status: 403,
+          body: { error: { message: "denied" } }
+        }),
+        { provider: "openai" }
+      );
+      expect(String(frame.message)).toMatch(/^Access forbidden/);
+    });
+
+    it("reads a body that carries its message at the top level", async () => {
+      const frame = await failureFor(
+        "t-org-flat-body",
+        Object.assign(new Error("403 denied"), {
+          status: 403,
+          response: { message: orgText }
+        }),
+        { provider: "openai" }
+      );
+      expect(frame.message).toBe(verifiedMessage);
+    });
+  });
+
+  describe("annotated provider failures", () => {
+    it("names the provider and model when the context window overflows", async () => {
+      const frame = await failureFor(
+        "t-ctx",
+        markContextExceeded(
+          Object.assign(new Error("too long"), { status: 400 }),
+          "openai"
+        ),
+        { provider: "openai", model: "gpt-5" }
+      );
+      expect(frame.error_type).toBe("error");
+      expect(frame.status_code).toBe(400);
+      expect(frame.message).toBe(
+        "The openai/gpt-5 request is too large for the model context window. Shorten the conversation or remove some attachments and try again."
+      );
+    });
+
+    it("omits the status when the overflow carried none", async () => {
+      const frame = await failureFor(
+        "t-ctx-nostatus",
+        markContextExceeded(new Error("too long"), "openai"),
+        { provider: "openai", model: "gpt-5" }
+      );
+      expect(frame.status_code).toBeUndefined();
+      expect(String(frame.message)).toMatch(/^The openai\/gpt-5 request/);
+    });
+
+    it("sends users to Settings when the credential was rejected", async () => {
+      const frame = await failureFor(
+        "t-auth-detail",
+        annotateProviderError(
+          Object.assign(new Error("Incorrect API key"), { status: 401 }),
+          { provider: "openai", model: "gpt-5" }
+        ),
+        { provider: "openai", model: "gpt-5" }
+      );
+      expect(frame.error_type).toBe("error");
+      expect(frame.status_code).toBe(401);
+      expect(frame.message).toBe(
+        "Authentication failed: openai rejected the configured credentials. Check the API key in Settings → Models & Providers."
+      );
+    });
+  });
+
+  describe("without a status", () => {
+    it("forwards a Gemini failure's own message", async () => {
+      const frame = await failureFor(
+        "t-gemini-nostatus",
+        new Error("Gemini API error: quota exceeded for this key"),
+        { provider: "gemini", model: "gemini-2.5-flash" }
+      );
+      expect(frame.error_type).toBe("error");
+      expect(frame.status_code).toBeUndefined();
+      expect(frame.message).toBe("quota exceeded for this key");
+    });
+  });
+
+  describe("Gemini classification", () => {
+    it("reports an unavailable model", async () => {
+      const frame = await failureFor(
+        "t-gemini-model",
+        geminiWrapped(404, "models/gemini-x is not found for API version v1"),
+        { provider: "gemini", model: "gemini-x" }
+      );
+      expect(frame.message).toBe(
+        "Model gemini-x is unavailable on gemini. Choose another model or check that your account has access to it."
+      );
+      expect(frame.status_code).toBe(404);
+    });
+
+    it("reports a model that cannot use the requested tools", async () => {
+      const frame = await failureFor(
+        "t-gemini-tools",
+        geminiWrapped(400, "Function calling is not enabled for this model"),
+        { provider: "gemini", model: "gemini-2.5-flash" }
+      );
+      expect(frame.message).toBe(
+        "Model gemini-2.5-flash does not support the requested tools on gemini. Choose a model with tool support or disable tools."
+      );
+      expect(frame.status_code).toBe(400);
+    });
+
+    it("takes precedence over the status class", async () => {
+      const frame = await failureFor(
+        "t-gemini-precedence",
+        geminiWrapped(500, "billing account disabled"),
+        { provider: "gemini", model: "gemini-2.5-flash" }
+      );
+      expect(frame.message).toBe(
+        "Account quota exhausted for gemini/gemini-2.5-flash. Check your gemini quota or billing and try again later."
+      );
+      expect(frame.status_code).toBe(500);
+    });
+
+    it("leaves an unclassified Gemini failure to its status class", async () => {
+      const frame = await failureFor(
+        "t-gemini-unclassified",
+        geminiWrapped(503, "backend overloaded"),
+        { provider: "gemini", model: "gemini-2.5-flash" }
+      );
+      expect(frame.message).toBe(
+        "Server error (503): The service is temporarily unavailable"
+      );
+    });
+  });
+
+  describe("status classes", () => {
+    it("explains 401 and 402 and 403 and 404", async () => {
+      const messages = [];
+      for (const status of [401, 402, 403, 404]) {
+        const frame = await failureFor(
+          `t-class-${status}`,
+          Object.assign(new Error(`upstream ${status}`), { status })
+        );
+        messages.push(frame.message);
+      }
+      expect(messages).toEqual([
+        "Authentication failed: Invalid API key or token",
+        "Account billing or credit limit reached for mock. Check your mock plan or billing.",
+        "Access forbidden: You don't have permission for this resource. Check the provider key's model and account access.",
+        "Model m was not found or is unavailable on mock. Choose another model or check account access."
+      ]);
+    });
+
+    it("quotes the body message on a 400", async () => {
+      const frame = await failureFor(
+        "t-400-body",
+        Object.assign(new Error("upstream 400"), {
+          status: 400,
+          body: { error: { message: "bad field" } }
+        })
+      );
+      expect(frame.message).toBe("Bad request: bad field");
+    });
+
+    it("quotes the error message on a 400 without a body", async () => {
+      const frame = await failureFor(
+        "t-400-plain",
+        Object.assign(new Error("upstream 400"), { status: 400 })
+      );
+      expect(frame.message).toBe("Bad request: upstream 400");
+    });
+
+    it("prefers the Groq diagnostic on a 400", async () => {
+      const frame = await failureFor(
+        "t-400-groq",
+        annotateGroqRequestFailure(
+          Object.assign(new Error("upstream 400"), {
+            status: 400,
+            body: { error: { message: "bad field" } }
+          }),
+          GROQ_DIAGNOSTIC
+        ),
+        { provider: "groq" }
+      );
+      expect(String(frame.message)).toMatch(
+        /^Bad request: Groq's token allowance is temporarily exhausted/
+      );
+    });
+
+    it("quotes the error message on a 413", async () => {
+      const frame = await failureFor(
+        "t-413-plain",
+        Object.assign(new Error("payload too large"), { status: 413 })
+      );
+      expect(frame.message).toBe(
+        "Request is too large for the provider (payload too large). Shorten the conversation or remove some attachments and try again."
+      );
+    });
+
+    it("quotes the body message on a 413", async () => {
+      const frame = await failureFor(
+        "t-413-body",
+        Object.assign(new Error("upstream 413"), {
+          status: 413,
+          body: { error: { message: "body too big" } }
+        })
+      );
+      expect(frame.message).toBe(
+        "Request is too large for the provider (body too big). Shorten the conversation or remove some attachments and try again."
+      );
+    });
+
+    it("drops a 413 detail that is only the generic message", async () => {
+      const frame = await failureFor(
+        "t-413-generic",
+        Object.assign(new Error("SELECT secret FROM vault"), { status: 413 })
+      );
+      expect(frame.message).toBe(
+        "Request is too large for the provider. Shorten the conversation or remove some attachments and try again."
+      );
+    });
+
+    it("prefers the Groq diagnostic on a 413", async () => {
+      const frame = await failureFor(
+        "t-413-groq",
+        annotateGroqRequestFailure(
+          Object.assign(new Error("upstream 413"), { status: 413 }),
+          GROQ_DIAGNOSTIC
+        ),
+        { provider: "groq" }
+      );
+      expect(String(frame.message)).toMatch(
+        /^Groq's token allowance is temporarily exhausted/
+      );
+    });
+
+    it("gives a plain 429 the rate-limit advice", async () => {
+      const frame = await failureFor(
+        "t-429-plain",
+        Object.assign(new Error("upstream 429"), {
+          status: 429,
+          body: { error: { message: "ignored body" } }
+        })
+      );
+      expect(frame.message).toBe(
+        "Rate limited: Too many requests or insufficient provider quota. Check your provider plan and try again later."
+      );
+    });
+
+    it("reports a 5xx without detail as a temporary outage", async () => {
+      const frame = await failureFor(
+        "t-503-plain",
+        Object.assign(new Error("upstream 503"), { status: 503 })
+      );
+      expect(frame.message).toBe(
+        "Server error (503): The service is temporarily unavailable"
+      );
+    });
+
+    it("prefers the Groq diagnostic over the body on a 5xx", async () => {
+      const frame = await failureFor(
+        "t-500-groq",
+        annotateGroqRequestFailure(
+          Object.assign(new Error("upstream 500"), {
+            status: 500,
+            body: { error: { message: "internal body" } }
+          }),
+          GROQ_DIAGNOSTIC
+        ),
+        { provider: "groq" }
+      );
+      expect(String(frame.message)).toMatch(
+        /^Groq's token allowance is temporarily exhausted/
+      );
+    });
+
+    it("formats a status outside the named classes with the error message", async () => {
+      const frame = await failureFor(
+        "t-302",
+        Object.assign(new Error("moved"), { status: 302 })
+      );
+      expect(frame.message).toBe("HTTP error (302): moved");
+    });
+
+    it("ignores a body whose message is not a string", async () => {
+      const frame = await failureFor(
+        "t-body-nonstring",
+        Object.assign(new Error("upstream 500"), {
+          status: 500,
+          body: { error: { message: 42 } }
+        })
+      );
+      expect(frame.message).toBe(
+        "Server error (500): The service is temporarily unavailable"
+      );
+    });
+
+    it("ignores a body message that is only the generic message", async () => {
+      const frame = await failureFor(
+        "t-body-generic",
+        Object.assign(new Error("upstream 500"), {
+          status: 500,
+          body: { error: { message: "SELECT secret FROM vault" } }
+        })
+      );
+      expect(frame.message).toBe(
+        "Server error (500): The service is temporarily unavailable"
+      );
+    });
   });
 });
 
