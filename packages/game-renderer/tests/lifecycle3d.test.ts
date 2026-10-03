@@ -32,10 +32,16 @@ describe("3D renderer lifecycle", () => {
         const transform = { position: { x: 2, y: 3, z: 4 }, rotation: [0, 0, 0, 1] as [number, number, number, number], scale: { x: 1, y: 1, z: 1 } };
         frame.entities.push({ entityId: "physics-root", transform, previousTransform: transform });
         const stats = await renderer.render(frame, 1);
-        return { initializationMs: performance.now() - started, capabilities: renderer.capabilities, picked: renderer.pick(0, 0), rootPosition: renderer.getEntityObject("physics-root")?.position.toArray(), stats };
+        const picked = renderer.pick(0, 0);
+        const moving = { ...frame, camera: { ...frame.camera, previousTransform: { ...frame.camera.transform, position: { ...frame.camera.transform.position, x: frame.camera.transform.position.x - 2 } } } };
+        await renderer.render(moving, 0.5);
+        const cameraOffset = renderer.getCamera().position.x - frame.camera.transform.position.x;
+        await renderer.render(frame, 1);
+        return { initializationMs: performance.now() - started, capabilities: renderer.capabilities, picked, rootPosition: renderer.getEntityObject("physics-root")?.position.toArray(), stats, cameraOffset };
       }, blockoutFrame());
       expect(initial.picked).toBe("box");
       expect(initial.rootPosition).toEqual([2, 3, 4]);
+      expect(initial.cameraOffset).toBeCloseTo(-1);
       await page.evaluate(() => {
         const canvas = window.lifecycleRenderer.canvas;
         const gl = canvas.getContext("webgl2"); const extension = gl?.getExtension("WEBGL_lose_context");

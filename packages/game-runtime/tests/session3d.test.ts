@@ -39,6 +39,24 @@ describe("3D fixed-step session", () => {
     } finally { session.dispose(); }
   });
 
+  it("publishes the previous camera pose so camera children interpolate with the camera", async () => {
+    const document = fixture([{ id: "weapon", parentId: "eye", transform3d: { position: { x: 0.3, y: -0.2, z: -0.5 } } }]);
+    const room = document.scenes[0];
+    room.activeCameraId = "eye";
+    room.entities.push({ ...room.entities[0], id: "eye", parentId: "player", transform3d: { ...room.entities[0].transform3d, position: { x: 0, y: 0.65, z: 0 } },
+      camera3d: { ...room.entities[0].camera3d!, behavior: { kind: "fixed" } } });
+    const session = await createGameSession3D(gameDocument3D.parse(document), 3);
+    try {
+      stepTicks(session, 10);
+      const before = session.frame().camera.transform;
+      const frame = session.step(input({ moveZ: -1 })).frame;
+      const eye = frame.entities.find((entity) => entity.entityId === "eye");
+      expect(frame.camera.previousTransform).toEqual(before);
+      expect(frame.camera.previousTransform).toEqual(eye?.previousTransform);
+      expect(frame.camera.transform.position.z).toBeLessThan(before.position.z);
+    } finally { session.dispose(); }
+  });
+
   it("moves an upright capsule relative to the camera and jumps from grounded state", async () => {
     const session = await createGameSession3D(fixture(), 7);
     try {
