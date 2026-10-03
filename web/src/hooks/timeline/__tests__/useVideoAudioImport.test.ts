@@ -299,4 +299,24 @@ describe("importVideoWithAudio", () => {
       store.getState().clips.find((clip) => clip.id === existing.id)?.startMs
     ).toBe(3000);
   });
+
+  it("records the whole import, including the audio fill-in, as one undo entry (F51)", async () => {
+    restFetchMock.mockResolvedValue({
+      ok: true,
+      json: async () => ({ has_audio: true, asset: { id: "aud-1", duration: 5 } })
+    });
+    const store = createTimelineStore();
+    store.getState().addTrack("video", "Video 1");
+    const videoTrackId = store.getState().tracks[0].id;
+    store.temporal.getState().clear();
+
+    await importVideoWithAudio(store, makeVideoAsset(), videoTrackId, 1000);
+
+    expect(
+      store.getState().clips.find((c) => c.mediaType === "audio")?.status
+    ).toBe("generated");
+    expect(store.temporal.getState().pastStates.length).toBe(1);
+    store.temporal.getState().undo();
+    expect(store.getState().clips).toHaveLength(0);
+  });
 });

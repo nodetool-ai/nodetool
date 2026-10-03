@@ -10,7 +10,7 @@
  * left, so the two meet at most in the middle. One undo entry per gesture.
  */
 
-import { useCallback, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import type React from "react";
 
 import type { ClipFadeShape, TimelineClip } from "@nodetool-ai/timeline";
@@ -59,6 +59,23 @@ export function useClipFade({
 }: UseClipFadeOptions): ClipFadeHandlers {
   const patchClip = useTimelineStore((s) => s.patchClip);
   const history = useTimelineHistoryBatch();
+  // Held arrow keys repeat ~30x/s: batch a burst into one undo entry, closed
+  // by a trailing timeout (the handle has no keyup wiring).
+  const keyBatchOpenRef = useRef(false);
+  const keyBatchTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const endKeyBatch = useCallback(() => {
+    if (keyBatchTimerRef.current !== null) {
+      clearTimeout(keyBatchTimerRef.current);
+      keyBatchTimerRef.current = null;
+    }
+    if (keyBatchOpenRef.current) {
+      keyBatchOpenRef.current = false;
+      history.end();
+    }
+  }, [history]);
+  const endKeyBatchRef = useRef(endKeyBatch);
+  endKeyBatchRef.current = endKeyBatch;
+  useEffect(() => () => endKeyBatchRef.current(), []);
   const gestureRef = useRef<{
     edge: ClipFadeEdge;
     startX: number;
@@ -136,12 +153,21 @@ export function useClipFade({
         maxFadeMs(clip, edge),
         Math.max(0, current + delta)
       );
+      if (!keyBatchOpenRef.current) {
+        keyBatchOpenRef.current = true;
+        history.begin();
+      }
       patchClip(
         clip.id,
         edge === "in" ? { fadeInMs: wanted } : { fadeOutMs: wanted }
       );
+      history.mark();
+      if (keyBatchTimerRef.current !== null) {
+        clearTimeout(keyBatchTimerRef.current);
+      }
+      keyBatchTimerRef.current = setTimeout(endKeyBatch, 400);
     },
-    [clip, interactionLocked, patchClip]
+    [clip, interactionLocked, patchClip, history, endKeyBatch]
   );
 
   return useMemo(

@@ -73,7 +73,10 @@ import {
   maxTrackHeaderWidthForViewport
 } from "../../../stores/timeline/TimelineUIStore";
 import { useTimelinePlaybackStoreApi } from "../../../stores/timeline/TimelinePlaybackStore";
-import { useTimelineHistoryBatch } from "../../../stores/timeline/useTimelineHistoryBatch";
+import {
+  runAsOneUndoEntry,
+  useTimelineHistoryBatch
+} from "../../../stores/timeline/useTimelineHistoryBatch";
 import {
   buildPastedClips,
   copyClipsToClipboard,
@@ -435,17 +438,23 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           Math.round((dropX + scrollEl.scrollLeft) * msPerPx)
         );
 
-        addTrack(trackType);
-        const newTrack = useTimelineStore.getState().tracks.slice(-1)[0];
-        if (!newTrack) return;
         const dropMode = uiStoreApi.getState().dropMode;
+        const createTrack = (): string => {
+          addTrack(trackType);
+          return useTimelineStore.getState().tracks.slice(-1)[0]?.id ?? "";
+        };
         // A video on a new video track also gets a linked audio clip
-        // (extracted from the video), matching the per-lane drop path.
+        // (extracted from the video), matching the per-lane drop path. The
+        // new track, the clip(s) and the drop resolution are one undo entry.
         if (mediaType === "video") {
-          void importVideoWithAudio(asset, newTrack.id, startMs, dropMode);
+          void importVideoWithAudio(asset, createTrack, startMs, dropMode);
         } else {
-          const clipId = addImportedClip(asset, newTrack.id, startMs);
-          docStore.getState().resolveDrop(new Set([clipId]), dropMode);
+          runAsOneUndoEntry(docStore, () => {
+            const trackId = createTrack();
+            if (!trackId) return;
+            const clipId = addImportedClip(asset, trackId, startMs);
+            docStore.getState().resolveDrop(new Set([clipId]), dropMode);
+          });
         }
       },
       [
@@ -968,20 +977,27 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             edit.edge === "start"
               ? target.startMs
               : target.startMs + target.durationMs;
-          return trimEdit(edgeMs + deltaMs);
+          return batchHeldKeyEdit(() => trimEdit(edgeMs + deltaMs));
         };
-        const nudge = (deltaMs: number) => {
+        // Runs one keyboard edit inside the held-key undo batch.
+        const batchHeldKeyEdit = <T,>(edit: () => T): T => {
           if (!arrowNudgeOpen) {
             arrowNudgeOpen = true;
             arrowNudgeHistory.begin();
           }
-          const primaryId: string = selectedClipIds.values().next().value!;
-          moveSelectedClips(primaryId, selectedClipIds, deltaMs);
+          const result = edit();
           arrowNudgeHistory.mark();
           if (arrowNudgeTimeoutId !== null) {
             clearTimeout(arrowNudgeTimeoutId);
           }
           arrowNudgeTimeoutId = setTimeout(endArrowNudgeBatch, 400);
+          return result;
+        };
+        const nudge = (deltaMs: number) => {
+          const primaryId: string = selectedClipIds.values().next().value!;
+          batchHeldKeyEdit(() =>
+            moveSelectedClips(primaryId, selectedClipIds, deltaMs)
+          );
         };
         const seekToNeighbour = (times: number[], forward: boolean) => {
           const sorted = [...times].sort((a, b) => a - b);
@@ -1093,6 +1109,8 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
 
           case "addMarker":
             e.preventDefault();
+            // Holding the key must not stack a marker per repeat.
+            if (e.repeat) return;
             doc.addMarker({
               timeMs: liveMs,
               label: `Marker ${doc.markers.length + 1}`
