@@ -1,12 +1,13 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { useRouteError } from "react-router-dom";
 import { CopyButton, Text, EditorButton, Box, MOTION, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "./components/ui_primitives";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { openBugReport } from "./stores/BugReportStore";
+import { reportClientError } from "./utils/errorTraceReporting";
 
 const errorBoundaryStyles = (theme: Theme) =>
   css({
@@ -185,6 +186,10 @@ const ErrorBoundary: React.FC = () => {
     error instanceof Error ? error.stack : "No stack trace available";
 
   const fullErrorText = `${errorMessage}\n\n${stackTrace}`;
+
+  useEffect(() => {
+    reportClientError(error, "route");
+  }, [error]);
 
   const handleReport = () => {
     openBugReport({

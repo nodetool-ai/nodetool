@@ -39,6 +39,7 @@ export { creditLedger, userSubscriptions } from "./credits.js";
 export { accessTokens } from "./access-tokens.js";
 export { externalIdentities } from "./external-identities.js";
 export { userEvents } from "./user-events.js";
+export { errorTraces } from "./error-traces.js";
 export {
   mcpOauthClients,
   mcpOauthGrants,

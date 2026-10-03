@@ -1,6 +1,7 @@
 import React from "react";
 import { Text, FlexColumn, SPACING } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
+import { reportClientError } from "../../utils/errorTraceReporting";
 
 interface PanelErrorBoundaryProps {
   fallback?: React.ReactNode;
@@ -31,6 +32,7 @@ export default class PanelErrorBoundary extends React.Component<
 
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Panel crashed:", error, errorInfo);
+    reportClientError(error, this.props.panelName ?? "panel");
   }
 
   render() {

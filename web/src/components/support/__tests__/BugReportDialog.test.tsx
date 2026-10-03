@@ -2,6 +2,7 @@ import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import "@testing-library/jest-dom";
 import { ThemeProvider } from "@mui/material/styles";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { unzipSync, strFromU8 } from "fflate";
 import mockTheme from "../../../__mocks__/themeMock";
 import BugReportDialog from "../BugReportDialog";
@@ -10,6 +11,7 @@ import {
   recordConsoleEntry,
   clearConsoleEntries
 } from "../../../utils/consoleCapture";
+import { mockErrorTracesReport } from "../../../__mocks__/trpcClientMock";
 import {
   recordProviderCallFailure,
   useProviderCallFailureStore
@@ -58,9 +60,13 @@ async function bundleEntries(blob: Blob): Promise<Record<string, string>> {
 const renderDialog = (context: BugReportContext, onClose = jest.fn()) =>
   render(
     // Mounted as a sibling of <RouterProvider>, so it must not need a Router.
-    <ThemeProvider theme={mockTheme}>
-      <BugReportDialog context={context} onClose={onClose} />
-    </ThemeProvider>
+    <QueryClientProvider
+      client={new QueryClient({ defaultOptions: { queries: { retry: false } } })}
+    >
+      <ThemeProvider theme={mockTheme}>
+        <BugReportDialog context={context} onClose={onClose} />
+      </ThemeProvider>
+    </QueryClientProvider>
   );
 
 describe("BugReportDialog", () => {
@@ -121,6 +127,27 @@ describe("BugReportDialog", () => {
     // The graph travels with the report; the key inside it does not.
     expect(entries["workflow.json"]).toContain("My workflow");
     expect(entries["workflow.json"]).not.toContain("hunter2");
+  });
+
+  it("attaches the server's recent error traces", async () => {
+    const user = userEvent.setup();
+    mockErrorTracesReport.mockResolvedValueOnce({
+      markdown: "### TypeError: x is undefined",
+      trace_ids: ["0123456789abcdef0123456789abcdef"]
+    });
+
+    renderDialog({ source: "manual" });
+
+    expect(await screen.findByText(/recent server errors/i)).toBeInTheDocument();
+    expect(mockErrorTracesReport).toHaveBeenCalledWith(
+      expect.objectContaining({ limit: 10, since: expect.any(String) })
+    );
+    await user.type(screen.getByLabelText(/what went wrong/i), "Crashed");
+    await user.click(screen.getByRole("button", { name: /save report bundle/i }));
+
+    await waitFor(() => expect(downloaded).not.toBeNull());
+    const entries = await bundleEntries(downloaded!);
+    expect(entries["server-errors.md"]).toContain("TypeError: x is undefined");
   });
 
   it("attaches the failed provider call the run made", async () => {

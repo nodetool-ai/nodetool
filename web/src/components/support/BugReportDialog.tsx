@@ -5,7 +5,8 @@
  * Nothing is uploaded. The bundle is a local download, and the issue is the
  * normal pre-filled GitHub URL — so no server holds a reporter's prompts.
  */
-import { memo, useCallback, useState } from "react";
+import { memo, useCallback, useMemo, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
 import {
   AlertBanner,
   Caption,
@@ -29,9 +30,11 @@ import {
 import { formatProviderCallFailures } from "../../utils/providerCallReport";
 import { getConsoleEntries, formatConsoleEntries } from "../../utils/consoleCapture";
 import { getSystemInfo } from "../../utils/systemInfo";
+import { trpcClient } from "../../trpc/client";
 import {
   buildBundleSections,
   buildBundleReadme,
+  buildServerErrorSection,
   buildIssueBody,
   buildIssueTitle,
   buildIssueUrl,
@@ -44,6 +47,9 @@ import {
 } from "../../utils/bugReportBundle";
 
 const GITHUB_ISSUE_URL = "https://github.com/nodetool-ai/nodetool/issues/new";
+
+/** How far back the "Recent server errors" section looks. */
+const SERVER_ERROR_WINDOW_MS = 60 * 60 * 1000;
 
 /** Cap on a single user-attached file. GitHub refuses more than 25 MB anyway. */
 const MAX_ATTACHMENT_BYTES = 10 * 1024 * 1024;
@@ -128,6 +134,31 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
     });
   });
 
+  // The server's own record of what failed around now. Each trace was
+  // redacted before it was stored; the section still shows in the preview so
+  // the reporter can read and untick it.
+  const [traceWindowStart] = useState(() =>
+    new Date(Date.now() - SERVER_ERROR_WINDOW_MS).toISOString()
+  );
+  const { data: serverErrors } = useQuery({
+    queryKey: ["error-traces", "report", traceWindowStart],
+    queryFn: () =>
+      trpcClient.errorTraces.report.query({
+        since: traceWindowStart,
+        limit: 10
+      }),
+    refetchOnWindowFocus: false,
+    retry: false
+  });
+
+  const allSections = useMemo(
+    () =>
+      serverErrors && serverErrors.trace_ids.length > 0
+        ? [...sections, buildServerErrorSection(serverErrors.markdown)]
+        : sections,
+    [sections, serverErrors]
+  );
+
   const isIncluded = useCallback(
     (section: BundleSection) =>
       excluded[section.id] === undefined
@@ -171,7 +202,7 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
   const handleSaveBundle = useCallback(async () => {
     setBusy(true);
     try {
-      const included = sections.filter(isIncluded);
+      const included = allSections.filter(isIncluded);
       const fields = { description, steps, expected };
       const bundleFileNames = [
         "report.md",
@@ -243,7 +274,7 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
       setBusy(false);
     }
   }, [
-    sections,
+    allSections,
     isIncluded,
     description,
     steps,
@@ -344,10 +375,10 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
             Open any file to read it first.
           </Caption>
 
-          {sections.length === 0 ? (
+          {allSections.length === 0 ? (
             <Caption>Nothing was captured to attach to this report.</Caption>
           ) : (
-            sections.map((section) => (
+            allSections.map((section) => (
               <FlexColumn
                 key={section.id}
                 gap={SPACING.xs}

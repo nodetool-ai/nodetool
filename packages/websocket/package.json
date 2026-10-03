@@ -112,6 +112,12 @@
       "types": "./dist/mcp-client-config.d.ts",
       "import": "./dist/mcp-client-config.js",
       "default": "./dist/mcp-client-config.js"
+    },
+    "./error-traces": {
+      "nodetool-dev": "./src/error-traces.ts",
+      "types": "./dist/error-traces.d.ts",
+      "import": "./dist/error-traces.js",
+      "default": "./dist/error-traces.js"
     }
   },
   "license": "MIT",

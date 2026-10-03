@@ -780,6 +780,36 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "list_error_traces",
+    module: "errors",
+    impl: "packages/agents/src/capabilities/errors.ts",
+    contract: "a7ca730c2193",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-errors.test.ts",
+    ],
+  },
+  {
+    name: "get_error_trace",
+    module: "errors",
+    impl: "packages/agents/src/capabilities/errors.ts",
+    contract: "1d5a2345e2b4",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-errors.test.ts",
+    ],
+  },
+  {
+    name: "export_error_report",
+    module: "errors",
+    impl: "packages/agents/src/capabilities/errors.ts",
+    contract: "52e8b9895632",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-errors.test.ts",
+    ],
+  },
+  {
     name: "list_generations",
     module: "generations",
     impl: "packages/agents/src/capabilities/generations.ts",

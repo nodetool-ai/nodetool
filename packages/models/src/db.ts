@@ -21,6 +21,7 @@ import {
   MIGRATION_LOCK_TABLE
 } from "./migrations/state.js";
 import { MigrationRunner, SQLiteMigrationAdapter } from "./migrations/index.js";
+import { POST_BASELINE_TABLE_DDL } from "./migrations/versions.js";
 import {
   applySqliteBaseline,
   SQLITE_BASELINE_VERSION
@@ -205,6 +206,7 @@ export function initTestDb(
   const sqlite = new Database(":memory:");
   try {
     initializeSqliteBaseline(sqlite);
+    for (const statement of POST_BASELINE_TABLE_DDL) sqlite.exec(statement);
   } catch (error) {
     sqlite.close();
     throw error;

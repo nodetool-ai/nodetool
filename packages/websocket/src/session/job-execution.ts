@@ -10,6 +10,7 @@
  */
 import { randomUUID } from "node:crypto";
 import { ApiErrorCode } from "../error-codes.js";
+import { captureError } from "../error-traces.js";
 import { admitSpend, releaseSpend, reserveSpend } from "../credit-gate.js";
 import { JobConcurrencyQueue } from "../job-queue.js";
 import {
@@ -624,6 +625,11 @@ export class JobExecutionManager {
   ): Promise<void> {
     const errorMessage = err instanceof Error ? err.message : String(err);
     this.session.logError("beforeRunJob failed", err);
+    captureError(err, {
+      source: "job",
+      userId: this.session.userId,
+      context: { job_id: jobId, workflow_id: workflowId ?? "" }
+    });
     await this.session.send({
       type: "job_update",
       status: "failed",
@@ -1730,6 +1736,16 @@ export class JobExecutionManager {
             }
           } else if (active.status === "failed") {
             job.markFailed(active.error ?? "Unknown error");
+            // The run's error is a string by now. A stack built here would
+            // point at this method, not at the failure, so none is sent.
+            captureError(active.error ?? "Unknown error", {
+              source: "job",
+              userId: job.user_id,
+              context: {
+                job_id: active.jobId,
+                workflow_id: active.workflowId ?? ""
+              }
+            });
           } else if (active.status === "cancelled") {
             job.markCancelled();
           }

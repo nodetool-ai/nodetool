@@ -259,6 +259,10 @@ export function getAllMcpCapabilitySpecs(
     "list_jobs",
     "get_job",
     "get_job_logs",
+    // error traces: redacted, scoped to the caller, and the bug-report export
+    "list_error_traces",
+    "get_error_trace",
+    "export_error_report",
     // assets. `save_asset` is how the agent surfaces an artifact (a text
     // report, an image, audio) into the chat; media generation saves its own
     // output already.

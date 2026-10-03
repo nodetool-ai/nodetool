@@ -430,6 +430,47 @@ export {
   recordUserEvent,
   sanitizeUserEventMetadata
 } from "./user-event.js";
+export {
+  DEFAULT_ERROR_TRACE_RETENTION_DAYS,
+  MAX_ERROR_TRACE_INGEST_BATCH,
+  formatErrorReport,
+  getErrorTrace,
+  ingestErrorTraces,
+  listErrorTraces,
+  listUnsyncedErrorTraces,
+  markErrorTracesSynced,
+  pruneErrorTraces,
+  recordErrorTrace,
+  summarizeErrorTraces
+} from "./error-trace.js";
+export type {
+  ErrorTraceGroup,
+  ErrorTraceOrigin,
+  ErrorTraceRow,
+  GetErrorTraceResult,
+  ListErrorTracesOptions,
+  RecordErrorTraceInput
+} from "./error-trace.js";
+export {
+  ERROR_TRACE_CONTEXT_KEYS,
+  ERROR_TRACE_SEVERITIES,
+  ERROR_TRACE_SOURCES,
+  collectSecretValues,
+  describeThrown,
+  errorTraceFingerprint,
+  isErrorTraceSeverity,
+  isErrorTraceSource,
+  redactErrorText,
+  redactErrorTrace,
+  sanitizeErrorTraceContext
+} from "./error-trace-redaction.js";
+export type {
+  ErrorTraceContext,
+  ErrorTraceInput,
+  ErrorTraceSeverity,
+  ErrorTraceSource,
+  RedactedErrorTrace
+} from "./error-trace-redaction.js";
 export type {
   ListUserEventsOptions,
   RecordUserEventInput,
