@@ -74,8 +74,9 @@ jest.mock("../../../jsScript/runJsScript", () => ({
     id: string,
     inputs: Record<string, unknown>,
     inputStreams?: Record<string, unknown[]>,
-    version?: number
-  ) => runJsScript(id, inputs, inputStreams, version)
+    version?: number,
+    onLine?: (line: unknown) => void
+  ) => runJsScript(id, inputs, inputStreams, version, onLine)
 }));
 
 import { getWorkflowRunnerStore } from "../../../../stores/WorkflowRunner";
@@ -856,6 +857,73 @@ describe("useAppRuntime — script operations", () => {
       { wrapper }
     );
 
+  it("uses a bundled script and its runner without fetching an installed document", async () => {
+    const bundled = (await getScript({ id: "bundle-adder" })).document;
+    getScript.mockClear();
+    const bundledRunner = jest.fn(async () => ({
+      ok: true, outputs: { sum: 4 }, streamed: [], logs: [], duration_ms: 3
+    }));
+    const { result } = renderHook(() => useAppRuntime(workflowA, false, {
+      document: scriptDoc(),
+      scriptOverrides: { "script-1": { ...bundled, schemaVersion: 1 } },
+      scriptRunner: bundledRunner
+    }), { wrapper });
+    await waitFor(() => expect(result.current.ioFor("main").inputs).toHaveLength(1));
+    await act(async () => {
+      result.current.write({ kind: "input", operationId: "main", nodeId: "a" }, 3);
+      await result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+    expect(getScript).not.toHaveBeenCalled();
+    expect(bundledRunner).toHaveBeenCalledWith("script-1", { a: 3 }, undefined, 1, expect.any(Function));
+    expect(runJsScript).not.toHaveBeenCalled();
+    await waitFor(() => expect(result.current.store.getState().variables.total).toBe(4));
+  });
+
+  it("folds an agent's streamed lines while the script runs, then settles once", async () => {
+    let release: () => void = () => undefined;
+    const settled = new Promise<void>((resolve) => {
+      release = resolve;
+    });
+    runJsScript.mockImplementation(
+      async (
+        _id: string,
+        _inputs: unknown,
+        _streams: unknown,
+        _version: unknown,
+        onLine?: (line: unknown) => void
+      ) => {
+        onLine?.({ type: "message", message: { type: "chunk", node_id: "agent", content: "Reading.", content_type: "text" } });
+        onLine?.({ type: "message", message: { type: "tool_call_update", node_id: "agent", tool_call_id: "c1", name: "get_storyboard", args: {}, message: "Reading the board" } });
+        onLine?.({ type: "emit", name: "sum", value: 1 });
+        await settled;
+        return { ok: true, outputs: {}, streamed: [{ name: "sum", value: 1 }], logs: [], duration_ms: 3 };
+      }
+    );
+    const { result } = renderScriptApp();
+    await waitFor(() => expect(result.current.ioFor("main").inputs).toHaveLength(1));
+
+    await act(async () => {
+      void result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+    const state = () => result.current.store.getState();
+    const jobId = () => state().activeInvocation.main;
+    await waitFor(() =>
+      expect(state().transcripts[jobId()]).toEqual([
+        { kind: "text", text: "Reading.", source: "agent" },
+        expect.objectContaining({ kind: "tool", id: "c1", label: "Reading the board", status: "running" })
+      ])
+    );
+    expect(state().variables.total).toBe(1);
+    expect(state().invocations[jobId()].status).not.toBe("completed");
+
+    await act(async () => {
+      release();
+    });
+    await waitFor(() => expect(state().invocations[jobId()].status).toBe("completed"));
+    // The streamed emit is not replayed from the result, which would append it twice.
+    expect(state().variables.total).toBe(1);
+  });
+
   it("derives the bindable surface from the script's declared ports", async () => {
     const { result } = renderScriptApp();
 
@@ -909,7 +977,7 @@ describe("useAppRuntime — script operations", () => {
 
     expect(getScript).toHaveBeenCalledWith({id: "script-1", version: 1});
     // Ports are the wire names, so the mapped value arrives keyed by port name.
-    expect(runJsScript).toHaveBeenCalledWith("script-1", { a: 3 }, undefined, 1);
+    expect(runJsScript).toHaveBeenCalledWith("script-1", { a: 3 }, undefined, 1, expect.any(Function));
     // No graph was submitted: a script run never touches a workflow runner.
     expect(runnerState("wf-a").run).not.toHaveBeenCalled();
     await waitFor(() =>
@@ -939,7 +1007,7 @@ describe("useAppRuntime — script operations", () => {
     await waitFor(() => expect(result.current.ioFor("main").inputs).toHaveLength(1));
     await act(async () => { await result.current.dispatch({kind: "run", operationId: "main"}); });
     expect(getScript).toHaveBeenCalledWith({id: "script-1"});
-    expect(runJsScript).toHaveBeenCalledWith("script-1", {}, undefined, undefined);
+    expect(runJsScript).toHaveBeenCalledWith("script-1", {}, undefined, undefined, expect.any(Function));
   });
 
   it("reports a failed script run as a failed invocation", async () => {

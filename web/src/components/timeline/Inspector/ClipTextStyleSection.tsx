@@ -193,6 +193,11 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
       [patchStyle]
     );
 
+    const handleStrikethroughToggle = useCallback(
+      (on: boolean) => patchStyle({ strikethrough: on ? true : undefined }),
+      [patchStyle]
+    );
+
     const handleStrokeToggle = useCallback(
       (on: boolean) => patchStyle({ stroke: on ? DEFAULT_STROKE : undefined }),
       [patchStyle]
@@ -365,6 +370,11 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
               />
             </InspectorRow>
 
+            <InspectorToggleRow
+              label="Strikethrough"
+              checked={textStyle.strikethrough === true}
+              onChange={handleStrikethroughToggle}
+            />
             <InspectorToggleRow
               label="Stroke"
               checked={textStyle.stroke !== undefined}

@@ -1292,6 +1292,7 @@ export const clipTextStyle = z.object({
   letterSpacingPx: z.number().optional(),
   lineHeight: z.number().optional(),
   verticalAlign: z.string().optional(),
+  strikethrough: z.boolean().optional(),
   stroke: z.object({ color: z.string(), widthPx: z.number() }).optional(),
   shadow: z
     .object({

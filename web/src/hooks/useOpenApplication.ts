@@ -25,7 +25,7 @@ export const useOpenApplication = (): ((
       openTab({
         type: "application",
         ref: id,
-        mode: "edit",
+        mode: "view",
         title: name || UNTITLED_APP,
         projectId
       });

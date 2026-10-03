@@ -10,7 +10,7 @@
  *   op:<opId>/in:<nodeId>              operation input
  *   op:<opId>/out:<nodeId>             operation output
  *   op:<opId>/prop:<nodeId>#<prop>     node property driven by a widget
- *   op:<opId>/exec#<field>             running | progress | error | activity
+ *   op:<opId>/exec#<field>             running | progress | error | activity | transcript
  *   var:<variableId>                   declared app variable
  *   view:<componentId>#<prop>          widget-local state, never persisted
  *   node:<nodeId>#<prop>               legacy node property (default operation)
@@ -19,7 +19,12 @@
 import { DEFAULT_OPERATION_ID } from "./document.js";
 import type { VariableDeclaration } from "./document.js";
 
-export type ExecutionField = "running" | "progress" | "error" | "activity";
+export type ExecutionField =
+  | "running"
+  | "progress"
+  | "error"
+  | "activity"
+  | "transcript";
 
 export type BindingRef =
   | { kind: "input"; operationId: string; nodeId: string }
@@ -152,7 +157,8 @@ const isExecutionField = (value: string): value is ExecutionField =>
   value === "running" ||
   value === "progress" ||
   value === "error" ||
-  value === "activity";
+  value === "activity" ||
+  value === "transcript";
 
 /** Parse an explicit (already ID-based) binding token. Legacy names return null. */
 export const parseBinding = (binding?: string | null): BindingRef | null => {

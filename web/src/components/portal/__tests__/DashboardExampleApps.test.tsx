@@ -5,6 +5,8 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import DashboardExampleApps from "../DashboardExampleApps";
 
+jest.mock("../ExampleAppUseView", () => ({ __esModule: true, default: ({ slug }: { slug: string }) => <div>Using {slug}</div> }));
+
 const listExampleApps = jest.fn();
 const installExampleApp = jest.fn();
 const openTab = jest.fn();
@@ -104,12 +106,12 @@ describe("DashboardExampleApps", () => {
     expect(onBrowseAll).toHaveBeenCalledTimes(1);
   });
 
-  it("installs an app on click and opens it", async () => {
+  it("installs an app with its separate install action", async () => {
     const user = userEvent.setup();
     installExampleApp.mockResolvedValue({ id: "app-1", name: "Vary Image" });
     renderApps();
 
-    await user.click(await screen.findByRole("button", { name: /vary image/i }));
+    await user.click(await screen.findAllByRole("button", { name: "Install app" }).then((buttons) => buttons[0]));
 
     await waitFor(() => expect(openTab).toHaveBeenCalledTimes(1));
     expect(installExampleApp).toHaveBeenCalledWith("vary-image", "proj-1");
@@ -130,7 +132,7 @@ describe("DashboardExampleApps", () => {
     installExampleApp.mockRejectedValue(new Error("No FAL key"));
     renderApps();
 
-    await user.click(await screen.findByRole("button", { name: /vary image/i }));
+    await user.click(await screen.findAllByRole("button", { name: "Install app" }).then((buttons) => buttons[0]));
 
     await waitFor(() =>
       expect(addNotification).toHaveBeenCalledWith(
@@ -152,4 +154,13 @@ describe("DashboardExampleApps", () => {
 
     expect(await screen.findByRole("button", { name: /vary image/i })).toBeInTheDocument();
   });
+});
+
+it("uses a shipped app without installing it", async () => {
+  listExampleApps.mockResolvedValue(APPS);
+  installExampleApp.mockClear();
+  renderApps();
+  await userEvent.click(await screen.findByRole("button", { name: /vary image/i }));
+  expect(await screen.findByText("Using vary-image")).toBeInTheDocument();
+  expect(installExampleApp).not.toHaveBeenCalled();
 });

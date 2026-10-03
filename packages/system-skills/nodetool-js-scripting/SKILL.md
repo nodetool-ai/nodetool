@@ -82,6 +82,28 @@ compile` builds one for a dependency that is not shipped.
 handle, not bytes. Chain the calls, then `<type>.toAsset(handle)` before the run
 ends. A handle does not survive into a later run.
 
+## Running an agent from code
+
+Use `run_agent` when the work needs more than one model call: look something
+up, act, read the result, correct.
+
+```js
+import { run_agent } from "@nodetool-ai/sandbox-nodetool/agents";
+
+const answer = await run_agent({
+  prompt: "Read storyboard " + inputs.storyboardId + " and list its shot titles.",
+  model: inputs.model,                // {provider, id} from a model selector
+  tools: ["get_storyboard"],          // capability wire names, nothing else
+  output_schema: { type: "object", properties: { titles: { type: "array", items: { type: "string" } } } }
+});
+await output("titles", answer.result.titles);
+```
+
+Without `output_schema`, `answer.text` is the agent's final message. The agent
+reports its text and tool calls while it runs. A mini app shows them in an
+Agent Activity widget bound to `op:<id>/exec#transcript`. `generate_text` stays
+the right call for one prompt with no tools.
+
 ## Calling nodes from code
 
 ```js

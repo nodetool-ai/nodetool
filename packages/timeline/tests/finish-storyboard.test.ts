@@ -286,6 +286,8 @@ describe("Storyboard finishing", () => {
     expect(old.textStyle!.fontSizePx).toBeLessThan(current.textStyle!.fontSizePx!);
     expect(old.transform!.position.y).toBeLessThan(current.transform!.position.y);
     expect(old.textStyle!.text).toBe(" €49 ");
+    expect(old.textStyle!.strikethrough).toBe(true);
+    expect(current.textStyle!.strikethrough).toBeUndefined();
     const rerun = materializeStoryboard({ ...args, current: first.document });
     expect(rerun.validation).toEqual([]);
     expect(rerun.document.clips.map((clip) => clip.transform)).toEqual(first.document.clips.map((clip) => clip.transform));

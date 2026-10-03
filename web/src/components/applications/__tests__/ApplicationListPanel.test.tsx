@@ -149,7 +149,7 @@ describe("ApplicationListPanel", () => {
     expect(openTab).toHaveBeenCalledWith({
       type: "application",
       ref: "app-2",
-      mode: "edit",
+      mode: "view",
       title: "Caption writer",
       projectId: "default"
     });

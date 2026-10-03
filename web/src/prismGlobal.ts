@@ -1,10 +1,5 @@
-import Prism from "prismjs";
-
-// Attach Prism to global scope so libraries that expect global Prism can use it.
-const globalWithPrism = globalThis;
-if (typeof globalWithPrism.Prism === "undefined") {
-  globalWithPrism.Prism = Prism;
-}
+// Prism core first: the language files below read the global it sets.
+import "./prismCore";
 
 // Load common languages
 import "prismjs/components/prism-clike";

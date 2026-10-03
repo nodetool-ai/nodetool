@@ -902,7 +902,7 @@ The first frame compiles the GPU pipelines, so progress starts after a delay.
 #### `nodetool timeline score <timeline_id_or_file>`
 
 Score a timeline document's craft against the shipped showcase examples
-(`kite`, `prism`, `serein`, `tidewater`, `voltra` —
+(`cadence`, `kite`, `prism`, `serein`, `tidewater`, `voltra` —
 `packages/base-nodes/nodetool/examples/timelines/*.timeline.json`,
 excluding the footage-based `t-minus-30`) — a deterministic, no-LLM
 scorecard, not a judge call. It measures motion density (animations and

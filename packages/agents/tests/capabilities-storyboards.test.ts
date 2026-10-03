@@ -9,6 +9,7 @@
  */
 
 import { productionRequirement } from "@nodetool-ai/protocol";
+import { storyboardResponse } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
 import { withGenerationSeam } from "./_helpers/generation-seam.js";
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
@@ -376,7 +377,7 @@ describe("storyboards capability behaviour", () => {
   });
 
   it("edits and reads storyboard motion-graphics intent", async () => {
-    const board = await makeBoard([shot({ id: "s1", index: 0 })]);
+    const board = await makeBoard([shot({ id: "s1", index: 0 }), shot({ id: "s2", index: 1 })]);
     const context = ctx();
     const graphics = {
       mode: "hybrid",
@@ -438,6 +439,8 @@ describe("storyboards capability behaviour", () => {
     const saved = await Storyboard.findById(board.id);
     expect(saved?.toDocument().screenplay?.motion_design).toEqual(motionDesign);
     expect(saved?.toDocument().shots[0].graphics).toEqual(graphics);
+    expect(storyboardResponse.safeParse(saved?.toResponse()).error?.issues ?? []).toEqual([]);
+    expect(JSON.parse(saved!.document).screenplay.shots).toEqual(saved?.toDocument().shots);
   });
 
   it("edits and reads per-shot social-ad production policy", async () => {
@@ -571,6 +574,7 @@ describe("storyboards capability behaviour", () => {
       (await Storyboard.findById(board.id))?.toDocument().screenplay
     ).toEqual({
       ...screenplay,
+      shots: [shot({id: "s1", index: 0})],
       narration: "New narration."
     });
     expect(
@@ -583,6 +587,7 @@ describe("storyboards capability behaviour", () => {
       (await Storyboard.findById(board.id))?.toDocument().screenplay
     ).toEqual({
       ...screenplay,
+      shots: [shot({id: "s1", index: 0})],
       narration: "",
       music_prompt: ""
     });

@@ -1419,6 +1419,18 @@ export const templateCatalog: CatalogCategory[] = [
         "tags": []
       },
       {
+        "slug": "dungeon-and-ruins-starter-pack",
+        "name": "Dungeon and Ruins Starter Pack",
+        "description": "Low-poly dungeon models for adventure games: modular stone rooms, doors, gates, traps, torches, tombs and treasure. Includes seven animation clips. Run to expose each GLB as a named output. No provider or API key required.",
+        "tags": [
+          "3d",
+          "game",
+          "low-poly",
+          "dungeon",
+          "assets"
+        ]
+      },
+      {
         "slug": "every-combination",
         "name": "Every Combination",
         "description": "Cross product of two streams — every left item against every right one. The sweep you build before a batch of paid renders, so you can see the count before you pay for it.",
@@ -1485,11 +1497,47 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "low-poly-adventure-starter-pack",
+        "name": "Low-poly Adventure Starter Pack",
+        "description": "Low-poly woodland models for adventure games: a ranger, an animated slime, trees, camp props, treasure and modular scenery. Run to expose each GLB as a named output. No provider or API key required.",
+        "tags": [
+          "3d",
+          "game",
+          "low-poly",
+          "adventure",
+          "assets"
+        ]
+      },
+      {
+        "slug": "low-poly-seaside-starter-pack",
+        "name": "Low-poly Seaside Starter Pack",
+        "description": "Low-poly coastal models for games: boats, dock pieces, a lighthouse, a beach hut, fishing props and shore collectibles. Run to expose each GLB as a named output. No provider or API key required.",
+        "tags": [
+          "3d",
+          "game",
+          "low-poly",
+          "seaside",
+          "assets"
+        ]
+      },
+      {
         "slug": "one-tagline-six-markets",
         "name": "One Tagline, Six Markets",
         "description": "A tagline in six languages with a back-translation for each, so someone who reads none of them can still see what was actually said.",
         "tags": [
           "text"
+        ]
+      },
+      {
+        "slug": "platformer-playground-starter-pack",
+        "name": "Platformer Playground Starter Pack",
+        "description": "Low-poly playground models for platform games: floating islands, platforms, spring pads, checkpoints, switches, hazards and collectibles. Includes nine animation clips. Run to expose each GLB as a named output. No provider or API key required.",
+        "tags": [
+          "3d",
+          "game",
+          "low-poly",
+          "platformer",
+          "assets"
         ]
       },
       {
@@ -1559,6 +1607,28 @@ export const templateCatalog: CatalogCategory[] = [
         "description": "The two fields every CMS demands, written to their real limits — 60 and 155 characters — so nothing is truncated in the results page.",
         "tags": [
           "text"
+        ]
+      },
+      {
+        "slug": "sci-fi-game-model-starter-pack",
+        "name": "Sci-fi Game Model Starter Pack",
+        "description": "Reusable sci-fi GLB models: a scout robot with an idle animation, a drone, cargo, crystals, and modular station pieces. Run to expose each model as a named output. No provider or API key required.",
+        "tags": [
+          "3d",
+          "game",
+          "sci-fi",
+          "assets"
+        ]
+      },
+      {
+        "slug": "sci-fi-outpost-expansion",
+        "name": "Sci-fi Outpost Expansion",
+        "description": "A matching sci-fi model pack with a rover, sentry turret, reactor, satellite dish, airlock and station props. Run to expose each GLB as a named output. No provider or API key required.",
+        "tags": [
+          "3d",
+          "game",
+          "sci-fi",
+          "assets"
         ]
       },
       {

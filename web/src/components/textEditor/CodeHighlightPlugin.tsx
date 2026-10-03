@@ -3,13 +3,8 @@ import { useLexicalComposerContext } from "@lexical/react/LexicalComposerContext
 import { useEffect } from "react";
 import { registerCodeHighlighting } from "@lexical/code";
 
-// Import Prism and attach to global scope so @lexical/code can access it.
-import Prism from "prismjs";
-
-const globalWithPrism = globalThis;
-if (typeof globalWithPrism.Prism === "undefined") {
-  globalWithPrism.Prism = Prism;
-}
+// Prism core first: @lexical/code and the language files read its global.
+import "../../prismCore";
 
 // Load additional languages (tree-shaken by bundler if unused)
 import "prismjs/components/prism-clike";

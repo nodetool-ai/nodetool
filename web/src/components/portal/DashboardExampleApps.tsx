@@ -2,7 +2,7 @@
 import { css } from "@emotion/react";
 import { alpha, type Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import { memo, useCallback, useState } from "react";
+import { lazy, memo, Suspense, useCallback, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import {
@@ -16,6 +16,9 @@ import {
   type ExampleAppSummary
 } from "../../utils/exampleApps";
 import {
+  Box,
+  FlexColumn,
+  FlexRow,
   BORDER_RADIUS,
   EditorButton,
   EmptyState,
@@ -26,6 +29,8 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import { useSectionWrap, SectionHeader } from "./dashboardChrome";
+
+const ExampleAppUseView = lazy(() => import("./ExampleAppUseView"));
 
 /** Query key for the shipped example apps, shared with any invalidation. */
 export const EXAMPLE_APPS_QUERY_KEY = ["applications", "examples"] as const;
@@ -150,47 +155,63 @@ const thumbSrc = (url: string | null): string | null => {
 interface ExampleAppCardProps {
   app: ExampleAppSummary;
   installing: boolean;
+  onUse: (app: ExampleAppSummary) => void;
   onInstall: (app: ExampleAppSummary) => void;
 }
 
 const ExampleAppCard = memo(function ExampleAppCard({
   app,
   installing,
-  onInstall
+  onInstall,
+  onUse
 }: ExampleAppCardProps) {
   const [thumbFailed, setThumbFailed] = useState(false);
   const src = thumbSrc(app.thumbnailUrl);
   const workflows = app.workflows.length;
   return (
-    <button
-      type="button"
-      className={installing ? "app-card installing" : "app-card"}
-      title={`Add ${app.name} to your apps`}
-      aria-busy={installing}
-      onClick={() => onInstall(app)}
-    >
-      <span className="app-thumb" aria-hidden>
-        {installing ? (
-          <LoadingSpinner size="medium" />
-        ) : src && !thumbFailed ? (
-          <img
-            src={src}
-            alt=""
-            loading="lazy"
-            onError={() => setThumbFailed(true)}
-          />
-        ) : (
-          appGlyph
-        )}
-      </span>
-      <span className="app-body">
-        <span className="app-name">{app.name}</span>
-        <span className="app-desc">{app.description}</span>
-        <span className="app-meta">
-          {workflows} workflow{workflows === 1 ? "" : "s"}
+    <FlexColumn gap={SPACING.sm}>
+      <button
+        type="button"
+        className={installing ? "app-card installing" : "app-card"}
+        title={`Use ${app.name}`}
+        aria-busy={installing}
+        onClick={() => onUse(app)}
+      >
+        <span className="app-thumb" aria-hidden>
+          {installing ? (
+            <LoadingSpinner size="medium" />
+          ) : src && !thumbFailed ? (
+            <img
+              src={src}
+              alt=""
+              loading="lazy"
+              onError={() => setThumbFailed(true)}
+            />
+          ) : (
+            appGlyph
+          )}
         </span>
-      </span>
-    </button>
+        <span className="app-body">
+          <span className="app-name">{app.name}</span>
+          <span className="app-desc">{app.description}</span>
+          <span className="app-meta">
+            {workflows} workflow{workflows === 1 ? "" : "s"}
+          </span>
+        </span>
+      </button>
+      <FlexRow gap={SPACING.sm}>
+        <EditorButton density="compact" onClick={() => onUse(app)}>
+          Use app
+        </EditorButton>
+        <EditorButton
+          density="compact"
+          disabled={installing}
+          onClick={() => onInstall(app)}
+        >
+          {installing ? "Installing…" : "Install app"}
+        </EditorButton>
+      </FlexRow>
+    </FlexColumn>
   );
 });
 
@@ -201,13 +222,17 @@ interface DashboardExampleAppsProps {
 }
 
 /**
- * The shipped example apps. Clicking one installs it (the app plus the
- * workflows it binds) and opens it.
+ * The shipped example apps can run directly or be installed into a project.
  */
 const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
   compact = false,
   onBrowseAll
 }) => {
+  const [usingApp, setUsingApp] = useState<ExampleAppSummary | null>(null);
+  const handleUse = useCallback(
+    (app: ExampleAppSummary) => setUsingApp(app),
+    []
+  );
   const theme = useTheme();
   const sectionWrap = useSectionWrap();
   const queryClient = useQueryClient();
@@ -225,7 +250,10 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
   const install = useMutation({
     mutationFn: async (app: ExampleAppSummary) => {
       const projectId = creationProjectId();
-      return { projectId, created: await installExampleApp(app.slug, projectId) };
+      return {
+        projectId,
+        created: await installExampleApp(app.slug, projectId)
+      };
     },
     onSuccess: async ({ projectId, created }) => {
       await queryClient.invalidateQueries({ queryKey: ["applications"] });
@@ -266,20 +294,43 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
   const visibleApps = compact ? apps.slice(0, 4) : apps;
 
   return (
-    <section css={styles(theme, compact)} aria-labelledby="dashboard-example-apps-title">
+    <section
+      css={styles(theme, compact)}
+      aria-labelledby="dashboard-example-apps-title"
+    >
       <div css={compact ? css({ maxWidth: "none", padding: 0 }) : sectionWrap}>
         <SectionHeader title="Start from an app" count={countLabel}>
           {compact && onBrowseAll && apps.length > visibleApps.length && (
-            <EditorButton variant="text" density="compact" onClick={onBrowseAll}>
+            <EditorButton
+              variant="text"
+              density="compact"
+              onClick={onBrowseAll}
+            >
               See all apps
             </EditorButton>
           )}
         </SectionHeader>
         <p className="apps-lede">
-          One upload, a few choices, one result. Adding an app also adds the
-          workflows it runs, so you can open the graph behind any of them.
+          Use an app directly, or install a copy to customize its workflows.
         </p>
-        {isLoading ? (
+        {usingApp && (
+          <FlexColumn gap={SPACING.md} sx={{ mb: SPACING.xl }}>
+            <FlexRow justify="space-between">
+              <span>{usingApp.name}</span>
+              <EditorButton onClick={() => setUsingApp(null)}>
+                Close app
+              </EditorButton>
+            </FlexRow>
+            <Box sx={{ aspectRatio: "4 / 3", position: "relative" }}>
+              <Box sx={{ position: "absolute", inset: 0 }}>
+                <Suspense fallback={<LoadingSpinner text="Loading app" />}>
+                  <ExampleAppUseView key={usingApp.slug} slug={usingApp.slug} />
+                </Suspense>
+              </Box>
+            </Box>
+          </FlexColumn>
+        )}
+        {usingApp ? null : isLoading ? (
           <div className="apps-loading">
             <LoadingSpinner size="medium" text="Loading apps" />
           </div>
@@ -309,6 +360,7 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
                 app={app}
                 installing={installingSlug === app.slug}
                 onInstall={handleInstall}
+                onUse={handleUse}
               />
             ))}
           </div>

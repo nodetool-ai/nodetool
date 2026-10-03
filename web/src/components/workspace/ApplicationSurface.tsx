@@ -82,7 +82,7 @@ const overlayPanelSx = {
  */
 const ApplicationSurface = ({
   refId,
-  mode = "edit"
+  mode = "view"
 }: ApplicationSurfaceProps) => {
   const {
     data: application,
@@ -94,10 +94,9 @@ const ApplicationSurface = ({
     mode === "view" ? "run" : "design"
   );
   useEffect(() => {
-    if (mode === "view") {
-      setView("run");
-      setOpened((views) => (views.includes("run") ? views : [...views, "run"]));
-    }
+    const next = mode === "view" ? "run" : "design";
+    setView(next);
+    setOpened((views) => (views.includes(next) ? views : [...views, next]));
   }, [mode]);
   // A view is mounted the first time it is opened, and never unmounted after.
   const [opened, setOpened] = useState<ApplicationView[]>(
@@ -297,7 +296,7 @@ const ApplicationSurface = ({
               </ScrollArea>
             </Box>
           )}
-          {narrow && (
+          {mode === "edit" && narrow && (
             <Box
               ref={narrowAgentPanelRef}
               role="dialog"
@@ -313,7 +312,7 @@ const ApplicationSurface = ({
           )}
         </Box>
       </FlexColumn>
-      {!narrow && (
+      {mode === "edit" && !narrow && (
         <ResizableSideDock
           storageKey="app_builder"
           defaultWidth={420}
@@ -322,7 +321,7 @@ const ApplicationSurface = ({
           {assistant}
         </ResizableSideDock>
       )}
-      {narrow && (
+      {mode === "edit" && narrow && (
         <CircularActionButton
           ref={narrowAgentButtonRef}
           icon={narrowAgentOpen ? <CloseIcon /> : <AutoAwesomeIcon />}

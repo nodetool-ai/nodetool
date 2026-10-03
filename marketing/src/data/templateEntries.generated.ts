@@ -7163,6 +7163,423 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/dungeon-and-ruins-starter-pack",
+    "title": "Dungeon and Ruins Starter Pack — NodeTool AI Workflow Template",
+    "description": "Low-poly dungeon models for adventure games: modular stone rooms, doors, gates, traps, torches, tombs and treasure. Includes seven animation clips. Run to expose each GLB as a named output. No provider or API key required.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "dungeon-and-ruins-starter-pack",
+    "name": "Dungeon and Ruins Starter Pack",
+    "summary": "Low-poly dungeon models for adventure games: modular stone rooms, doors, gates, traps, torches, tombs and treasure. Includes seven animation clips. Run to expose each GLB as a named output. No provider or API key required.",
+    "tags": [
+      "3d",
+      "game",
+      "low-poly",
+      "dungeon",
+      "assets",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.constant.Model3D",
+        "label": "Model3 D",
+        "count": 16
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 16
+      }
+    ],
+    "nodeCount": 32,
+    "thumbnail": "/templates/dungeon-and-ruins-starter-pack.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": -420,
+          "width": 940,
+          "isComment": true
+        },
+        {
+          "id": "dungeon-floor",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "dungeon-floor-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "dungeon-wall",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "dungeon-wall-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "dungeon-corner",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "dungeon-corner-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "arched-oak-door",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "arched-oak-door-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "iron-portcullis",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "iron-portcullis-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "stone-stairs",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "stone-stairs-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "broken-column",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "broken-column-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "wall-torch",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "wall-torch-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "spike-trap",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "spike-trap-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "rune-pressure-plate",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "rune-pressure-plate-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "stone-sarcophagus",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "stone-sarcophagus-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "dungeon-key",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "dungeon-key-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "guardian-idol",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "guardian-idol-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "treasure-urn",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "treasure-urn-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "iron-brazier",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "iron-brazier-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "hanging-chain",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "hanging-chain-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 1350,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "dungeon-floor",
+          "sourceHandle": "output",
+          "target": "dungeon-floor-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "dungeon-wall",
+          "sourceHandle": "output",
+          "target": "dungeon-wall-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "dungeon-corner",
+          "sourceHandle": "output",
+          "target": "dungeon-corner-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "arched-oak-door",
+          "sourceHandle": "output",
+          "target": "arched-oak-door-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "iron-portcullis",
+          "sourceHandle": "output",
+          "target": "iron-portcullis-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "stone-stairs",
+          "sourceHandle": "output",
+          "target": "stone-stairs-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "broken-column",
+          "sourceHandle": "output",
+          "target": "broken-column-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "wall-torch",
+          "sourceHandle": "output",
+          "target": "wall-torch-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "spike-trap",
+          "sourceHandle": "output",
+          "target": "spike-trap-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "rune-pressure-plate",
+          "sourceHandle": "output",
+          "target": "rune-pressure-plate-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "stone-sarcophagus",
+          "sourceHandle": "output",
+          "target": "stone-sarcophagus-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "dungeon-key",
+          "sourceHandle": "output",
+          "target": "dungeon-key-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "guardian-idol",
+          "sourceHandle": "output",
+          "target": "guardian-idol-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "treasure-urn",
+          "sourceHandle": "output",
+          "target": "treasure-urn-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "iron-brazier",
+          "sourceHandle": "output",
+          "target": "iron-brazier-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "hanging-chain",
+          "sourceHandle": "output",
+          "target": "hanging-chain-out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/edit-a-still-with-words",
     "title": "Edit a Still with Words — NodeTool AI Workflow Template",
     "description": "Change an image by describing the change. Nano Banana edits in place rather than regenerating, so composition and subject survive - the instruction should name what to alter and leave the rest unsaid.",
@@ -11507,6 +11924,840 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/low-poly-adventure-starter-pack",
+    "title": "Low-poly Adventure Starter Pack — NodeTool AI Workflow Template",
+    "description": "Low-poly woodland models for adventure games: a ranger, an animated slime, trees, camp props, treasure and modular scenery. Run to expose each GLB as a named output. No provider or API key required.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "low-poly-adventure-starter-pack",
+    "name": "Low-poly Adventure Starter Pack",
+    "summary": "Low-poly woodland models for adventure games: a ranger, an animated slime, trees, camp props, treasure and modular scenery. Run to expose each GLB as a named output. No provider or API key required.",
+    "tags": [
+      "3d",
+      "game",
+      "low-poly",
+      "adventure",
+      "assets",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.constant.Model3D",
+        "label": "Model3 D",
+        "count": 16
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 16
+      }
+    ],
+    "nodeCount": 32,
+    "thumbnail": "/templates/low-poly-adventure-starter-pack.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": -420,
+          "width": 940,
+          "isComment": true
+        },
+        {
+          "id": "woodland-ranger",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "woodland-ranger-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "forest-slime",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "forest-slime-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "pine-tree",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "pine-tree-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "broadleaf-tree",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "broadleaf-tree-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "rock-cluster",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "rock-cluster-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "mushroom-patch",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "mushroom-patch-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "treasure-chest",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "treasure-chest-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "wooden-crate",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "wooden-crate-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "supply-barrel",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "supply-barrel-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "campfire",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "campfire-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "canvas-tent",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "canvas-tent-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "gold-coin",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "gold-coin-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "healing-potion",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "healing-potion-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "stone-arch",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "stone-arch-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "wooden-bridge",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "wooden-bridge-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "trail-sign",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "trail-sign-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 1350,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "woodland-ranger",
+          "sourceHandle": "output",
+          "target": "woodland-ranger-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "forest-slime",
+          "sourceHandle": "output",
+          "target": "forest-slime-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "pine-tree",
+          "sourceHandle": "output",
+          "target": "pine-tree-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "broadleaf-tree",
+          "sourceHandle": "output",
+          "target": "broadleaf-tree-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "rock-cluster",
+          "sourceHandle": "output",
+          "target": "rock-cluster-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "mushroom-patch",
+          "sourceHandle": "output",
+          "target": "mushroom-patch-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "treasure-chest",
+          "sourceHandle": "output",
+          "target": "treasure-chest-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "wooden-crate",
+          "sourceHandle": "output",
+          "target": "wooden-crate-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "supply-barrel",
+          "sourceHandle": "output",
+          "target": "supply-barrel-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "campfire",
+          "sourceHandle": "output",
+          "target": "campfire-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "canvas-tent",
+          "sourceHandle": "output",
+          "target": "canvas-tent-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "gold-coin",
+          "sourceHandle": "output",
+          "target": "gold-coin-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "healing-potion",
+          "sourceHandle": "output",
+          "target": "healing-potion-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "stone-arch",
+          "sourceHandle": "output",
+          "target": "stone-arch-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "wooden-bridge",
+          "sourceHandle": "output",
+          "target": "wooden-bridge-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "trail-sign",
+          "sourceHandle": "output",
+          "target": "trail-sign-out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/low-poly-seaside-starter-pack",
+    "title": "Low-poly Seaside Starter Pack — NodeTool AI Workflow Template",
+    "description": "Low-poly coastal models for games: boats, dock pieces, a lighthouse, a beach hut, fishing props and shore collectibles. Run to expose each GLB as a named output. No provider or API key required.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "low-poly-seaside-starter-pack",
+    "name": "Low-poly Seaside Starter Pack",
+    "summary": "Low-poly coastal models for games: boats, dock pieces, a lighthouse, a beach hut, fishing props and shore collectibles. Run to expose each GLB as a named output. No provider or API key required.",
+    "tags": [
+      "3d",
+      "game",
+      "low-poly",
+      "seaside",
+      "assets",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.constant.Model3D",
+        "label": "Model3 D",
+        "count": 16
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 16
+      }
+    ],
+    "nodeCount": 32,
+    "thumbnail": "/templates/low-poly-seaside-starter-pack.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": -420,
+          "width": 940,
+          "isComment": true
+        },
+        {
+          "id": "harbor-rowboat",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "harbor-rowboat-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "coastal-sailboat",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "coastal-sailboat-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "dock-segment",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "dock-segment-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "dock-lookout",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "dock-lookout-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "striped-lighthouse",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "striped-lighthouse-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "beach-hut",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "beach-hut-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "island-palm",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "island-palm-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "harbor-buoy",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "harbor-buoy-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "life-ring",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "life-ring-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "iron-anchor",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "iron-anchor-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "fish-crate",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "fish-crate-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "mooring-bollard",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "mooring-bollard-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "tidepool-rocks",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "tidepool-rocks-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "shore-crab",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "shore-crab-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "golden-starfish",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "golden-starfish-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "clam-shell",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "clam-shell-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 1350,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "harbor-rowboat",
+          "sourceHandle": "output",
+          "target": "harbor-rowboat-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "coastal-sailboat",
+          "sourceHandle": "output",
+          "target": "coastal-sailboat-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "dock-segment",
+          "sourceHandle": "output",
+          "target": "dock-segment-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "dock-lookout",
+          "sourceHandle": "output",
+          "target": "dock-lookout-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "striped-lighthouse",
+          "sourceHandle": "output",
+          "target": "striped-lighthouse-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "beach-hut",
+          "sourceHandle": "output",
+          "target": "beach-hut-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "island-palm",
+          "sourceHandle": "output",
+          "target": "island-palm-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "harbor-buoy",
+          "sourceHandle": "output",
+          "target": "harbor-buoy-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "life-ring",
+          "sourceHandle": "output",
+          "target": "life-ring-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "iron-anchor",
+          "sourceHandle": "output",
+          "target": "iron-anchor-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "fish-crate",
+          "sourceHandle": "output",
+          "target": "fish-crate-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "mooring-bollard",
+          "sourceHandle": "output",
+          "target": "mooring-bollard-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "tidepool-rocks",
+          "sourceHandle": "output",
+          "target": "tidepool-rocks-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "shore-crab",
+          "sourceHandle": "output",
+          "target": "shore-crab-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "golden-starfish",
+          "sourceHandle": "output",
+          "target": "golden-starfish-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "clam-shell",
+          "sourceHandle": "output",
+          "target": "clam-shell-out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/master-a-voice-track",
     "title": "Master a Voice Track — NodeTool AI Workflow Template",
     "description": "The three-stage chain a voice gets before it ships: compress to even out the peaks, lift the level, then limit so nothing clips. Order matters — limiting first would leave nothing for the compressor.",
@@ -14800,6 +16051,423 @@ export const templateEntries: TemplateEntry[] = [
           "source": "f",
           "sourceHandle": "output",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/platformer-playground-starter-pack",
+    "title": "Platformer Playground Starter Pack — NodeTool AI Workflow Template",
+    "description": "Low-poly playground models for platform games: floating islands, platforms, spring pads, checkpoints, switches, hazards and collectibles. Includes nine animation clips. Run to expose each GLB as a named output. No provider or API key required.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "platformer-playground-starter-pack",
+    "name": "Platformer Playground Starter Pack",
+    "summary": "Low-poly playground models for platform games: floating islands, platforms, spring pads, checkpoints, switches, hazards and collectibles. Includes nine animation clips. Run to expose each GLB as a named output. No provider or API key required.",
+    "tags": [
+      "3d",
+      "game",
+      "low-poly",
+      "platformer",
+      "assets",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.constant.Model3D",
+        "label": "Model3 D",
+        "count": 16
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 16
+      }
+    ],
+    "nodeCount": 32,
+    "thumbnail": "/templates/platformer-playground-starter-pack.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": -420,
+          "width": 940,
+          "isComment": true
+        },
+        {
+          "id": "floating-island",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "floating-island-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "small-floating-island",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "small-floating-island-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "stepping-tile",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "stepping-tile-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "playground-ramp",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "playground-ramp-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "moving-platform",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "moving-platform-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "jump-pad",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "jump-pad-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "checkpoint-flag",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "checkpoint-flag-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "pressure-switch",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "pressure-switch-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "breakable-block",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "breakable-block-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "collectible-gem",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "collectible-gem-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "collectible-star",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "collectible-star-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "spike-tile",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "spike-tile-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "rotating-sweeper",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "rotating-sweeper-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "goal-portal",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "goal-portal-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "route-arrow",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "route-arrow-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "cloud-platform",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "cloud-platform-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 1350,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "floating-island",
+          "sourceHandle": "output",
+          "target": "floating-island-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "small-floating-island",
+          "sourceHandle": "output",
+          "target": "small-floating-island-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "stepping-tile",
+          "sourceHandle": "output",
+          "target": "stepping-tile-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "playground-ramp",
+          "sourceHandle": "output",
+          "target": "playground-ramp-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "moving-platform",
+          "sourceHandle": "output",
+          "target": "moving-platform-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "jump-pad",
+          "sourceHandle": "output",
+          "target": "jump-pad-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "checkpoint-flag",
+          "sourceHandle": "output",
+          "target": "checkpoint-flag-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "pressure-switch",
+          "sourceHandle": "output",
+          "target": "pressure-switch-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "breakable-block",
+          "sourceHandle": "output",
+          "target": "breakable-block-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "collectible-gem",
+          "sourceHandle": "output",
+          "target": "collectible-gem-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "collectible-star",
+          "sourceHandle": "output",
+          "target": "collectible-star-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "spike-tile",
+          "sourceHandle": "output",
+          "target": "spike-tile-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "rotating-sweeper",
+          "sourceHandle": "output",
+          "target": "rotating-sweeper-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "goal-portal",
+          "sourceHandle": "output",
+          "target": "goal-portal-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "route-arrow",
+          "sourceHandle": "output",
+          "target": "route-arrow-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "cloud-platform",
+          "sourceHandle": "output",
+          "target": "cloud-platform-out",
           "targetHandle": "value",
           "color": "any"
         }
@@ -20297,6 +21965,700 @@ export const templateEntries: TemplateEntry[] = [
           "source": "ag",
           "sourceHandle": "text",
           "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/sci-fi-game-model-starter-pack",
+    "title": "Sci-fi Game Model Starter Pack — NodeTool AI Workflow Template",
+    "description": "Reusable sci-fi GLB models: a scout robot with an idle animation, a drone, cargo, crystals, and modular station pieces. Run to expose each model as a named output. No provider or API key required.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "sci-fi-game-model-starter-pack",
+    "name": "Sci-fi Game Model Starter Pack",
+    "summary": "Reusable sci-fi GLB models: a scout robot with an idle animation, a drone, cargo, crystals, and modular station pieces. Run to expose each model as a named output. No provider or API key required.",
+    "tags": [
+      "3d",
+      "game",
+      "sci-fi",
+      "assets",
+      "example"
+    ],
+    "category": "Image & Design",
+    "nodeTypes": [
+      {
+        "type": "nodetool.constant.Model3D",
+        "label": "Model3 D",
+        "count": 14
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 14
+      }
+    ],
+    "nodeCount": 28,
+    "thumbnail": "/templates/sci-fi-game-model-starter-pack.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": -420,
+          "width": 940,
+          "isComment": true
+        },
+        {
+          "id": "scout-robot",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "scout-robot-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "survey-drone",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "survey-drone-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "cargo-crate",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "cargo-crate-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "cargo-container",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "cargo-container-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "power-cell",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "power-cell-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "crystal-cluster",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "crystal-cluster-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "crystal-shard",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "crystal-shard-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "floor-tile",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "floor-tile-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "wall-panel",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "wall-panel-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "door-frame",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "door-frame-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "support-column",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "support-column-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "ramp",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "ramp-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "terminal",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "terminal-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "beacon",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 1350,
+          "width": 300
+        },
+        {
+          "id": "beacon-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 1350,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "scout-robot",
+          "sourceHandle": "output",
+          "target": "scout-robot-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "survey-drone",
+          "sourceHandle": "output",
+          "target": "survey-drone-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "cargo-crate",
+          "sourceHandle": "output",
+          "target": "cargo-crate-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "cargo-container",
+          "sourceHandle": "output",
+          "target": "cargo-container-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "power-cell",
+          "sourceHandle": "output",
+          "target": "power-cell-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "crystal-cluster",
+          "sourceHandle": "output",
+          "target": "crystal-cluster-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "crystal-shard",
+          "sourceHandle": "output",
+          "target": "crystal-shard-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "floor-tile",
+          "sourceHandle": "output",
+          "target": "floor-tile-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "wall-panel",
+          "sourceHandle": "output",
+          "target": "wall-panel-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "door-frame",
+          "sourceHandle": "output",
+          "target": "door-frame-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "support-column",
+          "sourceHandle": "output",
+          "target": "support-column-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "ramp",
+          "sourceHandle": "output",
+          "target": "ramp-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "terminal",
+          "sourceHandle": "output",
+          "target": "terminal-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "beacon",
+          "sourceHandle": "output",
+          "target": "beacon-out",
+          "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/sci-fi-outpost-expansion",
+    "title": "Sci-fi Outpost Expansion — NodeTool AI Workflow Template",
+    "description": "A matching sci-fi model pack with a rover, sentry turret, reactor, satellite dish, airlock and station props. Run to expose each GLB as a named output. No provider or API key required.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "sci-fi-outpost-expansion",
+    "name": "Sci-fi Outpost Expansion",
+    "summary": "A matching sci-fi model pack with a rover, sentry turret, reactor, satellite dish, airlock and station props. Run to expose each GLB as a named output. No provider or API key required.",
+    "tags": [
+      "3d",
+      "game",
+      "sci-fi",
+      "assets",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.constant.Model3D",
+        "label": "Model3 D",
+        "count": 12
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 12
+      }
+    ],
+    "nodeCount": 24,
+    "thumbnail": "/templates/sci-fi-outpost-expansion.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "intro",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": -420,
+          "width": 940,
+          "isComment": true
+        },
+        {
+          "id": "exploration-rover",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "exploration-rover-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "sentry-turret",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "sentry-turret-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "reactor",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "reactor-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "satellite-dish",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "satellite-dish-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 0,
+          "width": 300
+        },
+        {
+          "id": "airlock-door",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "airlock-door-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "window-wall",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "window-wall-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "bridge-segment",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "bridge-segment-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "energy-gate",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "energy-gate-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 450,
+          "width": 300
+        },
+        {
+          "id": "landing-pad",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 0,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "landing-pad-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 340,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "storage-barrel",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 720,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "storage-barrel-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1060,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "repair-station",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 1440,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "repair-station-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "navigation-marker",
+          "type": "nodetool.constant.Model3D",
+          "title": "Model3 D",
+          "x": 2160,
+          "y": 900,
+          "width": 300
+        },
+        {
+          "id": "navigation-marker-out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 2500,
+          "y": 900,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "exploration-rover",
+          "sourceHandle": "output",
+          "target": "exploration-rover-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "sentry-turret",
+          "sourceHandle": "output",
+          "target": "sentry-turret-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "reactor",
+          "sourceHandle": "output",
+          "target": "reactor-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "satellite-dish",
+          "sourceHandle": "output",
+          "target": "satellite-dish-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "airlock-door",
+          "sourceHandle": "output",
+          "target": "airlock-door-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "window-wall",
+          "sourceHandle": "output",
+          "target": "window-wall-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "bridge-segment",
+          "sourceHandle": "output",
+          "target": "bridge-segment-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "energy-gate",
+          "sourceHandle": "output",
+          "target": "energy-gate-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "landing-pad",
+          "sourceHandle": "output",
+          "target": "landing-pad-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "storage-barrel",
+          "sourceHandle": "output",
+          "target": "storage-barrel-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "repair-station",
+          "sourceHandle": "output",
+          "target": "repair-station-out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "navigation-marker",
+          "sourceHandle": "output",
+          "target": "navigation-marker-out",
           "targetHandle": "value",
           "color": "any"
         }

@@ -89,6 +89,22 @@ function describeError(error: unknown): string {
 /** Anything `drawImage` accepts here: a rasterized surface or a decoded image. */
 type PreviewSource = Canvas | Awaited<ReturnType<typeof loadImage>>;
 
+async function loadPreviewImage(bytes: Uint8Array): Promise<Awaited<ReturnType<typeof loadImage>>> {
+  const buffer = Buffer.from(bytes);
+  try {
+    return await loadImage(buffer);
+  } catch (error) {
+    if (buffer.subarray(0, 8).toString("hex") !== "89504e470d0a1a0a") {
+      throw error;
+    }
+    // Canvas can mistake SVG text in PNG metadata for the image format.
+    // Re-encode only the decoding copy through the shared image codec.
+    const { extractImageRegion } = await import("@nodetool-ai/runtime");
+    const normalized = await extractImageRegion(bytes, { sourceMime: "image/png" });
+    return loadImage(Buffer.from(normalized.data));
+  }
+}
+
 interface ResolvedPreviewLayerSample {
   timeMs: number;
   anim: AnimatedLayerProps;
@@ -765,7 +781,7 @@ export async function renderTimelineFrames(
       // way on every frame. Its reason is kept for the same report.
       let image = decodedImages.get(assetId);
       if (image === undefined) {
-        image = await loadImage(Buffer.from(bytes)).catch((error: unknown) => {
+        image = await loadPreviewImage(bytes).catch((error: unknown) => {
           decodeErrors.set(assetId, describeError(error));
           return null;
         });

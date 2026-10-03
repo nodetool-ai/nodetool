@@ -168,7 +168,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     const audio = new GameAudioPlayer({
       assets: sessionDocument.assets,
       tickRate: sessionDocument.tickRate,
-      resolveAsset: async (binding) => binding.assetId.startsWith("builtin:") ? null : resolveMediaUri(`asset://${binding.assetId}`),
+      resolveAsset: async (binding) => binding.assetId.startsWith("builtin:") ? null : resolveMediaUri(binding.assetId.startsWith("package://") ? binding.assetId : `asset://${binding.assetId}`),
       status: setError
     });
     audioRef.current = audio;
@@ -179,7 +179,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     const resolveAsset = async (assetId: string): Promise<HTMLImageElement | null> => {
       const binding = assetBindingsRef.current ? assetBindingsRef.current[assetId] : sessionDocument.assets[assetId];
       if (!binding || binding.assetId.startsWith("builtin:")) return null;
-      const url = await resolveMediaUri(`asset://${binding.assetId}`);
+      const url = await resolveMediaUri(binding.assetId.startsWith("package://") ? binding.assetId : `asset://${binding.assetId}`);
       if (!url) return null;
       const image = new Image();
       image.src = url;
@@ -188,7 +188,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     };
     void loadBrowserGameFonts(sessionDocument, async (sourceId) => {
       if (sourceId.startsWith("builtin:")) return null;
-      return resolveMediaUri(`asset://${sourceId}`);
+      return resolveMediaUri(sourceId.startsWith("package://") ? sourceId : `asset://${sourceId}`);
     }).then((fonts) => {
       if (cancelled) { fonts.dispose(); return null; }
       loadedFonts = fonts;

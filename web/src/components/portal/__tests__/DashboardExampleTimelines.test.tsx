@@ -37,16 +37,16 @@ jest.mock("../../../stores/NotificationStore", () => ({
   useNotificationStore: <T,>(selector: (state: { addNotification: typeof jest.fn }) => T) => selector({ addNotification: jest.fn() })
 }));
 
-it("shows the film and opens an installed editable timeline", async () => {
+it("shows the film and opens an installed timeline in view mode", async () => {
   mutate.mockImplementation((_input, callbacks) => callbacks.onSuccess({
     id: "timeline-1", name: "Serein — The inbox that sorts itself", projectId: "project-1"
   }));
   render(<MemoryRouter><ThemeProvider theme={mockTheme}><DashboardExampleTimelines /></ThemeProvider></MemoryRouter>);
   expect(screen.getByLabelText("Serein — The inbox that sorts itself preview")).toBeInTheDocument();
   expect(screen.getByText("26 seconds · 678 editable clips · 30 fps")).toBeInTheDocument();
-  await userEvent.click(screen.getByRole("button", { name: "Open editable timeline" }));
+  await userEvent.click(screen.getByRole("button", { name: "Install timeline" }));
   await waitFor(() => expect(openTab).toHaveBeenCalledWith({
-    type: "timeline", ref: "timeline-1", mode: "edit", title: "Serein — The inbox that sorts itself", projectId: "project-1"
+    type: "timeline", ref: "timeline-1", mode: "view", title: "Serein — The inbox that sorts itself", projectId: "project-1"
   }));
   expect(mutate).toHaveBeenCalledWith({ slug: "serein", projectId: "project-1" }, expect.any(Object));
   expect(navigate).toHaveBeenCalledWith("/workspace");

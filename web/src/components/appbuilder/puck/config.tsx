@@ -75,6 +75,8 @@ import {
 } from "./WorkflowInputWidget";
 import { ChatThreadWidget, ChatComposerWidget } from "./ChatWidgets";
 import { SketchWidget, TimelineWidget } from "./DocumentWidgets";
+import { StoryboardWidget } from "./StoryboardWidget";
+import { AgentActivityWidget } from "./AgentActivityWidget";
 import { SketchPadWidget } from "./SketchPadWidget";
 import { GalleryWidget, Model3DWidget, PDFWidget } from "./MediaWidgets";
 import { ImageComparerWidget } from "./ImageComparerWidget";
@@ -403,7 +405,7 @@ export const appConfig: Config = {
     },
     ai: {
       title: "Chat & AI",
-      components: ["ChatThread", "ChatComposer", "ModelSelect"]
+      components: ["ChatThread", "ChatComposer", "ModelSelect", "AgentActivity"]
     },
     actions: { title: "Actions", components: ["Button", "Approval"] },
     display: {
@@ -417,6 +419,7 @@ export const appConfig: Config = {
         "Video",
         "Sketch",
         "Timeline",
+        "Storyboard",
         "Json",
         "Table",
         "List",
@@ -592,6 +595,20 @@ export const appConfig: Config = {
       },
       render: withConditions((props) => <SketchWidget {...props} />)
     },
+    Storyboard: {
+      label: "Storyboard",
+      fields: {
+        binding: bindingField("read"),
+        height: { type: "number", label: "Height (px)" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        height: 640,
+        placeholder: "No storyboard yet"
+      },
+      render: withConditions((props) => <StoryboardWidget {...props} />)
+    },
     Timeline: {
       label: "Timeline",
       fields: {
@@ -665,6 +682,18 @@ export const appConfig: Config = {
       },
       defaultProps: { label: "" },
       render: withConditions((props) => <ProgressWidget {...props} />)
+    },
+    AgentActivity: {
+      label: "Agent Activity",
+      fields: {
+        label: { type: "text", label: "Label" },
+        binding: bindingField("read"),
+        height: { type: "number", label: "Height (px)" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: { label: "Agent", height: 360, placeholder: "" },
+      render: withConditions((props) => <AgentActivityWidget {...props} />)
     },
     List: {
       label: "List",

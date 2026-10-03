@@ -285,6 +285,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   restore_timeline_version: "write",
   restore_workflow_version: "write",
   revise_storyboard_clip: "write",
+  run_agent: "external",
   run_apify_actor: "external",
   run_code: "execute",
   run_js_script: "execute",

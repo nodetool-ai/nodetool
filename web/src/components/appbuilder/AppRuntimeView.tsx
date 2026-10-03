@@ -3,6 +3,8 @@ import React from "react";
 import { Render, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 
+import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
+import type { runJsScript } from "../jsScript/runJsScript";
 import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
 
 import { Workflow } from "../../stores/ApiTypes";
@@ -38,6 +40,8 @@ interface AppRuntimeViewProps {
    * pinned. An operation whose workflow is here runs that exact graph.
    */
   workflowOverrides?: Record<string, Workflow>;
+  scriptOverrides?: Record<string, JsScriptDocument>;
+  scriptRunner?: typeof runJsScript;
 }
 
 /**
@@ -126,12 +130,16 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
   data,
   document,
   application,
-  workflowOverrides
+  workflowOverrides,
+  scriptOverrides,
+  scriptRunner
 }) => {
   const runtime = useAppRuntime(workflow, false, {
     document,
     application,
-    workflowOverrides
+    workflowOverrides,
+    scriptOverrides,
+    scriptRunner
   });
   return (
     <AppRuntimeContext.Provider value={runtime}>

@@ -304,7 +304,8 @@ const EXECUTION_FIELDS: ExecutionField[] = [
   "running",
   "progress",
   "error",
-  "activity"
+  "activity",
+  "transcript"
 ];
 
 /**

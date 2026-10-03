@@ -18,9 +18,32 @@ export const PRODUCT_PRICE_DROP_MANIFEST = {
     {id: "CTA", title: "Keep the original product and logo beside the exact CTA", durationSeconds: 3, elements: [element("brandColor", "shape", "decorative"), element("productImage", "asset", "product"), element("logo", "asset", "logo"), element("cta", "text", "cta")]}
   ]},
   presentation: {groups: [{id: "brand", title: "Product and brand", inputIds: ["productImage", "logo", "brandColor"]}, {id: "copy", title: "Exact copy", inputIds: ["headline", "oldPrice", "newPrice", "cta"]}]},
-  operations: [{id: "plan", bindingId: "plan", intent: "plan_storyboard", version: 1}, {id: "finish", bindingId: "finish", intent: "finish_storyboard", version: 1}],
-  outputs: [{id: "storyboardId", kind: "storyboard", label: "Storyboard"}, {id: "planPreview", kind: "value", label: "Review the exact planned layers"}, {id: "designPreview", kind: "timeline", label: "Composed design preview"}, {id: "timeline", kind: "timeline", label: "Editable result"}]
+  operations: [{id: "plan", bindingId: "plan", intent: "plan_storyboard", version: 1}, {id: "finish", bindingId: "finish", intent: "finish_storyboard", version: 1, strategy: "agentic", model: {provider: "openai", id: "gpt-5.4-mini"}}],
+  outputs: [{id: "storyboardId", kind: "storyboard", label: "Storyboard"}, {id: "designPreview", kind: "timeline", label: "Composed design preview"}, {id: "timeline", kind: "timeline", label: "Editable result"}]
 };
-export const PLAN_CODE = PLAN_STORYBOARD_CODE;
-export const FINISH_CODE = FINISH_STORYBOARD_CODE;
-export const PRODUCT_PRICE_DROP_BUNDLE = compileSharedRecipeBundle(PRODUCT_PRICE_DROP_MANIFEST, "Product Price Drop", "Build a layered six-second vertical ad using your exact product, logo, prices and copy. No generated video.");
+const SELECTED_MODEL_CODE = `const selectedModel = inputs.finishModel;
+if (!selectedModel?.provider?.trim() || !selectedModel?.id?.trim()) throw new Error("Select a finishing model before planning.");
+inputs.finishModel = {provider: selectedModel.provider, id: selectedModel.id};
+inputs.recipe = {...inputs.recipe, operations: inputs.recipe.operations.map(operation => operation.intent === "finish_storyboard" ? {...operation, model: inputs.finishModel} : operation)};
+`;
+export const PLAN_CODE = SELECTED_MODEL_CODE + PLAN_STORYBOARD_CODE;
+export const FINISH_CODE = SELECTED_MODEL_CODE + FINISH_STORYBOARD_CODE;
+export const buildProductPriceDropBundle = () => {
+  const bundle = compileSharedRecipeBundle(PRODUCT_PRICE_DROP_MANIFEST, "Product Price Drop", "Build a layered six-second vertical ad using your exact product, logo, prices and copy. No generated video.");
+  bundle.app.variables.push({id: "finishModel", name: "Finishing model", type: {type: "dict"}, scope: "user", persist: true, default: {type: "language_model", provider: "", id: "", name: ""}});
+  bundle.app.ui.content.splice(1, 0,
+    {type: "ModelSelect", props: {id: "finishModel", label: "Finishing model", binding: "var:finishModel", modelKind: "language_model", events: [{trigger: "change", kind: "setVariable", key: "var:approval", value: "pending"}]}},
+    {type: "Text", props: {id: "finishModel-help", text: "The selected language model finishes the editable cut. No generated video."}}
+  );
+  for (const operation of bundle.app.operations) {
+    operation.inputs.finishModel = {from: "variable", variableId: "finishModel"};
+  }
+  for (const script of bundle.scripts) {
+    script.document.code = script.key === "plan_storyboard-v1" ? PLAN_CODE : FINISH_CODE;
+    if (!script.document.inputs.some(port => port.name === "finishModel")) {
+      script.document.inputs.push({name: "finishModel", type: "dict"});
+    }
+  }
+  return bundle;
+};
+export const PRODUCT_PRICE_DROP_BUNDLE = buildProductPriceDropBundle();

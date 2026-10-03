@@ -207,7 +207,7 @@ export const compileRecipeApplication = (
     const port = /^op:([^/]+)\/out:(.+)$/.exec(readable);
     const outputType = readable.startsWith("var:") ? variables.get(readable.slice(4))?.type?.type : port ? selected.find(({binding}) => binding.id === port[1])?.contract.outputs[port[2]]?.type : undefined;
     const mediaWidget = outputType === "image" ? "Image" : outputType === "video" ? "Video" : outputType === "audio" ? "Audio" : "Download";
-    const type = output.kind === "timeline" ? "Timeline" : output.kind === "asset" ? mediaWidget : "Json";
+    const type = output.kind === "timeline" ? "Timeline" : output.kind === "storyboard" ? "Storyboard" : output.kind === "asset" ? mediaWidget : "Json";
     content.push(widget(type, `output-${output.id}`, {binding: output.binding ?? `var:${output.id}`, label: output.label ?? output.id}));
     displayedOutputs.add(output.id);
   };
@@ -215,7 +215,7 @@ export const compileRecipeApplication = (
     if (contract.approvalInput) {
       const mapping = binding.inputs[contract.approvalInput];
       if (mapping?.from === "variable" && !approvalWidgets.has(mapping.variableId)) {
-        content.push(widget("Approval", mapping.variableId, {binding: `var:${mapping.variableId}`, label: "Approve exact sources and copy", description: "Saved approval is rechecked against the Storyboard revision and inputs before building. Refresh after editing the Storyboard, then approve again."}));
+        content.push(widget("Approval", mapping.variableId, {binding: `var:${mapping.variableId}`, label: "Review your plan", description: `Check your storyboard, sources and copy. Approve the plan to unlock “${binding.name}”.`, approveLabel: "Approve plan", rejectLabel: "Request changes"}));
         approvalWidgets.add(mapping.variableId);
       }
     }
@@ -223,6 +223,8 @@ export const compileRecipeApplication = (
     const ready = approval?.from === "variable" ? {visibleWhen: {binding: `var:${approval.variableId}`, op: "eq", value: "approved"}} : {};
     content.push(widget("Button", binding.id, {...ready, label: binding.name, disabledWhen: {binding: `op:${binding.id}/exec#running`, op: "notEmpty"}, events: [{trigger: "click", kind: "run", operationId: binding.id}]}));
     content.push(widget("Text", `${binding.id}-error`, {binding: `op:${binding.id}/exec#error`}));
+    // A model operation runs an agent for minutes; show its work as it happens.
+    if (contract.spend === "model") {content.push(widget("AgentActivity", `${binding.id}-activity`, {binding: `op:${binding.id}/exec#transcript`, label: `${binding.name}: agent activity`, height: 360}));}
     for (const output of recipe.outputs) {
       const readable = output.binding ?? `var:${output.id}`;
       if (readable.startsWith(`op:${binding.id}/out:`) || Object.values(binding.outputs).some((mapping) => mapping.to === "variable" && readable === `var:${mapping.variableId}`)) {emitOutput(output);}

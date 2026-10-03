@@ -18,7 +18,9 @@
  * itself: invocation status/progress/error, and `activity` — the latest
  * human-readable label a streaming agent emitted (the tool it is calling, the
  * planning phase it is in, the task step it is on). Without it an app over an
- * agent workflow shows a spinner and nothing else.
+ * agent workflow shows a spinner and nothing else. `transcripts` keeps the
+ * whole account: the text the agent wrote and every tool call it made, in
+ * order, so a widget can show the work rather than its latest step.
  */
 
 import { isString } from "./predicates.js";
@@ -41,6 +43,29 @@ export interface InvocationState {
   /** Output-mapped variables that this run is responsible for producing. */
   variableKeys?: ReadonlyArray<string>;
 }
+
+/** How far one tool call of an agent has got. */
+export type ActivityToolStatus = "running" | "done" | "error";
+
+/** One entry of an agent's account of a run. `source` names the agent loop. */
+export type ActivityEntry =
+  | { kind: "text"; text: string; source?: string }
+  | {
+      kind: "tool";
+      id: string;
+      name: string;
+      label: string;
+      status: ActivityToolStatus;
+      args?: Record<string, unknown>;
+      result?: string;
+      source?: string;
+    };
+
+/**
+ * The most entries one run keeps. A long agent run drops its oldest entries
+ * rather than growing the state without bound.
+ */
+export const MAX_TRANSCRIPT_ENTRIES = 200;
 
 export interface InputSlot {
   value: unknown;
@@ -75,6 +100,8 @@ export interface AppInstanceState {
   invocationAliases: Record<string, string>;
   /** Keyed by invocation id: the latest activity label the run reported. */
   activity: Record<string, string>;
+  /** Keyed by invocation id: the agent text and tool calls the run reported. */
+  transcripts: Record<string, ReadonlyArray<ActivityEntry>>;
   /**
    * Keyed by variable id: the invocation whose stream last appended to it —
    * the variable's current owner. A later run starts a fresh value instead of
@@ -92,6 +119,7 @@ export const createInstanceState = (): AppInstanceState => ({
   activeInvocation: {},
   invocationAliases: {},
   activity: {},
+  transcripts: {},
   variableWriters: {}
 });
 
@@ -148,6 +176,12 @@ export type AppStateEvent =
   | { type: "invocationError"; invocationId: string; error: string }
   /** The run reported what it is doing right now (tool, phase, step). */
   | { type: "invocationActivity"; invocationId: string; label: string }
+  /**
+   * The run reported agent text or a tool call. Text continues the entry
+   * before it when both come from one source; a tool entry with a known id
+   * updates that call.
+   */
+  | { type: "invocationTranscript"; invocationId: string; entry: ActivityEntry }
   | {
       type: "outputValue";
       key: string;
@@ -190,6 +224,38 @@ const isSupersededBy = (
   const incumbent = state.invocations[incumbentId];
   if (!candidate || !incumbent) return false;
   return candidate.startedAt < incumbent.startedAt;
+};
+
+/** Fold one entry into a transcript. */
+const appendTranscript = (
+  entries: ReadonlyArray<ActivityEntry>,
+  entry: ActivityEntry
+): ReadonlyArray<ActivityEntry> => {
+  const last = entries[entries.length - 1];
+  if (entry.kind === "text") {
+    if (last?.kind === "text" && last.source === entry.source) {
+      return [...entries.slice(0, -1), { ...last, text: last.text + entry.text }];
+    }
+  } else {
+    const index = entries.findIndex(
+      (candidate) => candidate.kind === "tool" && candidate.id === entry.id
+    );
+    if (index >= 0) {
+      // A result settles the call it answers: the call keeps its label and
+      // arguments, and takes the status and result.
+      const previous = entries[index];
+      const next =
+        previous.kind === "tool"
+          ? {
+              ...previous,
+              status: entry.status,
+              ...(entry.result !== undefined && { result: entry.result })
+            }
+          : entry;
+      return [...entries.slice(0, index), next, ...entries.slice(index + 1)];
+    }
+  }
+  return [...entries, entry].slice(-MAX_TRANSCRIPT_ENTRIES);
 };
 
 export const applyEvent = (
@@ -463,6 +529,22 @@ export const applyEvent = (
       };
     }
 
+    case "invocationTranscript": {
+      const canonicalId =
+        state.invocationAliases[event.invocationId] ?? event.invocationId;
+      if (!state.invocations[canonicalId]) return state;
+      return {
+        ...state,
+        transcripts: {
+          ...state.transcripts,
+          [canonicalId]: appendTranscript(
+            state.transcripts[canonicalId] ?? [],
+            event.entry
+          )
+        }
+      };
+    }
+
     case "outputValue": {
       // Run identity is the whole point: a message from an invocation this
       // instance did not start, or from one superseded by a newer run on the
@@ -544,6 +626,18 @@ export const operationError = (
 ): string | undefined => {
   const id = state.activeInvocation[operationId];
   return id ? state.invocations[id]?.error : undefined;
+};
+
+/** One shared empty transcript, so a store selector reads a stable value. */
+const NO_TRANSCRIPT: ReadonlyArray<ActivityEntry> = [];
+
+/** The agent text and tool calls of the operation's active invocation. */
+export const operationTranscript = (
+  state: AppInstanceState,
+  operationId: string
+): ReadonlyArray<ActivityEntry> => {
+  const id = state.activeInvocation[operationId];
+  return (id ? state.transcripts[id] : undefined) ?? NO_TRANSCRIPT;
 };
 
 /** What the operation's active invocation last reported it was doing. */

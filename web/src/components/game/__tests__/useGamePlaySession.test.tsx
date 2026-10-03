@@ -2,6 +2,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 import { useGamePlaySession } from "../useGamePlaySession";
 import { gameAuthoring, gameAssetBinding, type GameDocument } from "@nodetool-ai/protocol";
+import { loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { resolveMediaUri } from "../../../utils/resolveMediaUri";
 
 const mockRenderers: Array<{ assets: (slot: string) => Promise<HTMLImageElement | null>; invalidateAsset: jest.Mock }> = [];
@@ -111,4 +112,21 @@ it("previews the selected scene without changing the document entry scene", asyn
   await waitFor(() => expect(screen.getByTestId("scene-id")).toHaveTextContent("alternate-scene"));
   expect(multiSceneDocument.entrySceneId).toBe(document.entrySceneId);
   view.unmount();
+});
+
+it("resolves shipped package assets directly when playing an example", async () => {
+  mockRenderers.length = 0;
+  jest.mocked(resolveMediaUri).mockClear();
+  const packageUri = "package://nodetool-base/games/kindle/hero.png";
+  const gameDocument = { ...document, assets: { ...document.assets, proof: gameAssetBinding.parse({
+    mediaKind: "image", assetId: packageUri, digest: "c".repeat(64), width: 1, height: 1
+  }) } };
+  render(<GameHarness gameDocument={gameDocument} />);
+  await waitFor(() => expect(mockRenderers.length).toBeGreaterThan(0));
+  await mockRenderers[mockRenderers.length - 1].assets("proof");
+  expect(resolveMediaUri).toHaveBeenCalledWith(packageUri);
+  const fontResolver = jest.mocked(loadBrowserGameFonts).mock.calls.at(-1)?.[1];
+  expect(fontResolver).toBeDefined();
+  await fontResolver?.(packageUri);
+  expect(resolveMediaUri).toHaveBeenLastCalledWith(packageUri);
 });

@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
 import React, { useCallback, useMemo, memo } from "react";
-import Prism from "prismjs";
+import Prism from "../../../../prismCore";
 import "../../../../prismGlobal";
 import DOMPurify from "dompurify";
 import {

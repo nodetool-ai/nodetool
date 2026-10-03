@@ -15,7 +15,10 @@
  */
 
 import { spawn, type ChildProcessWithoutNullStreams } from "node:child_process";
+import { open, readFile } from "node:fs/promises";
 import type { Readable } from "node:stream";
+
+import { createCanvas, loadImage } from "@napi-rs/canvas";
 
 import {
   MissingBinaryError,
@@ -150,6 +153,55 @@ export async function decodeImageRgba(
     );
   }
   return { rgba: rgba.subarray(0, expected), ...size };
+}
+
+/** Whether `filePath` holds SVG markup. Stored assets often have no extension. */
+async function isSvgFile(filePath: string): Promise<boolean> {
+  const handle = await open(filePath, "r");
+  try {
+    const head = Buffer.alloc(4096);
+    const { bytesRead } = await handle.read(head, 0, head.length, 0);
+    const text = head.subarray(0, bytesRead).toString("utf8").replace(/^\uFEFF/, "");
+    return text.trimStart().startsWith("<") && /<svg[\s>]/i.test(text);
+  } finally {
+    await handle.close();
+  }
+}
+
+/**
+ * Rasterize an SVG with Skia. Many ffmpeg builds (Homebrew's default among
+ * them) have no SVG decoder, and a logo is the usual SVG on a timeline. The
+ * intrinsic size plays the role a raster's pixel size does in {@link fitWithin}.
+ */
+async function rasterizeSvg(filePath: string, canvas: RawSize): Promise<RawImage> {
+  let image: Awaited<ReturnType<typeof loadImage>>;
+  try {
+    image = await loadImage(await readFile(filePath));
+  } catch (error) {
+    throw new Error(`Could not rasterize SVG ${filePath}: ${(error as Error).message}`);
+  }
+  if (!(image.width > 0 && image.height > 0)) {
+    throw new Error(`Could not rasterize SVG ${filePath}: it has no size`);
+  }
+  const size = fitWithin({ width: image.width, height: image.height }, canvas);
+  const surface = createCanvas(size.width, size.height);
+  const context = surface.getContext("2d");
+  context.drawImage(image, 0, 0, size.width, size.height);
+  const { data } = context.getImageData(0, 0, size.width, size.height);
+  return { rgba: new Uint8Array(data.buffer, data.byteOffset, data.byteLength), ...size };
+}
+
+/**
+ * Decode a still fitted inside `canvas`, or `null` when ffprobe finds no
+ * picture in it.
+ */
+export async function decodeStillRgba(
+  filePath: string,
+  canvas: RawSize
+): Promise<RawImage | null> {
+  if (await isSvgFile(filePath)) return rasterizeSvg(filePath, canvas);
+  const size = await probeVideoSize(filePath);
+  return size ? decodeImageRgba(filePath, fitWithin(size, canvas)) : null;
 }
 
 /**

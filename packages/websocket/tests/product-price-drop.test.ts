@@ -46,10 +46,20 @@ const authoredLayers = (timeline: {clips: TimelineClip[]}) => {
 let temporary: string | undefined;
 afterEach(async () => {vi.restoreAllMocks(); ModelObserver.clear(); if (temporary) await rm(temporary, {recursive: true, force: true});});
 
-it("installs, plans, finishes, renders and reopens the exact editable Price Drop Recipe", async () => {
+it("installs, plans, deterministically finishes, renders and reopens the exact editable Price Drop Recipe", async () => {
   initTestDb();
   const bundle = parseApplicationBundle(JSON.parse(await readFile(bundlePath, "utf8")));
   expect(bundle).not.toBeNull();
+  if (!bundle?.app.recipe) throw new Error("Expected Price Drop Recipe");
+  // This rendering proof checks the unchanged scaffold. Agentic model dispatch
+  // and approval are covered by the recipe-operation and agentic-finisher tests.
+  for (const operation of bundle.app.recipe.operations) {
+    if (operation.intent === "finish_storyboard") operation.strategy = "deterministic";
+  }
+  for (const operation of bundle.app.operations) {
+    operation.inputs.recipe = {from: "constant", value: bundle.app.recipe};
+    if (operation.id === "finish") operation.inputs.finishStrategy = {from: "constant", value: "deterministic"};
+  }
   const installed = await importApplicationBundle(USER, {bundle: bundle!, projectId: null});
   const row = await Application.findById(installed.id);
   expect(row).not.toBeNull();
@@ -82,6 +92,7 @@ it("installs, plans, finishes, renders and reopens the exact editable Price Drop
   }
   const generation = vi.spyOn(ProcessingContext.prototype, "runGeneration").mockRejectedValue(new Error("Recipe must not generate media"));
   const values: Record<string, unknown> = {productImage: {type: "image", asset_id: PRODUCT.slice(0, 12)}, logo: {type: "image", asset_id: LOGO.slice(0, 12)}, headline: "  Better coffee  ", oldPrice: "€49", newPrice: "€29", cta: "Shop now", brandColor: "#1248AB", direction: "Bold editorial rhythm"};
+  values.finishModel = {type: "language_model", provider: "fake", id: "selected-finisher"};
   const runner = createJsScriptAppRunner(USER);
   const run = async (operationId: string, expectSuccess = true) => {
     const op = doc.operations.find(operation => operation.id === operationId)!;

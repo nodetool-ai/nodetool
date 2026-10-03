@@ -9,7 +9,7 @@ Specifier: `@nodetool-ai/sandbox-timeline`. One module. It builds a whole
 timeline document in plain JavaScript and saves it through
 `nodetool.timelines`, so a cut with hundreds of keyframed clips costs a
 handful of API calls instead of one `edit` op per clip. NodeTool's shipped
-example timelines (Kite, Prism, Voltra, Tidewater, T minus 30) are built with
+example timelines (Cadence, Kite, Prism, Voltra, Tidewater, T minus 30) are built with
 it.
 
 Use it for authored motion graphics: kinetic type, shapes, charts, placed

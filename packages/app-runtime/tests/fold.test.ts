@@ -283,3 +283,66 @@ describe("streaming activity", () => {
     expect(state.invocations["job-1"].error).toBe("provider refused");
   });
 });
+
+describe("agent transcript", () => {
+  it("records agent text and each tool call with its result, in order", () => {
+    const state = fold(started("job-1"), [
+      { type: "chunk", job_id: "job-1", source: "finish", content: "Reading ", content_type: "text" },
+      { type: "chunk", job_id: "job-1", source: "finish", content: "the board.", content_type: "text" },
+      {
+        type: "tool_call_update",
+        job_id: "job-1",
+        source: "finish",
+        tool_call_id: "c1",
+        name: "edit_timeline",
+        args: { ops: [] },
+        message: "Editing the timeline"
+      },
+      {
+        type: "tool_result_update",
+        job_id: "job-1",
+        source: "finish",
+        tool_call_id: "c1",
+        name: "edit_timeline",
+        result: { summary: "applied 2 ops" },
+        is_error: false
+      },
+      { type: "chunk", job_id: "job-1", source: "finish", content: "Done.", content_type: "text" }
+    ]);
+    expect(state.transcripts["job-1"]).toEqual([
+      { kind: "text", text: "Reading the board.", source: "finish" },
+      {
+        kind: "tool",
+        id: "c1",
+        name: "edit_timeline",
+        label: "Editing the timeline",
+        status: "done",
+        args: { ops: [] },
+        result: "applied 2 ops",
+        source: "finish"
+      },
+      { kind: "text", text: "Done.", source: "finish" }
+    ]);
+  });
+
+  it("marks a failed tool call and keeps text from two agents apart", () => {
+    const state = fold(started("job-1"), [
+      { type: "chunk", job_id: "job-1", source: "finish", content: "a", content_type: "text" },
+      { type: "chunk", job_id: "job-1", source: "review", content: "b", content_type: "text" },
+      { type: "tool_call_update", job_id: "job-1", tool_call_id: "c2", name: "get_storyboard", args: {} },
+      { type: "tool_result_update", job_id: "job-1", tool_call_id: "c2", result: { error: "gone" }, is_error: true }
+    ]);
+    expect(state.transcripts["job-1"]).toMatchObject([
+      { kind: "text", text: "a", source: "finish" },
+      { kind: "text", text: "b", source: "review" },
+      { kind: "tool", id: "c2", label: "get_storyboard", status: "error", result: '{"error":"gone"}' }
+    ]);
+  });
+
+  it("leaves thinking out of the transcript", () => {
+    const state = fold(started("job-1"), [
+      { type: "chunk", job_id: "job-1", content: "hmm", content_type: "text", thinking: true }
+    ]);
+    expect(state.transcripts["job-1"]).toBeUndefined();
+  });
+});

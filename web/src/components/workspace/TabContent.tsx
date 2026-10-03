@@ -86,7 +86,7 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
     case "application":
       return <ApplicationSurface refId={tab.ref} mode={tab.mode} />;
     case "game":
-      return <GameSurface refId={tab.ref} active={active} />;
+      return <GameSurface refId={tab.ref} active={active} mode={tab.mode} />;
     case "chat":
       return <ChatSurface refId={tab.ref} active={active} />;
     case "page":

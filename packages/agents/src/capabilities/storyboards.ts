@@ -2527,6 +2527,9 @@ const editStoryboard: CapabilityExport = {
         }
       }
 
+      if (doc.screenplay) {
+        doc.screenplay.shots = doc.shots;
+      }
       const saved = await Storyboard.updateFieldsIfUnchanged(
         row.id,
         row.updated_at,
