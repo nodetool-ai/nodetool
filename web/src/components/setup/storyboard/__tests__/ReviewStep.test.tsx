@@ -128,9 +128,18 @@ beforeEach(() => {
   seed();
 });
 
+
+/** Production settings sit behind each block's "More options" toggle. */
+const openAllOptions = async (): Promise<void> => {
+  for (const toggle of screen.getAllByRole("button", { name: "More options" })) {
+    await userEvent.click(toggle);
+  }
+};
+
 describe("ReviewStep", () => {
   it("stores shot production and keeps fractional durations in both fields", async () => {
     renderStep();
+    await openAllOptions();
     await userEvent.click(screen.getAllByLabelText("Requested takes")[0]);
     await userEvent.click(await screen.findByRole("option", { name: "3" }));
     await userEvent.type(screen.getAllByLabelText("Seconds")[0], "3.5");
@@ -150,6 +159,7 @@ describe("ReviewStep", () => {
       .getState()
       .updateShot(BOARD, "shot-0", { script_line_ids: ["line-1"] });
     renderStep();
+    await openAllOptions();
     expect(screen.getByLabelText("Shot 1 · Dialogue")).toHaveAttribute(
       "readonly"
     );
