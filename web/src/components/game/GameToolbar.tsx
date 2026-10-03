@@ -48,7 +48,8 @@ export default function GameToolbar({ name, playing, playSession, loading, savin
     <ToolbarIconButton icon={<TuneOutlinedIcon fontSize="small" />} tooltip="Toggle inspector"
       aria-pressed={inspectorOpen} active={inspectorOpen} onClick={onInspector} />
     <EditorButton onClick={onAssistant}>{assistantOpen ? "Hide assistant" : "Show assistant"}</EditorButton>
-    <Caption>{saveStatus === "saved" ? "Draft saved" : saveStatus === "saving" ? "Saving draft" : "Unpublished changes"}</Caption>
+    <Caption>{saveStatus === "saved" ? "Draft saved" : saveStatus === "saving" ? "Saving draft"
+      : saveStatus === "error" ? "Draft not saved" : "Unsaved changes"}</Caption>
     <Caption>Tick {tick} · Score {score} · {won ? "Won" : "Playing"} · {backend}</Caption>
   </FlexRow>;
 }
