@@ -30,6 +30,7 @@ npx --package=@nodetool-ai/cli nodetool-chat
 - `nodetool --help` — list all top-level commands.
 - `nodetool <command> --help` — show command-specific options (e.g. `nodetool serve --help`).
 - `nodetool <group> --help` — list sub-commands for grouped tooling (e.g. `nodetool workflows --help`).
+- `nodetool help [command]` — the same output as `--help`, as a command (e.g. `nodetool help serve`). With no argument it lists the top-level commands.
 
 ## Global Options
 
