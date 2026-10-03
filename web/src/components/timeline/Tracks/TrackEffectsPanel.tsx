@@ -62,6 +62,8 @@ import {
   EditorMenu,
   MOTION,
   BORDER_RADIUS,
+  BatchedColorInput,
+  FONT_WEIGHT,
   FONT_SIZE_SANS
 } from "../../ui_primitives";
 import { FX_PANEL_HEIGHT_PX } from "./trackHeight";
@@ -600,6 +602,49 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
   );
   useWheelBatch(midHandleRef, onQTick, disabled);
 
+  // Keyboard: Left/Right frequency, Up/Down gain, Alt+Up/Down Q (mid band).
+  const handleKeyDown = useCallback(
+    (band: Band, freq: number, gainDb: number) =>
+      (e: React.KeyboardEvent<SVGElement>) => {
+        if (disabled) return;
+        const dir =
+          e.key === "ArrowRight" || e.key === "ArrowUp"
+            ? 1
+            : e.key === "ArrowLeft" || e.key === "ArrowDown"
+              ? -1
+              : 0;
+        if (dir === 0) return;
+        e.preventDefault();
+        e.stopPropagation();
+        const vertical = e.key === "ArrowUp" || e.key === "ArrowDown";
+        if (vertical && e.altKey) {
+          if (band !== "mid") return;
+          const next = clamp(midQ * (dir < 0 ? 0.9 : 1.1), 0.1, 10);
+          onPatch({ midQ: parseFloat(next.toFixed(2)) });
+          return;
+        }
+        const { fMin, fMax } = BAND_RANGES[band];
+        const patch: Partial<TrackEq3Effect> = {};
+        if (vertical) {
+          const step = e.shiftKey ? 2 : 0.5;
+          patch[`${band}GainDb` as const] = clamp(
+            gainDb + dir * step,
+            -EQ_DB_RANGE,
+            EQ_DB_RANGE
+          );
+        } else {
+          const factor = e.shiftKey ? 1.2 : 1.05;
+          patch[`${band}Freq` as const] = clamp(
+            dir > 0 ? freq * factor : freq / factor,
+            fMin,
+            fMax
+          );
+        }
+        onPatch(patch);
+      },
+    [disabled, midQ, onPatch]
+  );
+
   // Static grid: log decade lines + dB lines.
   const gridFreqs = [50, 100, 200, 500, 1000, 2000, 5000, 10000];
   const gridDbs = [-12, -6, 0, 6, 12];
@@ -724,6 +769,15 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
               strokeWidth={2}
               style={{ cursor: disabled ? "default" : "grab" }}
               onPointerDown={handlePointerDown(band)}
+              onKeyDown={handleKeyDown(band, freq, gainDb)}
+              tabIndex={disabled ? -1 : 0}
+              role="slider"
+              aria-label={`${band} band`}
+              aria-valuetext={`${Math.round(freq)} Hz, ${gainDb.toFixed(1)} dB`}
+              aria-valuemin={-EQ_DB_RANGE}
+              aria-valuemax={EQ_DB_RANGE}
+              aria-valuenow={gainDb}
+              aria-disabled={disabled}
               ref={isMid ? midHandleRef : undefined}
             />
             <text
@@ -731,7 +785,7 @@ const Eq3Curve: React.FC<Eq3CurveProps> = ({ effect, onPatch, disabled }) => {
               y={y + 3}
               textAnchor="middle"
               fontSize={9}
-              fontWeight={700}
+              fontWeight={FONT_WEIGHT.semibold}
               fill={color}
               pointerEvents="none"
             >
@@ -1200,7 +1254,7 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
         y={thrY + 3}
         textAnchor="middle"
         fontSize={9}
-        fontWeight={700}
+        fontWeight={FONT_WEIGHT.semibold}
         fill={COMP_THRESH_COLOR}
         pointerEvents="none"
       >
@@ -1231,7 +1285,7 @@ const CompressorCurve: React.FC<CompressorCurveProps> = ({
         y={ratioY + 3}
         textAnchor="middle"
         fontSize={9}
-        fontWeight={700}
+        fontWeight={FONT_WEIGHT.semibold}
         fill={COMP_ACCENT}
         pointerEvents="none"
       >
@@ -1407,20 +1461,6 @@ const VignetteEditor: React.FC<
   );
 };
 
-const swatchStyles = (theme: Theme) =>
-  css({
-    width: 28,
-    height: 28,
-    borderRadius: BORDER_RADIUS.sm,
-    border: `1px solid ${theme.vars.palette.divider}`,
-    cursor: "pointer",
-    padding: 0,
-    background: "none",
-    flexShrink: 0,
-    "&::-webkit-color-swatch": { border: "none", borderRadius: BORDER_RADIUS.xs },
-    "&::-moz-color-swatch": { border: "none", borderRadius: BORDER_RADIUS.xs }
-  });
-
 const ChromaKeyEditor: React.FC<
   EffectEditorProps<TrackChromaKeyEffect>
 > = ({ effect, onPatch, disabled }) => {
@@ -1428,22 +1468,14 @@ const ChromaKeyEditor: React.FC<
   return (
     <FlexColumn gap={0.5}>
       <FlexRow gap={1} align="center">
-        <span
-          css={{
-            fontSize: FONT_SIZE_SANS.caption,
-            color: theme.vars.palette.text.secondary,
-            width: 70
-          }}
-        >
+        <span css={paramLabelStyles(theme)}>
           Key color
         </span>
-        <input
-          type="color"
-          css={swatchStyles(theme)}
+        <BatchedColorInput
           value={effect.keyColor}
           disabled={disabled}
-          onChange={(e) => onPatch({ keyColor: e.target.value })}
-          aria-label="Chroma key color"
+          onChange={(keyColor) => onPatch({ keyColor })}
+          ariaLabel="Chroma key color"
         />
         <span
           css={{
@@ -1510,6 +1542,22 @@ const EffectCard: React.FC<EffectCardProps> = memo(
       [index]
     );
 
+    const handleGripKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (!e.altKey) return;
+        const delta =
+          e.key === "ArrowLeft" || e.key === "ArrowUp"
+            ? -1
+            : e.key === "ArrowRight" || e.key === "ArrowDown"
+              ? 1
+              : 0;
+        if (delta === 0) return;
+        e.preventDefault();
+        moveTrackEffect(trackId, index, index + delta);
+      },
+      [index, moveTrackEffect, trackId]
+    );
+
     const handleDragEnd = useCallback(() => {
       setDragging(false);
       setDragOver(null);
@@ -1572,15 +1620,17 @@ const EffectCard: React.FC<EffectCardProps> = memo(
       >
         <FlexRow css={effectHeaderStyles} sx={{ mb: 0.5 }}>
           <FlexRow gap={0.5} align="center">
-            <Tooltip title="Drag to reorder">
+            <Tooltip title="Drag to reorder, or use Alt + arrow keys">
               <div
                 css={gripCss}
                 draggable
                 onDragStart={handleDragStart}
                 onDragEnd={handleDragEnd}
-                aria-label="Drag to reorder effect"
+                aria-label={`Reorder ${EFFECT_LABELS[effect.type]} effect`}
+                aria-keyshortcuts="Alt+ArrowLeft Alt+ArrowRight"
                 role="button"
                 tabIndex={0}
+                onKeyDown={handleGripKeyDown}
               >
                 <DragIndicatorIcon />
               </div>
@@ -1598,7 +1648,7 @@ const EffectCard: React.FC<EffectCardProps> = memo(
                 type="button"
                 css={removeButtonCss}
                 onClick={handleRemove}
-                aria-label="Remove effect"
+                aria-label={`Remove ${EFFECT_LABELS[effect.type]} effect`}
               >
                 <DeleteOutlineIcon />
               </button>

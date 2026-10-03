@@ -204,6 +204,8 @@ export { InspectorSelect } from "./InspectorSelect";
 export type { InspectorSelectProps } from "./InspectorSelect";
 export { InspectorToggleRow } from "./InspectorToggleRow";
 export type { InspectorToggleRowProps } from "./InspectorToggleRow";
+export { BatchedColorInput } from "./BatchedColorInput";
+export type { BatchedColorInputProps } from "./BatchedColorInput";
 export { InspectorValueInput } from "./InspectorValueInput";
 export type { InspectorValueInputProps, InspectorValueScrub, InspectorValueGesture } from "./InspectorValueInput";
 export { NumericField } from "./NumericField";

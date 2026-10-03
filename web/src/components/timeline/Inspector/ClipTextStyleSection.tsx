@@ -17,7 +17,8 @@ import {
   CollapsibleSection,
   FlexColumn,
   SPACING,
-  TextInput
+  TextInput,
+  BatchedColorInput
 } from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
 import {
@@ -66,10 +67,6 @@ const SCRUB_PX = { step: 1 };
 const SCRUB_UNIT = { step: 0.01, min: 0 };
 
 const TEXT_CONTENT_INPUT_PROPS = { "aria-label": "Text content" };
-const TEXT_COLOR_INPUT_PROPS = { "aria-label": "Text color" };
-const STROKE_COLOR_INPUT_PROPS = { "aria-label": "Text stroke color" };
-const SHADOW_COLOR_INPUT_PROPS = { "aria-label": "Text shadow color" };
-const BACKGROUND_COLOR_INPUT_PROPS = { "aria-label": "Text background color" };
 
 interface ClipTextStyleSectionProps {
   clip: TimelineClip;
@@ -160,8 +157,8 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
       [patchStyle]
     );
     const handleColorChange = useCallback(
-      (event: React.ChangeEvent<HTMLInputElement>) =>
-        patchStyle({ color: event.target.value }),
+      (color: string) =>
+        patchStyle({ color: color }),
       [patchStyle]
     );
     const handleAlignChange = useCallback(
@@ -203,8 +200,8 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
       [patchStyle]
     );
     const handleStrokeColorChange = useCallback(
-      (event: React.ChangeEvent<HTMLInputElement>) =>
-        patchStroke({ color: event.target.value }),
+      (color: string) =>
+        patchStroke({ color: color }),
       [patchStroke]
     );
     const handleStrokeWidthCommit = useCallback(
@@ -221,8 +218,8 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
       [patchStyle]
     );
     const handleShadowColorChange = useCallback(
-      (event: React.ChangeEvent<HTMLInputElement>) =>
-        patchShadow({ color: event.target.value }),
+      (color: string) =>
+        patchShadow({ color: color }),
       [patchShadow]
     );
     const handleShadowBlurCommit = useCallback(
@@ -256,8 +253,8 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
       [patchStyle]
     );
     const handleBackgroundColorChange = useCallback(
-      (event: React.ChangeEvent<HTMLInputElement>) =>
-        patchBackground({ color: event.target.value }),
+      (color: string) =>
+        patchBackground({ color: color }),
       [patchBackground]
     );
     const handleBackgroundPaddingCommit = useCallback(
@@ -328,11 +325,10 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
               />
             </InspectorRow>
             <InspectorRow label="Color">
-              <TextInput
-                type="color"
+              <BatchedColorInput
                 value={textStyle.color}
                 onChange={handleColorChange}
-                inputProps={TEXT_COLOR_INPUT_PROPS}
+                ariaLabel="Text color"
               />
             </InspectorRow>
             <InspectorRow label="Align">
@@ -383,11 +379,10 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
             {textStyle.stroke && (
               <>
                 <InspectorRow label="Stroke color">
-                  <TextInput
-                    type="color"
+                  <BatchedColorInput
                     value={textStyle.stroke.color}
                     onChange={handleStrokeColorChange}
-                    inputProps={STROKE_COLOR_INPUT_PROPS}
+                    ariaLabel="Text stroke color"
                   />
                 </InspectorRow>
                 <InspectorRow label="Stroke width">
@@ -410,11 +405,10 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
             {textStyle.shadow && (
               <>
                 <InspectorRow label="Shadow color">
-                  <TextInput
-                    type="color"
+                  <BatchedColorInput
                     value={textStyle.shadow.color}
                     onChange={handleShadowColorChange}
-                    inputProps={SHADOW_COLOR_INPUT_PROPS}
+                    ariaLabel="Text shadow color"
                   />
                 </InspectorRow>
                 <InspectorRow label="Shadow blur">
@@ -455,11 +449,10 @@ export const ClipTextStyleSection: React.FC<ClipTextStyleSectionProps> = memo(
             {textStyle.background && (
               <>
                 <InspectorRow label="Background color">
-                  <TextInput
-                    type="color"
+                  <BatchedColorInput
                     value={textStyle.background.color}
                     onChange={handleBackgroundColorChange}
-                    inputProps={BACKGROUND_COLOR_INPUT_PROPS}
+                    ariaLabel="Text background color"
                   />
                 </InspectorRow>
                 <InspectorRow label="Background padding">

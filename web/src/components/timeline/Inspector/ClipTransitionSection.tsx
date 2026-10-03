@@ -18,7 +18,7 @@ import {
   CollapsibleSection,
   FlexColumn,
   SPACING,
-  TextInput
+  BatchedColorInput
 } from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
 import {
@@ -244,13 +244,10 @@ export const ClipTransitionSection: React.FC<ClipTransitionSectionProps> = memo(
 
             {mode === "dipToColor" && (
               <InspectorRow label="Color">
-                <TextInput
-                  type="color"
+                <BatchedColorInput
                   value={readString(transition, "color") ?? "#000000"}
-                  onChange={(event) =>
-                    patchField({ color: event.target.value })
-                  }
-                  inputProps={{ "aria-label": "Transition color" }}
+                  onChange={(color) => patchField({ color })}
+                  ariaLabel="Transition color"
                 />
               </InspectorRow>
             )}

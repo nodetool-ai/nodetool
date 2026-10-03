@@ -66,7 +66,10 @@ import {
   isTranscriptClip,
   type EditorEdits
 } from "../../../stores/timeline/transcriptOps";
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  useTimelineStoreApi
+} from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import {
@@ -331,6 +334,9 @@ const SyncPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
   const clips = useTimelineStore(useShallow((s) => s.clips.filter(isTranscriptClip)));
   const markers = useTimelineStore((s) => s.markers);
   const setTranscriptAndClips = useTimelineStore((s) => s.setTranscriptAndClips);
+  // This instance's store, not the active-instance statics: a mounted player
+  // or preview can make `useTimelineStore.getState()` a different timeline.
+  const docApi = useTimelineStoreApi();
 
   const focusedRef = useRef(false);
   const seededSigRef = useRef<string>("");
@@ -429,16 +435,16 @@ const SyncPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
       // included), so it needs the full clip list, not the transcript subset
       // this plugin reacts to — read it fresh from the store here rather than
       // widening the reactive selection above.
-      const base = useTimelineStore.getState().clips;
+      const base = docApi.getState().clips;
 
       // A brand-new line needs a voiceover track to land on.
       let audioTrackId =
-        useTimelineStore.getState().tracks.find((t) => t.type === "audio")?.id ??
+        docApi.getState().tracks.find((t) => t.type === "audio")?.id ??
         "";
       if (!audioTrackId && edits.newDraftTexts.some((t) => t.trim())) {
-        useTimelineStore.getState().addTrack("audio", "Voiceover");
+        docApi.getState().addTrack("audio", "Voiceover");
         audioTrackId =
-          useTimelineStore.getState().tracks.find((t) => t.type === "audio")
+          docApi.getState().tracks.find((t) => t.type === "audio")
             ?.id ?? "";
       }
 
@@ -458,7 +464,7 @@ const SyncPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
       root.removeEventListener("focus", onFocus);
       root.removeEventListener("blur", onBlur);
     };
-  }, [editor, setTranscriptAndClips]);
+  }, [editor, docApi, setTranscriptAndClips]);
 
   return null;
 };
@@ -930,6 +936,7 @@ const EditorBody: React.FC<{
 
 export const TranscriptEditor: React.FC = () => {
   const [mode, setMode] = useState<EditorMode>("script");
+  const docApi = useTimelineStoreApi();
 
   const initialConfig = useMemo<InitialConfigType>(
     () => ({
@@ -937,14 +944,14 @@ export const TranscriptEditor: React.FC = () => {
       nodes: [WordNode, DraftNode, SlashCommandNode, SceneBreakNode],
       editable: false,
       editorState: () => {
-        const state = useTimelineStore.getState();
+        const state = docApi.getState();
         $seedFromClips(state.clips, state.markers);
       },
       onError: (error: Error) => {
         console.error(error);
       }
     }),
-    []
+    [docApi]
   );
 
   return (

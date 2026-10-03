@@ -50,7 +50,7 @@ import {
   SearchInput,
   TruncatedText,
   TYPOGRAPHY,
-  TextInput,
+  BatchedColorInput,
   ToolbarIconButton
 } from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
@@ -62,6 +62,7 @@ import {
   InspectorSliderRow,
   InspectorToggleRow
 } from "./InspectorPrimitives";
+import { parseFiniteNumber } from "./InspectorPrimitives.helpers";
 import { ToneCurveEditor } from "./ToneCurveEditor";
 
 /** The fixed effect the dedicated Color section owns; never listed here. */
@@ -215,7 +216,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
               unit="px"
               scrub={SCRUB_PX}
               onCommit={(raw) =>
-                commitNumber(raw, (radius) => onPatch({ radius }))
+                commitNumber(raw, (radius) => onPatch({ radius }), 0)
               }
               ariaLabel={`${name} radius`}
             />
@@ -230,11 +231,10 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
             onChange={(intensity) => onPatch({ intensity })}
           />
           <InspectorRow label="Color">
-            <TextInput
-              type="color"
+            <BatchedColorInput
               value={effect.color ?? "#ffffff"}
-              onChange={(event) => onPatch({ color: event.target.value })}
-              inputProps={{ "aria-label": `${name} color` }}
+              onChange={(color) => onPatch({ color })}
+              ariaLabel={`${name} color`}
             />
           </InspectorRow>
         </>
@@ -271,16 +271,15 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
               value={String(effect.blur)}
               unit="px"
               scrub={SCRUB_PX}
-              onCommit={(raw) => commitNumber(raw, (blur) => onPatch({ blur }))}
+              onCommit={(raw) => commitNumber(raw, (blur) => onPatch({ blur }), 0)}
               ariaLabel={`${name} blur`}
             />
           </InspectorRow>
           <InspectorRow label="Color">
-            <TextInput
-              type="color"
+            <BatchedColorInput
               value={effect.color}
-              onChange={(event) => onPatch({ color: event.target.value })}
-              inputProps={{ "aria-label": `${name} color` }}
+              onChange={(color) => onPatch({ color })}
+              ariaLabel={`${name} color`}
             />
           </InspectorRow>
           <InspectorSliderRow
@@ -378,7 +377,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
               unit="px"
               scrub={SCRUB_PX}
               onCommit={(raw) =>
-                commitNumber(raw, (radius) => onPatch({ radius }))
+                commitNumber(raw, (radius) => onPatch({ radius }), 0)
               }
               ariaLabel={`${name} radius`}
             />
@@ -391,11 +390,10 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
       return (
         <>
           <InspectorRow label="Key color">
-            <TextInput
-              type="color"
+            <BatchedColorInput
               value={effect.color}
-              onChange={(event) => onPatch({ color: event.target.value })}
-              inputProps={{ "aria-label": `${name} color` }}
+              onChange={(color) => onPatch({ color })}
+              ariaLabel={`${name} color`}
             />
           </InspectorRow>
           <InspectorSliderRow
@@ -467,7 +465,7 @@ const EffectFields: React.FC<EffectFieldsProps> = memo(
               value={effect.gamma.toFixed(2)}
               scrub={SCRUB_UNIT}
               onCommit={(raw) =>
-                commitNumber(raw, (gamma) => onPatch({ gamma }))
+                commitNumber(raw, (gamma) => onPatch({ gamma }), 0, true)
               }
               ariaLabel={`${name} gamma`}
             />
@@ -880,10 +878,17 @@ export const ClipEffectsList: React.FC<ClipEffectsListProps> = memo(
   }
 );
 
-/** Commit a numeric field, ignoring anything that does not parse. */
-function commitNumber(raw: string, apply: (value: number) => void): void {
-  const value = Number(raw);
-  if (Number.isFinite(value)) apply(value);
+/** Commit a numeric field, ignoring blank, non-numeric or out-of-range input. */
+function commitNumber(
+  raw: string,
+  apply: (value: number) => void,
+  min?: number,
+  exclusiveMin = false
+): void {
+  const value = parseFiniteNumber(raw);
+  if (value === null) return;
+  if (min !== undefined && (exclusiveMin ? value <= min : value < min)) return;
+  apply(value);
 }
 
 ClipEffectsList.displayName = "ClipEffectsList";
