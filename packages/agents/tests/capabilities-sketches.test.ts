@@ -181,6 +181,26 @@ describe("sketches capability behaviour", () => {
     expect(edited.layers.map((layer) => layer.name)).toEqual(["Layer 1", "Ink"]);
   });
 
+  it("edits a sketch addressed by its 12-character id prefix", async () => {
+    const created = (await run().invoke("create_sketch", {
+      name: "Cover"
+    })) as { image_document_id: string };
+    expect(created.image_document_id).toMatch(/^[0-9a-f]{32}$/);
+    const shortId = created.image_document_id.slice(0, 12);
+
+    const edited = (await run().invoke("edit_sketch", {
+      image_document_id: shortId,
+      ops: [{ op: "add_layer", name: "Ink" }]
+    })) as {
+      image_document_id: string;
+      applied: number;
+      layers: Array<{ name: string }>;
+    };
+    expect(edited.applied).toBe(1);
+    expect(edited.image_document_id).toBe(created.image_document_id);
+    expect(edited.layers.map((layer) => layer.name)).toEqual(["Layer 1", "Ink"]);
+  });
+
   it("returns the existing sketch when create is retried with the same id", async () => {
     const first = (await run().invoke("create_sketch", {
       name: "Poster",

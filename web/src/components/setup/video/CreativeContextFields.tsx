@@ -17,6 +17,7 @@ import {
   TextInput
 } from "../../ui_primitives";
 import { SETUP_FIELD_WIDTH } from "../layout";
+import { GalleryFrame } from "../MediaGallery";
 
 interface CreativeContextFieldsProps {
   readonly value: CreativeContext | undefined;
@@ -143,14 +144,20 @@ export default function CreativeContextFields({
             key={`${reference.kind}:${reference.asset_id}:${index}`}
             gap={GAP.tight}
           >
-            <ResponsiveImage
+            <GalleryFrame
               locator={`asset://${reference.asset_id}`}
-              alt={`${reference.kind} reference`}
-              fit="contain"
-              aspectRatio="1/1"
-              showErrorFallback
-              sx={{ maxWidth: SETUP_FIELD_WIDTH }}
-            />
+              kind="image"
+              caption={`${reference.kind} reference`}
+              sx={{ width: "100%", maxWidth: SETUP_FIELD_WIDTH }}
+            >
+              <ResponsiveImage
+                locator={`asset://${reference.asset_id}`}
+                alt={`${reference.kind} reference`}
+                fit="contain"
+                aspectRatio="1/1"
+                showErrorFallback
+              />
+            </GalleryFrame>
             <SelectField
               label={`Reference ${index + 1} role`}
               value={reference.kind}

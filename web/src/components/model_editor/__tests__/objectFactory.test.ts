@@ -26,6 +26,20 @@ describe("createPrimitive", () => {
     expect(createPrimitive("pointLight")).toBeInstanceOf(THREE.PointLight);
   });
 
+  it("aims a directional light with a child target the glTF export keeps", () => {
+    const light = createPrimitive("directionalLight") as THREE.DirectionalLight;
+    expect(light.target.parent).toBe(light);
+    expect(light.target.position.toArray()).toEqual([0, 0, -1]);
+
+    light.updateMatrixWorld(true);
+    const direction = light.target
+      .getWorldPosition(new THREE.Vector3())
+      .sub(light.getWorldPosition(new THREE.Vector3()))
+      .normalize();
+    const towardOrigin = light.position.clone().negate().normalize();
+    expect(direction.distanceTo(towardOrigin)).toBeLessThan(1e-6);
+  });
+
   it("has a human label for every primitive kind", () => {
     const kinds: PrimitiveKind[] = [
       "box",

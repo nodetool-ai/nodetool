@@ -21,7 +21,6 @@ import {
   resolveDeleteTrackArgs,
   resolveMoveTrackArgs,
   resolveShapeArg,
-  targetParam,
   textStylePatchParams,
   type MidiNoteParams
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";

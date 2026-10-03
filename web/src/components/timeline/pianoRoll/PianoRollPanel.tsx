@@ -42,7 +42,6 @@ import { GRID_DIVISION_OPTIONS } from "../Tracks/tempoGrid";
 import { PianoRoll } from "./PianoRoll";
 
 const HANDLE_HEIGHT_PX = 6;
-const TOUCH_HANDLE_HEIGHT_PX = 20;
 /** Arrow-key step for keyboard resizing. */
 const KEYBOARD_RESIZE_STEP_PX = 20;
 

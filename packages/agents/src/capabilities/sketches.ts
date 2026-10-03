@@ -1078,8 +1078,10 @@ const editSketch: CapabilityExport = {
     }
 
     try {
+      // Write by the resolved id: `sketchId` may be a 12-character prefix,
+      // and the CAS write matches the full id exactly.
       const mutated = await ImageDocument.mutateDocumentData(
-        sketchId,
+        existing.id,
         (data: ImageDocumentData): EditSketchMutationResult => {
           const sketch = data.sketch;
           const state: SketchState = {
@@ -1145,7 +1147,7 @@ const editSketch: CapabilityExport = {
 
       const failed = records.filter((record) => !record.ok);
       return {
-        image_document_id: sketchId,
+        image_document_id: existing.id,
         updated_at: mutated.document.updated_at,
         applied: records.length - failed.length,
         failed: failed.length,

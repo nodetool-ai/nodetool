@@ -19,11 +19,7 @@ import type { RouterInputs, RouterOutputs } from "../trpc/client";
 export type TimelineCodeScene =
   RouterOutputs["timeline"]["code"]["get"]["scenes"][number];
 export type TimelineCodeGetResult = RouterOutputs["timeline"]["code"]["get"];
-export type TimelineCodeConflict =
-  RouterOutputs["timeline"]["code"]["set"]["conflicts"][number];
 export type TimelineCodeBakeResult = RouterOutputs["timeline"]["code"]["set"];
-export type TimelineCodeDetachResult =
-  RouterOutputs["timeline"]["code"]["detach"];
 type TimelineCodeSetInput = RouterInputs["timeline"]["code"]["set"];
 type TimelineCodeRebakeInput = RouterInputs["timeline"]["code"]["rebake"];
 type TimelineCodeDetachInput = RouterInputs["timeline"]["code"]["detach"];

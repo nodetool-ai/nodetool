@@ -90,26 +90,30 @@ const INFO_BY_VALUE = new Map<BlendMode, BlendModeInfo>(
 );
 
 /**
+ * What a persisted `blendMode` field can hold: a canonical {@link BlendMode},
+ * the legacy `"over"` alias, a stray string (a data URL that leaked into UI
+ * state), or nothing.
+ */
+export type PersistedBlendMode = string | undefined;
+
+/**
  * Every persisted spelling of a blend mode, mapped to its canonical value:
  * each canonical value itself, plus the legacy aliases — the Compositor image
  * node historically stored `"over"` (the libvips name) for normal blending.
- *
- * Keyed by `unknown` so a persisted value that is not a blend-mode string at
- * all (a number, an object, a stray data URL that leaked into UI state) simply
- * misses the lookup instead of needing a representation check first.
+ * A value that is not in the table simply misses the lookup.
  */
-const CANONICAL_BY_PERSISTED_VALUE = new Map<unknown, BlendMode>();
+const CANONICAL_BY_PERSISTED_VALUE = new Map<PersistedBlendMode, BlendMode>();
 for (const info of BLEND_MODE_INFOS) {
   CANONICAL_BY_PERSISTED_VALUE.set(info.value, info.value);
 }
 CANONICAL_BY_PERSISTED_VALUE.set("over", "normal");
 
 /**
- * Coerce an arbitrary input to a canonical {@link BlendMode}. Unknown values
+ * Coerce a persisted value to a canonical {@link BlendMode}. Unknown values
  * (including stray data URLs that can leak into persisted UI state) fall back
  * to `"normal"`. Accepts the legacy `"over"` alias.
  */
-export function coerceBlendMode(value: unknown): BlendMode {
+export function coerceBlendMode(value: PersistedBlendMode): BlendMode {
   return CANONICAL_BY_PERSISTED_VALUE.get(value) ?? "normal";
 }
 
@@ -117,16 +121,16 @@ export function coerceBlendMode(value: unknown): BlendMode {
  * Numeric id for the WGSL `applyBlendMode` switch. Takes a persisted value
  * (canonical, legacy alias, or junk); anything unrecognized blends as normal.
  */
-export function blendModeGpuId(value: unknown): number {
+export function blendModeGpuId(value: PersistedBlendMode): number {
   return INFO_BY_VALUE.get(coerceBlendMode(value))?.gpuId ?? 0;
 }
 
 /** Canvas2D `globalCompositeOperation` for a persisted blend mode. */
-export function blendModeToCanvasOp(value: unknown): CanvasCompositeOp {
+export function blendModeToCanvasOp(value: PersistedBlendMode): CanvasCompositeOp {
   return INFO_BY_VALUE.get(coerceBlendMode(value))?.canvasOp ?? "source-over";
 }
 
 /** Sharp/libvips `blend` string for a persisted blend mode. */
-export function blendModeToSharpBlend(value: unknown): string {
+export function blendModeToSharpBlend(value: PersistedBlendMode): string {
   return INFO_BY_VALUE.get(coerceBlendMode(value))?.sharpBlend ?? "over";
 }

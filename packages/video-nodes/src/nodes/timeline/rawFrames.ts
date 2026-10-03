@@ -272,6 +272,13 @@ export interface SourceFrameStream extends RawSize {
   close(): void;
 }
 
+/**
+ * How long the grid probe may run. A miss falls back to a fresh seek per
+ * frame, so the budget must hold on a loaded machine: a 1s budget expired on
+ * CI for a 60-frame clip and turned every reverse read into a reopen.
+ */
+const GRID_PROBE_TIMEOUT_MS = 10_000;
+
 /** Only a verified regular source grid can be indexed inside a decode window. */
 async function hasRegularFrameGrid(filePath: string, fps: number, signal: AbortSignal): Promise<boolean> {
   if (signal.aborted) return false;
@@ -294,7 +301,7 @@ async function hasRegularFrameGrid(filePath: string, fps: number, signal: AbortS
       child.kill("SIGKILL");
       finish(null);
     };
-    const deadline = setTimeout(cancel, 1000);
+    const deadline = setTimeout(cancel, GRID_PROBE_TIMEOUT_MS);
     signal.addEventListener("abort", cancel, { once: true });
     child.stdout.on("data", (chunk: Buffer) => {
       bytes += chunk.length;

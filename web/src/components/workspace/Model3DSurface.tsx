@@ -70,7 +70,7 @@ const blobToBase64 = (blob: Blob): Promise<string> =>
  * falls back to the lazy 3D viewer. Mirrors how AssetEditor wires Model3DEditor,
  * but loads the asset here and passes data down so no editor edits are needed.
  */
-const Model3DSurface = ({ refId, mode }: Model3DSurfaceProps) => {
+const Model3DSurface = ({ refId, mode, active }: Model3DSurfaceProps) => {
   const { data: asset, isPending, refetch } = useAssetById(refId);
 
   const updateAsset = useAssetStore((state) => state.update);
@@ -141,6 +141,7 @@ const Model3DSurface = ({ refId, mode }: Model3DSurfaceProps) => {
           name={asset.name}
           onSave={persistBlob}
           onClose={handleClose}
+          active={active}
         />
       </Suspense>
     );

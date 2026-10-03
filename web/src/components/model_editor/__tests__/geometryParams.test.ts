@@ -54,6 +54,23 @@ describe("buildGeometry", () => {
     });
   });
 
+  it("raises values below a param's minimum before building", () => {
+    // NumericField commits each keystroke and clamps only on blur, so a
+    // transient 0 reaches buildGeometry. Unclamped, it divides by zero.
+    const geo = buildGeometry("BoxGeometry", {
+      width: 0,
+      widthSegments: 0,
+      heightSegments: 2.6
+    }) as THREE.BoxGeometry;
+    expect(geo.parameters).toMatchObject({
+      width: 0.001,
+      widthSegments: 1,
+      heightSegments: 3
+    });
+    const positions = geo.getAttribute("position").array;
+    expect(Array.from(positions).every(Number.isFinite)).toBe(true);
+  });
+
   it("preserves cylinder openEnded across a rebuild", () => {
     const original = new THREE.CylinderGeometry(1, 1, 2, 16, 1, true);
     const rebuilt = buildGeometry(

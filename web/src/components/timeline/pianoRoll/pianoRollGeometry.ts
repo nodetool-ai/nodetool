@@ -140,8 +140,6 @@ export function pitchName(pitch: number): string {
   return `${NOTE_NAMES[semitone]}${octave}`;
 }
 
-/** Middle C. */
-export const MIDDLE_C = 60;
 /** C3 — the bottom of the default view. */
 export const DEFAULT_LOW_PITCH = 48;
 /** C5 — the top of the default view. */

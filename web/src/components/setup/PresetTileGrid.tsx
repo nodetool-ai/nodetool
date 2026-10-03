@@ -18,7 +18,8 @@
  *
  * The select control is always its own button beneath the preview, because a
  * clip or a voice sample carries controls of its own and no focusable control
- * may be nested inside another.
+ * may be nested inside another. The frame still picks the tile on a click
+ * anywhere outside those controls, so a still sample is part of the target.
  *
  * Selection is mutually exclusive, so the tiles are radios with one tab stop
  * and arrow-key movement (`useRovingRadioGroup`), not a row of pressed
@@ -45,8 +46,10 @@ import {
   VideoPlayer
 } from "../ui_primitives";
 import type { MediaLocator } from "../../hooks/useResolvedMediaUri";
+import { GalleryExpandButton, MEDIA_GALLERY_HOST_CLASS } from "./MediaGallery";
 import {
   SetupCardButton,
+  isNestedControlClick,
   setupCardRoleProps,
   setupCardSx,
   useRovingRadioGroup
@@ -272,8 +275,9 @@ const TileSelectControl: React.FC<{
 
 /**
  * One framed tile: a preview area of a fixed aspect, then the select control.
- * The frame is not itself clickable, so the player's own controls and the
- * select control stay siblings.
+ * The player's own controls and the select control stay siblings rather than
+ * nesting. The frame picks the tile on a pointer click that lands outside them;
+ * the keyboard reaches the same choice through the select control.
  */
 const FramedTile: React.FC<{
   preset: PresetTile;
@@ -293,18 +297,28 @@ const FramedTile: React.FC<{
   auditioning
 }) => {
   const theme = useTheme();
+  const handleFrameClick = useCallback(
+    (event: React.MouseEvent<HTMLElement>) => {
+      if (preset.disabled !== true && !isNestedControlClick(event)) {
+        onSelect(preset.id);
+      }
+    },
+    [onSelect, preset.disabled, preset.id]
+  );
   return (
     <FlexColumn
       gap={GAP.none}
+      onClick={handleFrameClick}
       sx={setupCardSx(theme, {
         selected: radio.selected,
         disabled: preset.disabled,
-        padding: PADDING.none,
-        interactive: false
+        padding: PADDING.none
       })}
     >
       <Box
+        className={MEDIA_GALLERY_HOST_CLASS}
         sx={{
+          position: "relative",
           aspectRatio,
           width: "100%",
           display: "grid",
@@ -328,6 +342,13 @@ const FramedTile: React.FC<{
             preset={preset}
             aspectRatio={aspectRatio}
             onFailed={onSampleFailed}
+          />
+        ) : null}
+        {kind === "clip" || kind === "still" ? (
+          <GalleryExpandButton
+            locator={kind === "clip" ? preset.video : preset.image}
+            kind={kind === "clip" ? "video" : "image"}
+            caption={preset.title}
           />
         ) : null}
       </Box>

@@ -2524,7 +2524,7 @@ function compositorLayerState(raw: unknown): CompositorLayerState {
   // resolves to "normal" via coerceBlendMode.
   return {
     opacity,
-    blend_mode: coerceBlendMode(r.blend_mode),
+    blend_mode: coerceBlendMode(isString(r.blend_mode) ? r.blend_mode : undefined),
     visible,
     transform: compositorLayerTransform(r.transform)
   };
