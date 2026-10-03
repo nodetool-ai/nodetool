@@ -25,6 +25,7 @@ import {
   TextInput
 } from "../../ui_primitives";
 import { SETUP_CONTENT_WIDTH, SETUP_MEDIA_WIDTH } from "../layout";
+import { GalleryFrame } from "../MediaGallery";
 
 interface ReferenceStepProps {
   readonly name: string;
@@ -315,19 +316,26 @@ export const ReferenceStep = ({
       </FlexColumn>
 
       {assetId ? (
-        <ResponsiveImage
+        <GalleryFrame
           locator={`asset://${assetId}`}
-          alt="Selected entity reference"
-          // Stable hook for the reference slot. The rendered <img> is not one:
-          // jsdom fetches a src but has no image codec, so it fires `error` for
-          // even a valid data: URI and the error fallback replaces the <img>.
-          data-testid="entity-reference-preview"
-          aspectRatio="1/1"
-          fit="contain"
-          borderRadius={BORDER_RADIUS.md}
-          showErrorFallback
-          sx={{ width: SETUP_MEDIA_WIDTH, maxWidth: "100%", maxHeight: "48vh" }}
-        />
+          kind="image"
+          caption={name ? `${name} reference` : "Selected reference"}
+        >
+          <ResponsiveImage
+            locator={`asset://${assetId}`}
+            alt="Selected entity reference"
+            // Stable hook for the reference slot. The rendered <img> is not one:
+            // jsdom fetches a src but has no image codec, so it fires `error`
+            // for even a valid data: URI and the error fallback replaces the
+            // <img>.
+            data-testid="entity-reference-preview"
+            aspectRatio="1/1"
+            fit="contain"
+            borderRadius={BORDER_RADIUS.md}
+            showErrorFallback
+            sx={{ width: SETUP_MEDIA_WIDTH, maxWidth: "100%", maxHeight: "48vh" }}
+          />
+        </GalleryFrame>
       ) : null}
 
       <FlexRow gap={GAP.normal} wrap>

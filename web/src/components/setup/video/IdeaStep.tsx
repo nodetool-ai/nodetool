@@ -40,6 +40,7 @@ import { useSetupMediaImport } from "../../../hooks/timeline/useSetupMediaImport
 import type { SetupMediaImportResult } from "../../../hooks/timeline/useSetupMediaImport";
 import { assetIdFromLocator } from "../../../utils/mediaRef";
 import { ExampleBriefs } from "../ExampleBriefs";
+import { GalleryFrame } from "../MediaGallery";
 import { AlternativesColumn } from "../AlternativesColumn";
 import type { AlternativeEntry } from "../AlternativesColumn";
 import { useVideoSetupContext } from "./setupContext";
@@ -302,18 +303,25 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                   );
                   return (
                     <FlexColumn key={reference.uri} gap={GAP.micro}>
-                      <ResponsiveImage
+                      <GalleryFrame
                         locator={reference.uri}
-                        preferThumbnail
-                        alt={reference.name ?? "Reference image"}
-                        fit="cover"
-                        borderRadius={BORDER_RADIUS.sm}
-                        showErrorFallback
-                        sx={{
-                          width: REFERENCE_THUMBNAIL,
-                          height: REFERENCE_THUMBNAIL
-                        }}
-                      />
+                        kind="image"
+                        caption={reference.name ?? undefined}
+                        label={reference.name ?? "reference image"}
+                      >
+                        <ResponsiveImage
+                          locator={reference.uri}
+                          preferThumbnail
+                          alt={reference.name ?? "Reference image"}
+                          fit="cover"
+                          borderRadius={BORDER_RADIUS.sm}
+                          showErrorFallback
+                          sx={{
+                            width: REFERENCE_THUMBNAIL,
+                            height: REFERENCE_THUMBNAIL
+                          }}
+                        />
+                      </GalleryFrame>
                       <Caption color="secondary">
                         {binding
                           ? `${binding.kind} conditioning`

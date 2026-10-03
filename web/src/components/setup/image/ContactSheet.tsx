@@ -32,6 +32,7 @@ import {
   ResponsiveImage,
   Text
 } from "../../ui_primitives";
+import { GalleryExpandButton, MEDIA_GALLERY_HOST_CLASS } from "../MediaGallery";
 import { useSketchStore } from "../../sketch/state/useSketchStore";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
 import {
@@ -266,6 +267,7 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
               role="group"
               aria-label={`${tile.label} preview`}
               aria-busy={tile.pending}
+              className={MEDIA_GALLERY_HOST_CLASS}
               sx={{
                 position: "relative",
                 aspectRatio: "1/1",
@@ -274,14 +276,21 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
               }}
             >
               {tile.assetId ? (
-                <ResponsiveImage
-                  locator={`asset://${tile.assetId}`}
-                  preferThumbnail
-                  alt={tile.label}
-                  aspectRatio="1/1"
-                  fit="contain"
-                  borderRadius={BORDER_RADIUS.sm}
-                />
+                <>
+                  <ResponsiveImage
+                    locator={`asset://${tile.assetId}`}
+                    preferThumbnail
+                    alt={tile.label}
+                    aspectRatio="1/1"
+                    fit="contain"
+                    borderRadius={BORDER_RADIUS.sm}
+                  />
+                  <GalleryExpandButton
+                    locator={`asset://${tile.assetId}`}
+                    kind="image"
+                    caption={tile.label}
+                  />
+                </>
               ) : (
                 <Box
                   sx={{
