@@ -50,7 +50,7 @@ import { clipMask, drawMask, maskIsHard, type MaskContext2D } from "./draw.js";
 import { applyCpuDropShadows, applyCpuIris, applyCpuVisualEffects, isCpuVisualEffect } from "./cpuVisualEffects.js";
 import { alphaBounds, applyCpuColorGrade, applyCpuGaussianBlur, applyCpuLegacyEffects, isCpuLegacyEffect } from "./cpuLegacyEffects.js";
 import { aggregateBlurRadius } from "./effects.js";
-import type { MatteMode } from "./sceneModel.js";
+import type { CompositorBlendMode, MatteMode } from "./sceneModel.js";
 import { trackEffectsAsClipEffects } from "./trackEffects.js";
 import {
   IDENTITY_TRANSFORM,
@@ -120,7 +120,7 @@ export interface Canvas2DLayer<TSource> {
   sourceWidth: number;
   sourceHeight: number;
   opacity: number;
-  blendMode: unknown;
+  blendMode: CompositorBlendMode;
   /** Composite order, ascending. */
   zIndex: number;
   /** Order among clips and group surfaces with the same zIndex. */
@@ -196,7 +196,7 @@ export interface Canvas2DPrecomposite {
   /** Order among clips and group surfaces with the same zIndex. */
   stackOrder?: number;
   opacity: number;
-  blendMode: unknown;
+  blendMode: CompositorBlendMode;
   /** Run once on the composed surface, not once per child. */
   effects?: ClipEffect[];
   /** Applied to the composed surface, not separately to its children. */

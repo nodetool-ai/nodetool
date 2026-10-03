@@ -32,7 +32,9 @@ async function readRecords(
   let records: TraceRecord[] = [];
   while (Date.now() < deadline) {
     const text = await readFile(traceFile, "utf8").catch(() => "");
+    // The sink may be mid-append: parse only the lines its newline has closed.
     records = text
+      .slice(0, text.lastIndexOf("\n") + 1)
       .split("\n")
       .filter((line) => line.length > 0)
       .map((line) => JSON.parse(line) as TraceRecord);
