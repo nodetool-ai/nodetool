@@ -100,4 +100,30 @@ test.describe("Chat on a phone", () => {
     expect(screen.scrollLeft, "the welcome screen panned sideways").toBe(0);
     expect(screen.scrollWidth).toBeLessThanOrEqual(screen.clientWidth);
   });
+
+  // iOS Safari treats a tap on an element whose :hover style changes as the
+  // hover itself and does not send the click, so a starter chip needed two
+  // taps and then did nothing. A touch device must not match the hover rule.
+  test("a starter chip has no hover style on a touch device", async ({
+    page
+  }) => {
+    await page.goto("/chat/thread-mobile-welcome", {
+      waitUntil: "domcontentloaded"
+    });
+    const chip = page.locator(".chat-welcome .MuiChip-root").first();
+    await chip.waitFor({ state: "visible", timeout: 30_000 });
+    await page.waitForTimeout(500);
+
+    const border = () =>
+      chip.evaluate((el) => getComputedStyle(el).borderTopColor);
+    const resting = await border();
+    await chip.hover();
+    await page.waitForTimeout(400);
+    expect(await border(), "the chip restyled on hover").toBe(resting);
+
+    await chip.tap();
+    await expect(page.locator("textarea.media-compose-input")).toHaveValue(
+      /^Storyboard a 30-second ad for/
+    );
+  });
 });
