@@ -14,6 +14,7 @@ import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { entitiesForShot } from "../../../stores/storyboard/shotEntities";
 import { rpcRequest } from "../../../lib/websocket/rpcRequest";
 import { useDefaultStillModel } from "../../../hooks/storyboard/useDefaultStillModel";
+import { useImageModelsByProvider } from "../../../hooks/useModelsByProvider";
 import EntityAssetPickerDialog from "../../entities/EntityAssetPickerDialog";
 import EntityEditorDialog from "../../entities/EntityEditorDialog";
 import ImageModelSelect from "../../properties/ImageModelSelect";
@@ -47,6 +48,10 @@ import {
   type EntitySuggestion
 } from "./entitySuggestions";
 import {
+  referenceImageModel,
+  type ReferenceImageModel
+} from "./referenceImageModel";
+import {
   SETUP_FIELD_WIDTH,
   SETUP_MEDIA_WIDTH,
   SETUP_WIDE_CONTENT_WIDTH
@@ -65,6 +70,24 @@ const ENTITY_GROUPS = [
   { kind: "prop", label: "Props" },
   { kind: "style", label: "Styles" }
 ] as const;
+
+const REFERENCE_MODEL_HELPER =
+  "Used only for missing entities you choose to create. The same model carries into the Look step.";
+
+const editOnlyMessage = (name: string): string =>
+  `${name} only edits images, so it cannot draw a reference from a description. Pick a model that creates images from text.`;
+
+const referenceModelHelperText = (
+  model: ReferenceImageModel | null
+): string => {
+  if (model?.kind === "edit_only") {
+    return editOnlyMessage(model.name);
+  }
+  if (model?.substituteFor) {
+    return `${model.substituteFor} only edits images, so references use ${model.model.name}. Stills in the Look step keep ${model.substituteFor}.`;
+  }
+  return REFERENCE_MODEL_HELPER;
+};
 
 const setIdSelected = (
   ids: readonly string[],
@@ -89,6 +112,10 @@ export const EntitiesStep = ({
   const setEntityIds = useStoryboardStore((state) => state.setEntityIds);
   const updateShot = useStoryboardStore((state) => state.updateShot);
   const setImageModel = useStoryboardStore((state) => state.setImageModel);
+  const { models: imageModels } = useImageModelsByProvider();
+  const referenceModel = board?.imageModel
+    ? referenceImageModel(board.imageModel, imageModels)
+    : null;
   const [pickerOpen, setPickerOpen] = useState(false);
   const openGallery = useMediaGallery();
   const [newAssetId, setNewAssetId] = useState<string | null>(null);
@@ -204,12 +231,18 @@ export const EntitiesStep = ({
       );
       return;
     }
-    const model =
+    const selected =
       useStoryboardStore.getState().getBoard(boardId)?.imageModel ?? null;
-    if (!model?.id) {
+    if (!selected?.id) {
       setAssistError("Pick a reference image model first.");
       return;
     }
+    const resolved = referenceImageModel(selected, imageModels);
+    if (resolved.kind === "edit_only") {
+      setAssistError(editOnlyMessage(resolved.name));
+      return;
+    }
+    const { model } = resolved;
     setCreatingKeys((current) => new Set(current).add(key));
     setAssistError(null);
     try {
@@ -366,7 +399,7 @@ export const EntitiesStep = ({
             ) ? (
               <FormField
                 label="Reference image model"
-                helperText="Used only for missing entities you choose to create. The same model carries into the Look step."
+                helperText={referenceModelHelperText(referenceModel)}
                 sx={{ maxWidth: SETUP_FIELD_WIDTH }}
               >
                 <ImageModelSelect

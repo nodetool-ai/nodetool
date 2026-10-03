@@ -427,6 +427,32 @@ export interface DirectInferenceDeps {
 }
 
 /**
+ * Refuse a bare prompt for a model the catalog lists as editing-only. Such a
+ * model needs an input image, and its provider rejects the request with an
+ * error that names neither the cause nor the fix (AtlasCloud's edit
+ * endpoints answer "index 0 out of range"). An unlisted model, or one with
+ * no declared tasks, is left to the provider.
+ */
+async function assertTextToImageModel(
+  provider: BaseProvider,
+  modelId: string
+): Promise<void> {
+  if (typeof provider.getAvailableImageModels !== "function") {
+    return;
+  }
+  const model = (await provider.getAvailableImageModels()).find(
+    (candidate) => candidate.id === modelId
+  );
+  const tasks = model?.supportedTasks;
+  if (model && tasks?.length && !tasks.includes("text_to_image")) {
+    throw new Error(
+      `${model.name || modelId} only edits images and needs an input image. ` +
+        "Choose a model that creates images from text."
+    );
+  }
+}
+
+/**
  * One-shot model calls that skip the chat thread and the workflow runner:
  * the streamed `inference` command, and the direct text / media / speech
  * generation the sketch, timeline and Studio surfaces drive over RPC.
@@ -1257,6 +1283,7 @@ export class DirectInferenceHandler {
           )
       );
     } else if (req.mode === "image") {
+      await assertTextToImageModel(provider, req.model);
       const params: TextToImageParams = {
         model: imageModel,
         prompt,

@@ -58,6 +58,10 @@ jest.mock("../../../../lib/websocket/rpcRequest", () => ({
 jest.mock("../../../../hooks/storyboard/useDefaultStillModel", () => ({
   useDefaultStillModel: jest.fn()
 }));
+const imageModels: unknown[] = [];
+jest.mock("../../../../hooks/useModelsByProvider", () => ({
+  useImageModelsByProvider: () => ({ models: imageModels })
+}));
 jest.mock("../../../properties/ImageModelSelect", () => ({
   __esModule: true,
   default: () => <div data-testid="image-model-select" />
@@ -114,6 +118,7 @@ const renderStep = () => {
 
 beforeEach(() => {
   jest.clearAllMocks();
+  imageModels.length = 0;
   searchAssets.mockResolvedValue({ assets: entityAssets });
   getAsset.mockImplementation(async ({ id }: { id: string }) => ({
     id,
@@ -333,6 +338,113 @@ it("finds entities in the screenplay and creates a selected reference", async ()
     "station",
     "lantern-asset"
   ]);
+});
+
+it("draws a reference with the text-to-image variant of an editing-only still model", async () => {
+  imageModels.push(
+    {
+      type: "image_model",
+      id: "black-forest-labs/flux-2-flex/edit",
+      name: "FLUX.2 Flex — Edit",
+      provider: "atlascloud",
+      supported_tasks: ["image_to_image"]
+    },
+    {
+      type: "image_model",
+      id: "black-forest-labs/flux-2-flex/text-to-image",
+      name: "FLUX.2 Flex — Text to Image",
+      provider: "atlascloud",
+      supported_tasks: ["text_to_image"]
+    }
+  );
+  useStoryboardStore.getState().setImageModel(BOARD_ID, {
+    type: "image_model",
+    id: "black-forest-labs/flux-2-flex/edit",
+    provider: "atlascloud",
+    name: "FLUX.2 Flex — Edit",
+    path: ""
+  });
+  rpcRequest
+    .mockResolvedValueOnce({
+      data: {
+        entities: [
+          {
+            name: "The Lantern",
+            kind: "prop",
+            descriptor: "A dented brass railway lantern",
+            reference_prompt: "A dented brass railway lantern on grey"
+          }
+        ]
+      }
+    })
+    .mockResolvedValueOnce({ asset_ids: ["lantern-asset"] });
+  const user = userEvent.setup();
+  renderStep();
+
+  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  expect(
+    await screen.findByText(
+      "FLUX.2 Flex — Edit only edits images, so references use FLUX.2 Flex — Text to Image. Stills in the Look step keep FLUX.2 Flex — Edit."
+    )
+  ).toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Create The Lantern" }));
+
+  await waitFor(() =>
+    expect(rpcRequest).toHaveBeenNthCalledWith(
+      2,
+      "generate_media",
+      expect.objectContaining({
+        provider: "atlascloud",
+        model: "black-forest-labs/flux-2-flex/text-to-image"
+      })
+    )
+  );
+  expect(useStoryboardStore.getState().getBoard(BOARD_ID)?.imageModel?.id).toBe(
+    "black-forest-labs/flux-2-flex/edit"
+  );
+});
+
+it("asks for another model when the still model only edits and has no text-to-image variant", async () => {
+  imageModels.push({
+    type: "image_model",
+    id: "alibaba/qwen-image-3/edit",
+    name: "Qwen Image 3 — Edit",
+    provider: "atlascloud",
+    supported_tasks: ["image_to_image"]
+  });
+  useStoryboardStore.getState().setImageModel(BOARD_ID, {
+    type: "image_model",
+    id: "alibaba/qwen-image-3/edit",
+    provider: "atlascloud",
+    name: "Qwen Image 3 — Edit",
+    path: ""
+  });
+  rpcRequest.mockResolvedValueOnce({
+    data: {
+      entities: [
+        {
+          name: "The Lantern",
+          kind: "prop",
+          descriptor: "A dented brass railway lantern",
+          reference_prompt: "A dented brass railway lantern on grey"
+        }
+      ]
+    }
+  });
+  const user = userEvent.setup();
+  renderStep();
+
+  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Create The Lantern" })
+  );
+
+  expect(
+    await screen.findAllByText(
+      "Qwen Image 3 — Edit only edits images, so it cannot draw a reference from a description. Pick a model that creates images from text."
+    )
+  ).not.toHaveLength(0);
+  expect(rpcRequest).toHaveBeenCalledTimes(1);
 });
 
 it("creates suggested references in parallel with a generating mark on each active button", async () => {
