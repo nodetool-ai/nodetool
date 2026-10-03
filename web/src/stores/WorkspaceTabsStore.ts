@@ -108,8 +108,8 @@ export interface OpenTabInput {
   type: WorkspaceTabType;
   ref: string;
   /**
-   * New tabs default to "edit". For an existing tab the mode is only
-   * updated when one is explicitly given.
+   * Apps, games, and timelines default to "view". Other new tabs default
+   * to "edit". Explicit modes override these defaults.
    */
   mode?: WorkspaceTabMode;
   title?: string;
@@ -410,6 +410,8 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
         { type, ref, mode, title, projectId, setupTarget }: OpenTabInput,
         foreground = false
       ): string => {
+        mode ??= type === "application" || type === "game" || type === "timeline"
+          ? "view" : undefined;
         const id = tabId(type, ref);
         const existing = get().tabs.find((t) => t.id === id);
         const project =

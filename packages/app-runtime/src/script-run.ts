@@ -5,14 +5,18 @@
  * no graph, so two things have to be manufactured: the bindable surface the
  * binding layer resolves names against (its declared ports, which are its
  * stable identifiers — a script has no node ids), and the message stream the
- * fold consumes, because the run endpoint answers with plain JSON rather than
- * streaming.
+ * fold consumes, because the run endpoint answers with plain JSON unless the
+ * host asks it to stream.
  *
  * Both live here, above the browser and above the simulator, so the two hosts
  * cannot fold one script run two different ways. This package carries no
  * dependencies, so the script document is typed structurally and the one fact
  * that needs a parser — whether the body reads its inputs through `stream` —
  * arrives as a flag from the caller.
+ *
+ * A host that can read a streamed response asks for one, and folds each line
+ * through {@link scriptStreamMessages} as it arrives. That is how an agent
+ * running inside the script shows its work before the run ends.
  */
 
 import { isRecord, isString } from "./predicates.js";
@@ -127,6 +131,65 @@ export function scriptRunMessages(
       : { ...jobUpdate, error: result.error }
   );
   return messages;
+}
+
+/** The `accept` value that asks the run endpoint to stream the run. */
+export const SCRIPT_RUN_STREAM_CONTENT_TYPE = "application/x-ndjson";
+
+/**
+ * One line of a streamed script run, which the endpoint sends when the request
+ * accepts {@link SCRIPT_RUN_STREAM_CONTENT_TYPE}: run messages (agent text and
+ * tool calls, progress) and emits as they happen, then the result.
+ */
+export type ScriptStreamLine =
+  | { type: "message"; message: Record<string, unknown> }
+  | { type: "emit"; name: string; value: unknown }
+  | { type: "result"; result: ScriptRunResult };
+
+/**
+ * The fold messages one streamed line stands for.
+ *
+ * A relayed message keeps what it says but loses its `node_id`: inside a
+ * script that id names an agent loop, not a port, and a port of the same name
+ * must not receive the agent's text. It moves to `source`. An emit appends the
+ * way {@link scriptRunMessages} replays it. The result settles the run, with
+ * its emits left out because they already arrived as lines.
+ */
+export function scriptStreamMessages(
+  line: unknown,
+  jobId?: string
+): Array<Record<string, unknown>> {
+  if (!isRecord(line)) return [];
+  const job = jobId === undefined ? {} : { job_id: jobId };
+  if (line.type === "message" && isRecord(line.message)) {
+    const { node_id: source, ...message } = line.message;
+    return [{ ...message, ...job, ...(isString(source) && { source }) }];
+  }
+  if (line.type === "emit" && isString(line.name)) {
+    return [
+      {
+        ...job,
+        type: "output_update",
+        node_id: line.name,
+        output_name: line.name,
+        value: line.value,
+        disposition: "append"
+      }
+    ];
+  }
+  if (line.type === "result" && isRecord(line.result)) {
+    const { ok, outputs, error } = line.result;
+    const result: ScriptRunResult = {
+      ok: ok === true,
+      streamed: [],
+      logs: [],
+      duration_ms: 0
+    };
+    if (isRecord(outputs)) result.outputs = outputs;
+    if (isString(error)) result.error = error;
+    return scriptRunMessages(result, jobId);
+  }
+  return [];
 }
 
 /** A script port as the binding layer sees it: the name stands in for a node id. */

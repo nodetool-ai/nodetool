@@ -13,7 +13,7 @@ import { PERMISSION_GATE_CONTEXT_KEY, ProcessingContext, headlessGate } from "@n
 import type { Workspace as RunWorkspace } from "@nodetool-ai/runtime";
 import { getAssetAdapter } from "../../lib/storage.js";
 import { getAssetStorageKey, retrieveAssetBytes } from "../../lib/asset-paths.js";
-import { installExampleGameAssets, listExampleGames } from "../../lib/example-games.js";
+import { getExampleGameBundle, installExampleGameAssets, listExampleGames } from "../../lib/example-games.js";
 import { workspaceFromRow } from "../../lib/workflow-workspace.js";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -295,6 +295,17 @@ export const gamesRouter = router({
   examples: protectedProcedure
     .output(z.array(exampleGameSummary))
     .query(({ ctx }) => listExampleGames(ctx.apiOptions)),
+
+  example: protectedProcedure
+    .input(z.object({ slug: z.string().min(1) }))
+    .output(z.object({ name: z.string(), document: gameDocument }))
+    .query(({ ctx, input }) => {
+      const bundle = getExampleGameBundle(ctx.apiOptions, input.slug);
+      if (!bundle) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Example game not found");
+      }
+      return { name: bundle.name, document: bundle.document };
+    }),
 
   installExample: protectedProcedure
     .input(installExampleGameInput)

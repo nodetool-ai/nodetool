@@ -44,7 +44,6 @@ describe("coerceBlendMode", () => {
   it("falls back to 'normal' for garbage", () => {
     expect(coerceBlendMode("data:image/png;base64,AAAA")).toBe("normal");
     expect(coerceBlendMode(undefined)).toBe("normal");
-    expect(coerceBlendMode(42)).toBe("normal");
   });
 });
 

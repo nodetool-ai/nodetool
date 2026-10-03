@@ -399,6 +399,8 @@ export const textStyleParams = withFieldNotes(clipTextStyle, {
   letterSpacingPx: "Extra advance between glyphs, in sequence px. Default 0.",
   lineHeight: "Line advance as a multiple of the font size. Default 1.2.",
   maxWidthFrac: "Wrap width as a fraction of frame width.",
+  strikethrough:
+    "Draw a line through the text in its fill colour, as on a superseded price.",
   fill:
     'Gradient or solid fill, {type: "solid"|"linear"|"radial", ...}. ' +
     "Wins over `color` when set."

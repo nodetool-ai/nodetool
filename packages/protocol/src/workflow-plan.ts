@@ -623,7 +623,7 @@ export const WORKFLOW_INSPIRATION_CHIPS: readonly WorkflowInspirationChip[] = [
           id: "render",
           title: "Render the shot",
           summary: "Generate the product image for the row.",
-          node_type: "nodetool.fake.GenerateImage",
+          node_type: "nodetool.image.TextToImage",
           model_role: "image"
         }
       ],
@@ -631,25 +631,27 @@ export const WORKFLOW_INSPIRATION_CHIPS: readonly WorkflowInspirationChip[] = [
     }
   },
   {
-    id: "url-to-post",
-    brief: "Turn a YouTube URL into a blog post",
+    id: "notes-to-post",
+    brief: "Turn rough notes into a blog post",
     plan: {
-      inputs: [{ name: "url", type: "string" }],
+      inputs: [{ name: "notes", type: "string" }],
       steps: [
         {
-          id: "download",
-          title: "Download the video",
-          summary: "Fetch the video behind the URL.",
-          node_type: "lib.video.download.YtDlpDownload"
+          id: "points",
+          title: "Pull out the key points",
+          summary: "Reduce the notes to the points the post should make.",
+          node_type: "nodetool.agents.Summarizer",
+          model_role: "language"
         },
         {
-          id: "audio",
-          title: "Take the audio",
-          summary: "Split the audio track off the video.",
-          node_type: "nodetool.video.ExtractAudio"
+          id: "write",
+          title: "Write the post",
+          summary: "Draft a blog post from the key points.",
+          node_type: "nodetool.agents.Agent",
+          model_role: "language"
         }
       ],
-      outputs: [{ name: "audio", type: "audio" }]
+      outputs: [{ name: "post", type: "string" }]
     }
   }
 ];

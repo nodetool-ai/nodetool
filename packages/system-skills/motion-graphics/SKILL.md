@@ -78,7 +78,7 @@ Two ways to touch a timeline document. Pick by what changed, not by habit.
 document in one call and returns `{timeline_id, errors, warnings}`. A cut
 with hundreds of keyframed clips costs a handful of API calls this way,
 instead of one `edit_timeline` op per clip. NodeTool's shipped example
-timelines (Kite, Prism, Voltra, Tidewater, T minus 30) are built with it. Its
+timelines (Cadence, Kite, Prism, Voltra, Tidewater, T minus 30) are built with it. Its
 full signatures, options and gotchas are the pack's own skill — read
 `nodetool.packs.docs("@nodetool-ai/sandbox-timeline")` before writing scenes,
 not this file. `frame-composition` covers how to lay out what goes inside a

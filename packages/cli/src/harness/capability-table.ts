@@ -1679,6 +1679,17 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     ],
   },
   {
+    name: "run_agent",
+    module: "agents",
+    impl: "packages/agents/src/capabilities/agents.ts",
+    contract: "18a8cbb7e60b",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-agents.test.ts",
+      "packages/agents/tests/capabilities-run-agent.test.ts",
+    ],
+  },
+  {
     name: "google_drive_search",
     module: "google",
     impl: "packages/agents/src/capabilities/google.ts",
@@ -2881,6 +2892,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-storyboards.test.ts",
+      "packages/agents/tests/capabilities-run-agent.test.ts",
     ],
     evals: [
       {

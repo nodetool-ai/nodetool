@@ -153,8 +153,8 @@ const StudioStoryboardPage = () => {
           state={loadState}
           label="storyboard"
           onRetry={() => setRetryToken((value) => value + 1)}
-          onClose={() => navigate("/studio")}
-          closeLabel="Back to Studio"
+          onClose={() => navigate("/workspace")}
+          closeLabel="Back to workspace"
         />
       </StudioShell>
     );

@@ -4,11 +4,11 @@ import ReportBugButton from "../support/ReportBugButton";
 import GameViewport3D from "./GameViewport3D";
 import { useGamePlaySession3D } from "./useGamePlaySession3D";
 
-interface GamePlayer3DProps { readonly gameId: string; readonly name: string; readonly document: GameDocument3D; }
+interface GamePlayer3DProps { readonly gameId: string; readonly name: string; readonly document: GameDocument3D; readonly active?: boolean; }
 
-export default function GamePlayer3D({ gameId, name, document }: GamePlayer3DProps) {
-  const host = useGamePlaySession3D({ refId: gameId, document, active: true });
-  return <FlexColumn gap={SPACING.sm} sx={{ height: "100vh", minHeight: 0, p: SPACING.md }}>
+export default function GamePlayer3D({ gameId, name, document, active = true }: GamePlayer3DProps) {
+  const host = useGamePlaySession3D({ refId: gameId, document, active });
+  return <FlexColumn gap={SPACING.sm} sx={{ height: "100%", minHeight: 0, p: SPACING.md }}>
     <FlexRow gap={SPACING.sm} align="center" wrap>
       <Text size="big">{name}</Text>
       <EditorButton onClick={host.beginPlay} disabled={host.backend === "Initializing"}>{host.playing ? "Pause" : host.playDocument ? "Resume" : "Play"}</EditorButton>

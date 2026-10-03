@@ -144,6 +144,9 @@ export class Storyboard extends DBModel {
     doc.entityIds ??= [];
     doc.setupStage ??= "done";
     doc.genre ??= "";
+    if (doc.screenplay) {
+      doc.screenplay.shots = doc.shots;
+    }
     // A shot can name an entity the board was never cast with — agents write
     // shots one at a time and forget the board. Reconcile on read so the cast
     // holds everything the shots reference.

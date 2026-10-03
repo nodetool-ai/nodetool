@@ -325,7 +325,7 @@ const PropertyDropzone = ({
           fileName = `file.${ext}`;
         }
 
-        const file = new File([fileData.buffer as BlobPart], fileName, { type: contentType });
+        const file = new File([fileData.buffer as BlobPart], fileName, { type: fileData.mimeType });
 
         uploadAssetFn({
           file,

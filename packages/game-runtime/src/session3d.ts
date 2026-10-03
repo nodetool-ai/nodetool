@@ -3,7 +3,7 @@ import {
   type GameDocument3D, type GameEntity3D, type GameEntityState3D, type GameEvent3D, type GameHudLabel,
   type GameInputFrame3D, type GameInspection3D, type GameInspectionQuery3D, type GameQueryResult3D,
   type GameRenderFrame3D, type GameScene3D, type GameScriptCommand3D, type GameSnapshot3D,
-  type GameStepResult3D, type GameVector3
+  type GameStepResult3D, type GameTransform3D, type GameVector3
 } from "@nodetool-ai/protocol";
 import {
   advanceGameplayRandom, applyGameplayCommand, claimGameplayContact, finalizeGameplayEntities,
@@ -106,13 +106,13 @@ function snapshotEntity3D(state: EntityState3D): GameEntityState3D {
 }
 
 function frame3D(document: GameDocument3D, scene: GameScene3D, states: readonly EntityState3D[], camera: GameCameraState3D,
-  tick: number, score: number, won: boolean, hud: ReadonlyMap<string, GameHudLabel>): GameRenderFrame3D {
+  previousCamera: GameTransform3D, tick: number, score: number, won: boolean, hud: ReadonlyMap<string, GameHudLabel>): GameRenderFrame3D {
   const cameraDefinition = states.find((state) => state.definition.id === camera.entityId)?.definition.camera3d;
   if (!cameraDefinition) throw new Error(`Missing active camera ${camera.entityId}`);
   return {
     dimension: "3d", gameId: document.id, sceneId: scene.id, tick, presentation: document.presentation,
     fonts: Object.fromEntries(Object.entries(document.assets).flatMap(([slot, binding]) => binding.mediaKind === "font" ? [[slot, binding]] : [])),
-    camera: { entityId: camera.entityId, transform: structuredClone(camera.transform), projection: cameraDefinition.projection },
+    camera: { entityId: camera.entityId, transform: structuredClone(camera.transform), previousTransform: structuredClone(previousCamera), projection: cameraDefinition.projection },
     entities: states.filter((state) => state.active).map((state) => {
       const lifetime = state.definition.behaviors.find((behavior) => behavior.kind === "lifetime");
       const progress = lifetime?.kind === "lifetime" ? Math.max(0, Math.min(1, (tick - state.spawnTick) / lifetime.ticks)) : 0;
@@ -220,13 +220,14 @@ export async function createGameSession3D(value: GameDocument3D, seed: number, s
     if (!cameraEntity) throw new Error("Active camera is missing");
     let camera = saved ? structuredClone(saved.camera) : initialCamera3D(cameraEntity);
     if (!saved) resolveCamera3D(camera, cameraEntity, states, currentSpatial());
+    let previousCamera = structuredClone(camera.transform);
     let failed = false;
     let disposed = false;
     const assertAvailable = (): void => {
       if (disposed) throw new Error("Game session is disposed");
       if (failed) throw new Error("Game session stopped after a failed step");
     };
-    const frame = (): GameRenderFrame3D => { assertAvailable(); return frame3D(document, scene!, states, camera, tick, score, won, hud); };
+    const frame = (): GameRenderFrame3D => { assertAvailable(); return frame3D(document, scene!, states, camera, previousCamera, tick, score, won, hud); };
     const snapshot = (): GameSnapshot3D => {
       assertAvailable();
       return { dimension: "3d", schemaVersion: 3, engineVersion: "2", gameRevision: document.revision, contentDigest, physicsBuild: GAME_PHYSICS_BUILD_3D,
@@ -251,6 +252,7 @@ export async function createGameSession3D(value: GameDocument3D, seed: number, s
           return runGameplayPhases({
             prepare(): void {
               for (const state of states) state.previousTransform = structuredClone(state.transform);
+              previousCamera = structuredClone(camera.transform);
               applyCameraLook3D(camera, cameraEntity!, input);
               for (const state of states) {
                 if (!state.active) continue;
@@ -428,6 +430,7 @@ export async function createGameSession3D(value: GameDocument3D, seed: number, s
               }
               updateVisualHierarchy3D(states);
               resolveCamera3D(camera, cameraEntity!, states, currentSpatial());
+              if (queues.transitionTo) previousCamera = structuredClone(camera.transform);
               previousEvents = structuredClone(events);
               rngState = advanceGameplayRandom(rngState);
               tick += 1;

@@ -133,6 +133,23 @@ describe("Recipe compiler", () => {
     const approval: BoundRecipeOperation = {...operation(), contract: {...operation().contract, approvalInput: "approval", staleness: "none"}};
     expect(messages(manifest(), [approval])).toContain("must reject stale");
   });
+  it("shows the agent activity of a model operation under its run button", () => {
+    const recipe = manifest();
+    recipe.operations.push({id: "finish", bindingId: "finish", intent: "finish_storyboard", version: 1});
+    const base = operation();
+    const plan: BoundRecipeOperation = {
+      contract: {...base.contract, outputs: {...base.contract.outputs, approval: {type: "str", required: true}}},
+      binding: {...base.binding, outputs: {...base.binding.outputs, approval: {to: "variable", variableId: "approval"}}}
+    };
+    const finish: BoundRecipeOperation = {
+      contract: {...base.contract, id: "finish_storyboard", spend: "model", approvalInput: "approval", inputs: {...base.contract.inputs, approval: {type: "str", required: true}}},
+      binding: {...base.binding, id: "finish", name: "Finish quote", inputs: {...base.binding.inputs, approval: {from: "variable", variableId: "approval"}}}
+    };
+    const result = compileRecipeApplication(recipe, {operations: [plan, finish]});
+    if (result.status !== "ok") {throw new Error(JSON.stringify(result.diagnostics));}
+    const activity = result.document.ui.content.filter((entry) => entry.type === "AgentActivity");
+    expect(activity).toEqual([{type: "AgentActivity", props: {id: "finish-activity", binding: "op:finish/exec#transcript", label: "Finish quote: agent activity", height: 360}}]);
+  });
   it("preserves exact whitespace and validates defaults and choice membership", () => {
     const value = manifest(); value.defaults = {quote: "  €29  "};
     const result = compileRecipeApplication(value, {operations: [operation()]});

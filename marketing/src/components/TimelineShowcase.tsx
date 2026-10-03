@@ -47,7 +47,7 @@ export default function TimelineShowcase() {
           </p>
         </div>
 
-        <div className="grid grid-cols-2 gap-3 sm:grid-cols-5" role="group" aria-label="Example films">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-6" role="group" aria-label="Example films">
           {timelineExamples.map((example) => (
             <button
               key={example.slug}

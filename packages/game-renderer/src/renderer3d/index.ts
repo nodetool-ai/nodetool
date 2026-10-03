@@ -381,7 +381,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     }
     return pending;
   }
-  private configureCamera(frame: GameRenderFrame3D): void {
+  private configureCamera(frame: GameRenderFrame3D, interpolation: number): void {
     const state = this.cameraOverride ?? frame.camera;
     const projection = state.projection;
     const aspect = this.canvas.width / this.canvas.height;
@@ -398,7 +398,8 @@ class ThreeGameRenderer implements GameRenderer3D {
     }
     this.camera.near = projection.near;
     this.camera.far = projection.far;
-    applyTransform(this.camera, state.transform);
+    applyTransform(this.camera, "previousTransform" in state && state.previousTransform
+      ? interpolateGameTransform3D(state.previousTransform, state.transform, interpolation) : state.transform);
     this.camera.updateProjectionMatrix();
     this.camera.updateMatrixWorld(true);
   }
@@ -547,7 +548,7 @@ class ThreeGameRenderer implements GameRenderer3D {
       }
     }
     this.controller.signal.throwIfAborted();
-    this.configureCamera(frame);
+    this.configureCamera(frame, interpolation);
     const activeCamera = this.editorCamera ?? this.camera;
     activeCamera.updateMatrixWorld(true);
     this.configureLights(frame);

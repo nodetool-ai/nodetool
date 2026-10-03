@@ -1,5 +1,5 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -186,6 +186,63 @@ describe("PresetTileGrid", () => {
 
     await user.click(select);
     expect(onSelect).toHaveBeenCalledWith("kling");
+  });
+
+  it("selects a tile from a click on its still sample", () => {
+    const { onSelect } = renderGrid();
+
+    const sample = cardOf(
+      screen.getByRole("radio", { name: /Noir/ })
+    ).querySelector("img") as HTMLElement;
+    // The still ignores the pointer so the press reaches the frame.
+    fireEvent.click(sample);
+    expect(onSelect).toHaveBeenCalledTimes(1);
+    expect(onSelect).toHaveBeenCalledWith("noir");
+  });
+
+  it("selects once from a click on the select control", async () => {
+    const user = userEvent.setup();
+    const { onSelect } = renderGrid();
+
+    await user.click(screen.getByRole("radio", { name: /Noir/ }));
+    expect(onSelect).toHaveBeenCalledTimes(1);
+  });
+
+  it("leaves a click on a clip or an audition to the player", async () => {
+    const user = userEvent.setup();
+    const { onSelect } = renderGrid({
+      presets: [
+        { id: "kling", title: "Kling", video: "asset://kling-sample" },
+        { id: "aria", title: "Aria", onPlaySample: jest.fn() }
+      ]
+    });
+
+    const video = cardOf(
+      screen.getByRole("radio", { name: "Kling" })
+    ).querySelector("video") as HTMLElement;
+    fireEvent.click(video);
+    await user.click(screen.getByRole("button", { name: "Hear Aria" }));
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("ignores a click on a disabled tile's sample", () => {
+    const { onSelect } = renderGrid({
+      presets: [
+        {
+          id: "comic",
+          title: "Comic",
+          image: "asset://comic-sample",
+          disabled: true
+        }
+      ]
+    });
+
+    fireEvent.click(
+      cardOf(screen.getByRole("radio", { name: /Comic/ })).querySelector(
+        "img"
+      ) as HTMLElement
+    );
+    expect(onSelect).not.toHaveBeenCalled();
   });
 
   it("names the audition button with the voice, and says what it is doing", () => {

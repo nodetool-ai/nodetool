@@ -3,7 +3,7 @@ import { isKnownWidget, parseApplicationBundle } from "@nodetool-ai/app-runtime"
 import assert from "node:assert/strict";
 import { test } from "vitest";
 import { PRODUCT_PRICE_DROP_BUNDLE, PLAN_CODE, FINISH_CODE } from "../example-apps/product-price-drop.mjs";
-const input = {productImage: {asset_id: "a".repeat(32)}, logo: {asset_id: "b".repeat(32)}, headline: "  Better coffee  ", oldPrice: "€49", newPrice: "€29", cta: "Shop now", brandColor: "#1248AB", direction: "Bold editorial rhythm"};
+const input = {finishModel: {provider: "openai", id: "gpt-5.4-mini"}, finishStrategy: "agentic", productImage: {asset_id: "a".repeat(32)}, logo: {asset_id: "b".repeat(32)}, headline: "  Better coffee  ", oldPrice: "€49", newPrice: "€29", cta: "Shop now", brandColor: "#1248AB", direction: "Bold editorial rhythm"};
 const execute = async (code, inputs, capabilities) => {
   const results = {};
   capabilities = {get_entity: async ({entity_id}) => ({entity: {id: entity_id, reference_images: [{asset_id: entity_id}]}}), preview_storyboard_design: async () => ({timeline: {type: "timeline", data: {durationMs: 6000, tracks: [], clips: []}}}), ...capabilities};

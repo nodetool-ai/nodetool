@@ -56,7 +56,8 @@ first scene excerpt. Use `scene_id` to choose another scene and `clip_offset` /
 `nodetool.timelines.examples.list()` and
 `nodetool.timelines.examples.get("kite", {clip_limit: 12})`. No library install
 or repository filesystem is needed. Kite, Prism, Voltra and Tidewater show
-different ways to group scenes and combine keyframed layers.
+different ways to group scenes and combine keyframed layers. Cadence shows a
+vertical data story built from the chart helpers and a reusable component.
 
 Build with the craft methods, not hand-keyframed fades. `video({palette,
 fonts, ...})` from `@nodetool-ai/sandbox-timeline` gives every scene

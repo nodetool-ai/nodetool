@@ -20,6 +20,7 @@ import type { AppInstanceState } from "./state.js";
 import {
   isOperationRunning,
   operationActivity,
+  operationTranscript,
   operationError,
   operationProgress
 } from "./state.js";
@@ -157,6 +158,8 @@ export const readRef = (
           return operationError(state, ref.operationId);
         case "activity":
           return operationActivity(state, ref.operationId);
+        case "transcript":
+          return operationTranscript(state, ref.operationId);
       }
   }
 };

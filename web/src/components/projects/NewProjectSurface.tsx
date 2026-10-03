@@ -1127,6 +1127,7 @@ const NewProjectSurface = ({
         openTab({
           type: "game",
           ref: created.game.id,
+          mode: "edit",
           title: name,
           projectId
         });

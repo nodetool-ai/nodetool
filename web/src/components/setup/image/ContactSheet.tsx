@@ -268,11 +268,16 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
               aria-label={`${tile.label} preview`}
               aria-busy={tile.pending}
               className={MEDIA_GALLERY_HOST_CLASS}
+              // A click on the still picks it, the same as `Sketch editor`
+              // beneath it, which stays the keyboard route.
+              onClick={tile.assetId ? () => pick(tile.layerId) : undefined}
               sx={{
                 position: "relative",
                 aspectRatio: "1/1",
                 overflow: "hidden",
-                borderRadius: BORDER_RADIUS.sm
+                borderRadius: BORDER_RADIUS.sm,
+                cursor: tile.assetId ? "pointer" : "default",
+                "& img": { pointerEvents: "none", userSelect: "none" }
               }}
             >
               {tile.assetId ? (

@@ -30,6 +30,7 @@ import type {
 } from "./types.js";
 import {
   gradeCodeCases,
+  type EmittedEntry,
   type GradedCase,
   type HarnessRunResult
 } from "./code-grading.js";
@@ -78,6 +79,11 @@ export async function runCodeBody(
      * script run.
      */
     withToolbelt?: boolean;
+    /**
+     * Sees each `emit()` as the guest makes it, for a host that streams the
+     * run. The emits still come back in `streamed`, in call order.
+     */
+    onEmit?: (name: string, value: unknown) => void;
   }
 ): Promise<HarnessRunResult> {
   const {
@@ -189,6 +195,14 @@ export async function runCodeBody(
     };
     if (modules) sandboxOptions.modules = modules;
     if (capabilities) sandboxOptions.capabilities = capabilities;
+    const relayed: EmittedEntry[] = [];
+    const watch = params.onEmit;
+    if (watch) {
+      sandboxOptions.onEmit = (name, value) => {
+        relayed.push({ name, value });
+        watch(name, value);
+      };
+    }
 
     const result = await runInSandbox(sandboxOptions);
 
@@ -197,12 +211,13 @@ export async function runCodeBody(
       return fail(result.error ?? "Code execution failed", logs);
     }
     if (emitContract) {
-      // No `onEmit` sink is passed, so the host accumulates the emits and hands
-      // them back in call order; the return value carries no output semantics.
+      // Without a sink the host accumulates the emits and hands them back in
+      // call order; with one they were collected as they were relayed. The
+      // return value carries no output semantics.
       return {
         ok: true,
         outputs: result.outputs ?? {},
-        streamed: result.emitted ?? [],
+        streamed: watch ? relayed : (result.emitted ?? []),
         logs,
         duration_ms: Date.now() - started
       };

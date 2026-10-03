@@ -112,7 +112,9 @@ user clicks Run again.
 1. Place a **Progress** widget wired to `op:main/exec#progress`.
 2. Place a **Text** widget wired to `op:main/exec#activity` — the line the run
    writes about itself: the tool an agent is calling, the planning stage, the
-   step it's on.
+   step it's on. For an agent, place an **Agent Activity** widget wired to
+   `op:main/exec#transcript` instead. It shows the agent's text and every tool
+   call with its outcome while the run is live.
 3. Set the Run button's `disabledWhen` to `op:main/exec#running` `is not empty`,
    so it can't be clicked twice.
 4. Place a second **Button** with the **Cancel run** action, and set its

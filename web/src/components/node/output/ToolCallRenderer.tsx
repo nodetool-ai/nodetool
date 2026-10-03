@@ -3,7 +3,7 @@ import React, { memo, useMemo, useState } from "react";
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import Prism from "prismjs";
+import Prism from "../../../prismCore";
 import "prismjs/components/prism-json";
 import DOMPurify from "dompurify";
 import type { Chunk } from "../../../stores/ApiTypes";

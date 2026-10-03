@@ -17,6 +17,7 @@ import { describe, expect, it } from "vitest";
 import { NodeRegistry, validateGraph } from "@nodetool-ai/node-sdk";
 import {
   WORKFLOW_INSPIRATION_CHIPS,
+  isCloudNodeType,
   planNodeShape,
   planToPlacement,
   resolveWorkflowPlan
@@ -80,7 +81,7 @@ describe("shipped inspiration chips", () => {
     expect(WORKFLOW_INSPIRATION_CHIPS.map((chip) => chip.brief)).toEqual([
       "Summarize a PDF and email it",
       "Batch-generate product shots from a CSV",
-      "Turn a YouTube URL into a blog post"
+      "Turn rough notes into a blog post"
     ]);
   });
 
@@ -96,6 +97,16 @@ describe("shipped inspiration chips", () => {
           .map((entry) => entry.step.node_type)
       ).toEqual([]);
       expect(resolved.canContinue).toBe(true);
+    });
+
+    it(`"${chip.brief}" names only node types the hosted catalog keeps`, () => {
+      // Production runs the cloud profile, which prunes the registry. A chip
+      // naming a pruned type reaches the review step as a missing node.
+      expect(
+        chip.plan.steps
+          .map((step) => step.node_type)
+          .filter((type) => type === null || !isCloudNodeType(type))
+      ).toEqual([]);
     });
 
     it(`"${chip.brief}" builds a graph with nothing left unwired`, () => {

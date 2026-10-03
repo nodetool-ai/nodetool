@@ -1,6 +1,6 @@
 import { expect, test } from "@playwright/test";
 
-const examples = ["Serein", "Kite", "Tidewater", "Prism", "Voltra"];
+const examples = ["Serein", "Kite", "Tidewater", "Cadence", "Prism", "Voltra"];
 
 for (const route of ["/", "/marketing"]) {
   test(`${route} plays the editable examples in the requested order`, async ({ page }) => {

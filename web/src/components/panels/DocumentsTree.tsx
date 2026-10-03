@@ -321,7 +321,7 @@ const DocumentsTree = ({ projectId, isMobile = false }: DocumentsTreeProps) => {
       openTab({
         type: DOCUMENT_TAB_TYPES[document.type],
         ref: document.id,
-        mode: "edit",
+        mode: document.type === "timeline" ? "view" : "edit",
         title,
         projectId: document.projectId
       });

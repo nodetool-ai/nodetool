@@ -211,7 +211,8 @@ describe("bindingTargets", () => {
       "op:main/exec#running",
       "op:main/exec#progress",
       "op:main/exec#error",
-      "op:main/exec#activity"
+      "op:main/exec#activity",
+      "op:main/exec#transcript"
     ]);
   });
 

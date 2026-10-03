@@ -36,6 +36,7 @@ import { applyOps, parseOps } from "./timelines.js";
 import { editTimelineSpec } from "./timelines.specs.js";
 import { storyboardReviewTimes } from "./storyboard-review-times.js";
 import { renderTimelineFrames } from "../timeline-preview/frames.js";
+import { agentActivityReporter } from "./agent-activity.js";
 
 const frameReviewSchema = z.object({
   timeMs: z.number().finite(),
@@ -80,6 +81,48 @@ export interface FinishedCutReview {
 
 function json(value: unknown): string {
   return JSON.stringify(value);
+}
+
+/**
+ * JSON with object keys sorted, the form a materialization baseline is stored
+ * in. A saved clip keeps its own key order, so comparing it with a baseline
+ * value through plain JSON reports every finished layer as manually edited.
+ */
+function canonical(value: unknown): string {
+  return JSON.stringify(value, (_key, entry: unknown) =>
+    isRecord(entry)
+      ? Object.fromEntries(
+          Object.keys(entry)
+            .sort()
+            .map((key) => [key, entry[key]])
+        )
+      : entry
+  );
+}
+
+/** Placement fields a person may own on a finished layer. */
+const MANUAL_FIELDS = [
+  "transform",
+  "startMs",
+  "durationMs",
+  "layout",
+  "flexItem",
+  "mask",
+  "transitionIn"
+] as const;
+
+/** The placement fields a person changed after the last accepted finish. */
+function manualFields(clip: TimelineClip): (typeof MANUAL_FIELDS)[number][] {
+  if (!clip.storyboardMaterializationBaseline) {
+    return [];
+  }
+  const baseline: unknown = JSON.parse(clip.storyboardMaterializationBaseline);
+  if (!isRecord(baseline)) {
+    return [];
+  }
+  return MANUAL_FIELDS.filter(
+    (field) => canonical(clip[field]) !== canonical(baseline[field])
+  );
 }
 
 /** Compare authored composition, excluding ownership baseline and animation IDs. */
@@ -223,6 +266,9 @@ export async function finishStoryboardAgentically(
 }> {
   const initialCost = runtime.provider.getTotalCost();
   const needsInitialAuthoring = !input.current;
+  const manualEdits = (input.current?.clips ?? [])
+    .map((clip) => ({ clipId: clip.id, name: clip.name, fields: manualFields(clip) }))
+    .filter((edit) => edit.fields.length > 0);
   const scaffoldComposition = composition(scaffold);
   if (input.shots.length === 0 || input.shots.length > 24) {
     throw new Error(
@@ -300,28 +346,12 @@ export async function finishStoryboardAgentically(
           `Finishing cannot rename existing Timeline layer ${clip.id}. Preserve its current user-owned name.`
         );
       }
-      if (current && current.storyboardMaterializationBaseline) {
-        const baseline: unknown = JSON.parse(
-          current.storyboardMaterializationBaseline
-        );
-        if (isRecord(baseline)) {
-          for (const field of [
-            "transform",
-            "startMs",
-            "durationMs",
-            "layout",
-            "flexItem",
-            "mask",
-            "transitionIn"
-          ] as const) {
-            if (
-              json(current[field]) !== json(baseline[field]) &&
-              json(clip[field]) !== json(current[field])
-            ) {
-              throw new Error(
-                `Manual ${field} edit on ${clip.id} conflicts with finishing. Keep the manual value or use a separate Timeline.`
-              );
-            }
+      if (current) {
+        for (const field of manualFields(current)) {
+          if (canonical(clip[field]) !== canonical(current[field])) {
+            throw new Error(
+              `Manual ${field} edit on ${clip.id} conflicts with finishing. Keep the manual value or use a separate Timeline.`
+            );
           }
         }
       }
@@ -454,6 +484,7 @@ export async function finishStoryboardAgentically(
   };
 
   const drive = async (
+    label: string,
     messages: Message[],
     tools: ProviderTool[],
     execute: NonNullable<
@@ -461,6 +492,9 @@ export async function finishStoryboardAgentically(
     >
   ): Promise<void> => {
     signal?.throwIfAborted();
+    // The loop runs for minutes. Its text and tool calls go on the run's
+    // context, so a host streaming it (a mini app) shows the work.
+    const reporter = agentActivityReporter(run.context, label);
     // SDK-native loops can issue parallel MCP callbacks despite sequentialTools.
     // Serialize access to this one isolated draft, including reads and submission.
     let executionTail: Promise<void> = Promise.resolve();
@@ -472,9 +506,20 @@ export async function finishStoryboardAgentically(
       tools,
       providedToolsOnly: true,
       executeTool: (call) => {
-        const pending = executionTail.then(() => {
+        const pending = executionTail.then(async () => {
           signal?.throwIfAborted();
-          return execute(call);
+          try {
+            const result = await execute(call);
+            reporter.toolResult(call, result, false);
+            return result;
+          } catch (error) {
+            reporter.toolResult(
+              call,
+              error instanceof Error ? error.message : String(error),
+              true
+            );
+            throw error;
+          }
         });
         executionTail = pending.then(
           () => undefined,
@@ -491,6 +536,7 @@ export async function finishStoryboardAgentically(
       if (isProviderStop(event)) {
         throw new Error(`Finishing stopped: ${event.reason}`);
       }
+      reporter.event(event);
     }
     await executionTail;
   };
@@ -525,8 +571,13 @@ export async function finishStoryboardAgentically(
     referenceRender.effectsNotApplied.length ||
     referenceRender.fontsUnavailable.length
   ) {
+    const failures = [
+      ...referenceRender.fontsUnavailable.map((font) => `Unavailable font: ${font}`),
+      ...referenceRender.effectsNotApplied.map((effect) => `Unsupported effect: ${effect}`),
+      ...referenceRender.frames.flatMap((frame) => frame.failures.map((failure) => `${failure.clip_name ?? failure.clip_id ?? "Layer"}: ${failure.reason}`))
+    ];
     throw new Error(
-      "Derived Storyboard design references could not render completely. Fix source media/fonts before model dispatch."
+      `Derived Storyboard design references could not render completely. ${[...new Set(failures)].join(" ")}`
     );
   }
   const referenceEvidence = references.map((reference, index) => ({
@@ -569,11 +620,12 @@ export async function finishStoryboardAgentically(
         lastEditResults: editResults.slice(-4)
       }).slice(0, 8000);
     await drive(
+      "finish",
       [
         {
           role: "system",
           content:
-            "Finish the approved WHOLE CUT, not an isolated shot. The deterministic scaffold establishes faithful source layers and timing; it is your starting point, not evidence of agentic finishing. Inspect all derived design references and semantic graphic/motion direction, then deliberately author an editable composition: readable type hierarchy, balanced product/copy layout, graphic rhythm and continuity across the cut. Use the supplied full scaffold and operationContracts directly; do not request get_timeline or list_animation_presets redundantly when their data is already present. Author a focused batch of deliberate edits rather than redesigning every layer. Use existing Timeline operations and their exact operationContracts. Make meaningful layout, typography, decorative or animation choices that serve this board. Do not make arbitrary nudges, metadata changes or add empty layers merely to satisfy authoring. On a new cut, author actual layout or motion before submitting; on an existing finished cut, preserve good prior work and submit unchanged if no revision is needed. Preserve all source assets, exact copy/colors, semantic IDs, shot windows and manual edits. Do not invent or generate replacement media. Read every edit result, correct rejected edits, then submit_finished_cut when ready. At a revision, fix every reported defect. Storyboard contains semantic intent, never an animation implementation. The Timeline is execution truth."
+            "Finish the approved WHOLE CUT, not an isolated shot. The deterministic scaffold establishes faithful source layers and timing; it is your starting point, not evidence of agentic finishing. Inspect all derived design references and semantic graphic/motion direction, then deliberately author an editable composition: readable type hierarchy, balanced product/copy layout, graphic rhythm and continuity across the cut. Use the supplied full scaffold and operationContracts directly; do not request get_timeline or list_animation_presets redundantly when their data is already present. Author a focused batch of deliberate edits rather than redesigning every layer. Use existing Timeline operations and their exact operationContracts. Make meaningful layout, typography, decorative or animation choices that serve this board. Do not make arbitrary nudges, metadata changes or add empty layers merely to satisfy authoring. On a new cut, author actual layout or motion before submitting; on an existing finished cut, preserve good prior work and submit unchanged if no revision is needed. Preserve all source assets, exact copy/colors, semantic IDs, shot windows and manual edits. manualEdits lists the layer fields a person changed: never edit those fields, and compose around them. Do not invent or generate replacement media. Read every edit result, correct rejected edits, then submit_finished_cut when ready. At a revision, fix every reported defect. Storyboard contains semantic intent, never an animation implementation. The Timeline is execution truth."
         },
         {
           role: "user",
@@ -591,6 +643,7 @@ export async function finishStoryboardAgentically(
                 },
                 previousReview: feedback,
                 needsInitialAuthoring,
+                manualEdits,
                 operationContracts,
                 finishingConstraints: scopeInstructions
               })
@@ -867,6 +920,7 @@ export async function finishStoryboardAgentically(
       )
     ];
     await drive(
+      "review",
       [
         {
           role: "system",
@@ -955,11 +1009,11 @@ export async function finishStoryboardAgentically(
         );
         if (isRecord(prior) && isRecord(accepted)) {
           for (const field of ["transform", "startMs", "durationMs"] as const) {
-            if (json(previous[field]) !== json(prior[field])) {
+            if (canonical(previous[field]) !== canonical(prior[field])) {
               accepted[field] = prior[field];
             }
           }
-          clip.storyboardMaterializationBaseline = json(accepted);
+          clip.storyboardMaterializationBaseline = canonical(accepted);
         }
       }
     }

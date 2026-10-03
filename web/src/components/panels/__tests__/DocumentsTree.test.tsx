@@ -184,3 +184,14 @@ it("uses the primitive loading and error states", () => {
   expect(screen.getByText("Request failed")).toBeInTheDocument();
   expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
 });
+
+it.each(["timeline"] as const)("opens an existing %s in view mode", async (type) => {
+  mockUseDocumentTreeData.mockReturnValue({ ...data, groups: [{
+    id: "creative", label: "Creative documents", children: [{
+      id: "document-1", name: "My document", type, typeLabel: type, projectId: "project-a"
+    }]
+  }] });
+  renderTree();
+  await userEvent.click(screen.getByRole("treeitem", { name: `My document ${type}` }));
+  expect(mockOpenTab).toHaveBeenCalledWith(expect.objectContaining({ type, ref: "document-1", mode: "view" }));
+});

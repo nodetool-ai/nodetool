@@ -4,7 +4,7 @@ import { PRODUCT_PRICE_DROP_BUNDLE } from "./product-price-drop.mjs";
 const input = (id, label, kind) => ({id, label, kind, required: true});
 const element = (id, kind, role) => ({id: kind === "shape" ? "background" : id, inputId: id, kind, role});
 const operations = [{id: "plan", bindingId: "plan", intent: "plan_storyboard", version: 1}, {id: "finish", bindingId: "finish", intent: "finish_storyboard", version: 1}];
-const outputs = [{id: "storyboardId", kind: "storyboard"}, {id: "planPreview", kind: "value"}, {id: "designPreview", kind: "timeline", label: "Composed design preview"}, {id: "timeline", kind: "timeline"}];
+const outputs = [{id: "storyboardId", kind: "storyboard"}, {id: "designPreview", kind: "timeline", label: "Composed design preview"}, {id: "timeline", kind: "timeline"}];
 const preserve = inputs => inputs.map(({id, kind}) => ({inputId: id, policy: kind === "image" ? "exact_asset" : kind === "color" ? "exact_color" : "exact_text", allowedTransformations: kind === "color" ? ["composite", "opacity"] : ["position", "scale", "opacity", "composite"]}));
 const testimonialInputs = [input("portrait", "Customer portrait", "image"), input("quote", "Exact testimonial", "text"), input("attribution", "Customer name", "text"), input("brandColor", "Brand color", "color")];
 export const TESTIMONIAL_MANIFEST = {

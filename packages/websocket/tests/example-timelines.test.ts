@@ -30,6 +30,7 @@ describe("example timelines", () => {
     // placeholders (18000/16000/23000) to the sum of their scripts' actual
     // per-scene frame-aligned lengths.
     expect(examples.map((example) => [example.slug, example.durationMs, example.fps])).toEqual([
+      ["cadence", 17766, 30],
       ["kite", 15000, 30],
       ["prism", 18467, 30],
       ["serein", 26000, 30],

@@ -216,6 +216,18 @@ export default function GameViewport3D({ document, host, selectedId, sceneId, on
     return () => disposeGameViewportOverlays3D(helpers);
   }, [document, host.frame, host.backend, host.playDocument, host.rendererRef, overlays, playerOnly]);
 
+  useEffect(() => {
+    const canvas = host.canvasRef.current;
+    if (!canvas || !host.playDocument) { return; }
+    const lockChange = (): void => { if (window.document.pointerLockElement !== canvas) { host.inputRef.current.release(); } };
+    window.document.addEventListener("pointerlockchange", lockChange);
+    if (!host.playing && window.document.pointerLockElement === canvas) { window.document.exitPointerLock(); }
+    return () => {
+      window.document.removeEventListener("pointerlockchange", lockChange);
+      if (window.document.pointerLockElement === canvas) { window.document.exitPointerLock(); }
+    };
+  }, [host.canvasRef, host.inputRef, host.playDocument, host.playing]);
+
   const frameSelection = (): void => {
     const controls = controlsRef.current;
     const object = selectedId ? host.rendererRef.current?.getEntityObject(selectedId) : null;
@@ -229,7 +241,7 @@ export default function GameViewport3D({ document, host, selectedId, sceneId, on
   };
 
   const editing = !playerOnly && !host.playDocument;
-  const hint = host.playDocument ? "WASD or arrows to move. Space to jump. Hold the right mouse button to look."
+  const hint = host.playDocument ? "WASD or arrows to move. Space to jump. Click to capture the mouse, Esc to release it."
     : flyMode ? "WASD to fly. R/F to rise and descend. Drag to look." : "Drag to orbit. Shift-drag to pan. Scroll to zoom.";
   return <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
     {!playerOnly && <GamePanelHeader title={host.playDocument ? "Game" : "Scene"}
@@ -262,8 +274,19 @@ export default function GameViewport3D({ document, host, selectedId, sceneId, on
         }}
         onKeyUp={(event) => host.inputRef.current.keyUp(event.code)}
         onBlur={() => host.inputRef.current.release()}
-        onPointerDown={() => host.canvasRef.current?.focus()}
-        onPointerMove={(event) => { if (host.playDocument && event.buttons === 2) { host.inputRef.current.look(event.movementX, event.movementY); } }}
+        onPointerDown={(event) => {
+          const canvas = host.canvasRef.current;
+          canvas?.focus();
+          if (!canvas || !host.playDocument || !host.playing) { return; }
+          if (window.document.pointerLockElement === canvas) { host.inputRef.current.keyDown(`Mouse${event.button}`); return; }
+          void canvas.requestPointerLock()?.catch(() => undefined);
+        }}
+        onPointerUp={(event) => host.inputRef.current.keyUp(`Mouse${event.button}`)}
+        onPointerMove={(event) => {
+          if (host.playDocument && (window.document.pointerLockElement === host.canvasRef.current || event.buttons === 2)) {
+            host.inputRef.current.look(event.movementX, event.movementY);
+          }
+        }}
         onContextMenu={(event) => event.preventDefault()}
         sx={{ display: "block", width: "100%", height: "100%", touchAction: "none", outline: "none",
           "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: "-2px" } }} />

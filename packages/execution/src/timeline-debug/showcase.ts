@@ -40,10 +40,11 @@ const MIN_COVERAGE = 0.8;
 // comment and the two constants below together whenever an example changes
 // its groups/animations/effects/clip count, so this file and that test never
 // silently disagree about what "the shipped examples" measure to.
-// kite: 32 groups, 95/15 custom/s, 6 effect types, 149/15 clips/s
-// prism: 22, 57000/18467, 10, 95000/18467; serein: 60, 173/26, 7, 678/26
-// tidewater: 23, 41000/15958, 6, 181000/15958; voltra: 16, 125000/22735, 14, 130000/22735.
-// Medians: 23 groups, 125000/22735 custom/s, 7 effects, 149/15 clips/s.
+// cadence: 29 groups, 106000/17767 custom/s, 6 effect types, 163000/17767 clips/s
+// kite: 32, 95/15, 6, 149/15; prism: 22, 57000/18467, 10, 95000/18467
+// serein: 145, 172/26, 7, 764/26; tidewater: 23, 41000/15958, 6, 181000/15958
+// voltra: 16, 125000/22735, 14, 130000/22735.
+// Medians (the upper one of six): 29 groups, 106000/17767 custom/s, 7 effects, 149/15 clips/s.
 // A median floor would reject shipped examples. Use their lower envelope for
 // warnings, report the median target, and require rendered example comparison.
 export const SHOWCASE_FLOOR = {
@@ -53,8 +54,8 @@ export const SHOWCASE_FLOOR = {
   clipsPerSecond: 95000 / 18467
 };
 export const SHOWCASE_TARGET = {
-  groups: 23,
-  customPerSecond: 125000 / 22735,
+  groups: 29,
+  customPerSecond: 106000 / 17767,
   effects: 7,
   clipsPerSecond: 149 / 15
 };

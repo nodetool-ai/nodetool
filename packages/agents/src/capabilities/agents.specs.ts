@@ -267,11 +267,87 @@ export const executePlanSpec: CapabilitySpec = {
 };
 
 /** Every spec this module declares, in declaration order. */
+export const RUN_AGENT_DESCRIPTION = [
+  "Run an agent: a tool-calling loop on one provider+model that works on",
+  "`prompt` with the capabilities named in `tools` until it is done. Use it",
+  "instead of one generate_text call when the work needs several steps, or",
+  "needs to read and act on NodeTool resources on the way.",
+  "",
+  "The agent streams its text and every tool call to the run as it works.",
+  "With `output_schema` it ends by submitting one object of that shape,",
+  "returned as `result`. Without it, `text` is its final message."
+].join("\n");
+
+export const RUN_AGENT_SCHEMA: JsonSchema = {
+  type: "object",
+  properties: {
+    prompt: {
+      type: "string",
+      description: "The task, self-contained. The agent sees nothing else."
+    },
+    model: {
+      type: "object",
+      description:
+        "The language model: `{provider, id}` (a model selector value) or `{provider, model}`.",
+      properties: {
+        provider: { type: "string" },
+        id: { type: "string" },
+        model: { type: "string" }
+      },
+      required: ["provider"]
+    },
+    system: {
+      type: "string",
+      description: "Optional instructions placed before the agent contract."
+    },
+    tools: {
+      type: "array",
+      items: { type: "string" },
+      description:
+        "Capability wire names the agent may call, e.g. `get_storyboard`, `edit_timeline`. Default: none."
+    },
+    images: {
+      type: "array",
+      items: { type: "string" },
+      description: "Optional image references (asset:// URIs or URLs) shown with the prompt."
+    },
+    output_schema: {
+      type: "object",
+      description:
+        "Optional JSON schema. The agent submits one object of this shape, returned as `result`."
+    },
+    max_turns: {
+      type: "number",
+      description: "Most model turns the loop may take. Default 12, max 40."
+    },
+    label: {
+      type: "string",
+      description: "Short name for this agent in streamed activity. Default `agent`."
+    }
+  },
+  required: ["prompt", "model"],
+  additionalProperties: false
+};
+
+export const runAgentSpec: CapabilitySpec = {
+  name: "run_agent",
+  description: RUN_AGENT_DESCRIPTION,
+  inputSchema: RUN_AGENT_SCHEMA,
+  // It spends provider money on the caller's behalf, like generate_text. The
+  // agent's own tool calls are gated one by one through the same run.
+  category: "external",
+  userMessage: (params) => {
+    const label = isString(params["label"]) ? params["label"].trim() : "";
+    return label ? `Running agent: ${label}` : "Running agent";
+  }
+};
+
 export const agentsSpecs: readonly CapabilitySpec[] = [
   runSubtaskSpec,
   runSearchSpec,
   startSubtaskSpec,
   waitSubtasksSpec,
   createPlanSpec,
-  executePlanSpec
+  executePlanSpec,
+  runAgentSpec
 ];

@@ -58,7 +58,7 @@ const CreditsChip = () => {
 interface StudioShellProps {
   /** Page title shown next to the brand; omit on the home screen. */
   title?: string;
-  /** Show the back-to-home button (every page except home). */
+  /** Show the back-to-workspace button (every page except home). */
   showBack?: boolean;
   /** Page-specific header actions (e.g. "Create video"). */
   actions?: React.ReactNode;
@@ -91,9 +91,9 @@ const StudioShell = ({
             <EditorButton
               size="small"
               startIcon={<ArrowBackRoundedIcon fontSize="small" />}
-              onClick={() => navigate("/studio")}
+              onClick={() => navigate("/workspace")}
             >
-              Studio
+              Workspace
             </EditorButton>
           )}
           {!showBack && (

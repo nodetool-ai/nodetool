@@ -116,7 +116,8 @@ const operationFeedback = ({
   retryLabel,
   returnLabel,
   returnPhase,
-  returnEvents = []
+  returnEvents = [],
+  agent = false
 }) => [
   widget("Progress", `${operationId}-progress`, {
     binding: executionBinding(operationId, "progress"),
@@ -130,6 +131,17 @@ const operationFeedback = ({
     `Activity: {${executionBinding(operationId, "activity")}}`,
     hasActivity(operationId)
   ),
+  // An agent operation shows its text and tool calls while it works.
+  ...(agent
+    ? [
+        widget("AgentActivity", `${operationId}-agent`, {
+          binding: executionBinding(operationId, "transcript"),
+          label: "Agent activity",
+          height: 320,
+          placeholder: ""
+        })
+      ]
+    : []),
   widget("Alert", `${operationId}-error`, {
     binding: executionBinding(operationId, "error"),
     title: `${stageLabel} failed`,
@@ -385,7 +397,8 @@ const briefColumn = [
     cancelLabel: "Cancel campaign analysis",
     retryLabel: "Retry campaign analysis",
     returnLabel: "Return to brief",
-    returnPhase: "brief"
+    returnPhase: "brief",
+    agent: true
   }),
   reopenCampaign
 ];
@@ -831,6 +844,8 @@ const variable = (id, name, type, defaultValue) => ({
 });
 
 const AUTOFILL_CAMPAIGN_CODE = String.raw`
+import { run_agent } from "@nodetool-ai/sandbox-nodetool/agents";
+
 function text(value) {
   return typeof value === "string" ? value.trim() : "";
 }
@@ -842,6 +857,35 @@ function imageUri(value) {
   }
   return "";
 }
+
+const DIRECTION_SCHEMA = {
+  type: "object",
+  properties: {
+    title: { type: "string" },
+    setting: { type: "string" },
+    composition: { type: "string" },
+    lighting: { type: "string" },
+    palette: { type: "string" },
+    preservationInstructions: { type: "string" }
+  },
+  required: ["title", "setting", "composition", "lighting", "palette", "preservationInstructions"]
+};
+
+const DRAFT_SCHEMA = {
+  type: "object",
+  properties: {
+    productName: { type: "string" },
+    campaignMessage: { type: "string" },
+    audience: { type: "string" },
+    headline: { type: "string" },
+    cta: { type: "string" },
+    referenceRole: { type: "string", enum: ["none", "composition", "palette", "material", "lighting"] },
+    referenceUse: { type: "string" },
+    referenceIgnore: { type: "string" },
+    directions: { type: "array", items: DIRECTION_SCHEMA, minItems: 3, maxItems: 3 }
+  },
+  required: ["productName", "campaignMessage", "audience", "headline", "cta", "directions"]
+};
 
 function parseJson(value) {
   const raw = text(value);
@@ -895,6 +939,7 @@ if (text(inputs.draft_json)) {
 } else {
   progress(0.1, "Reading product image");
   const model = inputs.model || (await nodetool.models.pick("generate_message"));
+  const modelRef = model.ref || model;
   const referenceImage = imageUri(inputs.reference_image);
   const images = [productImage, ...(referenceImage ? [referenceImage] : [])];
   const instruction = [
@@ -905,23 +950,24 @@ if (text(inputs.draft_json)) {
     "Infer a concise product name, campaign message, audience, exact headline, exact CTA, and three materially different campaign directions.",
     "Treat non-empty current values as explicit user overrides. Improve or fill blank values, but do not overwrite a clear override.",
     "Direction A should be direct and iconic, B atmospheric and editorial, and C graphic or unexpected.",
-    "Return JSON only with keys productName, campaignMessage, audience, headline, cta, referenceRole, referenceUse, referenceIgnore, directions.",
-    "directions must be an array of exactly three objects with title, setting, composition, lighting, palette, preservationInstructions.",
+    "If the image shows a readable brand or product name, search the web once to confirm the name and what the product is. Do not search for anything else.",
+    "Submit the brief with submit_result. directions holds exactly three objects with title, setting, composition, lighting, palette, preservationInstructions.",
     "Keep headline under 9 words and CTA under 5 words.",
     "Current form state:",
     JSON.stringify(current)
   ].join("\n");
-  const generated = await nodetool.models.generate(instruction, model, {
-    system:
-      "You are a senior campaign creative director and product-image analyst. Ground every claim in the supplied image. Never invent certifications, specifications, ingredients, or performance claims.",
+  const answer = await run_agent({
+    label: "campaign",
+    prompt: instruction,
+    model: modelRef,
     images,
-    max_tokens: 3000,
-    temperature: 1
+    tools: ["web_search"],
+    output_schema: DRAFT_SCHEMA,
+    max_turns: 6,
+    system:
+      "You are a senior campaign creative director and product-image analyst. Ground every claim in the supplied image and in what a search confirms. Never invent certifications, specifications, ingredients, or performance claims."
   });
-  if (!generated || generated.error) {
-    throw new Error(generated && generated.error ? generated.error : "Campaign analysis failed.");
-  }
-  draft = parseJson(generated.text);
+  draft = answer.result;
 }
 
 progress(0.8, "Structuring campaign directions");
@@ -989,7 +1035,7 @@ const AUTOFILL_CAMPAIGN_SCRIPT = {
   document: {
     schemaVersion: 1,
     description:
-      "Uses a multimodal language model to analyze one product image, fill the campaign brief, and propose three directed concepts.",
+      "Runs a multimodal language-model agent that analyzes one product image, confirms a visible brand name with a web search, fills the campaign brief, and proposes three directed concepts.",
     code: AUTOFILL_CAMPAIGN_CODE,
     inputs: [
       { name: "product_image", type: "image" },

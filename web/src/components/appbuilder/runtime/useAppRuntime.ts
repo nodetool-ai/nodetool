@@ -7,7 +7,7 @@
  * invocation owns a slot, what a collision with a live run means — live in
  * `@nodetool-ai/app-runtime`; this hook is the web adapter around them.
  *
- * Run identity is the load-bearing part: every invocation this app starts is
+ * Run identity keeps invocations isolated: every invocation this app starts is
  * registered by its `job_id`, and a streaming message for any other job is
  * dropped. Overlapping runs, a second tab, and runs started in the graph editor
  * no longer fold into what the app shows.
@@ -34,6 +34,7 @@ import {
   resolveOperationParams,
   scriptInvocationInput,
   scriptRunMessages,
+  scriptStreamMessages,
   stateKey,
   type AppAction,
   type ApplicationDocument,
@@ -126,6 +127,8 @@ export interface AppRuntimeOptions {
    * instead of fetching the live one.
    */
   workflowOverrides?: Record<string, Workflow>;
+  scriptOverrides?: Record<string, JsScriptDocument>;
+  scriptRunner?: typeof runJsScript;
   /** Open a resource in its own editor. The runtime only knows which one. */
   onOpenResource?: (resourceBindingId: string, ref: ResourceRef) => void;
   /** Run a provider command (upload, delete, …) against a resource binding. */
@@ -145,6 +148,8 @@ export const useAppRuntime = (
     application,
     document,
     workflowOverrides,
+    scriptOverrides,
+    scriptRunner = runJsScript,
     onOpenResource,
     onResourceCommand
   } = options;
@@ -171,7 +176,7 @@ export const useAppRuntime = (
   }, [operations, workflowId, workflowOverrides]);
 
   // Port bindings and execution use the same immutable operation snapshot.
-  const fetchedScripts = useOperationScripts(operations);
+  const fetchedScripts = useOperationScripts(operations, scriptOverrides);
   const fetchedScriptsRef = useRef(fetchedScripts);
   fetchedScriptsRef.current = fetchedScripts;
   const fetchedScriptsKey = [...fetchedScripts.keys()].join("|");
@@ -206,7 +211,7 @@ export const useAppRuntime = (
     for (const operation of operations) {
       const target = operationTarget(operation);
       if (target.kind === "script") {
-        const script = fetchedScriptsRef.current.get(operation.id);
+        const script = scriptOverrides?.[target.scriptId] ?? fetchedScriptsRef.current.get(operation.id);
         map.set(operation.id, {
           operation,
           workflow: undefined,
@@ -249,7 +254,8 @@ export const useAppRuntime = (
     operations,
     workflow,
     workflowId,
-    workflowOverrides
+    workflowOverrides,
+    scriptOverrides
   ]);
 
   const operationRuntimesRef = useRef(operationRuntimes);
@@ -830,20 +836,31 @@ export const useAppRuntime = (
       }
 
       // A script has no graph to submit and no job to subscribe to: it runs
-      // over one request and answers with a result, which the shared adapter
-      // turns into the message stream the fold already consumes.
+      // over one request. The request streams, so agent text, tool calls and
+      // emits fold while the script runs; the result then settles the run.
+      // The shared adapter turns both into the messages the fold consumes.
       const script = entry.script;
       if (script) {
         const jobId = `jsscript-${script.id}-${now()}`;
         claimInvocation(operationId, jobId, true, reservationId);
         let result: ScriptRunResult;
+        let streamedLive = false;
         try {
           const { inputs, inputStreams } = scriptInvocationInput(
             params,
             usesStreamInputContract(script.document.code)
           );
-          result = await runJsScript(
-            script.id, inputs, inputStreams, script.version === 0 ? undefined : script.version
+          result = await scriptRunner(
+            script.id,
+            inputs,
+            inputStreams,
+            script.version === 0 ? undefined : script.version,
+            (line) => {
+              streamedLive = true;
+              for (const message of scriptStreamMessages(line, jobId)) {
+                foldRef.current(message as MsgpackData);
+              }
+            }
           );
         } catch (error) {
           result = {
@@ -853,7 +870,10 @@ export const useAppRuntime = (
             duration_ms: 0
           };
         }
-        for (const message of scriptRunMessages(result, jobId)) {
+        // Emits that streamed already folded; replaying them would double
+        // every appended value.
+        const settled = streamedLive ? { ...result, streamed: [] } : result;
+        for (const message of scriptRunMessages(settled, jobId)) {
           foldRef.current(message as MsgpackData);
         }
         return;
@@ -914,6 +934,7 @@ export const useAppRuntime = (
       failInvocation,
       mountedRef,
       reserveInvocation,
+      scriptRunner,
       store
     ]
   );

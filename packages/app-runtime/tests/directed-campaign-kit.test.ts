@@ -261,7 +261,7 @@ describe("Directed Campaign Kit bundle", () => {
       key: "autofill",
       name: "Autofill Directed Campaign"
     });
-    expect(script?.document.code).toContain("nodetool.models.generate");
+    expect(script?.document.code).toContain("run_agent(");
     expect(script?.document.tests.map((test) => test.name)).toEqual([
       "structures a supplied model draft"
     ]);

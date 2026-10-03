@@ -29,6 +29,13 @@ export const timelineExamples: readonly TimelineExample[] = [
     durationSeconds: 16
   },
   {
+    slug: "cadence",
+    name: "Cadence",
+    category: "Vertical data story",
+    description: "A bike-share year in review, with a route that rides itself, counting stats, and animated charts.",
+    durationSeconds: 18
+  },
+  {
     slug: "prism",
     name: "Prism",
     category: "Running-shoe campaign",

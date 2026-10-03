@@ -32,8 +32,6 @@ export interface SetupCardFrameOptions {
   disabled?: boolean;
   /** Padding in theme units. Media-filled tiles pass `PADDING.none`. */
   padding?: number;
-  /** False for a frame that is not itself clickable (it holds the control). */
-  interactive?: boolean;
 }
 
 /**
@@ -49,15 +47,16 @@ export type SetupCardRole = "radio" | "toggle" | "navigation";
 
 /**
  * The card frame, shared so a tile whose media carries its own controls can
- * wear the same box without nesting one button inside another.
+ * wear the same box without nesting one button inside another. Such a frame
+ * takes the click itself and skips the ones {@link isNestedControlClick}
+ * reports.
  */
 export const setupCardSx = (
   theme: Theme,
   {
     selected = false,
     disabled = false,
-    padding = PADDING.comfortable,
-    interactive = true
+    padding = PADDING.comfortable
   }: SetupCardFrameOptions
 ) => ({
   appearance: "none",
@@ -81,18 +80,42 @@ export const setupCardSx = (
   font: "inherit",
   overflow: "hidden",
   opacity: disabled ? 0.5 : 1,
-  cursor: interactive ? (disabled ? "not-allowed" : "pointer") : "default",
+  cursor: disabled ? "not-allowed" : "pointer",
   transition: `${MOTION.border}, ${MOTION.background}`,
   ...reducedMotion({ transition: MOTION.none }),
   "&:hover":
-    interactive && !disabled && !selected
+    !disabled && !selected
       ? { backgroundColor: theme.vars.palette.action.hover }
       : undefined,
   "&:focus-visible": {
     outline: `2px solid ${theme.vars.palette.primary.main}`,
     outlineOffset: 2
-  }
+  },
+  // A card's art is part of its click target. A native image drag starts on
+  // the smallest pointer movement and swallows the click, so a press on the
+  // picture would do nothing while the same press on the title picks it.
+  "& img": { pointerEvents: "none", userSelect: "none" }
 });
+
+/** Controls a card may hold that answer a click themselves. */
+const NESTED_CONTROL_SELECTOR =
+  "button, a, input, select, textarea, label, audio, video, [role='slider']";
+
+/**
+ * True when a click on a clickable card frame landed on a control inside it —
+ * a player, a select button — which handles the click itself. The frame must
+ * not act on it a second time.
+ */
+export const isNestedControlClick = (
+  event: React.MouseEvent<HTMLElement>
+): boolean => {
+  const target = event.target;
+  if (!(target instanceof Element)) {
+    return false;
+  }
+  const control = target.closest(NESTED_CONTROL_SELECTOR);
+  return control !== null && event.currentTarget.contains(control);
+};
 
 /**
  * The ARIA attributes a card carries for its role. Split out because a framed

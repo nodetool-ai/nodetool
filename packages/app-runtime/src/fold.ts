@@ -17,8 +17,13 @@ import type { Mutable } from "./mutable.js";
  * an app variable. Both get the same value, streamed chunks accumulating the
  * same way in each.
  */
-import type { AppStateEvent, Disposition, InvocationState } from "./state.js";
-import { isNumber, isObjectLike, isString } from "./predicates.js";
+import type {
+  ActivityEntry,
+  AppStateEvent,
+  Disposition,
+  InvocationState
+} from "./state.js";
+import { isNumber, isObjectLike, isRecord, isString } from "./predicates.js";
 
 export interface FoldContext {
   /**
@@ -125,6 +130,47 @@ const activityLabel = (
   }
 };
 
+/** Which loop a message came from: a relayed script message's `source`, else its node. */
+const sourceOf = (message: Record<string, unknown>): string | undefined => {
+  const source = str(message.source).trim() || str(message.node_id).trim();
+  return source || undefined;
+};
+
+/** The most characters of a tool result one transcript entry keeps. */
+const RESULT_CHARS = 400;
+
+const resultText = (value: unknown): string => {
+  const summary = isRecord(value) && isString(value.summary) ? value.summary : null;
+  const text = summary ?? (isString(value) ? value : JSON.stringify(value) ?? "");
+  return text.length > RESULT_CHARS ? `${text.slice(0, RESULT_CHARS)}…` : text;
+};
+
+/** A tool call message as a transcript entry, or null when it names no tool. */
+const toolEntry = (
+  message: Record<string, unknown>,
+  status: "running" | "done" | "error"
+): ActivityEntry | null => {
+  const name = str(message.name).trim();
+  const id = str(message.tool_call_id).trim();
+  if (!id && !name) return null;
+  const source = sourceOf(message);
+  const entry: ActivityEntry = {
+    kind: "tool",
+    id: id || `${source ?? ""}:${name}`,
+    name,
+    label: str(message.message).trim() || name,
+    status,
+    ...(source && { source })
+  };
+  if (status === "running" && isRecord(message.args)) {
+    entry.args = message.args;
+  }
+  if (status !== "running") {
+    entry.result = resultText(message.result);
+  }
+  return entry;
+};
+
 const TERMINAL_JOB_STATUS: Record<string, InvocationState["status"]> = {
   completed: "completed",
   failed: "failed",
@@ -141,8 +187,9 @@ const TERMINAL_JOB_STATUS: Record<string, InvocationState["status"]> = {
  * `"replace"` replaces.
  *
  * `tool_call_update`, `planning_update`, and `task_update` carry no value —
- * they become the invocation's activity label, which is all an app can show of
- * an agent's work in progress.
+ * they become the invocation's activity label. Agent text (`chunk`) and tool
+ * calls with their results (`tool_call_update`, `tool_result_update`) also
+ * enter the invocation's transcript, which shows the whole of an agent's work.
  */
 export const messageToEvents = (
   message: Record<string, unknown>,
@@ -171,14 +218,24 @@ export const messageToEvents = (
       // Only text chunks fold into a display value; audio/video chunks are
       // consumed by their own players.
       if (message.content_type && message.content_type !== "text") return [];
-      return valueEvents(
+      const text = str(message.content);
+      const events = valueEvents(
         ctx,
         invocation,
         str(message.node_id),
-        str(message.content),
+        text,
         "append",
         message.done === true
       );
+      if (text && message.thinking !== true) {
+        const source = sourceOf(message);
+        events.push({
+          type: "invocationTranscript",
+          invocationId: invocation.id,
+          entry: { kind: "text", text, ...(source && { source }) }
+        });
+      }
+      return events;
     }
 
     case "node_progress": {
@@ -209,10 +266,29 @@ export const messageToEvents = (
     case "planning_update":
     case "task_update": {
       const label = activityLabel(type, message);
-      if (!label) return [];
-      return [
-        { type: "invocationActivity", invocationId: invocation.id, label }
-      ];
+      const events: AppStateEvent[] = label
+        ? [{ type: "invocationActivity", invocationId: invocation.id, label }]
+        : [];
+      const entry =
+        type === "tool_call_update" ? toolEntry(message, "running") : null;
+      if (entry) {
+        events.push({
+          type: "invocationTranscript",
+          invocationId: invocation.id,
+          entry
+        });
+      }
+      return events;
+    }
+
+    case "tool_result_update": {
+      const entry = toolEntry(
+        message,
+        message.is_error === true ? "error" : "done"
+      );
+      return entry
+        ? [{ type: "invocationTranscript", invocationId: invocation.id, entry }]
+        : [];
     }
 
     case "job_update": {

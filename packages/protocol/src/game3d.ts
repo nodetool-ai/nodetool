@@ -221,7 +221,7 @@ export const gameAnimationState3D = z.strictObject({
 export type GameAnimationState3D = z.infer<typeof gameAnimationState3D>;
 export const gameRenderFrame3D = z.strictObject({
   dimension: z.literal("3d"), gameId: id, sceneId: id, tick, presentation: gamePresentation3D,
-  camera: z.strictObject({ entityId: id, transform: gameTransform3D, projection: gameCameraProjection3D }),
+  camera: z.strictObject({ entityId: id, transform: gameTransform3D, previousTransform: gameTransform3D.optional(), projection: gameCameraProjection3D }),
   entities: z.array(z.strictObject({ entityId: id, transform: gameTransform3D, previousTransform: gameTransform3D,
     primitive: gamePrimitive3D.optional(), model: gameModel3D.optional(), animation: gameAnimationState3D.optional(), opacity: finite.min(0).max(1).optional() })),
   lights: z.array(z.strictObject({ entityId: id, transform: gameTransform3D, light: gameLight3D })),

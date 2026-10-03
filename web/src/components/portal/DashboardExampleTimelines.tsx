@@ -74,7 +74,7 @@ const TimelineCard = memo(function TimelineCard({ timeline, installing, onInstal
         <span className="timeline-description">{timeline.description}</span>
         <span className="timeline-meta">{Math.round(timeline.durationMs / 1000)} seconds · {timeline.clipCount} editable clips · {timeline.fps} fps</span>
         <button className="timeline-action" type="button" disabled={installing} onClick={() => onInstall(timeline)}>
-          {installing ? "Adding timeline…" : "Open editable timeline"}
+          {installing ? "Adding timeline…" : "Install timeline"}
         </button>
       </div>
     </article>
@@ -94,7 +94,7 @@ const DashboardExampleTimelines = () => {
     if (install.isPending) return;
     install.mutate({ slug: timeline.slug, projectId: creationProjectId() }, {
       onSuccess: (created) => {
-        openTab({ type: "timeline", ref: created.id, mode: "edit", title: created.name, projectId: created.projectId });
+        openTab({ type: "timeline", ref: created.id, mode: "view", title: created.name, projectId: created.projectId });
         navigate("/workspace");
       },
       onError: (error) => {
@@ -108,7 +108,7 @@ const DashboardExampleTimelines = () => {
     <section css={styles(theme)} aria-label="Example timelines">
       <div css={sectionWrap}>
         <SectionHeader title="Start from a timeline" count={`${timelines.length} timelines`} />
-        <p className="timeline-lede">Watch the finished film, then open its editable timeline to make your own version.</p>
+        <p className="timeline-lede">Watch a timeline directly, or install a copy to make your own version.</p>
         {isLoading ? (
           <div className="timeline-state"><LoadingSpinner size="medium" text="Loading timelines" /></div>
         ) : isError ? (
