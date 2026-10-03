@@ -217,11 +217,17 @@ const TIMELINE_PREVIEW_TRACKS = 3;
 const TIMELINE_PREVIEW_CLIPS = 16;
 
 export function storyboardStatus(doc: StoryboardDocument): StoryboardStatus {
+  let stills = 0;
+  let clips = 0;
+  for (const shot of doc.shots) {
+    if (shot.keyframe != null) stills++;
+    if (shot.clip != null) clips++;
+  }
   return {
     kind: "storyboard",
     shots: doc.shots.length,
-    stills: doc.shots.filter((shot) => shot.keyframe != null).length,
-    clips: doc.shots.filter((shot) => shot.clip != null).length
+    stills,
+    clips
   };
 }
 
