@@ -24,6 +24,7 @@ import GameRuntimeInspector from "./GameRuntimeInspector";
 import GameScriptPane from "./GameScriptPane";
 import GameToolbar from "./GameToolbar";
 import GameViewport from "./GameViewport";
+import { pastedEntities } from "./gameClipboard";
 import { pressGameKey } from "./gameInputFrame";
 import { EMPTY_INPUT, scriptFailure, useGamePlaySession } from "./useGamePlaySession";
 
@@ -311,9 +312,9 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     if (command && event.code === "KeyV") {
       event.preventDefault();
       const sceneId = document.scenes.find((entry) => entry.entities.some((entity) => selectedIds.includes(entity.id)))?.id ?? document.entrySceneId;
-      onOps(clipboardRef.current.map((entity) => ({ op: "add_entity", scene_id: sceneId,
-        entity: { ...entity, id: crypto.randomUUID().replaceAll("-", ""),
-          transform2d: { ...entity.transform2d, x: entity.transform2d.x + 0.25, y: entity.transform2d.y + 0.25 } } })));
+      const targetIds = document.scenes.find((entry) => entry.id === sceneId)?.entities.map((entity) => entity.id) ?? [];
+      onOps(pastedEntities(clipboardRef.current, targetIds, () => crypto.randomUUID().replaceAll("-", ""))
+        .map((entity) => ({ op: "add_entity", scene_id: sceneId, entity })));
       return;
     }
     const selectedId = selectedIds[0];

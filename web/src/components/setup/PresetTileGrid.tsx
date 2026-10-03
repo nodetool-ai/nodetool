@@ -46,6 +46,7 @@ import {
   VideoPlayer
 } from "../ui_primitives";
 import type { MediaLocator } from "../../hooks/useResolvedMediaUri";
+import { GalleryExpandButton, MEDIA_GALLERY_HOST_CLASS } from "./MediaGallery";
 import {
   SetupCardButton,
   isNestedControlClick,
@@ -315,7 +316,9 @@ const FramedTile: React.FC<{
       })}
     >
       <Box
+        className={MEDIA_GALLERY_HOST_CLASS}
         sx={{
+          position: "relative",
           aspectRatio,
           width: "100%",
           display: "grid",
@@ -339,6 +342,13 @@ const FramedTile: React.FC<{
             preset={preset}
             aspectRatio={aspectRatio}
             onFailed={onSampleFailed}
+          />
+        ) : null}
+        {kind === "clip" || kind === "still" ? (
+          <GalleryExpandButton
+            locator={kind === "clip" ? preset.video : preset.image}
+            kind={kind === "clip" ? "video" : "image"}
+            caption={preset.title}
           />
         ) : null}
       </Box>

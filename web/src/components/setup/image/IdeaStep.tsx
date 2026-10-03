@@ -29,6 +29,7 @@ import {
 import { useSketchStore } from "../../sketch/state/useSketchStore";
 import { useEntities } from "../../../serverState/useEntities";
 import { ExampleBriefs } from "../ExampleBriefs";
+import { GalleryFrame } from "../MediaGallery";
 import { AlternativesColumn } from "../AlternativesColumn";
 import type { AlternativeEntry } from "../AlternativesColumn";
 import type { UploadFirstLayerResult } from "../../../hooks/sketch/useUploadFirstLayer";
@@ -177,14 +178,21 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                     gap={GAP.tight}
                     sx={{ width: REFERENCE_THUMBNAIL }}
                   >
-                    <ResponsiveImage
+                    <GalleryFrame
                       locator={reference.uri}
-                      preferThumbnail
-                      alt={reference.name}
-                      aspectRatio="1/1"
-                      fit="cover"
-                      borderRadius={BORDER_RADIUS.sm}
-                    />
+                      kind="image"
+                      caption={reference.name}
+                      sx={{ width: "100%" }}
+                    >
+                      <ResponsiveImage
+                        locator={reference.uri}
+                        preferThumbnail
+                        alt={reference.name}
+                        aspectRatio="1/1"
+                        fit="cover"
+                        borderRadius={BORDER_RADIUS.sm}
+                      />
+                    </GalleryFrame>
                     <Caption color="secondary">{reference.name}</Caption>
                   </FlexColumn>
                 ))}

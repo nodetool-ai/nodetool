@@ -40,6 +40,7 @@ import {
   ThinkingIndicator
 } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
+import { MediaGalleryProvider } from "./MediaGallery";
 import type {
   SetupFlowConfig,
   SetupOperationContext,
@@ -570,7 +571,8 @@ export function SetupFlow<Stage extends string>({
               </FlexRow>
             </FlexColumn>
           ) : (
-            step.render({ readOnly })
+            // Each step is one view: its gallery pages through its own media.
+            <MediaGalleryProvider>{step.render({ readOnly })}</MediaGalleryProvider>
           )}
         </Box>
       </ScrollArea>

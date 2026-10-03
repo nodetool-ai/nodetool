@@ -63,8 +63,19 @@ export function diffGameDocuments(from: GameDocument, to: GameDocument): GameDoc
       else if (isBehaviorReorder(previous, entity)) ops.push(...behaviorMoves(scene.id, previous, entity));
       else if (changed(previous, entity)) ops.push({ op: "update_entity", scene_id: scene.id, entity_id: entity.id, set: entitySet(previous, entity) });
     }
+    const removedIds = new Set(before.entities.filter((entity) => !scene.entities.some((entry) => entry.id === entity.id)).map((entity) => entity.id));
+    const beforeById = new Map(before.entities.map((entity) => [entity.id, entity]));
+    const hasRemovedAncestor = (entity: GameEntity): boolean => {
+      const seen = new Set<string>();
+      for (let parentId = entity.parentId; parentId && !seen.has(parentId); parentId = beforeById.get(parentId)?.parentId) {
+        if (removedIds.has(parentId)) return true;
+        seen.add(parentId);
+      }
+      return false;
+    };
     for (const entity of before.entities) {
-      if (!scene.entities.some((entry) => entry.id === entity.id)) {
+      // Removing an ancestor already removes this entity, and a second remove would fail on the missing ID.
+      if (removedIds.has(entity.id) && !hasRemovedAncestor(entity)) {
         ops.push({ op: "remove_entity", scene_id: scene.id, entity_id: entity.id, children: "remove" });
       }
     }

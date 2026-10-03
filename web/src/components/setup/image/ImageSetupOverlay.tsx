@@ -35,6 +35,7 @@ import {
 } from "../../../stores/WorkspaceTabsStore";
 import { SetupFlow } from "../SetupFlow";
 import { ContactSheet } from "./ContactSheet";
+import { MediaGalleryProvider } from "../MediaGallery";
 import { useImageSetupFlow } from "./useImageSetupFlow";
 
 export interface ImageSetupOverlayProps {
@@ -221,17 +222,19 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
       <ScrollArea fullHeight>
         {batch.length > 0 ? (
           <Box sx={{ padding: PADDING.section }}>
-            <ContactSheet
-              layerIds={batch}
-              onPick={pickRenderedImage}
-              onMakeMore={makeMore}
-              makeMorePending={makingMore}
-              makeMoreError={makeMoreError}
-              onBackToSettings={backToSettings}
-              onOpenEditor={finish}
-              onSaveToLibrary={saveToLibrary}
-              onOpenCanvas={openCanvas}
-            />
+            <MediaGalleryProvider>
+              <ContactSheet
+                layerIds={batch}
+                onPick={pickRenderedImage}
+                onMakeMore={makeMore}
+                makeMorePending={makingMore}
+                makeMoreError={makeMoreError}
+                onBackToSettings={backToSettings}
+                onOpenEditor={finish}
+                onSaveToLibrary={saveToLibrary}
+                onOpenCanvas={openCanvas}
+              />
+            </MediaGalleryProvider>
           </Box>
         ) : (
           <SetupFlow config={config} />

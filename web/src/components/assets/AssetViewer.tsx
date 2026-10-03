@@ -327,6 +327,12 @@ type AssetViewerProps = {
    * here; the viewer itself has only the asset record.
    */
   captions?: Record<string, string>;
+  /**
+   * Ids of records a caller built for media that is not in the library, such
+   * as a shipped style sample. They have nothing to edit or describe, so the
+   * edit and info actions are hidden for them.
+   */
+  detachedIds?: ReadonlySet<string>;
   onClose: () => void;
 };
 
@@ -339,6 +345,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     open,
     contentType,
     captions,
+    detachedIds,
     onClose: handleClose
   } = props;
 
@@ -617,6 +624,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
   );
 
   const caption = currentAsset ? captions?.[currentAsset.id] : undefined;
+  const inLibrary = !(currentAsset && detachedIds?.has(currentAsset.id));
 
   const { component: assetViewer } = useAssetDisplay({
     asset: currentAsset,
@@ -888,7 +896,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
             nodrag={false}
             sx={viewerActionButtonSx}
           />
-          {isImage && !compareMode && (
+          {isImage && !compareMode && inLibrary && (
             <ToolbarIconButton
               icon={<EditIcon />}
               tooltip={isSvg ? "Edit SVG" : "Edit Image"}
@@ -898,7 +906,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               sx={viewerActionButtonSx}
             />
           )}
-          {isModel3D && !compareMode && (
+          {isModel3D && !compareMode && inLibrary && (
             <ToolbarIconButton
               icon={<EditIcon />}
               tooltip="Edit in 3D Editor"
@@ -908,7 +916,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               sx={viewerActionButtonSx}
             />
           )}
-          {isAudio && !compareMode && (
+          {isAudio && !compareMode && inLibrary && (
             <ToolbarIconButton
               icon={<EditIcon />}
               tooltip="Edit Audio"
@@ -918,7 +926,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               sx={viewerActionButtonSx}
             />
           )}
-          {isVideo && !compareMode && (
+          {isVideo && !compareMode && inLibrary && (
             <ToolbarIconButton
               icon={<EditIcon />}
               tooltip={
@@ -962,7 +970,7 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               sx={viewerActionButtonSx}
             />
           )}
-          {currentAsset && !compareMode && (
+          {currentAsset && !compareMode && inLibrary && (
             <ToolbarIconButton
               icon={<InfoOutlinedIcon />}
               tooltip={showInfo ? "Hide info" : "Show info"}
