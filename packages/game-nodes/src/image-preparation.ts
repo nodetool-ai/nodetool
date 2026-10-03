@@ -26,6 +26,8 @@ export const imagePreparationSettings = gameImagePreparation.extend({
     !(settings.trimAlpha || settings.targetWidth || settings.mirrorX || settings.mirrorY),
     "sheet, tileset and lut cannot be combined with single-image transforms");
 export type ImagePreparationSettings = z.infer<typeof imagePreparationSettings>;
+/** One slot's `preparation` entry as a graph supplies it, before defaults apply. */
+export type ImagePreparationInput = z.input<typeof imagePreparationSettings>;
 
 export interface PreparedImage {
   readonly bytes: Uint8Array;
