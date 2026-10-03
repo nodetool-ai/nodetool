@@ -28,6 +28,7 @@ import { fontsRouter } from "./routers/fonts.js";
 import { storageRouter } from "./routers/storage.js";
 import { threadsRouter } from "./routers/threads.js";
 import { memoriesRouter } from "./routers/memories.js";
+import { errorTracesRouter } from "./routers/error-traces.js";
 import { sketchRouter } from "./routers/sketch.js";
 import { gamesRouter } from "./routers/games.js";
 import { storyboardsRouter } from "./routers/storyboards.js";
@@ -78,6 +79,7 @@ export const appRouter = router({
   storage: storageRouter,
   threads: threadsRouter,
   memories: memoriesRouter,
+  errorTraces: errorTracesRouter,
   timeline: timelineRouter,
   users: usersRouter,
   worker: workerRouter,

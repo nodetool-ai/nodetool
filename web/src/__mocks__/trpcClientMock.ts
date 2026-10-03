@@ -154,7 +154,16 @@ export const trpc = {
   }
 };
 
+export const mockErrorTracesReport = jest.fn(async () => ({
+  markdown: "",
+  trace_ids: [] as string[]
+}));
+
 export const trpcClient = {
+  errorTraces: {
+    report: { query: mockErrorTracesReport },
+    capture: { mutate: jest.fn(async () => ({ id: null })) }
+  },
   threads: {
     list: { query: emptyQuery() },
     get: { query: emptyQuery() },

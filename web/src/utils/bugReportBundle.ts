@@ -180,6 +180,23 @@ function errorSectionContent(context: BugReportContext): string {
 }
 
 /**
+ * The server's redacted error traces, as the Markdown `errorTraces.report`
+ * returns. Fetched after the dialog opens, so it is built on its own rather
+ * than in {@link buildBundleSections}.
+ */
+export function buildServerErrorSection(markdown: string): BundleSection {
+  return {
+    id: "server-errors",
+    label: "Recent server errors",
+    description:
+      "Errors the server recorded in the last hour: message, stack and the job or route. Stored redacted, with no prompts or keys.",
+    fileName: "server-errors.md",
+    content: redactSecretsInText(markdown),
+    defaultIncluded: true
+  };
+}
+
+/**
  * The optional attachments, in the order the dialog lists them. `report.md`
  * and `system.txt` are added at zip time because they depend on the form.
  */

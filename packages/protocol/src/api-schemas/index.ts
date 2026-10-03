@@ -27,6 +27,7 @@ export * as settings from "./settings.js";
 export * as storage from "./storage.js";
 export * as threads from "./threads.js";
 export * as memories from "./memories.js";
+export * as errorTraces from "./error-traces.js";
 export * as users from "./users.js";
 export * as sketch from "./sketch.js";
 export * as skills from "./skills.js";

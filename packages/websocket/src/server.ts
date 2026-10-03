@@ -198,7 +198,11 @@ import falWebhookRoute from "./routes/fal-webhook.js";
 import atlasCloudWebhookRoute from "./routes/atlascloud-webhook.js";
 import { createIntegrationRoutes } from "./routes/integrations.js";
 import { isNonEmptyString, isString } from "./lib/wire-values.js";
-import { logTrpcRequestError } from "./trpc/error-logging.js";
+import {
+  logTrpcRequestError,
+  traceTrpcRequestError
+} from "./trpc/error-logging.js";
+import { captureError, startErrorTraceMaintenance } from "./error-traces.js";
 
 /** The Node `process` as Electron extends it. `type` is absent elsewhere. */
 type ElectronProcess = typeof process & { readonly type?: string };
@@ -247,6 +251,7 @@ const startupT0 = performance.now();
  */
 const PROCESS_STARTED_AT = new Date().toISOString();
 let stopGenerationReconcileWorker: (() => void) | null = null;
+let stopErrorTraceMaintenance: (() => void) | null = null;
 function startupMs(): string {
   return `${(performance.now() - startupT0).toFixed(0)}ms`;
 }
@@ -376,6 +381,7 @@ try {
   stopGenerationReconcileWorker = startGenerationReconcileWorker({
     resolveSecret: (key, userId) => getSecret(key, userId)
   });
+  stopErrorTraceMaintenance = startErrorTraceMaintenance();
 
   const runHistoryCleanup = (): void => {
     void runAutomaticStorageCleanup(LOCAL_USER_ID)
@@ -841,6 +847,23 @@ app.addHook("onRequest", async (request) => {
     { reqId: request.id, method: request.method, url: request.url },
     "incoming request"
   );
+});
+
+// A REST handler that throws a 5xx leaves a redacted trace. 4xx errors are
+// the caller's mistake and are not traced.
+app.addHook("onError", async (request, _reply, error) => {
+  const status = error.statusCode ?? 500;
+  if (status < 500) return;
+  captureError(error, {
+    source: "http",
+    userId: request.userId ?? null,
+    context: {
+      route: request.routeOptions.url ?? request.url.split("?")[0],
+      method: request.method,
+      http_status: status,
+      request_id: request.id
+    }
+  });
 });
 
 app.addHook("onSend", async (request, reply) => {
@@ -1505,11 +1528,17 @@ await app.register(fastifyTRPCPlugin, {
     // flag the server rejects POST-to-query with 405, leaving panels empty.
     allowMethodOverride: true,
     maxBatchSize: TRPC_MAX_BATCH_SIZE,
-    onError({ path, error, req }) {
+    onError({ path, error, req, ctx }) {
       logTrpcRequestError(log, {
         path,
         error,
         requestId: req.id
+      });
+      traceTrpcRequestError({
+        path,
+        error,
+        requestId: req.id,
+        userId: ctx?.userId
       });
     }
   } satisfies FastifyTRPCPluginOptions<AppRouter>["trpcOptions"]
@@ -1959,6 +1988,7 @@ async function shutdown(signal: string): Promise<void> {
   clearInterval(generationRecoveryTimer);
   stopJobCancelPoller();
   stopGenerationReconcileWorker?.();
+  stopErrorTraceMaintenance?.();
   try {
     await triggerServices.stop();
   } catch (err) {

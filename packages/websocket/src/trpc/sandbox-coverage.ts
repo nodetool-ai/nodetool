@@ -941,6 +941,22 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "storyboards.update": { capability: "edit_storyboard" },
   "memories.delete": { capability: "memory_delete" },
+  "errorTraces.list": { capability: "list_error_traces" },
+  "errorTraces.summary": { capability: "list_error_traces" },
+  "errorTraces.get": { capability: "get_error_trace" },
+  "errorTraces.report": { capability: "export_error_report" },
+  "errorTraces.capture": {
+    withheld:
+      "Records a client crash as the app's own failure. A run that could " +
+      "write one could plant traces that send a debugging agent or a bug " +
+      "report after a failure that never happened."
+  },
+  "errorTraces.ingest": {
+    withheld:
+      "The receiving end of another install's sync, authenticated by an " +
+      "access token. A run has no traces of its own to push, and writing " +
+      "here would plant records under the user's id."
+  },
   "memories.list": { capability: "memory_list" },
   "memories.search": { capability: "memory_search" },
   "threads.create": {

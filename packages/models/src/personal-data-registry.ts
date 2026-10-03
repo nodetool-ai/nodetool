@@ -386,6 +386,15 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "Facts the agent retained about the person across sessions. Exactly the profile Art. 17 exists for."
   },
   {
+    table: "nodetool_error_traces",
+    schemaExport: "errorTraces",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "Redacted error traces from the person's own runs and requests. They are diagnostics about the person's activity with no lawful basis to outlive the account, and the 30-day retention sweep removes them anyway."
+  },
+  {
     table: "nodetool_settings",
     schemaExport: "appSettings",
     disposition: "delete",

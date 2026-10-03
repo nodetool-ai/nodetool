@@ -46,6 +46,7 @@ import { flowSpecs } from "./flow.specs.js";
 import { generationsSpecs } from "./generations.specs.js";
 import { googleSpecs } from "./google.specs.js";
 import { jobsSpecs } from "./jobs.specs.js";
+import { errorsSpecs } from "./errors.specs.js";
 import { jsScriptsSpecs } from "./js-scripts.specs.js";
 import { mediaSpecs } from "./media.specs.js";
 import { memorySpecs } from "./memory.specs.js";
@@ -119,6 +120,10 @@ const CAPABILITY_MODULES: Readonly<Record<string, CapabilityModuleEntry>> = {
   jobs: {
     loader: () => import("./jobs.js").then((m) => m.module),
     specs: jobsSpecs
+  },
+  errors: {
+    loader: () => import("./errors.js").then((m) => m.module),
+    specs: errorsSpecs
   },
   generations: {
     loader: () => import("./generations.js").then((m) => m.module),

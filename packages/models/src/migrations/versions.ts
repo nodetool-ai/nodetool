@@ -98,6 +98,48 @@ const DOUBLE_ENCODED_DOCUMENT_TABLES = [
   "application_versions"
 ];
 
+/**
+ * DDL for `nodetool_error_traces`, valid on both dialects. The migration below
+ * runs it; `initTestDb` applies it synchronously through
+ * {@link POST_BASELINE_TABLE_DDL}, because the frozen SQLite baseline predates
+ * the table.
+ */
+const ERROR_TRACES_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS nodetool_error_traces (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT,
+    fingerprint TEXT NOT NULL,
+    source TEXT NOT NULL,
+    severity TEXT NOT NULL,
+    error_type TEXT,
+    message TEXT NOT NULL,
+    stack TEXT,
+    context TEXT,
+    app_version TEXT,
+    platform TEXT,
+    origin TEXT NOT NULL,
+    synced_at TEXT,
+    created_at TEXT NOT NULL
+  )`,
+  // Serves the per-user listing, export and erasure.
+  `CREATE INDEX IF NOT EXISTS idx_error_trace_user_created
+    ON nodetool_error_traces (user_id, created_at)`,
+  // Serves "every occurrence of this error".
+  `CREATE INDEX IF NOT EXISTS idx_error_trace_fingerprint
+    ON nodetool_error_traces (fingerprint, created_at)`,
+  // Serves the retention sweep and the oldest-first sync scan.
+  `CREATE INDEX IF NOT EXISTS idx_error_trace_created
+    ON nodetool_error_traces (created_at)`
+];
+
+/**
+ * Idempotent DDL for tables created by migrations newer than the frozen
+ * SQLite baseline, in migration order. Only `initTestDb` reads it: the
+ * in-memory test database is built synchronously from the baseline and would
+ * otherwise lack these tables. Real databases get them from the migrations.
+ */
+export const POST_BASELINE_TABLE_DDL: readonly string[] = [...ERROR_TRACES_DDL];
+
 export const migrations: MigrationDef[] = [
   // ── 001: Create workflows ──────────────────────────────────────────
   {
@@ -3787,6 +3829,55 @@ export const migrations: MigrationDef[] = [
     },
     async down() {
       // Removing the encoding would only reintroduce the defect.
+    }
+  },
+  // ── Create nodetool_error_traces ──────────────────────────────────────
+  // Redacted error traces kept in the deployment's own database. On Supabase
+  // the table gets row-level security: the server connects as the table
+  // owner and is unaffected, while the Data API shows a signed-in user only
+  // their own rows and anonymous callers nothing. See schema/error-traces.ts.
+  {
+    version: "20261003_000002",
+    name: "create_error_traces",
+    createsTables: ["nodetool_error_traces"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of ERROR_TRACES_DDL) {
+        await db.execute(statement);
+      }
+      if (db.dbType !== "postgres") return;
+      await db.execute(
+        "ALTER TABLE nodetool_error_traces ENABLE ROW LEVEL SECURITY"
+      );
+      // `auth.uid()` exists only on Supabase. Plain PostgreSQL keeps RLS on
+      // with no policy, which denies every role but the owner.
+      await db.execute(`
+        DO $$
+        BEGIN
+          IF to_regprocedure('auth.uid()') IS NOT NULL
+             AND NOT EXISTS (
+               SELECT 1 FROM pg_policies
+               WHERE tablename = 'nodetool_error_traces'
+                 AND policyname = 'error_traces_owner_read'
+             ) THEN
+            EXECUTE 'CREATE POLICY error_traces_owner_read
+              ON nodetool_error_traces FOR SELECT TO authenticated
+              USING (user_id = (SELECT auth.uid())::text)';
+          END IF;
+        END
+        $$
+      `);
+    },
+    async down(db) {
+      if (db.dbType === "postgres") {
+        await db.execute(
+          "DROP POLICY IF EXISTS error_traces_owner_read ON nodetool_error_traces"
+        );
+      }
+      await db.execute("DROP INDEX IF EXISTS idx_error_trace_user_created");
+      await db.execute("DROP INDEX IF EXISTS idx_error_trace_fingerprint");
+      await db.execute("DROP INDEX IF EXISTS idx_error_trace_created");
+      await db.execute("DROP TABLE IF EXISTS nodetool_error_traces");
     }
   }
 ];
