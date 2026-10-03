@@ -647,3 +647,60 @@ describe("migrateTranscriptToClips", () => {
     expect(kept.caption?.words).toEqual(words(["hello", 0, 300]));
   });
 });
+
+describe("transcript ripple edit fidelity (F9, F42, F43)", () => {
+  const words = (): CaptionWord[] => [
+    { word: "a", startMs: 0, endMs: 300 },
+    { word: "b", startMs: 300, endMs: 600 },
+    { word: "c", startMs: 600, endMs: 1000 },
+    { word: "d", startMs: 1000, endMs: 1200 }
+  ];
+  const clip = () =>
+    beat("v", {
+      durationMs: 1200,
+      words: words()
+    });
+
+  it("F9: remnants drop the interior fade, like splitClip", () => {
+    const c = { ...clip(), fadeInMs: 100, fadeOutMs: 100 };
+    const { clips } = rippleDeleteRange([c], 300, 600);
+    const [head, tail] = [...clips].sort((x, y) => x.startMs - y.startMs);
+    expect(head.fadeInMs).toBe(100);
+    expect(head.fadeOutMs).toBeUndefined();
+    expect(tail.fadeInMs).toBeUndefined();
+    expect(tail.fadeOutMs).toBe(100);
+  });
+
+  it("F9: leaves a time-remapped clip whole", () => {
+    const c = {
+      ...clip(),
+      timeRemap: { keyframes: [] }
+    } as unknown as TimelineClip;
+    const { clips } = rippleDeleteRange([c], 300, 600);
+    expect(clips).toHaveLength(1);
+    expect(clips[0].durationMs).toBe(1200);
+  });
+
+  it("F42: consecutive deleted words leave no gap fragments", () => {
+    const c = clip();
+    const survivors = [
+      { clipId: "v", wordIndex: 0, text: "a" },
+      { clipId: "v", wordIndex: 3, text: "d" }
+    ];
+    const { clips, durationMs } = reconcileTranscript([c], survivors);
+    expect(clips).toHaveLength(2);
+    expect(durationMs).toBe(300 + 200);
+  });
+
+  it("F43: locked clips are neither cut nor moved", () => {
+    const locked = { ...clip(), id: "l" };
+    const other = { ...beat("o", { startMs: 1500, durationMs: 500 }) };
+    const { clips } = rippleDeleteRange([locked, other], 300, 600, {
+      lockedClipIds: new Set(["l", "o"])
+    });
+    expect(clips.map((c) => [c.id, c.startMs, c.durationMs])).toEqual([
+      ["l", 0, 1200],
+      ["o", 1500, 500]
+    ]);
+  });
+});

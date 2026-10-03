@@ -25,10 +25,17 @@ import { create } from "zustand";
 import { makeClip, makeClipVersion, createTimeOrderedUuid } from "@nodetool-ai/timeline";
 import type { CaptionWord, TimelineClip } from "@nodetool-ai/timeline";
 
-import { useTimelineStore } from "./TimelineStore";
+import { lockedUserTargetIds, useTimelineStore } from "./TimelineStore";
 import type { TimelineStoreState } from "./TimelineStore";
 import { useTimelinePlaybackStore } from "./TimelinePlaybackStore";
 import * as ops from "./transcriptOps";
+
+/** Locks a transcript edit must respect, read from the live timeline. */
+function editLocks(
+  store: Pick<TimelineStoreState, "clips" | "tracks">
+): ops.TranscriptEditLocks {
+  return { lockedClipIds: lockedUserTargetIds(store.clips, store.tracks) };
+}
 import type { TokenRef } from "./transcriptOps";
 import { rpcRequest } from "../../lib/websocket/rpcRequest";
 import { useAssetStore } from "../AssetStore";
@@ -276,7 +283,7 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
         const startMs = Math.min(...members.map((c) => c.startMs));
         const endMs = Math.max(...members.map((c) => c.startMs + c.durationMs));
         store.setTranscriptAndClips(
-          ops.rippleDeleteRange(store.clips, startMs, endMs)
+          ops.rippleDeleteRange(store.clips, startMs, endMs, editLocks(store))
         );
         set((state) => {
           const next = { ...state.clipStatus };
@@ -291,7 +298,12 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
         const range = ops.resolveSelectionRange(doc, anchor, focus);
         if (!range) return;
         store.setTranscriptAndClips(
-          ops.rippleDeleteRange(store.clips, range.startMs, range.endMs)
+          ops.rippleDeleteRange(
+            store.clips,
+            range.startMs,
+            range.endMs,
+            editLocks(store)
+          )
         );
         useTimelinePlaybackStore.getState().seek(range.startMs);
       },
@@ -305,7 +317,7 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
 
       removeFillers: () => {
         const store = useTimelineStore.getState();
-        store.setTranscriptAndClips(ops.removeFillers(store.clips));
+        store.setTranscriptAndClips(ops.removeFillers(store.clips, editLocks(store)));
       },
 
       setSpeaker: (clipIds, speaker) => {
@@ -333,7 +345,8 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
         const { clips, durationMs, extracted } = ops.cutWordRange(
           store.clips,
           range.startMs,
-          range.endMs
+          range.endMs,
+          editLocks(store)
         );
         store.setTranscriptAndClips({ clips, durationMs });
         set({ clipboard: extracted });
@@ -345,7 +358,7 @@ export const useTimelineTranscriptStore = create<TimelineTranscriptStoreState>(
         if (!clipboard || clipboard.length === 0) return;
         const store = useTimelineStore.getState();
         store.setTranscriptAndClips(
-          ops.pasteClipsAt(store.clips, targetMs, clipboard)
+          ops.pasteClipsAt(store.clips, targetMs, clipboard, editLocks(store))
         );
         useTimelinePlaybackStore.getState().seek(targetMs);
       },
