@@ -13,9 +13,10 @@ import {
 import { useNotificationStore } from "../../stores/NotificationStore";
 import {
   mergeTimelineDocuments,
-  timelineConflictKey,
-  type TimelineMergeDoc
+  timelineConflictKey
 } from "../../stores/timeline/merge";
+import { registerTimelineSaver } from "../../stores/timeline/timelineSaveRegistry";
+import { useDocumentDraftStore } from "../../stores/DocumentDraftStore";
 import { useConflictStore } from "../../stores/ConflictStore";
 import { trpcClient } from "../../trpc/client";
 import { isString } from "../../utils/typePredicates";
@@ -25,7 +26,10 @@ import {
   applyAcceptedTimelineConflict,
   listableTimelineConflicts,
   rebaseTimelineSnapshots,
-  timelineTypedDocumentOf
+  timelineMergeDocumentOf,
+  timelineMergeDocumentOfSequence,
+  timelineTypedDocumentOf,
+  withHistoryPaused
 } from "./timelineExternalMerge";
 
 interface DocumentSnapshot {
@@ -56,23 +60,6 @@ const pickSnapshot = (state: TimelineStoreState): DocumentSnapshot => ({
   ...buildTimelineDocumentPayload(state)
 });
 
-const timelineMergeDocumentOf = (
-  state: TimelineStoreState
-): TimelineMergeDoc => ({
-  tracks: state.tracks,
-  trackFolders: state.trackFolders,
-  clips: state.clips,
-  markers: state.markers,
-  mediaTracks: state.mediaTracks,
-  transcript: state.transcript,
-  scriptEnabled: state.scriptEnabled,
-  fps: state.fps,
-  width: state.width,
-  height: state.height,
-  storyboardMaterializations: state.storyboardMaterializations,
-  camera2d: state.camera2d ?? null
-});
-
 const sameDocument = (
   a: DocumentSnapshot | null,
   b: DocumentSnapshot | null
@@ -80,6 +67,9 @@ const sameDocument = (
   a !== null &&
   b !== null &&
   a.sequenceId === b.sequenceId &&
+  a.fps === b.fps &&
+  a.width === b.width &&
+  a.height === b.height &&
   a.tracks === b.tracks &&
   a.trackFolders === b.trackFolders &&
   a.clips === b.clips &&
@@ -127,8 +117,29 @@ export function useTimelineAutosave(
     let lastSaved: DocumentSnapshot | null = pickSnapshot(initial);
     let lastDocument = lastSaved;
     let lastSequenceId = initial.sequenceId;
+    let lastBaseUpdatedAt = initial.baseUpdatedAt;
+    // The last snapshot taken while a sequence was open. On unmount a sibling
+    // cleanup may already have reset the store, and the closing flush still
+    // has to write what the user last saw.
+    let lastLive: DocumentSnapshot | null = initial.sequenceId
+      ? lastSaved
+      : null;
+    let finalSnapshot: DocumentSnapshot | null = null;
     const currentSnapshot = (): DocumentSnapshot =>
-      pickSnapshot(store.getState());
+      finalSnapshot ?? pickSnapshot(store.getState());
+    const draftKey = (): string | null =>
+      lastSequenceId ? `timeline:${lastSequenceId}` : null;
+    const publishDraftState = (status: string): void => {
+      const key = draftKey();
+      if (!key) return;
+      const drafts = useDocumentDraftStore.getState();
+      drafts.setDirty(
+        key,
+        status !== "saved" ||
+          Boolean(drafts.codeDrafts[lastSequenceId as string]?.dirty)
+      );
+      drafts.setSaving(key, status === "saving");
+    };
     const dirtyProbe: DirtyProbe = (sequenceId) =>
       store.getState().sequenceId === sequenceId &&
       !sameDocument(currentSnapshot(), lastSaved);
@@ -141,7 +152,7 @@ export function useTimelineAutosave(
           const snapshot = currentSnapshot();
           return snapshot.sequenceId ? snapshot : null;
         },
-        getRevision: () => store.getState().baseUpdatedAt,
+        getRevision: () => currentSnapshot().baseUpdatedAt,
         isDirty: () => !sameDocument(currentSnapshot(), lastSaved),
         canSave: (flush) => flush || timelineTemporalOf(store).isTracking,
         save: async (snapshot, revision) => {
@@ -153,9 +164,20 @@ export function useTimelineAutosave(
             live.sequenceId === snapshot.sequenceId
               ? live.baseUpdatedAt
               : snapshot.baseUpdatedAt;
+          const settingsChanged =
+            lastSaved === null ||
+            lastSaved.sequenceId !== snapshot.sequenceId ||
+            lastSaved.fps !== snapshot.fps ||
+            lastSaved.width !== snapshot.width ||
+            lastSaved.height !== snapshot.height;
           const response = await trpcClient.timeline.update.mutate({
             id: snapshot.sequenceId,
             baseUpdatedAt: baseUpdatedAt ?? undefined,
+            ...(settingsChanged && {
+              fps: snapshot.fps,
+              width: snapshot.width,
+              height: snapshot.height
+            }),
             document: buildTimelineDocumentPayload(snapshot)
           });
           acknowledgePersistedMediaEdits(snapshot.sequenceId, snapshot.clips);
@@ -165,20 +187,12 @@ export function useTimelineAutosave(
             store.getState().sequenceId === snapshot.sequenceId &&
             !isOlderUpdatedAt(updatedAt, store.getState().baseUpdatedAt)
           ) {
-            store.getState().setBaseUpdatedAt(updatedAt, {
-              tracks: snapshot.tracks,
-              trackFolders: snapshot.trackFolders,
-              clips: snapshot.clips,
-              markers: snapshot.markers,
-              mediaTracks: snapshot.mediaTracks,
-              transcript: snapshot.transcript,
-              scriptEnabled: snapshot.scriptEnabled,
-              fps: snapshot.fps,
-              width: snapshot.width,
-              height: snapshot.height,
-              storyboardMaterializations: snapshot.storyboardMaterializations,
-              camera2d: snapshot.camera2d ?? null
-            });
+            store
+              .getState()
+              .setBaseUpdatedAt(
+                updatedAt,
+                timelineTypedDocumentOf(timelineMergeDocumentOf(snapshot))
+              );
           }
           lastSaved = snapshot;
           return { updatedAt: isString(updatedAt) ? updatedAt : revision };
@@ -198,20 +212,7 @@ export function useTimelineAutosave(
           if (store.getState().sequenceId === sequenceId) {
             const before = store.getState();
             const draft = timelineMergeDocumentOf(before);
-            const server: TimelineMergeDoc = {
-              tracks: sequence.tracks ?? [],
-              trackFolders: sequence.trackFolders ?? [],
-              clips: sequence.clips ?? [],
-              markers: sequence.markers ?? [],
-              mediaTracks: sequence.mediaTracks ?? [],
-              transcript: sequence.transcript ?? [],
-              scriptEnabled: sequence.scriptEnabled ?? false,
-              fps: sequence.fps,
-              width: sequence.width,
-              height: sequence.height,
-              storyboardMaterializations: sequence.storyboardMaterializations,
-              camera2d: sequence.camera2d ?? null
-            };
+            const server = timelineMergeDocumentOfSequence(sequence, base);
             const { doc, conflicts, nextBase } = mergeTimelineDocuments(
               base,
               draft,
@@ -219,27 +220,11 @@ export function useTimelineAutosave(
               undefined,
               { mergeWithoutOps: true }
             );
-            const temporal = timelineTemporalOf(store);
-            temporal.pause();
-            try {
-              store.getState().applyExternalMerge({
-                tracks: doc.tracks as TimelineStoreState["tracks"],
-                trackFolders: doc.trackFolders as TimelineStoreState["trackFolders"],
-                clips: doc.clips as TimelineStoreState["clips"],
-                markers: doc.markers as TimelineStoreState["markers"],
-                mediaTracks:
-                  doc.mediaTracks as TimelineStoreState["mediaTracks"],
-                transcript: doc.transcript as TimelineStoreState["transcript"],
-                scriptEnabled: doc.scriptEnabled,
-                fps: doc.fps,
-                width: doc.width,
-                height: doc.height,
-                storyboardMaterializations: doc.storyboardMaterializations,
-                camera2d: doc.camera2d ?? null
-              });
-            } finally {
-              temporal.resume();
-            }
+            withHistoryPaused(store, () => {
+              store
+                .getState()
+                .applyExternalMerge(timelineTypedDocumentOf(doc));
+            });
             const rebasedTemporal = timelineTemporalOf(store);
             store.temporal.setState({
               pastStates: rebaseTimelineSnapshots(
@@ -283,6 +268,7 @@ export function useTimelineAutosave(
           error instanceof Error &&
           /modified since last (read|load)/i.test(error.message),
         onStatus: (status) => {
+          publishDraftState(status);
           if (status === "error") {
             useNotificationStore.getState().addNotification({
               content:
@@ -296,6 +282,20 @@ export function useTimelineAutosave(
         }
       });
     controllerRef.current = controller;
+    const unregisterSaver = registerTimelineSaver({
+      handles: (sequenceId) => store.getState().sequenceId === sequenceId,
+      save: async () => {
+        const result = await controller.flush();
+        if (!result.ok) return result;
+        return {
+          ok: true,
+          updatedAt: result.updatedAt,
+          sent: lastSaved?.sequenceId
+            ? timelineTypedDocumentOf(timelineMergeDocumentOf(lastSaved))
+            : null
+        };
+      }
+    });
 
     if (initial.sequenceId && migratedLoads.delete(initial.sequenceId)) {
       lastSaved = null;
@@ -306,12 +306,22 @@ export function useTimelineAutosave(
       const snapshot = pickSnapshot(state);
       const changed = !sameDocument(snapshot, lastDocument);
       const isLoad = state.sequenceId !== lastSequenceId;
+      // `loadSequence` swaps the document and its token in one write, which a
+      // landed save never does. That is the server's copy replacing ours, so
+      // it is the new saved state even when the sequence id is unchanged.
+      const replacedFromServer =
+        changed && state.baseUpdatedAt !== lastBaseUpdatedAt;
       lastDocument = snapshot;
       lastSequenceId = state.sequenceId;
+      lastBaseUpdatedAt = state.baseUpdatedAt;
+      if (state.sequenceId) lastLive = snapshot;
       if (!state.sequenceId || !changed) {
         return;
       }
-      if (isLoad && !migratedLoads.delete(state.sequenceId)) {
+      if (
+        (isLoad || replacedFromServer) &&
+        !migratedLoads.delete(state.sequenceId)
+      ) {
         lastSaved = snapshot;
         return;
       }
@@ -321,7 +331,16 @@ export function useTimelineAutosave(
     return () => {
       unsubscribe();
       dirtyProbes.delete(dirtyProbe);
+      unregisterSaver();
+      const closing = pickSnapshot(store.getState());
+      finalSnapshot = closing.sequenceId ? closing : lastLive;
       controller.dispose();
+      const key = draftKey();
+      if (key) {
+        const drafts = useDocumentDraftStore.getState();
+        drafts.setSaving(key, false);
+        drafts.setDirty(key, Boolean(drafts.codeDrafts[lastSequenceId as string]?.dirty));
+      }
       if (controllerRef.current === controller) {
         controllerRef.current = null;
       }

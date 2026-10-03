@@ -18,6 +18,7 @@ import {
 } from "../../stores/timeline/TimelineStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { trpcClient } from "../../trpc/client";
+import { saveTimelineThroughEditor } from "../../stores/timeline/timelineSaveRegistry";
 import { buildTimelineDocumentPayload } from "./timelineDocumentPayload";
 import { isString } from "../../utils/typePredicates";
 
@@ -27,7 +28,12 @@ interface UseTimelineSaveResult {
   isSaving: boolean;
 }
 
-/** Persist the current timeline snapshot and resolve only after server acknowledgement. */
+/**
+ * Persist the current timeline snapshot and resolve only after server
+ * acknowledgement. With an editor open the write goes through its autosave
+ * controller, so it queues behind an in-flight save instead of racing it. The
+ * direct write is the fallback for a store no editor is autosaving.
+ */
 export async function persistTimelineDocument(
   store: ReturnType<typeof useTimelineStoreApi>,
   setupOverride?: TimelineSetup | null
@@ -36,13 +42,22 @@ export async function persistTimelineDocument(
   if (!state.sequenceId) {
     throw new Error("Save the timeline before starting generation.");
   }
+  if (setupOverride === undefined) {
+    const queued = saveTimelineThroughEditor(state.sequenceId);
+    if (queued) {
+      const result = await queued;
+      if (!result.ok) throw new Error(result.error);
+      return;
+    }
+  }
+  const sent = {
+    ...state,
+    ...(setupOverride !== undefined && { setup: setupOverride })
+  };
   const response = await trpcClient.timeline.update.mutate({
     id: state.sequenceId,
     baseUpdatedAt: state.baseUpdatedAt ?? undefined,
-    document: buildTimelineDocumentPayload({
-      ...state,
-      ...(setupOverride !== undefined && { setup: setupOverride })
-    })
+    document: buildTimelineDocumentPayload(sent)
   });
   const updatedAt = (response as { updatedAt?: unknown } | undefined)
     ?.updatedAt;
@@ -63,7 +78,9 @@ export async function persistTimelineDocument(
       width: state.width,
       height: state.height,
       storyboardMaterializations: state.storyboardMaterializations,
-      camera2d: state.camera2d ?? null
+      camera2d: state.camera2d ?? null,
+      tempo: sent.tempo,
+      setup: sent.setup ?? null
     });
   }
 }

@@ -21,6 +21,7 @@ import type { Theme } from "@mui/material/styles";
 import React, { memo, useCallback, useMemo, useState } from "react";
 
 import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
+import { saveTimelineThroughEditor } from "../../stores/timeline/timelineSaveRegistry";
 import { applyTimelineSequenceToStore } from "../../hooks/timeline/useLoadTimelineIntoStore";
 import {
   useTimelineVersions,
@@ -198,20 +199,37 @@ export const TimelineVersionHistoryPanel: React.FC<
     []
   );
 
+  // The server snapshots its own row, so pending local edits must reach it
+  // first. False means they did not, and the caller must stop.
+  const flushPendingEdits = useCallback(
+    async (action: string): Promise<boolean> => {
+      if (!sequenceId) return true;
+      const queued = saveTimelineThroughEditor(sequenceId);
+      if (!queued) return true;
+      const result = await queued;
+      if (result.ok) return true;
+      notifyMutationError(action, new Error(result.error));
+      return false;
+    },
+    [sequenceId]
+  );
+
   const handleConfirmSave = useCallback(async () => {
     setSaveDialogOpen(false);
     try {
+      if (!(await flushPendingEdits("save a version"))) return;
       await createVersion(saveName);
     } catch (err) {
       notifyMutationError("save a version", err);
     }
-  }, [createVersion, saveName]);
+  }, [createVersion, flushPendingEdits, saveName]);
 
   const handleConfirmRestore = useCallback(async () => {
     const target = restoreTarget;
     setRestoreTarget(null);
     if (!target) return;
     try {
+      if (!(await flushPendingEdits("restore that version"))) return;
       const restored = await restoreVersion(target.version);
       // The editor holds the pre-restore document in memory and autosaves it
       // 750 ms after any change; without this the next flush would PATCH the
@@ -220,7 +238,7 @@ export const TimelineVersionHistoryPanel: React.FC<
     } catch (err) {
       notifyMutationError("restore that version", err);
     }
-  }, [restoreTarget, restoreVersion, store]);
+  }, [flushPendingEdits, restoreTarget, restoreVersion, store]);
 
   const handleConfirmDelete = useCallback(async () => {
     const target = deleteTarget;

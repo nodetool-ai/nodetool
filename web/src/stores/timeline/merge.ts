@@ -15,7 +15,11 @@
  */
 import type { DocumentOp } from "@nodetool-ai/protocol";
 import { timelineCamera2d } from "@nodetool-ai/protocol/api-schemas/timeline.js";
-import type { TimelineSequence } from "@nodetool-ai/timeline";
+import type {
+  TimelineSequence,
+  TimelineSetup,
+  TimelineTempo
+} from "@nodetool-ai/timeline";
 import type {
   DocumentMergeAdapter,
   MergeConflict,
@@ -37,6 +41,10 @@ export interface TimelineMergeDoc {
   height: number;
   storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
   camera2d?: TimelineSequence["camera2d"];
+  /** Document tempo; a scalar, so an agent's rescale lands with its clips. */
+  tempo?: TimelineTempo;
+  /** Guided-setup state; null when the sequence never went through the flow. */
+  setup?: TimelineSetup | null;
 }
 
 interface ClipLike {
@@ -184,6 +192,16 @@ export const timelineMergeAdapter: DocumentMergeAdapter<TimelineMergeDoc> = {
       name: "camera2d",
       read: (doc) => doc.camera2d ?? null,
       write: (doc, value) => ({ ...doc, camera2d: value == null ? null : timelineCamera2d.parse(value) })
+    },
+    {
+      name: "tempo",
+      read: (doc) => doc.tempo,
+      write: (doc, v) => ({ ...doc, tempo: v as TimelineTempo | undefined })
+    },
+    {
+      name: "setup",
+      read: (doc) => doc.setup ?? null,
+      write: (doc, v) => ({ ...doc, setup: (v ?? null) as TimelineSetup | null })
     },
     {
       name: "fps",
