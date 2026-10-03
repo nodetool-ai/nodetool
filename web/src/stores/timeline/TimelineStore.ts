@@ -37,6 +37,7 @@ import {
   trimClip,
   rippleTrim,
   rollEdit,
+  findRollNeighbour,
   rippleDelete,
   closeGap,
   resolveDrop,
@@ -115,7 +116,7 @@ import {
   type IsolateSubjectResult
 } from "../../utils/timelineIsolateSubject";
 import { useNotificationStore } from "../NotificationStore";
-import { cloneClipsToTrack } from "./clipboardOps";
+import { cloneClips, cloneClipsToTrack } from "./clipboardOps";
 import {
   migrateTranscriptToClips,
   reflowGenerated,
@@ -577,7 +578,9 @@ export interface TimelineStoreState {
   rollClipEdge: (
     clipId: string,
     edge: "start" | "end",
-    deltaMs: number
+    deltaMs: number,
+    /** Source length of `clipId`; its end cannot roll past it. */
+    sourceDurationMs?: number
   ) => void;
 
   /** Delete the selection and close the time it covered on unlocked tracks. */
@@ -1245,8 +1248,21 @@ function editableUserTargets(
   return editable;
 }
 
+/** Ids of every clip whose complete link/group edit unit is writable. */
+function editableAllClips(state: {
+  clips: readonly TimelineClip[];
+  tracks: readonly TimelineTrack[];
+}): Set<string> {
+  return editableUserTargets(
+    state.clips,
+    state.tracks,
+    new Set(state.clips.map((c) => c.id)),
+    { followLinks: true, includeGroupDescendants: true }
+  );
+}
+
 /** Clips whose complete linked/grouped edit unit contains a lock. */
-function lockedUserTargetIds(
+export function lockedUserTargetIds(
   clips: readonly TimelineClip[],
   tracks: readonly TimelineTrack[]
 ): Set<string> {
@@ -1316,24 +1332,6 @@ function removeClipsLinkAware(
 }
 
 // ── Scene split/merge helpers (pure) ───────────────────────────────────────
-
-/**
- * Split every clip that strictly contains `timeMs` into two halves,
- * link-aware. Delegates to `splitClipsLinkAware` with every clip as a
- * candidate target so a split through a linked A/V pair mints one fresh
- * linkId for the LEFT halves and another for the RIGHT halves, rather than
- * leaving all four halves sharing the original linkId.
- */
-function splitAllClipsAt(
-  clips: TimelineClip[],
-  timeMs: number
-): TimelineClip[] {
-  return splitClipsLinkAware(
-    clips,
-    timeMs,
-    clips.map((c) => c.id)
-  );
-}
 
 /**
  * Split `targetIds` at absolute `atMs`, link-aware. When a split clip carries
@@ -1432,7 +1430,8 @@ function splitClipsLinkAware(
  */
 function mergeClipsAtTime(
   clips: TimelineClip[],
-  timeMs: number
+  timeMs: number,
+  editable?: ReadonlySet<string>
 ): TimelineClip[] {
   const EPS = 1;
   const removed = new Set<string>();
@@ -1483,14 +1482,65 @@ function mergeClipsAtTime(
     }
 
     if (!left) continue;
+    if (editable && !(editable.has(left.id) && editable.has(right.id))) {
+      continue;
+    }
     const base = replaced.get(left.id) ?? left;
-    replaced.set(left.id, {
+    const merged: TimelineClip = {
       ...base,
       durationMs: base.durationMs + right.durationMs,
       outPointMs:
         right.outPointMs ??
         (base.inPointMs ?? 0) + base.durationMs + right.durationMs
-    });
+    };
+    // Inverse of splitClip: the right half's outgoing fade, caption words and
+    // end/emphasis animations belong to the merged clip.
+    if (right.fadeOutMs !== undefined) merged.fadeOutMs = right.fadeOutMs;
+    else delete merged.fadeOutMs;
+    if (right.fadeOutShape !== undefined) {
+      merged.fadeOutShape = right.fadeOutShape;
+    } else {
+      delete merged.fadeOutShape;
+    }
+    const shiftMs = base.durationMs;
+    if (right.caption?.words.length) {
+      merged.caption = {
+        ...(base.caption ?? right.caption),
+        words: [
+          ...(base.caption?.words ?? []),
+          ...right.caption.words.map((w) => ({
+            ...w,
+            startMs: w.startMs + shiftMs,
+            endMs: w.endMs + shiftMs
+          }))
+        ]
+      };
+    }
+    if (right.animations?.length) {
+      const carried = right.animations
+        .filter((a) => a.role === "out" || a.role === "emphasis")
+        .map((a) =>
+          a.role === "emphasis"
+            ? {
+                ...a,
+                id: createTimeOrderedUuid(),
+                delayMs: (a.delayMs ?? 0) + shiftMs
+              }
+            : { ...a }
+        );
+      const leftOut = (base.animations ?? []).filter((a) => a.role !== "out");
+      merged.animations = [
+        ...leftOut,
+        ...carried.filter(
+          (a) =>
+            a.role !== "out" ||
+            !(base.animations ?? []).some(
+              (b) => b.role === "out" && b.preset === a.preset
+            )
+        )
+      ];
+    }
+    replaced.set(left.id, merged);
     removed.add(right.id);
   }
   if (removed.size === 0) return clips;
@@ -2259,7 +2309,13 @@ export const createTimelineStore = (
         ) =>
           set((state) => {
             const clip = state.clips.find((c) => c.id === clipId);
-            if (!clip) {
+            if (
+              !clip ||
+              !editableUserTargets(state.clips, state.tracks, new Set([clipId]), {
+                followLinks: state.linkedSelection,
+                includeGroupDescendants: true
+              }).has(clipId)
+            ) {
               return state;
             }
 
@@ -2284,7 +2340,19 @@ export const createTimelineStore = (
             }
 
             newStartMs = Math.max(0, newStartMs);
-            const appliedDelta = newStartMs - clip.startMs;
+            let appliedDelta = newStartMs - clip.startMs;
+
+            // Clamp the delta once for the whole link set so J-cut offsets
+            // survive a drag against t=0 (same rule as moveSelectedClips).
+            if (!isGroupClip(clip) && clip.linkId !== undefined && state.linkedSelection) {
+              const minStartMs = state.clips.reduce(
+                (min, c) =>
+                  c.linkId === clip.linkId ? Math.min(min, c.startMs) : min,
+                clip.startMs
+              );
+              appliedDelta = Math.max(appliedDelta, -minStartMs);
+              newStartMs = clip.startMs + appliedDelta;
+            }
 
             // A group carries what it holds (D4): the children follow the same
             // delta and keep their own tracks, so their z-order is untouched.
@@ -2625,9 +2693,34 @@ export const createTimelineStore = (
             }
           }),
 
-        rollClipEdge: (clipId, edge, deltaMs) =>
+        rollClipEdge: (clipId, edge, deltaMs, sourceDurationMs) =>
           set((state) => {
             try {
+              const clip = state.clips.find((c) => c.id === clipId);
+              const neighbour = clip
+                ? findRollNeighbour(state.clips, clip, edge)
+                : undefined;
+              if (!clip || !neighbour) return state;
+              // Both sides of the cut (and their links) must be writable.
+              const editable = editableUserTargets(
+                state.clips,
+                state.tracks,
+                new Set([clip.id, neighbour.id]),
+                {
+                  followLinks: state.linkedSelection,
+                  includeGroupDescendants: false
+                }
+              );
+              if (!editable.has(clip.id) || !editable.has(neighbour.id)) {
+                return state;
+              }
+              if (edge === "end") {
+                deltaMs = clampEndTrimDeltaToSource(
+                  clip,
+                  deltaMs,
+                  sourceDurationMs
+                );
+              }
               return {
                 clips: rollEdit(state.clips, clipId, edge, deltaMs, {
                   followLinks: state.linkedSelection
@@ -2818,39 +2911,26 @@ export const createTimelineStore = (
         duplicateSelected: (selectedIds, offsetMs = 0) => {
           const newIds: string[] = [];
           set((state) => {
-            const sources = state.clips.filter((c) => selectedIds.has(c.id));
-            // Count how many members of each link group are being duplicated
-            // together — a fully-duplicated group keeps a link (under a fresh
-            // id so copies form their OWN group); a lone half loses its link.
-            const groupCount = new Map<string, number>();
-            for (const c of sources) {
-              if (c.linkId !== undefined) {
-                groupCount.set(c.linkId, (groupCount.get(c.linkId) ?? 0) + 1);
-              }
-            }
-            const freshLinkByGroup = new Map<string, string>();
-            const newClips = sources.map((c) => {
-              const id = createTimeOrderedUuid();
-              newIds.push(id);
-              let linkId: string | undefined;
-              if (
-                c.linkId !== undefined &&
-                (groupCount.get(c.linkId) ?? 0) >= 2
-              ) {
-                let fresh = freshLinkByGroup.get(c.linkId);
-                if (fresh === undefined) {
-                  fresh = createTimeOrderedUuid();
-                  freshLinkByGroup.set(c.linkId, fresh);
-                }
-                linkId = fresh;
-              }
-              return makeClip({
-                ...c,
-                id,
-                startMs: c.startMs + c.durationMs + offsetMs,
-                linkId
-              });
-            });
+            const editable = editableUserTargets(
+              state.clips,
+              state.tracks,
+              selectedIds,
+              { followLinks: false, includeGroupDescendants: false }
+            );
+            const sources = state.clips.filter((c) => editable.has(c.id));
+            if (sources.length === 0) return state;
+            // Copies land after the whole selection, so adjacent selected
+            // clips keep their spacing and never overlap each other's copy.
+            const spanMs =
+              Math.max(...sources.map((c) => c.startMs + c.durationMs)) -
+              Math.min(...sources.map((c) => c.startMs));
+            // cloneClips remaps parentId to the copied parent (or drops it)
+            // and gives fully-duplicated link groups a fresh shared linkId.
+            const newClips = cloneClips(sources).map((c) => ({
+              ...c,
+              startMs: c.startMs + spanMs + offsetMs
+            }));
+            newIds.push(...newClips.map((c) => c.id));
             return { clips: [...state.clips, ...newClips] };
           });
           return newIds;
@@ -3818,7 +3898,11 @@ export const createTimelineStore = (
 
         mergeClipsAt: (timeMs) =>
           set((state) => {
-            const next = mergeClipsAtTime(state.clips, timeMs);
+            const next = mergeClipsAtTime(
+              state.clips,
+              timeMs,
+              editableAllClips(state)
+            );
             return next === state.clips ? {} : { clips: next };
           }),
 
@@ -3831,7 +3915,9 @@ export const createTimelineStore = (
                 label: label ?? ""
               })
             ],
-            clips: splitAllClipsAt(state.clips, Math.round(timeMs))
+            clips: splitClipsLinkAware(state.clips, Math.round(timeMs), [
+              ...editableAllClips(state)
+            ])
           })),
 
         removeScene: (markerId) =>
@@ -3841,7 +3927,11 @@ export const createTimelineStore = (
             return {
               markers,
               clips: marker
-                ? mergeClipsAtTime(state.clips, marker.timeMs)
+                ? mergeClipsAtTime(
+                    state.clips,
+                    marker.timeMs,
+                    editableAllClips(state)
+                  )
                 : state.clips
             };
           })

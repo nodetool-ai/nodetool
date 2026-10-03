@@ -66,7 +66,10 @@ import {
   isTranscriptClip,
   type EditorEdits
 } from "../../../stores/timeline/transcriptOps";
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import {
+  lockedUserTargetIds,
+  useTimelineStore
+} from "../../../stores/timeline/TimelineStore";
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import {
@@ -445,7 +448,13 @@ const SyncPlugin: React.FC<{ wordIndex: TranscriptWordIndex }> = ({
       const { clips: nextClips, durationMs } = applyEditorEdits(
         base,
         edits,
-        audioTrackId
+        audioTrackId,
+        {
+          lockedClipIds: lockedUserTargetIds(
+            useTimelineStore.getState().clips,
+            useTimelineStore.getState().tracks
+          )
+        }
       );
       if (transcriptSignature(nextClips) !== transcriptSignature(base)) {
         setTranscriptAndClips({ clips: nextClips, durationMs });

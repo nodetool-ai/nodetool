@@ -273,7 +273,7 @@ export function useClipTrim({
       const deltaMs = valueMs - currentEndMs;
       const mode = gestureRef.current.mode;
       if (mode === "roll") {
-        rollClipEdge(clip.id, "end", deltaMs);
+        rollClipEdge(clip.id, "end", deltaMs, sourceDurationMs);
       } else if (mode === "ripple") {
         rippleTrimClipEnd(clip.id, deltaMs, sourceDurationMs);
       } else {

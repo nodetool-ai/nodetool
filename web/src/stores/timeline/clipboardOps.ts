@@ -76,7 +76,7 @@ export function cloneClipsToTrack(
   return cloneClips(clips).map((clip) => ({ ...clip, trackId }));
 }
 
-function cloneClips(clips: readonly TimelineClip[]): TimelineClip[] {
+export function cloneClips(clips: readonly TimelineClip[]): TimelineClip[] {
   const groupCount = new Map<string, number>();
   const freshIdByClip = new Map<string, string>();
   const copies = clips.map((c) => {
