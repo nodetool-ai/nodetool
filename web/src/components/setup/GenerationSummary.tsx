@@ -1,4 +1,3 @@
-import React from "react";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 import {
   Caption,

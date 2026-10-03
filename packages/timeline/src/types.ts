@@ -621,20 +621,42 @@ export interface MidiNote {
   durationTick: number;
 }
 
-/** The synth a midi track plays. One member today; a union so adding a second
- * synth does not reshape what is already stored. */
 /**
  * The voice a midi track plays.
  *
  * `subtractive` is the built-in synth. The other three are ports of the
  * FableSynth instruments (github.com/georgi/fablesynth): WT-1 the wavetable
- * synth, BL-1 the acid bassline, DR-1 the drum machine.
+ * synth, BL-1 the acid bassline, DR-1 the drum machine. The sampler plays
+ * recorded audio assets through MIDI key mappings.
  */
 export type MidiInstrument =
   | SubtractiveMidiInstrument
   | WavetableMidiInstrument
   | BassMidiInstrument
-  | DrumMidiInstrument;
+  | DrumMidiInstrument
+  | SamplerMidiInstrument;
+
+/** Recorded audio mapped to MIDI key ranges. Overlapping zones layer. */
+export interface SamplerZone {
+  id: string;
+  name: string;
+  /** Persistent audio asset id. Hosts resolve it through their asset store. */
+  assetId: string;
+  rootNote: number;
+  lowNote: number;
+  highNote: number;
+  gainDb: number;
+}
+
+export interface SamplerMidiInstrument {
+  type: "sampler";
+  zones: SamplerZone[];
+  /** Percussion ignores note-off and plays the complete recording. */
+  oneShot: boolean;
+  attackMs: number;
+  releaseMs: number;
+  gainDb: number;
+}
 
 /** One oscillator through a lowpass filter and an ADSR envelope. */
 export interface SubtractiveMidiInstrument {

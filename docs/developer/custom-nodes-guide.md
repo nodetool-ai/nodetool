@@ -44,7 +44,7 @@ npm install --save @nodetool-ai/node-sdk @nodetool-ai/runtime @nodetool-ai/proto
 npm install --save-dev typescript @types/node vitest
 ```
 
-`nodetool package init` scaffolds a similar package, but its output is not a loadable pack yet. It writes `export function registerNodes(...)` and no `nodetool` field, and its `tsconfig.json` lacks `experimentalDecorators`. Add the `nodetool` field from [§3](#3-packagejson-and-the-pack-manifest) (with `"register": "registerNodes"`, or rename the export) and the compiler flags from [§5](#5-tsconfigjson).
+`nodetool package init` scaffolds a similar package. It writes the `nodetool` field and an empty `export function register(...)`, but its `tsconfig.json` lacks `experimentalDecorators`. Add the compiler flags from [§5](#5-tsconfigjson) before you write nodes.
 
 `src/nodes/reverse.ts`:
 

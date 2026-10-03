@@ -28,7 +28,7 @@ import {
 
 import "./fablesynth-editor.css";
 
-type FableInstrument = Exclude<MidiInstrument, { type: "subtractive" }>;
+type FableInstrument = Exclude<MidiInstrument, { type: "subtractive" | "sampler" }>;
 type KnobSize = "lg" | "md" | "sm" | "xs";
 type Accent = "a" | "b" | "f" | "n";
 

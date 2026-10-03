@@ -124,12 +124,17 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
 
 ## Midi voices (`src/midi`, `src/midi/engines`)
 
-- **One renderer, four synths.** `renderInstrumentEvents` switches on
+- **One renderer for MIDI instruments.** `renderInstrumentEvents` switches on
   `instrument.type` and every host — the browser preview, the audition, the
   `RenderTimeline` node — goes through it. `subtractive` is the built-in voice;
   `wavetable`, `bass` and `drum` are ports of FableSynth's WT-1, BL-1 and DR-1
   ([github.com/georgi/fablesynth](https://github.com/georgi/fablesynth)),
-  living in `src/midi/engines/`.
+  living in `src/midi/engines/`. The `sampler` voice plays decoded recordings
+  supplied by the host through `SamplerSamples`. Store asset ids and key
+  mappings on the instrument, never decoded PCM. Browser playback, audition
+  and export resolve the same audio assets; server exports decode them with
+  ffmpeg. Missing samples fail explicitly. Bundle export/import must collect
+  and rewrite sampler zone asset ids as well as clip asset ids.
 - **What was ported is the sound-shaping, not the plugin.** The band-limited
   wavetables and their mip ladder, the Cytomic SVF, the ADAA tanh drive, the
   envelopes, BL-1's accent and slide, DR-1's pad voice. Not ported: stereo

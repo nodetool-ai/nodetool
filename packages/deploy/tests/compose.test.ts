@@ -147,22 +147,23 @@ describe("ComposeGenerator", () => {
       ]);
     });
 
-    it("should set PORT environment variable to 8000", () => {
+    it("binds the server to the port the container publishes", () => {
       const gen = new ComposeGenerator(makeDeployment());
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
       const services = parsed["services"] as Record<string, unknown>;
       const svc = services["worker-1"] as Record<string, unknown>;
       const env = svc["environment"] as string[];
-      expect(env).toContainEqual("PORT=8000");
+      expect(svc["ports"]).toEqual(["9000:7777"]);
+      expect(env).toContainEqual("PORT=7777");
     });
 
-    it("should set NODETOOL_API_URL using container port", () => {
+    it("points NODETOOL_API_URL at the server inside the container", () => {
       const gen = new ComposeGenerator(makeDeployment());
       const parsed = yaml.load(gen.generate()) as Record<string, unknown>;
       const services = parsed["services"] as Record<string, unknown>;
       const svc = services["worker-1"] as Record<string, unknown>;
       const env = svc["environment"] as string[];
-      expect(env).toContainEqual("NODETOOL_API_URL=http://localhost:9000");
+      expect(env).toContainEqual("NODETOOL_API_URL=http://localhost:7777");
     });
 
     it("should not include deploy section when no GPU", () => {

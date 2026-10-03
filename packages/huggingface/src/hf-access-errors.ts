@@ -34,9 +34,9 @@ export function augmentHfHubAccessError(raw: string): string {
     "",
     "What to do:",
     "1. On huggingface.co, open this model while signed in. Accept the license or click Request access and wait if it is gated.",
-    "2. Authenticate the Hub client NodeTool uses: set environment variable HF_TOKEN (read token) before starting the NodeTool server, or run `huggingface-cli login` / `hf auth login` once so a token is saved in your user HF cache.",
+    "2. Give NodeTool a read token: save it as HF_TOKEN in Settings, set the HF_TOKEN environment variable before starting the NodeTool server, or run `hf auth login` once so a token is saved in your user HF cache.",
     "3. Create or manage tokens: https://huggingface.co/settings/tokens",
-    "4. Restart the NodeTool server after changing HF_TOKEN.",
+    "4. Restart the NodeTool server after changing the environment variable or the token file. A token saved in Settings applies to the next download.",
     "",
     "Original message:",
     trimmed

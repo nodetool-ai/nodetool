@@ -56,6 +56,7 @@ import { verifiedExternalPath } from "./external-asset-lookup.js";
 import { MediaToolingMissingError } from "./media.js";
 import { getAssetAdapter } from "./storage.js";
 import { isObjectLike } from "./wire-values.js";
+import { withTaskSpan } from "@nodetool-ai/runtime/tracing";
 
 const log = createLogger("nodetool.video-proxy");
 const execFile = promisify(execFileCb);
@@ -400,23 +401,29 @@ export async function encodeVideoProxy(
   signal?: AbortSignal
 ): Promise<{ codec: "h264" | "vp9" }> {
   const codec = await proxyCodec();
-  await new Promise<void>((resolve, reject) => {
-    const child = spawn("ffmpeg", encodeArgs(input, output, codec, probe), {
-      stdio: ["ignore", "ignore", "pipe"],
-      signal
-    });
-    let stderr = "";
-    child.stderr.on("data", (chunk: Buffer) => {
-      if (stderr.length < 4096) stderr += chunk.toString();
-    });
-    child.on("error", (err) => {
-      reject(isEnoent(err) ? new MediaToolingMissingError() : err);
-    });
-    child.on("close", (code) => {
-      if (code === 0) resolve();
-      else reject(new Error(`ffmpeg exited with ${code}: ${stderr.trim()}`));
-    });
-  });
+  await withTaskSpan(
+    "cpu",
+    "video.encode_proxy",
+    { "process.executable.name": "ffmpeg", "nodetool.video.codec": codec },
+    () =>
+      new Promise<void>((resolve, reject) => {
+        const child = spawn("ffmpeg", encodeArgs(input, output, codec, probe), {
+          stdio: ["ignore", "ignore", "pipe"],
+          signal
+        });
+        let stderr = "";
+        child.stderr.on("data", (chunk: Buffer) => {
+          if (stderr.length < 4096) stderr += chunk.toString();
+        });
+        child.on("error", (err) => {
+          reject(isEnoent(err) ? new MediaToolingMissingError() : err);
+        });
+        child.on("close", (code) => {
+          if (code === 0) resolve();
+          else reject(new Error(`ffmpeg exited with ${code}: ${stderr.trim()}`));
+        });
+      })
+  );
   return { codec };
 }
 

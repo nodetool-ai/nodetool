@@ -128,3 +128,150 @@ export const TR_VOID_KIT: readonly DrumPad[] = [
     decayMs: 220
   })
 ];
+
+/** Synthesized scoring percussion, preserving TR-VOID's pad roles from MIDI 36. */
+export const CINEMATIC_KIT: readonly DrumPad[] = [
+  pad("Low boom", "thud", {
+    position: 0.16,
+    semitones: -31,
+    pitchEnvAmount: 16,
+    pitchEnvDecayMs: 100,
+    attackMs: 3,
+    decayMs: 1600,
+    level: 0.85
+  }),
+  pad("Gran Cassa", "thud", {
+    position: 0.32,
+    semitones: -24,
+    pitchEnvAmount: 7,
+    pitchEnvDecayMs: 45,
+    decayMs: 850,
+    noiseLevel: 0.3,
+    noiseColor: 0.8,
+    filter: { type: "lp12", cutoffHz: 1800, resonance: 0.12 }
+  }),
+  pad("Field snare", "crack", {
+    position: 0.2,
+    semitones: -8,
+    pitchEnvAmount: 3,
+    decayMs: 380,
+    noiseLevel: 0.7,
+    noiseColor: 0.35,
+    filter: { type: "lp12", cutoffHz: 6500, resonance: 0.1 }
+  }),
+  pad("Ensemble strike", "crack", {
+    position: 0.35,
+    semitones: -14,
+    pitchEnvAmount: 5,
+    holdMs: 25,
+    decayMs: 550,
+    noiseLevel: 0.5,
+    noiseColor: 0.6
+  }),
+  pad("Wood tick", "thud", {
+    position: 0.55,
+    semitones: 16,
+    pitchEnvAmount: 2,
+    decayMs: 65,
+    level: 0.65
+  }),
+  pad("Shaker", "grit", {
+    position: 0.8,
+    semitones: 18,
+    noiseLevel: 0.7,
+    decayMs: 65,
+    filter: highPass(4200),
+    level: 0.6
+  }),
+  pad("Brush", "grit", {
+    position: 0.7,
+    semitones: 12,
+    noiseLevel: 0.65,
+    attackMs: 8,
+    decayMs: 240,
+    filter: highPass(3200),
+    level: 0.55
+  }),
+  pad("Metal wash", "tine", {
+    position: 0.65,
+    semitones: 7,
+    attackMs: 20,
+    decayMs: 1800,
+    ringHz: 1667,
+    ringMix: 0.4,
+    noiseLevel: 0.35,
+    filter: highPass(2400),
+    level: 0.55
+  }),
+  pad("Low taiko", "thud", {
+    position: 0.38,
+    semitones: -19,
+    pitchEnvAmount: 7,
+    pitchEnvDecayMs: 35,
+    decayMs: 650,
+    noiseLevel: 0.12,
+    noiseColor: 0.8
+  }),
+  pad("Mid taiko", "thud", {
+    position: 0.42,
+    semitones: -12,
+    pitchEnvAmount: 6,
+    pitchEnvDecayMs: 30,
+    decayMs: 480,
+    noiseLevel: 0.1,
+    noiseColor: 0.7
+  }),
+  pad("High taiko", "thud", {
+    position: 0.46,
+    semitones: -5,
+    pitchEnvAmount: 5,
+    pitchEnvDecayMs: 25,
+    decayMs: 340,
+    noiseLevel: 0.08
+  }),
+  pad("Cymbal swell", "tine", {
+    position: 0.8,
+    attackMs: 350,
+    holdMs: 40,
+    decayMs: 2400,
+    ringHz: 2741,
+    ringMix: 0.55,
+    noiseLevel: 0.55,
+    filter: highPass(1800),
+    level: 0.6
+  }),
+  pad("Low metal", "chime", {
+    position: 0.45,
+    semitones: -17,
+    decayMs: 1200,
+    ringHz: 173,
+    ringMix: 0.28,
+    level: 0.65
+  }),
+  pad("Small bell", "tine", {
+    position: 0.3,
+    semitones: 19,
+    decayMs: 850,
+    level: 0.55
+  }),
+  pad("Deep gong", "chime", {
+    position: 0.7,
+    semitones: -24,
+    attackMs: 8,
+    decayMs: 3000,
+    ringHz: 87,
+    ringMix: 0.35,
+    level: 0.7
+  }),
+  pad("Tension hit", "grit", {
+    position: 0.45,
+    semitones: -19,
+    pitchEnvAmount: 12,
+    pitchEnvDecayMs: 150,
+    decayMs: 950,
+    noiseLevel: 0.3,
+    noiseColor: 0.7,
+    filter: { type: "lp12", cutoffHz: 2400, resonance: 0.2 },
+    level: 0.65
+  })
+];

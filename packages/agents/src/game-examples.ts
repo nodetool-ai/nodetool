@@ -15,10 +15,10 @@ import { z } from "zod";
 import { Asset } from "@nodetool-ai/models";
 import { parsePackageAssetUri } from "@nodetool-ai/protocol";
 import {
-  gameDocument,
+  anyGameDocument as gameDocument,
   type ExampleGameSummary,
-  type GameDocument
-} from "@nodetool-ai/protocol/game.js";
+  type AnyGameDocument as GameDocument
+} from "@nodetool-ai/protocol";
 import { assetObjectKey, type StorageAdapter } from "@nodetool-ai/storage";
 
 const SUFFIX = ".game.json";
@@ -32,6 +32,7 @@ const bundleSchema = z.object({
 export type ExampleGameBundle = z.infer<typeof bundleSchema>;
 
 const CONTENT_TYPES: Record<string, string> = {
+  ".glb": "model/gltf-binary",
   ".png": "image/png",
   ".jpg": "image/jpeg",
   ".jpeg": "image/jpeg",
@@ -164,7 +165,7 @@ export async function installExampleGameAssets(
       await asset.delete();
     }
   };
-  const assets: GameDocument["assets"] = {};
+  const document = structuredClone(bundle.document);
   try {
     for (const [slot, binding] of Object.entries(bundle.document.assets)) {
       const bytes = readExampleGameFile(options, binding.assetId);
@@ -189,11 +190,11 @@ export async function installExampleGameAssets(
       const entry: { asset: Asset; uri: string | null } = { asset, uri: null };
       created.push(entry);
       entry.uri = await storage.store(assetObjectKey(userId, `${asset.id}${extension}`), bytes, contentType);
-      assets[slot] = { ...binding, assetId: asset.id };
+      document.assets[slot] = { ...binding, assetId: asset.id };
     }
   } catch (error) {
     await rollback();
     throw error;
   }
-  return { bundle, document: { ...bundle.document, assets }, rollback };
+  return { bundle, document, rollback };
 }

@@ -234,15 +234,19 @@ describe("DockerRunGenerator.generateCommand", () => {
 // ---------------------------------------------------------------------------
 
 describe("DockerRunGenerator environment variables", () => {
-  it("should include PORT", () => {
+  it("binds the server to the port the container publishes", () => {
     const cmd = generateDockerRunCommand(makeDeployment());
-    expect(cmd).toContain(`PORT=${APP_ENV_PORT}`);
+    expect(cmd).toContain(`-p 8080:${INTERNAL_API_PORT}`);
+    expect(cmd).toContain(`PORT=${INTERNAL_API_PORT}`);
+    expect(cmd).not.toContain(`PORT=${APP_ENV_PORT}`);
   });
 
-  it("should include NODETOOL_API_URL", () => {
+  it("points NODETOOL_API_URL at the server inside the container", () => {
     const d = makeDeployment();
     const cmd = generateDockerRunCommand(d);
-    expect(cmd).toContain("NODETOOL_API_URL=http://localhost:8080");
+    expect(cmd).toContain(
+      `NODETOOL_API_URL=http://localhost:${INTERNAL_API_PORT}`
+    );
   });
 
   it("should include NODETOOL_SERVER_MODE", () => {

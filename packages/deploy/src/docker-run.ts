@@ -13,7 +13,9 @@ import { shellEscape } from "./docker.js";
 // Constants
 // ---------------------------------------------------------------------------
 
+/** Port the server binds inside the container, set through `PORT`. */
 export const INTERNAL_API_PORT = 7777;
+/** Host port published when the container config names none. */
 export const APP_ENV_PORT = 8000;
 
 // ---------------------------------------------------------------------------
@@ -194,8 +196,10 @@ export class DockerRunGenerator {
       ...(this.container.environment ?? {})
     };
 
-    env["PORT"] = String(APP_ENV_PORT);
-    env["NODETOOL_API_URL"] = `http://localhost:${this.container.port}`;
+    // The server binds PORT, so it must match the published container port
+    // and the health check. NODETOOL_API_URL is read inside the container.
+    env["PORT"] = String(INTERNAL_API_PORT);
+    env["NODETOOL_API_URL"] = `http://localhost:${INTERNAL_API_PORT}`;
     env["NODETOOL_SERVER_MODE"] = "private";
 
     const persistentPaths = this.deployment.persistentPaths;

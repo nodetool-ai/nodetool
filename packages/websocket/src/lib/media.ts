@@ -7,6 +7,7 @@ import { execFile as execFileCb } from "node:child_process";
 import { promisify } from "node:util";
 import { trimVideoWindow as trimSharedVideoWindow } from "@nodetool-ai/runtime/trim-video-window";
 import { isObjectLike } from "./wire-values.js";
+import { withTaskSpan } from "@nodetool-ai/runtime/tracing";
 
 const execFile = promisify(execFileCb);
 
@@ -93,10 +94,16 @@ export async function extractAudio(
   outputPath: string
 ): Promise<{ durationMs: number | null }> {
   try {
-    await execFile(
-      "ffmpeg",
-      ["-y", "-i", inputPath, "-vn", "-acodec", "pcm_s16le", outputPath],
-      { maxBuffer: 50 * 1024 * 1024 }
+    await withTaskSpan(
+      "cpu",
+      "subprocess.run",
+      { "process.executable.name": "ffmpeg" },
+      () =>
+        execFile(
+          "ffmpeg",
+          ["-y", "-i", inputPath, "-vn", "-acodec", "pcm_s16le", outputPath],
+          { maxBuffer: 50 * 1024 * 1024 }
+        )
     );
     return { durationMs: await probeDurationMs(outputPath) };
   } catch (err) {

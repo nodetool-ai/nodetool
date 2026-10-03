@@ -17,13 +17,23 @@ Need GPU? ──yes──→ Own hardware? ──yes──→ Self-Hosted (Docke
     └── Just API server? ──→ GCP Cloud Run or Self-Hosted
 ```
 
-# Deployment Modes
+# Authentication Modes
 
-| Mode | Auth | Use Case |
-|------|------|----------|
-| `desktop` | `local` | Local development, Electron app |
-| `private` | `static` | Team/personal server, single token |
-| `public` | `supabase` | Multi-user, full auth/storage |
+The server picks its mode from the Supabase credentials alone. It never reads
+`AUTH_PROVIDER`, `NODETOOL_SERVER_MODE`, or `SERVER_AUTH_TOKEN` to decide how
+to authenticate. The deploy tooling writes those into container environments,
+but they do not secure the server.
+
+| Mode | Enabled by | Behavior |
+|------|------------|----------|
+| Local | Default | Loopback runs as user `"1"` with no token. Other sources get `401` unless listed in `NODETOOL_TRUST_LOCAL_NETWORKS`. |
+| Supabase | `SUPABASE_URL` and `SUPABASE_KEY` both set | Every non-public request needs `Authorization: Bearer <supabase_jwt>`. |
+
+A server that other people reach over a network needs Supabase mode. In Local
+mode, Docker's published port arrives from the bridge gateway, not loopback, so
+API calls return `401` until `NODETOOL_TRUST_LOCAL_NETWORKS` lists that range.
+Every listed source is trusted as user `"1"` with no password, so list only
+networks you control.
 
 # Quick Start
 
@@ -44,15 +54,13 @@ nodetool deploy destroy <name>    # Tear down
 ```bash
 # Required
 NODETOOL_ENV=production
-NODETOOL_SERVER_MODE=private      # desktop | private | public
 
-# Auth (pick one)
-AUTH_PROVIDER=static              # none | local | static | supabase
-SERVER_AUTH_TOKEN=<token>         # for static auth
+# Auth: Supabase mode, required for network access by other users
+SUPABASE_URL=https://your-project.supabase.co
+SUPABASE_KEY=<service-role-key>
 
 # Security
 SECRETS_MASTER_KEY=<strong-random-key>
-ADMIN_TOKEN=<admin-token>
 
 # Database
 DB_PATH=/workspace/nodetool.sqlite3
@@ -94,9 +102,8 @@ deployments:
 docker run --gpus all --memory 8g --cpus 4 \
   -p 7777:7777 \
   -e NODETOOL_ENV=production \
-  -e NODETOOL_SERVER_MODE=private \
-  -e AUTH_PROVIDER=static \
-  -e SERVER_AUTH_TOKEN=<token> \
+  -e SUPABASE_URL=https://your-project.supabase.co \
+  -e SUPABASE_KEY=<service-role-key> \
   -e SECRETS_MASTER_KEY=<secret> \
   -v $(pwd)/workspace:/workspace \
   -v $(pwd)/hf-cache:/hf-cache:ro \
@@ -176,7 +183,6 @@ SUPABASE_URL=https://your-project.supabase.co
 SUPABASE_KEY=your-service-role-key
 ASSET_BUCKET=assets
 ASSET_TEMP_BUCKET=assets-temp
-AUTH_PROVIDER=supabase
 ```
 
 **Setup steps:**
@@ -216,9 +222,8 @@ nodetool deploy workflows run <deployment> <workflow-id>
 
 - [ ] Set `NODETOOL_ENV=production`
 - [ ] Set strong `SECRETS_MASTER_KEY`
-- [ ] Set `ADMIN_TOKEN`
-- [ ] Configure `AUTH_PROVIDER` (never `none` in prod)
-- [ ] Set appropriate `SERVER_AUTH_TOKEN` if using static auth
+- [ ] Set `SUPABASE_URL` and `SUPABASE_KEY` so every request needs a token
+- [ ] Never set `NODETOOL_TRUST_LOCAL_NETWORKS` on a reachable public port
 - [ ] Configure API keys for needed providers
 - [ ] Set resource limits (memory, CPU, GPU)
 - [ ] Mount persistent volumes for workspace and model cache
@@ -232,5 +237,5 @@ nodetool deploy workflows run <deployment> <workflow-id>
 - **No persistent volume**: Data lost on container restart without `-v` mount
 - **Port conflicts**: Check nothing else runs on 7777
 - **Missing SECRETS_MASTER_KEY**: Required for encrypted secret storage in prod
-- **AUTH_PROVIDER=none in production**: Security risk, always use static or supabase
+- **Relying on `SERVER_AUTH_TOKEN` or `AUTH_PROVIDER`**: The server ignores both for auth. Only Supabase mode enforces tokens
 - **HF cache not mounted**: Models re-download on every container start

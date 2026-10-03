@@ -48,8 +48,8 @@ const CollectionHeader = () => {
       >
         <FlexColumn gap={1} sx={{ p: 2, maxWidth: 400 }}>
           <Caption color="secondary">
-            Collections are used to store and search documents. Following file
-            formats are supported:
+            Collections store documents for semantic search. Drop text files
+            here to index them:
           </Caption>
           <ul
             style={{
@@ -58,10 +58,13 @@ const CollectionHeader = () => {
               listStyle: "disc"
             }}
           >
-            <li>PDFs, PowerPoint, Word, Excel</li>
-            <li>Text files, Markdown, HTML</li>
-            <li>Images (text extraction with OCR)</li>
+            <li>Plain text and Markdown</li>
+            <li>HTML, CSV, and JSON</li>
           </ul>
+          <Caption color="secondary">
+            To index PDFs, Office files, or images, extract their text with a
+            workflow first.
+          </Caption>
         </FlexColumn>
       </Popover>
     </Box>

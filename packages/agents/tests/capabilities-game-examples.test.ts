@@ -7,7 +7,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 import { Asset, Game, ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
-import type { GameDocument } from "@nodetool-ai/protocol";
+import type { AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 
@@ -74,10 +74,11 @@ describe("agent example games", () => {
     expect(await Game.listByProject(USER, PROJECT)).toHaveLength(1);
   });
 
-  it("installs the complete shipped Kindle bundle through the agent capability", async () => {
+  it.each(["kindle", "blacksite"])("installs the complete shipped %s bundle through the agent capability", async (slug) => {
     const agent = run(USER, new InMemoryStorageAdapter());
-    const source = await agent.invoke("get_example_game", { slug: "kindle", view: "full" }) as { document: GameDocument };
-    const result = await agent.invoke("install_example_game", { project_id: PROJECT, slug: "kindle" }) as { game: { id: string }; document: GameDocument };
+    const source = await agent.invoke("get_example_game", { slug, view: "full" }) as { document: GameDocument };
+    const result = await agent.invoke("install_example_game", { project_id: PROJECT, slug }) as { game: { id: string }; document: GameDocument };
+    expect(result.document.schemaVersion).toBe(source.document.schemaVersion);
     expect(result.document.id).toBe(result.game.id);
     expect(result.document.scenes).toEqual(source.document.scenes);
     expect(Object.keys(result.document.assets)).toEqual(Object.keys(source.document.assets));

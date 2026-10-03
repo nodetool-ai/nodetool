@@ -8,7 +8,7 @@
  */
 
 import { renderMidiClip } from "@nodetool-ai/timeline";
-import type { MidiInstrument, MidiNote } from "@nodetool-ai/timeline";
+import type { MidiInstrument, MidiNote, SamplerSamples } from "@nodetool-ai/timeline";
 
 declare const self: DedicatedWorkerGlobalScope;
 
@@ -20,6 +20,7 @@ export interface MidiRenderRequest {
   bpm: number;
   instrument: MidiInstrument;
   sampleRate: number;
+  samples?: SamplerSamples;
 }
 
 export interface MidiRenderResponse {
@@ -29,13 +30,14 @@ export interface MidiRenderResponse {
 }
 
 self.addEventListener("message", (event: MessageEvent<MidiRenderRequest>) => {
-  const { id, notes, inPointMs, durationMs, bpm, instrument, sampleRate } =
+  const { id, notes, inPointMs, durationMs, bpm, instrument, sampleRate, samples: recordings } =
     event.data;
   const samples = renderMidiClip({
     clip: { notes, inPointMs, durationMs },
     bpm,
     instrument,
-    sampleRate
+    sampleRate,
+    samples: recordings
   });
   const pcm = samples.buffer as ArrayBuffer;
   const response: MidiRenderResponse = { id, pcm };

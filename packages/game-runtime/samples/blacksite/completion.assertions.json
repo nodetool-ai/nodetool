@@ -1,0 +1,62 @@
+{
+  "tolerance": 0.04,
+  "ticks": [
+    {
+      "tick": 560,
+      "events": [
+        {
+          "kind": "trigger",
+          "event": "victory",
+          "entityId": "player"
+        },
+        {
+          "kind": "contact",
+          "sceneId": "reactor",
+          "entityId": "player",
+          "otherId": "foundation",
+          "phase": "stay",
+          "sensor": false,
+          "normal": {
+            "x": 0,
+            "y": 1,
+            "z": -0.00003036629277630709
+          }
+        }
+      ]
+    },
+    {
+      "tick": 223,
+      "entities": [
+        {
+          "id": "drone-0",
+          "active": false
+        },
+        {
+          "id": "drone-1",
+          "active": false
+        },
+        {
+          "id": "drone-2",
+          "active": false
+        },
+        {
+          "id": "drone-3",
+          "active": false
+        },
+        {
+          "id": "drone-4",
+          "active": false
+        }
+      ]
+    },
+    {
+      "tick": 583,
+      "entities": [
+        {
+          "id": "player",
+          "grounded": true
+        }
+      ]
+    }
+  ]
+}

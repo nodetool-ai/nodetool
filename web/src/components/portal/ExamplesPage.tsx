@@ -3,6 +3,7 @@ import ManagerPageLayout from "../panels/ManagerPageLayout";
 import { TabGroup } from "../ui_primitives";
 import DashboardExampleApps from "./DashboardExampleApps";
 import DashboardExampleGames from "./DashboardExampleGames";
+import DashboardExampleModels from "./DashboardExampleModels";
 import DashboardExampleSketches from "./DashboardExampleSketches";
 import DashboardExampleStoryboards from "./DashboardExampleStoryboards";
 import DashboardExampleTimelines from "./DashboardExampleTimelines";
@@ -24,6 +25,7 @@ const ExamplesPage: React.FC = () => {
           { value: "storyboards", label: "Storyboards" },
           { value: "timelines", label: "Timelines" },
           { value: "sketches", label: "Sketches" },
+          { value: "models", label: "3D models" },
           { value: "games", label: "Games" }
         ]}
         value={activeTab}
@@ -40,6 +42,8 @@ const ExamplesPage: React.FC = () => {
         <DashboardExampleTimelines />
       ) : activeTab === "sketches" ? (
         <DashboardExampleSketches />
+      ) : activeTab === "models" ? (
+        <DashboardExampleModels />
       ) : (
         <DashboardExampleGames />
       )}

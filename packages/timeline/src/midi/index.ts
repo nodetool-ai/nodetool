@@ -18,3 +18,4 @@ export * from "./voice.js";
 export * from "./engines/index.js";
 export * from "./cacheKey.js";
 export * from "./wav.js";
+export * from "./sampler.js";

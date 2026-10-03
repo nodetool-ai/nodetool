@@ -962,12 +962,8 @@ export function useStandaloneSketchDocument(
     }
 
     let alive = true;
-    const holdAutosaveRef = { current: false };
     let controller: DocumentSyncController;
     const schedule = (): void => controller.markDirty();
-    const flush = (): void => {
-      if (!holdAutosaveRef.current) void controller.flush();
-    };
 
     // Writes from outside this browser (agent doc-ops, CLI, another tab) come
     // in as `resource_change`. A clean editor re-hydrates from the server copy
@@ -1075,10 +1071,7 @@ export function useStandaloneSketchDocument(
         const replaced = conflicts.some(
           (conflict) => conflict.reason === "replaced"
         );
-        if (replaced) {
-          holdAutosaveRef.current = true;
-        } else {
-          holdAutosaveRef.current = false;
+        if (!replaced) {
           pendingDirtyRef.current = true;
           schedule();
         }
@@ -1095,12 +1088,10 @@ export function useStandaloneSketchDocument(
           listed,
           {
             onAccept: (unitId) => {
-              holdAutosaveRef.current = false;
               acceptConflict(unitId, fresh, listed);
             },
             onDiscard: () => {
               if (replaced) {
-                holdAutosaveRef.current = false;
                 pendingDirtyRef.current = true;
                 schedule();
               }

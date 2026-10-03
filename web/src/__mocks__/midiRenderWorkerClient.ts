@@ -26,7 +26,8 @@ class FakeMidiRenderWorker extends EventTarget {
       },
       bpm: request.bpm,
       instrument: request.instrument,
-      sampleRate: request.sampleRate
+      sampleRate: request.sampleRate,
+      samples: request.samples
     });
     const response: MidiRenderResponse = {
       id: request.id,

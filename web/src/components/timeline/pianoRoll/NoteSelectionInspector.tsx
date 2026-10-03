@@ -1,4 +1,3 @@
-import React from "react";
 import { moveNotes, setVelocity } from "@nodetool-ai/timeline";
 import type { MidiNote } from "@nodetool-ai/timeline";
 import { Caption, FlexRow, SPACING, TextInput } from "../../ui_primitives";

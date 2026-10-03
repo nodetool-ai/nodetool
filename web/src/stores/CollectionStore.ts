@@ -191,15 +191,19 @@ export const useCollectionStore = create<CollectionStore>()(
             const data: unknown = await response.json().catch(() => null);
 
             const indexData = data as IndexResponseData | undefined;
-            const errorDetail = data as { detail?: { msg?: string }[] } | undefined;
+            const detail = (data as { detail?: unknown } | null)?.detail;
+            // The index route answers errors as `{ detail: string }`.
+            const detailMessage =
+              typeof detail === "string"
+                ? detail
+                : Array.isArray(detail)
+                  ? (detail[0] as { msg?: string } | undefined)?.msg
+                  : undefined;
 
             if (!response.ok || indexData?.error) {
               errors.push({
                 file: file.name,
-                error:
-                  errorDetail?.detail?.[0]?.msg ||
-                  indexData?.error ||
-                  "Unknown error"
+                error: detailMessage || indexData?.error || "Unknown error"
               });
             }
           } catch (err: unknown) {

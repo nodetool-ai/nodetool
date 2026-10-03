@@ -295,6 +295,32 @@ describe("CollectionStore", () => {
       ]);
     });
 
+    it("shows the server's string detail for a rejected upload", async () => {
+      const file = new File(["%PDF"], "report.pdf", {
+        type: "application/pdf"
+      });
+      const event = stub<React.DragEvent<HTMLDivElement>>({
+        preventDefault: jest.fn(),
+        dataTransfer: { files: [file] }
+      });
+
+      mockRestFetch.mockResolvedValue({
+        ok: false,
+        json: jest.fn().mockResolvedValue({
+          detail: "Only text files can be indexed here"
+        })
+      });
+      listQuery.mockResolvedValueOnce({ collections: [], count: 0 });
+
+      await act(async () => {
+        await useCollectionStore.getState().handleDrop("collection1")(event);
+      });
+
+      expect(useCollectionStore.getState().indexErrors).toEqual([
+        { file: "report.pdf", error: "Only text files can be indexed here" }
+      ]);
+    });
+
     it("logs thrown upload exceptions", async () => {
       const errorSpy = jest.spyOn(console, "error").mockImplementation(() => {});
       const file = new File(["a"], "bad.txt", { type: "text/plain" });

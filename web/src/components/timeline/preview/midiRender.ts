@@ -22,6 +22,7 @@ import type {
   MidiRenderRequest,
   MidiRenderResponse
 } from "./midiRender.worker";
+import { getSamplerAudio, clearSamplerAudioCache } from "./samplerAudio";
 import { createMidiRenderWorker } from "./midiRenderWorkerClient";
 
 /** The slice of a clip a render reads. */
@@ -55,7 +56,8 @@ function renderSamples(request: Omit<MidiRenderRequest, "id">): Promise<Float32A
         },
         bpm: request.bpm,
         instrument: request.instrument,
-        sampleRate: request.sampleRate
+        sampleRate: request.sampleRate,
+        samples: request.samples
       })
     );
   }
@@ -114,14 +116,15 @@ export async function getMidiClipBuffer(
   if (running) return running;
 
   const notes: MidiNote[] = clip.notes ?? [];
-  const promise = renderSamples({
+  const promise = getSamplerAudio(ctx, instrument).then(samples => renderSamples({
     notes,
     inPointMs: clip.inPointMs ?? 0,
     durationMs: clip.durationMs,
     bpm,
     instrument,
-    sampleRate
-  })
+    sampleRate,
+    samples
+  }))
     .then((samples) => {
       const buffer = ctx.createBuffer(
         1,
@@ -151,6 +154,7 @@ export async function getMidiClipBuffer(
 
 /** Drop every cached render. Exported for tests and teardown. */
 export function clearMidiRenderCache(): void {
+  clearSamplerAudioCache();
   cache.clear();
   inFlight.clear();
 }

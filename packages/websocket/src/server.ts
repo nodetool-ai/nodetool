@@ -51,6 +51,7 @@ import {
   parseTrustedLocalNetworks,
   isTrustedLocalAddress
 } from "./lib/localhost-trust.js";
+import { registerHttpTracing } from "./lib/http-tracing.js";
 import {
   initTelemetry,
   shutdownTelemetry,
@@ -91,6 +92,7 @@ import { registerPythonProviders, relayWorkerDownload } from "./models-api.js";
 import { syncCustomProviderRegistry } from "./custom-providers.js";
 import { runAutomaticStorageCleanup } from "./storage-retention.js";
 import { createGenerationRecoveryWorker } from "./generation-recovery.js";
+import { sweepInterruptedJobs } from "./interrupted-jobs.js";
 
 /** User id the auth middleware assigns in local (no-account) mode. */
 const LOCAL_USER_ID = "1";
@@ -239,9 +241,9 @@ configureLogging();
 await initTelemetry();
 const startupT0 = performance.now();
 /**
- * When this process started. A generation row still `running` from before
- * this moment belongs to a process that is gone, and the sweep closes it
- * (docs/media-generation-tracking-design.md § 6.3).
+ * When this process started. A generation or job row still in flight from
+ * before this moment belongs to a process that is gone, and the startup sweeps
+ * close it (docs/media-generation-tracking-design.md § 6.3).
  */
 const PROCESS_STARTED_AT = new Date().toISOString();
 let stopGenerationReconcileWorker: (() => void) | null = null;
@@ -361,6 +363,13 @@ try {
   // keep refining estimates into billed amounts while the server runs.
   void sweepInterruptedGenerations(PROCESS_STARTED_AT).catch((err: unknown) => {
     log.warn("Interrupted-generation sweep failed", {
+      error: err instanceof Error ? err.message : String(err)
+    });
+  });
+  void sweepInterruptedJobs(PROCESS_STARTED_AT, {
+    sharedDatabase: Boolean(postgresDatabaseUrl)
+  }).catch((err: unknown) => {
+    log.warn("Interrupted-job sweep failed", {
       error: err instanceof Error ? err.message : String(err)
     });
   });
@@ -819,6 +828,9 @@ const serverOptions = {
 const app: FastifyInstance = (
   Fastify as (...args: unknown[]) => FastifyInstance
 )(httpsOptions ? { https: httpsOptions, ...serverOptions } : serverOptions);
+
+// First hook, so every later hook and handler runs inside the request span.
+registerHttpTracing(app);
 
 // ---------------------------------------------------------------------------
 // Request ID correlation

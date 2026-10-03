@@ -422,3 +422,12 @@ describe("importTimelineBundle", () => {
     ]);
   });
 });
+
+
+it("carries sampler recordings in bundles and rewrites imported mappings", () => {
+  const doc = { clips: [], tracks: [{ instrument: { type: "sampler", zones: [{ assetId: "sample-a" }, { assetId: "sample-a" }] } }] };
+  expect(collectTimelineAssetIds(doc)).toEqual(["sample-a"]);
+  const imported = rewriteTimelineAssetIds(doc, new Map([["sample-a", "sample-b"]]));
+  expect(imported.tracks[0].instrument.zones.map(zone => zone.assetId)).toEqual(["sample-b", "sample-b"]);
+  expect(doc.tracks[0].instrument.zones[0].assetId).toBe("sample-a");
+});
