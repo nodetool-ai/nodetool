@@ -170,8 +170,11 @@ describe("analyzeAudioFrames", () => {
       trackDuration: samples.length / rate
     });
     const result = await analyzeAudioFrames(audio, { detectTempo: true });
-    expect(result.onsetsMs.length).toBeGreaterThan(0);
-    expect(result.bpm).toBeDefined();
+    expect(result.onsetsMs.length).toBeGreaterThanOrEqual(6);
+    for (const onset of result.onsetsMs) {
+      expect(Math.abs(onset - Math.round(onset / 500) * 500)).toBeLessThan(50);
+    }
+    expect(result.bpm).toBeCloseTo(120, -1);
   });
 
   it("omits tempo when detectTempo is false", async () => {
