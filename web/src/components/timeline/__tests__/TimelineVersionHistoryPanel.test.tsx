@@ -81,7 +81,12 @@ beforeEach(() => {
   deleteVersion.mockResolvedValue({ ok: true });
   hookState = {
     versions: [
-      version({ id: "v-2", version: 2, saveType: "manual", name: "before cut" }),
+      version({
+        id: "v-2",
+        version: 2,
+        saveType: "manual",
+        name: "before cut"
+      }),
       version({ id: "v-1", version: 1, saveType: "autosave" })
     ],
     isLoading: false,
@@ -147,9 +152,17 @@ describe("TimelineVersionHistoryPanel", () => {
     await user.click(screen.getByRole("button", { name: "Save version" }));
     await waitFor(() => expect(createVersion).toHaveBeenCalled());
     expect(order).toEqual(["flush", "create"]);
+    // Let the first dialog finish its exit transition so the next
+    // "Save version" lookup cannot land on the closing dialog's confirm button.
+    await waitFor(() =>
+      expect(screen.queryByLabelText("Name (optional)")).not.toBeInTheDocument()
+    );
 
     createVersion.mockClear();
-    save.mockResolvedValueOnce({ ok: false as never, error: "offline" } as never);
+    save.mockResolvedValueOnce({
+      ok: false as never,
+      error: "offline"
+    } as never);
     await user.click(screen.getByRole("button", { name: "Save version" }));
     await user.click(screen.getByRole("button", { name: "Save version" }));
     await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
@@ -172,9 +185,7 @@ describe("TimelineVersionHistoryPanel", () => {
     });
     const user = userEvent.setup();
     renderPanel();
-    await user.click(
-      screen.getByRole("button", { name: "Restore version 2" })
-    );
+    await user.click(screen.getByRole("button", { name: "Restore version 2" }));
     await user.click(screen.getByRole("button", { name: "Restore" }));
     await waitFor(() => expect(restoreVersion).toHaveBeenCalledWith(2));
     expect(order).toEqual(["flush", "restore"]);
@@ -185,9 +196,7 @@ describe("TimelineVersionHistoryPanel", () => {
     const user = userEvent.setup();
     renderPanel();
 
-    await user.click(
-      screen.getByRole("button", { name: "Restore version 2" })
-    );
+    await user.click(screen.getByRole("button", { name: "Restore version 2" }));
     expect(screen.getByText("Restore v2?")).toBeInTheDocument();
     expect(restoreVersion).not.toHaveBeenCalled();
 
@@ -209,9 +218,7 @@ describe("TimelineVersionHistoryPanel", () => {
     const user = userEvent.setup();
     renderPanel();
 
-    await user.click(
-      screen.getByRole("button", { name: "Restore version 1" })
-    );
+    await user.click(screen.getByRole("button", { name: "Restore version 1" }));
     await user.click(screen.getByRole("button", { name: "Cancel" }));
 
     expect(restoreVersion).not.toHaveBeenCalled();

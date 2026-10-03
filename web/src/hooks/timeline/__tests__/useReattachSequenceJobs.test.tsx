@@ -8,7 +8,9 @@ import {
 } from "../../../stores/timeline/TimelineInstance";
 
 const reattachMock = jest.fn(async (..._args: unknown[]) => {});
+const detachMock = jest.fn((..._args: unknown[]) => {});
 jest.mock("../useTimelineDirectGenJob", () => ({
+  detachSequenceJobs: (...args: unknown[]) => detachMock(...args),
   reattachSequenceJobs: (...args: unknown[]) => reattachMock(...args)
 }));
 
@@ -31,6 +33,7 @@ const emptySequence = {
 
 afterEach(() => {
   reattachMock.mockClear();
+  detachMock.mockClear();
 });
 
 describe("useReattachSequenceJobs", () => {
@@ -38,14 +41,26 @@ describe("useReattachSequenceJobs", () => {
     const instance = createTimelineInstance();
     instance.doc.getState().loadSequence(emptySequence);
 
-    renderHook(() => useReattachSequenceJobs("seq-empty"), {
+    const { unmount } = renderHook(() => useReattachSequenceJobs("seq-empty"), {
       wrapper: ({ children }) => (
         <TimelineProvider instance={instance}>{children}</TimelineProvider>
       )
     });
 
     await waitFor(() => {
-      expect(reattachMock).toHaveBeenCalledWith(instance.doc, "seq-empty");
+      expect(reattachMock).toHaveBeenCalledWith(
+        instance.doc,
+        "seq-empty",
+        expect.any(Function)
+      );
     });
+    const isCurrent = reattachMock.mock.calls[0][2] as () => boolean;
+    expect(isCurrent()).toBe(true);
+    expect(detachMock).not.toHaveBeenCalled();
+
+    unmount();
+
+    expect(detachMock).toHaveBeenCalledWith("seq-empty");
+    expect(isCurrent()).toBe(false);
   });
 });
