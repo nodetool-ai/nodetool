@@ -12,7 +12,12 @@
  */
 
 import type { CameraDirection, Scene, Screenplay, Shot } from "./creative.js";
-import { isNumber, isRecord, isString } from "./predicates.js";
+import {
+  isNonBlankString,
+  isNumber,
+  isRecord,
+  isString
+} from "./predicates.js";
 
 export const DIRECTOR_SYSTEM_PROMPT = [
   "You are a film director. Turn the user's brief into a structured screenplay.",
@@ -166,7 +171,8 @@ function resolveSceneIds(
 
 /** Clamp a requested shot count to what the Director accepts (1–20). */
 export function clampShotCount(value: unknown): number {
-  const n = Math.floor(Number(value));
+  const isRequest = isNumber(value) || isNonBlankString(value);
+  const n = isRequest ? Math.floor(Number(value)) : Number.NaN;
   if (!Number.isFinite(n)) return 5;
   return Math.max(1, Math.min(20, n));
 }
