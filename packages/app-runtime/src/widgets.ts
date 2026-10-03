@@ -137,6 +137,16 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
       placeholder: "text"
     }
   },
+  // Shows a bound storyboard (an id or a storyboard ref): its scenes and shots.
+  Storyboard: {
+    label: "Storyboard",
+    mode: "read",
+    fields: {
+      binding: "custom",
+      height: "number",
+      placeholder: "text"
+    }
+  },
   // Lays out an array value as rows — what a run that emits N results needs.
   Table: {
     label: "Table",
@@ -163,6 +173,18 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
     label: "Progress",
     mode: "read",
     fields: { label: "text", binding: "custom" }
+  },
+  // What an agent did during a run, while it runs: its text and each tool call
+  // with its outcome. Bound to `op:<id>/exec#transcript`.
+  AgentActivity: {
+    label: "Agent Activity",
+    mode: "read",
+    fields: {
+      label: "text",
+      binding: "custom",
+      height: "number",
+      placeholder: "text"
+    }
   },
   // Reads a bound value as a message rather than as content: an error output,
   // a validation string, a status line the app wants to draw attention to.

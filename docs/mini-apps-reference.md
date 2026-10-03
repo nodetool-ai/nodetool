@@ -40,6 +40,7 @@ widgets as Inputs, Chat & AI, Actions, Display, and Layout.
 | Key/Value | A record as label and value pairs. Placeholder. |
 | Output | A value whose type varies; picks a display based on what arrives. Optional media download. |
 | Progress | How far along the run is. |
+| Agent Activity | What an agent did during the run: its text and each tool call with the outcome, live. Bind it to `op:<opId>/exec#transcript`. Label, height, placeholder. |
 | Stat | One number with a label and a caption, for reading at a glance. Placeholder. |
 | Alert | A message box. Severity `info`, `success`, `warning`, or `error`, optional title and text. Pair it with `visibleWhen` to show an error only when there is one. |
 | Code | Text in a code block. Language label, max height. |
@@ -172,7 +173,7 @@ renaming a node in the graph editor never breaks an app.
 | `op:<opId>/in:<nodeId>` | An input of one of the app's workflows. |
 | `op:<opId>/out:<nodeId>` | An output of one of the app's workflows. |
 | `op:<opId>/prop:<nodeId>#<prop>` | A setting on a node, driven by a widget. |
-| `op:<opId>/exec#<field>` | Run status: `running`, `progress`, `error`, `activity`. |
+| `op:<opId>/exec#<field>` | Run status: `running`, `progress`, `error`, `activity`, `transcript`. `transcript` is the agent text and tool calls of the latest run, in order. |
 | `var:<variableId>` | A value the app remembers. |
 | `view:<componentId>#<prop>` | State belonging to one widget. Never saved. |
 | `node:<nodeId>#<prop>` | Old form of a node setting, resolved against the default operation. |

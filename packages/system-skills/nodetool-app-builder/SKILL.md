@@ -162,7 +162,7 @@ are callable directly.
 | `op:<opId>/in:<nodeId>` | An input of one of the app's workflows |
 | `op:<opId>/out:<nodeId>` | An output of one of the app's workflows |
 | `op:<opId>/prop:<nodeId>#<prop>` | A node setting, driven by a widget |
-| `op:<opId>/exec#<field>` | Run status: `running`, `progress`, `error`, `activity` |
+| `op:<opId>/exec#<field>` | Run status: `running`, `progress`, `error`, `activity`, `transcript` (agent text and tool calls, for an Agent Activity widget) |
 | `var:<variableId>` | A value the app remembers |
 | `view:<componentId>#<prop>` | State belonging to one widget, never saved |
 
@@ -205,7 +205,7 @@ silently hides a widget.
 
 **Show something:** Heading, Text, Markdown (the right choice for streamed
 prose), Image, Audio, Video, Sketch, Timeline, JSON, Table, Output, Progress,
-Gallery, Image Compare.
+Agent Activity (an agent's text and tool calls, live), Gallery, Image Compare.
 
 Sketch and Timeline take a document reference, `{type: "sketch", id}` or
 `{type: "timeline", id}`, which is what the nodes producing them emit. Binding

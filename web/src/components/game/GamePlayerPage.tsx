@@ -12,11 +12,12 @@ interface GamePlayerProps {
   gameId: string;
   name: string;
   document: GameDocument;
+  active?: boolean;
 }
 
-function GamePlayer({ gameId, name, document }: GamePlayerProps) {
+export function GamePlayer({ gameId, name, document, active = true }: GamePlayerProps) {
   const { canvasRef, keysRef, newlyPressedRef, playing, playDocument, playState, backend, error,
-    beginPlay, stop } = useGamePlaySession({ refId: gameId, active: true, document, name });
+    beginPlay, stop } = useGamePlaySession({ refId: gameId, active, document, name });
   const status = playState.won ? "Won" : playing ? "Playing" : playDocument ? "Paused" : "Ready";
 
   useEffect(() => {
@@ -31,7 +32,7 @@ function GamePlayer({ gameId, name, document }: GamePlayerProps) {
     }
   };
 
-  return <FlexColumn gap={SPACING.sm} sx={{ height: "100vh", minHeight: 0, p: SPACING.md }}>
+  return <FlexColumn gap={SPACING.sm} sx={{ height: "100%", minHeight: 0, p: SPACING.md }}>
     <FlexRow align="center" gap={SPACING.sm} wrap>
       <Text size="big">{name}</Text>
       <EditorButton onClick={beginPlay} disabled={backend === "Initializing"}>
@@ -57,15 +58,19 @@ function GamePlayer({ gameId, name, document }: GamePlayerProps) {
 
 const Player3D = lazy(() => import("./GamePlayer3D"));
 
-export default function GamePlayerPage() {
-  const { gameId } = useParams<{ gameId: string }>();
+export function SavedGamePlayer({ gameId, active = true }: { gameId: string; active?: boolean }) {
   const { data, isPending, error } = trpc.games.getDraft.useQuery({ id: gameId ?? "" },
     { enabled: Boolean(gameId), staleTime: 15_000 });
   if (!gameId) return <EmptyState variant="error" title="Game not found" description="The game link is incomplete." />;
   if (isPending) return <LoadingSpinner text="Loading game" />;
   if (error || !data) return <EmptyState variant="error" title="Could not load game" description={error?.message ?? "The game may have been deleted."} />;
   if (data.document.schemaVersion === 3) {
-    return <Suspense fallback={<LoadingSpinner text="Loading 3D player" />}><Player3D gameId={gameId} name={data.game.name} document={data.document} /></Suspense>;
+    return <Suspense fallback={<LoadingSpinner text="Loading 3D player" />}><Player3D gameId={gameId} name={data.game.name} document={data.document} active={active} /></Suspense>;
   }
-  return <GamePlayer gameId={gameId} name={data.game.name} document={data.document} />;
+  return <GamePlayer gameId={gameId} name={data.game.name} document={data.document} active={active} />;
+}
+
+export default function GamePlayerPage() {
+  const { gameId } = useParams<{ gameId: string }>();
+  return <SavedGamePlayer gameId={gameId ?? ""} />;
 }

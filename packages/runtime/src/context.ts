@@ -2339,7 +2339,7 @@ export class ProcessingContext {
    * `null` when that interface is not configured.
    */
   async getAssetInfo(assetId: string): Promise<AssetInfoEntry | null> {
-    const fn = this._modelInterfaces?.getAssetInfo;
+    const fn = this.modelInterfaces()?.getAssetInfo;
     if (!fn) {
       return null;
     }

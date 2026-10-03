@@ -515,6 +515,7 @@ export function textStyleSignature(
     style.letterSpacingPx ?? 0,
     style.lineHeight ?? 1.2,
     style.verticalAlign ?? "middle",
+    style.strikethrough ? "strike" : "-",
     style.stroke ? `${style.stroke.color}@${style.stroke.widthPx}` : "-",
     style.shadow
       ? `${style.shadow.color}@${style.shadow.blurPx}/${style.shadow.offsetX}/${style.shadow.offsetY}`
@@ -549,6 +550,8 @@ interface TextPaint {
   stroke: { color: string; widthPx: number } | null;
   shadow: { color: string; blurPx: number; offsetX: number; offsetY: number } | null;
   letterSpacingPx: number;
+  /** Thickness of the line through each run, or 0 for none. */
+  strikePx: number;
   /** True when the context advances the glyphs itself. */
   nativeSpacing: boolean;
   /** Unspaced advance, for placing the glyphs by hand. */
@@ -617,6 +620,7 @@ function prepareText(
         style.stroke && style.stroke.widthPx > 0 ? { ...style.stroke } : null,
       shadow: style.shadow ? { ...style.shadow } : null,
       letterSpacingPx,
+      strikePx: style.strikethrough ? Math.max(1, style.fontSizePx * 0.07) : 0,
       nativeSpacing,
       measure
     }
@@ -686,6 +690,17 @@ function paintTextRun(
   }
   ctx.fillStyle = paint.fill;
   advanceRun(ctx, paint, text, x, y, "fill");
+  if (paint.strikePx > 0) {
+    // The glyphs' extent: the spacing after the last glyph is not ink. Native
+    // spacing would put that trailing advance in the measure, so measure
+    // unspaced, as the layout does.
+    if (paint.nativeSpacing) setLetterSpacing(ctx, 0);
+    const graphemes = segmentGraphemes(text).length;
+    const runWidth =
+      paint.measure(text) + paint.letterSpacingPx * Math.max(0, graphemes - 1);
+    if (paint.nativeSpacing) setLetterSpacing(ctx, paint.letterSpacingPx);
+    ctx.fillRect(x, y - paint.strikePx / 2, runWidth, paint.strikePx);
+  }
   if (paint.shadow) clearShadow(ctx);
 }
 

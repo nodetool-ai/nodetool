@@ -35,13 +35,17 @@ import {
   parseChoiceCardOptions,
   encodeBinding,
   formatDuration,
+  isOperationRunning,
   messagesFrom,
   messageText,
   readSketchBinding,
   readTimelineBinding,
   sketchSummary,
+  operationTranscript,
+  parseBinding,
   timelineSummary,
   WIDGET_CATALOG,
+  type ActivityEntry,
   type AppEvent,
   type ConditionProps,
 } from "@nodetool-ai/app-runtime";
@@ -67,6 +71,7 @@ import {
   useBindingValue,
   useCondition,
   useFormatted,
+  useRuntimeSelector,
 } from "./AppRuntimeContext";
 import { useWidgetRuntime } from "./useWidgetRuntime";
 import { SliderControl } from "./SliderControl";
@@ -340,6 +345,28 @@ const TimelineWidget: React.FC<WidgetProps> = (widget) => {
   );
 };
 
+/**
+ * A storyboard an operation produced: a plain id or a `{type: "storyboard", id}`
+ * ref. The board editor is desktop-only, so the phone says one exists.
+ */
+const StoryboardWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const { value } = useWidgetRuntime({ ...widget, bindingMode: "read" });
+  const bound = Array.isArray(value) ? value[value.length - 1] : value;
+  const id = isRecord(bound) && bound.type === "storyboard" ? str(bound.id) : str(bound);
+  if (id.trim()) {
+    return (
+      <DocumentCard title="Storyboard" meta="Open on desktop to view" colors={colors} />
+    );
+  }
+  return (
+    <Placeholder
+      text={str(widget.props.placeholder) || "No storyboard yet"}
+      colors={colors}
+    />
+  );
+};
+
 /** A cell's text: primitives print, anything structured falls back to JSON. */
 const cellText = (value: unknown): string => {
   if (value == null) {return "";}
@@ -474,6 +501,93 @@ const TableWidget: React.FC<WidgetProps> = (widget) => {
         ))}
       </View>
     </ScrollView>
+  );
+};
+
+const TOOL_STATUS_TEXT: Record<string, string> = {
+  running: "Running",
+  done: "Done",
+  error: "Failed",
+};
+
+/**
+ * What an agent does during a run: its text and each tool call with the
+ * outcome, bound to `op:<id>/exec#transcript`. The newest entry stays in view
+ * while the run is live.
+ */
+const AgentActivityWidget: React.FC<WidgetProps> = (widget) => {
+  const { colors } = useTheme();
+  const ref = parseBinding(str(widget.props.binding));
+  const operationId = ref?.kind === "execution" ? ref.operationId : null;
+  const entries = useRuntimeSelector((state) =>
+    operationId ? operationTranscript(state, operationId) : NO_ACTIVITY
+  );
+  const running = useRuntimeSelector((state) =>
+    operationId ? isOperationRunning(state, operationId) : false
+  );
+  if (!running && entries.length === 0) {
+    const placeholder = str(widget.props.placeholder);
+    return placeholder ? <Placeholder text={placeholder} colors={colors} /> : null;
+  }
+  const label = str(widget.props.label);
+  return (
+    <View style={styles.field}>
+      {label ? (
+        <Text style={[styles.label, { color: colors.text }]}>
+          {label}
+          {running ? " · Working" : ""}
+        </Text>
+      ) : null}
+      <ScrollView
+        style={{ maxHeight: numOr(widget.props.height, 360) }}
+        nestedScrollEnabled
+      >
+        <View style={styles.field}>
+          {entries.map((entry, index) =>
+            entry.kind === "tool" ? (
+              <View
+                key={entry.id}
+                style={[styles.activityTool, { backgroundColor: colors.surfaceElevated }]}
+              >
+                <View style={styles.row}>
+                  <Text
+                    numberOfLines={1}
+                    style={[styles.rowLabel, styles.body, { color: colors.text }]}
+                  >
+                    {entry.label}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.hint,
+                      {
+                        color:
+                          entry.status === "error"
+                            ? colors.error
+                            : entry.status === "done"
+                              ? colors.success
+                              : colors.textSecondary,
+                      },
+                    ]}
+                  >
+                    {TOOL_STATUS_TEXT[entry.status]}
+                  </Text>
+                </View>
+                {entry.result ? (
+                  <Text
+                    numberOfLines={3}
+                    style={[styles.hint, { color: colors.textSecondary }]}
+                  >
+                    {entry.result}
+                  </Text>
+                ) : null}
+              </View>
+            ) : (
+              <MarkdownRenderer key={`text-${index}`} content={entry.text} />
+            )
+          )}
+        </View>
+      </ScrollView>
+    </View>
   );
 };
 
@@ -2844,8 +2958,10 @@ export const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   Output: MediaOutputWidget,
   Sketch: SketchWidget,
   Timeline: TimelineWidget,
+  Storyboard: StoryboardWidget,
   Table: TableWidget,
   Progress: ProgressWidget,
+  AgentActivity: AgentActivityWidget,
   Alert: AlertWidget,
   CodeBlock: CodeBlockWidget,
   List: ListWidget,
@@ -2949,9 +3065,16 @@ export const ComponentList: React.FC<{ nodes: ComponentNode[] }> = ({
   </View>
 );
 
+const NO_ACTIVITY: ReadonlyArray<ActivityEntry> = [];
+
 const styles = StyleSheet.create({
   stack: {
     gap: 16,
+  },
+  activityTool: {
+    gap: 4,
+    padding: 10,
+    borderRadius: 10,
   },
   row: {
     flexDirection: "row",

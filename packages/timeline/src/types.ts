@@ -219,6 +219,8 @@ export interface ClipTextStyle {
   lineHeight?: number;
   /** `"top" | "middle" | "bottom"`. Default `"middle"`. */
   verticalAlign?: string;
+  /** Line drawn through the middle of every run, in the fill's paint. */
+  strikethrough?: boolean;
   /** Outline drawn under the fill. */
   stroke?: { color: string; widthPx: number };
   shadow?: { color: string; blurPx: number; offsetX: number; offsetY: number };

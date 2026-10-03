@@ -5,7 +5,8 @@
  * Four delegation capabilities: `run_subtask` (blocking), `run_search`
  * (read-only child), `start_subtask` (background spawn) and `wait_subtasks`
  * (collect). Two plan capabilities: `create_plan` builds a task DAG and runs
- * none of it, `execute_plan` takes that DAG back and runs it.
+ * none of it, `execute_plan` takes that DAG back and runs it. `run_agent` is
+ * the one loop here that needs no parent agent, for a script.
  * Unlike every other ported namespace their classes stay exactly as they
  * are. `SubAgentTool` is not a schema plus a function: it owns the depth gate, the child context, the
  * streamed events, the tagging, and the settlement, and the runner constructs
@@ -44,7 +45,8 @@ import {
   startSubtaskSpec,
   waitSubtasksSpec,
   createPlanSpec,
-  executePlanSpec
+  executePlanSpec,
+  runAgentSpec
 } from "./agents.specs.js";
 import {
   isNonEmptyString,
@@ -432,6 +434,15 @@ const executePlan: CapabilityExport = {
   }
 };
 
+/** An agent loop of its own, for a caller with no parent agent: see `run-agent.ts`. */
+const runAgent: CapabilityExport = {
+  spec: runAgentSpec,
+  impl: async (run, args) => {
+    const { runAgentImpl } = await import("./run-agent.js");
+    return runAgentImpl(run, args);
+  }
+};
+
 /** Every capability this module declares. */
 export const AGENT_CAPABILITIES: readonly CapabilityExport[] = [
   runSubtask,
@@ -439,7 +450,8 @@ export const AGENT_CAPABILITIES: readonly CapabilityExport[] = [
   startSubtask,
   waitSubtasks,
   createPlan,
-  executePlan
+  executePlan,
+  runAgent
 ];
 
 export const module: CapabilityModule = {
@@ -453,5 +465,6 @@ export {
   startSubtask,
   waitSubtasks,
   createPlan,
-  executePlan
+  executePlan,
+  runAgent
 };

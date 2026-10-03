@@ -194,6 +194,22 @@ describe("TimelineInspector section headers", () => {
     ).toBe("Updated title");
   });
 
+  it("turns the text strikethrough on and off", async () => {
+    const user = userEvent.setup();
+    renderInspector();
+    const clip = seedTextClip();
+    const strikethrough = () =>
+      useTimelineStore.getState().clips.find((item) => item.id === clip.id)
+        ?.textStyle?.strikethrough;
+
+    await user.click(screen.getByRole("button", { name: /^text$/i }));
+    const toggle = screen.getByRole("switch", { name: /strikethrough/i });
+    await user.click(toggle);
+    expect(strikethrough()).toBe(true);
+    await user.click(toggle);
+    expect(strikethrough()).toBeUndefined();
+  });
+
   it("adds an in animation with the selected preset defaults", async () => {
     const user = userEvent.setup();
     renderInspector();

@@ -6,6 +6,8 @@ import { loadPersistedVariables, savePersistedVariables } from "../../web/src/co
 import { COMPILED_RECIPE_FIXTURES, TESTIMONIAL_MANIFEST } from "../example-apps/recipe-manifests.mjs";
 import { compileSharedRecipeBundle, sharedRecipeOperations, PLAN_STORYBOARD_CODE, FINISH_STORYBOARD_CODE } from "../recipe-operations.mjs";
 
+import { buildProductPriceDropBundle, PLAN_CODE, FINISH_CODE } from "../example-apps/product-price-drop.mjs";
+
 const execute = async (code, inputs, capabilities) => {
   const outputs = {};
   const body = code.replace(/^import .*;\n/gm, "");
@@ -14,10 +16,10 @@ const execute = async (code, inputs, capabilities) => {
   return outputs;
 };
 const values = recipe => Object.fromEntries(recipe.inputs.map(input => [input.id, input.kind === "image" ? {asset_id: input.id.padEnd(32, "a")} : input.kind === "color" ? "#1248AB" : "  Exact " + input.id + "  "]));
-const plan = async (recipe, extra = {}) => {
+const plan = async (recipe, extra = {}, code = PLAN_STORYBOARD_CODE) => {
   let shots = []; let revision = 0;
   const inputs = {...values(recipe), recipe, ...extra};
-  const outputs = await execute(PLAN_STORYBOARD_CODE, inputs, {
+  const outputs = await execute(code, inputs, {
     get_entity: async ({entity_id}) => ({entity: {id: entity_id, reference_images: [{asset_id: entity_id}]}}),
     preview_storyboard_design: async () => ({linkedScriptFingerprint: "approved-script", timeline: {type: "timeline", data: {durationMs: 6000, tracks: [], clips: []}}}),
     create_storyboard: async () => ({id: "board", shots: []}),
@@ -33,20 +35,46 @@ const plan = async (recipe, extra = {}) => {
 };
 
 describe("shared executable Recipe operations", () => {
-  it("compiles three materially different manifests deterministically with no authored UI", () => {
+  it("exposes the Price Drop finishing model and binds it to planning and finishing", () => {
+    const bundle = COMPILED_RECIPE_FIXTURES[0];
+    expect(bundle.app.ui.content).toContainEqual(expect.objectContaining({
+      type: "ModelSelect", props: expect.objectContaining({binding: "var:finishModel", modelKind: "language_model"})
+    }));
+    for (const operation of bundle.app.operations) {
+      expect(operation.inputs.finishModel).toEqual({from: "variable", variableId: "finishModel"});
+    }
+  });
+  it("uses the chosen Price Drop model and rejects a model changed after approval", async () => {
+    const bundle = COMPILED_RECIPE_FIXTURES[0];
+    const finishModel = {type: "language_model", provider: "anthropic", id: "chosen-model", name: "Chosen"};
+    const planned = await plan(bundle.app.recipe, {finishModel}, PLAN_CODE);
+    let invoked;
+    const capability = {
+      get_storyboard: async () => ({revision: 2}),
+      finish_storyboard: async args => {invoked = args; return {timelineId: "t", timelineRevision: 1, storyboardRevision: 2, validation: []};}
+    };
+    const inputs = {...planned.inputs, ...planned.outputs, finishModel, recipeOperationId: "finish", approval: "approved", finishStrategy: "agentic"};
+    await execute(FINISH_CODE, structuredClone(inputs), capability);
+    expect(invoked).toMatchObject({strategy: "agentic", model: {provider: "anthropic", id: "chosen-model"}});
+    invoked = undefined;
+    await expect(execute(FINISH_CODE, {...structuredClone(inputs), finishModel: {...finishModel, id: "changed"}}, capability)).rejects.toThrow("Inputs changed");
+    expect(invoked).toBeUndefined();
+    await expect(execute(PLAN_CODE, {...planned.inputs, finishModel: {provider: "", id: ""}}, {})).rejects.toThrow("Select a finishing model");
+  });
+  it("compiles three materially different manifests deterministically with standard Application bindings", () => {
     expect(COMPILED_RECIPE_FIXTURES.map(bundle => bundle.app.recipe.creativeStrategy.shots.length)).toEqual([2, 1, 3]);
     for (const bundle of COMPILED_RECIPE_FIXTURES) {
-      const regenerated = compileSharedRecipeBundle(bundle.app.recipe, bundle.name, bundle.description);
+      const regenerated = bundle.app.recipe.slug === "product-price-drop" ? buildProductPriceDropBundle() : compileSharedRecipeBundle(bundle.app.recipe, bundle.name, bundle.description);
       expect(regenerated).toEqual(bundle);
       expect(applicationDocument.safeParse(bundle.app).success).toBe(true);
       expect(applicationDocument.parse(bundle.app).recipe).toEqual(bundle.app.recipe);
       expect(parseApplicationBundle(bundle)).not.toBeNull();
-      expect(bundle.scripts[0].document.code).toBe(PLAN_STORYBOARD_CODE);
-      expect(bundle.scripts[1].document.code).toBe(FINISH_STORYBOARD_CODE);
+      expect(bundle.scripts[0].document.code).toBe(bundle.app.recipe.slug === "product-price-drop" ? PLAN_CODE : PLAN_STORYBOARD_CODE);
+      expect(bundle.scripts[1].document.code).toBe(bundle.app.recipe.slug === "product-price-drop" ? FINISH_CODE : FINISH_STORYBOARD_CODE);
       expect(bundle.scripts.every(script => script.document.inputs.every(port => port.type !== "any"))).toBe(true);
       expect(bundle.app.ui.content.some(widget => widget.type === "Approval")).toBe(true);
       const planIndex = bundle.app.ui.content.findIndex(widget => widget.type === "Button" && widget.props.id === "plan");
-      const reviewIndex = bundle.app.ui.content.findIndex(widget => widget.props.id === "output-planPreview");
+      const reviewIndex = bundle.app.ui.content.findIndex(widget => widget.type === "Storyboard" && widget.props.binding === "var:storyboardId");
       const approvalIndex = bundle.app.ui.content.findIndex(widget => widget.type === "Approval");
       expect(planIndex).toBeLessThan(reviewIndex); expect(reviewIndex).toBeLessThan(approvalIndex);
       const designIndex = bundle.app.ui.content.findIndex(widget => widget.type === "Timeline" && widget.props.binding === "var:designPreview");

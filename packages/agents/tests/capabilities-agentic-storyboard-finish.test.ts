@@ -405,6 +405,47 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
         .map((clip) => clip.textStyle?.fontSizePx)
     ).toEqual([170, 170]);
   });
+  it("lets a rerun move a layer that no person moved", async () => {
+    const { board, context } = await fixture();
+    const first = await execute(
+      new FinishingProvider([craft, done, approve, done]),
+      context,
+      board
+    );
+    const before = (await TimelineSequence.findById(first.timelineId!))!;
+    const editResults: string[] = [];
+    const move: Turn = (args) => [
+      call("edit_timeline", {
+        ops: authorContext(args)
+          .scaffold.clips.filter((clip) => clip.storyboardElementId === "price")
+          .map((clip) => ({
+            op: "set_clip_params",
+            target: clip.id,
+            transform: { position: { y: 300 } }
+          }))
+      }),
+      call("submit_finished_cut")
+    ];
+    const recordEdit: Turn = (args) => {
+      const tool = args.messages.filter((message) => message.role === "tool");
+      editResults.push(String(tool[0]?.content));
+      return [];
+    };
+    const result = await execute(
+      new FinishingProvider([move, recordEdit, approve, done]),
+      context,
+      (await Storyboard.findById(board.id))!,
+      before.revision
+    );
+    expect(editResults[0]).not.toMatch(/Manual transform edit/);
+    expect(result.error).toBeUndefined();
+    const clips = (await TimelineSequence.findById(before.id))!.toTimelineSequence().clips;
+    expect(
+      clips
+        .filter((clip) => clip.storyboardElementId === "price")
+        .map((clip) => clip.transform?.position.y)
+    ).toEqual([300, 300]);
+  });
   it("refreshes exact copy and protected color while preserving authored typography and manual product placement", async () => {
     const { board, context } = await fixture();
     const initialBoard = board.toDocument();
@@ -458,9 +499,15 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
     }
     latestBoard.document = JSON.stringify(changed);
     await latestBoard.save();
+    let manualEdits: unknown;
     const result = await execute(
       new FinishingProvider([
-        () => [call("submit_finished_cut")],
+        (args) => {
+          manualEdits = (
+            authorContext(args) as unknown as { manualEdits: unknown }
+          ).manualEdits;
+          return [call("submit_finished_cut")];
+        },
         done,
         approve,
         done
@@ -485,6 +532,11 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
         .filter((clip) => clip.storyboardElementId === "product")
         .map((clip) => clip.transform?.position.x)
     ).toEqual([80, 80]);
+    expect(manualEdits).toEqual(
+      manual.clips
+        .filter((clip) => clip.storyboardElementId === "product")
+        .map((clip) => ({ clipId: clip.id, name: clip.name, fields: ["transform"] }))
+    );
     expect(
       clips
         .filter((clip) => clip.storyboardElementId === "product")

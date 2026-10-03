@@ -10,6 +10,7 @@
 
 import { describe, expect, it } from "vitest";
 import { createCanvas, loadImage } from "@napi-rs/canvas";
+import { crc32 } from "node:zlib";
 import type {
   TimelineClip,
   TimelineSequence,
@@ -84,6 +85,25 @@ async function pixelAt(
 }
 
 describe("renderTimelineFrames — asset reads", () => {
+  it("renders a PNG containing SVG markup in its text metadata", async () => {
+    const original = Buffer.from(redPng());
+    const data = Buffer.from('Comment\0<svg metadata from the original design>');
+    const chunk = Buffer.alloc(data.length + 12);
+    chunk.writeUInt32BE(data.length);
+    chunk.write("tEXt", 4);
+    data.copy(chunk, 8);
+    chunk.writeUInt32BE(crc32(chunk.subarray(4, -4)), chunk.length - 4);
+    const png = Buffer.concat([original.subarray(0, 33), chunk, original.subarray(33)]);
+    const result = await renderTimelineFrames({
+      sequence: sequence(), timesMs: [0, 1000], width: WIDTH,
+      loadAsset: async () => png
+    });
+    expect(result.complete).toBe(true);
+    for (const frame of result.frames) {
+      expect(await pixelAt(frame.png, WIDTH / 2, 20)).toEqual([255, 0, 0, 255]);
+    }
+    expect(png.includes(data)).toBe(true);
+  });
   it("retries an asset whose first read failed", async () => {
     let calls = 0;
     const loadAsset = async (): Promise<Uint8Array | null> => {

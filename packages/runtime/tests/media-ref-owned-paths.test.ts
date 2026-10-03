@@ -1,6 +1,6 @@
-import { describe, expect, it, vi } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
-import { ProcessingContext } from "../src/context.js";
+import { ProcessingContext, setDefaultModelInterfaces } from "../src/context.js";
 import { loadMediaRefBytes } from "../src/media-ref-bytes.js";
 
 const ID = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
@@ -32,6 +32,37 @@ async function setup() {
 }
 
 describe("owned media references with storage paths", () => {
+  afterEach(() => setDefaultModelInterfaces(null));
+
+  it.each([ID, ID.slice(0, 12)])(
+    "reads an uploaded image through the host default lookup for %s",
+    async (assetId) => {
+      const storage = new InMemoryStorageAdapter();
+      await storage.store(`owner/${ID}.png`, BYTES, "image/png");
+      const getAssetInfo = vi.fn(async ({ userId, assetId: requestedId }: { userId: string; assetId: string }) =>
+        userId === "owner" && [ID, ID.slice(0, 12)].includes(requestedId)
+          ? { id: ID, name: "product.png", content_type: "image/png" }
+          : null
+      );
+      setDefaultModelInterfaces({ getAssetInfo });
+      const context = new ProcessingContext({
+        jobId: "app-upload-read",
+        userId: "owner",
+        storage,
+        fetchFn: async () => new Response(null, { status: 404 })
+      });
+      expect(context.hasModelInterface("getAssetInfo")).toBe(true);
+      expect(await loadMediaRefBytes({ asset_id: assetId }, context)).toEqual(BYTES);
+      expect(getAssetInfo).toHaveBeenCalledWith({ userId: "owner", assetId });
+
+      const other = new ProcessingContext({
+        jobId: "other-upload-read", userId: "other", storage
+      });
+      const retrieve = vi.spyOn(storage, "retrieve");
+      expect(await loadMediaRefBytes({ asset_id: assetId }, other)).toBeNull();
+      expect(retrieve).not.toHaveBeenCalled();
+    }
+  );
   it.each([`asset://${ID}.wav`, `asset://owner/${ID}.wav`])(
     "resolves %s to the owned asset",
     async (uri) => {

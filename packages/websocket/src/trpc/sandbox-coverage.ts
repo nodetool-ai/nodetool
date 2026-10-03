@@ -887,6 +887,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "games.draftChanges": {
     gap: "The editor lists draft change cards; the agent reads the current draft through get_native_game."
   },
+  "games.example": {
+    gap: "Reading a shipped game without installing it is available in the catalog UI but has no sandbox capability."
+  },
   "games.examples": { capability: "list_example_games" },
   "games.get": { capability: "get_native_game" },
   "games.getDraft": { capability: "get_native_game" },

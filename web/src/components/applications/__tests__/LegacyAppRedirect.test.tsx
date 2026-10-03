@@ -76,7 +76,7 @@ describe("LegacyAppRedirect", () => {
       expect(openTab).toHaveBeenCalledWith({
         type: "application",
         ref: "app-2",
-        mode: "edit",
+        mode: "view",
         title: "App app-2",
         projectId: "project-b"
       })

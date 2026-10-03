@@ -188,7 +188,7 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
           projectId: timeline.projectId
         });
       } else {
-        navigate(`/timeline/${timeline.id}`);
+        navigate(`/timeline/${timeline.id}?mode=edit`);
       }
       setVisibility(false);
     } catch (error) {
@@ -226,7 +226,7 @@ export const CreateTimelineButton = memo(function CreateTimelineButton() {
             projectId: timeline.projectId
           });
         } else {
-          navigate(`/timeline/${timeline.id}`);
+          navigate(`/timeline/${timeline.id}?mode=edit`);
         }
         setVisibility(false);
         const addNotification =
@@ -308,7 +308,7 @@ const TimelineListPanel = ({ projectId }: TimelineListPanelProps) => {
         openTab({
           type: "timeline",
           ref: id,
-          mode: "edit",
+          mode: "view",
           title: name || "Untitled video",
           projectId
         });

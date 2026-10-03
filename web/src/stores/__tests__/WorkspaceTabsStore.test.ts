@@ -957,3 +957,17 @@ it("foreground opening an existing tab switches to its resolved owner", () => {
   expect(state.activeTabId).toBe("chat:existing");
   expect(state.tabs).toHaveLength(1);
 });
+
+describe("use mode defaults", () => {
+  it.each(["application", "game", "timeline"] as const)("opens and reopens %s in view mode", (type) => {
+    useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null });
+    const store = useWorkspaceTabsStore.getState();
+    const id = store.openTab({ type, ref: "document-1" });
+    expect(useWorkspaceTabsStore.getState().getActiveTab()?.mode).toBe("view");
+    store.setMode(id, "edit");
+    store.openTab({ type, ref: "document-1" });
+    expect(useWorkspaceTabsStore.getState().getActiveTab()?.mode).toBe("view");
+    store.openTab({ type, ref: "document-1", mode: "edit" });
+    expect(useWorkspaceTabsStore.getState().getActiveTab()?.mode).toBe("edit");
+  });
+});

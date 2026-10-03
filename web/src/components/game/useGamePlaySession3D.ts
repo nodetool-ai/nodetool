@@ -132,7 +132,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       assets: Object.fromEntries(Object.entries(current.assets).flatMap(([slot, binding]) => binding.mediaKind === "audio" || binding.mediaKind === "font" ? [[slot,
         gameAssetBinding.parse({ ...binding, width: 1, height: 1 })]] : [])),
       tickRate: current.tickRate,
-      resolveAsset: async (binding) => resolveMediaUri(`asset://${binding.assetId}`),
+      resolveAsset: async (binding) => resolveMediaUri(binding.assetId.startsWith("package://") ? binding.assetId : `asset://${binding.assetId}`),
       status: setError
     });
     audioRef.current = audio;
@@ -140,7 +140,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     const readAsset = async (slot: string, signal: AbortSignal): Promise<Uint8Array | null> => {
       const binding = current.assets[slot];
       if (!binding) { return null; }
-      const url = await resolveMediaUri(`asset://${binding.assetId}`);
+      const url = await resolveMediaUri(binding.assetId.startsWith("package://") ? binding.assetId : `asset://${binding.assetId}`);
       if (!url) { return null; }
       const response = await fetch(url, { signal });
       if (!response.ok) { throw new Error(`Game asset ${slot} failed to load`); }

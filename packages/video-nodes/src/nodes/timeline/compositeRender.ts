@@ -39,7 +39,7 @@ import { createCanvas } from "@napi-rs/canvas";
 import { setImmediate } from "node:timers/promises";
 
 import {
-  decodeImageRgba,
+  decodeStillRgba,
   fitWithin,
   openFrameEncoder,
   openSourceFrameStream,
@@ -292,11 +292,7 @@ export async function renderTimelineComposited(
     const file = await pathFor(assetId);
     if (signal?.aborted) throw abortError();
     let decoded: RawImage | null = null;
-    if (file) {
-      const size = await probeVideoSize(file);
-      if (signal?.aborted) throw abortError();
-      if (size) decoded = await decodeImageRgba(file, fitWithin(size, frameSize));
-    }
+    if (file) decoded = await decodeStillRgba(file, frameSize);
     if (signal?.aborted) throw abortError();
     images.set(assetId, decoded);
     return decoded;

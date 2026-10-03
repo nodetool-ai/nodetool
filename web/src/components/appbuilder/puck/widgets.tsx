@@ -1380,18 +1380,18 @@ export const ApprovalWidget: React.FC<
     <Card
       variant="outlined"
       padding="none"
-      sx={{ p: SPACING.md, width: "100%" }}
+      sx={{ p: SPACING.lg, width: "100%" }}
     >
-      <FlexColumn gap={SPACING.sm} fullWidth>
-        {props.label ? <Label>{props.label}</Label> : null}
+      <FlexColumn gap={SPACING.md} fullWidth>
+        {props.label ? <Text component="h3" size="big" sx={{ color: "text.primary", m: 0 }}>{props.label}</Text> : null}
         {props.description ? (
-          <Caption color="secondary">{props.description}</Caption>
+          <Text size="normal" color="secondary" sx={{ maxWidth: "70ch" }}>{props.description}</Text>
         ) : null}
         <FlexRow gap={SPACING.sm} sx={{ flexWrap: "wrap" }}>
           <EditorButton
             aria-pressed={value === "approved"}
-            variant={value === "approved" ? "contained" : "outlined"}
-            size="small"
+            variant={value === "approved" ? "outlined" : "contained"}
+            size="medium"
             disabled={props.disabled}
             onClick={() => choose("approved")}
           >
@@ -1399,8 +1399,8 @@ export const ApprovalWidget: React.FC<
           </EditorButton>
           <EditorButton
             aria-pressed={value === "rejected"}
-            variant={value === "rejected" ? "contained" : "outlined"}
-            size="small"
+            variant="text"
+            size="medium"
             disabled={props.disabled}
             onClick={() => choose("rejected")}
           >

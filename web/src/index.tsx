@@ -121,8 +121,8 @@ const CostsDashboard = React.lazy(
 const ComponentPreview = React.lazy(
   () => import("./components/preview/ComponentPreview")
 );
-const TimelineEditor = React.lazy(
-  () => import("./components/timeline/TimelineEditor")
+const TimelineRoute = React.lazy(
+  () => import("./components/timeline/TimelineRoute")
 );
 const SketchEditorPage = React.lazy(
   () => import("./components/sketch/SketchEditorPage")
@@ -419,7 +419,7 @@ function getRoutes() {
           >
             <SkipLinks />
             <React.Suspense fallback={<LoadingSpinner />}>
-              <TimelineEditor />
+              <TimelineRoute />
             </React.Suspense>
           </div>
         </ProtectedRoute>

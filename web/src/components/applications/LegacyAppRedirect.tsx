@@ -52,7 +52,7 @@ const LegacyAppRedirect = () => {
       openTab({
         type: "application",
         ref: data.id,
-        mode: "edit",
+        mode: "view",
         title: data.name || "Untitled app",
         projectId: data.projectId
       });

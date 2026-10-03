@@ -5,10 +5,10 @@
  * body, ports and timeout are what executes, and that another user's script is
  * unreachable.
  */
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
 import {
   emptyJsScriptDocument,
@@ -21,22 +21,30 @@ import {
   initTestDb
 } from "@nodetool-ai/models";
 import { FileStorageAdapter, type StorageAdapter } from "@nodetool-ai/storage";
-import { setDefaultModelInterfaces } from "@nodetool-ai/runtime";
+import {
+  BaseProvider,
+  ProcessingContext,
+  setDefaultModelInterfaces,
+  type Message,
+  type ProviderStreamItem
+} from "@nodetool-ai/runtime";
 
+import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import jsScriptsRoutes from "../src/routes/js-scripts.js";
 
 const USER_ID = "user-1";
 
 async function buildServer(
   userId: string | null,
-  storage?: StorageAdapter
+  storage?: StorageAdapter,
+  exampleAppsDir?: string
 ): Promise<FastifyInstance> {
   const app = Fastify({ logger: false });
   app.decorateRequest("userId", null);
   app.addHook("onRequest", async (req) => {
     req.userId = userId;
   });
-  await app.register(jsScriptsRoutes, { apiOptions: {}, storage });
+  await app.register(jsScriptsRoutes, { apiOptions: { exampleAppsDir }, storage });
   await app.ready();
   return app;
 }
@@ -66,6 +74,30 @@ describe("POST /api/js-scripts/:id/run", () => {
     app = null;
   });
 
+  it("runs a bundled example script without installing it and rejects unshipped keys", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nodetool-example-script-"));
+    try {
+      await writeFile(join(dir, "greeter.app.json"), JSON.stringify({
+        schemaVersion: 1, name: "Greeter", description: "A test app", app: createEmptyDocument(), workflows: [],
+        scripts: [{ key: "greet", name: "Greet", document: {
+          ...emptyJsScriptDocument(), code: "await output('greeting', `hi ${inputs.who}`);",
+          inputs: [{ name: "who", type: "str" }], outputs: [{ name: "greeting", type: "str" }]
+        } }]
+      }));
+      app = await buildServer(USER_ID, undefined, dir);
+      const response = await app.inject({ method: "POST",
+        url: "/api/applications/examples/greeter/scripts/greet/run", payload: { inputs: { who: "world" } } });
+      expect(response.statusCode).toBe(200);
+      expect(response.json()).toMatchObject({ ok: true, outputs: { greeting: "hi world" } });
+      expect(await JsScript.listByUser(USER_ID)).toEqual([]);
+      const missing = await app.inject({ method: "POST",
+        url: "/api/applications/examples/greeter/scripts/missing/run", payload: {} });
+      expect(missing.statusCode).toBe(404);
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("runs the stored body over the given inputs", async () => {
     const script = await seedScript({
       code: "await emit('greeting', `hi ${inputs.who}`);\nawait output('greeting', 'done');",
@@ -86,6 +118,69 @@ describe("POST /api/js-scripts/:id/run", () => {
     expect(body.outputs).toEqual({ greeting: "done" });
     expect(body.streamed).toEqual([{ name: "greeting", value: "hi world" }]);
     expect(typeof body.duration_ms).toBe("number");
+  });
+
+  it("streams agent text, tool calls and emits before the result when asked", async () => {
+    // One scripted turn that calls a tool, then one that answers.
+    const turns: ProviderStreamItem[][] = [
+      [{ id: "call-1", name: "list_skills", args: {} }],
+      [{ type: "chunk", content: "Two skills.", content_type: "text", done: false }]
+    ];
+    class ScriptedProvider extends BaseProvider {
+      constructor() {
+        super("scripted");
+      }
+      override async generateMessage(): Promise<Message> {
+        throw new Error("Unused single-turn path.");
+      }
+      override async *generateMessages(): AsyncGenerator<ProviderStreamItem> {
+        yield* turns.shift() ?? [];
+      }
+    }
+    vi.spyOn(ProcessingContext.prototype, "getProvider").mockResolvedValue(
+      new ScriptedProvider()
+    );
+    const script = await seedScript({
+      code: `import { run_agent } from "@nodetool-ai/sandbox-nodetool/agents";
+await emit("status", "starting");
+const answer = await run_agent({prompt: "Count skills.", model: {provider: "scripted", id: "m"}, tools: ["list_skills"], label: "counter"});
+await output("answer", answer.text);`,
+      outputs: [{ name: "answer", type: "str" }, { name: "status", type: "str" }]
+    });
+    app = await buildServer(USER_ID);
+
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      headers: { accept: "application/x-ndjson" },
+      payload: { inputs: {} }
+    });
+
+    expect(response.statusCode).toBe(200);
+    expect(response.headers["content-type"]).toContain("application/x-ndjson");
+    const lines = response.body
+      .trim()
+      .split("\n")
+      .map((line) => JSON.parse(line) as Record<string, unknown>);
+    const kinds = lines.map((line) =>
+      line.type === "message"
+        ? `message:${(line.message as { type: string }).type}`
+        : String(line.type)
+    );
+    expect(kinds).toEqual([
+      "emit",
+      "message:tool_call_update",
+      "message:tool_result_update",
+      "message:chunk",
+      "result"
+    ]);
+    expect(lines[1].message).toMatchObject({ node_id: "counter", name: "list_skills" });
+    expect(lines[4].result).toMatchObject({
+      ok: true,
+      outputs: { answer: "Two skills." },
+      streamed: [{ name: "status", value: "starting" }]
+    });
+    vi.restoreAllMocks();
   });
 
   it("runs an owned pinned version after the live script changes", async () => {

@@ -1,5 +1,5 @@
 import React from "react";
-import { fireEvent, render, screen } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 
@@ -122,6 +122,43 @@ describe("PropertyDropzone", () => {
 
     // Dropzone should be clickable in Electron too
     expect(screen.getByText("Click or drop image")).toBeInTheDocument();
+  });
+
+  // The property kind ("image") is not a MIME type. An asset stored as
+  // `image` fails every `image/` check downstream, such as create_entity.
+  it("uploads a native-dialog file with the MIME type the file read returns", async () => {
+    mockIsElectron = true;
+    (window as any).api = {
+      dialog: {
+        openFile: jest.fn().mockResolvedValue({
+          canceled: false,
+          filePaths: ["/Users/me/Desktop/product.png"]
+        })
+      },
+      clipboard: {
+        readFileBuffer: jest.fn().mockResolvedValue({
+          buffer: new Uint8Array([1, 2, 3]),
+          mimeType: "image/png"
+        })
+      }
+    };
+
+    renderWithTheme(
+      <PropertyDropzone
+        asset={undefined}
+        uri={undefined}
+        onChange={mockOnChange}
+        contentType="image"
+        props={mockProps as any}
+      />
+    );
+
+    fireEvent.click(screen.getByRole("button"));
+
+    await waitFor(() => expect(mockUploadAsset).toHaveBeenCalled());
+    const { file } = mockUploadAsset.mock.calls[0][0];
+    expect(file.name).toBe("product.png");
+    expect(file.type).toBe("image/png");
   });
 
   it("writes asset:// and asset_id when an upload completes", () => {

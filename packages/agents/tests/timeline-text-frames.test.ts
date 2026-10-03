@@ -164,6 +164,37 @@ describe("drawText — outline", () => {
   });
 });
 
+describe("drawText — strikethrough", () => {
+  /** Whether every pixel of row `y` between `left` and `right` carries ink. */
+  const solidRow = (pixels: Pixels, y: number, left: number, right: number): boolean => {
+    for (let x = left; x <= right; x++) if (!pixels.on(x, y)) return false;
+    return true;
+  };
+
+  it("draws one unbroken line through the middle of the run", () => {
+    const style = title({ text: "I  I" });
+    const glyphs = inkBounds(style);
+    const y = Math.round(glyphs.centerY);
+    expect(solidRow(raster(style), y, glyphs.left, glyphs.right)).toBe(false);
+    expect(solidRow(raster({ ...style, strikethrough: true }), y, glyphs.left, glyphs.right)).toBe(true);
+  });
+
+  it("covers the glyphs only, not the spacing after the last one", () => {
+    const style = title({ letterSpacingPx: 30 });
+    // The line spans the advance box, so it may pass the ink by a side
+    // bearing, never by the 30px trailing advance.
+    expect(inkBounds({ ...style, strikethrough: true }).right).toBeLessThan(inkBounds(style).right + 10);
+  });
+
+  it("paints in the text colour", () => {
+    const pixels = raster(title({ text: "I  I", color: "#ff0000", strikethrough: true }));
+    const red = pixels.bounds(RED);
+    expect(red).not.toBeNull();
+    const glyphs = inkBounds(title({ text: "I  I" }));
+    expect(pixels.at(glyphs.centerX, glyphs.centerY)).toEqual([255, 0, 0, 255]);
+  });
+});
+
 describe("drawText — shadow", () => {
   it("casts the glyphs at the offset it is given", () => {
     const plain = inkBounds(title());

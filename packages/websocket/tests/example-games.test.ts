@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import nodePath from "node:path";
 import { fileURLToPath } from "node:url";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { Asset, ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
+import { Asset, Game, ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
 import { parsePackageAssetUri } from "@nodetool-ai/protocol";
 import { appRouter } from "../src/trpc/router.js";
 import { createCallerFactory } from "../src/trpc/index.js";
@@ -61,6 +61,16 @@ describe("example games", () => {
   afterEach(async () => {
     ModelObserver.clear();
     await rm(workspaceDir, { recursive: true, force: true });
+  });
+
+  it("reads a playable example without installing game or asset rows", async () => {
+    const caller = createCaller(makeCtx());
+    const result = await caller.games.example({ slug: "kindle" });
+    expect(result.name).toBe("Kindle");
+    expect(Object.values(result.document.assets).some((binding) => binding.assetId.startsWith("package://"))).toBe(true);
+    expect(await Game.listByProject(USER_ID, PROJECT_ID)).toEqual([]);
+    expect(await Asset.listByProject(USER_ID, PROJECT_ID)).toEqual([]);
+    await expect(caller.games.example({ slug: "../kindle" })).rejects.toMatchObject({ code: "NOT_FOUND" });
   });
 
   it("finds the shipped games, their posters, and every bound media file", () => {

@@ -129,7 +129,8 @@ describe("the agents capability module", () => {
       "start_subtask",
       "wait_subtasks",
       "create_plan",
-      "execute_plan"
+      "execute_plan",
+      "run_agent"
     ]);
   });
 
@@ -141,11 +142,14 @@ describe("the agents capability module", () => {
       ]);
     }
     // Delegating and planning have no side effect of their own; running a plan
-    // is every side effect in it, which is what the gate must see.
+    // is every side effect in it, which is what the gate must see. run_agent
+    // spends provider money on its own, like generate_text.
     for (const entry of AGENT_CAPABILITIES) {
       expect([entry.spec.name, entry.spec.category]).toEqual([
         entry.spec.name,
-        entry.spec.name === "execute_plan" ? "external" : "read"
+        entry.spec.name === "execute_plan" || entry.spec.name === "run_agent"
+          ? "external"
+          : "read"
       ]);
     }
   });
