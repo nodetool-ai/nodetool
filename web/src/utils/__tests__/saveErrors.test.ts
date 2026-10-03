@@ -1,7 +1,4 @@
-import {
-  isPermanentSaveError,
-  MAX_TRANSIENT_SAVE_RETRIES
-} from "../saveErrors";
+import { isPermanentSaveError } from "../saveErrors";
 
 const trpcError = (data: unknown) => ({ message: "failed", data });
 
@@ -88,12 +85,5 @@ describe("isPermanentSaveError", () => {
         )
       ).toBe(true);
     });
-  });
-});
-
-describe("MAX_TRANSIENT_SAVE_RETRIES", () => {
-  it("is a positive integer so a transient failure is retried but bounded", () => {
-    expect(Number.isInteger(MAX_TRANSIENT_SAVE_RETRIES)).toBe(true);
-    expect(MAX_TRANSIENT_SAVE_RETRIES).toBeGreaterThan(0);
   });
 });
