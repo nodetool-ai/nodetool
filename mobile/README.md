@@ -258,8 +258,8 @@ Anything the scripts don't cover goes through the CLI directly, e.g.
 
 ### Build profiles
 
-`eas.json` profiles all extend `base`, which pins Node to 22.22.1 so cloud
-builds use the same version as the repo (`.nvmrc`):
+`eas.json` profiles all extend `base`, which pins Node to the version in the
+repo root `.nvmrc`, so cloud builds match local ones. Change both together:
 
 | Profile                  | Use                                                                         |
 | ------------------------ | --------------------------------------------------------------------------- |
@@ -272,6 +272,57 @@ builds use the same version as the repo (`.nvmrc`):
 
 `cli.appVersionSource` is `remote`, so EAS owns the build number; the
 `production` profile increments it on every build.
+
+### Release checklist
+
+Work through this list before the first store submission, and again for each
+release. The build and the submit cost EAS credits and publish the app, so they
+come last.
+
+1. **Version**: raise `expo.version` in `app.json` for every store release.
+   `runtimeVersion` follows it (`policy: appVersion`), so an OTA update never
+   reaches a binary built from another version. EAS owns the build number
+   (`appVersionSource: remote`) and the `production` profile increments it.
+2. **Identity**: the bundle id and Android package are both
+   `ai.nodetool.mobile`. `assets/icon.png`, `assets/adaptive-icon.png`, and
+   `assets/splash-icon.png` are 1024 x 1024. Replace them before release if
+   they are still placeholders.
+3. **Permissions**: every string in `app.json` must match a feature the build
+   ships. Camera and photos back the composer and Mini App capture
+   (`expo-image-picker`), the microphone and speech recognition back dictation
+   (`expo-speech-recognition`), and saving to the library backs
+   `utils/saveMedia.ts` (`expo-media-library`). Remove a string when its
+   feature goes.
+4. **Store listings**: name, subtitle, description, keywords, support URL,
+   marketing URL, and the privacy policy URL, in App Store Connect and the Play
+   Console.
+5. **Screenshots**: phone sizes for both stores. `ios.supportsTablet` is
+   `true`, so App Store Connect also asks for iPad screenshots. Turn it off if
+   the release is phone only. `scripts/screenshot-screens.mjs` gives a first
+   pass from the web build, but store screenshots come from a device or
+   simulator.
+6. **Privacy labels**: the App Store privacy details and the Play Data safety
+   form. Declare the account email (Supabase and Google sign-in), crash reports
+   (Sentry), user content sent to the server (chat, uploaded assets), and
+   audio used for on-device dictation.
+7. **Android declarations**: the Play Console asks why the app holds
+   `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`, and the media-playback foreground
+   service. Answer them or drop the permissions.
+8. **Review account**: a sign-in that works without a Google account, pointed
+   at a reachable server with a Mini App and a chat model ready. Both stores
+   reject an app they cannot get past the login screen of.
+9. **Submit config**: `submit.production` in `eas.json` is empty. Before a
+   non-interactive submit, add `ios.ascAppId` and
+   `android.serviceAccountKeyPath`, or run the first submit by hand so EAS
+   asks for them.
+10. **Build and submit**: `npm run build:production`, then
+    `npm run submit:production`. From CI, push a `mobile-v*` tag, which builds
+    and submits both platforms.
+
+Job notifications are local. `services/notifications.ts` posts one when a
+run finishes while the app is in the background, and its `nodetool://job/<id>`
+link opens the job. Remote push, which reaches a phone after the app was
+closed, is not built yet.
 
 ### Local Builds (Advanced)
 
