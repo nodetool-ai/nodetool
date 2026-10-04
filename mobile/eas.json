@@ -5,7 +5,7 @@
   },
   "build": {
     "base": {
-      "node": "22.22.1"
+      "node": "24.18.0"
     },
     "development": {
       "extends": "base",
