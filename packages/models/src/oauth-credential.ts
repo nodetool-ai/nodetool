@@ -6,7 +6,7 @@
 
 import { eq, and, desc } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { oauthCredentials } from "./schema/oauth-credentials.js";
 import {
   encrypt,
@@ -112,7 +112,7 @@ export class OAuthCredential extends DBModel {
     provider: string,
     accountId: string
   ): Promise<OAuthCredential | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const [row] = await db
       .select()
       .from(oauthCredentials)
@@ -132,7 +132,7 @@ export class OAuthCredential extends DBModel {
     userId: string,
     provider: string
   ): Promise<OAuthCredential[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(oauthCredentials)

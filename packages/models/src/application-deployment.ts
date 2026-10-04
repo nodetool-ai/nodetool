@@ -18,7 +18,7 @@ import { randomBytes } from "node:crypto";
 import { and, eq, isNull } from "drizzle-orm";
 
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { applicationDeployments } from "./schema/application-deployments.js";
 
 export class ApplicationDeployment extends DBModel {
@@ -61,7 +61,7 @@ export class ApplicationDeployment extends DBModel {
     token: string
   ): Promise<ApplicationDeployment | null> {
     if (!token) return null;
-    const db = getDb();
+    const db = getPortableDb();
     const [row] = await db
       .select()
       .from(applicationDeployments)
@@ -79,7 +79,7 @@ export class ApplicationDeployment extends DBModel {
   static async findLive(
     applicationId: string
   ): Promise<ApplicationDeployment | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const [row] = await db
       .select()
       .from(applicationDeployments)
@@ -104,7 +104,7 @@ export class ApplicationDeployment extends DBModel {
     const live = await ApplicationDeployment.findLive(opts.applicationId);
     if (live) return live;
 
-    const db = getDb();
+    const db = getPortableDb();
     for (let attempt = 0; attempt < 3; attempt++) {
       const now = new Date().toISOString();
       const [created] = await db
@@ -135,7 +135,7 @@ export class ApplicationDeployment extends DBModel {
 
   /** Revoke every live row so legacy duplicate links cannot remain usable. */
   static async revokeAllLive(applicationId: string): Promise<void> {
-    const db = getDb();
+    const db = getPortableDb();
     await db
       .update(applicationDeployments)
       .set({ revoked_at: new Date().toISOString() })
@@ -151,7 +151,7 @@ export class ApplicationDeployment extends DBModel {
   static async listForApplication(
     applicationId: string
   ): Promise<ApplicationDeployment[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(applicationDeployments)

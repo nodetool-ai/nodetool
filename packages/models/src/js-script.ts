@@ -12,7 +12,7 @@ import {
   createTimeOrderedUuid,
   nextUpdatedAtAfter
 } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { jsScripts } from "./schema/js-scripts.js";
 import { JsScriptVersion } from "./js-script-version.js";
 
@@ -97,7 +97,7 @@ export class JsScript extends DBModel {
   }
 
   static async listByUser(userId: string, limit = 50): Promise<JsScript[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(jsScripts)
@@ -112,7 +112,7 @@ export class JsScript extends DBModel {
     userId: string,
     limit = 50
   ): Promise<JsScript[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(jsScripts)
@@ -141,7 +141,7 @@ export class JsScript extends DBModel {
     if (fields.document !== undefined) {
       assertValidJsScriptDocument(JSON.parse(fields.document) as unknown);
     }
-    const db = getDb();
+    const db = getPortableDb();
     const now = nextUpdatedAtAfter(expectedUpdatedAt);
     const rows = await db
       .update(jsScripts)

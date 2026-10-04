@@ -18,7 +18,7 @@ import {
   isNotNull
 } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { predictions } from "./schema/predictions.js";
 import { workflows } from "./schema/workflows.js";
 import {
@@ -436,7 +436,7 @@ export class Prediction extends DBModel {
     patch: PredictionReconciliationPatch,
     expectedAttempts?: number
   ): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(predictions)
       .set(patch)
@@ -465,7 +465,7 @@ export class Prediction extends DBModel {
     userId: string,
     predictionId: string
   ): Promise<Prediction | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(predictions)
@@ -486,7 +486,7 @@ export class Prediction extends DBModel {
     filter: GenerationListFilter = {}
   ): Promise<[Prediction[], string]> {
     const limit = Math.max(1, Math.min(filter.limit ?? 50, 500));
-    const db = getDb();
+    const db = getPortableDb();
     const conditions = [eq(predictions.user_id, userId)];
     if (filter.status) {
       // Filter on the public lifecycle state, not the provider's last raw
@@ -547,7 +547,7 @@ export class Prediction extends DBModel {
     predictionId: string,
     userId: string
   ): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const now = new Date().toISOString();
     const rows = await db
       .update(predictions)
@@ -586,7 +586,7 @@ export class Prediction extends DBModel {
     if (ids.length === 0) {
       return [];
     }
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(predictions)
@@ -606,7 +606,7 @@ export class Prediction extends DBModel {
    * so it survives a restart. Oldest first, so a row is not starved.
    */
   static async reconcileQueue(limit = 100): Promise<Prediction[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(predictions)
@@ -631,7 +631,7 @@ export class Prediction extends DBModel {
   static async sweepInterrupted(
     startedBeforeIso: string
   ): Promise<Prediction[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const now = new Date().toISOString();
     const rows = await db
       .update(predictions)
@@ -658,7 +658,7 @@ export class Prediction extends DBModel {
     projectId: string,
     limit = 1000
   ): Promise<Prediction[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(predictions)
@@ -686,7 +686,7 @@ export class Prediction extends DBModel {
     projectId: string,
     limit = 1000
   ): Promise<ProjectSpendRow[]> {
-    const db = getDb();
+    const db = getPortableDb();
     return db
       .select({
         cost: predictions.cost,
@@ -717,7 +717,7 @@ export class Prediction extends DBModel {
     } = {}
   ): Promise<[Prediction[], string]> {
     const { limit = 50, provider, model, startKey } = opts;
-    const db = getDb();
+    const db = getPortableDb();
 
     const conditions = [eq(predictions.user_id, userId)];
     if (provider) conditions.push(eq(predictions.provider, provider));
@@ -749,7 +749,7 @@ export class Prediction extends DBModel {
     userId: string,
     opts?: { provider?: string | null; model?: string | null }
   ): Promise<AggregateResult> {
-    const db = getDb();
+    const db = getPortableDb();
     const conditions = [eq(predictions.user_id, userId)];
     if (opts?.provider)
       conditions.push(eq(predictions.provider, opts.provider));
@@ -803,7 +803,7 @@ export class Prediction extends DBModel {
   static async aggregateByProvider(
     userId: string
   ): Promise<ProviderAggregateResult[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(predictions)
@@ -843,7 +843,7 @@ export class Prediction extends DBModel {
     userId: string,
     opts?: { provider?: string | null }
   ): Promise<ModelAggregateResult[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const conditions = [
       eq(predictions.user_id, userId),
       ne(predictions.status, "running")
@@ -909,7 +909,7 @@ export class Prediction extends DBModel {
     const days = opts.days ?? 14;
     const tzMs = (opts.tzOffsetMinutes ?? 0) * 60_000;
     const execLimit = opts.executionsLimit ?? 200;
-    const db = getDb();
+    const db = getPortableDb();
 
     const nowMs = Date.now();
     const todayLocalMidnight = Math.floor((nowMs - tzMs) / DAY_MS) * DAY_MS;

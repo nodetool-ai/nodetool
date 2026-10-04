@@ -1,6 +1,4 @@
 import { pgTable, text, index } from "drizzle-orm/pg-core";
-import { jsonText } from "./helpers.js";
-import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 
 export const jsScripts = pgTable(
   "js_scripts",
@@ -9,7 +7,7 @@ export const jsScripts = pgTable(
     user_id: text("user_id").notNull(),
     project_id: text("project_id").notNull(),
     name: text("name").notNull(),
-    document: jsonText<JsScriptDocument>()("document").notNull(),
+    document: text("document").notNull(),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

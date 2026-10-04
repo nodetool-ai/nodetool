@@ -5,9 +5,7 @@ import {
   index,
   uniqueIndex
 } from "drizzle-orm/pg-core";
-import { jsonText } from "./helpers.js";
 import { timelineSequences } from "./timeline-sequences.js";
-import type { TimelineDocument } from "../timeline-sequence.js";
 
 /** See the SQLite schema for the column semantics. */
 export const timelineSequenceVersions = pgTable(
@@ -25,7 +23,7 @@ export const timelineSequenceVersions = pgTable(
     width: integer("width").notNull().default(1920),
     height: integer("height").notNull().default(1080),
     duration_ms: integer("duration_ms").notNull().default(0),
-    document: jsonText<TimelineDocument>()("document").notNull(),
+    document: text("document").notNull(),
     created_at: text("created_at").notNull()
   },
   (table) => [

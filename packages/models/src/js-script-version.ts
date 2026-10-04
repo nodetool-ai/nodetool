@@ -7,7 +7,7 @@
 
 import { eq, and, desc, asc, max } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { jsScriptVersions } from "./schema/js-script-versions.js";
 import type { JsScript } from "./js-script.js";
 
@@ -67,7 +67,7 @@ export class JsScriptVersion extends DBModel {
     opts: { limit?: number; saveType?: string } = {}
   ): Promise<JsScriptVersion[]> {
     const { limit = 100, saveType } = opts;
-    const db = getDb();
+    const db = getPortableDb();
     const where =
       saveType === undefined
         ? eq(jsScriptVersions.js_script_id, jsScriptId)
@@ -89,7 +89,7 @@ export class JsScriptVersion extends DBModel {
     jsScriptId: string,
     version: number
   ): Promise<JsScriptVersion | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const [row] = await db
       .select()
       .from(jsScriptVersions)
@@ -105,7 +105,7 @@ export class JsScriptVersion extends DBModel {
 
   /** The next version number for a script (max existing + 1). */
   static async nextVersion(jsScriptId: string): Promise<number> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select({ value: max(jsScriptVersions.version) })
       .from(jsScriptVersions)
@@ -162,7 +162,7 @@ export class JsScriptVersion extends DBModel {
     jsScriptId: string,
     maxAutosaves: number
   ): Promise<void> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select({ id: jsScriptVersions.id })
       .from(jsScriptVersions)
@@ -190,7 +190,7 @@ export class JsScriptVersion extends DBModel {
    * the cascade alone cannot be relied on.
    */
   static async deleteForScript(jsScriptId: string): Promise<void> {
-    const db = getDb();
+    const db = getPortableDb();
     await db
       .delete(jsScriptVersions)
       .where(eq(jsScriptVersions.js_script_id, jsScriptId));

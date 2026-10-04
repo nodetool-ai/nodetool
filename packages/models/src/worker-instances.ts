@@ -17,7 +17,7 @@
 import { eq } from "drizzle-orm";
 import { encrypt, decrypt, initMasterKey } from "@nodetool-ai/security";
 import { createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { workerInstances } from "./schema/workers.js";
 
 export type WorkerTarget = "runpod" | "vast" | "verda";
@@ -115,7 +115,7 @@ export async function createWorkerInstance(
     estimated_cost_usd: input.estimated_cost_usd ?? null
   };
 
-  const db = getDb();
+  const db = getPortableDb();
   await db.insert(workerInstances).values({
     id: instance.id,
     profile_name: instance.profile_name,
@@ -140,7 +140,7 @@ export async function createWorkerInstance(
 export async function getWorkerInstance(
   id: string
 ): Promise<WorkerInstance | null> {
-  const db = getDb();
+  const db = getPortableDb();
   const [row] = await db
     .select()
     .from(workerInstances)
@@ -156,7 +156,7 @@ export async function getWorkerInstance(
 export async function listWorkerInstances(
   options: ListWorkerInstancesOptions = {}
 ): Promise<WorkerInstance[]> {
-  const db = getDb();
+  const db = getPortableDb();
   const rows = options.status
     ? await db
         .select()
@@ -178,7 +178,7 @@ export async function updateWorkerInstance(
 
   const updated: WorkerInstance = { ...existing, ...patch };
 
-  const db = getDb();
+  const db = getPortableDb();
   await db
     .update(workerInstances)
     .set({
@@ -203,7 +203,7 @@ export async function touchWorkerInstance(id: string): Promise<WorkerInstance> {
   }
 
   const last_activity_at = new Date().toISOString();
-  const db = getDb();
+  const db = getPortableDb();
   await db
     .update(workerInstances)
     .set({ last_activity_at })
@@ -214,7 +214,7 @@ export async function touchWorkerInstance(id: string): Promise<WorkerInstance> {
 
 /** Remove the instance with the given id. */
 export async function deleteWorkerInstance(id: string): Promise<void> {
-  const db = getDb();
+  const db = getPortableDb();
   await db.delete(workerInstances).where(eq(workerInstances.id, id));
 }
 

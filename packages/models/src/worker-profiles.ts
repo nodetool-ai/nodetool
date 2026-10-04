@@ -9,7 +9,7 @@
 
 import { eq } from "drizzle-orm";
 import { createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { workerProfiles } from "./schema/workers.js";
 
 export type WorkerTarget = "runpod" | "vast" | "verda";
@@ -65,7 +65,7 @@ export async function createWorkerProfile(
     updated_at: now
   };
 
-  const db = getDb();
+  const db = getPortableDb();
   await db.insert(workerProfiles).values(profile);
   return profile;
 }
@@ -74,7 +74,7 @@ export async function createWorkerProfile(
 export async function getWorkerProfile(
   name: string
 ): Promise<WorkerProfile | null> {
-  const db = getDb();
+  const db = getPortableDb();
   const [row] = await db
     .select()
     .from(workerProfiles)
@@ -85,7 +85,7 @@ export async function getWorkerProfile(
 
 /** Return all profiles. */
 export async function listWorkerProfiles(): Promise<WorkerProfile[]> {
-  const db = getDb();
+  const db = getPortableDb();
   const rows = await db.select().from(workerProfiles);
   return rows.map(toProfile);
 }
@@ -106,7 +106,7 @@ export async function updateWorkerProfile(
     updated_at: new Date().toISOString()
   };
 
-  const db = getDb();
+  const db = getPortableDb();
   await db
     .update(workerProfiles)
     .set({
@@ -125,7 +125,7 @@ export async function updateWorkerProfile(
 
 /** Remove the named profile. */
 export async function deleteWorkerProfile(name: string): Promise<void> {
-  const db = getDb();
+  const db = getPortableDb();
   await db.delete(workerProfiles).where(eq(workerProfiles.name, name));
 }
 

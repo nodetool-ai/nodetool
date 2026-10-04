@@ -9,7 +9,7 @@
 
 import { eq, and, desc, asc, max } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { timelineSequenceVersions } from "./schema/timeline-sequence-versions.js";
 import type { TimelineSequence } from "./timeline-sequence.js";
 
@@ -78,7 +78,7 @@ export class TimelineSequenceVersion extends DBModel {
     opts: { limit?: number; saveType?: string } = {}
   ): Promise<TimelineSequenceVersion[]> {
     const { limit = 100, saveType } = opts;
-    const db = getDb();
+    const db = getPortableDb();
     const where =
       saveType === undefined
         ? eq(timelineSequenceVersions.timeline_id, timelineId)
@@ -102,7 +102,7 @@ export class TimelineSequenceVersion extends DBModel {
     timelineId: string,
     version: number
   ): Promise<TimelineSequenceVersion | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const [row] = await db
       .select()
       .from(timelineSequenceVersions)
@@ -120,7 +120,7 @@ export class TimelineSequenceVersion extends DBModel {
 
   /** The next version number for a timeline (max existing + 1). */
   static async nextVersion(timelineId: string): Promise<number> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select({ value: max(timelineSequenceVersions.version) })
       .from(timelineSequenceVersions)
@@ -181,7 +181,7 @@ export class TimelineSequenceVersion extends DBModel {
     timelineId: string,
     maxAutosaves: number
   ): Promise<void> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select({ id: timelineSequenceVersions.id })
       .from(timelineSequenceVersions)
@@ -209,7 +209,7 @@ export class TimelineSequenceVersion extends DBModel {
    * the cascade alone cannot be relied on.
    */
   static async deleteForTimeline(timelineId: string): Promise<void> {
-    const db = getDb();
+    const db = getPortableDb();
     await db
       .delete(timelineSequenceVersions)
       .where(eq(timelineSequenceVersions.timeline_id, timelineId));

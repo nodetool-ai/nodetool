@@ -9,7 +9,7 @@
  */
 
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import { getDb, initTestDb } from "../src/db.js";
+import { getPortableDb, initTestDb } from "../src/db.js";
 import { storyboards } from "../src/schema/storyboards.js";
 import {
   Storyboard,
@@ -52,7 +52,7 @@ async function seed(
 /** A row written straight to the table, past the model's write-time guards. */
 async function insertRaw(name: string, document: string): Promise<void> {
   const now = new Date().toISOString();
-  await getDb().insert(storyboards).values({
+  await getPortableDb().insert(storyboards).values({
     id: `raw_${name}`,
     user_id: OWNER,
     project_id: "default",

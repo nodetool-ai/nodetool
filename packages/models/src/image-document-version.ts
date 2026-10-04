@@ -9,7 +9,7 @@
 
 import { eq, and, desc, asc, max } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { imageDocumentVersions } from "./schema/image-document-versions.js";
 import type { ImageDocument } from "./image-document.js";
 
@@ -75,7 +75,7 @@ export class ImageDocumentVersion extends DBModel {
     opts: { limit?: number; saveType?: string } = {}
   ): Promise<ImageDocumentVersion[]> {
     const { limit = 100, saveType } = opts;
-    const db = getDb();
+    const db = getPortableDb();
     const where =
       saveType === undefined
         ? eq(imageDocumentVersions.image_document_id, imageDocumentId)
@@ -99,7 +99,7 @@ export class ImageDocumentVersion extends DBModel {
     imageDocumentId: string,
     version: number
   ): Promise<ImageDocumentVersion | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const [row] = await db
       .select()
       .from(imageDocumentVersions)
@@ -117,7 +117,7 @@ export class ImageDocumentVersion extends DBModel {
 
   /** The next version number for a sketch (max existing + 1). */
   static async nextVersion(imageDocumentId: string): Promise<number> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select({ value: max(imageDocumentVersions.version) })
       .from(imageDocumentVersions)
@@ -177,7 +177,7 @@ export class ImageDocumentVersion extends DBModel {
     imageDocumentId: string,
     maxAutosaves: number
   ): Promise<void> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select({ id: imageDocumentVersions.id })
       .from(imageDocumentVersions)
@@ -205,7 +205,7 @@ export class ImageDocumentVersion extends DBModel {
    * the cascade alone cannot be relied on.
    */
   static async deleteForDocument(imageDocumentId: string): Promise<void> {
-    const db = getDb();
+    const db = getPortableDb();
     await db
       .delete(imageDocumentVersions)
       .where(eq(imageDocumentVersions.image_document_id, imageDocumentId));
