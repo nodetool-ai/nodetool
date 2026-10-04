@@ -197,9 +197,10 @@ its PR and updates this list.
   `npm run capabilities:sync`), and either a suite or an eval case.
   `npm run capabilities:check` fails otherwise.
 - **I11 Headless and browser tools share one implementation.** `edit_timeline`
-  ops dispatch to the same bridge the `ui_timeline_*` tools and the eval
-  drive (`packages/agents/src/evals/surfaces/timeline.ts`
-  `createTimelineToolBridge`). A new op is added there once.
+  and `ui_timeline_*` edits use `applyTimelineOp` in
+  `packages/timeline/src/ops/apply.ts`. The server adapter lives in
+  `packages/agents/src/capabilities/timeline-bridge.ts`. Add document edit
+  operations to the shared engine and keep host I/O in the adapters.
 - **I12 A new check proves it can fail.** Every validator code, eval predicate
   and JTBD outcome ships with a fixture that fails it
   (`docs/HARNESS_FIRST.md` rule 7, AGENTS.md § Claims, Checks, and

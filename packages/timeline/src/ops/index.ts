@@ -11,3 +11,4 @@ export * from "./types.js";
 export * from "./op.js";
 export * from "./serialize.js";
 export * from "./apply.js";
+export * from "./parse.js";

@@ -10,6 +10,8 @@
  */
 
 import type {
+  TimelineSequence,
+  TimelineSetup,
   MediaTrack,
   TimelineClip,
   TimelineMarker,
@@ -27,13 +29,22 @@ import type {
 /** The document shape every host already holds, plus its editor cursor. */
 export interface TimelineOpState {
   tempo?: TimelineTempo;
+  trackFolders?: TimelineSequence["trackFolders"];
+  setup?: TimelineSetup | null;
+  transcript?: TimelineSequence["transcript"];
+  scriptEnabled?: boolean;
+  templateId?: string | null;
+  camera2d?: TimelineSequence["camera2d"];
   fps: number;
   width: number;
   height: number;
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
-  storyboardMaterializations?: Array<{ boardId: string; elementKeys: string[] }>;
+  storyboardMaterializations?: Array<{
+    boardId: string;
+    elementKeys: string[];
+  }>;
   /**
    * Subject/object tracks (P0 AI Video, Phase 2). Optional so a host built
    * before they existed — every literal `TimelineOpState` in this package's
@@ -102,11 +113,30 @@ export interface TimelineOpCompositionLoader {
 }
 
 /** Ids a host mints. Kept out of the ops so ids stay the host's to allocate. */
-export type TimelineOpIdKind = "track" | "clip" | "anim" | "marker" | "version";
+export type TimelineOpIdKind =
+  | "track"
+  | "clip"
+  | "anim"
+  | "marker"
+  | "version"
+  | "note"
+  | "beat"
+  | "link";
 
 /** Everything an op needs that the document cannot answer. */
 export interface TimelineOpContext {
   newId(kind: TimelineOpIdKind): string;
+  followLinks?: boolean;
+  duplicateLinkedClips?: boolean;
+  allowUnknownMediaDuration?: boolean;
+  sequence?: Pick<TimelineSequence, "id" | "projectId" | "name">;
+  retargetFormat?(
+    sequence: TimelineSequence
+  ): Promise<{ sequenceId: string; name?: string }>;
+  generateFromBeats?(
+    state: TimelineOpState,
+    op: Extract<import("./op.js").TimelineOp, { op: "generate_from_beats" }>
+  ): Promise<TimelineOpOutcome>;
   /** New MIDI track voice. Hosts may keep their existing preset defaults. */
   defaultMidiInstrument?: TimelineTrack["instrument"];
   /** Timestamp for a baked animation. Defaults to `new Date().toISOString()`. */
@@ -150,6 +180,7 @@ export interface TimelineOpOutcome {
 
 /** The animation input `animate_clip` takes, before it is built. */
 export interface TimelineAnimationInput {
+  enabled?: boolean;
   role: ClipAnimation["role"];
   preset: string;
   durationMs?: number;

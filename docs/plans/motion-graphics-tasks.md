@@ -192,8 +192,8 @@ assertion. `npm run backend:smoke` passes on the server profile.
 
 **Read first:** `packages/timeline/src/animation/custom.ts`,
 `packages/agents/src/custom-animation-bake.ts`,
-`packages/agents/src/evals/surfaces/timeline.ts` (`animate_clip` in the
-bridge, the `Unknown animation preset` throw),
+`packages/timeline/src/ops/apply.ts` (`animate_clip`),
+`packages/agents/src/capabilities/timeline-bridge.ts` (host baking),
 `packages/agents/src/capabilities/timelines.ts` (`edit_timeline`),
 `packages/agents/src/capabilities/timelines.specs.ts`,
 `docs/timeline-custom-animations.md`.
@@ -601,8 +601,9 @@ CAS conflict, snapshot exists after write.
 **Resolves:** wiring for T9, T11, T12, T13, T29 into `edit_timeline` and
 `ui_timeline_*`.
 
-**Read first:** `packages/agents/src/evals/surfaces/timeline.ts` (bridge
-tool table), `packages/agents/src/capabilities/timelines.ts` (op
+**Read first:** `packages/timeline/src/ops/apply.ts` (shared edit engine),
+`packages/agents/src/capabilities/timeline-bridge.ts` (host adapter),
+`packages/agents/src/capabilities/timelines.ts` (op
 normalization, `MAX_OPS`), `web/src/lib/tools/builtin/timeline.ts`,
 `packages/agents/src/capabilities/timelines.specs.ts`.
 
