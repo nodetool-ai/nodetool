@@ -43,7 +43,7 @@
       {
         "id": "direction-agent",
         "type": "nodetool.agents.Agent",
-        "data": {"model": {"type": "language_model", "provider": "openai", "id": "gpt-5-mini", "name": "GPT-5 mini", "path": null, "supported_tasks": []}, "system": "You are a campaign creative director. Follow the requested JSON schema exactly. Return no prose or code fences.", "prompt": "", "tools": [], "image": [], "audio": [], "history": [], "thread_id": "", "max_tokens": 4096, "max_turns": 1},
+        "data": {"model": {"type": "language_model", "provider": "", "id": "", "name": "", "path": null, "supported_tasks": []}, "system": "You are a campaign creative director. Follow the requested JSON schema exactly. Return no prose or code fences.", "prompt": "", "tools": [], "image": [], "audio": [], "history": [], "thread_id": "", "max_tokens": 4096, "max_turns": 1},
         "ui_properties": {"position": {"x": 820, "y": 360}, "width": 320, "title": "Propose A, B, and C"},
         "dynamic_properties": {}, "dynamic_outputs": {}, "sync_mode": "on_all"
       },

@@ -5,7 +5,7 @@
   "updated_at": "2026-06-22T12:00:00.000Z",
   "name": "Brand Asset Generator",
   "tool_name": null,
-  "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once \u2014 a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Uses fal-ai flux/schnell for images (paid) and gpt-5-mini for text.",
+  "description": "Turn a brand name and vibe into a whole social kit in one run: the graph fans out to two branches at once \u2014 a streamed gallery of four on-brand, text-overlaid social images (Instagram, LinkedIn, X, product launch) and a one-page brand brief (voice, palette, tagline options). Differentiator: structured multi-asset outputs from a single fan-out graph. Uses fal-ai flux/schnell for images (paid) and your default language model for text.",
   "tags": [
     "brand-asset",
     "branding",
@@ -272,9 +272,9 @@
         "data": {
           "model": {
             "type": "language_model",
-            "provider": "openai",
-            "id": "gpt-5-mini",
-            "name": "GPT-5 mini",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -458,9 +458,9 @@
         "data": {
           "model": {
             "type": "language_model",
-            "provider": "openai",
-            "id": "gpt-5-mini",
-            "name": "GPT-5 mini",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

@@ -16,7 +16,9 @@
 import { Project, Workflow, WorkflowCollaborator } from "@nodetool-ai/models";
 import type { Workflow as WorkflowModel } from "@nodetool-ai/models";
 import { createLogger } from "@nodetool-ai/config";
+import { loadConfiguredProviders } from "../configured-providers.js";
 import { ApiErrorCode } from "../error-codes.js";
+import { localizeLanguageModels } from "./example-apps.js";
 import { syncRegistrations } from "../triggers/registration-sync.js";
 import {
   loadExampleGraph,
@@ -172,7 +174,13 @@ export async function createWorkflow(
       seed.packageName ?? defaultExamplePackageName(seed.apiOptions) ?? "nodetool-base";
     const example = loadExampleGraph(packageName, seed.exampleName, seed.apiOptions);
     if (example?.graph) {
-      graph = example.graph as WorkflowGraphInput;
+      const configured = new Set(
+        Object.keys(await loadConfiguredProviders(userId))
+      );
+      graph = localizeLanguageModels(
+        example.graph as WorkflowGraphInput,
+        configured
+      );
     }
     if (appDoc == null && example?.app_doc) {
       appDoc = example.app_doc as Record<string, unknown>;

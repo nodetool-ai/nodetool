@@ -5,7 +5,7 @@
   "updated_at": "2026-07-17T12:00:00.000Z",
   "name": "Chat With Your Documents",
   "tool_name": null,
-  "description": "Retrieval-augmented Q&A over your own documents. Index a small knowledge base into a vector collection, pull the passages matching a search keyword, and get a Markdown answer that cites its sources and refuses to guess when the answer isn't in the docs. NodeTool's first RAG example. The answer step uses gpt-5-mini (OpenAI key); the collection is configured for Ollama nomic-embed-text embeddings.",
+  "description": "Retrieval-augmented Q&A over your own documents. Index a small knowledge base into a vector collection, pull the passages matching a search keyword, and get a Markdown answer that cites its sources and refuses to guess when the answer isn't in the docs. NodeTool's first RAG example. The answer step uses your default language model; the collection is configured for Ollama nomic-embed-text embeddings.",
   "tags": [
     "rag",
     "vectorstore",
@@ -347,9 +347,9 @@
         "data": {
           "model": {
             "type": "language_model",
-            "provider": "openai",
-            "id": "gpt-5-mini",
-            "name": "GPT-5 mini",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

@@ -560,7 +560,7 @@
     {
       "key": "concepts",
       "name": "Concept Art Iteration Board",
-      "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Text runs on gpt-5-mini; images on fal-ai/flux/schnell.",
+      "description": "Fan one creative brief into a gallery of concept-art variations. An art-director agent turns your brief, style, and mood into a detailed direction, then a list generator writes N distinct image prompts that all render into an append-style variant gallery. Differentiator: one run, many on-brief variations you can compare side by side and regenerate. Text runs on your default language model; images on fal-ai/flux/schnell.",
       "sourceId": "nodetool-base/Concept Art Iteration Board",
       "graph": {
         "edges": [
@@ -731,9 +731,9 @@
             "data": {
               "model": {
                 "type": "language_model",
-                "provider": "openai",
-                "id": "gpt-5-mini",
-                "name": "GPT-5 mini",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -761,9 +761,9 @@
             "data": {
               "model": {
                 "type": "language_model",
-                "provider": "openai",
-                "id": "gpt-5-mini",
-                "name": "GPT-5 mini",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -1139,9 +1139,9 @@
             "data": {
               "model": {
                 "type": "language_model",
-                "provider": "openai",
-                "id": "gpt-5-mini",
-                "name": "GPT-5 mini",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },

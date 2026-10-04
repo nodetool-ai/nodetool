@@ -427,9 +427,9 @@
         "data": {
           "model": {
             "type": "language_model",
-            "provider": "openai",
-            "id": "gpt-5-mini",
-            "name": "GPT-5 mini",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },
@@ -544,9 +544,9 @@
           "system_prompt": "You are a film key-art director turning a creative brief into structured fields.\n\nGoal\n- Read <INSTRUCTIONS> (the art-direction brief) and any <CONTEXT>, then produce a single JSON object matching <JSON_SCHEMA> exactly.\n\nOutput format (MANDATORY)\n- Output exactly ONE fenced code block labeled json containing ONLY the JSON object:\n\n  ```json\n  { ...single JSON object matching <JSON_SCHEMA>... }\n  ```\n- No prose before or after the block.\n\nGeneration rules\n- Fill every field with concrete, vivid, production-ready detail \u2014 no placeholders, no hedging.\n- Keep all fields internally consistent with the film's genre and visual style.\n- Honor every constraint in <JSON_SCHEMA> (types, enums, formats).\n\nValidation\n- Ensure the final JSON validates against <JSON_SCHEMA> exactly.",
           "model": {
             "type": "language_model",
-            "provider": "openai",
-            "id": "gpt-5-mini",
-            "name": "GPT-5 mini",
+            "provider": "",
+            "id": "",
+            "name": "",
             "path": null,
             "supported_tasks": []
           },

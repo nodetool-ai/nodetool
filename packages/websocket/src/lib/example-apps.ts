@@ -20,6 +20,9 @@ import {
   type ApplicationResponse,
   type ExampleAppSummary
 } from "@nodetool-ai/protocol/api-schemas/applications.js";
+import { isModelSelected, type ModelSelection } from "@nodetool-ai/protocol";
+import { RECOMMENDED_MODELS } from "@nodetool-ai/runtime";
+import { loadConfiguredProviders } from "../configured-providers.js";
 import { ApiErrorCode } from "../error-codes.js";
 import { deriveExampleAssetsDir } from "../example-workflows.js";
 import { throwApiError } from "../trpc/error-formatter.js";
@@ -164,6 +167,53 @@ export function getExampleAppSummary(
   return bundle ? summarize(bundle, slug, options) : null;
 }
 
+const isRecord = (value: unknown): value is Record<string, unknown> =>
+  typeof value === "object" && value !== null && !Array.isArray(value);
+
+/**
+ * Shipped examples leave language models unselected, and a few name a model
+ * of one provider. Pick the model a user can actually run: every language
+ * model that is unselected, or whose provider is not configured, becomes the
+ * first recommended model whose provider is. Models of configured providers,
+ * and every model when nothing recommended is configured, stay as shipped.
+ * Works on any JSON value that carries model references: a graph or a bundle.
+ */
+export function localizeLanguageModels<T>(
+  value: T,
+  configuredProviderIds: ReadonlySet<string>
+): T {
+  const fallback = RECOMMENDED_MODELS.find(
+    (model) =>
+      model.type === "language_model" &&
+      model.provider !== undefined &&
+      configuredProviderIds.has(model.provider)
+  );
+  if (!fallback) return value;
+  const replacement = {
+    type: "language_model",
+    provider: fallback.provider,
+    id: fallback.id,
+    name: fallback.name,
+    path: null,
+    supported_tasks: []
+  };
+  const swap = (node: unknown): unknown => {
+    if (Array.isArray(node)) return node.map(swap);
+    if (!isRecord(node)) return node;
+    if (
+      node.type === "language_model" &&
+      (!isModelSelected(node as ModelSelection) ||
+        !configuredProviderIds.has(String(node.provider)))
+    ) {
+      return { ...replacement };
+    }
+    return Object.fromEntries(
+      Object.entries(node).map(([key, inner]) => [key, swap(inner)])
+    );
+  };
+  return swap(value) as T;
+}
+
 /**
  * Install an example app: create the app and the workflows it binds, through
  * the same import path a user's own bundle file takes. Workflows carrying a
@@ -177,10 +227,12 @@ export async function installExampleApp(
   slug: string,
   projectId?: string
 ): Promise<ApplicationResponse> {
-  const bundle = getExampleAppBundle(options, slug);
-  if (!bundle) {
+  const shipped = getExampleAppBundle(options, slug);
+  if (!shipped) {
     throwApiError(ApiErrorCode.NOT_FOUND, `No example app named "${slug}"`);
   }
+  const configured = new Set(Object.keys(await loadConfiguredProviders(userId)));
+  const bundle = localizeLanguageModels(shipped, configured);
   type ImportInputFields = { bundle: typeof bundle; projectId?: string };
   const importInput: ImportInputFields = { bundle };
   if (projectId) {

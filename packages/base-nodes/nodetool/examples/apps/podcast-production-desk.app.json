@@ -1179,9 +1179,9 @@
             "data": {
               "model": {
                 "type": "language_model",
-                "provider": "openai",
-                "id": "gpt-5-mini",
-                "name": "GPT-5 mini",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -1262,9 +1262,9 @@
             "data": {
               "model": {
                 "type": "language_model",
-                "provider": "openai",
-                "id": "gpt-5-mini",
-                "name": "GPT-5 mini",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -1345,9 +1345,9 @@
             "data": {
               "model": {
                 "type": "language_model",
-                "provider": "openai",
-                "id": "gpt-5-mini",
-                "name": "GPT-5 mini",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
@@ -1420,9 +1420,9 @@
             "data": {
               "model": {
                 "type": "language_model",
-                "provider": "openai",
-                "id": "gpt-5-mini",
-                "name": "GPT-5 mini",
+                "provider": "",
+                "id": "",
+                "name": "",
                 "path": null,
                 "supported_tasks": []
               },
