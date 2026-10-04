@@ -137,9 +137,19 @@ export const WIDGET_CATALOG: Readonly<Record<string, WidgetDescriptor>> = {
       placeholder: "text"
     }
   },
-  // Shows a bound storyboard (an id or a storyboard ref): its scenes and shots.
+  // Shows a bound storyboard (an id or a storyboard ref) as shot cards.
   Storyboard: {
     label: "Storyboard",
+    mode: "read",
+    fields: {
+      binding: "custom",
+      height: "number",
+      placeholder: "text"
+    }
+  },
+  // Plays a bound storyboard as one cut: clips in shot order, stills between.
+  StoryboardPreview: {
+    label: "Storyboard Preview",
     mode: "read",
     fields: {
       binding: "custom",

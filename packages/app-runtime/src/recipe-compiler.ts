@@ -208,7 +208,9 @@ export const compileRecipeApplication = (
     const outputType = readable.startsWith("var:") ? variables.get(readable.slice(4))?.type?.type : port ? selected.find(({binding}) => binding.id === port[1])?.contract.outputs[port[2]]?.type : undefined;
     const mediaWidget = outputType === "image" ? "Image" : outputType === "video" ? "Video" : outputType === "audio" ? "Audio" : "Download";
     const type = output.kind === "timeline" ? "Timeline" : output.kind === "storyboard" ? "Storyboard" : output.kind === "asset" ? mediaWidget : "Json";
-    content.push(widget(type, `output-${output.id}`, {binding: output.binding ?? `var:${output.id}`, label: output.label ?? output.id}));
+    content.push(widget(type, `output-${output.id}`, {binding: readable, label: output.label ?? output.id}));
+    // A storyboard shows as shot cards, then plays as one cut once shots render.
+    if (output.kind === "storyboard") {content.push(widget("StoryboardPreview", `output-${output.id}-preview`, {binding: readable}));}
     displayedOutputs.add(output.id);
   };
   for (const {binding, contract} of selected) {

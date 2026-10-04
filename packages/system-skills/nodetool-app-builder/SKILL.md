@@ -204,12 +204,15 @@ silently hides a widget.
 ### Widgets
 
 **Show something:** Heading, Text, Markdown (the right choice for streamed
-prose), Image, Audio, Video, Sketch, Timeline, JSON, Table, Output, Progress,
-Agent Activity (an agent's text and tool calls, live), Gallery, Image Compare.
+prose), Image, Audio, Video, Sketch, Timeline, Storyboard, Storyboard Preview,
+JSON, Table, Output, Progress, Agent Activity (an agent's text and tool calls,
+live), Gallery, Image Compare.
 
-Sketch and Timeline take a document reference, `{type: "sketch", id}` or
-`{type: "timeline", id}`, which is what the nodes producing them emit. Binding
-one to Image or Video shows nothing: a reference is not a media URL.
+Sketch, Timeline, and the two storyboard widgets take a document reference,
+such as `{type: "sketch", id}`, which is what the nodes producing them emit.
+Storyboard shows the shot cards. Storyboard Preview plays the board as one cut,
+with clips in shot order and stills for shots without a clip. Binding a
+reference to Image or Video shows nothing: a reference is not a media URL.
 
 **Take input:** Workflow Form, Workflow Input, Text Input, Number Input, Slider,
 Switch, Select, Image Input, Sketch Pad, Audio Input, Audio Recorder, Video

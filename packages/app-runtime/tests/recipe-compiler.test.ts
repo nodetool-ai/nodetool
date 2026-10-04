@@ -33,6 +33,16 @@ describe("Recipe compiler", () => {
     expect(result.document.recipe?.operations[0].version).toBe(1);
     expect({recipe, bound}).toEqual(original);
   });
+  it("shows a storyboard output as shot cards followed by a playable preview", () => {
+    const result = compileRecipeApplication(manifest(), {operations: [operation()]});
+    expect(result.status).toBe("ok");
+    if (result.status !== "ok") return;
+    const shown = result.document.ui.content.filter((entry) => (entry as {props: {binding?: string}}).props.binding === "var:storyboard");
+    expect(shown).toEqual([
+      {type: "Storyboard", props: {id: "output-storyboard", binding: "var:storyboard", label: "storyboard"}},
+      {type: "StoryboardPreview", props: {id: "output-storyboard-preview", binding: "var:storyboard"}}
+    ]);
+  });
   it.each(["image", "video", "audio"])("renders typed %s assets with a visual player", type => {
     const value = manifest(); value.outputs = [{id: "storyboard", kind: "asset"}];
     const base = operation();
