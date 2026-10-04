@@ -31,11 +31,19 @@ import * as sqliteSchema from "../src/schema/index.js";
 const SQLITE_ONLY_TABLES = new Set(["worker_profiles", "worker_instances"]);
 
 type ColumnFacts = {
+  columnType: string;
+  dataType: string;
   notNull: boolean;
   primary: boolean;
   hasDefault: boolean;
   defaultValue: string | null;
 };
+
+// Drizzle reports PostgreSQL custom types as `custom`, including integer booleans.
+const COLUMN_TYPE_EQUIVALENCES = new Map([
+  ["SQLiteBoolean:boolean:integer", { columnType: "Boolean", dataType: "boolean" }],
+  ["PgCustomColumn:custom:integer", { columnType: "Boolean", dataType: "boolean" }]
+]);
 
 /** SQLite spells a boolean default `false`, PostgreSQL `0`. */
 function normalizeDefault(value: unknown): string | null {
@@ -45,12 +53,22 @@ function normalizeDefault(value: unknown): string | null {
 }
 
 function facts(column: {
+  columnType: string;
+  dataType: string;
+  getSQLType(): string;
   notNull: boolean;
   primary: boolean;
   hasDefault: boolean;
   default: unknown;
 }): ColumnFacts {
+  const type = COLUMN_TYPE_EQUIVALENCES.get(
+    `${column.columnType}:${column.dataType}:${column.getSQLType()}`
+  ) ?? {
+    columnType: column.columnType.replace(/^(SQLite|Pg)/, ""),
+    dataType: column.dataType
+  };
   return {
+    ...type,
     notNull: column.notNull,
     primary: column.primary,
     hasDefault: column.hasDefault,
@@ -123,7 +141,7 @@ describe("SQLite and PostgreSQL schema parity", () => {
     expect(disagreements).toEqual([]);
   });
 
-  it("gives every shared column the same constraints and default", () => {
+  it("gives every shared column the same types, constraints, and default", () => {
     const disagreements: string[] = [];
     for (const [name, sqlite] of sqliteTables) {
       const pg = pgTables.get(name);
@@ -131,17 +149,21 @@ describe("SQLite and PostgreSQL schema parity", () => {
       for (const [column, want] of sqlite.columns) {
         const got = pg.columns.get(column);
         if (!got) continue;
+        const differences: string[] = [];
         for (const key of [
+          "columnType",
+          "dataType",
           "notNull",
           "primary",
           "hasDefault",
           "defaultValue"
         ] as const) {
           if (got[key] !== want[key]) {
-            disagreements.push(
-              `${name}.${column}: ${key} sqlite=${want[key]} pg=${got[key]}`
-            );
+            differences.push(`${key} sqlite=${want[key]} pg=${got[key]}`);
           }
+        }
+        if (differences.length > 0) {
+          disagreements.push(`${name}.${column}: ${differences.join(", ")}`);
         }
       }
     }
