@@ -34,6 +34,8 @@ module.exports = {
       '<rootDir>/../packages/protocol/src/triggers.ts',
     '^@nodetool-ai/protocol/blend-modes$':
       '<rootDir>/../packages/protocol/src/blend-modes.ts',
+    '^@nodetool-ai/protocol/resource-uri$':
+      '<rootDir>/../packages/protocol/src/resource-uri.ts',
     // Those packages' sources use ESM `.js` specifiers for their own modules.
     '^(\\.{1,2}/.+)\\.js$': '$1',
   },
