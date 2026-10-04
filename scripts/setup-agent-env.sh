@@ -5,9 +5,12 @@
 #
 # Installs npm dependencies with the flags that survive sandboxed/proxied
 # environments (see AGENTS.md § Prerequisites) and creates .env with a
-# SECRETS_MASTER_KEY. Idempotent: exits fast when the dependency tree is
-# already there. Skips Electron's binary download, so a desktop developer who
-# needs `npm run electron:dev` should run plain `npm install` instead.
+# SECRETS_MASTER_KEY. In a new linked worktree it clones node_modules/ and
+# dist/ from the main checkout with copy-on-write instead (docs/dev-environment.md
+# § Worktrees with cloned dependencies). Idempotent: exits fast when the
+# dependency tree is already there. A fresh install skips Electron's binary
+# download, so a desktop developer who needs `npm run electron:dev` should run
+# plain `npm install` instead.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -26,6 +29,62 @@ missing_workspace_links() {
       try { name = JSON.parse(fs.readFileSync(w + "/package.json", "utf8")).name; } catch { continue; }
       if (!fs.existsSync("node_modules/" + name)) { console.log(w); }
     }'
+}
+
+# Prints the main checkout's path when this tree is a linked git worktree.
+main_checkout() {
+  local git_dir common
+  git_dir="$(git rev-parse --path-format=absolute --git-dir 2>/dev/null)" || return 1
+  common="$(git rev-parse --path-format=absolute --git-common-dir)"
+  [ "$git_dir" != "$common" ] || return 1
+  dirname "$common"
+}
+
+# Prints the copy-on-write copy command for this OS, or fails when the two
+# trees cannot share blocks: APFS on macOS, btrfs or XFS on Linux, and only
+# within one file system.
+clone_command() {
+  local main="$1" flag probe="$ROOT/.setup-clone-probe" ok=0
+  case "$(uname -s)" in
+    Darwin) flag="-c" ;;
+    Linux) flag="--reflink=always" ;;
+    *) return 1 ;;
+  esac
+  cp "$flag" "$main/package.json" "$probe" 2>/dev/null || ok=1
+  rm -f "$probe"
+  [ "$ok" = 0 ] && echo "cp -R $flag"
+}
+
+# Lists every node_modules/ and dist/ directory in the main checkout, relative
+# to it, skipping other worktrees nested inside it.
+dependency_dirs() {
+  local main="$1" wt
+  local prune=(-path ./.git -prune -o)
+  while IFS= read -r wt; do
+    case "$wt" in "$main"/*) prune+=(-path "./${wt#"$main"/}" -prune -o) ;; esac
+  done < <(git worktree list --porcelain | sed -n 's/^worktree //p')
+  (cd "$main" && find . "${prune[@]}" \( -name node_modules -o -name dist \) -type d -prune -print)
+}
+
+clone_from_main_checkout() {
+  local main cp_cmd d
+  [ ! -d node_modules ] || return 0
+  main="$(main_checkout)" || return 0
+  if [ ! -f "$main/node_modules/.package-lock.json" ]; then
+    log "main checkout $main has no installed dependencies — installing instead"
+    return 0
+  fi
+  if ! cp_cmd="$(clone_command "$main")"; then
+    log "no copy-on-write clones on this file system — installing instead"
+    return 0
+  fi
+  log "worktree of $main — cloning node_modules/ and dist/ with '$cp_cmd'"
+  while IFS= read -r d; do
+    [ ! -e "$d" ] || continue
+    mkdir -p "$(dirname "$d")"
+    $cp_cmd "$main/$d" "$d"
+  done < <(dependency_dirs "$main")
+  log "cloned dist/ matches the main checkout's branch — run 'npm run build:packages'"
 }
 
 needs_install() {
@@ -63,6 +122,8 @@ install_dependencies() {
     npm install --prefer-offline --no-audit --fund=false --ignore-scripts
   fi
 }
+
+clone_from_main_checkout
 
 if needs_install; then
   install_dependencies

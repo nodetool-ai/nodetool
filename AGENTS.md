@@ -261,8 +261,10 @@ In a fresh agent container (Claude Code on the web, Codex, or another
 sandboxed or proxied checkout), run [`scripts/setup-agent-env.sh`](scripts/setup-agent-env.sh) instead of
 `npm install`. It installs dependencies with the flags that survive a proxy,
 links workspaces missing from a cached tree, and creates `.env` with a
-`SECRETS_MASTER_KEY`. It is idempotent, so run it at the start of every
-session. Then run `npm run build:packages`.
+`SECRETS_MASTER_KEY`. In a new git worktree it clones `node_modules/` and
+`dist/` from the main checkout with copy-on-write (APFS, btrfs, XFS) and
+installs only when the file system cannot clone. It is idempotent, so run it
+at the start of every session. Then run `npm run build:packages`.
 
 `./start.sh` performs setup and starts the API on port 7777 (`full`, `web`,
 `check`, `doctor` modes). Python 3.11+ with conda is optional for Python nodes.
@@ -296,9 +298,9 @@ Slash commands are in [.claude/README.md](.claude/README.md).
 - Node packages using decorators and loading from `dist/` (`base-nodes`,
   `node-sdk`, `fal-nodes`, `replicate-nodes`, `elevenlabs-nodes`) need
   `npm run build:packages` after edits and before `npm run dev`.
-- On macOS, give a new worktree its dependencies by cloning every
-  `node_modules/` and `dist/` from an installed checkout with `cp -cR`, not
-  with `npm install`. Rebuild with `npm run build:packages`. After a
+- Give a new worktree its dependencies with `scripts/setup-agent-env.sh`,
+  which clones every `node_modules/` and `dist/` from the main checkout
+  instead of running `npm install`. Rebuild with `npm run build:packages`. After a
   dependency change, check the package's placement with `npm explain` and
   run `npm run fix:lockfile-libc`. See
   [worktrees with cloned dependencies](docs/dev-environment.md#worktrees-with-cloned-dependencies-macos).
