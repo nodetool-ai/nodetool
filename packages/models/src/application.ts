@@ -1,3 +1,4 @@
+import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 /**
  * The Application entity: a mini app's own record, independent of any one
  * workflow.
@@ -285,6 +286,7 @@ export class Application extends DBModel {
    * intact rather than half-erased.
    */
   override async delete(): Promise<void> {
+    await eraseRunTraceParentForModelDeletion({ kind: "app", id: this.id });
     const db = getDb();
     const id = this.id;
 
@@ -320,6 +322,7 @@ export class Application extends DBModel {
     }
 
     ModelObserver.notify(this, ModelChangeEvent.DELETED);
+    await eraseRunTraceParentForModelDeletion({ kind: "app", id: this.id });
   }
 
   static async listByUser(userId: string, limit = 50): Promise<Application[]> {

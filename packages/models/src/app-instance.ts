@@ -1,3 +1,4 @@
+import { deleteRunTrace, eraseRunTraceParentContent, settleRunTrace } from "./run-trace.js";
 import {
   and,
   desc,
@@ -826,7 +827,7 @@ export async function setAppRunInputs(
   const t = c.schema.applicationInvocations;
   const patch = {
     inputs:
-      run.origin === "public"
+      run.origin === "public" || run.content_expired !== 0
         ? null
         : sanitizeAppRunVariables(inputs, secretValues)
   };
@@ -839,12 +840,12 @@ export async function setAppRunInputs(
   if (c.dialect === "sqlite") {
     await c.db
       .update(c.schema.applicationInvocations)
-      .set(patch)
+      .set({ inputs: sql`case when ${t.content_expired} = 1 then null else ${patch.inputs === null ? null : JSON.stringify(patch.inputs)} end` })
       .where(condition);
   } else {
     await c.db
       .update(c.schema.applicationInvocations)
-      .set(patch)
+      .set({ inputs: sql`case when ${t.content_expired} = 1 then null else ${patch.inputs === null ? null : JSON.stringify(patch.inputs)} end` })
       .where(condition);
   }
   const updated = await getAppRun(userId, run.id);
@@ -879,6 +880,7 @@ export interface SettleAppRunInput {
   expectedRevision?: number;
   secretValues?: readonly string[];
   updateInstance?: boolean;
+  contentSuppressed?: boolean;
 }
 export async function settleAppRun(
   userId: string,
@@ -906,8 +908,9 @@ export async function settleAppRun(
     throw new AppRunError("invalid_input", "Invalid measured LLM cost");
   }
   const options: RedactionOptions = { secretValues: input.secretValues };
+  const historySuppressed = run.origin === "public" || run.content_expired !== 0 || input.contentSuppressed === true;
   const outputs =
-    run.origin === "public"
+    historySuppressed
       ? null
       : sanitizeAppRunVariables(input.outputs ?? {}, input.secretValues);
   const instanceOutputs =
@@ -915,7 +918,7 @@ export async function settleAppRun(
       ? sanitizeAppInstanceVariables(input.outputs ?? {}, input.secretValues)
       : null;
   const documents =
-    run.origin === "public"
+    historySuppressed
       ? null
       : appRunResponse.shape.documents.parse(
           sanitizeAppRunContent(input.documents ?? [], input.secretValues)
@@ -925,13 +928,13 @@ export async function settleAppRun(
     outputs,
     documents,
     inputs:
-      run.origin === "public"
+      historySuppressed
         ? null
         : run.inputs === null
           ? null
           : sanitizeAppRunVariables(run.inputs, input.secretValues),
     snapshot:
-      run.origin === "public"
+      historySuppressed
         ? null
         : run.snapshot === null
           ? null
@@ -956,12 +959,21 @@ export async function settleAppRun(
     patch.actual_usd = input.actualUsd;
   }
   const c = getDatabase();
+  if (historySuppressed) {
+    patch.content_expired = 1;
+    patch.error = input.contentSuppressed && input.error ? "Error" : patch.error;
+  }
   if (c.dialect === "sqlite") {
     c.db.transaction((tx) => {
       const t = c.schema.applicationInvocations;
       const matched = tx
         .update(t)
-        .set(patch)
+        .set({ ...patch,
+          snapshot: sql`case when ${t.content_expired} = 1 then null else ${patch.snapshot === null || patch.snapshot === undefined ? null : JSON.stringify(patch.snapshot)} end`,
+          inputs: sql`case when ${t.content_expired} = 1 then null else ${patch.inputs === null || patch.inputs === undefined ? null : JSON.stringify(patch.inputs)} end`,
+          outputs: sql`case when ${t.content_expired} = 1 then null else ${patch.outputs === null || patch.outputs === undefined ? null : JSON.stringify(patch.outputs)} end`,
+          documents: sql`case when ${t.content_expired} = 1 then null else ${patch.documents === null || patch.documents === undefined ? null : JSON.stringify(patch.documents)} end`
+        })
         .where(
           and(
             eq(t.id, run.id),
@@ -1023,7 +1035,12 @@ export async function settleAppRun(
         .limit(1);
       const matched = await tx
         .update(t)
-        .set(patch)
+        .set({ ...patch,
+          snapshot: sql`case when ${t.content_expired} = 1 then null else ${patch.snapshot === null || patch.snapshot === undefined ? null : JSON.stringify(patch.snapshot)} end`,
+          inputs: sql`case when ${t.content_expired} = 1 then null else ${patch.inputs === null || patch.inputs === undefined ? null : JSON.stringify(patch.inputs)} end`,
+          outputs: sql`case when ${t.content_expired} = 1 then null else ${patch.outputs === null || patch.outputs === undefined ? null : JSON.stringify(patch.outputs)} end`,
+          documents: sql`case when ${t.content_expired} = 1 then null else ${patch.documents === null || patch.documents === undefined ? null : JSON.stringify(patch.documents)} end`
+        })
         .where(
           and(
             eq(t.id, run.id),
@@ -1072,6 +1089,10 @@ export async function settleAppRun(
     await settleDeletedAppRunBilling(userId, run.id, input);
     throw new AppRunError("not_found", "App run deleted");
   }
+  if (input.contentSuppressed) { await eraseRunTraceParentContent(userId, { kind: "app_run", id: updated.id }); }
+  await settleRunTrace(userId, updated.id, {
+    status: input.status, error: updated.error ?? undefined, costUsd: updated.actual_usd, contentSuppressed: input.contentSuppressed, secretValues: input.secretValues
+  });
   return updated;
 }
 export async function deleteAppRun(
@@ -1109,6 +1130,24 @@ async function removeAppRuns(
   recordCutoff?: string,
   deleteInstanceId?: string
 ): Promise<void> {
+  if (instanceId || deleteInstanceId) {
+    await eraseRunTraceParentContent(userId, { kind: "instance", id: instanceId ?? deleteInstanceId ?? "" });
+  }
+  if (runId) { await deleteRunTrace(userId, runId); }
+  const traceConnection = getDatabase();
+  const traceTable = traceConnection.schema.runTraces;
+  const traceWhere = eq(traceTable.user_id, userId);
+  const traceRows = traceConnection.dialect === "sqlite"
+    ? await traceConnection.db.select().from(traceConnection.schema.runTraces).where(traceWhere)
+    : await traceConnection.db.select().from(traceConnection.schema.runTraces).where(traceWhere);
+  for (const trace of traceRows) {
+    if (trace.kind !== "app") { continue; }
+    if ((instanceId && trace.parents.some((parent) => parent.kind === "instance" && parent.id === instanceId)) ||
+        (deleteInstanceId && trace.parents.some((parent) => parent.kind === "instance" && parent.id === deleteInstanceId)) ||
+        (recordCutoff && trace.ended_at && trace.ended_at < recordCutoff)) {
+      await deleteRunTrace(userId, trace.id);
+    }
+  }
   const c = getDatabase();
   const t = c.schema.applicationInvocations;
   const condition = and(
@@ -1352,8 +1391,7 @@ export async function appRunRetentionCandidates(
     eq(t.user_id, userId),
     isNotNull(t.instance_id),
     eq(t.content_expired, 0),
-    lt(t.created_at, contentCutoff),
-    inArray(t.status, ["completed", "failed", "cancelled"])
+    lt(t.created_at, contentCutoff)
   );
   const recordCondition = and(
     eq(t.user_id, userId),
@@ -1397,8 +1435,7 @@ export async function pruneAppRuns(
     eq(t.user_id, userId),
     isNotNull(t.instance_id),
     eq(t.content_expired, 0),
-    lt(t.created_at, contentCutoff),
-    inArray(t.status, ["completed", "failed", "cancelled"])
+    lt(t.created_at, contentCutoff)
   );
   const patch = {
     snapshot: null,
@@ -1615,6 +1652,7 @@ export async function reconcileAppRunCost(
       .set({ actual_usd: actual, known_llm_usd: knownCost })
       .where(scope);
   }
+  if (run && run.status !== "running") { await settleRunTrace(userId, resolvedId, { status: run.status, costUsd: actual }); }
   return getAppRun(userId, resolvedId);
 }
 

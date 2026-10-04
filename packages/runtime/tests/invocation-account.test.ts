@@ -104,10 +104,10 @@ describe("resolved-secret registry", () => {
     expect(context.getResolvedSecretValues().size).toBe(1);
   });
 
-  it("ignores values too short to mask without collateral damage", async () => {
+  it("retains short explicit secrets for run redaction", async () => {
     const context = new ProcessingContext({ jobId: "j1" });
     context.setSecretResolver(() => "on");
     await context.getSecret("FLAG");
-    expect(context.getResolvedSecretValues().size).toBe(0);
+    expect([...context.getResolvedSecretValues()]).toEqual(["on"]);
   });
 });

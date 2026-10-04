@@ -13,6 +13,7 @@ import {
   type WebSocketReceiveFrame
 } from "../src/websocket-client-session.js";
 import { resetEnvironment } from "@nodetool-ai/config";
+import { initTestDb } from "@nodetool-ai/models";
 
 class MockWebSocket implements WebSocketConnection {
   clientState: "connected" | "disconnected" = "connected";
@@ -67,6 +68,7 @@ describe("WebSocketClientSession malformed-protocol corpus", () => {
   let runner: WebSocketClientSession;
 
   beforeEach(async () => {
+    initTestDb();
     resetEnvironment();
     delete process.env[KEY];
     ws = new MockWebSocket();

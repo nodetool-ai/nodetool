@@ -7,7 +7,7 @@
  * formatPretty structure (non-TTY) plus its ANSI coloring (TTY). See
  * MUTATION_TESTING.md.
  */
-import { describe, it, expect, afterEach } from "vitest";
+import { beforeEach, vi, describe, it, expect, afterEach } from "vitest";
 import { EventEmitter } from "node:events";
 import { mkdtemp, readFile, writeFile, rm } from "node:fs/promises";
 import { join } from "node:path";
@@ -266,14 +266,15 @@ describe("StdoutSpanExporter", () => {
     expect(chunks[0]).toBe("n 5ms\n"); // pretty single-line, not JSON
   });
 
-  it("reports FAILED when a record cannot be serialized (json)", async () => {
+  it("bounds circular content before serializing the diagnostic copy", async () => {
     capture(false);
     const circular: Record<string, unknown> = {};
     circular.self = circular;
     const res = await exportOnce(new StdoutSpanExporter("json"), [
       makeSpan({ attributes: circular })
     ]);
-    expect(res.code).toBe(1);
+    expect(res.code).toBe(0);
+    expect(chunks[0]).toContain("[truncated]");
   });
 
   describe("pretty format — structure (non-TTY)", () => {
@@ -419,3 +420,7 @@ describe("StdoutSpanExporter", () => {
     });
   });
 });
+
+// Existing formatting fixtures exercise the explicitly enabled local diagnostic copy.
+beforeEach(() => { vi.stubEnv("NODETOOL_TRACE_INCLUDE_CONTENT", "1"); });
+afterEach(() => { vi.unstubAllEnvs(); });

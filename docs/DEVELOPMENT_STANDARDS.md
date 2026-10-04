@@ -490,7 +490,7 @@ We use **OpenTelemetry** for tracing across agents and workflows (`workflow.run`
 
 - **Span the right things**: every external call (LLM, HTTP, DB, subprocess) gets a span. Every workflow step gets a span. Every IPC call gets a span.
 - **Semantic conventions**: use `gen_ai.*`, `http.*`, `db.*`, `rpc.*` attributes per OpenTelemetry conventions. Don't invent attribute names.
-- **No PII in spans.** Names, prompts containing user data, and tool inputs are hashed or redacted before being attached.
+- **Run content stays owner-scoped.** Registered run traces may store capped prompts, responses and tool content in the separate content column. Apply the shared content classification, credential redaction and retention rules in [App run observability](app-runs-design.md#410-content-and-retention-policy). External sinks exclude content by default. Public runs and error traces store no content.
 - **Errors recorded on spans**: `span.recordException(e)` + `span.setStatus({ code: ERROR })`.
 - **Structured logs** only. JSON, single-line, with `level`, `timestamp`, `traceId`, `spanId`, `message`, and contextual fields.
 - **Log levels**: `error` (alertable), `warn` (recoverable), `info` (lifecycle), `debug` (developer-only, gated by env). No `console.log` in `packages/*/src/` in committed code.

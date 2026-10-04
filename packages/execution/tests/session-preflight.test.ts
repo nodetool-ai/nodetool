@@ -33,16 +33,31 @@ import {
  */
 const store = vi.hoisted(() => ({ secrets: {} as Record<string, string> }));
 
-vi.mock("@nodetool-ai/models", () => ({
-  Workflow: { find: vi.fn(async () => null) },
-  Workspace: {
-    find: vi.fn(async () => null),
-    ensureDefault: vi.fn(async () => ({ isAccessible: () => false }))
-  },
-  Job: { create: vi.fn() },
-  Prediction: { create: vi.fn() },
-  getSecret: vi.fn(async (key: string) => store.secrets[key] ?? null)
-}));
+vi.mock("@nodetool-ai/models", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@nodetool-ai/models")>();
+  return {
+    ...actual,
+    Workflow: { find: vi.fn(async () => null) },
+    Workspace: {
+      find: vi.fn(async () => null),
+      ensureDefault: vi.fn(async () => ({ isAccessible: () => false }))
+    },
+    Job: { create: vi.fn() },
+    Prediction: { create: vi.fn() },
+    getSecret: vi.fn(async (key: string) => store.secrets[key] ?? null)
+  };
+});
+
+// Synthetic jobs exercise execution behavior without a persisted trace source.
+vi.mock("../src/service/run-trace-lifecycle.js", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../src/service/run-trace-lifecycle.js")>();
+  return {
+    ...actual,
+    registerWorkflowRunTrace: vi.fn(async () => undefined),
+    settleRegisteredRunTrace: vi.fn(async () => undefined),
+    withRegisteredRunTrace: vi.fn(async <T>(_context: ProcessingContext, _kind: string, execute: () => Promise<T>): Promise<T> => execute())
+  };
+});
 
 /** A node carrying a model selection — the only shape the preflight reads. */
 class Generate extends BaseNode {

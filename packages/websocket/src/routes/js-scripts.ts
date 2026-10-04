@@ -18,6 +18,8 @@
  * while it runs instead of after.
  */
 
+import type { SpanContext } from "@opentelemetry/api";
+import { acceptedRunTraceParent } from "../lib/http-tracing.js";
 import { PassThrough } from "node:stream";
 import type { FastifyPluginAsync } from "fastify";
 import {
@@ -34,7 +36,10 @@ import {
 import { runCodeBody } from "@nodetool-ai/agents";
 import {
   createFalGenerationLifecycleHooks,
-  attachRunCostLedger
+  attachRunCostLedger,
+  registerAppRunTrace,
+  withRegisteredRunTrace,
+  settleRegisteredRunTrace
 } from "@nodetool-ai/execution";
 import { scriptOperationInvocation } from "@nodetool-ai/execution/app-debug";
 import type { AppRunRecord } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
@@ -130,7 +135,8 @@ async function readJsonBody(request: Request): Promise<JsonValue> {
 export async function handleJsScriptRun(
   request: Request,
   id: string,
-  opts: RouteOptions
+  opts: RouteOptions,
+  parentSpanContext?: SpanContext
 ): Promise<Response> {
   const { apiOptions } = opts;
   const userId = getUserId(request, apiOptions.userIdHeader ?? "x-user-id");
@@ -162,7 +168,8 @@ export async function handleJsScriptRun(
       opts,
       wantsStream(request),
       projectId,
-      appRun
+      appRun,
+      parentSpanContext
     );
   }
   const script = await JsScript.findById(id);
@@ -235,7 +242,8 @@ async function executeScriptDocumentInner(
   opts: RouteOptions,
   stream = false,
   projectId?: string | null,
-  appRun?: AppScriptRun
+  appRun?: AppScriptRun,
+  parentSpanContext?: SpanContext
 ): Promise<Response> {
   if (appRun && appRun.run.status !== "running") {
     return jsonResponse(replayedAppScriptResult(appRun));
@@ -378,7 +386,8 @@ async function executeScriptDocumentInner(
         resolveSecret: (key) => context.getSecret(key)
       })
     : null;
-  const execute = async (): Promise<RunJsScriptResponse> => {
+  if (appRun) { await registerAppRunTrace(context, appRun.run, parentSpanContext); }
+  const execute = async (): Promise<RunJsScriptResponse> => withRegisteredRunTrace(context, "app.run", async () => {
     let body: RunJsScriptResponse;
     const unregisterCancellation = appRun
       ? registerAppRunCancellation(userId, appRun.run.id, () => {
@@ -423,8 +432,9 @@ async function executeScriptDocumentInner(
             : "failed",
         outputs,
         documents: context.getAppRunDocuments(),
-        error: body.error,
-        secretValues: [...context.getResolvedSecretValues()]
+        error: context.runTraceContext?.policy.contentSuppressed && body.error ? "Execution failed" : body.error,
+        contentSuppressed: context.runTraceContext?.policy.contentSuppressed,
+      secretValues: [...context.getResolvedSecretValues()]
       };
       const knownLlmUsd = context.getAppRunLlmCost();
       if (knownLlmUsd !== null) {
@@ -433,8 +443,10 @@ async function executeScriptDocumentInner(
       await settleAppRunIfPresent(userId, appRun.run.id, settlement);
       await reconcileAppRunCost(userId, appRun.run.id);
     }
+    const finishedRun = appRun ? await getAppRun(userId, appRun.run.id) : null;
+    await settleRegisteredRunTrace(context, body.ok ? "completed" : context.signal.aborted ? "cancelled" : "failed", body.error, finishedRun?.actual_usd);
     return body;
-  };
+  });
   if (lines) {
     void execute().then(
       (result) => {
@@ -499,7 +511,8 @@ export async function handleExampleAppScriptRun(
   request: Request,
   slug: string,
   key: string,
-  opts: RouteOptions
+  opts: RouteOptions,
+  parentSpanContext?: SpanContext
 ): Promise<Response> {
   const userId = getUserId(
     request,
@@ -528,7 +541,8 @@ export async function handleExampleAppScriptRun(
       opts,
       wantsStream(request),
       `personal:${userId}`,
-      appRun
+      appRun,
+      parentSpanContext
     );
   }
   const script = getExampleAppBundle(opts.apiOptions, slug)?.scripts.find(
@@ -672,7 +686,7 @@ const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
     async (req, reply) => {
       const { slug, key } = req.params as { slug: string; key: string };
       await bridge(req, reply, (request) =>
-        handleExampleAppScriptRun(request, slug, key, opts)
+        handleExampleAppScriptRun(request, slug, key, opts, acceptedRunTraceParent(req))
       );
       // A streamed run is still being sent when bridge returns.
       return reply;
@@ -680,7 +694,7 @@ const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
   );
   app.post("/api/js-scripts/:id/run", async (req, reply) => {
     const { id } = req.params as { id: string };
-    await bridge(req, reply, (request) => handleJsScriptRun(request, id, opts));
+    await bridge(req, reply, (request) => handleJsScriptRun(request, id, opts, acceptedRunTraceParent(req)));
     return reply;
   });
 };

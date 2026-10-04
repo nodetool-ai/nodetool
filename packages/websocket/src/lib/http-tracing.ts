@@ -1,16 +1,13 @@
-/**
- * One OpenTelemetry server span per HTTP request.
- *
- * The span is made active for the rest of the request lifecycle, so the
- * storage, fetch, subprocess and workflow spans a handler starts nest under
- * it. An incoming W3C `traceparent` header continues the caller's trace.
- * Nothing happens while telemetry is off: `getTracer()` returns null until
- * `initTelemetry` finds a configured sink.
+/** Owner-validated incoming ancestry is reserved for durable run roots.
+ * HTTP request spans remain independent of run traces.
  */
 import {
   context,
   propagation,
   SpanKind,
+  ROOT_CONTEXT,
+  isSpanContextValid,
+  type SpanContext,
   SpanStatusCode,
   trace,
   type Span
@@ -21,7 +18,18 @@ import { getTracer } from "@nodetool-ai/runtime";
 /** Probes a load balancer polls; a trace per poll is noise. */
 const UNTRACED_PATHS = new Set(["/health", "/ready"]);
 
-export function registerHttpTracing(app: FastifyInstance): void {
+const acceptedParents = new WeakMap<FastifyRequest, SpanContext>();
+
+export function acceptedRunTraceParent(request: FastifyRequest): SpanContext | undefined {
+  return acceptedParents.get(request);
+}
+
+export interface HttpTracingOptions {
+  readonly authorizeTraceParent?: (request: FastifyRequest, parent: SpanContext) => Promise<boolean>;
+}
+
+/** Called after authentication. A visitor session cannot join its owner's trace. */
+export function registerHttpTracing(app: FastifyInstance, options: HttpTracingOptions = {}): void {
   const spans = new WeakMap<FastifyRequest, Span>();
 
   app.addHook("onRequest", (request, _reply, done) => {
@@ -37,21 +45,30 @@ export function registerHttpTracing(app: FastifyInstance): void {
       done();
       return;
     }
-    const parent = propagation.extract(context.active(), request.headers);
-    const span = tracer.startSpan(
-      request.method,
-      {
-        kind: SpanKind.SERVER,
-        attributes: {
-          "http.request.method": request.method,
-          "url.path": path,
-          "url.scheme": request.protocol
-        }
-      },
-      parent
-    );
-    spans.set(request, span);
-    context.with(trace.setSpan(parent, span), done);
+    const extracted = propagation.extract(ROOT_CONTEXT, request.headers);
+    const incoming = trace.getSpanContext(extracted);
+    const authorize = incoming && isSpanContextValid(incoming) && options.authorizeTraceParent
+      ? options.authorizeTraceParent(request, incoming)
+      : Promise.resolve(false);
+    void authorize.then((allowed) => {
+      if (allowed && incoming) { acceptedParents.set(request, incoming); }
+      // Run roots consume the validated parent directly. Request spans remain unrelated.
+      const parent = ROOT_CONTEXT;
+      const span = tracer.startSpan(
+        request.method,
+        {
+          kind: SpanKind.SERVER,
+          attributes: {
+            "http.request.method": request.method,
+            "url.path": path,
+            "url.scheme": request.protocol
+          }
+        },
+        parent
+      );
+      spans.set(request, span);
+      context.with(trace.setSpan(parent, span), done);
+    }).catch(done);
   });
 
   app.addHook("onError", (request, _reply, error, done) => {

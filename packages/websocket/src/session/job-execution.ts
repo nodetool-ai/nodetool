@@ -1,3 +1,6 @@
+import { ROOT_CONTEXT, propagation, trace, isSpanContextValid } from "@opentelemetry/api";
+import { getRegisteredRunTrace } from "@nodetool-ai/models";
+import { openAppRunTrace, registerWorkflowRunTrace } from "@nodetool-ai/execution";
 /**
  * Everything between "run_job arrived" and "terminal status persisted": the
  * admission gates, the concurrency queue, run start-up, the message stream,
@@ -99,6 +102,7 @@ const TERMINAL_JOB_STATUSES = ["completed", "failed", "cancelled", "error"];
 
 export interface RunJobRequest {
   job_id?: string;
+  traceparent?: string;
   workflow_id?: string;
   /** Allow this run to start even if its workflow already has a run in flight. */
   concurrent?: boolean;
@@ -232,6 +236,7 @@ export interface ActiveJob {
   /** Mini app this run belongs to, when one started it. Drives budget settlement. */
   applicationId?: string | null;
   appRunFold?: ReturnType<typeof createAppRunFold>;
+  finishAppTrace?: (status: "completed" | "failed" | "cancelled", error?: string | null, costUsd?: number | null) => Promise<void>;
 }
 
 export function createRelayActivityWaiter(
@@ -1801,10 +1806,24 @@ export class JobExecutionManager {
     // uses: a bare throw reaches handleCommand as a generic `invalid_command`
     // the UI never associates with the job, so the run appears to spin
     // forever instead of failing with the reason.
+    const incomingParent = req.traceparent ? trace.getSpanContext(propagation.extract(ROOT_CONTEXT, { traceparent: req.traceparent })) : undefined;
+    const acceptedParent = incomingParent && isSpanContextValid(incomingParent) && !this.session.appSession && appRun && incomingParent.traceId === appRun.trace_id && await getRegisteredRunTrace(userId, incomingParent.traceId, appRun.id) ? incomingParent : undefined;
+    let finishAppTrace: ActiveJob["finishAppTrace"];
+    try {
+      finishAppTrace = appRun ? await openAppRunTrace(context, appRun, acceptedParent) : undefined;
+      if (executionOptions.persistence === "job") {
+        await registerWorkflowRunTrace(context, { jobId, workflowId: workflowId ?? null, inlineGraph: Boolean(req.graph), origin: this.session.appSession ? "public" : "ui" });
+      }
+    } catch (error) {
+      await finishAppTrace?.("failed", error instanceof Error ? error.message : String(error));
+      await this.emitBeforeRunFailure(jobId, workflowId, error, executionOptions.persistence === "job");
+      return;
+    }
     let session: ExecutionSession;
     try {
       session = await ExecutionSession.create(sessionOptions);
     } catch (err) {
+      await finishAppTrace?.("failed", err instanceof Error ? err.message : String(err));
       if (!isExecutionPreflightError(err)) throw err;
       await this.emitBeforeRunFailure(
         jobId,
@@ -1835,7 +1854,8 @@ export class JobExecutionManager {
         kernelStartedAt: performance.now()
       },
       applicationId: req.application_id ?? null,
-      ...(appRun && { appRunFold: createAppRunFold(appRun) })
+      ...(appRun && { appRunFold: createAppRunFold(appRun) }),
+      ...(finishAppTrace && { finishAppTrace })
     };
     // Decouple the run from this socket: from here on every frame carrying
     // this job_id is stamped with `job_seq` and buffered, so a client that
@@ -2037,6 +2057,7 @@ export class JobExecutionManager {
    * the estimate standing rather than handing the spend back. Never throws.
    */
   private async settleApplicationInvocation(active: ActiveJob): Promise<void> {
+    await active.finishAppTrace?.(active.status === "failed" ? "failed" : active.status === "cancelled" ? "cancelled" : "completed", active.error, this.runMeasuredCost(active));
     const identity = active.context.appRunContext;
     if (identity) {
       try {
@@ -2047,10 +2068,11 @@ export class JobExecutionManager {
               : active.status === "cancelled"
                 ? "cancelled"
                 : "completed",
-          error: active.error ?? null,
+          error: active.context.runTraceContext?.policy.contentSuppressed && active.error ? "Execution failed" : active.error ?? null,
           actualUsd: this.runMeasuredCost(active),
           outputs: active.appRunFold?.outputs() ?? {},
           documents: active.context.getAppRunDocuments(),
+          contentSuppressed: active.context.runTraceContext?.policy.contentSuppressed,
           secretValues: [...active.context.getResolvedSecretValues()]
         };
         const llmCost = active.context.getAppRunLlmCost();

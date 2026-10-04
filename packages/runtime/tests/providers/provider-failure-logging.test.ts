@@ -3,7 +3,7 @@
  * wrappers centrally log precisely what was sent to the provider.
  */
 
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { beforeEach, describe, it, expect, vi, afterEach } from "vitest";
 import { BaseProvider } from "../../src/providers/base-provider.js";
 import type {
   Message,
@@ -126,3 +126,7 @@ describe("BaseProvider failure logging – streaming", () => {
     expect(log).toContain("stream-hi");
   });
 });
+
+// Existing formatting fixtures exercise the explicitly enabled local diagnostic copy.
+beforeEach(() => { vi.stubEnv("NODETOOL_TRACE_INCLUDE_CONTENT", "1"); });
+afterEach(() => { vi.unstubAllEnvs(); });

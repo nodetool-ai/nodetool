@@ -559,3 +559,7 @@ export { storyboards } from "./schema/storyboards.js";
 export { assertStoryboardClipGenerationAllowed } from "./storyboard-generation-policy.js";
 
 export * from "./app-instance.js";
+
+export { listRunTraceOwners, registerRunTrace, getRunTrace, getRegisteredRunTrace, getRegisteredTrace, setRunTraceRoot, settleRunTrace, registerRunTraceParent, registerRunTraceParents, writeRunTraceUpdate, listRunTraceRecords, markRunTraceIncomplete, eraseRunTraceParentContent, deleteRunTrace, pruneRunTraces, sanitizeRunTraceRecord, RunTraceError } from "./run-trace.js";
+export type { RegisterRunTraceInput, RunTraceSanitizationOptions } from "./run-trace.js";
+export { threadHasTraceContentTools } from "./trace-provenance.js";

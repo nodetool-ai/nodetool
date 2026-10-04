@@ -1,4 +1,6 @@
 import type { AppRunContext, AppRunCostAccount, AppRunDocumentRef } from "./run-context.js";
+import { getRunTraceScope, type RunTraceScope } from "./run-trace-context.js";
+import { withSpan } from "./tracing-helpers.js";
 /**
  * ProcessingContext – runtime context for node execution.
  *
@@ -77,12 +79,6 @@ import type { Workspace } from "./workspace.js";
 // lazily so this module loads in browser / Edge runtimes. `resolveWorkspacePath`
 // and the `randomUUID` fallback both degrade gracefully when these are
 // unavailable.
-/**
- * Secret values shorter than this are not recorded for masking: redacting a
- * two-character value would blank unrelated text wherever it happens to occur.
- */
-const MIN_MASKABLE_SECRET_LENGTH = 8;
-
 /**
  * ProcessingContext variable key carrying the provider/model the currently
  * running agent loop is itself talking to. Every loop that executes tools
@@ -1236,6 +1232,7 @@ export class ProcessingContext {
   private _resolvedSecrets = new Set<string>();
   /** Identity shared by all work beneath an app operation. */
   readonly appRunContext: AppRunContext | null;
+  runTraceContext: RunTraceScope | null;
   readonly appRunCostAccount: AppRunCostAccount | null;
   private _appRunDocuments = new Map<string, AppRunDocumentRef>();
   /** Fetch function used by HTTP helpers. */
@@ -1350,6 +1347,7 @@ export class ProcessingContext {
     /** Optional durable lifecycle owned by the host. */
     generationLifecycle?: GenerationLifecycleHooks;
     appRunContext?: AppRunContext;
+    runTraceContext?: RunTraceScope;
     appRunCostAccount?: AppRunCostAccount;
   }) {
     this.jobId = opts.jobId;
@@ -1363,6 +1361,8 @@ export class ProcessingContext {
     this.persistOutputAssets = opts.persistOutputAssets ?? true;
     this._generationLifecycle = opts.generationLifecycle ?? null;
     this.appRunContext = opts.appRunContext ? Object.freeze({ ...opts.appRunContext }) : null;
+    this.runTraceContext = opts.runTraceContext ?? getRunTraceScope() ?? null;
+    if (this.runTraceContext?.secretValues instanceof Set) { this._resolvedSecrets = this.runTraceContext.secretValues; }
     this.appRunCostAccount = opts.appRunCostAccount ?? (this.appRunContext ? { llmCostUsd: 0, unpriced: false } : null);
     this.cache = opts.cache ?? new MemoryCache();
     this.storage = opts.storage ?? null;
@@ -1417,6 +1417,7 @@ export class ProcessingContext {
     jobId?: string;
     workflowId?: string | null;
     appRunContext?: AppRunContext;
+    runTraceContext?: RunTraceScope;
     generationLifecycle?: GenerationLifecycleHooks;
   }): ProcessingContext {
     const next = new ProcessingContext({
@@ -1444,6 +1445,7 @@ export class ProcessingContext {
       triggerEvent: this.triggerEvent,
       generationLifecycle: opts?.generationLifecycle ?? this._generationLifecycle ?? undefined,
       appRunContext: opts?.appRunContext ?? this.appRunContext ?? undefined,
+      runTraceContext: opts?.runTraceContext ?? this.runTraceContext ?? undefined,
       appRunCostAccount: !opts?.appRunContext || opts.appRunContext.appRunId === this.appRunContext?.appRunId ? this.appRunCostAccount ?? undefined : undefined
     });
     if (opts?.inheritMessageListeners !== false) {
@@ -1454,7 +1456,7 @@ export class ProcessingContext {
     if (opts?.shareMemory) {
       (next as { memory: AgentMemory }).memory = this.memory;
     }
-    next._resolvedSecrets = this._resolvedSecrets;
+    if (!opts?.runTraceContext) { next._resolvedSecrets = this._resolvedSecrets; }
     if (next.appRunContext?.appRunId === this.appRunContext?.appRunId) {
       next._appRunDocuments = this._appRunDocuments;
     }
@@ -1738,7 +1740,7 @@ export class ProcessingContext {
   async getSecret(key: string): Promise<string | null> {
     if (!this._secretResolver) return null;
     const value = await this._secretResolver(key, this.userId);
-    if (value != null && value.length >= MIN_MASKABLE_SECRET_LENGTH) {
+    if (value != null && value.length > 0) {
       this._resolvedSecrets.add(value);
     }
     return value ?? null;
@@ -3749,6 +3751,7 @@ export class ProcessingContext {
     opts?: GenerationRunOptions
   ): Promise<GenerationResult<T>> {
     const id = req.id ?? randomUUID();
+    return withSpan("generation", { "generation.id": id, "generation.provider": req.provider, "generation.kind": req.capability }, async () => {
     const startedAt = Date.now();
     const origin = this.generationOrigin(req, req.origin);
     const controller = new AbortController();
@@ -3939,6 +3942,7 @@ export class ProcessingContext {
       });
       throw cause;
     }
+    });
   }
 
   /**

@@ -134,3 +134,12 @@ export type {
   AppSimulationDeps
 } from "./app-debug/simulate.js";
 export type * from "./app-debug/types.js";
+
+export { ensureRunTraceTelemetry, subscribeRunTraceUpdates } from "./run-trace-store.js";
+export type { RunTraceUpdateListener } from "./run-trace-store.js";
+export {
+  registerContextRunTrace, registerAppRunTrace, registerWorkflowRunTrace,
+  registerChatRunTrace, withRegisteredRunTrace, settleRegisteredRunTrace,
+  associateTraceMessage, openAppRunTrace
+} from "./service/run-trace-lifecycle.js";
+export type { RegisterTraceInput } from "./service/run-trace-lifecycle.js";

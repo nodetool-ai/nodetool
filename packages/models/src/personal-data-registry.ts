@@ -386,6 +386,16 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "Facts the agent retained about the person across sessions. Exactly the profile Art. 17 exists for."
   },
   {
+    table: "nodetool_run_spans", schemaExport: "runSpans", disposition: "delete",
+    reach: { kind: "direct", column: "user_id" }, exported: true,
+    justification: "Owner-scoped execution spans with separately pruned prompts, responses, tool payloads, and logs. Exported to the owner and erased with the account."
+  },
+  {
+    table: "nodetool_run_traces", schemaExport: "runTraces", disposition: "delete",
+    reach: { kind: "direct", column: "user_id" }, exported: true,
+    justification: "The owner's registered app runs, workflow jobs, and chat turns. Contains execution metadata and content availability, and is erased with the account."
+  },
+  {
     table: "nodetool_error_traces",
     schemaExport: "errorTraces",
     disposition: "delete",

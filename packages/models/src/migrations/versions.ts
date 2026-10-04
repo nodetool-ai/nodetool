@@ -7,6 +7,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { RUN_TRACES_DDL, applyRunTraceRls } from "./run-traces.js";
 
 import {
   liftLegacyAppDoc,
@@ -177,7 +178,7 @@ content_expired INTEGER NOT NULL DEFAULT 0)`,
     BEGIN DELETE FROM nodetool_generation_attachments WHERE target_type = 'app_run' AND target_id = OLD.id; END`
 ];
 
-export const POST_BASELINE_TABLE_DDL: readonly string[] = [...ERROR_TRACES_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL];
+export const POST_BASELINE_TABLE_DDL: readonly string[] = [...ERROR_TRACES_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL];
 
 export const migrations: MigrationDef[] = [
   // ── 001: Create workflows ──────────────────────────────────────────
@@ -4004,6 +4005,18 @@ export const migrations: MigrationDef[] = [
         await db.execute("DROP FUNCTION IF EXISTS delete_app_run_attachments()");
       }
       await db.execute("DROP TABLE IF EXISTS app_instances");
+    }
+  },
+  {
+    version: "20261004_000001", name: "registered_run_trace_store",
+    createsTables: ["nodetool_run_traces", "nodetool_run_spans"], modifiesTables: [],
+    async up(db) {
+      for (const statement of RUN_TRACES_DDL) { await db.execute(statement); }
+      await applyRunTraceRls(db);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS nodetool_run_spans");
+      await db.execute("DROP TABLE IF EXISTS nodetool_run_traces");
     }
   }
 ];

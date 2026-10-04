@@ -8,6 +8,7 @@
  */
 
 import {
+  ensureRunTraceTelemetry,
   startGenerationReconcileWorker,
   sweepInterruptedGenerations
 } from "@nodetool-ai/execution";
@@ -53,7 +54,6 @@ import {
 } from "./lib/localhost-trust.js";
 import { registerHttpTracing } from "./lib/http-tracing.js";
 import {
-  initTelemetry,
   shutdownTelemetry,
   createPythonBridge,
   WebsocketPythonBridge,
@@ -73,6 +73,7 @@ import {
 } from "@nodetool-ai/compute";
 import {
   getSecret,
+  getRegisteredRunTrace,
   AccessToken,
   getWorkerProfile,
   initDb,
@@ -90,7 +91,7 @@ import {
 } from "./oauth/gate.js";
 import { registerPythonProviders, relayWorkerDownload } from "./models-api.js";
 import { syncCustomProviderRegistry } from "./custom-providers.js";
-import { runAutomaticStorageCleanup } from "./storage-retention.js";
+import { runScheduledStorageCleanup } from "./storage-retention.js";
 import { createGenerationRecoveryWorker } from "./generation-recovery.js";
 import { sweepInterruptedJobs } from "./interrupted-jobs.js";
 
@@ -243,7 +244,7 @@ const log = createLogger("nodetool.websocket.server");
 // made by the process launcher before this point).
 configureLogging();
 
-await initTelemetry();
+await ensureRunTraceTelemetry();
 const startupT0 = performance.now();
 /**
  * When this process started. A generation or job row still in flight from
@@ -385,7 +386,7 @@ try {
   stopErrorTraceMaintenance = startErrorTraceMaintenance();
 
   const runHistoryCleanup = (): void => {
-    void runAutomaticStorageCleanup(LOCAL_USER_ID)
+    void runScheduledStorageCleanup(LOCAL_USER_ID)
       .then((result) => {
         if (result && result.total > 0) {
           log.info("Cleaned retained workflow and run history", result);
@@ -837,7 +838,6 @@ const app: FastifyInstance = (
 )(httpsOptions ? { https: httpsOptions, ...serverOptions } : serverOptions);
 
 // First hook, so every later hook and handler runs inside the request span.
-registerHttpTracing(app);
 
 // ---------------------------------------------------------------------------
 // Request ID correlation
@@ -1228,6 +1228,13 @@ app.addHook("onRequest", async (req, reply) => {
     { error: "Remote access requires authentication" },
     challenge
   );
+});
+
+registerHttpTracing(app, {
+  async authorizeTraceParent(request, parent) {
+    if (!request.userId || request.appSession) { return false; }
+    return Boolean(await getRegisteredRunTrace(request.userId, parent.traceId));
+  }
 });
 
 // Multi-instance only: a handshake asking to resume a run that another machine

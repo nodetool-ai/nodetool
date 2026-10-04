@@ -6,7 +6,7 @@
  * setup.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from "vitest";
+import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
 import {
   spanToRecord,
   JsonlFileSpanExporter,
@@ -195,3 +195,7 @@ describe("StdoutSpanExporter", () => {
     expect(stdoutChunks[0]).toContain("ms");
   });
 });
+
+// Existing formatting fixtures exercise the explicitly enabled local diagnostic copy.
+beforeEach(() => { vi.stubEnv("NODETOOL_TRACE_INCLUDE_CONTENT", "1"); });
+afterEach(() => { vi.unstubAllEnvs(); });

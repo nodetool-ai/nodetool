@@ -679,7 +679,9 @@ export const providerSessionSchema = z.object({
    */
   checkpoint: z.number(),
   /** Optional hash of the system prompt; a mismatch invalidates the session. */
-  systemHash: z.string().optional()
+  systemHash: z.string().optional(),
+  /** The upstream session contains protected third-party tool content. */
+  traceContentSuppressed: z.boolean().optional()
 });
 export type ProviderSession = z.infer<typeof providerSessionSchema>;
 
@@ -982,6 +984,8 @@ export type ResourceChangeMessage = z.infer<
   typeof resourceChangeMessageOutSchema
 >;
 
+export type RunTraceMessage = import("./run-trace.js").StoredRunTraceUpdate & { type: "run_trace"; resnapshot_required?: boolean };
+
 export type WebSocketControlMessage =
   | PingMessage
   | ClientToolManifestMessage
@@ -995,6 +999,7 @@ export type WebSocketServerMessage =
   | RendererToolCallMessage
   | SystemStatsMessage
   | ResourceChangeMessage
+  | RunTraceMessage
   | RpcResponseMessage
   | Record<string, unknown>;
 

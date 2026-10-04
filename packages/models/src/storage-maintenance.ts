@@ -1,3 +1,4 @@
+import { eraseRunTraceParentForModelDeletion, pruneRunTraces } from "./run-trace.js";
 /**
  * Database history retention and maintenance.
  *
@@ -473,6 +474,7 @@ async function deleteVersions(ids: string[]): Promise<void> {
 
 async function deleteJobs(ids: string[]): Promise<void> {
   const db = getDb();
+  for (const id of ids) { await eraseRunTraceParentForModelDeletion({ kind: "job", id }); }
   for (const batch of batches(ids)) {
     await db.delete(runEvents).where(inArray(runEvents.run_id, batch));
     await db
@@ -481,6 +483,7 @@ async function deleteJobs(ids: string[]): Promise<void> {
     await db.delete(triggerInputs).where(inArray(triggerInputs.run_id, batch));
     await db.delete(jobs).where(inArray(jobs.id, batch));
   }
+  for (const id of ids) { await eraseRunTraceParentForModelDeletion({ kind: "job", id }); }
 }
 
 export async function cleanupStorage(
@@ -494,6 +497,7 @@ export async function cleanupStorage(
     policy,
     now
   );
+  await pruneRunTraces(userId, candidates.appRunContentCutoff, candidates.appRunRecordCutoff);
   await deleteVersions([
     ...candidates.autosaveIds,
     ...candidates.manualVersionIds

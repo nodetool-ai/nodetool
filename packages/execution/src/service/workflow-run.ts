@@ -1,3 +1,4 @@
+import { registerWorkflowRunTrace } from "./run-trace-lifecycle.js";
 /**
  * Running a saved workflow, as a service every host can call in-process.
  *
@@ -655,6 +656,7 @@ export async function runWorkflow(
       durableFalGenerations: true
     });
     environment.configureContext?.(executionContext);
+    await registerWorkflowRunTrace(executionContext, { jobId: job.id, workflowId: workflowId || null, inlineGraph: Boolean(options.graph) });
     executionContext.addMessageListener(
       createJobProgressRecorder({
         write: async (progress) => {

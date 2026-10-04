@@ -1,6 +1,6 @@
 # App Runs Instances and Run Observability Implementation Plan
 
-**Status:** Draft for agreement and sub-agent assignment.
+**Status:** Implementation reference. Phases 1 and 2 are integrated. Phases 3–5 remain planned.
 **Design:** [App runs design](app-runs-design.md).
 
 Implement the five design phases through the assignments below. Each assignment
@@ -8,11 +8,9 @@ names its dependencies, file ownership, handoff, and observable acceptance
 criteria. The coordinator dispatches only assignments whose dependencies have
 landed and verifies each phase before starting the next.
 
-This plan uses the design supplied in the conversation, including D15 and D16
-and the expanded content policy. The checked-in design has an earlier version
-of those requirements. A1 reconciles that document before implementation. D1
-through D16 are planning assumptions, not a claim that the draft is approved.
-Additional choices below are proposals for detailed design.
+The checked-in design includes D15 and D16 and the expanded content policy.
+The remaining assignments follow those decisions. Additional choices below
+are proposals for detailed design.
 
 ## Execution rules for the coordinator
 

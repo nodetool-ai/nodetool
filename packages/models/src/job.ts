@@ -7,6 +7,7 @@
 import { eq, and, desc, lt, inArray, notInArray } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getDb } from "./db.js";
+import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 import { jobs } from "./schema/jobs.js";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -55,6 +56,12 @@ export class Job extends DBModel {
   declare metadata_json: Record<string, unknown> | null;
   declare created_at: string;
   declare updated_at: string;
+
+  override async delete(): Promise<void> {
+    await eraseRunTraceParentForModelDeletion({ kind: "job", id: this.id });
+    await super.delete();
+    await eraseRunTraceParentForModelDeletion({ kind: "job", id: this.id });
+  }
 
   constructor(data: Record<string, unknown>) {
     super(data);

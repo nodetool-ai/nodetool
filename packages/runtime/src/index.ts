@@ -370,3 +370,12 @@ export type {
 
 export { inAppRunCostAccount } from "./run-context.js";
 export type { AppRunContext, AppRunCostAccount, AppRunDocumentRef } from "./run-context.js";
+
+export { flushTelemetry } from "./telemetry.js";
+export { configureRunTraceStore } from "./run-trace-processor.js";
+export type { RunTraceStore, RunTraceWrite, TraceSanitizerOptions, TraceIncompleteReason } from "./run-trace-processor.js";
+export { withRunTrace, getRunTraceScope, recordRunTraceSecret, markTraceContentTruncated, suppressRunTraceContent, recordTraceEvent } from "./run-trace-context.js";
+export type { RunTraceScope } from "./run-trace-context.js";
+export { stringifyTraceContent } from "./run-trace-serialization.js";
+
+export { getProviderStreamTrace } from "./providers/loop-tracing.js";

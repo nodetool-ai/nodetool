@@ -1,3 +1,4 @@
+import { registerAppRunTrace, withRegisteredRunTrace, settleRegisteredRunTrace } from "./run-trace-lifecycle.js";
 import {
   applyEvents,
   createInstanceState,
@@ -128,6 +129,13 @@ export async function executeAppOperation(
       publicUrl: process.env["NODETOOL_PUBLIC_URL"] ?? null
     })
   });
+  try {
+    await registerAppRunTrace(context, run);
+  } catch (error) {
+    await settleOperationRun(options.userId, run, { status: "failed", actualUsd: 0, knownLlmUsd: 0, error: error instanceof Error ? error.message : String(error), secretValues: [...context.getResolvedSecretValues()] });
+    throw error;
+  }
+  return withRegisteredRunTrace(context, "app.run", async () => {
   const messages: Array<Record<string, unknown>> = [];
   let variableChanges: Record<string, unknown> = {};
   try {
@@ -288,10 +296,11 @@ export async function executeAppOperation(
     );
     const settlement: Parameters<typeof settleAppRun>[2] = {
       status,
-      error,
+      error: context.runTraceContext?.policy.contentSuppressed && error ? "Execution failed" : error,
       outputs: variableChanges,
       documents: context.getAppRunDocuments(),
       expectedRevision: run.instance_revision,
+      contentSuppressed: context.runTraceContext?.policy.contentSuppressed,
       secretValues: [...context.getResolvedSecretValues()]
     };
     const knownLlmUsd = context.getAppRunLlmCost();
@@ -302,7 +311,8 @@ export async function executeAppOperation(
   } catch (error) {
     const settlement: Parameters<typeof settleAppRun>[2] = {
       status: context.signal.aborted ? "cancelled" : "failed",
-      error: error instanceof Error ? error.message : String(error),
+      error: context.runTraceContext?.policy.contentSuppressed ? "Execution failed" : error instanceof Error ? error.message : String(error),
+      contentSuppressed: context.runTraceContext?.policy.contentSuppressed,
       secretValues: [...context.getResolvedSecretValues()],
       documents: context.getAppRunDocuments()
     };
@@ -314,7 +324,9 @@ export async function executeAppOperation(
   }
   await reconcileAppRunCost(options.userId, run.id);
   run = (await getAppRun(options.userId, run.id)) ?? run;
+  await settleRegisteredRunTrace(context, run.status === "running" ? "failed" : run.status, run.error, run.actual_usd);
   return { run, variables: variableChanges, messages, reused: false };
+  });
 }
 
 async function settleOperationRun(

@@ -96,7 +96,7 @@ import type { ProcessingContext } from "@nodetool-ai/runtime";
 // Import span helpers from the narrow `/tracing` subpath, not the package root,
 // so thin consumers (e.g. the in-browser workflow runner) don't drag the
 // provider / python-bridge barrel into their bundle.
-import { withWorkflowSpan } from "@nodetool-ai/runtime/tracing";
+import { withWorkflowSpan, SpanStatusCode } from "@nodetool-ai/runtime/tracing";
 import {
   LOOP_NODE_TYPE,
   isControlEdge,
@@ -613,7 +613,11 @@ export class WorkflowRunner {
         nodeCount: graphData.nodes.length,
         extra: { "workflow.job_id": request.job_id }
       },
-      () => this._runImpl(request, graphData)
+      async (span) => {
+        const result = await this._runImpl(request, graphData);
+        if (result.status === "failed" || result.status === "cancelled") { span?.setStatus({ code: SpanStatusCode.ERROR }); }
+        return result;
+      }
     );
   }
 

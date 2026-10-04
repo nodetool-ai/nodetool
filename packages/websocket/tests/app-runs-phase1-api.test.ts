@@ -9,6 +9,7 @@ import {
   createAppInstance,
   getRawDb,
   initTestDb,
+  getRegisteredRunTrace,
   listAppRuns,
   reserveAppRun,
   setApplicationBudget,
@@ -270,6 +271,8 @@ describe("phase 1 durable app REST and tRPC boundaries", () => {
     ]);
     expect(first.id).toBe(second.id);
     expect(await listAppRuns("u1", instance.id)).toHaveLength(1);
+    expect(await getRegisteredRunTrace("u1", first.trace_id)).toMatchObject({ id: first.id, source_id: first.id, kind: "app" });
+    expect(getRawDb().prepare("SELECT count(*) n FROM nodetool_run_traces").get()).toEqual({ n: 1 });
     const invalidCostInput = {
       id: first.id,
       status: "completed" as const,

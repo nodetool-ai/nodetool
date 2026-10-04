@@ -16,6 +16,7 @@ import {
   listAppInstances,
   listAppRuns,
   reserveAppRun,
+  registerRunTrace,
   resolveAppInstanceApplicationId,
   setAppRunInputs,
   settleAppRun,
@@ -224,6 +225,18 @@ export async function reserveOwnedAppRun(
   if (!decision.allowed) {
     throwApiError(ApiErrorCode.BUDGET_EXCEEDED, decision.reason);
   }
+  await registerRunTrace(userId, {
+    id: decision.run.id,
+    kind: "app",
+    sourceId: decision.run.id,
+    traceId: decision.run.trace_id,
+    origin: decision.run.origin,
+    parents: [
+      { kind: "app_run", id: decision.run.id },
+      { kind: "instance", id: instance.id },
+      ...(decision.run.application_id ? [{ kind: "app" as const, id: decision.run.application_id }] : [])
+    ]
+  });
   return decision.run;
 }
 

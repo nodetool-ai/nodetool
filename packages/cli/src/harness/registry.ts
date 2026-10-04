@@ -337,6 +337,18 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "run-traces",
+    title: "Durable app trace, content policy and ancestry check",
+    command: "npm run test --workspace=packages/execution --workspace=packages/runtime --workspace=packages/models --workspace=packages/websocket -- run-trace external-trace-privacy http-tracing",
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Run traces phase 2",
+    selfcheck: {
+      command: "npm run test --workspace=packages/execution --workspace=packages/runtime --workspace=packages/models --workspace=packages/websocket -- run-trace external-trace-privacy http-tracing",
+      cost: "cheap"
+    }
+  },
+  {
     id: "app-debug",
     title: "Mini-app debug harness",
     command: "nodetool app debug <id|bundle.json> [--interact ... --no-run]",
@@ -1214,6 +1226,26 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/websocket/src/trpc/routers/app-instances.ts",
       "packages/websocket/src/trpc/routers/app-runs.ts",
       "web/src/components/appbuilder/runtime/"
+    ]
+  },
+  {
+    id: "run-traces",
+    title: "Server run trace persistence and privacy",
+    harnesses: ["run-traces"],
+    paths: [
+      "packages/protocol/src/run-trace.ts",
+      "packages/models/src/run-trace.ts",
+      "packages/models/src/migrations/run-traces.ts",
+      "packages/models/src/schema/run-traces.ts",
+      "packages/models/src/schema-pg/run-traces.ts",
+      "packages/runtime/src/run-trace-",
+      "packages/runtime/src/telemetry.ts",
+      "packages/runtime/src/trace-exporters.ts",
+      "packages/runtime/src/providers/loop-tracing.ts",
+      "packages/execution/src/run-trace-store.ts",
+      "packages/execution/src/service/run-trace-lifecycle.ts",
+      "packages/websocket/src/lib/http-tracing.ts",
+      "packages/websocket/src/storage-retention.ts"
     ]
   },
   {

@@ -1,3 +1,5 @@
+import { RunTraceLiveDelivery } from "./lib/run-trace-live-delivery.js";
+import { subscribeRunTraceUpdates } from "@nodetool-ai/execution";
 import { getSetting } from "./settings-registry.js";
 import { ConfiguredProviderCache } from "./configured-providers.js";
 import { packWebSocketMessage, unpackWebSocketMessage } from "./messagepack.js";
@@ -452,6 +454,8 @@ export class WebSocketClientSession implements ClientSession {
   /** The client's command surface: one dispatch table over the wire commands. */
   readonly commands: CommandRouter;
   private observerRegistered = false;
+  private unsubscribeRunTrace: (() => void) | null = null;
+  private runTraceDelivery: RunTraceLiveDelivery | null = null;
   /** Unsubscribe from the process drain, held for the life of the socket. */
   private drainUnsubscribe: (() => void) | null = null;
   /** Set while waiting for this connection's own work to settle mid-drain. */
@@ -1311,6 +1315,13 @@ export class WebSocketClientSession implements ClientSession {
     // agent, for as long as the page is open. The public page has no cache to
     // invalidate anyway: it renders one release and runs it.
     if (this.appSession) return;
+    this.runTraceDelivery = new RunTraceLiveDelivery(
+      (update) => this.sendMessage({ type: "run_trace", ...update }),
+      (error) => this.logError("Run trace delivery failed", error)
+    );
+    this.unsubscribeRunTrace = subscribeRunTraceUpdates((userId, update) => {
+      if (!this.appSession && userId === this.userId) { this.runTraceDelivery?.enqueue(update); }
+    });
     ModelObserver.subscribe(this.onModelChange);
     resourceEvents.on("change", this.onResourceEvent);
     this.observerRegistered = true;
@@ -1318,6 +1329,10 @@ export class WebSocketClientSession implements ClientSession {
 
   private unregisterObserver(): void {
     if (!this.observerRegistered) return;
+    this.unsubscribeRunTrace?.();
+    this.unsubscribeRunTrace = null;
+    this.runTraceDelivery?.close();
+    this.runTraceDelivery = null;
     ModelObserver.unsubscribe(this.onModelChange);
     resourceEvents.off("change", this.onResourceEvent);
     this.observerRegistered = false;

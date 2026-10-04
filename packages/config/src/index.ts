@@ -39,6 +39,9 @@ export {
 } from "./setting-catalog.js";
 
 export {
+  setLogHook,
+  type LogHook,
+  type LogEntry,
   configureLogging,
   getLogLevel,
   createLogger,
@@ -89,3 +92,5 @@ export {
   SIGNED_URL_TTL,
   type StorageConfig
 } from "./storage-config.js";
+
+export { redactTraceText } from "./trace-redaction.js";

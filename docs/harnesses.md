@@ -2458,3 +2458,28 @@ read its generation attachment back from the database. They also check
 transport retries, failed preparation, cancellation, and stale state writes.
 The `app-runs` entry in the [harness registry](../packages/cli/src/harness/registry.ts)
 selects this check for instance, run, and app-runtime changes.
+
+## Run traces phase 2
+
+Run the stored-trace check from the repository root:
+
+```bash
+npm run test --workspace=packages/execution --workspace=packages/runtime --workspace=packages/models --workspace=packages/websocket -- run-trace external-trace-privacy http-tracing
+```
+
+The fixture executes a scripted app with a scripted provider and reads the
+stored `app.run`, `script.run`, `capability.call` and `llm.*` tree without an
+external sink. It checks captured request/response and activity events,
+run-resolved secret masking and content-free visitor runs. The bridge check
+verifies that live readers receive committed snapshots only. The same check
+exercises external content filtering, ownership, deletion and retention. The `run-traces`
+entry in the [harness registry](../packages/cli/src/harness/registry.ts) selects
+this check for the trace store and its execution hosts.
+
+Model and runtime suites cover content separation, duplicate events, limits,
+parent deletion, late writes, expiry, export/erasure, external sink filtering
+and recording failures. HTTP and WebSocket checks reject cross-owner ancestry.
+The model PostgreSQL test uses an isolated test database and actual non-bypass
+roles to verify owner reads and denied client writes. Set
+`NODETOOL_TEST_POSTGRES_URL` to a local PostgreSQL administrative connection to
+run that check.
