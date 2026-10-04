@@ -9,6 +9,8 @@ import {
 } from "../browserWorkflowRunner";
 import { clearSandboxModuleCache } from "../sandboxModuleCatalog";
 import type { WorkflowGraph } from "../../../stores/ApiTypes";
+import type { TraceRecord } from "@nodetool-ai/protocol";
+import { BrowserRunTrace } from "../../browserRunTrace";
 
 const browserGraph = (type: string): WorkflowGraph =>
   stub<WorkflowGraph>({
@@ -529,5 +531,110 @@ describe("collectNodeClasses", () => {
       GroupedA
     }).map((c) => (c as { nodeType: string }).nodeType);
     expect(types).toEqual(["test.GroupedA"]);
+  });
+});
+
+describe("browser app trace transport", () => {
+  function traceFixture(runId = "a".repeat(32), traceId = "b".repeat(32)) {
+    const records: TraceRecord[] = [];
+    const trace = new BrowserRunTrace({
+      runId, traceId, operationId: "main", instanceId: "c".repeat(32),
+      send: async (_id, batch) => { records.push(...batch); }
+    });
+    return { trace, records };
+  }
+
+  it("records actual routed node lifecycles below a workflow span and the reserved server root", async () => {
+    const { trace, records } = traceFixture();
+    const serverRootSpanId = "d".repeat(16);
+    const jobId = "e".repeat(32);
+    installFakeRunner(makeGen([
+      { type: "node_update", job_id: jobId, node_id: "n1", status: "running" },
+      { type: "node_update", job_id: jobId, node_id: "n1", status: "completed", result: { output: "owner value" } }
+    ], { status: "completed" }));
+    const result = await runBrowserGraphJob({
+      graph: browserGraph("browser.Const"), workflowId: "workflow", jobId,
+      trace, traceParentSpanId: serverRootSpanId
+    });
+    await trace.finish();
+    const workflowSpan = records.find((record) => record.name === "workflow.run");
+    const node = records.find((record) => record.name === "node.process");
+    expect(result).toMatchObject({ success: true, outputs: { n1: { output: "owner value" } } });
+    expect(workflowSpan).toMatchObject({ parent_span_id: serverRootSpanId, status: { code: "OK" } });
+    expect(node).toMatchObject({ parent_span_id: workflowSpan?.span_id, attributes: { "node.id": "n1", "node.type": "browser.Const" }, status: { code: "OK" } });
+    expect(records.filter((record) => record.name === "node.process")).toHaveLength(1);
+    expect(records.every((record) => record.trace_id === "b".repeat(32) && record.resource["nodetool.trace.source"] === "browser")).toBe(true);
+    trace.dispose();
+  });
+
+  it("ends unfinished nodes on a kernel failure and unsubscribes the real message route", async () => {
+    const { trace, records } = traceFixture();
+    const jobId = "f".repeat(32);
+    const originalSubscribe = globalWebSocketManager.subscribe.bind(globalWebSocketManager);
+    const cleanup = jest.fn();
+    jest.spyOn(globalWebSocketManager, "subscribe").mockImplementation((key, handler) => {
+      const unsubscribe = originalSubscribe(key, handler);
+      return () => { cleanup(); unsubscribe(); };
+    });
+    installFakeRunner(async function* () {
+      yield { type: "node_update", job_id: jobId, node_id: "n1", status: "running" };
+      throw new Error("Kernel crashed");
+    });
+    const result = await runBrowserGraphJob({
+      graph: browserGraph("browser.Const"), workflowId: "workflow", jobId, trace
+    });
+    expect(result).toMatchObject({ success: false, error: "Kernel crashed" });
+    expect(cleanup).toHaveBeenCalledTimes(1);
+    globalWebSocketManager.deliverLocal({ type: "node_update", job_id: jobId, node_id: "after-cleanup", status: "running" });
+    await trace.finish(new Error("Kernel crashed"));
+    expect(records.filter((record) => record.name === "node.process")).toEqual([
+      expect.objectContaining({ attributes: { "node.id": "n1", "node.type": "browser.Const", "error.type": "Error" }, status: { code: "ERROR", message: "Kernel crashed" } })
+    ]);
+    expect(records.find((record) => record.name === "workflow.run")?.status.code).toBe("ERROR");
+    trace.dispose();
+  });
+
+  it("keeps overlapping same-workflow/node jobs on their invocation-local trace and parent", async () => {
+    const a = traceFixture("1".repeat(32), "2".repeat(32));
+    const b = traceFixture("3".repeat(32), "4".repeat(32));
+    const firstJob = "5".repeat(32), secondJob = "6".repeat(32);
+    let startFirst = () => {};
+    let startSecond = () => {};
+    let finishFirst = () => {};
+    let finishSecond = () => {};
+    const startedFirst = new Promise<void>((resolve) => { startFirst = resolve; });
+    const startedSecond = new Promise<void>((resolve) => { startSecond = resolve; });
+    const firstGate = new Promise<void>((resolve) => { finishFirst = resolve; });
+    const secondGate = new Promise<void>((resolve) => { finishSecond = resolve; });
+    __setBrowserRunnerLoader(async () => ({
+      wf: {
+        createBrowserRegistry: () => fakeRegistry,
+        runBrowserWorkflow: (opts: Record<string, unknown>) => (async function* () {
+          const ownJob = opts.jobId;
+          yield { type: "node_update", job_id: ownJob, workflow_id: "same-workflow", node_id: "n1", status: "running" };
+          if (ownJob === firstJob) { startFirst(); await firstGate; }
+          else { startSecond(); await secondGate; }
+          yield { type: "node_update", job_id: ownJob, workflow_id: "same-workflow", node_id: "n1", status: "completed", result: { output: ownJob } };
+          return { status: "completed", outputs: {} };
+        })()
+      } as never, nodeClasses: []
+    }));
+    const first = runBrowserGraphJob({ graph: browserGraph("browser.Const"), workflowId: "same-workflow", jobId: firstJob, trace: a.trace, traceParentSpanId: "7".repeat(16) });
+    const second = runBrowserGraphJob({ graph: browserGraph("browser.Const"), workflowId: "same-workflow", jobId: secondJob, trace: b.trace, traceParentSpanId: "8".repeat(16) });
+    await Promise.all([startedFirst, startedSecond]);
+    finishSecond();
+    expect(await second).toMatchObject({ success: true, outputs: { n1: { output: secondJob } } });
+    await b.trace.finish();
+    finishFirst();
+    expect(await first).toMatchObject({ success: true, outputs: { n1: { output: firstJob } } });
+    await a.trace.finish();
+    for (const [fixture, expectedTrace, parent] of [[a, "2".repeat(32), "7".repeat(16)], [b, "4".repeat(32), "8".repeat(16)]] as const) {
+      const workflow = fixture.records.find((record) => record.name === "workflow.run");
+      expect(fixture.records.filter((record) => record.name === "node.process")).toHaveLength(1);
+      expect(workflow?.parent_span_id).toBe(parent);
+      expect(fixture.records.find((record) => record.name === "node.process")?.parent_span_id).toBe(workflow?.span_id);
+      expect(fixture.records.every((record) => record.trace_id === expectedTrace)).toBe(true);
+      fixture.trace.dispose();
+    }
   });
 });

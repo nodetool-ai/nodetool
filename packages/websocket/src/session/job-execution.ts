@@ -1,6 +1,6 @@
 import { ROOT_CONTEXT, propagation, trace, isSpanContextValid } from "@opentelemetry/api";
 import { getRegisteredRunTrace } from "@nodetool-ai/models";
-import { openAppRunTrace, registerWorkflowRunTrace } from "@nodetool-ai/execution";
+import { ensureRunTraceTelemetry, openAppRunTrace, registerWorkflowRunTrace } from "@nodetool-ai/execution";
 /**
  * Everything between "run_job arrived" and "terminal status persisted": the
  * admission gates, the concurrency queue, run start-up, the message stream,
@@ -1806,10 +1806,11 @@ export class JobExecutionManager {
     // uses: a bare throw reaches handleCommand as a generic `invalid_command`
     // the UI never associates with the job, so the run appears to spin
     // forever instead of failing with the reason.
-    const incomingParent = req.traceparent ? trace.getSpanContext(propagation.extract(ROOT_CONTEXT, { traceparent: req.traceparent })) : undefined;
-    const acceptedParent = incomingParent && isSpanContextValid(incomingParent) && !this.session.appSession && appRun && incomingParent.traceId === appRun.trace_id && await getRegisteredRunTrace(userId, incomingParent.traceId, appRun.id) ? incomingParent : undefined;
     let finishAppTrace: ActiveJob["finishAppTrace"];
     try {
+      await ensureRunTraceTelemetry();
+      const incomingParent = req.traceparent ? trace.getSpanContext(propagation.extract(ROOT_CONTEXT, { traceparent: req.traceparent })) : undefined;
+      const acceptedParent = incomingParent && isSpanContextValid(incomingParent) && !this.session.appSession && appRun && incomingParent.traceId === appRun.trace_id && await getRegisteredRunTrace(userId, incomingParent.traceId, appRun.id) ? incomingParent : undefined;
       finishAppTrace = appRun ? await openAppRunTrace(context, appRun, acceptedParent) : undefined;
       if (executionOptions.persistence === "job") {
         await registerWorkflowRunTrace(context, { jobId, workflowId: workflowId ?? null, inlineGraph: Boolean(req.graph), origin: this.session.appSession ? "public" : "ui" });

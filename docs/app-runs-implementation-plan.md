@@ -1,6 +1,6 @@
 # App Runs Instances and Run Observability Implementation Plan
 
-**Status:** Implementation reference. Phases 1–3 are integrated. Phases 4 and 5 remain planned.
+**Status:** Implementation reference. Phases 1–4 are integrated. Phase 5 remains planned.
 **Design:** [App runs design](app-runs-design.md).
 
 Implement the five design phases through the assignments below. Each assignment
@@ -591,6 +591,14 @@ fixture integration.
 
 ## Phase 4 Browser spans and run inspection
 
+The [phase 4 harnesses](harnesses.md#run-inspection-phase-4) cover owner-scoped
+browser ingestion, cold-start ancestry, stored trace and log inspection,
+activity replay, and run/span chat references. Browser content waits until
+execution finishes so the host can redact it with resolved credentials.
+Metadata can stream earlier. Browser runs claim a durable server root through
+`POST /api/runs/:id/browser-start`, then upload finished records through
+`POST /api/runs/:id/spans`. Both routes reject visitor sessions.
+
 ### A12 Ingest browser spans and instrument browser execution
 
 **Owner:** Browser instrumentation agent.
@@ -635,7 +643,8 @@ A14 before dispatching those agents in parallel.
 **Files:** `TraceStore.ts`, `TracePanel.tsx`, new Logs/run-picker components,
 run server-state queries, trace client subscriptions, and bottom-panel wiring.
 
-Make TraceStore a client cache of A8 records and A4 live envelopes. Remove its
+Keep durable records and live projections in TanStack Query. TraceStore holds
+the selected run, span and view. Remove its
 processing-message trace fold after migrating trace consumers. Keep runtime
 `node_update`, `chunk`, and `output_update` processing. One recent-run picker
 lists app, workflow, and chat records after reload and drives both views.

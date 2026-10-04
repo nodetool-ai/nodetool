@@ -2514,3 +2514,39 @@ updates. The CLI deduplicates event identities across polling and resume. See
 [run commands](cli.md#nodetool-runs) for filters and output flags. The
 `run-readers` entry in the [harness registry](../packages/cli/src/harness/registry.ts)
 selects the check for these surfaces.
+
+## Run inspection phase 4
+
+The bottom panel's Trace and Logs tabs share a durable run picker. The picker
+lists app runs, workflow jobs and chat turns. Browser spans appear above server
+spans, and focused spans expose their bounded content. AgentActivity reloads
+stored events by instance and operation. “View trace” opens the producing run,
+and “Ask the agent” passes run and span ids into chat.
+
+Run the browser-ingestion check from the repository root after building packages:
+
+```bash
+npm run test --workspace=packages/websocket -- browser-run-spans-phase4 browser-app-run-phase4 app-runs-workflow
+```
+
+The check uses production HTTP routes and the native UI harness. It verifies
+owner and visitor restrictions, payload caps, retries, cycle rejection,
+server-span protection, browser-root recovery and first-run W3C ancestry.
+The `browser-run-spans` and `run-inspection-ui` entries in the
+[harness registry](../packages/cli/src/harness/registry.ts) run ingestion,
+recorder, replay and panel checks when these surfaces change.
+
+The real browser journey starts a keyless app operation, reads its stored
+`ui.action → app.run` ancestry, reloads the page, selects the same run, and
+checks Trace and Logs against the reader API. A second journey runs the real
+in-browser kernel and reads its `app.run → workflow.run → node.process`
+ancestry from the same store:
+
+```bash
+npm run test:journeys --workspace=web -- run-observability.spec.ts
+```
+
+The registry lists this browser journey as a manual check. It owns development
+servers through the existing journey fixtures. To isolate ports, set
+`SCREENSHOT_BACKEND_PORT`, `SCREENSHOT_WEB_PORT` and `PROXY_API_TARGET` as
+described in [web testing](../web/TESTING.md).

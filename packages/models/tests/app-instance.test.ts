@@ -1,4 +1,5 @@
 import { appInstanceResponse } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
+import { BROWSER_APP_RUNNER_INSTANCE } from "@nodetool-ai/protocol";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import {
@@ -473,6 +474,14 @@ describe("durable app instances and operation runs", () => {
       actual_usd: null
     });
     expect((await applicationUsage("saved", "total")).spentUsd).toBe(0.5);
+  });
+  it("keeps browser-owned execution running when its database server restarts", async () => {
+    const i = await create();
+    const browser = await reserve(i.id, "browser");
+    expect(await claimAppRun("u1", browser.run.id, BROWSER_APP_RUNNER_INSTANCE)).toBe(true);
+    const future = new Date(Date.now() + 1_000).toISOString();
+    expect(await sweepInterruptedAppRuns(future, null)).toBe(0);
+    expect((await getAppRun("u1", browser.run.id))?.status).toBe("running");
   });
   it("rechecks zero-price UI reservations under the budget lock before claiming work", async () => {
     await Application.create<Application>({ id: "saved", user_id: "u1" });

@@ -26,6 +26,7 @@ jest.mock("../appInstanceApi", () => ({
   loadAppInstance: jest.fn(),
   saveAppInstance: jest.fn(),
   reserveAppRun: jest.fn(),
+  startBrowserAppRun: jest.fn(),
   updateAppRun: jest.fn(),
   getAppRun: jest.fn()
 }));
@@ -33,6 +34,7 @@ import {
   defaultAppInstance,
   saveAppInstance,
   reserveAppRun,
+  startBrowserAppRun,
   updateAppRun,
   getAppRun,
   type ServerAppInstance
@@ -68,8 +70,9 @@ jest.mock("../../../../lib/websocket/GlobalWebSocketManager", () => ({
 }));
 
 jest.mock("../../../../lib/workflow/browserWorkflowRunner", () => ({
-  runBrowserGraphJob: jest.fn(async () => undefined)
+  runBrowserGraphJob: jest.fn(async () => ({ success: true, outputs: {} }))
 }));
+jest.mock("../buildTriggerSubgraph", () => ({ buildTriggerSubgraph: jest.fn() }));
 
 const cancelJob = jest.fn(async (_input: { id: string }) => ({ ok: true }));
 const getScript = jest.fn(async (_input: { id: string }) => ({
@@ -123,6 +126,8 @@ jest.mock("../../../jsScript/runJsScript", () => ({
 
 import { getWorkflowRunnerStore } from "../../../../stores/WorkflowRunner";
 import { useAppRuntime } from "../useAppRuntime";
+import { buildTriggerSubgraph } from "../buildTriggerSubgraph";
+import { runBrowserGraphJob } from "../../../../lib/workflow/browserWorkflowRunner";
 import {
   appInstanceId,
   disposeAppRuntimeStore,
@@ -241,6 +246,8 @@ beforeEach(() => {
   getScript.mockClear();
   getScriptVersion.mockClear();
   runJsScript.mockReset();
+  jest.mocked(buildTriggerSubgraph).mockReset();
+  jest.mocked(startBrowserAppRun).mockReset();
   window.localStorage.clear();
   disposeAppRuntimeStore(appInstanceId("application:app-script"));
   disposeAppRuntimeStore(workflowInstanceId("wf-a"));
@@ -295,7 +302,7 @@ beforeEach(() => {
     .mockImplementation(async (_id, _operation, logicalId) => {
       const id = `run-${logicalId}`;
       serverRuns.set(id, { status: "running", instance_id: _id });
-      return id;
+      return { id, trace_id: "a".repeat(32) };
     });
   jest.mocked(updateAppRun).mockImplementation(async (id, values) => {
     serverRuns.set(id, {
@@ -355,7 +362,7 @@ it("requests durable script cancellation and reloads state only after server ter
   act(() => hook.result.current.dispatch({ kind: "run", operationId: "main" }));
   await waitFor(() => expect(scriptRunner).toHaveBeenCalledTimes(1));
   const runId = jest.mocked(reserveAppRun).mock.results[0]!.value;
-  const durableId = await runId;
+  const durableId = (await runId).id;
   jest.mocked(getAppRun).mockResolvedValue({
     status: "running",
     state_conflict: 0,
@@ -529,6 +536,83 @@ it("drops late messages from an invocation after switching the working copy", as
   hook.unmount();
 });
 
+it("keeps the inspected run aligned with parallel claims that finish starting in reverse order", async () => {
+  const document = doc({ operations: [{ id: "main", name: "Run", workflowId: "wf-a", inputs: {}, outputs: {}, policy: "parallel" }] });
+  const hook = renderRuntime(workflowA, document, { id: "app-a" });
+  await waitFor(() => expect(hook.result.current.instanceId).toBe("server-a"));
+  const claims: Array<(id: string) => void> = [];
+  runnerState("wf-a").run.mockImplementation(() => new Promise<string>((resolve) => claims.push(resolve)));
+  act(() => hook.result.current.dispatch({ kind: "run", operationId: "main" }));
+  await waitFor(() => expect(claims).toHaveLength(1));
+  const firstRun = hook.result.current.store.getState().runReferences.main.runId;
+  act(() => hook.result.current.dispatch({ kind: "run", operationId: "main" }));
+  await waitFor(() => expect(claims).toHaveLength(2));
+  const secondRun = hook.result.current.store.getState().runReferences.main.runId;
+  await act(async () => { claims[1]("parallel-second"); });
+  expect(hook.result.current.store.getState().activeInvocation.main).toBe("parallel-second");
+  expect(hook.result.current.store.getState().runReferences.main.runId).toBe(secondRun);
+  await act(async () => { claims[0]("parallel-first"); });
+  expect(hook.result.current.store.getState().activeInvocation.main).toBe("parallel-first");
+  expect(hook.result.current.store.getState().runReferences.main).toMatchObject({ runId: firstRun, invocationId: "parallel-first" });
+  hook.unmount();
+});
+
+it.each(["running", "completed"])("does not let a cancelled late claim replace the current %s run, its outputs or trace reference", async (status) => {
+  const document = doc({ operations: [{ id: "main", name: "Run", workflowId: "wf-a", inputs: {}, outputs: { out1: { to: "variable", variableId: "answer" } }, policy: "parallel" }],
+    variables: [{ id: "answer", name: "Answer", scope: "instance", persist: false }] });
+  const hook = renderRuntime(workflowA, document, { id: "app-a" });
+  await waitFor(() => expect(hook.result.current.instanceId).toBe("server-a"));
+  const claims: Array<(id: string) => void> = [];
+  runnerState("wf-a").run.mockImplementation(() => new Promise<string>((resolve) => claims.push(resolve)));
+  act(() => hook.result.current.dispatch({ kind: "run", operationId: "main" }));
+  await waitFor(() => expect(claims).toHaveLength(1));
+  act(() => hook.result.current.dispatch({ kind: "cancel", operationId: "main" }));
+  act(() => hook.result.current.dispatch({ kind: "run", operationId: "main" }));
+  await waitFor(() => expect(claims).toHaveLength(2));
+  const currentRun = hook.result.current.store.getState().runReferences.main.runId;
+  await act(async () => { claims[1]("current-live"); });
+  deliver({ type: "output_update", job_id: "current-live", node_id: "out1", value: "Current output", output_name: "result", output_type: "string" });
+  if (status === "completed") {
+    serverRuns.set(currentRun, { ...serverRuns.get(currentRun), status: "completed" });
+    const instance = serverInstances.get("server-a")!;
+    serverInstances.set("server-a", { ...instance, revision: instance.revision + 1, variables: { answer: "Current output", __app_outputs: { "main:out1": "Current output" } } });
+    deliver({ type: "job_update", job_id: "current-live", status: "completed" });
+    await waitFor(() => expect(hook.result.current.store.getState().invocations["current-live"].status).toBe("completed"));
+  }
+  expect(hook.result.current.store.getState().variables.answer).toBe("Current output");
+  expect(hook.result.current.store.getState().outputs["main:out1"].value).toBe("Current output");
+  await act(async () => { claims[0]("cancelled-late"); });
+  await waitFor(() => expect(cancelJob).toHaveBeenCalledWith({ id: "cancelled-late" }));
+  expect(hook.result.current.store.getState().invocations["cancelled-late"].status).toBe("cancelled");
+  expect(hook.result.current.store.getState().activeInvocation.main).toBe("current-live");
+  expect(hook.result.current.store.getState().runReferences.main).toMatchObject({ runId: currentRun, invocationId: "current-live" });
+  expect(hook.result.current.store.getState().variables.answer).toBe("Current output");
+  expect(hook.result.current.store.getState().outputs["main:out1"].value).toBe("Current output");
+  hook.unmount();
+});
+
+it("does not claim an old workflow startup in a newly selected instance", async () => {
+  const document = doc({ operations: [{ id: "main", name: "Run", workflowId: "wf-a", inputs: {}, outputs: { out1: { to: "variable", variableId: "answer" } }, policy: "parallel" }],
+    variables: [{ id: "answer", name: "Answer", scope: "instance", persist: false }] });
+  const hook = renderHook(({ app }) => useAppRuntime(workflowA, false, { document, application: { id: app } }), {
+    initialProps: { app: "app-a" }, wrapper
+  });
+  await waitFor(() => expect(hook.result.current.instanceId).toBe("server-a"));
+  let release: (id: string) => void = () => undefined;
+  runnerState("wf-a").run.mockImplementation(() => new Promise<string>((resolve) => { release = resolve; }));
+  act(() => hook.result.current.dispatch({ kind: "run", operationId: "main" }));
+  await waitFor(() => expect(runnerState("wf-a").run).toHaveBeenCalledTimes(1));
+  hook.rerender({ app: "app-b" });
+  await waitFor(() => expect(hook.result.current.instanceId).toBe("server-b"));
+  await act(async () => { release("old-startup"); });
+  deliver({ type: "output_update", job_id: "old-startup", node_id: "out1", value: "Old instance output", output_name: "result", output_type: "string" });
+  expect(hook.result.current.store.getState().variables.answer).toBeUndefined();
+  expect(hook.result.current.store.getState().outputs["main:out1"]).toBeUndefined();
+  expect(hook.result.current.store.getState().runReferences).toEqual({});
+  expect(cancelJob).not.toHaveBeenCalledWith({ id: "old-startup" });
+  hook.unmount();
+});
+
 it("keeps a preparation reservation on its original instance when input saving overlaps a switch", async () => {
   const document = doc({
     operations: [
@@ -576,5 +660,35 @@ it("keeps a preparation reservation on its original instance when input saving o
     )
   );
   expect(runnerState("wf-a").run).not.toHaveBeenCalled();
+  hook.unmount();
+});
+
+it("cancels the captured run when the instance switches during browser-start without executing the old graph", async () => {
+  const document = doc({ operations: [{ id: "main", name: "Run", workflowId: "wf-a", inputs: {}, outputs: {}, policy: "parallel" }] });
+  const hook = renderHook(({ app }) => useAppRuntime(workflowA, false, { document, application: { id: app } }), {
+    initialProps: { app: "app-a" }, wrapper
+  });
+  await waitFor(() => expect(hook.result.current.instanceId).toBe("server-a"));
+  await waitFor(() => expect(hook.result.current.ioFor("main").inputs).toHaveLength(1));
+  act(() => hook.result.current.dispatch({ kind: "run", operationId: "main", from: "op:main/in:in1" }));
+  await waitFor(() => expect(runnerState("wf-a").run).toHaveBeenCalledTimes(1));
+  const firstJob = await runnerState("wf-a").run.mock.results[0].value;
+  deliver({ type: "job_update", job_id: firstJob, status: "completed" });
+  await waitFor(() => expect(hook.result.current.store.getState().invocations[firstJob]?.status).toBe("completed"));
+  jest.mocked(buildTriggerSubgraph).mockReturnValue({ graph: workflowA.graph!, nodeIds: new Set(["in1", "out1"]) });
+  let release: (value: { root_span_id: string }) => void = () => undefined;
+  jest.mocked(startBrowserAppRun).mockImplementation(() => new Promise((resolve) => { release = resolve; }));
+  act(() => hook.result.current.dispatch({ kind: "run", operationId: "main", from: "op:main/in:in1" }));
+  await waitFor(() => expect(startBrowserAppRun).toHaveBeenCalledTimes(1));
+  const oldRunId = jest.mocked(startBrowserAppRun).mock.calls[0]![0];
+  expect(serverRuns.get(oldRunId)).toMatchObject({ instance_id: "server-a", status: "running" });
+  hook.rerender({ app: "app-b" });
+  await waitFor(() => expect(hook.result.current.instanceId).toBe("server-b"));
+  await act(async () => { release({ root_span_id: "b".repeat(16) }); });
+  await waitFor(() => expect(serverRuns.get(oldRunId)?.status).toBe("cancelled"));
+  expect(updateAppRun).toHaveBeenCalledWith(oldRunId, { status: "cancelled" });
+  expect(runBrowserGraphJob).not.toHaveBeenCalled();
+  expect(hook.result.current.store.getState().outputs).toEqual({});
+  expect(hook.result.current.store.getState().runReferences).toEqual({});
   hook.unmount();
 });

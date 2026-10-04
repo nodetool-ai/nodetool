@@ -16,7 +16,16 @@ import {
   type AppStateEvent
 } from "@nodetool-ai/app-runtime";
 
+export interface AppRunReference {
+  runId: string;
+  traceId: string;
+  invocationId: string;
+  traceIncomplete?: boolean;
+}
+
 export interface AppRuntimeState extends AppInstanceState {
+  runReferences: Readonly<Record<string, AppRunReference>>;
+  setRunReference: (operationId: string, reference: AppRunReference) => void;
   /** The only way to mutate the store: one pure reducer, one event at a time. */
   dispatchEvent: (event: AppStateEvent) => void;
 }
@@ -27,6 +36,10 @@ export const createAppRuntimeStore = (initial?: Partial<AppInstanceState>) =>
   createStore<AppRuntimeState>((set) => ({
     ...createInstanceState(),
     ...initial,
+    runReferences: {},
+    setRunReference: (operationId, reference) => set((state) => ({
+      runReferences: { ...state.runReferences, [operationId]: reference }
+    })),
     dispatchEvent: (event) => set((state) => applyEvent(state, event))
   }));
 

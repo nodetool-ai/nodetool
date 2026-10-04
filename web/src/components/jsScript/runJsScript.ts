@@ -98,6 +98,7 @@ export async function readScriptRunBody(
 export interface ScriptAppRunContext {
   app_run_id: string;
   instance_id?: string;
+  traceparent?: string;
 }
 
 export async function runJsScript(
@@ -108,18 +109,26 @@ export async function runJsScript(
   onLine?: ScriptStreamListener,
   appRun?: ScriptAppRunContext
 ): Promise<JsScriptRunOutcome> {
-  const request: RunJsScriptRequest & Partial<ScriptAppRunContext> = { inputs, ...appRun };
+  const request: RunJsScriptRequest & Partial<ScriptAppRunContext> = {
+    inputs
+  };
+  if (appRun) {
+    request.app_run_id = appRun.app_run_id;
+    request.instance_id = appRun.instance_id;
+  }
   if (inputStreams) {
     request.input_streams = inputStreams;
   }
   if (scriptVersion !== undefined) {
     request.script_version = scriptVersion;
   }
+  const headers = scriptRunHeaders(onLine);
+  if (appRun?.traceparent) { headers.traceparent = appRun.traceparent; }
   const response = await restFetch(
     `/api/js-scripts/${encodeURIComponent(scriptId)}/run`,
     {
       method: "POST",
-      headers: scriptRunHeaders(onLine),
+      headers,
       body: JSON.stringify(request)
     }
   );

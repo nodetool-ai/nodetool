@@ -463,7 +463,10 @@ function formatUiContext(uiContext?: UiContext | null): string {
   const focused = uiContext.focused;
   const open = uiContext.open ?? [];
   const source = uiContext.source;
-  if (!focused && open.length === 0 && !source) return "";
+  const run = uiContext.run;
+  const runId = typeof run?.run_id === "string" && /^[0-9a-f]{12}(?:[0-9a-f]{20})?$/.test(run.run_id) ? run.run_id : null;
+  const spanId = typeof run?.span_id === "string" && /^[0-9a-f]{16}$/.test(run.span_id) ? run.span_id : null;
+  if (!focused && open.length === 0 && !source && !runId) return "";
 
   const describe = (ref: UiDocumentRef): string => {
     const label = UI_SURFACE_LABELS[ref.type] ?? ref.type;
@@ -474,6 +477,10 @@ function formatUiContext(uiContext?: UiContext | null): string {
   };
 
   const lines: string[] = ["\n\n## What the user is looking at\n"];
+  if (runId) {
+    lines.push(`The user asked to inspect run ${runId}${spanId ? `, span ${spanId}` : ""}.`);
+    lines.push(`Start with nodetool.runs.get("${runId}") inside execute_code. Its readers check ownership. Read the summary first, then inspect ${spanId ? `span ${spanId}` : "the spans it names"} with nodetool.runs.trace or nodetool.runs.logs. Do not infer a transcript from this reference.`);
+  }
   if (source) {
     lines.push(
       `The user sent this message from the ${CHAT_SOURCE_LABELS[source] ?? source}.`

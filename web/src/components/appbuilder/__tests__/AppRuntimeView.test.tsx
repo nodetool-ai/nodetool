@@ -1,5 +1,5 @@
 import { stub } from "../../../test-utils/doubles";
-import { act, render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
@@ -12,6 +12,8 @@ import AppRuntimeView from "../AppRuntimeView";
 import { useBugReportStore } from "../../../stores/BugReportStore";
 import { Workflow } from "../../../stores/ApiTypes";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
+import { useRun } from "../../../serverState/useRuns";
+import useTraceStore from "../../../stores/TraceStore";
 import {
   disposeAppRuntimeStore,
   getAppRuntimeStore,
@@ -21,6 +23,11 @@ import {
 jest.mock("../runtime/useAppInstance", () => ({
   useAppInstance: () => ({ enabled: false, visitor: false, account: "1", instance: undefined, attach: () => undefined, flush: async () => undefined, serverFold: (apply: () => void) => apply(), refresh: async () => undefined, loading: false })
 }));
+jest.mock("../../../serverState/useRuns", () => ({
+  ...jest.requireActual("../../../serverState/useRuns"),
+  useRun: jest.fn(() => ({ data: undefined }))
+}));
+jest.mock("../../runs/AskRunAgentButton", () => ({ AskRunAgentButton: ({ runId, spanId }: { runId: string; spanId?: string }) => <button data-run={runId} data-span={spanId}>Ask the agent</button> }));
 
 const workflow = stub<Workflow>({
   id: "wf-puck-runtime",
@@ -78,9 +85,26 @@ const startRun = (id: string) =>
 
 beforeEach(() => {
   disposeAppRuntimeStore(instance);
+  useTraceStore.getState().clear();
+  jest.mocked(useRun).mockReturnValue(stub<ReturnType<typeof useRun>>({ data: undefined }));
 });
 
 describe("AppRuntimeView (Puck Render)", () => {
+  it("opens the stored failed span and hands the same typed IDs to chat", async () => {
+    const runId = "a".repeat(32), spanId = "b".repeat(16);
+    startRun("failed-job");
+    act(() => {
+      store().getState().setRunReference("main", { runId, traceId: "c".repeat(32), invocationId: "failed-job" });
+      store().getState().dispatchEvent({ type: "invocationError", invocationId: "failed-job", error: "Missing input" });
+    });
+    jest.mocked(useRun).mockReturnValue(stub<ReturnType<typeof useRun>>({ data: { summary: { first_failed_span_id: spanId } } }));
+    renderView();
+    const banner = within(screen.getByRole("alert"));
+    await userEvent.click(banner.getByRole("button", { name: "View trace" }));
+    expect(useTraceStore.getState()).toMatchObject({ selectedRunId: runId, focusedSpanId: spanId, view: "trace" });
+    expect(banner.getByRole("button", { name: "Ask the agent" })).toHaveAttribute("data-run", runId);
+    expect(banner.getByRole("button", { name: "Ask the agent" })).toHaveAttribute("data-span", spanId);
+  });
   it("renders widgets from the Puck document", () => {
     renderView();
     expect(screen.getAllByText("Reactive App").length).toBeGreaterThan(0);

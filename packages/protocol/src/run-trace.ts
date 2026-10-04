@@ -98,7 +98,7 @@ const SAFE_TRACE_ATTRIBUTES = new Set([
   "gen_ai.system", "gen_ai.request.model", "gen_ai.response.model",
   "gen_ai.usage.input_tokens", "gen_ai.usage.output_tokens", "gen_ai.usage.total_tokens",
   "gen_ai.usage.cache_read_input_tokens", "gen_ai.usage.cache_creation_input_tokens", "gen_ai.usage.cost_usd",
-  "agent.kind", "agent.provider", "agent.model", "agent.tools_count", "agent.round", "agent.max_rounds",
+  "agent.kind", "agent.provider", "agent.model", "agent.tools_count", "agent.round", "agent.max_rounds", "agent.activity_id",
   "tool.name", "tool.module", "tool.argument_names", "tool.result_type", "tool.result_length",
   "capability.name", "capability.module", "generation.id", "generation.provider", "generation.model",
   "generation.kind", "render.id", "render.kind", "render.shot_count", "document.id", "app.id", "app.instance_id", "app.run_id", "app.operation_id", "app.origin",
@@ -107,9 +107,11 @@ const SAFE_TRACE_ATTRIBUTES = new Set([
   "nodetool.trace.dropped_events", "nodetool.trace.dropped_attributes", "nodetool.trace.dropped_links",
   "http.request.method", "http.response.status_code", "http.route", "url.scheme", "server.port",
   "error.type", "exception.type", "log.level", "log.source", "source", "level", "service.name", "service.version",
-  "telemetry.sdk.name", "telemetry.sdk.language", "telemetry.sdk.version", "run.id", "run.kind", "run.origin"
+  "telemetry.sdk.name", "telemetry.sdk.language", "telemetry.sdk.version", "run.id", "run.kind", "run.origin",
+  "nodetool.trace.source", "nodetool.trace.content_suppressed", "nodetool.trace.dropped_browser_spans",
+  "ui.widget.id", "ui.component", "ui.message.type", "ui.variable.id", "ui.input.source", "ui.input.missing", "app.execution.location"
 ]);
-const SAFE_SPAN_NAMES = /^(?:app\.run|chat\.turn|script\.run|workflow\.run|node\.process|capability\.call|generation|render|agent\.(?:loop|round|execute|plan|step)|tool\.call|llm\.(?:chat|stream)(?: [a-zA-Z0-9_./:-]+)?|HTTP (?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)|(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)(?: \/[a-zA-Z0-9_/:.-]*)?)$/;
+const SAFE_SPAN_NAMES = /^(?:ui\.(?:action|resolve_params|fold|widget_error)|app\.run|chat\.turn|script\.run|workflow\.run|node\.process|capability\.call|generation|render|agent\.(?:loop|round|execute|plan|step)|tool\.call|llm\.(?:chat|stream)(?: [a-zA-Z0-9_./:-]+)?|HTTP (?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)|(?:GET|POST|PUT|PATCH|DELETE|HEAD|OPTIONS)(?: \/[a-zA-Z0-9_/:.-]*)?)$/;
 const SAFE_EVENT_NAMES = new Set(["content.event", "log", "console", "agent.activity", "tool.result", "exception", "ui.resolve_params", "ui.fold"]);
 
 /** Unknown attributes are content until their metadata purpose is declared here. */

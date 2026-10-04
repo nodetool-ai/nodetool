@@ -2,6 +2,7 @@ import { randomBytes } from "node:crypto";
 import { and, asc, eq, gt, inArray, isNotNull, isNull, like, sql, type SQL } from "drizzle-orm";
 import {
   TRACE_CONTENT_KEYS, isTraceContentKey, TRACE_CONTENT_BYTE_LIMIT, TRACE_EVENT_LIMIT, TRACE_SPAN_LIMIT, TRACE_STRING_LIMIT,
+  BROWSER_TRACE_SOURCE_KEY, BROWSER_TRACE_CLOSE_WINDOW_MS,
   recombineTraceRecord, runTraceParentSchema, runTraceRegistrationSchema,
   runTraceUpdateSchema, splitTraceRecord,
   type RunTraceParent, type RunTraceRegistration, type RunTraceUpdate,
@@ -23,20 +24,38 @@ export interface RunTraceSanitizationOptions {
   secretValues?: readonly string[] | ReadonlySet<string>;
   public?: boolean;
   contentSuppressed?: boolean;
+  /** Trusted ingest host requests immutable browser inserts under the trace lock. */
+  browserOnly?: boolean;
 }
 
 type SanitizedTraceValue = string | number | boolean | null | SanitizedTraceValue[] | { [key: string]: SanitizedTraceValue };
+const TRACE_MEDIA_TYPES = new Set(["image", "audio", "video", "model3d"]);
+function containsInlineTraceMedia(value: unknown, depth = 0): boolean {
+  if (typeof value !== "object" || value === null || depth > 10) { return false; }
+  if ("type" in value && (value.type === "Buffer" || (typeof value.type === "string" && TRACE_MEDIA_TYPES.has(value.type) && "data" in value))) { return true; }
+  return Object.values(value).slice(0, 1_000).some((entry) => containsInlineTraceMedia(entry, depth + 1));
+}
 function sanitizeValue(value: unknown, secrets: readonly string[], depth = 0): SanitizedTraceValue {
-  if (typeof value === "string") { return redactErrorText(value, { secretValues: secrets }).slice(0, TRACE_STRING_LIMIT); }
+  if (typeof value === "string") {
+    let text = value;
+    if (depth <= 10 && value.length <= TRACE_CONTENT_BYTE_LIMIT && /^\s*[[{]/.test(value)) {
+      try {
+        const parsed: unknown = JSON.parse(value);
+        if (containsInlineTraceMedia(parsed)) { text = JSON.stringify(sanitizeValue(parsed, secrets, depth + 1)); }
+      } catch { /* Ordinary output text remains text. */ }
+    }
+    return redactErrorText(text, { secretValues: secrets }).slice(0, TRACE_STRING_LIMIT);
+  }
   if (typeof value === "number") { return Number.isFinite(value) ? value : null; }
   if (typeof value === "boolean" || value === null) { return value; }
   if (depth > 10 || value instanceof ArrayBuffer || ArrayBuffer.isView(value)) { return "[omitted]"; }
   if (Array.isArray(value)) { return value.slice(0, 1_000).map((entry) => sanitizeValue(entry, secrets, depth + 1)); }
   if (typeof value === "object" && value !== null) {
     if ("type" in value && value.type === "Buffer") { return "[omitted:media]"; }
+    const media = "type" in value && typeof value.type === "string" && TRACE_MEDIA_TYPES.has(value.type);
     return Object.fromEntries(Object.entries(value).slice(0, 1_000).map(([key, entry]) => [
       redactErrorText(key, { secretValues: secrets }).slice(0, 200),
-      /^(?:password|api[_-]?key|authorization|cookie|secret|access[_-]?token|refresh[_-]?token)$/i.test(key)
+      media && key === "data" ? "[omitted:media]" : /^(?:password|api[_-]?key|authorization|cookie|secret|access[_-]?token|refresh[_-]?token)$/i.test(key)
         ? "[REDACTED:secret]" : sanitizeValue(entry, secrets, depth + 1)
     ]));
   }
@@ -347,6 +366,30 @@ function groupedTraceParents(root: TraceRow, run: TraceRow): Map<RunTraceParent[
   }
   return groups;
 }
+function validateBrowserInsert(run: TraceRow, record: TraceRecord, rows: ReadonlyArray<Pick<SpanRow, "span_id" | "metadata">>): boolean {
+  if (run.origin === "public" || record.resource[BROWSER_TRACE_SOURCE_KEY] !== "browser" || record.span_id === run.root_span_id) {
+    throw new RunTraceError("invalid_input", "Browser span conflicts with execution provenance");
+  }
+  if (run.ended_at && Date.parse(run.ended_at) < Date.now() - BROWSER_TRACE_CLOSE_WINDOW_MS) {
+    throw new RunTraceError("invalid_input", "Browser span submission window closed");
+  }
+  const existing = rows.find((row) => row.span_id === record.span_id);
+  if (existing) {
+    if (existing.metadata.resource[BROWSER_TRACE_SOURCE_KEY] !== "browser") {
+      throw new RunTraceError("conflict", "Browser span cannot overwrite a server span");
+    }
+    return false;
+  }
+  const parents = new Map(rows.map((row) => [row.span_id, row.metadata.parent_span_id]));
+  parents.set(record.span_id, record.parent_span_id);
+  const visited = new Set<string>();
+  let id: string | null | undefined = record.span_id;
+  while (id) {
+    if (visited.has(id)) { throw new RunTraceError("invalid_input", "Cyclic browser span ancestry"); }
+    visited.add(id); id = parents.get(id);
+  }
+  return true;
+}
 /** Atomically merge and sanitize the latest complete span under its canonical trace lock. */
 export async function writeRunTraceUpdate(userId: string, runId: string, update: RunTraceUpdate, options: RunTraceSanitizationOptions & { isRoot?: boolean } = {}): Promise<StoredRunTraceUpdate | null> {
   const run = await getRunTrace(userId, runId); if (!run) { return null; }
@@ -385,6 +428,10 @@ export async function writeRunTraceUpdate(userId: string, runId: string, update:
         }
       }
       const existing = tx.select().from(s).where(and(eq(s.trace_id, run.trace_id), eq(s.span_id, update.record.span_id))).get();
+      if (options.browserOnly) {
+        const ancestry = tx.select({ span_id: s.span_id, metadata: s.metadata }).from(s).where(and(eq(s.trace_id, run.trace_id), eq(s.user_id, userId))).all();
+        if (!validateBrowserInsert(current, update.record, ancestry)) { return null; }
+      }
       const planned = planWrite(root, existing, current, update, options);
       if (!planned) { tx.update(t).set({ truncated: 1 }).where(eq(t.trace_id, run.trace_id)).run(); return null; }
       if (options.isRoot && !current.root_span_id) {
@@ -430,6 +477,10 @@ export async function writeRunTraceUpdate(userId: string, runId: string, update:
       }
     }
     const [existing] = await tx.select().from(s).where(and(eq(s.trace_id, run.trace_id), eq(s.span_id, update.record.span_id)));
+    if (options.browserOnly) {
+      const ancestry = await tx.select({ span_id: s.span_id, metadata: s.metadata }).from(s).where(and(eq(s.trace_id, run.trace_id), eq(s.user_id, userId)));
+      if (!validateBrowserInsert(current, update.record, ancestry)) { return null; }
+    }
     const planned = planWrite(root, existing, current, update, options);
     if (!planned) { await tx.update(t).set({ truncated: 1 }).where(eq(t.trace_id, run.trace_id)); return null; }
     if (options.isRoot && !current.root_span_id) {

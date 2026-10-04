@@ -15,10 +15,12 @@ import {
   listAppRuns,
   publishApplication,
   reserveAppRun,
+  registerRunTrace,
+  listRunTraceRecords,
   setApplicationBudget
 } from "@nodetool-ai/models";
 import * as models from "@nodetool-ai/models";
-import { ProcessingContext } from "@nodetool-ai/runtime";
+import { ProcessingContext, getTracer, flushTelemetry } from "@nodetool-ai/runtime";
 import type { AppRunRecord } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
 import {
   WebSocketClientSession,
@@ -178,7 +180,10 @@ async function waitCompleted(id: string) {
 
 describe("durable app workflow transport", () => {
   it("executes the frozen graph under reserved identity and commits outputs before its terminal frame", async () => {
+    expect(getTracer()).toBeNull();
     const { instance, run } = await reservedRun();
+    await registerRunTrace("u1", { kind: "app", id: run.id, sourceId: run.id, traceId: run.trace_id, origin: "ui", parents: [{ kind: "app_run", id: run.id }, { kind: "instance", id: instance.id }] });
+    const browserParentId = "c".repeat(16);
     const observations: Array<{
       value: unknown;
       context: ProcessingContext;
@@ -200,6 +205,7 @@ describe("durable app workflow transport", () => {
     const request = {
       job_id: run.invocation_id,
       app_run_id: run.id,
+      traceparent: `00-${run.trace_id}-${browserParentId}-01`,
       instance_id: instance.id,
       operation_id: "op",
       graph: graph("tampered"),
@@ -226,6 +232,9 @@ describe("durable app workflow transport", () => {
         __app_outputs: { "older:slot": "keep", "op:out": "frozen" }
       }
     });
+    await flushTelemetry();
+    const appRoot = (await listRunTraceRecords("u1", run.id)).records.find((update) => update.record.name === "app.run");
+    expect(appRoot?.record.parent_span_id).toBe(browserParentId);
     await session.handleCommand({ command: "run_job", data: request });
     expect(observations).toHaveLength(1);
     expect((await getAppRun("u1", run.id))?.status).toBe("completed");

@@ -3,6 +3,8 @@ import {
   and,
   desc,
   eq,
+  ne,
+  or,
   isNotNull,
   like,
   lt,
@@ -13,6 +15,7 @@ import {
   type AnyColumn
 } from "drizzle-orm";
 import { randomBytes } from "node:crypto";
+import { BROWSER_APP_RUNNER_INSTANCE } from "@nodetool-ai/protocol";
 import {
   appInstanceResponse,
   appRunResponse,
@@ -1846,7 +1849,7 @@ export async function sweepInterruptedAppRuns(
           eq(t.runner_instance, runnerInstance),
           lt(t.execution_started_at, processStartIso)
         )
-      : lt(t.created_at, processStartIso)
+      : and(lt(t.created_at, processStartIso), or(isNull(t.runner_instance), ne(t.runner_instance, BROWSER_APP_RUNNER_INSTANCE)))
   );
   const condition = and(isNotNull(t.instance_id), interrupted);
   const patch = {

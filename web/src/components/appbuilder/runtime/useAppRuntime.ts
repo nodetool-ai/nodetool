@@ -50,7 +50,8 @@ import {
 import { graph as workflowGraph } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { jsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import { useAppInstance } from "./useAppInstance";
-import { getAppRun, reserveAppRun, updateAppRun } from "./appInstanceApi";
+import { getAppRun, reserveAppRun, startBrowserAppRun, updateAppRun } from "./appInstanceApi";
+import { BrowserRunTrace, traceValuePreview } from "../../../lib/browserRunTrace";
 import { usesStreamInputContract } from "@nodetool-ai/node-sdk/code-body";
 import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 
@@ -116,7 +117,7 @@ interface OperationRuntime {
 interface ReactiveRunState {
   jobId: string;
   inFlight: boolean;
-  pending: BindingRef | null;
+  pending: { trigger: BindingRef; widgetId?: string } | null;
   hasRunFull: boolean;
 }
 
@@ -459,6 +460,18 @@ export const useAppRuntime = (
   // contamination fix.
   const ownedRef = useRef(new Map<string, InvocationState>());
   const appRunsRef = useRef(new Map<string, string>());
+  const browserTracesRef = useRef(new Map<string, BrowserRunTrace>());
+  const rememberBrowserTrace = useCallback((id: string, recorder: BrowserRunTrace) => {
+    const traces = browserTracesRef.current;
+    traces.set(id, recorder);
+    const completed = [...new Set(traces.values())].filter((trace) => trace.isFinished && trace !== recorder);
+    for (const trace of completed.slice(0, Math.max(0, completed.length - 20))) {
+      trace.dispose();
+      for (const [key, candidate] of traces) {
+        if (candidate === trace) { traces.delete(key); }
+      }
+    }
+  }, []);
   const serverRunsRef = useRef(new Set<string>());
   const dispatchedRunsRef = useRef(new Set<string>());
   const runOutputsRef = useRef(
@@ -511,6 +524,9 @@ export const useAppRuntime = (
             );
           }
         }
+        await browserTracesRef.current.get(invocationId)?.finish(
+          status === "completed" ? undefined : new Error(error ?? status)
+        );
       } catch (failure) {
         store.getState().dispatchEvent({
           type: "invocationError",
@@ -522,6 +538,9 @@ export const useAppRuntime = (
     [store]
   );
   useEffect(() => {
+    const traces = browserTracesRef.current;
+    for (const trace of new Set(traces.values())) { trace.dispose(); }
+    traces.clear();
     ownedRef.current.clear();
     appRunsRef.current.clear();
     runOutputsRef.current.clear();
@@ -534,6 +553,12 @@ export const useAppRuntime = (
       clearTimeout(timer);
     }
     timersRef.current.clear();
+    return () => {
+      for (const trace of new Set(traces.values())) {
+        void trace.closeMetadata(new Error("App instance closed"));
+      }
+      traces.clear();
+    };
   }, [store]);
   // A logical invocation is reserved before the runner performs any async
   // work. The runner returns its transport job id later, so both ids point at
@@ -577,6 +602,9 @@ export const useAppRuntime = (
 
   const fold = useCallback(
     (message: MsgpackData) => {
+      const transportId = "job_id" in message && typeof message.job_id === "string" ? message.job_id : undefined;
+      const recorder = transportId ? browserTracesRef.current.get(transportId) : undefined;
+      const foldSpan = recorder?.startSpan("ui.fold", { "ui.message.type": message.type });
       const events = messageToEvents(message as Record<string, unknown>, {
         resolveInvocation: (jobId) =>
           jobId ? (ownedRef.current.get(jobId) ?? null) : null,
@@ -596,6 +624,9 @@ export const useAppRuntime = (
         }
       });
       for (const event of events) {
+        if (event.type === "setVariable") {
+          foldSpan?.event("ui.fold", { "ui.variable.id": event.variableId, "ui.resolved.value": traceValuePreview(event.value) });
+        }
         const invocationId =
           "invocationId" in event ? event.invocationId : undefined;
         const captured = invocationId
@@ -634,6 +665,7 @@ export const useAppRuntime = (
           void settleRun(event.invocationId, event.status, event.error);
         }
       }
+      foldSpan?.end();
     },
     [clearTimeoutTimer, outputKey, settleRun, store]
   );
@@ -794,6 +826,8 @@ export const useAppRuntime = (
       const reserved = reservationId
         ? ownedRef.current.get(reservationId)
         : undefined;
+      const currentState = store.getState();
+      const previouslyActive = currentState.invocations[currentState.activeInvocation[operationId]];
       const invocation: InvocationState = reserved
         ? {
             ...reserved,
@@ -823,6 +857,8 @@ export const useAppRuntime = (
         if (appRunId) {
           appRunsRef.current.set(jobId, appRunId);
         }
+        const recorder = browserTracesRef.current.get(reservationId);
+        if (recorder) { browserTracesRef.current.set(jobId, recorder); }
         transportIdsRef.current.set(reservationId, jobId);
         ownedRef.current.set(reservationId, invocation);
         persistenceRef.current.serverFold(() =>
@@ -830,7 +866,7 @@ export const useAppRuntime = (
             type: "runStarted",
             invocation,
             outputKeys: [],
-            variableKeys: reserved?.variableKeys ?? []
+            variableKeys: isLiveInvocation(invocation) ? reserved?.variableKeys ?? [] : []
           })
         );
         if (reservationId !== jobId) {
@@ -844,6 +880,9 @@ export const useAppRuntime = (
         // Keep the reservation cancelled and stop the provider job as soon as
         // its id becomes available instead of admitting it as a live run.
         if (!isLiveInvocation(invocation)) {
+          if (previouslyActive && previouslyActive.id !== reservationId && previouslyActive.id !== jobId) {
+            store.getState().dispatchEvent({ type: "runStarted", invocation: previouslyActive, outputKeys: [] });
+          }
           pendingRef.current.delete(jobId);
           void stopJob(reservationId);
           return;
@@ -873,6 +912,17 @@ export const useAppRuntime = (
                       )
                   )
               : []
+        });
+      }
+
+      const recorder = browserTracesRef.current.get(jobId);
+      if (recorder) {
+        const existing = store.getState().runReferences[operationId];
+        store.getState().setRunReference(operationId, {
+          runId: recorder.options.runId,
+          traceId: recorder.options.traceId,
+          invocationId: jobId,
+          traceIncomplete: existing?.runId === recorder.options.runId && existing.traceIncomplete
         });
       }
 
@@ -1025,7 +1075,7 @@ export const useAppRuntime = (
   }, [designMode, workflowIdsKey]);
 
   const run = useCallback(
-    async (operationId: string) => {
+    async (operationId: string, widgetId?: string) => {
       if (designMode) return;
       const entry = operationRuntimesRef.current.get(operationId);
       if (!entry) {
@@ -1052,17 +1102,33 @@ export const useAppRuntime = (
         await persistenceHandle.flush();
         const instance = selectedInstance;
         if (instance) {
-          appRunId = await reserveAppRun(
+          const reserved = await reserveAppRun(
             instance.id,
             operationId,
             reservationId
           );
+          appRunId = reserved.id;
           if (currentStoreRef.current !== store) {
             await updateAppRun(appRunId, { status: "cancelled" });
             return;
           }
           appRunsRef.current.set(reservationId, appRunId);
           serverRunsRef.current.add(reservationId);
+          const recorder = new BrowserRunTrace({
+            runId: reserved.id, traceId: reserved.trace_id,
+            instanceId: instance.id, operationId,
+            widgetId,
+            onLostBatch: () => {
+              const reference = store.getState().runReferences[operationId];
+              if (reference?.runId === reserved.id) {
+                store.getState().setRunReference(operationId, { ...reference, traceIncomplete: true });
+              }
+            }
+          });
+          rememberBrowserTrace(reservationId, recorder);
+          store.getState().setRunReference(operationId, {
+            runId: reserved.id, traceId: reserved.trace_id, invocationId: reservationId
+          });
         }
       } catch (error) {
         failInvocation(
@@ -1092,6 +1158,7 @@ export const useAppRuntime = (
       // Capture the action's inputs before a queue wait. Later widget edits
       // belong to later actions, not to this already-admitted one.
       let params: Record<string, unknown>;
+      const resolveSpan = browserTracesRef.current.get(reservationId)?.startSpan("ui.resolve_params");
       try {
         params = resolveOperationParams({
           operation: entry.operation,
@@ -1102,7 +1169,17 @@ export const useAppRuntime = (
           resourceRef: (resourceBindingId) =>
             selectedResources.get(resourceBindingId)
         });
+        for (const input of entry.io.inputs) {
+          resolveSpan?.event("ui.resolve_params", {
+            "ui.input.name": input.name,
+            "ui.input.source": entry.operation.inputs[input.nodeId]?.from ?? "input",
+            "ui.resolved.value": traceValuePreview(params[input.name]),
+            "ui.input.missing": params[input.name] === undefined
+          });
+        }
+        resolveSpan?.end();
       } catch (error) {
+        resolveSpan?.end(error);
         failInvocation(
           operationId,
           error instanceof Error ? error.message : String(error),
@@ -1186,7 +1263,8 @@ export const useAppRuntime = (
             appRunId
               ? {
                   app_run_id: appRunId,
-                  instance_id: persistenceRef.current.instance?.id
+                  instance_id: selectedInstance?.id,
+                  traceparent: browserTracesRef.current.get(reservationId)?.traceparent
                 }
               : undefined
           );
@@ -1231,6 +1309,7 @@ export const useAppRuntime = (
         runOptions.appRunId = appRunId;
         runOptions.instanceId = selectedInstance?.id;
         runOptions.invocationId = reservationId;
+        runOptions.traceparent = browserTracesRef.current.get(reservationId)?.traceparent;
       }
       awaitingJobRef.current += 1;
       try {
@@ -1247,6 +1326,9 @@ export const useAppRuntime = (
           undefined,
           runOptions
         );
+        if (currentStoreRef.current !== store || !mountedRef.current) {
+          return;
+        }
         if (appRunId) {
           dispatchedRunsRef.current.add(jobId);
         }
@@ -1272,6 +1354,7 @@ export const useAppRuntime = (
       designMode,
       failInvocation,
       mountedRef,
+      rememberBrowserTrace,
       reserveInvocation,
       scriptRunner,
       store
@@ -1290,24 +1373,22 @@ export const useAppRuntime = (
 
   // Reactive trigger: recompute only the subgraph downstream of a bound input.
   // Runs are coalesced per operation — one in flight, latest value wins — and
-  // reuse a single job id so a scrub upserts one live result instead of
-  // flooding new ones. No runner-state toggling: a slider scrub is a live
-  // update, not a "run", so the UI never flashes "Running…".
+  // retain the latest output while each actual invocation has its own identity.
   const reactiveRef = useRef(new Map<string, ReactiveRunState>());
   const reactiveRunRef = useRef<
-    (operationId: string, trigger: BindingRef) => void
+    (operationId: string, trigger: BindingRef, widgetId?: string) => void
   >(() => {});
   useEffect(() => {
     reactiveRef.current.clear();
-  }, [workflowIdsKey]);
+  }, [store, workflowIdsKey]);
 
   const reactiveRun = useCallback(
-    (operationId: string, trigger: BindingRef) => {
+    (operationId: string, trigger: BindingRef, widgetId?: string) => {
       if (designMode) return;
       const entry = operationRuntimesRef.current.get(operationId);
       const target = entry?.workflow;
       if (!entry || !target) {
-        void run(operationId);
+        void run(operationId, widgetId);
         return;
       }
       let reactive = reactiveRef.current.get(operationId);
@@ -1352,12 +1433,12 @@ export const useAppRuntime = (
       // reuse those caches and only recompute the downstream subgraph.
       if (!reactive.hasRunFull) {
         reactive.hasRunFull = true;
-        void run(operationId);
+        void run(operationId, widgetId);
         return;
       }
 
       if (reactive.inFlight) {
-        reactive.pending = trigger;
+        reactive.pending = { trigger, widgetId };
         return;
       }
       const sub = buildTriggerSubgraph(
@@ -1371,47 +1452,80 @@ export const useAppRuntime = (
       // server-only compute tail, an effectful node the reactive gate refuses)
       // — fall back to a full authoritative run.
       if (!sub) {
-        void run(operationId);
+        void run(operationId, widgetId);
         return;
       }
       reactive.inFlight = true;
-      if (!ownedRef.current.has(reactive.jobId)) {
-        claimInvocation(operationId, reactive.jobId, false);
-      }
-      const jobId = reactive.jobId;
+      const jobId = crypto.randomUUID();
+      reactive.jobId = jobId;
+      claimInvocation(operationId, jobId, false);
       void (async () => {
+        let browserExecutionParent: string | undefined;
         await persistenceRef.current.flush();
         const instance = persistenceRef.current.instance;
         if (instance) {
-          const appRunId = await reserveAppRun(
+          const reserved = await reserveAppRun(
             instance.id,
             operationId,
             `browser-${crypto.randomUUID()}`
           );
+          const appRunId = reserved.id;
           if (currentStoreRef.current !== store) {
             await updateAppRun(appRunId, { status: "cancelled" });
             return;
           }
           appRunsRef.current.set(jobId, appRunId);
+          const recorder = new BrowserRunTrace({
+            runId: appRunId, traceId: reserved.trace_id, instanceId: instance.id, operationId, widgetId,
+            onLostBatch: () => {
+              const reference = store.getState().runReferences[operationId];
+              if (reference?.runId === appRunId) {
+                store.getState().setRunReference(operationId, { ...reference, traceIncomplete: true });
+              }
+            }
+          });
+          rememberBrowserTrace(jobId, recorder);
+          store.getState().setRunReference(operationId, { runId: appRunId, traceId: reserved.trace_id, invocationId: jobId });
           runOutputsRef.current.set(jobId, { variables: {}, outputs: {} });
-          await updateAppRun(appRunId, {
-            status: "running",
-            inputs: Object.fromEntries(
+          const resolveSpan = recorder.startSpan("ui.resolve_params");
+          const inputs = Object.fromEntries(
               entry.io.inputs.map((input) => [
                 input.name,
                 store.getState().inputs[
                   stateKey({ kind: "input", operationId, nodeId: input.nodeId })
                 ]?.value
               ])
-            )
+            );
+          for (const input of entry.io.inputs) {
+            resolveSpan.event("ui.resolve_params", {
+              "ui.input.name": input.name, "ui.input.source": "input",
+              "ui.resolved.value": traceValuePreview(inputs[input.name]),
+              "ui.input.missing": inputs[input.name] === undefined
+            });
+          }
+          resolveSpan.end();
+          await updateAppRun(appRunId, {
+            status: "running", inputs
           });
+          if (currentStoreRef.current !== store) {
+            await updateAppRun(appRunId, { status: "cancelled" });
+            return;
+          }
+          const root = await startBrowserAppRun(appRunId, recorder.traceparent);
+          browserExecutionParent = root.root_span_id;
+          if (currentStoreRef.current !== store) {
+            await updateAppRun(appRunId, { status: "cancelled" });
+            return;
+          }
         }
-        await runBrowserGraphJob({
+        const result = await runBrowserGraphJob({
           graph: sub.graph,
           workflowId: target.id,
-          jobId
+          jobId,
+          trace: browserTracesRef.current.get(jobId),
+          traceParentSpanId: browserExecutionParent
         });
-        await settleRun(jobId, "completed");
+        await settleRun(jobId, result.success ? "completed" : "failed", result.error);
       })()
         .catch((error) => {
           void settleRun(
@@ -1427,17 +1541,17 @@ export const useAppRuntime = (
         })
         .finally(() => {
           const current = reactiveRef.current.get(operationId);
-          if (!current) return;
+          if (current !== reactive) return;
           current.inFlight = false;
           const pending = current.pending;
           if (pending !== null) {
             current.pending = null;
             // Re-run from fresh store values — the slider has moved on.
-            reactiveRunRef.current(operationId, pending);
+            reactiveRunRef.current(operationId, pending.trigger, pending.widgetId);
           }
         });
     },
-    [claimInvocation, designMode, run, settleRun, store]
+    [claimInvocation, designMode, rememberBrowserTrace, run, settleRun, store]
   );
   reactiveRunRef.current = reactiveRun;
 
@@ -1464,7 +1578,7 @@ export const useAppRuntime = (
   );
 
   const dispatch = useCallback(
-    (action: AppAction) => {
+    (action: AppAction, source?: { widgetId: string }) => {
       if (designMode) return;
       switch (action.kind) {
         case "run": {
@@ -1478,9 +1592,9 @@ export const useAppRuntime = (
             "operationId" in trigger &&
             trigger.operationId === action.operationId
           ) {
-            reactiveRun(action.operationId, trigger);
+            reactiveRun(action.operationId, trigger, source?.widgetId);
           } else {
-            void run(action.operationId);
+            void run(action.operationId, source?.widgetId);
           }
           break;
         }
@@ -1556,6 +1670,20 @@ export const useAppRuntime = (
     []
   );
 
+  const reportWidgetError = useCallback((error: Error, component: string, binding?: string) => {
+    const ref = resolveBinding(binding, scope, "read");
+    const state = store.getState();
+    const invocationId = ref?.kind === "output"
+      ? state.outputs[stateKey(ref)]?.invocationId
+      : ref?.kind === "variable" ? state.variableWriters[ref.variableId] : undefined;
+    if (!invocationId) { return undefined; }
+    const recorder = browserTracesRef.current.get(invocationId);
+    if (!recorder) { return undefined; }
+    const id = recorder.recordWidgetError(error, component);
+    void recorder.flush();
+    return { trace_id: recorder.options.traceId, app_run_id: recorder.options.runId, span_id: id };
+  }, [scope, store]);
+
   // Widgets bound to a non-default operation need that operation's graph
   // surface, not the host workflow's.
   const ioFor = useCallback(
@@ -1584,7 +1712,8 @@ export const useAppRuntime = (
       dispatch,
       write,
       selectResource,
-      getNodeProperty
+      getNodeProperty,
+      reportWidgetError
     }),
     [
       store,
@@ -1602,7 +1731,8 @@ export const useAppRuntime = (
       dispatch,
       write,
       selectResource,
-      getNodeProperty
+      getNodeProperty,
+      reportWidgetError
     ]
   );
 };

@@ -1,6 +1,6 @@
 # App Runs, Instances and Run Observability — Design
 
-**Status:** Phase 3 implementation. Browser traces and trace/history UI remain planned.
+**Status:** Phase 4 implementation. Instance management and run history UI remain planned.
 **Implementation:** [Sub-agent plan](app-runs-implementation-plan.md)
 **Related:** [media-generation-tracking-design.md](media-generation-tracking-design.md), [mini-apps.md](mini-apps.md), [error-tracing.md](error-tracing.md), [harnesses.md § Observing agent execution](harnesses.md#observing-agent-execution)
 

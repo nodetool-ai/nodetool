@@ -13,6 +13,7 @@ import type { AppRunRecord } from "@nodetool-ai/protocol/api-schemas/app-runs.js
 import type { RunTraceParent } from "@nodetool-ai/protocol";
 import { ProcessingContext, withRunTrace, withSpan, getRunTraceScope, type RunTraceScope } from "@nodetool-ai/runtime";
 import { ensureRunTraceTelemetry } from "../run-trace-store.js";
+import { rememberBrowserTracePolicy } from "../browser-trace-policy.js";
 
 export interface RegisterTraceInput {
   readonly kind: "app" | "workflow" | "chat";
@@ -54,6 +55,7 @@ export async function registerContextRunTrace(context: ProcessingContext, input:
     if (parent) { await registerRunTraceParents(scope.userId, scope.runId, parent.parents); }
   }
   context.runTraceContext = scope;
+  rememberBrowserTracePolicy(scope);
   return scope;
 }
 
@@ -101,6 +103,7 @@ export async function withRegisteredRunTrace<T>(context: ProcessingContext, kind
 export async function settleRegisteredRunTrace(context: ProcessingContext, status: "completed" | "failed" | "cancelled", error?: string | null, costUsd?: number | null): Promise<void> {
   const scope = context.runTraceContext;
   if (scope) {
+    rememberBrowserTracePolicy(scope, true);
     if (status !== "completed") { trace.getActiveSpan()?.setStatus({ code: SpanStatusCode.ERROR }); }
     const outcome: Parameters<typeof settleRunTrace>[2] = { status, secretValues: context.getResolvedSecretValues(), contentSuppressed: scope.policy.contentSuppressed };
     if (costUsd !== undefined) { outcome.costUsd = costUsd; }
@@ -129,6 +132,7 @@ export async function openAppRunTrace(context: ProcessingContext, run: AppRunRec
     closed = true;
     span?.setStatus({ code: status === "completed" ? SpanStatusCode.OK : SpanStatusCode.ERROR });
     span?.end();
+    rememberBrowserTracePolicy(scope, true);
     const outcome: Parameters<typeof settleRunTrace>[2] = { status, secretValues: context.getResolvedSecretValues(), contentSuppressed: scope.policy.contentSuppressed };
     if (costUsd !== undefined) { outcome.costUsd = costUsd; }
     if (error) { outcome.error = scope.policy.contentSuppressed ? "Execution failed" : error; }

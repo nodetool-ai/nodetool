@@ -74,7 +74,8 @@ describe("WorkflowFormWidget", () => {
     await userEvent.type(screen.getByLabelText("Title"), "x");
 
     expect(value.dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: "run", operationId: DEFAULT_OPERATION_ID })
+      expect.objectContaining({ kind: "run", operationId: DEFAULT_OPERATION_ID }),
+      { widgetId: "form-1" }
     );
   });
 

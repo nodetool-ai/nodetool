@@ -10,6 +10,7 @@
  * forwards them.
  */
 
+import { randomUUID } from "node:crypto";
 import type { ProcessingContext, ProviderStreamItem } from "@nodetool-ai/runtime";
 import { trace } from "@opentelemetry/api";
 import { getRunTraceScope, withRunTrace, recordTraceEvent, getProviderStreamTrace, stringifyTraceContent } from "@nodetool-ai/runtime";
@@ -57,13 +58,14 @@ export function agentActivityReporter(
 ): AgentActivityReporter {
   const createdScope = context.runTraceContext ?? getRunTraceScope();
   const createdSpan = trace.getActiveSpan();
+  const activityId = randomUUID();
   return {
     event(item) {
       const attribution = getProviderStreamTrace(item);
       const scope = attribution?.scope ?? createdScope;
       if (scope) {
         const attributes: Record<string, unknown> = {
-          "node.id": nodeId, "log.source": "agent", "log.level": "info"
+          "node.id": nodeId, "agent.activity_id": activityId, "log.source": "agent", "log.level": "info"
         };
         if (isChunk(item) && !item.thinking && item.content_type !== "audio") { attributes["log.message"] = item.content; }
         if (isToolCall(item)) {
@@ -98,7 +100,7 @@ export function agentActivityReporter(
       const scope = context.runTraceContext ?? getRunTraceScope() ?? createdScope;
       if (scope) {
         withRunTrace(scope, () => recordTraceEvent("tool.result", {
-          "node.id": nodeId, "tool.name": call.name, "tool.call_id": call.id,
+          "node.id": nodeId, "agent.activity_id": activityId, "tool.name": call.name, "tool.call_id": call.id,
           "log.source": "agent", "log.level": isError ? "error" : "info",
           "tool.result": stringifyTraceContent(result).slice(0, RESULT_SUMMARY_CHARS)
         }, trace.getActiveSpan() ?? createdSpan));

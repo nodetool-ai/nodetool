@@ -374,6 +374,38 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "browser-run-spans",
+    title: "Browser run ownership, ancestry and restart check",
+    command: "npm run test --workspace=packages/websocket -- browser-run-spans-phase4 browser-app-run-phase4 app-runs-workflow",
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Run inspection phase 4",
+    selfcheck: {
+      command: "npm run test --workspace=packages/websocket -- browser-run-spans-phase4 browser-app-run-phase4 app-runs-workflow",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "run-inspection-ui",
+    title: "Stored trace, activity replay and browser recorder check",
+    command: "npm run test --workspace=web -- --runInBand --testPathPattern='browserRunTrace|browserWorkflowRunner|WorkflowRunner.test|TracePanel.test|TraceStore|useRuns|runTraceCache|appRunActivity|AgentActivityWidget|useWidgetRuntime|sketchPadWidget|workflowFormWidget|chatWidgets|mediaWidgets|buttonWidget|recorderWidgets|conditionalWidget|errorTraceReporting|ChatSurface.test|AskRunAgentButton|useAppRuntime|runJsScript.test'",
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Run inspection phase 4",
+    selfcheck: {
+      command: "npm run test --workspace=web -- --runInBand --testPathPattern='browserRunTrace|browserWorkflowRunner|WorkflowRunner.test|TracePanel.test|TraceStore|useRuns|runTraceCache|appRunActivity|AgentActivityWidget|useWidgetRuntime|sketchPadWidget|workflowFormWidget|chatWidgets|mediaWidgets|buttonWidget|recorderWidgets|conditionalWidget|errorTraceReporting|ChatSurface.test|AskRunAgentButton|useAppRuntime|runJsScript.test'",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "run-inspection-browser",
+    title: "Browser action ancestry and Trace/Logs reload journey",
+    command: "npm run test:journeys --workspace=web -- run-observability.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Run inspection phase 4"
+  },
+  {
     id: "app-build",
     title: "Mini-app build harness (spec→plan→author→check→run→judge)",
     command: "nodetool app build <prompt|spec.json> -p <provider> -m <model>",
@@ -1278,6 +1310,37 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/cli/src/app-debug/harness.ts",
       "packages/websocket/src/trpc/routers/runs.ts",
       "packages/websocket/src/lib/app-debug-service.ts"
+    ]
+  },
+  {
+    id: "run-inspection",
+    title: "Browser run ingestion and durable UI inspection",
+    harnesses: ["browser-run-spans", "run-inspection-ui", "run-inspection-browser"],
+    paths: [
+      "packages/protocol/src/browser-run-traces.ts",
+      "packages/execution/src/browser-app-run.ts",
+      "packages/execution/src/browser-run-spans.ts",
+      "packages/execution/src/browser-trace-policy.ts",
+      "packages/websocket/src/routes/run-spans.ts",
+      "packages/websocket/src/lib/test-ui-run-routes.ts",
+      "web/src/lib/browserRunTrace.ts",
+      "web/src/lib/workflow/browserWorkflowRunner.ts",
+      "web/src/components/panels/TracePanel.tsx",
+      "web/src/components/appbuilder/runtime/",
+      "web/src/components/appbuilder/AppRuntimeView.tsx",
+      "web/src/components/appbuilder/puck/useWidgetRuntime.ts",
+      "web/src/components/appbuilder/puck/conditionalWidget.tsx",
+      "web/src/components/workspace/ChatSurface.tsx",
+      "web/src/stores/ChatDraftStore.ts",
+      "web/src/components/appbuilder/puck/AgentActivityWidget.tsx",
+      "web/src/components/runs/",
+      "web/src/serverState/useRuns.ts",
+      "web/src/serverState/runTraceCache.ts",
+      "web/src/serverState/appRunActivity.ts",
+      "web/src/hooks/useAppOperationRun.ts",
+      "web/src/hooks/useRunInspection.ts",
+      "web/src/stores/TraceStore.ts",
+      "web/tests/journeys/run-observability.spec.ts"
     ]
   },
   {

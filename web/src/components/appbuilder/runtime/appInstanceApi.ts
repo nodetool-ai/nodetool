@@ -74,16 +74,16 @@ export const reserveAppRun = async (
   id: string,
   operationId: string,
   invocationId: string
-): Promise<string> =>
+): Promise<{ id: string; trace_id: string }> =>
   z
-    .object({ id: z.string() })
+    .object({ id: z.string(), trace_id: z.string().regex(/^[0-9a-f]{32}$/) })
     .parse(
       await request(
         `/api/app-instances/${encodeURIComponent(id)}/runs`,
         "POST",
         { operation_id: operationId, invocation_id: invocationId }
       )
-    ).id;
+    );
 
 export const updateAppRun = async (
   id: string,
@@ -91,6 +91,14 @@ export const updateAppRun = async (
 ): Promise<void> => {
   await request(`/api/app-runs/${encodeURIComponent(id)}`, "PATCH", body);
 };
+
+export const startBrowserAppRun = async (
+  id: string,
+  traceparent: string
+): Promise<{ root_span_id: string }> =>
+  z.object({ root_span_id: z.string().regex(/^[0-9a-f]{16}$/) }).parse(
+    await request(`/api/runs/${encodeURIComponent(id)}/browser-start`, "POST", { traceparent })
+  );
 
 export const getAppRun = async (
   id: string

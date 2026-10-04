@@ -51,7 +51,8 @@ export interface AppRuntimeContextValue {
   instanceError?: string;
   instanceId?: string;
   reloadInstance?: () => Promise<void>;
-  dispatch: (action: AppAction) => void;
+  dispatch: (action: AppAction, source?: { widgetId: string }) => void;
+  reportWidgetError?: (error: Error, component: string, binding?: string) => { trace_id: string; app_run_id: string; span_id: string } | undefined;
   /** Write a value through a resolved binding. */
   write: (ref: BindingRef, value: unknown) => void;
   /**

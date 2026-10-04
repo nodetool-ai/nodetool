@@ -55,6 +55,9 @@ export type ErrorTraceSeverity = (typeof ERROR_TRACE_SEVERITIES)[number];
  */
 export const ERROR_TRACE_CONTEXT_KEYS = [
   "job_id",
+  "trace_id",
+  "app_run_id",
+  "span_id",
   "workflow_id",
   "node_id",
   "node_type",

@@ -8,11 +8,14 @@
  * the agent.
  */
 import React from "react";
-import type { ConditionProps } from "@nodetool-ai/app-runtime";
+import { stateKey, type ConditionProps } from "@nodetool-ai/app-runtime";
 
 import { Box } from "../../ui_primitives";
+import PanelErrorBoundary from "../../common/PanelErrorBoundary";
 import {
   useAppRuntimeContext,
+  useBindingRef,
+  useRuntimeSelector,
   useCondition,
   useFormatted
 } from "../runtime/AppRuntimeContext";
@@ -41,20 +44,31 @@ export const withConditions = (
   Widget: React.ComponentType<WrappedWidgetProps>
 ): ((props: WrappedWidgetProps) => React.ReactElement) => {
   const Wrapped = (props: WrappedWidgetProps): React.ReactElement => {
-    const { designMode } = useAppRuntimeContext();
+    const { designMode, reportWidgetError } = useAppRuntimeContext();
     const visible = useCondition(props.visibleWhen, true);
     const disabled = useCondition(props.disabledWhen, false);
     const formatted = useFormatted(props.format);
+    const binding = typeof props.binding === "string" ? props.binding : undefined;
+    const ref = useBindingRef(binding, "read");
+    const producer = useRuntimeSelector((state) => ref?.kind === "output"
+      ? state.outputs[stateKey(ref)]?.invocationId
+      : ref?.kind === "variable" ? state.variableWriters[ref.variableId] : undefined);
 
     // Puck's render contract wants an element, never null.
     if (!visible && !designMode) return <></>;
 
     const widget = (
-      <Widget
-        {...props}
-        {...(formatted !== null ? { formattedValue: formatted } : {})}
-        {...(disabled ? { disabled: true } : {})}
-      />
+      <PanelErrorBoundary
+        panelName={`Widget ${props.id}`}
+        resetKey={producer ?? undefined}
+        onError={(error) => reportWidgetError?.(error, props.id, binding)}
+      >
+        <Widget
+          {...props}
+          {...(formatted !== null ? { formattedValue: formatted } : {})}
+          {...(disabled ? { disabled: true } : {})}
+        />
+      </PanelErrorBoundary>
     );
 
     if (visible && !disabled) return widget;

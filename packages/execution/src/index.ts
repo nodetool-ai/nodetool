@@ -144,3 +144,5 @@ export {
 } from "./service/run-trace-lifecycle.js";
 export type { RegisterTraceInput } from "./service/run-trace-lifecycle.js";
 export { listRuns, getRun, getRunTrace, getRunLogs, awaitRun, readRunUpdates, findRunForSource, RunsError } from "./runs.js";
+export { ingestBrowserRunSpans } from "./browser-run-spans.js";
+export { startBrowserAppRun, getBrowserAppRunRoot, finishBrowserAppRunTrace } from "./browser-app-run.js";

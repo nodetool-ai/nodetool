@@ -26,6 +26,14 @@ export function subscribeRunTraceUpdates(listener: RunTraceUpdateListener): () =
   return () => { listeners.delete(listener); };
 }
 
+/** Publish only records already committed and sanitized by the run store. */
+export function publishCommittedRunTraceUpdate(userId: string, update: StoredRunTraceUpdate): void {
+  for (const listener of listeners) {
+    try { listener(userId, update); }
+    catch { /* A disconnected reader cannot fail durable recording. */ }
+  }
+}
+
 const adapter: RunTraceStore = {
   lookup: getRegisteredTrace,
   sanitize: sanitizeRunTraceRecord,
@@ -48,10 +56,7 @@ const adapter: RunTraceStore = {
         }
       );
       if (!committed) { continue; }
-      for (const listener of listeners) {
-        try { listener(registration.user_id, committed); }
-        catch { /* A disconnected reader cannot fail durable recording. */ }
-      }
+      publishCommittedRunTraceUpdate(registration.user_id, committed);
     }
   },
   async markIncomplete(traceId, reason) {

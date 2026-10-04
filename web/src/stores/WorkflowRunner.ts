@@ -100,6 +100,7 @@ export const buildRunJobData = (opts: {
   appRunId?: string;
   instanceId?: string;
   invocationId?: string;
+  traceparent?: string;
 }): RunJobRequest & { settings?: Record<string, unknown>; job_id: string; concurrent?: boolean; graph: WorkflowGraph } => {
   const activeNodes: Node<NodeData>[] = [];
   const excludedNodeIds = new Set<string>();
@@ -141,6 +142,7 @@ export const buildRunJobData = (opts: {
     request.app_run_id = opts.appRunId;
     request.instance_id = opts.instanceId;
   }
+  if (opts.traceparent) { request.traceparent = opts.traceparent; }
   return request;
 };
 
@@ -157,6 +159,7 @@ export interface RunOptions {
   appRunId?: string;
   instanceId?: string;
   invocationId?: string;
+  traceparent?: string;
 }
 
 export type WorkflowRunner = {
@@ -551,7 +554,8 @@ export const createWorkflowRunnerStore = (
         application: options?.application,
         operationId: options?.operationId,
         appRunId: options?.appRunId,
-        instanceId: options?.instanceId
+        instanceId: options?.instanceId,
+        traceparent: options?.traceparent
       });
 
       if (queueRun) {
@@ -589,9 +593,9 @@ export const createWorkflowRunnerStore = (
       // to a server run. Explicitly resource-limited (subprocess) runs stay on
       // the server.
       let runsInBrowser = false;
-      if (resource_limits) {
+      if (resource_limits || options?.appRunId) {
         console.info(
-          `WorkflowRunner[${workflowId}]: ↪ server run (resource limits requested)`
+          `WorkflowRunner[${workflowId}]: ↪ server run (authoritative execution requested)`
         );
       } else {
         try {

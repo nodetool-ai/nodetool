@@ -18,8 +18,6 @@ import {
   Message,
   Chunk
 } from "./ApiTypes";
-import useTraceStore, { traceEventId } from "./TraceStore";
-import type { TraceEvent, TraceEventType } from "./TraceStore";
 import useWorkflowRunsStore, { RunState } from "./WorkflowRunsStore";
 import useResultsStore from "./ResultsStore";
 import useStatusStore, { type StatusValue } from "./StatusStore";
@@ -243,40 +241,6 @@ globalWebSocketManager.setResumeJobIdProvider(() => {
   return null;
 });
 
-// Active trace runs keyed by workflow and job. A workflow runner owns one
-// shared UI slot, but a workflow can have several queued/running jobs. Trace
-// routing is job-scoped, so every non-silent job needs its own run independent
-// of which job currently owns that slot.
-const traceRunIds = new Map<string, Map<string, string>>();
-
-const getTraceRunId = (
-  workflowId: string,
-  jobId: string
-): string | undefined => traceRunIds.get(workflowId)?.get(jobId);
-
-const setTraceRunId = (
-  workflowId: string,
-  jobId: string,
-  traceRunId: string
-): void => {
-  const workflowRuns = traceRunIds.get(workflowId) ?? new Map<string, string>();
-  workflowRuns.set(jobId, traceRunId);
-  traceRunIds.set(workflowId, workflowRuns);
-};
-
-const pruneTraceRunIds = (retainedRunIds: ReadonlySet<string>): void => {
-  for (const [workflowId, workflowRuns] of traceRunIds) {
-    for (const [jobId, traceRunId] of workflowRuns) {
-      if (!retainedRunIds.has(traceRunId)) {
-        workflowRuns.delete(jobId);
-      }
-    }
-    if (workflowRuns.size === 0) {
-      traceRunIds.delete(workflowId);
-    }
-  }
-};
-
 /**
  * Runs that already opened provider onboarding. A missing credential usually
  * fails every model node in the graph, and one dialog per run is the point —
@@ -330,54 +294,6 @@ const clearSawGenerationCompleteFor = (jobId: string): void => {
   }
 };
 
-/**
- * Append one event to the global TraceStore (the LLM/agent debug timeline shown
- * in the bottom "Debug" → Trace panel). No-ops unless a run is being recorded.
- * relativeMs is measured from the run's start so events line up on a shared axis.
- */
-const appendTrace = (
-  type: TraceEventType,
-  summary: string,
-  detail: unknown,
-  meta?: Pick<TraceEvent, "nodeId" | "nodeName" | "nodeType">,
-  scope?: { workflowId: string; jobId?: string }
-): void => {
-  const store = useTraceStore.getState();
-  const targetRun = scope
-    ? store.runs.find(
-        (run) =>
-          run.context?.workflowId === scope.workflowId &&
-          (!scope.jobId || run.context.jobId === scope.jobId)
-      )
-    : store.getActiveRun();
-  if (!store.isRecording || !targetRun) {
-    return;
-  }
-  const now = Date.now();
-  store.append(
-    {
-      id: traceEventId(),
-      timestamp: new Date(now).toISOString(),
-      relativeMs: now - new Date(targetRun.startTime).getTime(),
-      type,
-      summary,
-      detail,
-      ...meta
-    },
-    scope
-  );
-};
-
-const traceScope = (
-  workflowId: string,
-  jobId?: string
-): { workflowId: string; jobId?: string } => {
-  const scope: { workflowId: string; jobId?: string } = { workflowId };
-  if (jobId) {
-    scope.jobId = jobId;
-  }
-  return scope;
-};
 
 export const mergeNodeUpdateProperties = ({
   updateProperties,
@@ -551,7 +467,6 @@ export const subscribeToWorkflowUpdates = (
         unsubscribeJob = null;
       }
       workflowSubscriptions.delete(workflowId);
-      traceRunIds.delete(workflowId);
     }
   });
 
@@ -890,45 +805,9 @@ const handleJobUpdate = (
     // A new run starts: clear any prior pre-flight validation highlights
     // so stale red outlines don't linger after the user fixes them.
     usePropertyValidationStore.getState().clearWorkflow(workflow.id);
-    // Begin a fresh LLM/agent trace timeline for every job, not just the job
-    // occupying the workflow runner's singleton UI slot. Guard with the exact
-    // workflow/job pair so queued/running heartbeats cannot duplicate it.
-    const incomingTraceJobId = job.job_id;
-    const traceState = useTraceStore.getState();
-    const knownTraceRunId = incomingTraceJobId
-      ? getTraceRunId(workflow.id, incomingTraceJobId)
-      : undefined;
-    const hasTraceRun =
-      knownTraceRunId !== undefined &&
-      traceState.runs.some((run) => run.id === knownTraceRunId);
-    if (!silentJob && incomingTraceJobId && !hasTraceRun) {
-      // A concurrent/background run must not replace the run the user is
-      // inspecting. Runner-owned jobs follow the latest run only while the
-      // selection still follows the active run; a manual selection is sticky.
-      const select =
-        traceState.selectedRunId === null ||
-        (isRunnerJob && !traceState.isSelectionPinned);
-      traceState.startRun(
-        new Date().toISOString(),
-        {
-          workflowId: workflow.id,
-          workflowName: workflow.name,
-          jobId: incomingTraceJobId
-        },
-        { select }
-      );
-      const retainedTraceRuns = useTraceStore.getState().runs;
-      const newTraceRunId = retainedTraceRuns[0]?.id;
-      if (newTraceRunId) {
-        setTraceRunId(workflow.id, incomingTraceJobId, newTraceRunId);
-        pruneTraceRunIds(new Set(retainedTraceRuns.map((run) => run.id)));
-      }
-      // A fresh run gets a fresh chance to surface a credential problem.
-      authPromptedRuns.delete(incomingTraceJobId);
-      // Clear the saw-generation_complete flags for this incoming job so a
-      // reused jobId can't poison the next run's node_update{completed}
-      // fallback (a stale flag would suppress a legitimate synthesis).
-      clearSawGenerationCompleteFor(incomingTraceJobId);
+    if (!silentJob && job.job_id && !useWorkflowRunsStore.getState().hasRun(workflow.id, job.job_id)) {
+      authPromptedRuns.delete(job.job_id);
+      clearSawGenerationCompleteFor(job.job_id);
     }
   }
 
@@ -1124,17 +1003,6 @@ const reportNodeError = (
     errorLog.jobId = jobId;
   }
   useLogsStore.getState().appendLog(errorLog);
-  appendTrace(
-    "node_error",
-    `${update.node_name || update.node_id} error`,
-    update,
-    {
-      nodeId: update.node_id,
-      nodeName: update.node_name,
-      nodeType: update.node_type
-    },
-    traceScope(workflow.id, jobId)
-  );
 };
 
 /**
@@ -1169,17 +1037,6 @@ const recordNodeProgress = (
     const timeStore = useExecutionTimeStore.getState();
     if (active && !wasActive) {
       timeStore.startExecution(workflow.id, jobId, update.node_id);
-      appendTrace(
-        "node_start",
-        `${update.node_name || update.node_id}`,
-        update,
-        {
-          nodeId: update.node_id,
-          nodeName: update.node_name,
-          nodeType: update.node_type
-        },
-        traceScope(workflow.id, jobId)
-      );
     } else if (TERMINAL_NODE_STATUSES.has(update.status)) {
       timeStore.endExecution(workflow.id, jobId, update.node_id);
     }
@@ -1246,17 +1103,6 @@ const recordNodeProgress = (
       )
     });
   }
-  appendTrace(
-    "node_complete",
-    `${update.node_name || update.node_id}`,
-    update,
-    {
-      nodeId: update.node_id,
-      nodeName: update.node_name,
-      nodeType: update.node_type
-    },
-    traceScope(workflow.id, jobId)
-  );
 };
 
 /**
@@ -1444,13 +1290,6 @@ export const handleUpdate = (
           .getState()
           .setToolCall(workflow.id, messageJobId, data.node_id, data);
       }
-      appendTrace(
-        "tool_call",
-        data.message || `Tool: ${data.name}`,
-        data,
-        { nodeId: data.node_id ?? undefined },
-        traceScope(workflow.id, messageJobId)
-      );
       break;
 
     case "tool_result_update":
@@ -1467,13 +1306,6 @@ export const handleUpdate = (
             data.result
           );
       }
-      appendTrace(
-        "tool_result",
-        `${data.name ?? "Tool"} result${data.is_error ? " (error)" : ""}`,
-        data,
-        { nodeId: data.node_id ?? undefined },
-        traceScope(workflow.id, messageJobId)
-      );
       break;
 
     case "task_update":
@@ -1486,56 +1318,12 @@ export const handleUpdate = (
       }
       break;
 
-    // Agent nodes emit step_result / todo_update during a run. The chat path
-    // handles these separately; in the workflow path they were previously
-    // dropped (step_result was even in the union with no branch). Record them
-    // on the trace timeline alongside tool_call/tool_result so an agent node's
-    // progress is observable in the editor.
-    case "step_result": {
-      const stepName = data.step?.name ?? data.step?.id ?? "";
-      appendTrace(
-        "step_result",
-        `Step ${stepName}${data.is_task_result ? " (task result)" : ""}${
-          data.error ? " — error" : ""
-        }`,
-        data,
-        undefined,
-        traceScope(workflow.id, messageJobId)
-      );
+    // Stored run events provide agent diagnostics. Processing messages keep
+    // driving runtime widgets rather than synthesizing another trace.
+    case "step_result":
+    case "todo_update":
+    case "llm_call":
       break;
-    }
-
-    case "todo_update": {
-      const todos = data.todos ?? [];
-      const done = todos.filter((t) => t.status === "completed").length;
-      appendTrace(
-        "todo_update",
-        `Todos ${done}/${todos.length}`,
-        data,
-        { nodeId: data.node_id ?? undefined },
-        traceScope(workflow.id, messageJobId)
-      );
-      break;
-    }
-
-    case "llm_call": {
-      const tokensIn = data.tokens_input ?? 0;
-      const tokensOut = data.tokens_output ?? 0;
-      const duration =
-        data.duration_ms != null ? ` (${data.duration_ms}ms)` : "";
-      appendTrace(
-        "llm_call",
-        `${data.provider}/${data.model}: ${
-          data.operation ? data.operation : `${tokensIn}→${tokensOut} tok`
-        }${duration}${
-          data.error ? " — error" : ""
-        }`,
-        data,
-        { nodeId: data.node_id, nodeName: data.node_name ?? undefined },
-        traceScope(workflow.id, messageJobId)
-      );
-      break;
-    }
 
     case "output_update": {
       const normalizedValue = normalizeOutputUpdateValue(data);
@@ -1611,13 +1399,6 @@ export const handleUpdate = (
         outputLog.jobId = messageJobId;
       }
       useLogsStore.getState().appendLog(outputLog);
-      appendTrace(
-        "output",
-        `${data.node_name || data.node_id} → ${data.output_name}`,
-        data,
-        { nodeId: data.node_id, nodeName: data.node_name },
-        traceScope(workflow.id, messageJobId)
-      );
       break;
     }
 

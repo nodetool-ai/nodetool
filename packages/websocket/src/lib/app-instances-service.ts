@@ -39,6 +39,7 @@ import { throwApiError } from "../trpc/error-formatter.js";
 import { loadOwnedApplication } from "./applications-service.js";
 import { cancelAppRun } from "./app-run-cancellation.js";
 import { jobRunRegistry } from "../job-run-registry.js";
+import { getBrowserAppRunRoot, finishBrowserAppRunTrace } from "@nodetool-ai/execution";
 
 export const patchAppRunInput = z
   .object({
@@ -263,6 +264,7 @@ export async function patchOwnedAppRun(
   input: z.infer<typeof patchAppRunInput>
 ) {
   const run = await getOwnedAppRun(userId, input.id);
+  const browserRoot = await getBrowserAppRunRoot(userId, run.id);
   if (
     run.execution_started_at &&
     run.status === "running" &&
@@ -277,7 +279,7 @@ export async function patchOwnedAppRun(
     await setAppRunInputs(userId, run.id, input.inputs);
   }
   if (input.status && input.status !== "running") {
-    if (run.execution_started_at && run.status === "running") {
+    if (run.execution_started_at && run.status === "running" && !browserRoot) {
       if (input.status === "cancelled") {
         if (cancelAppRun(userId, run.id)) {
           return getOwnedAppRun(userId, run.id);
@@ -305,13 +307,17 @@ export async function patchOwnedAppRun(
     }
     // Server workflow/script paths settle their measured charges. Browser
     // completion only closes a reservation with an unresolved cost estimate.
-    return settleAppRun(userId, run.id, {
+    const settled = await settleAppRun(userId, run.id, {
       status: input.status,
-      updateInstance: !run.execution_started_at,
+      updateInstance: !run.execution_started_at || Boolean(browserRoot),
       ...(input.outputs !== undefined && { outputs: input.outputs }),
       ...(input.documents !== undefined && { documents: input.documents }),
       ...(input.error !== undefined && { error: input.error })
     });
+    if (browserRoot && settled && settled.status !== "running") {
+      await finishBrowserAppRunTrace(userId, run.id, settled.status);
+    }
+    return settled;
   }
   return getOwnedAppRun(userId, run.id);
 }

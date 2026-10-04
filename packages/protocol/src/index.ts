@@ -50,6 +50,7 @@ export * from "./skill-document.js";
 export * from "./wasm-binary.js";
 export * from "./resource-id.js";
 export * from "./run-trace.js";
+export * from "./browser-run-traces.js";
 export * from "./game-assets.js";
 export * from "./game.js";
 export * from "./game3d.js";
