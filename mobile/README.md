@@ -2,7 +2,9 @@
 
 **Navigation**: [Root AGENTS.md](../AGENTS.md) → **Mobile README**
 
-React Native mobile application for running NodeTool Mini Apps and AI Chat.
+React Native companion app for NodeTool: run Mini Apps, chat with the
+assistant, follow jobs, and view the documents the desktop and web apps make.
+Editing workflows stays on desktop and web. See [AGENTS.md § Scope](AGENTS.md#scope).
 
 ## Features
 
@@ -12,10 +14,13 @@ React Native mobile application for running NodeTool Mini Apps and AI Chat.
   - Model selection (provider/model picker)
   - Auto-scroll and loading indicators
   - Stop generation support
-- **Mini Apps**: Browse and run workflows
-  - Configure server host URL
-  - Real-time workflow execution
-  - Support for text, number, and boolean inputs
+  - Inline previews: a sketch or timeline the assistant names draws in the
+    reply, with a chip that opens it
+- **Mini Apps**: the home screen. Browse and run apps with native widgets
+- **Jobs**: follow runs, with a local notification when one finishes in the
+  background
+- **Assets**: browse, upload from the camera or photo library, and view
+- **Documents**: edit storyboards, view timelines and sketches
 - Cross-platform support (iOS, Android, Web)
 
 ## Tech Stack
@@ -28,7 +33,7 @@ local state via Zustand v5, realtime via WebSocket + MsgPack, auth via Supabase
 
 ## Prerequisites
 
-- Node.js 22.22.1 (see the repo root `.nvmrc`; `nvm use`)
+- Node.js at the version in the repo root `.nvmrc` (`nvm use`)
 - npm
 - Expo CLI
 - For iOS: Xcode (macOS only)
@@ -100,17 +105,27 @@ mobile/
 │   │   │   ├── ChatMessageList.tsx # Message list
 │   │   │   ├── MessageView.tsx     # Individual message
 │   │   │   ├── ChatMarkdown.tsx    # Markdown renderer
+│   │   │   ├── InlineResourcePreview.tsx # Sketch/timeline preview + chip
 │   │   │   └── LoadingIndicator.tsx # Pulsating animation
-│   │   ├── properties/ # Input property components
+│   │   ├── app_runtime/ # Mini-app runtime and widgets
+│   │   ├── sketch/      # Sketch compositor
+│   │   ├── timeline/    # Timeline lanes drawing
 │   │   └── outputs/    # Output rendering components
+│   ├── documents/      # Storyboard, timeline, sketch documents + agent bridge
 │   ├── navigation/     # Navigation configuration + types
 │   ├── screens/        # App screens
-│   │   ├── WorkflowsListScreen.tsx  # List of workflows
-│   │   ├── GraphEditorScreen.tsx    # Chain-based graph editor
+│   │   ├── AppsScreen.tsx           # Mini apps, the home screen
+│   │   ├── AppScreen.tsx            # One mini app
 │   │   ├── ChatScreen.tsx           # AI Chat screen
+│   │   ├── ThreadsScreen.tsx        # Chat threads
 │   │   ├── AssetsScreen.tsx         # Asset browser
+│   │   ├── AssetViewerScreen.tsx    # One asset
 │   │   ├── JobsScreen.tsx           # Job history
-│   │   ├── TriggersScreen.tsx       # Trigger monitoring + arm/disarm
+│   │   ├── JobDetailScreen.tsx      # One job
+│   │   ├── DocumentsScreen.tsx      # Storyboards, timelines, sketches
+│   │   ├── StoryboardEditorScreen.tsx # Storyboard editor
+│   │   ├── TimelineViewerScreen.tsx # Timeline viewer, view only
+│   │   ├── SketchViewerScreen.tsx   # Sketch viewer, view only
 │   │   ├── LanguageModelSelectionScreen.tsx # Model picker
 │   │   ├── SettingsScreen.tsx       # Server settings
 │   │   └── LoginScreen.tsx          # Supabase / Google sign-in
@@ -122,7 +137,6 @@ mobile/
 │   ├── stores/         # State management (Zustand)
 │   │   ├── ChatStore.ts          # Chat state
 │   │   ├── WorkflowRunner.ts     # Workflow execution state
-│   │   ├── GraphEditorStore.ts   # Graph-editor chain state
 │   │   ├── MediaGenerationStore.ts # Image/video params
 │   │   ├── AuthStore.ts          # Auth/session state
 │   │   └── ThemeStore.ts         # Theme state
@@ -141,7 +155,7 @@ mobile/
    - View streaming AI responses with markdown formatting
    - Tap stop button to halt generation
    - Tap + to start a new conversation
-3. **Browse Mini Apps**: View the list of available workflows
+3. **Browse Mini Apps**: the app opens on the list of mini apps
 4. **Run a Mini App**:
    - Select a mini app from the list
    - Fill in the required inputs
@@ -258,8 +272,8 @@ Anything the scripts don't cover goes through the CLI directly, e.g.
 
 ### Build profiles
 
-`eas.json` profiles all extend `base`, which pins Node to 22.22.1 so cloud
-builds use the same version as the repo (`.nvmrc`):
+`eas.json` profiles all extend `base`, which pins Node to the version in the
+repo root `.nvmrc`, so cloud builds match local ones. Change both together:
 
 | Profile                  | Use                                                                         |
 | ------------------------ | --------------------------------------------------------------------------- |
@@ -272,6 +286,57 @@ builds use the same version as the repo (`.nvmrc`):
 
 `cli.appVersionSource` is `remote`, so EAS owns the build number; the
 `production` profile increments it on every build.
+
+### Release checklist
+
+Work through this list before the first store submission, and again for each
+release. The build and the submit cost EAS credits and publish the app, so they
+come last.
+
+1. **Version**: raise `expo.version` in `app.json` for every store release.
+   `runtimeVersion` follows it (`policy: appVersion`), so an OTA update never
+   reaches a binary built from another version. EAS owns the build number
+   (`appVersionSource: remote`) and the `production` profile increments it.
+2. **Identity**: the bundle id and Android package are both
+   `ai.nodetool.mobile`. `assets/icon.png`, `assets/adaptive-icon.png`, and
+   `assets/splash-icon.png` are 1024 x 1024. Replace them before release if
+   they are still placeholders.
+3. **Permissions**: every string in `app.json` must match a feature the build
+   ships. Camera and photos back the composer and Mini App capture
+   (`expo-image-picker`), the microphone and speech recognition back dictation
+   (`expo-speech-recognition`), and saving to the library backs
+   `utils/saveMedia.ts` (`expo-media-library`). Remove a string when its
+   feature goes.
+4. **Store listings**: name, subtitle, description, keywords, support URL,
+   marketing URL, and the privacy policy URL, in App Store Connect and the Play
+   Console.
+5. **Screenshots**: phone sizes for both stores. `ios.supportsTablet` is
+   `true`, so App Store Connect also asks for iPad screenshots. Turn it off if
+   the release is phone only. `scripts/screenshot-screens.mjs` gives a first
+   pass from the web build, but store screenshots come from a device or
+   simulator.
+6. **Privacy labels**: the App Store privacy details and the Play Data safety
+   form. Declare the account email (Supabase and Google sign-in), crash reports
+   (Sentry), user content sent to the server (chat, uploaded assets), and
+   audio used for on-device dictation.
+7. **Android declarations**: the Play Console asks why the app holds
+   `READ_MEDIA_IMAGES`, `READ_MEDIA_VIDEO`, and the media-playback foreground
+   service. Answer them or drop the permissions.
+8. **Review account**: a sign-in that works without a Google account, pointed
+   at a reachable server with a Mini App and a chat model ready. Both stores
+   reject an app they cannot get past the login screen of.
+9. **Submit config**: `submit.production` in `eas.json` is empty. Before a
+   non-interactive submit, add `ios.ascAppId` and
+   `android.serviceAccountKeyPath`, or run the first submit by hand so EAS
+   asks for them.
+10. **Build and submit**: `npm run build:production`, then
+    `npm run submit:production`. From CI, push a `mobile-v*` tag, which builds
+    and submits both platforms.
+
+Job notifications are local. `services/notifications.ts` posts one when a
+run finishes while the app is in the background, and its `nodetool://job/<id>`
+link opens the job. Remote push, which reaches a phone after the app was
+closed, is not built yet.
 
 ### Local Builds (Advanced)
 

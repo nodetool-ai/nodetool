@@ -101,7 +101,9 @@ describe('ChatStore agent tool wiring', () => {
     expect(manifest).toBeDefined();
     const names = manifest.tools.map((tool) => tool.name);
     expect(names).toContain('ui_storyboard_get_state');
-    expect(names).toContain('ui_timeline_get_state');
+    // Storyboards are the one kind mobile edits. Timelines, sketches, and
+    // every other kind are view only, so no edit tool for them is advertised.
+    expect(names.every((name) => name.startsWith('ui_storyboard_'))).toBe(true);
   });
 
   it('re-advertises on every open, so a reconnect does not lose the tools', async () => {

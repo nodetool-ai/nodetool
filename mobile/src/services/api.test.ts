@@ -46,7 +46,7 @@ function mockResponse({ ok, status, json, text }: MockResponseInit): Response {
 
 const mockFetch = jest.fn();
 
-describe('ApiService request (via getNodeMetadata)', () => {
+describe('ApiService request (via listApplications)', () => {
   beforeEach(() => {
     jest.clearAllMocks();
     global.fetch = mockFetch;
@@ -57,14 +57,12 @@ describe('ApiService request (via getNodeMetadata)', () => {
       mockResponse({ ok: true, status: 200, json: [{ node_type: 'a' }] })
     );
 
-    const result = await apiService.getNodeMetadata();
+    const result = await apiService.listApplications();
 
     expect(result).toEqual([{ node_type: 'a' }]);
     expect(mockFetch).toHaveBeenCalledTimes(1);
-    // `fields=full` is required: the server defaults to a slim summary that
-    // omits `properties` and `outputs`, which the chain editor dereferences.
     expect(mockFetch).toHaveBeenCalledWith(
-      'http://localhost:7777/api/nodes/metadata?fields=full',
+      'http://localhost:7777/api/applications',
       expect.objectContaining({ signal: expect.any(Object) })
     );
   });
@@ -74,7 +72,7 @@ describe('ApiService request (via getNodeMetadata)', () => {
       mockResponse({ ok: false, status: 404, text: 'not found' })
     );
 
-    await expect(apiService.getNodeMetadata()).rejects.toBeInstanceOf(ApiError);
+    await expect(apiService.listApplications()).rejects.toBeInstanceOf(ApiError);
     expect(mockFetch).toHaveBeenCalledTimes(1);
   });
 
@@ -83,7 +81,7 @@ describe('ApiService request (via getNodeMetadata)', () => {
       mockResponse({ ok: false, status: 400, text: 'bad input' })
     );
 
-    await expect(apiService.getNodeMetadata()).rejects.toMatchObject({
+    await expect(apiService.listApplications()).rejects.toMatchObject({
       status: 400,
       body: 'bad input',
     });
@@ -94,7 +92,7 @@ describe('ApiService request (via getNodeMetadata)', () => {
       .mockResolvedValueOnce(mockResponse({ ok: false, status: 503, text: 'down' }))
       .mockResolvedValueOnce(mockResponse({ ok: true, status: 200, json: [{ ok: 1 }] }));
 
-    const result = await apiService.getNodeMetadata();
+    const result = await apiService.listApplications();
 
     expect(result).toEqual([{ ok: 1 }]);
     expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -105,7 +103,7 @@ describe('ApiService request (via getNodeMetadata)', () => {
       .mockRejectedValueOnce(new TypeError('Network request failed'))
       .mockResolvedValueOnce(mockResponse({ ok: true, status: 200, json: [] }));
 
-    const result = await apiService.getNodeMetadata();
+    const result = await apiService.listApplications();
 
     expect(result).toEqual([]);
     expect(mockFetch).toHaveBeenCalledTimes(2);
@@ -116,7 +114,7 @@ describe('ApiService request (via getNodeMetadata)', () => {
       mockResponse({ ok: false, status: 500, text: 'boom' })
     );
 
-    await expect(apiService.getNodeMetadata()).rejects.toBeInstanceOf(ApiError);
+    await expect(apiService.listApplications()).rejects.toBeInstanceOf(ApiError);
     // initial attempt + MAX_RETRIES (2) = 3 calls
     expect(mockFetch).toHaveBeenCalledTimes(3);
   });

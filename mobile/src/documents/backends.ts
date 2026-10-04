@@ -1,22 +1,16 @@
 /**
  * Per-kind transport for reading and writing a document.
  *
- * Three of the five kinds ride the `resources.*` envelope, which carries a
- * numeric `revision` as its concurrency token. Scripts and JS scripts do not:
- * neither table has a `revision` column, so the `resources` provider cannot
- * represent one, and their own routers do the same job with
- * `baseUpdatedAt`. Rather than
- * migrate two schemas to unify the token, the store treats it as **opaque** —
- * a backend hands one out on read and echoes it back on write, and only the
- * backend knows whether it is a number or a timestamp.
- *
- * Both schemes are optimistic concurrency with the same contract: a write
- * carrying a stale token is rejected rather than applied.
+ * Every kind mobile opens rides the `resources.*` envelope, which carries a
+ * numeric `revision` as its concurrency token. The store still treats the
+ * token as **opaque** — a backend hands one out on read and echoes it back on
+ * write — so a kind with a different scheme can be added without touching the
+ * store. A write carrying a stale token is rejected rather than applied.
  */
 
 import { createMobileTRPCClient } from '../trpc/client';
 import type { DocumentKind, ResourceDocumentKind } from './kinds';
-import { isNumber, isString } from '../utils/typePredicates';
+import { isNumber } from '../utils/typePredicates';
 
 /** What a read or a write resolves to. `token` is only meaningful to the backend. */
 interface LoadedDocument<Doc = unknown> {
@@ -126,140 +120,10 @@ function resourcesBackend(
   };
 }
 
-/** The `scripts.*` router: token is `updated_at`, sent back as `baseUpdatedAt`. */
-function scriptsBackend(projectId: string | undefined): DocumentBackend {
-  return {
-    writable: true,
-    list: async () => {
-      const scripts = await createMobileTRPCClient().scripts.list.query(
-        projectId === undefined ? {} : { projectId }
-      );
-      return scripts.map((script) => ({
-        id: script.id,
-        name: script.name,
-        updatedAt: script.updatedAt,
-        detail: `${script.lineCount} ${script.lineCount === 1 ? 'line' : 'lines'}`,
-      }));
-    },
-    create: async (name) => {
-      const script = await createMobileTRPCClient().scripts.create.mutate({
-        name,
-        projectId: projectId ?? 'default',
-      });
-      return {
-        id: script.id,
-        name: script.name,
-        updatedAt: script.updatedAt,
-      };
-    },
-    rename: async (id, name) => {
-      await createMobileTRPCClient().scripts.update.mutate({ id, name });
-    },
-    remove: async (id) => {
-      await createMobileTRPCClient().scripts.delete.mutate({ id });
-    },
-    read: async (id) => {
-      const script = await createMobileTRPCClient().scripts.get.query({ id });
-      return {
-        doc: script.document,
-        name: script.name,
-        token: script.updatedAt,
-        updatedAt: script.updatedAt,
-      };
-    },
-    save: async (id, { doc, name, token }) => {
-      const script = await createMobileTRPCClient().scripts.update.mutate({
-        id,
-        name,
-        document: doc as Parameters<
-          ReturnType<typeof createMobileTRPCClient>['scripts']['update']['mutate']
-        >[0]['document'],
-        baseUpdatedAt: isString(token) ? token : undefined,
-      });
-      return {
-        doc: script.document,
-        name: script.name,
-        token: script.updatedAt,
-        updatedAt: script.updatedAt,
-      };
-    },
-  };
-}
-
-/**
- * The `jsScripts.*` router: same `baseUpdatedAt` scheme as `scripts.*`, and a
- * different table again — a JS script is a body with declared ports, not lines.
- */
-function jsScriptsBackend(projectId: string | undefined): DocumentBackend {
-  const portSummary = (inputs: number, outputs: number): string =>
-    `${inputs} in · ${outputs} out`;
-
-  return {
-    writable: true,
-    list: async () => {
-      const scripts = await createMobileTRPCClient().jsScripts.list.query(
-        projectId === undefined ? {} : { projectId }
-      );
-      return scripts.map((script) => ({
-        id: script.id,
-        name: script.name,
-        updatedAt: script.updatedAt,
-        detail: portSummary(script.inputs.length, script.outputs.length),
-      }));
-    },
-    create: async (name) => {
-      const script = await createMobileTRPCClient().jsScripts.create.mutate({
-        name,
-        projectId: projectId ?? 'default',
-      });
-      return {
-        id: script.id,
-        name: script.name,
-        updatedAt: script.updatedAt,
-      };
-    },
-    rename: async (id, name) => {
-      await createMobileTRPCClient().jsScripts.update.mutate({ id, name });
-    },
-    remove: async (id) => {
-      await createMobileTRPCClient().jsScripts.delete.mutate({ id });
-    },
-    read: async (id) => {
-      const script = await createMobileTRPCClient().jsScripts.get.query({ id });
-      return {
-        doc: script.document,
-        name: script.name,
-        token: script.updatedAt,
-        updatedAt: script.updatedAt,
-      };
-    },
-    save: async (id, { doc, name, token }) => {
-      const script = await createMobileTRPCClient().jsScripts.update.mutate({
-        id,
-        name,
-        document: doc as Parameters<
-          ReturnType<
-            typeof createMobileTRPCClient
-          >['jsScripts']['update']['mutate']
-        >[0]['document'],
-        baseUpdatedAt: isString(token) ? token : undefined,
-      });
-      return {
-        doc: script.document,
-        name: script.name,
-        token: script.updatedAt,
-        updatedAt: script.updatedAt,
-      };
-    },
-  };
-}
-
 const backends = {
   timeline: (projectId?: string) => resourcesBackend('timeline', projectId),
   storyboard: (projectId?: string) => resourcesBackend('storyboard', projectId),
   sketch: (projectId?: string) => resourcesBackend('sketch', projectId),
-  script: (projectId?: string) => scriptsBackend(projectId),
-  jsscript: (projectId?: string) => jsScriptsBackend(projectId),
 } satisfies Record<DocumentKind, (projectId?: string) => DocumentBackend>;
 
 /**

@@ -13,7 +13,6 @@ import {
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
-import { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { apiService } from '../services/api';
 import {
   diagnoseServer,
@@ -22,11 +21,8 @@ import {
 import { queryClient } from '../queryClient';
 import { useTheme } from '../hooks/useTheme';
 import { useAuthStore } from '../stores/AuthStore';
-import { RootStackParamList } from '../navigation/types';
 
 type ConnectionStatus = 'idle' | 'testing' | ServerDiagnosticStatus;
-
-type SettingsScreenProps = NativeStackScreenProps<RootStackParamList, 'Settings'>;
 
 function isValidUrl(url: string): boolean {
   try {
@@ -52,7 +48,7 @@ function connectionStatusMessage(status: ServerDiagnosticStatus): string {
   }
 }
 
-export default function SettingsScreen({ navigation }: SettingsScreenProps) {
+export default function SettingsScreen() {
   const [apiHost, setApiHost] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -352,68 +348,6 @@ export default function SettingsScreen({ navigation }: SettingsScreenProps) {
         </View>
       </View>
 
-      {/* Manage Section */}
-      <View style={[styles.card, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
-        <View style={styles.cardHeader}>
-          <View style={[styles.cardIconWrap, { backgroundColor: colors.accentMuted }]}>
-            <Ionicons name="briefcase-outline" size={16} color={colors.accent} />
-          </View>
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Manage</Text>
-        </View>
-
-        <TouchableOpacity
-          style={[styles.aboutRow, { borderBottomColor: colors.borderLight }]}
-          onPress={() => navigation.navigate('Secrets')}
-          accessibilityRole="button"
-          accessibilityLabel="Manage API keys"
-        >
-          <View style={styles.manageRowLeft}>
-            <Ionicons name="key-outline" size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
-            <Text style={[styles.aboutLabel, { color: colors.text }]}>API Keys</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.aboutRow, { borderBottomColor: colors.borderLight }]}
-          onPress={() => navigation.navigate('Collections')}
-          accessibilityRole="button"
-          accessibilityLabel="Manage collections"
-        >
-          <View style={styles.manageRowLeft}>
-            <Ionicons name="library-outline" size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
-            <Text style={[styles.aboutLabel, { color: colors.text }]}>Collections</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.aboutRow, { borderBottomColor: colors.borderLight }]}
-          onPress={() => navigation.navigate('Jobs')}
-          accessibilityRole="button"
-          accessibilityLabel="View jobs"
-        >
-          <View style={styles.manageRowLeft}>
-            <Ionicons name="time-outline" size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
-            <Text style={[styles.aboutLabel, { color: colors.text }]}>Jobs</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={[styles.aboutRow, styles.aboutRowLast]}
-          onPress={() => navigation.navigate('Triggers')}
-          accessibilityRole="button"
-          accessibilityLabel="View triggers"
-        >
-          <View style={styles.manageRowLeft}>
-            <Ionicons name="flash-outline" size={18} color={colors.textSecondary} style={{ marginRight: 10 }} />
-            <Text style={[styles.aboutLabel, { color: colors.text }]}>Triggers</Text>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={colors.textTertiary} />
-        </TouchableOpacity>
-      </View>
-
       {/* Account Section */}
       {user && (
         <View style={[styles.card, shadows.small, { backgroundColor: colors.cardBg, borderColor: colors.borderLight }]}>
@@ -602,11 +536,6 @@ const styles = StyleSheet.create({
   // divider floats above the card's bottom padding.
   aboutRowLast: {
     borderBottomWidth: 0,
-  },
-  manageRowLeft: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
   },
   aboutLabel: {
     fontSize: 15,

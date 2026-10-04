@@ -7,7 +7,32 @@
 > area-specific overlay for `mobile/`. See [ARCHITECTURE.md](ARCHITECTURE.md) for the full
 > component/data-flow breakdown.
 
-React Native / Expo app for browsing and running NodeTool workflows and AI chat from a phone.
+React Native / Expo app for running NodeTool mini apps and AI chat from a phone.
+
+## Scope
+
+The mobile app is a phone companion to the desktop and web apps, not a port of
+them. It keeps the jobs a phone does better than a desktop: run mini apps,
+chat, follow jobs, capture assets, and view results.
+
+- **Kept surfaces**: Login, Settings, Apps (the home screen after login), App,
+  Chat, Threads, LanguageModelSelection, Jobs, JobDetail, Assets, AssetViewer,
+  Documents, StoryboardEditor, TimelineViewer, and SketchViewer.
+- **Documents**: the list shows storyboards, timelines, and sketches. Other
+  kinds open in the desktop or web app, and `useOpenResource` says so instead
+  of pushing a screen.
+- **View only**: timelines and sketches are view only on mobile. No touch
+  editing and no client-side `ui_*` edit tools. The desktop editor and the
+  server agent's own tools edit them. The timeline viewer reloads on focus.
+  Storyboards are the one editable kind, through `StoryboardEditor` and the
+  `ui_storyboard_*` tools.
+- **No parity work**: a new web feature gets no mobile version unless the
+  request names mobile. A mini-app widget mobile does not render shows a
+  fallback that names it and points at desktop or web, so a new web widget
+  never forces a mobile change.
+- **Shared contracts**: a change to `packages/protocol`, `packages/app-runtime`,
+  or a tRPC router that mobile calls must still keep `npm run typecheck` in
+  `mobile/` green.
 
 ## Quick Commands
 
@@ -36,10 +61,12 @@ the `EAS Build (mobile)` GitHub workflow, which authenticates with the
   `packages/*/dist`). **Build the packages first** from the repo root:
   `npm run build:packages`. If `tsc` only complains about missing `@nodetool-ai/*` modules,
   the dists aren't built.
-- Use **Node 22.22.1** (repo root `.nvmrc`; `nvm use`).
+- Use the Node version in the repo root `.nvmrc` (`nvm use`). The `base`
+  profile in `eas.json` pins the same version for cloud builds.
 
-`@nodetool-ai/app-runtime` is the exception: it is dependency-free TypeScript
-and is compiled **from source**, so it needs no build. Three places must agree —
+`@nodetool-ai/app-runtime` and `@nodetool-ai/protocol/resource-uri` are the
+exceptions: they are dependency-free TypeScript compiled **from source**, so
+they need no build. Three places must agree —
 `metro.config.js` (bundler; it also maps the package's ESM `.js` specifiers back
 to `.ts`), `paths` in `tsconfig.json` (types), and `moduleNameMapper` in
 `jest.config.js` (tests). Wire any further shared package the same way.
@@ -50,8 +77,8 @@ read the comment at the top of `metro.config.js` before changing any of it.
 
 - React Native 0.85 + Expo SDK 56, React 19, TypeScript 7 native CLI / TypeScript 6 API compatibility.
 - **Server state**: tRPC v11 client + TanStack Query v5. REST goes through the global `fetch`
-  (`services/api.ts` — **no Axios**); most domains (workflows, assets, jobs, secrets,
-  collections, threads, models) use tRPC.
+  (`services/api.ts` — **no Axios**); most domains (assets, jobs, documents,
+  threads, models) use tRPC.
 - **Local state**: Zustand v5 stores in `src/stores/` (one domain each; select narrowly).
 - **Realtime**: WebSocket + MsgPack. `WebSocketService` is the singleton that routes
   workflow/job messages; `WebSocketManager` is the per-connection chat socket.
@@ -61,14 +88,14 @@ read the comment at the top of `metro.config.js` before changing any of it.
   `/api/applications/*` by `hooks/useApplications.ts`) with native widgets on
   top of `@nodetool-ai/app-runtime` — the same core the web runtime and the CLI `app debug`
   harness use. See [ARCHITECTURE.md § Mini apps](ARCHITECTURE.md#mini-apps-srccomponentsapp_runtime).
-- **Documents**: `documents/` + the document screens open storyboards, scripts, JS scripts,
-  timelines, and sketches. No tabs — one document per pushed screen. Edits are expected to come from
-  the chat agent through the `ui_*` tools registered there, so `kinds.ts` tracks
-  `agentEditable` separately from `surface`: the timeline has no touch editor but the agent
-  writes it. Each kind's transport lives in `backends.ts` (scripts are not a
-  `resources.*` kind — neither their table nor the JS scripts table has a
-  `revision`), which is why the store's concurrency token is opaque.
-  See [ARCHITECTURE.md § Documents](ARCHITECTURE.md#documents-srcdocuments).
+- **Documents**: `documents/` + the document screens open storyboards, timelines, and
+  sketches. No tabs, one document per pushed screen. The storyboard is editable by touch
+  and through the `ui_storyboard_*` tools. The timeline and sketch viewers register with
+  the agent bridge with no handlers, so `ui_context` names them but no client tool writes
+  them. See [ARCHITECTURE.md § Documents](ARCHITECTURE.md#documents-srcdocuments).
+- **Inline previews**: `components/chat/resourceMentions.ts` and `InlineResourcePreview.tsx`
+  draw a `sketch://` or `timeline://` reference in an assistant message, with a chip that
+  opens the viewer. See [ARCHITECTURE.md § Inline Resource Previews](ARCHITECTURE.md#inline-resource-previews).
 
 ## Testing
 
@@ -100,9 +127,8 @@ Two things to know:
   `extra.supabaseAnonKey` from `app.json` — otherwise every route lands on the
   login wall. Restore it afterwards.
 - **Parameterized routes** (a document, an asset, a job) need real ids; pass them
-  with `--ids ids.json` (keys: `workflowId`, `threadId`, `applicationId`,
-  `assetId`, `jobId`, `scriptId`, `jsScriptId`, `storyboardId`, `timelineId`, `sketchId`,
-  `noteId`). Routes whose id is missing are skipped, so a partial seed still runs.
+  with `--ids ids.json` (keys: `threadId`, `applicationId`, `assetId`, `jobId`,
+  `failedJobId`, `storyboardId`, `timelineId`, `sketchId`). Routes whose id is missing are skipped, so a partial seed still runs.
 
 The emitted `report.json` flags any screen whose document scrolls horizontally —
 a reliable signal that a row is clipped off the right edge on a phone.

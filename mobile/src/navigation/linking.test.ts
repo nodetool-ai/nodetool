@@ -75,27 +75,19 @@ describe('linking', () => {
     const screens = linking.config?.screens as Screens;
     const expected: (keyof RootStackParamList)[] = [
       'Login',
-      'WorkflowsList',
-      'GraphEditor',
       'Chat',
       'Threads',
       'Documents',
       'Apps',
       'App',
       'StoryboardEditor',
-      'ScriptEditor',
-      'JsScriptEditor',
       'TimelineViewer',
       'SketchViewer',
-      'DocumentViewer',
       'Assets',
       'AssetViewer',
       'Jobs',
-      'Triggers',
       'JobDetail',
-      'Collections',
       'Settings',
-      'Secrets',
       'LanguageModelSelection',
     ];
     expect(Object.keys(screens).sort()).toEqual([...expected].sort());
@@ -124,18 +116,14 @@ describe('linking', () => {
       });
     });
 
-    it('prefers the dedicated document screens over the fallback viewer', () => {
-      expect(routeForPath('/document/script/d1').name).toBe('ScriptEditor');
-      expect(routeForPath('/document/jsscript/d1').name).toBe('JsScriptEditor');
+    it('routes the kept document kinds to their screens', () => {
       expect(routeForPath('/document/storyboard/d1').name).toBe('StoryboardEditor');
       expect(routeForPath('/document/timeline/d1').name).toBe('TimelineViewer');
-      expect(routeForPath('/document/mindmap/d1')).toEqual({
-        name: 'DocumentViewer',
-        params: { kind: 'mindmap', id: 'd1' },
-      });
+      expect(routeForPath('/document/sketch/d1').name).toBe('SketchViewer');
     });
 
-    it('routes app/:applicationId to a single app screen', () => {
+    it('routes the root to Apps and app/:applicationId to a single app', () => {
+      expect(routeForPath('/').name).toBe('Apps');
       expect(routeForPath('/apps').name).toBe('Apps');
       expect(routeForPath('/app/a1')).toEqual({
         name: 'App',
@@ -143,10 +131,8 @@ describe('linking', () => {
       });
     });
 
-    it('routes the plain settings and workflow list paths', () => {
+    it('routes the plain settings path', () => {
       expect(routeForPath('/settings').name).toBe('Settings');
-      expect(routeForPath('/settings/secrets').name).toBe('Secrets');
-      expect(routeForPath('/').name).toBe('WorkflowsList');
     });
   });
 

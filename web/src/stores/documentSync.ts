@@ -70,6 +70,10 @@ export function createDocumentSyncController<TDraft>(
   const debounceMs = adapter.debounceMs ?? 750;
   const retryDelayMs = adapter.retryDelayMs ?? 5_000;
   const maxRetries = adapter.maxRetries ?? 3;
+  // A flush retries a CAS rejection after each recovery. A recovery that does
+  // not advance the revision, or a writer that keeps winning the race, would
+  // otherwise turn the retry into an unbounded request loop.
+  const maxCasRecoveries = 5;
   let timer: ReturnType<typeof setTimeout> | null = null;
   let inFlight: Promise<{ ok: true; updatedAt: string | null } | { ok: false; error: string }> | null = null;
   let flushRequested = false;
@@ -110,6 +114,7 @@ export function createDocumentSyncController<TDraft>(
     const pending = (async () => {
       let nextDraft = draft;
       let nextRevision = revision;
+      let casRecoveries = 0;
       try {
         while (true) {
           try {
@@ -152,6 +157,11 @@ export function createDocumentSyncController<TDraft>(
             const recoveredRevision = adapter.getRevision();
             if (!recoveredDraft || !recoveredRevision || !adapter.isDirty()) {
               return { ok: true as const, updatedAt: recoveredRevision };
+            }
+            casRecoveries += 1;
+            if (recoveredRevision === nextRevision || casRecoveries >= maxCasRecoveries) {
+              adapter.onStatus?.("error");
+              return { ok: false as const, error: error instanceof Error ? error.message : String(error) };
             }
             nextDraft = recoveredDraft;
             nextRevision = recoveredRevision;

@@ -34,6 +34,9 @@
       ],
       "@nodetool-ai/protocol/blend-modes": [
         "../packages/protocol/src/blend-modes.ts"
+      ],
+      "@nodetool-ai/protocol/resource-uri": [
+        "../packages/protocol/src/resource-uri.ts"
       ]
     }
   },

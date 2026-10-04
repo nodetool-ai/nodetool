@@ -4,28 +4,20 @@ import { View, ActivityIndicator, Text, StyleSheet } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { RootStackParamList } from './src/navigation/types';
-import WorkflowsListScreen from './src/screens/WorkflowsListScreen';
 import SettingsScreen from './src/screens/SettingsScreen';
 import ChatScreen from './src/screens/ChatScreen';
 import LanguageModelSelectionScreen from './src/screens/LanguageModelSelectionScreen';
-import GraphEditorScreen from './src/screens/GraphEditorScreen';
 import LoginScreen from './src/screens/LoginScreen';
 import AssetsScreen from './src/screens/AssetsScreen';
 import AssetViewerScreen from './src/screens/AssetViewerScreen';
 import DocumentsScreen from './src/screens/DocumentsScreen';
 import AppsScreen from './src/screens/AppsScreen';
 import AppScreen from './src/screens/AppScreen';
-import DocumentViewerScreen from './src/screens/DocumentViewerScreen';
-import ScriptEditorScreen from './src/screens/ScriptEditorScreen';
-import JsScriptEditorScreen from './src/screens/JsScriptEditorScreen';
 import StoryboardEditorScreen from './src/screens/StoryboardEditorScreen';
 import TimelineViewerScreen from './src/screens/TimelineViewerScreen';
 import SketchViewerScreen from './src/screens/SketchViewerScreen';
-import SecretsScreen from './src/screens/SecretsScreen';
-import CollectionsScreen from './src/screens/CollectionsScreen';
 import JobsScreen from './src/screens/JobsScreen';
 import JobDetailScreen from './src/screens/JobDetailScreen';
-import TriggersScreen from './src/screens/TriggersScreen';
 import ThreadsScreen from './src/screens/ThreadsScreen';
 import { ErrorBoundary } from './src/components/ErrorBoundary';
 import { OfflineBanner } from './src/components/OfflineBanner';
@@ -119,9 +111,9 @@ export default function App() {
             {isLoggedIn ? (
               <>
                 <Stack.Screen
-                  name="WorkflowsList"
-                  component={WorkflowsListScreen}
-                  options={{ headerShown: false }}
+                  name="Apps"
+                  component={AppsScreen}
+                  options={{ title: 'Apps' }}
                 />
                 <Stack.Screen
                   name="Settings"
@@ -134,11 +126,6 @@ export default function App() {
                   options={{
                     title: 'Chat',
                   }}
-                />
-                <Stack.Screen
-                  name="GraphEditor"
-                  component={GraphEditorScreen}
-                  options={{ title: 'Workflow Editor' }}
                 />
                 <Stack.Screen
                   name="LanguageModelSelection"
@@ -161,11 +148,6 @@ export default function App() {
                   options={{ title: 'Documents' }}
                 />
                 <Stack.Screen
-                  name="Apps"
-                  component={AppsScreen}
-                  options={{ title: 'Apps' }}
-                />
-                <Stack.Screen
                   name="App"
                   component={AppScreen}
                   options={{ title: 'App' }}
@@ -174,16 +156,6 @@ export default function App() {
                   name="StoryboardEditor"
                   component={StoryboardEditorScreen}
                   options={{ title: 'Storyboard' }}
-                />
-                <Stack.Screen
-                  name="ScriptEditor"
-                  component={ScriptEditorScreen}
-                  options={{ title: 'Script' }}
-                />
-                <Stack.Screen
-                  name="JsScriptEditor"
-                  component={JsScriptEditorScreen}
-                  options={{ title: 'JS Script' }}
                 />
                 <Stack.Screen
                   name="TimelineViewer"
@@ -196,29 +168,9 @@ export default function App() {
                   options={{ title: 'Sketch' }}
                 />
                 <Stack.Screen
-                  name="DocumentViewer"
-                  component={DocumentViewerScreen}
-                  options={{ title: 'Document' }}
-                />
-                <Stack.Screen
-                  name="Secrets"
-                  component={SecretsScreen}
-                  options={{ title: 'API Keys' }}
-                />
-                <Stack.Screen
-                  name="Collections"
-                  component={CollectionsScreen}
-                  options={{ title: 'Collections' }}
-                />
-                <Stack.Screen
                   name="Jobs"
                   component={JobsScreen}
                   options={{ title: 'Jobs' }}
-                />
-                <Stack.Screen
-                  name="Triggers"
-                  component={TriggersScreen}
-                  options={{ title: 'Triggers' }}
                 />
                 <Stack.Screen
                   name="JobDetail"
