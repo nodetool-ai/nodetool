@@ -77,3 +77,27 @@ test("the shipped Recipe fails closed when protection version or operation refer
   missingOperation.app.operations = missingOperation.app.operations.filter(operation => operation.id !== "finish");
   assert.equal(parseApplicationBundle(missingOperation), null);
 });
+test("changing the finishing model after planning does not read as a changed Recipe", async () => {
+  let shots = [];
+  const capabilities = (revision) => ({
+    create_storyboard: async () => ({id: "c".repeat(32), shots: 0}),
+    get_storyboard: async () => ({id: "c".repeat(32), aspect_ratio: "9:16", shots, revision}),
+    edit_storyboard: async ({ops}) => {
+      for (const op of ops) {
+        if (op.op === "add_shot") shots.push({...op, id: String(shots.length + 1)});
+        if (op.op === "update_shot") shots = shots.map(shot => shot.id === op.target ? {...shot, ...op} : shot);
+      }
+      return {shots, failed: 0, revision};
+    }
+  });
+  const planned = await execute(PLAN_CODE, input, capabilities(1));
+  const replanned = await execute(PLAN_CODE, {
+    ...input,
+    finishModel: {provider: "anthropic", id: "claude-sonnet-5"},
+    storyboardId: planned.storyboardId,
+    storyboardRevision: planned.storyboardRevision,
+    plannedFingerprint: planned.plannedFingerprint
+  }, capabilities(1));
+  assert.equal(replanned.approval, "pending");
+  assert.notEqual(replanned.plannedFingerprint, planned.plannedFingerprint);
+});

@@ -77,7 +77,8 @@ const inputsChanged = inputs.plannedFingerprint && inputs.plannedFingerprint !==
 if (existingShots.length && inputsChanged && board.revision !== inputs.storyboardRevision) throw new Error("Storyboard revision conflict. Restore the reviewed inputs and refresh the edited Storyboard before changing inputs.");
 if (existingShots.length && inputsChanged) {
   const previous = JSON.parse(inputs.plannedFingerprint);
-  if (!Array.isArray(previous) || JSON.stringify(previous[0]) !== JSON.stringify(recipe)) throw new Error("Recipe manifest conflict. Reconcile the Storyboard before applying changed Recipe intent.");
+  const withoutModels = value => ({...value, operations: (value?.operations || []).map(({model, ...operation}) => operation)});
+  if (!Array.isArray(previous) || JSON.stringify(withoutModels(previous[0])) !== JSON.stringify(withoutModels(recipe))) throw new Error("Recipe manifest conflict. Reconcile the Storyboard before applying changed Recipe intent.");
   const boundInputs = new Set(recipe.creativeStrategy.shots.flatMap(shot => shot.elements.map(element => element.inputId)));
   for (const [index, key] of keys.entries()) {
     if (!boundInputs.has(key) && JSON.stringify(previous[index + 1]) !== JSON.stringify(inputs[key])) throw new Error("Creative input conflict for " + key + ". Edit the Storyboard direction and refresh before continuing.");
