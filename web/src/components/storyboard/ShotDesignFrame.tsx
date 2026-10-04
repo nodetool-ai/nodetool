@@ -128,7 +128,8 @@ export default function ShotDesignFrame({
         shots,
         width,
         height,
-        motionDesign: board.screenplay?.motion_design
+        motionDesign: board.screenplay?.motion_design,
+        assetSizes: sources.data?.imageSizes
       },
       shot.id,
       {

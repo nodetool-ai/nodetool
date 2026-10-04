@@ -6,7 +6,7 @@ import { activeStoryboardGraphics } from "./storyboardValidation.js";
 import { buildLinkedTimeline } from "./linked.js";
 import type { ScriptAssemblyInput } from "./script.js";
 import { isKnownShapeKind } from "./types.js";
-import { buildTransformMatrix, IDENTITY_TRANSFORM } from "./render/transform.js";
+import { buildTransformMatrix, containBaseScale, IDENTITY_TRANSFORM } from "./render/transform.js";
 import { compileClipAnimations } from "./animation/compile.js";
 import type { TimelineClip, TimelineSequence } from "./types.js";
 
@@ -26,6 +26,8 @@ export interface FinishStoryboardInput {
   motionDesign?: StoryboardMotionDesign;
   script?: ScriptAssemblyInput;
   current?: Partial<TimelineSequence> & Pick<TimelineSequence, "tracks" | "clips">;
+  /** Pixel size of each graphics asset. A known size fits the image between its neighbouring copy. */
+  assetSizes?: Readonly<Record<string, { width: number; height: number }>>;
 }
 
 function parseBaseline(value: string | undefined): Record<string, unknown> | undefined {
@@ -177,6 +179,79 @@ function validateTransforms(
   }
 }
 
+type GraphicsElement = ReturnType<typeof activeStoryboardGraphics>[number];
+interface Slot { y: number; scale: number }
+
+/** Copy and images stay this far apart, as a fraction of frame height. */
+const SLOT_GAP = 0.03;
+/** Images never reach closer than this to the top or bottom frame edge. */
+const SLOT_SAFE_EDGE = 0.04;
+const SLOT_MAX_WIDTH = 0.86;
+
+const priceDirection = (element: GraphicsElement): string | undefined =>
+  element.role === "price" ? element.direction?.trim().toLowerCase() : undefined;
+
+function textFontSizePx(element: GraphicsElement, width: number): number {
+  const price = priceDirection(element);
+  return element.role === "price" ? width * (price === "superseded price" ? 0.055 : 0.12) : width * 0.065;
+}
+
+/** Default vertical centre and scale of one element, as fractions of the frame. */
+function defaultSlot(element: GraphicsElement, index: number): Slot {
+  const price = priceDirection(element);
+  const priceY = price === "superseded price" ? 0.65 : price === "current price" ? 0.76 : undefined;
+  return {
+    y: priceY ?? (element.role === "product" ? 0.42 : element.role === "logo" ? 0.1 : element.role === "headline" ? 0.18 : element.role === "cta" ? 0.84 : 0.66 + (index % 2) * 0.1),
+    scale: element.role === "logo" ? 0.18 : element.kind === "asset" ? 0.65 : 1
+  };
+}
+
+/**
+ * Fit every image of known size into the vertical gap between the copy above
+ * and below it. A fixed slot cannot hold every aspect ratio: a portrait product
+ * at the default scale reaches into the headline and the price.
+ */
+function planShotSlots(elements: readonly GraphicsElement[], input: Pick<FinishStoryboardInput, "width" | "height" | "assetSizes">, assetIdOf: (element: GraphicsElement) => string | undefined): Map<string, Slot> {
+  const slots = new Map(elements.map((element, index) => [element.id, defaultSlot(element, index)]));
+  const halfHeight = new Map<string, number>();
+  const assetBase = new Map<string, { x: number; y: number }>();
+  for (const element of elements) {
+    // A shot's own still or video sits full-frame beneath the graphics.
+    if (element.id === "$source") continue;
+    if (element.kind === "text") halfHeight.set(element.id, (textFontSizePx(element, input.width) * 0.6) / input.height);
+    const assetId = element.kind === "asset" ? assetIdOf(element) : undefined;
+    const size = assetId ? input.assetSizes?.[assetId] : undefined;
+    if (size && size.width > 0 && size.height > 0) {
+      const base = containBaseScale(size.width, size.height, input.width, input.height);
+      assetBase.set(element.id, base);
+      halfHeight.set(element.id, (base.y * (slots.get(element.id)?.scale ?? 1)) / 2);
+    }
+  }
+  const fitted = elements.filter((element) => assetBase.has(element.id)).sort((a, b) => (slots.get(a.id)?.y ?? 0) - (slots.get(b.id)?.y ?? 0));
+  for (const element of fitted) {
+    const slot = slots.get(element.id);
+    const base = assetBase.get(element.id);
+    if (!slot || !base) continue;
+    let top = SLOT_SAFE_EDGE;
+    let bottom = 1 - SLOT_SAFE_EDGE;
+    for (const other of elements) {
+      const otherSlot = slots.get(other.id);
+      const half = halfHeight.get(other.id);
+      if (other.id === element.id || !otherSlot || half === undefined) continue;
+      if (otherSlot.y < slot.y) top = Math.max(top, otherSlot.y + half + SLOT_GAP);
+      else bottom = Math.min(bottom, otherSlot.y - half - SLOT_GAP);
+    }
+    if (bottom - top < 0.1) continue;
+    const scale = Math.min(slot.scale, (bottom - top) / base.y, SLOT_MAX_WIDTH / base.x);
+    const half = (base.y * scale) / 2;
+    // Keep the slot's centre when it fits, so a small image does not drift.
+    const y = Math.min(Math.max(slot.y, top + half), bottom - half);
+    slots.set(element.id, { y, scale });
+    halfHeight.set(element.id, half);
+  }
+  return slots;
+}
+
 /** Deterministic editable composition. Reruns preserve manually changed placement/timing. */
 export function materializeStoryboard(input: FinishStoryboardInput): {
   document: FinishedStoryboardDocument;
@@ -239,6 +314,7 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
     if (source) {
       elements.unshift({ id: "$source", kind: "asset", asset_id: source.currentAssetId });
     }
+    const slots = planShotSlots(elements, input, (element) => (element.protected_input_id ? protectedInputs.get(element.protected_input_id)?.asset_id : undefined) ?? element.asset_id);
     for (const [index, element] of elements.entries()) {
       const key = identity(shot.id, element.id);
       const previous = existing.get(key);
@@ -251,9 +327,8 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
       const allowedMotion = !protection || protection.allowed_transformations.includes("opacity");
       const slideAllowed = allowedMotion && (!protection || protection.allowed_transformations.includes("position"));
       const isBackground = element.kind === "shape" && element.id === "background";
-      const priceIntent = element.role === "price" ? element.direction?.trim().toLowerCase() : undefined;
-      const priceY = priceIntent === "superseded price" ? 0.65 : priceIntent === "current price" ? 0.76 : undefined;
-      const y = priceY ?? (element.role === "product" ? 0.42 : element.role === "logo" ? 0.1 : element.role === "headline" ? 0.18 : element.role === "cta" ? 0.84 : 0.66 + (index % 2) * 0.1);
+      const priceIntent = priceDirection(element);
+      const { y, scale } = slots.get(element.id) ?? defaultSlot(element, index);
       const generatedClip = makeClip({
         id: previous?.id ?? createTimeOrderedUuid(), trackId: track.id, name: previous?.name ?? element.id,
         startMs, durationMs, mediaType: element.id === "$source" && source?.mediaType === "video" ? "video" : element.kind === "asset" ? "image" : element.kind,
@@ -261,8 +336,8 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
         storyboardBoardId: input.boardId, storyboardShotId: shot.id,
         storyboardElementId: element.id, storyboardElementRole: element.role,
         currentAssetId: element.kind === "asset" ? protection?.asset_id ?? element.asset_id : undefined,
-        transform: isBackground ? undefined : { position: { x: 0, y: (y - 0.5) * input.height }, scale: { x: element.role === "logo" ? 0.18 : element.kind === "asset" ? 0.65 : 1, y: element.role === "logo" ? 0.18 : element.kind === "asset" ? 0.65 : 1 }, rotation: 0, anchor: { x: 0.5, y: 0.5 } },
-        textStyle: element.kind === "text" ? { text: protection?.value ?? element.text ?? "", fontSizePx: element.role === "price" ? input.width * (priceIntent === "superseded price" ? 0.055 : 0.12) : input.width * 0.065, fontWeight: 600, color: "#FFFFFF", align: "center", maxWidthFrac: 0.85, strikethrough: priceIntent === "superseded price" || undefined } : undefined,
+        transform: isBackground ? undefined : { position: { x: 0, y: (y - 0.5) * input.height }, scale: { x: scale, y: scale }, rotation: 0, anchor: { x: 0.5, y: 0.5 } },
+        textStyle: element.kind === "text" ? { text: protection?.value ?? element.text ?? "", fontSizePx: textFontSizePx(element, input.width), fontWeight: 600, color: "#FFFFFF", align: "center", maxWidthFrac: 0.85, strikethrough: priceIntent === "superseded price" || undefined } : undefined,
         shapeStyle: element.kind === "shape" ? { kind: "rect", fill: protection?.kind === "brand_color" ? protection.value : "#21263A", x: isBackground ? 0 : 0.12, y: isBackground ? 0 : 0.74, width: isBackground ? 1 : 0.76, height: isBackground ? 1 : 0.008 } : undefined,
         animations: isBackground || !allowedMotion ? [] : [{ id: previous?.animations?.[0]?.id ?? createTimeOrderedUuid(), role: "in", preset: bold && slideAllowed ? "slide" : "fade", durationMs: quiet ? 700 : 400, delayMs: (quiet ? 40 : 80) * index, params: bold && slideAllowed ? { direction: "up", distance: 0.12 } : undefined }]
       });

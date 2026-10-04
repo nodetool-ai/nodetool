@@ -35,6 +35,7 @@ import type { CapabilityRun } from "./types.js";
 import { applyOps, parseOps } from "./timelines.js";
 import { editTimelineSpec } from "./timelines.specs.js";
 import { storyboardReviewTimes } from "./storyboard-review-times.js";
+import { findLayoutDefects, shotHoldTimes } from "./storyboard-layout-check.js";
 import { renderTimelineFrames } from "../timeline-preview/frames.js";
 import { agentActivityReporter } from "./agent-activity.js";
 
@@ -442,7 +443,8 @@ export async function finishStoryboardAgentically(
     ". Each op is {op, ...flat arguments} from operationContracts. There is no saved timeline_id requirement for this isolated draft. " +
     "Keep existing source layer startMs/durationMs, assets, exact protected text/colors and semantic ownership unchanged. " +
     "set_clip_params uses fontSizePx (not fontSize), textStyle and transform.position.x/y in sequence pixels relative to frame center. " +
-    "Protected layers may use only fade (requires allowed opacity), slide (opacity+position) or pop (opacity+scale). " +
+    "Protected layers may use only fade (requires allowed opacity), slide (opacity+position) or pop (opacity+scale), each with role in or out. No emphasis or loop animation is available on a protected layer; express emphasis through size, weight, color, spacing or entrance timing. " +
+    "Copy must keep clear space from images, other copy and the frame edge at every shot's hold frame. A mechanical layout check measures this before visual review; fix every layoutDefects entry by moving or resizing the named clips. " +
     "Other protected presets/custom curves, group inheritance, masks/effects fail policy validation. set_transition is forbidden on every protected layer, including crossfade; use permitted fade animations instead. Unprotected decorative layers can use existing animation presets/custom curves. " +
     "New editable decorative layers require stable name/startMs/durationMs inside one shot window. New text may only use approved unprotected Storyboard copy; protected copy already has its exact semantic layer, so use set_clip_params on that existing clip to author its presentation. Read every edit result and fix failures before submitting.";
   let previousCandidateImages: MessageContent[] = [];
@@ -590,6 +592,19 @@ export async function finishStoryboardAgentically(
       .update(referenceRender.frames[index].png)
       .digest("hex")
   }));
+  const loadAsset = (assetId: string): Promise<Uint8Array | null> => {
+    signal?.throwIfAborted();
+    return loadMediaRefBytes({ asset_id: assetId }, run.context);
+  };
+  // The reference is derived from the same materializer, so it can carry the
+  // same layout defect. Name it so neither agent copies it as approved.
+  const referenceLayoutDefects = await findLayoutDefects({
+    sequence: { ...sequence.toTimelineSequence(), ...references[0].document },
+    windows,
+    holds: shotHoldTimes(references[0].document.clips, windows, input.width, input.height),
+    loadAsset,
+    signal
+  });
   const referenceImages: MessageContent[] = referenceRender.frames.flatMap(
     (frame, index) => [
       {
@@ -625,7 +640,7 @@ export async function finishStoryboardAgentically(
         {
           role: "system",
           content:
-            "Finish the approved WHOLE CUT, not an isolated shot. The deterministic scaffold establishes faithful source layers and timing; it is your starting point, not evidence of agentic finishing. Inspect all derived design references and semantic graphic/motion direction, then deliberately author an editable composition: readable type hierarchy, balanced product/copy layout, graphic rhythm and continuity across the cut. Use the supplied full scaffold and operationContracts directly; do not request get_timeline or list_animation_presets redundantly when their data is already present. Author a focused batch of deliberate edits rather than redesigning every layer. Use existing Timeline operations and their exact operationContracts. Make meaningful layout, typography, decorative or animation choices that serve this board. Do not make arbitrary nudges, metadata changes or add empty layers merely to satisfy authoring. On a new cut, author actual layout or motion before submitting; on an existing finished cut, preserve good prior work and submit unchanged if no revision is needed. Preserve all source assets, exact copy/colors, semantic IDs, shot windows and manual edits. manualEdits lists the layer fields a person changed: never edit those fields, and compose around them. Do not invent or generate replacement media. Read every edit result, correct rejected edits, then submit_finished_cut when ready. At a revision, fix every reported defect. Storyboard contains semantic intent, never an animation implementation. The Timeline is execution truth."
+            "Finish the approved WHOLE CUT, not an isolated shot. The deterministic scaffold establishes faithful source layers and timing; it is your starting point, not evidence of agentic finishing. Inspect all derived design references and semantic graphic/motion direction, then deliberately author an editable composition: readable type hierarchy, balanced product/copy layout, graphic rhythm and continuity across the cut. Use the supplied full scaffold and operationContracts directly; do not request get_timeline or list_animation_presets redundantly when their data is already present. Author a focused batch of deliberate edits rather than redesigning every layer. Use existing Timeline operations and their exact operationContracts. Make meaningful layout, typography, decorative or animation choices that serve this board. Do not make arbitrary nudges, metadata changes or add empty layers merely to satisfy authoring. On a new cut, author actual layout or motion before submitting; on an existing finished cut, preserve good prior work and submit unchanged if no revision is needed. Preserve all source assets, exact copy/colors, semantic IDs, shot windows and manual edits. manualEdits lists the layer fields a person changed: never edit those fields, and compose around them. Do not invent or generate replacement media. The design references show content, hierarchy and intent, not approved pixel layout: referenceLayoutDefects lists collisions the references themselves contain, and the cut must not repeat them. Read every edit result, correct rejected edits, then submit_finished_cut when ready. At a revision, fix every reported defect, including every previousReview.layoutDefects entry. Storyboard contains semantic intent, never an animation implementation. The Timeline is execution truth."
         },
         {
           role: "user",
@@ -642,6 +657,7 @@ export async function finishStoryboardAgentically(
                   fps: sequence.fps
                 },
                 previousReview: feedback,
+                referenceLayoutDefects,
                 needsInitialAuthoring,
                 manualEdits,
                 operationContracts,
@@ -844,16 +860,38 @@ export async function finishStoryboardAgentically(
       feedback = { policy, structural };
       continue;
     }
-    const timesMs = storyboardReviewTimes(document.clips, input.width, input.height, sequence.fps);
+    const candidateSequence = { ...sequence.toTimelineSequence(), ...document };
+    const holds = shotHoldTimes(document.clips, windows, input.width, input.height);
+    signal?.throwIfAborted();
+    const layoutDefects = await findLayoutDefects({
+      sequence: candidateSequence,
+      windows,
+      holds,
+      loadAsset,
+      signal
+    });
+    if (layoutDefects.length) {
+      feedback = {
+        layoutDefects,
+        resolution:
+          "A pixel measurement of each layer at its shot's hold frame found these collisions. Move or resize the named clips with set_clip_params, then submit again."
+      };
+      continue;
+    }
+    // The hold frame is where a viewer reads each shot, so the review always sees it.
+    const holdShots = new Map([...holds].map(([shotId, timeMs]) => [timeMs, shotId]));
+    const timesMs = [
+      ...new Set([
+        ...storyboardReviewTimes(document.clips, input.width, input.height, sequence.fps),
+        ...holdShots.keys()
+      ])
+    ].sort((left, right) => left - right);
     signal?.throwIfAborted();
     const frames = await renderTimelineFrames({
-      sequence: { ...sequence.toTimelineSequence(), ...document },
+      sequence: candidateSequence,
       timesMs,
       width: 540,
-      loadAsset: (assetId) => {
-        signal?.throwIfAborted();
-        return loadMediaRefBytes({ asset_id: assetId }, run.context);
-      }
+      loadAsset
     });
     signal?.throwIfAborted();
     if (
@@ -900,7 +938,8 @@ export async function finishStoryboardAgentically(
           candidateFrameCount: frames.frames.length,
           designReferenceFrameCount: referenceEvidence.length,
           instruction:
-            "Visually review all rendered frames against approved semantic graphics and full-cut direction. Find clipped/overlapped copy, hidden assets, wrong hierarchy/contrast, awkward motion endpoints and continuity failures. The first images are labeled design references derived from the expected Storyboard revision. The subsequent images are the actual candidate cut. Compare candidate composition against these references while assessing motion and visual defects. These references are derived from approved/current semantic intent, not a separate historical pixel approval. Exact identity is independently checked mechanically. Fail on any material defect."
+            "Visually review all rendered frames against approved semantic graphics and full-cut direction. The first images are labeled design references derived from the expected Storyboard revision. The subsequent images are the actual candidate cut. Use the references for content, hierarchy and intent only. They are not approved pixel layout and can contain the same defects: referenceLayoutDefects lists collisions measured in them, and a candidate that repeats a reference defect fails. Exact identity and copy clearance at hold frames are checked mechanically before this review. At each HOLD frame, check every pair of neighbouring elements: copy that touches or crosses an image edge, copy crowded against other copy, copy near the frame edge, an asset drawn as an opaque box where the design wants a cut-out, unbalanced empty areas and wrong hierarchy or contrast are all material defects. Across motion frames, find awkward motion endpoints and continuity failures. Fail on any material defect.",
+          referenceLayoutDefects
         })
       },
       ...referenceImages,
@@ -908,7 +947,9 @@ export async function finishStoryboardAgentically(
         (frame): MessageContent[] => [
           {
             type: "text",
-            text: `Actual candidate cut frame at ${frame.time_ms}ms. Include exactly one frameReviews entry for this timeMs. This is not a derived design reference.`
+            text: holdShots.has(frame.time_ms)
+              ? `Actual candidate HOLD frame for shot ${holdShots.get(frame.time_ms)} at ${frame.time_ms}ms: every entrance has finished and no exit has started. Judge the settled composition, spacing and hierarchy here. Include exactly one frameReviews entry for this timeMs. This is not a derived design reference.`
+              : `Actual candidate motion frame at ${frame.time_ms}ms. Include exactly one frameReviews entry for this timeMs. This is not a derived design reference.`
           },
           {
             type: "image_url",
@@ -925,7 +966,7 @@ export async function finishStoryboardAgentically(
         {
           role: "system",
           content:
-            "You are the visual finishing reviewer. Inspect the actual supplied composited frame pixels. Design references and actual candidate frames are labeled separately. Review each actual candidate timeMs exactly once. The schedule deliberately includes entrance and exit boundaries where intended fades can be transparent. Judge legibility during holds and motion continuity across neighboring event frames, not constant visibility at intentionally transparent boundaries. Call review_finished_cut with an internally consistent overall and per-frame verdict. Findings are ONLY current unresolved actionable material defects. Put positive observations and withdrawn suspicions in summary, not findings. If no material defect remains, explicitly set passed true with empty findings for every frame and overall. If any frame has a material defect, set that frame and overall passed false with the exact defect in both findings lists. Never approve without inspecting the whole cut. Never reject merely to report positive observations or previously resolved issues."
+            "You are the visual finishing reviewer. Inspect the actual supplied composited frame pixels. Design references and actual candidate frames are labeled separately. Review each actual candidate timeMs exactly once. The schedule deliberately includes entrance and exit boundaries where intended fades can be transparent. Judge layout, spacing and legibility at the labeled HOLD frames, and motion continuity across neighboring motion frames, not constant visibility at intentionally transparent boundaries. A design reference never excuses a defect: if the candidate shares a collision or crowding with its reference, report it. Call review_finished_cut with an internally consistent overall and per-frame verdict. Findings are ONLY current unresolved actionable material defects. Put positive observations and withdrawn suspicions in summary, not findings. If no material defect remains, explicitly set passed true with empty findings for every frame and overall. If any frame has a material defect, set that frame and overall passed false with the exact defect in both findings lists. Never approve without inspecting the whole cut. Never reject merely to report positive observations or previously resolved issues."
         },
         { role: "user", content }
       ],

@@ -96,10 +96,19 @@ produce an explicit conflict before model dispatch. Retained
 presentation must pass the current production policy before model dispatch. It renders design references derived from the expected Storyboard
 revision and compares actual composited cut frames with those references.
 These are derived references, not a separate historical pixel approval.
+They show content, hierarchy and intent, not approved layout.
+The deterministic layout fits each image of known pixel size between the copy
+above and below it. Before visual review, a layout check renders each layer
+alone at every shot's hold frame. That is the frame after the last entrance
+and before the first exit. The check returns copy that overlaps or crowds
+another layer, or reaches the frame edge, to the author. Copy wholly inside an
+image or plate passes as an overlay. The reviewer receives the collisions the
+references themselves contain, and a candidate that repeats one fails. Each
+hold frame is labeled in the review.
 The agent uses existing Timeline operations and cannot invoke media generation
 or replace accepted media. A batch that changes an accepted layer's start or
 duration is rejected and rolled back. Motion delay and duration belong in
-Timeline animations within that window. Policy and structural checks run before visual
+Timeline animations within that window. Policy, structural and layout checks run before visual
 review. Findings require a changed draft and another render and review, with
 at most three candidates. An unreviewed, unresolved, cancelled or stale cut
 is not saved.

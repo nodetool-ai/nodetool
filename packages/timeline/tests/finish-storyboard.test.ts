@@ -293,6 +293,33 @@ describe("Storyboard finishing", () => {
     expect(rerun.document.clips.map((clip) => clip.transform)).toEqual(first.document.clips.map((clip) => clip.transform));
   });
 
+  it("fits a product of known size between its headline and prices", () => {
+    const args = input();
+    const elements = args.shots[0].graphics!.elements!;
+    elements.find((element) => element.id === "price")!.direction = "current price";
+    elements.push(
+      { id: "headline", kind: "text", role: "headline", text: "Brand" },
+      { id: "superseded", kind: "text", role: "price", direction: "superseded price", text: " €49 " }
+    );
+    const box = (clips: TimelineClip[], id: string, halfPx: (clip: TimelineClip) => number) => {
+      const clip = clips.find((value) => value.storyboardElementId === id)!;
+      const centre = 960 + clip.transform!.position.y;
+      return { top: centre - halfPx(clip), bottom: centre + halfPx(clip) };
+    };
+    const textHalf = (clip: TimelineClip) => clip.textStyle!.fontSizePx! * 0.6;
+    // 2500×3000 contain-fits a 1080×1920 frame at 1080×1296 before the layer's own scale.
+    const productHalf = (clip: TimelineClip) => (1296 * clip.transform!.scale.y) / 2;
+
+    const unsized = materializeStoryboard(args).document.clips;
+    expect(box(unsized, "product", productHalf).bottom).toBeGreaterThan(box(unsized, "superseded", textHalf).top);
+
+    const fitted = materializeStoryboard({ ...args, assetSizes: { "product-asset": { width: 2500, height: 3000 } } });
+    expect(fitted.validation).toEqual([]);
+    const product = box(fitted.document.clips, "product", productHalf);
+    expect(product.top).toBeGreaterThan(box(fitted.document.clips, "headline", textHalf).bottom);
+    expect(product.bottom).toBeLessThan(box(fitted.document.clips, "superseded", textHalf).top);
+  });
+
   it("materializes distinct approved creative directions without changing source truth", () => {
     const args = input();
     args.shots[0].graphics!.direction = "Bold editorial rhythm";

@@ -1,5 +1,5 @@
 import { createHash } from "node:crypto";
-import { measureStoryboardSources } from "./storyboard-measured-sources.js";
+import { measureStoryboardAssetSizes, measureStoryboardSources } from "./storyboard-measured-sources.js";
 import type { ScriptAssemblyInput } from "@nodetool-ai/timeline";
 import { isRecord, type Shot } from "@nodetool-ai/protocol";
 import { budgetFromContext } from "@nodetool-ai/runtime";
@@ -129,8 +129,9 @@ async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Recor
       }
     }
     shots = await measureStoryboardSources(shots, run.context, signal);
+    const assetSizes = await measureStoryboardAssetSizes(shots, run.context, signal);
     const size = frameSizeForAspect(doc.aspectRatio ?? "9:16");
-    const result = materializeStoryboard({ boardId: board.id, shots, script, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, motionDesign: doc.screenplay?.motion_design, current: timeline ? JSON.parse(timeline.document) : undefined });
+    const result = materializeStoryboard({ boardId: board.id, shots, script, assetSizes, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, motionDesign: doc.screenplay?.motion_design, current: timeline ? JSON.parse(timeline.document) : undefined });
     if (result.validation.length) return { error: `Produced Timeline violates production requirements: ${result.validation.map((issue) => issue.message).join(" ")}`, validation: result.validation };
     const { validateTimelineSequence } = await import("@nodetool-ai/execution/timeline-debug");
     const structural = validateTimelineSequence(result.document, { fps: timeline?.fps ?? 30, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height });
@@ -146,7 +147,7 @@ async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Recor
           ? { provider: await run.context.getProvider(explicitModel["provider"]), model: explicitModel["id"], budget: run.budget ?? budgetFromContext(run.context) }
           : run.subAgent;
         if (!runtime) { return { error: "No finishing model is bound to this run." }; }
-        const candidate = await finishStoryboardAgentically(run, { boardId: board.id, shots, script, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, motionDesign: doc.screenplay?.motion_design, current: timeline?.toDocument() }, doc, timeline ?? new TimelineSequence({ user_id: userId, project_id: board.project_id, name: board.name, width: size.width, height: size.height, duration_ms: result.durationMs, document: JSON.stringify(result.document) }), result.document, runtime);
+        const candidate = await finishStoryboardAgentically(run, { boardId: board.id, shots, script, assetSizes, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, motionDesign: doc.screenplay?.motion_design, current: timeline?.toDocument() }, doc, timeline ?? new TimelineSequence({ user_id: userId, project_id: board.project_id, name: board.name, width: size.width, height: size.height, duration_ms: result.durationMs, document: JSON.stringify(result.document) }), result.document, runtime);
         document = candidate.document;
         reviews = candidate.reviews;
         costUsd = candidate.costUsd;

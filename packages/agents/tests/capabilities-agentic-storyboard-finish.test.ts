@@ -446,6 +446,53 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
         .map((clip) => clip.transform?.position.y)
     ).toEqual([300, 300]);
   });
+  it("returns copy that collides with the product to the author before any visual review", async () => {
+    const { board, context } = await fixture();
+    type Placed = { transform?: { position: { y: number }; scale: { y: number } } };
+    const placePrice = (y: (product: Placed) => number): Turn => (args) => {
+      const clips = authorContext(args).scaffold.clips as (ReturnType<typeof authorContext>["scaffold"]["clips"][number] & Placed)[];
+      return [
+        call("edit_timeline", {
+          ops: clips
+            .filter((clip) => clip.storyboardElementId === "price")
+            .map((clip) => ({
+              op: "set_clip_params",
+              target: clip.id,
+              transform: {
+                position: {
+                  y: y(clips.find((value) => value.storyboardElementId === "product" && value.storyboardShotId === clip.storyboardShotId)!)
+                }
+              }
+            }))
+        }),
+        call("submit_finished_cut")
+      ];
+    };
+    let revisionContext = "";
+    const provider = new FinishingProvider([
+      // A square image contain-fits 1080px tall in a 1080×1920 frame, so this straddles its bottom edge.
+      placePrice((product) => product.transform!.position.y + 540 * product.transform!.scale.y),
+      done,
+      (args) => {
+        revisionContext = JSON.stringify(authorContext(args).previousReview);
+        return placePrice(() => 600)(args);
+      },
+      done,
+      approve,
+      done
+    ]);
+    const result = await execute(provider, context, board);
+    expect(result.error).toBeUndefined();
+    expect(revisionContext).toContain("layoutDefects");
+    expect(revisionContext).toMatch(/Copy \\"€29\\" \(price, \w+\) overlaps product/);
+    // The colliding candidate never reached the visual reviewer.
+    expect(result.reviews).toHaveLength(1);
+    const reviewRequest = provider.requests.find((request) =>
+      request.tools?.some((tool) => tool.name === "review_finished_cut")
+    );
+    expect(JSON.stringify(reviewRequest?.messages)).toContain("HOLD frame for shot hook");
+  });
+
   it("refreshes exact copy and protected color while preserving authored typography and manual product placement", async () => {
     const { board, context } = await fixture();
     const initialBoard = board.toDocument();

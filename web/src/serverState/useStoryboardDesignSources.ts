@@ -7,6 +7,19 @@ type OwnedAsset = RouterOutputs["assets"]["get"];
 export interface StoryboardDesignSources {
   readonly assetsByReference: Readonly<Record<string, OwnedAsset>>;
   readonly entitiesByReference: Readonly<Record<string, Entity>>;
+  /** Pixel size of each image asset, so the design frame fits it the way finishing does. */
+  readonly imageSizes: Readonly<Record<string, { width: number; height: number }>>;
+}
+
+function measureImage(url: string): Promise<{ width: number; height: number } | null> {
+  return new Promise((resolve) => {
+    const image = new Image();
+    image.crossOrigin = "anonymous";
+    image.onload = () => resolve({ width: image.naturalWidth, height: image.naturalHeight });
+    // An unmeasured image keeps its default slot.
+    image.onerror = () => resolve(null);
+    image.src = url;
+  });
 }
 
 /** Read explicit references through the owned-asset boundary, independent of catalogs. */
@@ -75,7 +88,17 @@ export function useStoryboardDesignSources(
       for (const [id, pending] of requested) {
         assetsByReference[id] = await pending;
       }
-      return {assetsByReference, entitiesByReference};
+      const imageSizes: Record<string, { width: number; height: number }> = {};
+      await Promise.all(Object.values(assetsByReference).map(async (asset) => {
+        if (!asset.content_type.startsWith("image/") || !asset.get_url || imageSizes[asset.id]) {
+          return;
+        }
+        const size = await measureImage(asset.get_url);
+        if (size && size.width > 0 && size.height > 0) {
+          imageSizes[asset.id] = size;
+        }
+      }));
+      return {assetsByReference, entitiesByReference, imageSizes};
     }
   });
 }
