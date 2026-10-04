@@ -323,6 +323,33 @@ export function shouldFakeNode(
   );
 }
 
+const FAKE_LANGUAGE_MODEL = {
+  type: "language_model",
+  provider: "openai",
+  id: "fake-model",
+  name: "Fake model"
+};
+
+/** Templates ship blank models; the web app fills them from user defaults, this does it for the fake backend. */
+export function withFakeLanguageModels(
+  node: NodeDescriptor,
+  meta: FakeMeta | undefined
+): NodeDescriptor {
+  const filled: Record<string, unknown> = {};
+  for (const prop of meta?.properties ?? []) {
+    if (baseType(prop) !== "language_model") continue;
+    const current = node.properties?.[prop.name] as
+      | { provider?: string; id?: string }
+      | null
+      | undefined;
+    if (!current?.provider || current.provider === "empty" || !current.id) {
+      filled[prop.name] = FAKE_LANGUAGE_MODEL;
+    }
+  }
+  if (Object.keys(filled).length === 0) return node;
+  return { ...node, properties: { ...node.properties, ...filled } };
+}
+
 /**
  * Build a `resolveExecutor` that fakes external/provider-backed nodes and runs
  * everything else for real.
@@ -358,6 +385,6 @@ export function createFakeExecutorResolver(
     debug(`[fake-runtime] ${node.id} ${node.type} -> ${fake ? "FAKE" : "REAL"}`);
     return fake
       ? fakeExecutor(meta, node.type, node.properties ?? {})
-      : registry.resolve(node);
+      : registry.resolve(withFakeLanguageModels(node, meta));
   };
 }

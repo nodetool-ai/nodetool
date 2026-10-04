@@ -4,6 +4,7 @@ import {
   FakeProvider,
   assertValidFakeChunk,
   fakeExecutor,
+  withFakeLanguageModels,
   FAKE_LLM_TEXT
 } from "../src/fake-runtime.js";
 
@@ -53,6 +54,45 @@ describe("fake-runtime conformance gate (RELIABILITY_TASKS.md Track E, E3)", () 
       // Sanity: the default script (no tools available) falls back to the
       // deterministic text chunk.
       expect((chunks[0] as { content?: string }).content).toBe(FAKE_LLM_TEXT);
+    });
+  });
+
+  describe("withFakeLanguageModels", () => {
+    const meta = {
+      properties: [
+        { name: "model", type: { type: "language_model" } },
+        { name: "style", type: { type: "str" } }
+      ]
+    };
+
+    it("fills a language_model prop that ships blank", () => {
+      const node = {
+        id: "dir",
+        type: "nodetool.creative.Director",
+        properties: {
+          model: { type: "language_model", provider: "", id: "" },
+          style: "muted"
+        }
+      };
+
+      const result = withFakeLanguageModels(node, meta);
+
+      expect(result.properties).toMatchObject({
+        model: { provider: "openai", id: "fake-model" },
+        style: "muted"
+      });
+    });
+
+    it("keeps a model the template already selected", () => {
+      const node = {
+        id: "dir",
+        type: "nodetool.creative.Director",
+        properties: {
+          model: { type: "language_model", provider: "anthropic", id: "claude" }
+        }
+      };
+
+      expect(withFakeLanguageModels(node, meta)).toBe(node);
     });
   });
 
