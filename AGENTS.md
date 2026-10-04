@@ -257,9 +257,16 @@ npm install             # Install workspace dependencies
 npm run build:packages  # Build backend packages in dependency order
 ```
 
+In a fresh agent container (Claude Code on the web, Codex, or another
+sandboxed or proxied checkout), run [`scripts/setup-agent-env.sh`](scripts/setup-agent-env.sh) instead of
+`npm install`. It installs dependencies with the flags that survive a proxy,
+links workspaces missing from a cached tree, and creates `.env` with a
+`SECRETS_MASTER_KEY`. It is idempotent, so run it at the start of every
+session. Then run `npm run build:packages`.
+
 `./start.sh` performs setup and starts the API on port 7777 (`full`, `web`,
 `check`, `doctor` modes). Python 3.11+ with conda is optional for Python nodes.
-Claude Code web setup and slash commands are in [.claude/README.md](.claude/README.md).
+Slash commands are in [.claude/README.md](.claude/README.md).
 
 - On missing-module/type-definition failures in untouched files, install
   dependencies first, then rerun checks before investigating further. A

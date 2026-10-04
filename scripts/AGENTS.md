@@ -14,6 +14,7 @@ npm run test:affected    # Run only the suites that depend on changed code
                          #  scripts/__tests__/test-affected.test.mjs)
 npm run clean            # Remove build artifacts and dependencies
 npm run clean:build      # Remove build artifacts only
+./scripts/setup-agent-env.sh  # Prepare a fresh agent container (see Root AGENTS.md)
 ```
 
 ## Rules for Build Scripts
