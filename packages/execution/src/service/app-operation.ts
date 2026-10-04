@@ -54,6 +54,11 @@ export interface ExecuteAppOperationOptions {
   readonly runnerInstance?: string | null;
   readonly requireFiniteBudget?: boolean;
   readonly inputValues?: Readonly<Record<string, unknown>>;
+  /** Inputs already resolved by the headless app runtime against its interaction state. */
+  readonly resolvedInputs?: Record<string, unknown>;
+  /** Effective workflow property bindings alongside its operation parameters. */
+  readonly inputSnapshot?: Record<string, unknown>;
+  readonly onReserved?: (run: AppRunRecord) => void;
   readonly resourceRef?: (id: string) => ResourceRef | undefined;
   readonly scriptRunner?: (
     context: ProcessingContext,
@@ -106,6 +111,7 @@ export async function executeAppOperation(
       return { run, variables: {}, messages: [], reused: true };
     }
   }
+  options.onReserved?.(run);
   if (
     run.status !== "running" ||
     !(await claimAppRun(options.userId, run.id, options.runnerInstance))
@@ -158,11 +164,11 @@ export async function executeAppOperation(
     const target = operationTarget(operation);
     const carriedScript =
       target.kind === "script"
-        ? snapshot.script_documents[target.scriptId]
+        ? snapshot.script_documents[`${target.scriptId}@${target.scriptVersion}`] ?? snapshot.script_documents[target.scriptId]
         : undefined;
     const graph =
       target.kind === "workflow"
-        ? debugGraphOf(snapshot.workflow_graphs[target.workflowId])
+        ? debugGraphOf(snapshot.workflow_graphs[`${target.workflowId}@${target.workflowVersion ?? "latest"}`] ?? snapshot.workflow_graphs[target.workflowId])
         : null;
     const io = carriedScript
       ? scriptAppIO(carriedScript)
@@ -192,14 +198,14 @@ export async function executeAppOperation(
           : (stored ?? input.defaultValue);
       state.inputs[key] = { value, dirty: stored !== undefined, revision: 0 };
     }
-    const params = resolveOperationParams({
+    const params = options.resolvedInputs ?? resolveOperationParams({
       operation,
       state,
       inputNodeIds: io.inputs.map((input) => input.nodeId),
       inputName: (id) => io.inputs.find((input) => input.nodeId === id)?.name,
       resourceRef: options.resourceRef
     });
-    await setAppRunInputs(options.userId, run.id, params, [
+    await setAppRunInputs(options.userId, run.id, options.inputSnapshot ?? params, [
       ...context.getResolvedSecretValues()
     ]);
     const variableTargets = new Map(

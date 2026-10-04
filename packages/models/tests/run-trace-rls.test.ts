@@ -60,7 +60,7 @@ describe.skipIf(!connectionUrl)("run trace migration PostgreSQL RLS", () => {
       }
       const enabled = await client.unsafe("SELECT relrowsecurity FROM pg_class WHERE relname IN ('nodetool_run_traces','nodetool_run_spans')");
       expect(enabled).toHaveLength(2); expect(enabled.every((row) => row.relrowsecurity)).toBe(true);
-      await client.unsafe("CREATE TABLE nodetool_jobs (id text PRIMARY KEY, user_id text NOT NULL)");
+      await client.unsafe("CREATE TABLE nodetool_jobs (id text PRIMARY KEY, user_id text NOT NULL, has_run_trace integer NOT NULL DEFAULT 0)");
       await client.unsafe("CREATE TABLE nodetool_messages (id text PRIMARY KEY, user_id text NOT NULL, thread_id text, name text, tool_calls text, content text, created_at text, tools text, execution_event_type text)");
       await client.unsafe("CREATE TABLE nodetool_workflows (id text PRIMARY KEY, user_id text NOT NULL)");
       await client.unsafe("INSERT INTO nodetool_jobs (id,user_id) SELECT source_id,user_id FROM nodetool_run_traces");

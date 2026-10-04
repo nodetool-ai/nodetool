@@ -151,6 +151,11 @@ async function checkSource(userId: string, input: RegisterRunTraceInput): Promis
     return { expired: false, parents: rows[0]?.thread_id ? [{ kind: "thread", id: rows[0].thread_id }] : [] };
   }
 }
+async function markWorkflowTraceSource(userId: string, sourceId: string): Promise<void> {
+  const c = getDatabase(); const t = c.schema.jobs; const where = and(eq(t.id, sourceId), eq(t.user_id, userId));
+  if (c.dialect === "sqlite") { await c.db.update(c.schema.jobs).set({ has_run_trace: 1 }).where(where); }
+  else { await c.db.update(c.schema.jobs).set({ has_run_trace: 1 }).where(where); }
+}
 /** Register one persisted app invocation, job, or chat message before tracing its execution. */
 export async function registerRunTrace(userId: string, input: RegisterRunTraceInput): Promise<RunTraceRegistration> {
   const source = await checkSource(userId, input); const c = getDatabase(); const t = c.schema.runTraces;
@@ -158,6 +163,7 @@ export async function registerRunTrace(userId: string, input: RegisterRunTraceIn
   const existing = c.dialect === "sqlite" ? await c.db.select().from(c.schema.runTraces).where(existingWhere).limit(1) : await c.db.select().from(c.schema.runTraces).where(existingWhere).limit(1);
   if (existing[0]) {
     if (input.id && input.id !== existing[0].id || input.traceId && input.traceId !== existing[0].trace_id) { throw new RunTraceError("conflict", "Run is already registered under another identity"); }
+    if (input.kind === "workflow") { await markWorkflowTraceSource(userId, input.sourceId); }
     return registration(existing[0]);
   }
   const parent = input.parentRunId ? await getRunTrace(userId, input.parentRunId) : null;
@@ -169,6 +175,7 @@ export async function registerRunTrace(userId: string, input: RegisterRunTraceIn
   const winner = traceRows.find((row) => row.user_id === userId && row.kind === input.kind && row.source_id === input.sourceId);
   if (winner) {
     if (input.id && input.id !== winner.id || input.traceId && input.traceId !== winner.trace_id) { throw new RunTraceError("conflict", "Run is already registered under another identity"); }
+    if (input.kind === "workflow") { await markWorkflowTraceSource(userId, input.sourceId); }
     return registration(winner);
   }
   if (traceRows.some((row) => row.user_id !== userId) || !parent && traceRows.length > 0) { throw new RunTraceError("conflict", "Trace is already registered"); }
@@ -184,6 +191,7 @@ export async function registerRunTrace(userId: string, input: RegisterRunTraceIn
     parents, next_cursor: 0, span_count: 0, event_count: 0 };
   if (c.dialect === "sqlite") {
     c.db.transaction((tx) => {
+      if (input.kind === "workflow") { tx.update(c.schema.jobs).set({ has_run_trace: 1 }).where(and(eq(c.schema.jobs.id, input.sourceId), eq(c.schema.jobs.user_id, userId))).run(); }
       const live = tx.select().from(c.schema.runTraces).where(eq(c.schema.runTraces.trace_id, traceId)).all();
       if (parent) {
         const liveRoot = live.find((entry) => entry.id === entry.canonical_root_id);
@@ -201,6 +209,7 @@ export async function registerRunTrace(userId: string, input: RegisterRunTraceIn
     });
   } else {
     await c.db.transaction(async (tx) => {
+      if (input.kind === "workflow") { await tx.update(c.schema.jobs).set({ has_run_trace: 1 }).where(and(eq(c.schema.jobs.id, input.sourceId), eq(c.schema.jobs.user_id, userId))); }
       if (root) {
         const [liveRoot] = await tx.select().from(c.schema.runTraces).where(eq(c.schema.runTraces.id, root.id)).for("update");
         if (!liveRoot) { throw new RunTraceError("not_found", "Parent trace deleted"); }
@@ -519,6 +528,8 @@ export async function deleteRunTrace(userId: string, id: string): Promise<boolea
       const t = c.schema.runTraces; const s = c.schema.runSpans;
       const row = tx.select().from(t).where(and(eq(t.id, run.id), eq(t.user_id, userId))).get(); if (!row) { return; }
       const root = row.canonical_root_id === row.id;
+      const scope = and(eq(t.user_id, userId), eq(t.kind, "workflow"), root ? eq(t.trace_id, run.trace_id) : eq(t.id, run.id));
+      tx.update(c.schema.jobs).set({ has_run_trace: 1 }).where(and(eq(c.schema.jobs.user_id, userId), inArray(c.schema.jobs.id, tx.select({ id: t.source_id }).from(t).where(scope)))).run();
       tx.delete(s).where(and(eq(s.user_id, userId), root ? eq(s.trace_id, run.trace_id) : eq(s.run_id, run.id))).run();
       tx.delete(t).where(and(eq(t.user_id, userId), root ? eq(t.trace_id, run.trace_id) : eq(t.id, run.id))).run();
     });
@@ -527,6 +538,8 @@ export async function deleteRunTrace(userId: string, id: string): Promise<boolea
       const t = c.schema.runTraces; const s = c.schema.runSpans;
       const [rootRow] = await tx.select().from(t).where(and(eq(t.trace_id, run.trace_id), eq(t.user_id, userId), isNull(t.parent_run_id))).for("update"); if (!rootRow) { return; }
       const root = rootRow.id === run.id;
+      const scope = and(eq(t.user_id, userId), eq(t.kind, "workflow"), root ? eq(t.trace_id, run.trace_id) : eq(t.id, run.id));
+      await tx.update(c.schema.jobs).set({ has_run_trace: 1 }).where(and(eq(c.schema.jobs.user_id, userId), inArray(c.schema.jobs.id, tx.select({ id: t.source_id }).from(t).where(scope))));
       await tx.delete(s).where(and(eq(s.user_id, userId), root ? eq(s.trace_id, run.trace_id) : eq(s.run_id, run.id)));
       await tx.delete(t).where(and(eq(t.user_id, userId), root ? eq(t.trace_id, run.trace_id) : eq(t.id, run.id)));
     });

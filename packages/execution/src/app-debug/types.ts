@@ -57,12 +57,11 @@ export interface ResolvedAppTarget {
   document: ApplicationDocument | null;
   /** Why no document could be parsed. */
   issue: string | null;
-  /** Graphs the target carries, keyed by the id its operations reference. */
+  /** Loaded graphs use id@version (or id@latest). Carried legacy and bundle graphs use their reference id. */
   graphs: Map<string, DebugGraph>;
   /**
-   * JS scripts the target carries, keyed the same way — a bundle ships the
-   * document of every script version its operations pin, so a script operation
-   * runs without a database.
+   * Loaded scripts use id@version. Bundle scripts use their local reference key
+   * so an operation runs without a database.
    */
   scripts?: Map<string, { name: string; document: JsScriptDocument }>;
   /**
@@ -287,6 +286,7 @@ export interface AppResourceCollectionState {
 }
 
 export interface AppDebugReport {
+  run_ids?: string[];
   generatedAt: string;
   target: DebugTargetInfo;
   app: { version: number; title: string | null; widgetCount: number } | null;

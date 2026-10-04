@@ -261,7 +261,7 @@ describe("always-on durable run processor", () => {
       createLogger("test.console").info("bytes", { media: Buffer.from([249, 250, 251]) });
     }));
     await flushTelemetry();
-    const content = JSON.stringify([...records.values()][0].update.record.events);
+    const content = JSON.stringify([...records.values()][0].update.record.events.map((event) => event.attributes));
     expect(content).toContain("[media omitted]");
     for (const byte of [239, 240, 241, 242, 243, 244, 245, 246, 247, 249, 250, 251, 252, 253]) { expect(content).not.toContain(String(byte)); }
     stderr.mockRestore();

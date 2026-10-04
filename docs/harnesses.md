@@ -2483,3 +2483,34 @@ The model PostgreSQL test uses an isolated test database and actual non-bypass
 roles to verify owner reads and denied client writes. Set
 `NODETOOL_TEST_POSTGRES_URL` to a local PostgreSQL administrative connection to
 run that check.
+
+## Run readers phase 3
+
+`nodetool runs list`, `show`, `trace`, `logs` and `tail` read the same
+owner-scoped service as the tRPC `runs` router and `nodetool.runs.*`
+capabilities. Start with `show <id> --json`, then focus `trace` on the span
+named in `summary.first_failed_span_id`. Resource ids accept their exact
+12-character prefixes. Trace and span ids remain full OpenTelemetry ids.
+
+Run the reader check from the repository root after building packages:
+
+```bash
+npm run test --workspace=packages/execution --workspace=packages/models --workspace=packages/websocket --workspace=packages/agents --workspace=packages/cli -- runs-phase3 app-debug-versioned-targets app-debug-workflow-inputs-phase3 capabilities-runs runs-command runs-integration run-readers job-find runs-trpc sandbox-api-coverage
+```
+
+The check invokes the real CLI on a persisted failing script and verifies its
+failed span and ancestor path. It compares reader adapters, exercises bounded
+queries and cancellation, and checks that executing `debug_app` operations
+return run ids with origin `debug`. Static debug validation creates no run.
+Debug workflow runs with widget property bindings record their inputs as
+`parameters` and `node_properties`, alongside the pinned workflow snapshot.
+Traced jobs read stored events even when content expired. Only jobs without a
+registered trace may fall back to their legacy logs.
+
+`tail --json` emits newline-delimited JSON with snapshot updates and a terminal
+result. The store retains the latest snapshot of each span, so readers receive
+an explicit resnapshot indicator when replay cannot reconstruct intermediate
+updates. The CLI deduplicates event identities across polling and resume. See
+[run commands](cli.md#nodetool-runs) for filters and output flags. The
+`run-readers` entry in the [harness registry](../packages/cli/src/harness/registry.ts)
+selects the check for these surfaces.

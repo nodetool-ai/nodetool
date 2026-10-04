@@ -54,7 +54,7 @@ export async function runApplicationDebug(
     return await runApplicationDebugService(userId, body, registry, {
       // A script operation runs the QuickJS sandbox, which lives above the
       // execution package — the server is where both are in reach.
-      runScript: createJsScriptAppRunner(userId, { secretResolver: getSecret }),
+      scriptRunner: (context, input) => createJsScriptAppRunner(userId, { context, secretResolver: getSecret })(input),
       // Same store the workflow run path reads `asset://<id>` inputs through.
       assetStorage: getAssetAdapter(),
       ...deps

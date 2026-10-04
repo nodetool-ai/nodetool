@@ -118,10 +118,10 @@ export const SANDBOX_API_COVERAGE: Readonly<
     gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
   },
   "appRuns.get": {
-    gap: "Owner run records are available through the app API. The shared runs read capabilities are scheduled for phase 3."
+    elsewhere: "get_run provides the shared run summary and bounded app inputs and outputs. Executable snapshots remain on the app API."
   },
   "appRuns.list": {
-    gap: "Owner run records are available through the app API. The shared runs read capabilities are scheduled for phase 3."
+    elsewhere: "list_runs filters app history by app and instance through the shared runs service."
   },
   "appRuns.delete": {
     gap: "Run history deletion is available to the owner UI. No sandbox capability for deleting history is exposed."
@@ -131,6 +131,14 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "appRuns.update": {
     withheld: "The app UI and execution host own run admission and settlement. Sandboxed work must not reserve or rewrite its own recorded outcome."
+  },
+  "runs.list": { capability: "list_runs" },
+  "runs.get": { capability: "get_run" },
+  "runs.trace": { capability: "get_run_trace" },
+  "runs.logs": { capability: "get_run_logs" },
+  "runs.await": { capability: "await_run" },
+  "runs.updates": {
+    elsewhere: "Cursor updates serve the UI and CLI tail. Sandboxed readers poll get_run_trace and get_run_logs or wait with await_run."
   },
   "applications.beginInvocation": {
     withheld:

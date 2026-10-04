@@ -362,6 +362,18 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "run-readers",
+    title: "Run reader, debug history and CLI failure-path check",
+    command: "npm run test --workspace=packages/execution --workspace=packages/models --workspace=packages/websocket --workspace=packages/agents --workspace=packages/cli -- runs-phase3 app-debug-versioned-targets app-debug-workflow-inputs-phase3 capabilities-runs runs-command runs-integration run-readers job-find runs-trpc sandbox-api-coverage",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "docs/harnesses.md § Run readers phase 3",
+    selfcheck: {
+      command: "npm run test --workspace=packages/execution --workspace=packages/models --workspace=packages/websocket --workspace=packages/agents --workspace=packages/cli -- runs-phase3 app-debug-versioned-targets app-debug-workflow-inputs-phase3 capabilities-runs runs-command runs-integration run-readers job-find runs-trpc sandbox-api-coverage",
+      cost: "cheap"
+    }
+  },
+  {
     id: "app-build",
     title: "Mini-app build harness (spec→plan→author→check→run→judge)",
     command: "nodetool app build <prompt|spec.json> -p <provider> -m <model>",
@@ -1246,6 +1258,26 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/execution/src/service/run-trace-lifecycle.ts",
       "packages/websocket/src/lib/http-tracing.ts",
       "packages/websocket/src/storage-retention.ts"
+    ]
+  },
+  {
+    id: "run-readers",
+    title: "Common run inspection for agents and CLI",
+    harnesses: ["run-readers"],
+    paths: [
+      "packages/protocol/src/run-readers.ts",
+      "packages/protocol/src/api-schemas/runs.ts",
+      "packages/models/src/run-readers.ts",
+      "packages/execution/src/runs.ts",
+      "packages/execution/src/app-debug/run-recording.ts",
+      "packages/execution/src/service/app-debug-service.ts",
+      "packages/agents/src/capabilities/runs",
+      "packages/agents/src/capabilities/jobs.ts",
+      "packages/agents/src/evals/codeact-api-runs.ts",
+      "packages/cli/src/commands/runs.ts",
+      "packages/cli/src/app-debug/harness.ts",
+      "packages/websocket/src/trpc/routers/runs.ts",
+      "packages/websocket/src/lib/app-debug-service.ts"
     ]
   },
   {

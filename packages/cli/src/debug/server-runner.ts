@@ -52,6 +52,7 @@ export interface ServerRunInput {
   supervisor?: SupervisorRunConfig;
   /** Sink for the inline `⛨` lines. Defaults to stderr. */
   onInterventionLine?: (line: string) => void;
+  context?: ProcessingContext;
 }
 
 export interface ServerRunOutcome {
@@ -74,7 +75,7 @@ export async function runOnServer(
   const { resolveWorkflowWorkspace } = await import("@nodetool-ai/websocket");
   const workspace = await resolveWorkflowWorkspace(workflowId ?? null, "1");
 
-  const context = new ProcessingContext({
+  const contextInit = {
     jobId,
     workflowId,
     userId: "1",
@@ -83,8 +84,9 @@ export async function runOnServer(
     workspace,
     // The debug bundle crosses a JSON boundary. Store generated media so raw
     // RGBA frames and image collections remain encoded, compact references.
-    assetOutputMode: "storage_url"
-  });
+    assetOutputMode: "storage_url" as const
+  };
+  const context = input.context ? input.context.copy({ jobId, workflowId, workspace }) : new ProcessingContext(contextInit);
 
   // ExecutionSession owns editor-only-node pruning (Comment/Group/Reroute —
   // the web editor prunes them at serialize time; without this every

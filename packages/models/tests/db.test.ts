@@ -291,7 +291,12 @@ describe("db", () => {
             "SELECT version FROM _nodetool_migrations ORDER BY version DESC LIMIT 1"
           )
           .get()
-      ).toEqual({ version: "20261004_000001" });
+      ).toEqual({ version: "20261004_000002" });
+      expect(
+        getRawDb()
+          .prepare("SELECT name FROM pragma_table_info('nodetool_jobs') WHERE name = 'has_run_trace'")
+          .get()
+      ).toEqual({ name: "has_run_trace" });
       expect(await migrateSqliteDb(path)).toEqual([]);
     }
   );

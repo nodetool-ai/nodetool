@@ -22,6 +22,7 @@ import { type Intervention } from "@nodetool-ai/protocol";
 import { workflowToDsl } from "@nodetool-ai/dsl";
 import {
   initDb,
+  migrateSqliteDb,
   Workflow,
   Asset,
   Secret,
@@ -87,6 +88,7 @@ import { registerCollectionCommands } from "./commands/collections.js";
 import { registerCostsCommands } from "./commands/costs.js";
 import { registerErrorsCommands } from "./commands/errors.js";
 import { registerGenerationsCommands } from "./commands/generations.js";
+import { registerRunsCommands } from "./commands/runs.js";
 import { registerGameCommands } from "./commands/game.js";
 import { registerAuthCommands } from "./commands/auth.js";
 import { registerTelegramCommands } from "./commands/telegram.js";
@@ -1704,6 +1706,14 @@ registerCollectionCommands(program);
 registerCostsCommands(program);
 registerErrorsCommands(program);
 registerGenerationsCommands(program);
+registerRunsCommands(program, {
+  ensureDb: async () => {
+    const dbPath = getDefaultDbPath();
+    await migrateSqliteDb(dbPath);
+    initDb(dbPath);
+  },
+  localUserId: LOCAL_USER_ID
+});
 registerAuthCommands(program);
 registerTelegramCommands(program);
 

@@ -1419,6 +1419,7 @@ export class ProcessingContext {
     appRunContext?: AppRunContext;
     runTraceContext?: RunTraceScope;
     generationLifecycle?: GenerationLifecycleHooks;
+    workspace?: Workspace | null;
   }): ProcessingContext {
     const next = new ProcessingContext({
       jobId: opts?.jobId ?? this.jobId,
@@ -1426,7 +1427,7 @@ export class ProcessingContext {
       workflowId: opts?.workflowId !== undefined ? opts.workflowId : this.workflowId,
       threadId: this.threadId,
       userId: this.userId,
-      workspaceDir: this.workspaceDir,
+      workspace: opts?.workspace !== undefined ? opts.workspace : this.workspace,
       assetOutputMode: this.assetOutputMode,
       persistOutputAssets: this.persistOutputAssets,
       cache: this.cache,

@@ -178,7 +178,8 @@ content_expired INTEGER NOT NULL DEFAULT 0)`,
     BEGIN DELETE FROM nodetool_generation_attachments WHERE target_type = 'app_run' AND target_id = OLD.id; END`
 ];
 
-export const POST_BASELINE_TABLE_DDL: readonly string[] = [...ERROR_TRACES_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL];
+const JOB_TRACE_MARKER_DDL = "ALTER TABLE nodetool_jobs ADD COLUMN has_run_trace INTEGER NOT NULL DEFAULT 0";
+export const POST_BASELINE_TABLE_DDL: readonly string[] = [...ERROR_TRACES_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL];
 
 export const migrations: MigrationDef[] = [
   // ── 001: Create workflows ──────────────────────────────────────────
@@ -4017,6 +4018,19 @@ export const migrations: MigrationDef[] = [
     async down(db) {
       await db.execute("DROP TABLE IF EXISTS nodetool_run_spans");
       await db.execute("DROP TABLE IF EXISTS nodetool_run_traces");
+    }
+  },
+  {
+    version: "20261004_000002", name: "job_trace_provenance",
+    createsTables: [], modifiesTables: ["nodetool_jobs"],
+    async up(db) {
+      if (!await db.columnExists("nodetool_jobs", "has_run_trace")) { await db.execute(JOB_TRACE_MARKER_DDL); }
+      await db.execute("UPDATE nodetool_jobs SET has_run_trace = 1 WHERE EXISTS (SELECT 1 FROM nodetool_run_traces t WHERE t.kind = 'workflow' AND t.source_id = nodetool_jobs.id AND t.user_id = nodetool_jobs.user_id)");
+    },
+    async down(db) {
+      if (await db.columnExists("nodetool_jobs", "has_run_trace")) {
+        await db.execute("ALTER TABLE nodetool_jobs DROP COLUMN has_run_trace");
+      }
     }
   }
 ];

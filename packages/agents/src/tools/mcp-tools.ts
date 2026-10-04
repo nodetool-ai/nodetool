@@ -259,6 +259,11 @@ export function getAllMcpCapabilitySpecs(
     "list_jobs",
     "get_job",
     "get_job_logs",
+    "list_runs",
+    "get_run",
+    "get_run_trace",
+    "get_run_logs",
+    "await_run",
     // error traces: redacted, scoped to the caller, and the bug-report export
     "list_error_traces",
     "get_error_trace",

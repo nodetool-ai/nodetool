@@ -143,3 +143,4 @@ export {
   associateTraceMessage, openAppRunTrace
 } from "./service/run-trace-lifecycle.js";
 export type { RegisterTraceInput } from "./service/run-trace-lifecycle.js";
+export { listRuns, getRun, getRunTrace, getRunLogs, awaitRun, readRunUpdates, findRunForSource, RunsError } from "./runs.js";

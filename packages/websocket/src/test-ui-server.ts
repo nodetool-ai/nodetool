@@ -33,7 +33,7 @@ import { appRouter } from "./trpc/router.js";
 import { createContextFactory } from "./trpc/context.js";
 import { ScriptedProvider, autoScript } from "@nodetool-ai/runtime";
 import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
-import { initDb, initPostgresDb } from "@nodetool-ai/models";
+import { initDb, initPostgresDb, migrateSqliteDb } from "@nodetool-ai/models";
 import {
   isNonEmptyString,
   isString
@@ -1574,7 +1574,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     if (postgresDatabaseUrl) {
       await initPostgresDb(postgresDatabaseUrl);
     } else {
-      initDb(getDefaultDbPath());
+      const dbPath = getDefaultDbPath();
+      await migrateSqliteDb(dbPath);
+      initDb(dbPath);
     }
   } catch {
     // DB unavailable — secrets will appear unconfigured

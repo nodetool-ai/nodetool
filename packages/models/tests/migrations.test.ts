@@ -423,7 +423,7 @@ describe("MigrationRunner", () => {
 // ── Built-in migrations smoke test ───────────────────────────────────
 
 describe("Built-in migrations", () => {
-  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 91;
+  const EXPECTED_BUILT_IN_MIGRATION_COUNT = 92;
 
   it("should have correct count of migrations", () => {
     expect(migrations.length).toBe(EXPECTED_BUILT_IN_MIGRATION_COUNT);
@@ -510,6 +510,7 @@ describe("Built-in migrations", () => {
     expect(await adapter.tableExists("nodetool_threads")).toBe(true);
     expect(await adapter.tableExists("nodetool_messages")).toBe(true);
     expect(await adapter.tableExists("nodetool_jobs")).toBe(true);
+    expect(await adapter.columnExists("nodetool_jobs", "has_run_trace")).toBe(true);
     expect(await adapter.tableExists("nodetool_predictions")).toBe(true);
     expect(await adapter.tableExists("nodetool_secrets")).toBe(true);
     expect(await adapter.tableExists("nodetool_oauth_credentials")).toBe(true);

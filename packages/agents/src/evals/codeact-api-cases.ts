@@ -8,11 +8,13 @@
 import { NODETOOL_API_NAMESPACE_TOOLS } from "../codeact/nodetool-api.js";
 import type { CodeActEvalCase } from "./codeact-cases.js";
 import { CODEACT_API_CORE_CASES } from "./codeact-api-core.js";
+import { CODEACT_RUNS_EVAL_CASES } from "./codeact-api-runs.js";
 import { CODEACT_API_SURFACE_CASES } from "./codeact-api-surfaces.js";
 import { CODEACT_SANDBOX_PACK_EVAL_CASES } from "./codeact-sandbox-pack-cases.js";
 
 export const CODEACT_API_EVAL_CASES: readonly CodeActEvalCase[] = [
   ...CODEACT_API_CORE_CASES,
+  ...CODEACT_RUNS_EVAL_CASES,
   ...CODEACT_API_SURFACE_CASES
 ];
 
