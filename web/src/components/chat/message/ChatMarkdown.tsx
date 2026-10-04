@@ -9,7 +9,8 @@ import InlineResourcePreview, {
   isInlinePreviewUri
 } from "./InlineResourcePreview";
 import "../../../styles/markdown/nodetool-markdown.css";
-import { Caption, FlexColumn, SPACING, getSpacingPx } from "../../ui_primitives";
+import { Box, Caption, FlexColumn, SPACING, getSpacingPx } from "../../ui_primitives";
+import LazyModel3DViewer from "../../asset_viewer/LazyModel3DViewer";
 import { CodeBlock } from "./markdown_elements/CodeBlock";
 import { PreRenderer } from "./markdown_elements/PreRenderer";
 import { BORDER_RADIUS } from "../../ui_primitives";
@@ -22,11 +23,13 @@ import { EntityMentionChip } from "../../node_types/editing/promptComposer/Entit
 import { remarkEntityMentions } from "./remarkEntityMentions";
 import { remarkResourceMentions } from "./remarkResourceMentions";
 import { isNumber, isString } from "../../../utils/typePredicates";
+import { assetIdFromLocator } from "../../../utils/mediaRef";
 import "../../../styles/markdown/github-markdown.css";
 
 const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".avif"];
 const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov", ".mkv", ".m4v", ".ogv"];
 const AUDIO_EXTENSIONS = [".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac", ".opus"];
+const MODEL3D_EXTENSIONS = [".glb", ".gltf"];
 
 const hrefPath = (href: string): string => href.toLowerCase().split(/[?#]/)[0];
 
@@ -38,14 +41,16 @@ const hasExtension = (href: string, extensions: readonly string[]): boolean => {
 const isImageHref = (href: string): boolean => hasExtension(href, IMAGE_EXTENSIONS);
 const isVideoHref = (href: string): boolean => hasExtension(href, VIDEO_EXTENSIONS);
 const isAudioHref = (href: string): boolean => hasExtension(href, AUDIO_EXTENSIONS);
+const isModel3DHref = (href: string): boolean => hasExtension(href, MODEL3D_EXTENSIONS);
 
-type MediaKind = "video" | "audio" | "image";
+type MediaKind = "video" | "audio" | "image" | "model3d";
 
 const mimeKind = (mime: string | undefined): MediaKind | null => {
   if (!mime) return null;
   if (mime.startsWith("video/")) return "video";
   if (mime.startsWith("audio/")) return "audio";
   if (mime.startsWith("image/")) return "image";
+  if (mime.startsWith("model/gltf")) return "model3d";
   return null;
 };
 
@@ -63,6 +68,9 @@ const mediaKind = (
   }
   if (isImageHref(href) || (resolvedSrc && isImageHref(resolvedSrc))) {
     return "image";
+  }
+  if (isModel3DHref(href) || (resolvedSrc && isModel3DHref(resolvedSrc))) {
+    return "model3d";
   }
   return mimeKind(mime);
 };
@@ -123,6 +131,13 @@ const videoCss = css({
   borderRadius: BORDER_RADIUS.md,
   backgroundColor: "var(--palette-grey-900)"
 });
+
+const model3dFrameSx = {
+  width: "100%",
+  height: 280,
+  overflow: "hidden",
+  borderRadius: BORDER_RADIUS.md
+} as const;
 
 const extractStorageKey = (uri: string | null | undefined): string | null => {
   if (!uri) return null;
@@ -206,6 +221,7 @@ const isBlockEmbedSrc = (src: string): boolean =>
   isInlinePreviewUri(src) ||
   isVideoHref(src) ||
   isAudioHref(src) ||
+  isModel3DHref(src) ||
   isUntypedAssetSrc(src);
 
 /** Asset links may resolve to video/audio even without a file extension. */
@@ -230,11 +246,30 @@ const containsBlockEmbed = (node: unknown): boolean => {
 };
 
 const ChatMarkdownMedia: React.FC<{
+  href: string;
   resolvedSrc: string;
   kind: MediaKind;
   label: string;
   imgProps?: React.ComponentPropsWithoutRef<"img">;
-}> = ({ resolvedSrc, kind, label, imgProps }) => {
+}> = ({ href, resolvedSrc, kind, label, imgProps }) => {
+  if (kind === "model3d") {
+    // A 3D model asset previews in a viewer with a chip that opens it in the
+    // 3D editor. Without an asset id (a plain URL) there is nothing to open.
+    const assetId = assetIdFromLocator(href);
+    if (assetId) {
+      return (
+        <InlineResourcePreview
+          uri={`model3d://${assetId}`}
+          label={label || assetId}
+        />
+      );
+    }
+    return (
+      <Box sx={model3dFrameSx}>
+        <LazyModel3DViewer url={resolvedSrc} compact />
+      </Box>
+    );
+  }
   if (kind === "video") {
     return (
       <video
@@ -309,6 +344,7 @@ const ChatMarkdownImg: React.FC<React.ComponentPropsWithoutRef<"img">> = ({
   const kind = mediaKind(href, resolvedSrc, contentType) ?? "image";
   return (
     <ChatMarkdownMedia
+      href={href}
       resolvedSrc={resolvedSrc}
       kind={kind}
       label={alt ?? ""}
@@ -338,6 +374,7 @@ const ChatMarkdownAssetLink: React.FC<{ href: string; label: string }> = ({
   if (kind && resolvedSrc) {
     return (
       <ChatMarkdownMedia
+        href={href}
         resolvedSrc={resolvedSrc}
         kind={kind}
         label={label}
