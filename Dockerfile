@@ -1,5 +1,7 @@
 # syntax=docker/dockerfile:1-labs
 
+this is an interesting proposition
+
 FROM node:24.18.0-bookworm-slim AS deps
 
 # Native build dependencies are only needed while installing/building packages.
