@@ -1,5 +1,5 @@
 import { and, eq, isNull } from "drizzle-orm";
-import { forUpdate, getDb, getDbType, type DbTransaction } from "./db.js";
+import { forUpdate, getPortableDb, getDbType, type DbTransaction } from "./db.js";
 import { applications } from "./schema/applications.js";
 import { assets } from "./schema/assets.js";
 import { imageDocuments } from "./schema/image-documents.js";
@@ -58,7 +58,7 @@ export async function persistProjectCopy(args: {
   readonly assets: readonly ProjectCopyAsset[];
   readonly documents: readonly ProjectCopyDocument[];
 }): Promise<void> {
-  const db = getDb();
+  const db = getPortableDb();
   const writes = (tx: DbTransaction) => {
     const statements: Array<{ run: () => void }> = [];
     for (const asset of args.assets)

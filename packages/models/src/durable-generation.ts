@@ -13,7 +13,7 @@ import {
 } from "drizzle-orm";
 import { createHash } from "node:crypto";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb, getDbType, type DbTransaction } from "./db.js";
+import { getPortableDb, getDbType, type DbTransaction } from "./db.js";
 import { predictions } from "./schema/predictions.js";
 import { generationAttempts } from "./schema/generation-attempts.js";
 import { generationWebhookDeliveries } from "./schema/generation-webhook-deliveries.js";
@@ -270,7 +270,7 @@ export class DurablePrediction extends DBModel {
         "Durable generation acceptance requires idempotency_key and input_fingerprint"
       );
     }
-    const db = getDb();
+    const db = getPortableDb();
     const now = new Date().toISOString();
     const id = input.id ?? createTimeOrderedUuid();
     const values = {
@@ -428,7 +428,7 @@ export class DurablePrediction extends DBModel {
     now: string,
     expiresAt: string
   ): Promise<DurablePrediction | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(predictions)
       .set({
@@ -487,7 +487,7 @@ export class DurablePrediction extends DBModel {
       "attached" | "superseded" | "target_deleted"
     >
   ): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(predictions)
       .set({ attachment_status: status, next_check_at: null })
@@ -512,7 +512,7 @@ export class DurablePrediction extends DBModel {
     version: number,
     expiresAt: string
   ): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(predictions)
       .set({ lease_expires_at: expiresAt })
@@ -533,7 +533,7 @@ export class DurablePrediction extends DBModel {
     workerId: string,
     version: number
   ): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(predictions)
       .set({ lease_owner: null, lease_expires_at: null })
@@ -555,7 +555,7 @@ export class DurablePrediction extends DBModel {
     version: number,
     providerRequestId: string
   ): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(predictions)
       .set({
@@ -582,7 +582,7 @@ export class DurablePrediction extends DBModel {
     version: number,
     update: DurableGenerationTransition
   ): Promise<DurablePrediction | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(predictions)
       .set(update)
@@ -602,7 +602,7 @@ export class DurablePrediction extends DBModel {
     now: string,
     limit = 100
   ): Promise<DurablePrediction[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(predictions)
@@ -657,7 +657,7 @@ export class DurablePrediction extends DBModel {
     id: string,
     userId: string
   ): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(predictions)
       .set({ cancel_requested_at: new Date().toISOString() })
@@ -727,7 +727,7 @@ export class GenerationAttempt extends DBModel {
   static async forGeneration(
     generationId: string
   ): Promise<GenerationAttempt[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(generationAttempts)
@@ -750,7 +750,7 @@ export class GenerationAttempt extends DBModel {
     decoder_version?: string | null;
     request_payload?: Record<string, unknown> | null;
   }): Promise<{ attempt: GenerationAttempt; created: boolean }> {
-    const db = getDb();
+    const db = getPortableDb();
     const attemptNumber = input.attempt_number ?? 1;
     const id = createTimeOrderedUuid();
     const now = new Date().toISOString();
@@ -802,7 +802,7 @@ export class GenerationAttempt extends DBModel {
     now: string,
     expiresAt: string
   ): Promise<GenerationAttempt | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(generationAttempts)
       .set({
@@ -833,7 +833,7 @@ export class GenerationAttempt extends DBModel {
     version: number,
     providerRequestId: string
   ): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(generationAttempts)
       .set({
@@ -859,7 +859,7 @@ export class GenerationAttempt extends DBModel {
     providerRequestId: string,
     gatewayRequestId?: string | null
   ): Promise<GenerationAttempt | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(generationAttempts)
       .set({
@@ -884,7 +884,7 @@ export class GenerationAttempt extends DBModel {
     accountRef: string | null,
     providerRequestId: string
   ): Promise<GenerationAttempt | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(generationAttempts)
@@ -904,7 +904,7 @@ export class GenerationAttempt extends DBModel {
   static async findByCallbackTokenHash(
     callbackTokenHash: string
   ): Promise<GenerationAttempt | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(generationAttempts)
@@ -922,7 +922,7 @@ export class GenerationAttempt extends DBModel {
     callbackToken: string
   ): Promise<GenerationAttempt | null> {
     if (callbackToken.length === 0) return null;
-    const db = getDb();
+    const db = getPortableDb();
     const callbackTokenHash = createHash("sha256")
       .update(callbackToken)
       .digest("hex");
@@ -945,7 +945,7 @@ export class GenerationAttempt extends DBModel {
     version: number,
     observation: GenerationAttemptObservation
   ): Promise<GenerationAttempt | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(generationAttempts)
       .set({
@@ -969,7 +969,7 @@ export class GenerationAttempt extends DBModel {
     version: number,
     expiresAt: string
   ): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(generationAttempts)
       .set({
@@ -993,7 +993,7 @@ export class GenerationAttempt extends DBModel {
     version: number,
     update: GenerationAttemptObservation
   ): Promise<GenerationAttempt | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(generationAttempts)
       .set({ ...update, updated_at: new Date().toISOString() })
@@ -1012,7 +1012,7 @@ export class GenerationAttempt extends DBModel {
     now: string,
     limit = 100
   ): Promise<GenerationAttempt[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(generationAttempts)
@@ -1099,7 +1099,7 @@ export class GenerationWebhookDelivery extends DBModel {
     attempt_id?: string | null;
     observation?: Record<string, unknown> | null;
   }): Promise<{ delivery: GenerationWebhookDelivery; created: boolean }> {
-    const db = getDb();
+    const db = getPortableDb();
     const id = createTimeOrderedUuid();
     const inserted = await db
       .insert(generationWebhookDeliveries)
@@ -1159,7 +1159,7 @@ export class GenerationWebhookDelivery extends DBModel {
     now: string,
     expiresAt: string
   ): Promise<GenerationWebhookDelivery | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(generationWebhookDeliveries)
       .set({
@@ -1203,7 +1203,7 @@ export class GenerationWebhookDelivery extends DBModel {
     now: string,
     limit = 100
   ): Promise<GenerationWebhookDelivery[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(generationWebhookDeliveries)
@@ -1239,7 +1239,7 @@ export class GenerationWebhookDelivery extends DBModel {
     version: number,
     error?: string | null
   ): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(generationWebhookDeliveries)
       .set({
@@ -1267,7 +1267,7 @@ export class GenerationWebhookDelivery extends DBModel {
     version: number,
     error: string
   ): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const updated = await db
       .update(generationWebhookDeliveries)
       .set({
@@ -1317,7 +1317,7 @@ export class GenerationOutput extends DBModel {
   }
 
   static async forAttempt(attemptId: string): Promise<GenerationOutput[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(generationOutputs)
@@ -1343,7 +1343,7 @@ export class GenerationOutput extends DBModel {
     if (!attempt || attempt.generation_id !== input.generation_id) {
       throw new Error("Output attempt does not belong to generation");
     }
-    const db = getDb();
+    const db = getPortableDb();
     const id = createTimeOrderedUuid();
     const now = new Date().toISOString();
     const outputIndex = input.output_index ?? 0;
@@ -1397,7 +1397,7 @@ export class GenerationOutput extends DBModel {
     saveState: GenerationOutputSaveState,
     fence?: GenerationAttemptLeaseFence
   ): Promise<GenerationOutput | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const predicates = [eq(generationOutputs.id, id)];
     // A committed asset is terminal for this output. A stale worker may
     // still finish after a lease handoff, but it must not regress ready data
@@ -1488,7 +1488,7 @@ export class GenerationAttachment extends DBModel {
     if (!output || output.generation_id !== input.generation_id) {
       throw new Error("Attachment output does not belong to generation");
     }
-    const db = getDb();
+    const db = getPortableDb();
     const id = createTimeOrderedUuid();
     const now = new Date().toISOString();
     const inserted = await db
@@ -1538,7 +1538,7 @@ export class GenerationAttachment extends DBModel {
     change: GenerationAttachmentTransition,
     fence?: GenerationAttemptLeaseFence
   ): Promise<GenerationAttachment | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const predicates = [eq(generationAttachments.id, id)];
     if (fence) {
       predicates.push(

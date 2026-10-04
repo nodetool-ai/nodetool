@@ -4,7 +4,7 @@
 
 import { eq, asc } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { triggerInputs } from "./schema/trigger-inputs.js";
 
 export class TriggerInput extends DBModel {
@@ -40,7 +40,7 @@ export class TriggerInput extends DBModel {
   // ── Static queries ───────────────────────────────────────────────
 
   static async findUnprocessed(limit = 100): Promise<TriggerInput[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(triggerInputs)
@@ -51,7 +51,7 @@ export class TriggerInput extends DBModel {
   }
 
   static async findByInputId(inputId: string): Promise<TriggerInput | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(triggerInputs)

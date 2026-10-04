@@ -13,10 +13,17 @@ The package supports two database backends. The active dialect is set at startup
 | SQLite | `initDb(path)` | `src/schema/` | `better-sqlite3` |
 | PostgreSQL | `await initPostgresDb(url)` | `src/schema-pg/` | `postgres` (postgres.js) |
 
-Use `getDatabase()` to narrow the active driver together with its own schema.
-`getDb()` and `DbTransaction` retain a SQLite projection for unmigrated models.
-That projection is compatibility debt. Use the narrowed transaction callback for
-new PostgreSQL paths, including `.for("update")` locking.
+Use `getPortableDb()` for ordinary CRUD. It exposes the shared asynchronous
+builder surface through SQLite types. The SQLite declarations use codecs that
+match their PostgreSQL twins, so models share query construction across drivers.
+The portable surface includes `select`, `insert`, `update`, `delete`, `where`,
+`returning`, and `onConflictDoUpdate`, executed with `await`. Synchronous methods
+and row locks are outside that contract.
+
+Use `getDatabase()` to narrow the driver and schema for a real dialect
+difference: row locks, synchronous SQLite transactions, dialect-specific raw
+SQL, or dialect-specific returning behavior. Use its narrowed transaction
+callback for `.for("update")` locking.
 
 ## Adding a Column
 
@@ -64,19 +71,23 @@ reading it back rather than by matching text:
 
 ## Writing Query Methods
 
-All query methods must be `async`. Use Drizzle's promise-based API — it works on both dialects:
+All query methods must be `async`. Use `getPortableDb()` with the SQLite table
+declarations and awaited Drizzle builders for ordinary CRUD. Share conditions
+and business rules across dialects. Use `getDatabase()` branches only when the
+query needs a dialect difference described in [Dialect Support](#dialect-support).
 
-Use Drizzle-inferred row and insert types in converted models. `Asset` and
-`ExternalIdentity` are the initial examples. Keep dialect-specific builder calls
-in explicit branches and share conditions and business rules above those branches.
-Avoid passing a SQLite table into a PostgreSQL query.
+Keep Drizzle-inferred row and insert types wherever concrete table metadata is
+available. Keep the dynamic `DBModel` metadata boundary explicit.
 
 `DBModel.create()` emits one `CREATED` notification after persistence.
 `save()` and `update()` emit `UPDATED`, and `delete()` emits `DELETED`.
 The observer receives the same model instance used by resource broadcasting.
 
-Outside an explicitly narrowed synchronous SQLite transaction, use awaited
-queries. `.get()`, `.run()`, and `.all()` are SQLite-only methods.
+Await portable queries. Drizzle builders may call `.get()`, `.run()`, or `.all()`
+only inside a branch narrowed to SQLite. The compiler-backed AST audit in
+`tests/portable-query-boundary.test.ts` checks these calls in models and
+websocket source, including calls whose builder types were erased by a cast.
+It verifies that the scan inspected calls before checking for violations.
 
 ### Returning pattern for CAS
 
@@ -166,8 +177,9 @@ close the active connection before initializing the next engine. Call
 
 - All public query methods must be `async`.
 - Keep inferred query row types through `.map()` rather than widening rows to
-  `Record<string, unknown>`. Leave the dynamic base model compatibility boundary
-  explicit until a model is converted.
+  `Record<string, unknown>`. Keep the dynamic base model metadata boundary explicit.
+- Use the portable query surface for ordinary CRUD. Reserve driver/schema branches
+  for real dialect differences described in [Dialect Support](#dialect-support).
 - Never import from `dist/`. Use `@nodetool-ai/models` for cross-package imports.
 - Keep `src/schema/` (SQLite) and `src/schema-pg/` (PostgreSQL) in sync — columns, names, and types must match.
 - The SQLite baseline is versioned compatibility SQL. `TABLE_COLUMNS` is derived

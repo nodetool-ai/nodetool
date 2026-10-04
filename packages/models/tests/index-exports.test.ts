@@ -5,7 +5,8 @@ describe("models index exports", () => {
   it("exports database connection utilities", () => {
     expect(models.initDb).toBeDefined();
     expect(models.initTestDb).toBeDefined();
-    expect(models.getDb).toBeDefined();
+    expect(models.getPortableDb).toBeDefined();
+    expect(models.getDb).toBe(models.getPortableDb);
     expect(models.getRawDb).toBeDefined();
     expect(models.closeDb).toBeDefined();
   });

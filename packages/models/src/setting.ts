@@ -7,7 +7,7 @@
 
 import { eq, and } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { appSettings } from "./schema/settings.js";
 
 export class Setting extends DBModel {
@@ -36,7 +36,7 @@ export class Setting extends DBModel {
 
   /** Find a setting by user_id and key. */
   static async find(userId: string, key: string): Promise<Setting | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const [row] = await db
       .select()
       .from(appSettings)
@@ -88,7 +88,7 @@ export class Setting extends DBModel {
 
   /** List all settings for a user. */
   static async listForUser(userId: string): Promise<Setting[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(appSettings)

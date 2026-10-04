@@ -14,7 +14,7 @@ import {
 import { isShortResourceId } from "@nodetool-ai/protocol";
 import {
   allowLegacyProjectWritesForTests,
-  getDb,
+  getPortableDb,
   getDatabase
 } from "./db.js";
 import { projects } from "./schema/projects.js";
@@ -208,7 +208,7 @@ export abstract class DBModel {
     this: ModelConstructor<T>,
     key: string | number
   ): Promise<T | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const table = this.table as DrizzleTable;
     const pkCol = getTableColumn(table, this.primaryKey);
     const rows = await db.select().from(table).where(eq(pkCol, key)).limit(1);
@@ -314,7 +314,7 @@ export abstract class DBModel {
 
   async delete(): Promise<void> {
     const ctor = this.constructor as typeof DBModel;
-    const db = getDb();
+    const db = getPortableDb();
     const table = ctor.table;
     const pkCol = getTableColumn(table, ctor.primaryKey);
     await db.delete(table).where(eq(pkCol, this.partitionValue()));
@@ -330,7 +330,7 @@ export abstract class DBModel {
   async reload(): Promise<this> {
     // Runtime subclasses carry the constructor and table metadata together.
     const ctor = this.constructor as ModelConstructor<this>;
-    const db = getDb();
+    const db = getPortableDb();
     const table = ctor.table;
     const pkCol = getTableColumn(table, ctor.primaryKey);
     const rows = await db

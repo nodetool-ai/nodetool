@@ -20,7 +20,7 @@ import {
 import type { SQLiteTable } from "drizzle-orm/sqlite-core";
 
 import * as schema from "../src/schema/index.js";
-import { getDb, initTestDb } from "../src/db.js";
+import { getPortableDb, initTestDb } from "../src/db.js";
 import {
   PERSONAL_DATA_REGISTRY,
   WITHHELD_VALUE,
@@ -148,7 +148,7 @@ function orderedEntries(): PersonalDataEntry[] {
  * test that never creates them cannot notice if it does not.
  */
 async function seedUser(userId: string, tag: string): Promise<void> {
-  const db = getDb();
+  const db = getPortableDb();
   const link = links(tag);
   const parents = parentIds(tag);
 
@@ -218,7 +218,7 @@ async function remaining(
   const column = columns[entry.reach.column];
   const value =
     entry.reach.kind === "direct" ? SUBJECT : links(tag)[entry.reach.column];
-  const [row] = await getDb()
+  const [row] = await getPortableDb()
     .select({ value: count() })
     .from(table)
     .where(eq(column, value));
@@ -226,7 +226,7 @@ async function remaining(
 }
 
 async function rowCount(table: SQLiteTable): Promise<number> {
-  const [row] = await getDb().select({ value: count() }).from(table);
+  const [row] = await getPortableDb().select({ value: count() }).from(table);
   return Number((row as { value: number } | undefined)?.value ?? 0);
 }
 
@@ -288,7 +288,7 @@ describe("erasePersonalData", () => {
 
   it("redacts a prediction's payload and keeps its billing columns", async () => {
     await erasePersonalData(SUBJECT);
-    const [row] = await getDb()
+    const [row] = await getPortableDb()
       .select()
       .from(predictions)
       .where(eq(predictions.user_id, SUBJECT));
@@ -316,7 +316,7 @@ describe("erasePersonalData", () => {
 
     await erasePersonalData(SUBJECT, { requestId: "dsr-1" });
 
-    const rows = (await getDb()
+    const rows = (await getPortableDb()
       .select()
       .from(userEvents)
       .where(eq(userEvents.user_id, SUBJECT))) as { event_type: string }[];
@@ -337,7 +337,7 @@ describe("erasePersonalData", () => {
       metadata: { policy: "privacy" }
     });
     await erasePersonalData(SUBJECT, { purgeComplianceEvidence: true });
-    const [row] = await getDb()
+    const [row] = await getPortableDb()
       .select({ value: count() })
       .from(userEvents)
       .where(eq(userEvents.user_id, SUBJECT));
@@ -354,7 +354,7 @@ describe("erasePersonalData", () => {
       const columns = getTableColumns(table) as Record<string, never>;
       const value =
         entry.reach.kind === "direct" ? OTHER : links("o")[entry.reach.column];
-      const [row] = await getDb()
+      const [row] = await getPortableDb()
         .select({ value: count() })
         .from(table)
         .where(eq(columns[entry.reach.column], value));
@@ -439,7 +439,7 @@ describe("exportPersonalData", () => {
     // Someone else, collaborating on the subject's workflow. Reachable from
     // the subject through `workflow_id`, and not theirs to receive — so every
     // assertion below runs against a database where the leak is possible.
-    await getDb().insert(workflowCollaborators).values({
+    await getPortableDb().insert(workflowCollaborators).values({
       id: "collab-foreign",
       workflow_id: "s-workflow",
       user_id: OTHER,
@@ -505,7 +505,7 @@ describe("exportPersonalData", () => {
 
     // …and erasure still removes it, because it points at a deleted graph.
     await erasePersonalData(SUBJECT);
-    const [row] = await getDb()
+    const [row] = await getPortableDb()
       .select({ value: count() })
       .from(workflowCollaborators)
       .where(eq(workflowCollaborators.workflow_id, "s-workflow"));
@@ -554,7 +554,7 @@ describe("exportPersonalData", () => {
   });
 
   it("exports the encrypted secret column as present but blanked", async () => {
-    const [row] = await getDb()
+    const [row] = await getPortableDb()
       .select()
       .from(secrets)
       .where(eq(secrets.user_id, SUBJECT));

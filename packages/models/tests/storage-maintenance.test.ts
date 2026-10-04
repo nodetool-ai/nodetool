@@ -4,7 +4,7 @@ import {
   DEFAULT_STORAGE_RETENTION_POLICY,
   getStorageStatus
 } from "../src/storage-maintenance.js";
-import { getDb, initTestDb } from "../src/db.js";
+import { getPortableDb, initTestDb } from "../src/db.js";
 import { Job } from "../src/job.js";
 import { Prediction } from "../src/prediction.js";
 import { RunEvent } from "../src/run-event.js";
@@ -92,7 +92,7 @@ async function prediction(input: {
 }
 
 async function eventIds(): Promise<string[]> {
-  const rows = await getDb().select().from(runEvents);
+  const rows = await getPortableDb().select().from(runEvents);
   return rows.map((row: { id: string }) => row.id).sort();
 }
 
@@ -193,7 +193,7 @@ describe("storage maintenance", () => {
     expect(await WorkflowVersion.get("old-auto")).toBeNull();
     expect(await WorkflowVersion.get("manual")).not.toBeNull();
     expect(await WorkflowVersion.get("checkpoint")).not.toBeNull();
-    const events = await getDb().select().from(runEvents);
+    const events = await getPortableDb().select().from(runEvents);
     expect(events).toHaveLength(0);
   });
 

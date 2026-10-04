@@ -246,20 +246,26 @@ export function getDatabase(): DatabaseConnection {
 }
 
 /**
- * Legacy query surface for models still using SQLite table declarations on both
- * drivers. New dialect-sensitive code uses getDatabase() instead. This cast is
- * compatibility debt, not a promise that PostgreSQL implements SQLite APIs.
+ * The shared asynchronous query-builder surface implemented by both drivers.
+ *
+ * The SQLite projection types select, insert, update, delete, where, returning,
+ * and onConflictDoUpdate builders. Await their execution. Column codecs match
+ * the PostgreSQL declarations, so ordinary CRUD shares the SQLite schema.
+ * Synchronous get/run/all methods, transactions, and row locks are outside this
+ * contract. Use getDatabase() and narrow its dialect for those operations.
  */
-export function getDb(): BetterSQLite3Database<typeof schema> {
-  // Untouched models rely on this legacy schema projection across dialects.
+export function getPortableDb(): BetterSQLite3Database<typeof schema> {
   return getDatabase().db as BetterSQLite3Database<typeof schema>;
 }
+
+/** @deprecated Use getPortableDb(). Retained for one release for public API compatibility. */
+export const getDb = getPortableDb;
 
 /**
  * The transaction handle a `db.transaction` callback receives.
  *
- * Legacy SQLite projection used by unmigrated callers. Use the narrowed
- * getDatabase().db.transaction callback for actual driver transaction types.
+ * This type describes synchronous SQLite callbacks. Use the narrowed
+ * getDatabase().db.transaction callback for PostgreSQL transaction types.
  */
 export type DbTransaction = Parameters<
   Parameters<BetterSQLite3Database<typeof schema>["transaction"]>[0]
@@ -268,12 +274,9 @@ export type DbTransaction = Parameters<
 /**
  * Adds `FOR UPDATE` row locking to a select, on the Postgres branch.
  *
- * The connection is typed as the SQLite driver throughout (see {@link getDb}),
- * whose select builder has no `.for()` — postgres.js's does. Call sites used to
- * annotate their transaction handle `any` to reach it, which switched off
- * checking for the whole callback. This names the single difference instead,
- * and throws rather than silently returning an unlocked query if it is ever
- * called on a connection that cannot lock.
+ * Row locks are outside the {@link getPortableDb} contract. Use this helper
+ * only after narrowing the active connection to PostgreSQL. It throws when
+ * the query builder cannot lock rows.
  */
 export function forUpdate<Q>(query: Q): Q {
   const lockable = query as { for?: (mode: "update") => Q };

@@ -87,7 +87,7 @@ The migration system works on both dialects and is used by the server at startup
 
 ```typescript
 import {
-  initPostgresDb, getDb, getDbType,
+  initPostgresDb,
   MigrationRunner, PostgresJsMigrationAdapter
 } from "@nodetool-ai/models";
 import postgres from "postgres";
@@ -145,11 +145,35 @@ All query methods are `async` and work transparently with both SQLite and Postgr
 
 ### Transactions
 
+Use `getPortableDb()` with awaited builders for ordinary queries:
+
 ```typescript
-const db = getDb();
-await db.transaction(async (tx) => {
-  // works on both SQLite and PostgreSQL
-});
+import { getPortableDb, workspaces } from "@nodetool-ai/models";
+
+const rows = await getPortableDb().select().from(workspaces);
+```
+
+Transactions require `getDatabase()` narrowing. SQLite callbacks run
+synchronously. PostgreSQL callbacks can await their builders:
+
+```typescript
+import { eq } from "drizzle-orm";
+import { getDatabase } from "@nodetool-ai/models";
+
+async function renameWorkspace(id: string, name: string): Promise<void> {
+  const connection = getDatabase();
+  if (connection.dialect === "sqlite") {
+    const { workspaces } = connection.schema;
+    connection.db.transaction((tx) => {
+      tx.update(workspaces).set({ name }).where(eq(workspaces.id, id)).run();
+    });
+  } else {
+    const { workspaces } = connection.schema;
+    await connection.db.transaction(async (tx) => {
+      await tx.update(workspaces).set({ name }).where(eq(workspaces.id, id));
+    });
+  }
+}
 ```
 
 ## Testing

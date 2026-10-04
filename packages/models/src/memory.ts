@@ -13,7 +13,7 @@
 
 import { eq, and, desc, inArray, sql } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { memories } from "./schema/memories.js";
 
 export type MemoryKind =
@@ -125,7 +125,7 @@ export class Memory extends DBModel {
     options: MemoryListOptions = {}
   ): Promise<Memory[]> {
     const { limit = 200, threadId, kinds } = options;
-    const db = getDb();
+    const db = getPortableDb();
     const filters = [eq(memories.user_id, userId)];
     if (threadId !== undefined) {
       filters.push(eq(memories.thread_id, threadId));
@@ -173,7 +173,7 @@ export class Memory extends DBModel {
     if (terms.length === 0) return [];
 
     const { limit = 50, threadId, kinds } = options;
-    const db = getDb();
+    const db = getPortableDb();
     const filters = [eq(memories.user_id, userId)];
     if (threadId !== undefined) {
       filters.push(eq(memories.thread_id, threadId));
@@ -204,7 +204,7 @@ export class Memory extends DBModel {
     userId: string,
     threadId: string
   ): Promise<number> {
-    const db = getDb();
+    const db = getPortableDb();
     const where = and(
       eq(memories.user_id, userId),
       eq(memories.thread_id, threadId)
