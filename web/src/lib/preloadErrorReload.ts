@@ -53,11 +53,22 @@ async function deployIsStale(): Promise<boolean> {
 
 let staleCheckInFlight = false;
 
+/** Vite rejects a failed CSS preload with this message prefix. */
+function isCssPreloadError(error: unknown): boolean {
+  return (
+    error instanceof Error && error.message.startsWith("Unable to preload CSS")
+  );
+}
+
 window.addEventListener("vite:preloadError", (event) => {
-  // Suppress Vite's default rethrow. A failed CSS preload then degrades to a
-  // missing stylesheet instead of a wedged route, and a stale deploy is
-  // recovered by the reload below.
-  event.preventDefault();
+  // Suppress Vite's rethrow only for a failed CSS preload, which then degrades
+  // to a missing stylesheet instead of a wedged route. A failed JS chunk must
+  // still reject: suppressing it makes the `import()` resolve `undefined`, and
+  // React.lazy crashes on `undefined.default` instead of reporting the failure.
+  const { payload } = event as Event & { payload?: unknown };
+  if (isCssPreloadError(payload)) {
+    event.preventDefault();
+  }
 
   if (staleCheckInFlight) return;
 
