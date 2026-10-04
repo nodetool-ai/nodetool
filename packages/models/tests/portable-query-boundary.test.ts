@@ -24,6 +24,12 @@ function structuralArray() { const builders = (tx: DbTransaction) => { const ite
 function ordinaryClosure() { if (getDbType() === "sqlite") { const later = () => getPortableDb().select().from(workflows).all(); return later; } }
 function nestedDeclaration() { if (getDbType() === "sqlite") { function later() { getPortableDb().select().from(workflows).all(); } return later; } }
 function fakeDialect() { const connection = { dialect: "sqlite" }; if (connection.dialect === "sqlite") { getPortableDb().select().from(workflows).all(); } }
+function indexedUnguarded() { getPortableDb().select().from(workflows)["get"](); getPortableDb().delete(workflows)["run"](); getPortableDb().select().from(workflows)["all"](); }
+function indexedGuarded() { if (getDbType() === "sqlite") { getPortableDb().select().from(workflows)["get"](); getPortableDb().delete(workflows)["run"](); getPortableDb().select().from(workflows)["all"](); } }
+function indexedErased() { const query = getPortableDb().delete(workflows) as unknown as { run: () => void }; query["run"](); }
+function indexedErasedGuarded() { if (getDbType() === "sqlite") { const query = getPortableDb().delete(workflows) as unknown as { run: () => void }; query["run"](); } }
+function indexedRawSqlite() { const sqlite = new Database(":memory:"); sqlite.prepare("select 1")["get"](); }
+function indexedMapLookup() { new Map<string, number>()["get"]("item"); }
 `;
 interface AuditCall {
   file: string;
@@ -308,12 +314,21 @@ function auditProgram(files: string[]): {
         visit(node.whenFalse, sqlite || condition.no);
         return;
       }
-      if (ts.isCallExpression(node) && ts.isPropertyAccessExpression(node.expression)) {
-        const method = node.expression.name.text;
+      if (
+        ts.isCallExpression(node) &&
+        (ts.isPropertyAccessExpression(node.expression) ||
+          ts.isElementAccessExpression(node.expression))
+      ) {
+        const access = node.expression;
+        const member = ts.isPropertyAccessExpression(access)
+          ? access.name
+          : ts.isStringLiteral(access.argumentExpression)
+            ? access.argumentExpression
+            : undefined;
         if (
-          ["get", "run", "all"].includes(method) &&
-          (fromDrizzle(checker.getSymbolAtLocation(node.expression.name)) ||
-            builderValue(node.expression.expression))
+          member &&
+          ["get", "run", "all"].includes(member.text) &&
+          (fromDrizzle(checker.getSymbolAtLocation(member)) || builderValue(access.expression))
         ) {
           let ancestor: ts.Node = node;
           while (ancestor.parent && !ts.isFunctionDeclaration(ancestor)) {
@@ -321,9 +336,8 @@ function auditProgram(files: string[]): {
           }
           const record: AuditCall = {
             file: path.relative(ROOT, file),
-            line:
-              source.getLineAndCharacterOfPosition(node.expression.name.getStart(source)).line + 1,
-            method,
+            line: source.getLineAndCharacterOfPosition(member.getStart(source)).line + 1,
+            method: member.text,
             scope: ts.isFunctionDeclaration(ancestor) ? (ancestor.name?.text ?? "") : "",
             sqlite
           };
@@ -347,7 +361,8 @@ describe("portable query boundary", () => {
     expect(result.calls.filter((call) => !call.sqlite)).toEqual([]);
   });
   it("detects misplaced calls, erased builder types, and delayed closures", () => {
-    expect(result.fixtures.filter((call) => !call.sqlite).map((call) => call.scope)).toEqual([
+    const fixtures = result.fixtures.filter((call) => !call.scope.startsWith("indexed"));
+    expect(fixtures.filter((call) => !call.sqlite).map((call) => call.scope)).toEqual([
       "unguarded",
       "wrongBranch",
       "erased",
@@ -356,7 +371,7 @@ describe("portable query boundary", () => {
       "later",
       "fakeDialect"
     ]);
-    expect(result.fixtures.filter((call) => call.sqlite).map((call) => call.scope)).toEqual([
+    expect(fixtures.filter((call) => call.sqlite).map((call) => call.scope)).toEqual([
       "sqliteBranch",
       "earlyGuard",
       "dialectAlias",
@@ -365,5 +380,21 @@ describe("portable query boundary", () => {
     ]);
     expect(result.fixtures.map((call) => call.scope)).not.toContain("rawSqlite");
     expect(result.fixtures.map((call) => call.scope)).not.toContain("mapLookup");
+  });
+  it("applies SQLite narrowing and builder provenance to indexed synchronous calls", () => {
+    expect(
+      result.fixtures
+        .filter((call) => call.scope.startsWith("indexed"))
+        .map(({ scope, method, sqlite }) => ({ scope, method, sqlite }))
+    ).toEqual([
+      { scope: "indexedUnguarded", method: "get", sqlite: false },
+      { scope: "indexedUnguarded", method: "run", sqlite: false },
+      { scope: "indexedUnguarded", method: "all", sqlite: false },
+      { scope: "indexedGuarded", method: "get", sqlite: true },
+      { scope: "indexedGuarded", method: "run", sqlite: true },
+      { scope: "indexedGuarded", method: "all", sqlite: true },
+      { scope: "indexedErased", method: "run", sqlite: false },
+      { scope: "indexedErasedGuarded", method: "run", sqlite: true }
+    ]);
   });
 });
