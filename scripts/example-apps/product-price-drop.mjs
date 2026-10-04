@@ -35,6 +35,37 @@ export const buildProductPriceDropBundle = () => {
     {type: "ModelSelect", props: {id: "finishModel", label: "Finishing model", binding: "var:finishModel", modelKind: "language_model", events: [{trigger: "change", kind: "setVariable", key: "var:approval", value: "pending"}]}},
     {type: "Text", props: {id: "finishModel-help", text: "The selected language model finishes the editable cut. No generated video."}}
   );
+  // Each Stepper step shows only its own widgets. The plan script sets step to
+  // "review" and the finish script sets it to "result". The finish button keeps
+  // its own approval condition.
+  const stepOf = (item) => {
+    const id = item.props.id;
+    if (id === "steps") return undefined;
+    if (["output-storyboardId", "output-designPreview", "finish", "request-changes"].includes(id)) return "review";
+    if (["finish-error", "finish-activity"].includes(id)) return "build";
+    if (["output-timeline", "finish-status"].includes(id)) return "result";
+    return "inputs";
+  };
+  // Review offers two buttons. Building the cut is the approval, so the
+  // Approval widget gives way to a build button that approves, then runs.
+  const content = bundle.app.ui.content;
+  const finishIndex = content.findIndex((item) => item.props.id === "finish");
+  const approvalIndex = content.findIndex((item) => item.props.id === "approval");
+  const finish = content[finishIndex].props;
+  delete finish.visibleWhen;
+  finish.events = [{trigger: "click", kind: "setVariable", key: "var:approval", value: "approved"}, {trigger: "click", kind: "setVariable", key: "var:step", value: "build"}, ...finish.events];
+  const steps = content[0].props.steps;
+  steps.splice(steps.length - 1, 0, {value: "build", title: "Build"});
+  content[approvalIndex] = {type: "Button", props: {id: "request-changes", label: "Request changes", variant: "outlined", events: [
+    {trigger: "click", kind: "setVariable", key: "var:approval", value: "pending"},
+    {trigger: "click", kind: "setVariable", key: "var:step", value: "inputs"}
+  ]}};
+  content.splice(finishIndex, 1);
+  content.splice(approvalIndex, 0, {type: "Button", props: finish});
+  for (const item of bundle.app.ui.content) {
+    const step = stepOf(item);
+    if (step) item.props.visibleWhen = {binding: "var:step", op: "eq", value: step};
+  }
   for (const operation of bundle.app.operations) {
     operation.inputs.finishModel = {from: "variable", variableId: "finishModel"};
   }

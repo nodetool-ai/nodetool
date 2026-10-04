@@ -30,6 +30,10 @@
                 "title": "Plan and review"
               },
               {
+                "value": "build",
+                "title": "Build"
+              },
+              {
                 "value": "result",
                 "title": "Editable result"
               }
@@ -51,14 +55,24 @@
                 "key": "var:approval",
                 "value": "pending"
               }
-            ]
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "inputs"
+            }
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "finishModel-help",
-            "text": "The selected language model finishes the editable cut. No generated video."
+            "text": "The selected language model finishes the editable cut. No generated video.",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "inputs"
+            }
           }
         },
         {
@@ -66,7 +80,12 @@
           "props": {
             "id": "group-brand",
             "text": "Product and brand",
-            "level": "h2"
+            "level": "h2",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "inputs"
+            }
           }
         },
         {
@@ -82,7 +101,12 @@
                 "key": "var:approval",
                 "value": "pending"
               }
-            ]
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "inputs"
+            }
           }
         },
         {
@@ -98,7 +122,12 @@
                 "key": "var:approval",
                 "value": "pending"
               }
-            ]
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "inputs"
+            }
           }
         },
         {
@@ -114,7 +143,12 @@
                 "key": "var:approval",
                 "value": "pending"
               }
-            ]
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "inputs"
+            }
           }
         },
         {
@@ -122,7 +156,12 @@
           "props": {
             "id": "group-copy",
             "text": "Exact copy",
-            "level": "h2"
+            "level": "h2",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "inputs"
+            }
           }
         },
         {
@@ -138,7 +177,12 @@
                 "key": "var:approval",
                 "value": "pending"
               }
-            ]
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "inputs"
+            }
           }
         },
         {
@@ -154,7 +198,12 @@
                 "key": "var:approval",
                 "value": "pending"
               }
-            ]
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "inputs"
+            }
           }
         },
         {
@@ -170,7 +219,12 @@
                 "key": "var:approval",
                 "value": "pending"
               }
-            ]
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "inputs"
+            }
           }
         },
         {
@@ -186,7 +240,12 @@
                 "key": "var:approval",
                 "value": "pending"
               }
-            ]
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "inputs"
+            }
           }
         },
         {
@@ -212,7 +271,12 @@
                 "value": "Quiet premium composition",
                 "title": "Quiet premium"
               }
-            ]
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "inputs"
+            }
           }
         },
         {
@@ -230,14 +294,24 @@
                 "kind": "run",
                 "operationId": "plan"
               }
-            ]
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "inputs"
+            }
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "plan-error",
-            "binding": "op:plan/exec#error"
+            "binding": "op:plan/exec#error",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "inputs"
+            }
           }
         },
         {
@@ -245,7 +319,12 @@
           "props": {
             "id": "output-storyboardId",
             "binding": "var:storyboardId",
-            "label": "Storyboard"
+            "label": "Storyboard",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
           }
         },
         {
@@ -253,29 +332,18 @@
           "props": {
             "id": "output-designPreview",
             "binding": "var:designPreview",
-            "label": "Composed design preview"
-          }
-        },
-        {
-          "type": "Approval",
-          "props": {
-            "id": "approval",
-            "binding": "var:approval",
-            "label": "Review your plan",
-            "description": "Check your storyboard, sources and copy. Approve the plan to unlock “Build editable cut”.",
-            "approveLabel": "Approve plan",
-            "rejectLabel": "Request changes"
+            "label": "Composed design preview",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
           }
         },
         {
           "type": "Button",
           "props": {
             "id": "finish",
-            "visibleWhen": {
-              "binding": "var:approval",
-              "op": "eq",
-              "value": "approved"
-            },
             "label": "Build editable cut",
             "disabledWhen": {
               "binding": "op:finish/exec#running",
@@ -284,17 +352,66 @@
             "events": [
               {
                 "trigger": "click",
+                "kind": "setVariable",
+                "key": "var:approval",
+                "value": "approved"
+              },
+              {
+                "trigger": "click",
+                "kind": "setVariable",
+                "key": "var:step",
+                "value": "build"
+              },
+              {
+                "trigger": "click",
                 "kind": "run",
                 "operationId": "finish"
               }
-            ]
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Button",
+          "props": {
+            "id": "request-changes",
+            "label": "Request changes",
+            "variant": "outlined",
+            "events": [
+              {
+                "trigger": "click",
+                "kind": "setVariable",
+                "key": "var:approval",
+                "value": "pending"
+              },
+              {
+                "trigger": "click",
+                "kind": "setVariable",
+                "key": "var:step",
+                "value": "inputs"
+              }
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "finish-error",
-            "binding": "op:finish/exec#error"
+            "binding": "op:finish/exec#error",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "build"
+            }
           }
         },
         {
@@ -303,7 +420,12 @@
             "id": "finish-activity",
             "binding": "op:finish/exec#transcript",
             "label": "Build editable cut: agent activity",
-            "height": 360
+            "height": 360,
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "build"
+            }
           }
         },
         {
@@ -311,14 +433,24 @@
           "props": {
             "id": "output-timeline",
             "binding": "var:timeline",
-            "label": "Editable result"
+            "label": "Editable result",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "result"
+            }
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "finish-status",
-            "binding": "var:finishStatus"
+            "binding": "var:finishStatus",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "result"
+            }
           }
         }
       ]
