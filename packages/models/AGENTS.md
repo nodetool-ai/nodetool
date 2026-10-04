@@ -147,13 +147,20 @@ The generated SQL in `src/drizzle-migrations-pg/` should be reviewed and then ad
 
 ## Tests
 
-Tests live in `tests/`. All tests use `initTestDb()` which creates an in-memory SQLite database. No PostgreSQL instance is required.
+Tests live in `tests/`. Most suites use `initTestDb()` for an in-memory SQLite
+connection. The recording-driver suites inspect PostgreSQL SQL and parameters.
+`tests/db-dialect-execution.test.ts` runs the same model fixtures on SQLite and
+PGlite, an in-process PostgreSQL engine. Its `initPgliteTestDb()` helper applies
+the production PostgreSQL migration chain through `MigrationRunner` before
+installing the test connection. These tests need no external database server.
 
 ```bash
 npm run test --workspace=packages/models
 ```
 
-When writing tests for new models, call `initTestDb()` in `beforeEach` to reset state between tests.
+Call `initTestDb()` in `beforeEach` for SQLite fixtures. Dual-dialect fixtures
+close the active connection before initializing the next engine. Call
+`closeDb()` after PGlite tests to release the engine and reset global state.
 
 ## Rules
 

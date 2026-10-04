@@ -158,7 +158,11 @@ await db.transaction(async (tx) => {
 npm run test --workspace=packages/models
 ```
 
-Tests use an in-memory SQLite database (`initTestDb()`). No PostgreSQL instance is required to run the test suite.
+SQLite fixtures use `initTestDb()` to create an in-memory database. The
+dual-dialect execution suite runs the same fixtures on SQLite and in-process
+PostgreSQL through PGlite. Its test-only `initPgliteTestDb()` helper applies the
+production migration chain through `MigrationRunner`. No external PostgreSQL
+server is required.
 
 ```typescript
 import { initTestDb } from "@nodetool-ai/models";

@@ -12,7 +12,7 @@ import {
   drizzle as drizzleSqlite,
   type BetterSQLite3Database
 } from "drizzle-orm/better-sqlite3";
-import type { PostgresJsDatabase } from "drizzle-orm/postgres-js";
+import type { PgDatabase, PgQueryResultHKT } from "drizzle-orm/pg-core";
 import type { Sql } from "postgres";
 import * as schema from "./schema/index.js";
 import * as pgSchema from "./schema-pg/index.js";
@@ -53,7 +53,7 @@ export type DbDialect = "sqlite" | "postgres";
  */
 export type NodetoolDatabase =
   | BetterSQLite3Database<typeof schema>
-  | PostgresJsDatabase<typeof pgSchema>;
+  | PgDatabase<PgQueryResultHKT, typeof pgSchema>;
 
 export type DatabaseConnection =
   | {
@@ -63,13 +63,14 @@ export type DatabaseConnection =
     }
   | {
       dialect: "postgres";
-      db: PostgresJsDatabase<typeof pgSchema>;
+      db: PgDatabase<PgQueryResultHKT, typeof pgSchema>;
       schema: typeof pgSchema;
     };
 
 let _connection: DatabaseConnection | null = null;
 let _sqlite: Database.Database | null = null;
 let _pgClient: Sql | null = null;
+let _closeTestConnection: (() => Promise<void>) | null = null;
 let _allowLegacyProjectWritesForTests = false;
 
 /**
@@ -218,6 +219,19 @@ export function initTestDb(
   return db;
 }
 
+/** Install an isolated test driver without adding it to production dependencies. */
+export function setTestDatabaseConnection(
+  connection: DatabaseConnection,
+  close: () => Promise<void>
+): void {
+  if (_connection) {
+    throw new Error("Call closeDb() before installing a test connection.");
+  }
+  _allowLegacyProjectWritesForTests = false;
+  _connection = connection;
+  _closeTestConnection = close;
+}
+
 /** Compatibility for old fixtures that predate project rows. Never enabled outside initTestDb. */
 export function allowLegacyProjectWritesForTests(): boolean {
   return _allowLegacyProjectWritesForTests;
@@ -361,7 +375,12 @@ export async function closeDb(): Promise<void> {
     }
     _pgClient = null;
   }
+  const closeTestConnection = _closeTestConnection;
+  _closeTestConnection = null;
   _connection = null;
+  if (closeTestConnection) {
+    await closeTestConnection();
+  }
 }
 
 /** Synchronous callers apply only the pinned compatibility migration. Historical data migrations remain pending. */
