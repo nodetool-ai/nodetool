@@ -231,3 +231,35 @@ describe("added catalog widgets on mobile", () => {
     expect(screen.getByText("inner")).toBeTruthy();
   });
 });
+
+describe("a widget mobile does not render", () => {
+  it("names a type from a newer builder and points at desktop or web", async () => {
+    renderApp(
+      "wf-unknown",
+      appDoc("HologramViewer", { binding: "var:data" }, "ignored")
+    );
+    expect(
+      await screen.findByText(
+        "HologramViewer opens in the NodeTool desktop or web app."
+      )
+    ).toBeTruthy();
+  });
+
+  it("keeps rendering the widgets around it", async () => {
+    const doc = appDoc("HologramViewer", {});
+    renderApp("wf-unknown-siblings", {
+      ...doc,
+      ui: {
+        ...doc.ui,
+        content: [
+          ...doc.ui.content,
+          { type: "Heading", props: { id: "Heading-1", text: "Still here" } },
+        ],
+      },
+    });
+    expect(await screen.findByText("Still here")).toBeTruthy();
+    expect(
+      screen.getByText("HologramViewer opens in the NodeTool desktop or web app.")
+    ).toBeTruthy();
+  });
+});

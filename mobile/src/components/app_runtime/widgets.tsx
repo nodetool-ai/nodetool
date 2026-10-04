@@ -3027,17 +3027,14 @@ const WidgetNode: React.FC<{ node: ComponentNode }> = ({ node }) => {
 
   const Renderer = RENDERERS[node.type];
   if (!Renderer) {
-    // A catalog type with no renderer here is one mobile has yet to grow; an
-    // unknown type is a document from a newer builder. Both say so rather than
-    // vanish.
-    const known = node.type in WIDGET_CATALOG;
+    // A catalog type with no renderer here, or a type from a newer web
+    // builder. Mobile does not chase web widgets one by one: the app still
+    // renders, and the widget names itself and points at desktop or web.
+    const name =
+      node.type in WIDGET_CATALOG ? WIDGET_CATALOG[node.type].label : node.type;
     return (
       <UnknownWidget
-        label={
-          known
-            ? `${WIDGET_CATALOG[node.type].label} is not available on mobile`
-            : `Unknown widget: ${node.type}`
-        }
+        label={`${name} opens in the NodeTool desktop or web app.`}
       />
     );
   }
