@@ -356,8 +356,33 @@ export function createFakeExecutorResolver(
     const meta = registry.getMetadata(node.type);
     const fake = shouldFakeNode(node.type, meta);
     debug(`[fake-runtime] ${node.id} ${node.type} -> ${fake ? "FAKE" : "REAL"}`);
-    return fake
-      ? fakeExecutor(meta, node.type, node.properties ?? {})
-      : registry.resolve(node);
+    if (fake) {
+      return fakeExecutor(meta, node.type, node.properties ?? {});
+    }
+
+    // Templates leave model selection to the user. The hermetic host supplies
+    // that selection so provider-backed nodes can run their real logic.
+    const properties = { ...node.properties };
+    for (const property of meta?.properties ?? []) {
+      if (baseType(property) !== "language_model") {
+        continue;
+      }
+      const model = properties[property.name];
+      if (
+        typeof model === "object" &&
+        model !== null &&
+        "id" in model && model.id &&
+        "provider" in model && model.provider
+      ) {
+        continue;
+      }
+      properties[property.name] = {
+        type: "language_model",
+        provider: "openai",
+        id: "fake-model",
+        name: "E2E model"
+      };
+    }
+    return registry.resolve({ ...node, properties });
   };
 }
