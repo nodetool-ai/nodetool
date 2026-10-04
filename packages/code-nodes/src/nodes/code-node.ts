@@ -272,9 +272,7 @@ function codeNodeGate(
  * the inert stub when no belt is constructible. Tool execution needs a
  * ProcessingContext; without one the stub keeps the prelude harmless.
  *
- * The belt is wrapped in the run's gate before the bridge sees it: the bridge
- * calls `process()` directly, so an unwrapped belt would let a body call a
- * write capability the host's mode blocks.
+ * The bridge invokes the belt run, which applies the host's gate once.
  */
 async function toolBridgeGlobals(
   context: ProcessingContext | undefined
@@ -282,11 +280,11 @@ async function toolBridgeGlobals(
   if (!context) return NO_TOOLS_GLOBALS;
   const mod = await loadAgentsModule();
   if (!mod) return NO_TOOLS_GLOBALS;
-  const tools = mod.gateLegacyTools(
-    toolOverride ?? assembleToolbelt(mod),
-    codeNodeGate(mod, context)
-  );
-  return mod.buildToolBridge({ tools, context }).globals;
+  const tools = toolOverride ?? assembleToolbelt(mod);
+  const run = mod.capabilityRunForTools(tools, context, {
+    gate: codeNodeGate(mod, context)
+  });
+  return mod.buildToolBridge({ tools, invoke: run.invoke }).globals;
 }
 
 /**
@@ -369,10 +367,7 @@ class InputStreamBridge {
   private readonly perHandle = new Map<string, AsyncGenerator<unknown>>();
   private anyIterator: AsyncGenerator<[string, unknown]> | undefined;
   /** Per-key serialization: `null` is the `any()` iterator's own chain. */
-  private readonly chains = new Map<
-    string | null,
-    Promise<SandboxInputTake>
-  >();
+  private readonly chains = new Map<string | null, Promise<SandboxInputTake>>();
   private readonly cancelled: Promise<IteratorReturnResult<undefined>>;
 
   constructor(private readonly inputs: StreamingInputs) {
@@ -542,7 +537,7 @@ export class CodeNode extends BaseNode {
     default: [],
     title: "Secrets",
     description:
-      "Secret names this code may read, e.g. [\"NOTION_API_KEY\"]. " +
+      'Secret names this code may read, e.g. ["NOTION_API_KEY"]. ' +
       "nodetool.secrets.get(name) and getSecret(name) refuse every other name, " +
       "so a node that talks to one service cannot read the credentials of " +
       "another. Empty means unscoped — the whole secret store, which is what a " +
@@ -562,7 +557,7 @@ export class CodeNode extends BaseNode {
       '{"id": "<script id>", "version": <n>}. Linking materializes the pinned ' +
       "version: its code, secrets and timeout become the node's own, " +
       "so editing the script does not silently change this workflow and a run " +
-      "needs no script storage. \"Update to latest\" re-copies and re-pins. " +
+      'needs no script storage. "Update to latest" re-copies and re-pins. ' +
       "Empty means the node was never linked."
   })
   declare script: JsScriptLink | Record<string, never>;
@@ -637,9 +632,7 @@ export class CodeNode extends BaseNode {
    * channel package-resolution warnings already use, so the editor's log
    * panel shows them as they happen.
    */
-  private logSink(
-    context?: ProcessingContext
-  ): SandboxLogCallback | undefined {
+  private logSink(context?: ProcessingContext): SandboxLogCallback | undefined {
     if (!context || !this.__node_id) return undefined;
     return (level: SandboxLogLevel, message: string) => {
       this.postLog(context, message, consoleSeverity(level));
@@ -857,7 +850,9 @@ export class CodeNode extends BaseNode {
       })
     );
     if (!mounted.ok) {
-      throw new Error(mounted.error.replace("The action imports", "The code imports"));
+      throw new Error(
+        mounted.error.replace("The action imports", "The code imports")
+      );
     }
     return mounted.mount;
   }
@@ -978,9 +973,7 @@ export class CodeNode extends BaseNode {
     return normalizeCodeOutput(result.result);
   }
 
-  async *genProcess(
-    context?: ProcessingContext
-  ): AsyncGenerator<CodeOutputs> {
+  async *genProcess(context?: ProcessingContext): AsyncGenerator<CodeOutputs> {
     const envelope = this.envelope();
 
     if (usesEmitOutputContract(envelope.code)) {
@@ -1118,9 +1111,7 @@ function importableStatements(code: string): CodeBodyStatement[] | null {
 }
 
 /** Map a guest `console.*` method onto a `log_update` severity. */
-function consoleSeverity(
-  level: SandboxLogLevel
-): "info" | "warning" | "error" {
+function consoleSeverity(level: SandboxLogLevel): "info" | "warning" | "error" {
   if (level === "warn") return "warning";
   if (level === "error") return "error";
   return "info";
@@ -1190,5 +1181,3 @@ function deepCopyInputs(inputs: NodeProperties) {
   }
   return result;
 }
-
-
