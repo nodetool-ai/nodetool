@@ -4,6 +4,7 @@ import {
   DIRECTOR_SYSTEM_PROMPT,
   buildDirectorPrompt,
   buildScreenplaySchema,
+  clampShotCount,
   fallbackScreenplay,
   parseScreenplay
 } from "../src/screenplay-authoring.js";
@@ -285,5 +286,48 @@ describe("fallbackScreenplay", () => {
       "scene-0",
       "scene-0"
     ]);
+  });
+});
+
+describe("clampShotCount", () => {
+  it.each([
+    [-1e9, 1],
+    [-1, 1],
+    [0, 1],
+    [0.999, 1],
+    [1, 1],
+    [1.5, 1],
+    [4.99, 4],
+    [5, 5],
+    [19.99, 19],
+    [20, 20],
+    [20.5, 20],
+    [1e9, 20],
+    ["7", 7],
+    [" 7 ", 7],
+    ["1e1", 10],
+    ["0", 1],
+    ["100", 20]
+  ])("clamps requested %j to %i", (value, expected) => {
+    expect(clampShotCount(value)).toBe(expected);
+  });
+
+  it.each([
+    ["undefined", undefined],
+    ["null", null],
+    ["empty string", ""],
+    ["blank string", "  \t\n"],
+    ["non-numeric text", "abc"],
+    ["partly numeric text", "7abc"],
+    ["NaN", Number.NaN],
+    ["true", true],
+    ["false", false],
+    ["empty array", []],
+    ["single-element array", [7]],
+    ["object", {}],
+    ["object with valueOf", { valueOf: () => 9 }],
+    ["symbol", Symbol("shots")]
+  ])("falls back to 5 shots for %s, which is no request", (_label, value) => {
+    expect(clampShotCount(value)).toBe(5);
   });
 });

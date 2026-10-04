@@ -177,7 +177,11 @@ describe("runHostBinary abort signal", () => {
         ],
         { cwd, timeoutMs: 30_000, signal: controller.signal }
       );
-      setTimeout(() => controller.abort(), 300);
+      const pidFile = path.join(cwd, "pid.txt");
+      while (!existsSync(pidFile)) {
+        await new Promise((resolve) => setTimeout(resolve, 20));
+      }
+      controller.abort();
       await expect(pending).rejects.toThrow();
       expect(Date.now() - started).toBeLessThan(15_000);
       // The child itself is gone, not just the promise: its pid no longer
