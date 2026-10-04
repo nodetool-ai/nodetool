@@ -33,6 +33,7 @@ import {
   resolveTimelineSequence
 } from "../../node/outputValueResolvers";
 import SketchRenderer from "../../sketch/SketchRenderer";
+import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
 import { useWidgetRuntime } from "./useWidgetRuntime";
 
 const LazyTimelineRenderer = React.lazy(async () => ({
@@ -66,6 +67,18 @@ const frame = (height?: number): React.CSSProperties => ({
   maxHeight: height ? `${height}px` : undefined,
   overflow: "hidden",
   borderRadius: BORDER_RADIUS.md
+});
+
+/** The Puck default for a Timeline widget's height, in px. */
+const TIMELINE_PREVIEW_HEIGHT = 360;
+
+/**
+ * The timeline preview fills its parent's height, so the frame must have one.
+ * A max-height alone collapses it to the transport bar.
+ */
+const timelineFrame = (height?: number): React.CSSProperties => ({
+  ...frame(height),
+  height: `${height ?? TIMELINE_PREVIEW_HEIGHT}px`
 });
 
 export const SketchWidget: React.FC<
@@ -129,6 +142,13 @@ export const TimelineWidget: React.FC<
   DocumentWidgetProps & { showMetadata?: boolean }
 > = (props) => {
   const navigate = useNavigate();
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const openForegroundTab = useWorkspaceTabsStore(
+    (state) => state.openForegroundTab
+  );
+  const activeProjectId = useWorkspaceTabsStore(
+    (state) => state.activeProjectId
+  );
   const { value, designMode } = useReadBinding(props);
   const bound = firstItem(value);
 
@@ -151,7 +171,7 @@ export const TimelineWidget: React.FC<
   if (sequence) {
     return (
       <FlexColumn gap={SPACING.sm}>
-        <Box sx={frame(props.height)}>
+        <Box sx={timelineFrame(props.height)}>
           <React.Suspense
             fallback={<LoadingSpinner size="small" text="Loading preview" />}
           >
@@ -164,18 +184,22 @@ export const TimelineWidget: React.FC<
         </Box>
         {!designMode && timelineId ? (
           <EditorButton
-            href={`/timeline/${encodeURIComponent(timelineId)}`}
-            onClick={(event) => {
-              if (
-                event.ctrlKey ||
-                event.metaKey ||
-                event.shiftKey ||
-                event.altKey
-              ) {
-                return;
+            onClick={() => {
+              // A tab outside the active project is hidden, so open it in
+              // the timeline's own project and bring that project forward.
+              const projectId = sequence.projectId ?? activeProjectId;
+              const input = {
+                type: "timeline" as const,
+                ref: timelineId,
+                mode: "edit" as const,
+                title: sequence.name
+              };
+              if (projectId) {
+                openForegroundTab({ ...input, projectId });
+              } else {
+                openTab(input);
               }
-              event.preventDefault();
-              navigate(`/timeline/${encodeURIComponent(timelineId)}`);
+              navigate("/workspace");
             }}
           >
             Open editable timeline

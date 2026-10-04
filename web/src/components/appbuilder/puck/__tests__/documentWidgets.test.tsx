@@ -4,7 +4,11 @@
  */
 import React from "react";
 import { MemoryRouter } from "react-router-dom";
-import { render, screen } from "@testing-library/react";
+import { render, screen, fireEvent } from "@testing-library/react";
+import {
+  isTabInScope,
+  useWorkspaceTabsStore
+} from "../../../../stores/WorkspaceTabsStore";
 import { ThemeProvider } from "@mui/material/styles";
 import type { AppInstanceState } from "@nodetool-ai/app-runtime";
 
@@ -193,9 +197,28 @@ describe("TimelineWidget", () => {
     );
     expect(timelineEnabled).toHaveBeenCalledWith(true);
     expect(await screen.findByTestId("timeline-renderer")).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", { name: "Open editable timeline" })
-    ).toHaveAttribute("href", "/timeline/seq-1");
+  });
+
+  it("opens the timeline as a visible tab in the timeline's own project", async () => {
+    results.timeline = { ...IDLE, data: TIMELINE_SEQ };
+    useWorkspaceTabsStore.setState({
+      tabs: [],
+      activeTabId: null,
+      activeProjectId: "personal:1"
+    });
+    renderWidget(
+      <TimelineWidget id="t1" binding="result" />,
+      withOutput({ type: "timeline", id: "seq-1" })
+    );
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Open editable timeline" })
+    );
+    const state = useWorkspaceTabsStore.getState();
+    const tab = state.tabs.find((value) => value.id === state.activeTabId);
+    expect(tab).toMatchObject({ type: "timeline", ref: "seq-1", mode: "edit" });
+    // A tab outside the active project is hidden, and the click looks dead.
+    expect(isTabInScope(tab!, state.activeProjectId)).toBe(true);
+    expect(state.activeProjectId).toBe("p1");
   });
 
   it("shows the placeholder when nothing is bound yet", () => {
