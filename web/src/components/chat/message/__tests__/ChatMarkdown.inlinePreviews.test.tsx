@@ -38,6 +38,24 @@ jest.mock("../../../timeline/TimelineRenderer", () => ({
   default: () => <div data-testid="timeline-renderer" />
 }));
 
+// The real player pulls in the game runtime; the test only needs the props.
+jest.mock("../../../game/GamePlayerPage", () => ({
+  __esModule: true,
+  SavedGamePlayer: ({
+    gameId,
+    setsDocumentTitle
+  }: {
+    gameId: string;
+    setsDocumentTitle?: boolean;
+  }) => (
+    <div
+      data-testid="game-player"
+      data-game-id={gameId}
+      data-sets-title={String(setsDocumentTitle)}
+    />
+  )
+}));
+
 jest.mock("../../../../lib/chat/openResource", () => ({
   __esModule: true,
   openResource: jest.fn(),
@@ -187,6 +205,23 @@ describe("ChatMarkdown inline document previews", () => {
     );
     expect(await screen.findByTestId("timeline-renderer")).toBeInTheDocument();
     expect(screen.getByText("First cut")).toBeInTheDocument();
+  });
+
+  it("renders an embedded game as an inline player", async () => {
+    renderMarkdown("![Cave run](game://g_1)");
+
+    const player = await screen.findByTestId("game-player");
+    expect(player).toHaveAttribute("data-game-id", "g_1");
+    // Chat is not the player's page: the tab title stays the app's.
+    expect(player).toHaveAttribute("data-sets-title", "false");
+    expect(screen.getByRole("button", { name: /Cave run/ })).toBeInTheDocument();
+  });
+
+  it("keeps a plain game link as a chip, not a player", () => {
+    renderMarkdown("Built [Cave run](game://g_1).");
+
+    expect(screen.getByRole("button", { name: /Cave run/ })).toBeInTheDocument();
+    expect(screen.queryByTestId("game-player")).toBeNull();
   });
 
   it("keeps a plain sketch link as a chip, not a preview", () => {

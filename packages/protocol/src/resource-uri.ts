@@ -12,6 +12,7 @@
  *
  * `ResourceKind` is the `UiSurfaceType` union minus `chat` (a chat surface is
  * addressed as `thread`) plus `asset`, `collection`, `model3d`, and `thread`.
+ * `game` is a `games` row id and `jsscript` a `js_scripts` row id.
  * It is spelled out here rather than derived because the two sets differ.
  */
 import { isString } from "./predicates.js";
@@ -24,6 +25,8 @@ export type ResourceKind =
   | "sketch"
   | "script"
   | "app"
+  | "game"
+  | "jsscript"
   | "model3d"
   | "collection"
   | "thread";
@@ -36,6 +39,8 @@ export const RESOURCE_KINDS: readonly ResourceKind[] = [
   "sketch",
   "script",
   "app",
+  "game",
+  "jsscript",
   "model3d",
   "collection",
   "thread"
