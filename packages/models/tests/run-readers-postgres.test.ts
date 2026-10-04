@@ -32,7 +32,7 @@ describe.skipIf(!connectionUrl)("run readers on actual PostgreSQL", () => {
       await client.unsafe("INSERT INTO nodetool_run_spans (id,user_id,run_id,trace_id,span_id,cursor,update_kind,metadata,content) VALUES ('span','owner',$1,$1,$2,1,'span_ended',$3,$4)", [runId,spanId,JSON.stringify(record),JSON.stringify({ attributes: { private: "Owner content" } })]);
       await client.unsafe("INSERT INTO nodetool_predictions VALUES ('generation','owner',$1,'test',1.5)", [sourceId]);
       await client.unsafe("INSERT INTO nodetool_jobs (id,user_id) VALUES ($1,'owner'),($2,'foreign')", [sourceId, `${sourceId.slice(0, 12)}${"3".repeat(20)}`]);
-      const marker = migrations.find((entry) => entry.version === "20261004_000002"); if (!marker) { throw new Error("Trace marker migration absent"); }
+      const marker = migrations.find((entry) => entry.version === "20261004_000003"); if (!marker) { throw new Error("Trace marker migration absent"); }
       const adapter = new PostgresJsMigrationAdapter(client); await marker.up(adapter); await adapter.commit(); await adapter.release();
       expect((await client.unsafe("SELECT has_run_trace FROM nodetool_jobs WHERE id=$1", [sourceId]))[0]?.has_run_trace).toBe(1);
       await closeDb(); await initPostgresDb(url.toString());

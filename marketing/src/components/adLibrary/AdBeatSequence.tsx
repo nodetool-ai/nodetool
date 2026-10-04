@@ -16,26 +16,45 @@ import {
   illustrationSrc
 } from "@/data/adLibrary";
 import type { AdBeat } from "@/data/adLibrary";
-import { BeatFrame, BeatProgress } from "./BeatFrame";
-import { useBeatClock, usePrefersReducedMotion } from "./useBeatClock";
+import { usePrefersReducedMotion } from "@/lib/useGridParallax";
+import { BeatProgress } from "./BeatProgress";
+import { useVideoBeatClock } from "./useVideoBeatClock";
+
+/** The concept rendered as a NodeTool timeline, at the recipe's beat times. */
+export interface AdVideo {
+  readonly src: string;
+  readonly poster: string;
+}
 
 interface AdBeatSequenceProps {
   readonly title: string;
   readonly beats: readonly AdBeat[];
+  readonly video: AdVideo;
   /** Server-rendered recipe header shown above the beat sheet. */
   readonly children: ReactNode;
 }
 
 /**
- * The beat sheet with a sticky preview. Scrolling selects the beat under the
- * reading line. Play runs the whole sequence at its proposed timing.
+ * A beat's start is often mid-entrance. Selecting a beat shows the frame a
+ * moment later, once its type and pictures have landed.
+ */
+function settledMs(beat: AdBeat): number {
+  return beat.start_ms + Math.min(700, (beat.end_ms - beat.start_ms) / 2);
+}
+
+/**
+ * The beat sheet with the rendered ad as a sticky preview. Scrolling selects
+ * the beat under the reading line and moves the video to it. Play runs the
+ * video, and the beat sheet follows its playback position.
  */
 export default function AdBeatSequence({
   title,
   beats,
+  video,
   children
 }: AdBeatSequenceProps) {
-  const clock = useBeatClock(beats);
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const clock = useVideoBeatClock(videoRef, beats);
   const reducedMotion = usePrefersReducedMotion();
   const itemRefs = useRef<(HTMLLIElement | null)[]>([]);
   const playingRef = useRef(false);
@@ -55,7 +74,7 @@ export default function AdBeatSequence({
         }
         const index = itemRefs.current.indexOf(hit.target as HTMLLIElement);
         if (index >= 0) {
-          seek(beats[index].start_ms);
+          seek(settledMs(beats[index]));
         }
       },
       { rootMargin: "-35% 0px -60% 0px" }
@@ -69,7 +88,7 @@ export default function AdBeatSequence({
   }, [beats, seek]);
 
   const selectBeat = (index: number): void => {
-    seek(beats[index].start_ms);
+    seek(settledMs(beats[index]));
     itemRefs.current[index]?.scrollIntoView({
       behavior: reducedMotion ? "auto" : "smooth",
       block: "center"
@@ -98,6 +117,22 @@ export default function AdBeatSequence({
               {beats.length} beats · {formatSeconds(durationMs)}
             </p>
           </div>
+          <figure className="mb-14 lg:hidden">
+            <video
+              src={video.src}
+              poster={video.poster}
+              controls
+              muted
+              playsInline
+              preload="none"
+              aria-label={`${title}, rendered from a NodeTool timeline`}
+              className="mx-auto aspect-[9/16] w-full max-w-[340px] rounded-[1.5rem] bg-slate-900 object-cover ring-1 ring-white/15"
+            />
+            <figcaption className="mx-auto mt-3 max-w-[340px] text-xs leading-relaxed text-slate-500">
+              Rendered from a NodeTool timeline at these beat times. The
+              brand, copy and numbers are fictional.
+            </figcaption>
+          </figure>
           <ol>
             {beats.map((beat, index) => {
               const isActive = index === clock.activeIndex;
@@ -189,13 +224,15 @@ export default function AdBeatSequence({
           style={{ width: "min(340px, calc((100vh - 20rem) * 0.5625))" }}
         >
           <div className="relative overflow-hidden rounded-[2rem] shadow-[0_40px_90px_-40px_rgba(0,0,0,0.9)] ring-1 ring-white/15">
-            <BeatFrame
-              title={title}
-              beats={beats}
-              activeIndex={clock.activeIndex}
-              loadAll
-              priority
-              sizes="340px"
+            <video
+              ref={videoRef}
+              src={video.src}
+              poster={video.poster}
+              muted
+              playsInline
+              preload="metadata"
+              aria-label={`${title}, rendered from a NodeTool timeline`}
+              className="block aspect-[9/16] w-full bg-slate-900 object-cover"
             />
             <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/55 to-transparent px-4 pb-10 pt-4 text-xs font-medium text-white">
               <span className="rounded-full bg-black/40 px-2.5 py-1 backdrop-blur">
@@ -230,8 +267,8 @@ export default function AdBeatSequence({
             </span>
           </div>
           <p className="mt-4 text-xs leading-relaxed text-slate-500">
-            Concept illustrations at the proposed timing. Motion and NodeTool
-            integration are not yet verified.
+            Rendered from a NodeTool timeline at these beat times. The brand,
+            copy and numbers are fictional.
           </p>
         </div>
       </aside>

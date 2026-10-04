@@ -324,6 +324,18 @@
           }
         },
         {
+          "type": "StoryboardPreview",
+          "props": {
+            "id": "output-storyboardId-preview",
+            "binding": "var:storyboardId",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
           "type": "Timeline",
           "props": {
             "id": "output-designPreview",

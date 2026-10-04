@@ -430,6 +430,8 @@ export {
   recordUserEvent,
   sanitizeUserEventMetadata
 } from "./user-event.js";
+export { createBugReport } from "./bug-report.js";
+export type { BugReportRow, CreateBugReportInput } from "./bug-report.js";
 export {
   DEFAULT_ERROR_TRACE_RETENTION_DAYS,
   MAX_ERROR_TRACE_INGEST_BATCH,

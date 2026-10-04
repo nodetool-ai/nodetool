@@ -257,7 +257,7 @@ describe("db", () => {
     ).toEqual({ name: "name" });
   });
 
-  it.each(["20260103_000001", "20260829_000004", "20260927_000001"])(
+  it.each(["20260103_000001", "20260829_000004", "20260927_000001", "20261004_000000"])(
     "upgrades a tracked database at historical level %s",
     // Replays durable file-backed migrations before testing the upgrade.
     { timeout: 30_000 },
@@ -291,7 +291,7 @@ describe("db", () => {
             "SELECT version FROM _nodetool_migrations ORDER BY version DESC LIMIT 1"
           )
           .get()
-      ).toEqual({ version: "20261004_000002" });
+      ).toEqual({ version: "20261004_000003" });
       expect(
         getRawDb()
           .prepare("SELECT name FROM pragma_table_info('nodetool_jobs') WHERE name = 'has_run_trace'")

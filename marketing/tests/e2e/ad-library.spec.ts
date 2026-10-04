@@ -1,7 +1,7 @@
 import { test, expect } from "@playwright/test";
 import { adRecipes } from "../../src/data/adLibrary";
 
-test("ad library links to every separate recipe and loads beat illustrations", async ({
+test("ad library links to every recipe, and each recipe loads its rendered ad", async ({
   page
 }) => {
   await page.goto("/ad-library");
@@ -11,49 +11,62 @@ test("ad library links to every separate recipe and loads beat illustrations", a
   for (const recipe of adRecipes) {
     const link = page.locator(`a[href="${recipe.route}"]`);
     await expect(link).toHaveCount(1);
-    const thumbnail = link.getByRole("img");
-    await expect(thumbnail).toHaveAttribute(
-      "src",
-      `/ad-library/illustrations/${recipe.id}-B05.webp`
-    );
-    await thumbnail.scrollIntoViewIfNeeded();
+    const card = link.locator("video");
+    await expect(card).toHaveAttribute("src", recipe.video.src);
+    await expect(card).toHaveAttribute("poster", recipe.video.poster);
+    // In view, the card plays its ad muted.
+    await card.scrollIntoViewIfNeeded();
     await expect
       .poll(() =>
-        thumbnail.evaluate((element: HTMLImageElement) => element.naturalWidth)
+        card.evaluate((element: HTMLVideoElement) => element.currentTime)
       )
       .toBeGreaterThan(0);
     await page.goto(recipe.route);
     await expect(page.getByRole("heading", { level: 1 })).toHaveText(
       recipe.title
     );
-    const images = page
+    const film = page
       .getByRole("complementary", { name: "Sequence preview" })
-      .locator('img[src^="/ad-library/illustrations/"]');
-    await expect(images).toHaveCount(recipe.beats.length);
-    for (const image of await images.all()) {
-      await image.scrollIntoViewIfNeeded();
-      await expect
-        .poll(() =>
-          image.evaluate((element: HTMLImageElement) => element.naturalWidth)
-        )
-        .toBeGreaterThan(0);
-    }
+      .locator("video");
+    await expect(film).toHaveAttribute(
+      "src",
+      `/ad-library/videos/${recipe.slug}.mp4`
+    );
+    await expect
+      .poll(() =>
+        film.evaluate((element: HTMLVideoElement) => element.videoWidth)
+      )
+      .toBeGreaterThan(0);
     await page.goto("/ad-library");
   }
 });
 
-test("the sequence preview selects a beat and plays", async ({ page }) => {
+test("the sequence preview moves the video to a beat and plays it", async ({
+  page
+}) => {
   const recipe = adRecipes[0];
+  const beat = recipe.beats[2];
   await page.goto(recipe.route);
   const preview = page.getByRole("complementary", {
     name: "Sequence preview"
   });
+  const film = preview.locator("video");
   await preview.getByRole("button", { name: /^Show beat 3:/ }).click();
   await expect(preview.getByText(`3/${recipe.beats.length}`)).toBeVisible();
+  const seconds = await film.evaluate(
+    (element: HTMLVideoElement) => element.currentTime
+  );
+  expect(seconds * 1000).toBeGreaterThanOrEqual(beat.start_ms);
+  expect(seconds * 1000).toBeLessThan(beat.end_ms);
   await preview.getByRole("button", { name: "Play preview" }).click();
   await expect(
     preview.getByRole("button", { name: "Pause preview" })
   ).toBeVisible();
+  await expect
+    .poll(() =>
+      film.evaluate((element: HTMLVideoElement) => element.currentTime)
+    )
+    .toBeGreaterThan(seconds);
 });
 
 test("marketing exposes the ad library alongside existing recipes", async ({

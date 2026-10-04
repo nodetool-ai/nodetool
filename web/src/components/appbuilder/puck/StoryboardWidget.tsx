@@ -1,7 +1,7 @@
 /** @jsxImportSource @emotion/react */
 /**
- * Shows a storyboard an operation produced: the board's scenes and shots, read
- * only, with a link to the full editor.
+ * Shows a storyboard an operation produced as shot cards, read only, with a
+ * link to the full editor. {@link StoryboardPreviewWidget} plays the board.
  *
  * The bound value is the storyboard id, or a `{ type: "storyboard", id }` ref.
  * Without this widget the id lands in an app as an opaque JSON value.
@@ -53,16 +53,22 @@ export const getStoryboardId = (value: unknown): string | null => {
   return null;
 };
 
-const BoardView: React.FC<{ boardId: string; height: number }> = ({
-  boardId,
-  height
-}) => {
+/**
+ * Loads a board for display and follows external writes, without ever saving
+ * it. Renders `children` once the board is ready.
+ */
+export const ReadOnlyBoardLoader: React.FC<{
+  boardId: string;
+  children: React.ReactNode;
+}> = ({ boardId, children }) => {
   const ensureBoard = useStoryboardStore((state) => state.ensureBoard);
   useEffect(() => {
     ensureBoard(boardId);
   }, [ensureBoard, boardId]);
   const [retryToken, setRetryToken] = useState(0);
-  const loadState = useStoryboardServerSync(boardId, retryToken);
+  const loadState = useStoryboardServerSync(boardId, retryToken, {
+    readOnly: true
+  });
 
   if (loadState !== "ready") {
     return (
@@ -73,7 +79,14 @@ const BoardView: React.FC<{ boardId: string; height: number }> = ({
       />
     );
   }
-  return (
+  return <>{children}</>;
+};
+
+const BoardView: React.FC<{ boardId: string; height: number }> = ({
+  boardId,
+  height
+}) => (
+  <ReadOnlyBoardLoader boardId={boardId}>
     <Box
       sx={{
         height,
@@ -89,8 +102,8 @@ const BoardView: React.FC<{ boardId: string; height: number }> = ({
         <LazyStoryboardBoard boardId={boardId} readOnly />
       </React.Suspense>
     </Box>
-  );
-};
+  </ReadOnlyBoardLoader>
+);
 
 export const StoryboardWidget: React.FC<StoryboardWidgetProps> = (props) => {
   const navigate = useNavigate();

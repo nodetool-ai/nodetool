@@ -29,8 +29,16 @@ const htmlResponse = (body: string, ok = true): Response =>
     text: async () => body
   });
 
+const preloadErrorEvent = (payload: Error): Event => {
+  const event = new Event("vite:preloadError", { cancelable: true });
+  (event as Event & { payload: Error }).payload = payload;
+  return event;
+};
+
 const firePreloadError = (): void => {
-  window.dispatchEvent(new Event("vite:preloadError", { cancelable: true }));
+  window.dispatchEvent(
+    preloadErrorEvent(new Error("Importing a module script failed."))
+  );
 };
 
 const flushAsync = async (): Promise<void> => {
@@ -84,11 +92,26 @@ describe("preloadErrorReload", () => {
     expect(mockFetch).not.toHaveBeenCalled();
   });
 
-  it("suppresses Vite's default rethrow", async () => {
+  it("suppresses Vite's rethrow for a failed CSS preload", async () => {
     mockFetch.mockResolvedValue(htmlResponse(""));
-    const event = new Event("vite:preloadError", { cancelable: true });
+    const event = preloadErrorEvent(
+      new Error("Unable to preload CSS for /assets/Widget-abc.css")
+    );
     window.dispatchEvent(event);
     expect(event.defaultPrevented).toBe(true);
+    await flushAsync();
+  });
+
+  // Suppressing a failed JS chunk makes Vite resolve the `import()` to
+  // `undefined`, and React.lazy then crashes with "Cannot read properties of
+  // undefined (reading 'default')" instead of surfacing the load failure.
+  it("lets a failed JS chunk import reject", async () => {
+    mockFetch.mockResolvedValue(htmlResponse(""));
+    const event = preloadErrorEvent(
+      new TypeError("Failed to fetch dynamically imported module")
+    );
+    window.dispatchEvent(event);
+    expect(event.defaultPrevented).toBe(false);
     await flushAsync();
   });
 

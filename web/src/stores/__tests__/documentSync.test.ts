@@ -278,6 +278,50 @@ describe("createDocumentSyncController", () => {
     expect(attempts).toBe(2);
   });
 
+  it("stops a flush when a CAS recovery does not advance the revision", async () => {
+    const save = jest.fn(async () => {
+      throw new Error("modified since last read");
+    });
+    const onStatus = jest.fn();
+    const controller = createDocumentSyncController({
+      getDraft: () => "draft",
+      getRevision: () => "rev-1",
+      isDirty: () => true,
+      save,
+      recoverCasConflict: async () => {},
+      isCasConflict: (error) => error instanceof Error && /modified/.test(error.message),
+      onStatus
+    });
+
+    await expect(controller.flush()).resolves.toEqual({
+      ok: false,
+      error: "modified since last read"
+    });
+    expect(save).toHaveBeenCalledTimes(1);
+    expect(onStatus).toHaveBeenLastCalledWith("error");
+  });
+
+  it("stops a flush when another writer keeps winning the CAS race", async () => {
+    let revision = 1;
+    const save = jest.fn(async () => {
+      throw new Error("modified since last read");
+    });
+    const controller = createDocumentSyncController({
+      getDraft: () => "draft",
+      getRevision: () => `rev-${revision}`,
+      isDirty: () => true,
+      save,
+      recoverCasConflict: async () => {
+        revision += 1;
+      },
+      isCasConflict: (error) => error instanceof Error && /modified/.test(error.message)
+    });
+
+    const result = await controller.flush();
+    expect(result.ok).toBe(false);
+    expect(save).toHaveBeenCalledTimes(5);
+  });
+
   it("cancels the debounce but flushes a pending draft on teardown", async () => {
     let saved = false;
     const controller = createDocumentSyncController({

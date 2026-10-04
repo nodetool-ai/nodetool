@@ -1,7 +1,9 @@
 // Build the shipped example timelines through the QuickJS sandbox.
 //
 // `node scripts/example-timelines/build.mjs [slug…]` builds every slug in
-// SLUGS, or the ones named. Each builder is a JS script body: it imports
+// SLUGS, or the ones named. `buildTimelines()` does the same for another set
+// of builders, such as the ad library's (ad-library.mjs). Each builder is a JS
+// script body: it imports
 // `@nodetool-ai/sandbox-timeline` (packages/sandbox-packs/sandbox-timeline),
 // saves its cut through `nodetool.timelines`, and outputs the bundle's
 // metadata with the timeline id. So the examples are authored through the
@@ -31,97 +33,106 @@ const ROOT = join(HERE, "../..");
 const OUT_DIR = join(ROOT, "packages/base-nodes/nodetool/examples/timelines");
 const SLUGS = ["cadence", "kite", "prism", "serein", "t-minus-30", "tidewater", "voltra"];
 
-const slugs = process.argv.length > 2 ? process.argv.slice(2) : SLUGS;
-const unknown = slugs.filter((slug) => !SLUGS.includes(slug));
-if (unknown.length) {
-  console.error(`Unknown example ${unknown.join(", ")}. Known: ${SLUGS.join(", ")}.`);
-  process.exit(1);
-}
-
 const PACK = "@nodetool-ai/sandbox-timeline";
 
 /**
- * A builder as one block of the combined script: its import of the pack
- * becomes a destructure of the shared one, and its output is named by slug.
+ * Bake the builders `<sourceDir>/<slug>.mjs` and write each bundle to
+ * `<outDir>/<slug>.timeline.json`.
  */
-function asBlock(slug) {
-  const source = readFileSync(join(HERE, `${slug}.mjs`), "utf8")
-    .replace(/^import (\{[^}]*\}) from "@nodetool-ai\/sandbox-timeline";$/m, "const $1 = __timeline;")
-    .replace(/await output\("timeline",/, `await output(${JSON.stringify(slug)},`);
-  return `{\n${source}\n}`;
+export async function buildTimelines({ sourceDir, outDir, slugs }) {
+  /**
+   * A builder as one block of the combined script: its import of the pack
+   * becomes a destructure of the shared one, and its output is named by slug.
+   */
+  function asBlock(slug) {
+    const source = readFileSync(join(sourceDir, `${slug}.mjs`), "utf8")
+      .replace(/^import (\{[^}]*\}) from "@nodetool-ai\/sandbox-timeline";$/m, "const $1 = __timeline;")
+      .replace(/await output\("timeline",/, `await output(${JSON.stringify(slug)},`);
+    return `{\n${source}\n}`;
+  }
+
+  const code = [`import * as __timeline from "${PACK}";`, ...slugs.map(asBlock)].join("\n");
+  const script = {
+    name: "Example timelines",
+    document: {
+      schemaVersion: 1,
+      description: "Builds the shipped example timelines through nodetool.timelines.",
+      code,
+      inputs: [],
+      outputs: slugs.map((name) => ({ name, type: "any" })),
+      packages: [],
+      secrets: [],
+      timeoutSeconds: 120,
+      tests: []
+    }
+  };
+
+  const scratch = mkdtempSync(join(tmpdir(), "example-timelines-"));
+  try {
+    const scriptPath = join(scratch, "example-timelines.json");
+    const dbPath = join(scratch, "db.sqlite3");
+    writeFileSync(scriptPath, JSON.stringify(script));
+    const run = spawnSync("npm", ["run", "-s", "dev:nodetool", "--", "jsscript", "run", scriptPath, "--json"], {
+      cwd: ROOT,
+      encoding: "utf8",
+      maxBuffer: 256 * 1024 * 1024,
+      env: { ...process.env, DB_PATH: dbPath, ASSET_FOLDER: join(scratch, "assets") }
+    });
+    let result;
+    try {
+      result = JSON.parse(run.stdout);
+    } catch {
+      console.error(run.stdout, run.stderr);
+      process.exit(run.status || 1);
+    }
+    if (!result.ok) {
+      for (const line of result.logs ?? []) console.error(typeof line === "string" ? line : JSON.stringify(line));
+      console.error(result.error);
+      process.exit(1);
+    }
+    const { initDb, TimelineSequence } = await import("@nodetool-ai/models");
+    initDb(dbPath);
+    for (const slug of slugs) {
+      // The runner hands an `any` output back as its JSON text.
+      const raw = result.outputs[slug];
+      const { timeline_id: id, ...meta } = typeof raw === "string" ? JSON.parse(raw) : raw;
+      const document = (await TimelineSequence.findById(id)).toDocument();
+
+      // Embed the builder script as `document.source`, the same shape
+      // `set_timeline_code` writes for a live timeline: the code, when it was
+      // baked, and each scene's group id + subtree hash — so
+      // `nodetool.timelines.code.rebake()` against a copy of this example
+      // reports every scene untouched (zero conflicts) rather than treating
+      // the shipped document as hand-edited.
+      const code = readFileSync(join(sourceDir, `${slug}.mjs`), "utf8");
+      const scenes = {};
+      for (const clip of document.clips) {
+        if (typeof clip.sourceScene === "string" && clip.sourceScene) {
+          scenes[clip.sourceScene] = {
+            groupId: clip.id,
+            hash: hashSceneSubtree(document.clips, clip.id)
+          };
+        }
+      }
+      document.source = { lang: "js", code, bakedAt: new Date().toISOString(), scenes };
+
+      const bundle = { ...meta, document };
+      const out = join(outDir, `${slug}.timeline.json`);
+      writeFileSync(out, `${JSON.stringify(bundle)}\n`);
+      const { tracks, clips, markers } = bundle.document;
+      console.log(`${slug}: ${clips.length} clips, ${tracks.length} tracks, ${markers.length} markers -> ${out}`);
+    }
+  } finally {
+    rmSync(scratch, { recursive: true, force: true });
+  }
 }
 
-const code = [`import * as __timeline from "${PACK}";`, ...slugs.map(asBlock)].join("\n");
-const script = {
-  name: "Example timelines",
-  document: {
-    schemaVersion: 1,
-    description: "Builds the shipped example timelines through nodetool.timelines.",
-    code,
-    inputs: [],
-    outputs: slugs.map((name) => ({ name, type: "any" })),
-    packages: [],
-    secrets: [],
-    timeoutSeconds: 120,
-    tests: []
-  }
-};
-
-const scratch = mkdtempSync(join(tmpdir(), "example-timelines-"));
-try {
-  const scriptPath = join(scratch, "example-timelines.json");
-  const dbPath = join(scratch, "db.sqlite3");
-  writeFileSync(scriptPath, JSON.stringify(script));
-  const run = spawnSync("npm", ["run", "-s", "dev:nodetool", "--", "jsscript", "run", scriptPath, "--json"], {
-    cwd: ROOT,
-    encoding: "utf8",
-    maxBuffer: 256 * 1024 * 1024,
-    env: { ...process.env, DB_PATH: dbPath, ASSET_FOLDER: join(scratch, "assets") }
-  });
-  let result;
-  try {
-    result = JSON.parse(run.stdout);
-  } catch {
-    console.error(run.stdout, run.stderr);
-    process.exit(run.status || 1);
-  }
-  if (!result.ok) {
-    for (const line of result.logs ?? []) console.error(typeof line === "string" ? line : JSON.stringify(line));
-    console.error(result.error);
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  const slugs = process.argv.length > 2 ? process.argv.slice(2) : SLUGS;
+  const unknown = slugs.filter((slug) => !SLUGS.includes(slug));
+  if (unknown.length) {
+    console.error(`Unknown example ${unknown.join(", ")}. Known: ${SLUGS.join(", ")}.`);
     process.exit(1);
   }
-  const { initDb, TimelineSequence } = await import("@nodetool-ai/models");
-  initDb(dbPath);
-  for (const slug of slugs) {
-    // The runner hands an `any` output back as its JSON text.
-    const raw = result.outputs[slug];
-    const { timeline_id: id, ...meta } = typeof raw === "string" ? JSON.parse(raw) : raw;
-    const document = (await TimelineSequence.findById(id)).toDocument();
-
-    // Embed the builder script as `document.source`, the same shape
-    // `set_timeline_code` writes for a live timeline: the code, when it was
-    // baked, and each scene's group id + subtree hash — so
-    // `nodetool.timelines.code.rebake()` against a copy of this example
-    // reports every scene untouched (zero conflicts) rather than treating
-    // the shipped document as hand-edited.
-    const code = readFileSync(join(HERE, `${slug}.mjs`), "utf8");
-    const scenes = {};
-    for (const clip of document.clips) {
-      if (typeof clip.sourceScene === "string" && clip.sourceScene) {
-        scenes[clip.sourceScene] = {
-          groupId: clip.id,
-          hash: hashSceneSubtree(document.clips, clip.id)
-        };
-      }
-    }
-    document.source = { lang: "js", code, bakedAt: new Date().toISOString(), scenes };
-
-    const bundle = { ...meta, document };
-    const out = join(OUT_DIR, `${slug}.timeline.json`);
-    writeFileSync(out, `${JSON.stringify(bundle)}\n`);
-    const { tracks, clips, markers } = bundle.document;
-    console.log(`${slug}: ${clips.length} clips, ${tracks.length} tracks, ${markers.length} markers -> ${out}`);
-  }
-} finally {
-  rmSync(scratch, { recursive: true, force: true });
+  await buildTimelines({ sourceDir: HERE, outDir: OUT_DIR, slugs });
 }

@@ -24,6 +24,7 @@ import AdLibraryOverview from "../../components/AdLibraryOverview";
 import RecipeShowcase from "../../components/RecipeShowcase";
 import TimelineShowcase from "../../components/TimelineShowcase";
 import { SmartDownloadButton } from "../SmartDownloadButton";
+import { adRecipes } from "../../data/adLibrary";
 
 const campaignFormats = [
   {
@@ -147,13 +148,10 @@ export default function MarketingSegmentPage() {
                 </h1>
 
                 <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-3xl mx-auto leading-relaxed">
-                  Put generative models into your creative and production
-                  pipeline, from the first idea through to delivery. Pitch the
-                  brief to an agent and it builds the workflow that turns out
-                  product videos, ad creative, social calendars, and brand
-                  assets. Teams move faster, pitch more ambitious work, and
-                  spend less doing it, because every model runs on your own
-                  keys at the provider&apos;s published price.
+                  Take a product brief from the first concept to delivered
+                  ads in every format. Describe the campaign, and the agent
+                  builds a workflow you rerun for every SKU, market, and
+                  aspect ratio.
                 </p>
 
                 {/* Two countable credibility chips beside the CTA
@@ -161,11 +159,11 @@ export default function MarketingSegmentPage() {
                 <div className="flex flex-wrap items-center justify-center gap-3 mb-12 text-sm">
                   <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-slate-300">
                     <Check className="h-4 w-4 text-emerald-400" />
-                    Shipped workflows you import and run
+                    {adRecipes.length} ad formats, rendered and editable
                   </span>
                   <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-slate-300">
                     <Check className="h-4 w-4 text-emerald-400" />
-                    Every major model, on your own keys
+                    Flux, Veo, Kling, and Seedance on your keys
                   </span>
                 </div>
 
@@ -188,25 +186,28 @@ export default function MarketingSegmentPage() {
                     <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/10">
                       <TrendingUp className="w-4 h-4 text-amber-300" />
                     </span>
-                    Built for volume
+                    One brief, every SKU and market
                   </li>
                   <li className="flex items-center gap-2.5">
                     <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10">
                       <Shield className="w-4 h-4 text-emerald-300" />
                     </span>
-                    Your keys, no markup
+                    Provider list prices
                   </li>
                   <li className="flex items-center gap-2.5">
                     <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-500/30 bg-cyan-500/10">
                       <ImageIcon className="w-4 h-4 text-cyan-300" />
                     </span>
-                    Every format, one canvas
+                    16:9, 1:1, and 9:16 from one run
                   </li>
                 </ul>
               </motion.div>
             </div>
           </div>
         </section>
+
+        {/* Short social ads first: the format an ad team runs most. */}
+        <AdLibraryOverview compact />
 
         <TimelineShowcase />
 
@@ -322,8 +323,6 @@ export default function MarketingSegmentPage() {
             </div>
           </div>
         </section>
-
-        <AdLibraryOverview compact />
 
         <RecipeShowcase />
 

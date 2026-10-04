@@ -16,7 +16,6 @@ import type {
   Asset,
   // Workflow types
   Workflow as _Workflow,
-  WorkflowGraph as _WorkflowGraph,
   // Thread & Message types
   Thread,
   Message,
@@ -52,7 +51,6 @@ export type { Edge };
 export type { Asset };
 
 // Workflow
-export type WorkflowGraph = _WorkflowGraph;
 export type Workflow = _Workflow;
 
 // Thread & Message

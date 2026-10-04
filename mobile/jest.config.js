@@ -24,9 +24,6 @@ module.exports = {
     // Shared mini-app runtime core, compiled from source (mirrors metro.config.js).
     '^@nodetool-ai/app-runtime$':
       '<rootDir>/../packages/app-runtime/src/index.ts',
-    // Shared timeline engine (split/trim/factories), also from source.
-    '^@nodetool-ai/timeline$': '<rootDir>/../packages/timeline/src/index.ts',
-    '^@nodetool-ai/gpu$': '<rootDir>/../packages/gpu/src/index.ts',
     // Jest runs in CJS mode, so compile the current protocol source instead of
     // parsing the package's ESM dist directly. Production still uses the dist.
     '^@nodetool-ai/protocol$':
@@ -37,6 +34,8 @@ module.exports = {
       '<rootDir>/../packages/protocol/src/triggers.ts',
     '^@nodetool-ai/protocol/blend-modes$':
       '<rootDir>/../packages/protocol/src/blend-modes.ts',
+    '^@nodetool-ai/protocol/resource-uri$':
+      '<rootDir>/../packages/protocol/src/resource-uri.ts',
     // Those packages' sources use ESM `.js` specifiers for their own modules.
     '^(\\.{1,2}/.+)\\.js$': '$1',
   },

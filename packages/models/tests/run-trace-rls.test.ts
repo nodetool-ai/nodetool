@@ -33,7 +33,7 @@ describe.skipIf(!connectionUrl)("run trace migration PostgreSQL RLS", () => {
       await client.unsafe("CREATE FUNCTION auth.uid() RETURNS uuid LANGUAGE sql STABLE AS $$ SELECT nullif(current_setting('request.jwt.claim.sub', true),'')::uuid $$");
       await client.unsafe("GRANT USAGE ON SCHEMA auth, public TO authenticated, anon");
       adapter = new PostgresJsMigrationAdapter(client);
-      const migration = migrations.find((entry) => entry.version === "20261004_000001");
+      const migration = migrations.find((entry) => entry.version === "20261004_000002");
       expect(migration).toBeDefined(); if (!migration) { throw new Error("Trace migration absent"); }
       await migration.up(adapter); await adapter.commit(); await adapter.release(); adapter = undefined;
       for (const [index, userId] of [owner, foreign].entries()) {

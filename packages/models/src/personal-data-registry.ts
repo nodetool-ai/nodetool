@@ -405,6 +405,15 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "Redacted error traces from the person's own runs and requests. They are diagnostics about the person's activity with no lawful basis to outlive the account, and the 30-day retention sweep removes them anyway."
   },
   {
+    table: "nodetool_bug_reports",
+    schemaExport: "bugReports",
+    disposition: "delete",
+    reach: { kind: "direct", column: "user_id" },
+    exported: true,
+    justification:
+      "Bug reports the person wrote and the data they chose to attach. Their own words about their own activity, with no reason to outlive the account. The attached zip sits under their storage prefix and goes with the object sweep."
+  },
+  {
     table: "nodetool_settings",
     schemaExport: "appSettings",
     disposition: "delete",

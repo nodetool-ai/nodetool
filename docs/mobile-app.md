@@ -4,7 +4,7 @@ title: "Mobile App"
 description: "Run Mini-Apps and chat from iOS and Android."
 ---
 
-Run Mini-Apps and chat with models from your phone or tablet. Connects to any NodeTool server — your desktop, a self-hosted instance, or NodeTool Cloud.
+Run Mini-Apps, chat with models, and follow your jobs from your phone or tablet. The mobile app is a companion to desktop and web: you build and edit workflows there, and run and review them here. It connects to any NodeTool server, whether your desktop, a self-hosted instance, or NodeTool Cloud.
 
 > New here? Start on desktop with [Getting Started](getting-started.md).
 
@@ -18,10 +18,12 @@ You must sign in. The app opens on a **Login** screen with **Continue with Googl
 
 | Feature | Notes |
 |---------|-------|
-| **Chat** | Streaming responses across providers, plus image and video generation modes |
-| **Workflows** | Browse, edit as a chain of cards, and run |
-| **Mini-Apps** | Run apps published on the server |
-| **Assets, Documents, Jobs, Triggers** | Browse files and documents, review job history, monitor triggers |
+| **Mini-Apps** | The home screen. Run apps published on the server |
+| **Chat** | Streaming responses across providers, image and video generation modes, and inline previews of sketches and timelines |
+| **Jobs** | Review job history. A finished run sends a notification while the app is in the background |
+| **Assets** | Browse, upload from the camera or photo library, and view |
+| **Documents** | Edit storyboards. View timelines and sketches |
+| **Desktop and web only** | Workflow editing, scripts, JS scripts, managing API keys, collections, and triggers, and editing timelines or sketches |
 | **Platforms** | iOS, Android, browser |
 | **Server** | Connect to any NodeTool server |
 
@@ -103,10 +105,11 @@ Chat with AI models from your mobile device.
 - **Attachments and voice** – Attach files, take or pick photos, and dictate with voice input
 - **Modes** – Switch the composer between Chat, Image, and Video. Image and video modes expose aspect ratio, resolution, and variation or duration pickers
 - **Options bar** – Toggle **Agent** and **Help** modes, add tools, and choose collections to search
+- **Inline previews** – When a reply names a sketch or a timeline, it draws in the message with a chip that opens it. Other documents show the chip alone
 
 ### How to Chat
 
-1. Tap the **Chat** button on the Workflows list screen
+1. Tap the **Chat** button in the Apps header
 2. Select a model (tap model name)
 3. Type your message
 4. Tap the send button (up arrow)
@@ -121,19 +124,18 @@ Chat with AI models from your mobile device.
 
 ---
 
-## Running workflows and apps
+## Running Mini Apps
 
-The home screen is the **Workflows** list. Tapping a workflow opens it in the graph editor (see below), where the **Run workflow** button runs it with empty inputs and shows status and a result preview on each card. The list has a search box.
+The home screen is the **Apps** list. Mini Apps are a separate resource, authored in the desktop App Builder and stored on the server. Tapping an app runs it on its own screen. See [Mini Apps on Mobile](mini-apps-mobile.md). The Apps header opens Chat, Documents, Jobs, Assets, and Settings.
 
-For a screen with input fields, use a Mini App. Mini Apps are a separate resource, authored in the desktop App Builder and stored on the server. The apps icon in the Workflows header opens the **Apps** browser, and tapping an app runs it on its own screen. See [Mini Apps on Mobile](mini-apps-mobile.md).
+Workflows are not edited on mobile. Build and edit them in the desktop or web app, and run them here through a Mini App.
 
 ### Running a Mini App
 
-1. Tap the apps icon in the Workflows header
-2. Tap an app
-3. Fill in the inputs
-4. Tap **Run**
-5. View results as they stream in
+1. Tap an app on the Apps screen
+2. Fill in the inputs
+3. Tap **Run**
+4. View results as they stream in
 
 ![Mini App Runner](assets/screenshots/mobile-mini-app-runner.png)
 
@@ -154,42 +156,17 @@ Mini App inputs map from the workflow's Input nodes to native controls:
 
 ---
 
-## Mobile Graph Editor
+## Documents
 
-The mobile app includes a touch-friendly version of the workflow editor. Workflows render as a vertical chain of cards that you scroll through — there is no free-form pan-and-zoom canvas.
+The **Documents** screen lists your storyboards, timelines, and sketches.
 
-### Overview
+| Kind | On mobile |
+|------|-----------|
+| Storyboard | Edit shots and the board by touch, or ask the assistant |
+| Timeline | View the tracks and clips. Edit in the desktop or web app, or ask the assistant. The viewer reloads when you come back to it |
+| Sketch | View the layers |
 
-![Mobile Graph Editor](assets/screenshots/mobile-graph-editor-overview.png)
-
-### Empty State
-
-New workflows open with a single prompt to add your first node.
-
-![Mobile Graph Editor — Empty](assets/screenshots/mobile-graph-editor-empty.png)
-
-### Node Picker
-
-Tap the **+** button to open the full-screen node picker. It shows quick action tiles when idle and groups search results by namespace.
-
-![Mobile Graph Editor — Picker](assets/screenshots/mobile-graph-editor-picker.png)
-
-### Linear Chain
-
-Workflows render as a vertical chain of cards on mobile — easier to scroll and tap.
-
-![Mobile Graph Editor — Chain](assets/screenshots/mobile-graph-editor-chain.png)
-
-Interactions:
-
-| Action | Result |
-|--------|--------|
-| Tap a card | Expand it to show properties, input mappings, and the output selector |
-| Up / Down buttons on a card | Reorder it within the chain |
-| Duplicate / Remove buttons | Duplicate or delete the node |
-| **+** button | Add a node via the full-screen picker |
-
-Input mappings wire a property to the output of any earlier node, and the list marks type-incompatible sources. A floating toolbar has Add node, Save workflow, Run workflow, and Stop workflow. Leaving with unsaved edits asks **Discard changes?**
+Other documents, such as scripts, open in the desktop or web app.
 
 ---
 
@@ -203,7 +180,6 @@ Configure the mobile app from the gear icon:
 |---------|---------|
 | Appearance | Light, Dark, or System theme |
 | Server Connection | **API Host** with **Test & Save** and **Save Only** |
-| Manage | Shortcuts to API Keys, Collections, Jobs, and Triggers |
 | Account | Signed-in email and **Sign Out** |
 | About | App version and the GitHub repository |
 
@@ -224,7 +200,7 @@ A search box appears in either step when the list has more than five entries, an
 
 ## Screens
 
-The stack registers these screens: Login, Workflows list, Graph editor, Settings, Chat, Threads, Language Model Selection, Apps, App, Documents, Storyboard Editor, Script Editor, JS Script Editor, Timeline Viewer, Sketch Viewer, Document Viewer, Assets, Asset Viewer, Secrets (API Keys), Collections, Jobs, Job Detail, and Triggers.
+The stack registers these screens: Login, Apps, App, Settings, Chat, Threads, Language Model Selection, Documents, Storyboard Editor, Timeline Viewer, Sketch Viewer, Assets, Asset Viewer, Jobs, and Job Detail.
 
 ### Deep links
 
@@ -232,14 +208,14 @@ The app registers the `nodetool://` scheme. Links work only while signed in. Fin
 
 | Link | Opens |
 |------|-------|
-| `nodetool://workflow/<id>` | Graph editor |
+| `nodetool://` or `nodetool://apps` | Apps |
 | `nodetool://chat/<threadId>` | Chat |
-| `nodetool://threads`, `documents`, `apps`, `assets`, `jobs`, `triggers`, `collections`, `settings` | The matching screen |
+| `nodetool://threads`, `documents`, `assets`, `jobs`, `settings` | The matching screen |
 | `nodetool://app/<applicationId>` | A Mini App |
 | `nodetool://job/<jobId>` | Job detail |
 | `nodetool://asset/<assetId>` | Asset viewer |
-| `nodetool://document/<kind>/<id>` | Document editor or viewer (`storyboard`, `script`, `jsscript`, `timeline`, `sketch`) |
-| `nodetool://settings/secrets`, `settings/models` | API Keys, model picker |
+| `nodetool://document/<kind>/<id>` | Storyboard editor, timeline viewer, or sketch viewer (`storyboard`, `timeline`, `sketch`) |
+| `nodetool://settings/models` | Model picker |
 
 ---
 

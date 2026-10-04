@@ -41,29 +41,21 @@ export const linking: LinkingOptions<RootStackParamList> = {
   config: {
     screens: {
       Login: 'login',
-      WorkflowsList: '',
-      GraphEditor: 'workflow/:workflowId?',
       Chat: 'chat/:threadId?',
       Threads: 'threads',
       Documents: 'documents',
-      Apps: 'apps',
+      // The home screen. `apps` still resolves so links shared before Apps
+      // became home keep working.
+      Apps: { path: '', alias: ['apps'] },
       App: 'app/:applicationId',
-      // Specific document kinds first — `document/:kind/:id` would otherwise
-      // swallow all of them.
       StoryboardEditor: 'document/storyboard/:id',
-      ScriptEditor: 'document/script/:id',
-      JsScriptEditor: 'document/jsscript/:id',
       TimelineViewer: 'document/timeline/:id',
       SketchViewer: 'document/sketch/:id',
-      DocumentViewer: 'document/:kind/:id',
       Assets: 'assets',
       AssetViewer: 'asset/:assetId',
       Jobs: 'jobs',
-      Triggers: 'triggers',
       JobDetail: 'job/:jobId',
-      Collections: 'collections',
       Settings: 'settings',
-      Secrets: 'settings/secrets',
       LanguageModelSelection: 'settings/models',
     },
   },

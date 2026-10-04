@@ -13,12 +13,7 @@ import {
 import MarketingPageShell from "@/components/MarketingPageShell";
 import AdBeatSequence from "@/components/adLibrary/AdBeatSequence";
 import { ComplexityMeter } from "@/components/adLibrary/AdConceptCard";
-import {
-  adRecipes,
-  finalBeat,
-  formatKey,
-  illustrationSrc
-} from "@/data/adLibrary";
+import { adRecipes, formatKey } from "@/data/adLibrary";
 import type { AdRecipe } from "@/data/adLibrary";
 
 interface AdRecipePageProps {
@@ -257,10 +252,10 @@ function ConceptLink({
       className="focus-ring group flex items-center gap-5 rounded-2xl border border-white/10 bg-white/[0.03] p-3 pr-6 transition-colors hover:border-amber-300/40"
     >
       <Image
-        src={illustrationSrc(finalBeat(recipe).id)}
+        src={recipe.video.poster}
         alt=""
-        width={600}
-        height={1067}
+        width={recipe.video.width}
+        height={recipe.video.height}
         sizes="64px"
         className="aspect-[9/16] w-16 shrink-0 rounded-lg object-cover"
       />
@@ -301,7 +296,7 @@ export default async function AdRecipePage({ params }: AdRecipePageProps) {
           <ArrowLeft className="h-4 w-4" aria-hidden="true" />
           Social ad library
         </a>
-        <AdBeatSequence title={recipe.title} beats={recipe.beats}>
+        <AdBeatSequence title={recipe.title} beats={recipe.beats} video={recipe.video}>
           <RecipeHeader recipe={recipe} />
         </AdBeatSequence>
         <section

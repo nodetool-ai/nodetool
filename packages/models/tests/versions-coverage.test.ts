@@ -106,7 +106,7 @@ describe("built-in migration versions", () => {
     await adapter.execute(`INSERT INTO nodetool_generation_attachments
       (id,generation_id,output_id,target_type,target_id,created_at,updated_at)
       VALUES ('attachment','generation','output','app_run','saved','old','old')`);
-    const migration = migrations.find((item) => item.version === "20261004_000000")!;
+    const migration = migrations.find((item) => item.version === "20261004_000001")!;
     await migration.up(adapter);
     expect(await adapter.fetchone("SELECT inputs FROM application_invocations WHERE id='saved'"))
       .toEqual({ inputs: '{"prompt":"private"}' });

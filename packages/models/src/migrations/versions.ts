@@ -134,6 +134,32 @@ const ERROR_TRACES_DDL: readonly string[] = [
 ];
 
 /**
+ * DDL for `nodetool_bug_reports`, valid on both dialects. Applied by its
+ * migration, and by `initTestDb` through {@link POST_BASELINE_TABLE_DDL}.
+ */
+const BUG_REPORTS_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS nodetool_bug_reports (
+    id TEXT PRIMARY KEY NOT NULL,
+    user_id TEXT NOT NULL,
+    source TEXT NOT NULL,
+    title TEXT NOT NULL,
+    description TEXT NOT NULL,
+    steps TEXT,
+    expected TEXT,
+    body TEXT NOT NULL,
+    bundle_key TEXT,
+    bundle_size INTEGER,
+    created_at TEXT NOT NULL
+  )`,
+  // Serves the per-user listing, export and erasure.
+  `CREATE INDEX IF NOT EXISTS idx_bug_report_user_created
+    ON nodetool_bug_reports (user_id, created_at)`,
+  // Serves triage, newest first across all reporters.
+  `CREATE INDEX IF NOT EXISTS idx_bug_report_created
+    ON nodetool_bug_reports (created_at)`
+];
+
+/**
  * Idempotent DDL for tables created by migrations newer than the frozen
  * SQLite baseline, in migration order. Only `initTestDb` reads it: the
  * in-memory test database is built synchronously from the baseline and would
@@ -179,7 +205,7 @@ content_expired INTEGER NOT NULL DEFAULT 0)`,
 ];
 
 const JOB_TRACE_MARKER_DDL = "ALTER TABLE nodetool_jobs ADD COLUMN has_run_trace INTEGER NOT NULL DEFAULT 0";
-export const POST_BASELINE_TABLE_DDL: readonly string[] = [...ERROR_TRACES_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL];
+export const POST_BASELINE_TABLE_DDL: readonly string[] = [...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL];
 
 export const migrations: MigrationDef[] = [
   // ── 001: Create workflows ──────────────────────────────────────────
@@ -3921,8 +3947,53 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP TABLE IF EXISTS nodetool_error_traces");
     }
   },
+  // ── Create nodetool_bug_reports ───────────────────────────────────────
+  // Bug reports submitted from the hosted web app. On Supabase the table gets
+  // row-level security like nodetool_error_traces: the server connects as the
+  // owner, and the Data API shows a signed-in user only their own reports.
   {
-    version: "20261004_000000", name: "app_instances_and_durable_runs",
+    version: "20261004_000000",
+    name: "create_bug_reports",
+    createsTables: ["nodetool_bug_reports"],
+    modifiesTables: [],
+    async up(db) {
+      for (const statement of BUG_REPORTS_DDL) {
+        await db.execute(statement);
+      }
+      if (db.dbType !== "postgres") return;
+      await db.execute(
+        "ALTER TABLE nodetool_bug_reports ENABLE ROW LEVEL SECURITY"
+      );
+      await db.execute(`
+        DO $$
+        BEGIN
+          IF to_regprocedure('auth.uid()') IS NOT NULL
+             AND NOT EXISTS (
+               SELECT 1 FROM pg_policies
+               WHERE tablename = 'nodetool_bug_reports'
+                 AND policyname = 'bug_reports_owner_read'
+             ) THEN
+            EXECUTE 'CREATE POLICY bug_reports_owner_read
+              ON nodetool_bug_reports FOR SELECT TO authenticated
+              USING (user_id = (SELECT auth.uid())::text)';
+          END IF;
+        END
+        $$
+      `);
+    },
+    async down(db) {
+      if (db.dbType === "postgres") {
+        await db.execute(
+          "DROP POLICY IF EXISTS bug_reports_owner_read ON nodetool_bug_reports"
+        );
+      }
+      await db.execute("DROP INDEX IF EXISTS idx_bug_report_user_created");
+      await db.execute("DROP INDEX IF EXISTS idx_bug_report_created");
+      await db.execute("DROP TABLE IF EXISTS nodetool_bug_reports");
+    }
+  },
+  {
+    version: "20261004_000001", name: "app_instances_and_durable_runs",
     createsTables: ["app_instances"], modifiesTables: ["application_invocations"],
     async up(db) {
       for (const statement of APP_INSTANCES_DDL) await db.execute(statement);
@@ -4009,7 +4080,7 @@ export const migrations: MigrationDef[] = [
     }
   },
   {
-    version: "20261004_000001", name: "registered_run_trace_store",
+    version: "20261004_000002", name: "registered_run_trace_store",
     createsTables: ["nodetool_run_traces", "nodetool_run_spans"], modifiesTables: [],
     async up(db) {
       for (const statement of RUN_TRACES_DDL) { await db.execute(statement); }
@@ -4021,7 +4092,7 @@ export const migrations: MigrationDef[] = [
     }
   },
   {
-    version: "20261004_000002", name: "job_trace_provenance",
+    version: "20261004_000003", name: "job_trace_provenance",
     createsTables: [], modifiesTables: ["nodetool_jobs"],
     async up(db) {
       if (!await db.columnExists("nodetool_jobs", "has_run_trace")) { await db.execute(JOB_TRACE_MARKER_DDL); }

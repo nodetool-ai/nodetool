@@ -227,11 +227,10 @@ const NODE_MODULE_GROUPS: ReadonlyArray<
 ];
 
 /**
- * Import a lazy chunk, tolerating failure. A failed `import()` normally
- * rejects, but on the main thread the app's `vite:preloadError` listener
- * (`preloadErrorReload.ts`) suppresses Vite's rethrow, in which case the
- * import resolves `undefined` instead — treat both as "not available",
- * keeping the failure for the caller's diagnostics.
+ * Import a lazy chunk, tolerating failure. A failed `import()` rejects, and
+ * resolves `undefined` if a `vite:preloadError` listener suppresses Vite's
+ * rethrow for it — treat both as "not available", keeping the failure for the
+ * caller's diagnostics.
  */
 async function importOptional<TModule extends object>(
   load: () => Promise<TModule>

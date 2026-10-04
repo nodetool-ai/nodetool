@@ -411,20 +411,34 @@ export interface BundleFile {
   content: string | Uint8Array;
 }
 
-export function zipBundle(files: BundleFile[]): Blob {
+export function zipBundleBytes(files: BundleFile[]): ReturnType<typeof zipSync> {
   const entries: Record<string, Uint8Array> = {};
   for (const file of files) {
     entries[file.name] = isString(file.content)
       ? strToU8(file.content)
       : file.content;
   }
-  const zipped = zipSync(entries);
+  return zipSync(entries);
+}
+
+export function zipBundle(files: BundleFile[]): Blob {
+  const zipped = zipBundleBytes(files);
   // fflate may hand back a view into a pooled buffer; Blob needs the exact bytes.
   const bytes = zipped.buffer.slice(
     zipped.byteOffset,
     zipped.byteOffset + zipped.byteLength
   );
   return new Blob([bytes], { type: "application/zip" });
+}
+
+/** Base64 for the tRPC upload, in chunks so a large zip cannot overflow the call stack. */
+export function bytesToBase64(bytes: Uint8Array): string {
+  const CHUNK = 0x8000;
+  let binary = "";
+  for (let offset = 0; offset < bytes.length; offset += CHUNK) {
+    binary += String.fromCharCode(...bytes.subarray(offset, offset + CHUNK));
+  }
+  return btoa(binary);
 }
 
 export function bundleFileName(context: BugReportContext, now: Date): string {

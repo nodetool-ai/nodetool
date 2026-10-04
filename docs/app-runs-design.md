@@ -2,7 +2,7 @@
 
 **Status:** Phase 4 implementation. Instance management and run history UI remain planned.
 **Implementation:** [Sub-agent plan](app-runs-implementation-plan.md)
-**Related:** [media-generation-tracking-design.md](media-generation-tracking-design.md), [mini-apps.md](mini-apps.md), [error-tracing.md](error-tracing.md), [harnesses.md § Observing agent execution](harnesses.md#observing-agent-execution)
+**Related:** [media-generation-tracking-design.md](media-generation-tracking-design.md), [mini-apps.md](mini-apps.md), [error-tracing.md](error-tracing.md), [harnesses.md § Observing agent execution](harnesses.md#observing-agent-execution), [personal-data registry](../packages/models/src/personal-data-registry.ts), [hosted privacy policy](../marketing/src/app/privacy/page.tsx)
 
 ## 1. Summary
 
@@ -36,7 +36,7 @@ library.
 
 | Gap | Evidence today |
 |---|---|
-| No history | `application_invocations` is a billing ledger: operation, cost, status. Example-app script runs do not write it. |
+| No history | `application_invocations` is a spend record: operation, cost, status. Example-app script runs do not write it. |
 | One state per app | Variables persist under `nodetool.app.variables.<app identity>` in localStorage. Electron and Chrome already hold different states for the same example. |
 | Generations not linked | `nodetool_generation_attachments` exists but is empty. No generation names the app run that made it. |
 | Tracing off by default | `server.ts` calls `initTelemetry()` with no options. With no sink variable set, the tracer stays null and every `withSpan` is a pass-through. A normal desktop session records no spans. |
@@ -217,7 +217,9 @@ web and Electron error boundaries gain `trace_id` and `app_run_id` in
   only the message and tool counts of the request. Both spans also record the
   request messages, the tool names and the response, under the caps in
   [4.10](#410-content-and-retention-policy). An agent that diagnoses a prompt
-  problem needs both sides of the call.
+  problem needs both sides of the call. These are content attributes, so they
+  reach the run store and are excluded from external sinks by default
+  ([4.5](#45-one-trace-store-three-readers)).
 
 ### 4.9 Agent read surface
 
@@ -306,6 +308,8 @@ can inspect a run. The hosted service processes this history under Art. 6 (1)
 - A history list for the current instance: operation, time, status, cost,
   origin and a result thumbnail. Selecting a run shows its inputs and outputs
   read-only. It also links to the documents it made and to "View trace".
+  After the content prune, the run view and the read tools say that the
+  content expired, as they report truncation.
 - Comparison: each instance opens as its own workspace tab, so two instances
   sit side by side. A dedicated diff view waits until tabs prove insufficient.
 - The AgentActivity widget reads the run's stored trace, so a finished or

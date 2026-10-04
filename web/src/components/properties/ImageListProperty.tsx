@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import { memo, useContext, useCallback, useState, useRef, useMemo, ChangeEvent } from "react";
+import { memo, useCallback, useState, useRef, useMemo, ChangeEvent } from "react";
 import { PropertyProps } from "../node/PropertyInput";
 import PropertyLabel from "../node/PropertyLabel";
 import { Asset } from "../../stores/ApiTypes";

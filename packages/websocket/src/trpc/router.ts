@@ -29,6 +29,7 @@ import { storageRouter } from "./routers/storage.js";
 import { threadsRouter } from "./routers/threads.js";
 import { memoriesRouter } from "./routers/memories.js";
 import { errorTracesRouter } from "./routers/error-traces.js";
+import { bugReportsRouter } from "./routers/bug-reports.js";
 import { sketchRouter } from "./routers/sketch.js";
 import { gamesRouter } from "./routers/games.js";
 import { storyboardsRouter } from "./routers/storyboards.js";
@@ -85,6 +86,7 @@ type AppRouterRecord = {
   threads: typeof threadsRouter;
   memories: typeof memoriesRouter;
   errorTraces: typeof errorTracesRouter;
+  bugReports: typeof bugReportsRouter;
   timeline: typeof timelineRouter;
   users: typeof usersRouter;
   worker: typeof workerRouter;
@@ -132,6 +134,7 @@ export const appRouter: ReturnType<typeof router<AppRouterRecord>> = router({
   threads: threadsRouter,
   memories: memoriesRouter,
   errorTraces: errorTracesRouter,
+  bugReports: bugReportsRouter,
   timeline: timelineRouter,
   users: usersRouter,
   worker: workerRouter,

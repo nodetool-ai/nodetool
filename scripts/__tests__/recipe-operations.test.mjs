@@ -6,7 +6,7 @@ import { loadPersistedVariables, savePersistedVariables } from "../../web/src/co
 import { COMPILED_RECIPE_FIXTURES, TESTIMONIAL_MANIFEST } from "../example-apps/recipe-manifests.mjs";
 import { compileSharedRecipeBundle, sharedRecipeOperations, PLAN_STORYBOARD_CODE, FINISH_STORYBOARD_CODE } from "../recipe-operations.mjs";
 
-import { buildProductPriceDropBundle, PLAN_CODE, FINISH_CODE } from "../example-apps/product-price-drop.mjs";
+import { buildProductPriceDropBundle, PLAN_CODE, FINISH_CODE, PRODUCT_PRICE_DROP_DEBUG_INTERACTIONS } from "../example-apps/product-price-drop.mjs";
 
 const execute = async (code, inputs, capabilities) => {
   const outputs = {};
@@ -93,8 +93,7 @@ describe("shared executable Recipe operations", () => {
   it("passes the real app-debug no-run binding validator for every emitted bundle", async () => {
     for (const raw of COMPILED_RECIPE_FIXTURES) {
       const bundle = parseApplicationBundle(raw); assert(bundle);
-      // Static validation skips the plan script, so model its review-step output.
-      const report = await simulateApp(bundleTarget(bundle, bundle.app.recipe.slug), {run: false, params: {"var:approval": "approved"}, interact: [{click: "plan"}, {set: {key: "var:step", value: "review"}}, {click: "finish"}]}, {runOnServer: async () => {throw new Error("Must not execute during compilation validation");}, runScript: async () => {throw new Error("Must not execute a script during static validation");}});
+      const report = await simulateApp(bundleTarget(bundle, bundle.app.recipe.slug), {run: false, params: {"var:approval": "approved"}, ...(bundle.app.recipe.slug === "product-price-drop" ? {interact: PRODUCT_PRICE_DROP_DEBUG_INTERACTIONS} : {})}, {runOnServer: async () => {throw new Error("Must not execute during compilation validation");}, runScript: async () => {throw new Error("Must not execute a script during static validation");}});
       expect(report.validation.errors).toEqual([]);
       expect(report.interactions.every(interaction => interaction.error === null)).toBe(true);
       expect(report.verdict.ok).toBe(true);
