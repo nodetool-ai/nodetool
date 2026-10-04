@@ -1,6 +1,4 @@
 import { pgTable, text, integer, index } from "drizzle-orm/pg-core";
-import { jsonText } from "./helpers.js";
-import type { TimelineDocument } from "../timeline-sequence.js";
 
 // Note: uses `timeline_sequences` (no `nodetool_` prefix) — intentional, following the issue spec.
 export const timelineSequences = pgTable(
@@ -15,7 +13,7 @@ export const timelineSequences = pgTable(
     width: integer("width").notNull().default(1920),
     height: integer("height").notNull().default(1080),
     duration_ms: integer("duration_ms").notNull().default(0),
-    document: jsonText<TimelineDocument>()("document").notNull(),
+    document: text("document").notNull(),
     /**
      * Monotonic write counter. Resource providers hand it out inside a
      * `ResourceRef` and reject a write whose ref is behind — optimistic

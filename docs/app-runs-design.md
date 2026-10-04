@@ -1,7 +1,7 @@
 # App Runs, Instances and Run Observability — Design
 
 **Status:** Draft, high level, for agreement before detailed design
-**Related:** [media-generation-tracking-design.md](media-generation-tracking-design.md), [mini-apps.md](mini-apps.md), [error-tracing.md](error-tracing.md), [harnesses.md § Observing agent execution](harnesses.md#observing-agent-execution), [personal-data registry](../packages/models/src/personal-data-registry.ts), [hosted privacy policy](../marketing/src/app/privacy/page.tsx)
+**Related:** [media-generation-tracking-design.md](media-generation-tracking-design.md), [mini-apps.md](mini-apps.md), [error-tracing.md](error-tracing.md), [harnesses.md § Observing agent execution](harnesses.md#observing-agent-execution), [personal-data registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/models/src/personal-data-registry.ts), [hosted privacy policy](https://github.com/nodetool-ai/nodetool/blob/main/marketing/src/app/privacy/page.tsx)
 
 ## 1. Summary
 

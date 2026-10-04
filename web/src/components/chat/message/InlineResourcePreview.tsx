@@ -1,13 +1,14 @@
 /**
- * InlineResourcePreview — a sketch, timeline, or 3D model rendered directly in
- * chat prose.
+ * InlineResourcePreview — a sketch, timeline, 3D model, or game rendered
+ * directly in chat prose.
  *
  * The agent embeds a document with image syntax (`![Label](sketch://sk_1)`,
- * `![Label](timeline://tl_7)`, `![Label](model3d://<asset id>)`); ChatMarkdown
- * routes those kinds here, and also a `.glb`/`.gltf` asset link as `model3d`.
- * The component fetches the document and renders the same read-only renderer
- * the editors ship, with a ResourceChip beneath it to open the document in its
- * editor. Anything that cannot be previewed — unknown kind, load failure, a
+ * `![Label](timeline://tl_7)`, `![Label](model3d://<asset id>)`,
+ * `![Label](game://<game id>)`); ChatMarkdown routes those kinds here, and also
+ * a `.glb`/`.gltf` asset link as `model3d`. The component fetches the document
+ * and renders the same read-only renderer the editors ship (for a game, the
+ * player, which stays idle until the reader presses Play), with a
+ * ResourceChip beneath it to open the document in its editor. Anything that cannot be previewed — unknown kind, load failure, a
  * document today's renderer cannot resolve — degrades to the chip alone.
  */
 import React, { useMemo } from "react";
@@ -37,8 +38,18 @@ const LazySketchRenderer = React.lazy(
 const LazyTimelineRenderer = React.lazy(
   () => import("../../timeline/TimelineRenderer")
 );
+const LazySavedGamePlayer = React.lazy(() =>
+  import("../../game/GamePlayerPage").then((module) => ({
+    default: module.SavedGamePlayer
+  }))
+);
 
-const PREVIEW_KINDS: readonly ResourceKind[] = ["sketch", "timeline", "model3d"];
+const PREVIEW_KINDS: readonly ResourceKind[] = [
+  "sketch",
+  "timeline",
+  "model3d",
+  "game"
+];
 
 /** True when the URI names a resource kind chat can render inline. */
 export const isInlinePreviewUri = (uri: string): boolean => {
@@ -47,6 +58,8 @@ export const isInlinePreviewUri = (uri: string): boolean => {
 };
 
 const PREVIEW_HEIGHT = 280;
+/** The player's control row sits above a 16:9 canvas. */
+const GAME_PREVIEW_HEIGHT = 360;
 
 const frameSx = {
   width: "100%",
@@ -134,6 +147,18 @@ const Model3DPreview: React.FC<{ id: string }> = ({ id }) => {
   return <Caption color="secondary">Could not load this 3D model.</Caption>;
 };
 
+/** The saved game's player; it loads the draft and waits for Play. */
+const GamePreview: React.FC<{ id: string }> = ({ id }) => (
+  <Box
+    sx={{ ...frameSx, height: GAME_PREVIEW_HEIGHT }}
+    data-testid="game-preview"
+  >
+    <React.Suspense fallback={<LoadingSpinner size="small" text="Loading game" />}>
+      <LazySavedGamePlayer gameId={id} setsDocumentTitle={false} />
+    </React.Suspense>
+  </Box>
+);
+
 const ResourcePreview: React.FC<{ kind: ResourceKind; id: string }> = ({
   kind,
   id
@@ -143,6 +168,9 @@ const ResourcePreview: React.FC<{ kind: ResourceKind; id: string }> = ({
   }
   if (kind === "timeline") {
     return <TimelinePreview id={id} />;
+  }
+  if (kind === "game") {
+    return <GamePreview id={id} />;
   }
   return <Model3DPreview id={id} />;
 };

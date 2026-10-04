@@ -2,11 +2,8 @@
  * The document an op reads and writes, and everything an op needs that a pure
  * function cannot know.
  *
- * Three hosts drive the same `ui_timeline_*` surface — the headless eval
- * bridge, the browser store, the mobile document — and each used to carry its
- * own copy of the op semantics. They diverged: `set_clip_params` silently
- * dropped timing in the browser, `insert_composition` existed headlessly only.
- * The semantics live here now (I11); a host holds state and I/O, nothing else.
+ * The server bridge and browser store share the op semantics. Hosts supply
+ * document state and I/O through this boundary (I11).
  */
 
 import type {
@@ -127,7 +124,6 @@ export type TimelineOpIdKind =
 export interface TimelineOpContext {
   newId(kind: TimelineOpIdKind): string;
   followLinks?: boolean;
-  duplicateLinkedClips?: boolean;
   allowUnknownMediaDuration?: boolean;
   sequence?: Pick<TimelineSequence, "id" | "projectId" | "name">;
   retargetFormat?(
@@ -158,7 +154,7 @@ export interface TimelineOpContext {
   /**
    * The host's SVG path parser (`parseSvgPath` from `./scene`). Passed in
    * rather than imported: the parser lives under `src/render`, which this
-   * module stays clear of so mobile can compile it from source (AS2).
+   * module stays clear of to avoid loading the renderer in edit hosts (AS2).
    */
   parseSvgPath?(d: string): { ok: boolean; error?: string };
 }

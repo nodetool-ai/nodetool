@@ -18,7 +18,7 @@ import { and, eq, sql } from "drizzle-orm";
 import { NODETOOL_MODELS, NODETOOL_PROVIDER_ID } from "@nodetool-ai/protocol";
 import { isCreditModelAllowed, signupGrantCredits } from "@nodetool-ai/config";
 
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { creditLedger, userSubscriptions } from "./schema/credits.js";
 import { predictions } from "./schema/predictions.js";
 import { createTimeOrderedUuid } from "./base-model.js";
@@ -123,7 +123,7 @@ const toSubscription = (row: Record<string, unknown>): UserSubscription => ({
 export async function getSubscription(
   userId: string
 ): Promise<UserSubscription> {
-  const db = getDb();
+  const db = getPortableDb();
   const rows = await db
     .select()
     .from(userSubscriptions)
@@ -158,7 +158,7 @@ export async function setSubscriptionPlan(
   const plan = planById(planId);
   if (!plan) throw new Error(`Unknown plan "${planId}".`);
   await getSubscription(userId);
-  const db = getDb();
+  const db = getPortableDb();
   await db
     .update(userSubscriptions)
     .set({ plan_id: plan.id, updated_at: new Date().toISOString() })
@@ -185,7 +185,7 @@ export async function ensureMonthlyGrant(
 
   const periodKey = periodKeyFor(now);
   const id = `plan:${userId}:${plan.id}:${periodKey}`;
-  const db = getDb();
+  const db = getPortableDb();
   const existing = await db
     .select({ id: creditLedger.id })
     .from(creditLedger)
@@ -222,7 +222,7 @@ export async function ensureSignupGrant(userId: string): Promise<void> {
   if (credits <= 0) return;
 
   const id = `signup:${userId}`;
-  const db = getDb();
+  const db = getPortableDb();
   const existing = await db
     .select({ id: creditLedger.id })
     .from(creditLedger)
@@ -254,7 +254,7 @@ export async function grantCredits(
   if (!Number.isFinite(delta) || delta === 0) {
     throw new Error("Credit delta must be a non-zero number.");
   }
-  const db = getDb();
+  const db = getPortableDb();
   await db.insert(creditLedger).values({
     id: createTimeOrderedUuid(),
     user_id: userId,
@@ -274,7 +274,7 @@ export async function creditStatus(userId: string): Promise<CreditStatus> {
   const subscription = await getSubscription(userId);
   const plan = planById(subscription.planId) ?? planById(DEFAULT_PLAN_ID)!;
 
-  const db = getDb();
+  const db = getPortableDb();
   const grantRows = await db
     .select({
       total: sql<number>`COALESCE(SUM(${creditLedger.delta}), 0)`

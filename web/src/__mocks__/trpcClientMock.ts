@@ -159,7 +159,14 @@ export const mockErrorTracesReport = jest.fn(async () => ({
   trace_ids: [] as string[]
 }));
 
+export const mockBugReportsSubmit = jest.fn(async () => ({
+  id: "0123456789abcdef0123456789abcdef"
+}));
+
 export const trpcClient = {
+  bugReports: {
+    submit: { mutate: mockBugReportsSubmit }
+  },
   errorTraces: {
     report: { query: mockErrorTracesReport },
     capture: { mutate: jest.fn(async () => ({ id: null })) }

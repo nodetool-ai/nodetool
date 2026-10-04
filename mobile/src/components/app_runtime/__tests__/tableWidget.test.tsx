@@ -136,6 +136,6 @@ describe("Table widget", () => {
     renderApp("wf-table-empty", appDoc([], "Nothing yet"));
 
     expect(screen.getByText("Nothing yet")).toBeTruthy();
-    expect(screen.queryByText(/not available on mobile/)).toBeNull();
+    expect(screen.queryByText(/opens in the NodeTool desktop or web app/)).toBeNull();
   });
 });

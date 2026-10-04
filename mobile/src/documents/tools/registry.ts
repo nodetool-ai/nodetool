@@ -4,8 +4,8 @@
  * A slim port of web's `FrontendToolRegistry`. Two deliberate differences:
  *
  * - **Parameters are plain JSON Schema.** Web declares them with zod and
- *   converts. Mobile supplies JSON Schema directly to the server. The shared
- *   timeline engine validates edit arguments separately.
+ *   converts; mobile has no zod dependency, and the server only ever sees the
+ *   converted JSON Schema anyway, so we write that directly.
  * - **No workflow runtime state.** Web's `FrontendToolContext` carries the
  *   whole graph-editor state. Mobile tools act on documents through the agent
  *   bridge, so the context only needs an abort signal.
@@ -82,7 +82,7 @@ export const MobileToolRegistry = {
   async call(
     name: string,
     args: unknown,
-    toolCallId: string,
+    toolCallId: string
   ): Promise<MobileToolResult> {
     const tool = registry.get(name);
     if (!tool) {

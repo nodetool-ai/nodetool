@@ -6,8 +6,8 @@
  *
  * The artifact is keyed `<provider_id>:<model_id>`, so one lookup answers for
  * the exact route a node has selected. Every route to one model carries the
- * same `canonical` id and identical `tasks` — quality is a property of the
- * model, never of the route the run happens to take. Grouping and the per-task
+ * same `canonical` id and identical rankings for shared tasks. A route only
+ * carries tasks it serves. Grouping and the per-task
  * leaderboards are derived from that key space here rather than stored twice.
  *
  * Everything fails toward today's behavior: a model absent from the artifact
@@ -124,27 +124,29 @@ export function buildRankingsIndex(
     routesByCanonical.set(entry.canonical, routes);
   }
 
-  // One row per canonical model, not per route: the routes of a canonical id
-  // carry identical tasks, so the first one's entry names the leaderboard
-  // position and the rest are listed as alternates on the same row.
+  // Each task lists only the routes that carry that task's ranking.
   for (const [canonical, routes] of routesByCanonical) {
-    const entry = routes[0].entry;
-    const plainRoutes = routes.map(({ provider, modelId }) => ({
-      provider,
-      modelId
-    }));
-    for (const [task, rank] of Object.entries(entry.tasks ?? {})) {
-      const rows = rankedByTask.get(task) ?? [];
-      rows.push({
-        canonical,
-        name: entry.name,
-        rank: rank.rank,
-        of: rank.of,
-        normalized: rank.normalized,
-        score: rank.score,
-        routes: plainRoutes
-      });
-      rankedByTask.set(task, rows);
+    const rowsByTask = new Map<string, RankedTaskEntry>();
+    for (const { provider, modelId, entry } of routes) {
+      for (const [task, rank] of Object.entries(entry.tasks ?? {})) {
+        let row = rowsByTask.get(task);
+        if (!row) {
+          row = {
+            canonical,
+            name: entry.name,
+            rank: rank.rank,
+            of: rank.of,
+            normalized: rank.normalized,
+            score: rank.score,
+            routes: []
+          };
+          rowsByTask.set(task, row);
+          const rows = rankedByTask.get(task) ?? [];
+          rows.push(row);
+          rankedByTask.set(task, rows);
+        }
+        row.routes.push({ provider, modelId });
+      }
     }
   }
 

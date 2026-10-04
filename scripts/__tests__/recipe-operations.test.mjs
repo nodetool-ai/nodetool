@@ -6,7 +6,7 @@ import { loadPersistedVariables, savePersistedVariables } from "../../web/src/co
 import { COMPILED_RECIPE_FIXTURES, TESTIMONIAL_MANIFEST } from "../example-apps/recipe-manifests.mjs";
 import { compileSharedRecipeBundle, sharedRecipeOperations, PLAN_STORYBOARD_CODE, FINISH_STORYBOARD_CODE } from "../recipe-operations.mjs";
 
-import { buildProductPriceDropBundle, PLAN_CODE, FINISH_CODE } from "../example-apps/product-price-drop.mjs";
+import { buildProductPriceDropBundle, PLAN_CODE, FINISH_CODE, PRODUCT_PRICE_DROP_DEBUG_INTERACTIONS } from "../example-apps/product-price-drop.mjs";
 
 const execute = async (code, inputs, capabilities) => {
   const outputs = {};
@@ -72,12 +72,14 @@ describe("shared executable Recipe operations", () => {
       expect(bundle.scripts[0].document.code).toBe(bundle.app.recipe.slug === "product-price-drop" ? PLAN_CODE : PLAN_STORYBOARD_CODE);
       expect(bundle.scripts[1].document.code).toBe(bundle.app.recipe.slug === "product-price-drop" ? FINISH_CODE : FINISH_STORYBOARD_CODE);
       expect(bundle.scripts.every(script => script.document.inputs.every(port => port.type !== "any"))).toBe(true);
-      const usesFinishButton = bundle.app.recipe.slug === "product-price-drop";
-      const finishControl = widget => usesFinishButton ? widget.type === "Button" && widget.props.id === "finish" : widget.type === "Approval";
-      expect(bundle.app.ui.content.some(finishControl)).toBe(true);
+      const approvalIndex = bundle.app.ui.content.findIndex(widget =>
+        widget.type === "Approval" ||
+        (widget.type === "Button" && widget.props.id === "finish" &&
+          widget.props.events.some(event => event.kind === "setVariable" && event.key === "var:approval" && event.value === "approved"))
+      );
+      expect(approvalIndex).toBeGreaterThanOrEqual(0);
       const planIndex = bundle.app.ui.content.findIndex(widget => widget.type === "Button" && widget.props.id === "plan");
       const reviewIndex = bundle.app.ui.content.findIndex(widget => widget.type === "Storyboard" && widget.props.binding === "var:storyboardId");
-      const approvalIndex = bundle.app.ui.content.findIndex(finishControl);
       expect(planIndex).toBeLessThan(reviewIndex); expect(reviewIndex).toBeLessThan(approvalIndex);
       const designIndex = bundle.app.ui.content.findIndex(widget => widget.type === "Timeline" && widget.props.binding === "var:designPreview");
       expect(designIndex).toBeGreaterThan(planIndex); expect(designIndex).toBeLessThan(approvalIndex);
@@ -86,7 +88,7 @@ describe("shared executable Recipe operations", () => {
   it("passes the real app-debug no-run binding validator for every emitted bundle", async () => {
     for (const raw of COMPILED_RECIPE_FIXTURES) {
       const bundle = parseApplicationBundle(raw); assert(bundle);
-      const report = await simulateApp(bundleTarget(bundle, bundle.app.recipe.slug), {run: false, params: {"var:approval": "approved"}, interact: bundle.app.recipe.slug === "product-price-drop" ? [{click:"plan"},{set:{key:"var:step",value:"review"}},{click:"finish"}] : undefined}, {runOnServer: async () => {throw new Error("Must not execute during compilation validation");}, runScript: async () => {throw new Error("Must not execute a script during static validation");}});
+      const report = await simulateApp(bundleTarget(bundle, bundle.app.recipe.slug), {run: false, params: {"var:approval": "approved"}, ...(bundle.app.recipe.slug === "product-price-drop" ? {interact: PRODUCT_PRICE_DROP_DEBUG_INTERACTIONS} : {})}, {runOnServer: async () => {throw new Error("Must not execute during compilation validation");}, runScript: async () => {throw new Error("Must not execute a script during static validation");}});
       expect(report.validation.errors).toEqual([]);
       expect(report.verdict.ok).toBe(true);
     }

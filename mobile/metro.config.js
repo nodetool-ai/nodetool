@@ -3,11 +3,10 @@
  *
  * `mobile/` is not a root workspace — it has its own dependency tree — so the
  * shared packages it uses at runtime are wired in by hand.
- * `@nodetool-ai/app-runtime` and `@nodetool-ai/timeline` are dependency-free
- * TypeScript, so Metro compiles them from source and no `build:packages` is
- * needed before `expo start`. (`@nodetool-ai/timeline` names
- * `@nodetool-ai/gpu` as a dependency, but only for a type-only `BlendMode`
- * import that Babel erases, so no GPU stack reaches the bundle.)
+ * `@nodetool-ai/app-runtime` is dependency-free TypeScript, so Metro compiles
+ * it from source and no `build:packages` is needed before `expo start`.
+ * (`@nodetool-ai/timeline` is imported for types only, which Babel erases, so
+ * it needs a `tsconfig.json` path and nothing here.)
  *
  * Three things have to be set for that to work:
  *
@@ -32,27 +31,34 @@ const projectRoot = __dirname;
 const repoRoot = path.resolve(projectRoot, "..");
 const appRuntimeRoot = path.resolve(repoRoot, "packages/app-runtime");
 const appRuntimeSrc = path.join(appRuntimeRoot, "src");
-const timelineRoot = path.resolve(repoRoot, "packages/timeline");
-const timelineSrc = path.join(timelineRoot, "src");
-const gpuRoot = path.resolve(repoRoot, "packages/gpu");
-const gpuSrc = path.join(gpuRoot, "src");
 const protocolRoot = path.resolve(repoRoot, "packages/protocol");
 const protocolSrc = path.join(protocolRoot, "src");
 
 /** Package entry points compiled from source, and the src roots they live in. */
 const SOURCE_PACKAGES = [
   { name: "@nodetool-ai/app-runtime", src: appRuntimeSrc },
-  { name: "@nodetool-ai/timeline", src: timelineSrc },
-  { name: "@nodetool-ai/gpu", src: gpuSrc },
-  { name: "@nodetool-ai/protocol", src: protocolSrc }
 ];
 
-/** Direct subpath mappings keep the shared edit engine and protocol schemas in source. */
+/**
+ * Single modules compiled from source, mapped straight to their file.
+ *
+ * `protocol`'s entry point re-exports `toolSchemas`, which pulls in `zod` — a
+ * dependency mobile does not have and does not want in the bundle for one
+ * string helper. The modules named here are dependency-free, so they are wired
+ * individually rather than through the package root. Import them in `mobile/`
+ * by the same deep specifier.
+ */
 const SOURCE_MODULES = {
-  "@nodetool-ai/timeline/ops": path.join(timelineSrc, "ops/index.ts"),
   "@nodetool-ai/protocol/triggers": path.join(protocolSrc, "triggers.ts"),
-  "@nodetool-ai/protocol/blend-modes": path.join(protocolSrc, "blend-modes.ts")
+  "@nodetool-ai/protocol/blend-modes": path.join(protocolSrc, "blend-modes.ts"),
+  "@nodetool-ai/protocol/resource-uri": path.join(protocolSrc, "resource-uri.ts"),
 };
+
+/** Source roots whose own modules import each other by ESM `.js` specifiers. */
+const SOURCE_ROOTS = [
+  ...SOURCE_PACKAGES.map((pkg) => pkg.src),
+  protocolSrc,
+];
 
 const config = getDefaultConfig(projectRoot);
 
@@ -60,22 +66,10 @@ config.projectRoot = projectRoot;
 config.watchFolders = [
   projectRoot,
   appRuntimeRoot,
-  timelineRoot,
-  gpuRoot,
-  protocolRoot
+  protocolRoot,
 ];
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
-  if (moduleName.startsWith("@nodetool-ai/protocol/api-schemas/")) {
-    return {
-      type: "sourceFile",
-      filePath: path.join(
-        protocolSrc,
-        moduleName.slice("@nodetool-ai/protocol/".length).replace(/\.js$/, "") +
-          ".ts"
-      )
-    };
-  }
   const modulePath = SOURCE_MODULES[moduleName];
   if (modulePath) {
     return { type: "sourceFile", filePath: modulePath };
@@ -87,7 +81,7 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (
     moduleName.startsWith(".") &&
     moduleName.endsWith(".js") &&
-    SOURCE_PACKAGES.some((pkg) => context.originModulePath.startsWith(pkg.src))
+    SOURCE_ROOTS.some((root) => context.originModulePath.startsWith(root))
   ) {
     return context.resolveRequest(context, moduleName.slice(0, -3), platform);
   }

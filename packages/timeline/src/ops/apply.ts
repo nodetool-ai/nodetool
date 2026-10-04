@@ -9,7 +9,7 @@
  * Everything a pure function cannot know — minting an id, reading an asset,
  * baking a JS animation body, loading a composition, parsing SVG path data —
  * arrives on {@link TimelineOpContext}. This module imports nothing from
- * `src/render` or `@nodetool-ai/gpu`, so mobile compiles it from source (AS2).
+ * `src/render` or `@nodetool-ai/gpu`, so editing needs no renderer (AS2).
  */
 
 import { isShortResourceId } from "@nodetool-ai/protocol";
@@ -1327,34 +1327,23 @@ async function runOp(
 
     case "duplicate_clip": {
       const src = scope.resolveClip(op.target);
-      const originals =
-        scope.ctx.duplicateLinkedClips && src.linkId
-          ? scope.clips.filter((clip) => clip.linkId === src.linkId)
-          : [src];
-      const linkId = originals.length > 1 ? scope.ctx.newId("link") : undefined;
-      const copies = originals.map((original) => {
-        const copy = structuredClone(original);
-        copy.id = scope.ctx.newId("clip");
-        copy.startMs += src.durationMs + (op.gapMs ?? 0);
-        copy.status = "draft";
-        copy.locked = false;
-        copy.versions = [];
-        delete copy.currentAssetId;
-        delete copy.lastGeneratedHash;
-        delete copy.activeTakeId;
-        delete copy.linkId;
-        if (linkId) {
-          copy.linkId = linkId;
-        }
-        copy.animations = copy.animations?.map((animation) => ({
-          ...animation,
-          id: scope.ctx.newId("anim")
-        }));
-        return copy;
-      });
-      scope.clips.push(...copies);
-      scope.touch(...copies.map((copy) => copy.id));
-      return { ok: true, clip: scope.clipOut(copies[0]) };
+      const copy = structuredClone(src);
+      copy.id = scope.ctx.newId("clip");
+      copy.startMs += src.durationMs + (op.gapMs ?? 0);
+      copy.status = "draft";
+      copy.locked = false;
+      copy.versions = [];
+      delete copy.currentAssetId;
+      delete copy.lastGeneratedHash;
+      delete copy.activeTakeId;
+      delete copy.linkId;
+      copy.animations = copy.animations?.map((animation) => ({
+        ...animation,
+        id: scope.ctx.newId("anim")
+      }));
+      scope.clips.push(copy);
+      scope.touch(copy.id);
+      return { ok: true, clip: scope.clipOut(copy) };
     }
 
     case "set_clip_params": {

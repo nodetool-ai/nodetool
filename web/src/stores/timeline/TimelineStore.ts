@@ -898,6 +898,7 @@ export interface TimelineStoreState {
       | "text-to-image"
       | "image-to-image"
       | "text-to-video"
+      | "image-to-video"
       | "text-to-audio"
       | "text-to-music";
     prompt: string;
@@ -3803,11 +3804,13 @@ export const createTimelineStore = (
                 ? "Image-to-Image"
                 : bindingKind === "text-to-video"
                   ? "Text-to-Video"
-                  : bindingKind === "text-to-music"
-                    ? "Text-to-Music"
-                    : bindingKind === "text-to-audio"
-                      ? "Text-to-Audio"
-                      : "Text-to-Image";
+                  : bindingKind === "image-to-video"
+                    ? "Image-to-Video"
+                    : bindingKind === "text-to-music"
+                      ? "Text-to-Music"
+                      : bindingKind === "text-to-audio"
+                        ? "Text-to-Audio"
+                        : "Text-to-Image";
 
           const clip = makeClip({
             id: createTimeOrderedUuid(),

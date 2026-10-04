@@ -14,7 +14,7 @@
 import { and, desc, eq, gte, inArray, lt, lte, notInArray } from "drizzle-orm";
 import { createLogger } from "@nodetool-ai/config";
 import { createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { userEvents } from "./schema/user-events.js";
 
 const log = createLogger("nodetool.models.user-event");
@@ -278,7 +278,7 @@ export async function recordUserEvent(
   };
 
   try {
-    await getDb().insert(userEvents).values(row);
+    await getPortableDb().insert(userEvents).values(row);
     return row;
   } catch (error) {
     // Swallowed on purpose: the audit write is a side effect of the caller's
@@ -312,7 +312,7 @@ export async function listUserEvents(
   if (since) conditions.push(gte(userEvents.created_at, since));
   if (until) conditions.push(lte(userEvents.created_at, until));
 
-  const rows = await getDb()
+  const rows = await getPortableDb()
     .select()
     .from(userEvents)
     .where(and(...conditions))
@@ -333,7 +333,7 @@ export async function listUserEvents(
  * delete because the two dialects report affected rows differently.
  */
 export async function deleteUserEventsForUser(userId: string): Promise<number> {
-  const db = getDb();
+  const db = getPortableDb();
   const existing = await db
     .select({ id: userEvents.id })
     .from(userEvents)
@@ -367,7 +367,7 @@ export async function pruneUserEvents(
     notInArray(userEvents.event_type, [...NEVER_PRUNED_USER_EVENT_TYPES])
   );
 
-  const db = getDb();
+  const db = getPortableDb();
   const doomed = await db
     .select({ id: userEvents.id })
     .from(userEvents)

@@ -546,8 +546,8 @@ export const SANDBOX_API_COVERAGE: Readonly<
   },
   "models.rankedKeys": {
     elsewhere:
-      "find_model returns task ranks with model results. This procedure " +
-      "supplies ranked route keys for editor sorting."
+      "The model menu uses these keys for display ordering. find_model " +
+      "already applies the same rankings when selecting models for a run."
   },
   "models.recommended": {
     elsewhere:
@@ -961,6 +961,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "The receiving end of another install's sync, authenticated by an " +
       "access token. A run has no traces of its own to push, and writing " +
       "here would plant records under the user's id."
+  },
+  "bugReports.submit": {
+    withheld:
+      "Files a bug report with the NodeTool team in the user's name. A run " +
+      "that could send one could put words in the user's mouth and upload " +
+      "data they never reviewed."
   },
   "memories.list": { capability: "memory_list" },
   "memories.search": { capability: "memory_search" },

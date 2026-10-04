@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { ModelObserver } from "../src/base-model.js";
-import { initTestDb, getDb } from "../src/db.js";
+import { initTestDb, getPortableDb } from "../src/db.js";
 import { ExternalIdentity } from "../src/external-identity.js";
 import { externalIdentities } from "../src/schema/external-identities.js";
 
@@ -47,7 +47,7 @@ describe("ExternalIdentity model", () => {
       userId: "user-b"
     });
 
-    const rows = await getDb().select().from(externalIdentities);
+    const rows = await getPortableDb().select().from(externalIdentities);
     expect(rows).toHaveLength(1);
 
     const found = await ExternalIdentity.findByExternal("telegram", "12345");

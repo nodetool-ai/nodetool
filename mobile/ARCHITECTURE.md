@@ -4,7 +4,11 @@
 
 ## Overview
 
-The NodeTool mobile app is a React Native application built with Expo that enables users to browse and run Mini Apps (NodeTool workflows) from their mobile devices.
+The NodeTool mobile app is a React Native application built with Expo. It is a
+phone companion to the desktop and web apps: it runs Mini Apps, chats with the
+assistant, follows jobs, captures and views assets, edits storyboards, and views
+timelines and sketches. Workflow editing and the other desktop editors stay on
+desktop and web. [AGENTS.md § Scope](AGENTS.md#scope) states the rule.
 
 ## Technology Stack
 
@@ -39,7 +43,7 @@ Unlike the web app which uses environment variables and build-time configuration
 ### 3. Native Mobile UX
 
 - Touch-optimized UI with appropriate spacing and tap targets
-- Pull-to-refresh for workflow list
+- Pull-to-refresh on the lists
 - Native navigation with back button support
 - Platform-specific styling (iOS/Android differences handled automatically)
 
@@ -51,24 +55,19 @@ mobile/
 │   ├── navigation/           # Navigation configuration + types
 │   │
 │   ├── screens/             # Screen components
-│   │   ├── WorkflowsListScreen.tsx     # List of available workflows
-│   │   ├── GraphEditorScreen.tsx       # Chain-based graph editor
-│   │   ├── ChatScreen.tsx              # AI chat interface
-│   │   ├── DocumentsScreen.tsx         # Document browser (all kinds, no tabs)
-│   │   ├── AppsScreen.tsx              # Mini-app browser
+│   │   ├── AppsScreen.tsx              # Mini-app browser, the home screen
 │   │   ├── AppScreen.tsx               # One mini app, run natively
-│   │   ├── StoryboardEditorScreen.tsx  # Storyboard editor
-│   │   ├── ScriptEditorScreen.tsx      # Script editor (cast, sections, lines)
-│   │   ├── TimelineViewerScreen.tsx    # Timeline: viewer, agent-editable
-│   │   ├── DocumentViewerScreen.tsx    # Fallback for kinds without a screen
-│   │   ├── AssetsScreen.tsx            # Asset browser
-│   │   ├── AssetViewerScreen.tsx       # Single-asset viewer
-│   │   ├── CollectionsScreen.tsx       # RAG collections
-│   │   ├── JobsScreen.tsx              # Job history
-│   │   ├── TriggersScreen.tsx          # Trigger monitoring + arm/disarm
+│   │   ├── ChatScreen.tsx              # AI chat interface
 │   │   ├── ThreadsScreen.tsx           # Chat thread list
 │   │   ├── LanguageModelSelectionScreen.tsx
-│   │   ├── SecretsScreen.tsx           # API-key management
+│   │   ├── DocumentsScreen.tsx         # Storyboards, timelines, sketches
+│   │   ├── StoryboardEditorScreen.tsx  # Storyboard editor
+│   │   ├── TimelineViewerScreen.tsx    # Timeline viewer, view only
+│   │   ├── SketchViewerScreen.tsx      # Sketch viewer, view only
+│   │   ├── AssetsScreen.tsx            # Asset browser
+│   │   ├── AssetViewerScreen.tsx       # Single-asset viewer
+│   │   ├── JobsScreen.tsx              # Job history
+│   │   ├── JobDetailScreen.tsx         # One job
 │   │   ├── SettingsScreen.tsx          # Server configuration
 │   │   └── LoginScreen.tsx             # Supabase / Google sign-in
 │   │
@@ -76,8 +75,9 @@ mobile/
 │   │
 │   ├── components/          # Reusable components
 │   │   ├── app_runtime/       # Mini-app runtime (renders an application document)
-│   │   ├── chat/              # Chat UI
-│   │   ├── graph_editor/      # Chain editor
+│   │   ├── chat/              # Chat UI, with inline resource previews
+│   │   ├── sketch/            # Sketch compositor
+│   │   ├── timeline/          # Timeline lanes drawing
 │   │   └── outputs/           # Output value rendering
 │   │
 │   ├── services/            # Service layer
@@ -92,7 +92,6 @@ mobile/
 │   ├── stores/              # Zustand state
 │   │   ├── WorkflowRunner.ts      # Workflow execution state
 │   │   ├── ChatStore.ts           # Chat state
-│   │   ├── GraphEditorStore.ts    # Graph-editor chain state
 │   │   ├── MediaGenerationStore.ts # Image/video generation params
 │   │   ├── AuthStore.ts           # Auth/session state
 │   │   └── ThemeStore.ts          # Theme state
@@ -120,9 +119,10 @@ a released snapshot once it is published. Mobile reads them over
 client) and renders them; it does not edit them (Puck is a DOM editor).
 
 `AppsScreen` lists the apps, `AppScreen` opens one — the same one-per-screen
-model the documents browser uses. A workflow is never presented as an app: the
-graph editor edits graphs, and nothing generates an app document for a workflow
-that has none.
+model the documents browser uses. A workflow is never presented as an app, and
+nothing generates an app document for a workflow that has none. Apps is the
+first screen after sign-in, and its header opens Chat, Documents, Jobs, Assets,
+and Settings.
 
 The semantics come from `@nodetool-ai/app-runtime`, the framework-independent
 core the web runtime, the CLI `app debug` harness, and the eval suites already
@@ -149,8 +149,8 @@ ApplicationAppView   # renders the document's widget tree
   document form.
 - **Run identity**: the runtime mints the job id before it sends the run and
   passes it as the request's `job_id`, which the server honours. Messages are
-  matched on that id alone, so neither a run started in the chain editor nor a
-  second parallel invocation folds into the wrong slot.
+  matched on that id alone, so a second parallel invocation never folds into
+  the wrong slot.
 - **Release identity**: every run of an app sends `application_id` and, for a
   run of the released snapshot, `application_version`. The server gates the run
   on the app's spend budget and files it in the release ledger; a run that omits
@@ -196,13 +196,15 @@ ApplicationAppView   # renders the document's widget tree
   sketch viewer screen uses — for a document bound inline and for a bare
   `SketchRef`, which is read through the sketch document backend. The widget's
   `height` caps the preview: the composite shrinks to fit instead of cropping.
-  Timelines still summarise, because mobile has no preview compositor.
+  Timelines still summarise in a widget, because mobile has no video
+  compositor.
 - **Resource widgets** (`resourceWidgets.tsx`) render a bound document as a card
   — name, kind icon, and a summary read off the body ("6 shots") — that opens
-  the screen its kind already has. The route comes from `documents/kinds.ts`, so
-  a kind with no dedicated screen falls back to `DocumentViewer`. A binding that
-  resolves to nothing renders an empty state instead of a card, and the
-  `openResource` action navigates the same way. `resourceCommand` stays inert:
+  the screen its kind already has. The route comes from `documents/kinds.ts`
+  through `useOpenResource`. A kind mobile has no screen for shows a note that
+  it opens in the desktop or web app. A binding that resolves to nothing renders
+  an empty state instead of a card, and the `openResource` action navigates the
+  same way. `resourceCommand` stays inert:
   writing a document needs a provider router mobile does not have.
 
 The shared package is compiled from source rather than from `dist`: see
@@ -212,15 +214,18 @@ The shared package is compiled from source rather than from `dist`: see
 
 ## Documents (`src/documents/`)
 
-Storyboards, scripts, JS scripts, timelines, and sketches are documents on the
-server. Mobile browses them all in `DocumentsScreen` and opens each in its own
-pushed screen.
+Storyboards, timelines, and sketches are documents on the server. Mobile lists
+them in `DocumentsScreen` and opens each in its own pushed screen. Storyboards
+are editable. Timelines and sketches are view only: the desktop editor and the
+server agent's own tools change them. Other kinds (scripts, JS scripts,
+workflows) open in the desktop or web app, and `useOpenResource` says so
+instead of pushing a screen.
 
 **No tabs.** Web keys its whole document UX off `WorkspaceTabType` and keeps
 every tab mounted at once. On a phone the navigation stack *is* the tab model:
 one document per screen, the top of the stack is the focused one. That removes
 the tab store, the `openTab` indirection, and the per-surface `active` prop, and
-leaves the parts that never depended on focus — the agent bridge keys by
+leaves the parts that never depended on focus. The agent bridge keys by
 document id, which ports unchanged.
 
 ```
@@ -230,98 +235,68 @@ useDocuments.ts   # React Query over the backends, for the browser
 documentStore.ts  # one Zustand store per open document (cached by kind+id)
 agentBridge.ts    # handler registry keyed by kind+id, plus the focus claim
 uiContext.ts      # the open/focused/selection block sent with each chat turn
-timelineEdits.ts  # pure, link-aware edits over {tracks, clips, markers}
-jsScriptTypes.ts  # JS script document shape, its checks, and the case grader
-tools/            # the ui_* tools: registry, manifest, tool_call dispatch
+tools/            # the ui_storyboard_* tools: registry, manifest, tool_call dispatch
 ```
 
-**Two transports, one interface.** Three kinds ride the `resources.*` envelope,
-whose concurrency token is a numeric `revision`. Scripts and JS scripts cannot:
-neither table has a `revision` column, so the provider's conflict check would
-compare `undefined` to `undefined`, pass, and silently clobber concurrent
-writes. Their own routers do the same job with `baseUpdatedAt`. Rather than migrate two
-schemas — which would also make `{kind:"script"}` a legal resource binding in
-every app document — `backends.ts` makes the token **opaque**: a backend hands
-one out on read and echoes it back on write, and only it knows the shape.
+**One transport, an opaque token.** All three kinds ride the `resources.*`
+envelope, whose concurrency token is a numeric `revision`. `backends.ts` still
+keeps the token **opaque**: a backend hands one out on read and echoes it back
+on write, and only it knows the shape. A kind with a different scheme can be
+added without touching the store.
 
 **`surface` is not `agentEditable`.** `surface` says whether a person can edit
-by touch; `agentEditable` says whether the `ui_*` tools can write. The timeline
-is `viewer` + `agentEditable`: placing a cut accurately with a thumb is not
-possible at phone width, but "move the title card two seconds later" is a
-sentence.
+by touch, and `agentEditable` says whether client `ui_*` tools can write. Only
+the storyboard is both. The timeline and the sketch are `viewer` and not
+`agentEditable`.
 
 **Load and save.** `documentStore` holds the open document's body, name,
-concurrency token, and dirty flag. `save()` echoes back the token it read; the
+concurrency token, and dirty flag. `save()` echoes back the token it read. The
 server rejects a stale write rather than applying it, which surfaces as
-`status: 'conflict'` and a Reload banner. Two things the store handles that are
-easy to get wrong: saves are serialized (the user's Save button and an agent's
-`ui_*_save` would otherwise send the same token and the second would be
-rejected as a conflict the user never caused), and a save only marks the
-document clean if nothing changed while it was in flight, so an agent edit
-landing mid-save is not silently dropped.
+`status: 'conflict'` and a Reload banner. The store serializes saves, because
+the user's Save button and an agent's `ui_storyboard_save` would otherwise send
+the same token and the second would be rejected as a conflict the user never
+caused. A save only marks the document clean if nothing changed while it was in
+flight, so an agent edit landing mid-save is not silently dropped.
 
-**Agent-first.** The surfaces are deliberately thin — text fields and lists,
-not a desktop editor — because the intended way to change a document is to ask
-the assistant. That path is:
+**The agent path.** The assistant sees every open document and edits the
+storyboard through client tools:
 
 1. On every socket open (including reconnects) `ChatStore` sends
-   `client_tools_manifest` with the registered `ui_*` tools.
-2. Each outgoing turn carries `ui_context` — the open documents, the focused
-   one, and the current selection. Every tool takes a **required** document id
-   and there is no "act on whatever is mounted" fallback, so this block is the
-   only thing that tells the agent which ids are valid.
-3. The server sends `tool_call`; `executeToolCall` runs it against the handler
-   the mounted screen registered and replies `tool_result` — always, including
+   `client_tools_manifest` with the registered `ui_storyboard_*` tools.
+2. Each outgoing turn carries `ui_context`: the open documents, the focused
+   one, and the current selection. The timeline and sketch viewers register
+   with the bridge too, with no handlers, so the agent knows which timeline or
+   sketch the user is looking at. Every tool takes a **required** document id
+   and there is no "act on whatever is mounted" fallback.
+3. The server sends `tool_call`. `executeToolCall` runs it against the handler
+   the mounted screen registered and replies `tool_result`, always, including
    for unknown tools, so the agent is never left waiting.
 4. Handlers mutate the same store the screen renders from, so an agent edit
-   repaints immediately and `ui_*_save` is the user's Save button's code path.
+   repaints immediately and `ui_storyboard_save` is the Save button's code path.
 
-Tools are trimmed to what a phone should do. Everything that is a pure document
-edit is available; everything that dispatches a long, paid job or needs a
-browser stays on desktop, where its progress can actually be supervised. So
-storyboards get shot and board editing but not generation or timeline assembly;
-scripts get cast, section, and line editing but not TTS voicing, subtitle
-export, or send-to-timeline; timelines get the full set of structural edits but
-not clip generation or frame extraction. JS scripts are the one surface whose
-tools also *execute*: the body runs in the server's QuickJS sandbox, so
-`ui_jsscript_run` and `ui_jsscript_test` are a request the phone waits on, not a
-job it supervises — they save first, because the endpoint runs the saved row. Each tool's description says which side
-of that line it is on, so the agent does not promise what it cannot do.
+Storyboards get shot and board editing but not generation or timeline assembly,
+which stay on desktop where a long paid job can be supervised. The server agent
+can still edit a timeline with its own `edit_timeline` tools, which write the
+server row. `TimelineViewerScreen` reloads on focus, so the change shows when
+the user comes back to it.
 
-**Timeline edits are link-aware** (`timelineEdits.ts`, pure functions over
-`{tracks, clips, markers, transcript}`). A video clip and the audio extracted
-from it share a `linkId` and must move, trim, split, and delete together: a
-split mints a fresh `linkId` for each side so neither becomes a three-member
-group, and a delete unlinks survivors when a group drops below two. Web's own
-agent handlers take a `patchClip` shortcut that bypasses this and desyncs the
-pair, so the logic here is ported from its store rather than its bridge.
-Anything that changes a generation input marks the clip `stale`, and an edit
-that would orphan a `transcript[].clipIds` reference is **refused** naming the
-line — web re-flows the transcript in 795 lines of code, and a clear refusal
-beats a dangling pointer.
-
-The split/trim primitives come from `@nodetool-ai/timeline`, compiled from
-source like `app-runtime` (`metro.config.js`, `tsconfig.json` paths,
-`jest.config.js` moduleNameMapper — all must agree). `splitClip` also partitions
-animations by role, rebases clip-local caption words, and clears the fades and
-transition the halves must not inherit; hand-rolling that would get it wrong.
-Its id factory calls `crypto.randomUUID`, which Hermes lacks, so
-`src/polyfills/randomUuid.ts` supplies one from `uuid` in `index.ts`.
+**Timelines draw as lanes.** `components/timeline/TimelineLanes` draws the
+ruler, the track headers, the clips, and the markers. The viewer screen uses it
+with seek and clip selection, and the chat preview uses it at a fixed height
+with no handlers. Mobile has no video compositor, so neither plays the
+sequence.
 
 **Sketches composite, they do not summarize.** `components/sketch/SketchRenderer`
 stacks the layers the way `web/.../canvas2d/composite.ts` does: bottom-first,
 groups as containers rather than pixels, a layer drawn only when it and every
 ancestor group is visible, alpha multiplied down the chain. Pixels come from the
 layer's generated asset, a stable `imageReference.uri`, or the raster serialized
-into the document, in that order; a layer with none of those renders a labelled
+into the document, in that order. A layer with none of those renders a labelled
 placeholder in its own footprint. Blend modes and rotation are deliberately not
-reproduced — React Native has no compositing operator, and approximating them
+reproduced. React Native has no compositing operator, and approximating them
 quietly would lie. `SketchViewerScreen` wraps the renderer with the layer list
-and its generation statuses; the app-runtime `Sketch` widget draws the same
-composite inside an app.
-
-Kinds with no dedicated screen fall back to `DocumentViewerScreen`, so every
-document can at least be opened.
+and its generation statuses. The app-runtime `Sketch` widget and the chat
+preview draw the same composite.
 
 ## Component Architecture
 
@@ -332,7 +307,7 @@ App
 ├── NavigationContainer
     └── Stack.Navigator
         ├── LoginScreen                 (when signed out)
-        └── WorkflowsListScreen         (first screen when signed in)
+        └── AppsScreen                  (first screen when signed in)
             └── every other screen in `src/screens/`
 ```
 
@@ -367,20 +342,6 @@ App
 4. Cache the resolved host (used by both the fetch client and the tRPC client)
 ```
 
-### Workflow List Flow
-
-```
-1. WorkflowsListScreen mount
-   ↓
-2. apiService.getWorkflows(limit)
-   ↓
-3. trpc.workflows.list.query({ limit })
-   ↓
-4. Normalize each workflow
-   ↓
-5. Render FlatList
-```
-
 ## API Service
 
 The `apiService` singleton manages all HTTP communication:
@@ -395,11 +356,9 @@ class ApiService {
   getApiHost(): string
   
   // API Calls
-  getWorkflows(limit?: number)
-  getNodeMetadata()
   listApplications(projectId?: string)
   getApplication(id: string)
-  saveWorkflow(...)   createWorkflow(...)   uploadAsset(...)
+  uploadAsset(...)
   getThread(threadId: string)
 
   // Utility
@@ -415,30 +374,33 @@ class ApiService {
 - **Error Handling**: REST `request()` throws a typed `ApiError` (carrying HTTP status/body), times out via `AbortController`, and retries transient 5xx/network failures while failing fast on 4xx
 - **WebSocket URL Generation**: Converts HTTP URL to WS/WSS for realtime workflow/chat streams
 
-> Most domain calls (workflows, assets, jobs, secrets, collections, threads, models)
-> go through the **tRPC client**; the raw `fetch` `request()` path is used for the
-> handful of REST-only endpoints such as `/api/nodes/metadata`, and `uploadAsset`
-> posts multipart `FormData` directly.
+> Most domain calls (assets, jobs, documents, threads, models) go through the
+> **tRPC client**. The raw `fetch` `request()` path is used for the REST-only
+> endpoints such as `/api/applications`, and `uploadAsset` posts multipart
+> `FormData` directly.
 
 ## Navigation Structure
 
 ### Stack Navigator
 
 `RootStackParamList` in `src/navigation/types.ts` declares one route per screen
-in `src/screens/` — `Login`, `WorkflowsList`, `GraphEditor`, `Settings`, `Chat`,
-`LanguageModelSelection`, `Assets`, `AssetViewer`, `Documents`, `Apps`, `App`,
-`StoryboardEditor`, `ScriptEditor`, `TimelineViewer`, `SketchViewer`,
-`DocumentViewer`, `Secrets`, `Collections`, `Jobs`, `Triggers`, `JobDetail`,
-and `Threads`. Deep links map onto it in `src/navigation/linking.ts`.
+in `src/screens/`: `Login`, `Apps`, `App`, `Settings`, `Chat`, `Threads`,
+`LanguageModelSelection`, `Assets`, `AssetViewer`, `Documents`,
+`StoryboardEditor`, `TimelineViewer`, `SketchViewer`, `Jobs`, and `JobDetail`.
+Deep links map onto it in `src/navigation/linking.ts`, with `/` on Apps and
+`nodetool://job/<id>` on JobDetail.
 
 ### Navigation Flow
 
 ```
-WorkflowsListScreen
-├── Settings (from header button)
-├── Chat (from header button)
-└── GraphEditor (from workflow card tap)
-    └── Settings (from error alert)
+AppsScreen
+├── App (from an app card)
+├── Chat, Documents, Jobs, Assets, Settings (from header buttons)
+│   Documents
+│   ├── StoryboardEditor
+│   ├── TimelineViewer
+│   └── SketchViewer
+└── Threads, LanguageModelSelection (from Chat)
 ```
 
 ## Chat Feature Architecture
@@ -509,6 +471,31 @@ interface ChatState {
   - Code blocks with syntax highlighting
   - Links, lists, tables
   - Blockquotes
+  - Inline resource previews (below)
+
+### Inline Resource Previews
+
+An assistant message that names a sketch or a timeline draws it inline, with a
+chip under it that opens the viewer. This is web's `InlineResourcePreview`
+behavior with native controls.
+
+- `components/chat/resourceMentions.ts` is a markdown-it plugin. It turns a
+  bare `sketch://<id>` or `timeline://<id>`, and a URI alone in a code span,
+  into image tokens, so all three forms (image syntax included) reach one
+  `image` render rule in `ChatMarkdown`. URIs are parsed with `parseResourceUri`
+  and matched against `RESOURCE_KINDS` from `@nodetool-ai/protocol`.
+- It works on tokens, so a fenced block never changes and a code span holding
+  anything besides one URI stays literal. Text inside a link is left alone.
+- `components/chat/InlineResourcePreview.tsx` loads a sketch with
+  `trpc.sketch.get` and draws it with `SketchRenderer`, and loads a timeline
+  with `trpc.timeline.get` and draws its title, duration, and
+  `TimelineLanes`. Both are capped at a fixed height.
+- A failed load, and a kind with no preview (a storyboard, an asset), shows the
+  chip alone. A chip for a kind mobile cannot open says it opens in the desktop
+  or web app.
+- `@nodetool-ai/protocol/resource-uri` is compiled from source, wired the same
+  three ways as `app-runtime`, because the published protocol build mobile
+  installs predates `parseResourceUri`.
 
 ### Loading Indicator
 
@@ -521,32 +508,8 @@ Pulsating animation using React Native's `Animated` API:
 
 ### Core Types
 
-**Workflow Types:**
-```typescript
-interface Workflow {
-  id: string;
-  name: string;
-  description?: string;
-  thumbnail?: string;
-  graph?: {
-    nodes: GraphNode[];
-    edges: GraphEdge[];
-  };
-}
-```
-
-**Input Types:**
-```typescript
-type MiniAppInputKind = "string" | "integer" | "float" | "boolean" | "image" | "audio" | "file_path";
-
-interface MiniAppInputDefinition {
-  nodeId: string;
-  nodeType: string;
-  kind: MiniAppInputKind;
-  data: InputNodeData;
-  defaultValue?: unknown;
-}
-```
+Domain types come from `@nodetool-ai/protocol` through `src/types/ApiTypes.ts`.
+Mini-app documents use the types in `@nodetool-ai/app-runtime`.
 
 ## Storage Strategy
 
@@ -557,13 +520,8 @@ interface MiniAppInputDefinition {
 ### Data Persistence
 
 - Server URL: Persisted across app restarts
-- Workflow state: In-memory only (cleared on navigation)
-- Input values: In-memory only (cleared on navigation)
-
-Future considerations:
-- Save draft input values
-- Cache workflow list
-- Store recent workflows
+- Mini-app variables declared `scope: "user"` with `persist: true`: AsyncStorage
+- Other run state and input values: in memory only (cleared on navigation)
 
 ## Error Handling Strategy
 
@@ -581,11 +539,11 @@ Future considerations:
 ```typescript
 try {
   setIsLoading(true);
-  const data = await apiService.getWorkflows();
-  setWorkflows(data);
+  const data = await apiService.listApplications();
+  setApps(data);
 } catch (error) {
   console.error('Failed to load:', error);
-  Alert.alert('Error', 'Failed to load workflows', [
+  Alert.alert('Error', 'Failed to load apps', [
     { text: 'Settings', onPress: navigateToSettings },
     { text: 'Retry', onPress: retry }
   ]);
@@ -635,8 +593,7 @@ const colors = {
 
 - Implement React Query for caching and background updates
 - Add optimistic updates for better perceived performance
-- Implement pagination for workflow list
-- Add image lazy loading for workflow thumbnails
+- Add image lazy loading for asset thumbnails
 
 ## Security Considerations
 
@@ -666,7 +623,7 @@ npm run test:coverage  # run with V8 coverage + thresholds
 ```
 
 Covered today: chat UI components, property editors, hooks, the
-`ChatStore`/`WorkflowRunner`/`MediaGenerationStore`/`GraphEditorStore`/`AuthStore`
+`ChatStore`/`WorkflowRunner`/`MediaGenerationStore`/`AuthStore`
 stores, the `WebSocketManager`, and the REST `api` client
 (`ApiError`/retry/timeout, `uploadAsset`).
 
@@ -685,12 +642,12 @@ honest and enforceable; raise it as coverage grows.
 
 - [ ] Configure server URL
 - [ ] Test connection validation
-- [ ] Load workflow list
+- [ ] Load the apps list
 - [ ] Pull to refresh
-- [ ] Open workflow
+- [ ] Open and run a mini app
 - [ ] Fill various input types
-- [ ] Run workflow
 - [ ] View results
+- [ ] Open a sketch and a timeline from a chat reply
 - [ ] Handle connection errors
 - [ ] Navigate back/forward
 
@@ -732,10 +689,8 @@ honest and enforceable; raise it as coverage grows.
 
 ### Long Term
 
-1. **Workflow Creation**: Build workflows on mobile
-2. **Collaboration**: Share workflows with other users
-3. **Push Notifications**: Notify on long-running workflow completion
-4. **Workflow Scheduling**: Schedule workflows to run at specific times
+1. **Remote push**: notify a closed app when a job finishes. Local
+   notifications already cover a backgrounded app.
 
 ## Deployment
 

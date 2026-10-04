@@ -1,5 +1,5 @@
-import { pgTable, text, integer, index } from "drizzle-orm/pg-core";
-import { jsonText } from "./helpers.js";
+import { pgTable, text, index } from "drizzle-orm/pg-core";
+import { integerBoolean, jsonText } from "./helpers.js";
 
 export const workflows = pgTable(
   "nodetool_workflows",
@@ -24,7 +24,7 @@ export const workflows = pgTable(
     project_id: text("project_id").notNull().default("default"),
     html_app: text("html_app"),
     app_doc: jsonText<Record<string, unknown>>()("app_doc"),
-    receive_clipboard: integer("receive_clipboard"),
+    receive_clipboard: integerBoolean("receive_clipboard"),
     access: text("access").notNull().default("private"),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()

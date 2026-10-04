@@ -15,8 +15,8 @@ widget, a binding, and an operation are.
 ## Finding your apps
 
 The **Apps** browser lists every app on the server you are connected to, newest
-first. Reach it from the apps icon in the Workflows header, or with the deep
-link `nodetool://apps`.
+first. It is the home screen after you sign in, and the deep link
+`nodetool://apps` opens it.
 
 ![Apps browser on mobile](assets/screenshots/mobile-mini-apps-list.png)
 

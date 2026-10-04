@@ -1,5 +1,6 @@
 /**
- * The documents browser: every kind in one list.
+ * The documents browser: storyboards, timelines, and sketches in one list.
+ * Other document kinds open in the desktop or web app.
  *
  * Web puts each open document in a workspace tab with a left rail of sections.
  * A phone has no room for either, so the rail collapses into filter chips and
@@ -188,24 +189,11 @@ export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
         case 'StoryboardEditor':
           navigation.navigate('StoryboardEditor', { id: entry.id, name: entry.name });
           break;
-        case 'ScriptEditor':
-          navigation.navigate('ScriptEditor', { id: entry.id, name: entry.name });
-          break;
-        case 'JsScriptEditor':
-          navigation.navigate('JsScriptEditor', { id: entry.id, name: entry.name });
-          break;
         case 'TimelineViewer':
           navigation.navigate('TimelineViewer', { id: entry.id, name: entry.name });
           break;
         case 'SketchViewer':
           navigation.navigate('SketchViewer', { id: entry.id, name: entry.name });
-          break;
-        case 'DocumentViewer':
-          navigation.navigate('DocumentViewer', {
-            kind: entry.kind,
-            id: entry.id,
-            name: entry.name,
-          });
           break;
       }
     },
@@ -422,7 +410,7 @@ export default function DocumentsScreen({ navigation }: DocumentsScreenProps) {
               {activeKind === null ? 'No documents yet' : 'Nothing of this kind'}
             </Text>
             <Text style={[styles.emptyText, { color: colors.textSecondary }]}>
-              Storyboards, scripts, timelines, and sketches are usually built by
+              Storyboards, timelines, and sketches are usually built by
               asking the assistant. Describe what you want and it writes the
               document for you.
             </Text>

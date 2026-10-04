@@ -1,12 +1,15 @@
 /**
- * The apps browser: every application the server hosts.
+ * The apps browser: every application the server hosts, and the home screen
+ * after login.
  *
  * Apps and workflows are orthogonal — an app exists because someone made one,
  * and this list is how a phone reaches it. Opening one pushes its own screen,
- * the same one-document-per-screen model the documents browser uses.
+ * the same one-document-per-screen model the documents browser uses. The
+ * header carries the companion's other surfaces: chat, documents, jobs,
+ * assets, and settings.
  */
 
-import { useCallback } from 'react';
+import { useCallback, useLayoutEffect } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -30,11 +33,42 @@ type AppsScreenProps = {
   navigation: NativeStackNavigationProp<RootStackParamList, 'Apps'>;
 };
 
+type HeaderRoute = 'Chat' | 'Documents' | 'Jobs' | 'Assets' | 'Settings';
+
+const HEADER_ACTIONS: readonly { route: HeaderRoute; icon: keyof typeof Ionicons.glyphMap; label: string }[] = [
+  { route: 'Chat', icon: 'chatbubble-ellipses-outline', label: 'Open chat' },
+  { route: 'Documents', icon: 'documents-outline', label: 'Open documents' },
+  { route: 'Jobs', icon: 'pulse-outline', label: 'Open jobs' },
+  { route: 'Assets', icon: 'images-outline', label: 'Open assets' },
+  { route: 'Settings', icon: 'settings-outline', label: 'Open settings' },
+];
+
 export default function AppsScreen({ navigation }: AppsScreenProps) {
   const { colors, shadows } = useTheme();
   const insets = useSafeAreaInsets();
   const { data, isLoading, isRefetching, error, refetch } = useApplications();
   const apps = data ?? [];
+
+  useLayoutEffect(() => {
+    navigation.setOptions({
+      headerRight: () => (
+        <View style={styles.headerActions}>
+          {HEADER_ACTIONS.map((action) => (
+            <TouchableOpacity
+              key={action.route}
+              onPress={() => navigation.navigate(action.route)}
+              accessibilityRole="button"
+              accessibilityLabel={action.label}
+              hitSlop={6}
+              style={styles.headerButton}
+            >
+              <Ionicons name={action.icon} size={22} color={colors.primary} />
+            </TouchableOpacity>
+          ))}
+        </View>
+      ),
+    });
+  }, [navigation, colors.primary]);
 
   const openApp = useCallback(
     (app: ApplicationListItem) => {
@@ -135,6 +169,14 @@ export default function AppsScreen({ navigation }: AppsScreenProps) {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  headerButton: {
+    padding: 4,
   },
   listContent: {
     padding: 16,

@@ -621,7 +621,7 @@ failing op and records it.
 **Resolves:** F23.
 
 **Read first:** `packages/agents/src/capabilities/analysis.specs.ts`
-(`detect_audio_events` output shape), `mobile/src/documents/tools/timelineTools.ts`
+(`detect_audio_events` output shape), `web/src/lib/tools/builtin/timeline.ts`
 (`ui_timeline_add_marker`), `packages/timeline/src/snap.ts` and
 `resolveSnap.ts`, `buildSnapPoints.ts`.
 
@@ -784,23 +784,19 @@ and checks them against the capability registry and op list).
 **Tests:** each predicate has a passing and a failing hand-built final
 state in `timeline-tool-loop.test.ts`.
 
-### T26 — Browser batch tool and mobile parity · **Sonnet**
+### T26 — Browser batch tool · **Sonnet**
 
 **Resolves:** F26.
 
 **Read first:** `web/src/lib/tools/builtin/timeline.ts`,
-`web/src/components/timeline/timelineAgentBridge.ts`,
-`mobile/src/documents/tools/timelineTools.ts`, `mobile/AGENTS.md`.
+`web/src/components/timeline/timelineAgentBridge.ts`.
 
-**Change:** `ui_timeline_edit {timeline_id, ops[]}` in web and mobile,
+**Change:** `ui_timeline_edit {timeline_id, ops[]}` in web,
 dispatching to the same handler methods the single tools use, continuing
-past failures with a per-op record (mirror `edit_timeline`). Mobile gains
-`ui_timeline_animate_clip`, `ui_timeline_clear_animations`,
-`ui_timeline_list_animation_presets`, `ui_timeline_add_media_clip`,
-`ui_timeline_set_clip_binding`, and the T19/T20 ops that exist on web.
+past failures with a per-op record (mirror `edit_timeline`). Mobile stays
+view-only and uses server agent tools for edits.
 
-**Tests:** web tool tests for the batch path; mobile jest for the new
-tools' schemas; `npm --prefix mobile run typecheck`.
+**Tests:** web tool tests for the batch path.
 
 ---
 

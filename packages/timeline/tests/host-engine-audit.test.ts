@@ -13,7 +13,7 @@ function assertSharedEngine(source: string): void {
     }
   }
 }
-describe("timeline hosts use the shared engine", () => {
+describe("the web timeline edit host uses the shared engine", () => {
   it("rejects a host with its own clip factory", () => {
     expect(() =>
       assertSharedEngine(
@@ -26,14 +26,15 @@ describe("timeline hosts use the shared engine", () => {
       "applyTimelineOp"
     );
   });
-  for (const file of [
-    "../../../web/src/hooks/timeline/useTimelineAgentBridge.ts",
-    "../../../mobile/src/documents/timelineEdits.ts"
-  ]) {
-    it(file, () => {
-      const source = readFileSync(new URL(file, import.meta.url), "utf8");
-      expect(source.length).toBeGreaterThan(0);
-      assertSharedEngine(source);
-    });
-  }
+  it("checks the production web host", () => {
+    const source = readFileSync(
+      new URL(
+        "../../../web/src/hooks/timeline/useTimelineAgentBridge.ts",
+        import.meta.url
+      ),
+      "utf8"
+    );
+    expect(source.length).toBeGreaterThan(0);
+    assertSharedEngine(source);
+  });
 });

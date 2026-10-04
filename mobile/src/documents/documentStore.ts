@@ -10,8 +10,7 @@
  *
  * Transport is a per-kind backend (`backends.ts`) rather than a mutation hook,
  * for the same reason. Every write echoes back the concurrency token it read —
- * a revision for the `resources` kinds, `baseUpdatedAt` for scripts — and the
- * server rejects a stale write instead of applying it, which surfaces here as
+ * the `resources` revision, opaque to the store — and the server rejects a stale write instead of applying it, which surfaces here as
  * `status: 'conflict'` for the screen to offer a reload.
  */
 

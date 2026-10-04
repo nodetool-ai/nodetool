@@ -275,9 +275,9 @@ describe("McpOauthGrant + McpOauthToken", () => {
     // into reuse detection. Presenting the ancestor again exercises exactly
     // that insert path... but the successor check already catches it, so
     // drive the raw insert to prove the constraint itself bites.
-    const { getDb } = await import("../src/db.js");
+    const { getPortableDb } = await import("../src/db.js");
     const { mcpOauthTokens } = await import("../src/schema/index.js");
-    const rows = await getDb()
+    const rows = await getPortableDb()
       .select({ rotated_from: mcpOauthTokens.rotated_from })
       .from(mcpOauthTokens);
     const claimed = rows.find(
@@ -285,7 +285,7 @@ describe("McpOauthGrant + McpOauthToken", () => {
     );
     expect(claimed).toBeDefined();
     await expect(
-      getDb()
+      getPortableDb()
         .insert(mcpOauthTokens)
         .values({
           id: "ffffffffffffffff",

@@ -89,14 +89,6 @@ const isReady = {
   (id: string, ctx: FrontendToolContext) => boolean
 >;
 
-/**
- * The resource URI for a document, when the scheme has a kind for it. JS
- * scripts have no `ResourceKind` yet (the scheme lives in the protocol
- * package), so their result carries no link rather than a wrong one.
- */
-const resourceLink = (type: OpenableType, id: string): { url?: string } =>
-  type === "jsscript" ? {} : { url: docUrl(type, id) };
-
 const ready = (
   type: OpenableType,
   id: string,
@@ -169,7 +161,7 @@ FrontendToolRegistry.register({
         type,
         id,
         already_open: true,
-        ...resourceLink(type, id)
+        url: docUrl(type, id)
       };
     }
 
@@ -197,7 +189,7 @@ FrontendToolRegistry.register({
         type,
         id,
         already_open: wasOpen,
-        ...resourceLink(type, id)
+        url: docUrl(type, id)
       };
     }
 

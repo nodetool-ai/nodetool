@@ -11,7 +11,7 @@
  * SQLite and PostgreSQL dialects.
  */
 
-import { getDb, RunInboxMessage, TriggerInput } from "@nodetool-ai/models";
+import { getPortableDb, RunInboxMessage, TriggerInput } from "@nodetool-ai/models";
 import type {
   DurableInboxStore,
   DurableMessage,
@@ -112,7 +112,7 @@ export class DrizzleTriggerInputStore implements TriggerInputStore {
     nodeId: string,
     limit = 100
   ): Promise<TriggerInputRecord[]> {
-    const rows = await getDb().query.triggerInputs.findMany({
+    const rows = await getPortableDb().query.triggerInputs.findMany({
       where: (t, { and, eq }) =>
         and(eq(t.run_id, runId), eq(t.node_id, nodeId), eq(t.processed, 0)),
       orderBy: (t, { asc }) => asc(t.created_at),
@@ -133,7 +133,7 @@ export class DrizzleTriggerInputStore implements TriggerInputStore {
     const cutoff = new Date(
       Date.now() - olderThanHours * 60 * 60 * 1000
     ).toISOString();
-    const rows = await getDb().query.triggerInputs.findMany({
+    const rows = await getPortableDb().query.triggerInputs.findMany({
       where: (t, { and, eq, lt, isNotNull }) =>
         and(
           eq(t.run_id, runId),
@@ -150,14 +150,14 @@ export class DrizzleTriggerInputStore implements TriggerInputStore {
   }
 
   async hasInputsFor(runId: string, nodeId: string): Promise<boolean> {
-    const row = await getDb().query.triggerInputs.findFirst({
+    const row = await getPortableDb().query.triggerInputs.findFirst({
       where: (t, { and, eq }) => and(eq(t.run_id, runId), eq(t.node_id, nodeId))
     });
     return row !== undefined;
   }
 
   async deleteRun(runId: string): Promise<void> {
-    const rows = await getDb().query.triggerInputs.findMany({
+    const rows = await getPortableDb().query.triggerInputs.findMany({
       where: (t, { eq }) => eq(t.run_id, runId)
     });
     for (const row of rows) {
@@ -171,7 +171,7 @@ export class DrizzleTriggerInputStore implements TriggerInputStore {
  */
 export class DrizzleDurableInboxStore implements DurableInboxStore {
   private async row(messageId: string): Promise<RunInboxMessage | null> {
-    const row = await getDb().query.runInboxMessages.findFirst({
+    const row = await getPortableDb().query.runInboxMessages.findFirst({
       where: (t, { eq }) => eq(t.message_id, messageId)
     });
     return row ? new RunInboxMessage(row) : null;
@@ -204,7 +204,7 @@ export class DrizzleDurableInboxStore implements DurableInboxStore {
     limit: number,
     minSeq = 0
   ): Promise<DurableMessage[]> {
-    const rows = await getDb().query.runInboxMessages.findMany({
+    const rows = await getPortableDb().query.runInboxMessages.findMany({
       where: (t, { and, eq, gte }) =>
         and(
           eq(t.run_id, runId),
@@ -241,7 +241,7 @@ export class DrizzleDurableInboxStore implements DurableInboxStore {
     handle: string,
     olderThanSeq: number
   ): Promise<number> {
-    const rows = await getDb().query.runInboxMessages.findMany({
+    const rows = await getPortableDb().query.runInboxMessages.findMany({
       where: (t, { and, eq, lt }) =>
         and(
           eq(t.run_id, runId),

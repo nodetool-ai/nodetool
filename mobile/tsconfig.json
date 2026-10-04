@@ -4,7 +4,9 @@
     "jsx": "react-native",
     "target": "ES2020",
     "module": "ESNext",
-    "lib": ["ES2022"],
+    "lib": [
+      "ES2020"
+    ],
     "moduleResolution": "bundler",
     "allowSyntheticDefaultImports": true,
     "esModuleInterop": true,
@@ -13,22 +15,39 @@
     "noUncheckedSideEffectImports": true,
     "noEmit": true,
     "isolatedModules": true,
-    "types": ["jest", "node"],
+    "types": [
+      "jest",
+      "node"
+    ],
     "paths": {
-      "@nodetool-ai/app-runtime": ["../packages/app-runtime/src/index.ts"],
-      "@nodetool-ai/timeline": ["../packages/timeline/src/index.ts"],
-      "@nodetool-ai/gpu": ["../packages/gpu/src/index.ts"],
+      "@nodetool-ai/app-runtime": [
+        "../packages/app-runtime/src/index.ts"
+      ],
+      "@nodetool-ai/timeline": [
+        "../packages/timeline/src/index.ts"
+      ],
+      "@nodetool-ai/gpu": [
+        "../packages/gpu/src/index.ts"
+      ],
       "@nodetool-ai/protocol/triggers": [
         "../packages/protocol/src/triggers.ts"
       ],
       "@nodetool-ai/protocol/blend-modes": [
         "../packages/protocol/src/blend-modes.ts"
       ],
-      "@nodetool-ai/timeline/ops": ["../packages/timeline/src/ops/index.ts"],
-      "@nodetool-ai/protocol/*": ["../packages/protocol/src/*"]
+      "@nodetool-ai/protocol/resource-uri": [
+        "../packages/protocol/src/resource-uri.ts"
+      ]
     }
   },
-  "include": ["**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx"],
-  "exclude": ["node_modules"],
+  "include": [
+    "**/*.ts",
+    "**/*.tsx",
+    "**/*.js",
+    "**/*.jsx"
+  ],
+  "exclude": [
+    "node_modules"
+  ],
   "extends": "expo/tsconfig.base"
 }

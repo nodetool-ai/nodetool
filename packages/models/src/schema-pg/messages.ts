@@ -1,6 +1,6 @@
-import { pgTable, text, integer, real, index } from "drizzle-orm/pg-core";
+import { pgTable, text, real, index } from "drizzle-orm/pg-core";
 import type { ProviderSession } from "@nodetool-ai/protocol";
-import { jsonText } from "./helpers.js";
+import { integerBoolean, jsonText } from "./helpers.js";
 
 export const messages = pgTable(
   "nodetool_messages",
@@ -24,8 +24,8 @@ export const messages = pgTable(
     graph: jsonText<Record<string, unknown>>()("graph"),
     tools: jsonText<string[]>()("tools"),
     collections: jsonText<string[]>()("collections"),
-    agent_mode: integer("agent_mode"),
-    help_mode: integer("help_mode"),
+    agent_mode: integerBoolean("agent_mode"),
+    help_mode: integerBoolean("help_mode"),
     agent_execution_id: text("agent_execution_id"),
     execution_event_type: text("execution_event_type"),
     workflow_target: text("workflow_target"),

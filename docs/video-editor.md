@@ -117,6 +117,7 @@ A clip doesn't have to be a file — it can be the output of a workflow.
 
 - **Text-to-video** — on a video track, generate a clip from a prompt and a video model.
 - **Text-to-image / image-to-image** — on an overlay track, generate a still from a prompt, optionally from a source clip.
+- **Image-to-video** — animate an image clip from its Inspector. See [Image to Video](#image-to-video).
 - **Text-to-speech / text-to-music** — on an audio track, synthesize speech or music.
 - **Workflow** — bind _any_ NodeTool workflow with an output node to the clip.
 
@@ -144,6 +145,10 @@ The Inspector swaps based on what's selected:
 - **Text or shape clip** — content and appearance controls for text, fill, stroke, geometry, and corner radius.
 
 Every visual clip includes an **Animate** section. Add an entrance, exit, emphasis, or loop preset, then adjust its timing, easing, and preset parameters.
+
+### Image to Video
+
+Select an image clip and open **Image to Video** in the Inspector. Describe the motion, pick a model that supports `image_to_video`, and press **Generate video**. The video clip lands on the video track directly above the image, over the same span, and a new track is inserted when that span is taken. It keeps the image clip's duration when the model can render it, and otherwise takes the shortest duration the model offers that covers the clip. The aspect ratio and resolution are the model's nearest match to the image's own size. The new clip is an image-to-video clip with the image as its source, so it regenerates like any other generated clip.
 
 ---
 
