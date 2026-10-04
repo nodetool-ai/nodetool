@@ -397,10 +397,6 @@ export const recipeEntries: RecipeEntry[] = [
     "nodeCount": 21,
     "keys": [
       {
-        "provider": "openai",
-        "env": "OPENAI_API_KEY"
-      },
-      {
         "provider": "atlascloud",
         "env": "ATLASCLOUD_API_KEY"
       }
@@ -414,12 +410,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Compare plain, playful, and premium routes before writing one spoken 15-second testimonial.",
         "thumbnail": "/templates/ad-copy-in-three-registers.jpg",
         "nodeCount": 3,
-        "models": [
-          {
-            "provider": "openai",
-            "model": "gpt-5-mini"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -647,10 +638,6 @@ export const recipeEntries: RecipeEntry[] = [
     "nodeCount": 24,
     "keys": [
       {
-        "provider": "openai",
-        "env": "OPENAI_API_KEY"
-      },
-      {
         "provider": "fal_ai",
         "env": "FAL_API_KEY"
       },
@@ -668,12 +655,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Turn one offer into plain, playful, and premium ad copy.",
         "thumbnail": "/templates/ad-copy-in-three-registers.jpg",
         "nodeCount": 3,
-        "models": [
-          {
-            "provider": "openai",
-            "model": "gpt-5-mini"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -685,10 +667,6 @@ export const recipeEntries: RecipeEntry[] = [
         "thumbnail": "/templates/hook-and-thumbnail-factory.jpg",
         "nodeCount": 12,
         "models": [
-          {
-            "provider": "openai",
-            "model": "gpt-5-mini"
-          },
           {
             "provider": "fal_ai",
             "model": "fal-ai/flux/schnell"
@@ -955,10 +933,6 @@ export const recipeEntries: RecipeEntry[] = [
         "models": [
           {
             "provider": "openai",
-            "model": "gpt-5-mini"
-          },
-          {
-            "provider": "openai",
             "model": "tts-1"
           }
         ],
@@ -972,12 +946,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Translate key lines into six languages, with back-translations for review.",
         "thumbnail": "/templates/one-tagline-six-markets.jpg",
         "nodeCount": 3,
-        "models": [
-          {
-            "provider": "openai",
-            "model": "gpt-5-mini"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -1012,10 +981,6 @@ export const recipeEntries: RecipeEntry[] = [
           {
             "provider": "openai",
             "model": "gpt-4o-mini-transcribe"
-          },
-          {
-            "provider": "openai",
-            "model": "gpt-5-mini"
           }
         ],
         "alternative": null
@@ -1222,10 +1187,6 @@ export const recipeEntries: RecipeEntry[] = [
       {
         "provider": "fal_ai",
         "env": "FAL_API_KEY"
-      },
-      {
-        "provider": "openai",
-        "env": "OPENAI_API_KEY"
       }
     ],
     "steps": [
@@ -1321,12 +1282,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Generate marketplace copy from the product photo, including visible materials and finish.",
         "thumbnail": "/templates/write-a-listing-from-the-product-photo.jpg",
         "nodeCount": 3,
-        "models": [
-          {
-            "provider": "openai",
-            "model": "gpt-5-mini"
-          }
-        ],
+        "models": [],
         "alternative": null
       }
     ]
@@ -1514,10 +1470,6 @@ export const recipeEntries: RecipeEntry[] = [
     "nodeCount": 26,
     "keys": [
       {
-        "provider": "openai",
-        "env": "OPENAI_API_KEY"
-      },
-      {
         "provider": "gemini",
         "env": "GEMINI_API_KEY"
       },
@@ -1539,12 +1491,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Turn your premise into a hook, escalation, turning point, and title card.",
         "thumbnail": "/templates/trailer-beats-from-a-premise.jpg",
         "nodeCount": 3,
-        "models": [
-          {
-            "provider": "openai",
-            "model": "gpt-5-mini"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
@@ -1555,12 +1502,7 @@ export const recipeEntries: RecipeEntry[] = [
         "handoff": "Turn your synopsis into numbered shots with framing and duration.",
         "thumbnail": "/templates/shot-list-from-a-synopsis.jpg",
         "nodeCount": 3,
-        "models": [
-          {
-            "provider": "openai",
-            "model": "gpt-5-mini"
-          }
-        ],
+        "models": [],
         "alternative": null
       },
       {
