@@ -20,7 +20,9 @@
 import { useCallback, useEffect, useMemo, useRef } from "react";
 import { useQueries } from "@tanstack/react-query";
 import {
+  appendValue,
   decideRun,
+  parseApplicationDocument,
   implicitOperation,
   initialVariableValues,
   isLiveInvocation,
@@ -45,6 +47,10 @@ import {
   type ResourceRef,
   type ScriptRunResult
 } from "@nodetool-ai/app-runtime";
+import { graph as workflowGraph } from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import { jsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
+import { useAppInstance } from "./useAppInstance";
+import { getAppRun, reserveAppRun, updateAppRun } from "./appInstanceApi";
 import { usesStreamInputContract } from "@nodetool-ai/node-sdk/code-body";
 import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 
@@ -52,7 +58,8 @@ import { Workflow } from "../../../stores/ApiTypes";
 import {
   getWorkflowRunnerStore,
   MsgpackData,
-  WorkflowRunnerStore
+  WorkflowRunnerStore,
+  type RunOptions
 } from "../../../stores/WorkflowRunner";
 import { globalWebSocketManager } from "../../../lib/websocket/GlobalWebSocketManager";
 import { graphNodeToReactFlowNode } from "../../../stores/graphNodeToReactFlowNode";
@@ -66,7 +73,10 @@ import { useOperationScripts } from "../useOperationScripts";
 import { extractScriptIO, extractWorkflowIO, WorkflowIO } from "../workflowIO";
 import { extractVariableNames } from "../workflowState";
 import { seedInputValue } from "../inputProperty";
-import { collectNodePropertyOverlays, withNodeProperties } from "../nodeBinding";
+import {
+  collectNodePropertyOverlays,
+  withNodeProperties
+} from "../nodeBinding";
 import { buildTriggerSubgraph } from "./buildTriggerSubgraph";
 import {
   appInstanceId,
@@ -95,7 +105,9 @@ interface OperationRuntime {
    * The script this operation runs, for a script target. Undefined while it
    * loads, or when the operation runs a workflow — the two are exclusive.
    */
-  script: { id: string; version: number; document: JsScriptDocument } | undefined;
+  script:
+    | { id: string; version: number; document: JsScriptDocument }
+    | undefined;
   io: WorkflowIO;
   runnerStore: WorkflowRunnerStore;
 }
@@ -121,6 +133,8 @@ export interface AppRuntimeOptions {
    * the ledger afterwards. Absent for an app that has no record yet.
    */
   application?: { id: string; version?: number };
+  /** Choose an existing working copy. Omit to use the automatic default. */
+  instanceId?: string;
   /**
    * Workflow graphs supplied by the caller, by workflow id — the graphs a
    * release pinned. An operation whose workflow is here runs that exact graph
@@ -146,13 +160,59 @@ export const useAppRuntime = (
 ): AppRuntimeContextValue => {
   const {
     application,
-    document,
-    workflowOverrides,
-    scriptOverrides,
+    document: requestedDocument,
+    workflowOverrides: requestedWorkflows,
+    scriptOverrides: requestedScripts,
     scriptRunner = runJsScript,
     onOpenResource,
     onResourceCommand
   } = options;
+  const persistence = useAppInstance(workflow, designMode, options);
+  const instanceDocument = persistence.instance?.snapshot.document;
+  const document = useMemo(
+    () =>
+      instanceDocument
+        ? (parseApplicationDocument(instanceDocument) ?? requestedDocument)
+        : requestedDocument,
+    [instanceDocument, requestedDocument]
+  );
+  const workflowOverrides = useMemo<Record<string, Workflow>>(() => {
+    const pinned: Record<string, Workflow> = { ...requestedWorkflows };
+    for (const [id, value] of Object.entries(
+      persistence.instance?.snapshot.workflow_graphs ?? {}
+    )) {
+      const parsed = workflowGraph.safeParse(value);
+      if (parsed.success) {
+        pinned[id] = {
+          ...(requestedWorkflows?.[id] ?? workflow),
+          id,
+          name: workflow?.name ?? id,
+          description: "",
+          access: "private",
+          created_at: "",
+          updated_at: "",
+          graph: parsed.data as unknown as Workflow["graph"]
+        }; // Graph schema validates dynamic metadata at the network boundary.
+      }
+    }
+    return pinned;
+  }, [
+    persistence.instance?.snapshot.workflow_graphs,
+    requestedWorkflows,
+    workflow
+  ]);
+  const scriptOverrides = useMemo<Record<string, JsScriptDocument>>(() => {
+    const pinned: Record<string, JsScriptDocument> = { ...requestedScripts };
+    for (const [id, value] of Object.entries(
+      persistence.instance?.snapshot.script_documents ?? {}
+    )) {
+      const parsed = jsScriptDocument.safeParse(value);
+      if (parsed.success) {
+        pinned[id] = parsed.data;
+      }
+    }
+    return pinned;
+  }, [persistence.instance?.snapshot.script_documents, requestedScripts]);
   const workflowId = workflow?.id;
   const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
 
@@ -160,7 +220,9 @@ export const useAppRuntime = (
   // workflow has none declared, so it gets the implicit one.
   const operations = useMemo<OperationBinding[]>(() => {
     const declared = document?.operations ?? [];
-    return declared.length > 0 ? declared : [implicitOperation(workflowId ?? "")];
+    return declared.length > 0
+      ? declared
+      : [implicitOperation(workflowId ?? "")];
   }, [document, workflowId]);
 
   // Operations over a workflow this view did not already load. Fetched once
@@ -207,33 +269,39 @@ export const useAppRuntime = (
     .join("|");
 
   const operationRuntimes = useMemo(() => {
+    void fetchedKey;
+    void fetchedScriptsKey;
     const map = new Map<string, OperationRuntime>();
     for (const operation of operations) {
       const target = operationTarget(operation);
       if (target.kind === "script") {
-        const script = scriptOverrides?.[target.scriptId] ?? fetchedScriptsRef.current.get(operation.id);
+        const script =
+          scriptOverrides?.[target.scriptId] ??
+          fetchedScriptsRef.current.get(operation.id);
         map.set(operation.id, {
           operation,
           workflow: undefined,
           script: script
-            ? { id: target.scriptId, version: target.scriptVersion, document: script }
+            ? {
+                id: target.scriptId,
+                version: target.scriptVersion,
+                document: script
+              }
             : undefined,
           // A script's ports are its bindable surface; its name-keyed mappings
           // resolve against them the way a graph's resolve against node ids.
           io: extractScriptIO(script),
           // Never used for a script run, but every entry carries one so the
           // rest of the hook needs no null check.
-          runnerStore: getWorkflowRunnerStore(
-            workflowId || "__app_runtime__"
-          )
+          runnerStore: getWorkflowRunnerStore(workflowId || "__app_runtime__")
         });
         continue;
       }
       const targetId = target.workflowId;
       const graph =
         !targetId || targetId === workflowId
-          ? workflow
-          : workflowOverrides?.[targetId] ?? fetchedRef.current.get(targetId);
+          ? (workflowOverrides?.[targetId] ?? workflow)
+          : (workflowOverrides?.[targetId] ?? fetchedRef.current.get(targetId));
       map.set(operation.id, {
         operation,
         workflow: graph,
@@ -309,7 +377,18 @@ export const useAppRuntime = (
   const store: AppRuntimeStore =
     designMode || !identity
       ? (designStoreRef.current ??= createAppRuntimeStore())
-      : getAppRuntimeStore(appInstanceId(identity));
+      : persistence.visitor
+        ? (designStoreRef.current ??= createAppRuntimeStore())
+        : getAppRuntimeStore(
+            appInstanceId(
+              persistence.enabled
+                ? `${persistence.account}:${persistence.instance?.id ?? options.instanceId ?? identity}`
+                : identity
+            )
+          );
+  persistence.attach(store);
+  const currentStoreRef = useRef(store);
+  currentStoreRef.current = store;
 
   // Seeding fills only slots that have no value: workflow input defaults plus
   // the select/boolean fallbacks the controls display, so an untouched form
@@ -336,7 +415,7 @@ export const useAppRuntime = (
     // Restored user-scoped values first, declared defaults second: seeding
     // never clobbers, so what the user left behind wins over the default.
     const variables = document?.variables ?? [];
-    if (!designMode) {
+    if (!designMode && !persistence.enabled && !persistence.visitor) {
       dispatchEvent({
         type: "seedVariables",
         values: loadPersistedVariables(identity, variables)
@@ -346,27 +425,116 @@ export const useAppRuntime = (
       type: "seedVariables",
       values: initialVariableValues(variables)
     });
-  }, [designMode, document, identity, operationRuntimes, store]);
+  }, [
+    designMode,
+    document,
+    identity,
+    operationRuntimes,
+    persistence.enabled,
+    persistence.visitor,
+    store
+  ]);
 
-  // Write persisting user-scoped variables back whenever they change. Instance
-  // variables and widget-local view state are deliberately not persisted.
   useEffect(() => {
+    if (designMode || persistence.enabled || persistence.visitor || !identity) {
+      return;
+    }
     const variables = document?.variables ?? [];
-    if (designMode || !identity) return;
-    if (!variables.some((v) => v.scope === "user" && v.persist)) return;
-    let previous = store.getState().variables;
-    savePersistedVariables(identity, variables, previous);
-    return store.subscribe((state) => {
-      if (state.variables === previous) return;
-      previous = state.variables;
-      savePersistedVariables(identity, variables, previous);
+    return store.subscribe((state, previous) => {
+      if (state.variables !== previous.variables) {
+        savePersistedVariables(identity, variables, state.variables);
+      }
     });
-  }, [designMode, document, identity, store]);
+  }, [
+    designMode,
+    document,
+    identity,
+    persistence.enabled,
+    persistence.visitor,
+    store
+  ]);
 
   // Invocations this app started, by logical and transport id. A streaming
   // message for anything else is not ours — that is the whole cross-run
   // contamination fix.
   const ownedRef = useRef(new Map<string, InvocationState>());
+  const appRunsRef = useRef(new Map<string, string>());
+  const serverRunsRef = useRef(new Set<string>());
+  const dispatchedRunsRef = useRef(new Set<string>());
+  const runOutputsRef = useRef(
+    new Map<
+      string,
+      { variables: Record<string, unknown>; outputs: Record<string, unknown> }
+    >()
+  );
+  const persistenceRef = useRef(persistence);
+  persistenceRef.current = persistence;
+  const settleRun = useCallback(
+    async (
+      invocationId: string,
+      status: "completed" | "failed" | "cancelled",
+      error?: string
+    ): Promise<void> => {
+      const appRunId = appRunsRef.current.get(invocationId);
+      if (!appRunId) {
+        return;
+      }
+      try {
+        await persistenceRef.current.flush();
+        const captured = runOutputsRef.current.get(invocationId);
+        if (!dispatchedRunsRef.current.has(invocationId)) {
+          const update: {
+            status: typeof status;
+            error?: string;
+            outputs?: Record<string, unknown>;
+          } = { status };
+          if (error) {
+            update.error = error;
+          }
+          if (!serverRunsRef.current.has(invocationId) && captured) {
+            update.outputs = {
+              ...captured.variables,
+              __app_outputs: captured.outputs
+            };
+          }
+          await updateAppRun(appRunId, update);
+        }
+        if (serverRunsRef.current.has(invocationId)) {
+          const recorded = await getAppRun(appRunId);
+          if (recorded.status === "running") {
+            return;
+          }
+          await persistenceRef.current.refresh();
+          if (recorded.state_conflict) {
+            throw new Error(
+              "This run finished, but its instance changed while it ran. Reload the instance before running again."
+            );
+          }
+        }
+      } catch (failure) {
+        store.getState().dispatchEvent({
+          type: "invocationError",
+          invocationId,
+          error: failure instanceof Error ? failure.message : String(failure)
+        });
+      }
+    },
+    [store]
+  );
+  useEffect(() => {
+    ownedRef.current.clear();
+    appRunsRef.current.clear();
+    runOutputsRef.current.clear();
+    serverRunsRef.current.clear();
+    dispatchedRunsRef.current.clear();
+    transportIdsRef.current.clear();
+    resourceRefsRef.current.clear();
+    pendingRef.current.clear();
+    for (const timer of timersRef.current.values()) {
+      clearTimeout(timer);
+    }
+    timersRef.current.clear();
+  }, [store]);
   // A logical invocation is reserved before the runner performs any async
   // work. The runner returns its transport job id later, so both ids point at
   // the same invocation while the app folds messages by transport id.
@@ -411,7 +579,7 @@ export const useAppRuntime = (
     (message: MsgpackData) => {
       const events = messageToEvents(message as Record<string, unknown>, {
         resolveInvocation: (jobId) =>
-          jobId ? ownedRef.current.get(jobId) ?? null : null,
+          jobId ? (ownedRef.current.get(jobId) ?? null) : null,
         outputKey: (operationId, nodeId) => {
           const entry = operationRuntimesRef.current.get(operationId);
           return entry?.io.outputs.some((output) => output.nodeId === nodeId)
@@ -428,15 +596,46 @@ export const useAppRuntime = (
         }
       });
       for (const event of events) {
-        store.getState().dispatchEvent(event);
-        if (event.type !== "invocationStatus") continue;
+        const invocationId =
+          "invocationId" in event ? event.invocationId : undefined;
+        const captured = invocationId
+          ? runOutputsRef.current.get(invocationId)
+          : undefined;
+        if (captured && event.type === "outputValue") {
+          captured.outputs[event.key] =
+            event.disposition === "append"
+              ? appendValue(captured.outputs[event.key], event.value)
+              : event.value;
+        }
+        if (captured && event.type === "setVariable") {
+          captured.variables[event.variableId] =
+            event.disposition === "append"
+              ? appendValue(captured.variables[event.variableId], event.value)
+              : event.value;
+        }
+        if (invocationId && serverRunsRef.current.has(invocationId)) {
+          persistenceRef.current.serverFold(() =>
+            store.getState().dispatchEvent(event)
+          );
+        } else {
+          store.getState().dispatchEvent(event);
+        }
+        if (event.type !== "invocationStatus") {
+          continue;
+        }
         const invocation = ownedRef.current.get(event.invocationId);
         if (invocation) invocation.status = event.status;
-        const settled = event.status !== "pending" && event.status !== "running";
-        if (settled) clearTimeoutTimer(event.invocationId);
+        if (
+          event.status === "completed" ||
+          event.status === "failed" ||
+          event.status === "cancelled"
+        ) {
+          clearTimeoutTimer(event.invocationId);
+          void settleRun(event.invocationId, event.status, event.error);
+        }
       }
     },
-    [clearTimeoutTimer, outputKey, store]
+    [clearTimeoutTimer, outputKey, settleRun, store]
   );
   foldRef.current = fold;
 
@@ -450,9 +649,13 @@ export const useAppRuntime = (
     const entry = invocation
       ? operationRuntimesRef.current.get(invocation.operationId)
       : undefined;
-    // A script run is one HTTP request with no job row behind it. It is marked
-    // cancelled in the app's own state; there is nothing on the server to stop.
-    if (entry?.script) return;
+    if (entry?.script) {
+      const appRunId = appRunsRef.current.get(invocationId);
+      if (appRunId) {
+        await updateAppRun(appRunId, { status: "cancelled" });
+      }
+      return;
+    }
     const runner = entry?.runnerStore;
     // The runner only knows how to cancel the run it currently displays;
     // anything else (a queued or parallel sibling) is cancelled by job id.
@@ -482,9 +685,10 @@ export const useAppRuntime = (
         // reservation may not have a provider job id yet, but it still needs
         // to stop looking runnable immediately.
         await stopJob(invocationId);
+        await settleRun(invocationId, "cancelled");
       }
     },
-    [clearTimeoutTimer, stopJob, store]
+    [clearTimeoutTimer, settleRun, stopJob, store]
   );
 
   /**
@@ -539,7 +743,17 @@ export const useAppRuntime = (
       const entry = operationRuntimesRef.current.get(operationId);
       const variableKeys =
         clearOutputs && entry
-          ? outputVariableTargets(entry.operation).map((target) => target.variableId).filter(id => !document?.variables.some(variable => variable.id === id && variable.scope === "user" && variable.persist))
+          ? outputVariableTargets(entry.operation)
+              .map((target) => target.variableId)
+              .filter(
+                (id) =>
+                  !document?.variables.some(
+                    (variable) =>
+                      variable.id === id &&
+                      variable.scope === "user" &&
+                      variable.persist
+                  )
+              )
           : [];
       const invocation: InvocationState = {
         id,
@@ -549,17 +763,20 @@ export const useAppRuntime = (
         variableKeys
       };
       ownedRef.current.set(id, invocation);
-      store.getState().dispatchEvent({
-        type: "runStarted",
-        invocation,
-        outputKeys:
-          clearOutputs && entry
-            ? entry.io.outputs.map((output) =>
-                outputKey(operationId, output.nodeId)
-              )
-            : [],
-        variableKeys
-      });
+      runOutputsRef.current.set(id, { variables: {}, outputs: {} });
+      persistenceRef.current.serverFold(() =>
+        store.getState().dispatchEvent({
+          type: "runStarted",
+          invocation,
+          outputKeys:
+            clearOutputs && entry
+              ? entry.io.outputs.map((output) =>
+                  outputKey(operationId, output.nodeId)
+                )
+              : [],
+          variableKeys
+        })
+      );
       return id;
     },
     [document, outputKey, store]
@@ -590,21 +807,39 @@ export const useAppRuntime = (
             startedAt: now()
           };
       ownedRef.current.set(jobId, invocation);
+      const captured = reservationId
+        ? runOutputsRef.current.get(reservationId)
+        : undefined;
+      runOutputsRef.current.set(
+        jobId,
+        captured ?? { variables: {}, outputs: {} }
+      );
+      if (reservationId && serverRunsRef.current.has(reservationId)) {
+        serverRunsRef.current.add(jobId);
+      }
       transportIdsRef.current.set(jobId, jobId);
       if (reservationId) {
+        const appRunId = appRunsRef.current.get(reservationId);
+        if (appRunId) {
+          appRunsRef.current.set(jobId, appRunId);
+        }
         transportIdsRef.current.set(reservationId, jobId);
         ownedRef.current.set(reservationId, invocation);
-        store.getState().dispatchEvent({
-          type: "runStarted",
-          invocation,
-          outputKeys: [],
-          variableKeys: reserved?.variableKeys ?? []
-        });
-        store.getState().dispatchEvent({
-          type: "invocationAlias",
-          aliasId: reservationId,
-          invocationId: jobId
-        });
+        persistenceRef.current.serverFold(() =>
+          store.getState().dispatchEvent({
+            type: "runStarted",
+            invocation,
+            outputKeys: [],
+            variableKeys: reserved?.variableKeys ?? []
+          })
+        );
+        if (reservationId !== jobId) {
+          store.getState().dispatchEvent({
+            type: "invocationAlias",
+            aliasId: reservationId,
+            invocationId: jobId
+          });
+        }
         // Cancellation may have won the race while the runner was starting.
         // Keep the reservation cancelled and stop the provider job as soon as
         // its id becomes available instead of admitting it as a live run.
@@ -626,7 +861,17 @@ export const useAppRuntime = (
               : [],
           variableKeys:
             clearOutputs && entry
-              ? outputVariableTargets(entry.operation).map((target) => target.variableId).filter(id => !document?.variables.some(variable => variable.id === id && variable.scope === "user" && variable.persist))
+              ? outputVariableTargets(entry.operation)
+                  .map((target) => target.variableId)
+                  .filter(
+                    (id) =>
+                      !document?.variables.some(
+                        (variable) =>
+                          variable.id === id &&
+                          variable.scope === "user" &&
+                          variable.persist
+                      )
+                  )
               : []
         });
       }
@@ -642,6 +887,11 @@ export const useAppRuntime = (
             if (!live || !isLiveInvocation(live)) return;
             live.status = "failed";
             void stopJob(invocation.id);
+            void settleRun(
+              invocation.id,
+              "failed",
+              `"${entry.operation.name}" timed out after ${timeoutMs} ms`
+            );
             store.getState().dispatchEvent({
               type: "invocationStatus",
               invocationId: invocation.id,
@@ -657,7 +907,7 @@ export const useAppRuntime = (
       pendingRef.current.delete(jobId);
       for (const message of buffered) foldRef.current(message);
     },
-    [document, outputKey, stopJob, store]
+    [document, outputKey, settleRun, stopJob, store]
   );
 
   /** Record a run that never started as a failed invocation the app can show. */
@@ -668,6 +918,7 @@ export const useAppRuntime = (
         if (!invocation) return;
         invocation.status = "failed";
         invocation.error = error;
+        void settleRun(reservationId, "failed", error);
         store.getState().dispatchEvent({
           type: "invocationStatus",
           invocationId: reservationId,
@@ -684,11 +935,13 @@ export const useAppRuntime = (
         startedAt: now()
       };
       ownedRef.current.set(failed.id, failed);
-      store
-        .getState()
-        .dispatchEvent({ type: "runStarted", invocation: failed, outputKeys: [] });
+      store.getState().dispatchEvent({
+        type: "runStarted",
+        invocation: failed,
+        outputKeys: []
+      });
     },
-    [store]
+    [settleRun, store]
   );
 
   const workflowIds = useMemo(
@@ -755,7 +1008,9 @@ export const useAppRuntime = (
     const runnerUnsubscribes = [...runners.entries()].map(([key, runner]) => {
       updateJobSubscription(key, runner.getState().job_id);
       return runner.subscribe((state, prev) => {
-        if (state.job_id !== prev.job_id) updateJobSubscription(key, state.job_id);
+        if (state.job_id !== prev.job_id) {
+          updateJobSubscription(key, state.job_id);
+        }
       });
     });
 
@@ -782,56 +1037,117 @@ export const useAppRuntime = (
       }
       const binding = operationTarget(entry.operation);
       const target = entry.workflow;
-      if (binding.kind === "workflow" && !target) {
-        failInvocation(
-          operationId,
-          `"${entry.operation.name}" runs workflow ${binding.workflowId}, which could not be loaded.`
-        );
-        return;
-      }
-      if (binding.kind === "script" && !entry.script) {
-        failInvocation(
-          operationId,
-          `"${entry.operation.name}" runs script ${binding.scriptId}, which could not be loaded.`
-        );
-        return;
-      }
-
       // What a collision with a live run of this operation means: replace it,
       // queue behind it, or start alongside it. The reservation below is
       // created synchronously before the first await, so a second dispatch
       // observes this run even while the provider is still starting.
       const decision = decideRun(store.getState(), entry.operation);
       const state = store.getState();
+      const persistenceHandle = persistenceRef.current;
+      const selectedInstance = persistenceHandle.instance;
+      const selectedResources = new Map(resourceRefsRef.current);
+      const reservationId = reserveInvocation(operationId, true);
+      let appRunId: string | undefined;
+      try {
+        await persistenceHandle.flush();
+        const instance = selectedInstance;
+        if (instance) {
+          appRunId = await reserveAppRun(
+            instance.id,
+            operationId,
+            reservationId
+          );
+          if (currentStoreRef.current !== store) {
+            await updateAppRun(appRunId, { status: "cancelled" });
+            return;
+          }
+          appRunsRef.current.set(reservationId, appRunId);
+          serverRunsRef.current.add(reservationId);
+        }
+      } catch (error) {
+        failInvocation(
+          operationId,
+          error instanceof Error ? error.message : String(error),
+          reservationId
+        );
+        return;
+      }
+      if (binding.kind === "workflow" && !target) {
+        failInvocation(
+          operationId,
+          `"${entry.operation.name}" runs workflow ${binding.workflowId}, which could not be loaded.`,
+          reservationId
+        );
+        return;
+      }
+      if (binding.kind === "script" && !entry.script) {
+        failInvocation(
+          operationId,
+          `"${entry.operation.name}" runs script ${binding.scriptId}, which could not be loaded.`,
+          reservationId
+        );
+        return;
+      }
+
       // Capture the action's inputs before a queue wait. Later widget edits
       // belong to later actions, not to this already-admitted one.
-      const params = resolveOperationParams({
-        operation: entry.operation,
-        state,
-        inputNodeIds: entry.io.inputs.map((input) => input.nodeId),
-        inputName: (nodeId) =>
-          entry.io.inputs.find((input) => input.nodeId === nodeId)?.name,
-        resourceRef: (resourceBindingId) =>
-          resourceRefsRef.current.get(resourceBindingId)
-      });
+      let params: Record<string, unknown>;
+      try {
+        params = resolveOperationParams({
+          operation: entry.operation,
+          state,
+          inputNodeIds: entry.io.inputs.map((input) => input.nodeId),
+          inputName: (nodeId) =>
+            entry.io.inputs.find((input) => input.nodeId === nodeId)?.name,
+          resourceRef: (resourceBindingId) =>
+            selectedResources.get(resourceBindingId)
+        });
+      } catch (error) {
+        failInvocation(
+          operationId,
+          error instanceof Error ? error.message : String(error),
+          reservationId
+        );
+        return;
+      }
       const missingMedia = entry.io.inputs.find((input) =>
         isMissingRequiredMediaValue(input.nodeType, params[input.name])
       );
       if (missingMedia) {
         failInvocation(
           operationId,
-          `Input "${missingMedia.label}" requires a media value before this operation can run.`
+          `Input "${missingMedia.label}" requires a media value before this operation can run.`,
+          reservationId
         );
         return;
       }
-      const reservationId = reserveInvocation(operationId, true);
+      if (appRunId) {
+        try {
+          await updateAppRun(appRunId, { status: "running", inputs: params });
+        } catch (error) {
+          failInvocation(
+            operationId,
+            error instanceof Error ? error.message : String(error),
+            reservationId
+          );
+          return;
+        }
+      }
       if (decision.kind === "replace") {
         await cancelInvocations(decision.cancel);
       } else if (decision.kind === "queue") {
         await awaitSettled(decision.after, entry.operation.timeoutMs);
       }
       const reservation = ownedRef.current.get(reservationId);
-      if (!mountedRef.current || !reservation || !isLiveInvocation(reservation)) {
+      if (
+        currentStoreRef.current !== store ||
+        !mountedRef.current ||
+        !reservation ||
+        !isLiveInvocation(reservation)
+      ) {
+        if (appRunId) {
+          await updateAppRun(appRunId, { status: "cancelled" });
+        }
         return;
       }
 
@@ -843,6 +1159,9 @@ export const useAppRuntime = (
       if (script) {
         const jobId = `jsscript-${script.id}-${now()}`;
         claimInvocation(operationId, jobId, true, reservationId);
+        if (appRunId) {
+          dispatchedRunsRef.current.add(jobId);
+        }
         let result: ScriptRunResult;
         let streamedLive = false;
         try {
@@ -856,13 +1175,23 @@ export const useAppRuntime = (
             inputStreams,
             script.version === 0 ? undefined : script.version,
             (line) => {
+              if (currentStoreRef.current !== store) {
+                return;
+              }
               streamedLive = true;
               for (const message of scriptStreamMessages(line, jobId)) {
                 foldRef.current(message as MsgpackData);
               }
-            }
+            },
+            appRunId
+              ? {
+                  app_run_id: appRunId,
+                  instance_id: persistenceRef.current.instance?.id
+                }
+              : undefined
           );
         } catch (error) {
+          dispatchedRunsRef.current.delete(jobId);
           result = {
             ok: false,
             logs: [],
@@ -872,6 +1201,9 @@ export const useAppRuntime = (
         }
         // Emits that streamed already folded; replaying them would double
         // every appended value.
+        if (currentStoreRef.current !== store) {
+          return;
+        }
         const settled = streamedLive ? { ...result, streamed: [] } : result;
         for (const message of scriptRunMessages(settled, jobId)) {
           foldRef.current(message as MsgpackData);
@@ -894,23 +1226,30 @@ export const useAppRuntime = (
         graphEdgeToReactFlowEdge(edge)
       );
 
+      const runOptions: RunOptions = { application, operationId };
+      if (appRunId) {
+        runOptions.appRunId = appRunId;
+        runOptions.instanceId = selectedInstance?.id;
+        runOptions.invocationId = reservationId;
+      }
       awaitingJobRef.current += 1;
       try {
-        const jobId = await entry.runnerStore
-          .getState()
-          .run(
-            params,
-            target,
-            nodes,
-            edges,
-            undefined,
-            undefined,
-            // A parallel operation asks the server to lift the one-run-per-
-            // workflow limit rather than queue behind the run in flight.
-            entry.operation.policy === "parallel",
-            undefined,
-            { application, operationId }
-          );
+        const jobId = await entry.runnerStore.getState().run(
+          params,
+          target,
+          nodes,
+          edges,
+          undefined,
+          undefined,
+          // A parallel operation asks the server to lift the one-run-per-
+          // workflow limit rather than queue behind the run in flight.
+          entry.operation.policy === "parallel",
+          undefined,
+          runOptions
+        );
+        if (appRunId) {
+          dispatchedRunsRef.current.add(jobId);
+        }
         claimInvocation(operationId, jobId, true, reservationId);
       } catch (error) {
         failInvocation(
@@ -1040,12 +1379,46 @@ export const useAppRuntime = (
         claimInvocation(operationId, reactive.jobId, false);
       }
       const jobId = reactive.jobId;
-      void runBrowserGraphJob({
-        graph: sub.graph,
-        workflowId: target.id,
-        jobId
-      })
+      void (async () => {
+        await persistenceRef.current.flush();
+        const instance = persistenceRef.current.instance;
+        if (instance) {
+          const appRunId = await reserveAppRun(
+            instance.id,
+            operationId,
+            `browser-${crypto.randomUUID()}`
+          );
+          if (currentStoreRef.current !== store) {
+            await updateAppRun(appRunId, { status: "cancelled" });
+            return;
+          }
+          appRunsRef.current.set(jobId, appRunId);
+          runOutputsRef.current.set(jobId, { variables: {}, outputs: {} });
+          await updateAppRun(appRunId, {
+            status: "running",
+            inputs: Object.fromEntries(
+              entry.io.inputs.map((input) => [
+                input.name,
+                store.getState().inputs[
+                  stateKey({ kind: "input", operationId, nodeId: input.nodeId })
+                ]?.value
+              ])
+            )
+          });
+        }
+        await runBrowserGraphJob({
+          graph: sub.graph,
+          workflowId: target.id,
+          jobId
+        });
+        await settleRun(jobId, "completed");
+      })()
         .catch((error) => {
+          void settleRun(
+            jobId,
+            "failed",
+            error instanceof Error ? error.message : "Run failed"
+          );
           store.getState().dispatchEvent({
             type: "invocationError",
             invocationId: jobId,
@@ -1064,7 +1437,7 @@ export const useAppRuntime = (
           }
         });
     },
-    [claimInvocation, designMode, run, store]
+    [claimInvocation, designMode, run, settleRun, store]
   );
   reactiveRunRef.current = reactiveRun;
 
@@ -1074,7 +1447,11 @@ export const useAppRuntime = (
       const dispatchEvent = store.getState().dispatchEvent;
       switch (ref.kind) {
         case "variable":
-          dispatchEvent({ type: "setVariable", variableId: ref.variableId, value });
+          dispatchEvent({
+            type: "setVariable",
+            variableId: ref.variableId,
+            value
+          });
           break;
         case "view":
           dispatchEvent({ type: "setView", key, value });
@@ -1096,7 +1473,11 @@ export const useAppRuntime = (
           // trigger belonging to another operation is not a subgraph of this
           // one, so it runs whole.
           const trigger = resolveBinding(action.from, scope, "write");
-          if (trigger && "operationId" in trigger && trigger.operationId === action.operationId) {
+          if (
+            trigger &&
+            "operationId" in trigger &&
+            trigger.operationId === action.operationId
+          ) {
             reactiveRun(action.operationId, trigger);
           } else {
             void run(action.operationId);
@@ -1117,9 +1498,10 @@ export const useAppRuntime = (
           });
           break;
         case "toggleVariable":
-          store
-            .getState()
-            .dispatchEvent({ type: "toggleVariable", variableId: action.variableId });
+          store.getState().dispatchEvent({
+            type: "toggleVariable",
+            variableId: action.variableId
+          });
           break;
         case "openResource": {
           // Opening a resource in its own editor is the host app's job — the
@@ -1178,8 +1560,8 @@ export const useAppRuntime = (
   // surface, not the host workflow's.
   const ioFor = useCallback(
     (operationId?: string) =>
-      operationRuntimesRef.current.get(operationId ?? defaultOperation.id)?.io ??
-      EMPTY_IO,
+      operationRuntimesRef.current.get(operationId ?? defaultOperation.id)
+        ?.io ?? EMPTY_IO,
     [defaultOperation.id]
   );
 
@@ -1194,6 +1576,11 @@ export const useAppRuntime = (
       theme: document?.theme?.id,
       resources: document?.resources ?? [],
       designMode,
+      document,
+      instanceLoading: persistence.loading,
+      instanceError: persistence.error,
+      instanceId: persistence.instance?.id,
+      reloadInstance: persistence.reload,
       dispatch,
       write,
       selectResource,
@@ -1208,6 +1595,10 @@ export const useAppRuntime = (
       operations,
       document,
       designMode,
+      persistence.loading,
+      persistence.error,
+      persistence.instance?.id,
+      persistence.reload,
       dispatch,
       write,
       selectResource,

@@ -291,7 +291,7 @@ describe("db", () => {
             "SELECT version FROM _nodetool_migrations ORDER BY version DESC LIMIT 1"
           )
           .get()
-      ).toEqual({ version: "20261003_000002" });
+      ).toEqual({ version: "20261004_000000" });
       expect(await migrateSqliteDb(path)).toEqual([]);
     }
   );

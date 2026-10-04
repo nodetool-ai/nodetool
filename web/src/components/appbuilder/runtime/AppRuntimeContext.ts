@@ -15,6 +15,7 @@ import {
   resolveBinding,
   stateKey,
   type AppAction,
+  type ApplicationDocument,
   type BindingMode,
   type BindingRef,
   type BindingScope,
@@ -45,6 +46,11 @@ export interface AppRuntimeContextValue {
   resources: ReadonlyArray<ResourceBinding>;
   /** In the builder's design surface, events are inert (no workflow runs). */
   designMode: boolean;
+  document?: ApplicationDocument;
+  instanceLoading?: boolean;
+  instanceError?: string;
+  instanceId?: string;
+  reloadInstance?: () => Promise<void>;
   dispatch: (action: AppAction) => void;
   /** Write a value through a resolved binding. */
   write: (ref: BindingRef, value: unknown) => void;

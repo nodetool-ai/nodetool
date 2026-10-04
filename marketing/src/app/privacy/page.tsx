@@ -190,6 +190,14 @@ export default function PrivacyPage() {
               Legal basis: Art. 6 (1) (b) GDPR.
             </li>
             <li>
+              <strong>App working copies and run history</strong> — named app
+              instances, their variable state and pinned app definitions, and
+              operation runs with resolved inputs, outputs, document references,
+              status, timing and cost. This lets you resume and inspect your
+              work. Deployed-app visitor runs retain no visitor inputs or
+              outputs. Legal basis: Art. 6 (1) (b) GDPR.
+            </li>
+            <li>
               <strong>Chat and agent memory</strong> — conversation threads and
               the messages in them, including message text, files you attach,
               and the tool calls the agent made. Separately, the agent records
@@ -410,7 +418,12 @@ export default function PrivacyPage() {
               <strong>Run history and workflow version snapshots</strong> —
               removed on the retention schedule configured for your account in
               Settings, which covers autosaved snapshots, older manual versions
-              and finished run records.
+              and finished run records. App-run input and output snapshots expire
+              after the run trace content retention period (30 days by default).
+              Finished records expire under the terminal job retention setting.
+              App instances remain until you delete them or close your account.
+              Deleting run history keeps generated media in your library and
+              preserves only the billing fields needed to enforce app budgets.
             </li>
             <li>
               <strong>Security and activity events</strong> (section 6) — 180

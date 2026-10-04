@@ -174,7 +174,7 @@ it("opens a used app on its own, without the catalog header", async () => {
   expect(await screen.findByText("Using vary-image")).toBeInTheDocument();
   expect(screen.queryByText("Start from an app")).not.toBeInTheDocument();
   expect(screen.queryByText("Vary Image")).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: /product reshoot/i })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: /sku factory/i })).not.toBeInTheDocument();
 
   await user.click(screen.getByRole("button", { name: "All apps" }));
   expect(screen.queryByText("Using vary-image")).not.toBeInTheDocument();
@@ -182,14 +182,15 @@ it("opens a used app on its own, without the catalog header", async () => {
 });
 
 it("installs the opened app from its toolbar", async () => {
+  const app = APPS[1];
   listExampleApps.mockResolvedValue(APPS);
-  installExampleApp.mockResolvedValue({ id: "app-2", name: "Product Reshoot" });
+  installExampleApp.mockResolvedValue({ id: "app-2", name: app.name });
   const user = userEvent.setup();
   renderApps();
-  await user.click(await screen.findByRole("button", { name: /product reshoot/i }));
+  await user.click(await screen.findByRole("button", { name: new RegExp(app.name, "i") }));
   await user.click(screen.getByRole("button", { name: "Install app" }));
 
   await waitFor(() =>
-    expect(installExampleApp).toHaveBeenCalledWith("product-reshoot", "proj-1")
+    expect(installExampleApp).toHaveBeenCalledWith(app.slug, "proj-1")
   );
 });

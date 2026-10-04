@@ -67,3 +67,6 @@ export {
   AppServiceError
 } from "./app-debug-service.js";
 export type { AppDebugDeps, AppDebugRequest } from "./app-debug-service.js";
+
+export { executeAppOperation } from "./app-operation.js";
+export type { ExecuteAppOperationOptions, AppOperationOutcome } from "./app-operation.js";

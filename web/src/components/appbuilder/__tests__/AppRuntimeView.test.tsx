@@ -18,6 +18,10 @@ import {
   workflowInstanceId
 } from "../runtime/appRuntimeStore";
 
+jest.mock("../runtime/useAppInstance", () => ({
+  useAppInstance: () => ({ enabled: false, visitor: false, account: "1", instance: undefined, attach: () => undefined, flush: async () => undefined, serverFold: (apply: () => void) => apply(), refresh: async () => undefined, loading: false })
+}));
+
 const workflow = stub<Workflow>({
   id: "wf-puck-runtime",
   name: "Runtime Test",

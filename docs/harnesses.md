@@ -2443,3 +2443,18 @@ Each line in the file is one span:
 ```
 
 See [packages/agents/AGENTS.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md) for agent architecture, parallel execution, skills, and tuning.
+
+## App runs phase 1
+
+Run the durable-operation check from the repository root:
+
+```bash
+npm run test --workspace=packages/execution -- app-operation app-run-generation
+```
+
+The fixtures open a server-owned app run before execution, propagate its
+identity to child work, fold its outputs into revisioned instance state, and
+read its generation attachment back from the database. They also check
+transport retries, failed preparation, cancellation, and stale state writes.
+The `app-runs` entry in the [harness registry](../packages/cli/src/harness/registry.ts)
+selects this check for instance, run, and app-runtime changes.

@@ -526,6 +526,11 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "Revision history of those timelines. Deleted explicitly for the same reason as the other version tables: the cascade is not guaranteed on a SQLite connection."
   },
 
+  {
+    table:"app_instances",schemaExport:"appInstances",disposition:"delete",
+    reach:{kind:"direct",column:"user_id"},exported:true,
+    justification:"Owner working copies of mini apps with immutable execution snapshots and variable state. Erased with the account and exported to the owner."
+  },
   // ── Published applications ─────────────────────────────────────────
 
   {

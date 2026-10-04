@@ -267,6 +267,25 @@ does.
    wired that way. Streamed text builds up; streamed items collect into a list.
    Clicking Run again starts fresh instead of appending to the last result.
 
+### Saved working state
+
+Opening an app loads its server-owned default instance. Widget inputs, variable
+state and terminal outputs survive a reload and follow the authenticated
+account between browsers. Existing local variable caches are imported when the
+default instance is first created. An existing server instance wins over a
+browser cache.
+
+Each operation reserves a durable app run before collecting its inputs. The
+run stores its inputs, outputs, outcome and child generation attachments. It
+executes the definition pinned by its instance. Revision checks prevent a
+stale browser or delayed run from overwriting newer working state. A conflict
+keeps the run's outputs and asks you to reload the instance.
+
+Deployed-app visitors keep local working state. Their server runs retain no
+visitor inputs or outputs. The instance switcher and history views are planned
+for a later phase. See [App runs](app-runs-design.md#phase-1-contracts) for the
+persistence and API contracts.
+
 ### Showing that something is happening
 
 Every operation exposes four things a widget can display, so an app over a slow

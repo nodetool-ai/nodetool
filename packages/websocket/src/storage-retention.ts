@@ -12,6 +12,7 @@ const KEYS = {
   manualVersionRetentionDays: "storage.retention.manualVersionRetentionDays",
   terminalJobRetentionDays: "storage.retention.terminalJobRetentionDays",
   runEventRetentionDays: "storage.retention.runEventRetentionDays",
+  runTraceRetentionDays: "storage.retention.runTraceRetentionDays",
   predictionRetentionDays: "storage.retention.predictionRetentionDays",
   automaticCleanup: "storage.retention.automaticCleanup",
   lastCleanupAt: "storage.retention.lastCleanupAt"
@@ -73,6 +74,12 @@ export async function getStorageRetentionSettings(userId: string): Promise<{
       predictionRetentionDays: boundedInteger(
         values.get(KEYS.predictionRetentionDays),
         DEFAULT_STORAGE_RETENTION_POLICY.predictionRetentionDays ?? 400,
+        1,
+        3650
+      ),
+      runTraceRetentionDays: boundedInteger(
+        values.get(KEYS.runTraceRetentionDays),
+        DEFAULT_STORAGE_RETENTION_POLICY.runTraceRetentionDays ?? 30,
         1,
         3650
       ),

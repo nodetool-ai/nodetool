@@ -95,14 +95,20 @@ export async function readScriptRunBody(
   return result;
 }
 
+export interface ScriptAppRunContext {
+  app_run_id: string;
+  instance_id?: string;
+}
+
 export async function runJsScript(
   scriptId: string,
   inputs: Record<string, unknown>,
   inputStreams?: Record<string, unknown[]>,
   scriptVersion?: number,
-  onLine?: ScriptStreamListener
+  onLine?: ScriptStreamListener,
+  appRun?: ScriptAppRunContext
 ): Promise<JsScriptRunOutcome> {
-  const request: RunJsScriptRequest = { inputs };
+  const request: RunJsScriptRequest & Partial<ScriptAppRunContext> = { inputs, ...appRun };
   if (inputStreams) {
     request.input_streams = inputStreams;
   }

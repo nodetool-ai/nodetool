@@ -150,6 +150,15 @@ describe("WorkflowRunner", () => {
     expect(request.graph.edges).toEqual([]);
   });
 
+  it("keeps the app run identity on the workflow transport boundary", () => {
+    const request = buildRunJobData({
+      jobId: "reserved-invocation", jobName: "App operation", params: {},
+      workflow: testWorkflow, nodes: [], edges: [], authToken: "token", userId: "user",
+      appRunId: "full-run-id", instanceId: "full-instance-id", operationId: "main"
+    });
+    expect(request).toMatchObject({ job_id: "reserved-invocation", app_run_id: "full-run-id", instance_id: "full-instance-id", operation_id: "main" });
+  });
+
   describe("initial state", () => {
     it("initializes with default values", () => {
       const state = store.getState();

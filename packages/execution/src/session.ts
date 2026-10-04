@@ -12,6 +12,7 @@ import {
 import {
   PERMISSION_GATE_CONTEXT_KEY,
   ProcessingContext,
+  inAppRunCostAccount,
   connectPythonBridgeForGraph,
   headlessGate
 } from "@nodetool-ai/runtime";
@@ -83,6 +84,7 @@ export class ExecutionSession {
     const detachLedger = init.recordCosts
       ? attachRunCostLedger(init.context, {
           userId: init.userId,
+          appRunContext: init.context.appRunContext ?? undefined,
           workflowId: init.workflowId,
           projectId: init.projectId ?? null,
           documentId: init.documentId ?? null,
@@ -125,7 +127,7 @@ export class ExecutionSession {
     }
 
     this.resultPromise = Promise.resolve()
-      .then(() => init.runner.run(runRequest, init.graph))
+      .then(() => inAppRunCostAccount(init.context.appRunCostAccount, () => init.runner.run(runRequest, init.graph)))
       .then(
         (result) => {
           void init.lifecycle?.jobEnd({
@@ -150,6 +152,7 @@ export class ExecutionSession {
         try {
           init.closeBridge();
         } finally {
+          await detachLedger?.settled();
           detachLedger?.();
           this.stream?.close();
           await cleanupWorkspace(init.context, this.jobId);

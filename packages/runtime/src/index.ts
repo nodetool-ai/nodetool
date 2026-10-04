@@ -367,3 +367,6 @@ export type {
   PermissionMode,
   RequestApproval
 } from "./permission-gate.js";
+
+export { inAppRunCostAccount } from "./run-context.js";
+export type { AppRunContext, AppRunCostAccount, AppRunDocumentRef } from "./run-context.js";

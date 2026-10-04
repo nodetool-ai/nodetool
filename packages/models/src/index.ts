@@ -557,3 +557,5 @@ export { commitFinishedStoryboard, findFinishResourceIds } from "./finish-storyb
 
 export { storyboards } from "./schema/storyboards.js";
 export { assertStoryboardClipGenerationAllowed } from "./storyboard-generation-policy.js";
+
+export * from "./app-instance.js";

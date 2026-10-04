@@ -1040,6 +1040,8 @@ export interface RunJobRequest {
    * job and settles the ledger when it finishes.
    */
   application_id?: string | null;
+  app_run_id?: string;
+  instance_id?: string;
   /** Released version the run executes against; absent for a draft run. */
   application_version?: number | null;
   /**

@@ -380,8 +380,8 @@ describe("the shipped artifact", () => {
     const result = (await findModelOver({
       fal_ai: new FakeImageProvider("fal_ai" as ProviderId, [
         {
-          id: "fal-ai/flux/schnell",
-          name: "Flux Schnell",
+          id: "nodetool-test:unranked-image",
+          name: "Unranked image fixture",
           provider: "fal_ai"
         } as ImageModel
       ])

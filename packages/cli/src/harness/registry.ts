@@ -325,6 +325,18 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "app-runs",
+    title: "Durable app operation and generation attachment check",
+    command: "npm run test --workspace=packages/execution -- app-operation app-run-generation",
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § App runs phase 1",
+    selfcheck: {
+      command: "npm run test --workspace=packages/execution -- app-operation app-run-generation",
+      cost: "cheap"
+    }
+  },
+  {
     id: "app-debug",
     title: "Mini-app debug harness",
     command: "nodetool app debug <id|bundle.json> [--interact ... --no-run]",
@@ -1185,6 +1197,23 @@ export const SURFACES: SurfaceEntry[] = [
       "web/tests/journeys/native-game3d-editor.spec.ts",
       "web/src/components/workspace/GameSurface.tsx",
       "web/src/components/projects/NewProjectSurface.tsx"
+    ]
+  },
+  {
+    id: "app-runs",
+    title: "App instances and durable operation runs",
+    harnesses: ["app-runs"],
+    paths: [
+      "packages/models/src/app-instance.ts",
+      "packages/models/src/migrations/versions.ts",
+      "packages/protocol/src/api-schemas/app-runs.ts",
+      "packages/execution/src/service/app-operation.ts",
+      "packages/execution/src/app-run-generation.ts",
+      "packages/websocket/src/lib/app-instances-service.ts",
+      "packages/websocket/src/routes/app-runs.ts",
+      "packages/websocket/src/trpc/routers/app-instances.ts",
+      "packages/websocket/src/trpc/routers/app-runs.ts",
+      "web/src/components/appbuilder/runtime/"
     ]
   },
   {

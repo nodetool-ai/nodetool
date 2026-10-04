@@ -33,6 +33,7 @@ import {
   applications,
   applicationVersions
 } from "./schema/applications.js";
+import { appInstances } from "./schema/app-instances.js";
 import { applicationDeployments } from "./schema/application-deployments.js";
 import {
   applicationBudgets,
@@ -288,6 +289,7 @@ export class Application extends DBModel {
     const id = this.id;
 
     const statements = (tx: DbTransaction): unknown[] => [
+      tx.delete(appInstances).where(eq(appInstances.application_id,id)),
       tx
         .delete(applicationVersions)
         .where(eq(applicationVersions.application_id, id)),

@@ -33,6 +33,8 @@ import { sketchRouter } from "./routers/sketch.js";
 import { gamesRouter } from "./routers/games.js";
 import { storyboardsRouter } from "./routers/storyboards.js";
 import { skillsRouter } from "./routers/skills.js";
+import { appInstancesRouter } from "./routers/app-instances.js";
+import { appRunsRouter } from "./routers/app-runs.js";
 import { applicationsRouter } from "./routers/applications.js";
 import { resourcesRouter } from "./routers/resources.js";
 import { timelineRouter } from "./routers/timeline.js";
@@ -75,6 +77,8 @@ export const appRouter = router({
   storyboards: storyboardsRouter,
   skills: skillsRouter,
   applications: applicationsRouter,
+  appInstances: appInstancesRouter,
+  appRuns: appRunsRouter,
   resources: resourcesRouter,
   storage: storageRouter,
   threads: threadsRouter,

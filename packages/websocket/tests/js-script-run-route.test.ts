@@ -16,6 +16,11 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import {
   Asset,
+  createAppInstance,
+  reserveAppRun,
+  deleteAppRun,
+  getAppRun,
+  getAppInstance,
   JsScript,
   JsScriptVersion,
   ModelObserver,
@@ -32,6 +37,7 @@ import {
 
 import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import jsScriptsRoutes from "../src/routes/js-scripts.js";
+import { cancelAppRun } from "../src/lib/app-run-cancellation.js";
 
 const USER_ID = "user-1";
 
@@ -45,7 +51,10 @@ async function buildServer(
   app.addHook("onRequest", async (req) => {
     req.userId = userId;
   });
-  await app.register(jsScriptsRoutes, { apiOptions: { exampleAppsDir }, storage });
+  await app.register(jsScriptsRoutes, {
+    apiOptions: { exampleAppsDir },
+    storage
+  });
   await app.ready();
   return app;
 }
@@ -75,24 +84,322 @@ describe("POST /api/js-scripts/:id/run", () => {
     app = null;
   });
 
+  it("executes the reserved snapshot and settles instance state before replying", async () => {
+    const script = await seedScript({
+      code: 'await output("greeting", `hi ${inputs.who}`);',
+      inputs: [{ name: "who", type: "str" }],
+      outputs: [{ name: "greeting", type: "str" }]
+    });
+    const document = createEmptyDocument();
+    document.variables = [
+      { id: "answer", name: "Answer", scope: "instance", persist: true }
+    ];
+    document.operations = [
+      {
+        id: "greet",
+        name: "Greet",
+        workflowId: "",
+        target: { kind: "script", scriptId: script.id, scriptVersion: 1 },
+        inputs: { who: { from: "constant", value: "pinned" } },
+        outputs: { greeting: { to: "variable", variableId: "answer" } },
+        policy: "parallel"
+      }
+    ];
+    const instance = await createAppInstance({
+      userId: USER_ID,
+      sourceId: "fixture",
+      snapshot: {
+        document,
+        workflow_graphs: {},
+        script_documents: { [script.id]: script.toDocument() }
+      }
+    });
+    const reservation = await reserveAppRun({
+      userId: USER_ID,
+      instanceId: instance.id,
+      operationId: "greet",
+      invocationId: "request",
+      origin: "ui"
+    });
+    if (!reservation.allowed) {
+      throw new Error("Fixture reservation failed");
+    }
+    await script.update({
+      document: JSON.stringify({
+        ...script.toDocument(),
+        code: 'await output("greeting", "changed head");'
+      })
+    });
+    app = await buildServer(USER_ID);
+    const payload = {
+      app_run_id: reservation.run.id.slice(0, 12),
+      instance_id: instance.id.slice(0, 12),
+      inputs: { who: "untrusted override" }
+    };
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload
+    });
+    expect(response.statusCode).toBe(200);
+    expect(response.json()).toMatchObject({
+      ok: true,
+      outputs: { greeting: "hi pinned" }
+    });
+    expect(await getAppRun(USER_ID, reservation.run.id)).toMatchObject({
+      status: "completed",
+      inputs: { who: "pinned" },
+      outputs: {
+        answer: "hi pinned",
+        __app_outputs: { "greet:greeting": "hi pinned" }
+      }
+    });
+    expect((await getAppInstance(USER_ID, instance.id))?.variables.answer).toBe(
+      "hi pinned"
+    );
+    const retry = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload
+    });
+    expect(retry.json()).toMatchObject({
+      ok: true,
+      outputs: { greeting: "hi pinned" }
+    });
+  });
+
+  it("preserves completed script output when the run is deleted during execution", async () => {
+    const script = await seedScript({
+      code: 'await output("image", await image.toAsset(new Uint8Array([1,2,3]), {mimeType:"image/png"}));',
+      outputs: [{ name: "image", type: "image" }]
+    });
+    const document = createEmptyDocument();
+    document.operations = [
+      {
+        id: "generate",
+        name: "Generate",
+        workflowId: "",
+        target: { kind: "script", scriptId: script.id, scriptVersion: 1 },
+        inputs: {},
+        outputs: {},
+        policy: "parallel"
+      }
+    ];
+    const instance = await createAppInstance({
+      userId: USER_ID,
+      sourceId: "deleted-fixture",
+      snapshot: {
+        document,
+        workflow_graphs: {},
+        script_documents: { [script.id]: script.toDocument() }
+      }
+    });
+    const reservation = await reserveAppRun({
+      userId: USER_ID,
+      instanceId: instance.id,
+      operationId: "generate",
+      invocationId: "request",
+      origin: "ui"
+    });
+    if (!reservation.allowed) {
+      throw new Error("Fixture reservation failed");
+    }
+    setDefaultModelInterfaces({
+      createAsset: async () => {
+        await deleteAppRun(USER_ID, reservation.run.id);
+        return { id: "retained-image" };
+      }
+    });
+    app = await buildServer(USER_ID);
+    const result = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: {
+        app_run_id: reservation.run.id,
+        instance_id: instance.id,
+        inputs: {}
+      }
+    });
+    expect(result.statusCode).toBe(200);
+    expect(result.json()).toMatchObject({
+      ok: true,
+      outputs: { image: { asset_id: "retained-image" } }
+    });
+    expect(await getAppRun(USER_ID, reservation.run.id)).toBeNull();
+  });
+
+  it("cancels explicit owner requests and settles the authoritative run outcome", async () => {
+    const script = await seedScript({
+      code: 'for (let i=0;i<5;i++) { await sleep(5000); } await output("result", "late");',
+      outputs: [{ name: "result", type: "str" }]
+    });
+    const document = createEmptyDocument();
+    document.operations = [
+      {
+        id: "wait",
+        name: "Wait",
+        workflowId: "",
+        target: { kind: "script", scriptId: script.id, scriptVersion: 1 },
+        inputs: {},
+        outputs: {},
+        policy: "parallel"
+      }
+    ];
+    const instance = await createAppInstance({
+      userId: USER_ID,
+      sourceId: "cancel-fixture",
+      snapshot: {
+        document,
+        workflow_graphs: {},
+        script_documents: { [script.id]: script.toDocument() }
+      }
+    });
+    const reservation = await reserveAppRun({
+      userId: USER_ID,
+      instanceId: instance.id,
+      operationId: "wait",
+      invocationId: "cancel",
+      origin: "ui"
+    });
+    if (!reservation.allowed) {
+      throw new Error("Fixture reservation failed");
+    }
+    app = await buildServer(USER_ID);
+    const execution = app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: {
+        app_run_id: reservation.run.id,
+        instance_id: instance.id,
+        inputs: {}
+      }
+    });
+    expect(cancelAppRun("foreign", reservation.run.id)).toBe(false);
+    await vi.waitFor(() => {
+      expect(cancelAppRun(USER_ID, reservation.run.id)).toBe(true);
+    });
+    const response = await execution;
+    expect(response.statusCode).toBe(200);
+    expect(response.json().ok).toBe(false);
+    expect((await getAppRun(USER_ID, reservation.run.id))?.status).toBe(
+      "cancelled"
+    );
+    expect(cancelAppRun(USER_ID, reservation.run.id)).toBe(false);
+  });
+
+  it("refuses foreign and mismatched app runs and records output-contract failures", async () => {
+    const script = await seedScript({
+      code: "return 1;",
+      inputs: [],
+      outputs: [{ name: "result", type: "int" }]
+    });
+    const document = createEmptyDocument();
+    document.operations = [
+      {
+        id: "broken",
+        name: "Broken",
+        workflowId: "",
+        target: { kind: "script", scriptId: script.id, scriptVersion: 1 },
+        inputs: {},
+        outputs: {},
+        policy: "parallel"
+      }
+    ];
+    const instance = await createAppInstance({
+      userId: USER_ID,
+      sourceId: "fixture",
+      snapshot: {
+        document,
+        workflow_graphs: {},
+        script_documents: { [script.id]: script.toDocument() }
+      }
+    });
+    const reservation = await reserveAppRun({
+      userId: USER_ID,
+      instanceId: instance.id,
+      operationId: "broken",
+      invocationId: "request",
+      origin: "ui"
+    });
+    if (!reservation.allowed) {
+      throw new Error("Fixture reservation failed");
+    }
+    const payload = {
+      app_run_id: reservation.run.id,
+      instance_id: instance.id,
+      inputs: {}
+    };
+    app = await buildServer("foreign");
+    const foreign = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload
+    });
+    expect(foreign.statusCode).toBe(404);
+    await app.close();
+    app = await buildServer(USER_ID);
+    const mismatch = await app.inject({
+      method: "POST",
+      url: "/api/js-scripts/another-script/run",
+      payload
+    });
+    expect(mismatch.statusCode).toBe(400);
+    expect((await getAppRun(USER_ID, reservation.run.id))?.status).toBe(
+      "running"
+    );
+    const result = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload
+    });
+    expect(result.json().ok).toBe(false);
+    expect((await getAppRun(USER_ID, reservation.run.id))?.status).toBe(
+      "failed"
+    );
+  });
+
   it("runs a bundled example script without installing it and rejects unshipped keys", async () => {
     const dir = await mkdtemp(join(tmpdir(), "nodetool-example-script-"));
     try {
-      await writeFile(join(dir, "greeter.app.json"), JSON.stringify({
-        schemaVersion: 1, name: "Greeter", description: "A test app", app: createEmptyDocument(), workflows: [],
-        scripts: [{ key: "greet", name: "Greet", document: {
-          ...emptyJsScriptDocument(), code: "await output('greeting', `hi ${inputs.who}`);",
-          inputs: [{ name: "who", type: "str" }], outputs: [{ name: "greeting", type: "str" }]
-        } }]
-      }));
+      await writeFile(
+        join(dir, "greeter.app.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          name: "Greeter",
+          description: "A test app",
+          app: createEmptyDocument(),
+          workflows: [],
+          scripts: [
+            {
+              key: "greet",
+              name: "Greet",
+              document: {
+                ...emptyJsScriptDocument(),
+                code: "await output('greeting', `hi ${inputs.who}`);",
+                inputs: [{ name: "who", type: "str" }],
+                outputs: [{ name: "greeting", type: "str" }]
+              }
+            }
+          ]
+        })
+      );
       app = await buildServer(USER_ID, undefined, dir);
-      const response = await app.inject({ method: "POST",
-        url: "/api/applications/examples/greeter/scripts/greet/run", payload: { inputs: { who: "world" } } });
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/applications/examples/greeter/scripts/greet/run",
+        payload: { inputs: { who: "world" } }
+      });
       expect(response.statusCode).toBe(200);
-      expect(response.json()).toMatchObject({ ok: true, outputs: { greeting: "hi world" } });
+      expect(response.json()).toMatchObject({
+        ok: true,
+        outputs: { greeting: "hi world" }
+      });
       expect(await JsScript.listByUser(USER_ID)).toEqual([]);
-      const missing = await app.inject({ method: "POST",
-        url: "/api/applications/examples/greeter/scripts/missing/run", payload: {} });
+      const missing = await app.inject({
+        method: "POST",
+        url: "/api/applications/examples/greeter/scripts/missing/run",
+        payload: {}
+      });
       expect(missing.statusCode).toBe(404);
     } finally {
       await rm(dir, { recursive: true, force: true });
@@ -109,18 +416,37 @@ describe("POST /api/js-scripts/:id/run", () => {
         parent_id: USER_ID,
         project_id: `personal:${USER_ID}`
       });
-      await writeFile(join(dir, "reader.app.json"), JSON.stringify({
-        schemaVersion: 1, name: "Reader", description: "A test app", app: createEmptyDocument(), workflows: [],
-        scripts: [{ key: "read", name: "Read", document: {
-          ...emptyJsScriptDocument(),
-          code: 'import { get_asset } from "@nodetool-ai/sandbox-nodetool/assets";\nconst found = await get_asset({ asset_id: inputs.id });\nawait output("name", found.name ?? found.error);',
-          inputs: [{ name: "id", type: "str" }], outputs: [{ name: "name", type: "str" }]
-        } }]
-      }));
+      await writeFile(
+        join(dir, "reader.app.json"),
+        JSON.stringify({
+          schemaVersion: 1,
+          name: "Reader",
+          description: "A test app",
+          app: createEmptyDocument(),
+          workflows: [],
+          scripts: [
+            {
+              key: "read",
+              name: "Read",
+              document: {
+                ...emptyJsScriptDocument(),
+                code: 'import { get_asset } from "@nodetool-ai/sandbox-nodetool/assets";\nconst found = await get_asset({ asset_id: inputs.id });\nawait output("name", found.name ?? found.error);',
+                inputs: [{ name: "id", type: "str" }],
+                outputs: [{ name: "name", type: "str" }]
+              }
+            }
+          ]
+        })
+      );
       app = await buildServer(USER_ID, undefined, dir);
-      const response = await app.inject({ method: "POST",
-        url: "/api/applications/examples/reader/scripts/read/run", payload: { inputs: { id: asset.id } } });
-      expect(response.json()).toMatchObject({ outputs: { name: "product.png" } });
+      const response = await app.inject({
+        method: "POST",
+        url: "/api/applications/examples/reader/scripts/read/run",
+        payload: { inputs: { id: asset.id } }
+      });
+      expect(response.json()).toMatchObject({
+        outputs: { name: "product.png" }
+      });
     } finally {
       await rm(dir, { recursive: true, force: true });
     }
@@ -177,7 +503,14 @@ describe("POST /api/js-scripts/:id/run", () => {
     // One scripted turn that calls a tool, then one that answers.
     const turns: ProviderStreamItem[][] = [
       [{ id: "call-1", name: "list_skills", args: {} }],
-      [{ type: "chunk", content: "Two skills.", content_type: "text", done: false }]
+      [
+        {
+          type: "chunk",
+          content: "Two skills.",
+          content_type: "text",
+          done: false
+        }
+      ]
     ];
     class ScriptedProvider extends BaseProvider {
       constructor() {
@@ -198,7 +531,10 @@ describe("POST /api/js-scripts/:id/run", () => {
 await emit("status", "starting");
 const answer = await run_agent({prompt: "Count skills.", model: {provider: "scripted", id: "m"}, tools: ["list_skills"], label: "counter"});
 await output("answer", answer.text);`,
-      outputs: [{ name: "answer", type: "str" }, { name: "status", type: "str" }]
+      outputs: [
+        { name: "answer", type: "str" },
+        { name: "status", type: "str" }
+      ]
     });
     app = await buildServer(USER_ID);
 
@@ -227,7 +563,10 @@ await output("answer", answer.text);`,
       "message:chunk",
       "result"
     ]);
-    expect(lines[1].message).toMatchObject({ node_id: "counter", name: "list_skills" });
+    expect(lines[1].message).toMatchObject({
+      node_id: "counter",
+      name: "list_skills"
+    });
     expect(lines[4].result).toMatchObject({
       ok: true,
       outputs: { answer: "Two skills." },

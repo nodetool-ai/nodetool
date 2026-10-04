@@ -21,6 +21,8 @@ import {
   Box,
   CloseButton,
   SPACING,
+  LoadingSpinner,
+  EditorButton,
   Z_INDEX
 } from "../ui_primitives";
 
@@ -35,6 +37,7 @@ interface AppRuntimeViewProps {
   document?: ApplicationDocument;
   /** The application record this app belongs to (budget + release metering). */
   application?: { id: string; version?: number };
+  instanceId?: string;
   /**
    * Workflow graphs the caller already has, by id — the graphs a release
    * pinned. An operation whose workflow is here runs that exact graph.
@@ -130,6 +133,7 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
   data,
   document,
   application,
+  instanceId,
   workflowOverrides,
   scriptOverrides,
   scriptRunner
@@ -137,10 +141,35 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
   const runtime = useAppRuntime(workflow, false, {
     document,
     application,
+    instanceId,
     workflowOverrides,
     scriptOverrides,
     scriptRunner
   });
+  if (runtime.instanceLoading)
+    return <LoadingSpinner text="Loading instance" />;
+  if (runtime.instanceError)
+    return (
+      <AlertBanner
+        severity="error"
+        action={
+          <>
+            <EditorButton onClick={() => void runtime.reloadInstance?.()}>
+              Reload instance
+            </EditorButton>
+            <ReportBugButton
+              context={{
+                source: "operation-failure",
+                summary: "App instance could not be saved",
+                errorText: runtime.instanceError
+              }}
+            />
+          </>
+        }
+      >
+        {runtime.instanceError}
+      </AlertBanner>
+    );
   return (
     <AppRuntimeContext.Provider value={runtime}>
       <Box
@@ -149,7 +178,13 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
         sx={{ width: "100%", height: "100%", overflow: "auto" }}
       >
         <RuntimeErrorBanner />
-        <Render config={appConfig} data={data} />
+        {/* The parser validates Puck data while leaving widget-specific props opaque. */}
+        <Render
+          config={appConfig}
+          data={
+            runtime.document ? (runtime.document.ui as unknown as Data) : data
+          }
+        />
       </Box>
     </AppRuntimeContext.Provider>
   );

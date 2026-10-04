@@ -49,3 +49,4 @@ export { generationAttempts } from "./generation-attempts.js";
 export { generationWebhookDeliveries } from "./generation-webhook-deliveries.js";
 export { generationOutputs } from "./generation-outputs.js";
 export { generationAttachments } from "./generation-attachments.js";
+export * from "./app-instances.js";

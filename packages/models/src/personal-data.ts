@@ -59,6 +59,7 @@ import {
   applicationInvocations
 } from "./schema/application-budgets.js";
 import { applicationDeployments } from "./schema/application-deployments.js";
+import { appInstances } from "./schema/app-instances.js";
 import { applications, applicationVersions } from "./schema/applications.js";
 import { assets } from "./schema/assets.js";
 import { creditLedger, userSubscriptions } from "./schema/credits.js";
@@ -380,6 +381,7 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
   ),
 
   // Applications: children first, the app itself last.
+  directStep("app_instances",appInstances,appInstances.user_id),
   indirectStep(
     "application_budgets",
     applicationBudgets,
@@ -764,6 +766,7 @@ function indirectExport(
  * the subject's own id only.
  */
 export const EXPORT_HANDLERS: Readonly<Record<string, ExportHandler>> = {
+  app_instances:directExport(appInstances,appInstances.user_id),
   access_tokens: directExport(accessTokens, accessTokens.user_id),
   application_budgets: indirectExport(
     applicationBudgets,

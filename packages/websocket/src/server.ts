@@ -176,6 +176,7 @@ import {
 import filesRoutes from "./routes/files.js";
 import collectionsRoutes from "./routes/collections.js";
 import applicationsRoutes from "./routes/applications.js";
+import appRunsRoutes from "./routes/app-runs.js";
 import publicAppRoutes from "./routes/public-apps.js";
 import { appDeploymentsEnabled } from "./lib/app-deployment-service.js";
 import accountRoutes from "./routes/account.js";
@@ -1642,7 +1643,8 @@ initWorkspaceStorage();
 initWorkspaceChangeEvents();
 await app.register(filesRoutes, routeOpts);
 await app.register(collectionsRoutes, routeOpts);
-await app.register(applicationsRoutes, routeOpts);
+await app.register(appRunsRoutes);
+  await app.register(applicationsRoutes, routeOpts);
 await app.register(publicAppRoutes, { appSessionSigningKey });
 await app.register(jsScriptsRoutes, routeOpts);
 await app.register(timelineAnimationRoutes, routeOpts);

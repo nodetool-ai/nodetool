@@ -96,6 +96,42 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Revoking a connected client's grant is denial of service against the " +
       "user's own tooling, same rule as revokeToken."
   },
+  "appInstances.create": {
+    gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
+  },
+  "appInstances.delete": {
+    gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
+  },
+  "appInstances.duplicate": {
+    gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
+  },
+  "appInstances.ensureDefault": {
+    gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
+  },
+  "appInstances.get": {
+    gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
+  },
+  "appInstances.list": {
+    gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
+  },
+  "appInstances.update": {
+    gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
+  },
+  "appRuns.get": {
+    gap: "Owner run records are available through the app API. The shared runs read capabilities are scheduled for phase 3."
+  },
+  "appRuns.list": {
+    gap: "Owner run records are available through the app API. The shared runs read capabilities are scheduled for phase 3."
+  },
+  "appRuns.delete": {
+    gap: "Run history deletion is available to the owner UI. No sandbox capability for deleting history is exposed."
+  },
+  "appRuns.reserve": {
+    withheld: "The app UI and execution host own run admission and settlement. Sandboxed work must not reserve or rewrite its own recorded outcome."
+  },
+  "appRuns.update": {
+    withheld: "The app UI and execution host own run admission and settlement. Sandboxed work must not reserve or rewrite its own recorded outcome."
+  },
   "applications.beginInvocation": {
     withheld:
       "Spend governance. A run that could raise its own ceiling is " +
@@ -543,6 +579,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Model management writes to host disk and pulls gigabytes from " +
       "a third party. A run that could start or delete a download " +
       "could fill the disk or remove a model other runs depend on."
+  },
+  "models.rankedKeys": {
+    elsewhere: "find_model uses model rankings to select candidates. This provider:model_id key list serves the browser catalogue filter."
   },
   "models.recommended": {
     elsewhere:

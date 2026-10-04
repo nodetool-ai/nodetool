@@ -11,6 +11,11 @@ import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
 
 import type { Workflow } from "../../../../stores/ApiTypes";
 
+// These tests exercise reducer/transport semantics independently of persistence.
+jest.mock("../useAppInstance", () => ({
+  useAppInstance: () => ({ enabled: false, visitor: false, account: "1", instance: undefined, attach: () => undefined, flush: async () => undefined, serverFold: (apply: () => void) => apply(), refresh: async () => undefined, loading: false })
+}));
+
 const fetchWorkflow = jest.fn();
 
 jest.mock("../../../../contexts/WorkflowManagerContext", () => ({
@@ -355,6 +360,7 @@ describe("useAppRuntime — run policy", () => {
     await act(async () => {
       result.current.dispatch({ kind: "run", operationId: "main" });
     });
+    await waitFor(() => expect(runnerState("wf-a").run).toHaveBeenCalled());
     const first = await runnerState("wf-a").run.mock.results[0].value;
     runnerState("wf-a").job_id = first;
 
@@ -374,6 +380,7 @@ describe("useAppRuntime — run policy", () => {
     await act(async () => {
       result.current.dispatch({ kind: "run", operationId: "main" });
     });
+    await waitFor(() => expect(runnerState("wf-a").run).toHaveBeenCalled());
     const first = await runnerState("wf-a").run.mock.results[0].value;
 
     act(() => {
@@ -402,6 +409,7 @@ describe("useAppRuntime — run policy", () => {
       });
       result.current.dispatch({ kind: "run", operationId: "main" });
     });
+    await waitFor(() => expect(runnerState("wf-a").run).toHaveBeenCalled());
     const first = await runnerState("wf-a").run.mock.results[0].value;
 
     act(() => {
@@ -784,6 +792,7 @@ describe("useAppRuntime — queued runs", () => {
     await act(async () => {
       result.current.dispatch({ kind: "run", operationId: "main" });
     });
+    await waitFor(() => expect(runnerState("wf-a").run).toHaveBeenCalled());
     const first = await runnerState("wf-a").run.mock.results[0].value;
 
     act(() => {
@@ -874,7 +883,7 @@ describe("useAppRuntime — script operations", () => {
       await result.current.dispatch({ kind: "run", operationId: "main" });
     });
     expect(getScript).not.toHaveBeenCalled();
-    expect(bundledRunner).toHaveBeenCalledWith("script-1", { a: 3 }, undefined, 1, expect.any(Function));
+    expect(bundledRunner).toHaveBeenCalledWith("script-1", { a: 3 }, undefined, 1, expect.any(Function), undefined);
     expect(runJsScript).not.toHaveBeenCalled();
     await waitFor(() => expect(result.current.store.getState().variables.total).toBe(4));
   });

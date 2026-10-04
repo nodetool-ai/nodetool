@@ -1,3 +1,4 @@
+import { recordAppRunLlmCost } from "./run-context.js";
 /**
  * Helpers for wrapping agent / workflow / node code in OpenTelemetry spans.
  *
@@ -98,6 +99,7 @@ export function setLastUsage(usage: LlmUsage): void {
   // made outside a capture slot still cost money, and retry safety turns on
   // whether this invocation spent anything.
   recordInvocationCost(usage.cost);
+  recordAppRunLlmCost(usage.cost);
   const slot = usageStore.getStore();
   if (!slot) return;
   const previous = slot.usage;

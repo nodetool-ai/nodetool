@@ -19,6 +19,7 @@ import {
   applicationBudgets,
   applicationInvocations
 } from "./schema/application-budgets.js";
+import type { AppRunSnapshot } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
 import { applications } from "./schema/applications.js";
 
 export type BudgetPeriod = "day" | "month" | "total";
@@ -317,7 +318,7 @@ export async function settleInvocation(
 }
 
 export type Reservation =
-  | { allowed: true; record: InvocationRecord; usage: ApplicationUsage }
+  | { allowed: true; record: InvocationRecord; usage: ApplicationUsage; created?:boolean }
   | {
       allowed: false;
       reason: string;
@@ -350,7 +351,8 @@ const invocationRow = (input: ReserveInput, userId: string | null) => ({
   operation_id: input.operationId ?? "",
   estimated_usd: input.estimatedUsd ?? 0,
   status: "running",
-  created_at: new Date().toISOString()
+  created_at: new Date().toISOString(),
+  ...(input.appRunFields??{})
 });
 
 const overBudget = (
@@ -380,6 +382,10 @@ export interface ReserveInput {
   estimatedUsd?: number;
   /** Public links fail closed unless the app has a finite spend or run cap. */
   requireFiniteBudget?: boolean;
+  appRunFields?: {
+    instance_id:string;origin:string;instance_revision:number;snapshot:AppRunSnapshot|null;
+    inputs:Record<string,unknown>|null;trace_id:string;root_span_id:string|null;
+  };
 }
 
 /**
@@ -408,12 +414,19 @@ export async function reserveInvocation(
   const configured = await getApplicationBudget(input.applicationId);
   if (!configured) {
     if (input.requireFiniteBudget) return missingPublicBudget();
-    const record = await recordInvocation({ ...input, userId });
-    return {
-      allowed: true,
-      record,
-      usage: await applicationUsage(input.applicationId, "total", now)
-    };
+    try {
+      const record = await recordInvocation({ ...input, userId });
+      return { allowed: true, record, created:true, usage: await applicationUsage(input.applicationId,"total",now) };
+    } catch (error) {
+      if (!input.appRunFields) throw error;
+      const rows=await db.select().from(applicationInvocations).where(and(
+        eq(applicationInvocations.application_id,input.applicationId),eq(applicationInvocations.invocation_id,input.invocationId),
+        eq(applicationInvocations.user_id,userId??""),eq(applicationInvocations.instance_id,input.appRunFields.instance_id),
+        eq(applicationInvocations.operation_id,input.operationId??"")
+      )).limit(1);
+      if (!rows[0]) throw error;
+      return {allowed:true,record:toRecord(rows[0]),created:false,usage:await applicationUsage(input.applicationId,"total",now)};
+    }
   }
 
   if (input.requireFiniteBudget && !hasFiniteBudgetLimit(configured)) {
@@ -442,6 +455,15 @@ export async function reserveInvocation(
         .where(eq(applicationBudgets.application_id, input.applicationId))
         .limit(1)
         .get();
+      if (input.appRunFields) {
+        const existing=tx.select().from(applicationInvocations).where(and(
+          eq(applicationInvocations.application_id,input.applicationId),eq(applicationInvocations.invocation_id,input.invocationId)
+        )).get();
+        if (existing) {
+          if (existing.user_id!==userId || existing.instance_id!==input.appRunFields.instance_id || existing.operation_id!==input.operationId) throw new Error("Invocation id already in use");
+          return {allowed:true,record:toRecord(existing),created:false,usage:emptyUsage()};
+        }
+      }
       // The row was there a moment ago and is the thing being locked; if it
       // went away, the app is unmetered and the run is simply recorded.
       if (!budgetRow) {
@@ -501,6 +523,15 @@ export async function reserveInvocation(
         .where(eq(applicationBudgets.application_id, input.applicationId))
         .limit(1)
     );
+    if (input.appRunFields) {
+      const [existing]=await tx.select().from(applicationInvocations).where(and(
+        eq(applicationInvocations.application_id,input.applicationId),eq(applicationInvocations.invocation_id,input.invocationId)
+      )).limit(1);
+      if (existing) {
+        if (existing.user_id!==userId || existing.instance_id!==input.appRunFields.instance_id || existing.operation_id!==input.operationId) throw new Error("Invocation id already in use");
+        return {allowed:true,record:toRecord(existing),created:false,usage:emptyUsage()};
+      }
+    }
     if (!budgetRow) {
       if (input.requireFiniteBudget) return missingPublicBudget();
       const [orphan] = await tx

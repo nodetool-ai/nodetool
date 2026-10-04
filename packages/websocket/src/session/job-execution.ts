@@ -9,6 +9,7 @@
  * {@link JobExecutionDeps}.
  */
 import { randomUUID } from "node:crypto";
+import { operationTarget, parseInputStateKey } from "@nodetool-ai/app-runtime";
 import { ApiErrorCode } from "../error-codes.js";
 import { captureError } from "../error-traces.js";
 import { admitSpend, releaseSpend, reserveSpend } from "../credit-gate.js";
@@ -43,13 +44,24 @@ import {
 } from "../job-run-registry.js";
 import {
   Application,
+  AppRunError,
+  claimAppRun,
+  ensureDefaultAppInstance,
+  findAppRunByInvocation,
+  getAppInstance,
+  getAppRun,
   Asset,
   Job,
   listApplicationVersions,
   invocationIdInUse,
   releasedApplicationRelease,
   releasedApplicationVersion,
+  reconcileAppRunCost,
   reserveInvocation,
+  reserveAppRun,
+  setAppRunInputs,
+  settleAppRun,
+  updateAppRunEstimate,
   settleInvocation,
   Workflow
 } from "@nodetool-ai/models";
@@ -64,6 +76,7 @@ import { extractPricingParams } from "@nodetool-ai/node-sdk/pricing-params";
 import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { applicationReleaseResponse } from "@nodetool-ai/protocol/api-schemas/applications.js";
+import { appRunSnapshot } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
 import type {
   GraphData,
   HydratedGraphData,
@@ -75,6 +88,7 @@ import { confineRunRequest, isRunRefusal } from "../lib/app-session-scope.js";
 import { releaseBlockedReason } from "../lib/app-deployment-service.js";
 import { autoSaveAssets, primaryTextOutputName } from "./asset-autosave.js";
 import { createRuntimeContext } from "./model-interfaces.js";
+import { createAppRunFold } from "./app-run-fold.js";
 import { formatSanitizedError, sanitizeLargeText } from "./sanitize.js";
 import { createLogger } from "@nodetool-ai/config";
 import type { ClientSession } from "./client-session.js";
@@ -123,6 +137,8 @@ export interface RunJobRequest {
    * and settles the ledger row when the run finishes.
    */
   application_id?: string | null;
+  app_run_id?: string;
+  instance_id?: string;
   /** Released version the run executes against; absent for a draft run. */
   application_version?: number | null;
   /**
@@ -215,6 +231,7 @@ export interface ActiveJob {
   selfReportedCostNodeIds?: Set<string>;
   /** Mini app this run belongs to, when one started it. Drives budget settlement. */
   applicationId?: string | null;
+  appRunFold?: ReturnType<typeof createAppRunFold>;
 }
 
 export function createRelayActivityWaiter(
@@ -624,6 +641,16 @@ export class JobExecutionManager {
     persistJob: boolean
   ): Promise<void> {
     const errorMessage = err instanceof Error ? err.message : String(err);
+    const appRun = await findAppRunByInvocation(
+      this.session.requireUserId(),
+      jobId
+    );
+    if (appRun) {
+      await settleAppRun(this.session.requireUserId(), appRun.id, {
+        status: "failed",
+        error: errorMessage
+      });
+    }
     this.session.logError("beforeRunJob failed", err);
     captureError(err, {
       source: "job",
@@ -886,6 +913,9 @@ export class JobExecutionManager {
    * telemetry, which is the same ledger.
    */
   private async admitApplicationRun(req: RunJobRequest): Promise<boolean> {
+    if (req.app_run_id || this.session.appSession) {
+      return this.admitDurableAppRun(req);
+    }
     const applicationId = req.application_id;
     if (!applicationId) return true;
     const jobId = req.job_id ?? randomUUID();
@@ -1037,6 +1067,207 @@ export class JobExecutionManager {
     return true;
   }
 
+  private async admitDurableAppRun(req: RunJobRequest): Promise<boolean> {
+    const userId = this.session.requireUserId();
+    const jobId = req.job_id ?? randomUUID();
+    req.job_id = jobId;
+    let claimedRunId: string | null = null;
+    try {
+      if (this.session.appSession && req.application_id) {
+        const release = await releasedApplicationRelease(
+          req.application_id,
+          userId
+        );
+        if (!release) {
+          throw new Error("Application release not found");
+        }
+        const instance = await ensureDefaultAppInstance({
+          userId,
+          applicationId: req.application_id,
+          sourceId: `public:${req.application_id}:${release.version}`,
+          version: release.version,
+          name: "Visitor runs",
+          snapshot: appRunSnapshot.parse({
+            document: release.document,
+            workflow_graphs: Object.fromEntries(
+              release.workflows.flatMap((item) =>
+                item.graph ? [[item.workflowId, item.graph]] : []
+              )
+            ),
+            script_documents: {}
+          })
+        });
+        const decision = await reserveAppRun({
+          userId,
+          instanceId: instance.id,
+          invocationId: jobId,
+          operationId: req.operation_id ?? "",
+          origin: "public",
+          estimatedUsd: this.estimateRunCost(req),
+          requireFiniteBudget: true
+        });
+        if (!decision.allowed) {
+          return this.refuseRun(
+            req,
+            jobId,
+            ApiErrorCode.BUDGET_EXCEEDED,
+            decision.reason
+          );
+        }
+        req.app_run_id = decision.run.id;
+        req.instance_id = instance.id;
+      }
+      const run = req.app_run_id
+        ? await getAppRun(userId, req.app_run_id)
+        : null;
+      const instance = req.instance_id
+        ? await getAppInstance(userId, req.instance_id)
+        : null;
+      if (
+        !run ||
+        !instance ||
+        run.instance_id !== instance.id ||
+        run.invocation_id !== jobId
+      ) {
+        return this.refuseRun(
+          req,
+          jobId,
+          ApiErrorCode.NOT_FOUND,
+          "App run not found"
+        );
+      }
+      if (run.status !== "running") {
+        return this.refuseRun(
+          req,
+          jobId,
+          ApiErrorCode.ALREADY_EXISTS,
+          "App run has already finished"
+        );
+      }
+      const operation = instance.snapshot.document.operations.find(
+        (item) => item.id === run.operation_id
+      );
+      if (
+        !operation ||
+        operationTarget(operation).kind !== "workflow" ||
+        (req.operation_id && req.operation_id !== run.operation_id)
+      ) {
+        return this.refuseRun(
+          req,
+          jobId,
+          ApiErrorCode.INVALID_INPUT,
+          "Operation does not match this run"
+        );
+      }
+      const target = operationTarget(operation);
+      if (
+        target.kind !== "workflow" ||
+        !target.workflowId ||
+        (req.workflow_id && req.workflow_id !== target.workflowId)
+      ) {
+        return this.refuseRun(
+          req,
+          jobId,
+          ApiErrorCode.INVALID_INPUT,
+          "Workflow does not match this run"
+        );
+      }
+      if (run.origin !== "public") {
+        const frozen = run.snapshot?.workflow_graphs[target.workflowId];
+        if (!frozen) {
+          return this.refuseRun(
+            req,
+            jobId,
+            ApiErrorCode.INVALID_INPUT,
+            "Run has no frozen workflow"
+          );
+        }
+        const overlays = new Map<string, Record<string, unknown>>();
+        const inputs = instance.variables["__app_inputs"];
+        for (const [key, value] of Object.entries(
+          isRecord(inputs) ? inputs : {}
+        )) {
+          const binding = parseInputStateKey(key);
+          if (!binding?.property || binding.operationId !== run.operation_id) {
+            continue;
+          }
+          const properties = overlays.get(binding.nodeId) ?? {};
+          properties[binding.property] = value;
+          overlays.set(binding.nodeId, properties);
+        }
+        req.graph = {
+          ...frozen,
+          nodes: frozen.nodes.map((node) => {
+            const overlay = overlays.get(node.id);
+            if (!overlay) {
+              return node;
+            }
+            const properties = isRecord(node.properties)
+              ? node.properties
+              : isRecord(node.data)
+                ? node.data
+                : {};
+            return { ...node, properties: { ...properties, ...overlay } };
+          })
+        };
+        await updateAppRunEstimate(userId, run.id, this.estimateRunCost(req));
+      }
+      if (!(await claimAppRun(userId, run.id, getInstanceId()))) {
+        return this.refuseRun(
+          req,
+          jobId,
+          ApiErrorCode.ALREADY_EXISTS,
+          "App run execution already started"
+        );
+      }
+      claimedRunId = run.id;
+      await setAppRunInputs(userId, run.id, req.params ?? {});
+      req.app_run_id = run.id;
+      req.instance_id = instance.id;
+      req.user_id = userId;
+      req.workflow_id = target.workflowId;
+      req.application_id = run.application_id;
+      req.application_version = run.version;
+      req.operation_id = run.operation_id;
+      return true;
+    } catch (error) {
+      if (claimedRunId) {
+        try {
+          await settleAppRun(userId, claimedRunId, {
+            status: "failed",
+            actualUsd: 0,
+            knownLlmUsd: 0,
+            error:
+              error instanceof Error
+                ? error.message
+                : "App run admission failed"
+          });
+        } catch (settlementError) {
+          if (
+            !(settlementError instanceof AppRunError) ||
+            settlementError.code !== "not_found"
+          ) {
+            this.session.logError(
+              "app run admission settlement failed",
+              settlementError
+            );
+          }
+        }
+      }
+      this.session.logError("app run admission failed", error);
+      const code =
+        error instanceof AppRunError && error.code === "budget_exceeded"
+          ? ApiErrorCode.BUDGET_EXCEEDED
+          : ApiErrorCode.INVALID_INPUT;
+      return this.refuseRun(
+        req,
+        jobId,
+        code,
+        error instanceof Error ? error.message : "App run admission failed"
+      );
+    }
+  }
+
   /**
    * Gate a run on the user's credit balance — but only the part of the run
    * that spends through NodeTool's managed provider. A graph with no
@@ -1159,7 +1390,15 @@ export class JobExecutionManager {
     if (!req) return;
     req._accepted_at_ms ??= performance.now();
     if (!(await this.admitApplicationRun(req))) return;
-    if (!(await this.admitCreditRun(req))) return;
+    if (!(await this.admitCreditRun(req))) {
+      if (req.app_run_id) {
+        await settleAppRun(this.session.requireUserId(), req.app_run_id, {
+          status: "failed",
+          error: "Run refused by spending limit"
+        });
+      }
+      return;
+    }
     const max = await this.deps.getMaxConcurrentJobs();
     const perWorkflowMax = await this.perWorkflowLimitFor(req);
     // Queue the run when over the global cap, or when this workflow already has
@@ -1199,7 +1438,10 @@ export class JobExecutionManager {
           await Job.create({
             id: jobId,
             workflow_id: req.workflow_id ?? "",
-            user_id: resolveRunJobUserId(req.user_id, this.session.requireUserId()),
+            user_id: resolveRunJobUserId(
+              req.user_id,
+              this.session.requireUserId()
+            ),
             status: "queued",
             name: req.job_name ?? "",
             params: req.params ?? {},
@@ -1309,6 +1551,17 @@ export class JobExecutionManager {
     };
     try {
       await this.startJobInner(req, releaseSlot);
+    } catch (error) {
+      if (req.app_run_id) {
+        await this.emitBeforeRunFailure(
+          req.job_id ?? "",
+          req.workflow_id ?? null,
+          error,
+          true
+        );
+        return;
+      }
+      throw error;
     } finally {
       // Safety net: if startJobInner returned/threw without registering, the
       // slot is freed so it doesn't leak and permanently shrink the cap.
@@ -1395,11 +1648,23 @@ export class JobExecutionManager {
       ? await this.session.workspaceResolver(workflowId ?? null, userId)
       : null;
 
+    const appRun = req.app_run_id
+      ? await getAppRun(userId, req.app_run_id)
+      : null;
     const context = createRuntimeContext({
       jobId,
       workflowId,
       projectId,
       userId,
+      ...(appRun && {
+        appRunContext: {
+          userId,
+          appRunId: appRun.id,
+          instanceId: appRun.instance_id,
+          traceId: appRun.trace_id,
+          origin: appRun.origin
+        }
+      }),
       workspace,
       assetOutputMode: this.session.mode === "text" ? "data_uri" : "temp_url",
       persistOutputAssets: executionOptions.assetPersistence === "auto"
@@ -1438,6 +1703,9 @@ export class JobExecutionManager {
         const existing = await Job.get(jobId);
         if (existing) {
           if (existing.status === "cancelled") {
+            if (appRun) {
+              await settleAppRun(userId, appRun.id, { status: "cancelled" });
+            }
             log.info("Skipping start of cancelled job", { jobId });
             // Nothing was registered in activeJobs yet — free the reserved
             // slot and promote any queued run, matching every other slot
@@ -1566,7 +1834,8 @@ export class JobExecutionManager {
         persistenceMs,
         kernelStartedAt: performance.now()
       },
-      applicationId: req.application_id ?? null
+      applicationId: req.application_id ?? null,
+      ...(appRun && { appRunFold: createAppRunFold(appRun) })
     };
     // Decouple the run from this socket: from here on every frame carrying
     // this job_id is stamped with `job_seq` and buffered, so a client that
@@ -1768,6 +2037,36 @@ export class JobExecutionManager {
    * the estimate standing rather than handing the spend back. Never throws.
    */
   private async settleApplicationInvocation(active: ActiveJob): Promise<void> {
+    const identity = active.context.appRunContext;
+    if (identity) {
+      try {
+        const settlement: Parameters<typeof settleAppRun>[2] = {
+          status:
+            active.status === "failed"
+              ? "failed"
+              : active.status === "cancelled"
+                ? "cancelled"
+                : "completed",
+          error: active.error ?? null,
+          actualUsd: this.runMeasuredCost(active),
+          outputs: active.appRunFold?.outputs() ?? {},
+          documents: active.context.getAppRunDocuments(),
+          secretValues: [...active.context.getResolvedSecretValues()]
+        };
+        const llmCost = active.context.getAppRunLlmCost();
+        if (llmCost !== null) {
+          settlement.knownLlmUsd = llmCost;
+        }
+        await settleAppRun(identity.userId, identity.appRunId, settlement);
+        await reconcileAppRunCost(identity.userId, identity.appRunId);
+        return;
+      } catch (error) {
+        if (!(error instanceof AppRunError) || error.code !== "not_found") {
+          this.session.logError("app run settlement failed", error);
+        }
+      }
+      return;
+    }
     if (!active.applicationId) return;
     try {
       await settleInvocation(
@@ -2090,17 +2389,24 @@ export class JobExecutionManager {
         const status =
           outbound.type === "job_update" ? String(outbound.status ?? "") : "";
         const suppressProvisionalCompletion =
-          active.requireTerminalResult &&
-          status === "completed" &&
-          outbound.result === undefined;
+          (Boolean(active.context.appRunContext) &&
+            TERMINAL_JOB_STATUSES.includes(status)) ||
+          (active.requireTerminalResult &&
+            status === "completed" &&
+            outbound.result === undefined);
         if (!suppressProvisionalCompletion) {
           if (outbound.type === "job_update") {
             if (status === "running") {
               runningSeen = true;
             } else if (TERMINAL_JOB_STATUSES.includes(status)) {
+              if (active.context.appRunContext) {
+                await executionSettled;
+                await this.settleApplicationInvocation(active);
+              }
               await ensureRunningFrame();
             }
           }
+          active.appRunFold?.fold(outbound);
           await this.session.send(outbound);
         }
         if (outbound.type === "job_update" && !suppressProvisionalCompletion) {
@@ -2123,6 +2429,21 @@ export class JobExecutionManager {
     if (Object.keys(finalOutputs).length > 0) {
       finalOutputs = await this.normalizeFinalOutputs(active, finalOutputs);
     }
+    if (active.appRunFold) {
+      for (const [key, values] of Object.entries(finalOutputs)) {
+        const nodeId = this.resolveOutputNodeForKey(active, key)?.id ?? key;
+        for (const [index, value] of values.entries()) {
+          active.appRunFold.fold({
+            type: "output_update",
+            job_id: active.jobId,
+            node_id: nodeId,
+            value,
+            disposition: index === 0 ? "replace" : "append",
+            done: true
+          });
+        }
+      }
+    }
 
     if (
       active.executionOptions.eventDetail !== "terminal" &&
@@ -2133,6 +2454,9 @@ export class JobExecutionManager {
     }
 
     const relayCompletedAt = performance.now();
+    if (active.context.appRunContext) {
+      await this.settleApplicationInvocation(active);
+    }
 
     if (
       !terminalSeen ||
@@ -2231,7 +2555,7 @@ export class JobExecutionManager {
       // nor settled below.
       const row = (await Job.get(jobId)) as Job | null;
       const job =
-        row && row.user_id === (this.session.requireUserId()) ? row : null;
+        row && row.user_id === this.session.requireUserId() ? row : null;
       const settled =
         job != null &&
         (job.status === "completed" ||
@@ -2318,6 +2642,11 @@ export class JobExecutionManager {
     // and tell the client it's cancelled before it ever starts.
     const queued = this.jobQueue.remove(jobId);
     if (queued) {
+      if (queued.app_run_id) {
+        await settleAppRun(this.session.requireUserId(), queued.app_run_id, {
+          status: "cancelled"
+        });
+      }
       releaseSpend(this.session.requireUserId(), jobId);
       const cancelledWorkflowId = queued.workflow_id ?? workflowId ?? null;
       // Mark the persisted queued row cancelled so it leaves the queue in
@@ -2359,7 +2688,10 @@ export class JobExecutionManager {
       // session's hooks and persist the row here — the owning runner's own
       // terminal bookkeeping still runs, and its `job_update` reaches this
       // client over the session it just adopted.
-      const registered = jobRunRegistry.get(this.session.requireUserId(), jobId);
+      const registered = jobRunRegistry.get(
+        this.session.requireUserId(),
+        jobId
+      );
       if (registered && registered.status === "running") {
         registered.cancel();
         try {
@@ -2625,6 +2957,11 @@ export class JobExecutionManager {
       const queuedId = queued.job_id;
       if (!queuedId) continue;
       try {
+        if (queued.app_run_id) {
+          await settleAppRun(this.session.requireUserId(), queued.app_run_id, {
+            status: "cancelled"
+          });
+        }
         const job = await Job.get(queuedId);
         if (job) {
           job.markCancelled();
@@ -2637,6 +2974,15 @@ export class JobExecutionManager {
 
     for (const dequeuedId of this.dequeuedJobs) {
       try {
+        const run = await findAppRunByInvocation(
+          this.session.requireUserId(),
+          dequeuedId
+        );
+        if (run) {
+          await settleAppRun(this.session.requireUserId(), run.id, {
+            status: "cancelled"
+          });
+        }
         const job = await Job.get(dequeuedId);
         if (job) {
           job.markCancelled();

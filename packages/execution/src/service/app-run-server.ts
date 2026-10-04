@@ -30,6 +30,8 @@ import { FileStorageAdapter } from "@nodetool-ai/storage";
 export interface AppServerRunnerOptions {
   /** Job-id prefix, so a run is attributable to the surface that started it. */
   jobPrefix?: string;
+  /** Operation context inherited by this workflow child. */
+  context?: ProcessingContext;
   /**
    * The store `asset://<id>` inputs resolve through. Only the local assets dir
    * on a `file` backend, so a host on S3/Supabase must pass its own or the
@@ -47,7 +49,9 @@ export function createAppServerRunner(
   return async (input) => {
     const startedAt = Date.now();
     const jobId = `${jobPrefix}-${randomUUID()}`;
-    const context = new ProcessingContext({
+    const context = options.context
+      ? options.context.copy({ jobId, workflowId: input.workflowId })
+      : new ProcessingContext({
       jobId,
       workflowId: input.workflowId,
       userId,
@@ -98,7 +102,12 @@ export function createAppServerRunner(
     }
     // `session.result` never rejects: a kernel failure resolves as
     // `status: "failed"`, which the simulator turns into a complaint.
-    const result = await session.result;
+    const cancel = (): void => session.cancel("cancelled");
+    options.context?.signal.addEventListener("abort", cancel, { once: true });
+    if (options.context?.signal.aborted) cancel();
+    const result = await session.result.finally(() => {
+      options.context?.signal.removeEventListener("abort", cancel);
+    });
     const messages = result.messages ?? [];
     const summary = collectExecutionSummary(messages);
     summary.status = result.status ?? summary.status;

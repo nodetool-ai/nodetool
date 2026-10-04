@@ -1,6 +1,7 @@
 # App Runs, Instances and Run Observability — Design
 
-**Status:** Draft, high level, for agreement before detailed design
+**Status:** Phase 1 implementation. Trace storage, readers and history UI remain planned.
+**Implementation:** [Sub-agent plan](app-runs-implementation-plan.md)
 **Related:** [media-generation-tracking-design.md](media-generation-tracking-design.md), [mini-apps.md](mini-apps.md), [error-tracing.md](error-tracing.md), [harnesses.md § Observing agent execution](harnesses.md#observing-agent-execution)
 
 ## 1. Summary
@@ -95,8 +96,9 @@ The server creates the app run before any work starts. It puts a **run context**
 on the `ProcessingContext`: the instance id, the app run id and the trace id.
 Every child reads that context instead of taking new parameters. Children are a
 script run, a capability call, a workflow job, an agent loop, a provider call
-and a generation. `ProcessingContext.copy()` already shares the variable bag,
-so the budget and the permission gate travel this way today.
+and a generation. `ProcessingContext.copy()` copies the variable bag, carrying the budget and
+permission gate values without sharing unrelated mutable state. It preserves
+the app run identity, generation lifecycle and the run's resolved-secret set.
 
 Consequences:
 
@@ -115,7 +117,8 @@ The record opens before the operation runs and closes with a terminal status,
 the same rule that generation tracking follows. It holds:
 
 - the instance id, the operation id and the app version
-- the origin: `ui`, `agent`, `cli` or `debug`
+- the origin: `ui`, `agent`, `cli`, `debug` or `public`. A deployed-app visitor
+  run authenticates as the owner and stores no visitor content.
 - an input snapshot: the resolved operation inputs
 - the outputs written to variables, and the documents created or changed
 - status (`running`, `completed`, `failed`, `cancelled`), error, start and end
@@ -334,3 +337,45 @@ Each phase ships with a harness check, in the spirit of
 - Exporting a run as a bundle.
 - Spans for UI work that is not part of a run, such as canvas edits or
   navigation.
+
+## Phase 1 contracts
+
+App instances are stored in `app_instances`. Durable app runs extend
+`application_invocations`, preserving its existing billing fields. An instance
+has an owner, a stable `source_id`, a pinned definition snapshot and revisioned
+variables. Inline examples and drafts use a nullable `application_id`, so
+opening them does not publish or import an application.
+
+Owner-authenticated REST routes under `/api/app-instances` and `/api/app-runs`
+share the same service as tRPC `appInstances` and `appRuns`. Reserve a run before
+resolving inputs. Workflow and script hosts atomically claim it before work,
+execute its pinned snapshot and settle it before publishing a terminal result.
+Run and instance IDs accept a full ID or an unambiguous 12-character prefix in
+the caller's scope. Trace IDs remain full OpenTelemetry IDs.
+
+Instance variables also carry two reserved maps: `__app_inputs` holds input
+slot values, and `__app_outputs` holds output slot values keyed by operation
+and output. Server execution folds live messages independently of the browser
+and commits its own terminal outputs with the revision captured at reservation.
+A revision conflict preserves both the newer instance state and the run's
+outputs. The client reports the conflict and can reload the instance.
+Working state preserves text up to a total 1 MB storage limit and rejects
+larger writes. Run history caps individual content strings at 20,000 characters.
+
+Deleting history removes run content and generation attachments. Assets and
+generation records stay in the library. Saved-app runs leave content-free
+billing rows so deletion does not reset lifetime budgets. Terminal execution and
+late generation reconciliation update only those billing fields, without
+restoring history or attachments. Account erasure and application deletion
+remove those rows too. Input and output snapshots expire
+under `runTraceRetentionDays`. Terminal history expires under
+`terminalJobRetentionDays`. Default deployed-app workflow runs have origin
+`public` and store no visitor inputs or outputs. Visitor sessions cannot use
+the owner instance APIs or script routes. Active script cancellation is handled
+by the server that started the run. A different server refuses the cancellation
+rather than reporting a terminal outcome while execution continues.
+
+Phase 1 reserves trace identities but does not add the trace store, the runs
+capability module or CLI commands, browser spans, a history panel, or an
+instance switcher. The [phase 1 check](harnesses.md#app-runs-phase-1) exercises
+execution and attachment persistence without external provider credentials.
