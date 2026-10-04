@@ -32,7 +32,8 @@ import {
 import {
   createJsScriptResolver,
   getSecret,
-  JsScript
+  JsScript,
+  Project
 } from "@nodetool-ai/models";
 import {
   PERMISSION_GATE_CONTEXT_KEY,
@@ -146,7 +147,8 @@ export async function handleJsScriptRun(
     document,
     parsedBody.data,
     opts,
-    wantsStream(request)
+    wantsStream(request),
+    script.project_id
   );
 }
 
@@ -156,7 +158,8 @@ async function executeScriptDocument(
   document: JsScriptDocument,
   input: RunJsScriptRequest,
   opts: RouteOptions,
-  stream = false
+  stream = false,
+  projectId?: string | null
 ): Promise<Response> {
   const staged = input.input_streams;
   if (staged) {
@@ -183,6 +186,9 @@ async function executeScriptDocument(
   const context = new ProcessingContext({
     jobId: `js-script-${id}-${Date.now()}`,
     userId,
+    // A script works in its own project: without it the run falls into the
+    // "default" project and cannot see the assets and documents it belongs with.
+    ...(projectId && { projectId }),
     secretResolver: getSecret,
     storage: opts.storage ?? getAssetAdapter(),
     ...(lines && {
@@ -287,7 +293,10 @@ export async function handleExampleAppScriptRun(
   if (!parsed.success) {
     return jsonResponse({ detail: "Invalid script inputs" }, 400);
   }
-  return executeScriptDocument(userId, `example-${slug}-${key}`, jsScriptDocument.parse(script.document), parsed.data, opts, wantsStream(request));
+  // An example has no project of its own, so it runs in the user's personal
+  // project: where their uploads land and where the example saves its work.
+  await Project.ensurePersonal(userId);
+  return executeScriptDocument(userId, `example-${slug}-${key}`, jsScriptDocument.parse(script.document), parsed.data, opts, wantsStream(request), `personal:${userId}`);
 }
 
 const jsScriptsRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {

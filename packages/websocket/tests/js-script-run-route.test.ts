@@ -15,6 +15,7 @@ import {
   type JsScriptDocument
 } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import {
+  Asset,
   JsScript,
   JsScriptVersion,
   ModelObserver,
@@ -98,6 +99,33 @@ describe("POST /api/js-scripts/:id/run", () => {
     }
   });
 
+  it("runs a bundled example script in the user's personal project", async () => {
+    const dir = await mkdtemp(join(tmpdir(), "nodetool-example-script-"));
+    try {
+      const asset = await Asset.create({
+        user_id: USER_ID,
+        name: "product.png",
+        content_type: "image/png",
+        parent_id: USER_ID,
+        project_id: `personal:${USER_ID}`
+      });
+      await writeFile(join(dir, "reader.app.json"), JSON.stringify({
+        schemaVersion: 1, name: "Reader", description: "A test app", app: createEmptyDocument(), workflows: [],
+        scripts: [{ key: "read", name: "Read", document: {
+          ...emptyJsScriptDocument(),
+          code: 'import { get_asset } from "@nodetool-ai/sandbox-nodetool/assets";\nconst found = await get_asset({ asset_id: inputs.id });\nawait output("name", found.name ?? found.error);',
+          inputs: [{ name: "id", type: "str" }], outputs: [{ name: "name", type: "str" }]
+        } }]
+      }));
+      app = await buildServer(USER_ID, undefined, dir);
+      const response = await app.inject({ method: "POST",
+        url: "/api/applications/examples/reader/scripts/read/run", payload: { inputs: { id: asset.id } } });
+      expect(response.json()).toMatchObject({ outputs: { name: "product.png" } });
+    } finally {
+      await rm(dir, { recursive: true, force: true });
+    }
+  });
+
   it("runs the stored body over the given inputs", async () => {
     const script = await seedScript({
       code: "await emit('greeting', `hi ${inputs.who}`);\nawait output('greeting', 'done');",
@@ -118,6 +146,31 @@ describe("POST /api/js-scripts/:id/run", () => {
     expect(body.outputs).toEqual({ greeting: "done" });
     expect(body.streamed).toEqual([{ name: "greeting", value: "hi world" }]);
     expect(typeof body.duration_ms).toBe("number");
+  });
+
+  it("lets a script read an asset of the project the script belongs to", async () => {
+    const asset = await Asset.create({
+      user_id: USER_ID,
+      name: "product.png",
+      content_type: "image/png",
+      parent_id: USER_ID,
+      project_id: "p1"
+    });
+    const script = await seedScript({
+      code:
+        'import { get_asset } from "@nodetool-ai/sandbox-nodetool/assets";\n' +
+        "const found = await get_asset({ asset_id: inputs.id });\n" +
+        "await output('name', found.name ?? found.error);",
+      inputs: [{ name: "id", type: "str" }],
+      outputs: [{ name: "name", type: "str" }]
+    });
+    app = await buildServer(USER_ID);
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: { inputs: { id: asset.id } }
+    });
+    expect(response.json()).toMatchObject({ outputs: { name: "product.png" } });
   });
 
   it("streams agent text, tool calls and emits before the result when asked", async () => {
