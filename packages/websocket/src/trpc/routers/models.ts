@@ -41,6 +41,7 @@ import {
 } from "@nodetool-ai/transformers-js-nodes";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
 import { MODEL_SEARCH_KINDS } from "@nodetool-ai/protocol";
+import { rankedModelKeys } from "../../models-api.js";
 import { access, readdir } from "node:fs/promises";
 import { constants as fsConstants } from "node:fs";
 import { homedir } from "node:os";
@@ -1192,6 +1193,14 @@ export const modelsRouter = router({
     .query(async ({ input, ctx }) => {
       return getRecommendedModels(input.check_servers ?? false, ctx.userId);
     }),
+
+  /**
+   * Every ranked route as a `<provider>:<model_id>` key, best model first.
+   * The model menu orders an empty query with it.
+   */
+  rankedKeys: protectedProcedure
+    .output(z.array(z.string()))
+    .query(() => rankedModelKeys()),
 
   recommendedImageTextToImage: protectedProcedure
     .output(modelsListOutput)

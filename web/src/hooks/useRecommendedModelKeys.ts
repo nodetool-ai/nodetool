@@ -3,9 +3,12 @@
  *
  * Two sources, in order:
  * 1. `NODETOOL_MODELS` — the curated managed catalog, served on platform keys.
- * 2. `models.recommended` — the server's `RECOMMENDED_MODELS` list. The web app
+ * 2. `models.rankedKeys` — every route the Artificial Analysis rankings cover,
+ *    best model first.
+ * 3. `models.recommended` — the server's `RECOMMENDED_MODELS` list. The web app
  *    reads it over tRPC because that list lives in `@nodetool-ai/runtime`,
- *    which the frontend does not import.
+ *    which the frontend does not import. It orders what the rankings do not
+ *    cover, such as language and embedding models.
  *
  * The model menu uses the keys to order an empty query, and the first-run
  * default picks the first entry the account can actually use.
@@ -41,20 +44,34 @@ const useRecommendedModels = (): UnifiedModel[] => {
   return data ?? EMPTY_MODELS;
 };
 
+const EMPTY_KEYS: string[] = [];
+
+const useRankedModelKeys = (): string[] => {
+  const { data } = useQuery<string[]>({
+    queryKey: ["ranked-model-keys"],
+    queryFn: () => trpc.models.rankedKeys.query(),
+    staleTime: RECOMMENDED_STALE_TIME,
+    refetchOnWindowFocus: false
+  });
+  return data ?? EMPTY_KEYS;
+};
+
 /**
  * Keys of the recommended models, best first: the curated managed catalog,
- * then the server's recommended list.
+ * the ranked models, then the server's recommended list.
  */
 export const useRecommendedModelKeys = (): string[] => {
   const recommended = useRecommendedModels();
+  const ranked = useRankedModelKeys();
   return useMemo(
     () => [
       ...CURATED_KEYS,
+      ...ranked,
       ...recommended.map((model) =>
         recommendedModelKey(model.provider, model.id)
       )
     ],
-    [recommended]
+    [ranked, recommended]
   );
 };
 

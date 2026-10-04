@@ -10,7 +10,10 @@ import { RECOMMENDED_MODELS } from "@nodetool-ai/runtime";
 import { rankedForTask } from "@nodetool-ai/model-pricing";
 import type { ModelRankingsArtifact } from "@nodetool-ai/model-pricing";
 import type { UnifiedModel } from "@nodetool-ai/protocol";
-import { mergeRankedRecommendations } from "../src/models-api.js";
+import {
+  mergeRankedRecommendations,
+  rankedModelKeys
+} from "../src/models-api.js";
 
 const EMPTY_ARTIFACT: ModelRankingsArtifact = {
   schemaVersion: 1,
@@ -124,5 +127,43 @@ describe("the shipped artifact", () => {
   it("has something to merge, so a ranked task is never an empty tail", () => {
     expect(rankedForTask("text_to_image").length).toBeGreaterThan(0);
     expect(rankedForTask("text_to_video").length).toBeGreaterThan(0);
+  });
+});
+
+describe("rankedModelKeys", () => {
+  it("lists every route, highest score first", () => {
+    const keys = rankedModelKeys(ARTIFACT);
+    expect(keys).toEqual([
+      "fal_ai:fal-ai/kling-video/v3/pro",
+      "kie:kling/v3-pro",
+      "openai:sora-2",
+      "fal_ai:fal-ai/veo/4"
+    ]);
+  });
+
+  it("scores a model by its highest task score", () => {
+    const keys = rankedModelKeys({
+      ...EMPTY_ARTIFACT,
+      models: {
+        "a:weak": {
+          canonical: "weak",
+          name: "Weak",
+          tasks: { text_to_image: { score: 1000, normalized: 0.9, rank: 1, of: 9 } }
+        },
+        "a:mixed": {
+          canonical: "mixed",
+          name: "Mixed",
+          tasks: {
+            text_to_image: { score: 900, normalized: 0.1, rank: 9, of: 9 },
+            image_to_image: { score: 1200, normalized: 0.2, rank: 8, of: 9 }
+          }
+        }
+      }
+    });
+    expect(keys).toEqual(["a:mixed", "a:weak"]);
+  });
+
+  it("returns an empty list for an empty artifact", () => {
+    expect(rankedModelKeys(EMPTY_ARTIFACT)).toEqual([]);
   });
 });

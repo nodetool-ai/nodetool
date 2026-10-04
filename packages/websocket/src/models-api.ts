@@ -125,6 +125,34 @@ export function mergeRankedRecommendations(
   return merged;
 }
 
+/**
+ * Every ranked route as a `<provider>:<model_id>` key, best model first.
+ *
+ * A model scores by its highest Artificial Analysis `score` across the tasks
+ * it is ranked for. Routes of one canonical model stay together in artifact order,
+ * so the menu shows every provider that serves a strong model. Ties order by
+ * canonical id, which keeps an unchanged artifact producing an unchanged list.
+ * An empty artifact returns `[]`.
+ */
+export function rankedModelKeys(
+  artifact: ModelRankingsArtifact = modelRankings
+): string[] {
+  const byCanonical = new Map<string, { best: number; keys: string[] }>();
+  for (const [key, entry] of Object.entries(artifact.models ?? {})) {
+    if (!entry?.canonical) continue;
+    const best = Math.max(
+      ...Object.values(entry.tasks ?? {}).map((rank) => rank.score),
+      Number.NEGATIVE_INFINITY
+    );
+    const group = byCanonical.get(entry.canonical) ?? { best, keys: [] };
+    group.keys.push(key);
+    byCanonical.set(entry.canonical, group);
+  }
+  return [...byCanonical.entries()]
+    .sort(([a, x], [b, y]) => y.best - x.best || a.localeCompare(b))
+    .flatMap(([, group]) => group.keys);
+}
+
 // ---------------------------------------------------------------------------
 // Worker-scoped model download relay
 // ---------------------------------------------------------------------------
