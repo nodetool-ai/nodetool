@@ -42,7 +42,8 @@ describe("fake-runtime conformance gate (RELIABILITY_TASKS.md Track E, E3)", () 
         properties
       });
 
-      const result = await executor.process({}, context);
+      // The actor passes saved properties again as execution inputs.
+      const result = await executor.process(properties, context);
 
       expect(result.screenplay).toMatchObject({
         type: "screenplay",
@@ -52,6 +53,11 @@ describe("fake-runtime conformance gate (RELIABILITY_TASKS.md Track E, E3)", () 
           { index: 2, action: "A lighthouse keeper's last night — beat 3 of 3" }
         ]
       });
+      const streamed: Record<string, unknown>[] = [];
+      for await (const output of executor.genProcess!(properties, context)) {
+        streamed.push(output);
+      }
+      expect(streamed).toEqual([result]);
       expect(properties).toEqual({
         ...(model ? { model } : {}),
         brief: "A lighthouse keeper's last night",

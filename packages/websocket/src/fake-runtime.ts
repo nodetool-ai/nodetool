@@ -362,27 +362,40 @@ export function createFakeExecutorResolver(
 
     // Templates leave model selection to the user. The hermetic host supplies
     // that selection so provider-backed nodes can run their real logic.
-    const properties = { ...node.properties };
-    for (const property of meta?.properties ?? []) {
-      if (baseType(property) !== "language_model") {
-        continue;
+    const selectModels = (values: Record<string, unknown>): Record<string, unknown> => {
+      const properties = { ...values };
+      for (const property of meta?.properties ?? []) {
+        if (baseType(property) !== "language_model") {
+          continue;
+        }
+        const model = properties[property.name] ?? node.properties?.[property.name];
+        properties[property.name] =
+          typeof model === "object" && model !== null &&
+          "id" in model && model.id && "provider" in model && model.provider
+            ? model
+            : {
+                type: "language_model",
+                provider: "openai",
+                id: "fake-model",
+                name: "E2E model"
+              };
       }
-      const model = properties[property.name];
-      if (
-        typeof model === "object" &&
-        model !== null &&
-        "id" in model && model.id &&
-        "provider" in model && model.provider
-      ) {
-        continue;
-      }
-      properties[property.name] = {
-        type: "language_model",
-        provider: "openai",
-        id: "fake-model",
-        name: "E2E model"
-      };
+      return properties;
+    };
+    const executor = registry.resolve({
+      ...node,
+      properties: selectModels(node.properties ?? {})
+    });
+    // The actor supplies saved properties as inputs, including empty models.
+    // Apply the host selection again before BaseNode.assign() sees them.
+    const resolved: NodeExecutor = {
+      ...executor,
+      process: (inputs, context) => executor.process(selectModels(inputs), context)
+    };
+    const genProcess = executor.genProcess;
+    if (genProcess) {
+      resolved.genProcess = (inputs, context) => genProcess(selectModels(inputs), context);
     }
-    return registry.resolve({ ...node, properties });
+    return resolved;
   };
 }
