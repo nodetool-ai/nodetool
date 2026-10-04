@@ -106,16 +106,8 @@ Nodes the chain cannot show, such as comments and groups, are left untouched in 
 
 ---
 
-## Mobile Chain Editor
-
-The chain layout is the default on the mobile app. See the screenshot and docs under [Mobile App → Mobile Graph Editor]({{ '/mobile-app#mobile-graph-editor' | relative_url }}).
-
-![Mobile Chain](assets/screenshots/mobile-graph-editor-chain.png)
-
----
-
 ## Next Steps
 
 - [Workflow Editor]({{ '/workflow-editor' | relative_url }}) — the full graph editor
 - [Cookbook]({{ '/cookbook' | relative_url }}) — linear patterns that work great in the chain editor
-- [Mobile App]({{ '/mobile-app' | relative_url }}) — running chains on iOS and Android
+- [Mobile App]({{ '/mobile-app' | relative_url }}) — running Mini Apps built from your workflows on iOS and Android

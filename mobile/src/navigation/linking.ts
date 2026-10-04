@@ -44,7 +44,9 @@ export const linking: LinkingOptions<RootStackParamList> = {
       Chat: 'chat/:threadId?',
       Threads: 'threads',
       Documents: 'documents',
-      Apps: '',
+      // The home screen. `apps` still resolves so links shared before Apps
+      // became home keep working.
+      Apps: { path: '', alias: ['apps'] },
       App: 'app/:applicationId',
       StoryboardEditor: 'document/storyboard/:id',
       TimelineViewer: 'document/timeline/:id',

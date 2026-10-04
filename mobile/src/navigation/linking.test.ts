@@ -124,6 +124,7 @@ describe('linking', () => {
 
     it('routes the root to Apps and app/:applicationId to a single app', () => {
       expect(routeForPath('/').name).toBe('Apps');
+      expect(routeForPath('/apps').name).toBe('Apps');
       expect(routeForPath('/app/a1')).toEqual({
         name: 'App',
         params: { applicationId: 'a1' },
