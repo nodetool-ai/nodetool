@@ -60,6 +60,19 @@ function resolveNodeGyp() {
 const isTransientResolutionError = (out) =>
   /Cannot find module|MODULE_NOT_FOUND/.test(out ?? "");
 
+// On macOS, node-gyp takes the SDK from the Command Line Tools while
+// `xcode-select` can point at an older Xcode.app whose linker cannot parse that
+// SDK's .tbd stubs ("tapi error: malformed file ... unknown architecture").
+// Building with DEVELOPER_DIR set to the Command Line Tools pairs the SDK with
+// its own linker.
+const CLT_DIR = "/Library/Developer/CommandLineTools";
+const isMacLinkerSdkMismatch = (out) =>
+  process.platform === "darwin" &&
+  process.env.DEVELOPER_DIR !== CLT_DIR &&
+  existsSync(CLT_DIR) &&
+  /tapi error: malformed file|unknown architecture/.test(out ?? "");
+let buildEnv = process.env;
+
 // Block synchronously (no busy-wait) so the sync spawn retry loop stays simple.
 const sleep = (ms) =>
   Atomics.wait(new Int32Array(new SharedArrayBuffer(4)), 0, 0, ms);
@@ -94,7 +107,7 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
   const result = spawnSync(
     process.execPath,
     [nodeGyp, "rebuild", "--release", `--arch=${arch}`, "-j", "max"],
-    { cwd: moduleDir, encoding: "utf8" }
+    { cwd: moduleDir, encoding: "utf8", env: buildEnv }
   );
   if (result.stdout) process.stdout.write(result.stdout);
   if (result.stderr) process.stderr.write(result.stderr);
@@ -112,6 +125,14 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
       `better-sqlite3 rebuild hit a transient module-resolution error (attempt ${attempt}/${MAX_ATTEMPTS}); retrying…`
     );
     sleep(500 * attempt);
+    continue;
+  }
+
+  if (attempt < MAX_ATTEMPTS && isMacLinkerSdkMismatch(combined)) {
+    console.warn(
+      `better-sqlite3 link failed: the linker of the selected Xcode cannot read the SDK. Retrying with DEVELOPER_DIR=${CLT_DIR}. To fix this permanently, run: sudo xcode-select -s ${CLT_DIR}`
+    );
+    buildEnv = { ...process.env, DEVELOPER_DIR: CLT_DIR };
     continue;
   }
 
