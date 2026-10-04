@@ -23,13 +23,6 @@ import { buildPreviewSequence, previewSignature } from "./previewSequence";
 
 const PREVIEW_HEIGHT = 400;
 
-const frameSx = {
-  width: "100%",
-  height: PREVIEW_HEIGHT,
-  minHeight: 0,
-  overflow: "hidden"
-} as const;
-
 const emptySx = {
   width: "100%",
   border: "1px dashed",
@@ -57,10 +50,13 @@ const statusLine = (
 
 interface StoryboardPreviewProps {
   boardId: string;
+  /** Player height in px. */
+  height?: number;
 }
 
 const StoryboardPreviewInner: React.FC<StoryboardPreviewProps> = ({
-  boardId
+  boardId,
+  height = PREVIEW_HEIGHT
 }) => {
   // Subscribe to a signature string, not the board: a board object is replaced
   // on every edit (typing in the brief, changing selection), and a fresh
@@ -86,7 +82,7 @@ const StoryboardPreviewInner: React.FC<StoryboardPreviewProps> = ({
 
   return (
     <FlexColumn gap={SPACING.sm} className="storyboard-preview">
-      <Box sx={frameSx}>
+      <Box sx={{ width: "100%", height, minHeight: 0, overflow: "hidden" }}>
         <TimelineRenderer
           sequence={preview.sequence}
           showMetadata={false}

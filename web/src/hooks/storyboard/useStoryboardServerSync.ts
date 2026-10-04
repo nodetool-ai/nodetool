@@ -5,6 +5,9 @@
  * controller owns debounce, ordering, CAS retry, and teardown flushing. This
  * hook supplies the Storyboard-specific wire conversion and shot merge
  * adapter, so external changes remain shot-level and never enter undo history.
+ *
+ * A read-only view (a mini app widget) only loads the board and reloads it on
+ * external writes. It never saves, so a view cannot race the writer it shows.
  */
 
 import { useEffect, useRef, useState } from "react";
@@ -97,6 +100,30 @@ const isNotFound = (error: unknown): boolean =>
 const isConflict = (error: unknown): boolean =>
   /modified since last read/i.test(getErrorMessage(error));
 
+/** Selection is transient UI state, so a board that differs only in it is clean. */
+const UI_ONLY_FIELDS = new Set<string>(["activeShotId", "updatedAt"]);
+
+const sameContent = (
+  a: StoryboardBoard | null | undefined,
+  b: StoryboardBoard | null | undefined
+): boolean => {
+  if (a === b) return true;
+  if (!a || !b) return false;
+  const keys = new Set([...Object.keys(a), ...Object.keys(b)]);
+  for (const key of keys) {
+    if (UI_ONLY_FIELDS.has(key)) continue;
+    if (a[key as keyof StoryboardBoard] !== b[key as keyof StoryboardBoard]) {
+      return false;
+    }
+  }
+  return true;
+};
+
+interface StoryboardServerSyncOptions {
+  /** Load and follow the board without ever writing it. */
+  readOnly?: boolean;
+}
+
 interface ExternalNotice {
   updatedAt: string | null;
   ops?: DocumentOp[];
@@ -104,7 +131,8 @@ interface ExternalNotice {
 
 export const useStoryboardServerSync = (
   boardId: string,
-  retryToken = 0
+  retryToken = 0,
+  { readOnly = false }: StoryboardServerSyncOptions = {}
 ): DocumentLoadState => {
   const utils = trpc.useUtils();
   const [loadState, setLoadState] = useState<DocumentLoadState>("loading");
@@ -120,10 +148,10 @@ export const useStoryboardServerSync = (
     const store = useStoryboardStore;
     setLoadState("loading");
     const pendingNotices: ExternalNotice[] = [];
-    let controller: DocumentSyncController;
+    let controller: DocumentSyncController | null = null;
 
     const isDirty = (): boolean =>
-      (store.getState().boards[boardId] ?? null) !== syncedRef.current;
+      !sameContent(store.getState().boards[boardId], syncedRef.current);
 
     const applyResponse = (res: StoryboardResponse): void => {
       if (disposed) return;
@@ -136,7 +164,14 @@ export const useStoryboardServerSync = (
             shot.clip_versions?.length === 1 &&
             !!shot.clip_versions[0]?.asset_id
         );
-      store.getState().loadBoard(boardId, responseToBoard(res));
+      // Keep the selection across a reload when its shot survived.
+      const activeShotId = store.getState().boards[boardId]?.activeShotId ?? null;
+      store.getState().loadBoard(boardId, {
+        ...responseToBoard(res),
+        activeShotId: serverShots.some((shot) => shot.id === activeShotId)
+          ? activeShotId
+          : null
+      });
       revisionRef.current = res.updatedAt;
       store.getState().setServerRevision(boardId, res.updatedAt);
       const loaded = store.getState().boards[boardId] ?? null;
@@ -144,7 +179,7 @@ export const useStoryboardServerSync = (
         ? { ...loaded, shots: serverShots }
         : loaded;
       if (restoredClip) {
-        controller.markDirty();
+        controller?.markDirty();
       }
     };
 
@@ -272,10 +307,11 @@ export const useStoryboardServerSync = (
           return;
         }
       }
-      if (disposed) return;
+      // After unmount this still runs for the teardown flush: its CAS
+      // recovery must advance the revision, or the final save cannot land.
       const base = syncedRef.current;
       const draft = store.getState().boards[boardId];
-      if (!base || !draft || base === draft) return;
+      if (!base || !draft || sameContent(base, draft)) return;
 
       const serverBoard: StoryboardBoard = {
         ...responseToBoard(res),
@@ -293,6 +329,7 @@ export const useStoryboardServerSync = (
       revisionRef.current = res.updatedAt;
       store.getState().setServerRevision(boardId, res.updatedAt);
       syncedRef.current = { ...nextBase, id: boardId, updatedAt: Date.now() };
+      if (disposed) return;
 
       const listed = conflicts.map((conflict) =>
         conflict.unit.id
@@ -313,15 +350,19 @@ export const useStoryboardServerSync = (
       initialLoadReady ? store.getState().serverRevisions[boardId] ?? null : null;
     const flushNow = async (): Promise<StoryboardSaveResult> => {
       await loadPromiseRef.current;
-      return controller.flush();
+      return controller
+        ? controller.flush()
+        : { ok: true, updatedAt: currentRevision() };
     };
 
-    const unsubscribe = store.subscribe((state, prev) => {
-      if (state.boards[boardId] === prev.boards[boardId]) return;
-      if (state.boards[boardId] === syncedRef.current) return;
-      if (!state.serverRevisions[boardId]) return;
-      controller.markDirty();
-    });
+    const unsubscribe = readOnly
+      ? () => {}
+      : store.subscribe((state, prev) => {
+          if (sameContent(state.boards[boardId], prev.boards[boardId])) return;
+          if (sameContent(state.boards[boardId], syncedRef.current)) return;
+          if (!state.serverRevisions[boardId]) return;
+          controller?.markDirty();
+        });
 
     const unwatch = registerDocumentSync("storyboard", boardId, {
       localRevision: currentRevision,
@@ -329,16 +370,20 @@ export const useStoryboardServerSync = (
       reload: () => {
         void load();
       },
-      merge: (notice) => {
-        if (controller.isSaving()) {
-          pendingNotices.push(notice);
-          return;
-        }
-        void mergeExternal(notice);
-      }
+      // A read-only view that sees a dirty board is sharing the store with an
+      // editor; that editor's own sync merges the change.
+      merge: readOnly
+        ? undefined
+        : (notice) => {
+            if (controller?.isSaving()) {
+              pendingNotices.push(notice);
+              return;
+            }
+            void mergeExternal(notice);
+          }
     });
 
-    controller = createDocumentSyncController<StoryboardBoard>({
+    if (!readOnly) controller = createDocumentSyncController<StoryboardBoard>({
       debounceMs: AUTOSAVE_DEBOUNCE_MS,
       retryDelayMs: RETRY_DELAY_MS,
       getDraft: () => store.getState().boards[boardId] ?? null,
@@ -360,10 +405,12 @@ export const useStoryboardServerSync = (
           if (notice.updatedAt === updated.updatedAt) continue;
           await mergeExternal(notice);
         }
-        if (store.getState().boards[boardId] === board) {
-          syncedRef.current = board;
+        const current = store.getState().boards[boardId];
+        if (sameContent(current, board)) {
+          syncedRef.current = current ?? board;
+        } else {
+          controller?.markDirty();
         }
-        if (store.getState().boards[boardId] !== board) controller.markDirty();
         return { updatedAt: updated.updatedAt };
       },
       recoverCasConflict: async () => {
@@ -387,7 +434,7 @@ export const useStoryboardServerSync = (
       }
     });
 
-    registerStoryboardSaver(boardId, flushNow);
+    if (!readOnly) registerStoryboardSaver(boardId, flushNow);
     loadPromiseRef.current = load().then((loaded) => {
       if (disposed) return;
       setLoadState(loaded ? "ready" : "error");
@@ -396,13 +443,13 @@ export const useStoryboardServerSync = (
 
     return () => {
       disposed = true;
-      registerStoryboardSaver(boardId, null);
+      if (!readOnly) registerStoryboardSaver(boardId, null);
       unwatch();
       unsubscribe();
       useConflictStore.getState().clear(`storyboard:${boardId}`);
-      controller.dispose();
+      controller?.dispose();
     };
-  }, [boardId, retryToken]);
+  }, [boardId, retryToken, readOnly]);
 
   return loadState;
 };

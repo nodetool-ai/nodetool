@@ -76,6 +76,7 @@ import {
 import { ChatThreadWidget, ChatComposerWidget } from "./ChatWidgets";
 import { SketchWidget, TimelineWidget } from "./DocumentWidgets";
 import { StoryboardWidget } from "./StoryboardWidget";
+import { StoryboardPreviewWidget } from "./StoryboardPreviewWidget";
 import { AgentActivityWidget } from "./AgentActivityWidget";
 import { SketchPadWidget } from "./SketchPadWidget";
 import { GalleryWidget, Model3DWidget, PDFWidget } from "./MediaWidgets";
@@ -420,6 +421,7 @@ export const appConfig: Config = {
         "Sketch",
         "Timeline",
         "Storyboard",
+        "StoryboardPreview",
         "Json",
         "Table",
         "List",
@@ -608,6 +610,20 @@ export const appConfig: Config = {
         placeholder: "No storyboard yet"
       },
       render: withConditions((props) => <StoryboardWidget {...props} />)
+    },
+    StoryboardPreview: {
+      label: "Storyboard Preview",
+      fields: {
+        binding: bindingField("read"),
+        height: { type: "number", label: "Height (px)" },
+        placeholder: { type: "text", label: "Placeholder" },
+        ...conditionalFields({ format: false })
+      },
+      defaultProps: {
+        height: 400,
+        placeholder: "No storyboard yet"
+      },
+      render: withConditions((props) => <StoryboardPreviewWidget {...props} />)
     },
     Timeline: {
       label: "Timeline",
