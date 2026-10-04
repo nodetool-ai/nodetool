@@ -1,15 +1,36 @@
 import React from 'react';
 import { StyleSheet } from 'react-native';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react-native';
+import {
+  act,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from '@testing-library/react-native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 
 import TimelineViewerScreen from '../TimelineViewerScreen';
 import type { RootStackParamList } from '../../navigation/types';
-import { resetDocumentStores } from '../../documents/documentStore';
-import { getDocumentHandler, resetDocumentHandlers } from '../../documents/agentBridge';
+import * as TimelineDefaults from '../../../../packages/timeline/src/defaults';
+import { applyTimelineOp } from '@nodetool-ai/timeline/ops';
+import {
+  FIXTURES,
+  directState,
+  directContext,
+} from '../../../../packages/timeline/tests/fixtures/ops';
+import { resolveShapeArg } from '@nodetool-ai/protocol/api-schemas/timeline-tool-params';
+import { MobileToolRegistry } from '../../documents/tools/registry';
+import '../../documents/tools/timelineTools';
+import {
+  documentStore,
+  resetDocumentStores,
+} from '../../documents/documentStore';
+import {
+  getDocumentHandler,
+  resetDocumentHandlers,
+} from '../../documents/agentBridge';
 
-const isNumber = (value: unknown): value is number =>
-  typeof value === 'number';
+const isNumber = (value: unknown): value is number => typeof value === 'number';
 import type {
   TimelineAgentHandler,
   TimelineClipNode,
@@ -53,8 +74,22 @@ const SEQ_ID = 'seq-1';
 
 const sequence: TimelineDocument = {
   tracks: [
-    { id: 't1', name: 'Video 1', type: 'video', index: 0, visible: true, locked: false },
-    { id: 't2', name: 'Music', type: 'audio', index: 1, visible: true, locked: false },
+    {
+      id: 't1',
+      name: 'Video 1',
+      type: 'video',
+      index: 0,
+      visible: true,
+      locked: false,
+    },
+    {
+      id: 't2',
+      name: 'Music',
+      type: 'audio',
+      index: 1,
+      visible: true,
+      locked: false,
+    },
   ],
   clips: [
     {
@@ -71,25 +106,28 @@ const sequence: TimelineDocument = {
       provider: 'fal',
       model: 'flux',
       currentAssetId: 'asset-1',
-      versions: [{
-        id: 'v1',
-        createdAt: '2026-07-01T00:00:00Z',
-        jobId: 'job-v1',
-        assetId: 'asset-1',
-        workflowUpdatedAt: '2026-07-01T00:00:00Z',
-        dependencyHash: 'hash-v1',
-        paramOverridesSnapshot: {},
-        status: 'success',
-      }, {
-        id: 'v2',
-        createdAt: '2026-07-01T00:00:00Z',
-        jobId: 'job-v2',
-        assetId: 'asset-2',
-        workflowUpdatedAt: '2026-07-01T00:00:00Z',
-        dependencyHash: 'hash-v2',
-        paramOverridesSnapshot: {},
-        status: 'success',
-      }],
+      versions: [
+        {
+          id: 'v1',
+          createdAt: '2026-07-01T00:00:00Z',
+          jobId: 'job-v1',
+          assetId: 'asset-1',
+          workflowUpdatedAt: '2026-07-01T00:00:00Z',
+          dependencyHash: 'hash-v1',
+          paramOverridesSnapshot: {},
+          status: 'success',
+        },
+        {
+          id: 'v2',
+          createdAt: '2026-07-01T00:00:00Z',
+          jobId: 'job-v2',
+          assetId: 'asset-2',
+          workflowUpdatedAt: '2026-07-01T00:00:00Z',
+          dependencyHash: 'hash-v2',
+          paramOverridesSnapshot: {},
+          status: 'success',
+        },
+      ],
     },
     {
       id: 'c2',
@@ -159,7 +197,8 @@ const renderHeaderRight = () => {
   return render(<HeaderRight />);
 };
 
-const saveButton = () => renderHeaderRight().getByLabelText('Save timeline').props;
+const saveButton = () =>
+  renderHeaderRight().getByLabelText('Save timeline').props;
 
 describe('TimelineViewerScreen', () => {
   beforeEach(() => {
@@ -172,9 +211,11 @@ describe('TimelineViewerScreen', () => {
   it('loads the document and renders a lane per track with its clips', async () => {
     renderScreen();
 
-    await waitFor(() => expect(mockRead).toHaveBeenCalledWith({
-      ref: { kind: 'timeline', id: SEQ_ID },
-    }));
+    await waitFor(() =>
+      expect(mockRead).toHaveBeenCalledWith({
+        ref: { kind: 'timeline', id: SEQ_ID },
+      }),
+    );
 
     expect(await screen.findByText('Video 1')).toBeTruthy();
     expect(screen.getByText('Music')).toBeTruthy();
@@ -232,7 +273,10 @@ describe('TimelineViewerScreen', () => {
     const view = renderScreen();
     await screen.findByLabelText(/^Clip Opening shot/);
 
-    const handler = getDocumentHandler<TimelineAgentHandler>('timeline', SEQ_ID);
+    const handler = getDocumentHandler<TimelineAgentHandler>(
+      'timeline',
+      SEQ_ID,
+    );
     expect(handler.getSnapshot()).toMatchObject({
       sequenceId: SEQ_ID,
       title: 'My Sequence',
@@ -252,14 +296,20 @@ describe('TimelineViewerScreen', () => {
   });
 
   it('shows an empty state when the sequence has no clips', async () => {
-    mockRead.mockResolvedValue(detail({ tracks: sequence.tracks, clips: [], markers: [] }));
+    mockRead.mockResolvedValue(
+      detail({ tracks: sequence.tracks, clips: [], markers: [] }),
+    );
 
     renderScreen();
 
-    expect(await screen.findByText(/This sequence has no clips yet/)).toBeTruthy();
+    expect(
+      await screen.findByText(/This sequence has no clips yet/),
+    ).toBeTruthy();
     // The empty state has to say the screen is not touch-editable, and point at
     // the thing that is.
-    expect(screen.getByText(/ask the assistant to change the sequence/)).toBeTruthy();
+    expect(
+      screen.getByText(/ask the assistant to change the sequence/),
+    ).toBeTruthy();
     expect(screen.getByLabelText('Ask the assistant')).toBeTruthy();
   });
 
@@ -281,9 +331,12 @@ describe('TimelineViewerScreen', () => {
 
     expect(saveButton().accessibilityState).toEqual({ disabled: true });
 
-    const handler = getDocumentHandler<TimelineAgentHandler>('timeline', SEQ_ID);
-    act(() => {
-      handler.moveClip('Opening shot', { startMs: 3000 });
+    const handler = getDocumentHandler<TimelineAgentHandler>(
+      'timeline',
+      SEQ_ID,
+    );
+    await act(async () => {
+      await handler.moveClip('Opening shot', { startMs: 3000 });
     });
 
     // The edit repaints the screen the user is holding.
@@ -298,9 +351,12 @@ describe('TimelineViewerScreen', () => {
     const view = renderScreen();
     await view.findByLabelText(/^Clip Opening shot/);
 
-    const handler = getDocumentHandler<TimelineAgentHandler>('timeline', SEQ_ID);
-    act(() => {
-      handler.addMarker({ timeMs: 5000, label: 'Beat' });
+    const handler = getDocumentHandler<TimelineAgentHandler>(
+      'timeline',
+      SEQ_ID,
+    );
+    await act(async () => {
+      await handler.addMarker({ timeMs: 5000, label: 'Beat' });
     });
 
     const button = renderHeaderRight().getByLabelText('Save timeline');
@@ -310,7 +366,9 @@ describe('TimelineViewerScreen', () => {
 
     // The revision read on load is echoed back so a stale write is rejected.
     expect(mockUpdate).toHaveBeenCalledWith(
-      expect.objectContaining({ ref: { kind: 'timeline', id: SEQ_ID, revision: 3 } })
+      expect.objectContaining({
+        ref: { kind: 'timeline', id: SEQ_ID, revision: 3 },
+      }),
     );
     const written = mockUpdate.mock.calls[0][0] as {
       document: TimelineDocument;
@@ -319,20 +377,50 @@ describe('TimelineViewerScreen', () => {
     expect(view.queryByLabelText('Unsaved changes')).toBeNull();
   });
 
+  it('saves an edit queued before the save call', async () => {
+    renderScreen();
+    await screen.findByText('Video 1');
+    const handler = getDocumentHandler<TimelineAgentHandler>(
+      'timeline',
+      SEQ_ID,
+    );
+    mockUpdate.mockImplementation(async (input) => ({
+      ...detail(input.document),
+      ref: { kind: 'timeline', id: SEQ_ID, revision: 4 },
+    }));
+    await act(async () => {
+      const edit = handler.addMarker({ timeMs: 3000, label: 'Queued' });
+      const saved = handler.save();
+      await Promise.all([edit, saved]);
+    });
+    expect(mockUpdate).toHaveBeenCalledTimes(1);
+    expect(mockUpdate.mock.calls[0][0].document.markers).toEqual(
+      expect.arrayContaining([expect.objectContaining({ label: 'Queued' })]),
+    );
+    expect(handler.getSnapshot().dirty).toBe(false);
+  });
+
   it('ui_timeline_save rethrows when the write is rejected', async () => {
-    mockUpdate.mockRejectedValue(new Error('Sequence was modified concurrently'));
+    mockUpdate.mockRejectedValue(
+      new Error('Sequence was modified concurrently'),
+    );
     renderScreen();
     await screen.findByLabelText(/^Clip Opening shot/);
 
-    const handler = getDocumentHandler<TimelineAgentHandler>('timeline', SEQ_ID);
-    act(() => {
-      handler.addMarker({ timeMs: 5000, label: 'Beat' });
+    const handler = getDocumentHandler<TimelineAgentHandler>(
+      'timeline',
+      SEQ_ID,
+    );
+    await act(async () => {
+      await handler.addMarker({ timeMs: 5000, label: 'Beat' });
     });
 
     await expect(handler.save()).rejects.toThrow(/modified concurrently/);
 
     // And the user gets a way out that does not just retry into the same wall.
-    expect(await screen.findByLabelText('Timeline changed elsewhere')).toBeTruthy();
+    expect(
+      await screen.findByLabelText('Timeline changed elsewhere'),
+    ).toBeTruthy();
     fireEvent.press(screen.getByLabelText('Reload timeline'));
     await waitFor(() => expect(mockRead).toHaveBeenCalledTimes(2));
   });
@@ -341,8 +429,11 @@ describe('TimelineViewerScreen', () => {
     const view = renderScreen();
     await screen.findByLabelText(/^Clip Opening shot/);
 
-    act(() => {
-      getDocumentHandler<TimelineAgentHandler>('timeline', SEQ_ID).addMarker({
+    await act(async () => {
+      await getDocumentHandler<TimelineAgentHandler>(
+        'timeline',
+        SEQ_ID,
+      ).addMarker({
         timeMs: 5000,
       });
     });
@@ -361,9 +452,12 @@ describe('TimelineViewerScreen', () => {
     renderScreen();
     await screen.findByLabelText(/^Clip Opening shot/);
 
-    const handler = getDocumentHandler<TimelineAgentHandler>('timeline', SEQ_ID);
-    act(() => {
-      handler.addTextClip({ text: 'Chapter One' });
+    const handler = getDocumentHandler<TimelineAgentHandler>(
+      'timeline',
+      SEQ_ID,
+    );
+    await act(async () => {
+      await handler.addTextClip({ text: 'Chapter One' });
     });
     await act(async () => {
       await expect(handler.save()).rejects.toThrow(/Disk full/);
@@ -386,15 +480,18 @@ describe('TimelineViewerScreen', () => {
             clipIds: ['c1'],
           },
         ],
-      })
+      }),
     );
     renderScreen();
     await screen.findByLabelText(/^Clip Opening shot/);
 
-    const handler = getDocumentHandler<TimelineAgentHandler>('timeline', SEQ_ID);
+    const handler = getDocumentHandler<TimelineAgentHandler>(
+      'timeline',
+      SEQ_ID,
+    );
 
-    expect(() => handler.splitClip('c1', 2000)).toThrow(
-      /transcript line "And then we cut away\." \(line-1\)/
+    await expect(handler.splitClip('c1', 2000)).rejects.toThrow(
+      /transcript line "And then we cut away\." \(line-1\)/,
     );
     expect(handler.getSnapshot().dirty).toBe(false);
   });
@@ -403,11 +500,14 @@ describe('TimelineViewerScreen', () => {
     renderScreen();
     await screen.findByLabelText(/^Clip Opening shot/);
 
-    const handler = getDocumentHandler<TimelineAgentHandler>('timeline', SEQ_ID);
+    const handler = getDocumentHandler<TimelineAgentHandler>(
+      'timeline',
+      SEQ_ID,
+    );
     act(() => {
       handler.seek(2500);
     });
-    const halves = handler.splitClip('c1');
+    const halves = await handler.splitClip('c1');
 
     expect(halves.map((clip) => [clip.startMs, clip.durationMs])).toEqual([
       [0, 2500],
@@ -425,10 +525,16 @@ describe('TimelineViewerScreen', () => {
     renderScreen();
     await screen.findByLabelText(/^Clip Opening shot/);
 
-    const handler = getDocumentHandler<TimelineAgentHandler>('timeline', SEQ_ID);
+    const handler = getDocumentHandler<TimelineAgentHandler>(
+      'timeline',
+      SEQ_ID,
+    );
     let clip: TimelineClipNode | undefined;
     await act(async () => {
-      clip = await handler.addMediaClip({ asset: 'asset://asset-9.mp4', trackId: 't1' });
+      clip = await handler.addMediaClip({
+        asset: 'asset://asset-9.mp4',
+        trackId: 't1',
+      });
     });
 
     expect(mockAssetGet).toHaveBeenCalledWith({ id: 'asset-9' });
@@ -441,11 +547,14 @@ describe('TimelineViewerScreen', () => {
     renderScreen();
     await screen.findByLabelText(/^Clip Opening shot/);
 
-    const handler = getDocumentHandler<TimelineAgentHandler>('timeline', SEQ_ID);
+    const handler = getDocumentHandler<TimelineAgentHandler>(
+      'timeline',
+      SEQ_ID,
+    );
     await act(async () => {
-      await expect(handler.addMediaClip({ asset: 'asset-missing' })).rejects.toThrow(
-        /No asset found for "asset-missing"/
-      );
+      await expect(
+        handler.addMediaClip({ asset: 'asset-missing' }),
+      ).rejects.toThrow(/No asset found for "asset-missing"/);
     });
     expect(handler.getSnapshot().dirty).toBe(false);
   });
@@ -454,11 +563,139 @@ describe('TimelineViewerScreen', () => {
     renderScreen();
     await screen.findByLabelText(/^Clip Opening shot/);
 
-    const handler = getDocumentHandler<TimelineAgentHandler>('timeline', SEQ_ID);
+    const handler = getDocumentHandler<TimelineAgentHandler>(
+      'timeline',
+      SEQ_ID,
+    );
     act(() => {
       handler.rename('Trailer v2');
     });
 
-    expect(handler.getSnapshot()).toMatchObject({ title: 'Trailer v2', dirty: true });
+    expect(handler.getSnapshot()).toMatchObject({
+      title: 'Trailer v2',
+      dirty: true,
+    });
   });
+});
+
+describe('shared fixtures through mounted mobile tools', () => {
+  beforeEach(() => {
+    jest.clearAllMocks();
+    resetDocumentStores();
+    resetDocumentHandlers();
+  });
+  afterEach(() => jest.restoreAllMocks());
+  const unsupported = FIXTURES.filter(
+    (fixture) => !MobileToolRegistry.has(`ui_timeline_${fixture.tool}`),
+  ).map((fixture) => fixture.tool);
+  it('enumerates unsupported host operations', () => {
+    expect(unsupported).toEqual([
+      'generate_from_beats',
+      'add_midi_clip',
+      'set_notes',
+      'set_tempo',
+      'set_track_instrument',
+      'transpose_clip',
+      'quantize_notes',
+      'scale_velocity',
+      'set_reframe_subject',
+      'add_reframe_keyframe',
+      'clear_reframe',
+      'retarget_format',
+      'stagger_animations',
+      'set_setup',
+      'plan_beats',
+      'update_beat',
+      'remove_beat',
+      'move_track',
+      'delete_track',
+      'add_model3d_clip',
+      'set_model3d_style',
+      'bake_model3d_clip',
+      'generate_clip',
+      'apply_transition_at_cut',
+      'set_baked_animation',
+      'set_generated_matte',
+      'insert_composition',
+      'list_takes',
+      'select_take',
+      'rename_take',
+      'delete_take',
+      'list_tracks',
+      'delete_track_object',
+      'bind_to_track',
+      'unbind_track',
+    ]);
+  });
+  for (const fixture of FIXTURES.filter((fixture) =>
+    MobileToolRegistry.has(`ui_timeline_${fixture.tool}`),
+  )) {
+    it(fixture.tool, async () => {
+      const state = directState();
+      const context = directContext(state);
+      const minted: string[] = [];
+      const mint = context.newId;
+      context.newId = (kind) => {
+        const id = mint(kind);
+        minted.push(id);
+        return id;
+      };
+      let op = fixture.op;
+      let args = { ...fixture.args };
+      // Mobile's shape argument is structured and its authored names are lowercase.
+      if (op.op === 'add_text_clip') {
+        args = { ...args, style: { fontSizePx: 48 } };
+      }
+      if (op.op === 'add_shape_clip') {
+        const shape = resolveShapeArg(op.shape, op.shapeStyle, op.loose ?? {});
+        op = { ...op, name: shape.kind };
+        args = { shape };
+      }
+      let internalId = 0;
+      jest
+        .spyOn(TimelineDefaults, 'createTimeOrderedUuid')
+        .mockImplementation((...input: unknown[]) => {
+          if (!input.length) return `internal_${++internalId}`;
+          const id = minted.shift();
+          if (!id) throw new Error('Unexpected ID allocation');
+          return id;
+        });
+      const expected = await applyTimelineOp(state, op, context);
+      expect(expected.error).toBeUndefined();
+      internalId = 0;
+      mockRead.mockResolvedValue(
+        detail({ ...state, setup: state.setup ?? undefined }),
+      );
+      mockAssetGet.mockResolvedValue({
+        id: 'asset_1',
+        name: 'Clip.mp4',
+        content_type: 'video/mp4',
+        duration: 2.5,
+      });
+      renderScreen();
+      await waitFor(() =>
+        expect(
+          getDocumentHandler<TimelineAgentHandler>(
+            'timeline',
+            SEQ_ID,
+          ).getSnapshot().clipCount,
+        ).toBe(state.clips.length),
+      );
+      await act(async () => {
+        await MobileToolRegistry.call(
+          `ui_timeline_${fixture.tool}`,
+          { timeline_id: SEQ_ID, ...args },
+          fixture.tool,
+        );
+      });
+      const actual = documentStore<TimelineDocument>(
+        'timeline',
+        SEQ_ID,
+      ).getState().doc;
+      expect(actual?.tracks).toEqual(expected.state.tracks);
+      expect(actual?.clips).toEqual(expected.state.clips);
+      expect(actual?.markers).toEqual(expected.state.markers);
+      expect(actual?.mediaTracks).toEqual(expected.state.mediaTracks);
+    });
+  }
 });

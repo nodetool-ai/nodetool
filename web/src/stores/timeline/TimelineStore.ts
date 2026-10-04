@@ -309,7 +309,7 @@ export interface TimelineStoreState {
     width: number;
     height: number;
     storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
-  camera2d?: TimelineSequence["camera2d"];
+    camera2d?: TimelineSequence["camera2d"];
     tempo?: TimelineTempo;
     setup?: TimelineSetup | null;
   } | null;
@@ -337,7 +337,7 @@ export interface TimelineStoreState {
     width?: number;
     height?: number;
     storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
-  camera2d?: TimelineSequence["camera2d"];
+    camera2d?: TimelineSequence["camera2d"];
   }) => void;
   /**
    * Write back the document `applyTimelineOp` returned, in one `set` so one
@@ -345,15 +345,22 @@ export interface TimelineStoreState {
    * recomputed, as `applyExternalMerge` does. Track edits pass `preserveTiming`
    * to keep voiceover placement unchanged.
    */
-  applyAgentEdit: (next: {
-    tracks: TimelineTrack[];
-    trackFolders?: TimelineTrackFolder[];
-    clips: TimelineClip[];
-    markers: TimelineMarker[];
-    mediaTracks: MediaTrack[];
-    storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
-    tempo?: TimelineTempo;
-  }, options?: { preserveTiming: boolean }) => void;
+  applyAgentEdit: (
+    next: {
+      tracks: TimelineTrack[];
+      trackFolders?: TimelineTrackFolder[];
+      clips: TimelineClip[];
+      markers: TimelineMarker[];
+      mediaTracks: MediaTrack[];
+      storyboardMaterializations?: TimelineSequence["storyboardMaterializations"];
+      tempo?: TimelineTempo;
+      setup?: TimelineSetup | null;
+      transcript?: TimelineSequence["transcript"];
+      scriptEnabled?: boolean;
+      camera2d?: TimelineSequence["camera2d"];
+    },
+    options?: { preserveTiming: boolean }
+  ) => void;
   /** Reset the store to an empty document. */
   reset: () => void;
   /**
@@ -1022,6 +1029,7 @@ type PartializedState = Pick<
   | "tempo"
   | "storyboardMaterializations"
   | "camera2d"
+  | "setup"
 >;
 
 // ── Temporal equality (dedupe no-op sets) ───────────────────────────────────
@@ -1074,7 +1082,8 @@ function partializedEqual(
     pastState.tracks === currentState.tracks &&
     pastState.trackFolders === currentState.trackFolders &&
     pastState.clips === currentState.clips &&
-    pastState.storyboardMaterializations === currentState.storyboardMaterializations &&
+    pastState.storyboardMaterializations ===
+      currentState.storyboardMaterializations &&
     pastState.markers === currentState.markers &&
     pastState.mediaTracks === currentState.mediaTracks &&
     pastState.transcript === currentState.transcript
@@ -1083,7 +1092,8 @@ function partializedEqual(
       pastState.durationMs === currentState.durationMs &&
       pastState.scriptEnabled === currentState.scriptEnabled &&
       shallowRecordEqual(pastState.tempo, currentState.tempo) &&
-      shallowRecordEqual(pastState.camera2d, currentState.camera2d)
+      shallowRecordEqual(pastState.camera2d, currentState.camera2d) &&
+      shallowRecordEqual(pastState.setup, currentState.setup)
     );
   }
   // `&&` short-circuits, so a diverging earlier slice avoids scanning later
@@ -1093,13 +1103,15 @@ function partializedEqual(
     shallowArrayEqual(pastState.tracks, currentState.tracks) &&
     shallowArrayEqual(pastState.trackFolders, currentState.trackFolders) &&
     shallowArrayEqual(pastState.clips, currentState.clips) &&
-    pastState.storyboardMaterializations === currentState.storyboardMaterializations &&
+    pastState.storyboardMaterializations ===
+      currentState.storyboardMaterializations &&
     shallowArrayEqual(pastState.markers, currentState.markers) &&
     shallowArrayEqual(pastState.mediaTracks, currentState.mediaTracks) &&
     shallowArrayEqual(pastState.transcript, currentState.transcript) &&
     pastState.scriptEnabled === currentState.scriptEnabled &&
     shallowRecordEqual(pastState.tempo, currentState.tempo) &&
-    shallowRecordEqual(pastState.camera2d, currentState.camera2d)
+    shallowRecordEqual(pastState.camera2d, currentState.camera2d) &&
+    shallowRecordEqual(pastState.setup, currentState.setup)
   );
 }
 
@@ -1766,8 +1778,10 @@ function adoptServerSequence(
     fps: sequence.fps ?? base.fps,
     width: sequence.width ?? base.width,
     height: sequence.height ?? base.height,
-    storyboardMaterializations: sequence.storyboardMaterializations ?? base.storyboardMaterializations,
-    camera2d: sequence.camera2d === undefined ? base.camera2d : sequence.camera2d,
+    storyboardMaterializations:
+      sequence.storyboardMaterializations ?? base.storyboardMaterializations,
+    camera2d:
+      sequence.camera2d === undefined ? base.camera2d : sequence.camera2d,
     tempo: sequence.tempo ?? base.tempo,
     setup: sequence.setup ?? base.setup ?? null
   };
@@ -1964,8 +1978,15 @@ export const createTimelineStore = (
                 }
               : reflowGenerated(next.clips);
             return {
-              storyboardMaterializations: next.storyboardMaterializations ?? state.storyboardMaterializations,
+              storyboardMaterializations:
+                next.storyboardMaterializations ??
+                state.storyboardMaterializations,
               tempo: next.tempo ?? state.tempo,
+              setup: next.setup === undefined ? state.setup : next.setup,
+              transcript: next.transcript ?? state.transcript,
+              scriptEnabled: next.scriptEnabled ?? state.scriptEnabled,
+              camera2d:
+                next.camera2d === undefined ? state.camera2d : next.camera2d,
               tracks: next.tracks,
               trackFolders: next.trackFolders ?? state.trackFolders,
               clips: reflowed.clips,
@@ -2074,7 +2095,10 @@ export const createTimelineStore = (
           set((state) => ({
             trackFolders: [
               ...state.trackFolders,
-              { id, name: name?.trim() || `Folder ${state.trackFolders.length + 1}` }
+              {
+                id,
+                name: name?.trim() || `Folder ${state.trackFolders.length + 1}`
+              }
             ]
           }));
           return id;
@@ -2101,8 +2125,12 @@ export const createTimelineStore = (
             if (!trimmed) {
               return state;
             }
-            const trackFolders = patchById(state.trackFolders, folderId, { name: trimmed });
-            return trackFolders === state.trackFolders ? state : { trackFolders };
+            const trackFolders = patchById(state.trackFolders, folderId, {
+              name: trimmed
+            });
+            return trackFolders === state.trackFolders
+              ? state
+              : { trackFolders };
           }),
 
         removeTrackFolder: (folderId) =>
@@ -2111,19 +2139,28 @@ export const createTimelineStore = (
               return state;
             }
             return {
-              trackFolders: state.trackFolders.filter((folder) => folder.id !== folderId),
+              trackFolders: state.trackFolders.filter(
+                (folder) => folder.id !== folderId
+              ),
               tracks: state.tracks.map((track) =>
-                track.folderId === folderId ? { ...track, folderId: undefined } : track
+                track.folderId === folderId
+                  ? { ...track, folderId: undefined }
+                  : track
               )
             };
           }),
 
         setTrackFolder: (trackId, folderId) =>
           set((state) => {
-            if (folderId && !state.trackFolders.some((folder) => folder.id === folderId)) {
+            if (
+              folderId &&
+              !state.trackFolders.some((folder) => folder.id === folderId)
+            ) {
               return state;
             }
-            const tracks = patchById(state.tracks, trackId, { folderId: folderId ?? undefined });
+            const tracks = patchById(state.tracks, trackId, {
+              folderId: folderId ?? undefined
+            });
             return tracks === state.tracks ? state : { tracks };
           }),
 
@@ -2356,10 +2393,15 @@ export const createTimelineStore = (
             const clip = state.clips.find((c) => c.id === clipId);
             if (
               !clip ||
-              !editableUserTargets(state.clips, state.tracks, new Set([clipId]), {
-                followLinks: state.linkedSelection,
-                includeGroupDescendants: true
-              }).has(clipId)
+              !editableUserTargets(
+                state.clips,
+                state.tracks,
+                new Set([clipId]),
+                {
+                  followLinks: state.linkedSelection,
+                  includeGroupDescendants: true
+                }
+              ).has(clipId)
             ) {
               return state;
             }
@@ -2389,7 +2431,11 @@ export const createTimelineStore = (
 
             // Clamp the delta once for the whole link set so J-cut offsets
             // survive a drag against t=0 (same rule as moveSelectedClips).
-            if (!isGroupClip(clip) && clip.linkId !== undefined && state.linkedSelection) {
+            if (
+              !isGroupClip(clip) &&
+              clip.linkId !== undefined &&
+              state.linkedSelection
+            ) {
               const minStartMs = state.clips.reduce(
                 (min, c) =>
                   c.linkId === clip.linkId ? Math.min(min, c.startMs) : min,
@@ -3971,6 +4017,7 @@ export const createTimelineStore = (
           scriptEnabled: state.scriptEnabled,
           tempo: state.tempo,
           storyboardMaterializations: state.storyboardMaterializations,
+          setup: state.setup,
           camera2d: state.camera2d ?? null
         })
       }

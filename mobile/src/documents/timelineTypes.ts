@@ -27,6 +27,7 @@ import type {
   TimelineClip,
   TimelineMarker,
   TimelineTrack,
+  TimelineSequence,
   TranscriptLine,
 } from '@nodetool-ai/timeline';
 
@@ -42,8 +43,7 @@ export type TimelineMarkerData = TimelineMarker;
 /**
  * The timeline document body — the wire shape of `timelineDocument` in
  * `@nodetool-ai/protocol/api-schemas/timeline`, expressed with the engine's
- * types (the protocol module is zod, is not re-exported from the package root,
- * and mobile has no zod).
+ * types. The shared edit engine validates tool arguments through protocol schemas.
  *
  * `fps`, `width`, and `height` live on the resource row, not in the body, so
  * they are unavailable here — duration comes from the clips.
@@ -53,6 +53,12 @@ export interface TimelineDocument {
   clips: TimelineClipData[];
   markers: TimelineMarkerData[];
   transcript?: TranscriptLine[];
+  setup?: TimelineSequence['setup'];
+  tempo?: TimelineSequence['tempo'];
+  trackFolders?: TimelineSequence['trackFolders'];
+  mediaTracks?: TimelineSequence['mediaTracks'];
+  camera2d?: TimelineSequence['camera2d'];
+  storyboardMaterializations?: TimelineSequence['storyboardMaterializations'];
   scriptEnabled?: boolean;
 }
 
@@ -173,14 +179,7 @@ export interface TimelineClipParamsPatch {
 
 // ── Motion-design inputs ────────────────────────────────────────────────────
 //
-// These mirror the zod params the web and headless surfaces share from
-// `@nodetool-ai/protocol/api-schemas/timeline-tool-params`. They are re-declared
-// as plain TypeScript here for the same reason `TimelineDocument` is: that
-// module is zod, mobile has no zod, and `@nodetool-ai/protocol` is not resolved
-// on this side at all (metro/tsconfig/jest map only two dependency-free
-// modules of it). The *semantics* are not re-implemented — the narrowing each
-// builder does is mirrored once in `timelineEdits.ts`, against the same
-// `@nodetool-ai/timeline` document types both sides store.
+// Typed mobile inputs are validated and applied by the shared timeline engine.
 
 /** One animation for `animateClip`. `curves` is the only custom form mobile takes. */
 export interface TimelineAnimationInput {
@@ -196,10 +195,14 @@ export interface TimelineAnimationInput {
   code?: string;
   /** Required when a curve drives `wipeProgress`. */
   mask?: unknown;
-  stagger?: { unit: string; offsetMs: number; from?: 'start' | 'end' | 'center' };
+  stagger?: {
+    unit: string;
+    offsetMs: number;
+    from?: 'start' | 'end' | 'center';
+  };
 }
 
-/** An asset already resolved by the screen, so the pure edit stays synchronous. */
+/** An asset already resolved by the screen, for the shared edit engine. */
 export interface ResolvedTimelineAsset {
   id: string;
   name: string;
@@ -338,67 +341,88 @@ export interface TimelineAgentHandler {
   /** Move the playhead and return the resulting position (ms). */
   seek: (timeMs: number) => number;
 
-  addTrack: (type: TimelineTrackType, name?: string) => TimelineTrackNode;
-  addTextClip: (input: TimelineAddTextClipInput) => TimelineClipNode;
-  addShapeClip: (input: TimelineAddShapeClipInput) => TimelineClipNode;
+  addTrack: (
+    type: TimelineTrackType,
+    name?: string,
+  ) => Promise<TimelineTrackNode>;
+  addTextClip: (input: TimelineAddTextClipInput) => Promise<TimelineClipNode>;
+  addShapeClip: (input: TimelineAddShapeClipInput) => Promise<TimelineClipNode>;
   /** Moves the whole link group by one delta; returns every clip that moved. */
-  moveClip: (target: string, patch: TimelineMovePatch) => TimelineClipNode[];
+  moveClip: (
+    target: string,
+    patch: TimelineMovePatch,
+  ) => Promise<TimelineClipNode[]>;
   /** All-or-nothing across the link group. */
-  trimClip: (target: string, patch: TimelineTrimPatch) => TimelineClipNode[];
+  trimClip: (
+    target: string,
+    patch: TimelineTrimPatch,
+  ) => Promise<TimelineClipNode[]>;
   /** Splits the clip and every link sibling at the same point. */
-  splitClip: (target: string, atMs?: number) => TimelineClipNode[];
-  deleteClip: (target: string) => TimelineClipNode;
+  splitClip: (target: string, atMs?: number) => Promise<TimelineClipNode[]>;
+  deleteClip: (target: string) => Promise<TimelineClipNode>;
   /** Duplicates the clip, or the whole link group when it has one. */
-  duplicateClip: (target: string, gapMs?: number) => TimelineClipNode[];
+  duplicateClip: (
+    target: string,
+    gapMs?: number,
+  ) => Promise<TimelineClipNode[]>;
   setClipParams: (
     target: string,
-    patch: TimelineClipParamsPatch
-  ) => TimelineClipNode;
+    patch: TimelineClipParamsPatch,
+  ) => Promise<TimelineClipNode>;
   /** Places an asset the screen resolves through `assets.get` first. */
   addMediaClip: (input: TimelineAddMediaClipInput) => Promise<TimelineClipNode>;
   setClipBinding: (
     target: string,
-    patch: TimelineClipBindingPatch
-  ) => TimelineClipNode;
+    patch: TimelineClipBindingPatch,
+  ) => Promise<TimelineClipNode>;
 
   animateClip: (
     target: string,
     animations: TimelineAnimationInput[],
-    mode?: 'add' | 'replace'
-  ) => TimelineClipNode;
-  clearAnimations: (target: string, role?: AnimationRole) => TimelineClipNode;
+    mode?: 'add' | 'replace',
+  ) => Promise<TimelineClipNode>;
+  clearAnimations: (
+    target: string,
+    role?: AnimationRole,
+  ) => Promise<TimelineClipNode>;
 
   /** Creates the group clip and parents the named children to it. */
   addGroup: (
-    input: TimelineAddGroupInput
-  ) => { clip: TimelineClipNode; children: string[] };
-  setParent: (target: string, parentId: string | null) => TimelineClipNode;
+    input: TimelineAddGroupInput,
+  ) => Promise<{ clip: TimelineClipNode; children: string[] }>;
+  setParent: (
+    target: string,
+    parentId: string | null,
+  ) => Promise<TimelineClipNode>;
 
   setTransition: (
     target: string,
-    transition: TimelineTransitionInput | null
-  ) => TimelineClipNode;
-  setMask: (target: string, mask: TimelineMaskInput | null) => TimelineClipNode;
+    transition: TimelineTransitionInput | null,
+  ) => Promise<TimelineClipNode>;
+  setMask: (
+    target: string,
+    mask: TimelineMaskInput | null,
+  ) => Promise<TimelineClipNode>;
   setMatte: (
     target: string,
-    matte: TimelineMatteInput | null
-  ) => TimelineClipNode;
+    matte: TimelineMatteInput | null,
+  ) => Promise<TimelineClipNode>;
   setEffects: (
     target: string,
-    effects: TimelineEffectInput[]
-  ) => TimelineClipNode;
+    effects: TimelineEffectInput[],
+  ) => Promise<TimelineClipNode>;
   setTimeRemap: (
     target: string,
-    timeRemap: TimelineTimeRemapInput | null
-  ) => TimelineClipNode;
+    timeRemap: TimelineTimeRemapInput | null,
+  ) => Promise<TimelineClipNode>;
 
   setMarkersFromBeats: (
-    input: TimelineBeatGridInput
-  ) => TimelineBeatMarkerReport;
-  snapToBeats: (input: TimelineSnapToBeatsInput) => TimelineSnapReport;
+    input: TimelineBeatGridInput,
+  ) => Promise<TimelineBeatMarkerReport>;
+  snapToBeats: (input: TimelineSnapToBeatsInput) => Promise<TimelineSnapReport>;
 
-  addMarker: (input: TimelineAddMarkerInput) => TimelineMarkerData;
-  deleteMarker: (target: string) => TimelineMarkerData;
+  addMarker: (input: TimelineAddMarkerInput) => Promise<TimelineMarkerData>;
+  deleteMarker: (target: string) => Promise<TimelineMarkerData>;
   rename: (name: string) => { title: string };
   save: () => Promise<{ ok: true; updatedAt: string | null }>;
 }
@@ -407,13 +431,13 @@ export interface TimelineAgentHandler {
 export function timelineDurationMs(clips: readonly TimelineClipData[]): number {
   return clips.reduce(
     (end, clip) => Math.max(end, clip.startMs + clip.durationMs),
-    0
+    0,
   );
 }
 
 export function clipToNode(
   clip: TimelineClipData,
-  trackName: string | null
+  trackName: string | null,
 ): TimelineClipNode {
   return {
     id: clip.id,
@@ -437,7 +461,7 @@ export function clipToNode(
 
 export function trackToNode(
   track: TimelineTrackData,
-  clipCount: number
+  clipCount: number,
 ): TimelineTrackNode {
   return {
     id: track.id,
@@ -461,12 +485,12 @@ export function trackToNode(
 export function resolveClip(
   clips: readonly TimelineClipData[],
   target: string,
-  selectedClipIds: readonly string[]
+  selectedClipIds: readonly string[],
 ): TimelineClipData {
   const wanted = target === 'selected' ? (selectedClipIds[0] ?? '') : target;
   if (wanted === '') {
     throw new Error(
-      'No clip is selected. Pass a clip id or clip name instead of "selected".'
+      'No clip is selected. Pass a clip id or clip name instead of "selected".',
     );
   }
 
@@ -486,7 +510,7 @@ export function resolveClip(
     `No clip matches "${target}". Use a clip id, a clip name, or "selected". ` +
       (known.length > 0
         ? `Clips: ${known}.`
-        : 'This sequence has no clips yet.')
+        : 'This sequence has no clips yet.'),
   );
 }
 
@@ -496,7 +520,7 @@ export function resolveClip(
  */
 export function resolveTrack(
   tracks: readonly TimelineTrackData[],
-  target: string
+  target: string,
 ): TimelineTrackData {
   const byId = tracks.find((track) => track.id === target);
   if (byId) {
@@ -509,11 +533,13 @@ export function resolveTrack(
     return byName;
   }
 
-  const known = tracks.map((track) => `${track.id} ("${track.name}")`).join(', ');
+  const known = tracks
+    .map((track) => `${track.id} ("${track.name}")`)
+    .join(', ');
   throw new Error(
     `No track matches "${target}". Use a track id or a track name. ` +
       (known.length > 0
         ? `Tracks: ${known}.`
-        : 'This sequence has no tracks yet.')
+        : 'This sequence has no tracks yet.'),
   );
 }

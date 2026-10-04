@@ -111,7 +111,9 @@ function formatTime(ms: number): string {
 }
 
 function chooseTickMs(pxPerSecond: number): number {
-  const step = TICK_STEPS_MS.find((candidate) => (candidate / 1000) * pxPerSecond >= 64);
+  const step = TICK_STEPS_MS.find(
+    (candidate) => (candidate / 1000) * pxPerSecond >= 64,
+  );
   return step ?? TICK_STEPS_MS[TICK_STEPS_MS.length - 1];
 }
 
@@ -153,7 +155,10 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
   const { colors } = useTheme();
   const insets = useSafeAreaInsets();
 
-  const store = useMemo(() => documentStore<TimelineDocument>('timeline', id), [id]);
+  const store = useMemo(
+    () => documentStore<TimelineDocument>('timeline', id),
+    [id],
+  );
   // `ui_timeline_add_media_clip` needs the asset's content type and duration
   // before it can place a clip. The edits stay pure and synchronous, so the
   // lookup happens here and the resolved descriptor is handed to them.
@@ -165,7 +170,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
       dirty: state.dirty,
       status: state.status,
       error: state.error,
-    }))
+    })),
   );
 
   const [pxPerSecond, setPxPerSecond] = useState(DEFAULT_PX_PER_SECOND);
@@ -205,7 +210,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
 
   const tracks = useMemo<TimelineTrackData[]>(
     () => [...(doc?.tracks ?? [])].sort((a, b) => a.index - b.index),
-    [doc]
+    [doc],
   );
   const clips = useMemo<TimelineClipData[]>(() => doc?.clips ?? [], [doc]);
   const markers = useMemo(() => doc?.markers ?? [], [doc]);
@@ -214,7 +219,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
   const trackNameOf = useCallback(
     (trackId: string): string | null =>
       tracks.find((track) => track.id === trackId)?.name ?? null,
-    [tracks]
+    [tracks],
   );
 
   // ── Agent handler ────────────────────────────────────────────────────────
@@ -224,7 +229,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
       const current = store.getState().doc;
       if (current === null) {
         throw new Error(
-          `Timeline "${id}" has not finished loading. Retry in a moment.`
+          `Timeline "${id}" has not finished loading. Retry in a moment.`,
         );
       }
       return current;
@@ -235,35 +240,36 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
 
     const trackNameIn = (
       current: TimelineDocument,
-      trackId: string
+      trackId: string,
     ): string | null =>
       current.tracks.find((track) => track.id === trackId)?.name ?? null;
 
     const node = (
       current: TimelineDocument,
-      clip: TimelineClipData
+      clip: TimelineClipData,
     ): TimelineClipNode => clipToNode(clip, trackNameIn(current, clip.trackId));
 
-    /** Apply a pure edit, write it to the store, and project the result. */
+    let pending: Promise<unknown> = Promise.resolve();
     const apply = <T,>(
-      run: (current: TimelineDocument) => {
-        doc: TimelineDocument;
-        result: T;
-      }
-    ): T => {
-      const outcome = run(requireDoc());
-      store.getState().edit(() => outcome.doc);
-      return outcome.result;
+      run: (
+        current: TimelineDocument,
+      ) => Promise<{ doc: TimelineDocument; result: T }>,
+    ): Promise<T> => {
+      const task = pending.then(async () => {
+        const outcome = await run(requireDoc());
+        store.getState().edit(() => outcome.doc);
+        return outcome.result;
+      });
+      pending = task.catch(() => undefined);
+      return task;
     };
-
     const applyClips = (
-      run: (current: TimelineDocument) => {
-        doc: TimelineDocument;
-        clips: TimelineClipData[];
-      }
-    ): TimelineClipNode[] =>
-      apply((current) => {
-        const next = run(current);
+      run: (
+        current: TimelineDocument,
+      ) => Promise<{ doc: TimelineDocument; clips: TimelineClipData[] }>,
+    ): Promise<TimelineClipNode[]> =>
+      apply(async (current) => {
+        const next = await run(current);
         return {
           doc: next.doc,
           result: next.clips.map((clip) => node(next.doc, clip)),
@@ -274,7 +280,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
       const state = store.getState();
       const current = state.doc;
       const currentTracks = [...(current?.tracks ?? [])].sort(
-        (a, b) => a.index - b.index
+        (a, b) => a.index - b.index,
       );
       const currentClips = current?.clips ?? [];
       // The agent snapshots after every tool call, and a full sequence is
@@ -284,11 +290,11 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
       for (const clip of currentClips) {
         clipCountByTrack.set(
           clip.trackId,
-          (clipCountByTrack.get(clip.trackId) ?? 0) + 1
+          (clipCountByTrack.get(clip.trackId) ?? 0) + 1,
         );
       }
       const trackNameById = new Map(
-        currentTracks.map((track) => [track.id, track.name])
+        currentTracks.map((track) => [track.id, track.name]),
       );
       return {
         sequenceId: id,
@@ -300,10 +306,10 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
         selectedClipIds: selectedIds(),
         dirty: state.dirty,
         tracks: currentTracks.map((track) =>
-          trackToNode(track, clipCountByTrack.get(track.id) ?? 0)
+          trackToNode(track, clipCountByTrack.get(track.id) ?? 0),
         ),
         clips: currentClips.map((clip) =>
-          clipToNode(clip, trackNameById.get(clip.trackId) ?? null)
+          clipToNode(clip, trackNameById.get(clip.trackId) ?? null),
         ),
         markers: (current?.markers ?? []).map((marker) => ({
           id: marker.id,
@@ -340,49 +346,56 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
       seek: (timeMs) => {
         const clamped = Math.max(
           0,
-          Math.min(timeMs, timelineDurationMs(requireDoc().clips))
+          Math.min(timeMs, timelineDurationMs(requireDoc().clips)),
         );
         movePlayhead(clamped);
         return clamped;
       },
 
       addTrack: (type, trackName) =>
-        apply((current) => {
-          const next = edits.addTrack(current, type, trackName);
+        apply(async (current) => {
+          const next = await edits.addTrack(current, type, trackName);
           return { doc: next.doc, result: trackToNode(next.track, 0) };
         }),
 
       addTextClip: (input) =>
-        apply((current) => {
-          const next = edits.addTextClip(current, input);
+        apply(async (current) => {
+          const next = await edits.addTextClip(current, input);
           return { doc: next.doc, result: node(next.doc, next.clip) };
         }),
 
       addShapeClip: (input) =>
-        apply((current) => {
-          const next = edits.addShapeClip(current, input);
+        apply(async (current) => {
+          const next = await edits.addShapeClip(current, input);
           return { doc: next.doc, result: node(next.doc, next.clip) };
         }),
 
       moveClip: (target, patch) =>
-        applyClips((current) => edits.moveClip(current, target, patch, selectedIds())),
+        applyClips(
+          async (current) =>
+            await edits.moveClip(current, target, patch, selectedIds()),
+        ),
 
       trimClip: (target, patch) =>
-        applyClips((current) => edits.trimClip(current, target, patch, selectedIds())),
+        applyClips(
+          async (current) =>
+            await edits.trimClip(current, target, patch, selectedIds()),
+        ),
 
       splitClip: (target, atMs) =>
-        applyClips((current) =>
-          edits.splitClipAt(
-            current,
-            target,
-            atMs ?? Math.round(playheadRef.current),
-            selectedIds()
-          )
+        applyClips(
+          async (current) =>
+            await edits.splitClipAt(
+              current,
+              target,
+              atMs ?? Math.round(playheadRef.current),
+              selectedIds(),
+            ),
         ),
 
       deleteClip: (target) =>
-        apply((current) => {
-          const next = edits.deleteClip(current, target, selectedIds());
+        apply(async (current) => {
+          const next = await edits.deleteClip(current, target, selectedIds());
           if (selectedRef.current === next.deleted.id) {
             select(null);
           }
@@ -390,13 +403,24 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
         }),
 
       duplicateClip: (target, gapMs) =>
-        applyClips((current) =>
-          edits.duplicateClip(current, target, gapMs ?? 0, selectedIds())
+        applyClips(
+          async (current) =>
+            await edits.duplicateClip(
+              current,
+              target,
+              gapMs ?? 0,
+              selectedIds(),
+            ),
         ),
 
       setClipParams: (target, patch) =>
-        apply((current) => {
-          const next = edits.setClipParams(current, target, patch, selectedIds());
+        apply(async (current) => {
+          const next = await edits.setClipParams(
+            current,
+            target,
+            patch,
+            selectedIds(),
+          );
           return { doc: next.doc, result: node(next.doc, next.clip) };
         }),
 
@@ -410,11 +434,11 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
         const asset = await trpcUtils.assets.get.fetch({ id: assetId });
         if (!asset) {
           throw new Error(
-            `No asset found for "${input.asset}". Pass an asset id or an asset:// URI.`
+            `No asset found for "${input.asset}". Pass an asset id or an asset:// URI.`,
           );
         }
-        return apply((current) => {
-          const next = edits.addMediaClip(current, input, {
+        return apply(async (current) => {
+          const next = await edits.addMediaClip(current, input, {
             id: asset.id,
             name: asset.name,
             contentType: asset.content_type,
@@ -428,32 +452,42 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
       },
 
       setClipBinding: (target, patch) =>
-        apply((current) => {
-          const next = edits.setClipBinding(current, target, patch, selectedIds());
+        apply(async (current) => {
+          const next = await edits.setClipBinding(
+            current,
+            target,
+            patch,
+            selectedIds(),
+          );
           return { doc: next.doc, result: node(next.doc, next.clip) };
         }),
 
       animateClip: (target, animations, mode) =>
-        apply((current) => {
-          const next = edits.animateClip(
+        apply(async (current) => {
+          const next = await edits.animateClip(
             current,
             target,
             animations,
             mode,
-            selectedIds()
+            selectedIds(),
           );
           return { doc: next.doc, result: node(next.doc, next.clip) };
         }),
 
       clearAnimations: (target, role) =>
-        apply((current) => {
-          const next = edits.clearAnimations(current, target, role, selectedIds());
+        apply(async (current) => {
+          const next = await edits.clearAnimations(
+            current,
+            target,
+            role,
+            selectedIds(),
+          );
           return { doc: next.doc, result: node(next.doc, next.clip) };
         }),
 
       addGroup: (input) =>
-        apply((current) => {
-          const next = edits.addGroup(current, input);
+        apply(async (current) => {
+          const next = await edits.addGroup(current, input);
           return {
             doc: next.doc,
             result: {
@@ -464,72 +498,92 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
         }),
 
       setParent: (target, parentId) =>
-        apply((current) => {
-          const next = edits.setParent(current, target, parentId, selectedIds());
+        apply(async (current) => {
+          const next = await edits.setParent(
+            current,
+            target,
+            parentId,
+            selectedIds(),
+          );
           return { doc: next.doc, result: node(next.doc, next.clip) };
         }),
 
       setTransition: (target, transition) =>
-        apply((current) => {
-          const next = edits.setTransition(
+        apply(async (current) => {
+          const next = await edits.setTransition(
             current,
             target,
             transition,
-            selectedIds()
+            selectedIds(),
           );
           return { doc: next.doc, result: node(next.doc, next.clip) };
         }),
 
       setMask: (target, mask) =>
-        apply((current) => {
-          const next = edits.setMask(current, target, mask, selectedIds());
+        apply(async (current) => {
+          const next = await edits.setMask(
+            current,
+            target,
+            mask,
+            selectedIds(),
+          );
           return { doc: next.doc, result: node(next.doc, next.clip) };
         }),
 
       setMatte: (target, matte) =>
-        apply((current) => {
-          const next = edits.setMatte(current, target, matte, selectedIds());
+        apply(async (current) => {
+          const next = await edits.setMatte(
+            current,
+            target,
+            matte,
+            selectedIds(),
+          );
           return { doc: next.doc, result: node(next.doc, next.clip) };
         }),
 
       setEffects: (target, effects) =>
-        apply((current) => {
-          const next = edits.setEffects(current, target, effects, selectedIds());
+        apply(async (current) => {
+          const next = await edits.setEffects(
+            current,
+            target,
+            effects,
+            selectedIds(),
+          );
           return { doc: next.doc, result: node(next.doc, next.clip) };
         }),
 
       setTimeRemap: (target, timeRemap) =>
-        apply((current) => {
-          const next = edits.setTimeRemap(
+        apply(async (current) => {
+          const next = await edits.setTimeRemap(
             current,
             target,
             timeRemap,
-            selectedIds()
+            selectedIds(),
           );
           return { doc: next.doc, result: node(next.doc, next.clip) };
         }),
 
       setMarkersFromBeats: (input) =>
-        apply((current) => {
-          const next = edits.setMarkersFromBeats(current, input);
+        apply(async (current) => {
+          const next = await edits.setMarkersFromBeats(current, input);
           return { doc: next.doc, result: next.report };
         }),
 
       snapToBeats: (input) =>
-        apply((current) => {
-          const next = edits.snapToBeats(current, input);
+        apply(async (current) => {
+          const next = await edits.snapToBeats(current, input);
           return { doc: next.doc, result: next.report };
         }),
 
       addMarker: (input) =>
-        apply((current) => {
-          const next = edits.addMarker(current, input);
+        apply(async (current) => {
+          const next = await edits.addMarker(current, input);
           return { doc: next.doc, result: next.marker };
         }),
 
       deleteMarker: (target) =>
-        apply((current) => {
-          const next = edits.deleteMarker(current, target);
+        apply(async (current) => {
+          const next = await edits.deleteMarker(current, target);
           return { doc: next.doc, result: next.deleted };
         }),
 
@@ -539,6 +593,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
       },
 
       save: async () => {
+        await pending;
         await runSave();
         const state = store.getState();
         if (state.status === 'conflict' || state.status === 'error') {
@@ -569,7 +624,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
     useCallback(() => {
       setFocusedDocument('timeline', id);
       setUiSelection({ clipIds: selectedClipId ? [selectedClipId] : [] });
-    }, [id, selectedClipId])
+    }, [id, selectedClipId]),
   );
 
   // Unmount is what makes the claim stale, so the release belongs here.
@@ -623,7 +678,7 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
 
   const msToPx = useCallback(
     (ms: number): number => (ms / 1000) * pxPerSecond,
-    [pxPerSecond]
+    [pxPerSecond],
   );
 
   const contentWidth = Math.max(msToPx(durationMs + TAIL_MS), 320);
@@ -642,16 +697,22 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
       const x = event.nativeEvent.locationX;
       movePlayhead(Math.max(0, Math.min((x / pxPerSecond) * 1000, durationMs)));
     },
-    [durationMs, movePlayhead, pxPerSecond]
+    [durationMs, movePlayhead, pxPerSecond],
   );
 
   const zoomOut = useCallback(
-    () => setPxPerSecond((current) => Math.max(current / ZOOM_FACTOR, MIN_PX_PER_SECOND)),
-    []
+    () =>
+      setPxPerSecond((current) =>
+        Math.max(current / ZOOM_FACTOR, MIN_PX_PER_SECOND),
+      ),
+    [],
   );
   const zoomIn = useCallback(
-    () => setPxPerSecond((current) => Math.min(current * ZOOM_FACTOR, MAX_PX_PER_SECOND)),
-    []
+    () =>
+      setPxPerSecond((current) =>
+        Math.min(current * ZOOM_FACTOR, MAX_PX_PER_SECOND),
+      ),
+    [],
   );
 
   const selectedClip = clips.find((clip) => clip.id === selectedClipId) ?? null;
@@ -684,7 +745,9 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
           accessibilityLabel="Retry loading timeline"
           style={[styles.retryButton, { backgroundColor: colors.primaryMuted }]}
         >
-          <Text style={[styles.retryText, { color: colors.primary }]}>Retry</Text>
+          <Text style={[styles.retryText, { color: colors.primary }]}>
+            Retry
+          </Text>
         </TouchableOpacity>
       </View>
     );
@@ -716,7 +779,9 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
         <View style={styles.toolbarActions}>
           {dirty && (
             <View style={styles.dirtyRow} accessibilityLabel="Unsaved changes">
-              <View style={[styles.dirtyDot, { backgroundColor: colors.warning }]} />
+              <View
+                style={[styles.dirtyDot, { backgroundColor: colors.warning }]}
+              />
               <Text style={[styles.dirtyText, { color: colors.textSecondary }]}>
                 Unsaved
               </Text>
@@ -758,7 +823,10 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
             activeOpacity={0.7}
             accessibilityRole="button"
             accessibilityLabel="Ask the assistant"
-            style={[styles.retryButton, { backgroundColor: colors.primaryMuted }]}
+            style={[
+              styles.retryButton,
+              { backgroundColor: colors.primaryMuted },
+            ]}
           >
             <Text style={[styles.retryText, { color: colors.primary }]}>
               Ask the assistant
@@ -772,14 +840,20 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
             <View
               style={[
                 styles.trackHeaderColumn,
-                { borderRightColor: colors.border, backgroundColor: colors.surface },
+                {
+                  borderRightColor: colors.border,
+                  backgroundColor: colors.surface,
+                },
               ]}
             >
               <View style={styles.rulerSpacer} />
               {tracks.map((track) => (
                 <View
                   key={track.id}
-                  style={[styles.trackHeader, { borderTopColor: colors.borderLight }]}
+                  style={[
+                    styles.trackHeader,
+                    { borderTopColor: colors.borderLight },
+                  ]}
                 >
                   <Ionicons
                     name={TRACK_ICONS[track.type]}
@@ -806,11 +880,23 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
             {/* Ruler and lanes share one scroller so they cannot desync. */}
             <ScrollView horizontal showsHorizontalScrollIndicator>
               <View style={{ width: contentWidth }}>
-                <View style={[styles.ruler, { borderBottomColor: colors.border }]}>
+                <View
+                  style={[styles.ruler, { borderBottomColor: colors.border }]}
+                >
                   {ticks.map((at) => (
                     <View key={at} style={[styles.tick, { left: msToPx(at) }]}>
-                      <View style={[styles.tickMark, { backgroundColor: colors.border }]} />
-                      <Text style={[styles.tickLabel, { color: colors.textTertiary }]}>
+                      <View
+                        style={[
+                          styles.tickMark,
+                          { backgroundColor: colors.border },
+                        ]}
+                      />
+                      <Text
+                        style={[
+                          styles.tickLabel,
+                          { color: colors.textTertiary },
+                        ]}
+                      >
                         {formatTime(at)}
                       </Text>
                     </View>
@@ -821,7 +907,10 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
                       accessibilityLabel={`Marker ${marker.label} at ${formatTime(marker.timeMs)}`}
                       style={[
                         styles.marker,
-                        { left: msToPx(marker.timeMs), backgroundColor: marker.color ?? colors.warning },
+                        {
+                          left: msToPx(marker.timeMs),
+                          backgroundColor: marker.color ?? colors.warning,
+                        },
                       ]}
                     />
                   ))}
@@ -834,7 +923,10 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
                     accessibilityRole="button"
                     accessibilityLabel={`Seek on track ${track.name}`}
                     onPress={seekAt}
-                    style={[styles.lane, { borderTopColor: colors.borderLight }]}
+                    style={[
+                      styles.lane,
+                      { borderTopColor: colors.borderLight },
+                    ]}
                   >
                     {clips
                       .filter((clip) => clip.trackId === track.id)
@@ -850,7 +942,10 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
                             {
                               left: msToPx(clip.startMs),
                               width: Math.max(msToPx(clip.durationMs), 8),
-                              backgroundColor: mediaColor(clip.mediaType, colors),
+                              backgroundColor: mediaColor(
+                                clip.mediaType,
+                                colors,
+                              ),
                               borderColor:
                                 clip.id === selectedClipId
                                   ? colors.primary
@@ -895,7 +990,10 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
           ]}
         >
           <View style={styles.detailHeader}>
-            <Text style={[styles.detailTitle, { color: colors.text }]} numberOfLines={1}>
+            <Text
+              style={[styles.detailTitle, { color: colors.text }]}
+              numberOfLines={1}
+            >
               {selectedClip.name}
             </Text>
             <TouchableOpacity
@@ -905,18 +1003,30 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
               accessibilityLabel="Close clip details"
               hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
             >
-              <Ionicons name="close-outline" size={20} color={colors.textSecondary} />
+              <Ionicons
+                name="close-outline"
+                size={20}
+                color={colors.textSecondary}
+              />
             </TouchableOpacity>
           </View>
           <DetailRow
             label="Time"
             value={`${formatTime(selectedClip.startMs)} – ${formatTime(
-              selectedClip.startMs + selectedClip.durationMs
+              selectedClip.startMs + selectedClip.durationMs,
             )} (${formatTime(selectedClip.durationMs)})`}
             colors={colors}
           />
-          <DetailRow label="Media" value={selectedClip.mediaType} colors={colors} />
-          <DetailRow label="Status" value={selectedClip.status} colors={colors} />
+          <DetailRow
+            label="Media"
+            value={selectedClip.mediaType}
+            colors={colors}
+          />
+          <DetailRow
+            label="Status"
+            value={selectedClip.status}
+            colors={colors}
+          />
           <DetailRow
             label="Track"
             value={trackNameOf(selectedClip.trackId) ?? selectedClip.trackId}
@@ -934,7 +1044,11 @@ export default function TimelineViewerScreen({ navigation, route }: Props) {
             />
           )}
           {selectedClip.prompt !== undefined && (
-            <DetailRow label="Prompt" value={selectedClip.prompt} colors={colors} />
+            <DetailRow
+              label="Prompt"
+              value={selectedClip.prompt}
+              colors={colors}
+            />
           )}
           <DetailRow
             label="Versions"
@@ -956,7 +1070,9 @@ interface DetailRowProps {
 function DetailRow({ label, value, colors }: DetailRowProps) {
   return (
     <View style={styles.detailRow}>
-      <Text style={[styles.detailLabel, { color: colors.textTertiary }]}>{label}</Text>
+      <Text style={[styles.detailLabel, { color: colors.textTertiary }]}>
+        {label}
+      </Text>
       <Text style={[styles.detailValue, { color: colors.text }]}>{value}</Text>
     </View>
   );

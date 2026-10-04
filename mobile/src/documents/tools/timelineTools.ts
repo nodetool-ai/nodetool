@@ -18,7 +18,11 @@
  * mounted.
  */
 
-import type { AnimationRole, SnapAction, SnapBoundaryMode } from '@nodetool-ai/timeline';
+import type {
+  AnimationRole,
+  SnapAction,
+  SnapBoundaryMode,
+} from '@nodetool-ai/timeline';
 
 import { getDocumentHandler } from '../agentBridge';
 import { animationPresetCatalog } from '../timelineEdits';
@@ -195,7 +199,7 @@ MobileToolRegistry.register<{ timeline_id: string; timeMs: number }>({
     properties: {
       timeline_id: timelineIdParam,
       timeMs: numberParam(
-        'Absolute position on the sequence timeline, in milliseconds from the start.'
+        'Absolute position on the sequence timeline, in milliseconds from the start.',
       ),
     },
     required: ['timeline_id', 'timeMs'],
@@ -226,46 +230,54 @@ MobileToolRegistry.register<{
         enum: ['video', 'audio', 'overlay', 'subtitle'],
         description: 'Kind of track to create.',
       },
-      name: { type: 'string', description: 'Track name. Defaults to "<type> <n>".' },
+      name: {
+        type: 'string',
+        description: 'Track name. Defaults to "<type> <n>".',
+      },
     },
     required: ['timeline_id', 'type'],
   },
   execute: async ({ timeline_id, type, name }) => ({
     ok: true,
-    track: handlerFor(timeline_id).addTrack(type, name),
+    track: await handlerFor(timeline_id).addTrack(type, name),
   }),
 });
 
-MobileToolRegistry.register<
-  { timeline_id: string } & TimelineAddTextClipInput
->({
-  name: 'ui_timeline_add_text_clip',
-  description:
-    'Add authored text to an open timeline sequence. It goes on an overlay track, creating one when needed, and lasts 3000ms by default. Text and shapes require a video or overlay track — an audio or subtitle track is rejected. ' +
-    SAVE_NOTE,
-  parameters: {
-    type: 'object',
-    properties: {
-      timeline_id: timelineIdParam,
-      text: { type: 'string', description: 'The text to draw. Must not be empty.' },
-      trackId: {
-        type: 'string',
-        description:
-          'Target track id or name. Omit to use (or create) an overlay track.',
+MobileToolRegistry.register<{ timeline_id: string } & TimelineAddTextClipInput>(
+  {
+    name: 'ui_timeline_add_text_clip',
+    description:
+      'Add authored text to an open timeline sequence. It goes on an overlay track, creating one when needed, and lasts 3000ms by default. Text and shapes require a video or overlay track — an audio or subtitle track is rejected. ' +
+      SAVE_NOTE,
+    parameters: {
+      type: 'object',
+      properties: {
+        timeline_id: timelineIdParam,
+        text: {
+          type: 'string',
+          description: 'The text to draw. Must not be empty.',
+        },
+        trackId: {
+          type: 'string',
+          description:
+            'Target track id or name. Omit to use (or create) an overlay track.',
+        },
+        startMs: numberParam(
+          "Absolute start on the timeline in ms. Omit to append after the track's existing content.",
+        ),
+        durationMs: numberParam(
+          'On-timeline length in ms. Default 3000, minimum 1.',
+        ),
+        style: textStyleSchema,
       },
-      startMs: numberParam(
-        'Absolute start on the timeline in ms. Omit to append after the track\'s existing content.'
-      ),
-      durationMs: numberParam('On-timeline length in ms. Default 3000, minimum 1.'),
-      style: textStyleSchema,
+      required: ['timeline_id', 'text'],
     },
-    required: ['timeline_id', 'text'],
+    execute: async ({ timeline_id, ...input }) => ({
+      ok: true,
+      clip: await handlerFor(timeline_id).addTextClip(input),
+    }),
   },
-  execute: async ({ timeline_id, ...input }) => ({
-    ok: true,
-    clip: handlerFor(timeline_id).addTextClip(input),
-  }),
-});
+);
 
 MobileToolRegistry.register<
   { timeline_id: string } & TimelineAddShapeClipInput
@@ -285,15 +297,17 @@ MobileToolRegistry.register<
           'Target track id or name. Omit to use (or create) an overlay track.',
       },
       startMs: numberParam(
-        'Absolute start on the timeline in ms. Omit to append after the track\'s existing content.'
+        "Absolute start on the timeline in ms. Omit to append after the track's existing content.",
       ),
-      durationMs: numberParam('On-timeline length in ms. Default 3000, minimum 1.'),
+      durationMs: numberParam(
+        'On-timeline length in ms. Default 3000, minimum 1.',
+      ),
     },
     required: ['timeline_id', 'shape'],
   },
   execute: async ({ timeline_id, ...input }) => ({
     ok: true,
-    clip: handlerFor(timeline_id).addShapeClip(input),
+    clip: await handlerFor(timeline_id).addShapeClip(input),
   }),
 });
 
@@ -313,7 +327,9 @@ MobileToolRegistry.register<
     properties: {
       timeline_id: timelineIdParam,
       target: targetParam,
-      startMs: numberParam('New absolute start on the timeline in ms, clamped to >= 0.'),
+      startMs: numberParam(
+        'New absolute start on the timeline in ms, clamped to >= 0.',
+      ),
       trackId: {
         type: 'string',
         description:
@@ -324,7 +340,7 @@ MobileToolRegistry.register<
   },
   execute: async ({ timeline_id, target, startMs, trackId }) => ({
     ok: true,
-    clips: handlerFor(timeline_id).moveClip(target, { startMs, trackId }),
+    clips: await handlerFor(timeline_id).moveClip(target, { startMs, trackId }),
   }),
 });
 
@@ -335,7 +351,7 @@ MobileToolRegistry.register<
   description:
     "Trim a clip's length or its source in/out points. `durationMs` sets the on-timeline length (minimum 1); `inPointMs`/`outPointMs` set the trimmed source window (ms into the source media). Omit a field to leave it unchanged. " +
     LINK_NOTE +
-    ' A length change applies the same delta to every sibling and is all-or-nothing: if it would be invalid for any of them, nothing changes. Source in/out points belong to one clip\'s own media, so they apply to the target only. ' +
+    " A length change applies the same delta to every sibling and is all-or-nothing: if it would be invalid for any of them, nothing changes. Source in/out points belong to one clip's own media, so they apply to the target only. " +
     SAVE_NOTE,
   parameters: {
     type: 'object',
@@ -343,14 +359,24 @@ MobileToolRegistry.register<
       timeline_id: timelineIdParam,
       target: targetParam,
       durationMs: numberParam('New on-timeline length in ms. Minimum 1.'),
-      inPointMs: numberParam('Start of the source window, ms into the source media.'),
-      outPointMs: numberParam('End of the source window, ms into the source media.'),
+      inPointMs: numberParam(
+        'Start of the source window, ms into the source media.',
+      ),
+      outPointMs: numberParam(
+        'End of the source window, ms into the source media.',
+      ),
     },
     required: ['timeline_id', 'target'],
   },
-  execute: async ({ timeline_id, target, durationMs, inPointMs, outPointMs }) => ({
+  execute: async ({
+    timeline_id,
+    target,
+    durationMs,
+    inPointMs,
+    outPointMs,
+  }) => ({
     ok: true,
-    clips: handlerFor(timeline_id).trimClip(target, {
+    clips: await handlerFor(timeline_id).trimClip(target, {
       durationMs,
       inPointMs,
       outPointMs,
@@ -375,14 +401,14 @@ MobileToolRegistry.register<{
       timeline_id: timelineIdParam,
       target: targetParam,
       atMs: numberParam(
-        'Absolute split time on the timeline in ms. Omit to split at the playhead.'
+        'Absolute split time on the timeline in ms. Omit to split at the playhead.',
       ),
     },
     required: ['timeline_id', 'target'],
   },
   execute: async ({ timeline_id, target, atMs }) => ({
     ok: true,
-    clips: handlerFor(timeline_id).splitClip(target, atMs),
+    clips: await handlerFor(timeline_id).splitClip(target, atMs),
   }),
 });
 
@@ -398,7 +424,7 @@ MobileToolRegistry.register<{ timeline_id: string; target: string }>({
   },
   execute: async ({ timeline_id, target }) => ({
     ok: true,
-    deleted: handlerFor(timeline_id).deleteClip(target),
+    deleted: await handlerFor(timeline_id).deleteClip(target),
   }),
 });
 
@@ -418,13 +444,15 @@ MobileToolRegistry.register<{
     properties: {
       timeline_id: timelineIdParam,
       target: targetParam,
-      gapMs: numberParam('Extra gap in ms between the source and the copy. Default 0.'),
+      gapMs: numberParam(
+        'Extra gap in ms between the source and the copy. Default 0.',
+      ),
     },
     required: ['timeline_id', 'target'],
   },
   execute: async ({ timeline_id, target, gapMs }) => ({
     ok: true,
-    clips: handlerFor(timeline_id).duplicateClip(target, gapMs),
+    clips: await handlerFor(timeline_id).duplicateClip(target, gapMs),
   }),
 });
 
@@ -446,7 +474,10 @@ MobileToolRegistry.register<
       volumeDb: numberParam('Audio volume in dB. 0 is unchanged.'),
       fadeInMs: numberParam('Fade-in length in ms.'),
       fadeOutMs: numberParam('Fade-out length in ms.'),
-      blendMode: { type: 'string', description: 'GPU blend mode, e.g. "normal".' },
+      blendMode: {
+        type: 'string',
+        description: 'GPU blend mode, e.g. "normal".',
+      },
       borderRadius: numberParam('Rounded-corner radius in source pixels.'),
       hidden: { type: 'boolean' },
       muted: { type: 'boolean' },
@@ -468,7 +499,10 @@ MobileToolRegistry.register<
       negativePrompt: { type: 'string' },
       provider: { type: 'string' },
       model: { type: 'string' },
-      voice: { type: 'string', description: 'TTS voice id for text-to-audio clips.' },
+      voice: {
+        type: 'string',
+        description: 'TTS voice id for text-to-audio clips.',
+      },
       width: numberParam('Generation width in pixels.'),
       height: numberParam('Generation height in pixels.'),
       strength: numberParam('Image-to-image strength, 0..1.'),
@@ -479,7 +513,7 @@ MobileToolRegistry.register<
   },
   execute: async ({ timeline_id, target, ...patch }) => ({
     ok: true,
-    clip: handlerFor(timeline_id).setClipParams(target, patch),
+    clip: await handlerFor(timeline_id).setClipParams(target, patch),
   }),
 });
 
@@ -490,7 +524,7 @@ MobileToolRegistry.register<
 >({
   name: 'ui_timeline_add_media_clip',
   description:
-    'Place an asset already in the library — a video, image, or audio file — on an open timeline sequence. `asset` is an asset id or an `asset://<id>.<ext>` URI. Without a track the clip lands on a track matching its media kind, creating one when needed; without `startMs` it is appended after that track\'s existing content, so calling this once per asset lays them end to end. Duration comes from the asset when the library knows it. ' +
+    "Place an asset already in the library — a video, image, or audio file — on an open timeline sequence. `asset` is an asset id or an `asset://<id>.<ext>` URI. Without a track the clip lands on a track matching its media kind, creating one when needed; without `startMs` it is appended after that track's existing content, so calling this once per asset lays them end to end. Duration comes from the asset when the library knows it. " +
     SAVE_NOTE,
   parameters: {
     type: 'object',
@@ -498,19 +532,24 @@ MobileToolRegistry.register<
       timeline_id: timelineIdParam,
       asset: {
         type: 'string',
-        description: 'Asset id or `asset://<id>.<ext>` URI, as list_assets reports them.',
+        description:
+          'Asset id or `asset://<id>.<ext>` URI, as list_assets reports them.',
       },
       trackId: {
         type: 'string',
-        description: 'Target track id or name. Omit to use (or create) a track for the media kind.',
+        description:
+          'Target track id or name. Omit to use (or create) a track for the media kind.',
       },
       startMs: numberParam(
-        "Absolute start on the timeline in ms. Omit to append after the track's existing content."
+        "Absolute start on the timeline in ms. Omit to append after the track's existing content.",
       ),
       durationMs: numberParam(
-        "On-timeline length in ms. Omit to use the asset's own duration."
+        "On-timeline length in ms. Omit to use the asset's own duration.",
       ),
-      name: { type: 'string', description: "Clip name. Defaults to the asset's name." },
+      name: {
+        type: 'string',
+        description: "Clip name. Defaults to the asset's name.",
+      },
     },
     required: ['timeline_id', 'asset'],
   },
@@ -536,7 +575,10 @@ MobileToolRegistry.register<
       negativePrompt: { type: 'string' },
       provider: { type: 'string' },
       model: { type: 'string' },
-      voice: { type: 'string', description: 'TTS voice id for text-to-audio clips.' },
+      voice: {
+        type: 'string',
+        description: 'TTS voice id for text-to-audio clips.',
+      },
       width: numberParam('Generation width in pixels.'),
       height: numberParam('Generation height in pixels.'),
       strength: numberParam('Image-to-image strength, 0..1.'),
@@ -547,7 +589,7 @@ MobileToolRegistry.register<
   },
   execute: async ({ timeline_id, target, ...patch }) => ({
     ok: true,
-    clip: handlerFor(timeline_id).setClipBinding(target, patch),
+    clip: await handlerFor(timeline_id).setClipBinding(target, patch),
   }),
 });
 
@@ -586,7 +628,8 @@ MobileToolRegistry.register<{
             delayMs: { type: 'number' },
             easing: {
               type: 'string',
-              description: 'Easing id, cubic-bezier(x1,y1,x2,y2) or spring(stiffness,damping,mass).',
+              description:
+                'Easing id, cubic-bezier(x1,y1,x2,y2) or spring(stiffness,damping,mass).',
             },
             params: { type: 'object', description: 'Preset-specific knobs.' },
             curves: {
@@ -596,7 +639,8 @@ MobileToolRegistry.register<{
             },
             mask: {
               type: 'object',
-              description: '`custom` only: {direction, softness}, required by a wipeProgress curve.',
+              description:
+                '`custom` only: {direction, softness}, required by a wipeProgress curve.',
             },
             stagger: {
               type: 'object',
@@ -617,7 +661,7 @@ MobileToolRegistry.register<{
   },
   execute: async ({ timeline_id, target, animations, mode }) => ({
     ok: true,
-    clip: handlerFor(timeline_id).animateClip(target, animations, mode),
+    clip: await handlerFor(timeline_id).animateClip(target, animations, mode),
   }),
 });
 
@@ -641,7 +685,7 @@ MobileToolRegistry.register<{
   },
   execute: async ({ timeline_id, target, role }) => ({
     ok: true,
-    clip: handlerFor(timeline_id).clearAnimations(target, role),
+    clip: await handlerFor(timeline_id).clearAnimations(target, role),
   }),
 });
 
@@ -667,23 +711,25 @@ MobileToolRegistry.register<{ timeline_id: string } & TimelineAddGroupInput>({
       name: { type: 'string', description: 'Label for the group clip.' },
       startMs: numberParam("Where the group's window opens, in ms."),
       durationMs: numberParam(
-        'How long the window stays open. A child is clipped to it, so cover the children.'
+        'How long the window stays open. A child is clipped to it, so cover the children.',
       ),
       trackId: {
         type: 'string',
-        description: 'Track for the group clip, by id or name. Defaults to an overlay track.',
+        description:
+          'Track for the group clip, by id or name. Defaults to an overlay track.',
       },
       children: {
         type: 'array',
         items: { type: 'string' },
-        description: 'Clips to parent to the new group, by id or name. Each keeps its own track.',
+        description:
+          'Clips to parent to the new group, by id or name. Each keeps its own track.',
       },
     },
     required: ['timeline_id', 'name', 'startMs', 'durationMs'],
   },
   execute: async ({ timeline_id, ...input }) => ({
     ok: true,
-    ...handlerFor(timeline_id).addGroup(input),
+    ...(await handlerFor(timeline_id).addGroup(input)),
   }),
 });
 
@@ -703,14 +749,15 @@ MobileToolRegistry.register<{
       target: targetParam,
       parentId: {
         type: 'string',
-        description: 'The group clip to inherit from, by id or name. null releases the clip.',
+        description:
+          'The group clip to inherit from, by id or name. null releases the clip.',
       },
     },
     required: ['timeline_id', 'target', 'parentId'],
   },
   execute: async ({ timeline_id, target, parentId }) => ({
     ok: true,
-    clip: handlerFor(timeline_id).setParent(target, parentId ?? null),
+    clip: await handlerFor(timeline_id).setParent(target, parentId ?? null),
   }),
 });
 
@@ -735,10 +782,13 @@ MobileToolRegistry.register<{
         properties: {
           type: { type: 'string', enum: TRANSITION_TYPE_ENUM },
           durationMs: numberParam(
-            "Length of the cut from the clip's start. 0 or less is a hard cut."
+            "Length of the cut from the clip's start. 0 or less is a hard cut.",
           ),
           easing: { type: 'string' },
-          color: { type: 'string', description: 'dipToColor only, e.g. #000000.' },
+          color: {
+            type: 'string',
+            description: 'dipToColor only, e.g. #000000.',
+          },
           direction: {
             type: 'string',
             enum: ['left', 'right', 'up', 'down'],
@@ -754,7 +804,10 @@ MobileToolRegistry.register<{
   },
   execute: async ({ timeline_id, target, transition }) => ({
     ok: true,
-    clip: handlerFor(timeline_id).setTransition(target, transition ?? null),
+    clip: await handlerFor(timeline_id).setTransition(
+      target,
+      transition ?? null,
+    ),
   }),
 });
 
@@ -782,7 +835,8 @@ MobileToolRegistry.register<{
           height: numberParam('Height, 0..1. Default 1.'),
           d: {
             type: 'string',
-            description: 'kind "path" only: SVG path data in the same 0..1 space.',
+            description:
+              'kind "path" only: SVG path data in the same 0..1 space.',
           },
           featherPx: numberParam("Soft edge width in the layer's own pixels."),
           invert: { type: 'boolean' },
@@ -795,7 +849,7 @@ MobileToolRegistry.register<{
   },
   execute: async ({ timeline_id, target, mask }) => ({
     ok: true,
-    clip: handlerFor(timeline_id).setMask(target, mask ?? null),
+    clip: await handlerFor(timeline_id).setMask(target, mask ?? null),
   }),
 });
 
@@ -806,7 +860,7 @@ MobileToolRegistry.register<{
 }>({
   name: 'ui_timeline_set_matte',
   description:
-    "Drive a clip's transparency from another clip — a track matte — or clear it with `matte: null`. The source clip stops drawing itself: its alpha (`mode: \"alpha\"`) or its brightness (`mode: \"luma\"`) becomes the target's transparency, so a white shape over black shows the target only where the shape is. " +
+    'Drive a clip\'s transparency from another clip — a track matte — or clear it with `matte: null`. The source clip stops drawing itself: its alpha (`mode: "alpha"`) or its brightness (`mode: "luma"`) becomes the target\'s transparency, so a white shape over black shows the target only where the shape is. ' +
     SAVE_NOTE,
   parameters: {
     type: 'object',
@@ -818,12 +872,14 @@ MobileToolRegistry.register<{
         properties: {
           source: {
             type: 'string',
-            description: 'The clip whose pixels drive the alpha, by id or name.',
+            description:
+              'The clip whose pixels drive the alpha, by id or name.',
           },
           mode: {
             type: 'string',
             enum: ['alpha', 'luma'],
-            description: "alpha reads the source's transparency; luma its brightness.",
+            description:
+              "alpha reads the source's transparency; luma its brightness.",
           },
           invert: { type: 'boolean' },
         },
@@ -835,7 +891,7 @@ MobileToolRegistry.register<{
   },
   execute: async ({ timeline_id, target, matte }) => ({
     ok: true,
-    clip: handlerFor(timeline_id).setMatte(target, matte ?? null),
+    clip: await handlerFor(timeline_id).setMatte(target, matte ?? null),
   }),
 });
 
@@ -867,7 +923,7 @@ MobileToolRegistry.register<{
   },
   execute: async ({ timeline_id, target, effects }) => ({
     ok: true,
-    clip: handlerFor(timeline_id).setEffects(target, effects),
+    clip: await handlerFor(timeline_id).setEffects(target, effects),
   }),
 });
 
@@ -890,17 +946,19 @@ MobileToolRegistry.register<{
         properties: {
           keyframes: {
             type: 'array',
-            description: 'At least two, ascending in `t`, starting at 0 and ending at 1.',
+            description:
+              'At least two, ascending in `t`, starting at 0 and ending at 1.',
             items: {
               type: 'object',
               properties: {
                 t: numberParam("Position in the clip's window, 0..1."),
                 sourceMs: numberParam(
-                  'Milliseconds into the source media shown at this position.'
+                  'Milliseconds into the source media shown at this position.',
                 ),
                 easing: {
                   type: 'string',
-                  description: 'Easing for the segment ending here. Default linear.',
+                  description:
+                    'Easing for the segment ending here. Default linear.',
                 },
               },
               required: ['t', 'sourceMs'],
@@ -915,7 +973,7 @@ MobileToolRegistry.register<{
   },
   execute: async ({ timeline_id, target, timeRemap }) => ({
     ok: true,
-    clip: handlerFor(timeline_id).setTimeRemap(target, timeRemap ?? null),
+    clip: await handlerFor(timeline_id).setTimeRemap(target, timeRemap ?? null),
   }),
 });
 
@@ -929,7 +987,10 @@ const BEAT_GRID_PROPERTIES = {
       'Absolute beat times in ms. Exactly one of this and `bpm`. detect_audio_events reports onsets in SECONDS, so multiply by 1000.',
   },
   bpm: { type: 'number', description: 'Tempo.' },
-  offset_ms: { type: 'number', description: 'Where beat one sits, in ms. Default 0.' },
+  offset_ms: {
+    type: 'number',
+    description: 'Where beat one sits, in ms. Default 0.',
+  },
 } as const;
 
 MobileToolRegistry.register<{
@@ -952,20 +1013,28 @@ MobileToolRegistry.register<{
       count: { type: 'number', description: 'Beats to lay down, with `bpm`.' },
       label: {
         type: 'string',
-        description: 'Label stem; each marker is numbered from 1. Default "Beat".',
+        description:
+          'Label stem; each marker is numbered from 1. Default "Beat".',
       },
     },
     required: ['timeline_id'],
   },
-  execute: async ({ timeline_id, onsets_ms, bpm, offset_ms, count, label }) => ({
+  execute: async ({
+    timeline_id,
+    onsets_ms,
+    bpm,
+    offset_ms,
+    count,
+    label,
+  }) => ({
     ok: true,
-    ...handlerFor(timeline_id).setMarkersFromBeats({
+    ...(await handlerFor(timeline_id).setMarkersFromBeats({
       onsetsMs: onsets_ms,
       bpm,
       offsetMs: offset_ms,
       count,
       label,
-    }),
+    })),
   }),
 });
 
@@ -995,7 +1064,8 @@ MobileToolRegistry.register<{
       ...BEAT_GRID_PROPERTIES,
       tolerance_ms: {
         type: 'number',
-        description: 'How far a boundary may travel to reach a beat. Default 60ms.',
+        description:
+          'How far a boundary may travel to reach a beat. Default 60ms.',
       },
       mode: {
         type: 'string',
@@ -1005,7 +1075,8 @@ MobileToolRegistry.register<{
       action: {
         type: 'string',
         enum: ['move', 'trim'],
-        description: '"move" slides the clip, "trim" changes its length. Default "move".',
+        description:
+          '"move" slides the clip, "trim" changes its length. Default "move".',
       },
     },
     required: ['timeline_id'],
@@ -1021,7 +1092,7 @@ MobileToolRegistry.register<{
     action,
   }) => ({
     ok: true,
-    ...handlerFor(timeline_id).snapToBeats({
+    ...(await handlerFor(timeline_id).snapToBeats({
       targets,
       onsetsMs: onsets_ms,
       bpm,
@@ -1029,7 +1100,7 @@ MobileToolRegistry.register<{
       toleranceMs: tolerance_ms,
       mode,
       action,
-    }),
+    })),
   }),
 });
 
@@ -1044,22 +1115,28 @@ MobileToolRegistry.register<{ timeline_id: string } & TimelineAddMarkerInput>({
     type: 'object',
     properties: {
       timeline_id: timelineIdParam,
-      timeMs: numberParam('Absolute position on the timeline in ms. Must be >= 0.'),
+      timeMs: numberParam(
+        'Absolute position on the timeline in ms. Must be >= 0.',
+      ),
       label: { type: 'string', description: 'Short label shown on the ruler.' },
       color: { type: 'string', description: 'CSS colour for the marker dot.' },
-      note: { type: 'string', description: 'Longer note attached to the marker.' },
+      note: {
+        type: 'string',
+        description: 'Longer note attached to the marker.',
+      },
     },
     required: ['timeline_id', 'timeMs'],
   },
   execute: async ({ timeline_id, ...input }) => ({
     ok: true,
-    marker: handlerFor(timeline_id).addMarker(input),
+    marker: await handlerFor(timeline_id).addMarker(input),
   }),
 });
 
 MobileToolRegistry.register<{ timeline_id: string; target: string }>({
   name: 'ui_timeline_delete_marker',
-  description: 'Remove a marker by id or by its label (case-insensitive). ' + SAVE_NOTE,
+  description:
+    'Remove a marker by id or by its label (case-insensitive). ' + SAVE_NOTE,
   parameters: {
     type: 'object',
     properties: {
@@ -1073,7 +1150,7 @@ MobileToolRegistry.register<{ timeline_id: string; target: string }>({
   },
   execute: async ({ timeline_id, target }) => ({
     ok: true,
-    deleted: handlerFor(timeline_id).deleteMarker(target),
+    deleted: await handlerFor(timeline_id).deleteMarker(target),
   }),
 });
 
@@ -1105,7 +1182,7 @@ MobileToolRegistry.register<{ timeline_id: string }>({
     properties: { timeline_id: timelineIdParam },
     required: ['timeline_id'],
   },
-  execute: async ({ timeline_id }) => handlerFor(timeline_id).save(),
+  execute: async ({ timeline_id }) => await handlerFor(timeline_id).save(),
 });
 
 // ── Batch ───────────────────────────────────────────────────────────────────
@@ -1132,7 +1209,7 @@ MobileToolRegistry.register<{
 }>({
   name: BATCH_TOOL_NAME,
   description:
-    'Apply several timeline edits in one call. Each op names a `ui_timeline_*` tool (with or without the prefix) and its `input`; `timeline_id` is filled in from this call, so an op need not repeat it. Ops run in order and a failure does not stop the ones after it — the reply reports `applied`, `failed`, and a per-op result carrying either the tool\'s answer or its error, so a partial batch says exactly which half landed. Use it for a planned sequence of edits; use the single tools when the next edit depends on what the last one returned. ' +
+    "Apply several timeline edits in one call. Each op names a `ui_timeline_*` tool (with or without the prefix) and its `input`; `timeline_id` is filled in from this call, so an op need not repeat it. Ops run in order and a failure does not stop the ones after it — the reply reports `applied`, `failed`, and a per-op result carrying either the tool's answer or its error, so a partial batch says exactly which half landed. Use it for a planned sequence of edits; use the single tools when the next edit depends on what the last one returned. " +
     SAVE_NOTE,
   parameters: {
     type: 'object',
@@ -1172,18 +1249,18 @@ MobileToolRegistry.register<{
       try {
         if (name === BATCH_TOOL_NAME) {
           throw new Error(
-            `${BATCH_TOOL_NAME} cannot nest — list the edits themselves in ops.`
+            `${BATCH_TOOL_NAME} cannot nest — list the edits themselves in ops.`,
           );
         }
         if (!MobileToolRegistry.has(name)) {
           throw new Error(
-            `Unknown tool "${op.tool}". Ops name a ui_timeline_* tool.`
+            `Unknown tool "${op.tool}". Ops name a ui_timeline_* tool.`,
           );
         }
         const result = await MobileToolRegistry.call(
           name,
           { timeline_id, ...(op.input ?? {}) },
-          `${BATCH_TOOL_NAME}:${index}`
+          `${BATCH_TOOL_NAME}:${index}`,
         );
         results.push({ index, tool: name, ok: true, result });
       } catch (error) {

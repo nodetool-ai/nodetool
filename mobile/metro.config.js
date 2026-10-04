@@ -44,20 +44,14 @@ const SOURCE_PACKAGES = [
   { name: "@nodetool-ai/app-runtime", src: appRuntimeSrc },
   { name: "@nodetool-ai/timeline", src: timelineSrc },
   { name: "@nodetool-ai/gpu", src: gpuSrc },
+  { name: "@nodetool-ai/protocol", src: protocolSrc }
 ];
 
-/**
- * Single modules compiled from source, mapped straight to their file.
- *
- * `protocol`'s entry point re-exports `toolSchemas`, which pulls in `zod` — a
- * dependency mobile does not have and does not want in the bundle for one
- * string helper. The modules named here are dependency-free, so they are wired
- * individually rather than through the package root. Import them in `mobile/`
- * by the same deep specifier.
- */
+/** Direct subpath mappings keep the shared edit engine and protocol schemas in source. */
 const SOURCE_MODULES = {
+  "@nodetool-ai/timeline/ops": path.join(timelineSrc, "ops/index.ts"),
   "@nodetool-ai/protocol/triggers": path.join(protocolSrc, "triggers.ts"),
-  "@nodetool-ai/protocol/blend-modes": path.join(protocolSrc, "blend-modes.ts"),
+  "@nodetool-ai/protocol/blend-modes": path.join(protocolSrc, "blend-modes.ts")
 };
 
 const config = getDefaultConfig(projectRoot);
@@ -68,10 +62,20 @@ config.watchFolders = [
   appRuntimeRoot,
   timelineRoot,
   gpuRoot,
-  protocolRoot,
+  protocolRoot
 ];
 
 config.resolver.resolveRequest = (context, moduleName, platform) => {
+  if (moduleName.startsWith("@nodetool-ai/protocol/api-schemas/")) {
+    return {
+      type: "sourceFile",
+      filePath: path.join(
+        protocolSrc,
+        moduleName.slice("@nodetool-ai/protocol/".length).replace(/\.js$/, "") +
+          ".ts"
+      )
+    };
+  }
   const modulePath = SOURCE_MODULES[moduleName];
   if (modulePath) {
     return { type: "sourceFile", filePath: modulePath };
@@ -83,9 +87,7 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (
     moduleName.startsWith(".") &&
     moduleName.endsWith(".js") &&
-    SOURCE_PACKAGES.some((pkg) =>
-      context.originModulePath.startsWith(pkg.src)
-    )
+    SOURCE_PACKAGES.some((pkg) => context.originModulePath.startsWith(pkg.src))
   ) {
     return context.resolveRequest(context, moduleName.slice(0, -3), platform);
   }

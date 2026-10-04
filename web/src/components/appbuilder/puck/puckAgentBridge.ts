@@ -1,3 +1,4 @@
+import { createAgentHandlerRegistry } from "../../../lib/tools/agentHandlerRegistry";
 /**
  * Bridge between the agent's `ui_app_*` frontend tools and the live Puck editor,
  * mirroring the timeline/3D editor bridges. An app is its own resource — an
@@ -96,7 +97,7 @@ export interface PuckAgentHandler {
   applyExternalDocument: (document: ApplicationDocument) => void;
 }
 
-const handlers = new Map<string, PuckAgentHandler>();
+const handlers = createAgentHandlerRegistry<PuckAgentHandler>();
 
 /**
  * Register (or clear, with null) the handler for one application's document.
@@ -109,7 +110,7 @@ export function setPuckAgentHandler(
   next: PuckAgentHandler | null
 ): void {
   if (next) handlers.set(applicationId, next);
-  else handlers.delete(applicationId);
+  else handlers.set(applicationId, null);
 }
 
 export function hasPuckAgentHandler(applicationId: string): boolean {
@@ -135,3 +136,8 @@ export function getPuckAgentHandler(applicationId: string): PuckAgentHandler {
 export function listOpenPuckApplicationIds(): string[] {
   return [...handlers.keys()];
 }
+
+export const whenPuckAgentReady = (
+  id: string,
+  signal: AbortSignal
+): Promise<boolean> => handlers.whenReady(id, () => true, signal);

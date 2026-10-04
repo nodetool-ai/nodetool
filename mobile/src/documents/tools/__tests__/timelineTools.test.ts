@@ -9,7 +9,10 @@
  */
 
 import { MobileToolRegistry } from '../registry';
-import { registerDocumentHandler, resetDocumentHandlers } from '../../agentBridge';
+import {
+  registerDocumentHandler,
+  resetDocumentHandlers,
+} from '../../agentBridge';
 import {
   clipToNode,
   resolveClip,
@@ -26,8 +29,22 @@ import '../timelineTools';
 const SEQ_ID = 'seq-1';
 
 const tracks: TimelineTrackData[] = [
-  { id: 't1', name: 'Video 1', type: 'video', index: 0, visible: true, locked: false },
-  { id: 't2', name: 'Music', type: 'audio', index: 1, visible: true, locked: false },
+  {
+    id: 't1',
+    name: 'Video 1',
+    type: 'video',
+    index: 0,
+    visible: true,
+    locked: false,
+  },
+  {
+    id: 't2',
+    name: 'Music',
+    type: 'audio',
+    index: 1,
+    visible: true,
+    locked: false,
+  },
 ];
 
 const clips: TimelineClipData[] = [
@@ -64,7 +81,8 @@ const clips: TimelineClipData[] = [
 const trackNameOf = (trackId: string): string | null =>
   tracks.find((track) => track.id === trackId)?.name ?? null;
 
-const node = (clip: TimelineClipData) => clipToNode(clip, trackNameOf(clip.trackId));
+const node = (clip: TimelineClipData) =>
+  clipToNode(clip, trackNameOf(clip.trackId));
 
 /** Every write call, in order, so the tests can assert what reached the handler. */
 let calls: { name: string; args: unknown[] }[] = [];
@@ -80,7 +98,8 @@ const record = <T>(name: string, args: unknown[], value: T): T => {
  */
 function fakeHandler(selectedClipIds: string[]): TimelineAgentHandler {
   const durationMs = timelineDurationMs(clips);
-  const resolve = (target: string) => resolveClip(clips, target, selectedClipIds);
+  const resolve = (target: string) =>
+    resolveClip(clips, target, selectedClipIds);
   return {
     getSnapshot: () => ({
       sequenceId: SEQ_ID,
@@ -92,7 +111,10 @@ function fakeHandler(selectedClipIds: string[]): TimelineAgentHandler {
       selectedClipIds,
       dirty: false,
       tracks: tracks.map((track) =>
-        trackToNode(track, clips.filter((clip) => clip.trackId === track.id).length)
+        trackToNode(
+          track,
+          clips.filter((clip) => clip.trackId === track.id).length,
+        ),
       ),
       clips: clips.map(node),
       markers: [{ id: 'm1', timeMs: 2000, label: 'Cut' }],
@@ -102,7 +124,7 @@ function fakeHandler(selectedClipIds: string[]): TimelineAgentHandler {
     selectClip: (target) => (target === null ? null : node(resolve(target))),
     seek: (timeMs) => Math.max(0, Math.min(timeMs, durationMs)),
 
-    addTrack: (type, name) =>
+    addTrack: async (type, name) =>
       record('addTrack', [type, name], {
         id: 't3',
         name: name ?? 'overlay 3',
@@ -112,52 +134,55 @@ function fakeHandler(selectedClipIds: string[]): TimelineAgentHandler {
         locked: false,
         clipCount: 0,
       }),
-    addTextClip: (input) => record('addTextClip', [input], node(clips[0])),
-    addShapeClip: (input) => record('addShapeClip', [input], node(clips[0])),
-    moveClip: (target, patch) =>
+    addTextClip: async (input) =>
+      record('addTextClip', [input], node(clips[0])),
+    addShapeClip: async (input) =>
+      record('addShapeClip', [input], node(clips[0])),
+    moveClip: async (target, patch) =>
       record('moveClip', [target, patch], [node(resolve(target))]),
-    trimClip: (target, patch) =>
+    trimClip: async (target, patch) =>
       record('trimClip', [target, patch], [node(resolve(target))]),
-    splitClip: (target, atMs) =>
+    splitClip: async (target, atMs) =>
       record('splitClip', [target, atMs], [node(clips[0]), node(clips[1])]),
-    deleteClip: (target) => record('deleteClip', [target], node(resolve(target))),
-    duplicateClip: (target, gapMs) =>
+    deleteClip: async (target) =>
+      record('deleteClip', [target], node(resolve(target))),
+    duplicateClip: async (target, gapMs) =>
       record('duplicateClip', [target, gapMs], [node(resolve(target))]),
-    setClipParams: (target, patch) =>
+    setClipParams: async (target, patch) =>
       record('setClipParams', [target, patch], node(resolve(target))),
     addMediaClip: async (input) =>
       record('addMediaClip', [input], node(clips[0])),
-    setClipBinding: (target, patch) =>
+    setClipBinding: async (target, patch) =>
       record('setClipBinding', [target, patch], node(resolve(target))),
-    animateClip: (target, animations, mode) =>
+    animateClip: async (target, animations, mode) =>
       record('animateClip', [target, animations, mode], node(resolve(target))),
-    clearAnimations: (target, role) =>
+    clearAnimations: async (target, role) =>
       record('clearAnimations', [target, role], node(resolve(target))),
-    addGroup: (input) =>
+    addGroup: async (input) =>
       record('addGroup', [input], {
         clip: node(clips[0]),
         children: input.children ?? [],
       }),
-    setParent: (target, parentId) =>
+    setParent: async (target, parentId) =>
       record('setParent', [target, parentId], node(resolve(target))),
-    setTransition: (target, transition) =>
+    setTransition: async (target, transition) =>
       record('setTransition', [target, transition], node(resolve(target))),
-    setMask: (target, mask) =>
+    setMask: async (target, mask) =>
       record('setMask', [target, mask], node(resolve(target))),
-    setMatte: (target, matte) =>
+    setMatte: async (target, matte) =>
       record('setMatte', [target, matte], node(resolve(target))),
-    setEffects: (target, effects) =>
+    setEffects: async (target, effects) =>
       record('setEffects', [target, effects], node(resolve(target))),
-    setTimeRemap: (target, timeRemap) =>
+    setTimeRemap: async (target, timeRemap) =>
       record('setTimeRemap', [target, timeRemap], node(resolve(target))),
-    setMarkersFromBeats: (input) =>
+    setMarkersFromBeats: async (input) =>
       record('setMarkersFromBeats', [input], {
         grid: { count: 2, firstMs: 0, lastMs: 500 },
         added: [],
         skippedTimesMs: [],
         markers: 1,
       }),
-    snapToBeats: (input) =>
+    snapToBeats: async (input) =>
       record('snapToBeats', [input], {
         grid: { count: 2, firstMs: 0, lastMs: 500 },
         toleranceMs: 60,
@@ -167,22 +192,27 @@ function fakeHandler(selectedClipIds: string[]): TimelineAgentHandler {
         skipped: 0,
         clips: [],
       }),
-    addMarker: (input) =>
+    addMarker: async (input) =>
       record('addMarker', [input], {
         id: 'm2',
         timeMs: input.timeMs,
         label: input.label ?? '',
       }),
-    deleteMarker: (target) =>
-      record('deleteMarker', [target], { id: 'm1', timeMs: 2000, label: 'Cut' }),
+    deleteMarker: async (target) =>
+      record('deleteMarker', [target], {
+        id: 'm1',
+        timeMs: 2000,
+        label: 'Cut',
+      }),
     rename: (name) => record('rename', [name], { title: name }),
-    save: async () => record('save', [], { ok: true as const, updatedAt: 'now' }),
+    save: async () =>
+      record('save', [], { ok: true as const, updatedAt: 'now' }),
   };
 }
 
 const call = async (
   name: string,
-  args: Record<string, unknown>
+  args: Record<string, unknown>,
 ): Promise<Record<string, unknown>> =>
   (await MobileToolRegistry.call(name, args, `${name}-call`)) as Record<
     string,
@@ -250,7 +280,12 @@ describe('timelineTools', () => {
   beforeEach(() => {
     calls = [];
     resetDocumentHandlers();
-    registerDocumentHandler('timeline', SEQ_ID, 'My Sequence', fakeHandler(['c2']));
+    registerDocumentHandler(
+      'timeline',
+      SEQ_ID,
+      'My Sequence',
+      fakeHandler(['c2']),
+    );
   });
 
   it('registers the read and the write tools', () => {
@@ -261,7 +296,7 @@ describe('timelineTools', () => {
         'ui_timeline_select_clip',
         'ui_timeline_seek',
         ...WRITE_TOOLS,
-      ])
+      ]),
     );
   });
 
@@ -272,7 +307,7 @@ describe('timelineTools', () => {
 
   it('never claims the timeline is read-only, and always requires timeline_id', () => {
     const timelineTools = MobileToolRegistry.getManifest().filter((entry) =>
-      entry.name.startsWith('ui_timeline_')
+      entry.name.startsWith('ui_timeline_'),
     );
 
     expect(timelineTools).toHaveLength(5 + WRITE_TOOLS.length);
@@ -286,7 +321,7 @@ describe('timelineTools', () => {
 
   it('tells the agent that generation and rendering are desktop-only', () => {
     const state = MobileToolRegistry.getManifest().find(
-      (entry) => entry.name === 'ui_timeline_get_state'
+      (entry) => entry.name === 'ui_timeline_get_state',
     );
 
     expect(state?.description).toMatch(/desktop-only/);
@@ -294,7 +329,7 @@ describe('timelineTools', () => {
 
   it('tells the agent an edit still has to be saved', () => {
     const move = MobileToolRegistry.getManifest().find(
-      (entry) => entry.name === 'ui_timeline_move_clip'
+      (entry) => entry.name === 'ui_timeline_move_clip',
     );
 
     expect(move?.description).toMatch(/ui_timeline_save/);
@@ -354,7 +389,7 @@ describe('timelineTools', () => {
 
   it('ui_timeline_get_clip names the existing clips when the target misses', async () => {
     await expect(
-      call('ui_timeline_get_clip', { timeline_id: SEQ_ID, target: 'nope' })
+      call('ui_timeline_get_clip', { timeline_id: SEQ_ID, target: 'nope' }),
     ).rejects.toThrow(/No clip matches "nope".*c1 \("Opening shot"\)/s);
   });
 
@@ -368,18 +403,20 @@ describe('timelineTools', () => {
   });
 
   it('ui_timeline_select_clip clears the selection when target is omitted', async () => {
-    const result = await call('ui_timeline_select_clip', { timeline_id: SEQ_ID });
+    const result = await call('ui_timeline_select_clip', {
+      timeline_id: SEQ_ID,
+    });
 
     expect(result).toEqual({ ok: true, selected: null });
   });
 
   it('ui_timeline_seek returns the resulting playhead, clamped to the duration', async () => {
     await expect(
-      call('ui_timeline_seek', { timeline_id: SEQ_ID, timeMs: 3000 })
+      call('ui_timeline_seek', { timeline_id: SEQ_ID, timeMs: 3000 }),
     ).resolves.toEqual({ ok: true, playheadMs: 3000 });
 
     await expect(
-      call('ui_timeline_seek', { timeline_id: SEQ_ID, timeMs: 99_000 })
+      call('ui_timeline_seek', { timeline_id: SEQ_ID, timeMs: 99_000 }),
     ).resolves.toEqual({ ok: true, playheadMs: 9000 });
   });
 
@@ -510,10 +547,12 @@ describe('timelineTools', () => {
 
   it('ui_timeline_set_clip_params documents the staleness rule', () => {
     const tool = MobileToolRegistry.getManifest().find(
-      (entry) => entry.name === 'ui_timeline_set_clip_params'
+      (entry) => entry.name === 'ui_timeline_set_clip_params',
     );
 
-    expect(tool?.description).toMatch(/marks an already-generated clip `stale`/);
+    expect(tool?.description).toMatch(
+      /marks an already-generated clip `stale`/,
+    );
   });
 
   it('ui_timeline_add_marker and delete_marker round-trip', async () => {
@@ -553,9 +592,9 @@ describe('timelineTools', () => {
 
   it('fails with the open ids when the timeline is not open', async () => {
     await expect(
-      call('ui_timeline_get_state', { timeline_id: 'not-open' })
+      call('ui_timeline_get_state', { timeline_id: 'not-open' }),
     ).rejects.toThrow(
-      /No timeline "not-open" is open\. Open timeline ids: seq-1\./
+      /No timeline "not-open" is open\. Open timeline ids: seq-1\./,
     );
   });
 
@@ -563,7 +602,7 @@ describe('timelineTools', () => {
     resetDocumentHandlers();
 
     await expect(
-      call('ui_timeline_get_state', { timeline_id: SEQ_ID })
+      call('ui_timeline_get_state', { timeline_id: SEQ_ID }),
     ).rejects.toThrow(/No timeline documents are currently open/);
   });
 
@@ -581,7 +620,7 @@ describe('timelineTools', () => {
         continue;
       }
       await expect(
-        call(toolName, { timeline_id: SEQ_ID, ...EVERY_REQUIRED_ARG })
+        call(toolName, { timeline_id: SEQ_ID, ...EVERY_REQUIRED_ARG }),
       ).rejects.toThrow(/No timeline documents are currently open/);
     }
   });
@@ -627,11 +666,11 @@ describe('timelineTools', () => {
 
   it('ui_timeline_set_clip_binding says aspectRatio and resolution are not taken', () => {
     const tool = MobileToolRegistry.getManifest().find(
-      (entry) => entry.name === 'ui_timeline_set_clip_binding'
+      (entry) => entry.name === 'ui_timeline_set_clip_binding',
     );
 
     expect(Object.keys(tool?.parameters.properties ?? {})).not.toContain(
-      'aspectRatio'
+      'aspectRatio',
     );
     expect(tool?.description).toMatch(/aspectRatio` and `resolution` are not/);
   });
@@ -653,10 +692,12 @@ describe('timelineTools', () => {
 
   it('ui_timeline_animate_clip points a `code` body at the headless tool', () => {
     const tool = MobileToolRegistry.getManifest().find(
-      (entry) => entry.name === 'ui_timeline_animate_clip'
+      (entry) => entry.name === 'ui_timeline_animate_clip',
     );
 
-    expect(tool?.description).toMatch(/`code` body into curves is not available/);
+    expect(tool?.description).toMatch(
+      /`code` body into curves is not available/,
+    );
     expect(tool?.description).toMatch(/edit_timeline/);
   });
 
@@ -767,7 +808,10 @@ describe('timelineTools', () => {
     });
 
     expect(calls).toEqual([
-      { name: 'setMask', args: ['c1', { kind: 'ellipse', x: 0.2, featherPx: 4 }] },
+      {
+        name: 'setMask',
+        args: ['c1', { kind: 'ellipse', x: 0.2, featherPx: 4 }],
+      },
       { name: 'setMatte', args: ['c1', { source: 'c2', mode: 'luma' }] },
     ]);
   });
@@ -870,7 +914,10 @@ describe('timelineTools', () => {
     const result = await call('ui_timeline_edit', {
       timeline_id: SEQ_ID,
       ops: [
-        { tool: 'ui_timeline_add_track', input: { type: 'overlay', name: 'Titles' } },
+        {
+          tool: 'ui_timeline_add_track',
+          input: { type: 'overlay', name: 'Titles' },
+        },
         { tool: 'set_clip_params', input: { target: 'c1', opacity: 0.4 } },
       ],
     });
@@ -882,8 +929,8 @@ describe('timelineTools', () => {
     expect(result).toMatchObject({ ok: true, applied: 2, failed: 0 });
     expect(
       (result.results as { index: number; tool: string; ok: boolean }[]).map(
-        (entry) => [entry.index, entry.tool, entry.ok]
-      )
+        (entry) => [entry.index, entry.tool, entry.ok],
+      ),
     ).toEqual([
       [0, 'ui_timeline_add_track', true],
       [1, 'ui_timeline_set_clip_params', true],
@@ -915,7 +962,10 @@ describe('timelineTools', () => {
   it('ui_timeline_edit refuses an unknown tool and refuses to nest', async () => {
     const result = await call('ui_timeline_edit', {
       timeline_id: SEQ_ID,
-      ops: [{ tool: 'burn_it_down' }, { tool: 'ui_timeline_edit', input: { ops: [] } }],
+      ops: [
+        { tool: 'burn_it_down' },
+        { tool: 'ui_timeline_edit', input: { ops: [] } },
+      ],
     });
 
     expect(result).toMatchObject({ applied: 0, failed: 2 });
@@ -926,7 +976,7 @@ describe('timelineTools', () => {
 
   it('ui_timeline_edit rejects an empty op list', async () => {
     await expect(
-      call('ui_timeline_edit', { timeline_id: SEQ_ID, ops: [] })
+      call('ui_timeline_edit', { timeline_id: SEQ_ID, ops: [] }),
     ).rejects.toThrow(/at least one op/);
   });
 });

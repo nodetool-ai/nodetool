@@ -1,53 +1,62 @@
 /** @type {import('jest').Config} */
 const configuredWorkers = process.env.NODETOOL_TEST_WORKERS;
-if (configuredWorkers && (!/^[1-9]\d*$/.test(configuredWorkers) || !Number.isSafeInteger(Number(configuredWorkers)))) {
-  throw new Error('NODETOOL_TEST_WORKERS must be a positive integer.');
+if (
+  configuredWorkers &&
+  (!/^[1-9]\d*$/.test(configuredWorkers) ||
+    !Number.isSafeInteger(Number(configuredWorkers)))
+) {
+  throw new Error("NODETOOL_TEST_WORKERS must be a positive integer.");
 }
 module.exports = {
-  ...(configuredWorkers || !process.env.CI || process.env.CI === 'false'
+  ...(configuredWorkers || !process.env.CI || process.env.CI === "false"
     ? { maxWorkers: configuredWorkers ? Number(configuredWorkers) : 2 }
     : {}),
-  preset: '@react-native/jest-preset',
-  testEnvironment: 'node',
+  preset: "@react-native/jest-preset",
+  testEnvironment: "node",
   // Use V8's built-in coverage rather than babel-plugin-istanbul. Istanbul's
   // instrumentation pulls in a `test-exclude`/`minimatch` combination that is
   // incompatible with the hoisted minimatch v9 in this monorepo (it calls
   // minimatch as a default-callable function, which v9 no longer exports),
   // which makes `--coverage` crash. V8 coverage sidesteps that toolchain.
-  coverageProvider: 'v8',
-  setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  testPathIgnorePatterns: ['/node_modules/', '/android/', '/ios/'],
-  testMatch: ['**/__tests__/**/*.[jt]s?(x)', '**/?(*.)+(spec|test).[jt]s?(x)'],
-  moduleFileExtensions: ['ts', 'tsx', 'js', 'jsx', 'json', 'node'],
+  coverageProvider: "v8",
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+  testPathIgnorePatterns: ["/node_modules/", "/android/", "/ios/"],
+  testMatch: ["**/__tests__/**/*.[jt]s?(x)", "**/?(*.)+(spec|test).[jt]s?(x)"],
+  moduleFileExtensions: ["ts", "tsx", "js", "jsx", "json", "node"],
   moduleNameMapper: {
-    '^expo-clipboard$': '<rootDir>/__mocks__/expo-clipboard.js',
+    "^expo-clipboard$": "<rootDir>/__mocks__/expo-clipboard.js",
     // Shared mini-app runtime core, compiled from source (mirrors metro.config.js).
-    '^@nodetool-ai/app-runtime$':
-      '<rootDir>/../packages/app-runtime/src/index.ts',
+    "^@nodetool-ai/app-runtime$":
+      "<rootDir>/../packages/app-runtime/src/index.ts",
     // Shared timeline engine (split/trim/factories), also from source.
-    '^@nodetool-ai/timeline$': '<rootDir>/../packages/timeline/src/index.ts',
-    '^@nodetool-ai/gpu$': '<rootDir>/../packages/gpu/src/index.ts',
+    "^@nodetool-ai/timeline/ops$":
+      "<rootDir>/../packages/timeline/src/ops/index.ts",
+    "^@nodetool-ai/protocol/(.*)\\.js$":
+      "<rootDir>/../packages/protocol/src/$1",
+    "^@nodetool-ai/protocol/api-schemas/(.*)$":
+      "<rootDir>/../packages/protocol/src/api-schemas/$1",
+    "^@nodetool-ai/timeline$": "<rootDir>/../packages/timeline/src/index.ts",
+    "^@nodetool-ai/gpu$": "<rootDir>/../packages/gpu/src/index.ts",
     // Jest runs in CJS mode, so compile the current protocol source instead of
     // parsing the package's ESM dist directly. Production still uses the dist.
-    '^@nodetool-ai/protocol$':
-      '<rootDir>/../packages/protocol/src/index.ts',
+    "^@nodetool-ai/protocol$": "<rootDir>/../packages/protocol/src/index.ts",
     // Keep dependency-free helpers on narrow source entry points so they do
     // not pull in the full protocol graph by themselves.
-    '^@nodetool-ai/protocol/triggers$':
-      '<rootDir>/../packages/protocol/src/triggers.ts',
-    '^@nodetool-ai/protocol/blend-modes$':
-      '<rootDir>/../packages/protocol/src/blend-modes.ts',
+    "^@nodetool-ai/protocol/triggers$":
+      "<rootDir>/../packages/protocol/src/triggers.ts",
+    "^@nodetool-ai/protocol/blend-modes$":
+      "<rootDir>/../packages/protocol/src/blend-modes.ts",
     // Those packages' sources use ESM `.js` specifiers for their own modules.
-    '^(\\.{1,2}/.+)\\.js$': '$1',
+    "^(\\.{1,2}/.+)\\.js$": "$1"
   },
   collectCoverageFrom: [
-    'src/**/*.{ts,tsx}',
-    '!**/*.d.ts',
-    '!**/*.test.{ts,tsx}',
-    '!**/index.{ts,tsx}',
+    "src/**/*.{ts,tsx}",
+    "!**/*.d.ts",
+    "!**/*.test.{ts,tsx}",
+    "!**/index.{ts,tsx}",
     // Type-only and generated code carry no runnable logic.
-    '!src/types/**',
-    '!src/api.ts',
+    "!src/types/**",
+    "!src/api.ts"
   ],
   // Thresholds are set below the currently-measured V8 coverage
   // (~29% statements/lines, ~80% branches, ~58% functions) so the gate is
@@ -58,13 +67,13 @@ module.exports = {
       branches: 70,
       functions: 50,
       lines: 25,
-      statements: 25,
-    },
+      statements: 25
+    }
   },
   transformIgnorePatterns: [
-    'node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-markdown-display|zustand)',
+    "node_modules/(?!((jest-)?react-native|@react-native(-community)?)|expo(nent)?|@expo(nent)?/.*|@expo-google-fonts/.*|react-navigation|@react-navigation/.*|@unimodules/.*|unimodules|sentry-expo|native-base|react-native-svg|react-native-markdown-display|zustand)"
   ],
   transform: {
-    '^.+\\.(js|jsx|ts|tsx)$': 'babel-jest',
-  },
+    "^.+\\.(js|jsx|ts|tsx)$": "babel-jest"
+  }
 };
