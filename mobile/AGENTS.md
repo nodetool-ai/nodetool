@@ -9,6 +9,31 @@
 
 React Native / Expo app for browsing and running NodeTool workflows and AI chat from a phone.
 
+## Scope
+
+The mobile app is a phone companion to the desktop and web apps, not a port of
+them. It keeps the jobs a phone does better than a desktop: run mini apps,
+chat, follow jobs, capture assets, and view results.
+
+- **Kept surfaces**: Login, Settings, Apps (the home screen after login), App,
+  Chat, Threads, LanguageModelSelection, Jobs, JobDetail, Assets, AssetViewer,
+  Documents, StoryboardEditor, TimelineViewer, and SketchViewer.
+- **Documents**: the list shows storyboards, timelines, and sketches. Other
+  kinds open in the desktop or web app, and `useOpenResource` says so instead
+  of pushing a screen.
+- **View only**: timelines and sketches are view only on mobile. No touch
+  editing and no client-side `ui_*` edit tools. The desktop editor and the
+  server agent's own tools edit them. The timeline viewer reloads on focus.
+  Storyboards are the one editable kind, through `StoryboardEditor` and the
+  `ui_storyboard_*` tools.
+- **No parity work**: a new web feature gets no mobile version unless the
+  request names mobile. A mini-app widget mobile does not render shows a
+  fallback that names it and points at desktop or web, so a new web widget
+  never forces a mobile change.
+- **Shared contracts**: a change to `packages/protocol`, `packages/app-runtime`,
+  or a tRPC router that mobile calls must still keep `npm run typecheck` in
+  `mobile/` green.
+
 ## Quick Commands
 
 ```bash
