@@ -114,19 +114,15 @@ jest.mock("../../../../lib/chat/openResource", () => ({
     kind !== "collection" && kind !== "thread"
 }));
 
-// The real viewer pulls in three.js and WebGL; the test only needs the URL it
-// was handed.
-jest.mock("../../../asset_viewer/LazyModel3DViewer", () => ({
-  __esModule: true,
-  default: ({ url }: { url?: string }) => (
-    <div data-testid="model3d-viewer" data-url={url} />
-  )
-}));
-
 import ChatMarkdown from "../ChatMarkdown";
 import { openResource } from "../../../../lib/chat/openResource";
+import { mockAssetThumbUrl } from "../../../../hooks/__mocks__/useResolvedMediaUri";
 
-const ASSET_ID = "7e1c0d4b5a6f48e2b9c3d1a0f2e4b6c8";
+const { mockAssetWithoutThumbnail } = jest.requireMock(
+  "../../../../hooks/useResolvedMediaUri"
+) as typeof import("../../../../hooks/__mocks__/useResolvedMediaUri");
+
+const ASSET_ID = "3b9f0c2e7d4a41c6a8e5f1d2c3b4a596";
 
 const renderMarkdown = (content: string) =>
   render(
@@ -135,45 +131,59 @@ const renderMarkdown = (content: string) =>
     </ThemeProvider>
   );
 
-describe("ChatMarkdown 3D model assets", () => {
+describe("ChatMarkdown document and file assets", () => {
   beforeEach(() => {
     jest.clearAllMocks();
     resetMockAssetContentTypes();
     mockUseQuery.mockReturnValue({ data: undefined });
   });
 
-  const expectPreviewWithEditorLink = (container: HTMLElement): void => {
-    const viewer = screen.getByTestId("model3d-viewer");
-    expect(viewer).toHaveAttribute("data-url", mockAssetUrl(ASSET_ID));
-    expect(container.querySelector("img")).toBeNull();
+  const expectPdfPreview = (locator: string): void => {
+    const id = locator.slice("asset://".length);
+    const page = screen.getByAltText("First page of Report");
+    expect(page).toHaveAttribute("src", mockAssetThumbUrl(ASSET_ID));
+    expect(page.closest("a")).toHaveAttribute("href", mockAssetUrl(id));
 
-    fireEvent.click(screen.getByText("Robot"));
-    expect(openResource).toHaveBeenCalledWith({
-      kind: "model3d",
-      id: ASSET_ID
-    });
+    fireEvent.click(screen.getByRole("button", { name: /Report/ }));
+    expect(openResource).toHaveBeenCalledWith({ kind: "asset", id });
   };
 
-  it("previews a .glb markdown image and links it to the 3D editor", () => {
-    const { container } = renderMarkdown(`![Robot](asset://${ASSET_ID}.glb)`);
-    expectPreviewWithEditorLink(container);
+  it("previews a PDF link by its first page", () => {
+    renderMarkdown(`[Report](asset://${ASSET_ID}.pdf)`);
+    expectPdfPreview(`asset://${ASSET_ID}.pdf`);
   });
 
-  it("previews a .glb asset link instead of an inert asset chip", () => {
-    const { container } = renderMarkdown(`[Robot](asset://${ASSET_ID}.glb)`);
-    expectPreviewWithEditorLink(container);
+  it("previews a PDF embedded with image syntax instead of a broken image", () => {
+    renderMarkdown(`![Report](asset://${ASSET_ID}.pdf)`);
+    expectPdfPreview(`asset://${ASSET_ID}.pdf`);
   });
 
-  it("types an extension-less asset by its glTF content type", () => {
-    mockAssetContentTypes.set(ASSET_ID, "model/gltf-binary");
-    const { container } = renderMarkdown(`![Robot](asset://${ASSET_ID})`);
-    expectPreviewWithEditorLink(container);
+  it("types an extension-less asset by its PDF content type", () => {
+    mockAssetContentTypes.set(ASSET_ID, "application/pdf");
+    renderMarkdown(`[Report](asset://${ASSET_ID})`);
+    expectPdfPreview(`asset://${ASSET_ID}`);
   });
 
-  it("previews a model3d:// resource embed", () => {
-    const { container } = renderMarkdown(`![Robot](model3d://${ASSET_ID})`);
-    expectPreviewWithEditorLink(container);
+  it("shows only the chip for a PDF without a thumbnail", () => {
+    mockAssetWithoutThumbnail(ASSET_ID);
+    const { container } = renderMarkdown(`[Report](asset://${ASSET_ID}.pdf)`);
+
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByRole("button", { name: /Report/ })).toBeInTheDocument();
+  });
+
+  it("links a non-media file embedded with image syntax", () => {
+    const { container } = renderMarkdown(`![Scenes](asset://${ASSET_ID}.zip)`);
+
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByRole("button", { name: /Scenes/ })).toBeInTheDocument();
+  });
+
+  it("links an extension-less asset whose content type is not media", () => {
+    mockAssetContentTypes.set(ASSET_ID, "text/csv");
+    const { container } = renderMarkdown(`![Shots](asset://${ASSET_ID})`);
+
+    expect(container.querySelector("img")).toBeNull();
+    expect(screen.getByRole("button", { name: /Shots/ })).toBeInTheDocument();
   });
 });
-
-
