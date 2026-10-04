@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import { emptyJsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
-import { closeDb, initTestDb } from "../src/db.js";
+import { closeDb, executeRaw, initTestDb, pingDb } from "../src/db.js";
 import { ModelChangeEvent, ModelObserver } from "../src/base-model.js";
 import { Asset } from "../src/asset.js";
 import {
@@ -52,6 +52,29 @@ afterEach(async () => {
 });
 
 describe("model execution on SQLite and PostgreSQL", () => {
+  it("executes raw queries and Personal migration on the active engine", async () => {
+    await onBothDialects(async () => {
+      const asset = await Asset.create<Asset>({ id: "raw-query-asset", user_id: OWNER });
+      expect(await executeRaw("SELECT id FROM nodetool_assets WHERE id = 'raw-query-asset'"))
+        .toEqual({ rows: [{ id: "raw-query-asset" }] });
+      await pingDb();
+      const migration = await Project.migrateToPersonal(OWNER);
+      const repeated = await Project.migrateToPersonal(OWNER);
+      const projectId = (await Asset.get<Asset>(asset.id))?.project_id;
+      expect(projectId).toBe(`personal:${OWNER}`);
+      expect(migration.migrated).toBe(1);
+      expect(migration.dangling).toBe(0);
+      expect(repeated.migrated).toBe(0);
+      await closeDb();
+      await expect(pingDb()).rejects.toThrow("Database not initialized");
+      await expect(executeRaw("SELECT 1")).rejects.toThrow("database not initialized");
+      initTestDb({ strictProjects: true });
+      await pingDb();
+      expect(await executeRaw("SELECT id FROM nodetool_assets")).toEqual({ rows: [] });
+      return { projectId, migrated: migration.migrated, dangling: migration.dangling, repeated: repeated.migrated };
+    });
+  }, 30000);
+
   it("round-trips every document table and application capabilities without double encoding", async () => {
     await onBothDialects(async () => {
       const documentBytes: Record<string, string | undefined> = {};

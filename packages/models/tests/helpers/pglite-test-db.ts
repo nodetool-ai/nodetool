@@ -36,7 +36,9 @@ export async function initPgliteTestDb(): Promise<void> {
       dialect: "postgres",
       db: drizzle(client, { schema: pgSchema }),
       schema: pgSchema
-    }, async () => { await client.close(); });
+    }, async () => { await client.close(); }, async (statement) => ({
+      rows: (await client.query(statement)).rows
+    }));
   } catch (error) {
     await adapter.release();
     await client.close();

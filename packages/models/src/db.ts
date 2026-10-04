@@ -71,6 +71,7 @@ let _connection: DatabaseConnection | null = null;
 let _sqlite: Database.Database | null = null;
 let _pgClient: Sql | null = null;
 let _closeTestConnection: (() => Promise<void>) | null = null;
+let _executeTestRaw: ((statement: string) => Promise<{ rows: unknown[] }>) | null = null;
 let _allowLegacyProjectWritesForTests = false;
 
 /**
@@ -222,7 +223,8 @@ export function initTestDb(
 /** Install an isolated test driver without adding it to production dependencies. */
 export function setTestDatabaseConnection(
   connection: DatabaseConnection,
-  close: () => Promise<void>
+  close: () => Promise<void>,
+  executeRaw: (statement: string) => Promise<{ rows: unknown[] }>
 ): void {
   if (_connection) {
     throw new Error("Call closeDb() before installing a test connection.");
@@ -230,6 +232,7 @@ export function setTestDatabaseConnection(
   _allowLegacyProjectWritesForTests = false;
   _connection = connection;
   _closeTestConnection = close;
+  _executeTestRaw = executeRaw;
 }
 
 /** Compatibility for old fixtures that predate project rows. Never enabled outside initTestDb. */
@@ -307,6 +310,9 @@ export function getRawDb(): Database.Database {
 /** Execute dynamic SQL against the active database connection. */
 export async function executeRaw(sql: string): Promise<{ rows: unknown[] }> {
   if (_connection?.dialect === "postgres") {
+    if (_executeTestRaw) {
+      return _executeTestRaw(sql);
+    }
     if (!_pgClient) throw new Error("PostgreSQL database not initialized.");
     return { rows: await _pgClient.unsafe(sql) };
   }
@@ -329,6 +335,10 @@ export async function pingDb(): Promise<void> {
       "Database not initialized. Call initDb() or initPostgresDb() first."
     );
   if (_connection?.dialect === "postgres") {
+    if (_executeTestRaw) {
+      await _executeTestRaw("select 1");
+      return;
+    }
     if (!_pgClient) throw new Error("PostgreSQL client not initialized.");
     await _pgClient`select 1`;
     return;
@@ -380,6 +390,7 @@ export async function closeDb(): Promise<void> {
   }
   const closeTestConnection = _closeTestConnection;
   _closeTestConnection = null;
+  _executeTestRaw = null;
   _connection = null;
   if (closeTestConnection) {
     await closeTestConnection();
