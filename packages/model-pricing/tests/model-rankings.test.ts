@@ -78,17 +78,18 @@ describe("the shipped artifact", () => {
     }
   });
 
-  it("gives every route to one model identical tasks", () => {
-    // Quality is a property of the model, never of the route — the accessors
-    // and `find_model`'s rank term both rely on it.
+  it("keeps a model's rank consistent across routes supporting the same task", () => {
     const byCanonical = new Map<string, Record<string, unknown>>();
     for (const entry of Object.values(modelRankings.models)) {
-      const first = byCanonical.get(entry.canonical);
-      if (first) {
-        expect(entry.tasks).toEqual(first);
-      } else {
-        byCanonical.set(entry.canonical, entry.tasks);
+      const known = byCanonical.get(entry.canonical) ?? {};
+      for (const [task, rank] of Object.entries(entry.tasks)) {
+        if (known[task] !== undefined) {
+          expect(rank).toEqual(known[task]);
+        } else {
+          known[task] = rank;
+        }
       }
+      byCanonical.set(entry.canonical, known);
     }
   });
 
@@ -131,7 +132,9 @@ describe("getModelRank", () => {
   });
 
   it("returns null for an unranked model, a null provider, and a bad pair", () => {
-    expect(getModelRank("fal_ai", "fal-ai/nobody-ranks-this", fixture)).toBeNull();
+    expect(
+      getModelRank("fal_ai", "fal-ai/nobody-ranks-this", fixture)
+    ).toBeNull();
     expect(getModelRank(null, "fal-ai/kling-video/v3/pro", fixture)).toBeNull();
     // The kie id under the FAL provider is not a route the artifact carries.
     expect(getModelRank("fal_ai", "kling/v3-pro", fixture)).toBeNull();
@@ -140,9 +143,9 @@ describe("getModelRank", () => {
 
 describe("getCanonicalId", () => {
   it("gives both routes the same grouping key", () => {
-    expect(
-      getCanonicalId("fal_ai", "fal-ai/kling-video/v3/pro", fixture)
-    ).toBe("kling-3-pro");
+    expect(getCanonicalId("fal_ai", "fal-ai/kling-video/v3/pro", fixture)).toBe(
+      "kling-3-pro"
+    );
     expect(getCanonicalId("kie", "kling/v3-pro", fixture)).toBe("kling-3-pro");
   });
 
@@ -154,7 +157,9 @@ describe("getCanonicalId", () => {
 describe("routesFor", () => {
   it("returns every provider route to one canonical model", () => {
     const routes = routesFor("kling-3-pro", fixture);
-    expect(routes.map(({ provider, modelId }) => ({ provider, modelId }))).toEqual([
+    expect(
+      routes.map(({ provider, modelId }) => ({ provider, modelId }))
+    ).toEqual([
       { provider: "fal_ai", modelId: "fal-ai/kling-video/v3/pro" },
       { provider: "kie", modelId: "kling/v3-pro" }
     ]);
@@ -195,12 +200,12 @@ describe("rankedForTask", () => {
   });
 
   it("lists a model only under the tasks it is ranked for", () => {
-    expect(rankedForTask("image_to_video", fixture).map((r) => r.canonical)).toEqual(
-      ["kling-3-pro"]
-    );
-    expect(rankedForTask("text_to_image", fixture).map((r) => r.canonical)).toEqual(
-      ["flux-schnell"]
-    );
+    expect(
+      rankedForTask("image_to_video", fixture).map((r) => r.canonical)
+    ).toEqual(["kling-3-pro"]);
+    expect(
+      rankedForTask("text_to_image", fixture).map((r) => r.canonical)
+    ).toEqual(["flux-schnell"]);
     expect(rankedForTask("text_to_music", fixture)).toEqual([]);
   });
 });

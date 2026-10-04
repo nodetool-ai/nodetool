@@ -80,7 +80,11 @@ const FIXTURE: ModelRankingsArtifact = {
 
 const RANKED = {
   providerId: "fal_ai",
-  model: { id: "fal-ai/kling-video/v3/pro", name: "Kling 3 Pro", provider: "fal_ai" },
+  model: {
+    id: "fal-ai/kling-video/v3/pro",
+    name: "Kling 3 Pro",
+    provider: "fal_ai"
+  },
   recommended: false,
   modelHints: new Set<string>(),
   preferLocal: false,
@@ -94,7 +98,10 @@ const UNRANKED = {
 
 describe("the rank term", () => {
   it("puts a ranked model above an unranked one for the requested task", () => {
-    const ranked = scoreCandidate({ ...RANKED, task: "text_to_video" }, FIXTURE);
+    const ranked = scoreCandidate(
+      { ...RANKED, task: "text_to_video" },
+      FIXTURE
+    );
     const unranked = scoreCandidate(
       { ...UNRANKED, task: "text_to_video" },
       FIXTURE
@@ -129,7 +136,10 @@ describe("the rank term", () => {
   });
 
   it("stays below every preference the caller stated", () => {
-    const ranked = scoreCandidate({ ...RANKED, task: "text_to_video" }, FIXTURE);
+    const ranked = scoreCandidate(
+      { ...RANKED, task: "text_to_video" },
+      FIXTURE
+    );
     const hintedProvider = scoreCandidate(
       { ...UNRANKED, task: "text_to_video", providerHint: "fal_ai" },
       FIXTURE
@@ -169,7 +179,11 @@ describe("the rank term", () => {
     const rankedLow = scoreCandidate(
       {
         ...RANKED,
-        model: { id: "fal-ai/minor-video", name: "Minor Video", provider: "fal_ai" },
+        model: {
+          id: "fal-ai/minor-video",
+          name: "Minor Video",
+          provider: "fal_ai"
+        },
         task: "text_to_video"
       },
       FIXTURE
@@ -190,7 +204,11 @@ describe("the rank term", () => {
     const pinnedButLower = scoreCandidate(
       {
         ...RANKED,
-        model: { id: "fal-ai/minor-video", name: "Minor Video", provider: "fal_ai" },
+        model: {
+          id: "fal-ai/minor-video",
+          name: "Minor Video",
+          provider: "fal_ai"
+        },
         task: "text_to_video",
         recommended: true
       },
@@ -369,9 +387,9 @@ describe("the shipped artifact", () => {
     expect(result.total).toBe(siblings.length);
     expect(result.results).toHaveLength(1);
     expect(result.results[0]["canonical"]).toBe(entry?.canonical);
-    expect(
-      (result.results[0]["alternate_routes"] as unknown[]).length
-    ).toBe(siblings.length - 1);
+    expect((result.results[0]["alternate_routes"] as unknown[]).length).toBe(
+      siblings.length - 1
+    );
   });
 
   it("leaves an unranked model's answer in the pre-rankings shape", async () => {
@@ -380,8 +398,8 @@ describe("the shipped artifact", () => {
     const result = (await findModelOver({
       fal_ai: new FakeImageProvider("fal_ai" as ProviderId, [
         {
-          id: "fal-ai/flux/schnell",
-          name: "Flux Schnell",
+          id: "test/unranked-fixture",
+          name: "Unranked fixture",
           provider: "fal_ai"
         } as ImageModel
       ])
