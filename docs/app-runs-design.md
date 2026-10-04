@@ -1,7 +1,7 @@
 # App Runs, Instances and Run Observability — Design
 
 **Status:** Draft, high level, for agreement before detailed design
-**Related:** [media-generation-tracking-design.md](media-generation-tracking-design.md), [mini-apps.md](mini-apps.md), [error-tracing.md](error-tracing.md), [harnesses.md § Observing agent execution](harnesses.md#observing-agent-execution)
+**Related:** [media-generation-tracking-design.md](media-generation-tracking-design.md), [mini-apps.md](mini-apps.md), [error-tracing.md](error-tracing.md), [harnesses.md § Observing agent execution](harnesses.md#observing-agent-execution), [personal-data registry](../packages/models/src/personal-data-registry.ts), [hosted privacy policy](../marketing/src/app/privacy/page.tsx)
 
 ## 1. Summary
 
@@ -35,7 +35,7 @@ library.
 
 | Gap | Evidence today |
 |---|---|
-| No history | `application_invocations` is a billing ledger: operation, cost, status. Example-app script runs do not write it. |
+| No history | `application_invocations` is a spend record: operation, cost, status. Example-app script runs do not write it. |
 | One state per app | Variables persist under `nodetool.app.variables.<app identity>` in localStorage. Electron and Chrome already hold different states for the same example. |
 | Generations not linked | `nodetool_generation_attachments` exists but is empty. No generation names the app run that made it. |
 | Tracing off by default | `server.ts` calls `initTelemetry()` with no options. With no sink variable set, the tracer stays null and every `withSpan` is a pass-through. A normal desktop session records no spans. |
@@ -115,7 +115,9 @@ The record opens before the operation runs and closes with a terminal status,
 the same rule that generation tracking follows. It holds:
 
 - the instance id, the operation id and the app version
-- the origin: `ui`, `agent`, `cli` or `debug`
+- the origin: `ui`, `agent`, `cli`, `debug` or `public`. A `public` run comes
+  from a visitor to a deployed app, whose session authenticates as the owner
+  (`packages/websocket/src/lib/app-session-scope.ts`).
 - an input snapshot: the resolved operation inputs
 - the outputs written to variables, and the documents created or changed
 - status (`running`, `completed`, `failed`, `cancelled`), error, start and end
@@ -123,7 +125,10 @@ the same rule that generation tracking follows. It holds:
 - the trace id and the root span id
 
 `application_invocations` either becomes this table or a view over it. The
-billing fields stay correct either way.
+billing fields stay correct either way. The table keeps its `delete`
+disposition in the personal-data registry. The billing evidence that must
+outlive an account is in `nodetool_credit_ledger` and `nodetool_predictions`,
+so the app run table never becomes a retained table that holds inputs.
 
 ### 4.3 Generations and assets
 
@@ -146,9 +151,21 @@ app run through the API and reports its spans to the same store, as
   file, stdout and OTLP sinks stay as copies for external tools.
 - **Recording is always on.** `initTelemetry` registers the run-store processor
   even when no external sink is configured. External sinks stay opt-in.
-- **Only run spans are kept.** Opening a run registers its trace id. The
-  processor keeps spans whose trace id is registered and drops the rest, so
-  `/api/assets` request spans never reach the table.
+- **Content stays in the run store.** The file, stdout and OTLP sinks receive
+  each span without its content attributes and content events
+  ([4.10](#410-content-and-retention-policy)). `NODETOOL_TRACE_INCLUDE_CONTENT=1`
+  restores them for a local debugging session. The rule also covers the
+  existing `llm.response.content` attribute. A collector or a server log is
+  outside the personal-data registry, so content there escapes export,
+  erasure and the retention sweep.
+- **Only run spans are kept.** Opening a run registers its trace id with the
+  run's owner. The processor keeps spans whose trace id is registered and drops
+  the rest, so `/api/assets` request spans never reach the table.
+- **A trace joins only its owner's run.** `http-tracing.ts` continues an
+  incoming `traceparent` only when its trace id belongs to a run that the
+  authenticated caller owns. Any other request starts a new trace. Without this
+  check, a request from one account that carries another account's trace id
+  writes its spans into the other account's run.
 - **Live and stored data have one shape.** The processor publishes span starts,
   span ends and events for a run over the existing WebSocket. A finished run
   reloads from the table. The Trace panel renders the same records live and
@@ -186,7 +203,9 @@ web SDK. The recorder creates ids, nests spans, and batches finished spans to
 
 The server accepts browser spans only for runs that the caller owns and that
 are open or closed within the last few minutes. It applies the caps and
-redaction in [4.10](#410-content-and-retention-policy). Error traces from the
+redaction in [4.10](#410-content-and-retention-policy). The span route refuses
+a deployed app's visitor session, as the `app-session-scope.ts` allowlist
+refuses every command it does not name. Error traces from the
 web and Electron error boundaries gain `trace_id` and `app_run_id` in
 `ERROR_TRACE_CONTEXT_KEYS`, so a crash links to its run.
 
@@ -203,7 +222,8 @@ web and Electron error boundaries gain `trace_id` and `app_run_id` in
   only the message and tool counts of the request. Both spans also record the
   request messages, the tool names and the response, under the caps in
   [4.10](#410-content-and-retention-policy). An agent that diagnoses a prompt
-  problem needs both sides of the call.
+  problem needs both sides of the call. These are content attributes, so they
+  reach the run store and never an external sink ([4.5](#45-one-trace-store-three-readers)).
 
 ### 4.9 Agent read surface
 
@@ -237,21 +257,67 @@ differ from what the panel shows.
 ### 4.10 Content and retention policy
 
 Run traces hold user data: prompts, responses, inputs and console output. Error
-traces deliberately store none of that. Run traces need it to be useful.
+traces deliberately store none of that. Run traces need it to be useful. The
+hosted service processes this data under Art. 6 (1) (b) GDPR, as the run
+history a person reads, so every rule below serves that purpose.
 
-- **Owner-scoped.** Every read checks the run's owner, as error traces do. On
-  Supabase, the table gets row-level security with an owner-read policy.
+- **Content is marked.** One list, `TRACE_CONTENT_KEYS`, names the attributes
+  and event kinds that carry content: request messages, responses, tool
+  arguments and results, console output, resolved input values and the input
+  snapshot and outputs of the run record. The span table stores them in a
+  separate `content` column. The external-sink filter, the prune and the
+  `public` rule all read that list, so they cannot disagree.
+- **Owner-scoped.** Every read checks the run's owner, as error traces do. The
+  span table has its own `user_id` column. A trace belongs to an app run, a
+  workflow job or a chat turn, and a registry entry with one indirect parent
+  cannot reach all three. On Supabase, the table gets row-level security with
+  an owner-read policy, which is a plain equality on `user_id`.
 - **Redacted.** The credential rules of `redactErrorTrace` run on every
-  attribute and event before insert. Prompts and responses are kept.
+  attribute and event before insert. Prompts and responses are kept. The run
+  passes the secret values it resolved (provider keys, OAuth tokens and
+  `getSecret` results) as `secretValues`. On the hosted service these keys are
+  decrypted per run and are never in the server environment, so the default
+  `collectSecretValues` list misses them.
 - **Capped.** Attribute strings stop at a fixed length. A run stops storing new
   spans after a span cap and new events after an event cap, and the root span
   records that it was truncated. Readers report the truncation.
 - **No media bytes.** Images, audio and video appear as asset ids or
   generation ids, never as inline data.
-- **In the personal-data registry.** Account export includes run traces, and
-  account erasure deletes them.
-- **Pruned.** Span detail is pruned after a configurable age. The run record
-  and its summary stay ([D8](#5-decisions-to-agree)).
+- **Third-party content stays out.** The `email`, `google` and `browser`
+  capability modules return text about people who do not use NodeTool. Their
+  `tool.call` spans record the argument names and a short result summary, not
+  message or page bodies. The chat message already holds the full result.
+- **No content for visitors.** A `public` run stores no content. Its trace
+  keeps span names, status, timing, cost and the error class. Otherwise a
+  visitor's inputs land in the owner's history, the owner's agents and the
+  owner's export, and the visitor has no account to request erasure from.
+- **Deleted with its parent.** Deleting a chat thread or message, a workflow, a
+  job, an app, an instance or a run deletes the trace content attached to it.
+  A chat-turn trace copies message text and tool results, so a deleted thread
+  must not survive in its trace. Assets and generation records stay
+  ([D7](#5-decisions-to-agree)).
+- **In the personal-data registry.** The app instance, app run and span tables
+  each get a `delete` entry. Account export includes run traces, and account
+  erasure deletes them.
+- **Pruned on the retention schedule.** The run-store tables join
+  `StorageRetentionPolicy` in `storage-maintenance.ts`. A new
+  `runTraceRetentionDays` setting nulls the `content` column, with the same
+  30-day default as `runEventRetentionDays`. The run record and its summary
+  follow `terminalJobRetentionDays`, the setting that privacy policy § 11
+  already names for finished run records. The summary that outlives the
+  content holds no content: span names, statuses, timing, cost, and an error
+  message that the full `redactErrorTrace` cleans and caps, as for error
+  traces. The hosted deployment sets `NODETOOL_STORAGE_AUTO_CLEANUP=1`, so the
+  sweep runs without a request ([D8](#5-decisions-to-agree)).
+- **Operators do not read content.** Cross-user queries in the Supabase SQL
+  editor, which [error-tracing.md](error-tracing.md#supabase) shows for error
+  traces, use only the columns outside `content`. An operator reads a run's
+  content only when its owner asks for support on that run.
+- **Disclosed.** The hosted privacy policy changes in the same pull request as
+  phase 2. § 5 lists run traces: prompts, responses, tool arguments and
+  results, console output, and the UI action that started a run. § 6 must not
+  read as a promise that no click is tied to an account, because `ui.action`
+  records one. § 11 states the two retention settings.
 
 ### 4.11 User experience
 
@@ -262,6 +328,8 @@ traces deliberately store none of that. Run traces need it to be useful.
 - A history list for the current instance: operation, time, status, cost,
   origin and a result thumbnail. Selecting a run shows its inputs and outputs
   read-only. It also links to the documents it made and to "View trace".
+  After the content prune, the run view and the read tools say that the
+  content expired, as they report truncation.
 - Comparison: each instance opens as its own workspace tab, so two instances
   sit side by side. A dedicated diff view waits until tabs prove insufficient.
 - The AgentActivity widget reads the run's stored trace, so a finished or
@@ -289,14 +357,16 @@ traces deliberately store none of that. Run traces need it to be useful.
 | D4 | Trace store | A per-run span table fed by an OTel span processor, not a second tracing API. |
 | D5 | Execution location | Server by default. In-browser runs report through the same API. |
 | D6 | `application_invocations` | Fold into the app run record. Keep billing correct. |
-| D7 | Deletion | Deleting an instance or run keeps assets and generation records. |
-| D8 | Retention | Keep run records indefinitely. Prune span detail after a configurable age, and keep the run summary. |
-| D9 | Recording default | The run store records always. External sinks stay opt-in. |
+| D7 | Deletion | Deleting an instance or run keeps assets and generation records. Deleting any parent of a trace (thread, message, workflow, job, app, instance, run) deletes its trace content. |
+| D8 | Retention | Null trace content after `runTraceRetentionDays` (default 30). Delete the run record and its content-free summary after `terminalJobRetentionDays`. The hosted deployment runs the sweep automatically. |
+| D9 | Recording default | The run store records always. External sinks stay opt-in and receive no content attributes. |
 | D10 | Trace panel input | Run-store records, live over the WebSocket. `TraceStore` stops folding processing messages. |
 | D11 | Browser instrumentation | A small in-house recorder that emits `TraceRecord`, with W3C `traceparent` to the server. No OTel web SDK in the bundle. |
-| D12 | Content in run traces | Store prompts, responses, inputs and console output, capped, redacted and owner-scoped. Error traces keep their no-content rule. |
+| D12 | Content in run traces | Store prompts, responses, inputs and console output, marked by `TRACE_CONTENT_KEYS`, capped, redacted with the run's own secret values, and owner-scoped. Error traces keep their no-content rule. |
 | D13 | Agent read surface | One runs service behind tRPC, the `runs` capability module and the CLI. Summary first, drill-down by span. |
 | D14 | `debug_app` runs | Create real app runs with origin `debug`, visible in history. |
+| D15 | Deployed-app visitor runs | Origin `public`, with no content and no browser spans. |
+| D16 | Incoming `traceparent` | Continue it only when the trace id belongs to a run that the caller owns. |
 
 ## 6. Phases
 
@@ -305,7 +375,11 @@ traces deliberately store none of that. Run traces need it to be useful.
    writes instance state on the server.
 2. **Server trace store.** The always-on run-store processor, the root spans,
    spans on the script path, capability calls, agent loops and tool calls, and
-   log lines as span events.
+   log lines as span events. The content rules of
+   [4.10](#410-content-and-retention-policy), the external-sink filter, the
+   `traceparent` owner check, the registry entries, the retention sweep and the
+   privacy policy text ship in this phase, before content reaches the hosted
+   database.
 3. **Agent read surface.** The runs service, the five capabilities, the
    `nodetool runs` commands and the tRPC router. `debug_app` writes app runs.
    `get_job_logs` reads the store. This phase comes before the UI, because the
@@ -322,7 +396,7 @@ Each phase ships with a harness check, in the spirit of
 | Phase | Check |
 |---|---|
 | 1 | A scripted app run whose record and generation attachment a test reads back |
-| 2 | The same run with no external sink configured, whose stored tree has `app.run`, `script.run`, a `capability.call` and an `llm.*` span under one trace id |
+| 2 | The same run with no external sink configured, whose stored tree has `app.run`, `script.run`, a `capability.call` and an `llm.*` span under one trace id. With a JSONL sink configured, the sink copy holds no `TRACE_CONTENT_KEYS` attribute. A second user's request with the run's `traceparent` adds no span to the run. A `public` run stores no content. |
 | 3 | `nodetool runs show <id> --json` on that run names the failed span of a run built to fail |
 | 4 | A browser run whose stored trace has `ui.action` as the parent of `app.run` |
 | 5 | Two instances of one app, each with its own variables and history |
