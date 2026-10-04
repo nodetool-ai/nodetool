@@ -1,13 +1,11 @@
 /**
- * The resource router: every `ResourceKind` reaches a screen. The kind registry
- * is mocked here so the `DocumentViewer` fallback can be exercised on its own —
- * no kind routes there today, and the point of the fallback is the kind that
- * will.
+ * The resource router: every kind mobile opens reaches its screen, and a kind
+ * it does not open pushes nothing and reports `false`, so the caller can say
+ * the document opens on desktop or web.
  */
 import React from "react";
 import { Text } from "react-native";
 import { render } from "@testing-library/react-native";
-import type { ResourceRef } from "@nodetool-ai/app-runtime";
 
 const mockNavigate = jest.fn();
 
@@ -18,28 +16,35 @@ jest.mock("@react-navigation/native", () => ({
 const mockRoute = jest.fn();
 
 jest.mock("../../../documents/kinds", () => ({
-  documentKindInfo: (kind: string) => ({
-    kind,
-    label: kind,
-    plural: `${kind}s`,
-    icon: "document-outline",
-    surface: "viewer",
-    route: mockRoute(kind),
-    creatable: false,
-    agentEditable: false,
-  }),
+  findDocumentKindInfo: (kind: string) => {
+    const route = mockRoute(kind);
+    return route === undefined
+      ? undefined
+      : {
+          kind,
+          label: kind,
+          plural: `${kind}s`,
+          icon: "document-outline",
+          surface: "viewer",
+          route,
+          creatable: false,
+          agentEditable: false,
+        };
+  },
 }));
 
-import { useOpenResource } from "../useOpenResource";
+import { useOpenResource, type OpenableRef } from "../useOpenResource";
+
+const mockOpened = jest.fn();
 
 /** Calls the hook once on mount; the hook needs a component, nothing more. */
-const Opener: React.FC<{ ref_: ResourceRef; name?: string }> = ({
+const Opener: React.FC<{ ref_: OpenableRef; name?: string }> = ({
   ref_,
   name,
 }) => {
   const open = useOpenResource();
   React.useEffect(() => {
-    open(ref_, name);
+    mockOpened(open(ref_, name));
   }, [name, open, ref_]);
   return <Text>opener</Text>;
 };
@@ -47,19 +52,29 @@ const Opener: React.FC<{ ref_: ResourceRef; name?: string }> = ({
 describe("useOpenResource", () => {
   beforeEach(() => {
     mockNavigate.mockClear();
+    mockOpened.mockClear();
     mockRoute.mockReset();
   });
 
-  it("falls back to DocumentViewer for a kind with no dedicated screen", () => {
-    mockRoute.mockReturnValue("DocumentViewer");
+  it("pushes nothing for a kind mobile does not open, and says so", () => {
+    mockRoute.mockReturnValue(undefined);
+
+    render(<Opener ref_={{ kind: "script", id: "sc-1" }} name="Pilot" />);
+
+    expect(mockNavigate).not.toHaveBeenCalled();
+    expect(mockOpened).toHaveBeenCalledWith(false);
+  });
+
+  it("opens a sketch in the sketch viewer", () => {
+    mockRoute.mockReturnValue("SketchViewer");
 
     render(<Opener ref_={{ kind: "sketch", id: "sk-1" }} name="Doodle" />);
 
-    expect(mockNavigate).toHaveBeenCalledWith("DocumentViewer", {
-      kind: "sketch",
+    expect(mockNavigate).toHaveBeenCalledWith("SketchViewer", {
       id: "sk-1",
       name: "Doodle",
     });
+    expect(mockOpened).toHaveBeenCalledWith(true);
   });
 
   it("sends an asset to the asset viewer, not a document screen", () => {
