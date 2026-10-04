@@ -1,11 +1,26 @@
 import React, { useMemo, ReactNode } from 'react';
 import { StyleSheet, View, ScrollView, Platform, ViewStyle } from 'react-native';
-import Markdown, { ASTNode, RenderRules } from 'react-native-markdown-display';
+import Markdown, {
+  ASTNode,
+  MarkdownIt,
+  RenderRules,
+  renderRules as defaultRenderRules,
+} from 'react-native-markdown-display';
+import { parseResourceUri } from '@nodetool-ai/protocol/resource-uri';
 import SyntaxHighlighter from 'react-native-syntax-highlighter';
 // Deep imports: the `styles/prism` barrel pulls all 47 themes into the bundle.
 import atomDark from 'react-syntax-highlighter/dist/esm/styles/prism/atom-dark';
 import tomorrow from 'react-syntax-highlighter/dist/esm/styles/prism/tomorrow';
 import { useTheme } from '../../hooks/useTheme';
+import { InlineResourcePreview } from './InlineResourcePreview';
+import { resourceMentionsPlugin } from './resourceMentions';
+
+/**
+ * One parser for every message. `resourceMentionsPlugin` turns a bare resource
+ * URI, and a code span holding only one, into an image token, so the `image`
+ * rule below sees every resource reference the agent can write.
+ */
+const markdownParser = MarkdownIt({ typographer: true }).use(resourceMentionsPlugin);
 
 interface ChatMarkdownProps {
   content: string;
@@ -18,6 +33,29 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
   const fontFamily = Platform.OS === 'ios' ? 'Menlo' : 'monospace';
 
   const rules: RenderRules = useMemo(() => ({
+    // `![Label](sketch://<id>)`, `![Label](timeline://<id>)`, and the forms the
+    // plugin rewrites: a resource URI gets a preview and a chip, anything else
+    // is an ordinary image.
+    image: (node, children, parent, styles, allowedImageHandlers, defaultImageHandler) => {
+      const src = String(node.attributes.src ?? '');
+      if (parseResourceUri(src) !== null) {
+        return (
+          <InlineResourcePreview
+            key={node.key}
+            uri={src}
+            label={String(node.attributes.alt ?? '')}
+          />
+        );
+      }
+      return defaultRenderRules.image?.(
+        node,
+        children,
+        parent,
+        styles,
+        allowedImageHandlers,
+        defaultImageHandler
+      );
+    },
     fence: (node: ASTNode, _children: ReactNode[], _parent: ASTNode[], styles: Record<string, ViewStyle>) => {
       const language = (node as ASTNode & { sourceInfo?: string }).sourceInfo || node.attributes['lang'] as string | undefined || 'text';
 
@@ -184,7 +222,7 @@ export const ChatMarkdown: React.FC<ChatMarkdownProps> = ({ content }) => {
   }
 
   return (
-    <Markdown style={markdownStyles} rules={rules}>
+    <Markdown style={markdownStyles} rules={rules} markdownit={markdownParser}>
       {content}
     </Markdown>
   );

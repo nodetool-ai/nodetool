@@ -51,7 +51,14 @@ const SOURCE_PACKAGES = [
 const SOURCE_MODULES = {
   "@nodetool-ai/protocol/triggers": path.join(protocolSrc, "triggers.ts"),
   "@nodetool-ai/protocol/blend-modes": path.join(protocolSrc, "blend-modes.ts"),
+  "@nodetool-ai/protocol/resource-uri": path.join(protocolSrc, "resource-uri.ts"),
 };
+
+/** Source roots whose own modules import each other by ESM `.js` specifiers. */
+const SOURCE_ROOTS = [
+  ...SOURCE_PACKAGES.map((pkg) => pkg.src),
+  protocolSrc,
+];
 
 const config = getDefaultConfig(projectRoot);
 
@@ -74,9 +81,7 @@ config.resolver.resolveRequest = (context, moduleName, platform) => {
   if (
     moduleName.startsWith(".") &&
     moduleName.endsWith(".js") &&
-    SOURCE_PACKAGES.some((pkg) =>
-      context.originModulePath.startsWith(pkg.src)
-    )
+    SOURCE_ROOTS.some((root) => context.originModulePath.startsWith(root))
   ) {
     return context.resolveRequest(context, moduleName.slice(0, -3), platform);
   }
