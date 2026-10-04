@@ -1525,7 +1525,9 @@ export const handleUpdate = (
         data.duration_ms != null ? ` (${data.duration_ms}ms)` : "";
       appendTrace(
         "llm_call",
-        `${data.provider}/${data.model}: ${tokensIn}→${tokensOut} tok${duration}${
+        `${data.provider}/${data.model}: ${
+          data.operation ? data.operation : `${tokensIn}→${tokensOut} tok`
+        }${duration}${
           data.error ? " — error" : ""
         }`,
         data,

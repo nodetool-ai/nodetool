@@ -747,6 +747,8 @@ export const llmCallUpdateSchema = z.object({
   node_name: z.string().nullable().optional(),
   provider: z.string(),
   model: z.string(),
+  /** The provider method for a non-chat call (`textToImage`, `textToSpeech`, …). Absent for chat. */
+  operation: z.string().nullable().optional(),
   messages: z.array(z.object({ role: z.string(), content: z.unknown() })),
   response: z.unknown(),
   tool_calls: z

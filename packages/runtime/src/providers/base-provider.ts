@@ -382,6 +382,42 @@ export abstract class BaseProvider {
   }
 
   /**
+   * Report one non-chat provider call (image, video, speech, ASR, embedding…)
+   * as an `llm_call` so the trace shows every provider call, not only chat.
+   * Carries no token counts: those modalities bill per unit, not per token.
+   * @internal
+   */
+  recordModalityCall(input: {
+    operation: string;
+    args: unknown[];
+    startedAt: number;
+    error?: unknown;
+  }): void {
+    if (!this._emitMessage) return;
+    const prompt = input.args
+      .map((arg) =>
+        isObjectLike(arg) ? (arg as { prompt?: unknown }).prompt : undefined
+      )
+      .find(isString);
+    this.emitMessage({
+      type: "llm_call",
+      node_id: "",
+      provider: this.provider,
+      operation: input.operation,
+      model: extractModelId(input.args),
+      messages: prompt ? [{ role: "user", content: prompt }] : [],
+      response: null,
+      tool_calls: null,
+      tokens_input: null,
+      tokens_output: null,
+      cost: null,
+      duration_ms: Date.now() - input.startedAt,
+      error: input.error === undefined ? null : String(input.error),
+      timestamp: new Date(input.startedAt).toISOString()
+    });
+  }
+
+  /**
    * Record a failed provider call: a server-side log with the exact request,
    * and a `provider_call_failed` message so the surface showing the failure
    * can report it without the user copying a status code out of a toast.
@@ -455,13 +491,23 @@ export abstract class BaseProvider {
           const args = applyEntityReferences(name, rawArgs);
           const startedAt = Date.now();
           try {
-            return await original.apply(this, args);
+            const result = await original.apply(this, args);
+            if (!alreadyActive) {
+              this.recordModalityCall({ operation: name, args, startedAt });
+            }
+            return result;
           } catch (err) {
             annotateProviderError(err, {
               provider: this.provider,
               model: extractModelId(args)
             });
             if (!alreadyActive) {
+              this.recordModalityCall({
+                operation: name,
+                args,
+                startedAt,
+                error: err
+              });
               const failureArgs =
                 name === "referenceToVideo"
                   ? [referenceVideoDiagnostics(args)]
@@ -2198,6 +2244,7 @@ async function* wrapModalityGenerator(
   const startedAt = Date.now();
   const source = original.apply(provider, args);
   let exhausted = false;
+  let failure: unknown;
   try {
     while (true) {
       const result = await runInSlot(() => source.next());
@@ -2208,6 +2255,7 @@ async function* wrapModalityGenerator(
       yield result.value;
     }
   } catch (err) {
+    failure = err;
     annotateProviderError(err, {
       provider: provider.provider,
       model: extractModelId(args)
@@ -2232,6 +2280,12 @@ async function* wrapModalityGenerator(
           } as IteratorResult<unknown>)
       ).catch(() => {});
     }
+    provider.recordModalityCall({
+      operation: operationName,
+      args,
+      startedAt,
+      error: failure
+    });
   }
 }
 
