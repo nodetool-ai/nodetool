@@ -2047,15 +2047,16 @@ export class JobExecutionManager {
             outputUpdateSeen = true;
           }
 
+          const { eventDetail } = active.executionOptions;
           const isNodeError =
             outbound.type === "node_update" && outbound.status === "error";
-          if (
-            !isNodeError &&
-            (active.executionOptions.eventDetail === "terminal" ||
-              (active.executionOptions.eventDetail === "outputs" &&
-                (outbound.type === "node_update" ||
-                  outbound.type === "generation_complete")))
-          ) {
+          const isProgressEvent =
+            outbound.type === "node_update" ||
+            outbound.type === "generation_complete";
+          const droppedByEventDetail =
+            eventDetail === "terminal" ||
+            (eventDetail === "outputs" && isProgressEvent);
+          if (droppedByEventDetail && !isNodeError) {
             continue;
           }
 
@@ -2087,28 +2088,28 @@ export class JobExecutionManager {
         ) {
           continue;
         }
-        const status =
-          outbound.type === "job_update" ? String(outbound.status ?? "") : "";
-        const suppressProvisionalCompletion =
+        const isJobUpdate = outbound.type === "job_update";
+        const status = isJobUpdate ? String(outbound.status ?? "") : "";
+        const isProvisionalCompletion =
+          isJobUpdate &&
           active.requireTerminalResult &&
           status === "completed" &&
           outbound.result === undefined;
-        if (!suppressProvisionalCompletion) {
-          if (outbound.type === "job_update") {
-            if (status === "running") {
-              runningSeen = true;
-            } else if (TERMINAL_JOB_STATUSES.includes(status)) {
-              await ensureRunningFrame();
-            }
-          }
-          await this.session.send(outbound);
+        if (isProvisionalCompletion) {
+          continue;
         }
-        if (outbound.type === "job_update" && !suppressProvisionalCompletion) {
-          if (TERMINAL_JOB_STATUSES.includes(status)) {
-            terminalSeen = true;
-            if (outbound.result !== undefined) {
-              terminalWithResultSeen = true;
-            }
+        const isTerminalUpdate =
+          isJobUpdate && TERMINAL_JOB_STATUSES.includes(status);
+        if (isJobUpdate && status === "running") {
+          runningSeen = true;
+        } else if (isTerminalUpdate) {
+          await ensureRunningFrame();
+        }
+        await this.session.send(outbound);
+        if (isTerminalUpdate) {
+          terminalSeen = true;
+          if (outbound.result !== undefined) {
+            terminalWithResultSeen = true;
           }
         }
       }
