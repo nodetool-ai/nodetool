@@ -44,11 +44,11 @@ describe('buildUiContext', () => {
     expect(open?.[0].id).toBe('sb1');
   });
 
-  it('lists scripts, which are addressable by the agent', () => {
-    registerDocumentHandler('script', 'sc1', 'Pilot', {});
+  it('lists an open sketch, so the agent knows which one the user is looking at', () => {
+    registerDocumentHandler('sketch', 'sk1', 'Doodle', {});
 
     expect(buildUiContext()?.open).toEqual([
-      { type: 'script', id: 'sc1', title: 'Pilot' },
+      { type: 'sketch', id: 'sk1', title: 'Doodle' },
     ]);
   });
 

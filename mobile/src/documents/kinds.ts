@@ -11,26 +11,24 @@
 import type { ResourceKind } from '@nodetool-ai/app-runtime';
 
 /**
- * The kinds mobile opens as documents.
+ * The kinds mobile opens as documents: storyboards, timelines, and sketches.
  *
- * Not the same set as the server's `ResourceKind`: `asset` is a library entry
- * with its own screen rather than a document, and `script` and `jsscript` are
- * documents the `resources` envelope cannot carry (neither table has a
- * `revision` column), so they travel over `scripts.*` and `jsScripts.*`
- * instead. `backends.ts` maps each kind to its transport.
+ * The server's `ResourceKind` minus `asset`, which is a library entry with its
+ * own screen rather than a document. Every other document kind (scripts, JS
+ * scripts, …) opens in the desktop or web app; mobile does not list it.
  */
-export type DocumentKind = Exclude<ResourceKind, 'asset'> | 'script' | 'jsscript';
+export type DocumentKind = Exclude<ResourceKind, 'asset'>;
 
 /** The kinds the `resources.*` envelope can list and write. */
-export type ResourceDocumentKind = Exclude<DocumentKind, 'script' | 'jsscript'>;
+export type ResourceDocumentKind = DocumentKind;
 
 /**
  * How much the surface lets a person do directly.
  *
  * `editor` means direct manipulation is available. `viewer` means the screen
- * shows the document but does not edit it — the agent still can, through the
- * `ui_*` tools, which is the point: a timeline is far too dense to arrange with
- * fingers, but "move the title card two seconds later" is a sentence.
+ * shows the document and nothing on the phone writes it: timelines and
+ * sketches are edited on desktop or web, or by the server agent's own tools,
+ * and the viewer reloads on focus to pick those edits up.
  */
 export type DocumentSurface = 'editor' | 'viewer';
 
@@ -44,20 +42,10 @@ interface DocumentKindInfo {
   icon: string;
   surface: DocumentSurface;
   /** Route pushed to open one. */
-  route:
-    | 'StoryboardEditor'
-    | 'TimelineViewer'
-    | 'ScriptEditor'
-    | 'JsScriptEditor'
-    | 'SketchViewer'
-    | 'DocumentViewer';
+  route: 'StoryboardEditor' | 'TimelineViewer' | 'SketchViewer';
   /** Whether the browser offers a "new document" action for this kind. */
   creatable: boolean;
-  /**
-   * Whether the agent's `ui_*` tools can write this kind. Independent of
-   * `surface`: the timeline is agent-editable but has no direct-manipulation
-   * editor, which is exactly the split the browser needs to communicate.
-   */
+  /** Whether the client-side `ui_*` tools can write this kind. */
   agentEditable: boolean;
 }
 
@@ -73,44 +61,23 @@ export const DOCUMENT_KINDS: readonly DocumentKindInfo[] = [
     agentEditable: true,
   },
   {
-    kind: 'script',
-    label: 'Script',
-    plural: 'Scripts',
-    icon: 'document-text-outline',
-    surface: 'editor',
-    route: 'ScriptEditor',
-    creatable: true,
-    agentEditable: true,
-  },
-  {
-    kind: 'jsscript',
-    label: 'JS Script',
-    plural: 'JS Scripts',
-    icon: 'code-slash-outline',
-    surface: 'editor',
-    route: 'JsScriptEditor',
-    creatable: true,
-    agentEditable: true,
-  },
-  {
     kind: 'timeline',
     label: 'Timeline',
     plural: 'Timelines',
     icon: 'film-outline',
-    // No direct-manipulation editor — arranging clips by touch is not viable at
-    // phone width — but the agent edits it through `ui_timeline_*`.
+    // View only. Arranging clips by touch is not viable at phone width; the
+    // desktop editor and the server agent's timeline tools write it.
     surface: 'viewer',
     route: 'TimelineViewer',
     creatable: false,
-    agentEditable: true,
+    agentEditable: false,
   },
   {
     kind: 'sketch',
     label: 'Sketch',
     plural: 'Sketches',
     icon: 'brush-outline',
-    // Composited layers, read-only. A canvas is not the phone's job, and there
-    // are no `ui_sketch_*` tools yet, so nothing edits this from here.
+    // Composited layers, read-only. A canvas is not the phone's job.
     surface: 'viewer',
     route: 'SketchViewer',
     creatable: false,
@@ -121,6 +88,15 @@ export const DOCUMENT_KINDS: readonly DocumentKindInfo[] = [
 const BY_KIND = new Map<string, DocumentKindInfo>(
   DOCUMENT_KINDS.map((entry) => [entry.kind, entry])
 );
+
+/**
+ * The registry entry for a kind string, or undefined when mobile does not open
+ * that kind. Server data and agent output can name any kind, so callers that
+ * hold an unchecked string go through this rather than `documentKindInfo`.
+ */
+export function findDocumentKindInfo(kind: string): DocumentKindInfo | undefined {
+  return BY_KIND.get(kind);
+}
 
 export function documentKindInfo(kind: DocumentKind): DocumentKindInfo {
   const info = BY_KIND.get(kind);
@@ -141,14 +117,9 @@ export function uiSurfaceForKind(kind: DocumentKind): string | null {
       return 'storyboard';
     case 'timeline':
       return 'timeline';
-    case 'script':
-      return 'script';
-    case 'jsscript':
-      return 'jsscript';
     case 'sketch':
       return 'sketch';
     default:
-      // An asset has no ui_* tools; naming it would only invite bad calls.
       return null;
   }
 }

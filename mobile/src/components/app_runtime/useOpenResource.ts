@@ -2,21 +2,33 @@
  * Opening a bound resource in the screen its kind already has.
  *
  * The route comes from the document registry (`documents/kinds.ts`), never from
- * here: a kind that later grows a dedicated screen — or loses one and falls
- * back to `DocumentViewer` — starts opening there with no change in the app
- * runtime. `asset` is the one `ResourceKind` that is not a document; it has its
- * own viewer.
+ * here. `asset` is the one kind that is not a document; it has its own viewer.
+ * A kind mobile does not open (server data can name any kind) pushes nothing:
+ * the hook answers `false`, and the caller shows that the document opens in the
+ * desktop or web app. There is deliberately no generic fallback screen.
  */
 import { useCallback } from "react";
 import { useNavigation } from "@react-navigation/native";
 import type { NativeStackNavigationProp } from "@react-navigation/native-stack";
-import type { ResourceRef } from "@nodetool-ai/app-runtime";
 
-import { documentKindInfo } from "../../documents/kinds";
+import { findDocumentKindInfo } from "../../documents/kinds";
 import type { RootStackParamList } from "../../navigation/types";
 
-/** Pushes the screen for a resource. `name` seeds the header before the load. */
-export type OpenResource = (ref: ResourceRef, name?: string) => void;
+/** What the open path needs from a ref. `kind` is unchecked server data. */
+export interface OpenableRef {
+  kind: string;
+  id: string;
+}
+
+/**
+ * Pushes the screen for a resource. `name` seeds the header before the load.
+ * Returns whether a screen was pushed.
+ */
+export type OpenResource = (ref: OpenableRef, name?: string) => boolean;
+
+/** The inline note a caller shows when `OpenResource` answers `false`. */
+export const OPENS_ON_DESKTOP_MESSAGE =
+  "This document opens in the NodeTool desktop or web app.";
 
 export const useOpenResource = (): OpenResource => {
   const navigation =
@@ -26,31 +38,23 @@ export const useOpenResource = (): OpenResource => {
     (ref, name) => {
       if (ref.kind === "asset") {
         navigation.navigate("AssetViewer", { assetId: ref.id });
-        return;
+        return true;
       }
       // The registry says which route opens a kind; the param shapes differ, so
       // the switch is over the routes rather than over every kind.
-      const info = documentKindInfo(ref.kind);
-      switch (info.route) {
+      const info = findDocumentKindInfo(ref.kind);
+      switch (info?.route) {
         case "StoryboardEditor":
           navigation.navigate("StoryboardEditor", { id: ref.id, name });
-          break;
-        case "ScriptEditor":
-          navigation.navigate("ScriptEditor", { id: ref.id, name });
-          break;
+          return true;
         case "TimelineViewer":
           navigation.navigate("TimelineViewer", { id: ref.id, name });
-          break;
+          return true;
         case "SketchViewer":
           navigation.navigate("SketchViewer", { id: ref.id, name });
-          break;
-        case "DocumentViewer":
-          navigation.navigate("DocumentViewer", {
-            kind: ref.kind,
-            id: ref.id,
-            name,
-          });
-          break;
+          return true;
+        default:
+          return false;
       }
     },
     [navigation]

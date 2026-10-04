@@ -16,7 +16,7 @@
  * empty collection — says so. Nothing here renders a card that would navigate
  * into a document that is not there.
  */
-import React, { useCallback, useEffect, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
 import {
   ActivityIndicator,
   StyleSheet,
@@ -36,7 +36,7 @@ import type { ThemeColors } from "../../utils/theme";
 import { documentBackend } from "../../documents/backends";
 import { documentKindInfo, type ResourceDocumentKind } from "../../documents/kinds";
 import { useAppRuntimeContext } from "./AppRuntimeContext";
-import { useOpenResource } from "./useOpenResource";
+import { OPENS_ON_DESKTOP_MESSAGE, useOpenResource } from "./useOpenResource";
 import { useWidgetRuntime } from "./useWidgetRuntime";
 import { isRecord, isString } from "../../utils/typePredicates";
 
@@ -249,6 +249,7 @@ const ResourceListWidget: React.FC<ResourceWidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { selectResource } = useAppRuntimeContext();
   const openResource = useOpenResource();
+  const [opensElsewhere, setOpensElsewhere] = useState(false);
   const { emit } = useWidgetRuntime({ ...widget, bindingMode: "none" });
 
   const bindingId = str(widget.props.resourceBindingId);
@@ -277,7 +278,7 @@ const ResourceListWidget: React.FC<ResourceWidgetProps> = (widget) => {
       const ref: ResourceRef = { kind, id: entry.id };
       selectResource(binding.id, ref);
       emit("change");
-      openResource(ref, entry.name);
+      setOpensElsewhere(!openResource(ref, entry.name));
     },
     [binding, emit, kind, openResource, selectResource]
   );
@@ -327,9 +328,12 @@ const ResourceListWidget: React.FC<ResourceWidgetProps> = (widget) => {
           onPress={() => {
             const ref: ResourceRef = { kind, id: pinnedId };
             selectResource(binding.id, ref);
-            openResource(ref, pinned.detail?.name);
+            setOpensElsewhere(!openResource(ref, pinned.detail?.name));
           }}
         />
+        {opensElsewhere ? (
+          <ResourceNote text={OPENS_ON_DESKTOP_MESSAGE} colors={colors} />
+        ) : null}
       </View>
     );
   }
@@ -361,6 +365,9 @@ const ResourceListWidget: React.FC<ResourceWidgetProps> = (widget) => {
           />
         ))
       )}
+      {opensElsewhere ? (
+        <ResourceNote text={OPENS_ON_DESKTOP_MESSAGE} colors={colors} />
+      ) : null}
     </View>
   );
 };
@@ -374,6 +381,7 @@ const StoryboardSceneListWidget: React.FC<ResourceWidgetProps> = (widget) => {
   const { colors } = useTheme();
   const { selectResource } = useAppRuntimeContext();
   const openResource = useOpenResource();
+  const [opensElsewhere, setOpensElsewhere] = useState(false);
 
   const bindingId = str(widget.props.resourceBindingId);
   const { binding, kind } = useResourceBinding(bindingId);
@@ -419,13 +427,20 @@ const StoryboardSceneListWidget: React.FC<ResourceWidgetProps> = (widget) => {
 
   const name = target.detail.name;
   return (
-    <ResourceCard
-      kind={kind}
-      name={name}
-      summary={documentSummary(kind, target.detail.doc)}
-      disabled={widget.disabled}
-      onPress={() => openResource({ kind, id: targetId }, name)}
-    />
+    <View style={styles.stack}>
+      <ResourceCard
+        kind={kind}
+        name={name}
+        summary={documentSummary(kind, target.detail.doc)}
+        disabled={widget.disabled}
+        onPress={() =>
+          setOpensElsewhere(!openResource({ kind, id: targetId }, name))
+        }
+      />
+      {opensElsewhere ? (
+        <ResourceNote text={OPENS_ON_DESKTOP_MESSAGE} colors={colors} />
+      ) : null}
+    </View>
   );
 };
 

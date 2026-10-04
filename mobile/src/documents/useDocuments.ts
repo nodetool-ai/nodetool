@@ -5,9 +5,8 @@
  * document moves into a Zustand store (see `documentStore.ts`), because that is
  * the one thing agent tools must reach from outside React.
  *
- * Queries go through the kind's `DocumentBackend` rather than a tRPC hook: the
- * four kinds do not share one router (scripts have their own), and routing that
- * choice through the backend keeps it in the one place that already knows.
+ * Queries go through the kind's `DocumentBackend` rather than a tRPC hook, so
+ * the transport choice stays in the one place that already knows it.
  */
 
 import { useCallback, useMemo } from 'react';
@@ -76,8 +75,6 @@ interface AllDocuments {
  */
 export function useAllDocuments(limit = 50): AllDocuments {
   const storyboards = useDocumentsOfKind('storyboard', limit);
-  const scripts = useDocumentsOfKind('script', limit);
-  const jsScripts = useDocumentsOfKind('jsscript', limit);
   const timelines = useDocumentsOfKind('timeline', limit);
   const sketches = useDocumentsOfKind('sketch', limit);
 
@@ -85,21 +82,17 @@ export function useAllDocuments(limit = 50): AllDocuments {
     () =>
       [
         ...(storyboards.data ?? []),
-        ...(scripts.data ?? []),
-        ...(jsScripts.data ?? []),
         ...(timelines.data ?? []),
         ...(sketches.data ?? []),
       ].sort((a, b) => b.updatedAt.localeCompare(a.updatedAt)),
     [
       storyboards.data,
-      scripts.data,
-      jsScripts.data,
       timelines.data,
       sketches.data,
     ]
   );
 
-  const queries = [storyboards, scripts, jsScripts, timelines, sketches];
+  const queries = [storyboards, timelines, sketches];
 
   return {
     documents,

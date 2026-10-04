@@ -669,8 +669,10 @@ export const useAppRuntime = (
           // only knows which binding was asked for.
           const ref =
             action.ref ?? resourceRefsRef.current.get(action.resourceBindingId);
-          if (ref) {
-            openResource(ref);
+          if (ref && !openResource(ref)) {
+            // A kind mobile does not open pushes nothing; the widgets that
+            // hold a ref show the desktop note, an action has nowhere to.
+            console.warn(`openResource: ${ref.kind} opens on desktop or web`);
           }
           break;
         }
