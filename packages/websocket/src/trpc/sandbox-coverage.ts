@@ -544,6 +544,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "a third party. A run that could start or delete a download " +
       "could fill the disk or remove a model other runs depend on."
   },
+  "models.rankedKeys": {
+    elsewhere:
+      "find_model returns task ranks with model results. This procedure " +
+      "supplies ranked route keys for editor sorting."
+  },
   "models.recommended": {
     elsewhere:
       "find_model resolves a model by capability; list_models and " +
