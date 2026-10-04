@@ -9,7 +9,7 @@ import { randomUUID } from "node:crypto";
 import { createHash } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
 import {
-  and, Column, eq, getTableColumns, getTableName, like, sql, Table
+  and, Column, eq, getTableColumns, getTableName, like, Table
 } from "drizzle-orm";
 import { isShortResourceId } from "@nodetool-ai/protocol";
 import {
@@ -291,26 +291,6 @@ export abstract class DBModel {
       // concrete models retain that responsibility until their conversion.
       const targetTable: PgTable = pgTable;
       const columns = getTableColumns(targetTable);
-      const sqliteColumns = getTableColumns(table);
-      const pgRow = Object.fromEntries(Object.entries(row).map(([key, value]) => {
-        const column = columns[key];
-        if (typeof value === "boolean" && column?.dataType === "number") {
-          return [key, Number(value)];
-        }
-        // Readers decode through the SQLite declaration. Where it is plain
-        // text, the model keeps the column as serialized JSON (documents), so
-        // bypass the Pg `jsonText` encoder, which would encode it a second
-        // time. Where SQLite is `jsonText` too, a string is a value (message
-        // content) and must be encoded.
-        if (
-          typeof value === "string" &&
-          column?.columnType === "PgCustomColumn" &&
-          sqliteColumns[key]?.columnType !== "SQLiteCustomColumn"
-        ) {
-          return [key, sql`${value}`];
-        }
-        return [key, value];
-      }));
       const pk = columns[ctor.primaryKey];
       if (!pk) throw new Error(`Column "${ctor.primaryKey}" not found on the table schema.`);
       const pgProjects = connection.schema.projects;
@@ -323,8 +303,8 @@ export abstract class DBModel {
           if (!project) throw new Error("Project not found");
           if (project.deletedAt) throw new Error("Project has been deleted");
         }
-        await tx.insert(targetTable).values(pgRow)
-          .onConflictDoUpdate({ target: pk, set: pgRow });
+        await tx.insert(targetTable).values(row)
+          .onConflictDoUpdate({ target: pk, set: row });
       });
     }
 
