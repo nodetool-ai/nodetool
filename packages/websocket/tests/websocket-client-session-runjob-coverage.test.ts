@@ -609,6 +609,178 @@ describe("WebSocketClientSession run_job — streamJobMessages relay", () => {
     expect((terminal?.result as any).outputs).toEqual({ out: ["final"] });
     expect(active.context.normalizeOutputValue).toHaveBeenCalledWith("final");
   });
+
+  it("relays edge_update only at full detail", async () => {
+    const edge = { type: "edge_update", edge_id: "e1", status: "active" };
+    const full = makeActive({ jobId: "E-FULL", messages: [edge] });
+    await streamTo(runner, full, Promise.resolve({ status: "completed" }));
+    expect(decodeAll(ws).some((m) => m.type === "edge_update")).toBe(true);
+
+    ws.sentBytes = [];
+    ws.sentText = [];
+    const outputs = makeActive({
+      jobId: "E-OUT",
+      messages: [edge],
+      executionOptions: { event_detail: "outputs" }
+    });
+    await streamTo(runner, outputs, Promise.resolve({ status: "completed" }));
+    expect(decodeAll(ws).some((m) => m.type === "edge_update")).toBe(false);
+  });
+
+  it("outputs detail drops generation_complete, terminal detail keeps node errors", async () => {
+    const outputsActive = makeActive({
+      jobId: "D-OUT",
+      nodes: [{ id: "g1", type: "custom.Gen" }],
+      messages: [{ type: "generation_complete", node_id: "g1", outputs: {} }],
+      executionOptions: { event_detail: "outputs" }
+    });
+    await streamTo(
+      runner,
+      outputsActive,
+      Promise.resolve({ status: "completed" })
+    );
+    expect(decodeAll(ws).some((m) => m.type === "generation_complete")).toBe(
+      false
+    );
+
+    ws.sentBytes = [];
+    ws.sentText = [];
+    const terminalActive = makeActive({
+      jobId: "D-TERM",
+      nodes: [{ id: "w", type: "custom.Worker" }],
+      messages: [
+        { type: "node_update", node_id: "w", status: "error", error: "boom" },
+        { type: "generation_complete", node_id: "w", outputs: {} }
+      ],
+      executionOptions: { event_detail: "terminal" }
+    });
+    await streamTo(
+      runner,
+      terminalActive,
+      Promise.resolve({ status: "completed" })
+    );
+    const frames = decodeAll(ws);
+    expect(
+      frames.filter((m) => m.type === "node_update").map((m) => m.status)
+    ).toEqual(["error"]);
+    expect(frames.some((m) => m.type === "generation_complete")).toBe(false);
+  });
+
+  it("suppresses a provisional completed job_update when the run requires a terminal result", async () => {
+    const active = makeActive({
+      jobId: "PROV",
+      messages: [{ type: "job_update", status: "completed" }],
+      requireTerminalResult: true
+    });
+    await streamTo(
+      runner,
+      active,
+      Promise.resolve({ status: "completed", outputs: { out: ["v"] } })
+    );
+    const completed = decodeAll(ws).filter(
+      (m) => m.type === "job_update" && m.status === "completed"
+    );
+    expect(completed).toHaveLength(1);
+    expect((completed[0]?.result as any).outputs).toEqual({ out: ["v"] });
+  });
+
+  it("emits a second terminal carrying outputs when the streamed terminal had no result", async () => {
+    const active = makeActive({
+      jobId: "NORESULT",
+      messages: [{ type: "job_update", status: "completed" }]
+    });
+    await streamTo(
+      runner,
+      active,
+      Promise.resolve({ status: "completed", outputs: { out: ["v"] } })
+    );
+    const completed = decodeAll(ws).filter(
+      (m) => m.type === "job_update" && m.status === "completed"
+    );
+    expect(completed).toHaveLength(2);
+    expect(completed[0]?.result).toBeUndefined();
+    expect((completed[1]?.result as any).outputs).toEqual({ out: ["v"] });
+  });
+
+  it("emits a running frame before a terminal job_update that arrives first", async () => {
+    const active = makeActive({
+      jobId: "TERMFIRST",
+      messages: [{ type: "job_update", status: "cancelled", result: {} }]
+    });
+    await streamTo(runner, active, Promise.resolve({ status: "cancelled" }));
+    expect(
+      decodeAll(ws)
+        .filter((m) => m.type === "job_update")
+        .map((m) => m.status)
+    ).toEqual(["running", "cancelled"]);
+  });
+});
+
+describe("WebSocketClientSession run_job — output_update relay by node kind", () => {
+  let ws: MockWebSocket;
+  let runner: WebSocketClientSession;
+
+  beforeEach(async () => {
+    await initTestDb();
+    vi.clearAllMocks();
+    ws = new MockWebSocket();
+    runner = new WebSocketClientSession({
+      resolveExecutor,
+      getNodeMetadata: (nodeType: string) =>
+        (nodeType === "gen.Streaming"
+          ? { is_streaming_output: true }
+          : nodeType === "gen.AutoSave"
+            ? { auto_save_asset: true }
+            : {}) as never
+    });
+    await runner.connect(ws);
+  });
+
+  afterEach(async () => {
+    await runner.disconnect();
+  });
+
+  it("relays output_update for Preview and streaming or auto-saving leaves only", async () => {
+    const active = makeActive({
+      jobId: "KINDS",
+      nodes: [
+        { id: "plain", type: "gen.Plain" },
+        { id: "preview", type: "nodetool.workflows.base_node.Preview" },
+        { id: "stream", type: "gen.Streaming" },
+        { id: "auto", type: "gen.AutoSave" }
+      ],
+      messages: [
+        { type: "output_update", node_id: "plain", value: "plain" },
+        { type: "output_update", node_id: "preview", value: "preview" },
+        { type: "output_update", node_id: "stream", value: "stream" },
+        { type: "output_update", node_id: "auto", value: "auto" }
+      ]
+    });
+    await streamTo(runner, active, Promise.resolve({ status: "completed" }));
+    expect(
+      decodeAll(ws)
+        .filter((m) => m.type === "output_update")
+        .map((m) => m.value)
+    ).toEqual(["preview", "stream", "auto"]);
+  });
+
+  it("falls back to final outputs when every output_update was dropped", async () => {
+    const active = makeActive({
+      jobId: "FALLBACK",
+      nodes: [{ id: "plain", type: "gen.Plain" }],
+      messages: [{ type: "output_update", node_id: "plain", value: "hidden" }]
+    });
+    await streamTo(
+      runner,
+      active,
+      Promise.resolve({ status: "completed", outputs: { out: ["final"] } })
+    );
+    expect(
+      decodeAll(ws)
+        .filter((m) => m.type === "output_update")
+        .map((m) => m.value)
+    ).toEqual(["final"]);
+  });
 });
 
 describe("WebSocketClientSession run_job — terminal persistence", () => {
