@@ -124,27 +124,29 @@ export function buildRankingsIndex(
     routesByCanonical.set(entry.canonical, routes);
   }
 
-  // One row per canonical model, not per route: the routes of a canonical id
-  // share rankings for each task they serve. The first route's entry names
-  // the leaderboard position and the rest are listed as alternates on the row.
+  // Each task lists only the routes that carry that task's ranking.
   for (const [canonical, routes] of routesByCanonical) {
-    const entry = routes[0].entry;
-    const plainRoutes = routes.map(({ provider, modelId }) => ({
-      provider,
-      modelId
-    }));
-    for (const [task, rank] of Object.entries(entry.tasks ?? {})) {
-      const rows = rankedByTask.get(task) ?? [];
-      rows.push({
-        canonical,
-        name: entry.name,
-        rank: rank.rank,
-        of: rank.of,
-        normalized: rank.normalized,
-        score: rank.score,
-        routes: plainRoutes
-      });
-      rankedByTask.set(task, rows);
+    const rowsByTask = new Map<string, RankedTaskEntry>();
+    for (const { provider, modelId, entry } of routes) {
+      for (const [task, rank] of Object.entries(entry.tasks ?? {})) {
+        let row = rowsByTask.get(task);
+        if (!row) {
+          row = {
+            canonical,
+            name: entry.name,
+            rank: rank.rank,
+            of: rank.of,
+            normalized: rank.normalized,
+            score: rank.score,
+            routes: []
+          };
+          rowsByTask.set(task, row);
+          const rows = rankedByTask.get(task) ?? [];
+          rows.push(row);
+          rankedByTask.set(task, rows);
+        }
+        row.routes.push({ provider, modelId });
+      }
     }
   }
 
