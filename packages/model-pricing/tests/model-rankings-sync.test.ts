@@ -2,33 +2,47 @@
  * The nightly model-rankings sync. Its output decides which model an agent
  * reaches for first, so the matcher is tested on the shapes Artificial Analysis
  * actually serves — including the ones that must be dropped and reported rather
- * than guessed at. No network: every leaderboard here is a fixture.
+ * than guessed at. No network: every leaderboard here is a fixture, and the
+ * route universe is a literal list standing in for the providers' own model
+ * lists.
  */
+import { readdirSync, readFileSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 import { describe, it, expect } from "vitest";
 import { parseLeaderboard } from "../../../scripts/rankings/leaderboards.mjs";
-import { buildSlugIndex, matchRow } from "../../../scripts/rankings/match.mjs";
+import { modelKeys } from "../../../scripts/rankings/model-keys.mjs";
+import {
+  buildRouteIndex,
+  matchRow
+} from "../../../scripts/rankings/match.mjs";
+import * as genspendNormalize from "../../../scripts/genspend/normalize.mjs";
 import {
   buildRankings,
-  collectRankings,
-  expandRoutes
+  collectRankings
 } from "../../../scripts/sync-model-rankings.mjs";
 
-/** A price catalog carrying three canonical slugs, one of them multi-route. */
-const pricing = {
-  prices: {
-    "fal_ai:fal-ai/kling-video/v3/pro": { model_slug: "kling-3-pro" },
-    "kie:kling/v3-pro": { model_slug: "kling-3-pro" },
-    "fal_ai:fal-ai/flux-2/pro": { model_slug: "flux-2-pro" },
-    "fal_ai:fal-ai/flux-2/flex": { model_slug: "flux-2-flex" },
-    "elevenlabs:eleven_v3": { model_slug: "eleven-v3" },
-    // Two slugs that reduce to one comparison key — the vendor prefix is
-    // stripped, so both answer to `hailuo-3`.
-    "minimax:MiniMax-Hailuo-03": { model_slug: "minimax-hailuo-3" },
-    "kie:hailuo/v3": { model_slug: "hailuo-3" }
-  }
-};
+/**
+ * Provider routes as the providers list them: an id, a display name, and the
+ * tasks the route serves. `fal-ai/flux-2/pro/edit` carries the same comparison
+ * key as `fal-ai/flux-2/pro` once the task word is stripped, which is exactly
+ * the collision the task filter exists for.
+ */
+const routes = [
+  { provider: "fal_ai", modelId: "fal-ai/kling-video/v3/pro", name: "Kling 3 Pro", tasks: ["text_to_video", "image_to_video"] },
+  { provider: "kie", modelId: "kling/v3-pro", name: "Kling 3 Pro", tasks: ["text_to_video", "image_to_video"] },
+  { provider: "fal_ai", modelId: "fal-ai/flux-2/pro", name: "FLUX.2 Pro", tasks: ["text_to_image"] },
+  { provider: "fal_ai", modelId: "fal-ai/flux-2/pro/edit", name: "FLUX.2 Pro Edit", tasks: ["image_to_image"] },
+  { provider: "fal_ai", modelId: "fal-ai/flux-2/flex", name: "FLUX.2 Flex", tasks: ["text_to_image"] },
+  { provider: "elevenlabs", modelId: "eleven_v3", name: "Eleven v3", tasks: ["text_to_speech"] },
+  // One route that two differently-slugged rows both reach: the vendor prefix
+  // is stripped from `minimax-hailuo-3`, so both rows answer to `hailuo-3`.
+  { provider: "kie", modelId: "hailuo/v3", name: "Hailuo 3", tasks: ["text_to_video"] },
+  // A route that declares no tasks is never filtered out.
+  { provider: "replicate", modelId: "luma/ray-2", name: "Luma Ray 2" }
+];
 
-const index = buildSlugIndex(pricing);
+const index = buildRouteIndex(routes);
 
 const aaModel = (over: Record<string, unknown> = {}) => ({
   id: "61270a9b",
@@ -83,87 +97,179 @@ describe("parseLeaderboard", () => {
 
   it("treats a leaderboard that ranks nothing as an error, not as empty", () => {
     expect(board("text_to_speech", []).error).toBe("no-rows");
-    expect(board("text_to_speech", [aaModel({ elo: "high" })]).error).toBe("no-rows");
+    expect(board("text_to_speech", [aaModel({ elo: "high" })]).error).toBe(
+      "no-rows"
+    );
+  });
+});
+
+describe("buildRouteIndex", () => {
+  it("keys every route as <provider>:<model_id>", () => {
+    expect([...index.routes.keys()]).toContain("fal_ai:fal-ai/flux-2/pro");
+    expect(index.routes.size).toBe(routes.length);
+  });
+
+  it("skips an entry that names no provider or no model id", () => {
+    const partial = buildRouteIndex([
+      { provider: "", modelId: "x" },
+      { provider: "fal_ai", modelId: "" },
+      { provider: "fal_ai", modelId: "fal-ai/ok" }
+    ]);
+    expect([...partial.routes.keys()]).toEqual(["fal_ai:fal-ai/ok"]);
+  });
+
+  it("is empty for an empty route universe", () => {
+    expect(buildRouteIndex([]).routes.size).toBe(0);
   });
 });
 
 describe("matchRow", () => {
-  const match = (row: unknown, aliases: unknown = { models: {} }) =>
-    matchRow(row, index, aliases);
+  const match = (
+    row: unknown,
+    aliases: unknown = { models: {} },
+    task = "text_to_video"
+  ) => matchRow(row, index, aliases, task);
 
-  it("matches on the exact comparison key, through AA's own spelling", () => {
+  it("matches every route whose id answers to the row's exact key", () => {
     expect(match({ name: "Kling 3 Pro", slug: "kling-v3.0-pro" })).toEqual({
-      slug: "kling-3-pro",
+      routes: ["fal_ai:fal-ai/kling-video/v3/pro", "kie:kling/v3-pro"],
       match: "key"
     });
   });
 
-  it("takes a hand-pinned alias over the comparison", () => {
+  it("serves a route through the task its own list declares", () => {
+    const row = { name: "FLUX.2 Pro", slug: "flux-2-pro" };
+    expect(match(row, undefined, "text_to_image").routes).toEqual([
+      "fal_ai:fal-ai/flux-2/pro"
+    ]);
+    // The edit route shares the task-stripped key, so only the task filter
+    // keeps a text-to-image rank off an image editor.
+    expect(match(row, undefined, "image_to_image").routes).toEqual([
+      "fal_ai:fal-ai/flux-2/pro/edit"
+    ]);
+  });
+
+  it("never filters out a route that declares no tasks", () => {
+    expect(
+      match({ name: "Luma Ray 2", slug: "luma-ray-2" }, undefined, "text_to_video")
+        .routes
+    ).toEqual(["replicate:luma/ray-2"]);
+  });
+
+  it("takes a hand-pinned route over the comparison", () => {
     expect(
       match(
         { name: "FLUX.2 Flexible", slug: "flux-2-flexible" },
-        { models: { "flux-2-flexible": "flux-2-flex" } }
+        { models: { "flux-2-flexible": "fal_ai:fal-ai/flux-2/flex" } },
+        "text_to_image"
       )
-    ).toEqual({ slug: "flux-2-flex", match: "alias" });
+    ).toEqual({ routes: ["fal_ai:fal-ai/flux-2/flex"], match: "alias" });
+  });
+
+  it("accepts a list of pinned routes", () => {
+    expect(
+      match(
+        { name: "X", slug: "x" },
+        { models: { x: ["kie:kling/v3-pro", "fal_ai:fal-ai/kling-video/v3/pro"] } }
+      )
+    ).toEqual({
+      routes: ["fal_ai:fal-ai/kling-video/v3/pro", "kie:kling/v3-pro"],
+      match: "alias"
+    });
+  });
+
+  it("still serves a pinned route only for a task it serves", () => {
+    // A pin chooses the model, not the task: pinning `flux-2-pro` to its
+    // text-to-image route must not hand that route an image-to-image rank.
+    const aliases = { models: { "flux-2-pro": "fal_ai:fal-ai/flux-2/pro" } };
+    const row = { name: "FLUX.2 Pro", slug: "flux-2-pro" };
+    expect(match(row, aliases, "text_to_image").routes).toEqual([
+      "fal_ai:fal-ai/flux-2/pro"
+    ]);
+    expect(match(row, aliases, "image_to_image")).toMatchObject({
+      routes: [],
+      reason: "unmatched"
+    });
   });
 
   it("blocks a model an alias pins to null", () => {
     expect(
       match({ name: "Kling 3 Pro", slug: "kling-3-pro" }, { models: { "kling-3-pro": null } })
-    ).toMatchObject({ slug: null, reason: "blocked" });
+    ).toMatchObject({ routes: [], reason: "blocked" });
   });
 
-  it("reports an alias pinned to a slug nothing ships", () => {
+  it("reports an alias pinned to a route no provider lists", () => {
     expect(
-      match({ name: "X", slug: "x" }, { models: { x: "no-such-model" } })
-    ).toMatchObject({ slug: null, reason: "alias-target-unknown" });
-  });
-
-  it("drops a name that cannot choose between two canonical models", () => {
-    // `hailuo-3` answers for both the vendor-prefixed slug and the bare one.
-    // Attaching one model's rank to the other's routes is worse than leaving
-    // both unranked.
-    expect(match({ name: "Hailuo 3", slug: "hailuo-3" })).toMatchObject({
-      slug: null,
-      reason: "ambiguous",
-      detail: "hailuo-3, minimax-hailuo-3"
+      match({ name: "X", slug: "x" }, { models: { x: "fal_ai:no/such-model" } })
+    ).toMatchObject({
+      routes: [],
+      reason: "alias-target-unknown",
+      detail: "fal_ai:no/such-model"
     });
   });
 
-  it("reports a model GenSpend does not price rather than guessing", () => {
+  it("reports a model no provider lists rather than guessing", () => {
     expect(match({ name: "Imagen 5 Ultra", slug: "imagen-5-ultra" })).toMatchObject({
-      slug: null,
+      routes: [],
       reason: "unmatched"
     });
+  });
+
+  it("matches nothing at all against an empty route universe", () => {
+    expect(
+      matchRow(
+        { name: "Kling 3 Pro", slug: "kling-3-pro" },
+        buildRouteIndex([]),
+        { models: {} },
+        "text_to_video"
+      )
+    ).toMatchObject({ routes: [], reason: "unmatched" });
   });
 });
 
 describe("collectRankings", () => {
-  const collect = (leaderboards: unknown[], aliases: unknown = { models: {} }) =>
-    collectRankings({ leaderboards, index, aliases });
+  const collect = (leaderboards: unknown[], aliases: unknown = { models: {} }, idx = index) =>
+    collectRankings({ leaderboards, index: idx, aliases });
 
-  it("keeps one entry per canonical model across tasks", () => {
-    const { bySlug, report } = collect([
+  it("names a model by the leaderboard's own slug, across providers", () => {
+    const { byRoute } = collect([board("text_to_video", [aaModel()])]);
+    expect(Object.fromEntries(byRoute)).toEqual({
+      "fal_ai:fal-ai/kling-video/v3/pro": expect.objectContaining({
+        canonical: "kling-3-pro",
+        name: "Kling 3 Pro",
+        creator: "Kuaishou"
+      }),
+      "kie:kling/v3-pro": expect.objectContaining({ canonical: "kling-3-pro" })
+    });
+  });
+
+  it("falls back to the normalized name when a row carries no slug", () => {
+    const { byRoute } = collect([
+      board("text_to_video", [aaModel({ slug: undefined })])
+    ]);
+    expect(byRoute.get("kie:kling/v3-pro")?.canonical).toBe("kling-3-pro");
+  });
+
+  it("keeps one entry per route across tasks", () => {
+    const { byRoute, report } = collect([
       board("text_to_video", [aaModel({ elo: 1123 })]),
       board("image_to_video", [aaModel({ elo: 1101 })])
     ]);
-    expect(bySlug.get("kling-3-pro")).toMatchObject({
+    expect(byRoute.get("kie:kling/v3-pro")).toMatchObject({
       canonical: "kling-3-pro",
-      name: "Kling 3 Pro",
-      creator: "Kuaishou",
       tasks: {
         text_to_video: { score: 1123, rank: 1, of: 1, normalized: 1 },
         image_to_video: { score: 1101, rank: 1, of: 1, normalized: 1 }
       }
     });
     expect(report.tasks).toEqual([
-      { task: "text_to_video", rows: 1, matched: 1, error: null },
-      { task: "image_to_video", rows: 1, matched: 1, error: null }
+      { task: "text_to_video", rows: 1, matched: 1, routes: 2, error: null },
+      { task: "image_to_video", rows: 1, matched: 1, routes: 2, error: null }
     ]);
   });
 
   it("carries a dropped task's reason into the report and ranks nothing for it", () => {
-    const { bySlug, report } = collect([
+    const { byRoute, report } = collect([
       parseLeaderboard("text_to_image", { error: "Invalid API key." }),
       board("text_to_video", [aaModel()])
     ]);
@@ -171,23 +277,21 @@ describe("collectRankings", () => {
       task: "text_to_image",
       error: "unrecognized-response"
     });
-    expect(Object.keys(bySlug.get("kling-3-pro").tasks)).toEqual(["text_to_video"]);
+    expect(Object.keys(byRoute.get("kie:kling/v3-pro")!.tasks)).toEqual([
+      "text_to_video"
+    ]);
   });
 
   it("reports every straggler it refused to rank", () => {
     const { report } = collect(
       [
-        board("text_to_image", [
-          aaModel({ name: "Hailuo 3", slug: "hailuo-3", elo: 1200 }),
+        board("text_to_video", [
           aaModel({ name: "Imagen 5 Ultra", slug: "imagen-5-ultra", elo: 1150 }),
           aaModel({ name: "Kling 3 Pro", slug: "kling-3-pro", elo: 1100 })
         ])
       ],
       { models: { "kling-3-pro": null } }
     );
-    expect(report.ambiguous).toEqual([
-      expect.objectContaining({ task: "text_to_image", name: "Hailuo 3" })
-    ]);
     expect(report.unmatched).toEqual([
       expect.objectContaining({ name: "Imagen 5 Ultra", reason: "unmatched" })
     ]);
@@ -196,51 +300,92 @@ describe("collectRankings", () => {
     ]);
   });
 
-  it("keeps the better rank when two rows of one task land on one model", () => {
-    const { bySlug, report } = collect([
+  it("drops a route two different models both claim, and says so", () => {
+    // `hailuo-3` is the key of both rows. Two rows with different slugs reach
+    // the same route, and attaching either rank to it is worse than leaving
+    // it unranked.
+    const { byRoute, report } = collect([
+      board("text_to_video", [
+        aaModel({ name: "Hailuo 3", slug: "hailuo-3", elo: 1200 }),
+        aaModel({ name: "Minimax Hailuo 3", slug: "minimax-hailuo-3", elo: 1100 })
+      ])
+    ]);
+    expect(byRoute.size).toBe(0);
+    expect(report.ambiguous.map((e: { name: string }) => e.name).sort()).toEqual([
+      "Hailuo 3",
+      "Minimax Hailuo 3"
+    ]);
+    expect(report.ambiguous[0].detail).toContain("kie:hailuo/v3");
+  });
+
+  it("lets a hand-pinned route win a conflict a key match would lose", () => {
+    const { byRoute, report } = collect(
+      [
+        board("text_to_video", [
+          aaModel({ name: "Hailuo 3", slug: "hailuo-3", elo: 1200 }),
+          aaModel({ name: "Minimax Hailuo 3", slug: "minimax-hailuo-3", elo: 1100 })
+        ])
+      ],
+      { models: { "minimax-hailuo-3": "kie:hailuo/v3" } }
+    );
+    expect(byRoute.get("kie:hailuo/v3")?.canonical).toBe("minimax-hailuo-3");
+    expect(report.ambiguous).toEqual([]);
+  });
+
+  it("keeps the better rank when two rows of one slug land on one route", () => {
+    const { byRoute, report } = collect([
       board("text_to_video", [
         aaModel({ name: "Kling 3 Pro 1080p", elo: 1123 }),
         aaModel({ name: "Kling 3 Pro 720p", elo: 1050 })
       ])
     ]);
-    expect(bySlug.get("kling-3-pro").tasks.text_to_video.score).toBe(1123);
-    expect(report.collisions).toEqual([
-      { task: "text_to_video", canonical: "kling-3-pro", dropped: "Kling 3 Pro 720p" }
-    ]);
-  });
-});
-
-describe("expandRoutes", () => {
-  it("gives every route of one model identical tasks", () => {
-    const { bySlug } = collectRankings({
-      leaderboards: [board("text_to_video", [aaModel()])],
-      index,
-      aliases: { models: {} }
-    });
-    const models = expandRoutes(bySlug, index);
-    expect(Object.keys(models)).toEqual([
-      "fal_ai:fal-ai/kling-video/v3/pro",
-      "kie:kling/v3-pro"
-    ]);
-    const [fal, kie] = Object.values(models);
-    expect(fal.canonical).toBe("kling-3-pro");
-    expect(kie.canonical).toBe("kling-3-pro");
-    expect(kie.tasks).toEqual(fal.tasks);
+    expect(byRoute.get("kie:kling/v3-pro")!.tasks.text_to_video.score).toBe(1123);
+    expect(report.collisions).toEqual(
+      expect.arrayContaining([
+        {
+          task: "text_to_video",
+          canonical: "kling-3-pro",
+          route: "kie:kling/v3-pro",
+          dropped: "Kling 3 Pro 720p"
+        }
+      ])
+    );
+    expect(report.ambiguous).toEqual([]);
   });
 
-  it("sorts keys so an unchanged leaderboard produces no diff", () => {
-    const { bySlug } = collectRankings({
-      leaderboards: [
-        board("text_to_image", [
-          aaModel({ name: "FLUX.2 Pro", slug: "flux-2-pro", elo: 1200 }),
-          aaModel({ elo: 1100 })
-        ])
-      ],
-      index,
-      aliases: { models: {} }
+  it("keeps the first slug a route was named by and reports a later disagreement", () => {
+    const { byRoute, report } = collect([
+      board("text_to_video", [aaModel({ slug: "kling-3-pro" })]),
+      board("image_to_video", [aaModel({ slug: "kling-3-0-pro-i2v" })])
+    ]);
+    expect(byRoute.get("kie:kling/v3-pro")).toMatchObject({
+      canonical: "kling-3-pro",
+      tasks: {
+        text_to_video: expect.any(Object),
+        image_to_video: expect.any(Object)
+      }
     });
-    const keys = Object.keys(expandRoutes(bySlug, index));
-    expect(keys).toEqual([...keys].sort());
+    expect(report.canonicalConflicts).toEqual(
+      expect.arrayContaining([
+        {
+          task: "image_to_video",
+          route: "kie:kling/v3-pro",
+          kept: "kling-3-pro",
+          other: "kling-3-0-pro-i2v"
+        }
+      ])
+    );
+  });
+
+  it("inspects every row, even against an empty route universe", () => {
+    const { byRoute, report } = collect(
+      [board("text_to_video", [aaModel(), aaModel({ name: "Other", slug: "other" })])],
+      { models: {} },
+      buildRouteIndex([])
+    );
+    expect(byRoute.size).toBe(0);
+    expect(report.tasks[0]).toMatchObject({ rows: 2, matched: 0, routes: 0 });
+    expect(report.unmatched).toHaveLength(2);
   });
 });
 
@@ -265,6 +410,42 @@ describe("buildRankings", () => {
       creator: "Kuaishou",
       tasks: { text_to_video: { score: 1123, normalized: 1, rank: 1, of: 1 } }
     });
+  });
+
+  it("gives every route of one model identical tasks", () => {
+    const { artifact } = build(
+      [board("text_to_video", [aaModel()])],
+      null,
+      "2026-01-01T00:00:00.000Z"
+    );
+    expect(artifact.models["kie:kling/v3-pro"]).toEqual(
+      artifact.models["fal_ai:fal-ai/kling-video/v3/pro"]
+    );
+  });
+
+  it("sorts keys so an unchanged leaderboard produces no diff", () => {
+    const { artifact } = build(
+      [
+        board("text_to_image", [
+          aaModel({ name: "FLUX.2 Pro", slug: "flux-2-pro", elo: 1200 })
+        ]),
+        board("text_to_video", [aaModel({ elo: 1100 })])
+      ],
+      null,
+      "2026-01-01T00:00:00.000Z"
+    );
+    const keys = Object.keys(artifact.models);
+    expect(keys.length).toBeGreaterThan(1);
+    expect(keys).toEqual([...keys].sort());
+  });
+
+  it("reports canonical models and routes", () => {
+    const { report } = build(
+      [board("text_to_video", [aaModel()])],
+      null,
+      "2026-01-01T00:00:00.000Z"
+    );
+    expect(report).toMatchObject({ canonicalModels: 1, routes: 2 });
   });
 
   it("keeps the previous generatedAt when no rank moved", () => {
@@ -305,5 +486,37 @@ describe("buildRankings", () => {
     );
     expect(artifact.models).toEqual({});
     expect(report.tasks[0].error).toBe("unrecognized-response");
+  });
+});
+
+describe("independence from the GenSpend catalog", () => {
+  const scriptsDir = join(dirname(fileURLToPath(import.meta.url)), "../../../scripts");
+
+  it("shares one modelKeys with the price sync", () => {
+    // The price sync re-exports the shared module, so its matching is
+    // byte-for-byte what it was before the move.
+    expect(genspendNormalize.modelKeys).toBe(modelKeys);
+    expect([...modelKeys("black-forest-labs/FLUX.2-pro")]).toEqual(
+      expect.arrayContaining(["flux-2-pro"])
+    );
+  });
+
+  it("imports nothing from scripts/genspend and reads no price catalog", () => {
+    const files = [
+      join(scriptsDir, "sync-model-rankings.mjs"),
+      ...readdirSync(join(scriptsDir, "rankings"))
+        .filter((f) => f.endsWith(".mjs"))
+        .map((f) => join(scriptsDir, "rankings", f))
+    ];
+    // The audit must have inspected the files it claims to cover.
+    expect(files.length).toBeGreaterThanOrEqual(5);
+    for (const file of files) {
+      const source = readFileSync(file, "utf8");
+      const code = source
+        .split("\n")
+        .filter((line) => !/^\s*(\/\*|\*|\/\/)/.test(line))
+        .join("\n");
+      expect(code, file).not.toMatch(/genspend/i);
+    }
   });
 });

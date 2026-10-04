@@ -25,6 +25,7 @@ import {
   RANK_BONUS_MAX,
   SCORE_TIERS,
   findModel,
+  pickTaskRank,
   rankCandidate,
   scoreCandidate
 } from "../src/capabilities/models.js";
@@ -398,5 +399,19 @@ describe("the shipped artifact", () => {
       "score"
     ]);
     expect(result.results[0]["score"]).toBe(0);
+  });
+});
+
+describe("pickTaskRank without a task", () => {
+  it("picks the task with the highest score, not the highest normalized value", () => {
+    const entry = {
+      canonical: "m",
+      name: "M",
+      tasks: {
+        text_to_image: { score: 1100, normalized: 0.9, rank: 2, of: 10 },
+        image_to_image: { score: 1200, normalized: 0.5, rank: 8, of: 10 }
+      }
+    };
+    expect(pickTaskRank(entry, undefined, true)?.task).toBe("image_to_image");
   });
 });

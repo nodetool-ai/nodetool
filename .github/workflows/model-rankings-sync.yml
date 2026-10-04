@@ -8,15 +8,16 @@ name: Model Rankings Sync
 # a diff a human should see before it ships. This opens a PR and never pushes to
 # main. When nothing moved the script rewrites nothing and no PR is opened.
 #
-# The sync needs no provider API keys and no built packages: the canonical slugs
-# and their provider routes come from the shipped GenSpend price catalog in the
-# same package. It does need `ARTIFICIAL_ANALYSIS_API_KEY` — without one the
+# The sync needs no provider API keys. The models it ranks are the routes the
+# built `@nodetool-ai/runtime` providers list, so it installs and builds the
+# packages first; the canonical ids are the leaderboard's own slugs, and no price
+# catalog is read. It does need `ARTIFICIAL_ANALYSIS_API_KEY` — without one the
 # script exits 0 having fetched nothing, which is what a fork gets.
 
 on:
   workflow_dispatch: {}
   schedule:
-    # 03:50 UTC nightly — after the GenSpend sync, whose artifact this reads.
+    # 03:50 UTC nightly.
     - cron: "50 3 * * *"
 
 permissions:
@@ -40,6 +41,12 @@ jobs:
         with:
           node-version-file: ".nvmrc"
           cache: "npm"
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build packages
+        run: npm run build:packages
 
       - name: Sync rankings
         env:

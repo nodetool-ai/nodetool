@@ -40,7 +40,7 @@ export interface TaskRank {
  * predates must read as "unranked", not as a type error.
  */
 export interface RankedModelEntry {
-  /** GenSpend's `model_slug` — the id that groups routes to one model. */
+  /** The leaderboard's own slug — the id that groups routes to one model. */
   canonical: string;
   name: string;
   creator?: string;

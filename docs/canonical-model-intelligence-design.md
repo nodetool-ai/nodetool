@@ -26,15 +26,17 @@ discards most of its machinery, because the repo already ships the hard half.
 
 The GenSpend pricing sync (`scripts/sync-genspend-pricing.mjs`,
 `scripts/genspend/`) already solves canonicalization for the media models,
-and its output already ships in every release:
+and its output already ships in every release. The rankings sync no longer
+reads it (§1); this section describes what the pricing side provides:
 
 - `packages/model-pricing/src/generated/genspend-pricing.json` is keyed
   `<provider_id>:<model_id>` and **every entry carries `model_slug` — a
   canonical model id**. Today that is 276 priced provider-native ids
   resolving to 104 canonical slugs, 51 of which span more than one provider
   (`seedance-2` → atlascloud + kie, `seedream-5-pro` → atlascloud + kie, …).
-- `scripts/genspend/normalize.mjs` is the naming bridge: one comparison key
-  per model (`FLUX.2 [pro]` ≡ `flux-2-pro`), vendor-prefix stripping, task
+- `scripts/genspend/normalize.mjs` is the naming bridge. Its comparison key
+  (`scripts/rankings/model-keys.mjs`, re-exported there) gives one key per model
+  (`FLUX.2 [pro]` ≡ `flux-2-pro`), vendor-prefix stripping, task
   suffix stripping, and the guards that keep it honest (a family name that
   matches too many ids is dropped as ambiguous, a capability flag that
   refutes a task blocks the match).
@@ -50,32 +52,37 @@ and its output already ships in every release:
   snapshot, no network, no key.
 
 So "introduce canonical model ≠ provider route" is not a new abstraction to
-build. It is a field to promote. The design below is: **make `model_slug`
-first-class, and ship quality rankings as a second generated artifact in the
-same shape, through the same pipeline pattern, read through the same kind of
-lookup.**
+build. The design below is: **make the canonical id first-class (the
+leaderboard's own slug, grouping provider routes), and ship quality rankings
+as a second generated artifact in the same shape, through the same pipeline
+pattern, read through the same kind of lookup.**
 
 ## Design
 
-### 1. The canonical id is GenSpend's `model_slug`
+### 1. The canonical id is the leaderboard's own slug
 
 No new `CanonicalModel` registry, no new `MODEL_ALIASES` table in runtime
-code. The slug vocabulary, the slug→provider-id resolution, its trust
-ladder, and its hand-pin file already exist and are already reviewed
-nightly. A second canonicalization mechanism would drift from the first;
-the pricing sync's is the one that gets exercised and corrected because
-wrong prices get noticed.
+code. Each Artificial Analysis row already carries a stable `slug`, and that
+slug is the canonical id: the id that groups every provider route to one
+model. The routes themselves come from NodeTool's own providers (the model
+lists `getAvailable*Models()` return), so a model needs a provider route, and
+nothing else, to be ranked. The rankings sync reads no price catalog and
+shares no data with the GenSpend sync. Only the naming helper
+(`scripts/rankings/model-keys.mjs`) is shared.
 
-Two consequences, both acceptable:
+Three consequences, all acceptable:
 
-- A model GenSpend does not track has no canonical id. It stays exactly
-  what it is today: listed, runnable, unranked, ungrouped. Canonical
-  grouping is an enhancement, and "unmapped" is the designed fallback —
-  an incorrect merge is worse than an unmapped model.
+- A model no provider lists has no route to rank. It is reported in the sync
+  run and stays out of the artifact. A model a provider lists but the
+  leaderboard does not carry stays what it is today: listed, runnable,
+  unranked, ungrouped. "Unmapped" is the designed fallback — an incorrect
+  merge is worse than an unmapped model.
 - The vocabulary is a third party's. A renamed slug shows up as a diff in
   the nightly sync PR, where a maintainer sees it. Shipped artifacts freeze
   the slugs they were generated with, so a rename can never break an
   installed app.
+- A route that declares the tasks it serves is ranked only for those tasks, so
+  an image editor never inherits a text-to-image rank from a shared name.
 
 Scope: media models (image, video, TTS, music) — the modalities where routes
 multiply and where FAL/kie/atlascloud/replicate overlap. Language models are
@@ -134,17 +141,16 @@ matching:
   No invented `confidence`, no stored badges — "best quality" / "best value"
   are derived at render time from rank + price, not persisted.
 
-How the sync matches AA/Arena names to canonical slugs: the GenSpend catalog
-snapshot the pricing sync already downloads carries each model's `slug`,
-`name`, `shortName`, and `aliases[]`. The rankings sync indexes those with
-the existing `modelKeys()` from `scripts/genspend/normalize.mjs` and looks
-each AA model up by the same exact-key comparison — no fuzzy matching, no
-prefix matching. Anything unmatched is **reported, never guessed**, and
-`scripts/rankings/aliases.json` pins or blocks the stragglers by hand,
-exactly as `scripts/genspend/aliases.json` does for prices. Expansion from
-slug to `provider:model_id` keys reuses the resolution the pricing artifact
-already records — a slug's routes are simply the pricing entries that carry
-it, plus alias pins.
+How the sync matches AA/Arena rows to routes: it builds the route universe
+from the built runtime providers (`scripts/rankings/routes.mjs`) and indexes
+each route's id and display name with `modelKeys()` from
+`scripts/rankings/model-keys.mjs`. It looks each AA row up by the same
+exact-key comparison — no fuzzy matching, no prefix matching. Anything
+unmatched is **reported, never guessed**. A route two rows with different
+slugs both reach is dropped for both and reported as ambiguous.
+`scripts/rankings/aliases.json` pins a row to routes (`<provider>:<model_id>`
+keys) or blocks it by hand. A pin chooses the model, not the task: the task
+filter still applies to a pinned route.
 
 Operationally it copies the pricing sync verbatim: nightly workflow, opens a
 PR only when something moved, `sync:model-rankings:check` fails CI when the
@@ -274,7 +280,7 @@ the unmatched-models report must assert it *found* the fixtures it plants.
    tests against a fixture artifact. No behavior change anywhere.
 2. **Sync** — `sync-model-rankings.mjs` against the Artificial Analysis data
    API (its media leaderboards map cleanly onto `supportedTasks`), reusing
-   `scripts/genspend/normalize.mjs`; nightly workflow + `:check`; first real
+   `scripts/rankings/model-keys.mjs`; nightly workflow + `:check`; first real
    artifact lands by PR. Arena's dataset joins later as a second signal —
    averaging sources is a sync-time concern and changes nothing downstream.
 3. **Agent surface** — the `find_model` rank term and canonical/route fields

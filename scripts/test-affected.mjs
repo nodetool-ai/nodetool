@@ -112,6 +112,30 @@ export const PATH_CHECKS = [
   },
   { path: /^marketing\//, steps: [] },
   {
+    // The rankings sync, its matcher and the naming helper the GenSpend sync
+    // shares. The matcher is covered in model-pricing, and the route listing
+    // against the real providers in runtime.
+    path: /^scripts\/(sync-model-rankings\.mjs$|rankings\/|genspend\/)/,
+    steps: [
+      {
+        label: "model-pricing: tests",
+        command: "npm",
+        args: ["run", "test", "--workspace=packages/model-pricing"]
+      },
+      {
+        label: "runtime: tests/providers/rankings-route-universe.test.ts",
+        command: "npm",
+        args: [
+          "run",
+          "test",
+          "--workspace=packages/runtime",
+          "--",
+          "tests/providers/rankings-route-universe.test.ts"
+        ]
+      }
+    ]
+  },
+  {
     // Drives `nodetool agent run` + `timeline score` against a real model —
     // too expensive to run here. Only its event-parsing unit is covered.
     path: /^scripts\/motion-craft-eval\.mjs$/,

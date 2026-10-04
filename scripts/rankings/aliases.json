@@ -1,4 +1,57 @@
 {
-  "_comment": "Hand-maintained overrides for the model-rankings sync. `models` is keyed by the Artificial Analysis model slug (or its display name) → the GenSpend canonical slug its rankings belong to, or null to block the model entirely. Use a string to pin a match the exact-key comparison cannot see; use null to kill a match that is wrong. Every unmatched, ambiguous and blocked leaderboard row is listed by `npm run sync:model-rankings`.",
-  "models": {}
+  "_comment": "Hand-maintained overrides for the model-rankings sync. `models` is keyed by the Artificial Analysis model slug (or its display name) → a provider route key (`<provider>:<model_id>`, as `npm run sync:model-rankings` prints them) or a list of route keys that model's rankings belong to, or null to block the model entirely. Use a pin when the exact-key comparison cannot see that a provider's id is the leaderboard's model (a resolution or quality suffix, a bracketed name); use null to kill a match that is wrong. A pin chooses the model, not the task: a pinned route still receives only the tasks it declares. Every unmatched, ambiguous and blocked leaderboard row is listed by `npm run sync:model-rankings`.",
+  "models": {
+    "GPT Image 1.5 (high)": [
+      "openai:gpt-image-1.5",
+      "kie:gpt-image/1.5-text-to-image",
+      "kie:gpt-image/1.5-image-to-image",
+      "atlascloud:openai/gpt-image-1.5/text-to-image",
+      "atlascloud:openai/gpt-image-1.5/edit"
+    ],
+    "GPT Image 2 (high)": [
+      "openai:gpt-image-2",
+      "kie:gpt-image-2-text-to-image",
+      "kie:gpt-image-2-image-to-image",
+      "atlascloud:openai/gpt-image-2/text-to-image",
+      "atlascloud:openai/gpt-image-2/edit"
+    ],
+    "Nano Banana 2 Lite (Gemini 3.1 Flash Lite Image)": [
+      "gemini:gemini-3.1-flash-lite-image",
+      "kie:nano-banana-2-lite",
+      "atlascloud:google/nano-banana-2-lite/text-to-image",
+      "atlascloud:google/nano-banana-2-lite/edit"
+    ],
+    "FLUX.1 [dev]": [
+      "fal_ai:fal-ai/flux/dev",
+      "fal_ai:fal-ai/flux-1/dev",
+      "replicate:black-forest-labs/flux-dev",
+      "atlascloud:black-forest-labs/flux-dev"
+    ],
+    "FLUX.1 [schnell]": [
+      "fal_ai:fal-ai/flux/schnell",
+      "fal_ai:fal-ai/flux-1/schnell",
+      "replicate:black-forest-labs/flux-schnell",
+      "atlascloud:black-forest-labs/flux-schnell"
+    ],
+    "FLUX.1 Kontext [pro]": [
+      "fal_ai:fal-ai/flux-pro/kontext",
+      "replicate:black-forest-labs/flux-kontext-pro",
+      "together:black-forest-labs/FLUX.1-kontext-pro"
+    ],
+    "FLUX1.1 [pro]": [
+      "fal_ai:fal-ai/flux-pro/v1.1",
+      "together:black-forest-labs/FLUX.1.1-pro"
+    ],
+    "Ideogram 3.0": [
+      "replicate:ideogram-ai/ideogram-v3-quality",
+      "fal_ai:fal-ai/ideogram/v3"
+    ],
+    "Ray 2": [
+      "replicate:luma/ray-2-720p"
+    ],
+    "Wan 2.5 Preview": [
+      "fal_ai:fal-ai/wan-25-preview/text-to-video",
+      "replicate:wan-video/wan-2.5-t2v"
+    ]
+  }
 }

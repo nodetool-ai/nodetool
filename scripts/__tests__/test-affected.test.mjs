@@ -164,6 +164,32 @@ describe("buildPlan", () => {
     expect(steps).toEqual([]);
   });
 
+  it("runs the sync's own suites for the model-rankings scripts, not every suite", () => {
+    const expected = [
+      ["npm", "run", "test", "--workspace=packages/model-pricing"],
+      [
+        "npm",
+        "run",
+        "test",
+        "--workspace=packages/runtime",
+        "--",
+        "tests/providers/rankings-route-universe.test.ts"
+      ]
+    ];
+    for (const file of [
+      "scripts/sync-model-rankings.mjs",
+      "scripts/rankings/match.mjs",
+      "scripts/rankings/model-keys.mjs",
+      "scripts/rankings/routes.mjs",
+      "scripts/rankings/aliases.json",
+      "scripts/genspend/normalize.mjs"
+    ]) {
+      const { steps, globalFiles } = plan([file]);
+      expect(globalFiles, file).toEqual([]);
+      expect(steps.map((s) => [s.command, ...s.args]), file).toEqual(expected);
+    }
+  });
+
   it("runs only the event-parsing unit for the motion-craft eval script, not a live model", () => {
     const { steps, globalFiles } = plan(["scripts/motion-craft-eval.mjs"]);
     expect(globalFiles).toEqual([]);

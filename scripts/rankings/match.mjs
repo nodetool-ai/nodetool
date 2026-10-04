@@ -1,61 +1,64 @@
 /**
- * Bridge an Artificial Analysis leaderboard row to a canonical model NodeTool
- * already knows about.
+ * Bridge an Artificial Analysis leaderboard row to the provider routes that
+ * serve that model.
  *
- * The canonical vocabulary is not invented here: it is GenSpend's `model_slug`,
- * which the shipped price catalog
- * (`packages/model-pricing/src/generated/genspend-pricing.json`) records on
- * every priced route. A slug's routes are simply the catalog entries carrying
- * it, so expanding one canonical model to its `provider:model_id` keys costs no
- * new matching.
+ * The route universe is what NodeTool's own providers list
+ * (`scripts/rankings/routes.mjs`): every `<provider>:<model_id>` a user can
+ * select. The canonical id is the leaderboard's own `slug`, so no outside
+ * catalog names the models and a model needs nothing but a provider route to be
+ * ranked.
  *
- * Matching is exact-key only, through `modelKeys()` from the price sync's
- * `normalize.mjs` — the same comparison that decides whether `FLUX.2 [pro]` and
- * `flux-2-pro` are one model. Nothing is fuzzy-matched, nothing is
- * prefix-matched. A name that lands on two slugs is ambiguous and dropped; a
- * name that lands on none is unmatched. Both are reported, and
+ * Matching is exact-key only, through `modelKeys()` (`./model-keys.mjs`) — the
+ * same comparison that decides whether `FLUX.2 [pro]` and `flux-2-pro` are one
+ * model. Nothing is fuzzy-matched, nothing is prefix-matched. A row that
+ * reaches no route is unmatched, a route two different rows both reach is
+ * ambiguous, and both are reported (never guessed).
  * `scripts/rankings/aliases.json` is where a maintainer pins or blocks one by
  * hand.
+ *
+ * A route that declares the tasks it serves is matched only for a leaderboard
+ * of one of those tasks — pinned routes included. Without that,
+ * `fal-ai/flux-2/pro/edit` (whose task-stripped key is `flux-2-pro`) would take
+ * the text-to-image rank of `FLUX.2 [pro]`.
  */
 
-import { modelKeys } from "../genspend/normalize.mjs";
+import { modelKeys } from "./model-keys.mjs";
+
+/** `<provider>:<model_id>` — the key a route has in the artifact. */
+export function routeKeyOf(route) {
+  return `${route.provider}:${route.modelId}`;
+}
 
 /**
- * The canonical slug universe and each slug's provider routes, read off the
- * shipped price catalog.
+ * Index the route universe.
  *
- * `keys` maps one comparison key to the slugs that answer to it. A key
- * reaching more than one slug is what makes a row ambiguous — `flux-2` cannot
- * choose between `flux-2-pro` and `flux-2-flex`, and guessing would attach one
- * model's rank to another's route.
+ * `routes` maps a route key to its entry. `keys` maps one comparison key to the
+ * route keys that answer to it: an id and a display name both feed it, so a
+ * model listed as `fal-ai/flux-2/pro` named "FLUX.2 Pro" is findable under
+ * either spelling. A key reaching several routes is normal (every provider's
+ * copy of one model); a route reached by several *rows* is what makes a row
+ * ambiguous.
  */
-export function buildSlugIndex(pricing) {
-  const routesBySlug = new Map();
-  for (const [key, entry] of Object.entries(pricing?.prices ?? {})) {
-    const slug = typeof entry?.model_slug === "string" ? entry.model_slug : null;
-    if (!slug) continue;
-    const colon = key.indexOf(":");
-    if (colon <= 0 || colon === key.length - 1) continue;
-    const routes = routesBySlug.get(slug) ?? [];
-    routes.push({ provider: key.slice(0, colon), modelId: key.slice(colon + 1) });
-    routesBySlug.set(slug, routes);
-  }
-
+export function buildRouteIndex(entries) {
+  const routes = new Map();
   const keys = new Map();
-  for (const slug of routesBySlug.keys()) {
-    for (const key of modelKeys(slug)) {
-      if (!keys.has(key)) keys.set(key, new Set());
-      keys.get(key).add(slug);
+  for (const entry of entries ?? []) {
+    if (!entry?.provider || !entry?.modelId) continue;
+    const key = routeKeyOf(entry);
+    if (routes.has(key)) continue;
+    routes.set(key, entry);
+    for (const comparison of modelKeys(entry.modelId, entry.name)) {
+      if (!keys.has(comparison)) keys.set(comparison, new Set());
+      keys.get(comparison).add(key);
     }
   }
+  return { routes, keys };
+}
 
-  for (const routes of routesBySlug.values()) {
-    routes.sort((a, b) =>
-      `${a.provider}:${a.modelId}`.localeCompare(`${b.provider}:${b.modelId}`)
-    );
-  }
-
-  return { routesBySlug, keys };
+/** Does this route serve `task`? A route that declares no tasks is never filtered out. */
+function servesTask(route, task) {
+  const tasks = route.tasks;
+  return !Array.isArray(tasks) || tasks.length === 0 || tasks.includes(task);
 }
 
 /**
@@ -77,30 +80,49 @@ export function aliasFor(row, aliases) {
 }
 
 /**
- * Resolve one leaderboard row to a canonical slug.
+ * Resolve one leaderboard row to the provider routes that serve it.
  *
- * `{slug, match}` on success, where `match` is `alias` (a maintainer's call) or
- * `key` (the exact-key comparison). `{slug: null, reason}` otherwise, with
- * `reason` one of `blocked`, `alias-target-unknown`, `ambiguous`, `unmatched` —
- * every one of which lands in the run report rather than in the artifact.
+ * `{routes, match}` on success, where `match` is `alias` (a maintainer's call)
+ * or `key` (the exact-key comparison), and `routes` is a sorted list of route
+ * keys. `{routes: [], reason}` otherwise, with `reason` one of `blocked`,
+ * `alias-target-unknown`, `unmatched` — every one of which lands in the run
+ * report rather than in the artifact.
+ *
+ * An alias value is a route key or a list of them. A pin chooses the model, not
+ * the task: a pinned route is still served only for a task it declares.
  */
-export function matchRow(row, index, aliases) {
+export function matchRow(row, index, aliases, task) {
   const pinned = aliasFor(row, aliases);
-  if (pinned === null) return { slug: null, reason: "blocked" };
-  if (typeof pinned === "string") {
-    if (!index.routesBySlug.has(pinned)) {
-      return { slug: null, reason: "alias-target-unknown", detail: pinned };
+  if (pinned === null) return { routes: [], reason: "blocked" };
+  if (typeof pinned === "string" || Array.isArray(pinned)) {
+    const targets = [pinned].flat().filter((t) => typeof t === "string");
+    const unknown = targets.filter((t) => !index.routes.has(t));
+    if (targets.length === 0 || unknown.length > 0) {
+      return {
+        routes: [],
+        reason: "alias-target-unknown",
+        detail: (unknown.length > 0 ? unknown : [String(pinned)]).join(", ")
+      };
     }
-    return { slug: pinned, match: "alias" };
+    const served = [...new Set(targets)]
+      .filter((t) => servesTask(index.routes.get(t), task))
+      .sort();
+    if (served.length === 0) {
+      return {
+        routes: [],
+        reason: "unmatched",
+        detail: `pinned routes do not serve ${task}`
+      };
+    }
+    return { routes: served, match: "alias" };
   }
 
   const hits = new Set();
   for (const key of modelKeys(row?.slug, row?.name)) {
-    for (const slug of index.keys.get(key) ?? []) hits.add(slug);
+    for (const routeKey of index.keys.get(key) ?? []) {
+      if (servesTask(index.routes.get(routeKey), task)) hits.add(routeKey);
+    }
   }
-  if (hits.size === 1) return { slug: [...hits][0], match: "key" };
-  if (hits.size > 1) {
-    return { slug: null, reason: "ambiguous", detail: [...hits].sort().join(", ") };
-  }
-  return { slug: null, reason: "unmatched" };
+  if (hits.size === 0) return { routes: [], reason: "unmatched" };
+  return { routes: [...hits].sort(), match: "key" };
 }

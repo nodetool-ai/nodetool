@@ -430,7 +430,7 @@ interface RouteRef {
  * `find_model` returned before rankings existed.
  */
 export interface CandidateRankingFields {
-  /** GenSpend's `model_slug` — the id grouping this route with its siblings. */
+  /** The leaderboard's own slug — the id grouping this route with its siblings. */
   canonical?: string;
   /** The task whose leaderboard `rank`/`of` refer to. */
   ranked_task?: string;
@@ -449,7 +449,7 @@ export interface CandidateRanking {
 /**
  * The leaderboard row to report for a candidate: the requested task's, or —
  * when the caller named no task and the capability is one rankings cover —
- * the model's best normalized standing across the tasks it is ranked for.
+ * the task where the model's `score` is highest.
  */
 export function pickTaskRank(
   entry: RankedModelEntry,
@@ -463,7 +463,7 @@ export function pickTaskRank(
   if (!allowBestTask) return null;
   let best: { task: string; rank: TaskRank } | null = null;
   for (const [name, rank] of Object.entries(entry.tasks ?? {})) {
-    if (!best || rank.normalized > best.rank.normalized) {
+    if (!best || rank.score > best.rank.score) {
       best = { task: name, rank };
     }
   }
