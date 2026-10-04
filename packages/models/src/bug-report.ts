@@ -6,7 +6,7 @@
  */
 
 import { createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { bugReports } from "./schema/bug-reports.js";
 
 export type BugReportRow = typeof bugReports.$inferSelect;
@@ -42,6 +42,6 @@ export async function createBugReport(
     bundle_size: input.bundleSize ?? null,
     created_at: new Date().toISOString()
   };
-  await getDb().insert(bugReports).values(row);
+  await getPortableDb().insert(bugReports).values(row);
   return row;
 }

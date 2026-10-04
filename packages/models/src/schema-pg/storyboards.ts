@@ -1,6 +1,4 @@
 import { pgTable, text, integer, index } from "drizzle-orm/pg-core";
-import { jsonText } from "./helpers.js";
-import type { StoryboardDocument } from "../storyboard.js";
 
 export const storyboards = pgTable(
   "storyboards",
@@ -9,7 +7,7 @@ export const storyboards = pgTable(
     user_id: text("user_id").notNull(),
     project_id: text("project_id").notNull(),
     name: text("name").notNull(),
-    document: jsonText<StoryboardDocument>()("document").notNull(),
+    document: text("document").notNull(),
     /** Timeline sequence this board was assembled into, if any. */
     timeline_id: text("timeline_id"),
     /**

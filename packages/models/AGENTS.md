@@ -13,10 +13,17 @@ The package supports two database backends. The active dialect is set at startup
 | SQLite | `initDb(path)` | `src/schema/` | `better-sqlite3` |
 | PostgreSQL | `await initPostgresDb(url)` | `src/schema-pg/` | `postgres` (postgres.js) |
 
-Use `getDatabase()` to narrow the active driver together with its own schema.
-`getDb()` and `DbTransaction` retain a SQLite projection for unmigrated models.
-That projection is compatibility debt. Use the narrowed transaction callback for
-new PostgreSQL paths, including `.for("update")` locking.
+Use `getPortableDb()` for ordinary CRUD. It exposes the shared asynchronous
+builder surface through SQLite types. The SQLite declarations use codecs that
+match their PostgreSQL twins, so models share query construction across drivers.
+The portable surface includes `select`, `insert`, `update`, `delete`, `where`,
+`returning`, and `onConflictDoUpdate`, executed with `await`. Synchronous methods
+and row locks are outside that contract.
+
+Use `getDatabase()` to narrow the driver and schema for a real dialect
+difference: row locks, synchronous SQLite transactions, dialect-specific raw
+SQL, or dialect-specific returning behavior. Use its narrowed transaction
+callback for `.for("update")` locking.
 
 ## Adding a Column
 
@@ -48,7 +55,7 @@ reading it back rather than by matching text:
   column names, types, NOT NULL, primary keys, defaults, indexes, foreign keys.
   It also verifies compatibility columns against the frozen baseline.
 - `tests/schema-dialect-parity.test.ts` — `src/schema/` against `src/schema-pg/`: tables,
-  columns, constraints, defaults, index names.
+  columns, declaration types, constraints, defaults, index names.
 - `tests/migration-schema-parity.test.ts` — applies the migration chain to a real
   database and checks it creates every Drizzle table and column. Forget step 5 and it
   fails.
@@ -64,19 +71,23 @@ reading it back rather than by matching text:
 
 ## Writing Query Methods
 
-All query methods must be `async`. Use Drizzle's promise-based API — it works on both dialects:
+All query methods must be `async`. Use `getPortableDb()` with the SQLite table
+declarations and awaited Drizzle builders for ordinary CRUD. Share conditions
+and business rules across dialects. Use `getDatabase()` branches only when the
+query needs a dialect difference described in [Dialect Support](#dialect-support).
 
-Use Drizzle-inferred row and insert types in converted models. `Asset` and
-`ExternalIdentity` are the initial examples. Keep dialect-specific builder calls
-in explicit branches and share conditions and business rules above those branches.
-Avoid passing a SQLite table into a PostgreSQL query.
+Keep Drizzle-inferred row and insert types wherever concrete table metadata is
+available. Keep the dynamic `DBModel` metadata boundary explicit.
 
 `DBModel.create()` emits one `CREATED` notification after persistence.
 `save()` and `update()` emit `UPDATED`, and `delete()` emits `DELETED`.
 The observer receives the same model instance used by resource broadcasting.
 
-Outside an explicitly narrowed synchronous SQLite transaction, use awaited
-queries. `.get()`, `.run()`, and `.all()` are SQLite-only methods.
+Await portable queries. Drizzle builders may call `.get()`, `.run()`, or `.all()`
+only inside a branch narrowed to SQLite. The compiler-backed AST audit in
+`tests/portable-query-boundary.test.ts` checks these calls in models and
+websocket source, including calls whose builder types were erased by a cast.
+It verifies that the scan inspected calls before checking for violations.
 
 ### Returning pattern for CAS
 
@@ -94,7 +105,10 @@ if (updated.length === 0) return false; // row was already modified
 
 ## JSON Columns
 
-Both schemas use a `jsonText<T>()` custom column that stores JSON as plain `TEXT`. Do **not** use `json()` or `jsonb()` — they behave differently across dialects and complicate cross-backend data sharing.
+Document and capabilities columns that the model serializes use `text()` in both
+schemas. Keep serialization in the model so the JSON string reaches the driver
+once. Other structured fields use `jsonText<T>()` in both schemas to encode and
+decode JSON as `TEXT`. Do not use `json()` or `jsonb()`.
 
 ```typescript
 // SQLite schema:
@@ -108,11 +122,15 @@ graph: jsonText<WorkflowGraph>()("graph").notNull()
 
 ## Boolean Columns
 
-SQLite schema uses `integer("col", { mode: "boolean" })` — TypeScript type is `boolean`, comparisons use `true`/`false`.
+SQLite uses `integer("col", { mode: "boolean" })`. PostgreSQL uses
+`integerBoolean("col")` from `src/schema-pg/helpers.ts`. Both expose TypeScript
+booleans and store `0` or `1`. Use `true` and `false` in queries against either
+schema.
 
-PostgreSQL schema uses plain `integer("col")` — TypeScript type is `number | null`, comparisons use `0`/`1` or filter in application code.
-
-If your query filters on a boolean-like column, pick the right literal for the schema you're querying against.
+For PostgreSQL defaults, use ``.default(sql`0`)`` for false and
+``.default(sql`1`)`` for true. Drizzle Kit renders defaults without applying
+the custom column encoder, so `.default(false)` would emit `DEFAULT false`
+for an integer column.
 
 ## Migrations
 
@@ -140,20 +158,28 @@ The generated SQL in `src/drizzle-migrations-pg/` should be reviewed and then ad
 
 ## Tests
 
-Tests live in `tests/`. All tests use `initTestDb()` which creates an in-memory SQLite database. No PostgreSQL instance is required.
+Tests live in `tests/`. Most suites use `initTestDb()` for an in-memory SQLite
+connection. The recording-driver suites inspect PostgreSQL SQL and parameters.
+`tests/db-dialect-execution.test.ts` runs the same model fixtures on SQLite and
+PGlite, an in-process PostgreSQL engine. Its `initPgliteTestDb()` helper applies
+the production PostgreSQL migration chain through `MigrationRunner` before
+installing the test connection. These tests need no external database server.
 
 ```bash
 npm run test --workspace=packages/models
 ```
 
-When writing tests for new models, call `initTestDb()` in `beforeEach` to reset state between tests.
+Call `initTestDb()` in `beforeEach` for SQLite fixtures. Dual-dialect fixtures
+close the active connection before initializing the next engine. Call
+`closeDb()` after PGlite tests to release the engine and reset global state.
 
 ## Rules
 
 - All public query methods must be `async`.
 - Keep inferred query row types through `.map()` rather than widening rows to
-  `Record<string, unknown>`. Leave the dynamic base model compatibility boundary
-  explicit until a model is converted.
+  `Record<string, unknown>`. Keep the dynamic base model metadata boundary explicit.
+- Use the portable query surface for ordinary CRUD. Reserve driver/schema branches
+  for real dialect differences described in [Dialect Support](#dialect-support).
 - Never import from `dist/`. Use `@nodetool-ai/models` for cross-package imports.
 - Keep `src/schema/` (SQLite) and `src/schema-pg/` (PostgreSQL) in sync — columns, names, and types must match.
 - The SQLite baseline is versioned compatibility SQL. `TABLE_COLUMNS` is derived

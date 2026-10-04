@@ -10,7 +10,7 @@
 
 import { eq, and, inArray } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { workflowCollaborators } from "./schema/workflow-sharing.js";
 
 export type CollaboratorRole = "viewer" | "editor";
@@ -41,7 +41,7 @@ export class WorkflowCollaborator extends DBModel {
     workflowId: string,
     userId: string
   ): Promise<WorkflowCollaborator | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const [row] = await db
       .select()
       .from(workflowCollaborators)
@@ -59,7 +59,7 @@ export class WorkflowCollaborator extends DBModel {
   static async listForWorkflow(
     workflowId: string
   ): Promise<WorkflowCollaborator[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(workflowCollaborators)
@@ -71,7 +71,7 @@ export class WorkflowCollaborator extends DBModel {
 
   /** All grants for a user (the "shared with me" set). */
   static async listForUser(userId: string): Promise<WorkflowCollaborator[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(workflowCollaborators)
@@ -120,7 +120,7 @@ export class WorkflowCollaborator extends DBModel {
 
   /** Delete every grant on a workflow (used when the workflow is deleted). */
   static async removeAllForWorkflow(workflowId: string): Promise<void> {
-    const db = getDb();
+    const db = getPortableDb();
     await db
       .delete(workflowCollaborators)
       .where(eq(workflowCollaborators.workflow_id, workflowId));
@@ -132,7 +132,7 @@ export class WorkflowCollaborator extends DBModel {
     workflowIds: string[]
   ): Promise<Set<string>> {
     if (workflowIds.length === 0) return new Set();
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select({ workflow_id: workflowCollaborators.workflow_id })
       .from(workflowCollaborators)

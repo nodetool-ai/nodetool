@@ -4,7 +4,7 @@ import { createEmptyDocument } from "@nodetool-ai/app-runtime";
 import { eq } from "drizzle-orm";
 import { emptyJsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 
-import { getDb, initTestDb } from "../src/db.js";
+import { getPortableDb, initTestDb } from "../src/db.js";
 import { applicationVersions } from "../src/schema/applications.js";
 import {
   applicationBudgets,
@@ -285,7 +285,7 @@ describe("application releases", () => {
     const script = await JsScript.create<JsScript>({user_id: failure === "foreign" ? "other" : "u1"});
     const version = await JsScriptVersion.snapshot(script, {saveType: "manual"});
     if (failure === "invalid" || failure === "foreign-version") {
-      await getDb().update(jsScriptVersions).set(failure === "invalid" ? {document: "{}"} : {user_id: "other"}).where(eq(jsScriptVersions.id, version.id));
+      await getPortableDb().update(jsScriptVersions).set(failure === "invalid" ? {document: "{}"} : {user_id: "other"}).where(eq(jsScriptVersions.id, version.id));
     }
     const document = documentWith();
     document.operations.push({id: "finish", name: "Finish", workflowId: "", target: {kind: "script", scriptId: script.id, scriptVersion: failure === "missing" ? version.version + 1 : version.version}, inputs: {}, outputs: {}, policy: "replace"});
@@ -299,7 +299,7 @@ describe("application releases", () => {
     const app = await createApp();
     await publishApplication(app);
     // Simulate a row written by the pre-pinning publish path.
-    await getDb()
+    await getPortableDb()
       .update(applicationVersions)
       .set({ workflow_graphs: null })
       .where(eq(applicationVersions.application_id, app.id));
@@ -403,7 +403,7 @@ describe("deleting an application", () => {
       | typeof applicationBudgets,
     applicationId: string
   ): Promise<number> => {
-    const rows = await getDb().select().from(table);
+    const rows = await getPortableDb().select().from(table);
     return rows.filter(
       (r: Record<string, unknown>) => r.application_id === applicationId
     ).length;
@@ -480,7 +480,7 @@ describe("release transitions", () => {
     await publishApplication(app);
     await publishApplication(app);
 
-    const rows = await getDb()
+    const rows = await getPortableDb()
       .select()
       .from(applicationVersions)
       .where(eq(applicationVersions.application_id, app.id));
@@ -497,7 +497,7 @@ describe("release transitions", () => {
     const published = await publishApplication(app);
 
     await expect(
-      getDb()
+      getPortableDb()
         .insert(applicationVersions)
         .values({
           id: "dupe",

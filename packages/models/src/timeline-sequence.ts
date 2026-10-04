@@ -18,7 +18,7 @@ import {
   createTimeOrderedUuid,
   nextUpdatedAtAfter
 } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { timelineSequences } from "./schema/timeline-sequences.js";
 import { TimelineSequenceVersion } from "./timeline-sequence-version.js";
 
@@ -233,7 +233,7 @@ export class TimelineSequence extends DBModel {
     userId: string,
     limit = 50
   ): Promise<TimelineSequence[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(timelineSequences)
@@ -248,7 +248,7 @@ export class TimelineSequence extends DBModel {
     userId: string,
     limit = 50
   ): Promise<TimelineSequence[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(timelineSequences)
@@ -304,7 +304,7 @@ export class TimelineSequence extends DBModel {
     meta?: ModelChangeMeta
   ): Promise<TimelineSequence | null> {
     validateTimelineDocument(doc);
-    const db = getDb();
+    const db = getPortableDb();
     const now = nextUpdatedAtAfter(expectedUpdatedAt);
     const rows = await db
       .update(timelineSequences)
@@ -359,7 +359,7 @@ export class TimelineSequence extends DBModel {
       // the snapshot) keeps it.
       write.duration_ms ??= timelineDocumentDurationMs(doc);
     }
-    const db = getDb();
+    const db = getPortableDb();
     const now = nextUpdatedAtAfter(expectedUpdatedAt);
     const rows = await db
       .update(timelineSequences)

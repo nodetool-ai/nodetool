@@ -12,7 +12,7 @@ import {
   createTimeOrderedUuid,
   nextUpdatedAtAfter
 } from "./base-model.js";
-import { getDb, getDbType, type DbTransaction } from "./db.js";
+import { getPortableDb, getDbType, type DbTransaction } from "./db.js";
 import { games } from "./schema/games.js";
 import { gameDraftChanges } from "./schema/game-draft-changes.js";
 import { gameRevisionMessages } from "./schema/game-revision-messages.js";
@@ -157,7 +157,7 @@ export class Game extends DBModel {
       name: data.name,
       current_revision: data.revision
     });
-    const rows = await getDb()
+    const rows = await getPortableDb()
       .insert(games)
       .values({
         id: game.id,
@@ -183,7 +183,7 @@ export class Game extends DBModel {
   }
 
   static async findOwned(userId: string, id: string): Promise<Game | null> {
-    const rows = await getDb()
+    const rows = await getPortableDb()
       .select()
       .from(games)
       .where(
@@ -198,7 +198,7 @@ export class Game extends DBModel {
   }
 
   static async listByProject(userId: string, projectId: string): Promise<Game[]> {
-    const rows = await getDb()
+    const rows = await getPortableDb()
       .select()
       .from(games)
       .where(and(eq(games.user_id, userId), eq(games.project_id, projectId)));
@@ -358,7 +358,7 @@ export class Game extends DBModel {
       before_digest: beforeDigest, created_at: now
     };
     const condition = and(eq(games.id, game.id), eq(games.user_id, userId), eq(games.draft_updated_at, beforeUpdatedAt));
-    const db = getDb();
+    const db = getPortableDb();
     if (getDbType() === "sqlite") {
       const row = db.transaction((tx: DbTransaction) => {
         const rows = tx.update(games).set({ draft_updated_at: now, draft_version_id: versionId, updated_at: now }).where(condition).returning().all();
@@ -380,7 +380,7 @@ export class Game extends DBModel {
   static async listDraftChanges(userId: string, id: string): Promise<GameDraftChange[]> {
     const game = await Game.findOwned(userId, id);
     if (!game) return [];
-    const rows = await getDb().select().from(gameDraftChanges)
+    const rows = await getPortableDb().select().from(gameDraftChanges)
       .where(eq(gameDraftChanges.game_id, game.id))
       .orderBy(desc(gameDraftChanges.created_at))
       .limit(500);
@@ -416,7 +416,7 @@ export class Game extends DBModel {
   ): Promise<GameDocument | null> {
     const game = await Game.findOwned(userId, id);
     if (!game) return null;
-    const rows = await getDb().select({ before_digest: gameDraftChanges.before_digest })
+    const rows = await getPortableDb().select({ before_digest: gameDraftChanges.before_digest })
       .from(gameDraftChanges)
       .where(and(eq(gameDraftChanges.id, changeId), eq(gameDraftChanges.game_id, game.id)))
       .limit(1);
@@ -427,13 +427,13 @@ export class Game extends DBModel {
   }
 
   private static async pruneDraftChanges(game: Game, workspace: GameDraftWorkspace): Promise<void> {
-    const rows = await getDb().select({ id: gameDraftChanges.id, before_digest: gameDraftChanges.before_digest })
+    const rows = await getPortableDb().select({ id: gameDraftChanges.id, before_digest: gameDraftChanges.before_digest })
       .from(gameDraftChanges)
       .where(eq(gameDraftChanges.game_id, game.id))
       .orderBy(desc(gameDraftChanges.created_at), desc(gameDraftChanges.id));
     if (rows.length <= 500) return;
     const expired = rows.slice(500);
-    await getDb().delete(gameDraftChanges).where(inArray(gameDraftChanges.id, expired.map((row) => row.id)));
+    await getPortableDb().delete(gameDraftChanges).where(inArray(gameDraftChanges.id, expired.map((row) => row.id)));
     const retained = new Set(rows.slice(0, 500).map((row) => row.before_digest));
     for (const digest of new Set(expired.map((row) => row.before_digest))) {
       if (!retained.has(digest) && digest !== game.draft_version_id) {
@@ -445,7 +445,7 @@ export class Game extends DBModel {
   static async listRevisionMessages(userId: string, id: string): Promise<Map<string, string | null>> {
     const game = await Game.findOwned(userId, id);
     if (!game) return new Map();
-    const rows = await getDb().select({ revision: gameRevisionMessages.revision, message: gameRevisionMessages.message })
+    const rows = await getPortableDb().select({ revision: gameRevisionMessages.revision, message: gameRevisionMessages.message })
       .from(gameRevisionMessages)
       .where(eq(gameRevisionMessages.game_id, game.id));
     return new Map(rows.map((row) => [row.revision, row.message]));
@@ -474,7 +474,7 @@ export class Game extends DBModel {
       ...(expectedDraftUpdatedAt ? [eq(games.draft_updated_at, expectedDraftUpdatedAt)] : [])
     );
     const revisionMessage = { revision, game_id: id, message: message?.trim() || null, created_at: publishedAt };
-    const db = getDb();
+    const db = getPortableDb();
     let row: Record<string, unknown> | null;
     if (getDbType() === "sqlite") {
       row = db.transaction((tx: DbTransaction) => {
@@ -495,14 +495,14 @@ export class Game extends DBModel {
     const updated = new Game(row);
     try {
       if (workspace) {
-        const rows = await getDb().select({ before_digest: gameDraftChanges.before_digest })
+        const rows = await getPortableDb().select({ before_digest: gameDraftChanges.before_digest })
           .from(gameDraftChanges).where(eq(gameDraftChanges.game_id, id));
-        await getDb().delete(gameDraftChanges).where(eq(gameDraftChanges.game_id, id));
+        await getPortableDb().delete(gameDraftChanges).where(eq(gameDraftChanges.game_id, id));
         for (const digest of new Set(rows.map((change) => change.before_digest))) {
           await workspace.delete(`${updated.source_root}/drafts/${digest}.json`);
         }
       } else {
-        await getDb().delete(gameDraftChanges).where(eq(gameDraftChanges.game_id, id));
+        await getPortableDb().delete(gameDraftChanges).where(eq(gameDraftChanges.game_id, id));
       }
     } catch (error) {
       log.error("Game publish cleanup failed", { gameId: id, error: String(error) });

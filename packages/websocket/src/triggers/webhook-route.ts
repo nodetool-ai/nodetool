@@ -16,7 +16,7 @@
 import { createHash, timingSafeEqual } from "node:crypto";
 import type { FastifyPluginAsync } from "fastify";
 import { createLogger } from "@nodetool-ai/config";
-import { getDb, TriggerRegistration } from "@nodetool-ai/models";
+import { getPortableDb, TriggerRegistration } from "@nodetool-ai/models";
 import {
   isNonEmptyString,
   isString
@@ -82,7 +82,7 @@ function secretMatches(provided: string, expectedHash: string): boolean {
  * memory over the (small) set of webhook registrations.
  */
 async function findByToken(token: string): Promise<TriggerRegistration | null> {
-  const rows = await getDb().query.triggerRegistrations.findMany({
+  const rows = await getPortableDb().query.triggerRegistrations.findMany({
     where: (t, { eq }) => eq(t.kind, "webhook")
   });
   for (const row of rows) {

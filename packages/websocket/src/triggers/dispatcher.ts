@@ -76,7 +76,7 @@ import { createLogger } from "@nodetool-ai/config";
 import { TriggerWakeupService } from "@nodetool-ai/kernel";
 import type { TriggerInput, TriggerInputStore } from "@nodetool-ai/kernel";
 import {
-  getDb,
+  getPortableDb,
   RunEvent,
   TriggerInput as TriggerInputModel,
   TriggerRegistration
@@ -223,7 +223,7 @@ function readPolicy(registration: TriggerRegistration): ConcurrencyPolicy {
 }
 
 async function listEnabledRegistrations(): Promise<TriggerRegistration[]> {
-  const rows = await getDb().query.triggerRegistrations.findMany({
+  const rows = await getPortableDb().query.triggerRegistrations.findMany({
     where: (t, { eq }) => eq(t.enabled, 1),
     orderBy: (t, { asc }) => asc(t.created_at)
   });

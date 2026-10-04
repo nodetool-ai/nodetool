@@ -248,6 +248,48 @@ describe("rankedForTask", () => {
     ]);
   });
 
+  it("includes tasks from later routes and only their eligible routes", () => {
+    const models = {
+      "fal_ai:image-only": {
+        canonical: "kling-3-pro",
+        name: "Kling 3 Pro",
+        tasks: { image_to_video: KLING_TASKS.image_to_video }
+      },
+      "kie:text-only": {
+        canonical: "kling-3-pro",
+        name: "Kling 3 Pro",
+        tasks: { text_to_video: KLING_TASKS.text_to_video }
+      },
+      "replicate:both": {
+        canonical: "kling-3-pro",
+        name: "Kling 3 Pro",
+        tasks: { ...KLING_TASKS }
+      }
+    };
+    for (const entries of [
+      Object.entries(models),
+      Object.entries(models).reverse()
+    ]) {
+      const subsetFixture = { ...fixture, models: Object.fromEntries(entries) };
+      for (const [task, expectedRoutes] of [
+        ["text_to_video", ["kie:text-only", "replicate:both"]],
+        ["image_to_video", ["fal_ai:image-only", "replicate:both"]]
+      ] as const) {
+        const rows = rankedForTask(task, subsetFixture);
+        expect(rows).toHaveLength(1);
+        expect(rows[0]).toMatchObject({
+          canonical: "kling-3-pro",
+          name: "Kling 3 Pro",
+          ...KLING_TASKS[task]
+        });
+        expect(
+          rows[0].routes.map(({ provider, modelId }) => `${provider}:${modelId}`).sort()
+        ).toEqual(expectedRoutes);
+      }
+      expect(routesFor("kling-3-pro", subsetFixture)).toHaveLength(3);
+    }
+  });
+
   it("lists a model only under the tasks it is ranked for", () => {
     expect(
       rankedForTask("image_to_video", fixture).map((r) => r.canonical)

@@ -1365,7 +1365,7 @@ export async function attachGenerationToAppRun(
     }
     await tx
       .insert(a)
-      .values({ ...row, selected: 0 })
+      .values({ ...row, selected: false })
       .onConflictDoNothing();
     const rows = await tx
       .select({ id: a.id })

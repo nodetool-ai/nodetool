@@ -14,7 +14,7 @@
 import { and, asc, desc, eq, gte, inArray, isNull, like, lt, lte } from "drizzle-orm";
 import { createLogger } from "@nodetool-ai/config";
 import { createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { errorTraces } from "./schema/error-traces.js";
 import {
   type ErrorTraceContext,
@@ -146,7 +146,7 @@ export async function recordErrorTrace(
   try {
     const row = buildRow(input, "local");
     if (!admit(row.fingerprint, Date.now())) return null;
-    await getDb().insert(errorTraces).values(row);
+    await getPortableDb().insert(errorTraces).values(row);
     return row;
   } catch (error) {
     // Logged, not recorded: recording a failure to record would recurse.
@@ -177,7 +177,7 @@ export async function ingestErrorTraces(
         : new Date(now).toISOString();
     return buildRow({ ...trace, userId, createdAt }, "ingest");
   });
-  await getDb().insert(errorTraces).values(rows);
+  await getPortableDb().insert(errorTraces).values(rows);
   return rows.length;
 }
 
@@ -216,7 +216,7 @@ export async function listErrorTraces(
   if (opts.since) conditions.push(gte(errorTraces.created_at, opts.since));
   if (opts.until) conditions.push(lte(errorTraces.created_at, opts.until));
 
-  const rows = await getDb()
+  const rows = await getPortableDb()
     .select()
     .from(errorTraces)
     .where(and(...conditions))
@@ -243,7 +243,7 @@ export async function getErrorTrace(
 ): Promise<GetErrorTraceResult> {
   const trimmed = id.trim().toLowerCase();
   if (!/^[0-9a-f]+$/.test(trimmed)) return { ok: false, reason: "not_found" };
-  const db = getDb();
+  const db = getPortableDb();
   if (trimmed.length === SHORT_ID_LENGTH) {
     const rows = await db
       .select()
@@ -322,7 +322,7 @@ async function listErrorTracesForSummary(
 ): Promise<ErrorTraceRow[]> {
   const conditions = [eq(errorTraces.user_id, userId)];
   if (since) conditions.push(gte(errorTraces.created_at, since));
-  const rows = await getDb()
+  const rows = await getPortableDb()
     .select()
     .from(errorTraces)
     .where(and(...conditions))
@@ -380,7 +380,7 @@ export function formatErrorReport(
 export async function listUnsyncedErrorTraces(
   limit: number = MAX_ERROR_TRACE_INGEST_BATCH
 ): Promise<ErrorTraceRow[]> {
-  const rows = await getDb()
+  const rows = await getPortableDb()
     .select()
     .from(errorTraces)
     .where(and(eq(errorTraces.origin, "local"), isNull(errorTraces.synced_at)))
@@ -394,7 +394,7 @@ export async function markErrorTracesSynced(
   syncedAt: string = new Date().toISOString()
 ): Promise<void> {
   if (ids.length === 0) return;
-  await getDb()
+  await getPortableDb()
     .update(errorTraces)
     .set({ synced_at: syncedAt })
     .where(inArray(errorTraces.id, [...ids]));
@@ -412,7 +412,7 @@ export async function pruneErrorTraces(
   const cutoff = new Date(
     Date.now() - retentionDays * 24 * 60 * 60 * 1000
   ).toISOString();
-  const db = getDb();
+  const db = getPortableDb();
   const doomed = await db
     .select({ id: errorTraces.id })
     .from(errorTraces)

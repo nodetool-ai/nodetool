@@ -10,7 +10,7 @@
 
 import { describe, it, expect, beforeEach } from "vitest";
 import { eq } from "drizzle-orm";
-import { getDb, getRawDb, initTestDb } from "../src/db.js";
+import { getPortableDb, getRawDb, initTestDb } from "../src/db.js";
 import { scripts as scriptsTable } from "../src/schema/scripts.js";
 import { storyboards as storyboardsTable } from "../src/schema/storyboards.js";
 import { Application } from "../src/application.js";
@@ -163,11 +163,11 @@ describe("listDocumentIndex", () => {
       project_id: PROJECT,
       name: "Newer script"
     });
-    await getDb()
+    await getPortableDb()
       .update(storyboardsTable)
       .set({ updated_at: "2024-01-01T00:00:00.000Z" })
       .where(eq(storyboardsTable.id, older.id));
-    await getDb()
+    await getPortableDb()
       .update(scriptsTable)
       .set({ updated_at: "2024-06-01T00:00:00.000Z" })
       .where(eq(scriptsTable.id, newer.id));

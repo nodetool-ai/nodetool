@@ -13,18 +13,21 @@ interface GamePlayerProps {
   name: string;
   document: GameDocument;
   active?: boolean;
+  /** False when the player is embedded in another page, such as a chat reply. */
+  setsDocumentTitle?: boolean;
 }
 
-export function GamePlayer({ gameId, name, document, active = true }: GamePlayerProps) {
+export function GamePlayer({ gameId, name, document, active = true, setsDocumentTitle = true }: GamePlayerProps) {
   const { canvasRef, keysRef, newlyPressedRef, playing, playDocument, playState, backend, error,
     beginPlay, stop } = useGamePlaySession({ refId: gameId, active, document, name });
   const status = playState.won ? "Won" : playing ? "Playing" : playDocument ? "Paused" : "Ready";
 
   useEffect(() => {
+    if (!setsDocumentTitle) return;
     const previousTitle = window.document.title;
     window.document.title = `${name} · NodeTool`;
     return () => { window.document.title = previousTitle; };
-  }, [name]);
+  }, [name, setsDocumentTitle]);
 
   const onKeyDown = (event: KeyboardEvent<HTMLCanvasElement>) => {
     if (playing && pressGameKey(keysRef.current, newlyPressedRef.current, event.code, event.key, document.inputActions)) {
@@ -58,7 +61,7 @@ export function GamePlayer({ gameId, name, document, active = true }: GamePlayer
 
 const Player3D = lazy(() => import("./GamePlayer3D"));
 
-export function SavedGamePlayer({ gameId, active = true }: { gameId: string; active?: boolean }) {
+export function SavedGamePlayer({ gameId, active = true, setsDocumentTitle = true }: { gameId: string; active?: boolean; setsDocumentTitle?: boolean }) {
   const { data, isPending, error } = trpc.games.getDraft.useQuery({ id: gameId ?? "" },
     { enabled: Boolean(gameId), staleTime: 15_000 });
   if (!gameId) return <EmptyState variant="error" title="Game not found" description="The game link is incomplete." />;
@@ -67,7 +70,7 @@ export function SavedGamePlayer({ gameId, active = true }: { gameId: string; act
   if (data.document.schemaVersion === 3) {
     return <Suspense fallback={<LoadingSpinner text="Loading 3D player" />}><Player3D gameId={gameId} name={data.game.name} document={data.document} active={active} /></Suspense>;
   }
-  return <GamePlayer gameId={gameId} name={data.game.name} document={data.document} active={active} />;
+  return <GamePlayer gameId={gameId} name={data.game.name} document={data.document} active={active} setsDocumentTitle={setsDocumentTitle} />;
 }
 
 export default function GamePlayerPage() {

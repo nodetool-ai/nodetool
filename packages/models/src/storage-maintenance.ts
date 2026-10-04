@@ -15,7 +15,7 @@ import { eraseRunTraceParentForModelDeletion, pruneRunTraces } from "./run-trace
 import { statSync } from "node:fs";
 import { and, count, desc, eq, inArray, isNotNull, lt, or } from "drizzle-orm";
 import { isAutomaticStorageCleanupEnabled } from "@nodetool-ai/config";
-import { getDb, getDbType, getRawDb } from "./db.js";
+import { getPortableDb, getDbType, getRawDb } from "./db.js";
 import { appRunRetentionCandidates, pruneAppRuns } from "./app-instance.js";
 import { jobs } from "./schema/jobs.js";
 import { predictions } from "./schema/predictions.js";
@@ -142,7 +142,7 @@ async function retentionRows(userId: string): Promise<{
   versions: VersionRetentionRow[];
   jobs: JobRetentionRow[];
 }> {
-  const db = getDb();
+  const db = getPortableDb();
   const versionRows = await db
     .select({
       id: workflowVersions.id,
@@ -244,7 +244,7 @@ async function countRunEvents(
   runIds: string[],
   cutoffIso: string | null
 ): Promise<number> {
-  const db = getDb();
+  const db = getPortableDb();
   let total = 0;
   for (const batch of batches(runIds)) {
     const scope = inArray(runEvents.run_id, batch);
@@ -263,7 +263,7 @@ async function deleteExpiredRunEvents(
   runIds: string[],
   cutoffIso: string
 ): Promise<void> {
-  const db = getDb();
+  const db = getPortableDb();
   for (const batch of batches(runIds)) {
     await db
       .delete(runEvents)
@@ -286,7 +286,7 @@ async function redactablePredictionIds(
   userId: string,
   cutoffIso: string | null
 ): Promise<string[]> {
-  const db = getDb();
+  const db = getPortableDb();
   const hasPayload = or(
     isNotNull(predictions.parameters),
     isNotNull(predictions.metadata),
@@ -306,7 +306,7 @@ async function redactablePredictionIds(
 }
 
 async function redactPredictions(ids: string[]): Promise<void> {
-  const db = getDb();
+  const db = getPortableDb();
   for (const batch of batches(ids)) {
     await db
       .update(predictions)
@@ -464,7 +464,7 @@ export async function getStorageStatus(
 }
 
 async function deleteVersions(ids: string[]): Promise<void> {
-  const db = getDb();
+  const db = getPortableDb();
   for (const batch of batches(ids)) {
     await db
       .delete(workflowVersions)
@@ -473,7 +473,7 @@ async function deleteVersions(ids: string[]): Promise<void> {
 }
 
 async function deleteJobs(ids: string[]): Promise<void> {
-  const db = getDb();
+  const db = getPortableDb();
   for (const id of ids) { await eraseRunTraceParentForModelDeletion({ kind: "job", id }); }
   for (const batch of batches(ids)) {
     await db.delete(runEvents).where(inArray(runEvents.run_id, batch));

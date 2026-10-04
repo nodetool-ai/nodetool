@@ -100,7 +100,7 @@ jest.mock("react-markdown", () => {
 jest.mock("../../../../lib/chat/openResource", () => ({
   __esModule: true,
   openResource: jest.fn(),
-  canOpenResource: (kind: string) => kind !== "asset" && kind !== "collection" && kind !== "thread"
+  canOpenResource: (kind: string) => kind !== "collection" && kind !== "thread"
 }));
 
 // Import after mocks

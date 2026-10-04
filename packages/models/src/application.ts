@@ -29,7 +29,7 @@ import {
   createTimeOrderedUuid,
   nextUpdatedAtAfter
 } from "./base-model.js";
-import { getDb, getDbType, type DbTransaction, forUpdate } from "./db.js";
+import { getPortableDb, getDbType, type DbTransaction, forUpdate } from "./db.js";
 import {
   applications,
   applicationVersions
@@ -259,7 +259,7 @@ export class Application extends DBModel {
     const app = new Application(data);
     app.id = normalizeApplicationId(app.id);
     app.beforeSave();
-    const db = getDb();
+    const db = getPortableDb();
     try {
       await db
         .insert(applications)
@@ -287,7 +287,7 @@ export class Application extends DBModel {
    */
   override async delete(): Promise<void> {
     await eraseRunTraceParentForModelDeletion({ kind: "app", id: this.id });
-    const db = getDb();
+    const db = getPortableDb();
     const id = this.id;
 
     const statements = (tx: DbTransaction): unknown[] => [
@@ -326,7 +326,7 @@ export class Application extends DBModel {
   }
 
   static async listByUser(userId: string, limit = 50): Promise<Application[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(applications)
@@ -341,7 +341,7 @@ export class Application extends DBModel {
     userId: string,
     limit = 50
   ): Promise<Application[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(applications)
@@ -368,7 +368,7 @@ export class Application extends DBModel {
     meta?: ModelChangeMeta
   ): Promise<Application | null> {
     if (fields.document !== undefined) parseDocumentOrThrow(fields.document);
-    const db = getDb();
+    const db = getPortableDb();
     const now = nextUpdatedAtAfter(expectedUpdatedAt);
     const rows = await db
       .update(applications)
@@ -564,7 +564,7 @@ async function validateScriptPins(
 export async function publishApplication(
   application: Application
 ): Promise<ApplicationReleaseResponse> {
-  const db = getDb();
+  const db = getPortableDb();
   const draft = application.toDocument();
   const highest = await db
     .select({ value: max(applicationVersions.version) })
@@ -684,7 +684,7 @@ export async function listApplicationVersions(
   limit = 50,
   userId?: string
 ): Promise<ApplicationVersionResponse[]> {
-  const db = getDb();
+  const db = getPortableDb();
   const rows = await db
     .select()
     .from(applicationVersions)
@@ -703,7 +703,7 @@ async function releasedRow(
   applicationId: string,
   userId?: string
 ): Promise<Record<string, unknown> | null> {
-  const db = getDb();
+  const db = getPortableDb();
   const rows = await db
     .select()
     .from(applicationVersions)
@@ -742,7 +742,7 @@ export async function applicationReleaseVersion(
   version: number,
   userId?: string
 ): Promise<ApplicationReleaseResponse | null> {
-  const db = getDb();
+  const db = getPortableDb();
   const row = await db
     .select()
     .from(applicationVersions)
@@ -769,7 +769,7 @@ export async function releaseApplicationVersion(
   version: number,
   userId?: string
 ): Promise<ApplicationVersionResponse | null> {
-  const db = getDb();
+  const db = getPortableDb();
   const target = and(
     ownedBy(applicationId, userId),
     eq(applicationVersions.version, version)

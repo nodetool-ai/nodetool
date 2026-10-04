@@ -34,7 +34,7 @@
 import { and, count, eq, inArray, notInArray, type SQL } from "drizzle-orm";
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import {
   PERSONAL_DATA_REGISTRY,
   WITHHELD_VALUE,
@@ -201,7 +201,7 @@ async function countRows(
   table: SQLiteTable,
   where: SQL | undefined
 ): Promise<number> {
-  const [row] = await getDb()
+  const [row] = await getPortableDb()
     .select({ value: count() })
     .from(table)
     .where(where);
@@ -219,7 +219,7 @@ async function deleteRows(
 ): Promise<number> {
   const total = await countRows(table, where);
   if (total === 0) return 0;
-  await getDb().delete(table).where(where);
+  await getPortableDb().delete(table).where(where);
   return total;
 }
 
@@ -241,7 +241,7 @@ async function selectIds(
   column: TableColumn,
   where: SQL
 ): Promise<string[]> {
-  const rows = await getDb().select({ id: column }).from(table).where(where);
+  const rows = await getPortableDb().select({ id: column }).from(table).where(where);
   return (rows as { id: string }[]).map((row) => row.id);
 }
 
@@ -729,7 +729,7 @@ async function selectRows(
   where: SQL | undefined,
   limit: number
 ): Promise<readonly Record<string, unknown>[]> {
-  const rows = await getDb().select().from(table).where(where).limit(limit);
+  const rows = await getPortableDb().select().from(table).where(where).limit(limit);
   return rows as Record<string, unknown>[];
 }
 

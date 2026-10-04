@@ -16,7 +16,7 @@ import { mockAssetThumbUrl } from "../../../../hooks/__mocks__/useResolvedMediaU
 jest.mock("../../../../lib/chat/openResource", () => ({
   __esModule: true,
   openResource: (ref: unknown) => openResource(ref),
-  canOpenResource: (kind: string) => kind !== "asset" && kind !== "collection" && kind !== "thread"
+  canOpenResource: (kind: string) => kind !== "collection" && kind !== "thread"
 }));
 
 const renderChip = (uri: string, label: string) =>

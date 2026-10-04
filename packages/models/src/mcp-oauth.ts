@@ -26,7 +26,7 @@ import { randomBytes } from "node:crypto";
 import { digestsMatch, hashSecret } from "./access-token.js";
 import { and, eq, isNull, lt, notInArray } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb, getDbType, type DbTransaction } from "./db.js";
+import { getPortableDb, getDbType, type DbTransaction } from "./db.js";
 import {
   mcpOauthClients,
   mcpOauthGrants,
@@ -118,7 +118,7 @@ export class McpOauthClient extends DBModel {
   }
 
   static async get(id: string): Promise<McpOauthClientRow | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(mcpOauthClients)
@@ -139,7 +139,7 @@ export class McpOauthClient extends DBModel {
    * as `AccessToken.touch`, so a busy client does not write on every call.
    */
   static async touch(id: string, now: number = Date.now()): Promise<void> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(mcpOauthClients)
@@ -162,7 +162,7 @@ export class McpOauthClient extends DBModel {
    * Returns the number of rows deleted.
    */
   static async gcUnused(olderThanMs: number): Promise<number> {
-    const db = getDb();
+    const db = getPortableDb();
     const usedRows = await db
       .select({ client_id: mcpOauthGrants.client_id })
       .from(mcpOauthGrants);
@@ -255,7 +255,7 @@ export class McpOauthGrant extends DBModel {
   }
 
   static async get(id: string): Promise<McpOauthGrantRow | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(mcpOauthGrants)
@@ -268,7 +268,7 @@ export class McpOauthGrant extends DBModel {
 
   /** Every grant a user has approved that has not been revoked. */
   static async listForUser(user_id: string): Promise<McpOauthGrantRow[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(mcpOauthGrants)
@@ -290,7 +290,7 @@ export class McpOauthGrant extends DBModel {
    * for it. Scoped to the owner, like `AccessToken.revoke`.
    */
   static async revoke(user_id: string, id: string): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(mcpOauthGrants)
@@ -371,7 +371,7 @@ function tokenValues(row: MintedTokenRow): {
 }
 
 async function saveTokenRow(row: MintedTokenRow): Promise<void> {
-  const db = getDb();
+  const db = getPortableDb();
   await db.insert(mcpOauthTokens).values(tokenValues(row));
 }
 
@@ -423,6 +423,9 @@ function isRotatedFromConflict(err: unknown): boolean {
 
 /** Mark a grant revoked and delete every token minted for it. */
 function revokeGrantSync(tx: DbTransaction, grant_id: string): void {
+  if (getDbType() !== "sqlite") {
+    throw new Error("Synchronous OAuth revocation requires SQLite");
+  }
   tx.delete(mcpOauthTokens).where(eq(mcpOauthTokens.grant_id, grant_id)).run();
   tx.update(mcpOauthGrants)
     .set({ revoked_at: isoNow() })
@@ -443,7 +446,7 @@ async function revokeGrantAsync(
 
 /** Revoke a grant in its own transaction — the two writes never land apart. */
 async function revokeGrantCompletely(grant_id: string): Promise<void> {
-  const db = getDb();
+  const db = getPortableDb();
   if (getDbType() === "sqlite") {
     // better-sqlite3 transactions must be fully synchronous; an async callback
     // returns a Promise the driver rejects.
@@ -457,7 +460,7 @@ async function revokeGrantCompletely(grant_id: string): Promise<void> {
 
 /** The grant a refresh-token row belongs to, read outside any transaction. */
 async function grantIdOfToken(tokenId: string): Promise<string | null> {
-  const rows = await getDb()
+  const rows = await getPortableDb()
     .select({ grant_id: mcpOauthTokens.grant_id })
     .from(mcpOauthTokens)
     .where(eq(mcpOauthTokens.id, tokenId))
@@ -544,6 +547,9 @@ function rotateSqlite(
   parsed: ParsedToken,
   now: number
 ): RefreshRotation {
+  if (getDbType() !== "sqlite") {
+    throw new Error("Synchronous OAuth rotation requires SQLite");
+  }
   const row = tx
     .select()
     .from(mcpOauthTokens)
@@ -679,7 +685,7 @@ export class McpOauthToken extends DBModel {
   ): Promise<{ userId: string; grantId: string; resource: string } | null> {
     const parsed = parseToken(token, MCP_OAUTH_ACCESS_TOKEN_PREFIX);
     if (!parsed) return null;
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(mcpOauthTokens)
@@ -726,7 +732,7 @@ export class McpOauthToken extends DBModel {
   static async rotateRefresh(token: string): Promise<RefreshRotation> {
     const parsed = parseToken(token, MCP_OAUTH_REFRESH_TOKEN_PREFIX);
     if (!parsed) return null;
-    const db = getDb();
+    const db = getPortableDb();
     const now = Date.now();
     try {
       if (getDbType() === "sqlite") {
@@ -755,7 +761,7 @@ export class McpOauthToken extends DBModel {
   /** Delete every token row for a grant. Used by rotation-reuse and by
    * `McpOauthGrant.revoke`. */
   static async revokeGrantTokens(grant_id: string): Promise<void> {
-    const db = getDb();
+    const db = getPortableDb();
     await db.delete(mcpOauthTokens).where(eq(mcpOauthTokens.grant_id, grant_id));
   }
 
@@ -774,7 +780,7 @@ export class McpOauthToken extends DBModel {
       parseToken(token, MCP_OAUTH_ACCESS_TOKEN_PREFIX) ??
       parseToken(token, MCP_OAUTH_REFRESH_TOKEN_PREFIX);
     if (!parsed) return false;
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(mcpOauthTokens)

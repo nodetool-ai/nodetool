@@ -7,7 +7,7 @@
 import { eq, and, desc, lt, inArray, notInArray, like } from "drizzle-orm";
 import { isShortResourceId } from "@nodetool-ai/protocol";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb, getDatabase } from "./db.js";
+import { getPortableDb, getDatabase } from "./db.js";
 import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 import { jobs } from "./schema/jobs.js";
 
@@ -193,7 +193,7 @@ export class Job extends DBModel {
     expectedVersion: number
   ): Promise<boolean> {
     try {
-      const db = getDb();
+      const db = getPortableDb();
       const now = new Date().toISOString();
       const newVersion = expectedVersion + 1;
       // Atomic CAS: only update if the database row still has the expected version.
@@ -247,7 +247,7 @@ export class Job extends DBModel {
     jobId: string,
     progress: Record<string, unknown>
   ): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select({ metadata_json: jobs.metadata_json })
       .from(jobs)
@@ -291,7 +291,7 @@ export class Job extends DBModel {
     createdBeforeIso: string,
     instanceId: string | null
   ): Promise<Job[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const now = new Date().toISOString();
     const error = "Run was interrupted because the server restarted.";
     const rows = await db
@@ -333,7 +333,7 @@ export class Job extends DBModel {
     jobId: string,
     userId: string
   ): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const now = new Date().toISOString();
     const updated = await db
       .update(jobs)
@@ -356,7 +356,7 @@ export class Job extends DBModel {
    */
   static async cancelledAmong(jobIds: string[]): Promise<string[]> {
     if (jobIds.length === 0) return [];
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select({ id: jobs.id })
       .from(jobs)
@@ -397,7 +397,7 @@ export class Job extends DBModel {
   ): Promise<[Job[], string]> {
     const { limit = 50, status, workflowId, projectId } = opts;
     const startKey = opts.startKey ?? opts.cursor;
-    const db = getDb();
+    const db = getPortableDb();
 
     const conditions = [eq(jobs.user_id, userId)];
     if (status) conditions.push(eq(jobs.status, status));
@@ -429,7 +429,7 @@ export class Job extends DBModel {
     userId: string,
     projectId: string
   ): Promise<Job[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(jobs)
