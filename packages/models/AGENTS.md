@@ -48,7 +48,7 @@ reading it back rather than by matching text:
   column names, types, NOT NULL, primary keys, defaults, indexes, foreign keys.
   It also verifies compatibility columns against the frozen baseline.
 - `tests/schema-dialect-parity.test.ts` — `src/schema/` against `src/schema-pg/`: tables,
-  columns, constraints, defaults, index names.
+  columns, declaration types, constraints, defaults, index names.
 - `tests/migration-schema-parity.test.ts` — applies the migration chain to a real
   database and checks it creates every Drizzle table and column. Forget step 5 and it
   fails.
@@ -94,7 +94,10 @@ if (updated.length === 0) return false; // row was already modified
 
 ## JSON Columns
 
-Both schemas use a `jsonText<T>()` custom column that stores JSON as plain `TEXT`. Do **not** use `json()` or `jsonb()` — they behave differently across dialects and complicate cross-backend data sharing.
+Document and capabilities columns that the model serializes use `text()` in both
+schemas. Keep serialization in the model so the JSON string reaches the driver
+once. Other structured fields use `jsonText<T>()` in both schemas to encode and
+decode JSON as `TEXT`. Do not use `json()` or `jsonb()`.
 
 ```typescript
 // SQLite schema:
@@ -108,11 +111,15 @@ graph: jsonText<WorkflowGraph>()("graph").notNull()
 
 ## Boolean Columns
 
-SQLite schema uses `integer("col", { mode: "boolean" })` — TypeScript type is `boolean`, comparisons use `true`/`false`.
+SQLite uses `integer("col", { mode: "boolean" })`. PostgreSQL uses
+`integerBoolean("col")` from `src/schema-pg/helpers.ts`. Both expose TypeScript
+booleans and store `0` or `1`. Use `true` and `false` in queries against either
+schema.
 
-PostgreSQL schema uses plain `integer("col")` — TypeScript type is `number | null`, comparisons use `0`/`1` or filter in application code.
-
-If your query filters on a boolean-like column, pick the right literal for the schema you're querying against.
+For PostgreSQL defaults, use ``.default(sql`0`)`` for false and
+``.default(sql`1`)`` for true. Drizzle Kit renders defaults without applying
+the custom column encoder, so `.default(false)` would emit `DEFAULT false`
+for an integer column.
 
 ## Migrations
 

@@ -1,5 +1,9 @@
-import { is } from "drizzle-orm";
-import { PgTable, getTableConfig as pgTableConfig } from "drizzle-orm/pg-core";
+import { is, SQL } from "drizzle-orm";
+import {
+  PgDialect,
+  PgTable,
+  getTableConfig as pgTableConfig
+} from "drizzle-orm/pg-core";
 import {
   SQLiteTable,
   getTableConfig as sqliteTableConfig
@@ -49,6 +53,7 @@ const COLUMN_TYPE_EQUIVALENCES = new Map([
 function normalizeDefault(value: unknown): string | null {
   if (value === undefined || value === null) return null;
   if (typeof value === "boolean") return value ? "1" : "0";
+  if (is(value, SQL)) return new PgDialect().sqlToQuery(value).sql;
   return String(value);
 }
 
