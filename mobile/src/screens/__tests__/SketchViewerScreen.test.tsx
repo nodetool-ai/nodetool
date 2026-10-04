@@ -40,7 +40,16 @@ jest.mock('react-native-safe-area-context', () => ({
   useSafeAreaInsets: () => ({ top: 0, bottom: 0, left: 0, right: 0 }),
 }));
 
+// The stack's focus effect reduces to a plain effect in tests.
+jest.mock('@react-navigation/native', () => ({
+  useFocusEffect: (effect: () => void | (() => void)) => {
+    const react = require('react');
+    react.useEffect(effect, [effect]);
+  },
+}));
+
 import { apiService } from '../../services/api';
+import { buildUiContext } from '../../documents/uiContext';
 
 // Real `apiService`; only URL resolution is pinned to a stable test host.
 jest.spyOn(apiService, 'resolveUrl').mockImplementation((path) =>
@@ -157,6 +166,18 @@ describe('SketchViewerScreen', () => {
 
     expect(load).toHaveBeenCalled();
     expect(navigation.setOptions).toHaveBeenCalledWith({ title: 'Doodle' });
+  });
+
+  it('names the open sketch in ui_context while mounted', () => {
+    const view = renderScreen();
+
+    expect(buildUiContext()).toMatchObject({
+      open: [{ type: 'sketch', id: route.params.id, title: 'Doodle' }],
+      focused: { type: 'sketch', id: route.params.id },
+    });
+
+    view.unmount();
+    expect(buildUiContext()).toBeUndefined();
   });
 
   it('shows a spinner while the first load is in flight', () => {

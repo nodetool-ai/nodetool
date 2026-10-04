@@ -7,8 +7,10 @@
  * generation status it carries.
  *
  * There is no editing here: placing a brush stroke with a thumb is not the
- * phone's job, and there are no `ui_sketch_*` tools yet either, so `kinds.ts`
- * classifies this as a `viewer` with `agentEditable: false`.
+ * phone's job, and there are no `ui_sketch_*` tools, so `kinds.ts` classifies
+ * this as a `viewer` with `agentEditable: false`. The screen registers with the
+ * agent bridge, with no edit handler, only so the chat turn's `ui_context`
+ * names the sketch the user has open.
  */
 
 import { useCallback, useEffect, useLayoutEffect, useMemo } from 'react';
@@ -21,6 +23,7 @@ import {
   View,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { useFocusEffect } from '@react-navigation/native';
 import type { NativeStackScreenProps } from '@react-navigation/native-stack';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useShallow } from 'zustand/react/shallow';
@@ -28,6 +31,11 @@ import { useShallow } from 'zustand/react/shallow';
 import type { RootStackParamList } from '../navigation/types';
 import { useTheme } from '../hooks/useTheme';
 import { documentStore } from '../documents/documentStore';
+import {
+  registerDocumentHandler,
+  setDocumentTitle,
+  setFocusedDocument,
+} from '../documents/agentBridge';
 import {
   SketchRenderer,
   resolveLayers,
@@ -70,6 +78,25 @@ export default function SketchViewerScreen({ navigation, route }: Props) {
   useEffect(runLoad, [runLoad]);
 
   const title = docName || name || 'Sketch';
+
+  // Named in `ui_context` while mounted, so the agent knows which sketch is open.
+  useEffect(
+    () => registerDocumentHandler('sketch', id, title, {}),
+    // `title` is excluded: `setDocumentTitle` below keeps it current.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [id]
+  );
+  useEffect(() => {
+    if (docName) {
+      setDocumentTitle('sketch', id, docName);
+    }
+  }, [docName, id]);
+  useFocusEffect(
+    useCallback(() => {
+      setFocusedDocument('sketch', id);
+    }, [id])
+  );
+
   useLayoutEffect(() => {
     navigation.setOptions({ title });
   }, [navigation, title]);

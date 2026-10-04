@@ -460,8 +460,9 @@ export const useChatStore = create<ChatState>((set, get) => ({
         ? stateForSend.selectedTools
         : undefined,
       media_generation: mediaGeneration,
-      // Which document ids the `ui_*` tools may address. Omitted when nothing
-      // is open, so a plain chat turn stays unchanged.
+      // Which documents the user has open and focused, so the agent knows what
+      // "this timeline" or "this sketch" means, and which ids the storyboard
+      // `ui_*` tools may address. Omitted when nothing is open.
       ui_context: buildUiContext(),
     };
 
