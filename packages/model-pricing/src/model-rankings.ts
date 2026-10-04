@@ -6,8 +6,8 @@
  *
  * The artifact is keyed `<provider_id>:<model_id>`, so one lookup answers for
  * the exact route a node has selected. Every route to one model carries the
- * same `canonical` id and identical `tasks` — quality is a property of the
- * model, never of the route the run happens to take. Grouping and the per-task
+ * same `canonical` id and identical rankings for shared tasks. A route only
+ * carries tasks it serves. Grouping and the per-task
  * leaderboards are derived from that key space here rather than stored twice.
  *
  * Everything fails toward today's behavior: a model absent from the artifact
@@ -125,8 +125,8 @@ export function buildRankingsIndex(
   }
 
   // One row per canonical model, not per route: the routes of a canonical id
-  // carry identical tasks, so the first one's entry names the leaderboard
-  // position and the rest are listed as alternates on the same row.
+  // share rankings for each task they serve. The first route's entry names
+  // the leaderboard position and the rest are listed as alternates on the row.
   for (const [canonical, routes] of routesByCanonical) {
     const entry = routes[0].entry;
     const plainRoutes = routes.map(({ provider, modelId }) => ({

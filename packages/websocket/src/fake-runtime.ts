@@ -356,8 +356,46 @@ export function createFakeExecutorResolver(
     const meta = registry.getMetadata(node.type);
     const fake = shouldFakeNode(node.type, meta);
     debug(`[fake-runtime] ${node.id} ${node.type} -> ${fake ? "FAKE" : "REAL"}`);
-    return fake
-      ? fakeExecutor(meta, node.type, node.properties ?? {})
-      : registry.resolve(node);
+    if (fake) {
+      return fakeExecutor(meta, node.type, node.properties ?? {});
+    }
+
+    // Templates leave model selection to the user. The hermetic host supplies
+    // that selection so provider-backed nodes can run their real logic.
+    const selectModels = (values: Record<string, unknown>): Record<string, unknown> => {
+      const properties = { ...values };
+      for (const property of meta?.properties ?? []) {
+        if (baseType(property) !== "language_model") {
+          continue;
+        }
+        const model = properties[property.name] ?? node.properties?.[property.name];
+        properties[property.name] =
+          typeof model === "object" && model !== null &&
+          "id" in model && model.id && "provider" in model && model.provider
+            ? model
+            : {
+                type: "language_model",
+                provider: "openai",
+                id: "fake-model",
+                name: "E2E model"
+              };
+      }
+      return properties;
+    };
+    const executor = registry.resolve({
+      ...node,
+      properties: selectModels(node.properties ?? {})
+    });
+    // The actor supplies saved properties as inputs, including empty models.
+    // Apply the host selection again before BaseNode.assign() sees them.
+    const resolved: NodeExecutor = {
+      ...executor,
+      process: (inputs, context) => executor.process(selectModels(inputs), context)
+    };
+    const genProcess = executor.genProcess;
+    if (genProcess) {
+      resolved.genProcess = (inputs, context) => genProcess(selectModels(inputs), context);
+    }
+    return resolved;
   };
 }

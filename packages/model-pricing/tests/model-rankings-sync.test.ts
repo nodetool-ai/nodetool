@@ -423,6 +423,34 @@ describe("buildRankings", () => {
     );
   });
 
+  it("keeps task-specific routes limited to the tasks they serve", () => {
+    const taskIndex = buildRouteIndex([
+      { provider: "fal_ai", modelId: "kling/text", name: "Kling 3 Pro", tasks: ["text_to_video"] },
+      { provider: "kie", modelId: "kling/image", name: "Kling 3 Pro", tasks: ["image_to_video"] }
+    ]);
+    const { artifact } = buildRankings({
+      leaderboards: [
+        board("text_to_video", [aaModel({ elo: 1123 })]),
+        board("image_to_video", [aaModel({ elo: 1101 })])
+      ],
+      index: taskIndex,
+      aliases: { models: {} },
+      previous: null,
+      nowIso: "2026-01-01T00:00:00.000Z"
+    });
+
+    expect(artifact.models["fal_ai:kling/text"]).toMatchObject({
+      canonical: "kling-3-pro",
+      tasks: { text_to_video: { score: 1123, normalized: 1, rank: 1, of: 1 } }
+    });
+    expect(Object.keys(artifact.models["fal_ai:kling/text"].tasks)).toEqual(["text_to_video"]);
+    expect(artifact.models["kie:kling/image"]).toMatchObject({
+      canonical: "kling-3-pro",
+      tasks: { image_to_video: { score: 1101, normalized: 1, rank: 1, of: 1 } }
+    });
+    expect(Object.keys(artifact.models["kie:kling/image"].tasks)).toEqual(["image_to_video"]);
+  });
+
   it("sorts keys so an unchanged leaderboard produces no diff", () => {
     const { artifact } = build(
       [

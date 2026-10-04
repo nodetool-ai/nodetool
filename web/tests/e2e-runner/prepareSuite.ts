@@ -57,7 +57,8 @@ export function prepareSuite(): { count: number; outDir: string } {
   const overrides = config.overrides ?? {};
   const defaultExpect = config.defaultExpect ?? { status: "completed" };
 
-  rmSync(SUITE_OUT_DIR, { recursive: true, force: true });
+  // Vite may already be watching this directory. Replacing it can leave the
+  // public-file cache serving index.html for the regenerated manifest.
   mkdirSync(SUITE_OUT_DIR, { recursive: true });
 
   const files = readdirSync(sourceDir)
@@ -112,6 +113,15 @@ export function prepareSuite(): { count: number; outDir: string } {
     resolve(SUITE_OUT_DIR, "manifest.json"),
     JSON.stringify(manifest, null, 2)
   );
+  const generatedFiles = new Set([
+    "manifest.json",
+    ...manifestWorkflows.map(({ id }) => `${id}.json`)
+  ]);
+  for (const file of readdirSync(SUITE_OUT_DIR)) {
+    if (!generatedFiles.has(file)) {
+      rmSync(resolve(SUITE_OUT_DIR, file), { recursive: true, force: true });
+    }
+  }
 
   return { count: manifestWorkflows.length, outDir: SUITE_OUT_DIR };
 }
