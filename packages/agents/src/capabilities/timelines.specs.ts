@@ -500,7 +500,9 @@ export const editTimelineSpec: CapabilitySpec = {
   category: "write",
   userMessage: (params) => {
     const count = Array.isArray(params["ops"]) ? params["ops"].length : 0;
-    return `Editing timeline ${String(params["timeline_id"])} (${count} ops)`;
+    const id = params["timeline_id"];
+    const target = typeof id === "string" && id ? ` ${id}` : "";
+    return `Editing timeline${target} (${count} ${count === 1 ? "op" : "ops"})`;
   }
 };
 
