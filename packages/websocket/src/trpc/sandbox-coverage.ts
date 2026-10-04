@@ -962,6 +962,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "access token. A run has no traces of its own to push, and writing " +
       "here would plant records under the user's id."
   },
+  "bugReports.submit": {
+    withheld:
+      "Files a bug report with the NodeTool team in the user's name. A run " +
+      "that could send one could put words in the user's mouth and upload " +
+      "data they never reviewed."
+  },
   "memories.list": { capability: "memory_list" },
   "memories.search": { capability: "memory_search" },
   "threads.create": {

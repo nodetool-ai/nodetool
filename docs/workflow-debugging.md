@@ -382,8 +382,9 @@ Three `nodetool` commands cover the same ground without the editor. See the [CLI
 If you're still stuck after debugging:
 
 1. **Click Report on the failed node.** The bug-report form collects the error,
-   the node's settings, the workflow and the logs for you, then saves a zip you
-   drag into a pre-filled GitHub issue. See
+   the node's settings, the workflow and the logs for you. The hosted app sends
+   it to the NodeTool team. A local install saves a zip you drag into a
+   pre-filled GitHub issue. See
    [Report a Bug from inside NodeTool](troubleshooting.md#report-a-bug-from-inside-nodetool).
 2. **Ask on [Discord](https://discord.gg/WmQTWZRcYE)** if you would rather talk
    it through first. Bring the workflow JSON, a screenshot, and your OS and
