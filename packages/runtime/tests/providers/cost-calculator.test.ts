@@ -222,3 +222,18 @@ describe("calculateImageCost (gpt-image-1, per-image USD)", () => {
     );
   });
 });
+
+describe("CostCalculator.calculate with the September 2026 price data", () => {
+  // genai-prices 0.0.69 had no row for either model, so both priced at zero.
+  it.each([
+    ["claude-opus-5-5", "anthropic"],
+    ["gpt-6-sol", "openai"]
+  ])("prices %s", (modelId, provider) => {
+    const cost = CostCalculator.calculate(
+      modelId,
+      { inputTokens: 1000, outputTokens: 1000 },
+      provider
+    );
+    expect(cost).toBeGreaterThan(0);
+  });
+});
