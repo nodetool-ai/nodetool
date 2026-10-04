@@ -77,6 +77,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Apps      | `/api/applications/examples`      | `GET`             | Session auth                                   | no                          | The shipped example apps — slug, name, description, workflow names, operation count, thumbnail URL |
 | Apps      | `/api/applications/examples/{slug}` | `GET`           | Session auth                                   | no                          | One example's full `ApplicationBundle`; `404` when the slug names nothing shipped |
 | Apps      | `/api/applications/examples/{slug}/install` | `POST`  | Session auth                     | no                          | Install an example into the caller's library, creating the workflows it binds |
+| Apps      | `/api/applications/examples/{slug}/scripts/{key}/run` | `POST` | Session auth                | NDJSON with `Accept: application/x-ndjson` | Run a JS script an example bundle carries, without installing the example |
 | Storyboards | `/api/storyboards/{id}/export-zip` | `GET`           | Session auth                     | streaming                   | One board as a zip of Markdown plus its stills and clips; `404` when the caller does not own it |
 | Timelines | `/api/timelines/{id}/export-zip`   | `GET`             | Session auth                     | streaming                   | One sequence and the bytes of every asset its clips name, as a zip; `404` when the caller does not own it |
 | Timelines | `/api/timelines/import-zip`       | `POST`            | Session auth                     | no                          | Multipart upload of such a zip; stores the assets and creates a new timeline pointing at them |
@@ -1462,6 +1463,41 @@ template leaves one workflow row both apps point at.
 
 To install a bundle of your own instead of a shipped one, post it to
 `POST /api/applications/import-bundle`.
+
+`POST /api/applications/examples/{slug}/scripts/{key}/run` runs one of the JS
+scripts an example bundle carries, so the app's page can run an example before
+anyone installs it. `key` is a `scripts[].key` value from the bundle returned by
+`GET /api/applications/examples/{slug}`. The body is the same as
+[`POST /api/js-scripts/{id}/run`](#running-a-saved-js-script) except that
+`script_version` does not apply: the run uses the document stored in the bundle.
+
+```bash
+curl -X POST "http://localhost:7777/api/applications/examples/product-price-drop/scripts/plan_storyboard-v1/run" \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer YOUR_TOKEN" \
+  -d '{"inputs": {"recipe": {"operations": []}}}'
+```
+
+```json
+{
+  "ok": false,
+  "logs": [],
+  "duration_ms": 277,
+  "error": "Select a finishing model before planning."
+}
+```
+
+A script that throws answers `200` with `ok: false`, as it does for a saved
+script. The run belongs to the caller's personal project, so assets and
+documents the script creates land there. Send `Accept: application/x-ndjson` to
+stream the run: each line is one JSON object, `{"type": "message", ...}` for
+agent progress, `{"type": "emit", "name": ..., "value": ...}` for an `emit`
+call, and a last `{"type": "result", "result": ...}` line carrying the body the
+plain answer would have returned.
+
+A slug or key the bundles do not ship is a `404`
+(`{"detail": "Example app script not found"}`). An `inputs` value that is not
+an object is a `400` (`{"detail": "Invalid script inputs"}`).
 
 ### Exporting an App as a Bundle
 
