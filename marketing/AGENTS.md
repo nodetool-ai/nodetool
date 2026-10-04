@@ -72,6 +72,17 @@ For AtlasCloud enhancement:
 - Update `scripts/recipes.mjs` with the actual enhanced dimensions and measured
   media facts, then regenerate the recipe catalog.
 
+## Ad Library Videos
+
+Each concept in `src/data/adLibrary.json` plays a video rendered from a
+NodeTool timeline. The builders are
+`scripts/example-timelines/ad-library/<slug>.mjs`, and the editable masters
+are `recipe-assets/ad-library/<slug>.timeline.json`. From the repository
+root, run `node scripts/example-timelines/ad-library.mjs build`, `review`, or
+`render` with the slug. `render` writes the web cut and its poster to
+`public/ad-library/videos/` and records the measured facts as the concept's
+`video`. Start every beat at the time the concept's beat sheet gives it.
+
 ## Product Commercial Direction
 
 Build product commercials around a short sequence of consequential actions.

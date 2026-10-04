@@ -12,7 +12,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "3\u20135 transparent product cutouts",
@@ -221,9 +221,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 300,
@@ -246,7 +246,17 @@
       299
     ],
     "slug": "kinetic-offer-wall",
-    "route": "/ad-library/kinetic-offer-wall"
+    "route": "/ad-library/kinetic-offer-wall",
+    "video": {
+      "src": "/ad-library/videos/kinetic-offer-wall.mp4",
+      "poster": "/ad-library/videos/kinetic-offer-wall.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 10000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/kinetic-offer-wall.timeline.json"
+    }
   },
   {
     "id": "R02",
@@ -261,7 +271,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "3\u20135 aligned transparent product cutouts",
@@ -467,9 +477,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 240,
@@ -492,7 +502,17 @@
       239
     ],
     "slug": "product-cutout-shuffle",
-    "route": "/ad-library/product-cutout-shuffle"
+    "route": "/ad-library/product-cutout-shuffle",
+    "video": {
+      "src": "/ad-library/videos/product-cutout-shuffle.mp4",
+      "poster": "/ad-library/videos/product-cutout-shuffle.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 8000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/product-cutout-shuffle.timeline.json"
+    }
   },
   {
     "id": "R03",
@@ -507,7 +527,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "One hub icon or authorized representative image",
@@ -719,9 +739,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 450,
@@ -744,7 +764,17 @@
       449
     ],
     "slug": "one-hub-three-product-benefits",
-    "route": "/ad-library/one-hub-three-product-benefits"
+    "route": "/ad-library/one-hub-three-product-benefits",
+    "video": {
+      "src": "/ad-library/videos/one-hub-three-product-benefits.mp4",
+      "poster": "/ad-library/videos/one-hub-three-product-benefits.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 15000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/one-hub-three-product-benefits.timeline.json"
+    }
   },
   {
     "id": "R04",
@@ -759,7 +789,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "Clean UI crop or approved screen recording",
@@ -973,9 +1003,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 360,
@@ -998,7 +1028,17 @@
       359
     ],
     "slug": "benefit-led-dashboard-punch-in",
-    "route": "/ad-library/benefit-led-dashboard-punch-in"
+    "route": "/ad-library/benefit-led-dashboard-punch-in",
+    "video": {
+      "src": "/ad-library/videos/benefit-led-dashboard-punch-in.mp4",
+      "poster": "/ad-library/videos/benefit-led-dashboard-punch-in.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 12000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/benefit-led-dashboard-punch-in.timeline.json"
+    }
   },
   {
     "id": "R05",
@@ -1013,7 +1053,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "3\u20135 licensed footage clips with crop room",
@@ -1221,9 +1261,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 450,
@@ -1246,7 +1286,17 @@
       449
     ],
     "slug": "fast-footage-plus-kinetic-captions",
-    "route": "/ad-library/fast-footage-plus-kinetic-captions"
+    "route": "/ad-library/fast-footage-plus-kinetic-captions",
+    "video": {
+      "src": "/ad-library/videos/fast-footage-plus-kinetic-captions.mp4",
+      "poster": "/ad-library/videos/fast-footage-plus-kinetic-captions.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 15000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/fast-footage-plus-kinetic-captions.timeline.json"
+    }
   },
   {
     "id": "R06",
@@ -1261,7 +1311,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "3 high-resolution images",
@@ -1470,9 +1520,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 360,
@@ -1495,7 +1545,17 @@
       359
     ],
     "slug": "editorial-image-panels",
-    "route": "/ad-library/editorial-image-panels"
+    "route": "/ad-library/editorial-image-panels",
+    "video": {
+      "src": "/ad-library/videos/editorial-image-panels.mp4",
+      "poster": "/ad-library/videos/editorial-image-panels.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 12000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/editorial-image-panels.timeline.json"
+    }
   },
   {
     "id": "R07",
@@ -1510,7 +1570,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "One contextual footage shot or product still",
@@ -1719,9 +1779,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 300,
@@ -1744,7 +1804,17 @@
       299
     ],
     "slug": "binary-choice-participation-card",
-    "route": "/ad-library/binary-choice-participation-card"
+    "route": "/ad-library/binary-choice-participation-card",
+    "video": {
+      "src": "/ad-library/videos/binary-choice-participation-card.mp4",
+      "poster": "/ad-library/videos/binary-choice-participation-card.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 10000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/binary-choice-participation-card.timeline.json"
+    }
   },
   {
     "id": "R08",
@@ -1759,7 +1829,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "4\u20138 original/simplified UI cards",
@@ -1975,9 +2045,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 360,
@@ -2000,7 +2070,17 @@
       359
     ],
     "slug": "desktop-chaos-to-one-clean-result",
-    "route": "/ad-library/desktop-chaos-to-one-clean-result"
+    "route": "/ad-library/desktop-chaos-to-one-clean-result",
+    "video": {
+      "src": "/ad-library/videos/desktop-chaos-to-one-clean-result.mp4",
+      "poster": "/ad-library/videos/desktop-chaos-to-one-clean-result.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 12000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/desktop-chaos-to-one-clean-result.timeline.json"
+    }
   },
   {
     "id": "R09",
@@ -2015,7 +2095,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "One 4\u20136 s licensed/generated motion module or simple native scene",
@@ -2228,9 +2308,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 300,
@@ -2253,7 +2333,17 @@
       299
     ],
     "slug": "headline-plus-inset-motion-module",
-    "route": "/ad-library/headline-plus-inset-motion-module"
+    "route": "/ad-library/headline-plus-inset-motion-module",
+    "video": {
+      "src": "/ad-library/videos/headline-plus-inset-motion-module.mp4",
+      "poster": "/ad-library/videos/headline-plus-inset-motion-module.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 10000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/headline-plus-inset-motion-module.timeline.json"
+    }
   },
   {
     "id": "R10",
@@ -2268,7 +2358,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "Licensed/original 3D animation, or 6\u20139 flat icon tiles",
@@ -2479,9 +2569,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 300,
@@ -2504,7 +2594,17 @@
       299
     ],
     "slug": "integration-puzzle-that-snaps-together",
-    "route": "/ad-library/integration-puzzle-that-snaps-together"
+    "route": "/ad-library/integration-puzzle-that-snaps-together",
+    "video": {
+      "src": "/ad-library/videos/integration-puzzle-that-snaps-together.mp4",
+      "poster": "/ad-library/videos/integration-puzzle-that-snaps-together.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 10000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/integration-puzzle-that-snaps-together.timeline.json"
+    }
   },
   {
     "id": "R11",
@@ -2519,7 +2619,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "Original/licensed hero artwork with separable layers",
@@ -2726,9 +2826,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 360,
@@ -2751,7 +2851,17 @@
       359
     ],
     "slug": "hero-artwork-becomes-a-type-stage",
-    "route": "/ad-library/hero-artwork-becomes-a-type-stage"
+    "route": "/ad-library/hero-artwork-becomes-a-type-stage",
+    "video": {
+      "src": "/ad-library/videos/hero-artwork-becomes-a-type-stage.mp4",
+      "poster": "/ad-library/videos/hero-artwork-becomes-a-type-stage.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 12000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/hero-artwork-becomes-a-type-stage.timeline.json"
+    }
   },
   {
     "id": "R12",
@@ -2766,7 +2876,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "An original anchor glyph/icon",
@@ -2971,9 +3081,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 360,
@@ -2996,7 +3106,17 @@
       359
     ],
     "slug": "fixed-glyph-changing-world",
-    "route": "/ad-library/fixed-glyph-changing-world"
+    "route": "/ad-library/fixed-glyph-changing-world",
+    "video": {
+      "src": "/ad-library/videos/fixed-glyph-changing-world.mp4",
+      "poster": "/ad-library/videos/fixed-glyph-changing-world.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 12000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/fixed-glyph-changing-world.timeline.json"
+    }
   },
   {
     "id": "R13",
@@ -3011,7 +3131,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "Original simple shape or licensed character layers",
@@ -3221,9 +3341,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 360,
@@ -3246,7 +3366,17 @@
       359
     ],
     "slug": "calm-breathing-shape-loop",
-    "route": "/ad-library/calm-breathing-shape-loop"
+    "route": "/ad-library/calm-breathing-shape-loop",
+    "video": {
+      "src": "/ad-library/videos/calm-breathing-shape-loop.mp4",
+      "poster": "/ad-library/videos/calm-breathing-shape-loop.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 12000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/calm-breathing-shape-loop.timeline.json"
+    }
   },
   {
     "id": "R14",
@@ -3261,7 +3391,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "High-resolution product macro and full-product still, or original rendered clip",
@@ -3473,9 +3603,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 300,
@@ -3498,7 +3628,17 @@
       299
     ],
     "slug": "macro-feature-proof",
-    "route": "/ad-library/macro-feature-proof"
+    "route": "/ad-library/macro-feature-proof",
+    "video": {
+      "src": "/ad-library/videos/macro-feature-proof.mp4",
+      "poster": "/ad-library/videos/macro-feature-proof.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 10000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/macro-feature-proof.timeline.json"
+    }
   },
   {
     "id": "R15",
@@ -3513,7 +3653,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "Original output image/video",
@@ -3723,9 +3863,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 360,
@@ -3748,7 +3888,17 @@
       359
     ],
     "slug": "result-seen-through-the-product",
-    "route": "/ad-library/result-seen-through-the-product"
+    "route": "/ad-library/result-seen-through-the-product",
+    "video": {
+      "src": "/ad-library/videos/result-seen-through-the-product.mp4",
+      "poster": "/ad-library/videos/result-seen-through-the-product.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 12000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/result-seen-through-the-product.timeline.json"
+    }
   },
   {
     "id": "R16",
@@ -3763,7 +3913,7 @@
       "4:5",
       "1:1"
     ],
-    "timing_status": "Proposed output timing; validate with a rendered preview.",
+    "timing_status": "Beat timing rendered as a NodeTool timeline; recheck it with your own assets.",
     "creative_status": "Reusable motion concept with generated illustrative stills. Use approved product assets and claims for production.",
     "assets_required": [
       "3\u20134 approved capability icons",
@@ -3975,9 +4125,9 @@
     ],
     "readiness": {
       "status": "concept",
-      "timing": "proposed",
-      "motion_render_review": "not_performed",
-      "host_integration": "not_verified",
+      "timing": "rendered",
+      "motion_render_review": "performed",
+      "host_integration": "verified",
       "illustrations": "generated_stills"
     },
     "duration_frames": 360,
@@ -4000,6 +4150,16 @@
       359
     ],
     "slug": "a-capability-journey-on-connected-paths",
-    "route": "/ad-library/a-capability-journey-on-connected-paths"
+    "route": "/ad-library/a-capability-journey-on-connected-paths",
+    "video": {
+      "src": "/ad-library/videos/a-capability-journey-on-connected-paths.mp4",
+      "poster": "/ad-library/videos/a-capability-journey-on-connected-paths.webp",
+      "width": 720,
+      "height": 1280,
+      "duration_ms": 12000,
+      "fps": 30,
+      "codec": "h264",
+      "timeline": "marketing/recipe-assets/ad-library/a-capability-journey-on-connected-paths.timeline.json"
+    }
   }
 ]

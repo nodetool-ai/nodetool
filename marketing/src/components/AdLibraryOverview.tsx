@@ -23,6 +23,7 @@ function toSummary(recipe: AdRecipe): AdConceptSummary {
     goal: recipe.selection.goal,
     complexity: recipe.selection.complexity,
     durationMs: recipe.duration_ms,
+    video: { src: recipe.video.src, poster: recipe.video.poster },
     beats: recipe.beats.map(({ id, role, start_ms, end_ms }) => ({
       id,
       role,
@@ -70,8 +71,8 @@ function CompactOverview() {
               Find the shape of your next ad.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-slate-300">
-              {adRecipes.length} motion concepts, each timed beat by beat.
-              Hover a concept to play it.
+              {adRecipes.length} motion concepts, each timed beat by beat and
+              rendered as a NodeTool timeline.
             </p>
           </div>
           <a
@@ -159,14 +160,12 @@ export default function AdLibraryOverview({
               {left && (
                 <AutoPlayFrame
                   concept={left}
-                  delayMs={1400}
                   className="absolute left-0 top-16 w-[190px] -rotate-6 opacity-70"
                 />
               )}
               {right && (
                 <AutoPlayFrame
                   concept={right}
-                  delayMs={700}
                   className="absolute right-0 top-16 w-[190px] rotate-6 opacity-70"
                 />
               )}
@@ -192,8 +191,8 @@ export default function AdLibraryOverview({
               Pick a concept
             </h2>
             <p className="max-w-md text-sm leading-relaxed text-slate-400">
-              Hover a concept to play its beats at the proposed timing. The
-              frames are concept illustrations, not rendered ads.
+              Each concept plays as a rendered NodeTool timeline at its beat
+              timing. The brands, copy and numbers are fictional.
             </p>
           </div>
           <ConceptGrid concepts={adRecipes.map(toSummary)} />

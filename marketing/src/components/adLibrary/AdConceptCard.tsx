@@ -1,7 +1,9 @@
 "use client";
-import { useEffect, useState } from "react";
-import { BeatFrame, BeatProgress } from "./BeatFrame";
-import { useBeatClock, usePrefersReducedMotion } from "./useBeatClock";
+import { useRef } from "react";
+import { useAutoplayInView } from "@/lib/useAutoplayInView";
+import type { AdVideo } from "./AdBeatSequence";
+import { BeatProgress } from "./BeatProgress";
+import { useVideoBeatClock } from "./useVideoBeatClock";
 
 export interface AdConceptSummary {
   readonly id: string;
@@ -11,6 +13,7 @@ export interface AdConceptSummary {
   readonly goal: string;
   readonly complexity: string;
   readonly durationMs: number;
+  readonly video: AdVideo;
   readonly beats: readonly {
     readonly id: string;
     readonly role: string;
@@ -44,51 +47,53 @@ export function ComplexityMeter({ complexity }: { complexity: string }) {
   );
 }
 
-/** A concept card. Hover or focus plays the beats at their real timing. */
+/**
+ * The rendered ad, muted and looping while at least half of it is on screen,
+ * with its beats as a progress bar. Reduced motion leaves it on its poster,
+ * the final frame. Decorative: the card's own text names the concept.
+ */
+function ConceptVideo({
+  concept,
+  className = ""
+}: {
+  concept: AdConceptSummary;
+  className?: string;
+}) {
+  const videoRef = useRef<HTMLVideoElement>(null);
+  const clock = useVideoBeatClock(videoRef, concept.beats);
+  useAutoplayInView(videoRef);
+  return (
+    <div className={`relative overflow-hidden bg-slate-900 ${className}`}>
+      <video
+        ref={videoRef}
+        src={concept.video.src}
+        poster={concept.video.poster}
+        muted
+        loop
+        playsInline
+        preload="none"
+        aria-hidden="true"
+        className="block aspect-[9/16] w-full object-cover"
+      />
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent px-3 pb-3 pt-10">
+        <BeatProgress beats={concept.beats} elapsedMs={clock.elapsedMs} />
+      </div>
+    </div>
+  );
+}
+
+/** A concept card: the rendered ad above its title, goal and complexity. */
 export function AdConceptCard({ concept }: { concept: AdConceptSummary }) {
-  const lastIndex = concept.beats.length - 1;
-  const clock = useBeatClock(concept.beats, {
-    loop: true,
-    initialMs: concept.beats[lastIndex].start_ms
-  });
-  const [armed, setArmed] = useState(false);
-  const reducedMotion = usePrefersReducedMotion();
-
-  const start = (): void => {
-    setArmed(true);
-    if (!reducedMotion) {
-      clock.seek(0);
-      clock.play();
-    }
-  };
-  const stop = (): void => {
-    clock.pause();
-    clock.seek(concept.beats[lastIndex].start_ms);
-  };
-
   return (
     <a
       href={concept.route}
-      onPointerEnter={start}
-      onPointerLeave={stop}
-      onFocus={start}
-      onBlur={stop}
       className="focus-ring group flex flex-col rounded-2xl"
     >
-      <div className="relative overflow-hidden rounded-2xl ring-1 ring-white/10 transition-shadow duration-300 group-hover:ring-amber-300/50 group-hover:shadow-[0_24px_60px_-20px_rgba(251,191,36,0.35)] motion-reduce:transition-none">
-        <BeatFrame
-          title={concept.title}
-          beats={concept.beats}
-          activeIndex={clock.activeIndex}
-          loadAll={armed}
-          sizes="(min-width: 1024px) 300px, (min-width: 640px) 45vw, 50vw"
+      <div className="relative">
+        <ConceptVideo
+          concept={concept}
+          className="rounded-2xl ring-1 ring-white/10 transition-shadow duration-300 group-hover:shadow-[0_24px_60px_-20px_rgba(251,191,36,0.35)] group-hover:ring-amber-300/50 motion-reduce:transition-none"
         />
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 via-black/20 to-transparent px-3 pb-3 pt-10">
-          <BeatProgress
-            beats={concept.beats}
-            elapsedMs={clock.playing ? clock.elapsedMs : 0}
-          />
-        </div>
         <span className="absolute left-3 top-3 rounded-full bg-black/55 px-2.5 py-1 font-jetbrains text-[11px] font-medium text-white backdrop-blur">
           {concept.durationMs / 1000}s · {concept.beats.length} beats
         </span>
@@ -114,44 +119,20 @@ export function AdConceptCard({ concept }: { concept: AdConceptSummary }) {
   );
 }
 
-/** A frame that loops its beats on its own, for decorative use. */
+/** A rendered ad that plays on its own, for the library's hero. */
 export function AutoPlayFrame({
   concept,
-  delayMs = 0,
   className = ""
 }: {
   concept: AdConceptSummary;
-  delayMs?: number;
   className?: string;
 }) {
-  const clock = useBeatClock(concept.beats, { loop: true });
-  const reducedMotion = usePrefersReducedMotion();
-  const { play, seek } = clock;
-  const lastStart = concept.beats[concept.beats.length - 1].start_ms;
-
-  useEffect(() => {
-    if (reducedMotion) {
-      seek(lastStart);
-      return;
-    }
-    const timer = window.setTimeout(play, delayMs);
-    return () => window.clearTimeout(timer);
-  }, [reducedMotion, play, seek, delayMs, lastStart]);
-
   return (
     <div className={className}>
-      <div className="relative overflow-hidden rounded-[1.75rem] shadow-[0_40px_80px_-30px_rgba(0,0,0,0.9)] ring-1 ring-white/15">
-        <BeatFrame
-          title={concept.title}
-          beats={concept.beats}
-          activeIndex={clock.activeIndex}
-          loadAll
-          sizes="320px"
-        />
-        <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/60 to-transparent px-4 pb-4 pt-12">
-          <BeatProgress beats={concept.beats} elapsedMs={clock.elapsedMs} />
-        </div>
-      </div>
+      <ConceptVideo
+        concept={concept}
+        className="rounded-[1.75rem] shadow-[0_40px_80px_-30px_rgba(0,0,0,0.9)] ring-1 ring-white/15"
+      />
     </div>
   );
 }

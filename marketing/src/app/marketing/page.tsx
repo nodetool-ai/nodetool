@@ -208,6 +208,9 @@ export default function MarketingSegmentPage() {
           </div>
         </section>
 
+        {/* Short social ads first: the format an ad team runs most. */}
+        <AdLibraryOverview compact />
+
         <TimelineShowcase />
 
         {/* Why marketing teams choose NodeTool: one campaign, shown rather
@@ -322,8 +325,6 @@ export default function MarketingSegmentPage() {
             </div>
           </div>
         </section>
-
-        <AdLibraryOverview compact />
 
         <RecipeShowcase />
 

@@ -1,70 +1,15 @@
 "use client";
-import Image from "next/image";
-import { formatKey, illustrationSrc } from "@/data/adLibrary";
+import { formatKey } from "@/data/adLibrary";
 
-interface FrameBeat {
+interface ProgressBeat {
   readonly id: string;
   readonly role: string;
   readonly start_ms: number;
   readonly end_ms: number;
 }
 
-interface BeatFrameProps {
-  readonly title: string;
-  readonly beats: readonly FrameBeat[];
-  readonly activeIndex: number;
-  /** Mount every beat image. When false, only the active beat loads. */
-  readonly loadAll: boolean;
-  readonly sizes: string;
-  readonly priority?: boolean;
-  readonly className?: string;
-}
-
-/** A 9:16 frame that cross-fades between beat illustrations. */
-export function BeatFrame({
-  title,
-  beats,
-  activeIndex,
-  loadAll,
-  sizes,
-  priority = false,
-  className = ""
-}: BeatFrameProps) {
-  return (
-    <div
-      className={`relative aspect-[9/16] overflow-hidden bg-slate-900 ${className}`}
-    >
-      {beats.map((beat, index) => {
-        const active = index === activeIndex;
-        if (!loadAll && !active) {
-          return null;
-        }
-        return (
-          <Image
-            key={beat.id}
-            src={illustrationSrc(beat.id)}
-            alt={
-              active
-                ? `${title}, beat ${index + 1}: ${formatKey(beat.role)}`
-                : ""
-            }
-            aria-hidden={active ? undefined : true}
-            width={600}
-            height={1067}
-            sizes={sizes}
-            priority={priority && active}
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ease-out motion-reduce:transition-none ${
-              active ? "opacity-100" : "opacity-0"
-            }`}
-          />
-        );
-      })}
-    </div>
-  );
-}
-
 interface BeatProgressProps {
-  readonly beats: readonly FrameBeat[];
+  readonly beats: readonly ProgressBeat[];
   readonly elapsedMs: number;
   /** When set, each segment becomes a button that selects its beat. */
   readonly onSelect?: (index: number) => void;

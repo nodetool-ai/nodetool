@@ -25,10 +25,6 @@ export function illustrationSrc(beatId: string): string {
   return `/ad-library/illustrations/${beatId}.webp`;
 }
 
-export function finalBeat(recipe: AdRecipe): AdBeat {
-  return recipe.beats[recipe.beats.length - 1];
-}
-
 export const adLibraryEntries: PageEntry[] = [
   {
     route: "/ad-library",
