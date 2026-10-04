@@ -51,7 +51,8 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import type { StorageAdapter } from "@nodetool-ai/storage";
 import { bridge, streamedResponse } from "../lib/bridge.js";
-import { getUserId, type HttpApiOptions } from "../http-api.js";
+import type { HttpApiOptions } from "../http-api.js";
+import { getUserId } from "../lib/user-id.js";
 import { getExampleAppBundle } from "../lib/example-apps.js";
 import { getAssetAdapter } from "../lib/storage.js";
 

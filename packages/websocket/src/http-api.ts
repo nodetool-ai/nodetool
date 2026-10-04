@@ -15,6 +15,7 @@ import {
 import nodePath from "node:path";
 import os from "node:os";
 import { GZIP_THRESHOLD } from "./lib/compression.js";
+import { getUserId } from "./lib/user-id.js";
 import { withCacheBuster } from "./lib/example-thumbnail.js";
 import {
   loadExampleGraph,
@@ -463,11 +464,7 @@ function errorResponse(status: number, detail: string): Response {
   return jsonResponse({ detail }, { status });
 }
 
-export function getUserId(request: Request, headerName: string): string {
-  return (
-    request.headers.get(headerName) ?? request.headers.get("x-user-id") ?? "1"
-  );
-}
+export { getUserId };
 
 /** The raw JSON body, or null when there is nothing readable to parse. */
 async function readJsonBody(request: Request): Promise<unknown> {
