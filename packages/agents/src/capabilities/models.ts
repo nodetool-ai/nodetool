@@ -78,7 +78,9 @@ const LOCAL_PROVIDER_IDS = new Set([
   "lmstudio",
   "vllm",
   "llama_cpp",
-  "node_llama_cpp"
+  "node_llama_cpp",
+  "whisper_cpp",
+  "whisper_cpp_server"
 ]);
 
 /**

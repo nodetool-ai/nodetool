@@ -31,7 +31,8 @@ const RUNTIME_GROUP: Record<string, "language" | "media" | "ai"> = {
   "yt-dlp": "media",
   "transformers-js": "ai",
   "tensorflow-js": "ai",
-  "node-llama-cpp": "ai"
+  "node-llama-cpp": "ai",
+  "whisper-cpp": "ai"
 };
 const runtimeGroup = (id: string) => RUNTIME_GROUP[id] ?? "media";
 

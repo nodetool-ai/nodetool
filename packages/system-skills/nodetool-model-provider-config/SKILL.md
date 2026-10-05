@@ -55,6 +55,21 @@ export OLLAMA_API_URL=http://localhost:11434
 
 # Model Selection by Task
 
+## whisper.cpp speech recognition
+
+The provider is local-only and unavailable on the cloud profile.
+`whisper_cpp` runs speech recognition in the backend through the optional
+`@fugood/whisper.node@1.1.3` runtime package. Install **whisper.cpp** from the
+Package Manager, then download a GGML model from Models. It serves
+`nodetool.text.AutomaticSpeechRecognition`.
+Use the absolute model path returned by discovery unchanged as the ASR model id.
+
+Models use the Hugging Face hub cache (`HF_HUB_CACHE`, then `HF_HOME/hub`, then
+`~/.cache/huggingface/hub`). `WHISPER_CPP_MODELS_DIR` adds another directory.
+`WHISPER_CPP_GPU_BACKEND` accepts `auto`, `metal`, `cuda`, `vulkan`, or `cpu`.
+`auto` uses the default build, including Metal on macOS. Restart the backend
+after changing the backend setting.
+
 ## Language / Chat
 
 | Need | Model | Provider | Notes |

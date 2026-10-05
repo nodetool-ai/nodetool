@@ -78,6 +78,14 @@ vi.mock("node:fs/promises", async (orig) => {
 });
 
 import { access, readdir } from "node:fs/promises";
+import { getSecret } from "@nodetool-ai/models";
+
+vi.mock("@nodetool-ai/whisper-cpp", async (orig) => ({
+  ...await orig<typeof import("@nodetool-ai/whisper-cpp")>(),
+  discoverASRModels: vi.fn().mockResolvedValue([]),
+  discoverVadModels: vi.fn().mockResolvedValue([])
+}));
+import { discoverASRModels } from "@nodetool-ai/whisper-cpp";
 
 // ── Mock @nodetool-ai/transformers-js-nodes (cache-scan + path helpers) ──────
 
@@ -159,6 +167,7 @@ describe("models router", () => {
 
   beforeEach(() => {
     vi.clearAllMocks();
+    vi.mocked(getSecret).mockResolvedValue(null);
     // Default: no providers, no HF cache, no disk I/O errors
     (listRegisteredProviderIds as ReturnType<typeof vi.fn>).mockReturnValue([]);
     (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(false);
@@ -252,6 +261,18 @@ describe("models router", () => {
   });
 
   // ── recommendedLanguageEmbedding ─────────────────────────────────────────
+
+  it("marks downloaded whisper models from the configured scan", async () => {
+    vi.mocked(discoverASRModels).mockResolvedValueOnce([
+      { id: "/models/ggml-base.en.bin", name: "base.en", provider: "whisper_cpp" }
+    ]);
+    const caller = createCaller(makeCtx());
+    const models = await caller.models.recommendedAsr();
+    expect(models.find((model) => model.path === "ggml-base.en.bin")?.downloaded).toBe(true);
+    expect(models.find((model) => model.path === "ggml-base.en.bin")?.id).toBe("/models/ggml-base.en.bin");
+    expect(models.find((model) => model.path === "ggml-small.bin")?.downloaded).toBe(false);
+    expect(models.some((model) => model.type === "hf.whisper_cpp_vad")).toBe(false);
+  });
 
   describe("recommendedLanguageEmbedding", () => {
     it("returns embedding models", async () => {

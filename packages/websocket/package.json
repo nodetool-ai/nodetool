@@ -75,7 +75,8 @@
     "fflate": "^0.8.2",
     "msgpackr": "^1.11.2",
     "sharp": "^0.35.3",
-    "zod": "^4.0.0"
+    "zod": "^4.0.0",
+    "@nodetool-ai/whisper-cpp": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

@@ -31,6 +31,16 @@ export interface RecommendedUnifiedModel extends UnifiedModel {
 }
 
 export const RECOMMENDED_MODELS: RecommendedUnifiedModel[] = [
+  ...["ggml-base.en.bin", "ggml-small.bin", "ggml-large-v3-turbo-q5_0.bin"].map((file): RecommendedUnifiedModel => ({
+    id: `ggerganov/whisper.cpp/${file}`,
+    type: "hf.whisper_cpp",
+    name: file.replace(/^ggml-/, "").replace(/\.bin$/, ""),
+    repo_id: "ggerganov/whisper.cpp",
+    path: file,
+    downloaded: false,
+    modality: "asr",
+    provider: "whisper_cpp"
+  })),
   {
     id: "gpt-5-mini",
     type: "language_model",

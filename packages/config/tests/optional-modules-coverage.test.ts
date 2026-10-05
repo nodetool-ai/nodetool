@@ -5,14 +5,7 @@
  * importNodeBuiltin — the loader's only external effects — and never touch
  * the real module graph or filesystem.
  */
-import {
-  describe,
-  it,
-  expect,
-  vi,
-  beforeEach,
-  afterEach
-} from "vitest";
+import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 
 const h = vi.hoisted(() => ({
   state: { isNode: true },
@@ -46,6 +39,38 @@ describe("importOptionalModule", () => {
     } else {
       process.env["NODETOOL_OPTIONAL_NODE_MODULES"] = savedEnv;
     }
+  });
+
+  it("loads native CommonJS wrappers without the ESM source resolver", async () => {
+    const binding = { initWhisper: vi.fn() };
+    const requireModule = vi.fn().mockReturnValue(binding);
+    h.importNodeBuiltin.mockResolvedValue({
+      createRequire: () => requireModule
+    });
+    expect(await importOptionalModule("native-pkg", { commonJs: true })).toBe(
+      binding
+    );
+    expect(requireModule).toHaveBeenCalledWith("native-pkg");
+    expect(h.importHidden).not.toHaveBeenCalled();
+  });
+
+  it("requires native wrappers from the runtime package directory", async () => {
+    process.env["NODETOOL_OPTIONAL_NODE_MODULES"] = "/opt/nm";
+    const binding = { initWhisper: vi.fn() };
+    const primary = vi.fn(() => {
+      throw new Error("missing");
+    });
+    const fallback = vi.fn().mockReturnValue(binding);
+    h.importNodeBuiltin
+      .mockResolvedValueOnce({ createRequire: () => primary })
+      .mockResolvedValueOnce({ createRequire: () => fallback })
+      .mockResolvedValueOnce({ join: (...parts: string[]) => parts.join("/") })
+      .mockResolvedValueOnce({ pathToFileURL: vi.fn() });
+    expect(await importOptionalModule("native-pkg", { commonJs: true })).toBe(
+      binding
+    );
+    expect(fallback).toHaveBeenCalledWith("native-pkg");
+    expect(h.importHidden).not.toHaveBeenCalled();
   });
 
   it("returns the module when importHidden resolves it (present module)", async () => {
@@ -137,13 +162,13 @@ describe("importOptionalModule", () => {
     process.env["NODETOOL_OPTIONAL_NODE_MODULES"] = "/opt/nm";
     const boom = new Error("primary miss");
 
-    h.importHidden
-      .mockRejectedValueOnce(boom)
-      .mockResolvedValueOnce(null); // file URL import yields null
+    h.importHidden.mockRejectedValueOnce(boom).mockResolvedValueOnce(null); // file URL import yields null
 
     const resolve = vi.fn().mockReturnValue("/opt/nm/pkg/index.js");
     h.importNodeBuiltin
-      .mockResolvedValueOnce({ createRequire: vi.fn().mockReturnValue({ resolve }) })
+      .mockResolvedValueOnce({
+        createRequire: vi.fn().mockReturnValue({ resolve })
+      })
       .mockResolvedValueOnce({ join: (...p: string[]) => p.join("/") })
       .mockResolvedValueOnce({
         pathToFileURL: vi.fn().mockReturnValue({ href: "file:///x" })
@@ -161,7 +186,9 @@ describe("importOptionalModule", () => {
       throw new Error("MODULE_NOT_FOUND");
     });
     h.importNodeBuiltin
-      .mockResolvedValueOnce({ createRequire: vi.fn().mockReturnValue({ resolve }) })
+      .mockResolvedValueOnce({
+        createRequire: vi.fn().mockReturnValue({ resolve })
+      })
       .mockResolvedValueOnce({ join: (...p: string[]) => p.join("/") })
       .mockResolvedValueOnce({ pathToFileURL: vi.fn() });
 
