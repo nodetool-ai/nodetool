@@ -420,12 +420,12 @@ export const HARNESSES: HarnessEntry[] = [
   {
     id: "app-instance-history-ui",
     title: "Instance tabs, management cache and app host check",
-    command: "npm run test --workspace=web -- --runInBand --testPathPattern='WorkspaceTabsStore|useAppInstances|useAppInstance|ApplicationSurface|ApplicationRunView|AppRuntimeView|useAppRuntime'",
+    command: "npm run test --workspace=web -- --runInBand --testPathPattern='WorkspaceTabsStore|useAppInstances|useAppInstance|ApplicationSurface|ApplicationRunView|AppRuntimeView|AppRunHistory|useAppRuntime'",
     kind: "execution",
     capabilities: [],
     docs: "docs/harnesses.md § App instances and history phase 5",
     selfcheck: {
-      command: "npm run test --workspace=web -- --runInBand --testPathPattern='WorkspaceTabsStore|useAppInstances|useAppInstance|ApplicationSurface|ApplicationRunView|AppRuntimeView|useAppRuntime'",
+      command: "npm run test --workspace=web -- --runInBand --testPathPattern='WorkspaceTabsStore|useAppInstances|useAppInstance|ApplicationSurface|ApplicationRunView|AppRuntimeView|AppRunHistory|useAppRuntime'",
       cost: "cheap"
     }
   },
