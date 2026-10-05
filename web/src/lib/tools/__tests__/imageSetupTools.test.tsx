@@ -59,7 +59,11 @@ const call = async (name: string, args: Record<string, unknown>) => {
 const mountBridge = () => {
   act(() => {
     useSketchStore.getState().setDocument(createDefaultDocument(512, 512));
-    useSketchSessionStore.setState({ bindings: {}, documentId: DOC } as never);
+    useSketchSessionStore.setState({
+      bindings: {},
+      documentId: DOC,
+      hydratedDocumentId: DOC
+    } as never);
   });
   return renderHook(() => useSketchAgentBridge(DOC));
 };
@@ -151,9 +155,9 @@ describe("ui_sketch_refine_brief (criterion 3, headless)", () => {
     expect(useSketchStore.getState().document.layers).toHaveLength(
       layersBefore
     );
-    expect(
-      Object.keys(useSketchSessionStore.getState().bindings)
-    ).toHaveLength(0);
+    expect(Object.keys(useSketchSessionStore.getState().bindings)).toHaveLength(
+      0
+    );
     expect(sendMock).not.toHaveBeenCalled();
     const setup = useSketchStore.getState().document.setup;
     expect(setup?.stage).toBe("review");

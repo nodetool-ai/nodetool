@@ -60,7 +60,59 @@ type AdaptationDocumentState = Pick<
 >;
 
 function errorMessage(cause: unknown): string {
-  return cause instanceof Error ? cause.message : "Could not create adaptation.";
+  return cause instanceof Error
+    ? cause.message
+    : "Could not create adaptation.";
+}
+
+/** Persist an already-derived sequence and show its editor. */
+export async function persistAdaptedTimeline(
+  sequence: TimelineSequence,
+  sourceId: string
+): Promise<string> {
+  let createdId: string | undefined;
+  try {
+    const created = await trpcClient.timeline.create.mutate({
+      id: sequence.id,
+      name: sequence.name,
+      projectId: sequence.projectId,
+      fps: sequence.fps,
+      width: sequence.width,
+      height: sequence.height
+    });
+    createdId = created.id;
+    await trpcClient.timeline.update.mutate({
+      id: created.id,
+      document: {
+        ...buildTimelineDocumentPayload({
+          ...sequence,
+          trackFolders: sequence.trackFolders ?? [],
+          mediaTracks: sequence.mediaTracks ?? [],
+          transcript: sequence.transcript ?? [],
+          scriptEnabled: sequence.scriptEnabled ?? false,
+          camera2d: sequence.camera2d ?? null
+        }),
+        templateId: sourceId
+      }
+    });
+    invalidateTimelineGetQuery(created.id);
+    useWorkspaceTabsStore
+      .getState()
+      .openTab({
+        type: "timeline",
+        ref: created.id,
+        mode: "edit",
+        title: sequence.name,
+        projectId: created.projectId
+      });
+    return created.id;
+  } catch (cause) {
+    if (createdId)
+      await trpcClient.timeline.delete
+        .mutate({ id: createdId })
+        .catch(() => undefined);
+    throw cause;
+  }
 }
 
 /**

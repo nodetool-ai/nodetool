@@ -704,11 +704,14 @@ sequence. Chat, MCP, sandbox imports, and headless evals invoke their owned
 `CapabilityRun` directly. A child context needs its own run because its memory,
 workspace, and delegation depth can differ, while sharing the host's gate.
 
-`gateLegacyTools` ([`legacy-tools.ts`](src/capabilities/legacy-tools.ts)) is only
-for consumers that still require `Tool[]`. It caches one invocation run per
-belt and context. Native compatibility wrappers contribute their original
-spec and implementation, preserving injected dependencies without calling
-`Tool.process()`. Only actual legacy implementations use `capabilityFromTool`.
+`capabilityRunForTools` ([`legacy-tools.ts`](src/capabilities/legacy-tools.ts))
+builds the belt run. Native compatibility wrappers contribute their original
+spec and implementation, preserving injected dependencies while taking the
+belt's gate, signal, and invocation function. Only actual legacy implementations
+use `capabilityFromTool`. `gateLegacyTools` caches that run per belt and context
+for consumers that still require `Tool[]`. Sandbox bridges take tool metadata
+and an invocation function. The Code node supplies its host's gate. The sandbox
+belt retains its explicit ungated run.
 Tests in `capabilities-headless-permission.test.ts` cover direct invocation,
 headless permissions, metadata, validation, and the compatibility boundary.
 
@@ -1181,7 +1184,7 @@ with `headlessGate(hostName)`.
 | `run_node` child | `runSingleNode` builds a context of its own, so the turn's gate is passed in as an argument and set on it | the calling turn's, the same object | the calling turn's client |
 | `AgentNode` in a workflow | `genProcess` wraps what `buildTools` returned in `gateFromContext(context, "Agent node")` | the host's, or `auto` when no host set one | the host's, or the headless deny |
 | JS script | `js-script-sandbox.ts` passes `gateFromContext(context, "JS script")` to `createCapabilityRun` | same | same |
-| `nodetool.code.Code` node | `code-node.ts` reads `gateFromContext(context, "Code node")` once and uses it for both doors: `createCapabilityRun` for the `@nodetool-ai/sandbox-nodetool/*` imports, `gateLegacyTools` around the belt the bridge calls | same | same |
+| `nodetool.code.Code` node | `code-node.ts` reads `gateFromContext(context, "Code node")` and uses it for both doors: `createCapabilityRun` for the `@nodetool-ai/sandbox-nodetool/*` imports, `capabilityRunForTools` for the belt the bridge invokes | same | same |
 | Kernel workflow run | `buildWorkspaceExecutionContext` (`packages/execution/src/service/workflow-workspace.ts`) sets `headlessGate("kernel workflow run")` on the context it builds, and `ExecutionSession.create` sets the same on a caller's own context when that caller set none (see below) | `auto` | nobody: the headless deny |
 | Headless job runner (trigger-driven runs) | `packages/websocket/src/headless-job-runner.ts` sets `headlessGate("headless job runner")` on the run context | `auto` | nobody: the headless deny |
 | `nodetool agent run` on a TTY | `createCliPermissionGate` (`packages/cli/src/permission-gate.ts`), host name `nodetool agent run`, set on the run's context | `--permission-mode`, defaulting to `default` | the terminal: `y / n / a` prompted on stderr, because stdout carries the result. `a` answers `allow_for_chat`, and the name lands in the run's shared `sessionAllow` |
@@ -1254,7 +1257,8 @@ print the same sentence once at the start instead of once per denied call.
 **Compatibility consumers may still build an ungated run.**
 `capabilities/lazy-tool.ts` and `tools/serp-tool-factory.ts` build compatibility
 tools whose calls use `invokeCapability`. Gated hosts supply their permission
-gate through `gateLegacyTools`. `capabilities/packs.ts` reads a SKILL.md,
+gate through `capabilityRunForTools`, or `gateLegacyTools` when they need
+`Tool[]`. `capabilities/packs.ts` reads a SKILL.md,
 a read-class call with nothing for the ladder to withhold.
 `packages/agents/tests/gate-from-context.test.ts` walks every
 `packages/*/src` for `ungatedCapabilityRun` and fails on any file its allowlist

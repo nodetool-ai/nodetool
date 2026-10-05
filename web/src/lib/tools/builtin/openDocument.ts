@@ -1,19 +1,4 @@
-// builtin/openDocument.ts
-// -----------------------------------------------------------------
-// `ui_open_document` — open a document as a workspace tab.
-//
-// Every editor `ui_*` tool acts on a document the user has *open*: each
-// mounted editor registers a handler under its document id, and a tool
-// called with an id nothing has registered fails with "No timeline
-// sequence … is open". Before this tool that was a dead end — the agent
-// could find a document id (`list_timelines`, `list_sketches`, a link the
-// user pasted) and still have no way to act on it.
-//
-// Opening a tab mounts that document's surface, which registers the
-// handler, so this is the bridge between "an id exists" and "the ui_*
-// tools work on it". Tabs stay mounted in the background, so opening one
-// does not close or unmount anything else.
-// -----------------------------------------------------------------
+/** Opens a document for the user and waits for its loaded editor handler. */
 
 import { z } from "zod";
 import {
@@ -30,26 +15,29 @@ import { navigateTo } from "../../appNavigation";
 import { resolveDocumentProject } from "../../resolveDocumentProject";
 import { docUrl } from "./resourceLinks";
 import {
-  getTimelineAgentHandler,
-  hasTimelineAgentHandler
+  hasTimelineAgentHandler,
+  whenTimelineAgentReady
 } from "../../../components/timeline/timelineAgentBridge";
 import {
-  getStoryboardAgentHandler,
-  hasStoryboardAgentHandler
+  hasStoryboardAgentHandler,
+  whenStoryboardAgentReady
 } from "../../../components/storyboard/storyboardAgentBridge";
 import {
-  getScriptAgentHandler,
-  hasScriptAgentHandler
+  hasScriptAgentHandler,
+  whenScriptAgentReady
 } from "../../../components/script/scriptAgentBridge";
 import {
-  getJsScriptAgentHandler,
-  hasJsScriptAgentHandler
+  hasJsScriptAgentHandler,
+  whenJsScriptAgentReady
 } from "../../../components/jsScript/jsScriptAgentBridge";
 import {
-  getSketchAgentHandler,
-  hasSketchAgentHandler
+  hasSketchAgentHandler,
+  whenSketchAgentReady
 } from "../../../components/sketch/sketchAgentBridge";
-import { hasPuckAgentHandler } from "../../../components/appbuilder/puck/puckAgentBridge";
+import {
+  hasPuckAgentHandler,
+  whenPuckAgentReady
+} from "../../../components/appbuilder/puck/puckAgentBridge";
 
 /**
  * Document kinds with agent tools behind them, named the way `ui_context`
@@ -87,33 +75,19 @@ const LABEL = {
   app: "app"
 } satisfies Record<OpenableType, string>;
 
-/**
- * True once the document's editor has mounted *and* loaded — the point at
- * which the `ui_*` tools for it work. Handler presence alone is not enough:
- * a surface registers its handler while its document query is still in
- * flight, and an agent that read the snapshot then would see an empty
- * document. Each probe therefore checks the loaded document's own id.
- */
+/** Editors register after loading, so handler presence means readiness. */
 const isReady = {
   workflow: (id, ctx) => ctx.getState().getNodeStore(id) !== undefined,
-  timeline: (id) =>
-    hasTimelineAgentHandler(id) &&
-    getTimelineAgentHandler(id).getSnapshot().sequenceId === id,
-  storyboard: (id) =>
-    hasStoryboardAgentHandler(id) &&
-    getStoryboardAgentHandler(id).getSnapshot().boardId === id,
-  script: (id) =>
-    hasScriptAgentHandler(id) &&
-    getScriptAgentHandler(id).getSnapshot().scriptId === id,
-  jsscript: (id) =>
-    hasJsScriptAgentHandler(id) &&
-    getJsScriptAgentHandler(id).getSnapshot().scriptId === id,
-  sketch: (id) =>
-    hasSketchAgentHandler(id) &&
-    getSketchAgentHandler(id).getSnapshot().documentId === id,
+  timeline: (id) => hasTimelineAgentHandler(id),
+  storyboard: (id) => hasStoryboardAgentHandler(id),
+  script: (id) => hasScriptAgentHandler(id),
+  jsscript: (id) => hasJsScriptAgentHandler(id),
+  sketch: (id) => hasSketchAgentHandler(id),
   app: (id) => hasPuckAgentHandler(id)
-} satisfies Record<OpenableType, (id: string, ctx: FrontendToolContext) => boolean>;
-
+} satisfies Record<
+  OpenableType,
+  (id: string, ctx: FrontendToolContext) => boolean
+>;
 
 const ready = (
   type: OpenableType,
@@ -129,44 +103,42 @@ const ready = (
   }
 };
 
-/** How long to wait for a freshly-opened surface to mount and load. */
-const READY_TIMEOUT_MS = 20_000;
-const POLL_INTERVAL_MS = 100;
-
-const delay = (ms: number): Promise<void> =>
-  new Promise((resolve) => setTimeout(resolve, ms));
-
-const waitUntilReady = async (
+const waitUntilReady = (
   type: OpenableType,
   id: string,
   ctx: FrontendToolContext
 ): Promise<boolean> => {
-  const deadline = Date.now() + READY_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    if (ready(type, id, ctx)) return true;
-    if (ctx.abortSignal.aborted) return false;
-    await delay(POLL_INTERVAL_MS);
+  if (type === "workflow") {
+    if (ready(type, id, ctx)) {
+      return Promise.resolve(true);
+    }
+    return (
+      ctx.getState().whenWorkflowReady?.(id, ctx.abortSignal) ??
+      Promise.resolve(false)
+    );
   }
-  return ready(type, id, ctx);
+  const wait = {
+    timeline: whenTimelineAgentReady,
+    storyboard: whenStoryboardAgentReady,
+    script: whenScriptAgentReady,
+    jsscript: whenJsScriptAgentReady,
+    sketch: whenSketchAgentReady,
+    app: whenPuckAgentReady
+  };
+  return wait[type](id, ctx.abortSignal);
 };
 
 FrontendToolRegistry.register({
   name: "ui_open_document",
   description:
-    "Open a document in the workspace as a tab so the other ui_* tools can act on it. Use this when a ui_* tool reports that the document is not open, or when the user names a document that is not in the open list — do not report a document as unavailable until you have tried to open it. Types: workflow, timeline, storyboard, script, jsscript, sketch, app. The id is the document's id (from list_timelines, list_sketches, list_storyboards, list_scripts, list_js_scripts, a resource link, or the user). Documents open in edit mode; already-open documents are focused rather than duplicated. Returns once the editor has loaded and the document's tools are usable.",
+    "Open a document in the workspace as a tab so the other ui_* tools can act on it. Use this to show a document to the user. For edits to a closed timeline, storyboard, script or sketch, use its server edit capability. Types: workflow, timeline, storyboard, script, jsscript, sketch, app. The id is the document's id (from list_timelines, list_sketches, list_storyboards, list_scripts, list_js_scripts, a resource link, or the user). Documents open in edit mode; already-open documents are focused rather than duplicated. Returns once the editor has loaded and the document's tools are usable.",
   parameters: z.object({
     type: z
       .enum(OPENABLE_TYPES)
       .describe("Kind of document to open, as named in the ui_context block."),
-    id: z.string().trim().min(1).describe("Id of the document to open."),
-    focus: z
-      .boolean()
-      .optional()
-      .describe(
-        "Switch the workspace to this tab (default true). Pass false to open it in the background and leave the user where they are."
-      )
+    id: z.string().trim().min(1).describe("Id of the document to open.")
   }),
-  async execute({ type, id, focus }, ctx) {
+  async execute({ type, id }, ctx) {
     const document = await resolveDocumentProject(TAB_TYPE[type], id);
     id = document.id;
     const tabs = useWorkspaceTabsStore.getState();
@@ -179,13 +151,11 @@ FrontendToolRegistry.register({
     if (wasOpen && ready(type, id, ctx)) {
       tabs.setActiveProjectId(document.projectId ?? null);
       tabs.openTab({
-        type: TAB_TYPE[type], ref: id, mode: "edit",
+        type: TAB_TYPE[type],
+        ref: id,
+        mode: "edit",
         projectId: document.projectId ?? LOOSE_PROJECT_ID
       });
-      if (focus === false) {
-        tabs.setActiveProjectId(previousProjectId);
-        if (previousActiveTabId) tabs.setActiveTab(previousActiveTabId);
-      }
       return {
         ok: true,
         type,
@@ -207,15 +177,13 @@ FrontendToolRegistry.register({
     // Editors register their agent handler; viewers do not — so always edit.
     tabs.setActiveProjectId(document.projectId ?? null);
     tabs.openTab({
-      type: TAB_TYPE[type], ref: id, mode: "edit",
+      type: TAB_TYPE[type],
+      ref: id,
+      mode: "edit",
       projectId: document.projectId ?? LOOSE_PROJECT_ID
     });
 
     if (await waitUntilReady(type, id, ctx)) {
-      if (focus === false) {
-        tabs.setActiveProjectId(previousProjectId);
-        if (previousActiveTabId) tabs.setActiveTab(previousActiveTabId);
-      }
       return {
         ok: true,
         type,

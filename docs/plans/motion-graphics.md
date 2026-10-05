@@ -120,10 +120,8 @@ evidence.
 - **F25** Nothing measures motion quality. `timeline-tools` cases check tool
   shape; the eval prompt carries none of the motion skill; no JTBD job loads
   `motion-graphics`; `preview_timeline_frame` has no eval case.
-- **F26** The browser `ui_timeline_*` tools have no batch form; the mobile
-  tool set (`mobile/src/documents/tools/timelineTools.ts`) has no
-  `animate_clip`, `clear_animations`, `list_animation_presets`,
-  `add_media_clip` or `set_clip_binding`.
+- **F26** The browser `ui_timeline_*` tools need a batch form. Mobile
+  timelines are view-only and have no client editing tools.
 
 ## Assumptions
 
@@ -132,7 +130,7 @@ evidence.
   render and agent frame preview all consume it. No feature lands in one host
   only.
 - **AS2** `packages/timeline` stays pure TypeScript with no runtime
-  dependencies at the package root (mobile compiles it from source). Render
+  dependencies at the package root. Render
   code lives under `src/render`, reached through `./render` (GPU) or
   `./scene` (no GPU), never the root export.
 - **AS3** Dawn plus lavapipe is an acceptable production render device.
@@ -197,9 +195,10 @@ its PR and updates this list.
   `npm run capabilities:sync`), and either a suite or an eval case.
   `npm run capabilities:check` fails otherwise.
 - **I11 Headless and browser tools share one implementation.** `edit_timeline`
-  ops dispatch to the same bridge the `ui_timeline_*` tools and the eval
-  drive (`packages/agents/src/evals/surfaces/timeline.ts`
-  `createTimelineToolBridge`). A new op is added there once.
+  and `ui_timeline_*` edits use `applyTimelineOp` in
+  `packages/timeline/src/ops/apply.ts`. The server adapter lives in
+  `packages/agents/src/capabilities/timeline-bridge.ts`. Add document edit
+  operations to the shared engine and keep host I/O in the adapters.
 - **I12 A new check proves it can fail.** Every validator code, eval predicate
   and JTBD outcome ships with a fixture that fails it
   (`docs/HARNESS_FIRST.md` rule 7, AGENTS.md § Claims, Checks, and
@@ -501,7 +500,7 @@ unless stated, all dispatched through the one bridge (I11):
 | `render_timeline` | Run `RenderTimeline` as a job; returns `job_id`, and with `wait: true` the output asset. F21. |
 | `preview_timeline_frame` gains `range {from_ms, to_ms, count}` and `sheet: true` | A tiled contact sheet as one image; a dense sample of a window. F22. |
 | `compare_timeline_frames` | Two documents (or a document and a version), same timecodes, per-frame pixel difference score plus a side-by-side sheet. |
-| `ui_timeline_edit` (web, mobile) | The batch twin of `edit_timeline` in the browser. F26. |
+| `ui_timeline_edit` (web) | The batch twin of `edit_timeline` in the browser. F26. |
 
 `nodetool.timelines` in `codeact/nodetool-api.ts` gains `preview`, `render`,
 `setDocument`, `compositions`.
@@ -570,7 +569,7 @@ M2  Structure                 T9 groups · T10 precomposite · T11 transitions �
 M3  Text, shape, fonts        T14 text style · T15 caption style · T16 shapes/paths · T17 fonts
 M4  Agent surface             T18 set_document · T19 structural ops · T20 markers/beats
                               T21 compositions · T22 render_timeline job · T23 preview sheet/range/diff
-                              T24 skills · T25 evals + JTBD · T26 browser batch + mobile
+                              T24 skills · T25 evals + JTBD · T26 browser batch
 M5  Render quality            T27 alpha + formats · T28 motion blur · T29 time remap
                               T30 validator codes · T31 inspector UI
 ```

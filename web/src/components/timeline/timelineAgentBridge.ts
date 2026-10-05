@@ -1,3 +1,5 @@
+import { createAgentHandlerRegistry } from "../../lib/tools/agentHandlerRegistry";
+import type { TimelineOp, TimelineOpResult } from "@nodetool-ai/timeline/ops";
 /**
  * timelineAgentBridge
  *
@@ -430,6 +432,7 @@ type ClipAnimationMode = "add" | "replace";
  * returns the affected node(s) so the agent gets immediate feedback.
  */
 export interface TimelineAgentHandler {
+  applyOp: (op: TimelineOp) => Promise<TimelineOpResult>;
   getSnapshot: () => TimelineSnapshot;
   /** Create another sequence in a target format, leaving this one untouched. */
   retargetFormat: (options: {
@@ -442,16 +445,16 @@ export interface TimelineAgentHandler {
     target: string,
     trackId: string,
     options?: { safeMargin?: number; smoothing?: number }
-  ) => TimelineClipNode;
+  ) => Promise<TimelineClipNode>;
   addReframeKeyframe: (
     target: string,
     keyframe: { sourceMs: number; x: number; y: number; zoom?: number }
-  ) => TimelineClipNode;
-  clearReframe: (target: string) => TimelineClipNode;
+  ) => Promise<TimelineClipNode>;
+  clearReframe: (target: string) => Promise<TimelineClipNode>;
   addTrack: (
     type: TimelineTrackNode["type"],
     name?: string
-  ) => TimelineTrackNode;
+  ) => Promise<TimelineTrackNode>;
   /**
    * Reorder one track. Track order is z-order, so this is how a picture track
    * added after its overlays stops covering them. Returns the whole stack in
@@ -460,7 +463,7 @@ export interface TimelineAgentHandler {
   moveTrack: (
     target: string,
     destination: { toIndex?: number; before?: string; after?: string }
-  ) => TimelineTrackNode[];
+  ) => Promise<TimelineTrackNode[]>;
   /**
    * Remove one track, and with it the clips on it when `deleteClips` says so.
    * The editor's own track menu has done this all along; without it here the
@@ -470,11 +473,11 @@ export interface TimelineAgentHandler {
   deleteTrack: (
     target: string,
     deleteClips: boolean
-  ) => {
+  ) => Promise<{
     deleted: TimelineTrackNode;
     deletedClipIds: string[];
     tracks: TimelineTrackNode[];
-  };
+  }>;
   generateClip: (
     opts: TimelineGenerateOptions
   ) => Promise<TimelineGenerateResult>;
@@ -494,29 +497,39 @@ export interface TimelineAgentHandler {
   addMediaClip: (
     opts: TimelineAddMediaClipOptions
   ) => Promise<TimelineClipNode>;
-  addTextClip: (opts: TimelineAddTextClipOptions) => TimelineClipNode;
-  addShapeClip: (opts: TimelineAddShapeClipOptions) => TimelineClipNode;
-  addModel3DClip: (opts: TimelineAddModel3DClipOptions) => TimelineClipNode;
+  addTextClip: (opts: TimelineAddTextClipOptions) => Promise<TimelineClipNode>;
+  addShapeClip: (
+    opts: TimelineAddShapeClipOptions
+  ) => Promise<TimelineClipNode>;
+  addModel3DClip: (
+    opts: TimelineAddModel3DClipOptions
+  ) => Promise<TimelineClipNode>;
   /** Merge a patch into a 3D clip's camera, animation, lighting or background. */
   setModel3DStyle: (
     target: string,
     patch: ClipModel3DStylePatch
-  ) => TimelineClipNode;
+  ) => Promise<TimelineClipNode>;
   /**
    * Render a 3D clip through Blender and store the bake on it (design §D6).
    * Resolves once the video is an asset and the clip carries it.
    */
   bakeModel3DClip: (target: string) => Promise<TimelineClipNode>;
   /** Split a clip at the given time (defaults to the playhead). */
-  splitClip: (target: string, atMs?: number) => TimelineClipNode[];
-  trimClip: (target: string, patch: TimelineTrimPatch) => TimelineClipNode;
-  moveClip: (target: string, patch: TimelineMovePatch) => TimelineClipNode;
-  deleteClip: (target: string) => TimelineClipNode;
+  splitClip: (target: string, atMs?: number) => Promise<TimelineClipNode[]>;
+  trimClip: (
+    target: string,
+    patch: TimelineTrimPatch
+  ) => Promise<TimelineClipNode>;
+  moveClip: (
+    target: string,
+    patch: TimelineMovePatch
+  ) => Promise<TimelineClipNode>;
+  deleteClip: (target: string) => Promise<TimelineClipNode>;
   duplicateClip: (target: string, gapMs?: number) => Promise<TimelineClipNode>;
   setClipParams: (
     target: string,
     patch: TimelineClipParamsPatch
-  ) => TimelineClipNode;
+  ) => Promise<TimelineClipNode>;
   setClipBinding: (
     target: string,
     patch: TimelineClipBindingPatch
@@ -530,30 +543,42 @@ export interface TimelineAgentHandler {
     target: string,
     animations: ClipAnimationInput[],
     mode: ClipAnimationMode
-  ) => TimelineClipNode;
-  staggerAnimations: (clipIds: string[], offsetMs: number) => TimelineClipNode[];
+  ) => Promise<TimelineClipNode>;
+  staggerAnimations: (
+    clipIds: string[],
+    offsetMs: number
+  ) => Promise<TimelineClipNode[]>;
   /** Remove a clip's animations, optionally only those of one role. */
   clearClipAnimations: (
     target: string,
     role?: ClipAnimationInput["role"]
-  ) => TimelineClipNode;
+  ) => Promise<TimelineClipNode>;
   getClipFrames: (
     target: string,
     opts: TimelineClipFramesOptions
   ) => Promise<TimelineClipFramesResult>;
   /** Create a group clip and optionally parent clips to it. */
-  addGroup: (opts: AddGroupParams) => {
+  addGroup: (opts: AddGroupParams) => Promise<{
     clip: TimelineClipNode;
     children: string[];
-  };
+  }>;
   /** Parent a clip to a group, or release it with `parentId: null`. */
-  setParent: (target: string, parentId: string | null) => TimelineClipNode;
+  setParent: (
+    target: string,
+    parentId: string | null
+  ) => Promise<TimelineClipNode>;
   setTransition: (
     target: string,
     transition: TransitionParams | null
-  ) => TimelineClipNode;
-  setMask: (target: string, mask: MaskParams | null) => TimelineClipNode;
-  setMatte: (target: string, matte: MatteParams | null) => TimelineClipNode;
+  ) => Promise<TimelineClipNode>;
+  setMask: (
+    target: string,
+    mask: MaskParams | null
+  ) => Promise<TimelineClipNode>;
+  setMatte: (
+    target: string,
+    matte: MatteParams | null
+  ) => Promise<TimelineClipNode>;
   /**
    * Retime a clip from a curve, or clear it with null so it plays at its own
    * rate. The curve is checked by `buildTimeRemap`, so both hosts refuse the
@@ -562,62 +587,80 @@ export interface TimelineAgentHandler {
   setTimeRemap: (
     target: string,
     timeRemap: TimeRemapParams | null
-  ) => TimelineClipNode;
+  ) => Promise<TimelineClipNode>;
   /** Replace the whole chain; an empty list clears it. */
-  setEffects: (target: string, effects: EffectParams[]) => TimelineClipNode;
+  setEffects: (
+    target: string,
+    effects: EffectParams[]
+  ) => Promise<TimelineClipNode>;
   selectClip: (target: string | null) => TimelineClipNode | null;
   /** Move the playhead and return the resulting position (ms). */
   seek: (timeMs: number) => number;
   /** Flag a moment on the ruler. Markers annotate; they do not render. */
-  addMarker: (opts: TimelineAddMarkerOptions) => TimelineMarkerNode;
+  addMarker: (opts: TimelineAddMarkerOptions) => Promise<TimelineMarkerNode>;
   /** Remove a marker by id or by case-insensitive label. */
-  deleteMarker: (target: string) => TimelineMarkerNode;
+  deleteMarker: (target: string) => Promise<TimelineMarkerNode>;
   /**
    * Place a midi clip on a midi track. Notes ride inside the clip in ticks
    * from its content start, so trimming the window hides them rather than
    * deleting them.
    */
-  addMidiClip: (opts: TimelineAddMidiClipOptions) => TimelineClipNode;
+  addMidiClip: (opts: TimelineAddMidiClipOptions) => Promise<TimelineClipNode>;
   /** Replace a midi clip's whole note list — not a merge. */
-  setNotes: (target: string, notes: MidiNoteInput[]) => TimelineClipNode;
+  setNotes: (
+    target: string,
+    notes: MidiNoteInput[]
+  ) => Promise<TimelineClipNode>;
   /**
    * Set the document's constant tempo. Milliseconds are the master clock, so
    * this rescales every midi clip around `offsetMs` and leaves the rest of the
    * timeline where the editor put it. Returns the whole new snapshot: the
    * clips that moved are the point of the call.
    */
-  setTempo: (tempo: TimelineTempo) => TimelineSnapshot;
+  setTempo: (tempo: TimelineTempo) => Promise<TimelineSnapshot>;
   /** Set the synth a midi track plays. Every clip on the track uses it. */
   setTrackInstrument: (
     target: string,
     instrument: MidiInstrument
-  ) => TimelineTrackNode;
+  ) => Promise<TimelineTrackNode>;
   /**
    * Move every note in a midi clip by whole semitones. Notes keep their ids;
    * one pushed past the 0..127 range is held at the end rather than dropped.
    */
-  transposeClip: (target: string, semitones: number) => TimelineClipNode;
+  transposeClip: (
+    target: string,
+    semitones: number
+  ) => Promise<TimelineClipNode>;
   /** Snap a midi clip's onsets (and optionally lengths) to a note grid. */
-  quantizeClip: (target: string, options: QuantizeOptions) => TimelineClipNode;
+  quantizeClip: (
+    target: string,
+    options: QuantizeOptions
+  ) => Promise<TimelineClipNode>;
   /** Scale every velocity in a midi clip, clamped to 1..127. */
-  scaleClipVelocity: (target: string, factor: number) => TimelineClipNode;
+  scaleClipVelocity: (
+    target: string,
+    factor: number
+  ) => Promise<TimelineClipNode>;
 
   // ── Guided video flow (PRD § 8.6) ─────────────────────────────────────────
 
   /** Write the flow's stage, brief and format. Returns the whole setup. */
-  setSetup: (patch: TimelineSetupPatch) => TimelineSetup;
+  setSetup: (patch: TimelineSetupPatch) => Promise<TimelineSetup>;
   /**
    * Write the beat plan, or draft one with the Director when no beats are
    * given. Creates no clip and starts no job either way (D4).
    */
   planBeats: (opts: TimelinePlanBeatsOptions) => Promise<TimelineBeat[]>;
   /** Change one beat, by id or 1-based position. */
-  updateBeat: (target: string, patch: TimelineBeatPatch) => TimelineBeat;
+  updateBeat: (
+    target: string,
+    patch: TimelineBeatPatch
+  ) => Promise<TimelineBeat>;
   /**
    * Drop one beat, by id or 1-based position. Answers the beat that was
    * removed. A clip already generated from it is left where it is.
    */
-  removeBeat: (target: string) => TimelineBeat;
+  removeBeat: (target: string) => Promise<TimelineBeat>;
   /** Turn the plan into clips and enqueue them. */
   generateFromBeats: (
     opts: TimelineGenerateFromBeatsOptions
@@ -671,7 +714,7 @@ export interface TimelineGenerateFromBeatsResult {
   startedClipIds: string[];
 }
 
-const handlers = new Map<string, TimelineAgentHandler>();
+const handlers = createAgentHandlerRegistry<TimelineAgentHandler>();
 
 /**
  * Register (or clear, with null) the handler for one open sequence. Every
@@ -684,7 +727,7 @@ export function setTimelineAgentHandler(
   next: TimelineAgentHandler | null
 ): void {
   if (next) handlers.set(sequenceId, next);
-  else handlers.delete(sequenceId);
+  else handlers.set(sequenceId, null);
 }
 
 /**
@@ -723,7 +766,7 @@ export function getTimelineAgentHandler(
         (open.length > 0
           ? `Open sequences: ${open.join(", ")}. `
           : "No timeline sequences are currently open. ") +
-        'Call ui_open_document with type "timeline" to open it.'
+        "Not open in the editor. Use edit_timeline to edit it, or ui_open_document to show it to the user."
     );
   }
   return handler;
@@ -733,3 +776,8 @@ export function getTimelineAgentHandler(
 export function listOpenTimelineSequenceIds(): string[] {
   return [...handlers.keys()];
 }
+
+export const whenTimelineAgentReady = (
+  id: string,
+  signal: AbortSignal
+): Promise<boolean> => handlers.whenReady(id, () => true, signal);

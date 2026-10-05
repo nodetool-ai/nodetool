@@ -28,6 +28,8 @@ import { initPgliteTestDb } from "./helpers/pglite-test-db.js";
 
 const OWNER = "dialect-owner";
 const TIMELINE_DOCUMENT: TimelineDocument = { tracks: [], clips: [], markers: [] };
+// Each fixture starts a fresh PGlite engine and runs the production migrations.
+const DIALECT_TEST_TIMEOUT_MS = 60_000;
 
 /** Every behavior fixture executes unchanged on both database engines. */
 async function onBothDialects<T>(fixture: () => Promise<T>): Promise<T> {
@@ -73,7 +75,7 @@ describe("model execution on SQLite and PostgreSQL", () => {
       expect(await executeRaw("SELECT id FROM nodetool_assets")).toEqual({ rows: [] });
       return { projectId, migrated: migration.migrated, dangling: migration.dangling, repeated: repeated.migrated };
     });
-  }, 30000);
+  }, DIALECT_TEST_TIMEOUT_MS);
 
   it("round-trips every document table and application capabilities without double encoding", async () => {
     await onBothDialects(async () => {
@@ -138,7 +140,7 @@ describe("model execution on SQLite and PostgreSQL", () => {
       expect(documentBytes).toEqual(expected);
       return documentBytes;
     });
-  }, 30000);
+  }, DIALECT_TEST_TIMEOUT_MS);
 
   it("round-trips true and false through each integer boolean column", async () => {
     await onBothDialects(async () => {
@@ -174,7 +176,7 @@ describe("model execution on SQLite and PostgreSQL", () => {
       }
       return results;
     });
-  }, 30000);
+  }, DIALECT_TEST_TIMEOUT_MS);
 
   it("upserts an existing row through save and notifies once per successful write", async () => {
     await onBothDialects(async () => {
@@ -189,7 +191,7 @@ describe("model execution on SQLite and PostgreSQL", () => {
       expect((await Asset.findMany(OWNER, [asset.id]))).toHaveLength(1);
       return { name: loaded?.name, metadata: loaded?.metadata, events };
     });
-  }, 30000);
+  }, DIALECT_TEST_TIMEOUT_MS);
 
   it("rejects missing, foreign and deleted projects without inserting or notifying", async () => {
     await onBothDialects(async () => {
@@ -210,7 +212,7 @@ describe("model execution on SQLite and PostgreSQL", () => {
       expect(events).toEqual([]);
       return { errors, events };
     });
-  }, 30000);
+  }, DIALECT_TEST_TIMEOUT_MS);
 
   it("resolves one short id match and rejects two matches", async () => {
     await onBothDialects(async () => {
@@ -225,7 +227,7 @@ describe("model execution on SQLite and PostgreSQL", () => {
       expect(await Asset.get<Asset>("012345abcde")).toBeNull();
       return { single: single?.id, full: (await Asset.get<Asset>(secondId))?.id };
     });
-  }, 30000);
+  }, DIALECT_TEST_TIMEOUT_MS);
 
   it("uses returning for metadata CAS and notifies only after the matching update", async () => {
     await onBothDialects(async () => {
@@ -243,7 +245,7 @@ describe("model execution on SQLite and PostgreSQL", () => {
       expect(events).toEqual([ModelChangeEvent.UPDATED]);
       return { metadata, events };
     });
-  }, 30000);
+  }, DIALECT_TEST_TIMEOUT_MS);
 
   it("finishes a storyboard and updates its timeline using serialized document text", async () => {
     await onBothDialects(async () => {
@@ -266,5 +268,5 @@ describe("model execution on SQLite and PostgreSQL", () => {
       ]);
       return { document: second.timeline.document, width: second.timeline.width, height: second.timeline.height, events };
     });
-  }, 30000);
+  }, DIALECT_TEST_TIMEOUT_MS);
 });

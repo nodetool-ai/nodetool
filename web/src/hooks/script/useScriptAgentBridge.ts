@@ -179,11 +179,7 @@ export const useScriptAgentBridge = (scriptId: string): void => {
         return { cast: snapshot.cast, lines: snapshot.lines };
       },
 
-      addSpeaker(
-        name: string,
-        voice?: VoiceBinding,
-        entityId?: string | null
-      ) {
+      addSpeaker(name: string, voice?: VoiceBinding, entityId?: string | null) {
         requireScript();
         const id = crypto.randomUUID();
         const speaker: ScriptSpeaker = {
@@ -295,8 +291,27 @@ export const useScriptAgentBridge = (scriptId: string): void => {
 
   useEffect(() => {
     if (!scriptId) return;
-    setScriptAgentHandler(scriptId, handler);
+    let installed = false;
+    const register = (): void => {
+      if (useScriptStore.getState().getScript(scriptId) !== undefined) {
+        if (!installed) {
+          setScriptAgentHandler(scriptId, handler);
+          installed = true;
+        }
+      } else if (installed) {
+        if (
+          hasScriptAgentHandler(scriptId) &&
+          getScriptAgentHandler(scriptId) === handler
+        ) {
+          setScriptAgentHandler(scriptId, null);
+        }
+        installed = false;
+      }
+    };
+    register();
+    const unsubscribe = useScriptStore.subscribe(register);
     return () => {
+      unsubscribe();
       if (
         hasScriptAgentHandler(scriptId) &&
         getScriptAgentHandler(scriptId) === handler
