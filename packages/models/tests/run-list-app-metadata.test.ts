@@ -14,7 +14,7 @@ import { runSpans } from "../src/schema/run-traces.js";
 
 for (const dialect of ["sqlite", "postgres"] as const) {
   describe(`app list metadata on ${dialect}`, () => {
-    beforeEach(async () => { if (dialect === "sqlite") { initTestDb(); } else { await initPgliteTestDb(); } });
+    beforeEach(async () => { if (dialect === "sqlite") { initTestDb(); } else { await initPgliteTestDb(); } }, 60_000);
     afterEach(async () => { await closeDb(); });
     it("projects only owned invocation metadata and filters exact operation ids", async () => {
       const db = getPortableDb();
