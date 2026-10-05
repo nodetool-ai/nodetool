@@ -19,11 +19,11 @@ test("cancels only its own instance while another instance runs the same workflo
   const loadedApp = await request.get(`/trpc/applications.get?input=${encodeURIComponent(JSON.stringify({ id: FIXTURES.miniAppId }))}`);
   const application = z.object({ result: z.object({ data: applicationResponse }) }).parse(await loadedApp.json()).result.data;
   application.document.operations[0].policy = "parallel";
-  const container = z.object({ props: z.record(z.string(), z.unknown()) }).parse(application.document.ui.content[0]);
+  const container = z.object({ type: z.string(), props: z.record(z.string(), z.unknown()) }).passthrough().parse(application.document.ui.content[0]);
   const widgets = z.array(z.object({ type: z.string(), props: z.record(z.string(), z.unknown()) })).parse(container.props.content);
   widgets.push({ type: "Button", props: { id: "cancel-operation", label: "Cancel echo", events: [{ trigger: "click", kind: "cancel", operationId: "main" }] } });
   container.props.content = widgets;
-  application.document.ui.content[0] = { ...application.document.ui.content[0], props: container.props };
+  application.document.ui.content[0] = container;
   expect((await request.post("/trpc/applications.update", { data: { id: application.id, document: application.document } })).ok()).toBe(true);
   const app = new MiniAppPage(page);
   await app.open(FIXTURES.miniAppName);
@@ -202,7 +202,7 @@ test("advances a pinned instance explicitly while preserving historical version 
   expect(oldRun.version).toBe(firstVersion.version);
   const draftResponse = await request.get(`/trpc/applications.get?input=${encodeURIComponent(JSON.stringify({ id: FIXTURES.miniAppId }))}`);
   const draftApplication = z.object({ result: z.object({ data: applicationResponse }) }).parse(await draftResponse.json()).result.data;
-  draftApplication.document.ui.root.props.title = "Released version two";
+  draftApplication.document.ui.root.props = { ...draftApplication.document.ui.root.props, title: "Released version two" };
   expect((await request.post("/trpc/applications.update", { data: { id: draftApplication.id, document: draftApplication.document } })).ok()).toBe(true);
   const secondVersion = await publish();
   expect(secondVersion.version).toBeGreaterThan(firstVersion.version);
@@ -219,7 +219,7 @@ test("advances a pinned instance explicitly while preserving historical version 
   expect(response.ok()).toBe(true);
   const historical = appRunResponse.parse(await response.json());
   expect(historical.version).toBe(firstVersion.version);
-  expect(historical.snapshot?.document.ui.root.props.title).not.toBe("Released version two");
+  expect(historical.snapshot?.document.ui.root.props?.title).not.toBe("Released version two");
 });
 
 test("executes a frozen draft preview without changing the released working copy", async ({ page, request }) => {
