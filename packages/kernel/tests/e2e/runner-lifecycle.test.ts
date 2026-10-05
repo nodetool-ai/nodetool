@@ -95,26 +95,29 @@ describe("RUNNER-002: Dangling edges are silently filtered (Python parity)", () 
 
 describe("RUNNER-003: initialize() hook called during graph init", () => {
   it("initialize is called on node executor before processing", async () => {
-    const initCalls: string[] = [];
+    const events: string[] = [];
     const runner = new WorkflowRunner("test", {
       resolveExecutor: (node) => ({
         async initialize() {
-          initCalls.push(node.id);
+          await Promise.resolve();
+          events.push(`initialize:${node.id}`);
         },
         async process() {
+          events.push(`process:${node.id}`);
           return { value: 1 };
         }
       })
     });
 
     const nodes: NodeDescriptor[] = [nd("n1", "test.Node", { name: "out" })];
-    await runner.run({ job_id: "runner-003" }, { nodes, edges: [] });
+    const result = await runner.run(
+      { job_id: "runner-003" },
+      { nodes, edges: [] }
+    );
 
-    // initialize is not called by the runner directly (it's on the executor),
-    // but actors call it via preProcess equivalent. In current impl, initialize
-    // is exposed but not automatically called by NodeActor.
-    // This test verifies the executor interface is available.
-    expect(initCalls.length).toBeGreaterThanOrEqual(0); // smoke test
+    expect(result.status).toBe("completed");
+    expect(result.outputs["out"]).toEqual([1]);
+    expect(events).toEqual(["initialize:n1", "process:n1"]);
   });
 });
 

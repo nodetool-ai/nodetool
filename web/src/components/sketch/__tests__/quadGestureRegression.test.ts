@@ -245,14 +245,6 @@ describe("TransformTool — quad-mode gesture regression", () => {
   });
 });
 
-describe("computeInverseAffine WebGPU quad preview regression", () => {
-  // Documenting the WebGPU runtime fallback: quad transforms
-  // currently fall back to identity, which silently drops the live preview.
-  // Track this in a single assertion so the fix can flip it.
-  it("quad transforms should be rendered by the WebGPU compositor (or canvas2d fallback)", async () => {
-    // This test is documentation: real WebGPU rendering can't be exercised in
-    // jsdom. The Canvas2D path is the authoritative renderer for quads today.
-    // If WebGPU support lands, replace this with a real render assertion.
-    expect(true).toBe(true);
-  });
+describe("WebGPU quad preview regression", () => {
+  it.todo("renders quad transforms through the WebGPU compositor or Canvas2D fallback");
 });
