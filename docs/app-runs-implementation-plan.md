@@ -9,7 +9,7 @@ criteria. The coordinator dispatches only assignments whose dependencies have
 landed and verifies each phase before starting the next.
 
 The checked-in design includes D15 and D16 and the expanded content policy.
-The remaining assignments follow those decisions. Additional choices below
+The assignments follow those decisions. Additional choices below
 are proposals for detailed design.
 
 ## Execution rules for the coordinator
