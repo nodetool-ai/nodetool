@@ -452,11 +452,15 @@ const RemoteSettings = ({ search = "" }: RemoteSettingsProps) => {
       updateSettings(args.settings, args.secrets),
     onSuccess: (_data, args) => {
       queryClient.invalidateQueries({ queryKey: ["settings"] });
-      // Saving secrets through the remote-settings panel must propagate the
-      // same way SecretsMenu does — provider availability and per-modality
-      // model lists derive from configured secrets.
-      if (args.secrets && Object.keys(args.secrets).length > 0) {
+      const savedSecrets = Object.keys(args.secrets).length > 0;
+      if (savedSecrets) {
         queryClient.invalidateQueries({ queryKey: ["secrets"] });
+      }
+      // Providers resolve their configuration from secrets and plain settings
+      // alike (LLAMA_CPP_URL is a setting), and the server drops its provider
+      // cache on either save. Model lists are cached for minutes, so refetch
+      // them here too or the picker keeps showing the old server's models.
+      if (savedSecrets || Object.keys(args.settings).length > 0) {
         for (const key of PROVIDER_QUERY_KEYS) {
           queryClient.invalidateQueries({ queryKey: [key] });
         }
