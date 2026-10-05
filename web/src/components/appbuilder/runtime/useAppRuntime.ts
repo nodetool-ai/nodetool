@@ -616,11 +616,11 @@ export const useAppRuntime = (
       if (transportId && persistence.instance && message.type === "job_update" && "status" in message && typeof message.status === "string") {
         const invocation = ownedRef.current.get(transportId);
         const entry = invocation ? operationRuntimesRef.current.get(invocation.operationId) : undefined;
-        if (entry) {
+        if (entry && invocation && isLiveInvocation(invocation)) {
           applyScopedRunnerJobUpdate(entry.runnerStore, {
             job_id: transportId,
             status: message.status,
-            ...("queue_position" in message && typeof message.queue_position === "number" ? { queue_position: message.queue_position } : {})
+            queue_position: "queue_position" in message && typeof message.queue_position === "number" ? message.queue_position : undefined
           });
         }
       }

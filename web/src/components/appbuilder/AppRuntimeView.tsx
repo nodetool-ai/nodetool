@@ -259,28 +259,30 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
   }, [runtime.instance, onInstanceReady]);
   if (runtime.instanceLoading)
     return <LoadingSpinner text="Loading instance" />;
-  if (runtime.instanceError)
-    return (
-      <AlertBanner
-        severity="error"
-        action={
-          <>
-            <EditorButton onClick={() => void runtime.reloadInstance?.()}>
-              Reload instance
-            </EditorButton>
-            <ReportBugButton
-              context={{
-                source: "operation-failure",
-                summary: "App instance could not be saved",
-                errorText: runtime.instanceError
-              }}
-            />
-          </>
-        }
-      >
-        {runtime.instanceError}
-      </AlertBanner>
-    );
+  const instanceError = runtime.instanceError ? (
+    <AlertBanner
+      severity="error"
+      action={
+        <>
+          <EditorButton onClick={() => void runtime.reloadInstance?.()}>
+            Reload instance
+          </EditorButton>
+          <ReportBugButton
+            context={{
+              source: "operation-failure",
+              summary: "App instance could not be saved",
+              errorText: runtime.instanceError
+            }}
+          />
+        </>
+      }
+    >
+      {runtime.instanceError}
+    </AlertBanner>
+  ) : null;
+  if (instanceError && !runtime.instance) {
+    return instanceError;
+  }
   // Resolve the workspace identity before widgets seed inputs or queue writes.
   if (resolvingInstance) {
     return <LoadingSpinner text="Opening instance" />;
@@ -292,6 +294,7 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
         className="appbuilder-runtime"
         sx={{ width: "100%", height: "100%", overflow: "auto" }}
       >
+        {instanceError}
         {application && !previewDraft && getAppSessionToken() === null ? (
           <AppInstanceManager
             applicationId={application.id}
