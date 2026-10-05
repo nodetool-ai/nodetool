@@ -210,6 +210,30 @@ describe("always-on durable run processor", () => {
     expect(root.attributes["nodetool.trace.dropped_events"]).toBe(12);
   });
 
+  it("bounds sanitizer work for a burst while retaining events and final status", async () => {
+    let sanitizedEvents = 0;
+    configureRunTraceStore({ ...adapter, sanitize(record, options) {
+      sanitizedEvents += record.events.length;
+      return adapter.sanitize(record, options);
+    } });
+    try {
+      await withRunTrace(scope("1"), () => withSpan("app.run", {}, async (span) => {
+        for (let index = 0; index < 100; index++) {
+          span?.addEvent("log", { "log.message": `event ${index} resolved-oauth-secret-value` });
+        }
+      }));
+      await flushTelemetry();
+      const root = [...records.values()][0].update.record;
+      expect(root.status.code).toBe("OK");
+      expect(root.events).toHaveLength(100);
+      expect(new Set(root.events.map((event) => event.id)).size).toBe(100);
+      expect(JSON.stringify(root)).not.toContain("resolved-oauth-secret-value");
+      expect(sanitizedEvents).toBeLessThanOrEqual(400);
+    } finally {
+      configureRunTraceStore(adapter);
+    }
+  });
+
   it("reports oversized SDK content before sanitization removes its original length", async () => {
     await withRunTrace(scope("1"), () => withSpan("app.run", { "console.output": "word ".repeat(5_000) }, async () => {}));
     await flushTelemetry();

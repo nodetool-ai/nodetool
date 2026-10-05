@@ -236,22 +236,22 @@ export class RunTraceSpanProcessor implements SpanProcessor {
       return { ...record.events[index], id };
     });
     const isRoot = scope ? scopeRoots.get(scope) === record.span_id : ROOT_NAMES.has(record.name) && record.parent_span_id === null;
-    const sanitized = redactRecord(record, { secretValues: scope?.secretValues ?? NO_SECRETS, public: scope?.origin === "public", contentSuppressed: scope?.policy.contentSuppressed ?? false });
     const write: RunTraceWrite = {
       runId: scope.runId,
       userId: scope.userId,
-      update: { kind, record: sanitized },
+      update: { kind, record },
       secretValues: scope?.secretValues ?? NO_SECRETS,
       contentSuppressed: scope?.policy.contentSuppressed ?? false,
       isRoot
     };
     const key = `${record.trace_id}:${record.span_id}`;
-    const bytes = JSON.stringify(sanitized).length * 2;
+    const bytes = JSON.stringify(record).length * 2;
     const previous = this.queue.get(key);
     if ((this.queue.size >= MAX_QUEUED_SPANS && !previous) || this.queueBytes - (previous?.bytes ?? 0) + bytes > MAX_QUEUE_BYTES) {
       this.flagIncomplete(record.trace_id, "queue_overflow");
-      sanitized.attributes["nodetool.trace.incomplete"] = true;
+      record.attributes["nodetool.trace.incomplete"] = true;
       if (isRoot && kind === "span_ended" && (this.roots.has(key) || this.roots.size < MAX_ROOT_RESERVATIONS)) {
+        const sanitized = redactRecord(record, { secretValues: write.secretValues, public: scope.origin === "public", contentSuppressed: write.contentSuppressed });
         this.roots.set(key, { write: { ...write, update: { kind, record: splitTraceRecord(sanitized).record } }, bytes: 0 });
       }
     } else {
@@ -324,7 +324,8 @@ export class RunTraceSpanProcessor implements SpanProcessor {
             if (!registrations.has(traceId)) { registrations.set(traceId, await adapter.lookup(traceId)); }
             const registration = registrations.get(traceId);
             if (!registration || (write.userId && registration.user_id !== write.userId)) { continue; }
-            accepted.push({ ...write, runId: write.runId ?? registration.id, userId: registration.user_id, update: { ...write.update, record: adapter.sanitize(write.update.record, { secretValues: write.secretValues, public: registration.origin === "public", contentSuppressed: write.contentSuppressed }) } });
+            // Redact the coalesced snapshot once, before storage or live publication.
+            accepted.push({ ...write, runId: write.runId ?? registration.id, userId: registration.user_id, update: { ...write.update, record: redactRecord(write.update.record, { secretValues: write.secretValues, public: registration.origin === "public", contentSuppressed: write.contentSuppressed }) } });
           }
           if (accepted.length > 0) { await adapter.write(accepted); }
         });
