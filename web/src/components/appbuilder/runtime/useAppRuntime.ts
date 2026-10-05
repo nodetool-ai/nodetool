@@ -58,6 +58,7 @@ import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scri
 import { Workflow } from "../../../stores/ApiTypes";
 import {
   getWorkflowRunnerStore,
+  applyScopedRunnerJobUpdate,
   MsgpackData,
   WorkflowRunnerStore,
   type RunOptions
@@ -612,6 +613,17 @@ export const useAppRuntime = (
   const fold = useCallback(
     (message: MsgpackData) => {
       const transportId = "job_id" in message && typeof message.job_id === "string" ? message.job_id : undefined;
+      if (transportId && persistence.instance && message.type === "job_update" && "status" in message && typeof message.status === "string") {
+        const invocation = ownedRef.current.get(transportId);
+        const entry = invocation ? operationRuntimesRef.current.get(invocation.operationId) : undefined;
+        if (entry) {
+          applyScopedRunnerJobUpdate(entry.runnerStore, {
+            job_id: transportId,
+            status: message.status,
+            ...("queue_position" in message && typeof message.queue_position === "number" ? { queue_position: message.queue_position } : {})
+          });
+        }
+      }
       const recorder = transportId ? browserTracesRef.current.get(transportId) : undefined;
       const foldSpan = recorder?.startSpan("ui.fold", { "ui.message.type": message.type });
       const events = messageToEvents(message as Record<string, unknown>, {
@@ -676,7 +688,7 @@ export const useAppRuntime = (
       }
       foldSpan?.end();
     },
-    [clearTimeoutTimer, outputKey, settleRun, store]
+    [clearTimeoutTimer, outputKey, settleRun, store, persistence.instance]
   );
   foldRef.current = fold;
 
@@ -1019,9 +1031,8 @@ export const useAppRuntime = (
   useEffect(() => {
     if (designMode || workflowIds.length === 0) return;
 
-    // Protocol-level handling (runner state machine, ResultsStore, node stores)
-    // already runs via the workflow-manager subscription installed when the
-    // workflow was opened — calling into it here would double-append.
+    // The manager folds shared node/results state once. App runner lifecycle
+    // updates are folded separately by owned job because its runner is scoped.
     const handler = (message: MsgpackData) => {
       const jobId = (message as Record<string, unknown>).job_id;
       // A message carrying no job id cannot be attributed to an invocation, so

@@ -48,6 +48,7 @@ jest.mock("../../../../contexts/WorkflowManagerContext", () => ({
 }));
 
 jest.mock("../../../../stores/WorkflowRunner", () => ({
+  ...jest.requireActual("../../../../stores/WorkflowRunner"),
   getWorkflowRunnerStore: jest.fn()
 }));
 
@@ -163,6 +164,7 @@ const makeRunner = (id: string) => {
   };
   const store = {
     getState: () => state,
+    setState: (patch: Partial<FakeRunnerState>) => Object.assign(state, patch),
     subscribe: jest.fn(() => () => undefined)
   };
   runners.set(id, store);
@@ -230,6 +232,61 @@ const renderRuntime = (
     wrapper
   });
 
+it("settles the scoped runner by owned job and admits a browser reactive run after server warmup", async () => {
+  const actual = jest.requireActual<typeof import("../../../../stores/WorkflowRunner")>("../../../../stores/WorkflowRunner");
+  const scoped = new Map<string, ReturnType<typeof actual.createWorkflowRunnerStore>>();
+  jest.mocked(getWorkflowRunnerStore).mockImplementation((id, scope) => {
+    const key = `${id}:${scope ?? "editor"}`;
+    let runner = scoped.get(key);
+    if (!runner) {
+      runner = actual.createWorkflowRunnerStore(id);
+      const target = runner;
+      jest.spyOn(runner.getState(), "run").mockImplementation(async (...args) => {
+        const jobId = args[8]?.invocationId ?? crypto.randomUUID();
+        target.setState({ job_id: jobId, state: "running", isBrowserRun: false });
+        return jobId;
+      });
+      scoped.set(key, runner);
+    }
+    return runner;
+  });
+  const document = doc({ operations: [{ id: "main", name: "Run", workflowId: "wf-a", inputs: {}, outputs: {}, policy: "replace" }] });
+  const first = renderRuntime(workflowA, document, { id: "app-a" });
+  const second = renderRuntime(workflowA, document, { id: "app-b" });
+  await waitFor(() => expect(first.result.current.instanceId).toBe("server-a"));
+  await waitFor(() => expect(second.result.current.instanceId).toBe("server-b"));
+  const firstRunner = scoped.get("wf-a:1:server-a:main")!;
+  const secondRunner = scoped.get("wf-a:1:server-b:main")!;
+  act(() => {
+    first.result.current.dispatch({ kind: "run", operationId: "main", from: "op:main/in:in1" });
+    second.result.current.dispatch({ kind: "run", operationId: "main" });
+  });
+  await waitFor(() => expect(firstRunner.getState().state).toBe("running"));
+  await waitFor(() => expect(secondRunner.getState().state).toBe("running"));
+  const firstJob = firstRunner.getState().job_id!;
+  for (const [id, run] of serverRuns) {
+    if (run.instance_id === "server-a") { serverRuns.set(id, { ...run, status: "completed" }); }
+  }
+  deliver({ type: "job_update", workflow_id: "wf-a", job_id: firstJob, status: "completed" });
+  expect(firstRunner.getState().state).toBe("idle");
+  expect(secondRunner.getState().state).toBe("running");
+  jest.mocked(buildTriggerSubgraph).mockReturnValue({ graph: workflowA.graph!, params: {} });
+  jest.mocked(startBrowserAppRun).mockResolvedValue({ root_span_id: "b".repeat(16) });
+  const reservationsBefore = jest.mocked(reserveAppRun).mock.calls.length;
+  act(() => first.result.current.dispatch({ kind: "run", operationId: "main", from: "op:main/in:in1" }));
+  await waitFor(() => expect(reserveAppRun).toHaveBeenCalledTimes(reservationsBefore + 1));
+  await waitFor(() => expect(startBrowserAppRun).toHaveBeenCalledTimes(1));
+  await waitFor(() => expect(runBrowserGraphJob).toHaveBeenCalledTimes(1));
+  const browserReservation = await jest.mocked(reserveAppRun).mock.results.at(-1)!.value;
+  await waitFor(() => expect(serverRuns.get(browserReservation.id)?.status).toBe("completed"));
+  expect(secondRunner.getState().state).toBe("running");
+  for (const [id, run] of serverRuns) {
+    if (run.instance_id === "server-b") { serverRuns.set(id, { ...run, status: "completed" }); }
+  }
+  deliver({ type: "job_update", workflow_id: "wf-a", job_id: secondRunner.getState().job_id, status: "completed" });
+  first.unmount(); second.unmount();
+});
+
 it("resolves a bootstrap instance without seeding or saving working inputs", async () => {
   const seededWorkflow = {
     ...workflowA,
@@ -269,6 +326,9 @@ beforeEach(() => {
   runJsScript.mockReset();
   jest.mocked(buildTriggerSubgraph).mockReset();
   jest.mocked(startBrowserAppRun).mockReset();
+  jest.mocked(runBrowserGraphJob).mockClear();
+  jest.mocked(updateAppRun).mockClear();
+  jest.mocked(reserveAppRun).mockClear();
   window.localStorage.clear();
   disposeAppRuntimeStore(appInstanceId("application:app-script"));
   disposeAppRuntimeStore(workflowInstanceId("wf-a"));
