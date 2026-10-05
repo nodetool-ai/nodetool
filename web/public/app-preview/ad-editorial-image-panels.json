@@ -1147,19 +1147,19 @@
                   "id": "panel1",
                   "label": "Main image",
                   "kind": "image",
-                  "required": true
+                  "required": false
                 },
                 {
                   "id": "panel2",
                   "label": "Panel 2",
                   "kind": "image",
-                  "required": true
+                  "required": false
                 },
                 {
                   "id": "panel3",
                   "label": "Panel 3",
                   "kind": "image",
-                  "required": true
+                  "required": false
                 },
                 {
                   "id": "logo",
@@ -1258,20 +1258,64 @@
                         "id": "background",
                         "kind": "shape",
                         "role": "decorative",
-                        "inputId": "brandColor"
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
                       },
                       {
                         "id": "panel1",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel1"
+                        "inputId": "panel1",
+                        "fallback": {
+                          "prompt": "An editorial photograph of the hero subject in its best light, for the line \"{headline}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.34,
+                            0.78,
+                            0.34
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
                       },
                       {
                         "id": "headline",
                         "kind": "text",
                         "role": "headline",
                         "inputId": "headline",
-                        "direction": "Image wipes on over 350 ms; type already readable."
+                        "direction": "Image wipes on over 350 ms; type already readable.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.14,
+                            0.78,
+                            0.16
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.07,
+                          "weight": 700,
+                          "align": "left",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.02,
+                          "scale": 0.1
+                        }
                       }
                     ]
                   },
@@ -1284,27 +1328,92 @@
                         "id": "background",
                         "kind": "shape",
                         "role": "decorative",
-                        "inputId": "brandColor"
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
                       },
                       {
                         "id": "panel1",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel1"
+                        "inputId": "panel1",
+                        "fallback": {
+                          "prompt": "An editorial photograph of the hero subject in its best light, for the line \"{headline}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.34,
+                            0.78,
+                            0.205
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
                       },
                       {
                         "id": "panel2",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel2"
+                        "inputId": "panel2",
+                        "fallback": {
+                          "prompt": "An editorial photograph of a close detail of the subject, for the line \"{benefit1}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.56,
+                            0.385,
+                            0.12
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
                       },
                       {
                         "id": "benefit1",
                         "kind": "text",
                         "role": "headline",
                         "inputId": "benefit1",
-                        "direction": "Push first panel into its final grid position; reveal second."
+                        "direction": "Push first panel into its final grid position; reveal second.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.14,
+                            0.78,
+                            0.16
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.07,
+                          "weight": 700,
+                          "align": "left",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.02,
+                          "scale": 0.1
+                        }
                       }
+                    ],
+                    "reviewRules": [
+                      "Image subject remains inside its crop."
                     ]
                   },
                   {
@@ -1316,33 +1425,117 @@
                         "id": "background",
                         "kind": "shape",
                         "role": "decorative",
-                        "inputId": "brandColor"
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
                       },
                       {
                         "id": "panel1",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel1"
+                        "inputId": "panel1",
+                        "fallback": {
+                          "prompt": "An editorial photograph of the hero subject in its best light, for the line \"{headline}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.34,
+                            0.78,
+                            0.205
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
                       },
                       {
                         "id": "panel2",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel2"
+                        "inputId": "panel2",
+                        "fallback": {
+                          "prompt": "An editorial photograph of a close detail of the subject, for the line \"{benefit1}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.56,
+                            0.385,
+                            0.12
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
                       },
                       {
                         "id": "panel3",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel3"
+                        "inputId": "panel3",
+                        "fallback": {
+                          "prompt": "An editorial photograph of the subject in use, in its setting, for the line \"{benefit2}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.495,
+                            0.56,
+                            0.385,
+                            0.12
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
                       },
                       {
                         "id": "benefit2",
                         "kind": "text",
                         "role": "headline",
                         "inputId": "benefit2",
-                        "direction": "250 ms wipe; no independent zoom on every panel."
+                        "direction": "250 ms wipe; no independent zoom on every panel.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.14,
+                            0.78,
+                            0.16
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.07,
+                          "weight": 700,
+                          "align": "left",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.02,
+                          "scale": 0.1
+                        }
                       }
+                    ],
+                    "reviewRules": [
+                      "One main focal point remains.",
+                      "Panel edges align with the previous cut."
                     ]
                   },
                   {
@@ -1354,20 +1547,64 @@
                         "id": "background",
                         "kind": "shape",
                         "role": "decorative",
-                        "inputId": "brandColor"
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
                       },
                       {
                         "id": "panel1",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel1"
+                        "inputId": "panel1",
+                        "fallback": {
+                          "prompt": "An editorial photograph of the hero subject in its best light, for the line \"{headline}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.34,
+                            0.78,
+                            0.34
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
                       },
                       {
                         "id": "promise",
                         "kind": "text",
                         "role": "headline",
                         "inputId": "promise",
-                        "direction": "Expand one panel while others exit; use a parent group."
+                        "direction": "Expand one panel while others exit; use a parent group.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.14,
+                            0.78,
+                            0.16
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.07,
+                          "weight": 700,
+                          "align": "left",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.02,
+                          "scale": 0.1
+                        }
                       }
                     ]
                   },
@@ -1380,29 +1617,117 @@
                         "id": "background",
                         "kind": "shape",
                         "role": "decorative",
-                        "inputId": "brandColor"
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
                       },
                       {
                         "id": "panel1",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel1"
+                        "inputId": "panel1",
+                        "fallback": {
+                          "prompt": "An editorial photograph of the hero subject in its best light, for the line \"{headline}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.34,
+                            0.78,
+                            0.34
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
+                      },
+                      {
+                        "id": "ctaPill",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "style": {
+                          "fill": "#0B1633",
+                          "stroke": "#FFFFFF",
+                          "strokeWidth": 0.005,
+                          "cornerRadius": 0.066
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.72,
+                            0.78,
+                            0.08
+                          ]
+                        },
+                        "limits": {
+                          "y": 0.02,
+                          "scale": 0.1
+                        }
                       },
                       {
                         "id": "logo",
                         "kind": "asset",
                         "role": "logo",
-                        "inputId": "logo"
+                        "inputId": "logo",
+                        "frame": {
+                          "box": [
+                            0.3,
+                            0.17,
+                            0.4,
+                            0.1
+                          ],
+                          "fit": "contain"
+                        },
+                        "limits": {
+                          "x": 0.03,
+                          "y": 0.03,
+                          "scale": 0.1
+                        }
                       },
                       {
                         "id": "cta",
                         "kind": "text",
                         "role": "cta",
                         "inputId": "cta",
-                        "direction": "Hold."
+                        "direction": "Hold.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.72,
+                            0.78,
+                            0.08
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.05,
+                          "weight": 600,
+                          "align": "center",
+                          "maxLines": 1
+                        },
+                        "limits": {
+                          "y": 0.02,
+                          "scale": 0.1
+                        }
                       }
+                    ],
+                    "reviewRules": [
+                      "The final brand and CTA are fully settled and readable."
                     ]
                   }
+                ],
+                "reviewRules": [
+                  "Panel edges align consistently across cuts.",
+                  "Images remain sharp at their largest displayed crop."
                 ]
               },
               "preservationRules": [
@@ -1412,6 +1737,7 @@
                   "allowedTransformations": [
                     "position",
                     "scale",
+                    "crop",
                     "opacity",
                     "composite"
                   ]
@@ -1422,6 +1748,7 @@
                   "allowedTransformations": [
                     "position",
                     "scale",
+                    "crop",
                     "opacity",
                     "composite"
                   ]
@@ -1432,6 +1759,7 @@
                   "allowedTransformations": [
                     "position",
                     "scale",
+                    "crop",
                     "opacity",
                     "composite"
                   ]
@@ -1662,19 +1990,19 @@
                   "id": "panel1",
                   "label": "Main image",
                   "kind": "image",
-                  "required": true
+                  "required": false
                 },
                 {
                   "id": "panel2",
                   "label": "Panel 2",
                   "kind": "image",
-                  "required": true
+                  "required": false
                 },
                 {
                   "id": "panel3",
                   "label": "Panel 3",
                   "kind": "image",
-                  "required": true
+                  "required": false
                 },
                 {
                   "id": "logo",
@@ -1773,20 +2101,64 @@
                         "id": "background",
                         "kind": "shape",
                         "role": "decorative",
-                        "inputId": "brandColor"
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
                       },
                       {
                         "id": "panel1",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel1"
+                        "inputId": "panel1",
+                        "fallback": {
+                          "prompt": "An editorial photograph of the hero subject in its best light, for the line \"{headline}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.34,
+                            0.78,
+                            0.34
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
                       },
                       {
                         "id": "headline",
                         "kind": "text",
                         "role": "headline",
                         "inputId": "headline",
-                        "direction": "Image wipes on over 350 ms; type already readable."
+                        "direction": "Image wipes on over 350 ms; type already readable.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.14,
+                            0.78,
+                            0.16
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.07,
+                          "weight": 700,
+                          "align": "left",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.02,
+                          "scale": 0.1
+                        }
                       }
                     ]
                   },
@@ -1799,27 +2171,92 @@
                         "id": "background",
                         "kind": "shape",
                         "role": "decorative",
-                        "inputId": "brandColor"
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
                       },
                       {
                         "id": "panel1",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel1"
+                        "inputId": "panel1",
+                        "fallback": {
+                          "prompt": "An editorial photograph of the hero subject in its best light, for the line \"{headline}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.34,
+                            0.78,
+                            0.205
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
                       },
                       {
                         "id": "panel2",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel2"
+                        "inputId": "panel2",
+                        "fallback": {
+                          "prompt": "An editorial photograph of a close detail of the subject, for the line \"{benefit1}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.56,
+                            0.385,
+                            0.12
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
                       },
                       {
                         "id": "benefit1",
                         "kind": "text",
                         "role": "headline",
                         "inputId": "benefit1",
-                        "direction": "Push first panel into its final grid position; reveal second."
+                        "direction": "Push first panel into its final grid position; reveal second.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.14,
+                            0.78,
+                            0.16
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.07,
+                          "weight": 700,
+                          "align": "left",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.02,
+                          "scale": 0.1
+                        }
                       }
+                    ],
+                    "reviewRules": [
+                      "Image subject remains inside its crop."
                     ]
                   },
                   {
@@ -1831,33 +2268,117 @@
                         "id": "background",
                         "kind": "shape",
                         "role": "decorative",
-                        "inputId": "brandColor"
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
                       },
                       {
                         "id": "panel1",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel1"
+                        "inputId": "panel1",
+                        "fallback": {
+                          "prompt": "An editorial photograph of the hero subject in its best light, for the line \"{headline}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.34,
+                            0.78,
+                            0.205
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
                       },
                       {
                         "id": "panel2",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel2"
+                        "inputId": "panel2",
+                        "fallback": {
+                          "prompt": "An editorial photograph of a close detail of the subject, for the line \"{benefit1}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.56,
+                            0.385,
+                            0.12
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
                       },
                       {
                         "id": "panel3",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel3"
+                        "inputId": "panel3",
+                        "fallback": {
+                          "prompt": "An editorial photograph of the subject in use, in its setting, for the line \"{benefit2}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.495,
+                            0.56,
+                            0.385,
+                            0.12
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
                       },
                       {
                         "id": "benefit2",
                         "kind": "text",
                         "role": "headline",
                         "inputId": "benefit2",
-                        "direction": "250 ms wipe; no independent zoom on every panel."
+                        "direction": "250 ms wipe; no independent zoom on every panel.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.14,
+                            0.78,
+                            0.16
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.07,
+                          "weight": 700,
+                          "align": "left",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.02,
+                          "scale": 0.1
+                        }
                       }
+                    ],
+                    "reviewRules": [
+                      "One main focal point remains.",
+                      "Panel edges align with the previous cut."
                     ]
                   },
                   {
@@ -1869,20 +2390,64 @@
                         "id": "background",
                         "kind": "shape",
                         "role": "decorative",
-                        "inputId": "brandColor"
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
                       },
                       {
                         "id": "panel1",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel1"
+                        "inputId": "panel1",
+                        "fallback": {
+                          "prompt": "An editorial photograph of the hero subject in its best light, for the line \"{headline}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.34,
+                            0.78,
+                            0.34
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
                       },
                       {
                         "id": "promise",
                         "kind": "text",
                         "role": "headline",
                         "inputId": "promise",
-                        "direction": "Expand one panel while others exit; use a parent group."
+                        "direction": "Expand one panel while others exit; use a parent group.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.14,
+                            0.78,
+                            0.16
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.07,
+                          "weight": 700,
+                          "align": "left",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.02,
+                          "scale": 0.1
+                        }
                       }
                     ]
                   },
@@ -1895,29 +2460,117 @@
                         "id": "background",
                         "kind": "shape",
                         "role": "decorative",
-                        "inputId": "brandColor"
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
                       },
                       {
                         "id": "panel1",
                         "kind": "asset",
                         "role": "decorative",
-                        "inputId": "panel1"
+                        "inputId": "panel1",
+                        "fallback": {
+                          "prompt": "An editorial photograph of the hero subject in its best light, for the line \"{headline}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.34,
+                            0.78,
+                            0.34
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.01,
+                          "y": 0.01,
+                          "scale": 0.05
+                        }
+                      },
+                      {
+                        "id": "ctaPill",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "style": {
+                          "fill": "#0B1633",
+                          "stroke": "#FFFFFF",
+                          "strokeWidth": 0.005,
+                          "cornerRadius": 0.066
+                        },
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.72,
+                            0.78,
+                            0.08
+                          ]
+                        },
+                        "limits": {
+                          "y": 0.02,
+                          "scale": 0.1
+                        }
                       },
                       {
                         "id": "logo",
                         "kind": "asset",
                         "role": "logo",
-                        "inputId": "logo"
+                        "inputId": "logo",
+                        "frame": {
+                          "box": [
+                            0.3,
+                            0.17,
+                            0.4,
+                            0.1
+                          ],
+                          "fit": "contain"
+                        },
+                        "limits": {
+                          "x": 0.03,
+                          "y": 0.03,
+                          "scale": 0.1
+                        }
                       },
                       {
                         "id": "cta",
                         "kind": "text",
                         "role": "cta",
                         "inputId": "cta",
-                        "direction": "Hold."
+                        "direction": "Hold.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.72,
+                            0.78,
+                            0.08
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.05,
+                          "weight": 600,
+                          "align": "center",
+                          "maxLines": 1
+                        },
+                        "limits": {
+                          "y": 0.02,
+                          "scale": 0.1
+                        }
                       }
+                    ],
+                    "reviewRules": [
+                      "The final brand and CTA are fully settled and readable."
                     ]
                   }
+                ],
+                "reviewRules": [
+                  "Panel edges align consistently across cuts.",
+                  "Images remain sharp at their largest displayed crop."
                 ]
               },
               "preservationRules": [
@@ -1927,6 +2580,7 @@
                   "allowedTransformations": [
                     "position",
                     "scale",
+                    "crop",
                     "opacity",
                     "composite"
                   ]
@@ -1937,6 +2591,7 @@
                   "allowedTransformations": [
                     "position",
                     "scale",
+                    "crop",
                     "opacity",
                     "composite"
                   ]
@@ -1947,6 +2602,7 @@
                   "allowedTransformations": [
                     "position",
                     "scale",
+                    "crop",
                     "opacity",
                     "composite"
                   ]
@@ -2225,7 +2881,7 @@
                 "2–4.5 s: Second image creates a two-panel composition. Shows Brand color, Main image, Panel 2, Panel 2 line.",
                 "4.5–7 s: Third image completes the grid. Shows Brand color, Main image, Panel 2, Panel 3, Panel 3 line.",
                 "7–9.5 s: Return to the strongest image with a short promise. Shows Brand color, Main image, Promise.",
-                "9.5–12 s: Hero image plus clear next step. Shows Brand color, Main image, Logo, Call to action."
+                "9.5–12 s: Hero image plus clear next step. Shows Brand color, Main image, , Logo, Call to action."
               ],
               "fields": [
                 {
@@ -2755,19 +3411,19 @@
           "id": "panel1",
           "label": "Main image",
           "kind": "image",
-          "required": true
+          "required": false
         },
         {
           "id": "panel2",
           "label": "Panel 2",
           "kind": "image",
-          "required": true
+          "required": false
         },
         {
           "id": "panel3",
           "label": "Panel 3",
           "kind": "image",
-          "required": true
+          "required": false
         },
         {
           "id": "logo",
@@ -2866,20 +3522,64 @@
                 "id": "background",
                 "kind": "shape",
                 "role": "decorative",
-                "inputId": "brandColor"
+                "inputId": "brandColor",
+                "frame": {
+                  "box": [
+                    0,
+                    0,
+                    1,
+                    1
+                  ]
+                }
               },
               {
                 "id": "panel1",
                 "kind": "asset",
                 "role": "decorative",
-                "inputId": "panel1"
+                "inputId": "panel1",
+                "fallback": {
+                  "prompt": "An editorial photograph of the hero subject in its best light, for the line \"{headline}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                },
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.34,
+                    0.78,
+                    0.34
+                  ],
+                  "fit": "cover",
+                  "clip": true
+                },
+                "limits": {
+                  "x": 0.01,
+                  "y": 0.01,
+                  "scale": 0.05
+                }
               },
               {
                 "id": "headline",
                 "kind": "text",
                 "role": "headline",
                 "inputId": "headline",
-                "direction": "Image wipes on over 350 ms; type already readable."
+                "direction": "Image wipes on over 350 ms; type already readable.",
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.14,
+                    0.78,
+                    0.16
+                  ]
+                },
+                "typography": {
+                  "size": 0.07,
+                  "weight": 700,
+                  "align": "left",
+                  "maxLines": 2
+                },
+                "limits": {
+                  "y": 0.02,
+                  "scale": 0.1
+                }
               }
             ]
           },
@@ -2892,27 +3592,92 @@
                 "id": "background",
                 "kind": "shape",
                 "role": "decorative",
-                "inputId": "brandColor"
+                "inputId": "brandColor",
+                "frame": {
+                  "box": [
+                    0,
+                    0,
+                    1,
+                    1
+                  ]
+                }
               },
               {
                 "id": "panel1",
                 "kind": "asset",
                 "role": "decorative",
-                "inputId": "panel1"
+                "inputId": "panel1",
+                "fallback": {
+                  "prompt": "An editorial photograph of the hero subject in its best light, for the line \"{headline}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                },
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.34,
+                    0.78,
+                    0.205
+                  ],
+                  "fit": "cover",
+                  "clip": true
+                },
+                "limits": {
+                  "x": 0.01,
+                  "y": 0.01,
+                  "scale": 0.05
+                }
               },
               {
                 "id": "panel2",
                 "kind": "asset",
                 "role": "decorative",
-                "inputId": "panel2"
+                "inputId": "panel2",
+                "fallback": {
+                  "prompt": "An editorial photograph of a close detail of the subject, for the line \"{benefit1}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                },
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.56,
+                    0.385,
+                    0.12
+                  ],
+                  "fit": "cover",
+                  "clip": true
+                },
+                "limits": {
+                  "x": 0.01,
+                  "y": 0.01,
+                  "scale": 0.05
+                }
               },
               {
                 "id": "benefit1",
                 "kind": "text",
                 "role": "headline",
                 "inputId": "benefit1",
-                "direction": "Push first panel into its final grid position; reveal second."
+                "direction": "Push first panel into its final grid position; reveal second.",
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.14,
+                    0.78,
+                    0.16
+                  ]
+                },
+                "typography": {
+                  "size": 0.07,
+                  "weight": 700,
+                  "align": "left",
+                  "maxLines": 2
+                },
+                "limits": {
+                  "y": 0.02,
+                  "scale": 0.1
+                }
               }
+            ],
+            "reviewRules": [
+              "Image subject remains inside its crop."
             ]
           },
           {
@@ -2924,33 +3689,117 @@
                 "id": "background",
                 "kind": "shape",
                 "role": "decorative",
-                "inputId": "brandColor"
+                "inputId": "brandColor",
+                "frame": {
+                  "box": [
+                    0,
+                    0,
+                    1,
+                    1
+                  ]
+                }
               },
               {
                 "id": "panel1",
                 "kind": "asset",
                 "role": "decorative",
-                "inputId": "panel1"
+                "inputId": "panel1",
+                "fallback": {
+                  "prompt": "An editorial photograph of the hero subject in its best light, for the line \"{headline}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                },
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.34,
+                    0.78,
+                    0.205
+                  ],
+                  "fit": "cover",
+                  "clip": true
+                },
+                "limits": {
+                  "x": 0.01,
+                  "y": 0.01,
+                  "scale": 0.05
+                }
               },
               {
                 "id": "panel2",
                 "kind": "asset",
                 "role": "decorative",
-                "inputId": "panel2"
+                "inputId": "panel2",
+                "fallback": {
+                  "prompt": "An editorial photograph of a close detail of the subject, for the line \"{benefit1}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                },
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.56,
+                    0.385,
+                    0.12
+                  ],
+                  "fit": "cover",
+                  "clip": true
+                },
+                "limits": {
+                  "x": 0.01,
+                  "y": 0.01,
+                  "scale": 0.05
+                }
               },
               {
                 "id": "panel3",
                 "kind": "asset",
                 "role": "decorative",
-                "inputId": "panel3"
+                "inputId": "panel3",
+                "fallback": {
+                  "prompt": "An editorial photograph of the subject in use, in its setting, for the line \"{benefit2}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                },
+                "frame": {
+                  "box": [
+                    0.495,
+                    0.56,
+                    0.385,
+                    0.12
+                  ],
+                  "fit": "cover",
+                  "clip": true
+                },
+                "limits": {
+                  "x": 0.01,
+                  "y": 0.01,
+                  "scale": 0.05
+                }
               },
               {
                 "id": "benefit2",
                 "kind": "text",
                 "role": "headline",
                 "inputId": "benefit2",
-                "direction": "250 ms wipe; no independent zoom on every panel."
+                "direction": "250 ms wipe; no independent zoom on every panel.",
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.14,
+                    0.78,
+                    0.16
+                  ]
+                },
+                "typography": {
+                  "size": 0.07,
+                  "weight": 700,
+                  "align": "left",
+                  "maxLines": 2
+                },
+                "limits": {
+                  "y": 0.02,
+                  "scale": 0.1
+                }
               }
+            ],
+            "reviewRules": [
+              "One main focal point remains.",
+              "Panel edges align with the previous cut."
             ]
           },
           {
@@ -2962,20 +3811,64 @@
                 "id": "background",
                 "kind": "shape",
                 "role": "decorative",
-                "inputId": "brandColor"
+                "inputId": "brandColor",
+                "frame": {
+                  "box": [
+                    0,
+                    0,
+                    1,
+                    1
+                  ]
+                }
               },
               {
                 "id": "panel1",
                 "kind": "asset",
                 "role": "decorative",
-                "inputId": "panel1"
+                "inputId": "panel1",
+                "fallback": {
+                  "prompt": "An editorial photograph of the hero subject in its best light, for the line \"{headline}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                },
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.34,
+                    0.78,
+                    0.34
+                  ],
+                  "fit": "cover",
+                  "clip": true
+                },
+                "limits": {
+                  "x": 0.01,
+                  "y": 0.01,
+                  "scale": 0.05
+                }
               },
               {
                 "id": "promise",
                 "kind": "text",
                 "role": "headline",
                 "inputId": "promise",
-                "direction": "Expand one panel while others exit; use a parent group."
+                "direction": "Expand one panel while others exit; use a parent group.",
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.14,
+                    0.78,
+                    0.16
+                  ]
+                },
+                "typography": {
+                  "size": 0.07,
+                  "weight": 700,
+                  "align": "left",
+                  "maxLines": 2
+                },
+                "limits": {
+                  "y": 0.02,
+                  "scale": 0.1
+                }
               }
             ]
           },
@@ -2988,29 +3881,117 @@
                 "id": "background",
                 "kind": "shape",
                 "role": "decorative",
-                "inputId": "brandColor"
+                "inputId": "brandColor",
+                "frame": {
+                  "box": [
+                    0,
+                    0,
+                    1,
+                    1
+                  ]
+                }
               },
               {
                 "id": "panel1",
                 "kind": "asset",
                 "role": "decorative",
-                "inputId": "panel1"
+                "inputId": "panel1",
+                "fallback": {
+                  "prompt": "An editorial photograph of the hero subject in its best light, for the line \"{headline}\". Natural light, one clear focal point, room to crop. No text, letters, logos or faces."
+                },
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.34,
+                    0.78,
+                    0.34
+                  ],
+                  "fit": "cover",
+                  "clip": true
+                },
+                "limits": {
+                  "x": 0.01,
+                  "y": 0.01,
+                  "scale": 0.05
+                }
+              },
+              {
+                "id": "ctaPill",
+                "kind": "shape",
+                "role": "decorative",
+                "style": {
+                  "fill": "#0B1633",
+                  "stroke": "#FFFFFF",
+                  "strokeWidth": 0.005,
+                  "cornerRadius": 0.066
+                },
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.72,
+                    0.78,
+                    0.08
+                  ]
+                },
+                "limits": {
+                  "y": 0.02,
+                  "scale": 0.1
+                }
               },
               {
                 "id": "logo",
                 "kind": "asset",
                 "role": "logo",
-                "inputId": "logo"
+                "inputId": "logo",
+                "frame": {
+                  "box": [
+                    0.3,
+                    0.17,
+                    0.4,
+                    0.1
+                  ],
+                  "fit": "contain"
+                },
+                "limits": {
+                  "x": 0.03,
+                  "y": 0.03,
+                  "scale": 0.1
+                }
               },
               {
                 "id": "cta",
                 "kind": "text",
                 "role": "cta",
                 "inputId": "cta",
-                "direction": "Hold."
+                "direction": "Hold.",
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.72,
+                    0.78,
+                    0.08
+                  ]
+                },
+                "typography": {
+                  "size": 0.05,
+                  "weight": 600,
+                  "align": "center",
+                  "maxLines": 1
+                },
+                "limits": {
+                  "y": 0.02,
+                  "scale": 0.1
+                }
               }
+            ],
+            "reviewRules": [
+              "The final brand and CTA are fully settled and readable."
             ]
           }
+        ],
+        "reviewRules": [
+          "Panel edges align consistently across cuts.",
+          "Images remain sharp at their largest displayed crop."
         ]
       },
       "preservationRules": [
@@ -3020,6 +4001,7 @@
           "allowedTransformations": [
             "position",
             "scale",
+            "crop",
             "opacity",
             "composite"
           ]
@@ -3030,6 +4012,7 @@
           "allowedTransformations": [
             "position",
             "scale",
+            "crop",
             "opacity",
             "composite"
           ]
@@ -3040,6 +4023,7 @@
           "allowedTransformations": [
             "position",
             "scale",
+            "crop",
             "opacity",
             "composite"
           ]

@@ -47,11 +47,23 @@ describe("ad library Recipe apps", () => {
     }
   });
 
-  it("authors frames for the fixed-glyph concept only", () => {
+  it("keeps the editorial panels on one grid across cuts", () => {
+    const strategy = AD_LIBRARY_APPS.find(app => app.slug === "ad-editorial-image-panels").bundle.app.recipe.creativeStrategy;
+    const boxes = (shotId) => Object.fromEntries(strategy.shots.find(shot => shot.id === shotId).elements.filter(element => element.id.startsWith("panel")).map(element => [element.id, element.frame.box]));
+    expect(boxes("hook")).toEqual({panel1: [0.1, 0.34, 0.78, 0.34]});
+    // A panel keeps its cell from the cut where it appears to the cut where the grid fills.
+    expect(boxes("panel_3").panel1).toEqual(boxes("panel_2").panel1);
+    expect(boxes("panel_3").panel2).toEqual(boxes("panel_2").panel2);
+    expect(boxes("hero")).toEqual(boxes("hook"));
+    const cta = strategy.shots.find(shot => shot.id === "cta").elements.map(element => element.id);
+    expect(cta.indexOf("ctaPill")).toBeLessThan(cta.indexOf("cta"));
+  });
+
+  it("authors frames for the fixed-glyph and editorial panel concepts only", () => {
     const frameKeys = ["frame", "typography", "lock", "limits"];
     for (const app of AD_LIBRARY_APPS) {
       const strategy = app.bundle.app.recipe.creativeStrategy;
-      const authored = app.slug === "ad-fixed-glyph-changing-world";
+      const authored = ["ad-fixed-glyph-changing-world", "ad-editorial-image-panels"].includes(app.slug);
       expect(strategy.shots.some(shot => shot.elements.some(element => frameKeys.some(key => key in element)))).toBe(authored);
       expect("reviewRules" in strategy).toBe(authored);
     }
