@@ -101,6 +101,8 @@ describe("instance management query boundary", () => {
     const { client, wrapper } = mount();
     const otherKey = appInstanceKeys.list("owner", { application_id: "other" });
     client.setQueryData(otherKey, { pages: [], pageParams: [] });
+    const defaultRuntimeKey = ["app-instances", "owner", "app", ""];
+    client.setQueryData(defaultRuntimeKey, instance);
     const hook = renderHook(
       () => useAppInstanceMutations({ application_id: "app" }),
       { wrapper }
@@ -119,6 +121,11 @@ describe("instance management query boundary", () => {
       client.getQueryData(appInstanceKeys.detail("owner", instance.id))
     ).toEqual({ ...instance, name: "Renamed", revision: 5 });
     expect(client.getQueryState(otherKey)?.isInvalidated).toBe(false);
+    expect(client.getQueryData(defaultRuntimeKey)).toEqual({
+      ...instance,
+      name: "Renamed",
+      revision: 5
+    });
   });
 
   it("keeps cached state intact on a revision conflict and never retries", async () => {

@@ -121,6 +121,21 @@ export function useAppInstanceMutations(
       return;
     }
     client.setQueryData(appInstanceKeys.detail(account, instance.id), instance);
+    client.setQueriesData<ServerAppInstance>(
+      {
+        queryKey: appInstanceKeys.account(account),
+        predicate: (query) => {
+          const data = query.state.data;
+          return (
+            typeof data === "object" &&
+            data !== null &&
+            "id" in data &&
+            data.id === instance.id
+          );
+        }
+      },
+      instance
+    );
     await client.invalidateQueries({
       queryKey: appInstanceKeys.lists(account, scope)
     });
@@ -179,6 +194,18 @@ export function useAppInstanceMutations(
     },
     onSuccess: async (_, id) => {
       client.removeQueries({ queryKey: ["app-instances", account, id] });
+      client.removeQueries({
+        queryKey: appInstanceKeys.account(account),
+        predicate: (query) => {
+          const data = query.state.data;
+          return (
+            typeof data === "object" &&
+            data !== null &&
+            "id" in data &&
+            data.id === id
+          );
+        }
+      });
       await client.invalidateQueries({
         queryKey: appInstanceKeys.lists(account, scope)
       });
