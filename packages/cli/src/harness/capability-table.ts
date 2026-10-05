@@ -2888,7 +2888,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "layout_storyboard",
     module: "storyboards",
     impl: "packages/agents/src/capabilities/storyboards.ts",
-    contract: "b0aeebe3e97d",
+    contract: "02d8a2735de2",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-layout-storyboard.test.ts",
