@@ -11,6 +11,7 @@ const reset = () =>
     position: { x: 0, y: 0 },
     overlayHeight: DEFAULT_OVERLAY_HEIGHT,
     dockWidth: null,
+    composerCollapsed: false,
     conversationCollapsed: true,
     threadsOpen: false
   });
@@ -24,6 +25,24 @@ describe("CanvasChatDockStore", () => {
     expect(s.threadsOpen).toBe(false);
     expect(s.dockWidth).toBeNull();
     expect(s.overlayHeight).toBe(DEFAULT_OVERLAY_HEIGHT);
+  });
+
+  it("collapses the composer and persists that choice", () => {
+    expect(useCanvasChatDockStore.getState().composerCollapsed).toBe(false);
+    useCanvasChatDockStore.getState().setComposerCollapsed(true);
+    expect(useCanvasChatDockStore.getState().composerCollapsed).toBe(true);
+    const persisted = JSON.parse(
+      localStorage.getItem("canvas-chat-dock") ?? "{}"
+    );
+    expect(persisted.state.composerCollapsed).toBe(true);
+  });
+
+  it("expands a collapsed composer when the conversation is toggled", () => {
+    useCanvasChatDockStore.getState().setComposerCollapsed(true);
+    useCanvasChatDockStore.getState().toggleConversation();
+    const s = useCanvasChatDockStore.getState();
+    expect(s.composerCollapsed).toBe(false);
+    expect(s.conversationCollapsed).toBe(false);
   });
 
   it("stores and resets the drag position", () => {
