@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import SiteHeader from "../../../components/SiteHeader";
 import SiteFooter from "../../../components/SiteFooter";
+import StoryboardTeaser from "../../../components/storyboards/StoryboardTeaser";
 import FaqSection from "../../../components/FaqSection";
 import { documentaryTeaserUseCase } from "../../../data/useCaseEntries";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
@@ -469,6 +470,12 @@ export default function DocumentaryTeaserUseCase() {
             </div>
           </div>
         </section>
+
+        <StoryboardTeaser
+          slugs={["fox-in-snow", "diver-and-the-whale", "summit-reveal", "dust-ballet"]}
+          heading="Nature films, shot by shot."
+          body="Four short films in the documentary style, each with its storyboard."
+        />
 
         {/* Visible FAQ — and the FAQPage schema, from these same rows. */}
         <div className="relative py-8">

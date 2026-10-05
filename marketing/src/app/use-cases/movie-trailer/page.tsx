@@ -19,6 +19,7 @@ import {
 } from "lucide-react";
 import SiteHeader from "../../../components/SiteHeader";
 import SiteFooter from "../../../components/SiteFooter";
+import StoryboardTeaser from "../../../components/storyboards/StoryboardTeaser";
 import FaqSection from "../../../components/FaqSection";
 import { movieTrailerUseCase } from "../../../data/useCaseEntries";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
@@ -509,6 +510,12 @@ export default function MovieTrailerUseCase() {
             </div>
           </div>
         </section>
+
+        <StoryboardTeaser
+          slugs={["duel-in-the-wheat", "the-long-hallway", "mars-greenhouse", "the-interrogation"]}
+          heading="Scenes with their storyboards."
+          body="Four short films. Each page shows the finished film, then every shot with its camera and direction."
+        />
 
         {/* Visible FAQ — and the FAQPage schema, from these same rows. */}
         <div className="relative py-8">

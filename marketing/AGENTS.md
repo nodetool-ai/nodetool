@@ -83,6 +83,26 @@ root, run `node scripts/example-timelines/ad-library.mjs build`, `review`, or
 `public/ad-library/videos/` and records the measured facts as the concept's
 `video`. Start every beat at the time the concept's beat sheet gives it.
 
+## Storyboard Pages
+
+`/storyboards` and `/storyboards/<slug>` come from the example bundles in
+`packages/base-nodes/nodetool/examples/storyboards/`. A bundle gets a page only
+when its rendered film exists in
+`packages/base-nodes/nodetool/assets/nodetool-base/storyboards/<slug>/`.
+
+- Treat `src/data/storyboardEntries.generated.ts` and
+  `public/storyboards/` as generated output. Run `npm run gen:storyboards`
+  after changing a bundle or a film. Verify drift with
+  `npm run gen:storyboards -- --check`. The script needs `ffmpeg` and
+  `ffprobe`.
+- Films are not in git. They live in the `nodetool-media` R2 bucket under
+  `showcase/storyboards/<slug>/<slug>.mp4` and play from
+  `media.nodetool.ai`. Upload a re-rendered film to the same key.
+- The generator reads each film's dimensions and duration. Shot start times
+  scale the planned shot lengths to the measured duration.
+- Add `StoryboardTeaser` to a landing page with a hand-picked `slugs` list that
+  matches the page's topic.
+
 ## Product Commercial Direction
 
 Build product commercials around a short sequence of consequential actions.

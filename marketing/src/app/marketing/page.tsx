@@ -21,6 +21,7 @@ import CommunitySection from "../../components/CommunitySection";
 import SiteHeader from "../../components/SiteHeader";
 import SiteFooter from "../../components/SiteFooter";
 import AdLibraryOverview from "../../components/AdLibraryOverview";
+import StoryboardTeaser from "../../components/storyboards/StoryboardTeaser";
 import RecipeShowcase from "../../components/RecipeShowcase";
 import TimelineShowcase from "../../components/TimelineShowcase";
 import { SmartDownloadButton } from "../SmartDownloadButton";
@@ -208,6 +209,12 @@ export default function MarketingSegmentPage() {
 
         {/* Short social ads first: the format an ad team runs most. */}
         <AdLibraryOverview compact />
+
+        <StoryboardTeaser
+          slugs={["cold-brew-pour", "movement-in-gold", "silent-arrival", "dew-drop-serum"]}
+          heading="Plan the spot before you render it."
+          body="Four commercials with their storyboards. Watch the film, then read the shot list."
+        />
 
         <TimelineShowcase />
 
