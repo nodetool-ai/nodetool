@@ -4,7 +4,7 @@
 
 import { eq, and, asc } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { triggerRegistrations } from "./schema/trigger-registrations.js";
 
 export class TriggerRegistration extends DBModel {
@@ -56,7 +56,7 @@ export class TriggerRegistration extends DBModel {
   // ── Static queries ───────────────────────────────────────────────
 
   static async findEnabledByKind(kind: string): Promise<TriggerRegistration[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(triggerRegistrations)
@@ -75,7 +75,7 @@ export class TriggerRegistration extends DBModel {
   static async findByWorkflow(
     workflowId: string
   ): Promise<TriggerRegistration[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(triggerRegistrations)
@@ -87,7 +87,7 @@ export class TriggerRegistration extends DBModel {
   }
 
   static async findByUser(userId: string): Promise<TriggerRegistration[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(triggerRegistrations)

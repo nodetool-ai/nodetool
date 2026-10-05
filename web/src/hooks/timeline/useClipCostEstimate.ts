@@ -17,6 +17,7 @@ import {
   type GenerationCostEstimate,
   type GenerationSpec
 } from "../../utils/generationCostEstimate";
+import { imageToVideoRequestSeconds } from "./imageToVideoSettings";
 
 /**
  * The clip fields a direct-generation price is derived from. Structural so a
@@ -42,7 +43,8 @@ export function clipGenerationSpec(
     return null;
   }
   const kind =
-    clip.bindingKind === "text-to-video"
+    clip.bindingKind === "text-to-video" ||
+    clip.bindingKind === "image-to-video"
       ? "video"
       : clip.bindingKind === "text-to-music"
         ? "music"
@@ -60,9 +62,11 @@ export function clipGenerationSpec(
     // The direct-gen job derives the requested duration from the clip's own
     // length on the timeline, so a per-second model is priced for that.
     seconds:
-      kind === "video" || kind === "music"
-        ? Math.max(1, Math.round((clip.durationMs ?? 4000) / 1000))
-        : null
+      clip.bindingKind === "image-to-video"
+        ? imageToVideoRequestSeconds(clip.durationMs ?? 4000)
+        : kind === "video" || kind === "music"
+          ? Math.max(1, Math.round((clip.durationMs ?? 4000) / 1000))
+          : null
   };
 }
 

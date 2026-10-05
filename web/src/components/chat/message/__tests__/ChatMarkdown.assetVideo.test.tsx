@@ -114,7 +114,7 @@ jest.mock("../../../../lib/chat/openResource", () => ({
   __esModule: true,
   openResource: jest.fn(),
   canOpenResource: (kind: string) =>
-    kind !== "asset" && kind !== "collection" && kind !== "thread"
+    kind !== "collection" && kind !== "thread"
 }));
 
 import ChatMarkdown from "../ChatMarkdown";

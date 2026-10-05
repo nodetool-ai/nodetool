@@ -23,7 +23,7 @@
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { and, eq } from "drizzle-orm";
 import { DBModel } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { accessTokens } from "./schema/access-tokens.js";
 
 /** What marks a token as this model's. */
@@ -161,7 +161,7 @@ export class AccessToken extends DBModel {
   static async verify(token: string): Promise<AccessToken | null> {
     const parsed = parseAccessToken(token);
     if (!parsed) return null;
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(accessTokens)
@@ -198,7 +198,7 @@ export class AccessToken extends DBModel {
   /** Every token a user holds, newest first. Secret hashes included — the
    * caller is responsible for not putting them on the wire. */
   static async listForUser(userId: string): Promise<AccessToken[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(accessTokens)
@@ -213,7 +213,7 @@ export class AccessToken extends DBModel {
    * elsewhere is not enough to delete somebody else's.
    */
   static async revoke(userId: string, id: string): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(accessTokens)

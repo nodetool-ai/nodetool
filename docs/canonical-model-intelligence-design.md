@@ -130,8 +130,8 @@ matching:
 }
 ```
 
-- `canonical` groups routes; every route to one model carries identical
-  `tasks` — quality is a property of the model, never of the route.
+- `canonical` groups routes. Each route carries the tasks it serves, with
+  identical rankings for tasks shared by routes to the same model.
 - `tasks` keys are NodeTool's own `supportedTasks` vocabulary
   (`text_to_image`, `image_to_video`, …), which is what the AA media API's
   per-task leaderboards map onto. **No single overall score per model** — a

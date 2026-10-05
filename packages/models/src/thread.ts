@@ -6,7 +6,7 @@
 
 import { eq, and, gt, lt, desc, asc } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { threads } from "./schema/threads.js";
 
 export class Thread extends DBModel {
@@ -65,7 +65,7 @@ export class Thread extends DBModel {
       projectId,
       startKey
     } = opts;
-    const db = getDb();
+    const db = getPortableDb();
     const conditions = [eq(threads.user_id, userId)];
     if (workflowId !== undefined) {
       conditions.push(eq(threads.workflow_id, workflowId));
@@ -105,7 +105,7 @@ export class Thread extends DBModel {
     userId: string,
     projectId: string
   ): Promise<Thread[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(threads)

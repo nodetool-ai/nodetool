@@ -12,7 +12,7 @@ import {
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
-import { getDb, getDatabase } from "./db.js";
+import { getPortableDb, getDatabase } from "./db.js";
 import { assets } from "./schema/assets.js";
 
 export type AssetRow = typeof assets.$inferSelect;
@@ -155,7 +155,7 @@ export class Asset extends DBModel {
     if (assetIds.length === 0) return [];
 
     const uniqueIds = Array.from(new Set(assetIds));
-    const db = getDb();
+    const db = getPortableDb();
     const results: Asset[] = [];
 
     const chunkSize = 900;
@@ -178,7 +178,7 @@ export class Asset extends DBModel {
     userId: string,
     externalPath: string
   ): Promise<Asset[]> {
-    const rows = await getDb()
+    const rows = await getPortableDb()
       .select()
       .from(assets)
       .where(
@@ -193,7 +193,7 @@ export class Asset extends DBModel {
    * never back a request handler; pass `userId` to narrow it.
    */
   static async allForMigration(userId?: string): Promise<Asset[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const query = db.select().from(assets);
     const rows = await (userId
       ? query.where(eq(assets.user_id, userId))
@@ -285,7 +285,7 @@ export class Asset extends DBModel {
       limit = 50,
       startKey
     } = opts;
-    const db = getDb();
+    const db = getPortableDb();
 
     const conditions = [eq(assets.user_id, userId)];
     if (parentId !== undefined) {
@@ -351,7 +351,7 @@ export class Asset extends DBModel {
     userId: string,
     projectId: string
   ): Promise<Asset[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(assets)
@@ -391,7 +391,7 @@ export class Asset extends DBModel {
     const { contentType, projectId, limit = 100, cursor: startKey } = opts;
     // Escape LIKE special characters to prevent pattern injection
     const sanitized = query.trim().replace(/[%_\\]/g, "\\$&");
-    const db = getDb();
+    const db = getPortableDb();
 
     const conditions = [
       eq(assets.user_id, userId),
@@ -463,7 +463,7 @@ export class Asset extends DBModel {
     const chunkSize = 900;
     for (let i = 0; i < assetIds.length; i += chunkSize) {
       const chunk = assetIds.slice(i, i + chunkSize);
-      const db = getDb();
+      const db = getPortableDb();
       const rows = await db
         .select()
         .from(assets)

@@ -192,8 +192,8 @@ assertion. `npm run backend:smoke` passes on the server profile.
 
 **Read first:** `packages/timeline/src/animation/custom.ts`,
 `packages/agents/src/custom-animation-bake.ts`,
-`packages/agents/src/evals/surfaces/timeline.ts` (`animate_clip` in the
-bridge, the `Unknown animation preset` throw),
+`packages/timeline/src/ops/apply.ts` (`animate_clip`),
+`packages/agents/src/capabilities/timeline-bridge.ts` (host baking),
 `packages/agents/src/capabilities/timelines.ts` (`edit_timeline`),
 `packages/agents/src/capabilities/timelines.specs.ts`,
 `docs/timeline-custom-animations.md`.
@@ -601,8 +601,9 @@ CAS conflict, snapshot exists after write.
 **Resolves:** wiring for T9, T11, T12, T13, T29 into `edit_timeline` and
 `ui_timeline_*`.
 
-**Read first:** `packages/agents/src/evals/surfaces/timeline.ts` (bridge
-tool table), `packages/agents/src/capabilities/timelines.ts` (op
+**Read first:** `packages/timeline/src/ops/apply.ts` (shared edit engine),
+`packages/agents/src/capabilities/timeline-bridge.ts` (host adapter),
+`packages/agents/src/capabilities/timelines.ts` (op
 normalization, `MAX_OPS`), `web/src/lib/tools/builtin/timeline.ts`,
 `packages/agents/src/capabilities/timelines.specs.ts`.
 
@@ -620,7 +621,7 @@ failing op and records it.
 **Resolves:** F23.
 
 **Read first:** `packages/agents/src/capabilities/analysis.specs.ts`
-(`detect_audio_events` output shape), `mobile/src/documents/tools/timelineTools.ts`
+(`detect_audio_events` output shape), `web/src/lib/tools/builtin/timeline.ts`
 (`ui_timeline_add_marker`), `packages/timeline/src/snap.ts` and
 `resolveSnap.ts`, `buildSnapPoints.ts`.
 
@@ -783,23 +784,19 @@ and checks them against the capability registry and op list).
 **Tests:** each predicate has a passing and a failing hand-built final
 state in `timeline-tool-loop.test.ts`.
 
-### T26 — Browser batch tool and mobile parity · **Sonnet**
+### T26 — Browser batch tool · **Sonnet**
 
 **Resolves:** F26.
 
 **Read first:** `web/src/lib/tools/builtin/timeline.ts`,
-`web/src/components/timeline/timelineAgentBridge.ts`,
-`mobile/src/documents/tools/timelineTools.ts`, `mobile/AGENTS.md`.
+`web/src/components/timeline/timelineAgentBridge.ts`.
 
-**Change:** `ui_timeline_edit {timeline_id, ops[]}` in web and mobile,
+**Change:** `ui_timeline_edit {timeline_id, ops[]}` in web,
 dispatching to the same handler methods the single tools use, continuing
-past failures with a per-op record (mirror `edit_timeline`). Mobile gains
-`ui_timeline_animate_clip`, `ui_timeline_clear_animations`,
-`ui_timeline_list_animation_presets`, `ui_timeline_add_media_clip`,
-`ui_timeline_set_clip_binding`, and the T19/T20 ops that exist on web.
+past failures with a per-op record (mirror `edit_timeline`). Mobile stays
+view-only and uses server agent tools for edits.
 
-**Tests:** web tool tests for the batch path; mobile jest for the new
-tools' schemas; `npm --prefix mobile run typecheck`.
+**Tests:** web tool tests for the batch path.
 
 ---
 

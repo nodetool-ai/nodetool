@@ -1,3 +1,4 @@
+import { createAgentHandlerRegistry } from "../../lib/tools/agentHandlerRegistry";
 /**
  * sketchAgentBridge
  *
@@ -19,7 +20,6 @@
 import type { BlendMode } from "@nodetool-ai/gpu";
 import type { SketchSetup } from "@nodetool-ai/protocol/api-schemas/sketch.js";
 import type { SketchTool } from "./types";
-
 
 /** Direct-generation kinds the agent can spawn on a new layer. */
 export type SketchGenerateKind = "text-to-image" | "image-to-image";
@@ -397,7 +397,9 @@ export interface SketchAgentHandler {
    * the locator, not the pixels, so the document stays small and the canvas
    * resolves and draws it the way a sketch seeded from an asset loads.
    */
-  placeImage: (opts: SketchPlaceImageOptions) => Promise<SketchPlaceImageResult>;
+  placeImage: (
+    opts: SketchPlaceImageOptions
+  ) => Promise<SketchPlaceImageResult>;
   setForegroundColor: (color: string) => string;
   setBackgroundColor: (color: string) => string;
   setActiveTool: (tool: SketchTool) => SketchTool;
@@ -407,15 +409,32 @@ export interface SketchAgentHandler {
    * drawing in a single call instead of one round trip per stroke.
    */
   paintStrokes: (strokes: SketchStrokeOptions[]) => SketchStrokeResult[];
-  resizeCanvas: (width: number, height: number) => { width: number; height: number };
+  resizeCanvas: (
+    width: number,
+    height: number
+  ) => { width: number; height: number };
   setSelection: (op: SketchSelectionOp) => { hasSelection: boolean };
-  fill: (opts: SketchFillOptions) => Promise<SketchFillResult> | SketchFillResult;
-  gradient: (opts: SketchGradientOptions) => Promise<SketchGradientResult> | SketchGradientResult;
-  drawShape: (opts: SketchDrawShapeOptions) => Promise<SketchDrawShapeResult> | SketchDrawShapeResult;
-  setSelectionShape: (opts: SketchSelectionShapeOptions) => SketchSelectionShapeResult;
-  transform: (opts: SketchTransformOptions) => Promise<SketchTransformResult> | SketchTransformResult;
-  adjustLayer: (opts: SketchAdjustLayerOptions) => Promise<SketchAdjustLayerResult> | SketchAdjustLayerResult;
-  crop: (opts: SketchCropOptions) => Promise<SketchCropResult> | SketchCropResult;
+  fill: (
+    opts: SketchFillOptions
+  ) => Promise<SketchFillResult> | SketchFillResult;
+  gradient: (
+    opts: SketchGradientOptions
+  ) => Promise<SketchGradientResult> | SketchGradientResult;
+  drawShape: (
+    opts: SketchDrawShapeOptions
+  ) => Promise<SketchDrawShapeResult> | SketchDrawShapeResult;
+  setSelectionShape: (
+    opts: SketchSelectionShapeOptions
+  ) => SketchSelectionShapeResult;
+  transform: (
+    opts: SketchTransformOptions
+  ) => Promise<SketchTransformResult> | SketchTransformResult;
+  adjustLayer: (
+    opts: SketchAdjustLayerOptions
+  ) => Promise<SketchAdjustLayerResult> | SketchAdjustLayerResult;
+  crop: (
+    opts: SketchCropOptions
+  ) => Promise<SketchCropResult> | SketchCropResult;
   pickColor: (opts: SketchPickColorOptions) => Promise<SketchPickColorResult>;
   /** Read pixels: the flattened composite (target null) or a single layer. */
   getLayerImage: (target: string | null) => Promise<SketchLayerImageResult>;
@@ -440,7 +459,7 @@ export interface SketchAgentHandler {
   ) => Promise<SketchRenderedAssetResult[]>;
 }
 
-const handlers = new Map<string, SketchAgentHandler>();
+const handlers = createAgentHandlerRegistry<SketchAgentHandler>();
 
 /**
  * Register (or clear, with null) the handler for one image document. Every open
@@ -452,7 +471,7 @@ export function setSketchAgentHandler(
   next: SketchAgentHandler | null
 ): void {
   if (next) handlers.set(documentId, next);
-  else handlers.delete(documentId);
+  else handlers.set(documentId, null);
 }
 
 export function hasSketchAgentHandler(documentId: string): boolean {
@@ -468,7 +487,7 @@ export function getSketchAgentHandler(documentId: string): SketchAgentHandler {
         (open.length > 0
           ? `Open documents: ${open.join(", ")}. `
           : "No image documents are currently open. ") +
-        'Call ui_open_document with type "sketch" to open it.'
+        "Not open in the editor. Use edit_sketch to edit it, or ui_open_document to show it to the user."
     );
   }
   return handler;
@@ -478,3 +497,8 @@ export function getSketchAgentHandler(documentId: string): SketchAgentHandler {
 function listOpenSketchDocumentIds(): string[] {
   return [...handlers.keys()];
 }
+
+export const whenSketchAgentReady = (
+  id: string,
+  signal: AbortSignal
+): Promise<boolean> => handlers.whenReady(id, () => true, signal);

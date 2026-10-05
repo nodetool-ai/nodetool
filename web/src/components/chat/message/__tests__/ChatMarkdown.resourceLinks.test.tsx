@@ -82,7 +82,7 @@ jest.mock("react-markdown", () => {
 jest.mock("../../../../lib/chat/openResource", () => ({
   __esModule: true,
   openResource: jest.fn(),
-  canOpenResource: (kind: string) => kind !== "asset" && kind !== "collection" && kind !== "thread"
+  canOpenResource: (kind: string) => kind !== "collection" && kind !== "thread"
 }));
 
 const renderMarkdown = (content: string) =>
@@ -105,12 +105,18 @@ describe("ChatMarkdown resource links", () => {
     expect(chip.closest("a")).toBeNull();
   });
 
-  it("renders an asset:// link as a non-navigable resource chip", () => {
+  it("renders an asset:// link as a chip that opens the asset", () => {
     renderMarkdown("Rendered [the frame](asset://as_1).");
 
-    expect(screen.getByText("the frame")).toBeInTheDocument();
-    expect(screen.queryByRole("button", { name: /the frame/ })).toBeNull();
-    expect(screen.getByText("the frame").closest("a")).toBeNull();
+    const chip = screen.getByRole("button", { name: /the frame/ });
+    expect(chip.closest("a")).toBeNull();
+  });
+
+  it("renders game and JS script links as chips", () => {
+    renderMarkdown("Built [Cave run](game://g_1) with [the spawner](jsscript://js_1).");
+
+    expect(screen.getByRole("button", { name: /Cave run/ })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /the spawner/ })).toBeInTheDocument();
   });
 
   it("leaves an https link as an anchor", () => {

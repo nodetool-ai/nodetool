@@ -20,7 +20,7 @@
 
 import {
   initTestDb,
-  getDb,
+  getPortableDb,
   Application,
   Workflow,
   Thread,
@@ -1518,7 +1518,7 @@ async function seedDatabase(): Promise<void> {
   // Cover the providers the UI checks for "configured" status so the dashboard
   // doesn't show a setup-required banner.
   const masterKey = getMasterKey();
-  const db = getDb();
+  const db = getPortableDb();
   const now = new Date().toISOString();
   const demoSecrets: Array<[string, string, string]> = [
     [
@@ -1555,7 +1555,7 @@ async function seedDatabase(): Promise<void> {
   ];
   for (const [key, value, description] of demoSecrets) {
     const encryptedValue = encryptFernet(masterKey, USER_ID, value);
-    db.insert(secrets)
+    await db.insert(secrets)
       .values({
         id: `secret-${key.toLowerCase().replace(/_/g, "-")}`,
         user_id: USER_ID,
@@ -1565,8 +1565,7 @@ async function seedDatabase(): Promise<void> {
         created_at: now,
         updated_at: now
       })
-      .onConflictDoNothing()
-      .run();
+      .onConflictDoNothing();
   }
 
   const projectCount = await seedProjects(USER_ID);

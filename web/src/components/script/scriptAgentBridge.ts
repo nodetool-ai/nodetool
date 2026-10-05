@@ -1,3 +1,4 @@
+import { createAgentHandlerRegistry } from "../../lib/tools/agentHandlerRegistry";
 /**
  * scriptAgentBridge
  *
@@ -141,7 +142,7 @@ export interface ScriptAgentHandler {
   }) => { text: string; format: SubtitleFormat; cueCount: number };
 }
 
-const handlers = new Map<string, ScriptAgentHandler>();
+const handlers = createAgentHandlerRegistry<ScriptAgentHandler>();
 
 /**
  * Register (or clear, with null) the handler for one script id. Each open
@@ -155,7 +156,7 @@ export function setScriptAgentHandler(
   if (next) {
     handlers.set(scriptId, next);
   } else {
-    handlers.delete(scriptId);
+    handlers.set(scriptId, null);
   }
 }
 
@@ -177,8 +178,13 @@ export function getScriptAgentHandler(scriptId: string): ScriptAgentHandler {
         (open.length > 0
           ? `Open scripts: ${open.join(", ")}. `
           : "No scripts are currently open. ") +
-        'Call ui_open_document with type "script" to open it.'
+        "Not open in the editor. Use edit_script to edit it, or ui_open_document to show it to the user."
     );
   }
   return handler;
 }
+
+export const whenScriptAgentReady = (
+  id: string,
+  signal: AbortSignal
+): Promise<boolean> => handlers.whenReady(id, () => true, signal);

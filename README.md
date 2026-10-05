@@ -144,22 +144,51 @@ refuses a mismatch, so an image cannot land in a text field.
 
 Every editor above sits on this canvas.
 
-## Recipes
+## Example timelines
 
-Each recipe is a downloadable bundle that runs on your keys at provider list
-prices.
+Each film below is a timeline document that ships with NodeTool, rendered to MP4.
+Select a poster to watch the film. Open the example in the app to edit every
+clip, track, and effect.
 
-| Recipe | What you end up holding | Models the shipped chain calls |
-| --- | --- | --- |
-| [Viral video ad](https://nodetool.ai/recipes/viral-video-ad-engine) | A vertical product ad, plus the hook lines and thumbnails to test it against | GPT-5 mini, FLUX.1 Schnell, Kling 2.6 |
-| [Multilingual dub](https://nodetool.ai/recipes/multilingual-video-dubber) | One presenter clip in a second language, lip-synced, with subtitles and a back-translation | GPT-4o mini Transcribe, GPT-5 mini, OpenAI TTS, Inworld TTS, Sync Lipsync |
-| [SKU visual set](https://nodetool.ai/recipes/ecommerce-sku-visual-factory) | One packshot becomes the channel set: cutout, studio scene, seasonal relight, turntable clip, print master, listing copy | Bria background removal, Nano Banana, image relighting, LTX 2.3, Clarity upscaler, GPT-5 mini |
-| [Storyboard to trailer](https://nodetool.ai/recipes/storyboard-to-trailer) | A logline becomes a beat sheet, a numbered shot list, a cut teaser, and a score under it | GPT-5 mini, Gemini 3.1 Pro, GPT Image 2, Veo 3.1, Stable Audio 2.5 |
+### Serein, the inbox that sorts itself
 
-The [recipe gallery](https://nodetool.ai/recipes) has the model chain and
-contact sheet for each run. The [showcase](https://nodetool.ai/showcase) and
+[![Serein, the inbox that sorts itself](marketing/public/timelines/serein/poster.webp)](marketing/public/timelines/serein/film.mp4)
+
+A 26-second product launch film built from editable scene clips, text, motion, and effects. [Watch the film](marketing/public/timelines/serein/film.mp4) or see the [timeline layout](marketing/public/timelines/serein/timeline.webp).
+
+### Kite, savings on autopilot
+
+[![Kite, savings on autopilot](marketing/public/timelines/kite/poster.webp)](marketing/public/timelines/kite/film.mp4)
+
+A 15-second app ad made from motion graphics alone: kinetic type, a drawn-on chart, a filling goal ring, and a logo reveal. [Watch the film](marketing/public/timelines/kite/film.mp4) or see the [timeline layout](marketing/public/timelines/kite/timeline.webp).
+
+### Voltra, silent and violent
+
+[![Voltra, silent and violent](marketing/public/timelines/voltra/poster.webp)](marketing/public/timelines/voltra/film.mp4)
+
+A 23-second motorcycle launch ad cut to a 120 BPM beat, with generated stills, parallax plates, mattes, and spec gauges. [Watch the film](marketing/public/timelines/voltra/film.mp4) or see the [timeline layout](marketing/public/timelines/voltra/timeline.webp).
+
+### Prism, run in every colour
+
+[![Prism, run in every colour](marketing/public/timelines/prism/poster.webp)](marketing/public/timelines/prism/film.mp4)
+
+An 18-second running-shoe ad on a 120 BPM grid, with green-screen stills keyed in the timeline and a prism that splits light. [Watch the film](marketing/public/timelines/prism/film.mp4) or see the [timeline layout](marketing/public/timelines/prism/timeline.webp).
+
+### Tidewater, summer jazz on the pier
+
+[![Tidewater, summer jazz on the pier](marketing/public/timelines/tidewater/poster.webp)](marketing/public/timelines/tidewater/film.mp4)
+
+A 16-second 4:5 risograph poster that moves, on stepped 12 fps time with a swing score. [Watch the film](marketing/public/timelines/tidewater/film.mp4) or see the [timeline layout](marketing/public/timelines/tidewater/timeline.webp).
+
+### Cadence, a year on two wheels
+
+[![Cadence, a year on two wheels](marketing/public/timelines/cadence/poster.webp)](marketing/public/timelines/cadence/film.mp4)
+
+A vertical year-in-review data story with a route that rides itself, counted stat cards, and animated charts. [Watch the film](marketing/public/timelines/cadence/film.mp4) or see the [timeline layout](marketing/public/timelines/cadence/timeline.webp).
+
+The [showcase](https://nodetool.ai/showcase) and
 [template gallery](https://nodetool.ai/templates) hold the single workflows
-recipes chain.
+these films chain.
 
 ## How NodeTool compares
 

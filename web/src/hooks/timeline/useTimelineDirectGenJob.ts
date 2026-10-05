@@ -1,13 +1,13 @@
 /**
  * useTimelineDirectGenJob — direct-gen (text-to-image / image-to-image /
- * text-to-video / text-to-audio) for timeline clips. Mirrors
+ * text-to-video / image-to-video / text-to-audio) for timeline clips. Mirrors
  * `useDirectGenJob` for the sketch editor: fires a `generate_media`
  * WebSocket RPC and writes the resulting asset back onto the clip
  * (currentAssetId + ClipVersion) when it returns.
  *
  * Workflow-bound clips go through `useGenerateClip` instead; this hook only
  * handles clips whose `bindingKind` is `"text-to-image"`, `"image-to-image"`,
- * `"text-to-video"`, or `"text-to-audio"`.
+ * `"text-to-video"`, `"image-to-video"`, or `"text-to-audio"`.
  */
 import { useCallback } from "react";
 import { assertProductionGenerationAllowed, productionRequirement } from "@nodetool-ai/protocol";
@@ -56,6 +56,7 @@ import { useAssetStore } from "../../stores/AssetStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import { getAssetUrl } from "../../utils/assetHelpers";
 import { probeMediaDurationMs } from "../../utils/probeMediaDuration";
+import { imageToVideoRequestSeconds } from "./imageToVideoSettings";
 
 interface DirectGenRpcResponse extends WebSocketMessage {
   type: "rpc_response";
@@ -967,6 +968,7 @@ const isDirectGenBindingKind = (kind: string | undefined): boolean =>
   kind === "text-to-image" ||
   kind === "image-to-image" ||
   kind === "text-to-video" ||
+  kind === "image-to-video" ||
   kind === "text-to-audio" ||
   kind === "text-to-music";
 
@@ -1163,6 +1165,7 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         kind !== "text-to-image" &&
         kind !== "image-to-image" &&
         kind !== "text-to-video" &&
+        kind !== "image-to-video" &&
         kind !== "text-to-audio" &&
         kind !== "text-to-music"
       ) {
@@ -1186,9 +1189,12 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         return null;
       }
 
-      // image-to-image needs a rendered source clip to draw bytes from.
+      // image-to-image and image-to-video need a rendered source clip to
+      // draw bytes from.
+      const hasSourceClip =
+        kind === "image-to-image" || kind === "image-to-video";
       let sourceAssetId: string | undefined;
-      if (kind === "image-to-image") {
+      if (hasSourceClip) {
         if (!clip.sourceClipId) {
           failWithReason(timeline, clipId, "choose a source clip first.");
           return null;
@@ -1207,12 +1213,12 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
         sourceAssetId = sourceClip.currentAssetId;
       }
 
-      for (const candidate of [clip, kind === "image-to-image" ? timeline.getState().clips.find(c => c.id === clip.sourceClipId) : undefined]) {
+      for (const candidate of [clip, hasSourceClip ? timeline.getState().clips.find(c => c.id === clip.sourceClipId) : undefined]) {
         if (!candidate?.storyboardBoardId) { continue; }
         const board = await trpcClient.storyboards.get.query({ id: candidate.storyboardBoardId });
         const shot = board.document.shots.find(shot => shot.id === candidate.storyboardShotId);
         if (!shot) { throw new Error("Storyboard generation source shot was not found."); }
-        const capability = kind === "text-to-video" ? (productionCandidate?.executionRoute === "reference_to_video" ? "reference_to_video" : "text_to_video") : kind === "image-to-image" ? "image_to_image" : "text_to_image";
+        const capability = kind === "text-to-video" ? (productionCandidate?.executionRoute === "reference_to_video" ? "reference_to_video" : "text_to_video") : kind === "image-to-video" ? "image_to_video" : kind === "image-to-image" ? "image_to_image" : "text_to_image";
         assertProductionGenerationAllowed(shot.production === undefined ? undefined : productionRequirement.parse(shot.production), capability);
       }
 
@@ -1286,6 +1292,9 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
           ? Math.round(clip.durationMs / 1000)
           : undefined;
       }
+      if (kind === "image-to-video") {
+        framingParams.duration = imageToVideoRequestSeconds(clip.durationMs);
+      }
 
       try {
         await globalWebSocketManager.send({
@@ -1297,7 +1306,7 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
                 ? "image"
                 : kind === "image-to-image"
                   ? "image_edit"
-                  : kind === "text-to-video"
+                  : kind === "text-to-video" || kind === "image-to-video"
                     ? "video"
                     : kind === "text-to-music"
                       ? "music"
@@ -1308,7 +1317,7 @@ export function useTimelineDirectGenJob(): UseTimelineDirectGenJobApi {
             source_asset_id: sourceAssetId,
             timeline_context: sequenceId ? {
               sequence_id: sequenceId,
-              source_clip_id: kind === "image-to-image" ? clip.sourceClipId ?? undefined : undefined,
+              source_clip_id: hasSourceClip ? clip.sourceClipId ?? undefined : undefined,
               target_clip_id: clip.id
             } : undefined,
             width: clip.width,

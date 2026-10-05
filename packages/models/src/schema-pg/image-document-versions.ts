@@ -5,9 +5,7 @@ import {
   index,
   uniqueIndex
 } from "drizzle-orm/pg-core";
-import { jsonText } from "./helpers.js";
 import { imageDocuments } from "./image-documents.js";
-import type { ImageDocumentData } from "../image-document.js";
 
 /** See the SQLite schema for the column semantics. */
 export const imageDocumentVersions = pgTable(
@@ -24,7 +22,7 @@ export const imageDocumentVersions = pgTable(
     width: integer("width").notNull().default(1024),
     height: integer("height").notNull().default(1024),
     background_color: text("background_color").notNull().default("#ffffff"),
-    document: jsonText<ImageDocumentData>()("document").notNull(),
+    document: text("document").notNull(),
     created_at: text("created_at").notNull()
   },
   (table) => [

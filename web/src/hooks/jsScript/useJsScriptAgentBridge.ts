@@ -148,10 +148,28 @@ export const useJsScriptAgentBridge = (scriptId: string): void => {
   }, [scriptId]);
 
   useEffect(() => {
-    setJsScriptAgentHandler(scriptId, handler);
+    if (!scriptId) return;
+    let installed = false;
+    const register = (): void => {
+      if (useJsScriptStore.getState().getScript(scriptId) !== undefined) {
+        if (!installed) {
+          setJsScriptAgentHandler(scriptId, handler);
+          installed = true;
+        }
+      } else if (installed) {
+        if (
+          hasJsScriptAgentHandler(scriptId) &&
+          getJsScriptAgentHandler(scriptId) === handler
+        ) {
+          setJsScriptAgentHandler(scriptId, null);
+        }
+        installed = false;
+      }
+    };
+    register();
+    const unsubscribe = useJsScriptStore.subscribe(register);
     return () => {
-      // Another surface may already have taken the id (a remount racing an
-      // unmount); only clear the registration this effect installed.
+      unsubscribe();
       if (
         hasJsScriptAgentHandler(scriptId) &&
         getJsScriptAgentHandler(scriptId) === handler

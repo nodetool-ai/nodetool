@@ -5,7 +5,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import {
   closeDb,
-  getDb,
+  getPortableDb,
   getRawDb,
   initDb,
   initTestDb,
@@ -36,7 +36,7 @@ describe("db", () => {
   });
 
   it("throws when database accessors are used before initialization", () => {
-    expect(() => getDb()).toThrow(/not initialized/i);
+    expect(() => getPortableDb()).toThrow(/not initialized/i);
     expect(() => getRawDb()).toThrow(/not initialized/i);
   });
 
@@ -45,7 +45,7 @@ describe("db", () => {
     const dbPath = join(tempDir, "models.sqlite");
 
     const db = initDb(dbPath);
-    expect(db).toBe(getDb());
+    expect(db).toBe(getPortableDb());
     expect(getRawDb().pragma("journal_mode", { simple: true })).toBe("wal");
     expect(initDb(dbPath)).toBe(db);
   });
@@ -175,7 +175,7 @@ describe("db", () => {
     const applied = await migrateSqliteDb(dbPath);
 
     expect(applied.length).toBeGreaterThan(0);
-    expect(() => getDb()).toThrow(/not initialized/i);
+    expect(() => getPortableDb()).toThrow(/not initialized/i);
 
     const sqlite = new Database(dbPath);
     try {
@@ -291,7 +291,7 @@ describe("db", () => {
             "SELECT version FROM _nodetool_migrations ORDER BY version DESC LIMIT 1"
           )
           .get()
-      ).toEqual({ version: "20261003_000002" });
+      ).toEqual({ version: "20261004_000000" });
       expect(await migrateSqliteDb(path)).toEqual([]);
     }
   );
@@ -305,7 +305,7 @@ describe("db", () => {
     );
     invalid.close();
     expect(() => initDb(path)).toThrow();
-    expect(() => getDb()).toThrow(/not initialized/i);
+    expect(() => getPortableDb()).toThrow(/not initialized/i);
     expect(() => getRawDb()).toThrow(/not initialized/i);
   });
 
@@ -316,7 +316,7 @@ describe("db", () => {
     initDb(dbPath);
     await closeDb();
 
-    expect(() => getDb()).toThrow(/not initialized/i);
+    expect(() => getPortableDb()).toThrow(/not initialized/i);
     expect(() => getRawDb()).toThrow(/not initialized/i);
   });
 
@@ -347,7 +347,7 @@ describe("db", () => {
 
     try {
       await expect(closeDb()).resolves.toBeUndefined();
-      expect(() => getDb()).toThrow(/not initialized/i);
+      expect(() => getPortableDb()).toThrow(/not initialized/i);
       expect(() => getRawDb()).toThrow(/not initialized/i);
     } finally {
       (rawDb as Database.Database & { close: () => void }).close =

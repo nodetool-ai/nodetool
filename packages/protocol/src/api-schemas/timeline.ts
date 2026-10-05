@@ -1042,6 +1042,7 @@ export const clipBindingKind = z.enum([
   "text-to-image",
   "image-to-image",
   "text-to-video",
+  "image-to-video",
   "text-to-music",
   "text-to-audio"
 ]);

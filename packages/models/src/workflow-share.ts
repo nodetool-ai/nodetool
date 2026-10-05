@@ -10,7 +10,7 @@
 import { randomBytes } from "node:crypto";
 import { eq, and, isNull } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { workflowShares } from "./schema/workflow-sharing.js";
 import type { CollaboratorRole } from "./workflow-collaborator.js";
 
@@ -45,7 +45,7 @@ export class WorkflowShare extends DBModel {
 
   /** Look up a share by its token (revoked or not). */
   static async findByToken(token: string): Promise<WorkflowShare | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const [row] = await db
       .select()
       .from(workflowShares)
@@ -59,7 +59,7 @@ export class WorkflowShare extends DBModel {
     workflowId: string,
     role: CollaboratorRole
   ): Promise<WorkflowShare | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const [row] = await db
       .select()
       .from(workflowShares)
@@ -76,7 +76,7 @@ export class WorkflowShare extends DBModel {
 
   /** All shares for a workflow, active and revoked. */
   static async listForWorkflow(workflowId: string): Promise<WorkflowShare[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(workflowShares)
@@ -109,7 +109,7 @@ export class WorkflowShare extends DBModel {
 
   /** Delete every share for a workflow (used when the workflow is deleted). */
   static async removeAllForWorkflow(workflowId: string): Promise<void> {
-    const db = getDb();
+    const db = getPortableDb();
     await db
       .delete(workflowShares)
       .where(eq(workflowShares.workflow_id, workflowId));

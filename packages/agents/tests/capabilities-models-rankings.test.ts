@@ -375,13 +375,13 @@ describe("the shipped artifact", () => {
   });
 
   it("leaves an unranked model's answer in the pre-rankings shape", async () => {
-    // No entry for this id in the artifact, so no ranking field appears and
-    // the score is what it was before rankings existed.
+    const modelId = "nodetool-test/unranked-image-model";
+    expect(modelRankings.models[`fal_ai:${modelId}`]).toBeUndefined();
     const result = (await findModelOver({
       fal_ai: new FakeImageProvider("fal_ai" as ProviderId, [
         {
-          id: "fal-ai/flux/schnell",
-          name: "Flux Schnell",
+          id: modelId,
+          name: "Unranked test model",
           provider: "fal_ai"
         } as ImageModel
       ])

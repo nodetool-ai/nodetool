@@ -68,6 +68,7 @@ import { GeneratedClipPanel } from "./GeneratedClipPanel";
 import { DirectGenClipPanel } from "./DirectGenClipPanel";
 import AIEditClipPanel from "./AIEditClipPanel";
 import ExtendClipPanel from "./ExtendClipPanel";
+import ImageToVideoPanel from "./ImageToVideoPanel";
 import { ClipVersionHistory } from "./ClipVersionHistory";
 import LineDeliveryPanel from "./LineDeliveryPanel";
 import InspectorSearch from "./InspectorSearch";
@@ -424,6 +425,12 @@ const TimelineInspectorContent: React.FC = memo(() => {
       {clip.mediaType === "video" && (
         <ExtendClipPanel key={`extend-${clip.id}`} clipId={clip.id} />
       )}
+      {clip.mediaType === "image" && (
+        <ImageToVideoPanel
+          key={`image-to-video-${clip.id}`}
+          clipId={clip.id}
+        />
+      )}
     </>
   );
   const lineDeliverySection = (
@@ -549,6 +556,7 @@ const TimelineInspectorContent: React.FC = memo(() => {
       clip.bindingKind === "text-to-image" ||
       clip.bindingKind === "image-to-image" ||
       clip.bindingKind === "text-to-video" ||
+      clip.bindingKind === "image-to-video" ||
       clip.bindingKind === "text-to-audio" ||
       clip.bindingKind === "text-to-music"
     ) {

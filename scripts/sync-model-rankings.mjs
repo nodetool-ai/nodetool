@@ -9,7 +9,8 @@
  * the `<provider>:<model_id>` routes whose id or name answers to the row's exact
  * key (`rankings/match.mjs`), and every matched route is written under its
  * `<provider_id>:<model_id>` key — so runtime does no matching at all and every
- * route to one model carries identical tasks. No pricing catalog is read: a
+ * route to one model carries identical rankings for the tasks it serves.
+ * No pricing catalog is read: a
  * model needs a provider route, and nothing else, to be ranked.
  *
  * Fails closed. A leaderboard whose response is not the documented shape, or

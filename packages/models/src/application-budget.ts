@@ -14,7 +14,7 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 
 import { createTimeOrderedUuid } from "./base-model.js";
-import { getDb, getDbType, type DbTransaction, forUpdate } from "./db.js";
+import { getPortableDb, getDbType, type DbTransaction, forUpdate } from "./db.js";
 import {
   applicationBudgets,
   applicationInvocations
@@ -106,7 +106,7 @@ const toRecord = (row: Record<string, unknown>): InvocationRecord => ({
 async function ownerOfApplication(
   applicationId: string
 ): Promise<string | null> {
-  const db = getDb();
+  const db = getPortableDb();
   const rows = await db
     .select({ user_id: applications.user_id })
     .from(applications)
@@ -127,7 +127,7 @@ export const periodStart = (period: BudgetPeriod, now: Date): string | null => {
 export async function getApplicationBudget(
   applicationId: string
 ): Promise<ApplicationBudget | null> {
-  const db = getDb();
+  const db = getPortableDb();
   const rows = await db
     .select()
     .from(applicationBudgets)
@@ -145,7 +145,7 @@ export async function setApplicationBudget(
     maxInvocations?: number | null;
   }
 ): Promise<ApplicationBudget> {
-  const db = getDb();
+  const db = getPortableDb();
   const now = new Date().toISOString();
   const existing = await getApplicationBudget(applicationId);
   const next = {
@@ -183,7 +183,7 @@ export async function applicationUsage(
   period: BudgetPeriod,
   now = new Date()
 ): Promise<ApplicationUsage> {
-  const db = getDb();
+  const db = getPortableDb();
   const since = periodStart(period, now);
   const conditions = [eq(applicationInvocations.application_id, applicationId)];
   if (since) {
@@ -254,7 +254,7 @@ export async function checkApplicationBudget(
 export async function recordInvocation(
   input: ReserveInput
 ): Promise<InvocationRecord> {
-  const db = getDb();
+  const db = getPortableDb();
   const userId =
     input.userId ?? (await ownerOfApplication(input.applicationId));
   const rows = await db
@@ -287,7 +287,7 @@ export async function settleInvocation(
   actualUsd: number | null,
   status: "completed" | "failed" | "cancelled" = "completed"
 ): Promise<InvocationRecord | null> {
-  const db = getDb();
+  const db = getPortableDb();
   type PatchFields = {
     actual_usd?: number;
     status: typeof status;
@@ -398,7 +398,7 @@ export async function reserveInvocation(
   now = new Date()
 ): Promise<Reservation> {
   const estimatedUsd = input.estimatedUsd ?? 0;
-  const db = getDb();
+  const db = getPortableDb();
   // Resolved before the transaction: the SQLite branch runs synchronously and
   // cannot await a lookup of its own.
   const userId =
@@ -562,7 +562,7 @@ export async function invocationBelongsToApplication(
   invocationId: string
 ): Promise<boolean> {
   if (!applicationId || !invocationId) return false;
-  const db = getDb();
+  const db = getPortableDb();
   const rows = await db
     .select({ id: applicationInvocations.id })
     .from(applicationInvocations)
@@ -588,7 +588,7 @@ export async function invocationIdInUse(
   invocationId: string
 ): Promise<boolean> {
   if (!invocationId) return false;
-  const db = getDb();
+  const db = getPortableDb();
   const rows = await db
     .select({ id: applicationInvocations.id })
     .from(applicationInvocations)
@@ -602,7 +602,7 @@ export async function listInvocations(
   limit = 50,
   userId?: string
 ): Promise<InvocationRecord[]> {
-  const db = getDb();
+  const db = getPortableDb();
   const scope =
     userId === undefined
       ? eq(applicationInvocations.application_id, applicationId)

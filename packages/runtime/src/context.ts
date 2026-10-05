@@ -1419,6 +1419,8 @@ export class ProcessingContext {
       storage: this.storage,
       assetStorage: this.assetStorage,
       workspaceStorage: this.workspaceStorage,
+      workspace: this.workspace,
+      generationLifecycle: this._generationLifecycle ?? undefined,
       variables: { ...this._variables },
       environment: { ...this.environment },
       authToken: this.authToken,

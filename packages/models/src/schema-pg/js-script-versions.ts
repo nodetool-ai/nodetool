@@ -5,9 +5,7 @@ import {
   index,
   uniqueIndex
 } from "drizzle-orm/pg-core";
-import { jsonText } from "./helpers.js";
 import { jsScripts } from "./js-scripts.js";
-import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 
 /** See the SQLite schema for the column semantics. */
 export const jsScriptVersions = pgTable(
@@ -21,7 +19,7 @@ export const jsScriptVersions = pgTable(
     name: text("name"),
     version: integer("version").notNull().default(1),
     save_type: text("save_type").notNull().default("manual"),
-    document: jsonText<JsScriptDocument>()("document").notNull(),
+    document: text("document").notNull(),
     created_at: text("created_at").notNull()
   },
   (table) => [

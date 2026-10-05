@@ -1,13 +1,72 @@
 import { describe, expect, it } from "vitest";
+import { DirectorNode } from "@nodetool-ai/base-nodes";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { ProcessingContext } from "@nodetool-ai/runtime";
 
 import {
   FakeProvider,
   assertValidFakeChunk,
+  createFakeExecutorResolver,
   fakeExecutor,
   FAKE_LLM_TEXT
 } from "../src/fake-runtime.js";
 
 describe("fake-runtime conformance gate (RELIABILITY_TASKS.md Track E, E3)", () => {
+  describe("createFakeExecutorResolver", () => {
+    it.each([
+      undefined,
+      { type: "language_model", provider: "", id: "", name: "" },
+      {
+        type: "language_model",
+        provider: "selected",
+        id: "selected-model",
+        name: "Selected"
+      }
+    ])("runs a Director with the host's fake provider (%j)", async (model) => {
+      const registry = new NodeRegistry();
+      registry.register(DirectorNode);
+      const context = new ProcessingContext({ jobId: "fake-director" });
+      const resolvedProviders: string[] = [];
+      context.setProviderResolver(async (providerId) => {
+        resolvedProviders.push(providerId);
+        return new FakeProvider();
+      });
+      const properties = {
+        ...(model ? { model } : {}),
+        brief: "A lighthouse keeper's last night",
+        shot_count: 3
+      };
+      const executor = createFakeExecutorResolver(() => registry)({
+        id: "director",
+        type: DirectorNode.nodeType,
+        properties
+      });
+
+      // The actor passes saved properties again as execution inputs.
+      const result = await executor.process(properties, context);
+
+      expect(result.screenplay).toMatchObject({
+        type: "screenplay",
+        shots: [
+          { index: 0, action: "A lighthouse keeper's last night — beat 1 of 3" },
+          { index: 1, action: "A lighthouse keeper's last night — beat 2 of 3" },
+          { index: 2, action: "A lighthouse keeper's last night — beat 3 of 3" }
+        ]
+      });
+      const streamed: Record<string, unknown>[] = [];
+      for await (const output of executor.genProcess!(properties, context)) {
+        streamed.push(output);
+      }
+      expect(streamed).toEqual([result]);
+      expect(properties).toEqual({
+        ...(model ? { model } : {}),
+        brief: "A lighthouse keeper's last night",
+        shot_count: 3
+      });
+      expect(resolvedProviders).toEqual([model?.provider || "openai"]);
+    });
+  });
+
   describe("assertValidFakeChunk", () => {
     it("accepts a well-formed Chunk", () => {
       expect(() =>

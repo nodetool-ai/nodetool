@@ -542,7 +542,8 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
   const lowerSearch = searchTerm.toLowerCase().trim();
 
   const configuredKeys = useMemo(
-    () => new Set(safeSecrets.map((s) => s.key)),
+    // The server also returns unconfigured placeholders for every known key.
+    () => new Set(safeSecrets.filter((s) => s.is_configured).map((s) => s.key)),
     [safeSecrets]
   );
 
@@ -733,8 +734,11 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
       const meta = getParentProviderMeta(secretToDelete.key);
       if (meta?.fields) {
         // Multi-field provider: delete all fields
+        // Only stored fields exist server-side; deleting the rest is NOT_FOUND.
         for (const field of meta.fields) {
-          await deleteSecret(field.key);
+          if (configuredKeys.has(field.key)) {
+            await deleteSecret(field.key);
+          }
         }
       } else {
         // Single-field provider
@@ -754,7 +758,7 @@ export const APIKeysTabContent = memo(function APIKeysTabContent({
     }
     setDeleteDialogOpen(false);
     setSecretToDelete(null);
-  }, [secretToDelete, deleteSecret, addNotification]);
+  }, [secretToDelete, deleteSecret, addNotification, configuredKeys]);
 
   const handleCloseDialog = useCallback(() => {
     setDialogOpen(false);

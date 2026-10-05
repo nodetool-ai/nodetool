@@ -4,7 +4,7 @@
 
 import { eq, and, asc, max } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { runInboxMessages } from "./schema/run-inbox-messages.js";
 
 export class RunInboxMessage extends DBModel {
@@ -49,7 +49,7 @@ export class RunInboxMessage extends DBModel {
     nodeId: string,
     handle: string
   ): Promise<number> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select({ value: max(runInboxMessages.msg_seq) })
       .from(runInboxMessages)
@@ -68,7 +68,7 @@ export class RunInboxMessage extends DBModel {
     nodeId: string,
     handle: string
   ): Promise<RunInboxMessage[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(runInboxMessages)
