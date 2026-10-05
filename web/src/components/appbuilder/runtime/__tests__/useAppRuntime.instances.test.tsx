@@ -230,6 +230,27 @@ const renderRuntime = (
     wrapper
   });
 
+it("resolves a bootstrap instance without seeding or saving working inputs", async () => {
+  const seededWorkflow = {
+    ...workflowA,
+    graph: {
+      ...workflowA.graph,
+      nodes: workflowA.graph.nodes.map((node) =>
+        node.id === "in1" ? { ...node, data: { ...node.data, value: "default prompt" } } : node
+      )
+    }
+  };
+  const savesBefore = jest.mocked(saveAppInstance).mock.calls.length;
+  const { result, unmount } = renderHook(() => useAppRuntime(seededWorkflow, false, {
+    document: doc(), application: { id: "app-a" }, deferInitialization: true
+  }), { wrapper });
+  await waitFor(() => expect(result.current.instance?.id).toBe("server-a"));
+  expect(result.current.store.getState().inputs).toEqual({});
+  await act(async () => { await result.current.flushInstance?.(); });
+  unmount();
+  expect(jest.mocked(saveAppInstance).mock.calls.length).toBe(savesBefore);
+});
+
 /** Deliver a streaming message the way the websocket manager would. */
 const deliver = (message: Record<string, unknown>) =>
   act(() => {
