@@ -270,7 +270,7 @@ it("settles the scoped runner by owned job and admits a browser reactive run aft
   deliver({ type: "job_update", workflow_id: "wf-a", job_id: firstJob, status: "completed" });
   expect(firstRunner.getState().state).toBe("idle");
   expect(secondRunner.getState().state).toBe("running");
-  jest.mocked(buildTriggerSubgraph).mockReturnValue({ graph: workflowA.graph!, params: {} });
+  jest.mocked(buildTriggerSubgraph).mockReturnValue({ graph: workflowA.graph!, nodeIds: new Set(["in1", "out1"]) });
   jest.mocked(startBrowserAppRun).mockResolvedValue({ root_span_id: "b".repeat(16) });
   const reservationsBefore = jest.mocked(reserveAppRun).mock.calls.length;
   act(() => first.result.current.dispatch({ kind: "run", operationId: "main", from: "op:main/in:in1" }));
