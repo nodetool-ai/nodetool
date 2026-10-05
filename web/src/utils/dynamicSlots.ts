@@ -135,6 +135,40 @@ export const defaultValueForType = (
   }
 };
 
+/**
+ * Node-data patch that adds dynamic input `name` to a node. The slot is
+ * declared with the type of the output wired into it, so most slots are typed
+ * for free. An `any` source leaves the slot an untyped legacy slot.
+ */
+export const dynamicInputSlotPatch = (
+  data: {
+    dynamic_properties?: Record<string, unknown>;
+    dynamic_inputs?: Record<string, unknown>;
+  },
+  name: string,
+  sourceType: TypeMetadata | undefined
+): {
+  dynamic_properties: Record<string, unknown>;
+  dynamic_inputs?: Record<string, DynamicSlotDeclaration>;
+} => {
+  const declaredType =
+    sourceType && sourceType.type !== "any"
+      ? normalizeTypeMetadata(sourceType)
+      : undefined;
+  return {
+    dynamic_properties: {
+      ...(data.dynamic_properties ?? {}),
+      [name]: declaredType ? defaultValueForType(declaredType) : ""
+    },
+    ...(declaredType && {
+      dynamic_inputs: {
+        ...normalizeDynamicSlots(data.dynamic_inputs),
+        [name]: { type: declaredType }
+      }
+    })
+  };
+};
+
 const NUMERIC_TYPES: ReadonlySet<string> = new Set(["int", "float", "number"]);
 
 /**

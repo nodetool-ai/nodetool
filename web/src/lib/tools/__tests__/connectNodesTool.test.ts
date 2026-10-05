@@ -47,7 +47,7 @@ const mockedIsConnectable = isConnectable as jest.Mock;
 const mockedWouldCreateCycle = wouldCreateCycle as jest.Mock;
 
 function createMockNodeStore(
-  nodes: Array<{ id: string; type?: string }>,
+  nodes: Array<{ id: string; type?: string; data?: Record<string, unknown> }>,
   edges: Array<{ id: string; source: string; target: string; sourceHandle?: string; targetHandle?: string }> = []
 ) {
   let edgeCounter = edges.length;
@@ -57,6 +57,7 @@ function createMockNodeStore(
     findNode: (id: string) => nodes.find((n) => n.id === id),
     generateEdgeId: jest.fn(() => `edge-${++edgeCounter}`),
     addEdge: jest.fn((edge: unknown) => edges.push(edge as never)),
+    updateNodeData: jest.fn(),
   };
   return {
     getState: () => storeState,
@@ -320,5 +321,82 @@ describe("ui_connect_nodes tool", () => {
     ).rejects.toThrow(
       /ports: \[audience\].*properties: \[code, timeout\][\s\S]*dynamic port exists only once the body reads inputs\.<name>/
     );
+  });
+  describe("on a node that accepts dynamic inputs", () => {
+    const connectTo = async (
+      nodes: Array<{ id: string; type?: string; data?: Record<string, unknown> }>,
+      targetHandle: string
+    ) => {
+      const store = createMockNodeStore(nodes);
+      const state = makeFrontendToolState({
+        getNodeStore: jest.fn().mockReturnValue(store),
+      });
+      const call = FrontendToolRegistry.call(
+        "ui_connect_nodes",
+        {
+          source_node_id: "n1",
+          source_handle: "output",
+          target_node_id: "n2",
+          target_handle: targetHandle,
+        },
+        "tc-dyn",
+        { getState: () => state }
+      );
+      return { store, call };
+    };
+
+    beforeEach(() => {
+      mockedFindInputHandle.mockReturnValue(undefined);
+      mockGetMetadata.mockReturnValue({
+        properties: [],
+        outputs: [{ name: "output", type: { type: "str" } }],
+        supports_dynamic_inputs: true,
+      });
+    });
+
+    it("declares the missing input, typed after the source, and connects", async () => {
+      const { store, call } = await connectTo(
+        [
+          { id: "n1", type: "test.Source" },
+          { id: "n2", type: "nodetool.text.Concat", data: {} },
+        ],
+        "a"
+      );
+
+      await expect(call).resolves.toMatchObject({
+        ok: true,
+        declared_input: "a",
+      });
+      expect(store.getState().updateNodeData).toHaveBeenCalledWith("n2", {
+        dynamic_properties: { a: "" },
+        dynamic_inputs: {
+          a: {
+            type: {
+              type: "str",
+              optional: false,
+              values: null,
+              type_args: [],
+              type_name: null,
+            },
+          },
+        },
+      });
+      expect(store.getState().addEdge).toHaveBeenCalledWith(
+        expect.objectContaining({ target: "n2", targetHandle: "a" })
+      );
+    });
+
+    it("does not invent an input on a schema-driven node", async () => {
+      const { store, call } = await connectTo(
+        [
+          { id: "n1", type: "test.Source" },
+          { id: "n2", type: "kie.dynamic_schema.KieAI", data: {} },
+        ],
+        "a"
+      );
+
+      await expect(call).rejects.toThrow(/Target handle 'a' not found/);
+      expect(store.getState().updateNodeData).not.toHaveBeenCalled();
+    });
   });
 });

@@ -11,6 +11,8 @@ import {
 import { isConnectable } from "../../../utils/TypeHandler";
 import { wouldCreateCycle } from "../../../utils/graphCycle";
 import { isCodeNodeType } from "../../../utils/codeNodeHandles";
+import { dynamicInputSlotPatch } from "../../../utils/dynamicSlots";
+import { isDynamicSchemaNodeType } from "../../../constants/nodeTypes";
 import useMetadataStore from "../../../stores/MetadataStore";
 
 /**
@@ -26,6 +28,26 @@ function codePortHint(): string {
     "On a nodetool.code.Code node, a dynamic port exists only once the body " +
     "reads inputs.<name> (or writes output(\"<name>\", …) — update the body " +
     "first with ui_update_node_data, then connect."
+  );
+}
+
+/**
+ * A node that accepts user-named inputs (Concat, Prompt, Images To List…) gets
+ * the missing slot declared by the connection, as a drop on the node body does
+ * in the editor. Code nodes infer their ports from the body, and schema-driven
+ * nodes take theirs from the provider schema, so neither gets one invented.
+ */
+function canDeclareDynamicInput(
+  node: { type?: string; data?: { dynamic_outputs?: Record<string, unknown> } },
+  metadata: { supports_dynamic_inputs?: boolean },
+  handle: string
+): boolean {
+  return (
+    metadata.supports_dynamic_inputs === true &&
+    handle.trim() !== "" &&
+    !isCodeNodeType(node.type) &&
+    !isDynamicSchemaNodeType(node.type) &&
+    node.data?.dynamic_outputs?.[handle] === undefined
   );
 }
 
@@ -47,7 +69,7 @@ function formatAvailableHandles(
 FrontendToolRegistry.register({
   name: "ui_connect_nodes",
   description:
-    "Connect two nodes by port name. Required: source/target node ids and handle (port) names. On a Code node, any name the body reads as `inputs.<name>` or `stream(\"<name>\")` is already a target handle — do not add a dynamic input first.",
+    "Connect two nodes by port name. Required: source/target node ids and handle (port) names. On a Code node, any name the body reads as `inputs.<name>` or `stream(\"<name>\")` is already a target handle — do not add a dynamic input first. On a node that accepts dynamic inputs (Concat, Prompt, Images To List…), a new target handle name declares that input, typed after the source output.",
   parameters: z.object(uiConnectNodesParams),
   async execute(
     {
@@ -93,7 +115,9 @@ FrontendToolRegistry.register({
     }
 
     const tgtHandle = findInputHandle(tgt, target_handle, tgtMetadata);
-    if (!tgtHandle) {
+    const declaresInput =
+      !tgtHandle && canDeclareDynamicInput(tgt, tgtMetadata, target_handle);
+    if (!tgtHandle && !declaresInput) {
       throw new Error(
         `Target handle '${target_handle}' not found on ${tgt.type} (id=${target_node_id}). ` +
           `Available inputs — ${formatAvailableHandles(getAllInputHandles(tgt, tgtMetadata))}.` +
@@ -124,9 +148,16 @@ FrontendToolRegistry.register({
       );
     }
 
-    if (!isConnectable(srcHandle.type, tgtHandle.type)) {
+    if (tgtHandle && !isConnectable(srcHandle.type, tgtHandle.type)) {
       throw new Error(
         `Type mismatch: source '${source_handle}' produces ${JSON.stringify(srcHandle.type)} but target '${target_handle}' expects ${JSON.stringify(tgtHandle.type)}.`
+      );
+    }
+
+    if (declaresInput) {
+      nodeStore.updateNodeData(
+        target_node_id,
+        dynamicInputSlotPatch(tgt.data ?? {}, target_handle, srcHandle.type)
       );
     }
 
@@ -139,6 +170,8 @@ FrontendToolRegistry.register({
       targetHandle: target_handle
     });
 
-    return { ok: true, edge_id: edgeId };
+    return declaresInput
+      ? { ok: true, edge_id: edgeId, declared_input: target_handle }
+      : { ok: true, edge_id: edgeId };
   }
 });

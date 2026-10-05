@@ -426,7 +426,9 @@ export function analyzeCorrelation(
           nodeId: node.id,
           nodeType: node.type,
           handle,
-          message: `Handle "${handle}" receives ${edges.length} edges but is not a list type; this is invalid under correlation analysis.`
+          message:
+            `Handle "${handle}" receives ${edges.length} edges but is not a list type; this is invalid under correlation analysis. ` +
+            "To gather several values into one list, wire them into a list-typed input such as `value` on nodetool.constant.List."
         });
       }
 
