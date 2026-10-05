@@ -48,10 +48,7 @@ test("stores browser ancestry and replays Trace and Logs after reload", async ({
   await expect(page.getByText("ui.action", { exact: true })).toBeVisible();
   await expect(page.getByText("app.run", { exact: true })).toBeVisible();
   await page.reload();
-  const traceTab = page.getByRole("tab", { name: "Trace", exact: true });
-  if (await traceTab.getAttribute("aria-selected") !== "true") { await traceTab.click(); }
-  await page.getByRole("combobox", { name: /^Run / }).click();
-  await page.getByRole("option").filter({ hasText: reserved.id.slice(0, 12) }).click();
+  await page.getByRole("button", { name: "View trace", exact: true }).first().click();
   await expect(page.getByText("ui.action", { exact: true })).toBeVisible();
   await expect(page.getByText("app.run", { exact: true })).toBeVisible();
   await page.getByRole("tab", { name: "Logs", exact: true }).click();

@@ -10,6 +10,7 @@ export const runGetOptionsSchema = z.object({ include_content: z.boolean().defau
 export const runListOptionsSchema = z.object({
   kind: z.enum(["app", "workflow", "chat"]).optional(),
   app_id: resourceId.optional(), instance_id: resourceId.optional(), workflow_id: resourceId.optional(), thread_id: resourceId.optional(),
+  operation_id: z.string().min(1).max(200).optional(),
   status: runTraceRegistrationSchema.shape.status.optional(), origin: runTraceRegistrationSchema.shape.origin.optional(),
   since: z.iso.datetime().optional(), until: z.iso.datetime().optional(),
   limit: z.number().int().min(1).max(100).default(20), cursor: z.string().max(500).optional()

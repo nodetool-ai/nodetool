@@ -690,38 +690,86 @@ read call resolves them. Expired content shows expiry rather than empty success.
 
 ## Phase 5 History and instances UX
 
-### A15 Add instance management run history and comparison tabs
+### P0 Completion contracts
 
-**Owner:** App history agent. The coordinator may split header/history and
-workspace-tab work into separate agents after freezing the tab interface.
-**Files:** App run/header surfaces, history and read-only run components,
-instance server-state hooks, `WorkspaceTabsStore.ts`, workspace application
-surface/close/restore paths, and related tests.
+Extend the integrated paths. Application IDs and instance IDs remain separate
+fields. A historical selection is inspection state and never writes into the
+working instance. Advancement is explicit, owner-authorized, revision-checked,
+and affects future execution without rewriting historical runs. Draft preview
+uses a distinct frozen working copy created when preview is requested.
 
-Add the switcher, create, rename, duplicate, and delete actions using A1.
-List history for the current instance with operation, time, status, cost,
-origin, thumbnail, document links, and trace action. Run selection displays
-snapshots read-only, with expiry/truncation states. A run view must never write
-its historical outputs into the current instance. Resolve stored media through
-the existing locator-aware primitives.
+History metadata comes from the common runs service. Fetch bounded content only
+for a selected run. Keep typed document and media references and use existing
+media resolution. Closing a tab does not delete an instance or cancel server
+work. Visitor sessions cannot manage owner instances.
 
-Use `(app_id, instance_id)` as application tab identity throughout open,
-activate, close, persistence, and restore. Distinct instances of the same app
-may stay open side by side. Closing a tab follows the existing cancellation
-policy and cannot delete the instance. Duplicating an instance creates no run
-history and deleting it retains generated library assets.
+The coordinator owns shared protocol, exports, routers, migrations, harness
+registration, and host integration. Agents work in separate worktrees and
+handoff changed paths, contracts, exact commands and exit statuses, acceptance
+evidence, and remaining limitations.
 
-Expose version advancement only through the explicit behavior agreed in Q1.
-Never reinterpret a pinned instance against the latest app implicitly.
+### R1 Repair operation recovery
 
-**Acceptance:** A browser test runs two instances of one app with different
-variables, histories, and outputs, then reloads and opens both tabs. Switching,
-duplicating, renaming, deleting, and closing preserve the intended identity.
-Run snapshots remain read-only. Version advancement preserves historical
-version attribution. Deleting a run or instance preserves assets/generations
-while removing attachments/content. The existing media-resolution check passes.
+**Owner:** Run-reader integration agent. **Dependencies:** P0.
 
-**Handoff:** End-to-end phase 5 evidence and updated mini-app documentation.
+Enrich app list records with the same content-free instance, operation,
+application, and pinned-version metadata as detail records. Use a join or a
+bounded batch, never per-row detail queries. Add an optional `operation_id`
+filter and recover activity with instance plus operation and `limit: 1`.
+Preserve cursor ordering, owner scope, prefix resolution, and absent legacy
+metadata. A live invocation still wins in the working app.
+
+**Acceptance:** A real execution restores its trace link automatically after
+reload. List and detail agree. More than 500 unrelated runs do not require a
+client scan. Removing enrichment fails the reload regression.
+
+### R2 Separate draft preview and version advancement
+
+**Owner:** App execution/version agent. **Dependencies:** P0.
+
+Resolve chosen published releases and dependencies on the server. Reuse frozen
+snapshots and revision-checked model updates. Validate variables, bindings, and
+reserved input/output maps. Preserve compatible values, initialize new defaults,
+and reject incompatible or stale changes without partial writes. An older
+concurrent invocation keeps its snapshot and cannot overwrite advanced state.
+Preview identity includes the frozen draft and execution targets. Display the
+loaded instance version and offer explicit advancement when a release is newer.
+
+**Acceptance:** A version-1 instance stays pinned after version 2 is published.
+Draft preview leaves it unchanged. Advancement changes future runs only.
+
+### A15 Complete instance management and history
+
+| Assignment | Owner | Dependencies | Deliverable |
+|---|---|---|---|
+| A15.1 | Instance API/client state | R2 | Metadata-only paginated instance lists and revision-aware management hooks through existing services. Flush pending writes before duplication or switching and retain visible conflicts. |
+| A15.2 | Workspace navigation | A15.1 | Central instance-aware run-tab identity, separate editor identity, explicit prop chain, and migration/validation of persisted legacy tabs. |
+| A15.3 | Instance-management UI | A15.2 | Name/version header, New, Rename, Duplicate, Delete, and advancement using existing primitives. Switching opens the instance tab. |
+| A15.4 | Run-history data | R1 | Common history metadata, authoritative cost availability, bounded thumbnails, typed documents, and explicit content queries with distinct cache keys. |
+| A15.5 | History/inspection UI | A15.2, A15.4 | Read-only results and explicit selected-run activity. Existing Trace/Logs and Ask the agent actions reference that run. |
+| A15.6 | Integration/harness | A15.3, A15.5 | Real deterministic execution/persistence journey, independent acceptance checks, and updated design documentation. |
+
+New instances use app defaults. Duplication copies the frozen definition and
+working values, creates no history, and reuses media references. Deletion removes
+history and associations while retaining library media. Deleted or inaccessible
+instances show a recoverable state rather than substituting another instance.
+
+History inspection mounts no executable historical app. It makes no instance
+writes and never substitutes the latest run for an explicitly selected run.
+Document links open the current document unless a historical revision exists.
+Expiry, suppression, missing data, truncation, and unsettled cost remain distinct.
+Never reconstruct expired content from another store or cache.
+
+**Acceptance:** Create two named instances, run different inputs, inspect an old
+result without mutation, reload both tabs and activity, open the exact trace,
+advance one instance, and delete the other history while retaining media. Also
+verify same-workflow concurrency and cancellation isolation, duplication without
+history, draft preview isolation, stale/incompatible advancement, late completion
+after deletion, visitor restrictions, owner/account cache isolation, and large
+paginated histories. Removing instance identity must fail the two-instance test.
+
+Diff views, sharing, run bundles, and unrelated navigation tracing remain out of
+scope.
 
 ## Phase gates and verification
 

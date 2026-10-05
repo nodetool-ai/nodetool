@@ -45,7 +45,7 @@ it("restores completed activity by instance and operation after reload and links
   page.logs.push(log("call", "agent.activity", { "tool.call_id": "call-a", "tool.name": "edit_timeline" }));
   page.logs.push(log("result", "tool.result", { "tool.call_id": "call-a", "tool.name": "edit_timeline", "tool.result": "Applied stored edits" }));
   renderWidget();
-  expect(useRuns).toHaveBeenCalledWith({ kind: "app", instance_id: "instance-a", limit: 100 }, true);
+  expect(useRuns).toHaveBeenCalledWith({ kind: "app", instance_id: "instance-a", operation_id: "main", limit: 1 }, true);
   expect(useRunLogs).toHaveBeenCalledWith(RUN, { source: "agent", include_content: true, limit: 500 });
   expect(screen.getByText("Stored work")).toBeInTheDocument();
   await userEvent.click(screen.getByRole("button", { name: "edit_timeline" }));

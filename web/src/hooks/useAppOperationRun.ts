@@ -1,4 +1,3 @@
-import { useEffect } from "react";
 import { getAppSessionToken } from "../lib/appSession";
 import { useRuns } from "../serverState/useRuns";
 import { useAppRuntimeContext, useRuntimeSelector } from "../components/appbuilder/runtime/AppRuntimeContext";
@@ -22,21 +21,14 @@ export function useAppOperationRun(operationId: string | null): AppOperationRun 
   const visitor = getAppSessionToken() !== null;
   const liveRunMatches = Boolean(reference && (!activeInvocation || referenceInvocation === activeInvocation));
   const searchHistory = Boolean(!designMode && !visitor && instanceId && operationId && !activeInvocation && !reference);
-  const history = useRuns({ kind: "app", instance_id: instanceId, limit: 100 }, searchHistory);
-  const latest = history.data?.pages.flatMap((page) => page.runs).find((run) => run.app?.operation_id === operationId);
-  const pages = history.data?.pages.length ?? 0;
-  const { hasNextPage, isFetchingNextPage, fetchNextPage } = history;
-  useEffect(() => {
-    if (searchHistory && !latest && hasNextPage && !isFetchingNextPage && pages < 5) {
-      void fetchNextPage({ cancelRefetch: false });
-    }
-  }, [searchHistory, latest, hasNextPage, isFetchingNextPage, fetchNextPage, pages]);
+  const history = useRuns({ kind: "app", instance_id: instanceId, operation_id: operationId ?? undefined, limit: 1 }, searchHistory);
+  const latest = history.data?.pages[0]?.runs.find((run) => run.app?.operation_id === operationId);
   return {
     runId: designMode || visitor ? null : liveRunMatches ? reference!.runId : searchHistory ? latest?.id ?? null : null,
     liveRunMatches,
     traceIncomplete: Boolean(liveRunMatches && reference?.traceIncomplete),
-    historyLimited: Boolean(searchHistory && !latest && hasNextPage && pages >= 5),
-    historyLoading: searchHistory && (history.isLoading || history.isFetchingNextPage),
+    historyLimited: false,
+    historyLoading: searchHistory && history.isLoading,
     historyError: searchHistory ? history.error : null
   };
 }
