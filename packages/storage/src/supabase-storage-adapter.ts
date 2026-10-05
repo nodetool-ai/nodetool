@@ -195,30 +195,25 @@ export class SupabaseStorageAdapter implements StorageAdapter {
     };
   }
 
+  /**
+   * Read the object's metadata with a `HEAD` of its exact key rather than a
+   * `list` folder search, so the result does not depend on the list
+   * endpoint's name filter or result limit.
+   */
   async stat(uri: string): Promise<StorageStat | null> {
     const parsed = this.parseUri(uri);
     if (!parsed || parsed.bucket !== this.bucket) return null;
-    const dir = parsed.key.includes("/")
-      ? parsed.key.slice(0, parsed.key.lastIndexOf("/"))
-      : "";
-    const name = parsed.key.includes("/")
-      ? parsed.key.slice(parsed.key.lastIndexOf("/") + 1)
-      : parsed.key;
     const { data, error } = await this.getClient()
       .storage.from(parsed.bucket)
-      .list(dir, { search: name, limit: 1 });
+      .info(parsed.key);
     if (error || !data) return null;
-    const item = data.find((e) => e.name === name);
-    if (!item) return null;
     const stat: StorageStat = {
       key: parsed.key,
-      size: item.metadata?.size ?? 0,
-      modifiedAt: item.updated_at
-        ? new Date(item.updated_at).getTime()
-        : Date.now()
+      size: data.size,
+      modifiedAt: data.modifiedAt ?? Date.now()
     };
-    if (item.metadata?.mimetype) {
-      stat.contentType = item.metadata.mimetype;
+    if (data.contentType) {
+      stat.contentType = data.contentType;
     }
     return stat;
   }
