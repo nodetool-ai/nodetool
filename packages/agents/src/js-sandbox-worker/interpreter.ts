@@ -1258,6 +1258,9 @@ globalThis.format = {
 const __reviveDeep = (v) => {
   const r = __revive(v);
   if (r !== v) return r;
+  // Revived bytes are already final. Walking a typed array key by key makes
+  // one string per byte and exhausts the guest heap on a large image.
+  if (ArrayBuffer.isView(v)) return v;
   if (Array.isArray(v)) {
     for (let i = 0; i < v.length; i++) v[i] = __reviveDeep(v[i]);
     return v;

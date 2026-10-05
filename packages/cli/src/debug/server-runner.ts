@@ -8,7 +8,7 @@
  * and Python bridge — so it is exercised end-to-end rather than unit-tested.
  */
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
-import { getSecret } from "@nodetool-ai/models";
+import { getSecret, Project, Workflow } from "@nodetool-ai/models";
 import {
   ExecutionSession,
   isExecutionPreflightError
@@ -61,6 +61,16 @@ export interface ServerRunOutcome {
   rawMessages: ProcessingMessage[];
 }
 
+/**
+ * The project a server run of this workflow uses: the stored workflow's
+ * project, else the user's Personal project, where uploads land. Without it
+ * project-scoped capabilities such as `get_asset` reject every asset.
+ */
+async function resolveRunProjectId(workflowId: string | null): Promise<string> {
+  const workflow = workflowId ? await Workflow.find("1", workflowId) : null;
+  return workflow?.project_id ?? (await Project.ensurePersonal("1")).id;
+}
+
 export async function runOnServer(
   input: ServerRunInput
 ): Promise<ServerRunOutcome> {
@@ -79,6 +89,7 @@ export async function runOnServer(
     jobId,
     workflowId,
     userId: "1",
+    projectId: await resolveRunProjectId(workflowId),
     secretResolver: getSecret,
     storage: new FileStorageAdapter(getDefaultAssetsPath()),
     workspace,

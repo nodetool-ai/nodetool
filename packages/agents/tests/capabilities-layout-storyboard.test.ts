@@ -510,11 +510,41 @@ describe("layout_storyboard", () => {
       expect(result["findings"]).toEqual(["Frame 1 is crowded."]);
       const doc = (await TimelineSequence.findById(String(result["timelineId"])))!.toDocument();
       expect(doc.storyboardMaterializations?.[0].stage).toBe("layout");
-      // The second candidate failed fewest frames, and a tie goes to the later one.
+      // The first two candidates tie on one defect and one frame, so the later one wins.
       const price = doc.clips.find((clip) => clip.storyboardShotId === "hook" && clip.storyboardElementId === "price");
       expect(price?.transform?.position.y).toBe(-650);
       expect(result["storyboardRevision"]).toBe(board.revision + 1);
       expect(result["reviews"]).toHaveLength(3);
+    });
+
+    it("prefers fewer distinct defects over fewer failing frames", async () => {
+      /** Fails the given frames, each with every listed defect. */
+      const failWith = (failing: number[], defects: string[]): Turn => (args) => {
+        const times = context(args)["frameTimesMs"] as number[];
+        return [
+          call("review_finished_cut", {
+            passed: false,
+            findings: defects,
+            summary: "Not yet.",
+            frameReviews: times.map((timeMs, index) => ({
+              timeMs,
+              passed: !failing.includes(index),
+              findings: failing.includes(index) ? defects : []
+            }))
+          })
+        ];
+      };
+      const provider = new ScriptedProvider([
+        reviseTo(-700), done, failWith([0], ["The logo is missing.", "The CTA text is missing."]), done,
+        reviseTo(-650), done, failWith([0, 1], ["The halo shows a hard edge."]), done,
+        reviseTo(-690), done, failWith([0], ["The headline crowds the product.", "The price overlaps the product."]), done
+      ]);
+      const { result } = await layoutRun(provider);
+      expect(result["status"]).toBe("needs_review");
+      expect(result["findings"]).toEqual(["The halo shows a hard edge."]);
+      const doc = (await TimelineSequence.findById(String(result["timelineId"])))!.toDocument();
+      const price = doc.clips.find((clip) => clip.storyboardShotId === "hook" && clip.storyboardElementId === "price");
+      expect(price?.transform?.position.y).toBe(-650);
     });
 
     it("stops after two rounds that fail the same frames", async () => {

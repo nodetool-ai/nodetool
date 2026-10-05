@@ -64,13 +64,15 @@ describe("ad library Recipe apps", () => {
     expect(recipe.inputs.filter(input => !input.required).map(input => input.id)).toEqual(["world1", "world2", "world3", "world4"]);
     const worlds = strategy.shots.flatMap(shot => shot.elements.filter(element => element.id.startsWith("world")));
     expect(new Set(worlds.map(world => world.fallback.prompt)).size).toBe(4);
-    // The CTA lockup: a template-owned light panel under the logo, and a pill bound to the brand color.
+    // The CTA lockup: template-owned dark ink panels under the logo and the CTA.
     const cta = strategy.shots.find(shot => shot.id === "cta").elements;
     const panel = cta.find(element => element.id === "logoPanel");
-    expect(panel).toMatchObject({kind: "shape", style: {fill: "#FFFFFF"}});
+    expect(panel).toMatchObject({kind: "shape", style: {fill: "#0B1633"}});
     expect("inputId" in panel).toBe(false);
     expect(cta.findIndex(element => element.id === "logoPanel")).toBeLessThan(cta.findIndex(element => element.id === "logo"));
-    expect(cta.find(element => element.id === "ctaPill")).toMatchObject({inputId: "brandColor", style: {stroke: "#FFFFFF"}});
+    const pill = cta.find(element => element.id === "ctaPill");
+    expect(pill).toMatchObject({style: {fill: "#0B1633", stroke: "#FFFFFF"}});
+    expect("inputId" in pill).toBe(false);
     // The clipped worlds crop their source, so only their inputs allow crop.
     const allowsCrop = AD_LIBRARY_APPS.find(app => app.slug === "ad-fixed-glyph-changing-world").bundle.app.recipe.preservationRules.filter(rule => rule.allowedTransformations.includes("crop")).map(rule => rule.inputId);
     expect(allowsCrop).toEqual(["world1", "world2", "world3", "world4"]);
@@ -160,7 +162,7 @@ describe("ad library Recipe apps", () => {
       const recipe = bundle.app.recipe;
       const values = Object.fromEntries(recipe.inputs.map(input => [input.id, input.kind === "image" ? {asset_id: input.id.padEnd(32, "a")} : input.kind === "color" ? "#1248AB" : "Exact " + input.id]));
       const inputs = {...values, recipe, finishModel: {provider: "openai", id: "gpt-5.4-mini"}};
-      let shots = [];
+      const shots = [];
       let revision = 0;
       let laidOut;
       const outputs = await execute(PLAN_CODE, inputs, {

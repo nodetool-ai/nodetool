@@ -117,12 +117,13 @@ const AUTHORED_FRAMES = {
       worlds_2: ["Do not introduce a new grammar on every cut.", "Each world is distinguishable without relying on its caption."],
       cta: ["The final brand and CTA are fully settled and readable."]
     },
-    // The CTA lockup of R12-B05: the logo on a light panel, so a logo in the
-    // brand color stays visible, and the call to action in an outlined pill.
+    // The CTA lockup of R12-B05: the logo and the call to action on dark ink
+    // panels, because brand-colored or white shapes vanish against the
+    // brand-colored background or a light logo.
     extras: {
       cta: [
-        {id: "logoPanel", kind: "shape", role: "decorative", frame: {box: [0.26, 0.15, 0.48, 0.14]}, style: {fill: "#FFFFFF", cornerRadius: 0.03}, limits: {x: 0.03, y: 0.03, scale: 0.1}},
-        {id: "ctaPill", inputId: "brandColor", kind: "shape", role: "decorative", frame: {box: [0.21, 0.715, 0.58, 0.075]}, style: {stroke: "#FFFFFF", strokeWidth: 0.005, cornerRadius: 0.066}, limits: R12_COPY_LIMITS}
+        {id: "logoPanel", kind: "shape", role: "decorative", frame: {box: [0.26, 0.15, 0.48, 0.14]}, style: {fill: "#0B1633", stroke: "#FFFFFF", strokeWidth: 0.003, cornerRadius: 0.03}, limits: {x: 0.03, y: 0.03, scale: 0.1}},
+        {id: "ctaPill", kind: "shape", role: "decorative", frame: {box: [0.21, 0.715, 0.58, 0.075]}, style: {fill: "#0B1633", stroke: "#FFFFFF", strokeWidth: 0.005, cornerRadius: 0.066}, limits: R12_COPY_LIMITS}
       ]
     },
     // The concept's layer stack, bottom to top. Element order sets the track order.

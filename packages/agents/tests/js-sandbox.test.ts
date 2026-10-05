@@ -2405,6 +2405,33 @@ describe("guest→host binary volume", () => {
   }, 180_000);
 });
 
+describe("host→guest binary volume", () => {
+  it("returns large bytes from a media bridge without aborting the runtime", async () => {
+    // `__wrap` revives the base64 marker into a Uint8Array, then
+    // `__reviveDeep` walked that array key by key: one string per byte. A
+    // photo-sized `media.bytes` ran the guest out of heap inside a host
+    // promise continuation, and the runtime aborted on free. 700 KB failed
+    // before the fix.
+    const result = await runInSandbox({
+      code: `
+        const raw = new Uint8Array(700 * 1024);
+        let x = 7;
+        for (let i = 0; i < raw.length; i++) {
+          x = (x * 1103515245 + 12345) >>> 0;
+          raw[i] = x >>> 24;
+        }
+        const bytes = await image.bytes(raw);
+        return [bytes.length, Object.prototype.toString.call(bytes)];
+      `,
+      context: {} as never,
+      timeoutMs: 60_000
+    });
+
+    expect(result.error).toBeUndefined();
+    expect(result.result).toEqual([700 * 1024, "[object Uint8Array]"]);
+  }, 120_000);
+});
+
 describe("a function nested inside a data global", () => {
   // Only a *top-level* global follows the never-reject convention the named
   // bridges use (`fetch`, `workspace`, …). A function nested inside an
