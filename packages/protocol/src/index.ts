@@ -49,6 +49,8 @@ export * from "./sandbox-wasm.js";
 export * from "./skill-document.js";
 export * from "./wasm-binary.js";
 export * from "./resource-id.js";
+export * from "./run-trace.js";
+export * from "./browser-run-traces.js";
 export * from "./game-assets.js";
 export * from "./game.js";
 export * from "./game3d.js";
@@ -80,3 +82,4 @@ export * from "./mcp-server-config.js";
 export * from "./game-authoring.js";
 
 export * from "./workflow-document-revision.js";
+export * from "./run-readers.js";

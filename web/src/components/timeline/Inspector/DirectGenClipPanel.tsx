@@ -3,7 +3,7 @@
  * DirectGenClipPanel
  *
  * Inspector panel for a direct-generation clip (text-to-image /
- * image-to-image / text-to-video / text-to-audio). Mirrors the sketch
+ * image-to-image / text-to-video / image-to-video / text-to-audio). Mirrors the sketch
  * editor's `DirectGenLayerPanel`: prompt + model + (optional) source-clip
  * picker, with Generate/Cancel driven by the same `useGenerateClip` API
  * used elsewhere in the timeline.
@@ -104,7 +104,8 @@ const panelSx = {
   overflow: "auto"
 };
 
-// Source-clip dropdown is only rendered in image-to-image mode. Sharing one
+// Source-clip dropdown is only rendered in image-to-image and image-to-video
+// mode. Sharing one
 // empty array (rather than `[]` inline in the selector) keeps the selector's
 // result referentially stable outside that mode, so `useShallow` bails out
 // without a re-render.
@@ -146,7 +147,8 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
   } = useGenerateClip(clipId);
 
   const kind: "image" | "video" | "audio" | "music" =
-    clip?.bindingKind === "text-to-video"
+    clip?.bindingKind === "text-to-video" ||
+    clip?.bindingKind === "image-to-video"
       ? "video"
       : clip?.bindingKind === "text-to-music"
         ? "music"
@@ -154,6 +156,8 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
           ? "audio"
           : "image";
   const isImageToImage = clip?.bindingKind === "image-to-image";
+  const isImageToVideo = clip?.bindingKind === "image-to-video";
+  const hasSourceClip = isImageToImage || isImageToVideo;
 
   // What pressing Generate spends, at the model and settings picked above.
   const costEstimate = useClipCostEstimate(clip);
@@ -234,15 +238,15 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
     [clipId, patchClip]
   );
 
-  // Eligible image-to-image source clips: any other image/overlay clip with
-  // a rendered asset in the sequence. Gated on `isImageToImage` so clips in
+  // Eligible source clips: any other image/overlay clip with a rendered
+  // asset in the sequence. Gated on `hasSourceClip` so clips in
   // every other mode never subscribe to the full `clips` array; the selector
   // returns primitive strings (not fresh {value, label} objects) so
   // `useShallow` can actually bail out the re-render when nothing eligible
   // changed.
   const sourceEntries = useTimelineStore(
     useShallow((s) =>
-      isImageToImage
+      hasSourceClip
         ? s.clips
             .filter(
               (c) =>
@@ -419,7 +423,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
               <VideoModelSelect
                 value={clip.model ?? ""}
                 provider={clip.provider}
-                task="text_to_video"
+                task={isImageToVideo ? "image_to_video" : "text_to_video"}
                 onChange={handleVideoModelChange}
               />
             ) : kind === "music" ? (
@@ -478,7 +482,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
               }}
             />
 
-            {isImageToImage && (
+            {hasSourceClip && (
               sourceOptions.length === 0 ? (
                 <EmptyState
                   variant="empty"
@@ -487,7 +491,7 @@ const DirectGenClipPanelInner: React.FC<DirectGenClipPanelProps> = ({
                 />
               ) : (
                 <SelectField
-                  label="Source clip"
+                  label={isImageToVideo ? "Source image" : "Source clip"}
                   value={clip.sourceClipId ?? ""}
                   onChange={handleSourceChange}
                   options={sourceOptions}

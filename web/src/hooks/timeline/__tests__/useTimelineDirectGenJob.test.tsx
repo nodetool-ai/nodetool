@@ -193,6 +193,44 @@ describe("useTimelineDirectGenJob request payloads", () => {
     });
   });
 
+  it("image-to-video: sends the source image and a duration covering the clip", async () => {
+    doc.setState({ sequenceId: "seq-1" });
+    addClip({
+      id: "clip-image",
+      mediaType: "image",
+      sourceType: "imported",
+      currentAssetId: "asset-image"
+    });
+    addClip({
+      id: "clip-i2v",
+      bindingKind: "image-to-video",
+      sourceClipId: "clip-image",
+      durationMs: 4200
+    });
+    await startClip("clip-i2v");
+    expect(sentData()).toMatchObject({
+      mode: "video",
+      source_asset_id: "asset-image",
+      timeline_context: expect.objectContaining({
+        source_clip_id: "clip-image",
+        target_clip_id: "clip-i2v"
+      }),
+      aspect_ratio: "16:9",
+      resolution: "1080p",
+      duration: 5
+    });
+  });
+
+  it("image-to-video: fails without sending when the source image is missing", async () => {
+    addClip({
+      id: "clip-i2v-orphan",
+      bindingKind: "image-to-video",
+      sourceClipId: "gone"
+    });
+    await expect(startClip("clip-i2v-orphan")).resolves.toBeNull();
+    expect(sendMock).not.toHaveBeenCalled();
+  });
+
   it("text-to-video: derives whole-second duration from the clip length", async () => {
     addClip({
       id: "clip-t2v",

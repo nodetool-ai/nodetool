@@ -96,6 +96,56 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "Revoking a connected client's grant is denial of service against the " +
       "user's own tooling, same rule as revokeToken."
   },
+  "appInstances.create": {
+    gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
+  },
+  "appInstances.advance": {
+    withheld: "Owner UI instance management uses revision-checked release advancement. Sandboxed code cannot change its own execution snapshot."
+  },
+  "appInstances.listMetadata": {
+    elsewhere: "Owner UI instance switcher pagination. Sandboxed code reads run metadata through the runs capabilities."
+  },
+  "appInstances.delete": {
+    gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
+  },
+  "appInstances.duplicate": {
+    gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
+  },
+  "appInstances.ensureDefault": {
+    gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
+  },
+  "appInstances.get": {
+    gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
+  },
+  "appInstances.list": {
+    gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
+  },
+  "appInstances.update": {
+    gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
+  },
+  "appRuns.get": {
+    elsewhere: "get_run provides the shared run summary and bounded app inputs and outputs. Executable snapshots remain on the app API."
+  },
+  "appRuns.list": {
+    elsewhere: "list_runs filters app history by app and instance through the shared runs service."
+  },
+  "appRuns.delete": {
+    gap: "Run history deletion is available to the owner UI. No sandbox capability for deleting history is exposed."
+  },
+  "appRuns.reserve": {
+    withheld: "The app UI and execution host own run admission and settlement. Sandboxed work must not reserve or rewrite its own recorded outcome."
+  },
+  "appRuns.update": {
+    withheld: "The app UI and execution host own run admission and settlement. Sandboxed work must not reserve or rewrite its own recorded outcome."
+  },
+  "runs.list": { capability: "list_runs" },
+  "runs.get": { capability: "get_run" },
+  "runs.trace": { capability: "get_run_trace" },
+  "runs.logs": { capability: "get_run_logs" },
+  "runs.await": { capability: "await_run" },
+  "runs.updates": {
+    elsewhere: "Cursor updates serve the UI and CLI tail. Sandboxed readers poll get_run_trace and get_run_logs or wait with await_run."
+  },
   "applications.beginInvocation": {
     withheld:
       "Spend governance. A run that could raise its own ceiling is " +
@@ -544,6 +594,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "a third party. A run that could start or delete a download " +
       "could fill the disk or remove a model other runs depend on."
   },
+  "models.rankedKeys": {
+    elsewhere:
+      "The model menu uses these keys for display ordering. find_model " +
+      "already applies the same rankings when selecting models for a run."
+  },
   "models.recommended": {
     elsewhere:
       "find_model resolves a model by capability; list_models and " +
@@ -956,6 +1011,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "The receiving end of another install's sync, authenticated by an " +
       "access token. A run has no traces of its own to push, and writing " +
       "here would plant records under the user's id."
+  },
+  "bugReports.submit": {
+    withheld:
+      "Files a bug report with the NodeTool team in the user's name. A run " +
+      "that could send one could put words in the user's mouth and upload " +
+      "data they never reviewed."
   },
   "memories.list": { capability: "memory_list" },
   "memories.search": { capability: "memory_search" },

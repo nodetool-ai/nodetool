@@ -43,7 +43,7 @@ export type { ResolvedAppTarget, AppApplicationRecord, AppWorkflowRecord };
 
 export interface AppTargetDeps {
   /** Load a workflow by DB id, including its legacy `app_doc`. */
-  loadFromDb: (id: string) => Promise<AppWorkflowRecord | null>;
+  loadFromDb: (id: string, version?: number) => Promise<AppWorkflowRecord | null>;
   /** Load an application by DB id. Omitted when the caller has no DB. */
   loadApplication?: (id: string) => Promise<AppApplicationRecord | null>;
 }

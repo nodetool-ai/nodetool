@@ -165,72 +165,159 @@ description: "Open-source agent-first creative workspace. Create images, video, 
 </section>
 
 <section class="home-block">
-  <p class="section-kicker">Recipes</p>
-  <h2 id="featured-use-cases">Start from a recipe</h2>
+  <p class="section-kicker">Examples</p>
+  <h2 id="featured-use-cases">Start from an example</h2>
   <p class="section-lead">
-    Each recipe is a chain of editable steps with a real sample run. Open one,
-    swap in your own product or story, and re-run it.
+    Every video below is a NodeTool timeline. Open one, swap in your own
+    product, copy, and footage, and render your version.
   </p>
-  <div class="recipe-grid">
-    <a class="recipe-card" href="https://nodetool.ai/recipes/storyboard-to-trailer">
+  <h3 id="ad-recipes" class="example-heading">Ad recipes</h3>
+  <p class="example-lead">
+    Sound-off vertical ad formats with a beat sheet, an asset list, and a
+    rendered sample cut.
+  </p>
+  <div class="recipe-grid ads">
+    <a class="recipe-card" href="https://nodetool.ai/ad-library/kinetic-offer-wall">
       <div class="media-frame">
         <video class="inview-video" muted loop playsinline preload="none"
-          poster="https://nodetool.ai/recipes/samples/storyboard-to-trailer-poster.webp" aria-label="Storyboard to trailer sample run">
-          <source src="https://nodetool.ai/recipes/samples/storyboard-to-trailer.webm" type="video/webm">
-          <source src="https://nodetool.ai/recipes/samples/storyboard-to-trailer.mp4" type="video/mp4">
+          poster="https://nodetool.ai/ad-library/videos/kinetic-offer-wall.webp" aria-label="Kinetic offer wall sample ad">
+          <source src="https://nodetool.ai/ad-library/videos/kinetic-offer-wall.mp4" type="video/mp4">
         </video>
       </div>
       <div class="recipe-body">
-        <span class="usecase-tag">Film</span>
-        <h3>Storyboard to trailer</h3>
-        <p>A story idea becomes a six-shot storyboard, then voice, motion, and an edit.</p>
+        <span class="usecase-tag">Offer</span>
+        <h3>Kinetic offer wall</h3>
+        <p>One offer stays readable while the product range moves behind it.</p>
       </div>
     </a>
-    <a class="recipe-card" href="https://nodetool.ai/recipes/viral-video-ad-engine">
+    <a class="recipe-card" href="https://nodetool.ai/ad-library/product-cutout-shuffle">
       <div class="media-frame">
         <video class="inview-video" muted loop playsinline preload="none"
-          poster="https://nodetool.ai/recipes/samples/viral-video-ad-engine-poster.webp" aria-label="Product commercial sample run">
-          <source src="https://nodetool.ai/recipes/samples/viral-video-ad-engine.webm" type="video/webm">
-          <source src="https://nodetool.ai/recipes/samples/viral-video-ad-engine.mp4" type="video/mp4">
+          poster="https://nodetool.ai/ad-library/videos/product-cutout-shuffle.webp" aria-label="Product cutout shuffle sample ad">
+          <source src="https://nodetool.ai/ad-library/videos/product-cutout-shuffle.mp4" type="video/mp4">
         </video>
       </div>
       <div class="recipe-body">
-        <span class="usecase-tag">Advertising</span>
-        <h3>Product commercials</h3>
-        <p>Direct the shots, shape the sound, and finish the ad on the timeline.</p>
+        <span class="usecase-tag">Range</span>
+        <h3>Product cutout shuffle</h3>
+        <p>Product cutouts swap on a fixed baseline to show every flavour.</p>
       </div>
     </a>
-    <a class="recipe-card" href="https://nodetool.ai/recipes/ecommerce-sku-visual-factory">
+    <a class="recipe-card" href="https://nodetool.ai/ad-library/editorial-image-panels">
       <div class="media-frame">
         <video class="inview-video" muted loop playsinline preload="none"
-          poster="https://nodetool.ai/recipes/samples/ecommerce-sku-visual-factory-poster.webp" aria-label="Product catalogue sample run">
-          <source src="https://nodetool.ai/recipes/samples/ecommerce-sku-visual-factory.webm" type="video/webm">
-          <source src="https://nodetool.ai/recipes/samples/ecommerce-sku-visual-factory.mp4" type="video/mp4">
+          poster="https://nodetool.ai/ad-library/videos/editorial-image-panels.webp" aria-label="Editorial image panels sample ad">
+          <source src="https://nodetool.ai/ad-library/videos/editorial-image-panels.mp4" type="video/mp4">
         </video>
       </div>
       <div class="recipe-body">
-        <span class="usecase-tag">E-commerce</span>
-        <h3>Product catalogue assets</h3>
-        <p>One product photo becomes studio images, seasonal scenes, and a motion clip.</p>
+        <span class="usecase-tag">Premium</span>
+        <h3>Editorial image panels</h3>
+        <p>Three photos and short copy make a calm, sound-off brand ad.</p>
       </div>
     </a>
-    <a class="recipe-card" href="https://nodetool.ai/recipes/multilingual-video-dubber">
+    <a class="recipe-card" href="https://nodetool.ai/ad-library/integration-puzzle-that-snaps-together">
       <div class="media-frame">
         <video class="inview-video" muted loop playsinline preload="none"
-          poster="https://nodetool.ai/recipes/samples/multilingual-video-dubber-poster.webp" aria-label="Multilingual video sample run">
-          <source src="https://nodetool.ai/recipes/samples/multilingual-video-dubber.webm" type="video/webm">
-          <source src="https://nodetool.ai/recipes/samples/multilingual-video-dubber.mp4" type="video/mp4">
+          poster="https://nodetool.ai/ad-library/videos/integration-puzzle-that-snaps-together.webp" aria-label="Integration puzzle sample ad">
+          <source src="https://nodetool.ai/ad-library/videos/integration-puzzle-that-snaps-together.mp4" type="video/mp4">
         </video>
       </div>
       <div class="recipe-body">
-        <span class="usecase-tag">Localization</span>
-        <h3>Multilingual video</h3>
-        <p>Review a translation, choose a voice, and edit the delivery line by line.</p>
+        <span class="usecase-tag">Software</span>
+        <h3>Integration puzzle</h3>
+        <p>App tiles snap into one grid to show a connected product.</p>
+      </div>
+    </a>
+  </div>
+  <h3 id="timeline-examples" class="example-heading">Timeline examples</h3>
+  <p class="example-lead">
+    Finished films that ship with NodeTool. Open one in the timeline editor and
+    change the scenes, text, and motion.
+  </p>
+  <div class="recipe-grid films">
+    <a class="recipe-card" href="https://nodetool.ai/#example-timelines">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/timelines/serein/poster.webp" aria-label="Serein example film">
+          <source src="https://nodetool.ai/timelines/serein/film.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="recipe-body">
+        <span class="usecase-tag">Software launch film</span>
+        <h3>Serein</h3>
+        <p>An inbox becomes a product story through animated scenes, type, and interface details.</p>
+      </div>
+    </a>
+    <a class="recipe-card" href="https://nodetool.ai/#example-timelines">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/timelines/kite/poster.webp" aria-label="Kite example film">
+          <source src="https://nodetool.ai/timelines/kite/film.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="recipe-body">
+        <span class="usecase-tag">App motion graphics</span>
+        <h3>Kite</h3>
+        <p>A savings app with kinetic type, a growing chart, and an animated goal ring.</p>
+      </div>
+    </a>
+    <a class="recipe-card" href="https://nodetool.ai/#example-timelines">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/timelines/tidewater/poster.webp" aria-label="Tidewater example film">
+          <source src="https://nodetool.ai/timelines/tidewater/film.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="recipe-body">
+        <span class="usecase-tag">Animated event poster</span>
+        <h3>Tidewater</h3>
+        <p>A jazz festival poster in motion, with layered inks, cut-paper shapes, and a swing score.</p>
+      </div>
+    </a>
+    <a class="recipe-card" href="https://nodetool.ai/#example-timelines">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/timelines/cadence/poster.webp" aria-label="Cadence example film">
+          <source src="https://nodetool.ai/timelines/cadence/film.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="recipe-body">
+        <span class="usecase-tag">Vertical data story</span>
+        <h3>Cadence</h3>
+        <p>A bike-share year in review, with a route that rides itself, counting stats, and animated charts.</p>
+      </div>
+    </a>
+    <a class="recipe-card" href="https://nodetool.ai/#example-timelines">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/timelines/prism/poster.webp" aria-label="Prism example film">
+          <source src="https://nodetool.ai/timelines/prism/film.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="recipe-body">
+        <span class="usecase-tag">Running-shoe campaign</span>
+        <h3>Prism</h3>
+        <p>A shoe launch built from product stills, colour trails, and orbiting type.</p>
+      </div>
+    </a>
+    <a class="recipe-card" href="https://nodetool.ai/#example-timelines">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/timelines/voltra/poster.webp" aria-label="Voltra example film">
+          <source src="https://nodetool.ai/timelines/voltra/film.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="recipe-body">
+        <span class="usecase-tag">Motorcycle launch ad</span>
+        <h3>Voltra</h3>
+        <p>An electric motorcycle campaign with parallax, animated gauges, and a cut timed to the beat.</p>
       </div>
     </a>
   </div>
   <p class="section-note">
-    <a href="https://nodetool.ai/recipes">All recipes →</a> ·
+    <a href="https://nodetool.ai/ad-library">All ad recipes →</a> ·
+    <a href="{{ '/video-editor' | relative_url }}">Video Editor →</a> ·
     <a href="{{ '/use-cases' | relative_url }}">Use-case walkthroughs →</a> ·
     <a href="{{ '/cookbook' | relative_url }}">Cookbook →</a>
   </p>

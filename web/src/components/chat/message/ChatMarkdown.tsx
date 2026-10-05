@@ -30,6 +30,7 @@ const IMAGE_EXTENSIONS = [".png", ".jpg", ".jpeg", ".gif", ".webp", ".svg", ".av
 const VIDEO_EXTENSIONS = [".mp4", ".webm", ".mov", ".mkv", ".m4v", ".ogv"];
 const AUDIO_EXTENSIONS = [".mp3", ".wav", ".ogg", ".m4a", ".aac", ".flac", ".opus"];
 const MODEL3D_EXTENSIONS = [".glb", ".gltf"];
+const DOCUMENT_EXTENSIONS = [".pdf"];
 
 const hrefPath = (href: string): string => href.toLowerCase().split(/[?#]/)[0];
 
@@ -42,8 +43,10 @@ const isImageHref = (href: string): boolean => hasExtension(href, IMAGE_EXTENSIO
 const isVideoHref = (href: string): boolean => hasExtension(href, VIDEO_EXTENSIONS);
 const isAudioHref = (href: string): boolean => hasExtension(href, AUDIO_EXTENSIONS);
 const isModel3DHref = (href: string): boolean => hasExtension(href, MODEL3D_EXTENSIONS);
+const isDocumentHref = (href: string): boolean => hasExtension(href, DOCUMENT_EXTENSIONS);
 
-type MediaKind = "video" | "audio" | "image" | "model3d";
+/** `document` is a paged file (a PDF) previewed by its first-page thumbnail. */
+type MediaKind = "video" | "audio" | "image" | "model3d" | "document";
 
 const mimeKind = (mime: string | undefined): MediaKind | null => {
   if (!mime) return null;
@@ -51,6 +54,7 @@ const mimeKind = (mime: string | undefined): MediaKind | null => {
   if (mime.startsWith("audio/")) return "audio";
   if (mime.startsWith("image/")) return "image";
   if (mime.startsWith("model/gltf")) return "model3d";
+  if (mime === "application/pdf") return "document";
   return null;
 };
 
@@ -71,6 +75,9 @@ const mediaKind = (
   }
   if (isModel3DHref(href) || (resolvedSrc && isModel3DHref(resolvedSrc))) {
     return "model3d";
+  }
+  if (isDocumentHref(href) || (resolvedSrc && isDocumentHref(resolvedSrc))) {
+    return "document";
   }
   return mimeKind(mime);
 };
@@ -132,6 +139,14 @@ const videoCss = css({
   backgroundColor: "var(--palette-grey-900)"
 });
 
+const documentThumbCss = css({
+  display: "block",
+  maxWidth: "100%",
+  maxHeight: "320px",
+  height: "auto",
+  borderRadius: BORDER_RADIUS.md
+});
+
 const model3dFrameSx = {
   width: "100%",
   height: 280,
@@ -149,6 +164,7 @@ const useChatAsset = (
   src: string | undefined
 ): {
   resolvedSrc: string | undefined;
+  thumbSrc: string | undefined;
   contentType: string | undefined;
   pending: boolean;
 } => {
@@ -160,12 +176,18 @@ const useChatAsset = (
     { key: key ?? "" },
     { enabled: Boolean(key), staleTime: 6 * 24 * 60 * 60 * 1000 }
   );
+  const unresolved = {
+    thumbSrc: undefined,
+    contentType: undefined,
+    pending: false
+  };
   if (!src) {
-    return { resolvedSrc: undefined, contentType: undefined, pending: false };
+    return { ...unresolved, resolvedSrc: undefined };
   }
   if (isAssetUri) {
     return {
       resolvedSrc: fromAsset.url,
+      thumbSrc: fromAsset.thumbUrl,
       contentType: fromAsset.contentType,
       pending: fromAsset.pending
     };
@@ -174,27 +196,19 @@ const useChatAsset = (
     // Legacy `/api/storage/<key>` markdown — resolve through the signed-URL
     // path so owner-prefixed keys and cloud backends work.
     return {
+      ...unresolved,
       resolvedSrc: data?.url,
-      contentType: undefined,
       pending: isPending && !isError
     };
   }
   const pkgPath = packageAssetHttpPath(src);
   if (pkgPath) {
-    return {
-      resolvedSrc: `${BASE_URL}${pkgPath}`,
-      contentType: undefined,
-      pending: false
-    };
+    return { ...unresolved, resolvedSrc: `${BASE_URL}${pkgPath}` };
   }
   if (src.startsWith("/api/")) {
-    return {
-      resolvedSrc: `${BASE_URL}${src}`,
-      contentType: undefined,
-      pending: false
-    };
+    return { ...unresolved, resolvedSrc: `${BASE_URL}${src}` };
   }
-  return { resolvedSrc: src, contentType: undefined, pending: false };
+  return { ...unresolved, resolvedSrc: src };
 };
 
 /**
@@ -222,12 +236,27 @@ const isBlockEmbedSrc = (src: string): boolean =>
   isVideoHref(src) ||
   isAudioHref(src) ||
   isModel3DHref(src) ||
+  isDocumentHref(src) ||
   isUntypedAssetSrc(src);
 
 /** Asset links may resolve to video/audio even without a file extension. */
 const isBlockEmbedHref = (href: string): boolean =>
   isBlockEmbedSrc(href) ||
   (href.startsWith("asset://") && !isImageHref(href));
+
+/**
+ * An image embed that names a file no media renderer can show: an asset whose
+ * row reports a non-image type, or an `asset://<id>.<ext>` with an extension
+ * that is not an image. A plain URL without either keeps the `<img>` default.
+ */
+const isNonMediaFile = (href: string, contentType: string | undefined): boolean => {
+  if (contentType) return !contentType.startsWith("image/");
+  return (
+    href.startsWith("asset://") &&
+    !isUntypedAssetSrc(href) &&
+    !isImageHref(href)
+  );
+};
 
 const containsBlockEmbed = (node: unknown): boolean => {
   const children = (node as HastNodeLike | undefined)?.children;
@@ -245,13 +274,54 @@ const containsBlockEmbed = (node: unknown): boolean => {
   );
 };
 
+/**
+ * A file chat has no inline renderer for: a chip for a resource (it opens the
+ * asset), or a plain anchor to the file for any other URL.
+ */
+const FileReference: React.FC<{
+  href: string;
+  resolvedSrc: string | undefined;
+  label: string;
+}> = ({ href, resolvedSrc, label }) =>
+  isResourceUri(href) ? (
+    <ResourceChip uri={href} label={label || href} />
+  ) : (
+    <a href={resolvedSrc ?? href} target="_blank" rel="noopener noreferrer">
+      {label || href}
+    </a>
+  );
+
 const ChatMarkdownMedia: React.FC<{
   href: string;
   resolvedSrc: string;
+  thumbSrc?: string;
   kind: MediaKind;
   label: string;
   imgProps?: React.ComponentPropsWithoutRef<"img">;
-}> = ({ href, resolvedSrc, kind, label, imgProps }) => {
+}> = ({ href, resolvedSrc, thumbSrc, kind, label, imgProps }) => {
+  if (kind === "document") {
+    // The server renders a PDF's first page as the asset thumbnail. Clicking
+    // it opens the file; the chip beneath opens the asset.
+    return (
+      <FlexColumn
+        gap={SPACING.xs}
+        align="flex-start"
+        data-testid="document-preview"
+      >
+        {thumbSrc ? (
+          <a href={resolvedSrc} target="_blank" rel="noopener noreferrer">
+            <img
+              src={thumbSrc}
+              alt={label ? `First page of ${label}` : "First page"}
+              css={documentThumbCss}
+              loading="lazy"
+            />
+          </a>
+        ) : null}
+        <FileReference href={href} resolvedSrc={resolvedSrc} label={label} />
+      </FlexColumn>
+    );
+  }
   if (kind === "model3d") {
     // A 3D model asset previews in a viewer with a chip that opens it in the
     // 3D editor. Without an asset id (a plain URL) there is nothing to open.
@@ -334,19 +404,29 @@ const ChatMarkdownImg: React.FC<React.ComponentPropsWithoutRef<"img">> = ({
   ...props
 }) => {
   const href = src != null ? src : "";
-  const { resolvedSrc, contentType, pending } = useChatAsset(href || undefined);
+  const { resolvedSrc, thumbSrc, contentType, pending } = useChatAsset(
+    href || undefined
+  );
   if (!resolvedSrc) {
     // Still resolving: render nothing rather than flashing a failure.
     return pending || !href ? null : (
       <UnresolvedMedia href={href} label={alt ?? ""} />
     );
   }
-  const kind = mediaKind(href, resolvedSrc, contentType) ?? "image";
+  const kind = mediaKind(href, resolvedSrc, contentType);
+  if (!kind && isNonMediaFile(href, contentType)) {
+    // A zip, a spreadsheet, a text file embedded with image syntax: an <img>
+    // of it is broken, so link the file instead.
+    return (
+      <FileReference href={href} resolvedSrc={resolvedSrc} label={alt ?? ""} />
+    );
+  }
   return (
     <ChatMarkdownMedia
       href={href}
       resolvedSrc={resolvedSrc}
-      kind={kind}
+      thumbSrc={thumbSrc}
+      kind={kind ?? "image"}
       label={alt ?? ""}
       imgProps={props}
     />
@@ -369,13 +449,14 @@ const ChatMarkdownAssetLink: React.FC<{ href: string; label: string }> = ({
   href,
   label
 }) => {
-  const { resolvedSrc, contentType } = useChatAsset(href);
+  const { resolvedSrc, thumbSrc, contentType } = useChatAsset(href);
   const kind = mediaKind(href, resolvedSrc, contentType);
   if (kind && resolvedSrc) {
     return (
       <ChatMarkdownMedia
         href={href}
         resolvedSrc={resolvedSrc}
+        thumbSrc={thumbSrc}
         kind={kind}
         label={label}
       />

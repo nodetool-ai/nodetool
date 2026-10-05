@@ -127,7 +127,8 @@ describe("AudioRecorderWidget", () => {
       asset_id: "asset-1"
     });
     expect(value.dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: "run", from: "op:main/in:in1" })
+      expect.objectContaining({ kind: "run", from: "op:main/in:in1" }),
+      { widgetId: "r1" }
     );
   });
 
@@ -181,7 +182,8 @@ describe("CameraCaptureWidget", () => {
       asset_id: "asset-1"
     });
     expect(value.dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: "run", from: "op:main/in:in1" })
+      expect.objectContaining({ kind: "run", from: "op:main/in:in1" }),
+      { widgetId: "c1" }
     );
   });
 

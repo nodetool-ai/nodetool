@@ -325,6 +325,30 @@ export const HARNESSES: HarnessEntry[] = [
     }
   },
   {
+    id: "app-runs",
+    title: "Durable app operation and generation attachment check",
+    command: "npm run test --workspace=packages/execution -- app-operation app-run-generation",
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § App runs phase 1",
+    selfcheck: {
+      command: "npm run test --workspace=packages/execution -- app-operation app-run-generation",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "run-traces",
+    title: "Durable app trace, content policy and ancestry check",
+    command: "npm run test --workspace=packages/execution --workspace=packages/runtime --workspace=packages/models --workspace=packages/websocket -- run-trace external-trace-privacy http-tracing",
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Run traces phase 2",
+    selfcheck: {
+      command: "npm run test --workspace=packages/execution --workspace=packages/runtime --workspace=packages/models --workspace=packages/websocket -- run-trace external-trace-privacy http-tracing",
+      cost: "cheap"
+    }
+  },
+  {
     id: "app-debug",
     title: "Mini-app debug harness",
     command: "nodetool app debug <id|bundle.json> [--interact ... --no-run]",
@@ -336,6 +360,82 @@ export const HARNESSES: HarnessEntry[] = [
         "npm run dev:nodetool -- app debug packages/base-nodes/nodetool/examples/apps/ad-maker.app.json --no-run",
       cost: "cheap"
     }
+  },
+  {
+    id: "run-readers",
+    title: "Run reader, debug history and CLI failure-path check",
+    command: "npm run test --workspace=packages/execution --workspace=packages/models --workspace=packages/websocket --workspace=packages/agents --workspace=packages/cli -- runs-phase3 app-debug-versioned-targets app-debug-workflow-inputs-phase3 capabilities-runs runs-command runs-integration run-readers job-find runs-trpc sandbox-api-coverage",
+    kind: "execution",
+    capabilities: ["json"],
+    docs: "docs/harnesses.md § Run readers phase 3",
+    selfcheck: {
+      command: "npm run test --workspace=packages/execution --workspace=packages/models --workspace=packages/websocket --workspace=packages/agents --workspace=packages/cli -- runs-phase3 app-debug-versioned-targets app-debug-workflow-inputs-phase3 capabilities-runs runs-command runs-integration run-readers job-find runs-trpc sandbox-api-coverage",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "browser-run-spans",
+    title: "Browser run ownership, ancestry and restart check",
+    command: "npm run test --workspace=packages/websocket -- browser-run-spans-phase4 browser-app-run-phase4 app-runs-workflow",
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Run inspection phase 4",
+    selfcheck: {
+      command: "npm run test --workspace=packages/websocket -- browser-run-spans-phase4 browser-app-run-phase4 app-runs-workflow",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "run-inspection-ui",
+    title: "Stored trace, activity replay and browser recorder check",
+    command: "npm run test --workspace=web -- --runInBand --testPathPattern='browserRunTrace|browserWorkflowRunner|WorkflowRunner.test|TracePanel.test|TraceStore|useRuns|runTraceCache|appRunActivity|AgentActivityWidget|useWidgetRuntime|sketchPadWidget|workflowFormWidget|chatWidgets|mediaWidgets|buttonWidget|recorderWidgets|conditionalWidget|errorTraceReporting|ChatSurface.test|AskRunAgentButton|useAppRuntime|runJsScript.test'",
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § Run inspection phase 4",
+    selfcheck: {
+      command: "npm run test --workspace=web -- --runInBand --testPathPattern='browserRunTrace|browserWorkflowRunner|WorkflowRunner.test|TracePanel.test|TraceStore|useRuns|runTraceCache|appRunActivity|AgentActivityWidget|useWidgetRuntime|sketchPadWidget|workflowFormWidget|chatWidgets|mediaWidgets|buttonWidget|recorderWidgets|conditionalWidget|errorTraceReporting|ChatSurface.test|AskRunAgentButton|useAppRuntime|runJsScript.test'",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "run-inspection-browser",
+    title: "Browser action ancestry and Trace/Logs reload journey",
+    command: "npm run test:journeys --workspace=web -- run-observability.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § Run inspection phase 4"
+  },
+  {
+    id: "app-instance-history",
+    title: "Instance management, pinned versions and history projection check",
+    command: "npm run test --workspace=packages/models --workspace=packages/execution --workspace=packages/websocket -- app-instance run-list-app-metadata runs-phase3 app-operation",
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § App instances and history phase 5",
+    selfcheck: {
+      command: "npm run test --workspace=packages/models --workspace=packages/execution --workspace=packages/websocket -- app-instance run-list-app-metadata runs-phase3 app-operation",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "app-instance-history-ui",
+    title: "Instance tabs, management cache and app host check",
+    command: "npm run test --workspace=web -- --runInBand --testPathPattern='WorkspaceTabsStore|useAppInstances|useAppInstance|ApplicationSurface|ApplicationRunView|AppRuntimeView|AppRunHistory|useAppRuntime'",
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § App instances and history phase 5",
+    selfcheck: {
+      command: "npm run test --workspace=web -- --runInBand --testPathPattern='WorkspaceTabsStore|useAppInstances|useAppInstance|ApplicationSurface|ApplicationRunView|AppRuntimeView|AppRunHistory|useAppRuntime'",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "app-instance-history-browser",
+    title: "Independent app instances and read-only historical results journey",
+    command: "npm run test:journeys --workspace=web -- app-instances.spec.ts run-observability.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § App instances and history phase 5"
   },
   {
     id: "app-build",
@@ -1185,6 +1285,115 @@ export const SURFACES: SurfaceEntry[] = [
       "web/tests/journeys/native-game3d-editor.spec.ts",
       "web/src/components/workspace/GameSurface.tsx",
       "web/src/components/projects/NewProjectSurface.tsx"
+    ]
+  },
+  {
+    id: "app-runs",
+    title: "App instances and durable operation runs",
+    harnesses: ["app-runs"],
+    paths: [
+      "packages/models/src/app-instance.ts",
+      "packages/models/src/migrations/versions.ts",
+      "packages/protocol/src/api-schemas/app-runs.ts",
+      "packages/execution/src/service/app-operation.ts",
+      "packages/execution/src/app-run-generation.ts",
+      "packages/websocket/src/lib/app-instances-service.ts",
+      "packages/websocket/src/routes/app-runs.ts",
+      "packages/websocket/src/trpc/routers/app-instances.ts",
+      "packages/websocket/src/trpc/routers/app-runs.ts",
+      "web/src/components/appbuilder/runtime/"
+    ]
+  },
+  {
+    id: "run-traces",
+    title: "Server run trace persistence and privacy",
+    harnesses: ["run-traces"],
+    paths: [
+      "packages/protocol/src/run-trace.ts",
+      "packages/models/src/run-trace.ts",
+      "packages/models/src/migrations/run-traces.ts",
+      "packages/models/src/schema/run-traces.ts",
+      "packages/models/src/schema-pg/run-traces.ts",
+      "packages/runtime/src/run-trace-",
+      "packages/runtime/src/telemetry.ts",
+      "packages/runtime/src/trace-exporters.ts",
+      "packages/runtime/src/providers/loop-tracing.ts",
+      "packages/execution/src/run-trace-store.ts",
+      "packages/execution/src/service/run-trace-lifecycle.ts",
+      "packages/websocket/src/lib/http-tracing.ts",
+      "packages/websocket/src/storage-retention.ts"
+    ]
+  },
+  {
+    id: "run-readers",
+    title: "Common run inspection for agents and CLI",
+    harnesses: ["run-readers"],
+    paths: [
+      "packages/protocol/src/run-readers.ts",
+      "packages/protocol/src/api-schemas/runs.ts",
+      "packages/models/src/run-readers.ts",
+      "packages/execution/src/runs.ts",
+      "packages/execution/src/app-debug/run-recording.ts",
+      "packages/execution/src/service/app-debug-service.ts",
+      "packages/agents/src/capabilities/runs",
+      "packages/agents/src/capabilities/jobs.ts",
+      "packages/agents/src/evals/codeact-api-runs.ts",
+      "packages/cli/src/commands/runs.ts",
+      "packages/cli/src/app-debug/harness.ts",
+      "packages/websocket/src/trpc/routers/runs.ts",
+      "packages/websocket/src/lib/app-debug-service.ts"
+    ]
+  },
+  {
+    id: "run-inspection",
+    title: "Browser run ingestion and durable UI inspection",
+    harnesses: ["browser-run-spans", "run-inspection-ui", "run-inspection-browser"],
+    paths: [
+      "packages/protocol/src/browser-run-traces.ts",
+      "packages/execution/src/browser-app-run.ts",
+      "packages/execution/src/browser-run-spans.ts",
+      "packages/execution/src/browser-trace-policy.ts",
+      "packages/websocket/src/routes/run-spans.ts",
+      "packages/websocket/src/lib/test-ui-run-routes.ts",
+      "web/src/lib/browserRunTrace.ts",
+      "web/src/lib/workflow/browserWorkflowRunner.ts",
+      "web/src/components/panels/TracePanel.tsx",
+      "web/src/components/appbuilder/runtime/",
+      "web/src/components/appbuilder/AppRuntimeView.tsx",
+      "web/src/components/appbuilder/puck/useWidgetRuntime.ts",
+      "web/src/components/appbuilder/puck/conditionalWidget.tsx",
+      "web/src/components/workspace/ChatSurface.tsx",
+      "web/src/stores/ChatDraftStore.ts",
+      "web/src/components/appbuilder/puck/AgentActivityWidget.tsx",
+      "web/src/components/runs/",
+      "web/src/serverState/useRuns.ts",
+      "web/src/serverState/runTraceCache.ts",
+      "web/src/serverState/appRunActivity.ts",
+      "web/src/hooks/useAppOperationRun.ts",
+      "web/src/hooks/useRunInspection.ts",
+      "web/src/stores/TraceStore.ts",
+      "web/tests/journeys/run-observability.spec.ts"
+    ]
+  },
+  {
+    id: "app-instance-history",
+    title: "App instance management and historical results",
+    harnesses: ["app-instance-history", "app-instance-history-ui", "app-instance-history-browser"],
+    paths: [
+      "packages/models/src/app-instance",
+      "packages/models/src/run-readers.ts",
+      "packages/execution/src/runs.ts",
+      "packages/protocol/src/api-schemas/app-runs.ts",
+      "packages/websocket/src/lib/app-instances-service.ts",
+      "packages/websocket/src/routes/app-runs.ts",
+      "packages/websocket/src/trpc/routers/app-instances.ts",
+      "web/src/components/appbuilder/",
+      "web/src/components/workspace/ApplicationSurface.tsx",
+      "web/src/components/workspace/TabContent.tsx",
+      "web/src/stores/WorkspaceTabsStore.ts",
+      "web/src/serverState/useAppInstances.ts",
+      "web/src/serverState/useRuns.ts",
+      "web/tests/journeys/app-instances.spec.ts"
     ]
   },
   {

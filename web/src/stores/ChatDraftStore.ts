@@ -10,9 +10,13 @@
  */
 
 import { create } from "zustand";
+import type { UiRunReference } from "@nodetool-ai/protocol";
 
 interface ChatDraftStore {
   drafts: Record<string, string>;
+  runReferences: Record<string, UiRunReference>;
+  setRunReference: (threadId: string, reference: UiRunReference) => void;
+  clearRunReference: (threadId: string) => void;
   setDraft: (threadId: string, text: string) => void;
   /** Read a thread's seed and clear it. Returns undefined when there is none. */
   takeDraft: (threadId: string) => string | undefined;
@@ -20,6 +24,16 @@ interface ChatDraftStore {
 
 export const useChatDraftStore = create<ChatDraftStore>((set, get) => ({
   drafts: {},
+  runReferences: {},
+  setRunReference: (threadId, reference) => {
+    set((state) => ({ runReferences: { ...state.runReferences, [threadId]: reference } }));
+  },
+  clearRunReference: (threadId) => {
+    set((state) => {
+      const { [threadId]: _removed, ...rest } = state.runReferences;
+      return { runReferences: rest };
+    });
+  },
 
   setDraft: (threadId, text) => {
     set((state) => ({ drafts: { ...state.drafts, [threadId]: text } }));

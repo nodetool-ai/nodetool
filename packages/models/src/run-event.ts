@@ -11,7 +11,7 @@ import {
   ModelObserver,
   createTimeOrderedUuid
 } from "./base-model.js";
-import { getDb, getDbType, type DbTransaction } from "./db.js";
+import { getPortableDb, getDbType, type DbTransaction } from "./db.js";
 import { runEvents } from "./schema/run-events.js";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -57,7 +57,7 @@ export class RunEvent extends DBModel {
 
   /** Get the next sequence number for a run. */
   static async getNextSeq(runId: string): Promise<number> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select({ seq: runEvents.seq })
       .from(runEvents)
@@ -83,7 +83,7 @@ export class RunEvent extends DBModel {
     payload: Record<string, unknown>,
     nodeId?: string
   ): Promise<RunEvent> {
-    const db = getDb();
+    const db = getPortableDb();
     const buildRow = (seq: number) => ({
       id: createTimeOrderedUuid(),
       run_id: runId,
@@ -139,7 +139,7 @@ export class RunEvent extends DBModel {
     } = {}
   ): Promise<RunEvent[]> {
     const { seqGt, seqLte, eventType, nodeId, limit = 1000 } = opts;
-    const db = getDb();
+    const db = getPortableDb();
 
     const conditions = [eq(runEvents.run_id, runId)];
     if (seqGt !== undefined) conditions.push(gt(runEvents.seq, seqGt));
@@ -176,7 +176,7 @@ export class RunEvent extends DBModel {
     runId: string,
     opts: { eventType?: EventType; nodeId?: string } = {}
   ): Promise<RunEvent | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const conditions = [eq(runEvents.run_id, runId)];
     if (opts.eventType)
       conditions.push(eq(runEvents.event_type, opts.eventType));

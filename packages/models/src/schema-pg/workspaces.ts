@@ -1,4 +1,6 @@
-import { pgTable, text, integer, index } from "drizzle-orm/pg-core";
+import { sql } from "drizzle-orm";
+import { pgTable, text, index } from "drizzle-orm/pg-core";
+import { integerBoolean } from "./helpers.js";
 
 export const workspaces = pgTable(
   "nodetool_workspaces",
@@ -8,7 +10,8 @@ export const workspaces = pgTable(
     name: text("name").notNull().default(""),
     path: text("path").notNull().default(""),
     project_id: text("project_id").notNull().default("default"),
-    is_default: integer("is_default").default(0),
+    // Drizzle Kit does not apply custom encoders when rendering DDL defaults.
+    is_default: integerBoolean("is_default").default(sql`0`),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

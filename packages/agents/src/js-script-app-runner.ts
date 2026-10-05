@@ -14,7 +14,12 @@
 import { getDefaultAssetsPath } from "@nodetool-ai/config";
 import type { JsScriptOperationRunner } from "@nodetool-ai/execution/app-debug";
 import { JS_SCRIPT_MAX_TIMEOUT_SECONDS } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
-import { ProcessingContext, PERMISSION_GATE_CONTEXT_KEY, headlessGate } from "@nodetool-ai/runtime";
+import {
+  ProcessingContext,
+  PERMISSION_GATE_CONTEXT_KEY,
+  headlessGate,
+  inAppRunCostAccount
+} from "@nodetool-ai/runtime";
 import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { runCodeBody } from "./capabilities/code.js";
 
@@ -25,6 +30,7 @@ import { runCodeBody } from "./capabilities/code.js";
 export function createJsScriptAppRunner(
   userId: string,
   options: {
+    context?: ProcessingContext;
     secretResolver?: (
       key: string,
       userId: string
@@ -40,8 +46,15 @@ export function createJsScriptAppRunner(
     if (options.secretResolver) {
       contextInit.secretResolver = options.secretResolver;
     }
-    const context = new ProcessingContext(contextInit);
-    context.set(PERMISSION_GATE_CONTEXT_KEY, headlessGate("Mini App script operation"));
+    const context = options.context
+      ? options.context.copy({ jobId: contextInit.jobId })
+      : new ProcessingContext(contextInit);
+    if (context.get(PERMISSION_GATE_CONTEXT_KEY) == null) {
+      context.set(
+        PERMISSION_GATE_CONTEXT_KEY,
+        headlessGate("Mini App script operation")
+      );
+    }
     const declared = Math.min(
       input.document.timeoutSeconds,
       JS_SCRIPT_MAX_TIMEOUT_SECONDS
@@ -57,6 +70,8 @@ export function createJsScriptAppRunner(
       withToolbelt: true
     };
     if (input.inputStreams) bodyParams.inputStreams = input.inputStreams;
-    return runCodeBody(context, bodyParams);
+    return inAppRunCostAccount(context.appRunCostAccount, () =>
+      runCodeBody(context, bodyParams)
+    );
   };
 }

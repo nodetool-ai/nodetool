@@ -73,13 +73,15 @@ const liveWorkflow: Workflow = {
 
 const renderView = (
   previewDraft = false,
-  draftDocument?: ReturnType<typeof appDocument>
+  draftDocument?: ReturnType<typeof appDocument>,
+  instanceId?: string
 ) =>
   render(
     <QueryClientProvider client={new QueryClient()}>
       <ThemeProvider theme={mockTheme}>
         <ApplicationRunView
           applicationId="app-1"
+          instanceId={instanceId}
           previewDraft={previewDraft}
           draftDocument={draftDocument}
         />
@@ -101,6 +103,31 @@ beforeEach(() => {
 });
 
 describe("ApplicationRunView", () => {
+  it("loads an explicit instance when the latest release lookup fails", async () => {
+    useReleasedApplicationDocument.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error("Connection lost"),
+      refetch: jest.fn()
+    });
+    renderView(false, undefined, "pinned-instance");
+    expect(await screen.findByTestId("runtime")).toBeInTheDocument();
+    expect(fetchWorkflow).not.toHaveBeenCalled();
+  });
+  it("loads an explicit instance despite an empty latest release and unavailable latest workflow", async () => {
+    const latest = appDocument("Latest");
+    latest.ui.content = [];
+    latest.operations[0].workflowId = "deleted-latest-workflow";
+    useReleasedApplicationDocument.mockReturnValue({
+      data: { document: latest, workflows: [], version: 2 },
+      isLoading: false
+    });
+    fetchWorkflow.mockRejectedValue(new Error("Workflow deleted"));
+    renderView(false, undefined, "pinned-instance");
+    expect(await screen.findByTestId("runtime")).toBeInTheDocument();
+    expect(fetchWorkflow).not.toHaveBeenCalled();
+  });
   it("blocks running when the released snapshot lookup fails", async () => {
     useReleasedApplicationDocument.mockReturnValue({
       data: undefined,
@@ -150,7 +177,9 @@ describe("ApplicationRunView", () => {
     renderView();
 
     expect(await screen.findByTestId("title")).toHaveTextContent("Released");
-    expect(screen.getByText(/Running released version 3/)).toBeInTheDocument();
+    expect(
+      screen.queryByText(/Running released version 3/)
+    ).not.toBeInTheDocument();
     // The pinned graph is used, so the live workflow is never fetched.
     expect(fetchWorkflow).not.toHaveBeenCalled();
   });

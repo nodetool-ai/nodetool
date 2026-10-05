@@ -107,7 +107,13 @@ of assuming the only way forward is a workflow.
   the open document. A sketch can be previewed inline in chat; see "Linking
   resources".
 - **model3d** — a 3D scene. Family \`nodetool.searchTools("+ui_3d", 20)\`: add and
-  transform objects, set materials, capture a view as an image.
+  transform objects, set materials, capture a view as an image. A 3D model can
+  be previewed inline in chat; see "Linking resources".
+- **game** — a native 2D or 3D game. The \`*_native_game\` tools
+  (\`nodetool.searchTools("native_game", 20)\`) create, edit, playtest, and build
+  one. A game can be played inline in chat; see "Linking resources".
+- **jsscript** — a saved JavaScript script document. The \`*_js_script\` tools
+  (\`nodetool.searchTools("js_script", 20)\`) list, save, validate, and run it.
 - **collection** — a vector store for RAG. \`nodetool.collections\`: index,
   search, hybrid search, query.
 - **asset** — stored media (images, video, audio, documents).
@@ -205,24 +211,30 @@ Never tell the user to use another tool for it.
 # Linking resources
 Resources are addressable as \`<kind>://<id>\`, optionally with a sub-target
 fragment (\`timeline://tl_7#clip=cl_2\`). Kinds: asset, workflow, timeline,
-storyboard, sketch, script, app, model3d, collection, thread. When you create
+storyboard, sketch, script, app, game, jsscript, model3d, collection, thread. When you create
 or change a resource, link it once in your reply as a markdown link with a
 human-readable label — \`[Beach intro](storyboard://sb_x#shot=s3)\` — so the
 user can open it. Mutating tool results carry a ready-made \`url\`
 field; copy that string rather than composing one. At most one link per
 resource per reply, and never link a resource you only looked up. Images,
 video, and audio are the exception: show them inline per "Image and media"
-above instead of linking them.
+above instead of linking them. A file that is not media (a PDF, a
+spreadsheet, a text file, an archive) is a link:
+\`[Report](asset://<id>.pdf)\`. The chat UI shows a PDF's first page above
+the link, and a click opens the file.
 
-Sketches and timelines can be SHOWN inline, not just linked. Embed one with
-image syntax on its own line — \`![Label](sketch://<id>)\` or
-\`![Label](timeline://<id>)\` — and the chat UI renders a live preview of the
-document (the sketch's composited canvas, the timeline's preview frame) with
-an open-in-editor chip beneath it. Do this after creating or meaningfully
-changing a sketch or timeline so the user sees the result without opening the
-editor; use a plain link when you only reference one. An embed counts as that
-resource's one link for the reply — don't also link it. Other resource kinds
-have no inline renderer: link them, never embed them with image syntax.
+Sketches, timelines, 3D models, and games can be SHOWN inline, not just
+linked. Embed one with image syntax on its own line —
+\`![Label](sketch://<id>)\`, \`![Label](timeline://<id>)\`,
+\`![Label](model3d://<asset id>)\` (or the model's \`asset://<id>.glb\` uri), or
+\`![Label](game://<game id>)\` — and the chat UI renders a live preview of the
+document (the sketch's composited canvas, the timeline's preview frame, a 3D
+viewer, a game player the user starts with Play) with an open-in-editor chip
+beneath it. Do this after creating or meaningfully changing one so the user
+sees the result without opening the editor; use a plain link when you only
+reference one. An embed counts as that resource's one link for the reply —
+don't also link it. Other resource kinds have no inline renderer: link them,
+never embed them with image syntax.
 
 Production entities (characters, locations, styles, props) have their own
 scheme: write \`entity://<id>\` as bare text — no markdown link, no label — and
@@ -463,7 +475,10 @@ function formatUiContext(uiContext?: UiContext | null): string {
   const focused = uiContext.focused;
   const open = uiContext.open ?? [];
   const source = uiContext.source;
-  if (!focused && open.length === 0 && !source) return "";
+  const run = uiContext.run;
+  const runId = typeof run?.run_id === "string" && /^[0-9a-f]{12}(?:[0-9a-f]{20})?$/.test(run.run_id) ? run.run_id : null;
+  const spanId = typeof run?.span_id === "string" && /^[0-9a-f]{16}$/.test(run.span_id) ? run.span_id : null;
+  if (!focused && open.length === 0 && !source && !runId) return "";
 
   const describe = (ref: UiDocumentRef): string => {
     const label = UI_SURFACE_LABELS[ref.type] ?? ref.type;
@@ -474,6 +489,10 @@ function formatUiContext(uiContext?: UiContext | null): string {
   };
 
   const lines: string[] = ["\n\n## What the user is looking at\n"];
+  if (runId) {
+    lines.push(`The user asked to inspect run ${runId}${spanId ? `, span ${spanId}` : ""}.`);
+    lines.push(`Start with nodetool.runs.get("${runId}") inside execute_code. Its readers check ownership. Read the summary first, then inspect ${spanId ? `span ${spanId}` : "the spans it names"} with nodetool.runs.trace or nodetool.runs.logs. Do not infer a transcript from this reference.`);
+  }
   if (source) {
     lines.push(
       `The user sent this message from the ${CHAT_SOURCE_LABELS[source] ?? source}.`
@@ -507,7 +526,7 @@ function formatUiContext(uiContext?: UiContext | null): string {
       "Every `ui_*` tool requires the id of the document it should act on; pass one of the ids above. These tools act on documents the user has open, so prefer the focused document unless the user points at another one."
     );
     lines.push(
-      "A document that is not in that list can be opened: call `ui_open_document` with its type and id (from `list_timelines`, `list_sketches`, `list_storyboards`, `list_scripts`, or a resource link). It opens the document as a tab and returns once its `ui_*` tools work, so never tell the user a document cannot be edited because it is not open."
+      "For an open timeline, storyboard, script or sketch with editing `ui_*` tools available, use those tools to edit the live draft and retain undo history. For a closed document or a view-only surface, use `edit_timeline`, `edit_storyboard`, `edit_script` or `edit_sketch` to edit the saved document. Use `ui_open_document` with its type and id when you need to show it to the user."
     );
   }
 
@@ -525,10 +544,11 @@ function formatUiContext(uiContext?: UiContext | null): string {
     );
   }
 
-  const hasGame = focused?.type === "game" || open.some((ref) => ref.type === "game");
+  const hasGame =
+    focused?.type === "game" || open.some((ref) => ref.type === "game");
   if (hasGame) {
     lines.push(
-      "For a native game, call `get_native_game` with `view: \"outline\"` first. Edit the draft with `edit_native_game` and capture the result with `capture_native_game_frame` before reporting a visual change as done. Leave publishing to the user unless they ask for it."
+      'For a native game, call `get_native_game` with `view: "outline"` first. Edit the draft with `edit_native_game` and capture the result with `capture_native_game_frame` before reporting a visual change as done. Leave publishing to the user unless they ask for it.'
     );
   }
 

@@ -85,16 +85,58 @@ const getJobLogs: CapabilityExport = {
     const jobId = String(params["job_id"]);
     const job = await Job.find(userIdOf(run.context), jobId);
     if (!job) return { error: `Job ${jobId} was not found.` };
+    const { findRunForSource, getRun, getRunLogs } = await import("@nodetool-ai/execution");
+    const trace = await findRunForSource(userIdOf(run.context), "workflow", job.id);
+    if (trace) {
+      const owner = userIdOf(run.context);
+      const tail = await getRunLogs(owner, trace.id, {
+        limit: Math.max(1, Math.min(500, Number(params["limit"] ?? 200))),
+        newest: true,
+        include_content: true
+      });
+      const { summary } = await getRun(owner, trace.id);
+      return {
+        job_id: job.id,
+        run_id: tail.run.id,
+        status: tail.run.status,
+        job_error: tail.run.error,
+        total_logs: summary.event_count,
+        logs: tail.logs,
+        content_state: tail.content_state,
+        content_expired: tail.content_expired,
+        truncated: tail.truncated,
+        incomplete: tail.incomplete,
+        limited: tail.limited
+      };
+    }
+    // Deletion can mark an older traced job after the first read, then remove
+    // its directory before the lookup above. Re-read before allowing fallback.
+    const historyJob = await Job.find(userIdOf(run.context), job.id);
+    if (!historyJob) { return { error: `Job ${jobId} was not found.` }; }
+    if (historyJob.has_run_trace !== 0) {
+      return {
+        job_id: job.id,
+        status: historyJob.status,
+        job_error: null,
+        total_logs: 0,
+        logs: [],
+        content_state: "expired",
+        content_expired: true,
+        truncated: false,
+        incomplete: false,
+        limited: false
+      };
+    }
     // `limit` keeps the most recent entries — the tail is what explains a
     // failure. Previously it was forwarded to an endpoint that ignored it.
     const limit = Number(params["limit"] ?? 200);
-    const logs = job.logs ?? [];
+    const logs = historyJob.logs ?? [];
     // `job_error`, not `error`: the call succeeded even when the job did not,
     // and a root-level `error` string reads as a tool failure downstream.
     return {
       job_id: job.id,
-      status: job.status,
-      job_error: job.error_message ?? job.error ?? null,
+      status: historyJob.status,
+      job_error: historyJob.error_message ?? historyJob.error ?? null,
       total_logs: logs.length,
       logs: logs.slice(Math.max(0, logs.length - limit))
     };

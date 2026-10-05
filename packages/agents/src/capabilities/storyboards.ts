@@ -18,8 +18,10 @@ import { finishStoryboard, previewStoryboardDesign } from "./finish-storyboard.j
  */
 
 import { z } from "zod";
+import { SpanStatusCode } from "@opentelemetry/api";
 import {
   mp4DurationSeconds,
+  withSpan,
   type GenerationRequest,
   type ProcessingContext
 } from "@nodetool-ai/runtime";
@@ -869,14 +871,22 @@ const renderStoryboardStills: CapabilityExport = {
         plan.model.supportedTasks
       );
     }
-    const outcomes = await renderShots(
-      renderHost(context),
-      { id: row.id },
-      plans,
-      {
-        concurrency: clampConcurrency(params["concurrency"])
+    const outcomes = await withSpan("render", {
+      "document.id": row.id,
+      "render.kind": "keyframe",
+      "render.shot_count": plans.length
+    }, async (span) => {
+      const rendered = await renderShots(
+        renderHost(context),
+        { id: row.id },
+        plans,
+        { concurrency: clampConcurrency(params["concurrency"]) }
+      );
+      if (rendered.some((outcome) => !outcome.ok)) {
+        span?.setStatus({ code: SpanStatusCode.ERROR });
       }
-    );
+      return rendered;
+    });
     const results = outcomes.map((outcome) => outcomeRow(outcome, false));
 
     return {
@@ -998,12 +1008,22 @@ const renderStoryboardClips: CapabilityExport = {
     if (isString(params["resolution"])) {
       renderOptions.resolution = params["resolution"];
     }
-    const outcomes = await renderShots(
-      renderHost(context),
-      { id: row.id },
-      plans,
-      renderOptions
-    );
+    const outcomes = await withSpan("render", {
+      "document.id": row.id,
+      "render.kind": "clip",
+      "render.shot_count": plans.length
+    }, async (span) => {
+      const rendered = await renderShots(
+        renderHost(context),
+        { id: row.id },
+        plans,
+        renderOptions
+      );
+      if (rendered.some((outcome) => !outcome.ok)) {
+        span?.setStatus({ code: SpanStatusCode.ERROR });
+      }
+      return rendered;
+    });
     const results = outcomes.map((outcome) => outcomeRow(outcome, true));
 
     return {

@@ -83,7 +83,7 @@ describe("resolveAppTarget", () => {
     // The host graph is the default operation's workflow, read once and cached
     // so the harness does not fetch it again.
     expect(resolved.graph.nodes).toHaveLength(2);
-    expect(resolved.graphs.get("wf1")).toBe(resolved.graph);
+    expect(resolved.graphs.get("wf1@latest")).toBe(resolved.graph);
     expect(loadFromDb).toHaveBeenCalledOnce();
   });
 

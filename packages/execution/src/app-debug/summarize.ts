@@ -36,6 +36,7 @@ export interface AppInvocationSummary {
 }
 
 export interface AppDebugSummary {
+  run_ids: string[];
   target: { ref: string; source: string; workflowId: string | null };
   app: { title: string | null; widgetCount: number } | null;
   verdict: {
@@ -65,6 +66,7 @@ export function summarizeAppReport(report: AppDebugReport): AppDebugSummary {
     ])
   ];
   return {
+    run_ids: report.run_ids ?? report.runs.flatMap((run) => run.app_run_id ? [run.app_run_id] : []),
     target: {
       ref: report.target.ref,
       source: report.target.source,

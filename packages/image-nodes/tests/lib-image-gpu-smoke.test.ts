@@ -27,7 +27,7 @@ import {
   MaskFromImageNode,
   MaskInvertNode
 } from "@nodetool-ai/image-nodes";
-import { ChannelShuffleNode, ChannelMergeNode } from "@nodetool-ai/image-nodes";
+import { ChannelMergeNode } from "@nodetool-ai/image-nodes";
 import {
   OffsetNode,
   PadNode,
@@ -106,7 +106,41 @@ function makeNode<T extends new () => unknown>(
   return inst as InstanceType<T>;
 }
 
-function expectRawRgba(output: unknown, width: number, height: number): void {
+async function paddedSquarePng(
+  size: number,
+  at: number,
+  side: number,
+  rgb: { r: number; g: number; b: number }
+): Promise<Buffer> {
+  const square = await solidPng(side, side, rgb);
+  return sharp({
+    create: {
+      width: size,
+      height: size,
+      channels: 4,
+      background: { r: 0, g: 0, b: 0, alpha: 0 }
+    }
+  })
+    .composite([{ input: square, left: at, top: at }])
+    .png()
+    .toBuffer();
+}
+
+function pixelAt(
+  data: Uint8Array,
+  width: number,
+  x: number,
+  y: number
+): number[] {
+  const i = (y * width + x) * 4;
+  return Array.from(data.subarray(i, i + 4));
+}
+
+function expectRawRgba(
+  output: unknown,
+  width: number,
+  height: number
+): Uint8Array {
   expect(output).toBeTruthy();
   const ref = output as {
     type?: string;
@@ -122,46 +156,61 @@ function expectRawRgba(output: unknown, width: number, height: number): void {
   const data = ref.data as Uint8Array;
   expect(data).toBeInstanceOf(Uint8Array);
   expect(data.length).toBe(width * height * 4);
+  return data;
 }
 
 describe.skipIf(!hasGpu)("lib.image.* GPU node smoke", () => {
   // ---- effects ----------------------------------------------------
-  it("lib.image.effects.ColorOverlay runs", async () => {
+  it("lib.image.effects.ColorOverlay tints red halfway toward cyan", async () => {
     const png = await solidPng(16, 16);
     const node = makeNode(ColorOverlayNode, {
       image: { type: "image", data: png.toString("base64") },
       color: { type: "color", value: "#00ffff" },
       amount: 0.5
     });
-    expectRawRgba((await node.process()).output, 16, 16);
+    const data = expectRawRgba((await node.process()).output, 16, 16);
+    const [r, g, b, a] = pixelAt(data, 16, 8, 8);
+    expect(r).toBeCloseTo(128, -0.5);
+    expect(g).toBeCloseTo(128, -0.5);
+    expect(b).toBeCloseTo(128, -0.5);
+    expect(a).toBe(255);
   });
 
-  it("lib.image.effects.Outline runs", async () => {
-    const png = await solidPng(16, 16);
+  it("lib.image.effects.Outline strokes a 2px ring around the silhouette", async () => {
+    const png = await paddedSquarePng(16, 6, 4, { r: 255, g: 0, b: 0 });
     const node = makeNode(OutlineNode, {
       image: { type: "image", data: png.toString("base64") },
       color: { type: "color", value: "#ffffff" },
       width: 2,
       threshold: 0.5
     });
-    expectRawRgba((await node.process()).output, 16, 16);
+    const data = expectRawRgba((await node.process()).output, 16, 16);
+    expect(pixelAt(data, 16, 7, 7)).toEqual([255, 0, 0, 255]);
+    expect(pixelAt(data, 16, 5, 7)).toEqual([255, 255, 255, 255]);
+    expect(pixelAt(data, 16, 4, 7)).toEqual([255, 255, 255, 255]);
+    expect(pixelAt(data, 16, 3, 7)).toEqual([0, 0, 0, 0]);
+    expect(pixelAt(data, 16, 0, 0)).toEqual([0, 0, 0, 0]);
   });
 
-  it("lib.image.effects.DropShadow (recipe) runs", async () => {
-    const png = await solidPng(24, 24);
+  it("lib.image.effects.DropShadow (recipe) casts a shadow to the right of the silhouette", async () => {
+    const png = await paddedSquarePng(24, 4, 8, { r: 255, g: 0, b: 0 });
     const node = makeNode(DropShadowNode, {
       image: { type: "image", data: png.toString("base64") },
       color: { type: "color", value: "#000000" },
-      offset_x: 0.05,
-      offset_y: 0.05,
-      radius: 4,
-      intensity: 0.8
+      offset_x: 0.2,
+      offset_y: 0,
+      radius: 1,
+      intensity: 1
     });
-    expectRawRgba((await node.process()).output, 24, 24);
+    const data = expectRawRgba((await node.process()).output, 24, 24);
+    expect(pixelAt(data, 24, 7, 7)).toEqual([255, 0, 0, 255]);
+    expect(pixelAt(data, 24, 13, 7)).toEqual([0, 0, 0, 255]);
+    expect(pixelAt(data, 24, 3, 7)).toEqual([0, 0, 0, 0]);
+    expect(pixelAt(data, 24, 20, 20)).toEqual([0, 0, 0, 0]);
   });
 
-  it("lib.image.effects.Glow (recipe) runs", async () => {
-    const png = await solidPng(32, 32, { r: 255, g: 255, b: 255 });
+  it("lib.image.effects.Glow (recipe) bleeds a fading halo outside the silhouette", async () => {
+    const png = await paddedSquarePng(32, 12, 8, { r: 255, g: 255, b: 255 });
     const node = makeNode(GlowNode, {
       image: { type: "image", data: png.toString("base64") },
       threshold: 0.5,
@@ -169,10 +218,17 @@ describe.skipIf(!hasGpu)("lib.image.* GPU node smoke", () => {
       radius: 4,
       intensity: 1
     });
-    expectRawRgba((await node.process()).output, 32, 32);
+    const data = expectRawRgba((await node.process()).output, 32, 32);
+    const inside = pixelAt(data, 32, 15, 15);
+    const nearHalo = pixelAt(data, 32, 11, 15);
+    const farHalo = pixelAt(data, 32, 10, 15);
+    expect(inside).toEqual([255, 255, 255, 255]);
+    expect(nearHalo[3]).toBeGreaterThan(farHalo[3]);
+    expect(farHalo[3]).toBeGreaterThan(0);
+    expect(pixelAt(data, 32, 0, 0)).toEqual([0, 0, 0, 0]);
   });
 
-  it("lib.image.effects.Add (two-input) runs", async () => {
+  it("lib.image.effects.Add (two-input) sums the two inputs per channel", async () => {
     const a = await solidPng(16, 16, { r: 128, g: 0, b: 0 });
     const b = await solidPng(16, 16, { r: 0, g: 128, b: 0 });
     const node = makeNode(AddBlendNode, {
@@ -180,45 +236,81 @@ describe.skipIf(!hasGpu)("lib.image.* GPU node smoke", () => {
       over: { type: "image", data: b.toString("base64") },
       gain: 1
     });
-    expectRawRgba((await node.process()).output, 16, 16);
+    const data = expectRawRgba((await node.process()).output, 16, 16);
+    expect(pixelAt(data, 16, 8, 8)).toEqual([128, 128, 0, 255]);
   });
 
   // ---- keyer ------------------------------------------------------
-  it("lib.image.keyer.ChromaKey runs", async () => {
-    const png = await solidPng(16, 16, { r: 0, g: 255, b: 0 });
-    const node = makeNode(ChromaKeyNode, {
-      image: { type: "image", data: png.toString("base64") },
+  it("lib.image.keyer.ChromaKey keys out the key colour and keeps other colours", async () => {
+    const props = {
       key_color: { type: "color", value: "#00ff00" },
       tolerance: 0.2,
       softness: 0.05,
       spill: 0.5
-    });
-    expectRawRgba((await node.process()).output, 16, 16);
+    };
+    const green = await solidPng(16, 16, { r: 0, g: 255, b: 0 });
+    const red = await solidPng(16, 16);
+    const keyed = expectRawRgba(
+      (
+        await makeNode(ChromaKeyNode, {
+          ...props,
+          image: { type: "image", data: green.toString("base64") }
+        }).process()
+      ).output,
+      16,
+      16
+    );
+    const kept = expectRawRgba(
+      (
+        await makeNode(ChromaKeyNode, {
+          ...props,
+          image: { type: "image", data: red.toString("base64") }
+        }).process()
+      ).output,
+      16,
+      16
+    );
+    expect(pixelAt(keyed, 16, 8, 8)[3]).toBe(0);
+    expect(pixelAt(kept, 16, 8, 8)).toEqual([255, 0, 0, 255]);
   });
 
-  it("lib.image.keyer.LumaKey runs", async () => {
-    const png = await solidPng(16, 16);
-    const node = makeNode(LumaKeyNode, {
-      image: { type: "image", data: png.toString("base64") },
-      low: 0.2,
-      high: 0.8,
-      softness: 0.05
-    });
-    expectRawRgba((await node.process()).output, 16, 16);
+  it("lib.image.keyer.LumaKey keeps mid luminance and keys out black and white", async () => {
+    const run = async (rgb: { r: number; g: number; b: number }) => {
+      const png = await solidPng(16, 16, rgb);
+      const node = makeNode(LumaKeyNode, {
+        image: { type: "image", data: png.toString("base64") },
+        low: 0.2,
+        high: 0.8,
+        softness: 0.05
+      });
+      return pixelAt(
+        expectRawRgba((await node.process()).output, 16, 16),
+        16,
+        8,
+        8
+      );
+    };
+    expect((await run({ r: 255, g: 0, b: 0 }))[3]).toBeCloseTo(175, -1);
+    expect((await run({ r: 0, g: 0, b: 0 }))[3]).toBe(0);
+    expect((await run({ r: 255, g: 255, b: 255 }))[3]).toBe(0);
   });
 
   // ---- mask -------------------------------------------------------
-  it("lib.image.mask.FromImage runs", async () => {
+  it("lib.image.mask.FromImage writes the luminance into alpha", async () => {
     const png = await solidPng(16, 16, { r: 128, g: 64, b: 32, alpha: 200 });
     const node = makeNode(MaskFromImageNode, {
       image: { type: "image", data: png.toString("base64") },
       mode: 1,
       invert: 0
     });
-    expectRawRgba((await node.process()).output, 16, 16);
+    const data = expectRawRgba((await node.process()).output, 16, 16);
+    const [r, g, b, a] = pixelAt(data, 16, 8, 8);
+    expect([r, g, b]).toEqual([0, 0, 0]);
+    // Rec. 709 luminance of (128, 64, 32) is 75.3.
+    expect(a).toBeCloseTo(75, -0.5);
   });
 
-  it("lib.image.mask.Apply runs (two-input)", async () => {
+  it("lib.image.mask.Apply (two-input) scales alpha by the mask alpha", async () => {
     const png = await solidPng(16, 16);
     const mask = await solidPng(16, 16, { r: 0, g: 0, b: 0, alpha: 128 });
     const node = makeNode(MaskApplyNode, {
@@ -226,30 +318,28 @@ describe.skipIf(!hasGpu)("lib.image.* GPU node smoke", () => {
       mask: { type: "image", data: mask.toString("base64") },
       invert: 0
     });
-    expectRawRgba((await node.process()).output, 16, 16);
+    const data = expectRawRgba((await node.process()).output, 16, 16);
+    expect(pixelAt(data, 16, 8, 8)).toEqual([255, 0, 0, 128]);
   });
 
-  it("lib.image.mask.Invert runs", async () => {
-    const png = await solidPng(16, 16);
-    const node = makeNode(MaskInvertNode, {
-      image: { type: "image", data: png.toString("base64") }
-    });
-    expectRawRgba((await node.process()).output, 16, 16);
+  it("lib.image.mask.Invert replaces alpha with 255 minus alpha", async () => {
+    const run = async (alpha: number) => {
+      const png = await solidPng(16, 16, { r: 255, g: 0, b: 0, alpha });
+      const node = makeNode(MaskInvertNode, {
+        image: { type: "image", data: png.toString("base64") }
+      });
+      return pixelAt(
+        expectRawRgba((await node.process()).output, 16, 16),
+        16,
+        8,
+        8
+      );
+    };
+    expect((await run(255))[3]).toBe(0);
+    expect((await run(100))[3]).toBe(155);
   });
 
   // ---- channel ----------------------------------------------------
-  it("lib.image.channel.Shuffle (identity) runs", async () => {
-    const png = await solidPng(16, 16);
-    const node = makeNode(ChannelShuffleNode, {
-      image: { type: "image", data: png.toString("base64") },
-      r_from: 0,
-      g_from: 1,
-      b_from: 2,
-      a_from: 3
-    });
-    expectRawRgba((await node.process()).output, 16, 16);
-  });
-
   it("lib.image.channel.Merge runs (two-input)", async () => {
     const rgb = await solidPng(16, 16, { r: 255, g: 0, b: 0 });
     const alpha = await solidPng(16, 16, { r: 128, g: 128, b: 128, alpha: 200 });

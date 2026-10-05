@@ -116,6 +116,7 @@ export const storageRetentionPolicy = z.object({
    * rather than to zero days.
    */
   runEventRetentionDays: z.number().int().min(1).max(3650).optional(),
+  runTraceRetentionDays: z.number().int().min(1).max(3650).optional(),
   predictionRetentionDays: z.number().int().min(1).max(3650).optional(),
   automaticCleanup: z.boolean()
 });

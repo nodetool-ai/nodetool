@@ -68,6 +68,9 @@ export interface BrowserGraphJobOptions {
   workflowId: string;
   /** Reuse a caller-supplied job id; one is generated otherwise. */
   jobId?: string;
+  /** Only app invocations with an owner-registered trace record browser spans. */
+  trace?: import("../browserRunTrace").BrowserRunTrace;
+  traceParentSpanId?: string;
 }
 
 /** Result shape shared with {@link runInlineGraphJob}. */

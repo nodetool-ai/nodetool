@@ -13,7 +13,7 @@ import {
   workspaceStorageKind
 } from "@nodetool-ai/config";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { workspaces } from "./schema/workspaces.js";
 import { workflows } from "./schema/workflows.js";
 
@@ -79,7 +79,7 @@ export class Workspace extends DBModel {
     userId: string,
     workspaceId: string
   ): Promise<Workspace | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const [row] = await db
       .select()
       .from(workspaces)
@@ -95,7 +95,7 @@ export class Workspace extends DBModel {
     opts: { limit?: number; projectId?: string; startKey?: string } = {}
   ): Promise<[Workspace[], string]> {
     const { limit = 50, projectId } = opts;
-    const db = getDb();
+    const db = getPortableDb();
     const conditions = [eq(workspaces.user_id, userId)];
     if (projectId !== undefined) {
       conditions.push(eq(workspaces.project_id, projectId));
@@ -117,7 +117,7 @@ export class Workspace extends DBModel {
     userId: string,
     projectId: string
   ): Promise<Workspace[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(workspaces)
@@ -131,7 +131,7 @@ export class Workspace extends DBModel {
   }
 
   static async getDefault(userId: string): Promise<Workspace | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const [row] = await db
       .select()
       .from(workspaces)
@@ -143,7 +143,7 @@ export class Workspace extends DBModel {
   }
 
   static async hasLinkedWorkflows(workspaceId: string): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const [row] = await db
       .select({ id: workflows.id })
       .from(workflows)
@@ -227,7 +227,7 @@ export class Workspace extends DBModel {
   }
 
   static async unsetOtherDefaults(userId: string): Promise<void> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(workspaces)

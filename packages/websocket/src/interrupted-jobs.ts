@@ -1,5 +1,5 @@
 import { createLogger } from "@nodetool-ai/config";
-import { Job } from "@nodetool-ai/models";
+import { Job, sweepInterruptedAppRuns } from "@nodetool-ai/models";
 import { getInstanceId } from "./lib/instance-id.js";
 
 const log = createLogger("nodetool.websocket.interrupted-jobs");
@@ -26,6 +26,7 @@ export async function sweepInterruptedJobs(
     return 0;
   }
   const swept = await Job.sweepInterrupted(processStartIso, instanceId);
+  await sweepInterruptedAppRuns(processStartIso, instanceId);
   if (swept.length > 0) {
     log.info("Failed jobs interrupted by a restart", { count: swept.length });
   }

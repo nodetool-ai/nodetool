@@ -762,11 +762,11 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "get_job_logs",
     module: "jobs",
     impl: "packages/agents/src/capabilities/jobs.ts",
-    contract: "e4eb72a3bb2e",
+    contract: "d1e498b51f0c",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-jobs.test.ts",
-      "packages/agents/tests/mcp-tools.test.ts",
+      "packages/agents/tests/capabilities-runs.test.ts",
     ],
   },
   {
@@ -807,6 +807,69 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-errors.test.ts",
+    ],
+  },
+  {
+    name: "list_runs",
+    module: "runs",
+    impl: "packages/agents/src/capabilities/runs.ts",
+    contract: "883b99a2dd71",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-runs.test.ts",
+      "packages/agents/tests/capabilities-runs-operation-filter.test.ts",
+    ],
+  },
+  {
+    name: "get_run",
+    module: "runs",
+    impl: "packages/agents/src/capabilities/runs.ts",
+    contract: "be664555d83f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-runs.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-runs.ts",
+        cases: ["api-run-failure-drill-down"],
+      },
+    ],
+  },
+  {
+    name: "get_run_trace",
+    module: "runs",
+    impl: "packages/agents/src/capabilities/runs.ts",
+    contract: "4a0414b4efa0",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-runs.test.ts",
+    ],
+    evals: [
+      {
+        file: "packages/agents/src/evals/codeact-api-runs.ts",
+        cases: ["api-run-failure-drill-down"],
+      },
+    ],
+  },
+  {
+    name: "get_run_logs",
+    module: "runs",
+    impl: "packages/agents/src/capabilities/runs.ts",
+    contract: "b7ec8b18b93f",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-runs.test.ts",
+    ],
+  },
+  {
+    name: "await_run",
+    module: "runs",
+    impl: "packages/agents/src/capabilities/runs.ts",
+    contract: "47cd92497a4d",
+    selfcheck: "capability-suites",
+    suites: [
+      "packages/agents/tests/capabilities-runs.test.ts",
     ],
   },
   {

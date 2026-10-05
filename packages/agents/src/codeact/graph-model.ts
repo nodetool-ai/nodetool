@@ -76,9 +76,8 @@ async function openWorkflow(workflowId) {
       throw new Error(
         "openWorkflow(): this snapshot came from the server because no editor " +
           "is open for workflow " + JSON.stringify(queueKey) + " — reads work, " +
-          "but every write would fail at commit(). Open it first: " +
-          "ui_open_document({type: 'workflow', id: <id>}) or ui_open_workflow" +
-          "({workflow_id: <id>}), then reopen it with openWorkflow."
+          "but every write would fail at commit(). Open it first with " +
+          "ui_open_workflow({workflow_id: <id>}), then reopen it with openWorkflow."
       );
     }
   };

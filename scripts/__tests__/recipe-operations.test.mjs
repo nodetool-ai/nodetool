@@ -72,13 +72,19 @@ describe("shared executable Recipe operations", () => {
       expect(bundle.scripts[0].document.code).toBe(bundle.app.recipe.slug === "product-price-drop" ? PLAN_CODE : PLAN_STORYBOARD_CODE);
       expect(bundle.scripts[1].document.code).toBe(bundle.app.recipe.slug === "product-price-drop" ? FINISH_CODE : FINISH_STORYBOARD_CODE);
       expect(bundle.scripts.every(script => script.document.inputs.every(port => port.type !== "any"))).toBe(true);
-      // Price Drop approves through its "Build editable cut" button and offers
-      // "Request changes" where the other recipes place the Approval widget.
-      const isApproval = widget => widget.type === "Approval" || widget.props.id === "request-changes";
-      expect(bundle.app.ui.content.some(isApproval)).toBe(true);
       const planIndex = bundle.app.ui.content.findIndex(widget => widget.type === "Button" && widget.props.id === "plan");
       const reviewIndex = bundle.app.ui.content.findIndex(widget => widget.type === "Storyboard" && widget.props.binding === "var:storyboardId");
-      const approvalIndex = bundle.app.ui.content.findIndex(isApproval);
+      const priceDrop = bundle.app.recipe.slug === "product-price-drop";
+      const approvalIndex = bundle.app.ui.content.findIndex(widget => priceDrop ? widget.type === "Button" && widget.props.id === "finish" : widget.type === "Approval");
+      expect(approvalIndex).toBeGreaterThan(-1);
+      if (priceDrop) {
+        expect(bundle.app.ui.content[approvalIndex].props.visibleWhen).toEqual({binding: "var:step", op: "eq", value: "review"});
+        expect(bundle.app.ui.content[approvalIndex].props.events).toEqual([
+          {trigger: "click", kind: "setVariable", key: "var:approval", value: "approved"},
+          {trigger: "click", kind: "setVariable", key: "var:step", value: "build"},
+          {trigger: "click", kind: "run", operationId: "finish"}
+        ]);
+      }
       expect(planIndex).toBeLessThan(reviewIndex); expect(reviewIndex).toBeLessThan(approvalIndex);
       const designIndex = bundle.app.ui.content.findIndex(widget => widget.type === "Timeline" && widget.props.binding === "var:designPreview");
       expect(designIndex).toBeGreaterThan(planIndex); expect(designIndex).toBeLessThan(approvalIndex);
@@ -89,6 +95,7 @@ describe("shared executable Recipe operations", () => {
       const bundle = parseApplicationBundle(raw); assert(bundle);
       const report = await simulateApp(bundleTarget(bundle, bundle.app.recipe.slug), {run: false, params: {"var:approval": "approved"}, ...(bundle.app.recipe.slug === "product-price-drop" ? {interact: PRODUCT_PRICE_DROP_DEBUG_INTERACTIONS} : {})}, {runOnServer: async () => {throw new Error("Must not execute during compilation validation");}, runScript: async () => {throw new Error("Must not execute a script during static validation");}});
       expect(report.validation.errors).toEqual([]);
+      expect(report.interactions.every(interaction => interaction.error === null)).toBe(true);
       expect(report.verdict.ok).toBe(true);
     }
   });

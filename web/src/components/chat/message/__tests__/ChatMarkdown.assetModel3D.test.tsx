@@ -111,7 +111,7 @@ jest.mock("../../../../lib/chat/openResource", () => ({
   __esModule: true,
   openResource: jest.fn(),
   canOpenResource: (kind: string) =>
-    kind !== "asset" && kind !== "collection" && kind !== "thread"
+    kind !== "collection" && kind !== "thread"
 }));
 
 // The real viewer pulls in three.js and WebGL; the test only needs the URL it
@@ -175,5 +175,3 @@ describe("ChatMarkdown 3D model assets", () => {
     expectPreviewWithEditorLink(container);
   });
 });
-
-

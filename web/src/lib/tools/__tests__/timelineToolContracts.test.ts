@@ -4,8 +4,15 @@
 import {
   ANIMATED_PROPERTIES,
   DEFAULT_BEAT_TOLERANCE_MS,
-  STAGGER_UNITS
+  STAGGER_UNITS,
+  makeClip,
+  makeTrack
 } from "@nodetool-ai/timeline";
+import {
+  applyTimelineOp,
+  type TimelineOp,
+  type TimelineOpState
+} from "@nodetool-ai/timeline/ops";
 import {
   BROWSER_ONLY_TIMELINE_TOOL_NAMES,
   HEADLESS_ONLY_TIMELINE_TOOL_NAMES,
@@ -22,7 +29,7 @@ import "../builtin/timeline";
 
 /**
  * The browser registry and the headless eval bridge
- * (`packages/agents/src/evals/surfaces/timeline.ts`) register the same tools,
+ * (`packages/agents/src/capabilities/timeline-bridge.ts`) register the same tools,
  * and neither package can import the other. Each side asserts against the
  * shared contracts instead: a tool added to one host and not the other fails
  * here or in `packages/agents/tests/timeline-tool-contracts.test.ts`.
@@ -41,23 +48,43 @@ const timelineToolNames = () =>
 const ctx = { getState: () => ({}) as FrontendToolState };
 const SEQ_ID = "seq-contracts";
 
-const clip = (overrides: Partial<TimelineClipNode> = {}): TimelineClipNode => ({
-  id: "clip-1",
-  name: "Clip 1",
-  trackId: "track-1",
-  trackName: "Video 1",
-  mediaType: "video",
-  sourceType: "imported",
-  startMs: 0,
-  durationMs: 4000,
-  endMs: 4000,
-  status: "generated",
-  hasRender: true,
-  hidden: false,
-  muted: false,
-  locked: false,
-  ...overrides
-});
+function handlerWithClip(): TimelineAgentHandler {
+  let state: TimelineOpState = {
+    fps: 30,
+    width: 1920,
+    height: 1080,
+    tracks: [
+      makeTrack({ id: "track-1", name: "Video 1", type: "video", index: 0 })
+    ],
+    clips: [
+      makeClip({
+        id: "clip-1",
+        name: "Clip 1",
+        trackId: "track-1",
+        mediaType: "video",
+        sourceType: "imported",
+        startMs: 0,
+        durationMs: 4000,
+        status: "generated"
+      })
+    ],
+    markers: [],
+    playheadMs: 0,
+    selectedClipIds: []
+  };
+  return {
+    applyOp: jest.fn(async (op: TimelineOp) => {
+      const outcome = await applyTimelineOp(state, op, {
+        newId: () => "unused"
+      });
+      if (outcome.error) {
+        throw new Error(outcome.error);
+      }
+      state = outcome.state;
+      return outcome.result;
+    })
+  } as unknown as TimelineAgentHandler;
+}
 
 afterEach(() => {
   setTimelineAgentHandler(SEQ_ID, null);
@@ -87,11 +114,7 @@ describe("browser timeline tools", () => {
   });
 
   it("applies the timing keys `set_clip_params` used to strip", async () => {
-    const handler = {
-      trimClip: jest.fn(() => clip({ durationMs: 250 })),
-      moveClip: jest.fn(() => clip({ startMs: 500, durationMs: 250 })),
-      setClipParams: jest.fn()
-    } as unknown as TimelineAgentHandler;
+    const handler = handlerWithClip();
     setTimelineAgentHandler(SEQ_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
@@ -106,24 +129,18 @@ describe("browser timeline tools", () => {
       ctx
     )) as { clip: TimelineClipNode };
 
-    expect(handler.trimClip).toHaveBeenCalledWith("Clip 1", {
-      durationMs: 250,
-      inPointMs: undefined,
-      outPointMs: undefined
+    expect(handler.applyOp).toHaveBeenCalledTimes(1);
+    expect(handler.applyOp).toHaveBeenCalledWith({
+      op: "set_clip_params",
+      target: "Clip 1",
+      patch: { startMs: 500, durationMs: 250 }
     });
-    expect(handler.moveClip).toHaveBeenCalledWith("Clip 1", {
-      startMs: 500,
-      trackId: undefined
-    });
-    // Nothing left for the params op once timing is applied.
-    expect(handler.setClipParams).not.toHaveBeenCalled();
     expect(result.clip.startMs).toBe(500);
+    expect(result.clip.durationMs).toBe(250);
   });
 
   it("refuses a key `set_clip_params` does not read, naming the op that does", async () => {
-    setTimelineAgentHandler(SEQ_ID, {
-      setClipParams: jest.fn()
-    } as unknown as TimelineAgentHandler);
+    setTimelineAgentHandler(SEQ_ID, handlerWithClip());
 
     await expect(
       FrontendToolRegistry.call(

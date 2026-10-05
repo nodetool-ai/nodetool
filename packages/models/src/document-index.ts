@@ -27,7 +27,7 @@ import { and, desc, eq, isNull, like, or, type SQL } from "drizzle-orm";
 import { createLogger } from "@nodetool-ai/config";
 import type { Entity } from "@nodetool-ai/protocol";
 
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { entityFromAsset } from "./entity.js";
 import { applications } from "./schema/applications.js";
 import { assets } from "./schema/assets.js";
@@ -129,7 +129,7 @@ async function listNamed(
   limit: number,
   extra?: SQL<unknown>
 ): Promise<NamedRow[]> {
-  const db = getDb();
+  const db = getPortableDb();
   return db
     .select({
       id: table.id,
@@ -160,7 +160,7 @@ async function listEntities(
   projectId: string,
   limit: number
 ): Promise<{ entries: DocumentIndexEntry[]; rowCount: number }> {
-  const db = getDb();
+  const db = getPortableDb();
   const rows = await db
     .select({
       id: assets.id,

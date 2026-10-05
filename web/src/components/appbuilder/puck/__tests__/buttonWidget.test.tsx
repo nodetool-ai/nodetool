@@ -61,7 +61,7 @@ describe("ButtonWidget", () => {
     expect(runtime.value.dispatch).toHaveBeenCalledWith({
       kind: "run",
       operationId: "main"
-    });
+    }, { widgetId: "run" });
 
     act(() => {
       runtime.store.getState().dispatchEvent({
@@ -106,7 +106,7 @@ describe("ButtonWidget", () => {
     expect(runtime.value.dispatch).toHaveBeenCalledWith({
       kind: "cancel",
       operationId: "main"
-    });
+    }, { widgetId: "cancel" });
   });
 
   it("activates an enabled cancel action from the keyboard", async () => {
@@ -126,7 +126,7 @@ describe("ButtonWidget", () => {
     expect(runtime.value.dispatch).toHaveBeenCalledWith({
       kind: "cancel",
       operationId: "main"
-    });
+    }, { widgetId: "cancel-keyboard" });
   });
 
   it("keeps a literal variable action enabled during a run", async () => {
@@ -167,7 +167,7 @@ describe("ButtonWidget", () => {
       kind: "setVariable",
       variableId: "phase",
       value: "review"
-    });
+    }, { widgetId: "set-phase" });
   });
 
   it("lets an explicit disabled condition disable a cancel action", () => {

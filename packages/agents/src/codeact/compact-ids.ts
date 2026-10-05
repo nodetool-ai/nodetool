@@ -63,7 +63,10 @@ export function compactResourceIds(value: unknown): unknown {
   const out: Record<string, unknown> = {};
   for (const [key, entry] of Object.entries(value)) {
     if (key === "user_id") continue;
-    if (isIdKey(key)) {
+    // OTel identities are structural keys, even though trace ids are 32 hex.
+    if (key === "trace_id" || key === "trace_ids" || key === "span_id" || key.endsWith("_span_id") || key.endsWith("_span_ids")) {
+      out[key] = entry;
+    } else if (isIdKey(key)) {
       out[key] = compactIdValue(entry);
     } else if (isIdListKey(key) && Array.isArray(entry)) {
       out[key] = entry.map(compactIdValue);

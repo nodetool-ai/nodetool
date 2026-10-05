@@ -242,7 +242,16 @@ const getProcessEnv = (): ProcessEnv => {
     ".bin"
   );
 
+  // npm lifecycle scripts run through `sh -c node …`. A Finder-launched app on
+  // macOS has only the launchd PATH, so the bundled node must be on PATH itself.
+  // A script that calls `npm run …` needs an npm launcher there as well.
+  const bundledNode = getBundledNodeBinary();
+  const bundledNodeDir = bundledNode ? path.dirname(bundledNode) : "";
+  const npmLauncherDir = ensureBundledNpmLaunchers() ?? "";
+
   const pathSegmentsWin = [
+    bundledNodeDir,
+    npmLauncherDir,
     path.join(condaPath),
     path.join(condaPath, "Library", "mingw-w64", "bin"),
     path.join(condaPath, "Library", "usr", "bin"),
@@ -252,6 +261,8 @@ const getProcessEnv = (): ProcessEnv => {
     baseEnv.PATH || "",
   ];
   const pathSegmentsUnix = [
+    bundledNodeDir,
+    npmLauncherDir,
     path.join(condaPath, "bin"),
     path.join(condaPath, "lib"),
     optionalNodeBin,
@@ -342,6 +353,54 @@ const getBundledNpmCli = (): string | null => {
     fs.accessSync(cli);
     return cli;
   } catch {
+    return null;
+  }
+};
+
+const quotePosix = (value: string): string =>
+  `'${value.replace(/'/g, "'\\''")}'`;
+
+/**
+ * Write `npm` and `npx` launchers that run the bundled npm with the bundled
+ * Node, and return their directory. `runtime/npm` is the npm package itself,
+ * not an executable, so without these a lifecycle script that calls
+ * `npm run build` finds no npm on a GUI app's PATH. The launchers live in
+ * userData because the signed app bundle is read-only. Returns null when the
+ * app is unpackaged or the launchers cannot be written.
+ */
+const ensureBundledNpmLaunchers = (): string | null => {
+  const node = getBundledNodeBinary();
+  const npmCli = getBundledNpmCli();
+  if (!node || !npmCli) return null;
+  const dir = path.join(app.getPath("userData"), "runtime-bin");
+  const clis = {
+    npm: npmCli,
+    npx: path.join(path.dirname(npmCli), "npx-cli.js"),
+  };
+  try {
+    fs.mkdirSync(dir, { recursive: true });
+    for (const [name, cli] of Object.entries(clis)) {
+      const [file, content] =
+        process.platform === "win32"
+          ? [`${name}.cmd`, `@"${node}" "${cli}" %*\r\n`]
+          : [name, `#!/bin/sh\nexec ${quotePosix(node)} ${quotePosix(cli)} "$@"\n`];
+      const target = path.join(dir, file);
+      let current: string | null = null;
+      try {
+        current = fs.readFileSync(target, "utf8");
+      } catch {
+        // Not written yet.
+      }
+      if (current !== content) {
+        fs.writeFileSync(target, content);
+      }
+      if (process.platform !== "win32") {
+        fs.chmodSync(target, 0o755);
+      }
+    }
+    return dir;
+  } catch (error) {
+    logMessage(`Warning: Failed to write npm launchers: ${error}`, "warn");
     return null;
   }
 };

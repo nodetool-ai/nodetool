@@ -67,3 +67,13 @@ export {
   AppServiceError
 } from "./app-debug-service.js";
 export type { AppDebugDeps, AppDebugRequest } from "./app-debug-service.js";
+
+export { executeAppOperation } from "./app-operation.js";
+export type { ExecuteAppOperationOptions, AppOperationOutcome } from "./app-operation.js";
+
+export {
+  registerContextRunTrace, registerAppRunTrace, registerWorkflowRunTrace,
+  registerChatRunTrace, withRegisteredRunTrace, settleRegisteredRunTrace,
+  associateTraceMessage, openAppRunTrace
+} from "./run-trace-lifecycle.js";
+export type { RegisterTraceInput } from "./run-trace-lifecycle.js";

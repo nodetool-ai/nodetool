@@ -1,3 +1,7 @@
+import {
+  appRunGenerationMetadata,
+  attachAppRunGenerationOutputs
+} from "./app-run-generation.js";
 import { createHash, randomUUID } from "node:crypto";
 import {
   GenerationAttempt,
@@ -15,8 +19,11 @@ import {
 import type {
   GenerationLifecycleHooks,
   GenerationProviderRequestOptions,
-  GenerationRequest
+  GenerationRequest,
+  AppRunContext
 } from "@nodetool-ai/runtime";
+import { isUnitBilledCapability } from "./cost-ledger.js";
+import { finalizeAcceptedAppRunGeneration } from "./generation-tracker.js";
 import { decodeFalOutputs } from "./fal-output-decoder.js";
 
 export interface GenerationLeaseWindow {
@@ -30,6 +37,7 @@ export interface DurableGenerationAcceptance extends DurableAcceptance {
 
 export interface FalGenerationLifecycleHooksOptions {
   readonly userId: string;
+  readonly appRunContext?: AppRunContext;
   readonly jobId?: string | null;
   readonly projectId?: string | null;
   readonly providerAccountRef?: string | null;
@@ -174,9 +182,9 @@ function falRequestFingerprint(request: GenerationRequest): string {
  * Build the durable hooks used by workflow ProcessingContexts.
  *
  * This factory lives in execution so runtime stays independent of models and
- * persistence. It is intentionally FAL-only. Other providers continue to use
- * the existing in-memory receipt and billing path until their submission and
- * recovery contracts are verified.
+ * persistence. Durable provider submission and recovery remain FAL-only.
+ * App runs also persist their association before other providers start; those
+ * providers retain the existing receipt, output persistence, and billing path.
  */
 export function createFalGenerationLifecycleHooks(
   options: FalGenerationLifecycleHooksOptions
@@ -190,7 +198,24 @@ export function createFalGenerationLifecycleHooks(
   const onGenerationAccepted: NonNullable<
     GenerationLifecycleHooks["onGenerationAccepted"]
   > = async ({ generationId, request }) => {
-    if (request.provider !== "fal_ai") return undefined;
+    if (request.provider !== "fal_ai") {
+      if (options.appRunContext && isUnitBilledCapability(request.capability)) {
+        await Prediction.create<Prediction>({
+          id: generationId,
+          user_id: options.userId,
+          provider: request.provider,
+          model: request.model,
+          capability: request.capability,
+          node_id: request.nodeId,
+          workflow_id: request.workflowId ?? null,
+          job_id: options.jobId ?? null,
+          status: "running",
+          started_at: new Date().toISOString(),
+          metadata: appRunGenerationMetadata(options.appRunContext)
+        });
+      }
+      return undefined;
+    }
     const origin = request.origin ?? {};
     const idempotencyKey = origin.request_id
       ? `fal_ai:${origin.request_id}`
@@ -202,7 +227,10 @@ export function createFalGenerationLifecycleHooks(
     const callbackTokenCiphertext = callbackToken
       ? (options.encryptCallbackToken?.(callbackToken, options.userId) ?? null)
       : null;
-    const metadata = { origin: jsonSafe(origin) };
+    const metadata = {
+      origin: jsonSafe(origin),
+      ...appRunGenerationMetadata(options.appRunContext)
+    };
     if (request.destination) {
       Object.assign(metadata, {
         attachments: [jsonSafe(request.destination)]
@@ -349,7 +377,44 @@ export function createFalGenerationLifecycleHooks(
   }) => {
     if (!generationId) return;
     const state = states.get(generationId);
-    if (!state) return;
+    if (!state) {
+      if (
+        options.appRunContext &&
+        request.provider !== "fal_ai" &&
+        status !== "recovering"
+      ) {
+        await finalizeAcceptedAppRunGeneration(
+          {
+            type: "prediction",
+            id: generationId,
+            status,
+            error,
+            user_id: options.userId,
+            provider: request.provider,
+            model: request.model,
+            capability: request.capability,
+            node_id: request.nodeId ?? "",
+            params: request.params ?? {},
+            receipt,
+            asset_ids: assetIds.filter(
+              (assetId): assetId is string => assetId !== null
+            ),
+            origin: {
+              ...request.origin,
+              surface: request.origin?.surface ?? "workflow",
+              job_id: request.origin?.job_id ?? options.jobId ?? null
+            },
+            ...(delivery && { data: { delivery } })
+          },
+          {
+            userId: options.userId,
+            workflowId: request.workflowId ?? null,
+            appRunContext: options.appRunContext
+          }
+        );
+      }
+      return;
+    }
     try {
       if (state.heartbeat.lost()) {
         throw new Error(
@@ -373,7 +438,9 @@ export function createFalGenerationLifecycleHooks(
         // returns, so the durable intent is still unapplied here. Keeping the
         // attempt scheduled is what lets recovery finish an attachment the
         // caller never committed; the attachment pass clears the schedule.
-        const needsAttachment = Boolean(request.destination?.target_id);
+        const needsAttachment = Boolean(
+          request.destination?.target_id || options.appRunContext
+        );
         let mediaIndex = 0;
         const fence: GenerationAttemptLeaseFence = {
           attemptId: state.attemptId,
@@ -415,6 +482,12 @@ export function createFalGenerationLifecycleHooks(
             },
             fence
           );
+          if (transitioned) {
+            await attachAppRunGenerationOutputs(
+              await Prediction.find(state.generationId),
+              [transitioned]
+            );
+          }
           if (!transitioned) {
             throw new Error(
               "Durable FAL output lease fence rejected finalization"

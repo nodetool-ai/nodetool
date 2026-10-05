@@ -108,4 +108,11 @@ describe("TextInput", () => {
     // The input adopts the FormField control id, so the outer label names it.
     expect(screen.getByLabelText("Outer")).toBeInTheDocument();
   });
+
+  it("renders the value in the mono code style when monospace is set", () => {
+    renderWithTheme(<TextInput label="Source" multiline monospace />);
+    expect(getComputedStyle(screen.getByLabelText("Source")).fontFamily).toBe(
+      "var(--fontFamily2)"
+    );
+  });
 });

@@ -90,15 +90,18 @@ export function registerAppCommands(program: Command): void {
     .option("--json", "Print the full AppDebugReport as JSON to stdout")
     .action(async (ref: string, opts: AppDebugCliOptions) => {
       try {
-        const { initDb, Application, Workflow } =
+        const { initDb, migrateSqliteDb, Application, Workflow, WorkflowVersion, AppRunError, resolveAppInstanceApplicationId } =
           await import("@nodetool-ai/models");
         const { initMasterKey } = await import("@nodetool-ai/security");
         const { getDefaultDbPath } = await import("@nodetool-ai/config");
         const { runAppDebug } = await import("../app-debug/index.js");
+        const { debugGraphOf } = await import("@nodetool-ai/execution/app-debug");
         type InteractionSteps =
           import("@nodetool-ai/execution/app-debug").InteractionStep[];
 
-        initDb(getDefaultDbPath());
+        const dbPath = getDefaultDbPath();
+        await migrateSqliteDb(dbPath);
+        initDb(dbPath);
         try {
           await initMasterKey();
         } catch {
@@ -125,14 +128,23 @@ export function registerAppCommands(program: Command): void {
           debugOptions.timeoutMs = opts.timeout;
         }
         const report = await runAppDebug(ref, debugOptions, {
-          loadFromDb: (id: string) =>
-            Workflow.get(id) as Promise<{
-              graph: { nodes: never[]; edges: never[] };
-              app_doc?: unknown;
-            } | null>,
+          loadFromDb: async (id: string, version?: number) => {
+            const workflow = await Workflow.find("1", id);
+            if (!workflow) { return null; }
+            const pinned = version === undefined ? null : await WorkflowVersion.findByVersion(id, version);
+            if (version !== undefined && (!pinned || pinned.user_id !== workflow.user_id)) { return null; }
+            const graph = debugGraphOf(pinned?.graph ?? workflow.graph);
+            return graph ? { graph, app_doc: workflow.app_doc } : null;
+          },
           loadApplication: async (id: string) => {
-            const application = await Application.findById(id);
-            return application
+            let applicationId: string;
+            try { applicationId = await resolveAppInstanceApplicationId("1", id); }
+            catch (error) {
+              if (error instanceof AppRunError && error.code === "not_found") { return null; }
+              throw error;
+            }
+            const application = await Application.findById(applicationId);
+            return application?.user_id === "1"
               ? {
                   id: application.id,
                   name: application.name,

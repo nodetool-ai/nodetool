@@ -37,9 +37,9 @@ export async function commitFinishedStoryboard(input: FinishStoryboardWrite): Pr
       const [board] = await tx.update(storyboards).set(boardFields).where(and(eq(storyboards.id, input.board.id), eq(storyboards.revision, input.board.revision), eq(storyboards.updated_at, input.board.updated_at))).returning();
       if (!board) throw new Error("Storyboard was modified concurrently.");
       if (input.timeline) {
-        const [timeline] = await tx.update(timelineSequences).set({ ...timelineFields, document: input.document, revision: sql`${timelineSequences.revision} + 1` }).where(and(eq(timelineSequences.id, id), eq(timelineSequences.revision, input.timeline.revision), eq(timelineSequences.updated_at, input.timeline.updated_at))).returning();
+        const [timeline] = await tx.update(timelineSequences).set({ ...timelineFields, revision: sql`${timelineSequences.revision} + 1` }).where(and(eq(timelineSequences.id, id), eq(timelineSequences.revision, input.timeline.revision), eq(timelineSequences.updated_at, input.timeline.updated_at))).returning();
         if (!timeline) throw new Error("Timeline was modified concurrently.");
-      } else await tx.insert(timelineSequences).values({ ...initial, document: input.document });
+      } else await tx.insert(timelineSequences).values(initial);
     });
   }
   const board = await Storyboard.findById(input.board.id);

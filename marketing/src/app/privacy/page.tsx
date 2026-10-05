@@ -190,6 +190,25 @@ export default function PrivacyPage() {
               Legal basis: Art. 6 (1) (b) GDPR.
             </li>
             <li>
+              <strong>App working copies and run history</strong> — named app
+              instances, their variable state and pinned app definitions, and
+              operation runs with resolved inputs, outputs, document references,
+              status, timing and cost. This lets you resume and inspect your
+              work. Deployed-app visitor runs retain no visitor inputs or
+              outputs. Legal basis: Art. 6 (1) (b) GDPR.
+            </li>
+            <li>
+              <strong>Run traces</strong> — prompts, model responses, tool
+              arguments and results, console output, and the UI action that
+              started a run. These account-linked records let you inspect and
+              diagnose your work. Credentials are redacted, content is capped,
+              and deployed-app visitor traces contain no content. External
+              trace collectors receive metadata without content by default.
+              Traces are included in account export and deleted with their
+              source or account. Operators read content only when you request
+              support for that run. Legal basis: Art. 6 (1) (b) GDPR.
+            </li>
+            <li>
               <strong>Chat and agent memory</strong> — conversation threads and
               the messages in them, including message text, files you attach,
               and the tool calls the agent made. Separately, the agent records
@@ -254,13 +273,12 @@ export default function PrivacyPage() {
             </li>
           </ul>
           <p>
-            What this log does not contain is as important as what it does. It
-            is not behavioural tracking: there are no page views, clicks,
-            feature-usage counters or session recordings tied to your account,
-            and no prompt, message, asset or workflow content is written to it.
-            It records that an action of a given kind happened, by which
-            account, to which item, and when. It holds no IP address, no
-            browser user agent and no free-text field.
+            This security log records the action category, account, affected
+            item and time. It contains no prompt, message, asset or workflow
+            content, IP address, browser user agent or free-text field. It does
+            not record page views or session recordings. Separately, the run
+            traces described in section 5 link the action that starts a run to
+            your account so you can inspect that run.
           </p>
           <p>
             Legal basis: Art. 6 (1) (f) GDPR — our legitimate interest in
@@ -410,7 +428,19 @@ export default function PrivacyPage() {
               <strong>Run history and workflow version snapshots</strong> —
               removed on the retention schedule configured for your account in
               Settings, which covers autosaved snapshots, older manual versions
-              and finished run records.
+              and finished run records. Run trace content, including prompts,
+              responses, tool arguments and results, console output and app-run
+              input and output snapshots, expires under{" "}
+              <code>runTraceRetentionDays</code> (30 days by default). Finished
+              records and their content-free summaries expire under{" "}
+              <code>terminalJobRetentionDays</code> (30 days by default).
+              Summaries retain span names, status, timing, cost and redacted,
+              capped error details. The hosted service runs this sweep
+              automatically. Deleting a chat message or thread, workflow, job,
+              app, instance or run also removes its associated trace content.
+              App instances remain until you delete them or close your account.
+              Deleting run history keeps generated media in your library and
+              preserves only the billing fields needed to enforce app budgets.
             </li>
             <li>
               <strong>Security and activity events</strong> (section 6) — 180

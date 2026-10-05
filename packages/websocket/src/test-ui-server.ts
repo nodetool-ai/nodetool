@@ -33,7 +33,8 @@ import { appRouter } from "./trpc/router.js";
 import { createContextFactory } from "./trpc/context.js";
 import { ScriptedProvider, autoScript } from "@nodetool-ai/runtime";
 import { handleNodeHttpRequest, type HttpApiOptions } from "./http-api.js";
-import { initDb, initPostgresDb } from "@nodetool-ai/models";
+import { createTestUiRunRoutes } from "./lib/test-ui-run-routes.js";
+import { initDb, initPostgresDb, migrateSqliteDb } from "@nodetool-ai/models";
 import {
   isNonEmptyString,
   isString
@@ -1376,8 +1377,17 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
     }
   });
 
+  const runRoutes = createTestUiRunRoutes();
   const server = createServer((req: IncomingMessage, res: ServerResponse) => {
     const url = new URL(req.url ?? "/", `http://${host}:${port}`);
+    if (runRoutes.matches(url.pathname)) {
+      void runRoutes.handle(req, res).catch((error: unknown) => {
+        log.error("UI run route failed", error);
+        if (!res.headersSent) { res.statusCode = 500; }
+        res.end();
+      });
+      return;
+    }
     if (url.pathname === "/api/test/reset") {
       if (req.method !== "POST" || !options.resetDatabase) {
         res.statusCode = 404;
@@ -1558,7 +1568,7 @@ export function createTestUiServer(options: TestUiServerOptions = {}) {
             });
           }
         });
-      }),
+      }).then(() => runRoutes.close()),
     info: {
       host,
       port,
@@ -1574,7 +1584,9 @@ if (import.meta.url === `file://${process.argv[1]}`) {
     if (postgresDatabaseUrl) {
       await initPostgresDb(postgresDatabaseUrl);
     } else {
-      initDb(getDefaultDbPath());
+      const dbPath = getDefaultDbPath();
+      await migrateSqliteDb(dbPath);
+      initDb(dbPath);
     }
   } catch {
     // DB unavailable — secrets will appear unconfigured

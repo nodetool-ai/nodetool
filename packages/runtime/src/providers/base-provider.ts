@@ -1,3 +1,5 @@
+import { stringifyTraceContent } from "../run-trace-serialization.js";
+import { tracedProviderLoop, tracedToolCall, beginProviderRound, providerRoundContext, traceContentAllowed, messageTraceContent, traceTextContent } from "./loop-tracing.js";
 import type {
   ASRModel,
   EmbeddingModel,
@@ -106,7 +108,7 @@ import {
   videoFrameFallbackEnabled
 } from "./video-frame-fallback.js";
 import type { Span } from "@opentelemetry/api";
-import { SpanStatusCode } from "@opentelemetry/api";
+import { SpanStatusCode, context, trace } from "@opentelemetry/api";
 import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
 
 const log = createLogger("nodetool.runtime.provider");
@@ -961,12 +963,12 @@ export abstract class BaseProvider {
             const content =
               isString(result.content)
                 ? result.content
-                : JSON.stringify(result.content);
+                : stringifyTraceContent(result.content);
             span.setAttributes({
               "llm.response.role": result.role,
-              "llm.response.content": content.slice(0, 2000),
               "llm.response.tool_calls_count": result.toolCalls?.length ?? 0
             });
+            if (traceContentAllowed()) { span.setAttribute("llm.response.content", traceTextContent(content)); }
             span.setStatus({ code: SpanStatusCode.OK });
             return result;
           } catch (err) {
@@ -1063,6 +1065,10 @@ export abstract class BaseProvider {
     },
     streaming: boolean
   ): void {
+    if (traceContentAllowed()) {
+      span.setAttribute("llm.request.messages", messageTraceContent(args.messages.filter((message): message is Message => typeof message === "object" && message !== null && "role" in message)));
+      span.setAttribute("llm.tool.names", stringifyTraceContent((args.tools ?? []).map((tool) => typeof tool === "object" && tool !== null && "name" in tool ? tool.name : null)));
+    }
     span.setAttributes({
       "llm.provider": this.provider,
       "llm.model": args.model,
@@ -1330,6 +1336,10 @@ export abstract class BaseProvider {
       resolveMedia?: (messages: Message[]) => Promise<Message[]>;
     }
   ): AsyncGenerator<ProviderStreamItem> {
+    return yield* tracedProviderLoop(this.provider, args.model, () => BaseProvider.prototype.generateBaseLoop.call(this, args));
+  }
+
+  private async *generateBaseLoop(args: Parameters<BaseProvider["generateLoop"]>[0]): AsyncGenerator<ProviderStreamItem> {
     const maxIterations = args.maxIterations ?? 25;
     const {
       executeTool,
@@ -1374,11 +1384,8 @@ export abstract class BaseProvider {
     let toolCallSeq = 0;
     const onToolCall = executeTool
       ? async (name: string, toolArgs: Record<string, unknown>) => {
-          const result = await executeTool({
-            id: `call_${++toolCallSeq}`,
-            name,
-            args: toolArgs
-          });
+          const call = { id: `call_${++toolCallSeq}`, name, args: toolArgs };
+          const result = await tracedToolCall(call, () => executeTool(call));
           if (isProviderToolErrorResult(result)) {
             return toolResultToText(result.content);
           }
@@ -1403,6 +1410,7 @@ export abstract class BaseProvider {
           return;
         }
       }
+      beginProviderRound(this.provider, args.model);
       const costBeforeTurn = turnBudget ? this.getTotalCost() : 0;
       let assistantText = "";
       let finalizedAssistant: Message | undefined;
@@ -1531,8 +1539,8 @@ export abstract class BaseProvider {
       const runTool = async (tc: ToolCall): Promise<ProviderToolResult> => {
         const tool = toolMap.get(tc.name);
         try {
-          if (tool?.execute) return await tool.execute(tc.args ?? {}, tc.id);
-          if (executeTool) return await executeTool(tc);
+          if (tool?.execute) { const execute = tool.execute; return await tracedToolCall(tc, () => execute(tc.args ?? {}, tc.id)); }
+          if (executeTool) return await tracedToolCall(tc, () => executeTool(tc));
           return `Tool "${tc.name}" is not available`;
         } catch (err) {
           // A throwing tool must not destroy the whole assistant turn: turn the
@@ -1629,21 +1637,31 @@ export abstract class BaseProvider {
     args: Parameters<this["generateMessages"]>[0],
     tracer: ReturnType<typeof getTracer> & object
   ): AsyncGenerator<ProviderStreamItem> {
-    const span = tracer.startSpan(`llm.stream ${this.provider}/${args.model}`);
+    const span = tracer.startSpan(`llm.stream ${this.provider}/${args.model}`, {}, providerRoundContext());
     this.applyLlmRequestAttributes(span, args, true);
     let chunkCount = 0;
+    let response = "";
+    const stream = this.generateMessages(args);
+    const active = trace.setSpan(providerRoundContext(), span);
+    let exhausted = false;
     try {
-      for await (const item of this.generateMessages(args)) {
+      while (true) {
+        const next = await context.with(active, () => stream.next());
+        if (next.done) { exhausted = true; break; }
+        const item = next.value;
+        if (traceContentAllowed() && "content" in item && typeof item.content === "string" && !("thinking" in item && item.thinking) && (!("content_type" in item) || item.content_type === "text")) { response = traceTextContent(response + item.content); }
         chunkCount++;
         yield item;
       }
-      span.setAttributes({ "llm.response.chunk_count": chunkCount });
+      span.setAttribute("llm.response.chunk_count", chunkCount);
+      if (traceContentAllowed()) { span.setAttribute("llm.response.content", response); }
       span.setStatus({ code: SpanStatusCode.OK });
     } catch (err) {
       span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
       span.recordException(err as Error);
       throw err;
     } finally {
+      if (!exhausted) { await context.with(active, () => stream.return(undefined)); }
       applyUsageAttributes(span, peekLastUsage());
       span.end();
     }

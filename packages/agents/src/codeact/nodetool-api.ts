@@ -110,6 +110,7 @@ export const NODETOOL_API_NAMESPACE_TOOLS: Record<string, readonly string[]> = {
     "list_images"
   ],
   jobs: ["list_jobs", "get_job", "get_job_logs"],
+  runs: ["list_runs", "get_run", "get_run_trace", "get_run_logs", "await_run"],
   generations: [
     "list_generations",
     "get_generation",
@@ -1146,6 +1147,14 @@ const nodetool = (() => {
       }
     },
 
+    runs: {
+      list: (opts) => __need("list_runs")(__merge(opts)),
+      get: (id, opts) => __need("get_run")(__merge(opts, { run_id: id })),
+      trace: (id, opts) => __need("get_run_trace")(__merge(opts, { run_id: id })),
+      logs: (id, opts) => __need("get_run_logs")(__merge(opts, { run_id: id })),
+      wait: (id, opts) => __need("await_run")(__merge(opts, { run_id: id }))
+    },
+
     generations: {
       /** The record of every media generation: status, cost, assets. */
       list: (opts) => __need("list_generations")(__merge(opts)),
@@ -1746,6 +1755,15 @@ const NAMESPACE_DOCS: PromptEntry[] = [
     skill: "api-workflows",
     doc: `- \`nodetool.jobs\` — \`list()\`, \`get(id)\`, \`logs(id)\`,
   \`wait(idOrReceipt, {timeoutMs})\` (polls until the job settles).`
+  },
+  {
+    namespace: "runs",
+    skill: "nodetool-troubleshooter",
+    doc: `- \`nodetool.runs\` — app, workflow and chat runs: \`list(opts)\`,
+  \`get(id)\` (summary first), \`get(id, {include_content: true})\` (saved app inputs and outputs),
+  \`trace(id, {focus_span_id, depth, include_content})\`,
+  \`logs(id, {level, source, span_id, include_content})\`, \`wait(id, {timeout_ms})\`.
+  Resource ids accept their 12-character prefixes. Trace and span ids stay full.`
   },
   {
     namespace: "generations",

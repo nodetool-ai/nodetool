@@ -1,3 +1,5 @@
+import { isRecord, isString } from "@nodetool-ai/node-sdk";
+import type { NodeValue } from "@nodetool-ai/node-sdk";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { higgsfieldCreateUploadUrl, higgsfieldUploadMedia, type HiggsfieldCredentials } from "@nodetool-ai/runtime";
@@ -10,17 +12,16 @@ export function getCredentials(secrets: Record<string, string> | undefined): Hig
 }
 
 export async function resolveHiggsfieldMedia(
-  ref: unknown,
+  ref: NodeValue,
   context: ProcessingContext | undefined,
   credentials: HiggsfieldCredentials,
   mimeType: string,
   signal?: AbortSignal
 ): Promise<string> {
-  if (typeof ref !== "object" || ref === null || Array.isArray(ref)) throw new Error("A media reference is required");
-  const record = ref as Record<string, unknown>;
-  const uri = typeof record.uri === "string" ? record.uri : "";
+  if (!isRecord(ref)) throw new Error("A media reference is required");
+  const uri = isString(ref.uri) ? ref.uri : "";
   if (/^https:\/\//.test(uri)) return uri;
-  const bytes = await loadMediaRefBytes(record, context);
+  const bytes = await loadMediaRefBytes(ref, context);
   if (!bytes || bytes.length === 0) throw new Error("Could not resolve Higgsfield media input");
   const upload = await higgsfieldCreateUploadUrl(credentials, mimeType, signal);
   return higgsfieldUploadMedia(upload, bytes, mimeType, signal);

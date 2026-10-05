@@ -1,6 +1,5 @@
 /**
- * Shows what an agent does during a run, while it runs: the text it writes and
- * each tool call it makes, with the outcome of the call.
+ * Shows live agent work and replays the owned run's stored activity after reload.
  *
  * Bound to `op:<id>/exec#transcript`. A run that drives a model through a tool
  * loop takes minutes. Without this widget the app shows a progress bar for all
@@ -17,6 +16,7 @@ import {
 
 import {
   Box,
+  AlertBanner,
   Caption,
   Collapse,
   FlexColumn,
@@ -25,11 +25,15 @@ import {
   ScrollArea,
   ShimmerText,
   StatusPill,
+  EditorButton,
+  LoadingSpinner,
   Text,
+  TruncatedText,
   BORDER_RADIUS,
-  FONT_SIZE_MONO,
+  TYPOGRAPHY,
   MOTION,
-  SPACING
+  SPACING,
+  reducedMotion
 } from "../../ui_primitives";
 import { getToolIcon } from "../../chat/message/toolCallIcon";
 import {
@@ -37,6 +41,12 @@ import {
   useRuntimeSelector
 } from "../runtime/AppRuntimeContext";
 import { MarkdownBlock } from "./widgets";
+import { useAppOperationRun } from "../../../hooks/useAppOperationRun";
+import { useRunLogs, useRunLiveUpdates } from "../../../serverState/useRuns";
+import { replayAppRunActivity } from "../../../serverState/appRunActivity";
+import { useRunInspection } from "../../../hooks/useRunInspection";
+import { AskRunAgentButton } from "../../runs/AskRunAgentButton";
+import ReportBugButton from "../../support/ReportBugButton";
 
 interface AgentActivityWidgetProps {
   id: string;
@@ -104,10 +114,13 @@ type ToolEntry = Extract<ActivityEntry, { kind: "tool" }>;
  * glyph and hairline rail, a one-line sentence, the ops it carried in mono,
  * and the raw result one click away.
  */
-const ToolRow: React.FC<{ entry: ToolEntry; connected: boolean }> = ({
+const ToolRow: React.FC<{ entry: ToolEntry; connected: boolean; runId?: string; spanId?: string }> = ({
   entry,
-  connected
+  connected,
+  runId,
+  spanId
 }) => {
+  const { openRunInspection } = useRunInspection();
   const [open, setOpen] = useState(false);
   const Icon = getToolIcon(entry.name);
   const running = entry.status === "running";
@@ -144,7 +157,7 @@ const ToolRow: React.FC<{ entry: ToolEntry; connected: boolean }> = ({
               : running
                 ? "primary.main"
                 : "text.disabled",
-            "& svg": { fontSize: 16 }
+            "& svg": { fontSize: "1em" }
           }}
         >
           <Icon />
@@ -171,7 +184,8 @@ const ToolRow: React.FC<{ entry: ToolEntry; connected: boolean }> = ({
             cursor: result ? "pointer" : "default",
             userSelect: "none",
             "&:hover": result ? { bgcolor: "action.hover" } : undefined,
-            "&:hover .chevron, &:focus-visible .chevron": { opacity: 1 }
+            "&:hover .chevron, &:focus-visible .chevron": { opacity: 1 },
+            "&:focus-visible": { outline: "2px solid", outlineColor: "primary.main" }
           }}
         >
           <Text
@@ -183,19 +197,17 @@ const ToolRow: React.FC<{ entry: ToolEntry; connected: boolean }> = ({
             {running ? <ShimmerText>{entry.label}</ShimmerText> : entry.label}
           </Text>
           {detail ? (
-            <Caption
+            <TruncatedText
               component="span"
               color="secondary"
               sx={{
-                fontFamily: "monospace",
-                whiteSpace: "nowrap",
-                overflow: "hidden",
-                textOverflow: "ellipsis",
+                ...TYPOGRAPHY.mono.caption,
+                color: "text.secondary",
                 minWidth: 0
               }}
             >
               {detail}
-            </Caption>
+            </TruncatedText>
           ) : null}
           <Box sx={{ flex: 1 }} />
           {failed ? (
@@ -208,20 +220,22 @@ const ToolRow: React.FC<{ entry: ToolEntry; connected: boolean }> = ({
               className="chevron"
               aria-hidden
               sx={{
-                fontSize: 16,
+                fontSize: "1em",
                 color: "text.disabled",
                 flexShrink: 0,
                 opacity: open ? 1 : 0,
                 transform: open ? "rotate(180deg)" : "none",
-                transition: `${MOTION.opacity}, ${MOTION.transform}`
+                transition: `${MOTION.opacity}, ${MOTION.transform}`,
+                ...reducedMotion({ transition: MOTION.none })
               }}
             />
           ) : null}
         </FlexRow>
         {result ? (
           <Collapse in={open} timeout="auto" unmountOnExit>
-            <Box
+            <ScrollArea
               component="pre"
+              maxHeight={240}
               sx={{
                 m: 0,
                 mt: SPACING.xs,
@@ -230,27 +244,47 @@ const ToolRow: React.FC<{ entry: ToolEntry; connected: boolean }> = ({
                 borderRadius: BORDER_RADIUS.md,
                 bgcolor: "action.hover",
                 color: "text.secondary",
-                fontFamily: "monospace",
-                fontSize: FONT_SIZE_MONO.caption,
+                ...TYPOGRAPHY.mono.caption,
                 whiteSpace: "pre-wrap",
                 wordBreak: "break-word",
-                maxHeight: 240,
-                overflow: "auto"
               }}
             >
               {result}
-            </Box>
+            </ScrollArea>
           </Collapse>
         ) : null}
+        {runId && spanId ? <FlexRow gap={SPACING.xs}>
+          <EditorButton onClick={() => openRunInspection({ runId, spanId })}>View trace</EditorButton>
+          <AskRunAgentButton runId={runId} spanId={spanId} />
+        </FlexRow> : null}
       </Box>
     </Box>
   );
 };
 
+/** Historical inspection always reads the explicitly selected run. */
+export function StoredRunActivity({ runId }: { runId: string }): React.ReactElement {
+  const logs = useRunLogs(runId, { source: "agent", include_content: true, limit: 100 });
+  const pages = logs.data?.pages ?? [];
+  const unavailable = pages.some((page) => page.content_state !== "available");
+  const activity = logs.error || unavailable ? [] : replayAppRunActivity(pages.flatMap((page) => page.logs));
+  return <FlexColumn gap={SPACING.sm}>
+    <Text weight={600}>Recorded activity</Text>
+    {logs.isLoading ? <LoadingSpinner text="Loading activity" /> : null}
+    {logs.error ? <AlertBanner severity="error" action={<ReportBugButton context={{ source: "operation-failure", summary: "Historical activity could not load", errorText: logs.error.message }} />}>{logs.error.message}</AlertBanner> : null}
+    {unavailable ? <Caption>Activity content {pages[0]?.content_state}.</Caption> : null}
+    {activity.map(({ key, entry, spanId }, index) => entry.kind === "tool"
+      ? <ToolRow key={key} entry={entry} runId={runId} spanId={spanId} connected={activity[index + 1]?.entry.kind === "tool"} />
+      : <MarkdownBlock key={key} text={entry.text} />)}
+    {pages.some((page) => page.limited || page.truncated) ? <Caption>Activity recording was limited.</Caption> : null}
+    {logs.hasNextPage && !unavailable ? <EditorButton disabled={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>Load more activity</EditorButton> : null}
+  </FlexColumn>;
+}
+
 export const AgentActivityWidget: React.FC<AgentActivityWidgetProps> = (
   props
 ) => {
-  const { designMode } = useAppRuntimeContext();
+  const { designMode, instanceId } = useAppRuntimeContext();
   const ref = parseBinding(props.binding);
   const operationId = ref?.kind === "execution" ? ref.operationId : null;
   const entries = useRuntimeSelector((state) =>
@@ -259,7 +293,17 @@ export const AgentActivityWidget: React.FC<AgentActivityWidgetProps> = (
   const running = useRuntimeSelector((state) =>
     operationId ? isOperationRunning(state, operationId) : false
   );
-  const shown = designMode && entries.length === 0 ? SAMPLE : entries;
+  const { runId, liveRunMatches, historyLoading, historyError, historyLimited, traceIncomplete } = useAppOperationRun(operationId);
+  const logs = useRunLogs(runId, { source: "agent", include_content: true, limit: 500 });
+  const pages = logs.data?.pages ?? [];
+  useRunLiveUpdates(pages[0]?.run?.id ?? runId);
+  const readError = historyError ?? logs.error;
+  const expired = pages.some((page) => page.content_expired);
+  const excluded = pages.some((page) => page.content_state === "public" || page.content_state === "suppressed");
+  const stored = expired || excluded || readError ? [] : replayAppRunActivity(pages.flatMap((page) => page.logs));
+  const useLive = !expired && !excluded && !readError && running && (liveRunMatches || !instanceId);
+  const shown = designMode ? entries.length ? entries : SAMPLE : useLive ? entries : stored.map((item) => item.entry);
+  const { openRunInspection } = useRunInspection();
 
   // Follow the newest entry while the agent works, the way a log does.
   const scroller = useRef<HTMLDivElement>(null);
@@ -272,7 +316,7 @@ export const AgentActivityWidget: React.FC<AgentActivityWidgetProps> = (
     }
   }, [running, shown.length, lastSize]);
 
-  if (!designMode && !running && shown.length === 0) {
+  if (!designMode && !running && shown.length === 0 && !runId && !historyLoading && !readError && !historyLimited) {
     return props.placeholder ? (
       <Caption color="secondary">{props.placeholder}</Caption>
     ) : null;
@@ -282,7 +326,15 @@ export const AgentActivityWidget: React.FC<AgentActivityWidgetProps> = (
       <FlexRow gap={SPACING.sm} align="center" fullWidth>
         {props.label ? <Label>{props.label}</Label> : null}
         {running ? <StatusPill tone="rendering">Working</StatusPill> : null}
+        {runId ? <EditorButton onClick={() => openRunInspection({ runId })}>View trace</EditorButton> : null}
+        {runId ? <AskRunAgentButton runId={runId} /> : null}
       </FlexRow>
+      {historyLoading || logs.isLoading ? <LoadingSpinner text="Loading activity" /> : null}
+      {historyLimited ? <Caption>Recorded activity is outside the recent runs loaded.</Caption> : null}
+      {expired ? <Caption>Activity content expired.</Caption> : excluded ? <Caption>Activity content is unavailable for this run.</Caption> : null}
+      {readError ? <AlertBanner severity="error" action={<ReportBugButton context={{ source: "operation-failure", summary: "Run activity could not load", errorText: readError.message }} />}>{readError.message}</AlertBanner> : null}
+      {runId && !logs.isLoading && !useLive && !expired && !excluded && !readError && shown.length === 0
+        ? <Caption>{props.placeholder ?? "No agent activity recorded."}</Caption> : null}
       <ScrollArea ref={scroller} thin maxHeight={props.height ?? 360}>
         <FlexColumn gap={SPACING.xs} fullWidth>
           {shown.map((entry, index) =>
@@ -290,6 +342,8 @@ export const AgentActivityWidget: React.FC<AgentActivityWidgetProps> = (
               <ToolRow
                 key={entry.id}
                 entry={entry}
+                runId={!useLive && runId ? runId : undefined}
+                spanId={!useLive ? stored[index]?.spanId : undefined}
                 connected={shown[index + 1]?.kind === "tool"}
               />
             ) : (
@@ -300,6 +354,10 @@ export const AgentActivityWidget: React.FC<AgentActivityWidgetProps> = (
           )}
         </FlexColumn>
       </ScrollArea>
+      {pages.some((page) => page.truncated || page.limited) ? <Caption>Activity recording was limited.</Caption> : null}
+      {traceIncomplete ? <Caption>Some browser activity could not be recorded.</Caption> : null}
+      {!traceIncomplete && pages.some((page) => page.incomplete) ? <Caption>Activity recording is incomplete.</Caption> : null}
+      {logs.hasNextPage && !expired && !excluded ? <EditorButton disabled={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>Load more activity</EditorButton> : null}
     </FlexColumn>
   );
 };

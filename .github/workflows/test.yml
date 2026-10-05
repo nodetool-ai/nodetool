@@ -32,11 +32,24 @@ on:
     # commit — which blocks the PR and auto-merge indefinitely. Running the gate
     # on every PR keeps the required check from getting stuck. (The `push` to
     # main above keeps its path filter — there is no required-check to block.)
+  # A merge queue runs the gate once on the merged result. Branch protection
+  # has to enable the queue; this trigger only makes the required check report
+  # on the queue's temporary branches.
+  merge_group:
+  # Pull requests and pushes test only what their diff can reach (see the
+  # `changes` job). The nightly run has no base commit, so it runs every leg in
+  # full, including the docker smoke test and the TypeScript 6 build.
+  schedule:
+    - cron: "17 2 * * *"
+  workflow_dispatch:
 
-# Cancel superseded runs for the same branch/PR; the latest push is what matters.
+# Cancel superseded runs of the same PR; the latest push is what matters.
+# Every other run gets a group of its own and is never cancelled: a push to
+# main tests only the diff since the previous push, so a cancelled run would
+# leave that commit's changes untested on main.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && github.ref || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
   # Does this push touch anything but prose? A documentation-only change has
@@ -78,11 +91,39 @@ jobs:
     outputs:
       code: ${{ steps.filter.outputs.code || 'true' }}
       shared: ${{ steps.filter.outputs.shared || 'true' }}
+      plan: ${{ steps.plan.outputs.plan }}
+      base: ${{ steps.plan.outputs.base }}
     steps:
       - name: Checkout code
         uses: actions/checkout@v7
         with:
           fetch-depth: 1
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version-file: ".nvmrc"
+
+      # Which legs the diff needs: `scripts/ci-plan.mjs` applies the same
+      # workspace mapping as `npm run test:affected`. The base is the PR base,
+      # the merge group base, or the commit before a push; a scheduled or
+      # manual run has none and runs everything. Fails open: if the planner
+      # errors, the plan is every leg.
+      - name: Plan the legs this diff needs
+        id: plan
+        env:
+          BASE: >-
+            ${{ github.event.pull_request.base.sha
+            || github.event.merge_group.base_sha
+            || (github.event_name == 'push' && github.event.before)
+            || '' }}
+        run: |
+          [[ "$BASE" =~ ^0+$ ]] && BASE=""
+          echo "base=$BASE" >> "$GITHUB_OUTPUT"
+          if ! node scripts/ci-plan.mjs plan ${BASE:+--base "$BASE"}; then
+            echo "::warning::ci-plan failed; running every leg."
+            echo 'plan={"full":true,"web":"full","electron":true,"mobile":true,"packages_websocket":true,"packages_agents":true,"packages_nodes":true,"packages_core":true,"integration":true,"workflow_runner_e2e":true,"tsc6":true,"docker":true}' >> "$GITHUB_OUTPUT"
+          fi
 
       - name: Detect non-documentation changes
         id: filter
@@ -124,6 +165,10 @@ jobs:
       # so a filter that could not resolve a base runs the whole gate. False
       # only for a diff confined to marketing/, whose gate is marketing-ci.yml.
       shared: ${{ needs.changes.outputs.shared != 'false' }}
+      # Which legs to start, and the base their diff-scoped tools compare to.
+      # Empty values (a `changes` job that never reported) run everything.
+      plan: ${{ needs.changes.outputs.plan }}
+      base-sha: ${{ needs.changes.outputs.base }}
 
   # Heavy jobs run concurrently with the quality gate (both wait only on the
   # seconds-long `changes` job) rather than after it, so
@@ -140,7 +185,10 @@ jobs:
     # "prose", or an explicit "this diff never leaves marketing/" — it runs
     # shipped-workflow execution out of packages/base-nodes, which marketing
     # cannot reach.
-    if: ${{ always() && needs.changes.outputs.code != 'false' && needs.changes.outputs.shared != 'false' }}
+    # Runs when the diff reaches base-nodes, whose shipped workflows it executes.
+    if: >-
+      ${{ always() && needs.changes.outputs.code != 'false' && needs.changes.outputs.shared != 'false'
+      && (needs.changes.outputs.plan == '' || fromJSON(needs.changes.outputs.plan).integration) }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 
@@ -157,7 +205,10 @@ jobs:
   workflow-runner-e2e:
     name: Workflow Runner Browser E2E
     needs: changes
-    if: ${{ always() && needs.changes.outputs.code != 'false' && needs.changes.outputs.shared != 'false' }}
+    # Runs when the diff reaches the workflow-runner package it drives.
+    if: >-
+      ${{ always() && needs.changes.outputs.code != 'false' && needs.changes.outputs.shared != 'false'
+      && (needs.changes.outputs.plan == '' || fromJSON(needs.changes.outputs.plan).workflow_runner_e2e) }}
     runs-on: ubuntu-latest
     timeout-minutes: 45
 

@@ -1,3 +1,6 @@
+import type { AppRunContext, AppRunCostAccount, AppRunDocumentRef } from "./run-context.js";
+import { getRunTraceScope, type RunTraceScope } from "./run-trace-context.js";
+import { withSpan } from "./tracing-helpers.js";
 /**
  * ProcessingContext – runtime context for node execution.
  *
@@ -76,12 +79,6 @@ import type { Workspace } from "./workspace.js";
 // lazily so this module loads in browser / Edge runtimes. `resolveWorkspacePath`
 // and the `randomUUID` fallback both degrade gracefully when these are
 // unavailable.
-/**
- * Secret values shorter than this are not recorded for masking: redacting a
- * two-character value would blank unrelated text wherever it happens to occur.
- */
-const MIN_MASKABLE_SECRET_LENGTH = 8;
-
 /**
  * ProcessingContext variable key carrying the provider/model the currently
  * running agent loop is itself talking to. Every loop that executes tools
@@ -1233,6 +1230,11 @@ export class ProcessingContext {
     | null = null;
   /** Every secret value the resolver handed out this run (see {@link ProcessingContext.getResolvedSecretValues}). */
   private _resolvedSecrets = new Set<string>();
+  /** Identity shared by all work beneath an app operation. */
+  readonly appRunContext: AppRunContext | null;
+  runTraceContext: RunTraceScope | null;
+  readonly appRunCostAccount: AppRunCostAccount | null;
+  private _appRunDocuments = new Map<string, AppRunDocumentRef>();
   /** Fetch function used by HTTP helpers. */
   private _fetch: (input: string, init?: RequestInit) => Promise<Response>;
   /** Optional temporary URL resolver for stored assets. */
@@ -1344,6 +1346,9 @@ export class ProcessingContext {
     retainMessageQueue?: boolean;
     /** Optional durable lifecycle owned by the host. */
     generationLifecycle?: GenerationLifecycleHooks;
+    appRunContext?: AppRunContext;
+    runTraceContext?: RunTraceScope;
+    appRunCostAccount?: AppRunCostAccount;
   }) {
     this.jobId = opts.jobId;
     this.workflowId = opts.workflowId ?? null;
@@ -1355,6 +1360,10 @@ export class ProcessingContext {
     this.assetOutputMode = opts.assetOutputMode ?? "native";
     this.persistOutputAssets = opts.persistOutputAssets ?? true;
     this._generationLifecycle = opts.generationLifecycle ?? null;
+    this.appRunContext = opts.appRunContext ? Object.freeze({ ...opts.appRunContext }) : null;
+    this.runTraceContext = opts.runTraceContext ?? getRunTraceScope() ?? null;
+    if (this.runTraceContext?.secretValues instanceof Set) { this._resolvedSecrets = this.runTraceContext.secretValues; }
+    this.appRunCostAccount = opts.appRunCostAccount ?? (this.appRunContext ? { llmCostUsd: 0, unpriced: false } : null);
     this.cache = opts.cache ?? new MemoryCache();
     this.storage = opts.storage ?? null;
     this.assetStorage = opts.assetStorage ?? null;
@@ -1405,14 +1414,20 @@ export class ProcessingContext {
   copy(opts?: {
     shareMemory?: boolean;
     inheritMessageListeners?: boolean;
+    jobId?: string;
+    workflowId?: string | null;
+    appRunContext?: AppRunContext;
+    runTraceContext?: RunTraceScope;
+    generationLifecycle?: GenerationLifecycleHooks;
+    workspace?: Workspace | null;
   }): ProcessingContext {
     const next = new ProcessingContext({
-      jobId: this.jobId,
+      jobId: opts?.jobId ?? this.jobId,
       projectId: this.projectId,
-      workflowId: this.workflowId,
+      workflowId: opts?.workflowId !== undefined ? opts.workflowId : this.workflowId,
       threadId: this.threadId,
       userId: this.userId,
-      workspaceDir: this.workspaceDir,
+      workspace: opts?.workspace !== undefined ? opts.workspace : this.workspace,
       assetOutputMode: this.assetOutputMode,
       persistOutputAssets: this.persistOutputAssets,
       cache: this.cache,
@@ -1428,7 +1443,11 @@ export class ProcessingContext {
       tempUrlResolver: this._tempUrlResolver ?? undefined,
       modelInterfaces: this._modelInterfaces ?? undefined,
       retainMessageQueue: this._retainMessageQueue,
-      triggerEvent: this.triggerEvent
+      triggerEvent: this.triggerEvent,
+      generationLifecycle: opts?.generationLifecycle ?? this._generationLifecycle ?? undefined,
+      appRunContext: opts?.appRunContext ?? this.appRunContext ?? undefined,
+      runTraceContext: opts?.runTraceContext ?? this.runTraceContext ?? undefined,
+      appRunCostAccount: !opts?.appRunContext || opts.appRunContext.appRunId === this.appRunContext?.appRunId ? this.appRunCostAccount ?? undefined : undefined
     });
     if (opts?.inheritMessageListeners !== false) {
       for (const listener of this._messageListeners) {
@@ -1437,6 +1456,10 @@ export class ProcessingContext {
     }
     if (opts?.shareMemory) {
       (next as { memory: AgentMemory }).memory = this.memory;
+    }
+    if (!opts?.runTraceContext) { next._resolvedSecrets = this._resolvedSecrets; }
+    if (next.appRunContext?.appRunId === this.appRunContext?.appRunId) {
+      next._appRunDocuments = this._appRunDocuments;
     }
     next.signal = this.signal;
     next._providerResolver = this._providerResolver;
@@ -1718,7 +1741,7 @@ export class ProcessingContext {
   async getSecret(key: string): Promise<string | null> {
     if (!this._secretResolver) return null;
     const value = await this._secretResolver(key, this.userId);
-    if (value != null && value.length >= MIN_MASKABLE_SECRET_LENGTH) {
+    if (value != null && value.length > 0) {
       this._resolvedSecrets.add(value);
     }
     return value ?? null;
@@ -2014,6 +2037,32 @@ export class ProcessingContext {
     return this._totalCost;
   }
 
+  /** Null means at least one LLM call could not be priced. */
+  getAppRunLlmCost(): number | null {
+    return this.appRunCostAccount && !this.appRunCostAccount.unpriced
+      ? this.appRunCostAccount.llmCostUsd
+      : null;
+  }
+
+  getAppRunDocuments(): AppRunDocumentRef[] {
+    return [...this._appRunDocuments.values()].map((reference) => ({
+      ...reference
+    }));
+  }
+
+  private recordAppRunDocument<T extends PersistedRecordLike | null>(
+    kind: AppRunDocumentRef["kind"],
+    document: T
+  ): T {
+    if (this.appRunContext && document) {
+      this._appRunDocuments.set(`${kind}:${document.id}`, {
+        kind,
+        id: document.id
+      });
+    }
+    return document;
+  }
+
   getOperationCosts(): ReadonlyArray<Record<string, unknown>> {
     return this._operationCosts;
   }
@@ -2211,7 +2260,8 @@ export class ProcessingContext {
     args: ModelInterfaceArgs<"createImageDocument">
   ): Promise<PersistedRecordLike> {
     const fn = this.requireModelInterface("createImageDocument");
-    return fn({ userId: this.userId, ...args });
+    const document = await fn({ userId: this.userId, ...args });
+    return this.recordAppRunDocument("sketch", document);
   }
 
   /** Load a persisted timeline sequence owned by the current user. */
@@ -2225,7 +2275,8 @@ export class ProcessingContext {
     sequence: unknown
   ): Promise<PersistedRecordLike> {
     const fn = this.requireModelInterface("createTimelineSequence");
-    return fn({ userId: this.userId, sequence });
+    const document = await fn({ userId: this.userId, sequence });
+    return this.recordAppRunDocument("timeline", document);
   }
 
   /** Replace a persisted timeline sequence's document. */
@@ -2234,7 +2285,8 @@ export class ProcessingContext {
     sequence: unknown
   ): Promise<PersistedRecordLike | null> {
     const fn = this.requireModelInterface("updateTimelineSequence");
-    return fn({ userId: this.userId, id, sequence });
+    const document = await fn({ userId: this.userId, id, sequence });
+    return this.recordAppRunDocument("timeline", document);
   }
 
   /** Load a persisted script owned by the current user. */
@@ -2248,7 +2300,8 @@ export class ProcessingContext {
     args: ModelInterfaceArgs<"createScript">
   ): Promise<PersistedRecordLike> {
     const fn = this.requireModelInterface("createScript");
-    return fn({ userId: this.userId, ...args });
+    const document = await fn({ userId: this.userId, ...args });
+    return this.recordAppRunDocument("script", document);
   }
 
   /** Replace a persisted script's document (and optional timeline link). */
@@ -2257,7 +2310,8 @@ export class ProcessingContext {
     args: Omit<ModelInterfaceArgs<"updateScript">, "id">
   ): Promise<PersistedRecordLike | null> {
     const fn = this.requireModelInterface("updateScript");
-    return fn({ userId: this.userId, id, ...args });
+    const document = await fn({ userId: this.userId, id, ...args });
+    return this.recordAppRunDocument("script", document);
   }
 
   /** Load a persisted storyboard owned by the current user. */
@@ -2287,7 +2341,8 @@ export class ProcessingContext {
     args: ModelInterfaceArgs<"createStoryboard">
   ): Promise<PersistedRecordLike> {
     const fn = this.requireModelInterface("createStoryboard");
-    return fn({ userId: this.userId, ...args });
+    const document = await fn({ userId: this.userId, ...args });
+    return this.recordAppRunDocument("storyboard", document);
   }
 
   /** Replace a persisted storyboard's document (and optional timeline link). */
@@ -2296,7 +2351,8 @@ export class ProcessingContext {
     args: Omit<ModelInterfaceArgs<"updateStoryboard">, "id">
   ): Promise<PersistedRecordLike | null> {
     const fn = this.requireModelInterface("updateStoryboard");
-    return fn({ userId: this.userId, id, ...args });
+    const document = await fn({ userId: this.userId, id, ...args });
+    return this.recordAppRunDocument("storyboard", document);
   }
 
   /** The current user's entity library, narrowed by the given filters. */
@@ -3696,6 +3752,7 @@ export class ProcessingContext {
     opts?: GenerationRunOptions
   ): Promise<GenerationResult<T>> {
     const id = req.id ?? randomUUID();
+    return withSpan("generation", { "generation.id": id, "generation.provider": req.provider, "generation.kind": req.capability }, async () => {
     const startedAt = Date.now();
     const origin = this.generationOrigin(req, req.origin);
     const controller = new AbortController();
@@ -3859,6 +3916,21 @@ export class ProcessingContext {
           // can be finalized by the recovery worker.
         }
       }
+      if (this.appRunContext && !durableAccepted && !terminalAttempted) {
+        try {
+          terminalAttempted = true;
+          await terminal?.({
+            generationId: id,
+            request: req,
+            status: signal.aborted ? "cancelled" : "failed",
+            error: message,
+            receipt,
+            assetIds: []
+          });
+        } catch {
+          // Preserve the provider failure; the live ledger can retry its write.
+        }
+      }
       this.emitPrediction(status, req, id, null, message, startedAt, {
         origin,
         receipt
@@ -3871,6 +3943,7 @@ export class ProcessingContext {
       });
       throw cause;
     }
+    });
   }
 
   /**
@@ -4162,6 +4235,21 @@ export class ProcessingContext {
         } catch {
           // Keep the provider outcome visible while durable finalization is
           // retried by the recovery worker.
+        }
+      }
+      if (this.appRunContext && !durableAccepted && !terminalAttempted) {
+        try {
+          terminalAttempted = true;
+          await terminal?.({
+            generationId: id,
+            request: req,
+            status: signal.aborted ? "cancelled" : "failed",
+            error: message,
+            receipt,
+            assetIds: []
+          });
+        } catch {
+          // Preserve the provider failure; the live ledger can retry its write.
         }
       }
       this.emitPrediction(status, req, id, null, message, startedAt, {

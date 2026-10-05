@@ -1,19 +1,20 @@
 name: Flatpak CI
 
-# Triggers: workflow_dispatch and push to main (non-blocking)
+# Triggers: once a day and workflow_dispatch (non-blocking). A build takes a
+# runner for about an hour and nothing consumes the bundle per merge, so it no
+# longer runs on every push to main that touches electron/ or web/.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-    paths:
-      - 'electron/**'
-      - 'web/**'
-      - '.github/workflows/flatpak-ci.yml'
+  schedule:
+    - cron: "23 5 * * *"
 
 # No special permissions required for build-only mode
 permissions:
   contents: read
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   build-flatpak:

@@ -7,13 +7,16 @@
 import { mkdtempSync, readFileSync, writeFileSync, existsSync, rmSync } from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { afterEach, describe, expect, it, vi } from "vitest";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { Application, initTestDb } from "@nodetool-ai/models";
+import { NodeRegistry } from "@nodetool-ai/node-sdk";
 import { runAppDebug, defaultInteractions } from "../src/app-debug/harness.js";
 import { parseAppSpec } from "@nodetool-ai/execution/app-debug";
 import { collectExecutionSummary } from "../src/debug/collector.js";
 import type { ServerRunInput, ServerRunOutcome } from "../src/debug/server-runner.js";
 
 const tempDirs: string[] = [];
+beforeEach(() => { initTestDb(); });
 const tempDir = (prefix: string): string => {
   const dir = mkdtempSync(join(tmpdir(), prefix));
   tempDirs.push(dir);
@@ -97,7 +100,8 @@ const stubRunner = (
 
 const deps = (runOnServer: ReturnType<typeof stubRunner>) => ({
   loadFromDb: async () => null,
-  runOnServer
+  runOnServer,
+  registry: new NodeRegistry()
 });
 
 describe("runAppDebug", () => {
@@ -113,7 +117,7 @@ describe("runAppDebug", () => {
       deps(runOnServer)
     );
 
-    expect(report.verdict.ok).toBe(true);
+    expect(report.verdict.ok, report.verdict.issues.join("\n")).toBe(true);
     expect(report.app).toEqual({ version: 4, title: "Demo App", widgetCount: 3 });
     expect(runOnServer).toHaveBeenCalledOnce();
     expect(runOnServer.mock.calls[0][0].params).toEqual({ prompt: "what is it?" });
@@ -194,7 +198,7 @@ describe("runAppDebug", () => {
 
     expect(report.interactions[0]).toMatchObject({ step: "click ChatComposer-1" });
     expect(report.verdict.issues).toEqual([]);
-    expect(report.verdict.ok).toBe(true);
+    expect(report.verdict.ok, report.verdict.issues.join("\n")).toBe(true);
   });
 
   it("warns rather than fails when the empty widget sits on an untaken branch", async () => {
@@ -217,8 +221,8 @@ describe("runAppDebug", () => {
           }
         ],
         edges: [
-          { id: "e1", source: "in1", target: "gate" },
-          { id: "e2", source: "gate", target: "out1" }
+          { id: "e1", source: "in1", sourceHandle: "output", target: "gate", targetHandle: "value" },
+          { id: "e2", source: "gate", sourceHandle: "true", target: "out1", targetHandle: "value" }
         ]
       }
     });
@@ -229,7 +233,7 @@ describe("runAppDebug", () => {
       deps(runOnServer)
     );
 
-    expect(report.verdict.ok).toBe(true);
+    expect(report.verdict.ok, report.verdict.issues.join("\n")).toBe(true);
     expect(report.verdict.issues).not.toContainEqual(
       expect.stringMatching(/never received a value/)
     );
@@ -270,7 +274,7 @@ describe("runAppDebug", () => {
       },
       deps(runOnServer)
     );
-    expect(report.verdict.ok).toBe(true);
+    expect(report.verdict.ok, report.verdict.issues.join("\n")).toBe(true);
     expect(runOnServer.mock.calls[0][0].params).toEqual({ prompt: "scripted" });
   });
 
@@ -298,7 +302,7 @@ describe("runAppDebug", () => {
     );
     expect(runOnServer).not.toHaveBeenCalled();
     expect(report.runs).toEqual([]);
-    expect(report.verdict.ok).toBe(true);
+    expect(report.verdict.ok, report.verdict.issues.join("\n")).toBe(true);
     expect(report.verdict.headline).toMatch(/static check only/);
   });
 
@@ -409,7 +413,7 @@ describe("runAppDebug — operations", () => {
       deps(runOnServer)
     );
 
-    expect(report.verdict.ok).toBe(true);
+    expect(report.verdict.ok, report.verdict.issues.join("\n")).toBe(true);
     expect(report.interactions[0]).toMatchObject({ step: "run polish", runIndex: 0 });
     expect(report.invocations).toHaveLength(1);
     expect(report.invocations[0]).toMatchObject({
@@ -553,7 +557,7 @@ describe("runAppDebug — variables", () => {
       { outDir: outDir() },
       deps(stubRunner(ANSWER))
     );
-    expect(report.verdict.ok).toBe(true);
+    expect(report.verdict.ok, report.verdict.issues.join("\n")).toBe(true);
     expect(report.variables).toEqual({ draft: "the answer" });
     expect(report.widgets[0]).toMatchObject({ id: "Markdown-1", value: "the answer" });
   });
@@ -716,7 +720,7 @@ describe("runAppDebug — execution bindings", () => {
         ])
       )
     );
-    expect(report.verdict.ok).toBe(true);
+    expect(report.verdict.ok, report.verdict.issues.join("\n")).toBe(true);
     expect(report.activity.map((a) => a.label)).toEqual(["searching the web"]);
     expect(report.widgets.find((w) => w.id === "Text-1")?.value).toBe(
       "searching the web"
@@ -798,6 +802,7 @@ describe("runAppDebug target kinds", () => {
     );
 
   it("reports the same shape for a workflow app_doc, an application id, and a bundle file", async () => {
+    await Application.create<Application>({ id: "app-1", user_id: "1", name: "Demo App", document: JSON.stringify(APP_DOCUMENT("wf1")) });
     const legacy = await runTarget(workflowFile());
 
     const fromApplication = await runTarget("app-1", {
@@ -825,7 +830,7 @@ describe("runAppDebug target kinds", () => {
     );
     const fromBundle = await runTarget(bundleFile);
 
-    expect(fromApplication.verdict.ok).toBe(true);
+    expect(fromApplication.verdict.ok, fromApplication.verdict.issues.join("\n")).toBe(true);
     expect(legacy.app.version).toBe(4);
     expect(fromApplication.app.version).toBe(3);
     expect(fromBundle.app.version).toBe(3);
@@ -838,6 +843,7 @@ describe("runAppDebug target kinds", () => {
   });
 
   it("writes the same bundle files for an application target", async () => {
+    await Application.create<Application>({ id: "app-1", user_id: "1", name: "Demo App", document: JSON.stringify(APP_DOCUMENT("wf1")) });
     const outDir = tempDir("app-bundle-");
     await runAppDebug(
       "app-1",
@@ -921,7 +927,7 @@ describe("runAppDebug target kinds", () => {
     );
 
     expect(loadFromDb).not.toHaveBeenCalled();
-    expect(report.verdict.ok).toBe(true);
+    expect(report.verdict.ok, report.verdict.issues.join("\n")).toBe(true);
     expect(report.invocations.map((i) => i.operationId)).toEqual(["main", "refine"]);
     expect(runOnServer).toHaveBeenCalledTimes(2);
     // A bundle key is not a workflow id, so nothing hands one to the runner.

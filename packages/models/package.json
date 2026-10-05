@@ -40,6 +40,7 @@
     "postgres": "^3.4.7"
   },
   "devDependencies": {
+    "@electric-sql/pglite": "^0.5.8",
     "@types/better-sqlite3": "^7.6.13",
     "drizzle-kit": "^0.31.10",
     "typescript": "npm:@typescript/typescript6@6.0.2",

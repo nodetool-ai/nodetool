@@ -57,7 +57,7 @@ describe("applicationTarget", () => {
       loadFromDb
     );
 
-    expect(loadFromDb).toHaveBeenCalledWith("wf1");
+    expect(loadFromDb).toHaveBeenCalledWith("wf1", undefined);
     expect(resolved.info).toMatchObject({
       ref: "app-1",
       source: "application",

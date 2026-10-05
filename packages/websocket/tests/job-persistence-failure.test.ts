@@ -1,25 +1,6 @@
 /**
- * Task D3 (docs/RELIABILITY_ARCHITECTURE.md §9 "Process/host" faults): pins
- * the CURRENTLY-swallowed job-persistence failure in
- * `websocket-client-session.ts`'s `runJob` — the
- * `catch (error) { this.logError("runJob persistence failed", error); }`
- * block guarding the `Job.get`/`Job.create`/`existing.save()` calls made when
- * `execution_options.persistence === "job"` (~line 2940 as of this writing;
- * the architecture doc cites ~2868, drift is expected as the file evolves).
- *
- * THIS TEST DOCUMENTS INTENDED-TO-BE-REVISITED BEHAVIOR, not a spec: today, a
- * DB failure while starting/updating a "job"-persisted run's row is caught,
- * logged, and otherwise ignored — the run itself proceeds and reaches its own
- * terminal `job_update` over the socket exactly as if persistence had
- * succeeded, but the Job row silently never reflects that. Per task D3, this
- * is a *pin*, not a fix — if a future change makes the runner surface, retry,
- * or fail the run on a persistence error, update this test and this comment
- * deliberately; don't just relax the assertions to make it pass again.
- *
- * Per docs/RELIABILITY_TASKS.md's A5 note, `websocket-client-session.ts`
- * itself is not refactored here — this test only observes it through its
- * public `runJob`/socket surface, same as every other `unified-websocket-
- * runner*.test.ts` file.
+ * Job creation must succeed before durable trace registration permits execution.
+ * A failed save of an existing Job still exercises the legacy queued-row behavior.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { unpack } from "msgpackr";
@@ -59,11 +40,8 @@ class MockWebSocket implements WebSocketConnection {
   }
 }
 
-const resolveExecutor = () => ({
-  async process() {
-    return {};
-  }
-});
+const executeNode = vi.fn(async () => ({}));
+const resolveExecutor = () => ({ process: executeNode });
 
 function decodeAll(ws: MockWebSocket): Record<string, unknown>[] {
   return [
@@ -104,12 +82,13 @@ const trivialGraph = {
   edges: []
 };
 
-describe("job persistence failure during run_job (task D3, pinned behavior)", () => {
+describe("job persistence failure during run_job", () => {
   let ws: MockWebSocket;
   let runner: WebSocketClientSession;
 
   beforeEach(async () => {
     await initTestDb();
+    executeNode.mockClear();
     ws = new MockWebSocket();
     runner = new WebSocketClientSession({ resolveExecutor });
     await runner.connect(ws);
@@ -120,7 +99,7 @@ describe("job persistence failure during run_job (task D3, pinned behavior)", ()
     await runner.disconnect();
   });
 
-  it("swallows a DB failure creating the Job row: the run still completes, but no Job row is ever created", async () => {
+  it("fails before execution when the Job row cannot be created", async () => {
     const jobId = "DB_LOCKED_CREATE";
     const createSpy = vi
       .spyOn(Job, "create")
@@ -136,11 +115,9 @@ describe("job persistence failure during run_job (task D3, pinned behavior)", ()
     });
 
     const terminal = await waitForTerminal(ws, jobId);
-    expect(terminal.status).toBe("completed");
+    expect(terminal.status).toBe("failed");
     expect(createSpy).toHaveBeenCalled();
-
-    // The intended-to-be-revisited part: the run finished normally over the
-    // socket, but the failed Job.create means no row ever landed in the DB.
+    expect(executeNode).not.toHaveBeenCalled();
     expect(await Job.get(jobId)).toBeNull();
   });
 

@@ -14,11 +14,14 @@
 import { and, eq, gte, sql } from "drizzle-orm";
 
 import { createTimeOrderedUuid } from "./base-model.js";
-import { getDb, getDbType, type DbTransaction, forUpdate } from "./db.js";
+import { getPortableDb, getDbType, type DbTransaction, forUpdate } from "./db.js";
 import {
   applicationBudgets,
   applicationInvocations
 } from "./schema/application-budgets.js";
+import type { AppRunSnapshot } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
+import { AppInstanceConflictError } from "./app-instance.js";
+import { appInstances } from "./schema/app-instances.js";
 import { applications } from "./schema/applications.js";
 
 export type BudgetPeriod = "day" | "month" | "total";
@@ -106,7 +109,7 @@ const toRecord = (row: Record<string, unknown>): InvocationRecord => ({
 async function ownerOfApplication(
   applicationId: string
 ): Promise<string | null> {
-  const db = getDb();
+  const db = getPortableDb();
   const rows = await db
     .select({ user_id: applications.user_id })
     .from(applications)
@@ -127,7 +130,7 @@ export const periodStart = (period: BudgetPeriod, now: Date): string | null => {
 export async function getApplicationBudget(
   applicationId: string
 ): Promise<ApplicationBudget | null> {
-  const db = getDb();
+  const db = getPortableDb();
   const rows = await db
     .select()
     .from(applicationBudgets)
@@ -145,7 +148,7 @@ export async function setApplicationBudget(
     maxInvocations?: number | null;
   }
 ): Promise<ApplicationBudget> {
-  const db = getDb();
+  const db = getPortableDb();
   const now = new Date().toISOString();
   const existing = await getApplicationBudget(applicationId);
   const next = {
@@ -183,7 +186,7 @@ export async function applicationUsage(
   period: BudgetPeriod,
   now = new Date()
 ): Promise<ApplicationUsage> {
-  const db = getDb();
+  const db = getPortableDb();
   const since = periodStart(period, now);
   const conditions = [eq(applicationInvocations.application_id, applicationId)];
   if (since) {
@@ -254,7 +257,7 @@ export async function checkApplicationBudget(
 export async function recordInvocation(
   input: ReserveInput
 ): Promise<InvocationRecord> {
-  const db = getDb();
+  const db = getPortableDb();
   const userId =
     input.userId ?? (await ownerOfApplication(input.applicationId));
   const rows = await db
@@ -287,7 +290,7 @@ export async function settleInvocation(
   actualUsd: number | null,
   status: "completed" | "failed" | "cancelled" = "completed"
 ): Promise<InvocationRecord | null> {
-  const db = getDb();
+  const db = getPortableDb();
   type PatchFields = {
     actual_usd?: number;
     status: typeof status;
@@ -317,7 +320,7 @@ export async function settleInvocation(
 }
 
 export type Reservation =
-  | { allowed: true; record: InvocationRecord; usage: ApplicationUsage }
+  | { allowed: true; record: InvocationRecord; usage: ApplicationUsage; created?:boolean }
   | {
       allowed: false;
       reason: string;
@@ -350,7 +353,8 @@ const invocationRow = (input: ReserveInput, userId: string | null) => ({
   operation_id: input.operationId ?? "",
   estimated_usd: input.estimatedUsd ?? 0,
   status: "running",
-  created_at: new Date().toISOString()
+  created_at: new Date().toISOString(),
+  ...(input.appRunFields??{})
 });
 
 const overBudget = (
@@ -380,6 +384,10 @@ export interface ReserveInput {
   estimatedUsd?: number;
   /** Public links fail closed unless the app has a finite spend or run cap. */
   requireFiniteBudget?: boolean;
+  appRunFields?: {
+    instance_id:string;origin:string;instance_revision:number;snapshot:AppRunSnapshot|null;
+    inputs:Record<string,unknown>|null;trace_id:string;root_span_id:string|null;
+  };
 }
 
 /**
@@ -398,7 +406,7 @@ export async function reserveInvocation(
   now = new Date()
 ): Promise<Reservation> {
   const estimatedUsd = input.estimatedUsd ?? 0;
-  const db = getDb();
+  const db = getPortableDb();
   // Resolved before the transaction: the SQLite branch runs synchronously and
   // cannot await a lookup of its own.
   const userId =
@@ -406,17 +414,13 @@ export async function reserveInvocation(
 
   // No budget row means unmetered, so there is nothing to serialize on.
   const configured = await getApplicationBudget(input.applicationId);
-  if (!configured) {
+  if (!configured && !input.appRunFields) {
     if (input.requireFiniteBudget) return missingPublicBudget();
     const record = await recordInvocation({ ...input, userId });
-    return {
-      allowed: true,
-      record,
-      usage: await applicationUsage(input.applicationId, "total", now)
-    };
+    return { allowed: true, record, created: true, usage: await applicationUsage(input.applicationId, "total", now) };
   }
 
-  if (input.requireFiniteBudget && !hasFiniteBudgetLimit(configured)) {
+  if (configured && input.requireFiniteBudget && !hasFiniteBudgetLimit(configured)) {
     return missingPublicBudget();
   }
 
@@ -442,6 +446,22 @@ export async function reserveInvocation(
         .where(eq(applicationBudgets.application_id, input.applicationId))
         .limit(1)
         .get();
+      if (input.appRunFields) {
+        const existing=tx.select().from(applicationInvocations).where(and(
+          eq(applicationInvocations.application_id,input.applicationId),eq(applicationInvocations.invocation_id,input.invocationId)
+        )).get();
+        if (existing) {
+          if (existing.user_id!==userId || existing.instance_id!==input.appRunFields.instance_id || existing.operation_id!==input.operationId) throw new Error("Invocation id already in use");
+          return {allowed:true,record:toRecord(existing),created:false,usage:emptyUsage()};
+        }
+      }
+      if (input.appRunFields) {
+        const instance = tx.select({ revision: appInstances.revision }).from(appInstances)
+          .where(and(eq(appInstances.id, input.appRunFields.instance_id), eq(appInstances.user_id, userId ?? ""))).get();
+        if (!instance || instance.revision !== input.appRunFields.instance_revision) {
+          throw new AppInstanceConflictError();
+        }
+      }
       // The row was there a moment ago and is the thing being locked; if it
       // went away, the app is unmetered and the run is simply recorded.
       if (!budgetRow) {
@@ -501,6 +521,22 @@ export async function reserveInvocation(
         .where(eq(applicationBudgets.application_id, input.applicationId))
         .limit(1)
     );
+    if (input.appRunFields) {
+      const [existing]=await tx.select().from(applicationInvocations).where(and(
+        eq(applicationInvocations.application_id,input.applicationId),eq(applicationInvocations.invocation_id,input.invocationId)
+      )).limit(1);
+      if (existing) {
+        if (existing.user_id!==userId || existing.instance_id!==input.appRunFields.instance_id || existing.operation_id!==input.operationId) throw new Error("Invocation id already in use");
+        return {allowed:true,record:toRecord(existing),created:false,usage:emptyUsage()};
+      }
+    }
+    if (input.appRunFields) {
+      const [instance] = await forUpdate(tx.select({ revision: appInstances.revision }).from(appInstances)
+        .where(and(eq(appInstances.id, input.appRunFields.instance_id), eq(appInstances.user_id, userId ?? ""))).limit(1));
+      if (!instance || instance.revision !== input.appRunFields.instance_revision) {
+        throw new AppInstanceConflictError();
+      }
+    }
     if (!budgetRow) {
       if (input.requireFiniteBudget) return missingPublicBudget();
       const [orphan] = await tx
@@ -562,7 +598,7 @@ export async function invocationBelongsToApplication(
   invocationId: string
 ): Promise<boolean> {
   if (!applicationId || !invocationId) return false;
-  const db = getDb();
+  const db = getPortableDb();
   const rows = await db
     .select({ id: applicationInvocations.id })
     .from(applicationInvocations)
@@ -588,7 +624,7 @@ export async function invocationIdInUse(
   invocationId: string
 ): Promise<boolean> {
   if (!invocationId) return false;
-  const db = getDb();
+  const db = getPortableDb();
   const rows = await db
     .select({ id: applicationInvocations.id })
     .from(applicationInvocations)
@@ -602,7 +638,7 @@ export async function listInvocations(
   limit = 50,
   userId?: string
 ): Promise<InvocationRecord[]> {
-  const db = getDb();
+  const db = getPortableDb();
   const scope =
     userId === undefined
       ? eq(applicationInvocations.application_id, applicationId)

@@ -43,7 +43,8 @@ export interface AppApplicationRecord {
 
 /** Load a workflow by DB id, including its legacy `app_doc`. */
 export type AppWorkflowLoader = (
-  id: string
+  id: string,
+  version?: number
 ) => Promise<AppWorkflowRecord | null>;
 
 function targetInfo(
@@ -89,13 +90,15 @@ export async function hostGraphFor(
   for (const operation of document.operations) {
     const id = operation.workflowId;
     if (!id) continue;
-    const carried = graphs.get(id);
+    const version = operation.workflowVersion ?? (operation.target?.kind === "workflow" ? operation.target.workflowVersion : undefined);
+    const key = `${id}@${version ?? "latest"}`;
+    const carried = graphs.get(key) ?? graphs.get(id);
     if (carried) return { graph: carried, workflowId: null };
     try {
-      const workflow = await loadFromDb(id);
+      const workflow = await loadFromDb(id, version);
       const graph = workflow?.graph ? normalizeDebugGraph(workflow.graph) : null;
       if (graph) {
-        graphs.set(id, graph);
+        graphs.set(key, graph);
         return { graph, workflowId: id };
       }
     } catch {

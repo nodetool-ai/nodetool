@@ -15,6 +15,7 @@
 
 import { createLogger } from "@nodetool-ai/config";
 import { Secret } from "./secret.js";
+import { Setting } from "./setting.js";
 import { resolveCodexAccessToken } from "./codex-token.js";
 import {
   GOOGLE_ACCESS_TOKEN_KEY,
@@ -105,6 +106,25 @@ export async function getSecret(
       }
     } catch (err) {
       log.error("Secret DB lookup/decryption failed", {
+        key,
+        userId,
+        error: String(err)
+      });
+    }
+  }
+
+  // Non-secret settings (provider URLs, context lengths) are saved by the
+  // Settings UI to the Setting table, not the Secret table. Read them here so
+  // provider construction sees them. settings.update clears the cache entry.
+  if (userId) {
+    try {
+      const setting = await Setting.find(userId, key);
+      if (setting && setting.value.length > 0) {
+        secretCache.set(cacheKey, setting.value);
+        return setting.value;
+      }
+    } catch (err) {
+      log.error("Setting DB lookup failed", {
         key,
         userId,
         error: String(err)

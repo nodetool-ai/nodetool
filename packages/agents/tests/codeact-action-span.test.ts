@@ -4,7 +4,7 @@
  * length, duration, bridged tool-call count, outcome, and whether the
  * observation was cut.
  */
-import { describe, it, expect, beforeAll, afterAll } from "vitest";
+import { describe, it, expect, beforeAll, beforeEach, afterAll, vi } from "vitest";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
@@ -78,9 +78,15 @@ beforeAll(async () => {
   await initTelemetry({ traceFile, silent: true });
 }, 30_000);
 
+beforeEach(() => {
+  // This hierarchy check reads custom diagnostic names and action errors.
+  vi.stubEnv("NODETOOL_TRACE_INCLUDE_CONTENT", "1");
+});
+
 afterAll(async () => {
   await shutdownTelemetry();
   await rm(traceDir, { recursive: true, force: true });
+  vi.unstubAllEnvs();
 }, 30_000);
 
 async function readRecords(): Promise<TraceRecord[]> {

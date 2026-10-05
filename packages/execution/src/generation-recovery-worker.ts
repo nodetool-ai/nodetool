@@ -1,3 +1,4 @@
+import { attachAppRunGenerationOutputs } from "./app-run-generation.js";
 import { randomUUID } from "node:crypto";
 import {
   GenerationAttempt,
@@ -1398,6 +1399,7 @@ export class DurableGenerationRecoveryWorker {
     generation: Prediction,
     outputs: GenerationOutput[]
   ): Promise<"pending" | "complete" | "skipped" | null> {
+    await attachAppRunGenerationOutputs(generation, outputs);
     const intents = attachmentIntents(generation);
     if (intents.length === 0 || !this.attachOutput) return null;
     let pendingCount = 0;

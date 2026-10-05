@@ -16,6 +16,11 @@ jest.mock("../../../hooks/useDocumentTreeData", () => ({
   useDocumentTreeData: jest.fn()
 }));
 
+const mockDeleteMutate = jest.fn();
+jest.mock("../../../serverState/useDeleteDocument", () => ({
+  useDeleteDocument: () => ({ mutate: mockDeleteMutate })
+}));
+
 jest.mock("../../../hooks/useOpenApplication", () => ({
   useOpenApplication: () => mockOpenApplication
 }));
@@ -40,9 +45,11 @@ jest.mock("react-router-dom", () => ({
 }));
 
 jest.mock("../../entities/EntityEditorDialog", () => ({
-  EntityEditorDialog: ({ entity }: { entity: { id: string; name: string } }) => (
-    <div data-testid="entity-editor">Editing {entity.name}</div>
-  )
+  EntityEditorDialog: ({
+    entity
+  }: {
+    entity: { id: string; name: string };
+  }) => <div data-testid="entity-editor">Editing {entity.name}</div>
 }));
 
 const renderTree = () =>
@@ -185,13 +192,63 @@ it("uses the primitive loading and error states", () => {
   expect(screen.getByRole("button", { name: "Report" })).toBeInTheDocument();
 });
 
-it.each(["timeline"] as const)("opens an existing %s in view mode", async (type) => {
-  mockUseDocumentTreeData.mockReturnValue({ ...data, groups: [{
-    id: "creative", label: "Creative documents", children: [{
-      id: "document-1", name: "My document", type, typeLabel: type, projectId: "project-a"
-    }]
-  }] });
+it.each(["timeline"] as const)(
+  "opens an existing %s in view mode",
+  async (type) => {
+    mockUseDocumentTreeData.mockReturnValue({
+      ...data,
+      groups: [
+        {
+          id: "creative",
+          label: "Creative documents",
+          children: [
+            {
+              id: "document-1",
+              name: "My document",
+              type,
+              typeLabel: type,
+              projectId: "project-a"
+            }
+          ]
+        }
+      ]
+    });
+    renderTree();
+    await userEvent.click(
+      screen.getByRole("treeitem", { name: `My document ${type}` })
+    );
+    expect(mockOpenTab).toHaveBeenCalledWith(
+      expect.objectContaining({ type, ref: "document-1", mode: "view" })
+    );
+  }
+);
+
+it("deletes a document only after the user confirms", async () => {
+  const user = userEvent.setup();
   renderTree();
-  await userEvent.click(screen.getByRole("treeitem", { name: `My document ${type}` }));
-  expect(mockOpenTab).toHaveBeenCalledWith(expect.objectContaining({ type, ref: "document-1", mode: "view" }));
+
+  await user.click(
+    screen.getByRole("button", { name: "Delete Campaign Generator" })
+  );
+  expect(mockDeleteMutate).not.toHaveBeenCalled();
+  expect(mockOpenTab).not.toHaveBeenCalled();
+
+  await user.click(screen.getByRole("button", { name: "Delete" }));
+
+  expect(mockDeleteMutate).toHaveBeenCalledWith(
+    { id: "workflow-1", type: "workflow" },
+    expect.any(Object)
+  );
+});
+
+it("does not delete when the user cancels", async () => {
+  const user = userEvent.setup();
+  renderTree();
+
+  await user.click(
+    screen.getByRole("button", { name: "Delete Normalize Brief" })
+  );
+  await user.click(screen.getByRole("button", { name: "Cancel" }));
+
+  expect(mockDeleteMutate).not.toHaveBeenCalled();
 });

@@ -198,8 +198,10 @@ exclude:
   - creation-flows/
   - timeline-editor-prd.md
   - correlation-design.md
+  - app-runs-design.md
   - workflow-loops.md
   # Internal implementation plans & specs (agentic-worker instructions).
+  - app-runs-implementation-plan.md
   - COMPONENT_STREAMLINE_PLAN.md
   - plans/directed-campaign-kit-mini-app.md
   - plans/external-asset-refs.md

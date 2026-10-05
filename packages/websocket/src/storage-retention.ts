@@ -1,5 +1,6 @@
 import {
   cleanupStorage,
+  listRunTraceOwners,
   DEFAULT_STORAGE_RETENTION_POLICY,
   Setting,
   type StorageCleanupResult,
@@ -12,6 +13,7 @@ const KEYS = {
   manualVersionRetentionDays: "storage.retention.manualVersionRetentionDays",
   terminalJobRetentionDays: "storage.retention.terminalJobRetentionDays",
   runEventRetentionDays: "storage.retention.runEventRetentionDays",
+  runTraceRetentionDays: "storage.retention.runTraceRetentionDays",
   predictionRetentionDays: "storage.retention.predictionRetentionDays",
   automaticCleanup: "storage.retention.automaticCleanup",
   lastCleanupAt: "storage.retention.lastCleanupAt"
@@ -76,6 +78,12 @@ export async function getStorageRetentionSettings(userId: string): Promise<{
         1,
         3650
       ),
+      runTraceRetentionDays: boundedInteger(
+        values.get(KEYS.runTraceRetentionDays),
+        DEFAULT_STORAGE_RETENTION_POLICY.runTraceRetentionDays ?? 30,
+        1,
+        3650
+      ),
       automaticCleanup:
         values.get(KEYS.automaticCleanup) === undefined
           ? DEFAULT_STORAGE_RETENTION_POLICY.automaticCleanup
@@ -137,4 +145,26 @@ export async function runAutomaticStorageCleanup(
   const result = await cleanupStorage(userId, settings.policy, now);
   await recordStorageCleanup(userId, result.completedAt);
   return result;
+}
+
+/** Sweep persisted trace owners even when they have no active request or socket. */
+export async function runScheduledStorageCleanup(
+  localUserId: string,
+  now = new Date()
+): Promise<{ total: number; owners: number }> {
+  const owners = new Set([localUserId, ...await listRunTraceOwners()]);
+  let total = 0;
+  const failures: unknown[] = [];
+  for (const userId of owners) {
+    try {
+      const result = await runAutomaticStorageCleanup(userId, now);
+      total += result?.total ?? 0;
+    } catch (error) {
+      failures.push(error);
+    }
+  }
+  if (failures.length > 0) {
+    throw new AggregateError(failures, "Scheduled history cleanup failed for some owners");
+  }
+  return { total, owners: owners.size };
 }

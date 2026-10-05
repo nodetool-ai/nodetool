@@ -4,7 +4,7 @@
  * central failure logging chat gets, without callers doing anything special.
  */
 
-import { describe, it, expect, vi, afterEach } from "vitest";
+import { beforeEach, describe, it, expect, vi, afterEach } from "vitest";
 import { BaseProvider } from "../../src/providers/base-provider.js";
 import type {
   ImageModel,
@@ -164,3 +164,7 @@ describe("BaseProvider modality failure logging", () => {
     expect(out.lines()).not.toContain("Provider request failed");
   });
 });
+
+// Existing formatting fixtures exercise the explicitly enabled local diagnostic copy.
+beforeEach(() => { vi.stubEnv("NODETOOL_TRACE_INCLUDE_CONTENT", "1"); });
+afterEach(() => { vi.unstubAllEnvs(); });

@@ -18,7 +18,7 @@ import {
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
 import DocumentLoadStatus from "./DocumentLoadStatus";
-import { buildUiContext } from "../../lib/chat/uiContext";
+import { buildUiContext, type BuildUiContextOptions } from "../../lib/chat/uiContext";
 
 const whenChatStoreHydrated = (): Promise<void> => {
   const persistApi = useGlobalChatStore.persist;
@@ -91,6 +91,9 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
   const { model, setModel } = useThreadModel(refId);
   const connectionStatus = useGlobalChatStore((state) => state.status);
   const pendingTurnInFlight = useRef(false);
+  const inspectionUiContext = useCallback((): BuildUiContextOptions => ({
+    run: useChatDraftStore.getState().runReferences[refId]
+  }), [refId]);
 
   const workflowId = useGlobalChatStore(
     (state) =>
@@ -275,6 +278,7 @@ const ChatSurface = ({ refId, active }: ChatSurfaceProps) => {
         currentLogUpdate={runtime.logUpdate}
         workflowId={workflowId}
         chatSource="workspace_chat"
+        uiContext={inspectionUiContext}
         noMessagesPlaceholder={noMessagesPlaceholder}
         showNewChatButton
         projectDocumentsSidebar={

@@ -538,6 +538,7 @@ const parseOperation = (
     : targetWorkflowId(value.target);
   if (!script && workflowId === null) return null;
   type BindingFields = Mutable<OperationBinding>;
+  const targetVersion = isRecord(value.target) && value.target.kind === "workflow" ? value.target.workflowVersion : undefined;
   const binding: BindingFields = {
     id,
     name: isString(name) ? name : id,
@@ -547,7 +548,7 @@ const parseOperation = (
     workflowId: script ? "" : workflowId || hostWorkflowId || "",
     workflowVersion: isNumber(value.workflowVersion)
       ? value.workflowVersion
-      : undefined,
+      : isNumber(targetVersion) ? targetVersion : undefined,
     inputs: parseMappings(value.inputs, parseInputMapping),
     outputs: parseMappings(value.outputs, parseOutputMapping),
     policy: policy === "parallel" || policy === "queue" ? policy : "replace",

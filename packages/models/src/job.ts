@@ -4,9 +4,11 @@
  * Port of Python's `nodetool.models.job`.
  */
 
-import { eq, and, desc, lt, inArray, notInArray } from "drizzle-orm";
+import { eq, and, desc, lt, inArray, notInArray, like } from "drizzle-orm";
+import { isShortResourceId } from "@nodetool-ai/protocol";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb, getDatabase } from "./db.js";
+import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 import { jobs } from "./schema/jobs.js";
 
 // ── Types ────────────────────────────────────────────────────────────
@@ -53,8 +55,15 @@ export class Job extends DBModel {
    */
   declare runner_instance: string | null;
   declare metadata_json: Record<string, unknown> | null;
+  declare has_run_trace: number;
   declare created_at: string;
   declare updated_at: string;
+
+  override async delete(): Promise<void> {
+    await eraseRunTraceParentForModelDeletion({ kind: "job", id: this.id });
+    await super.delete();
+    await eraseRunTraceParentForModelDeletion({ kind: "job", id: this.id });
+  }
 
   constructor(data: Record<string, unknown>) {
     super(data);
@@ -84,12 +93,20 @@ export class Job extends DBModel {
     this.execution_id ??= null;
     this.runner_instance ??= null;
     this.metadata_json ??= null;
+    this.has_run_trace ??= 0;
     this.name ??= "";
   }
 
   override beforeSave(): void {
     this.updated_at = new Date().toISOString();
     this.version += 1;
+  }
+
+  override toRow(): ReturnType<DBModel["toRow"]> {
+    const row = super.toRow();
+    // Trace registration owns this monotonic marker. A stale job finalizer cannot reset it.
+    delete row["has_run_trace"];
+    return row;
   }
 
   // ── State transitions ────────────────────────────────────────────
@@ -176,7 +193,7 @@ export class Job extends DBModel {
     expectedVersion: number
   ): Promise<boolean> {
     try {
-      const db = getDb();
+      const db = getPortableDb();
       const now = new Date().toISOString();
       const newVersion = expectedVersion + 1;
       // Atomic CAS: only update if the database row still has the expected version.
@@ -230,7 +247,7 @@ export class Job extends DBModel {
     jobId: string,
     progress: Record<string, unknown>
   ): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select({ metadata_json: jobs.metadata_json })
       .from(jobs)
@@ -274,7 +291,7 @@ export class Job extends DBModel {
     createdBeforeIso: string,
     instanceId: string | null
   ): Promise<Job[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const now = new Date().toISOString();
     const error = "Run was interrupted because the server restarted.";
     const rows = await db
@@ -316,7 +333,7 @@ export class Job extends DBModel {
     jobId: string,
     userId: string
   ): Promise<boolean> {
-    const db = getDb();
+    const db = getPortableDb();
     const now = new Date().toISOString();
     const updated = await db
       .update(jobs)
@@ -339,7 +356,7 @@ export class Job extends DBModel {
    */
   static async cancelledAmong(jobIds: string[]): Promise<string[]> {
     if (jobIds.length === 0) return [];
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select({ id: jobs.id })
       .from(jobs)
@@ -349,9 +366,22 @@ export class Job extends DBModel {
 
   /** Find a job by id, scoped to the user. */
   static async find(userId: string, jobId: string): Promise<Job | null> {
-    const job = await Job.get<Job>(jobId);
-    if (!job || job.user_id !== userId) return null;
-    return job;
+    const connection = getDatabase();
+    const table = connection.schema.jobs;
+    const exactWhere = and(eq(table.user_id, userId), eq(table.id, jobId));
+    const exactRows = connection.dialect === "sqlite"
+      ? await connection.db.select().from(connection.schema.jobs).where(exactWhere).limit(1)
+      : await connection.db.select().from(connection.schema.jobs).where(exactWhere).limit(1);
+    if (exactRows[0]) { return new Job(exactRows[0]); }
+    if (!isShortResourceId(jobId)) { return null; }
+    const prefixWhere = and(eq(table.user_id, userId), like(table.id, `${jobId}%`));
+    const matches = connection.dialect === "sqlite"
+      ? await connection.db.select().from(connection.schema.jobs).where(prefixWhere).limit(2)
+      : await connection.db.select().from(connection.schema.jobs).where(prefixWhere).limit(2);
+    if (matches.length > 1) {
+      throw new Error(`short id "${jobId}" matches more than one row; use the full id`);
+    }
+    return matches[0] ? new Job(matches[0]) : null;
   }
 
   static async paginate(
@@ -367,7 +397,7 @@ export class Job extends DBModel {
   ): Promise<[Job[], string]> {
     const { limit = 50, status, workflowId, projectId } = opts;
     const startKey = opts.startKey ?? opts.cursor;
-    const db = getDb();
+    const db = getPortableDb();
 
     const conditions = [eq(jobs.user_id, userId)];
     if (status) conditions.push(eq(jobs.status, status));
@@ -399,7 +429,7 @@ export class Job extends DBModel {
     userId: string,
     projectId: string
   ): Promise<Job[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(jobs)

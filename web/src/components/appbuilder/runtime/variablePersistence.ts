@@ -1,14 +1,7 @@
 /**
- * Persistence for user-scoped app variables.
- *
- * A `VariableDeclaration` carries `scope` and `persist`, and the document
- * parser enforces that only user-scoped variables may persist. This is the
- * layer that honours it: those variables survive a reload, everything else —
- * instance variables, widget-local `view` state, outputs — starts empty.
- *
- * Values are keyed by app identity (the application record when the app has
- * one, otherwise the host workflow), so two apps never read each other's
- * values.
+ * Legacy browser variables, imported when the server creates a default instance.
+ * Server instances persist all variable, input and output values. These helpers
+ * only read the former user-variable entry or support a legacy ephemeral host.
  */
 import type { VariableDeclaration } from "@nodetool-ai/app-runtime";
 
@@ -93,5 +86,15 @@ export const savePersistedVariables = (
   } catch {
     // Storage full or unavailable: the app keeps working, the value just does
     // not survive the reload.
+  }
+};
+
+/** Remove the former authoritative entry after the server accepts its import. */
+export const clearPersistedVariables = (appIdentity: string | null): void => {
+  if (!appIdentity) return;
+  try {
+    window.localStorage.removeItem(variableStorageKey(appIdentity));
+  } catch {
+    // An unavailable cache cannot prevent loading authoritative server state.
   }
 };

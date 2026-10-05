@@ -433,16 +433,22 @@ export type RestoreJsScriptVersionResponse = z.infer<
 
 // ── Run endpoint (POST /api/js-scripts/:id/run) ─────────────────────────────
 
-export const runJsScriptRequest = z.object({
-  /** Immutable operation snapshot. Omitted editor runs use the saved head. */
-  script_version: z.number().int().positive().optional(),
-  inputs: z.record(z.string(), z.unknown()).default({}),
-  /**
-   * Items staged per input handle for a body that reads `stream`. Wire names
-   * in this surface are snake_case, matching `run_code`'s own field.
-   */
-  input_streams: z.record(z.string(), z.array(z.unknown())).optional()
-});
+export const runJsScriptRequest = z
+  .object({
+    app_run_id: z.string().min(1).optional(),
+    instance_id: z.string().min(1).optional(),
+    /** Immutable operation snapshot. Omitted editor runs use the saved head. */
+    script_version: z.number().int().positive().optional(),
+    inputs: z.record(z.string(), z.unknown()).default({}),
+    /**
+     * Items staged per input handle for a body that reads `stream`. Wire names
+     * in this surface are snake_case, matching `run_code`'s own field.
+     */
+    input_streams: z.record(z.string(), z.array(z.unknown())).optional()
+  })
+  .refine((input) => Boolean(input.app_run_id) === Boolean(input.instance_id), {
+    message: "App run and instance ids must be supplied together"
+  });
 export type RunJsScriptRequest = z.infer<typeof runJsScriptRequest>;
 
 export const runJsScriptResponse = z.object({

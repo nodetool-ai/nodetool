@@ -1,3 +1,4 @@
+import { spawnSync } from "node:child_process";
 import { describe, expect, it } from "vitest";
 import {
   ERROR_TRACE_CONTEXT_KEYS,
@@ -44,6 +45,17 @@ const SECRET_CASES: Array<[string, string, string]> = [
 ];
 
 describe("redactErrorText", () => {
+  it("masks unterminated private keys without retrying every opening marker", () => {
+    const module = new URL("../src/error-trace-redaction.ts", import.meta.url).href;
+    const result = spawnSync(process.execPath, ["--conditions=nodetool-dev", "--import", "tsx", "--input-type=module", "-e",
+      `import { redactErrorText } from ${JSON.stringify(module)};
+      process.stdout.write(redactErrorText("-----BEGIN PRIVATE KEY-----".repeat(100_000), {secretValues: []}));`
+    ], { encoding: "utf8", timeout: 5000 });
+    expect(result.error).toBeUndefined();
+    expect(result.status).toBe(0);
+    expect(result.stdout).toBe("[REDACTED:private-key]");
+  }, 10_000);
+
   it.each(SECRET_CASES)("removes %s", (_label, text, secret) => {
     const out = redactErrorText(text, NO_ENV);
     expect(out).not.toContain(secret);

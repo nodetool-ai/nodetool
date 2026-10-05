@@ -1,6 +1,6 @@
 /**
  * HTTP server spans: one per request, active for the handler, continuing an
- * incoming `traceparent`, and skipped for health probes.
+ * validated run ancestry separately, and skipped for health probes.
  */
 
 import { describe, it, expect, afterAll, beforeAll } from "vitest";
@@ -14,7 +14,7 @@ import {
   withSpan,
   type TraceRecord
 } from "@nodetool-ai/runtime";
-import { registerHttpTracing } from "../src/lib/http-tracing.js";
+import { registerHttpTracing, acceptedRunTraceParent } from "../src/lib/http-tracing.js";
 
 const TRACE_ID = "4bf92f3577b34da6a3ce929d0e0e4736";
 const PARENT_SPAN_ID = "00f067aa0ba902b7";
@@ -45,9 +45,10 @@ beforeAll(async () => {
   traceFile = join(traceDir, "trace.jsonl");
   await initTelemetry({ traceFile, silent: true });
   app = Fastify();
-  registerHttpTracing(app);
-  app.get("/items/:id", async () =>
-    withSpan("handler.work", {}, async () => ({ ok: true }))
+  app.addHook("onRequest", (request, _reply, done) => { request.headers["x-auth-ready"] = "yes"; done(); });
+  registerHttpTracing(app, { authorizeTraceParent: async (request) => request.headers["x-auth-ready"] === "yes" && request.headers["x-owner"] === "owner" && request.headers["x-visitor"] !== "yes" });
+  app.get("/items/:id", async (request) =>
+    withSpan("script.run", {}, async () => ({ ok: true, accepted: acceptedRunTraceParent(request)?.traceId }))
   );
   app.get("/boom", async () => {
     throw new Error("boom");
@@ -63,26 +64,39 @@ afterAll(async () => {
 }, 30000);
 
 describe("registerHttpTracing", () => {
-  it("wraps the handler in a server span that continues the caller's trace", async () => {
+  it("reserves authorized ancestry for the run root while HTTP spans stay separate", async () => {
     const response = await app.inject({
       method: "GET",
       url: "/items/42?secret=x",
-      headers: { traceparent: `00-${TRACE_ID}-${PARENT_SPAN_ID}-01` }
+      headers: { traceparent: `00-${TRACE_ID}-${PARENT_SPAN_ID}-01`, "x-owner": "owner" }
     });
     expect(response.statusCode).toBe(200);
+    expect(response.json().accepted).toBe(TRACE_ID);
 
     const records = await readRecords((r) =>
       r.some((x) => x.name === "GET /items/:id")
     );
     const server = records.find((r) => r.name === "GET /items/:id");
-    const work = records.find((r) => r.name === "handler.work");
+    const work = records.find((r) => r.name === "script.run");
     expect(server?.kind).toBe("SERVER");
-    expect(server?.trace_id).toBe(TRACE_ID);
-    expect(server?.parent_span_id).toBe(PARENT_SPAN_ID);
+    expect(server?.trace_id).not.toBe(TRACE_ID);
+    expect(server?.parent_span_id).toBeNull();
     expect(server?.attributes["http.route"]).toBe("/items/:id");
-    expect(server?.attributes["url.path"]).toBe("/items/42");
+    expect(server?.attributes["url.path"]).toBeUndefined();
     expect(server?.attributes["http.response.status_code"]).toBe(200);
     expect(work?.parent_span_id).toBe(server?.span_id);
+  });
+
+  it("rejects foreign, visitor, and malformed ancestry after authentication", async () => {
+    for (const headers of [
+      { traceparent: `00-${TRACE_ID}-${PARENT_SPAN_ID}-01`, "x-owner": "foreign" },
+      { traceparent: `00-${TRACE_ID}-${PARENT_SPAN_ID}-01`, "x-owner": "owner", "x-visitor": "yes" },
+      { traceparent: "malformed", "x-owner": "owner" }
+    ]) {
+      const response = await app.inject({ method: "GET", url: "/items/rejected", headers });
+      expect(response.statusCode).toBe(200);
+      expect(response.json().accepted).toBeUndefined();
+    }
   });
 
   it("marks a 5xx response as an error and records the exception", async () => {

@@ -169,7 +169,8 @@ describe("ChatComposerWidget", () => {
       [{ type: "message", role: "user", content: "write me a poem" }]
     );
     expect(runtime.value.dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: "run", operationId: DEFAULT_OPERATION_ID })
+      expect.objectContaining({ kind: "run", operationId: DEFAULT_OPERATION_ID }),
+      { widgetId: "c1" }
     );
     expect(box).toHaveValue("");
   });

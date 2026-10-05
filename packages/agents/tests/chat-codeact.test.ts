@@ -602,7 +602,7 @@ return { editable: wf.editable, failure, reads: wf.nodes.map((n) => n.id) };
     });
     const result = obs.result as { failure: string };
     expect(result.failure).toContain("no editor");
-    expect(result.failure).toContain("ui_open_document");
+    expect(result.failure).toContain("ui_open_workflow");
     // The write was refused before anything was queued or sent.
     expect(calls.filter((c) => c.name !== "ui_get_graph")).toHaveLength(0);
   });
@@ -679,7 +679,7 @@ return { editable: wf.editable, failure, pendingAfter: wf.pending() };
     };
     expect(result.editable).toBe(false);
     expect(result.failure).toContain("no editor any more");
-    expect(result.failure).toContain("ui_open_document");
+    expect(result.failure).toContain("ui_open_workflow");
     expect(result.pendingAfter).toBe(1);
     // Nothing reached the belt but the reads.
     expect(calls.filter((c) => c.name !== "ui_get_graph")).toHaveLength(0);

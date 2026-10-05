@@ -11,6 +11,7 @@ export {
   initPostgresDb,
   initTestDb,
   migrateSqliteDb,
+  getPortableDb,
   getDb,
   getDatabase,
   getDbType,
@@ -430,6 +431,8 @@ export {
   recordUserEvent,
   sanitizeUserEventMetadata
 } from "./user-event.js";
+export { createBugReport } from "./bug-report.js";
+export type { BugReportRow, CreateBugReportInput } from "./bug-report.js";
 export {
   DEFAULT_ERROR_TRACE_RETENTION_DAYS,
   MAX_ERROR_TRACE_INGEST_BATCH,
@@ -557,3 +560,13 @@ export { commitFinishedStoryboard, findFinishResourceIds } from "./finish-storyb
 
 export { storyboards } from "./schema/storyboards.js";
 export { assertStoryboardClipGenerationAllowed } from "./storyboard-generation-policy.js";
+
+export * from "./app-instance.js";
+
+export { listRunTraceOwners, registerRunTrace, getRunTrace, getRegisteredRunTrace, getRegisteredTrace, setRunTraceRoot, settleRunTrace, registerRunTraceParent, registerRunTraceParents, writeRunTraceUpdate, listRunTraceRecords, markRunTraceIncomplete, eraseRunTraceParentContent, deleteRunTrace, pruneRunTraces, sanitizeRunTraceRecord, RunTraceError } from "./run-trace.js";
+export type { RegisterRunTraceInput, RunTraceSanitizationOptions } from "./run-trace.js";
+export { resolveRunReader, findRunReaderSource, queryRunReaders, queryRunReaderSpans, queryRunReaderGenerationIds, queryRunReaderDocumentIds, queryRunReaderDocuments, queryRunReaderAppMetadata, queryRunReaderAppContent, queryRunReaderAppContentPresent, queryRunReaderGenerationCosts, encodeRunListCursor } from "./run-readers.js";
+export type { RunReaderSpan } from "./run-readers.js";
+export { threadHasTraceContentTools } from "./trace-provenance.js";
+
+export { listAppInstanceMetadata } from "./app-instance-list.js";

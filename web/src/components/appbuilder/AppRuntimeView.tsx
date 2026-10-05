@@ -1,5 +1,8 @@
 /** @jsxImportSource @emotion/react */
-import React from "react";
+import React, { useEffect } from "react";
+import AppInstanceManager from "./AppInstanceManager";
+import AppRunHistory from "./AppRunHistory";
+import type { ServerAppInstance } from "./runtime/appInstanceApi";
 import { Render, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 
@@ -9,6 +12,11 @@ import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
 
 import { Workflow } from "../../stores/ApiTypes";
 import ReportBugButton from "../support/ReportBugButton";
+import { AskRunAgentButton } from "../runs/AskRunAgentButton";
+import { useAppOperationRun } from "../../hooks/useAppOperationRun";
+import { useRunInspection } from "../../hooks/useRunInspection";
+import { useRun } from "../../serverState/useRuns";
+import { getAppSessionToken } from "../../lib/appSession";
 import { useAppRuntime } from "./runtime/useAppRuntime";
 import {
   AppRuntimeContext,
@@ -21,6 +29,10 @@ import {
   Box,
   CloseButton,
   SPACING,
+  LoadingSpinner,
+  EditorButton,
+  FlexRow,
+  Caption,
   Z_INDEX
 } from "../ui_primitives";
 
@@ -35,6 +47,12 @@ interface AppRuntimeViewProps {
   document?: ApplicationDocument;
   /** The application record this app belongs to (budget + release metering). */
   application?: { id: string; version?: number };
+  instanceId?: string;
+  previewDraft?: boolean;
+  selectedRunId?: string | null;
+  onSelectRun?: (id: string | null) => void;
+  onInstanceReady?: (instance: ServerAppInstance) => void;
+  onAdvanced?: () => void;
   /**
    * Workflow graphs the caller already has, by id — the graphs a release
    * pinned. An operation whose workflow is here runs that exact graph.
@@ -44,6 +62,98 @@ interface AppRuntimeViewProps {
   scriptRunner?: typeof runJsScript;
 }
 
+interface RuntimeErrorActionsProps {
+  operationId: string;
+  invocationId: string;
+  name: string;
+  error: string;
+}
+
+function RuntimeErrorActions({
+  operationId,
+  invocationId,
+  name,
+  error
+}: RuntimeErrorActionsProps): React.ReactElement {
+  const { store } = useAppRuntimeContext();
+  const { runId } = useAppOperationRun(operationId);
+  const summary = useRun(runId);
+  const spanId = summary.data?.summary.first_failed_span_id ?? undefined;
+  const { openRunInspection } = useRunInspection();
+  return (
+    <FlexRow gap={SPACING.xs}>
+      {runId ? (
+        <EditorButton onClick={() => openRunInspection({ runId, spanId })}>
+          View trace
+        </EditorButton>
+      ) : null}
+      {runId ? <AskRunAgentButton runId={runId} spanId={spanId} /> : null}
+      <ReportBugButton
+        label="Report failure"
+        context={{
+          source: "operation-failure",
+          summary: `${name || operationId} operation failed`,
+          errorText: error
+        }}
+      />
+      <CloseButton
+        onClick={() =>
+          store
+            .getState()
+            .dispatchEvent({ type: "invocationError", invocationId, error: "" })
+        }
+      />
+    </FlexRow>
+  );
+}
+
+function RuntimeRunLinks(): React.ReactElement | null {
+  const { operations } = useAppRuntimeContext();
+  if (getAppSessionToken() !== null) {
+    return null;
+  }
+  return (
+    <FlexRow
+      gap={SPACING.md}
+      sx={{ px: SPACING.xl, pt: SPACING.md, flexWrap: "wrap" }}
+    >
+      {operations.map((operation) => (
+        <RuntimeOperationRunLink
+          key={operation.id}
+          operationId={operation.id}
+          name={operation.name}
+        />
+      ))}
+    </FlexRow>
+  );
+}
+
+function RuntimeOperationRunLink({
+  operationId,
+  name
+}: {
+  operationId: string;
+  name: string;
+}): React.ReactElement | null {
+  const { runId, traceIncomplete } = useAppOperationRun(operationId);
+  const { openRunInspection } = useRunInspection();
+  if (!runId) {
+    return null;
+  }
+  return (
+    <FlexRow gap={SPACING.xs}>
+      <Caption>{name}</Caption>
+      <EditorButton onClick={() => openRunInspection({ runId })}>
+        View trace
+      </EditorButton>
+      <AskRunAgentButton runId={runId} />
+      {traceIncomplete ? (
+        <Caption>Some browser activity could not be recorded.</Caption>
+      ) : null}
+    </FlexRow>
+  );
+}
+
 /**
  * Surfaces the active invocation's error as a dismissible banner pinned to the
  * top of the app's scroll container. Errors belong to an invocation, so the
@@ -51,12 +161,13 @@ interface AppRuntimeViewProps {
  */
 const RuntimeErrorBanner: React.FC = () => {
   const { store, operations } = useAppRuntimeContext();
-  const runtimeState = useRuntimeSelector((s) => s);
+  const activeInvocation = useRuntimeSelector(
+    (state) => state.activeInvocation
+  );
+  const invocations = useRuntimeSelector((state) => state.invocations);
   const errors = operations.flatMap((operation) => {
-    const invocationId = runtimeState.activeInvocation[operation.id];
-    const error = invocationId
-      ? runtimeState.invocations[invocationId]?.error
-      : undefined;
+    const invocationId = activeInvocation[operation.id];
+    const error = invocationId ? invocations[invocationId]?.error : undefined;
     return error && invocationId
       ? [
           {
@@ -85,25 +196,9 @@ const RuntimeErrorBanner: React.FC = () => {
           key={invocationId}
           severity="error"
           action={
-            <>
-              <ReportBugButton
-                label="Report failure"
-                context={{
-                  source: "operation-failure",
-                  summary: `${name || operationId} operation failed`,
-                  errorText: error
-                }}
-              />
-              <CloseButton
-                onClick={() =>
-                  store.getState().dispatchEvent({
-                    type: "invocationError",
-                    invocationId,
-                    error: ""
-                  })
-                }
-              />
-            </>
+            <RuntimeErrorActions
+              {...{ operationId, invocationId, name, error }}
+            />
           }
           onClose={() =>
             store.getState().dispatchEvent({
@@ -130,17 +225,68 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
   data,
   document,
   application,
+  instanceId,
+  previewDraft,
+  selectedRunId,
+  onSelectRun,
+  onInstanceReady,
+  onAdvanced,
   workflowOverrides,
   scriptOverrides,
   scriptRunner
 }) => {
+  const resolvingInstance = Boolean(
+    application &&
+    !instanceId &&
+    !previewDraft &&
+    onInstanceReady &&
+    getAppSessionToken() === null
+  );
   const runtime = useAppRuntime(workflow, false, {
+    deferInitialization: resolvingInstance,
     document,
     application,
+    instanceId,
+    previewDraft,
     workflowOverrides,
     scriptOverrides,
     scriptRunner
   });
+  useEffect(() => {
+    if (runtime.instance) {
+      onInstanceReady?.(runtime.instance);
+    }
+  }, [runtime.instance, onInstanceReady]);
+  if (runtime.instanceLoading)
+    return <LoadingSpinner text="Loading instance" />;
+  const instanceError = runtime.instanceError ? (
+    <AlertBanner
+      severity="error"
+      action={
+        <>
+          <EditorButton onClick={() => void runtime.reloadInstance?.()}>
+            Reload instance
+          </EditorButton>
+          <ReportBugButton
+            context={{
+              source: "operation-failure",
+              summary: "App instance could not be saved",
+              errorText: runtime.instanceError
+            }}
+          />
+        </>
+      }
+    >
+      {runtime.instanceError}
+    </AlertBanner>
+  ) : null;
+  if (instanceError && !runtime.instance) {
+    return instanceError;
+  }
+  // Resolve the workspace identity before widgets seed inputs or queue writes.
+  if (resolvingInstance) {
+    return <LoadingSpinner text="Opening instance" />;
+  }
   return (
     <AppRuntimeContext.Provider value={runtime}>
       <Box
@@ -148,8 +294,33 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
         className="appbuilder-runtime"
         sx={{ width: "100%", height: "100%", overflow: "auto" }}
       >
+        {instanceError}
+        {application && !previewDraft && getAppSessionToken() === null ? (
+          <AppInstanceManager
+            applicationId={application.id}
+            latestVersion={application.version}
+            onAdvanced={onAdvanced ?? (() => void runtime.reloadInstance?.())}
+          />
+        ) : null}
         <RuntimeErrorBanner />
-        <Render config={appConfig} data={data} />
+        <RuntimeRunLinks />
+        {runtime.instanceId &&
+        !previewDraft &&
+        onSelectRun &&
+        getAppSessionToken() === null ? (
+          <AppRunHistory
+            instanceId={runtime.instanceId}
+            selectedRunId={selectedRunId ?? null}
+            onSelect={onSelectRun}
+          />
+        ) : null}
+        {/* The parser validates Puck data while leaving widget-specific props opaque. */}
+        <Render
+          config={appConfig}
+          data={
+            runtime.document ? (runtime.document.ui as unknown as Data) : data
+          }
+        />
       </Box>
     </AppRuntimeContext.Provider>
   );
