@@ -12,7 +12,7 @@
  */
 import { useShallow } from "zustand/react/shallow";
 import { useCallback, useMemo } from "react";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodes, useOptionalNodes } from "../../contexts/NodeContext";
 import useResultsStore from "../../stores/ResultsStore";
 import { useWorkflowAssetStore } from "../../stores/WorkflowAssetStore";
 import { useNodeResultValue } from "./useNodeExecState";
@@ -107,6 +107,9 @@ const resolveSingleEdge = (
  *
  * Returns `undefined` when neither a wired source nor a constant is available.
  */
+const NO_EDGES: Edge[] = [];
+const NO_FIND_NODE: NodeStoreState["findNode"] = () => undefined;
+
 export const useUpstreamValue = (
   workflowId: string,
   nodeId: string,
@@ -129,8 +132,10 @@ export const useUpstreamValue = (
       return lastResult;
     };
   }, [nodeId, inputName]);
-  const upstreamEdges = useNodes(upstreamEdgesSelector);
-  const findNode = useNodes((state) => state.findNode);
+  // Outside the graph editor (a running mini app) there is no node store and
+  // nothing upstream, so the constant fallback applies.
+  const upstreamEdges = useOptionalNodes(upstreamEdgesSelector, NO_EDGES);
+  const findNode = useOptionalNodes((state) => state.findNode, NO_FIND_NODE);
 
   const resolveCurrent = useCurrentGenerationResolver(workflowId);
 

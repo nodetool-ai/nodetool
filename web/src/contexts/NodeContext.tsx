@@ -1,4 +1,9 @@
-import React, { createContext, useContext, useMemo } from "react";
+import React, {
+  createContext,
+  useContext,
+  useMemo,
+  useSyncExternalStore
+} from "react";
 import {
   NodeStore,
   NodeStoreState,
@@ -60,6 +65,31 @@ export const useNodes = <T,>(
   return useStoreWithEqualityFn(store, selector, equalityFn ?? shallow);
 };
 
+const NO_STORE_SUBSCRIBE = (): (() => void) => () => undefined;
+
+/**
+ * Like `useNodes`, but returns `fallback` when no node store is mounted. A
+ * property control rendered outside the graph editor (a running mini app) has
+ * no graph, so it reads as unconnected rather than throwing.
+ *
+ * The selector must return the same reference for the same state: a
+ * primitive, a stable store function, or a memoized result. `fallback` must
+ * be a constant.
+ */
+export const useOptionalNodes = <T,>(
+  selector: (state: NodeStoreState) => T,
+  fallback: T
+): T => {
+  const store = useContext(NodeContext);
+  const getSnapshot = (): T =>
+    store ? selector(store.getState()) : fallback;
+  return useSyncExternalStore(
+    store ? store.subscribe : NO_STORE_SUBSCRIBE,
+    getSnapshot,
+    getSnapshot
+  );
+};
+
 export const useTemporalNodes = <T,>(
   selector: (state: TemporalState<PartializedNodeStore>) => T
 ): T => {
@@ -68,6 +98,21 @@ export const useTemporalNodes = <T,>(
     throw new Error("useTemporalNodes must be used within a NodeProvider");
   }
   return useStoreWithEqualityFn(store.temporal, selector, isEqual);
+};
+
+/** Like `useTemporalNodes`, with the same contract as `useOptionalNodes`. */
+export const useOptionalTemporalNodes = <T,>(
+  selector: (state: TemporalState<PartializedNodeStore>) => T,
+  fallback: T
+): T => {
+  const temporal = useContext(NodeContext)?.temporal;
+  const getSnapshot = (): T =>
+    temporal ? selector(temporal.getState()) : fallback;
+  return useSyncExternalStore(
+    temporal ? temporal.subscribe : NO_STORE_SUBSCRIBE,
+    getSnapshot,
+    getSnapshot
+  );
 };
 
 /**

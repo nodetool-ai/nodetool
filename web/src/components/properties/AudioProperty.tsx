@@ -10,7 +10,7 @@ import isEqual from "../../utils/isEqual";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import { EditorButton, NodeTextField, MOTION, SPACING, BORDER_RADIUS, getSpacingPx } from "../ui_primitives";
-import { useNodes } from "../../contexts/NodeContext";
+import { useOptionalNodes } from "../../contexts/NodeContext";
 import AudioVisualizer from "../common/AudioVisualizer";
 import { useRealtimeAudioStream } from "../../hooks/useRealtimeAudioStream";
 
@@ -76,8 +76,8 @@ const AudioProperty = (props: PropertyProps) => {
     props.nodeType === "nodetool.input.AudioInput" ||
     props.nodeType === "nodetool.constant.Audio";
   const isRealtime = props.nodeType === "nodetool.input.RealtimeAudioInput";
-  const findNode = useNodes((state) => state.findNode);
-  const rfNode = findNode(props.nodeId);
+  const findNode = useOptionalNodes((state) => state.findNode, null);
+  const rfNode = findNode?.(props.nodeId);
   const inputNodeName =
     (rfNode?.data?.properties?.name as string) ||
     props.nodeId;
