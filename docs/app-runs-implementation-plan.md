@@ -1,6 +1,6 @@
 # App Runs Instances and Run Observability Implementation Plan
 
-**Status:** Implementation reference. Phases 1–4 are integrated. Phase 5 remains planned.
+**Status:** Implementation reference for integrated app runs, instances, and observability.
 **Design:** [App runs design](app-runs-design.md).
 
 Implement the five design phases through the assignments below. Each assignment

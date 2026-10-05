@@ -86,9 +86,10 @@ workflow.
 ![Mini App — Design view](assets/screenshots/mini-app-design.png)
 
 **Run** is what the person using the app sees: the fields, the button, and the
-result. It runs the released version when the app has one, and the draft
-otherwise. **Preview draft** runs the draft even after a release, so you can test
-edits before publishing. **Settings** holds publishing, versions, the spend
+result. Each working instance runs its pinned version. A new default instance
+uses the release when one exists, or the unpublished draft. **Preview draft**
+freezes a separate draft working copy when requested, so you can test edits
+without changing a released instance. **Settings** holds publishing, versions, the spend
 budget, the public link, and recent runs. See
 [Publishing and sharing](#publishing-and-sharing).
 
@@ -281,9 +282,22 @@ executes the definition pinned by its instance. Revision checks prevent a
 stale browser or delayed run from overwriting newer working state. A conflict
 keeps the run's outputs and asks you to reload the instance.
 
+The instance header offers New, Rename, Duplicate, Delete, and advancement to a
+newer release. New starts from app defaults. Duplicate copies working values
+and the frozen definition without copying history or media. Each instance opens
+in its own workspace tab. Editing opens the application editor, while Run
+returns to a working instance tab.
+
+Run history is scoped to the instance. Selecting a run shows read-only inputs,
+outputs, stored agent activity, and links to its trace and documents. Document
+links open the current document. Historical inspection changes no working
+values and starts no execution. Expired or limited content is labelled.
+Deleting an instance removes its history and attachments while retaining
+generated library media.
+
 Deployed-app visitors keep local working state. Their server runs retain no
-visitor inputs or outputs. The instance switcher and history views are planned
-for a later phase. See [App runs](https://github.com/nodetool-ai/nodetool/blob/main/docs/app-runs-design.md#phase-1-contracts) for the
+visitor inputs or outputs, and they cannot manage owner instances.
+See [App runs](https://github.com/nodetool-ai/nodetool/blob/main/docs/app-runs-design.md#phase-1-contracts) for the
 persistence and API contracts.
 
 ### Showing that something is happening
