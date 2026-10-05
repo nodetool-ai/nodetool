@@ -11,7 +11,7 @@
 
 import { getToolHandler } from "../tools";
 import { installGlobal, stub } from "../../../test-utils/doubles";
-import type { ToolContext, ToolPointerEvent } from "../tools";
+import type { ToolPointerEvent } from "../tools";
 import type { ToolRuntime } from "../tools/types";
 import { BrushTool } from "../tools/BrushTool";
 import { PencilTool } from "../tools/PencilTool";
@@ -127,12 +127,12 @@ describe("getToolHandler factory", () => {
       "eyedropper",
       "blur",
       "clone_stamp",
-      "adjust"
+      "adjust",
+      "segment"
     ];
     for (const tool of expected) {
       const handler = getToolHandler(tool);
-      expect(handler).toBeDefined();
-      expect(handler.toolId).toBeDefined();
+      expect(handler.toolId).toBe(tool);
     }
   });
 
@@ -170,7 +170,6 @@ describe("tool handler interface compliance", () => {
   for (const ToolClass of toolClasses) {
     it(`${ToolClass.name} implements ToolHandler`, () => {
       const handler = new ToolClass();
-      expect(handler.toolId).toBeDefined();
       expect(handler.toolId).toEqual(expect.any(String));
       // At least onDown should exist for all tools
       expect(handler.onDown).toEqual(expect.any(Function));
@@ -736,19 +735,21 @@ describe("TransformTool", () => {
 describe("ColorPickerTool", () => {
   it("dispatches sketch-eyedropper custom event on pointer down", () => {
     const tool = new ColorPickerTool();
-    const canvas = window.document.createElement("canvas");
-    canvas.width = 64;
-    canvas.height = 64;
     const container = window.document.createElement("div");
     const dispatchSpy = jest.spyOn(container, "dispatchEvent");
+    const readback = jest.fn(() => makeImageData(4, 4, [18, 52, 86, 255]));
     const ctx = makeToolContext({
-      displayCanvasRef: { current: canvas },
+      getFullCompositeImageData: readback,
       containerRef: { current: container }
     });
-    tool.onDown(ctx, makePointerEvent());
-    // In JSDOM, getContext('2d') may return null or mock, so the event
-    // might not fire. We just verify no crash.
-    expect(true).toBe(true);
+    tool.onDown(ctx, makePointerEvent({ point: { x: 1, y: 1 } }));
+    expect(readback).toHaveBeenCalledTimes(1);
+    expect(dispatchSpy).toHaveBeenCalledTimes(1);
+    expect(dispatchSpy).toHaveBeenCalledWith(expect.objectContaining({
+      type: "sketch-eyedropper",
+      detail: { color: "#123456" },
+      bubbles: true
+    }));
     dispatchSpy.mockRestore();
   });
 });
@@ -1412,38 +1413,7 @@ describe("ToolHandler async lifecycle", () => {
     expect(handler.getProgress).toBeUndefined();
   });
 
-  it("async tool can implement onCommit", async () => {
-    const commitLog: string[] = [];
-
-    // Create a mock async tool handler
-    const asyncTool = {
-      toolId: "brush" as const,
-      onDown() { return true; },
-      onUp() { /* no-op */ },
-      async onCommit(_ctx: ToolContext) {
-        commitLog.push("committed");
-      },
-      onCancel(_ctx: ToolContext) {
-        commitLog.push("cancelled");
-      },
-      getProgress(_ctx: ToolContext): number | null {
-        return 0.5;
-      }
-    };
-
-    // Verify the methods exist and work
-    const ctx = makeToolContext();
-    expect(asyncTool.onCommit).toBeDefined();
-    expect(asyncTool.getProgress!(ctx)).toBe(0.5);
-
-    await asyncTool.onCommit!(ctx);
-    expect(commitLog).toContain("committed");
-
-    asyncTool.onCancel!(ctx);
-    expect(commitLog).toContain("cancelled");
-  });
-
-  it("onCancel is called during tool deactivation lifecycle", () => {
+  it("SegmentTool deactivation clears collected prompts", () => {
     // SegmentTool has onDeactivate which clears prompts —
     // verify the lifecycle pattern works
     const tool = new SegmentTool();
