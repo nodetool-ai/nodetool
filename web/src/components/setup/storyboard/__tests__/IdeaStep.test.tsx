@@ -7,7 +7,6 @@ import React from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
-  fireEvent,
   render,
   screen,
   waitFor,
