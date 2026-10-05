@@ -76,9 +76,41 @@ export interface RecipeShotIntent {
     id: string;
     kind: "asset" | "text" | "shape";
     role: "product" | "logo" | "headline" | "price" | "cta" | "decorative";
-    inputId: string;
+    /** Absent only on a template-owned shape, whose `style` is its source. */
+    inputId?: string;
     direction?: string;
+    /** Authored placement and type style. Same shapes as the Storyboard graphics element in `@nodetool-ai/protocol`. */
+    frame?: RecipeElementFrame;
+    typography?: RecipeElementTypography;
+    lock?: Array<"position" | "scale" | "crop">;
+    limits?: { x?: number; y?: number; scale?: number };
+    style?: RecipeShapeStyle;
+    /** The image to generate when the optional input is empty. See `graphicsFallback`. */
+    fallback?: { prompt: string };
   }>;
+  /** Visual rules the reviewer checks for this shot. */
+  reviewRules?: string[];
+}
+
+export interface RecipeElementFrame {
+  box: [number, number, number, number];
+  fit?: "contain" | "cover";
+  align?: { x?: "start" | "center" | "end"; y?: "start" | "center" | "end" };
+  clip?: boolean;
+}
+/** Template-owned shape style. Same shape as `graphicsShapeStyle` in `@nodetool-ai/protocol`. */
+export interface RecipeShapeStyle {
+  fill?: string;
+  stroke?: string;
+  strokeWidth?: number;
+  cornerRadius?: number;
+}
+
+export interface RecipeElementTypography {
+  size?: number;
+  weight?: 400 | 500 | 600 | 700;
+  align?: "left" | "center" | "right";
+  maxLines?: number;
 }
 
 export interface RecipeOutputSpec {
@@ -109,6 +141,8 @@ export interface RecipeManifest {
     structure?: string;
     direction?: string;
     shots?: RecipeShotIntent[];
+    /** Visual rules for every shot. */
+    reviewRules?: string[];
     aspectRatio?: "9:16" | "4:5" | "1:1" | "16:9";
   };
   preservationRules?: RecipePreservationRule[];
@@ -294,6 +328,84 @@ const recipeTransforms = new Set<NonNullable<RecipePreservationRule["allowedTran
 ]);
 
 /** Strict at the manifest boundary: malformed Recipe metadata must not masquerade as a Recipe. */
+const finiteBox = (value: unknown): value is [number, number, number, number] =>
+  Array.isArray(value) && value.length === 4 && value.every((part) => isNumber(part) && Number.isFinite(part));
+const oneOf = <T extends string | number>(value: unknown, allowed: readonly T[]): value is T => allowed.includes(value as T);
+const nonNegative = (value: unknown): value is number => isNumber(value) && Number.isFinite(value) && value >= 0;
+
+/** Optional authored placement of one element. Undefined means a malformed value, an empty object means none. */
+const HEX_COLOR = /^#[0-9a-fA-F]{6}$/;
+const parseAuthoredPlacement = (element: Record<string, unknown>): Pick<RecipeShotIntent["elements"][number], "frame" | "typography" | "lock" | "limits" | "style" | "fallback"> | undefined => {
+  const result: Pick<RecipeShotIntent["elements"][number], "frame" | "typography" | "lock" | "limits" | "style" | "fallback"> = {};
+  const { frame, typography, lock, limits, style, fallback } = element;
+  if (fallback !== undefined) {
+    if (!isRecord(fallback) || !isString(fallback.prompt) || !fallback.prompt.trim() || element.kind !== "asset") return undefined;
+    result.fallback = { prompt: fallback.prompt };
+  }
+  if (style !== undefined) {
+    if (!isRecord(style)) return undefined;
+    const parsed: RecipeShapeStyle = {};
+    for (const key of ["fill", "stroke"] as const) {
+      if (style[key] === undefined) continue;
+      if (!isString(style[key]) || !HEX_COLOR.test(style[key])) return undefined;
+      parsed[key] = style[key];
+    }
+    if (style.strokeWidth !== undefined) { if (!isNumber(style.strokeWidth) || !(style.strokeWidth > 0)) return undefined; parsed.strokeWidth = style.strokeWidth; }
+    if (style.cornerRadius !== undefined) { if (!nonNegative(style.cornerRadius)) return undefined; parsed.cornerRadius = style.cornerRadius; }
+    result.style = parsed;
+  }
+  if (frame !== undefined) {
+    if (!isRecord(frame) || !finiteBox(frame.box)) return undefined;
+    if (frame.fit !== undefined && !oneOf(frame.fit, ["contain", "cover"] as const)) return undefined;
+    if (frame.clip !== undefined && frame.clip !== true && frame.clip !== false) return undefined;
+    const parsed: RecipeElementFrame = { box: [...frame.box] };
+    if (frame.fit !== undefined) parsed.fit = frame.fit as RecipeElementFrame["fit"];
+    if (frame.clip !== undefined) parsed.clip = frame.clip;
+    if (frame.align !== undefined) {
+      if (!isRecord(frame.align)) return undefined;
+      const align: NonNullable<RecipeElementFrame["align"]> = {};
+      for (const axis of ["x", "y"] as const) {
+        const side = frame.align[axis];
+        if (side === undefined) continue;
+        if (!oneOf(side, ["start", "center", "end"] as const)) return undefined;
+        align[axis] = side;
+      }
+      parsed.align = align;
+    }
+    result.frame = parsed;
+  }
+  if (typography !== undefined) {
+    if (!isRecord(typography)) return undefined;
+    const parsed: RecipeElementTypography = {};
+    if (typography.size !== undefined) { if (!isNumber(typography.size) || !(typography.size > 0)) return undefined; parsed.size = typography.size; }
+    if (typography.weight !== undefined) { if (!oneOf(typography.weight, [400, 500, 600, 700] as const)) return undefined; parsed.weight = typography.weight; }
+    if (typography.align !== undefined) { if (!oneOf(typography.align, ["left", "center", "right"] as const)) return undefined; parsed.align = typography.align; }
+    if (typography.maxLines !== undefined) { if (!isInteger(typography.maxLines) || typography.maxLines < 1) return undefined; parsed.maxLines = typography.maxLines; }
+    result.typography = parsed;
+  }
+  if (lock !== undefined) {
+    if (!Array.isArray(lock) || !lock.every((entry) => oneOf(entry, ["position", "scale", "crop"] as const))) return undefined;
+    result.lock = [...lock] as NonNullable<RecipeShotIntent["elements"][number]["lock"]>;
+  }
+  if (limits !== undefined) {
+    if (!isRecord(limits)) return undefined;
+    const parsed: NonNullable<RecipeShotIntent["elements"][number]["limits"]> = {};
+    for (const key of ["x", "y", "scale"] as const) {
+      if (limits[key] === undefined) continue;
+      if (!nonNegative(limits[key])) return undefined;
+      parsed[key] = limits[key];
+    }
+    result.limits = parsed;
+  }
+  return result;
+};
+
+/** Optional review rules. Undefined means malformed, an empty array means none. */
+const parseReviewRules = (value: unknown): string[] | undefined => {
+  if (value === undefined) return [];
+  return Array.isArray(value) && value.every(isNonEmptyString) ? [...value] : undefined;
+};
+
 const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
   if (value === undefined || value === null) return undefined;
   if (!isRecord(value) || value.schemaVersion !== RECIPE_MANIFEST_SCHEMA_VERSION || !isNonEmptyString(value.slug)) return undefined;
@@ -383,17 +495,30 @@ const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
         if (!isRecord(shot) || !isNonEmptyString(shot.id) || !isNonEmptyString(shot.title) || !isNumber(shot.durationSeconds) || !Number.isFinite(shot.durationSeconds) || shot.durationSeconds <= 0 || !Array.isArray(shot.elements)) return undefined;
         const elements: RecipeShotIntent["elements"] = [];
         for (const element of shot.elements) {
-          if (!isRecord(element) || !isNonEmptyString(element.id) || !isNonEmptyString(element.inputId) || !inputIds.has(element.inputId) || (element.kind !== "asset" && element.kind !== "text" && element.kind !== "shape") || (element.role !== "product" && element.role !== "logo" && element.role !== "headline" && element.role !== "price" && element.role !== "cta" && element.role !== "decorative") || (element.direction !== undefined && !isString(element.direction))) return undefined;
-          const parsedElement: RecipeShotIntent["elements"][number] = {id: element.id, inputId: element.inputId, kind: element.kind, role: element.role};
+          // A template-owned shape has no input: its fill or stroke style is its source.
+          const owned = isRecord(element) && element.inputId === undefined && element.kind === "shape" && isRecord(element.style) && (element.style.fill !== undefined || element.style.stroke !== undefined);
+          if (!isRecord(element) || !isNonEmptyString(element.id) || (!owned && (!isNonEmptyString(element.inputId) || !inputIds.has(element.inputId))) || (element.kind !== "asset" && element.kind !== "text" && element.kind !== "shape") || (element.role !== "product" && element.role !== "logo" && element.role !== "headline" && element.role !== "price" && element.role !== "cta" && element.role !== "decorative") || (element.direction !== undefined && !isString(element.direction))) return undefined;
+          const parsedElement: RecipeShotIntent["elements"][number] = {id: element.id, kind: element.kind, role: element.role};
+          if (!owned) parsedElement.inputId = element.inputId as string;
           if (element.direction !== undefined) parsedElement.direction = element.direction;
+          const authored = parseAuthoredPlacement(element);
+          if (authored === undefined) return undefined;
+          Object.assign(parsedElement, authored);
           elements.push(parsedElement);
         }
         if (new Set(elements.map((element) => element.id)).size !== elements.length) return undefined;
-        parsedShots.push({id: shot.id, title: shot.title, durationSeconds: shot.durationSeconds, elements});
+        const shotRules = parseReviewRules(shot.reviewRules);
+        if (shotRules === undefined) return undefined;
+        const parsedShot: RecipeShotIntent = {id: shot.id, title: shot.title, durationSeconds: shot.durationSeconds, elements};
+        if (shotRules.length) parsedShot.reviewRules = shotRules;
+        parsedShots.push(parsedShot);
       }
       if (new Set(parsedShots.map((shot) => shot.id)).size !== parsedShots.length) return undefined;
       manifest.creativeStrategy.shots = parsedShots;
     }
+    const strategyRules = parseReviewRules(value.creativeStrategy.reviewRules);
+    if (strategyRules === undefined) return undefined;
+    if (strategyRules.length) manifest.creativeStrategy.reviewRules = strategyRules;
   }
   if (preservationRules) manifest.preservationRules = preservationRules;
   if (value.mediaPolicy !== undefined) {

@@ -1,0 +1,5190 @@
+{
+  "schemaVersion": 1,
+  "name": "Binary-choice participation card",
+  "description": "Invite a clear A/B response without pretending an MP4 is interactive. Builds an editable 10-second vertical ad from your images, logo and copy. AI can suggest options from a website to fill the fields with its copy and images. No generated video.",
+  "app": {
+    "schemaVersion": 5,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Binary-choice participation card"
+        }
+      },
+      "content": [
+        {
+          "type": "Stepper",
+          "props": {
+            "id": "steps",
+            "binding": "var:step",
+            "steps": [
+              {
+                "value": "start",
+                "title": "Start"
+              },
+              {
+                "value": "question",
+                "title": "Question"
+              },
+              {
+                "value": "choices",
+                "title": "Two choices"
+              },
+              {
+                "value": "ending",
+                "title": "Ending"
+              },
+              {
+                "value": "review",
+                "title": "Review"
+              },
+              {
+                "value": "build",
+                "title": "Build"
+              },
+              {
+                "value": "result",
+                "title": "Result"
+              }
+            ],
+            "allowBack": true
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-start",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "start"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "start-title",
+                  "text": "What you will make",
+                  "level": "2",
+                  "subtitle": "A 5-scene vertical ad, 10 seconds long. You supply images and short lines of copy. The app builds an editable cut, not a generated video."
+                }
+              },
+              {
+                "type": "Container",
+                "props": {
+                  "id": "start-strip",
+                  "variant": "plain",
+                  "columns": 5,
+                  "content": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-1",
+                        "binding": "var:beatExample1",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "0–2 s · Question",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-2",
+                        "binding": "var:beatExample2",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "2–4 s · Choice A",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-3",
+                        "binding": "var:beatExample3",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "4–6 s · Choice B",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-4",
+                        "binding": "var:beatExample4",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "6–8 s · Compare",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-5",
+                        "binding": "var:beatExample5",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "8–10 s · CTA",
+                        "download": false
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "finishModel",
+                  "label": "Finishing model",
+                  "binding": "var:finishModel",
+                  "modelKind": "language_model",
+                  "events": [
+                    {
+                      "trigger": "change",
+                      "kind": "setVariable",
+                      "key": "var:approval",
+                      "value": "pending"
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "finishModel-help",
+                  "text": "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
+                  "tone": "hint"
+                }
+              },
+              {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "imageModel",
+                  "label": "Image model",
+                  "binding": "var:imageModel",
+                  "modelKind": "image_model",
+                  "events": []
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "imageModel-help",
+                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "tone": "hint"
+                }
+              },
+              {
+                "type": "ChoiceCards",
+                "props": {
+                  "id": "fillPath",
+                  "binding": "var:fillPath",
+                  "label": "How do you want to start?",
+                  "columns": 2,
+                  "options": [
+                    {
+                      "value": "web",
+                      "title": "Fill from a website",
+                      "description": "Paste a product page. AI suggests the copy and images."
+                    },
+                    {
+                      "value": "self",
+                      "title": "Fill in myself",
+                      "description": "Go through 3 short steps."
+                    }
+                  ],
+                  "events": []
+                }
+              },
+              {
+                "type": "Container",
+                "props": {
+                  "id": "ai-fill",
+                  "variant": "plain",
+                  "visibleWhen": {
+                    "binding": "var:fillPath",
+                    "op": "eq",
+                    "value": "web"
+                  },
+                  "content": [
+                    {
+                      "type": "Columns",
+                      "props": {
+                        "id": "source-row",
+                        "layout": "main-aside",
+                        "gap": 16,
+                        "left": [
+                          {
+                            "type": "TextInput",
+                            "props": {
+                              "id": "sourceUrl",
+                              "binding": "var:sourceUrl",
+                              "label": "Website",
+                              "placeholder": "https://your-product.com",
+                              "hint": "The agent reads the page with the finishing model and suggests three filled versions, with real images from the site. Pick one, then check each step.",
+                              "events": []
+                            }
+                          }
+                        ],
+                        "right": [
+                          {
+                            "type": "Text",
+                            "props": {
+                              "id": "source-example-label",
+                              "text": "No site at hand? Try this one.",
+                              "tone": "hint"
+                            }
+                          },
+                          {
+                            "type": "Button",
+                            "props": {
+                              "id": "source-example",
+                              "label": "liquiddeath.com",
+                              "variant": "outlined",
+                              "fullWidth": false,
+                              "events": [
+                                {
+                                  "trigger": "click",
+                                  "kind": "setVariable",
+                                  "key": "var:sourceUrl",
+                                  "value": "https://liquiddeath.com"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "suggest",
+                        "label": "Suggest options",
+                        "variant": "contained",
+                        "fullWidth": false,
+                        "disabledWhen": {
+                          "binding": "op:suggest/exec#running",
+                          "op": "notEmpty"
+                        },
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "suggest"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "suggest-error",
+                        "binding": "op:suggest/exec#error",
+                        "title": "Could not suggest options",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:suggest/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "AgentActivity",
+                      "props": {
+                        "id": "suggest-activity",
+                        "binding": "op:suggest/exec#transcript",
+                        "label": "Agent",
+                        "height": 280,
+                        "placeholder": "The agent's reading and image searches appear here."
+                      }
+                    },
+                    {
+                      "type": "ChoiceCards",
+                      "props": {
+                        "id": "fillChoice",
+                        "binding": "var:fillChoice",
+                        "optionsBinding": "var:fillOptions",
+                        "label": "Pick one option",
+                        "columns": 3,
+                        "visibleWhen": {
+                          "binding": "var:fillOptions",
+                          "op": "notEmpty"
+                        },
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "apply"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "apply-error",
+                        "binding": "op:apply/exec#error",
+                        "title": "Could not fill the ad",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:apply/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "fill-report",
+                        "binding": "var:fillReport",
+                        "text": "",
+                        "visibleWhen": {
+                          "binding": "var:fillReport",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "start-nav",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "start-next",
+                        "label": "Next: Question",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "question"
+                          }
+                        ],
+                        "align": "end",
+                        "visibleWhen": {
+                          "binding": "var:fillPath",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-question",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "question"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "question-title",
+                  "text": "Question",
+                  "level": "2",
+                  "subtitle": "One context image and one short question."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "question-group-1",
+                  "layout": "main-aside",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "contextImage",
+                        "label": "Context image",
+                        "binding": "var:contextImage",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "question",
+                        "label": "Question",
+                        "binding": "var:question",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "Which side are you on?",
+                        "hint": "Keep it under 8 words."
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "question-frame-1",
+                        "binding": "var:beatExample1",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "0–2 s · Question",
+                        "download": false,
+                        "width": 112
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "question-divider"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "question-nav",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "question-back",
+                        "label": "Back: Start",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "start"
+                          }
+                        ],
+                        "variant": "outlined"
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "question-next",
+                        "label": "Next: Two choices",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "choices"
+                          }
+                        ],
+                        "align": "end"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-choices",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "choices"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "choices-title",
+                  "text": "Two choices",
+                  "level": "2",
+                  "subtitle": "Both choices use the same treatment, so give them images of the same kind."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "choices-group-1",
+                  "layout": "main-aside",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "Container",
+                      "props": {
+                        "id": "choices-cards-1",
+                        "variant": "plain",
+                        "columns": 2,
+                        "content": [
+                          {
+                            "type": "Container",
+                            "props": {
+                              "id": "card-choiceAImage",
+                              "variant": "card",
+                              "content": [
+                                {
+                                  "type": "ImageInput",
+                                  "props": {
+                                    "id": "choiceAImage",
+                                    "label": "Choice A",
+                                    "binding": "var:choiceAImage",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "TextInput",
+                                  "props": {
+                                    "id": "choiceA",
+                                    "label": "Choice A text",
+                                    "binding": "var:choiceA",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ],
+                                    "placeholder": "Morning run"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Container",
+                            "props": {
+                              "id": "card-choiceBImage",
+                              "variant": "card",
+                              "content": [
+                                {
+                                  "type": "ImageInput",
+                                  "props": {
+                                    "id": "choiceBImage",
+                                    "label": "Choice B",
+                                    "binding": "var:choiceBImage",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "TextInput",
+                                  "props": {
+                                    "id": "choiceB",
+                                    "label": "Choice B text",
+                                    "binding": "var:choiceB",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ],
+                                    "placeholder": "Evening swim"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "choices-frame-2",
+                        "binding": "var:beatExample2",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "2–4 s · Choice A",
+                        "download": false,
+                        "width": 112
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "choices-frame-3",
+                        "binding": "var:beatExample3",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "4–6 s · Choice B",
+                        "download": false,
+                        "width": 112
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "choices-group-2",
+                  "layout": "main-aside",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "comparePrompt",
+                        "label": "Compare prompt",
+                        "binding": "var:comparePrompt",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "Which one is you?",
+                        "hint": "Shows with both choices side by side."
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "choices-frame-4",
+                        "binding": "var:beatExample4",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "6–8 s · Compare",
+                        "download": false,
+                        "width": 112
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "choices-divider"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "choices-nav",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "choices-back",
+                        "label": "Back: Question",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "question"
+                          }
+                        ],
+                        "variant": "outlined"
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "choices-next",
+                        "label": "Next: Ending",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "ending"
+                          }
+                        ],
+                        "align": "end"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-ending",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "ending"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "ending-title",
+                  "text": "Ending",
+                  "level": "2",
+                  "subtitle": "Tell viewers exactly how to answer."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "ending-group-1",
+                  "layout": "main-aside",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "participationCta",
+                        "label": "Participation call to action",
+                        "binding": "var:participationCta",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "Comment A or B"
+                      }
+                    },
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "logo",
+                        "label": "Logo",
+                        "binding": "var:logo",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "ColorInput",
+                      "props": {
+                        "id": "brandColor",
+                        "label": "Brand color",
+                        "binding": "var:brandColor",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "ending-frame-5",
+                        "binding": "var:beatExample5",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "8–10 s · CTA",
+                        "download": false,
+                        "width": 112
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "plan-error",
+                  "binding": "op:plan/exec#error"
+                }
+              },
+              {
+                "type": "AgentActivity",
+                "props": {
+                  "id": "plan-activity",
+                  "binding": "op:plan/exec#transcript",
+                  "label": "Layout agent",
+                  "height": 280,
+                  "placeholder": "The agent's layout edits and frame reviews appear here."
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "ending-divider"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "ending-nav",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "ending-back",
+                        "label": "Back: Two choices",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "choices"
+                          }
+                        ],
+                        "variant": "outlined"
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "plan",
+                        "label": "Plan the storyboard",
+                        "disabledWhen": {
+                          "binding": "op:plan/exec#running",
+                          "op": "notEmpty"
+                        },
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "plan"
+                          }
+                        ],
+                        "fullWidth": false,
+                        "align": "end"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Storyboard",
+          "props": {
+            "id": "output-storyboardId",
+            "binding": "var:storyboardId",
+            "label": "Storyboard",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "StoryboardPreview",
+          "props": {
+            "id": "output-storyboardId-preview",
+            "binding": "var:storyboardId",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "layout-review",
+            "variant": "plain",
+            "content": [
+              {
+                "type": "Alert",
+                "props": {
+                  "id": "layout-needs-review",
+                  "severity": "warning",
+                  "title": "The layout needs a look",
+                  "text": "Edit the cut or plan again. You can still approve it.",
+                  "visibleWhen": {
+                    "binding": "var:layoutFindings",
+                    "op": "notEmpty"
+                  }
+                }
+              },
+              {
+                "type": "List",
+                "props": {
+                  "id": "layout-findings",
+                  "binding": "var:layoutFindings",
+                  "visibleWhen": {
+                    "binding": "var:layoutFindings",
+                    "op": "notEmpty"
+                  }
+                }
+              }
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Timeline",
+          "props": {
+            "id": "output-designPreview",
+            "binding": "var:designPreview",
+            "label": "Composed design preview",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "review-nav",
+            "gap": 16,
+            "left": [
+              {
+                "type": "Button",
+                "props": {
+                  "id": "request-changes",
+                  "label": "Request changes",
+                  "variant": "outlined",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:approval",
+                      "value": "pending"
+                    },
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:step",
+                      "value": "question"
+                    }
+                  ],
+                  "fullWidth": false
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Button",
+                "props": {
+                  "id": "finish",
+                  "label": "Build editable cut",
+                  "disabledWhen": {
+                    "binding": "op:finish/exec#running",
+                    "op": "notEmpty"
+                  },
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:approval",
+                      "value": "approved"
+                    },
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:step",
+                      "value": "build"
+                    },
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "operationId": "finish"
+                    }
+                  ],
+                  "fullWidth": false,
+                  "align": "end"
+                }
+              }
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "finish-error",
+            "binding": "op:finish/exec#error",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "build"
+            }
+          }
+        },
+        {
+          "type": "AgentActivity",
+          "props": {
+            "id": "finish-activity",
+            "binding": "op:finish/exec#transcript",
+            "label": "Build editable cut: agent activity",
+            "height": 360,
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "build"
+            }
+          }
+        },
+        {
+          "type": "Timeline",
+          "props": {
+            "id": "output-timeline",
+            "binding": "var:timeline",
+            "label": "Editable result",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "result"
+            }
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "finish-status",
+            "binding": "var:finishStatus",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "result"
+            }
+          }
+        }
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "name": "Plan or refresh Storyboard",
+        "workflowId": "plan",
+        "workflowVersion": 1,
+        "inputs": {
+          "in-recipe": {
+            "from": "constant",
+            "value": {
+              "schemaVersion": 1,
+              "slug": "ad-binary-choice-participation-card",
+              "inputs": [
+                {
+                  "id": "contextImage",
+                  "label": "Context image",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "choiceAImage",
+                  "label": "Choice A",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "choiceBImage",
+                  "label": "Choice B",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "logo",
+                  "label": "Logo",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "question",
+                  "label": "Question",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "choiceA",
+                  "label": "Choice A text",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "choiceB",
+                  "label": "Choice B text",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "comparePrompt",
+                  "label": "Compare prompt",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "participationCta",
+                  "label": "Participation call to action",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "brandColor",
+                  "label": "Brand color",
+                  "kind": "color",
+                  "required": true
+                }
+              ],
+              "operations": [
+                {
+                  "id": "plan",
+                  "bindingId": "plan",
+                  "intent": "plan_storyboard",
+                  "version": 1
+                },
+                {
+                  "id": "finish",
+                  "bindingId": "finish",
+                  "intent": "finish_storyboard",
+                  "version": 1,
+                  "strategy": "agentic",
+                  "model": {
+                    "provider": "openai",
+                    "id": "gpt-5.4-mini"
+                  }
+                }
+              ],
+              "outputs": [
+                {
+                  "id": "storyboardId",
+                  "kind": "storyboard",
+                  "label": "Storyboard"
+                },
+                {
+                  "id": "designPreview",
+                  "kind": "timeline",
+                  "label": "Composed design preview"
+                },
+                {
+                  "id": "timeline",
+                  "kind": "timeline",
+                  "label": "Editable result"
+                }
+              ],
+              "category": "Ad library",
+              "defaults": {
+                "step": "start"
+              },
+              "creativeStrategy": {
+                "objective": "Invite a clear A/B response without pretending an MP4 is interactive.",
+                "direction": "The two choices have equal visual weight and remain visible long enough to answer.",
+                "aspectRatio": "9:16",
+                "shots": [
+                  {
+                    "id": "question",
+                    "title": "Context image and one short question.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "contextImage",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "contextImage"
+                      },
+                      {
+                        "id": "question",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "question",
+                        "direction": "Question pops once over 220 ms."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "choice_a",
+                    "title": "Left/top card appears with a simple visual.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "choiceAImage",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "choiceAImage"
+                      },
+                      {
+                        "id": "choiceA",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "choiceA",
+                        "direction": "250 ms slide; small emphasis only."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "choice_b",
+                    "title": "Right/bottom card appears in the matching treatment.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "choiceBImage",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "choiceBImage"
+                      },
+                      {
+                        "id": "choiceB",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "choiceB",
+                        "direction": "Same timing/easing as A."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "compare",
+                    "title": "Both choices are shown together.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "choiceAImage",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "choiceAImage"
+                      },
+                      {
+                        "id": "choiceBImage",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "choiceBImage"
+                      },
+                      {
+                        "id": "comparePrompt",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "comparePrompt",
+                        "direction": "Very subtle alternating emphasis, or no motion."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cta",
+                    "title": "Explicit instruction: comment A/B, or use a configured native poll.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "choiceAImage",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "choiceAImage"
+                      },
+                      {
+                        "id": "choiceBImage",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "choiceBImage"
+                      },
+                      {
+                        "id": "logo",
+                        "kind": "asset",
+                        "role": "logo",
+                        "inputId": "logo"
+                      },
+                      {
+                        "id": "participationCta",
+                        "kind": "text",
+                        "role": "cta",
+                        "inputId": "participationCta",
+                        "direction": "Static instruction."
+                      }
+                    ]
+                  }
+                ]
+              },
+              "preservationRules": [
+                {
+                  "inputId": "contextImage",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "choiceAImage",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "choiceBImage",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "logo",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "question",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "choiceA",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "choiceB",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "comparePrompt",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "participationCta",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "brandColor",
+                  "policy": "exact_color",
+                  "allowedTransformations": [
+                    "opacity",
+                    "composite"
+                  ]
+                }
+              ],
+              "mediaPolicy": {
+                "defaultStrategy": "still_motion_graphics",
+                "allowGeneratedVideo": false
+              },
+              "presentation": {
+                "groups": [
+                  {
+                    "id": "visuals",
+                    "title": "Images and brand",
+                    "inputIds": [
+                      "contextImage",
+                      "choiceAImage",
+                      "choiceBImage",
+                      "logo",
+                      "brandColor"
+                    ]
+                  },
+                  {
+                    "id": "copy",
+                    "title": "Exact copy",
+                    "inputIds": [
+                      "question",
+                      "choiceA",
+                      "choiceB",
+                      "comparePrompt",
+                      "participationCta"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "in-contextImage": {
+            "from": "variable",
+            "variableId": "contextImage"
+          },
+          "in-choiceAImage": {
+            "from": "variable",
+            "variableId": "choiceAImage"
+          },
+          "in-choiceBImage": {
+            "from": "variable",
+            "variableId": "choiceBImage"
+          },
+          "in-logo": {
+            "from": "variable",
+            "variableId": "logo"
+          },
+          "in-question": {
+            "from": "variable",
+            "variableId": "question"
+          },
+          "in-choiceA": {
+            "from": "variable",
+            "variableId": "choiceA"
+          },
+          "in-choiceB": {
+            "from": "variable",
+            "variableId": "choiceB"
+          },
+          "in-comparePrompt": {
+            "from": "variable",
+            "variableId": "comparePrompt"
+          },
+          "in-participationCta": {
+            "from": "variable",
+            "variableId": "participationCta"
+          },
+          "in-brandColor": {
+            "from": "variable",
+            "variableId": "brandColor"
+          },
+          "in-storyboardId": {
+            "from": "variable",
+            "variableId": "storyboardId"
+          },
+          "in-storyboardRevision": {
+            "from": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "in-plannedFingerprint": {
+            "from": "variable",
+            "variableId": "plannedFingerprint"
+          },
+          "in-finishModel": {
+            "from": "variable",
+            "variableId": "finishModel"
+          },
+          "in-imageModel": {
+            "from": "variable",
+            "variableId": "imageModel"
+          }
+        },
+        "outputs": {
+          "out-storyboardId": {
+            "to": "variable",
+            "variableId": "storyboardId"
+          },
+          "out-storyboardRevision": {
+            "to": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "out-timelineId": {
+            "to": "variable",
+            "variableId": "timelineId"
+          },
+          "out-timelineRevision": {
+            "to": "variable",
+            "variableId": "timelineRevision"
+          },
+          "out-linkedScriptFingerprint": {
+            "to": "variable",
+            "variableId": "linkedScriptFingerprint"
+          },
+          "out-plannedFingerprint": {
+            "to": "variable",
+            "variableId": "plannedFingerprint"
+          },
+          "out-approval": {
+            "to": "variable",
+            "variableId": "approval"
+          },
+          "out-planPreview": {
+            "to": "variable",
+            "variableId": "planPreview"
+          },
+          "out-designPreview": {
+            "to": "variable",
+            "variableId": "designPreview"
+          },
+          "out-layoutFindings": {
+            "to": "variable",
+            "variableId": "layoutFindings"
+          },
+          "out-step": {
+            "to": "variable",
+            "variableId": "step"
+          }
+        },
+        "policy": "queue"
+      },
+      {
+        "id": "finish",
+        "name": "Build editable cut",
+        "workflowId": "finish",
+        "workflowVersion": 1,
+        "inputs": {
+          "in-recipe": {
+            "from": "constant",
+            "value": {
+              "schemaVersion": 1,
+              "slug": "ad-binary-choice-participation-card",
+              "inputs": [
+                {
+                  "id": "contextImage",
+                  "label": "Context image",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "choiceAImage",
+                  "label": "Choice A",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "choiceBImage",
+                  "label": "Choice B",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "logo",
+                  "label": "Logo",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "question",
+                  "label": "Question",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "choiceA",
+                  "label": "Choice A text",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "choiceB",
+                  "label": "Choice B text",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "comparePrompt",
+                  "label": "Compare prompt",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "participationCta",
+                  "label": "Participation call to action",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "brandColor",
+                  "label": "Brand color",
+                  "kind": "color",
+                  "required": true
+                }
+              ],
+              "operations": [
+                {
+                  "id": "plan",
+                  "bindingId": "plan",
+                  "intent": "plan_storyboard",
+                  "version": 1
+                },
+                {
+                  "id": "finish",
+                  "bindingId": "finish",
+                  "intent": "finish_storyboard",
+                  "version": 1,
+                  "strategy": "agentic",
+                  "model": {
+                    "provider": "openai",
+                    "id": "gpt-5.4-mini"
+                  }
+                }
+              ],
+              "outputs": [
+                {
+                  "id": "storyboardId",
+                  "kind": "storyboard",
+                  "label": "Storyboard"
+                },
+                {
+                  "id": "designPreview",
+                  "kind": "timeline",
+                  "label": "Composed design preview"
+                },
+                {
+                  "id": "timeline",
+                  "kind": "timeline",
+                  "label": "Editable result"
+                }
+              ],
+              "category": "Ad library",
+              "defaults": {
+                "step": "start"
+              },
+              "creativeStrategy": {
+                "objective": "Invite a clear A/B response without pretending an MP4 is interactive.",
+                "direction": "The two choices have equal visual weight and remain visible long enough to answer.",
+                "aspectRatio": "9:16",
+                "shots": [
+                  {
+                    "id": "question",
+                    "title": "Context image and one short question.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "contextImage",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "contextImage"
+                      },
+                      {
+                        "id": "question",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "question",
+                        "direction": "Question pops once over 220 ms."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "choice_a",
+                    "title": "Left/top card appears with a simple visual.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "choiceAImage",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "choiceAImage"
+                      },
+                      {
+                        "id": "choiceA",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "choiceA",
+                        "direction": "250 ms slide; small emphasis only."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "choice_b",
+                    "title": "Right/bottom card appears in the matching treatment.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "choiceBImage",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "choiceBImage"
+                      },
+                      {
+                        "id": "choiceB",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "choiceB",
+                        "direction": "Same timing/easing as A."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "compare",
+                    "title": "Both choices are shown together.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "choiceAImage",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "choiceAImage"
+                      },
+                      {
+                        "id": "choiceBImage",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "choiceBImage"
+                      },
+                      {
+                        "id": "comparePrompt",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "comparePrompt",
+                        "direction": "Very subtle alternating emphasis, or no motion."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cta",
+                    "title": "Explicit instruction: comment A/B, or use a configured native poll.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "choiceAImage",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "choiceAImage"
+                      },
+                      {
+                        "id": "choiceBImage",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "choiceBImage"
+                      },
+                      {
+                        "id": "logo",
+                        "kind": "asset",
+                        "role": "logo",
+                        "inputId": "logo"
+                      },
+                      {
+                        "id": "participationCta",
+                        "kind": "text",
+                        "role": "cta",
+                        "inputId": "participationCta",
+                        "direction": "Static instruction."
+                      }
+                    ]
+                  }
+                ]
+              },
+              "preservationRules": [
+                {
+                  "inputId": "contextImage",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "choiceAImage",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "choiceBImage",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "logo",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "question",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "choiceA",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "choiceB",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "comparePrompt",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "participationCta",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "brandColor",
+                  "policy": "exact_color",
+                  "allowedTransformations": [
+                    "opacity",
+                    "composite"
+                  ]
+                }
+              ],
+              "mediaPolicy": {
+                "defaultStrategy": "still_motion_graphics",
+                "allowGeneratedVideo": false
+              },
+              "presentation": {
+                "groups": [
+                  {
+                    "id": "visuals",
+                    "title": "Images and brand",
+                    "inputIds": [
+                      "contextImage",
+                      "choiceAImage",
+                      "choiceBImage",
+                      "logo",
+                      "brandColor"
+                    ]
+                  },
+                  {
+                    "id": "copy",
+                    "title": "Exact copy",
+                    "inputIds": [
+                      "question",
+                      "choiceA",
+                      "choiceB",
+                      "comparePrompt",
+                      "participationCta"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "in-recipeOperationId": {
+            "from": "constant",
+            "value": "finish"
+          },
+          "in-contextImage": {
+            "from": "variable",
+            "variableId": "contextImage"
+          },
+          "in-choiceAImage": {
+            "from": "variable",
+            "variableId": "choiceAImage"
+          },
+          "in-choiceBImage": {
+            "from": "variable",
+            "variableId": "choiceBImage"
+          },
+          "in-logo": {
+            "from": "variable",
+            "variableId": "logo"
+          },
+          "in-question": {
+            "from": "variable",
+            "variableId": "question"
+          },
+          "in-choiceA": {
+            "from": "variable",
+            "variableId": "choiceA"
+          },
+          "in-choiceB": {
+            "from": "variable",
+            "variableId": "choiceB"
+          },
+          "in-comparePrompt": {
+            "from": "variable",
+            "variableId": "comparePrompt"
+          },
+          "in-participationCta": {
+            "from": "variable",
+            "variableId": "participationCta"
+          },
+          "in-brandColor": {
+            "from": "variable",
+            "variableId": "brandColor"
+          },
+          "in-storyboardId": {
+            "from": "variable",
+            "variableId": "storyboardId"
+          },
+          "in-storyboardRevision": {
+            "from": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "in-linkedScriptFingerprint": {
+            "from": "variable",
+            "variableId": "linkedScriptFingerprint"
+          },
+          "in-timelineId": {
+            "from": "variable",
+            "variableId": "timelineId"
+          },
+          "in-timelineRevision": {
+            "from": "variable",
+            "variableId": "timelineRevision"
+          },
+          "in-approval": {
+            "from": "variable",
+            "variableId": "approval"
+          },
+          "in-plannedFingerprint": {
+            "from": "variable",
+            "variableId": "plannedFingerprint"
+          },
+          "in-finishStrategy": {
+            "from": "constant",
+            "value": "agentic"
+          },
+          "in-finishModel": {
+            "from": "variable",
+            "variableId": "finishModel"
+          }
+        },
+        "outputs": {
+          "out-approval": {
+            "to": "variable",
+            "variableId": "approval"
+          },
+          "out-finishStatus": {
+            "to": "variable",
+            "variableId": "finishStatus"
+          },
+          "out-timelineId": {
+            "to": "variable",
+            "variableId": "timelineId"
+          },
+          "out-timelineRevision": {
+            "to": "variable",
+            "variableId": "timelineRevision"
+          },
+          "out-storyboardRevision": {
+            "to": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "out-timeline": {
+            "to": "variable",
+            "variableId": "timeline"
+          },
+          "out-validation": {
+            "to": "variable",
+            "variableId": "validation"
+          },
+          "out-reviews": {
+            "to": "variable",
+            "variableId": "reviews"
+          },
+          "out-step": {
+            "to": "variable",
+            "variableId": "step"
+          }
+        },
+        "policy": "queue"
+      },
+      {
+        "id": "suggest",
+        "name": "Suggest options from a website",
+        "workflowId": "suggest",
+        "policy": "replace",
+        "inputs": {
+          "in-sourceUrl": {
+            "from": "variable",
+            "variableId": "sourceUrl"
+          },
+          "in-model": {
+            "from": "variable",
+            "variableId": "finishModel"
+          }
+        },
+        "outputs": {
+          "out-fillOptions": {
+            "to": "variable",
+            "variableId": "fillOptions"
+          },
+          "out-fillChoice": {
+            "to": "variable",
+            "variableId": "fillChoice"
+          },
+          "out-fillReport": {
+            "to": "variable",
+            "variableId": "fillReport"
+          }
+        }
+      },
+      {
+        "id": "apply",
+        "name": "Fill the ad from the picked option",
+        "workflowId": "",
+        "policy": "replace",
+        "target": {
+          "kind": "script",
+          "scriptId": "apply_ad_option-v1",
+          "scriptVersion": 1
+        },
+        "inputs": {
+          "brief": {
+            "from": "constant",
+            "value": {
+              "title": "Binary-choice participation card",
+              "objective": "Invite a clear A/B response without pretending an MP4 is interactive.",
+              "direction": "The two choices have equal visual weight and remain visible long enough to answer.",
+              "beats": [
+                "0–2 s: Context image and one short question. Shows Brand color, Context image, Question.",
+                "2–4 s: Left/top card appears with a simple visual. Shows Brand color, Choice A, Choice A text.",
+                "4–6 s: Right/bottom card appears in the matching treatment. Shows Brand color, Choice B, Choice B text.",
+                "6–8 s: Both choices are shown together. Shows Brand color, Choice A, Choice B, Compare prompt.",
+                "8–10 s: Explicit instruction: comment A/B, or use a configured native poll. Shows Brand color, Choice A, Choice B, Logo, Participation call to action."
+              ],
+              "fields": [
+                {
+                  "id": "question",
+                  "label": "Question",
+                  "purpose": "question",
+                  "maxWords": 7
+                },
+                {
+                  "id": "choiceA",
+                  "label": "Choice A text",
+                  "purpose": "choice a",
+                  "maxWords": 7
+                },
+                {
+                  "id": "choiceB",
+                  "label": "Choice B text",
+                  "purpose": "choice b",
+                  "maxWords": 7
+                },
+                {
+                  "id": "comparePrompt",
+                  "label": "Compare prompt",
+                  "purpose": "compare",
+                  "maxWords": 7
+                },
+                {
+                  "id": "participationCta",
+                  "label": "Participation call to action",
+                  "purpose": "cta",
+                  "maxWords": 8
+                }
+              ],
+              "images": [
+                {
+                  "id": "contextImage",
+                  "label": "Context image",
+                  "role": "decorative",
+                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Context image and one short question."
+                },
+                {
+                  "id": "choiceAImage",
+                  "label": "Choice A",
+                  "role": "decorative",
+                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Left/top card appears with a simple visual. | Both choices are shown together. | Explicit instruction: comment A/B, or use a configured native poll."
+                },
+                {
+                  "id": "choiceBImage",
+                  "label": "Choice B",
+                  "role": "decorative",
+                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Right/bottom card appears in the matching treatment. | Both choices are shown together. | Explicit instruction: comment A/B, or use a configured native poll."
+                },
+                {
+                  "id": "logo",
+                  "label": "Logo",
+                  "role": "logo",
+                  "guidance": "The brand's own logo file, such as the site header logo or its icon. Shown in: Explicit instruction: comment A/B, or use a configured native poll."
+                }
+              ]
+            }
+          },
+          "options": {
+            "from": "variable",
+            "variableId": "fillOptions"
+          },
+          "choice": {
+            "from": "variable",
+            "variableId": "fillChoice"
+          }
+        },
+        "outputs": {
+          "question": {
+            "to": "variable",
+            "variableId": "question"
+          },
+          "choiceA": {
+            "to": "variable",
+            "variableId": "choiceA"
+          },
+          "choiceB": {
+            "to": "variable",
+            "variableId": "choiceB"
+          },
+          "comparePrompt": {
+            "to": "variable",
+            "variableId": "comparePrompt"
+          },
+          "participationCta": {
+            "to": "variable",
+            "variableId": "participationCta"
+          },
+          "brandColor": {
+            "to": "variable",
+            "variableId": "brandColor"
+          },
+          "contextImage": {
+            "to": "variable",
+            "variableId": "contextImage"
+          },
+          "choiceAImage": {
+            "to": "variable",
+            "variableId": "choiceAImage"
+          },
+          "choiceBImage": {
+            "to": "variable",
+            "variableId": "choiceBImage"
+          },
+          "logo": {
+            "to": "variable",
+            "variableId": "logo"
+          },
+          "fillReport": {
+            "to": "variable",
+            "variableId": "fillReport"
+          },
+          "approval": {
+            "to": "variable",
+            "variableId": "approval"
+          }
+        }
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "contextImage",
+        "name": "Context image",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "choiceAImage",
+        "name": "Choice A",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "choiceBImage",
+        "name": "Choice B",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "logo",
+        "name": "Logo",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "question",
+        "name": "Question",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "choiceA",
+        "name": "Choice A text",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "choiceB",
+        "name": "Choice B text",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "comparePrompt",
+        "name": "Compare prompt",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "participationCta",
+        "name": "Participation call to action",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "brandColor",
+        "name": "Brand color",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "storyboardId",
+        "name": "storyboardId",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "storyboardRevision",
+        "name": "storyboardRevision",
+        "type": {
+          "type": "int",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "plannedFingerprint",
+        "name": "plannedFingerprint",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "timelineId",
+        "name": "timelineId",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "timelineRevision",
+        "name": "timelineRevision",
+        "type": {
+          "type": "int",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "linkedScriptFingerprint",
+        "name": "linkedScriptFingerprint",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "approval",
+        "name": "approval",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "planPreview",
+        "name": "planPreview",
+        "type": {
+          "type": "dict",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "designPreview",
+        "name": "designPreview",
+        "type": {
+          "type": "timeline",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "layoutFindings",
+        "name": "layoutFindings",
+        "type": {
+          "type": "list[str]",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "step",
+        "name": "step",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "default": "start",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "finishStatus",
+        "name": "finishStatus",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "timeline",
+        "name": "timeline",
+        "type": {
+          "type": "timeline",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "validation",
+        "name": "validation",
+        "type": {
+          "type": "list[dict]",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "reviews",
+        "name": "reviews",
+        "type": {
+          "type": "list[dict]",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "finishModel",
+        "name": "Finishing model",
+        "type": {
+          "type": "dict"
+        },
+        "scope": "user",
+        "persist": true,
+        "default": {
+          "type": "language_model",
+          "provider": "",
+          "id": "",
+          "name": ""
+        }
+      },
+      {
+        "id": "imageModel",
+        "name": "Image model",
+        "type": {
+          "type": "dict"
+        },
+        "scope": "user",
+        "persist": true,
+        "default": {
+          "type": "image_model",
+          "provider": "",
+          "id": "",
+          "name": ""
+        }
+      },
+      {
+        "id": "fillPath",
+        "name": "How to start",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "sourceUrl",
+        "name": "Website URL",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "fillOptions",
+        "name": "Suggested options",
+        "type": {
+          "type": "list[dict]"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": []
+      },
+      {
+        "id": "fillChoice",
+        "name": "Picked option",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "fillReport",
+        "name": "Fill report",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "beatExample1",
+        "name": "Beat 1 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R07-B01.webp"
+        }
+      },
+      {
+        "id": "beatExample2",
+        "name": "Beat 2 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R07-B02.webp"
+        }
+      },
+      {
+        "id": "beatExample3",
+        "name": "Beat 3 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R07-B03.webp"
+        }
+      },
+      {
+        "id": "beatExample4",
+        "name": "Beat 4 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R07-B04.webp"
+        }
+      },
+      {
+        "id": "beatExample5",
+        "name": "Beat 5 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R07-B05.webp"
+        }
+      }
+    ],
+    "recipe": {
+      "schemaVersion": 1,
+      "slug": "ad-binary-choice-participation-card",
+      "inputs": [
+        {
+          "id": "contextImage",
+          "label": "Context image",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "choiceAImage",
+          "label": "Choice A",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "choiceBImage",
+          "label": "Choice B",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "logo",
+          "label": "Logo",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "question",
+          "label": "Question",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "choiceA",
+          "label": "Choice A text",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "choiceB",
+          "label": "Choice B text",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "comparePrompt",
+          "label": "Compare prompt",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "participationCta",
+          "label": "Participation call to action",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "brandColor",
+          "label": "Brand color",
+          "kind": "color",
+          "required": true
+        }
+      ],
+      "operations": [
+        {
+          "id": "plan",
+          "bindingId": "plan",
+          "intent": "plan_storyboard",
+          "version": 1
+        },
+        {
+          "id": "finish",
+          "bindingId": "finish",
+          "intent": "finish_storyboard",
+          "version": 1,
+          "strategy": "agentic",
+          "model": {
+            "provider": "openai",
+            "id": "gpt-5.4-mini"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "id": "storyboardId",
+          "kind": "storyboard",
+          "label": "Storyboard"
+        },
+        {
+          "id": "designPreview",
+          "kind": "timeline",
+          "label": "Composed design preview"
+        },
+        {
+          "id": "timeline",
+          "kind": "timeline",
+          "label": "Editable result"
+        }
+      ],
+      "category": "Ad library",
+      "defaults": {
+        "step": "start"
+      },
+      "creativeStrategy": {
+        "objective": "Invite a clear A/B response without pretending an MP4 is interactive.",
+        "direction": "The two choices have equal visual weight and remain visible long enough to answer.",
+        "aspectRatio": "9:16",
+        "shots": [
+          {
+            "id": "question",
+            "title": "Context image and one short question.",
+            "durationSeconds": 2,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor"
+              },
+              {
+                "id": "contextImage",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "contextImage"
+              },
+              {
+                "id": "question",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "question",
+                "direction": "Question pops once over 220 ms."
+              }
+            ]
+          },
+          {
+            "id": "choice_a",
+            "title": "Left/top card appears with a simple visual.",
+            "durationSeconds": 2,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor"
+              },
+              {
+                "id": "choiceAImage",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "choiceAImage"
+              },
+              {
+                "id": "choiceA",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "choiceA",
+                "direction": "250 ms slide; small emphasis only."
+              }
+            ]
+          },
+          {
+            "id": "choice_b",
+            "title": "Right/bottom card appears in the matching treatment.",
+            "durationSeconds": 2,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor"
+              },
+              {
+                "id": "choiceBImage",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "choiceBImage"
+              },
+              {
+                "id": "choiceB",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "choiceB",
+                "direction": "Same timing/easing as A."
+              }
+            ]
+          },
+          {
+            "id": "compare",
+            "title": "Both choices are shown together.",
+            "durationSeconds": 2,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor"
+              },
+              {
+                "id": "choiceAImage",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "choiceAImage"
+              },
+              {
+                "id": "choiceBImage",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "choiceBImage"
+              },
+              {
+                "id": "comparePrompt",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "comparePrompt",
+                "direction": "Very subtle alternating emphasis, or no motion."
+              }
+            ]
+          },
+          {
+            "id": "cta",
+            "title": "Explicit instruction: comment A/B, or use a configured native poll.",
+            "durationSeconds": 2,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor"
+              },
+              {
+                "id": "choiceAImage",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "choiceAImage"
+              },
+              {
+                "id": "choiceBImage",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "choiceBImage"
+              },
+              {
+                "id": "logo",
+                "kind": "asset",
+                "role": "logo",
+                "inputId": "logo"
+              },
+              {
+                "id": "participationCta",
+                "kind": "text",
+                "role": "cta",
+                "inputId": "participationCta",
+                "direction": "Static instruction."
+              }
+            ]
+          }
+        ]
+      },
+      "preservationRules": [
+        {
+          "inputId": "contextImage",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "choiceAImage",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "choiceBImage",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "logo",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "question",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "choiceA",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "choiceB",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "comparePrompt",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "participationCta",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "brandColor",
+          "policy": "exact_color",
+          "allowedTransformations": [
+            "opacity",
+            "composite"
+          ]
+        }
+      ],
+      "mediaPolicy": {
+        "defaultStrategy": "still_motion_graphics",
+        "allowGeneratedVideo": false
+      },
+      "presentation": {
+        "groups": [
+          {
+            "id": "visuals",
+            "title": "Images and brand",
+            "inputIds": [
+              "contextImage",
+              "choiceAImage",
+              "choiceBImage",
+              "logo",
+              "brandColor"
+            ]
+          },
+          {
+            "id": "copy",
+            "title": "Exact copy",
+            "inputIds": [
+              "question",
+              "choiceA",
+              "choiceB",
+              "comparePrompt",
+              "participationCta"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "workflows": [
+    {
+      "key": "plan",
+      "name": "Plan or refresh Storyboard",
+      "description": "Runs “Plan or refresh Storyboard” as a job, so its agent is not bound by the script time limit.",
+      "version": 1,
+      "graphHash": null,
+      "graph": {
+        "nodes": [
+          {
+            "id": "in-recipe",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "recipe",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-contextImage",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "contextImage",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-choiceAImage",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "choiceAImage",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-choiceBImage",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "choiceBImage",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-logo",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "logo",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-question",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "question",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-choiceA",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "choiceA",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-choiceB",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "choiceB",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-comparePrompt",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "comparePrompt",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-participationCta",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "participationCta",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-brandColor",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "brandColor",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardRevision",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardRevision",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-plannedFingerprint",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "plannedFingerprint",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-finishModel",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "finishModel",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-imageModel",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "imageModel",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "run",
+            "type": "nodetool.code.Code",
+            "data": {
+              "code": "const selectedModel = inputs.finishModel;\nif (!selectedModel?.provider?.trim() || !selectedModel?.id?.trim()) throw new Error(\"Select a finishing model before planning.\");\ninputs.finishModel = {provider: selectedModel.provider, id: selectedModel.id};\ninputs.recipe = {...inputs.recipe, operations: inputs.recipe.operations.map(operation => operation.intent === \"finish_storyboard\" ? {...operation, model: inputs.finishModel} : operation)};\nimport { create_storyboard, get_storyboard, edit_storyboard, preview_storyboard_design, layout_storyboard } from \"@nodetool-ai/sandbox-nodetool/storyboards\";\nimport { get_timeline } from \"@nodetool-ai/sandbox-nodetool/timelines\";\nimport { get_entity, create_entity } from \"@nodetool-ai/sandbox-nodetool/entities\";\nimport { get_asset } from \"@nodetool-ai/sandbox-nodetool/assets\";\nimport { generate_image } from \"@nodetool-ai/sandbox-nodetool/media\";\nconst recipe = inputs.recipe;\nif (recipe.mediaPolicy?.defaultStrategy !== \"still_motion_graphics\" || !recipe.creativeStrategy?.shots?.length) throw new Error(\"This operation requires still motion graphics shot intent.\");\nconst keys = recipe.inputs.map(input => input.id);\nconst fingerprint = JSON.stringify([recipe, ...keys.map(key => inputs[key])]);\nfor (const input of recipe.inputs) {\n  const value = inputs[input.id];\n  if (input.required && (value === undefined || value === null || (typeof value === \"string\" && !value.trim()))) throw new Error(input.id + \" is required.\");\n}\n// An empty optional input whose element has a template fallback gets a\n// generated image. It is not a user source, so nothing preserves it.\nconst blank = value => value === undefined || value === null || (typeof value === \"string\" && !value.trim()) || (typeof value === \"object\" && !value.asset_id && !value.uri);\nconst fallbacks = {};\nfor (const element of recipe.creativeStrategy.shots.flatMap(shot => shot.elements)) {\n  if (element.fallback && blank(inputs[element.inputId]) && !fallbacks[element.inputId]) fallbacks[element.inputId] = {prompt: element.fallback.prompt, box: element.frame?.box};\n}\nconst assetId = (value, label) => {\n  const id = value?.asset_id || (typeof value?.uri === \"string\" && value.uri.startsWith(\"asset://\") ? value.uri.slice(8) : undefined);\n  if (!id) throw new Error(label + \" must be a stored asset.\");\n  return id;\n};\nconst sourceEntities = {};\nfor (const input of recipe.inputs) {\n  const role = recipe.creativeStrategy.shots.flatMap(shot => shot.elements).find(element => element.inputId === input.id)?.role;\n  if (input.kind !== \"image\" || (role !== \"product\" && role !== \"logo\")) continue;\n  const id = assetId(inputs[input.id], input.label);\n  let existing;\n  try { existing = await get_entity({entity_id: id}); }\n  catch (error) {\n    if (!String(error).includes(\"Entity \" + id + \" was not found.\")) throw error;\n    existing = {};\n  }\n  if (existing.entity) {\n    const reference = existing.entity.reference_images?.[0]?.asset_id;\n    if (!reference) throw new Error(input.label + \" entity no longer points to the selected exact asset.\");\n    if (reference !== id) {\n      const selected = await get_asset({asset_id: id});\n      const resolved = await get_asset({asset_id: reference});\n      if (selected.id !== resolved.id) throw new Error(input.label + \" entity no longer points to the selected exact asset.\");\n    }\n    sourceEntities[input.id] = id;\n  } else {\n    const created = await create_entity({asset_id: id, kind: \"prop\", name: input.label, descriptor: \"The original uploaded \" + role + \" asset. Preserve its exact source identity.\"});\n    if (created.error || !created.entity_id) throw new Error(created.error || \"Source entity was not created.\");\n    sourceEntities[input.id] = id;\n  }\n}\nconst protectedInputs = (recipe.preservationRules || []).filter(rule => !fallbacks[rule.inputId]).map(rule => {\n  const value = inputs[rule.inputId];\n  const input = recipe.inputs.find(candidate => candidate.id === rule.inputId);\n  const role = recipe.creativeStrategy.shots.flatMap(shot => shot.elements).find(element => element.inputId === rule.inputId)?.role;\n  const common = {id: rule.inputId, allowed_transformations: rule.allowedTransformations || []};\n  if (rule.policy === \"exact_asset\") return {...common, kind: role === \"logo\" ? \"logo\" : role === \"product\" ? \"product\" : \"source_asset\", asset_id: assetId(value, input.label), ...(sourceEntities[rule.inputId] ? {entity_id: sourceEntities[rule.inputId]} : {})};\n  const text = rule.policy === \"exact_color\" && value?.type === \"color\" ? value.value : value;\n  if (typeof text !== \"string\" || !text.trim()) throw new Error(rule.inputId + \" must be an exact non-empty value.\");\n  return {...common, kind: rule.policy === \"exact_color\" ? \"brand_color\" : \"exact_text\", value: text};\n});\nconst shots = recipe.creativeStrategy.shots.map(intent => {\n  const ids = intent.elements.map(element => element.inputId);\n  return {slug: intent.id, action: intent.title, duration_seconds: intent.durationSeconds,\n    production: {schema_version: 1, media_strategy: \"still_motion_graphics\", protected_inputs: protectedInputs.filter(input => ids.includes(input.id))},\n    graphics: {mode: \"graphics_first\", direction: inputs.direction || recipe.creativeStrategy.direction || \"Clear editorial composition\", ...((recipe.creativeStrategy.reviewRules?.length || intent.reviewRules?.length) ? {review_rules: [...(recipe.creativeStrategy.reviewRules || []), ...(intent.reviewRules || [])]} : {}), elements: intent.elements.map(element => ({id: element.id, kind: element.kind, role: element.role, ...(protectedInputs.some(input => input.id === element.inputId) ? {protected_input_id: element.inputId} : {}), ...(sourceEntities[element.inputId] ? {entity_id: sourceEntities[element.inputId]} : {}), ...(element.direction ? {direction: element.direction} : {}), ...(element.frame ? {frame: element.frame} : {}), ...(element.typography ? {typography: element.typography} : {}), ...(element.lock ? {lock: element.lock} : {}), ...(element.limits ? {limits: element.limits} : {}), ...(element.style ? {style: element.style} : {}), ...(element.kind === \"text\" ? {text: inputs[element.inputId]} : element.kind === \"asset\" ? (fallbacks[element.inputId] ? {fallback_input: element.inputId} : {asset_id: assetId(inputs[element.inputId], element.inputId)}) : {})}))}\n  };\n});\nconst board = inputs.storyboardId ? await get_storyboard({storyboard_id: inputs.storyboardId}) : await create_storyboard({name: recipe.slug, aspect_ratio: recipe.creativeStrategy.aspectRatio || \"9:16\"});\nif (board.error) throw new Error(board.error);\nif (inputs.storyboardId && (board.aspect_ratio || \"16:9\") !== (recipe.creativeStrategy.aspectRatio || \"9:16\")) throw new Error(\"Storyboard aspect ratio differs from this Recipe. Start a new plan without storyboardId.\");\nlet linkedTimeline;\nif (board.timeline_id) {\n  const linked = await get_timeline({timeline_id: board.timeline_id});\n  if (linked.error) throw new Error(linked.error);\n  linkedTimeline = linked;\n}\nconst existingShots = Array.isArray(board.shots) ? board.shots : [];\nconst fallbackIds = Object.keys(fallbacks);\nif (fallbackIds.length) {\n  const labelOf = id => recipe.inputs.find(input => input.id === id)?.label || id;\n  const imageModel = inputs.imageModel?.provider && inputs.imageModel?.id ? {provider: inputs.imageModel.provider, id: inputs.imageModel.id} : undefined;\n  if (!imageModel) throw new Error(\"Add \" + fallbackIds.map(labelOf).join(\", \") + \", or select an image model to generate \" + (fallbackIds.length > 1 ? \"them.\" : \"it.\"));\n  const fill = text => text.replace(/\\{(\\w+)\\}/g, (match, id) => typeof inputs[id] === \"string\" ? inputs[id].trim() : inputs[id]?.type === \"color\" ? inputs[id].value : match);\n  const [ratioW, ratioH] = (recipe.creativeStrategy.aspectRatio || \"9:16\").split(\":\").map(Number);\n  // A rerun reuses the image of an unchanged prompt, model and size.\n  const cached = new Map(existingShots.flatMap(shot => shot.graphics?.elements || []).filter(element => element.generated?.key && element.asset_id).map(element => [element.generated.key, element.asset_id]));\n  const generated = {};\n  for (const [index, id] of fallbackIds.entries()) {\n    const {prompt, box} = fallbacks[id];\n    const resolved = fill(prompt);\n    // Generate at the aspect of the box the image fills, long side 1536.\n    const [w, h] = box ? [box[2] * ratioW, box[3] * ratioH] : [1, 1];\n    const size = {width: Math.round(1536 * Math.min(1, w / h) / 16) * 16, height: Math.round(1536 * Math.min(1, h / w) / 16) * 16};\n    const key = JSON.stringify([resolved, imageModel.provider, imageModel.id, size.width, size.height]);\n    let asset = cached.get(key);\n    if (!asset) {\n      progress(Math.round(100 * index / fallbackIds.length), \"Generating \" + labelOf(id));\n      const result = await generate_image({provider: imageModel.provider, model: imageModel.id, prompt: resolved, ...size});\n      if (result?.error || !result?.asset_id) throw new Error(\"Could not generate \" + labelOf(id) + \". \" + (result?.error || \"The image model returned no image.\"));\n      asset = result.asset_id;\n    }\n    generated[id] = {asset_id: asset, origin: \"template_fallback\", generated: {key, prompt: resolved}};\n  }\n  for (const shot of shots) {\n    shot.graphics.elements = shot.graphics.elements.map(({fallback_input, ...element}) => fallback_input ? {...element, ...generated[fallback_input]} : element);\n  }\n}\nif (existingShots.length && JSON.stringify(existingShots.map(shot => shot.slug)) !== JSON.stringify(shots.map(shot => shot.slug))) throw new Error(\"Storyboard shot structure differs from this Recipe. Start a new plan without storyboardId or explicitly reconcile the board before planning.\");\nif (existingShots.some(shot => shot.production?.media_strategy !== \"still_motion_graphics\")) throw new Error(\"Storyboard media strategy conflict. This Recipe supports still motion graphics only.\");\nconst inputsChanged = inputs.plannedFingerprint && inputs.plannedFingerprint !== fingerprint;\nif (existingShots.length && inputsChanged && board.revision !== inputs.storyboardRevision) throw new Error(\"Storyboard revision conflict. Restore the reviewed inputs and refresh the edited Storyboard before changing inputs.\");\nif (existingShots.length && inputsChanged) {\n  const previous = JSON.parse(inputs.plannedFingerprint);\n  const withoutModels = value => ({...value, operations: (value?.operations || []).map(({model, ...operation}) => operation)});\n  if (!Array.isArray(previous) || JSON.stringify(withoutModels(previous[0])) !== JSON.stringify(withoutModels(recipe))) throw new Error(\"Recipe manifest conflict. Reconcile the Storyboard before applying changed Recipe intent.\");\n  const boundInputs = new Set(recipe.creativeStrategy.shots.flatMap(shot => shot.elements.map(element => element.inputId)));\n  for (const [index, key] of keys.entries()) {\n    if (!boundInputs.has(key) && JSON.stringify(previous[index + 1]) !== JSON.stringify(inputs[key])) throw new Error(\"Creative input conflict for \" + key + \". Edit the Storyboard direction and refresh before continuing.\");\n  }\n}\nif (existingShots.length && !inputsChanged) {\n  const sameAsset = async (left, right) => {\n    if (left === right) return true;\n    if (!left || !right) return false;\n    const a = await get_asset({asset_id: left});\n    const b = await get_asset({asset_id: right});\n    return a.id && a.id === b.id;\n  };\n  for (const shot of shots) {\n    const existing = existingShots.find(candidate => candidate.slug === shot.slug);\n    for (const expected of shot.production.protected_inputs) {\n      const actual = existing.production?.protected_inputs?.find(input => input.id === expected.id);\n      if (!actual || actual.kind !== expected.kind || actual.value !== expected.value || !(await sameAsset(actual.asset_id, expected.asset_id)) || JSON.stringify([...(actual.allowed_transformations || [])].sort()) !== JSON.stringify([...expected.allowed_transformations].sort())) throw new Error(\"Storyboard bound source conflict for \" + expected.id + \". Restore the reviewed inputs or explicitly reconcile the Storyboard.\");\n    }\n    for (const expected of shot.graphics.elements) {\n      // A generated fallback is no user source, so it cannot conflict.\n      if (expected.generated) continue;\n      const actual = existing.graphics?.elements?.find(element => element.id === expected.id);\n      if (!actual || actual.kind !== expected.kind || actual.protected_input_id !== expected.protected_input_id || actual.text !== expected.text || !(await sameAsset(actual.asset_id, expected.asset_id))) throw new Error(\"Storyboard bound source conflict for \" + expected.id + \". Restore the reviewed inputs or explicitly reconcile the Storyboard.\");\n    }\n  }\n}\nconst ops = shots.map(shot => {\n  const existing = existingShots.find(candidate => candidate.slug === shot.slug);\n  if (!existing) return {op: \"add_shot\", ...shot};\n  if (!inputsChanged) return null;\n  if (JSON.stringify(existing.graphics?.elements?.filter(element => element.origin !== \"layout_agent\").map(element => element.id)) !== JSON.stringify(shot.graphics.elements.map(element => element.id))) throw new Error(\"Storyboard graphic structure conflict. Reconcile edited elements before changing inputs.\");\n  return {op: \"update_shot\", target: existing.id, production: {...existing.production, ...shot.production}, graphics: {...existing.graphics, ...(shot.graphics.review_rules ? {review_rules: shot.graphics.review_rules} : {}), elements: existing.graphics.elements.map(element => {\n    const bound = shot.graphics.elements.find(candidate => candidate.id === element.id);\n    if (!bound && element.origin === \"layout_agent\") return element;\n    if (bound.kind !== element.kind) throw new Error(\"Storyboard graphic kind conflict.\");\n    return {...element, ...(bound.kind === \"text\" ? {text: bound.text} : bound.kind === \"asset\" ? {asset_id: bound.asset_id, ...(bound.entity_id ? {entity_id: bound.entity_id} : {})} : {}), ...(bound.frame ? {frame: bound.frame} : {}), ...(bound.typography ? {typography: bound.typography} : {}), ...(bound.lock ? {lock: bound.lock} : {}), ...(bound.limits ? {limits: bound.limits} : {}), ...(bound.style ? {style: bound.style} : {}), ...(bound.generated ? {origin: bound.origin, generated: bound.generated} : {}), protected_input_id: bound.protected_input_id};\n  })}};\n});\nconst updates = ops.filter(Boolean);\nconst saved = updates.length ? await edit_storyboard({storyboard_id: board.id, expected_revision: board.revision, ops: updates}) : board;\nif (saved.error || saved.failed) throw new Error(saved.error || JSON.stringify(saved.ops));\nconst ids = shots.map(shot => saved.shots.find(savedShot => savedShot.slug === shot.slug)?.id);\nif (ids.some(id => !id)) throw new Error(\"Planned shot identity was not returned.\");\nconst backgrounds = recipe.creativeStrategy.shots.map(shot => shot.elements.find(element => element.kind === \"shape\")?.id);\nconst continuity = backgrounds[0] && backgrounds.every(id => id === backgrounds[0]) ? [{id: backgrounds[0], shot_ids: ids, direction: \"continue\"}] : [];\nconst motion = {direction: recipe.creativeStrategy.direction || \"One consistent editorial rhythm\", transitions: ids.slice(1).map((id, index) => ({from_shot_id: ids[index], to_shot_id: id, direction: \"fade\"})), continuities: continuity};\nconst directed = existingShots.length ? saved : await edit_storyboard({storyboard_id: board.id, expected_revision: saved.revision, ops: [{op: \"set_board\", motion_design: motion}]});\nif (directed.error || directed.failed) throw new Error(directed.error || JSON.stringify(directed.ops));\n// With a finishing model, an agent lays out every frame and saves the cut, so\n// the review shows the composition the build keeps. Without one, the review\n// shows the deterministic design.\nconst layoutModel = inputs.finishModel?.provider && inputs.finishModel?.id ? {provider: inputs.finishModel.provider, id: inputs.finishModel.id} : undefined;\nconst imageModel = inputs.imageModel?.provider && inputs.imageModel?.id ? {provider: inputs.imageModel.provider, id: inputs.imageModel.id} : undefined;\nconst preview = layoutModel\n  ? await layout_storyboard({storyboardId: board.id, expectedStoryboardRevision: directed.revision, model: layoutModel, ...(imageModel ? {imageModel} : {}), ...(linkedTimeline ? {timelineId: linkedTimeline.timeline.id, expectedTimelineRevision: linkedTimeline.revision} : {})})\n  : await preview_storyboard_design({storyboardId: board.id, expectedStoryboardRevision: directed.revision});\nif (preview.error) throw new Error(preview.error);\nif (layoutModel) {\n  await output(\"timelineId\", preview.timelineId);\n  await output(\"timelineRevision\", preview.timelineRevision);\n} else if (linkedTimeline) {\n  await output(\"timelineId\", linkedTimeline.timeline.id);\n  await output(\"timelineRevision\", linkedTimeline.revision);\n}\nawait output(\"linkedScriptFingerprint\", preview.linkedScriptFingerprint || \"\");\nawait output(\"designPreview\", preview.timeline);\n// A layout the agent could not finish still saves its best cut. The review step shows what it found.\nawait output(\"layoutFindings\", layoutModel && preview.status === \"needs_review\" && Array.isArray(preview.findings) ? preview.findings.map(finding => String(finding)) : []);\nawait output(\"storyboardId\", board.id);\nawait output(\"storyboardRevision\", layoutModel ? preview.storyboardRevision : directed.revision);\nawait output(\"plannedFingerprint\", fingerprint);\nawait output(\"approval\", \"pending\");\nawait output(\"planPreview\", {shots: shots.map(shot => { const existing = existingShots.find(candidate => candidate.slug === shot.slug); const update = updates.find(candidate => candidate.target === existing?.id); const reviewed = existing ? {...existing, ...update} : shot; return {title: reviewed.action, duration: reviewed.duration_seconds, elements: reviewed.graphics?.elements || []}; }), motionDesign: (existingShots.length ? board.motion_design : motion)?.direction || \"\"});\nawait output(\"step\", \"review\");",
+              "timeout": 1800
+            },
+            "ui_properties": {
+              "position": {
+                "x": 360,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {
+              "recipe": null,
+              "contextImage": null,
+              "choiceAImage": null,
+              "choiceBImage": null,
+              "logo": null,
+              "question": null,
+              "choiceA": null,
+              "choiceB": null,
+              "comparePrompt": null,
+              "participationCta": null,
+              "brandColor": null,
+              "storyboardId": null,
+              "storyboardRevision": null,
+              "plannedFingerprint": null,
+              "finishModel": null,
+              "imageModel": null
+            },
+            "dynamic_outputs": {
+              "storyboardId": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "storyboardRevision": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "timelineId": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "timelineRevision": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "linkedScriptFingerprint": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "plannedFingerprint": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "approval": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "planPreview": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "designPreview": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "layoutFindings": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "step": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              }
+            },
+            "dynamic_inputs": {
+              "recipe": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "contextImage": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "choiceAImage": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "choiceBImage": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "logo": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "question": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "choiceA": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "choiceB": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "comparePrompt": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "participationCta": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "brandColor": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "storyboardId": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "storyboardRevision": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "plannedFingerprint": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "finishModel": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "imageModel": {
+                "type": {
+                  "type": "any"
+                }
+              }
+            },
+            "sync_mode": "on_all"
+          },
+          {
+            "id": "out-storyboardId",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "storyboardId"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-storyboardRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "storyboardRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineId",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineId"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-linkedScriptFingerprint",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "linkedScriptFingerprint"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-plannedFingerprint",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "plannedFingerprint"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-approval",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "approval"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-planPreview",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "planPreview"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-designPreview",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "designPreview"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-layoutFindings",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "layoutFindings"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-step",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "step"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "recipe-in",
+            "source": "in-recipe",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "recipe"
+          },
+          {
+            "id": "contextImage-in",
+            "source": "in-contextImage",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "contextImage"
+          },
+          {
+            "id": "choiceAImage-in",
+            "source": "in-choiceAImage",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "choiceAImage"
+          },
+          {
+            "id": "choiceBImage-in",
+            "source": "in-choiceBImage",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "choiceBImage"
+          },
+          {
+            "id": "logo-in",
+            "source": "in-logo",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "logo"
+          },
+          {
+            "id": "question-in",
+            "source": "in-question",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "question"
+          },
+          {
+            "id": "choiceA-in",
+            "source": "in-choiceA",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "choiceA"
+          },
+          {
+            "id": "choiceB-in",
+            "source": "in-choiceB",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "choiceB"
+          },
+          {
+            "id": "comparePrompt-in",
+            "source": "in-comparePrompt",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "comparePrompt"
+          },
+          {
+            "id": "participationCta-in",
+            "source": "in-participationCta",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "participationCta"
+          },
+          {
+            "id": "brandColor-in",
+            "source": "in-brandColor",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "brandColor"
+          },
+          {
+            "id": "storyboardId-in",
+            "source": "in-storyboardId",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "storyboardId"
+          },
+          {
+            "id": "storyboardRevision-in",
+            "source": "in-storyboardRevision",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "storyboardRevision"
+          },
+          {
+            "id": "plannedFingerprint-in",
+            "source": "in-plannedFingerprint",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "plannedFingerprint"
+          },
+          {
+            "id": "finishModel-in",
+            "source": "in-finishModel",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "finishModel"
+          },
+          {
+            "id": "imageModel-in",
+            "source": "in-imageModel",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "imageModel"
+          },
+          {
+            "id": "storyboardId-out",
+            "source": "run",
+            "sourceHandle": "storyboardId",
+            "target": "out-storyboardId",
+            "targetHandle": "value"
+          },
+          {
+            "id": "storyboardRevision-out",
+            "source": "run",
+            "sourceHandle": "storyboardRevision",
+            "target": "out-storyboardRevision",
+            "targetHandle": "value"
+          },
+          {
+            "id": "timelineId-out",
+            "source": "run",
+            "sourceHandle": "timelineId",
+            "target": "out-timelineId",
+            "targetHandle": "value"
+          },
+          {
+            "id": "timelineRevision-out",
+            "source": "run",
+            "sourceHandle": "timelineRevision",
+            "target": "out-timelineRevision",
+            "targetHandle": "value"
+          },
+          {
+            "id": "linkedScriptFingerprint-out",
+            "source": "run",
+            "sourceHandle": "linkedScriptFingerprint",
+            "target": "out-linkedScriptFingerprint",
+            "targetHandle": "value"
+          },
+          {
+            "id": "plannedFingerprint-out",
+            "source": "run",
+            "sourceHandle": "plannedFingerprint",
+            "target": "out-plannedFingerprint",
+            "targetHandle": "value"
+          },
+          {
+            "id": "approval-out",
+            "source": "run",
+            "sourceHandle": "approval",
+            "target": "out-approval",
+            "targetHandle": "value"
+          },
+          {
+            "id": "planPreview-out",
+            "source": "run",
+            "sourceHandle": "planPreview",
+            "target": "out-planPreview",
+            "targetHandle": "value"
+          },
+          {
+            "id": "designPreview-out",
+            "source": "run",
+            "sourceHandle": "designPreview",
+            "target": "out-designPreview",
+            "targetHandle": "value"
+          },
+          {
+            "id": "layoutFindings-out",
+            "source": "run",
+            "sourceHandle": "layoutFindings",
+            "target": "out-layoutFindings",
+            "targetHandle": "value"
+          },
+          {
+            "id": "step-out",
+            "source": "run",
+            "sourceHandle": "step",
+            "target": "out-step",
+            "targetHandle": "value"
+          }
+        ]
+      }
+    },
+    {
+      "key": "finish",
+      "name": "Build editable cut",
+      "description": "Runs “Build editable cut” as a job, so its agent is not bound by the script time limit.",
+      "version": 1,
+      "graphHash": null,
+      "graph": {
+        "nodes": [
+          {
+            "id": "in-recipe",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "recipe",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-recipeOperationId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "recipeOperationId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-contextImage",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "contextImage",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-choiceAImage",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "choiceAImage",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-choiceBImage",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "choiceBImage",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-logo",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "logo",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-question",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "question",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-choiceA",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "choiceA",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-choiceB",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "choiceB",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-comparePrompt",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "comparePrompt",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-participationCta",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "participationCta",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-brandColor",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "brandColor",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-finishStrategy",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "finishStrategy",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-finishModel",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "finishModel",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardRevision",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardRevision",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-linkedScriptFingerprint",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "linkedScriptFingerprint",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-timelineId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "timelineId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-timelineRevision",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "timelineRevision",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-approval",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "approval",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-plannedFingerprint",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "plannedFingerprint",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "run",
+            "type": "nodetool.code.Code",
+            "data": {
+              "code": "const selectedModel = inputs.finishModel;\nif (!selectedModel?.provider?.trim() || !selectedModel?.id?.trim()) throw new Error(\"Select a finishing model before planning.\");\ninputs.finishModel = {provider: selectedModel.provider, id: selectedModel.id};\ninputs.recipe = {...inputs.recipe, operations: inputs.recipe.operations.map(operation => operation.intent === \"finish_storyboard\" ? {...operation, model: inputs.finishModel} : operation)};\nimport { finish_storyboard, get_storyboard } from \"@nodetool-ai/sandbox-nodetool/storyboards\";\nconst fingerprint = JSON.stringify([inputs.recipe, ...inputs.recipe.inputs.map(input => inputs[input.id])]);\nif (inputs.approval !== \"approved\") throw new Error(\"Approve the plan before building.\");\nif (inputs.plannedFingerprint !== fingerprint) throw new Error(\"Inputs changed after planning. Plan and approve again.\");\nconst declaredOperation = inputs.recipe.operations.find(operation => operation.id === inputs.recipeOperationId);\nif (!declaredOperation || declaredOperation.intent !== \"finish_storyboard\") throw new Error(\"Finishing operation is absent from the approved Recipe.\");\nconst declaredStrategy = declaredOperation.strategy || \"deterministic\";\nif (inputs.finishStrategy !== undefined && inputs.finishStrategy !== declaredStrategy) throw new Error(\"Finish strategy differs from the approved Recipe.\");\nif (declaredStrategy === \"agentic\" && inputs.finishStrategy !== \"agentic\") throw new Error(\"Agentic strategy must be explicitly bound.\");\nif (declaredStrategy === \"agentic\" && (!inputs.finishModel || JSON.stringify(inputs.finishModel) !== JSON.stringify(declaredOperation.model))) throw new Error(\"Agentic finishing requires the approved provider and model.\");\nif (inputs.finishModel !== undefined && JSON.stringify(inputs.finishModel) !== JSON.stringify(declaredOperation.model)) throw new Error(\"Finish model differs from the approved Recipe.\");\nconst current = await get_storyboard({storyboard_id: inputs.storyboardId});\nif (current.error) throw new Error(current.error);\nif (current.revision !== inputs.storyboardRevision) {\n  await output(\"approval\", \"pending\");\n  throw new Error(\"Storyboard revision conflict. Refresh and approve the edited Storyboard before building.\");\n}\nconst result = await finish_storyboard({storyboardId: inputs.storyboardId, expectedStoryboardRevision: inputs.storyboardRevision, ...(inputs.linkedScriptFingerprint ? {expectedLinkedScriptFingerprint: inputs.linkedScriptFingerprint} : {}), ...(inputs.finishStrategy ? {strategy: inputs.finishStrategy} : {}), ...(inputs.finishModel ? {model: inputs.finishModel} : {}), ...(inputs.timelineId ? {timelineId: inputs.timelineId, expectedTimelineRevision: inputs.timelineRevision} : {})});\nif (result.error) throw new Error(result.error);\nawait output(\"timelineId\", result.timelineId);\nawait output(\"timelineRevision\", result.timelineRevision);\nawait output(\"storyboardRevision\", result.storyboardRevision);\nawait output(\"timeline\", {type: \"timeline\", id: result.timelineId});\nawait output(\"validation\", result.validation);\nawait output(\"reviews\", result.reviews || []);\nawait output(\"finishStatus\", result.status === \"reviewed_finished\" ? \"Reviewed finished cut\" : \"Unreviewed editable draft\");\nawait output(\"approval\", \"pending\");\nawait output(\"step\", \"result\");",
+              "timeout": 1800
+            },
+            "ui_properties": {
+              "position": {
+                "x": 360,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {
+              "recipe": null,
+              "recipeOperationId": null,
+              "contextImage": null,
+              "choiceAImage": null,
+              "choiceBImage": null,
+              "logo": null,
+              "question": null,
+              "choiceA": null,
+              "choiceB": null,
+              "comparePrompt": null,
+              "participationCta": null,
+              "brandColor": null,
+              "finishStrategy": null,
+              "finishModel": null,
+              "storyboardId": null,
+              "storyboardRevision": null,
+              "linkedScriptFingerprint": null,
+              "timelineId": null,
+              "timelineRevision": null,
+              "approval": null,
+              "plannedFingerprint": null
+            },
+            "dynamic_outputs": {
+              "approval": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "finishStatus": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "timelineId": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "timelineRevision": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "storyboardRevision": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "timeline": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "validation": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "reviews": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              },
+              "step": {
+                "type": "any",
+                "type_args": [],
+                "optional": true
+              }
+            },
+            "dynamic_inputs": {
+              "recipe": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "recipeOperationId": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "contextImage": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "choiceAImage": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "choiceBImage": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "logo": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "question": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "choiceA": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "choiceB": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "comparePrompt": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "participationCta": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "brandColor": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "finishStrategy": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "finishModel": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "storyboardId": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "storyboardRevision": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "linkedScriptFingerprint": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "timelineId": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "timelineRevision": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "approval": {
+                "type": {
+                  "type": "any"
+                }
+              },
+              "plannedFingerprint": {
+                "type": {
+                  "type": "any"
+                }
+              }
+            },
+            "sync_mode": "on_all"
+          },
+          {
+            "id": "out-approval",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "approval"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-finishStatus",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "finishStatus"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineId",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineId"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-storyboardRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "storyboardRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timeline",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timeline"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-validation",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "validation"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-reviews",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "reviews"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-step",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "step"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "recipe-in",
+            "source": "in-recipe",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "recipe"
+          },
+          {
+            "id": "recipeOperationId-in",
+            "source": "in-recipeOperationId",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "recipeOperationId"
+          },
+          {
+            "id": "contextImage-in",
+            "source": "in-contextImage",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "contextImage"
+          },
+          {
+            "id": "choiceAImage-in",
+            "source": "in-choiceAImage",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "choiceAImage"
+          },
+          {
+            "id": "choiceBImage-in",
+            "source": "in-choiceBImage",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "choiceBImage"
+          },
+          {
+            "id": "logo-in",
+            "source": "in-logo",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "logo"
+          },
+          {
+            "id": "question-in",
+            "source": "in-question",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "question"
+          },
+          {
+            "id": "choiceA-in",
+            "source": "in-choiceA",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "choiceA"
+          },
+          {
+            "id": "choiceB-in",
+            "source": "in-choiceB",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "choiceB"
+          },
+          {
+            "id": "comparePrompt-in",
+            "source": "in-comparePrompt",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "comparePrompt"
+          },
+          {
+            "id": "participationCta-in",
+            "source": "in-participationCta",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "participationCta"
+          },
+          {
+            "id": "brandColor-in",
+            "source": "in-brandColor",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "brandColor"
+          },
+          {
+            "id": "finishStrategy-in",
+            "source": "in-finishStrategy",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "finishStrategy"
+          },
+          {
+            "id": "finishModel-in",
+            "source": "in-finishModel",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "finishModel"
+          },
+          {
+            "id": "storyboardId-in",
+            "source": "in-storyboardId",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "storyboardId"
+          },
+          {
+            "id": "storyboardRevision-in",
+            "source": "in-storyboardRevision",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "storyboardRevision"
+          },
+          {
+            "id": "linkedScriptFingerprint-in",
+            "source": "in-linkedScriptFingerprint",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "linkedScriptFingerprint"
+          },
+          {
+            "id": "timelineId-in",
+            "source": "in-timelineId",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "timelineId"
+          },
+          {
+            "id": "timelineRevision-in",
+            "source": "in-timelineRevision",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "timelineRevision"
+          },
+          {
+            "id": "approval-in",
+            "source": "in-approval",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "approval"
+          },
+          {
+            "id": "plannedFingerprint-in",
+            "source": "in-plannedFingerprint",
+            "sourceHandle": "output",
+            "target": "run",
+            "targetHandle": "plannedFingerprint"
+          },
+          {
+            "id": "approval-out",
+            "source": "run",
+            "sourceHandle": "approval",
+            "target": "out-approval",
+            "targetHandle": "value"
+          },
+          {
+            "id": "finishStatus-out",
+            "source": "run",
+            "sourceHandle": "finishStatus",
+            "target": "out-finishStatus",
+            "targetHandle": "value"
+          },
+          {
+            "id": "timelineId-out",
+            "source": "run",
+            "sourceHandle": "timelineId",
+            "target": "out-timelineId",
+            "targetHandle": "value"
+          },
+          {
+            "id": "timelineRevision-out",
+            "source": "run",
+            "sourceHandle": "timelineRevision",
+            "target": "out-timelineRevision",
+            "targetHandle": "value"
+          },
+          {
+            "id": "storyboardRevision-out",
+            "source": "run",
+            "sourceHandle": "storyboardRevision",
+            "target": "out-storyboardRevision",
+            "targetHandle": "value"
+          },
+          {
+            "id": "timeline-out",
+            "source": "run",
+            "sourceHandle": "timeline",
+            "target": "out-timeline",
+            "targetHandle": "value"
+          },
+          {
+            "id": "validation-out",
+            "source": "run",
+            "sourceHandle": "validation",
+            "target": "out-validation",
+            "targetHandle": "value"
+          },
+          {
+            "id": "reviews-out",
+            "source": "run",
+            "sourceHandle": "reviews",
+            "target": "out-reviews",
+            "targetHandle": "value"
+          },
+          {
+            "id": "step-out",
+            "source": "run",
+            "sourceHandle": "step",
+            "target": "out-step",
+            "targetHandle": "value"
+          }
+        ]
+      }
+    },
+    {
+      "key": "suggest",
+      "name": "Suggest Binary-choice participation card ad options",
+      "description": "Read one website and write three ways to fill the ad, with image picks.",
+      "version": null,
+      "graphHash": null,
+      "graph": {
+        "nodes": [
+          {
+            "id": "in-sourceUrl",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "sourceUrl",
+              "value": "",
+              "description": "The product or brand page to read."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-model",
+            "type": "nodetool.input.LanguageModelInput",
+            "data": {
+              "name": "model",
+              "value": {
+                "type": "language_model",
+                "provider": "",
+                "id": "",
+                "name": ""
+              },
+              "description": "The model the agent runs on."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "suggest",
+            "type": "nodetool.code.Code",
+            "data": {
+              "code": "import { run_agent } from \"@nodetool-ai/sandbox-nodetool/agents\";\nimport { browser } from \"@nodetool-ai/sandbox-nodetool/web\";\nconst brief = inputs.brief;\nconst model = inputs.model;\nif (!model?.provider?.trim() || !model?.id?.trim()) throw new Error(\"Select the finishing model on the Start step first. The agent uses it too.\");\nconst text = (value) => typeof value === \"string\" ? value.trim() : \"\";\n// A bare domain such as \"shop.example\" gets https:// in front.\nconst typed = text(inputs.sourceUrl);\nconst url = !typed || /^[a-z][a-z0-9+.-]*:/i.test(typed) ? typed : \"https://\" + typed.replace(/^\\/+/, \"\");\nif (!/^https?:\\/\\/[^\\s/]+\\.[^\\s]/.test(url)) throw new Error(\"Paste a website URL, such as your-product.com.\");\nprogress(10, \"Reading the website\");\nconst page = String(await browser({url}));\nif (page.startsWith(\"Error:\")) throw new Error(\"Could not read the website. \" + page.slice(6).trim());\n// The readable text drops images, so collect them from the page's HTML.\nconst candidates = [];\ntry {\n  const html = await (await fetch(url)).text();\n  const absolute = (src) => { try { return new URL(src.trim(), url).href; } catch { return \"\"; } };\n  const attr = (tag, name) => (tag.match(new RegExp(\"\\\\b\" + name + \"\\\\s*=\\\\s*[\\\"']([^\\\"']+)[\\\"']\", \"i\")) || [])[1] || \"\";\n  const add = (src, note) => { const href = absolute(src); if (href.startsWith(\"http\") && !candidates.some(item => item.url === href)) candidates.push({url: href, note}); };\n  for (const tag of html.match(/<meta\\b[^>]*>/gi) || []) {\n    if (/(og:image|twitter:image)/i.test(attr(tag, \"property\") + attr(tag, \"name\"))) add(attr(tag, \"content\"), \"social preview image\");\n  }\n  for (const tag of html.match(/<link\\b[^>]*>/gi) || []) {\n    if (/icon|logo/i.test(attr(tag, \"rel\"))) add(attr(tag, \"href\"), \"site icon (\" + attr(tag, \"rel\") + \")\");\n  }\n  // A srcset lists sizes, so take its widest entry over the src fallback.\n  const widest = (srcset) => srcset.split(\",\").map(entry => entry.trim().split(/\\s+/)).filter(([src]) => src).sort((a, b) => (parseFloat(b[1]) || 0) - (parseFloat(a[1]) || 0))[0]?.[0] || \"\";\n  for (const tag of html.match(/<img\\b[^>]*>/gi) || []) {\n    const src = widest(attr(tag, \"srcset\") || attr(tag, \"data-srcset\")) || attr(tag, \"data-src\") || attr(tag, \"src\");\n    const size = attr(tag, \"width\") && attr(tag, \"height\") ? \", declared \" + attr(tag, \"width\") + \"x\" + attr(tag, \"height\") : \"\";\n    if (src && !src.startsWith(\"data:\")) add(src, \"img alt=\" + JSON.stringify(attr(tag, \"alt\")) + (/logo/i.test(tag) ? \" logo\" : \"\") + size);\n  }\n} catch (error) {\n  console.log(\"Could not collect images from the page: \" + error);\n}\nconst fieldProperties = Object.fromEntries(brief.fields.map(field => [field.id, {type: \"string\", description: field.label + \": \" + field.purpose + \". At most \" + field.maxWords + \" words.\"}]));\nconst imageProperties = Object.fromEntries(brief.images.map(image => [image.id, {type: \"string\", description: \"Direct URL of an existing image for \" + image.label + \". \" + image.guidance + \" Use an empty string when no image fits.\"}]));\nconst option = {type: \"object\", properties: {\n  title: {type: \"string\", description: \"A name for this direction in 2 to 4 words.\"},\n  angle: {type: \"string\", description: \"One sentence on what this direction emphasizes.\"},\n  brandColor: {type: \"string\", description: \"The brand's main color as #RRGGBB, as the site shows it.\"},\n  fields: {type: \"object\", properties: fieldProperties, required: Object.keys(fieldProperties)},\n  images: {type: \"object\", properties: imageProperties, required: Object.keys(imageProperties)}\n}, required: [\"title\", \"angle\", \"brandColor\", \"fields\", \"images\"]};\nprogress(30, \"Writing three options\");\nconst answer = await run_agent({\n  label: \"suggest\",\n  model: {provider: model.provider, id: model.id},\n  tools: [\"browser\", \"image_search\"],\n  system: \"You are a performance-ad copywriter and art director. Use only facts the website or pages you read state. Never invent prices, discounts, dates, guarantees or claims. When a fact a field needs is missing, write a short placeholder in square brackets, such as [offer end date]. Make the three options clearly different in angle, wording and image choice. For images, choose real, large images of this brand and product: first from the page's image candidates, preferring a large declared size, then with image_search when the page has no fitting image. Give the direct URL of the image file, never a page URL, and never an image of another brand.\",\n  prompt: [\n    \"Write three different options to fill the ad concept \" + JSON.stringify(brief.title) + \" from this website.\",\n    \"Objective: \" + brief.objective,\n    \"Visual rule: \" + brief.direction,\n    \"Beats, in order:\",\n    ...brief.beats.map(beat => \"- \" + beat),\n    \"\",\n    \"Website \" + url + \":\",\n    page.slice(0, 20000),\n    ...(candidates.length ? [\"\", \"Image candidates on the website:\", ...candidates.slice(0, 60).map(item => \"- \" + item.url + \" (\" + item.note + \")\")] : [])\n  ].join(\"\\n\"),\n  output_schema: {type: \"object\", properties: {options: {type: \"array\", minItems: 3, maxItems: 3, items: option}}, required: [\"options\"]},\n  max_turns: 40\n});\n// Copy is kept verbatim, so an HTML entity the model echoes from a page would show in the ad.\nconst decode = (value) => text(value).replace(/&lt;/g, \"<\").replace(/&gt;/g, \">\").replace(/&quot;/g, \"\\\"\").replace(/&#39;/g, \"'\").replace(/&amp;/g, \"&\");\nconst options = (Array.isArray(answer.result?.options) ? answer.result.options : []).slice(0, 3).map((raw, index) => {\n  const fields = Object.fromEntries(brief.fields.map(field => [field.id, decode(raw?.fields?.[field.id])]));\n  const images = Object.fromEntries(brief.images.map(image => [image.id, /^https?:\\/\\//.test(text(raw?.images?.[image.id])) ? text(raw.images[image.id]) : \"\"]));\n  const color = text(raw?.brandColor);\n  const preview = brief.images.map(image => images[image.id]).find(Boolean);\n  return {\n    value: String(index + 1),\n    title: decode(raw?.title) || \"Option \" + (index + 1),\n    description: [decode(raw?.angle), ...brief.fields.slice(0, 2).map(field => \"“\" + fields[field.id] + \"”\")].filter(Boolean).join(\" \"),\n    ...(preview ? {image: preview} : {}),\n    brandColor: /^#[0-9a-fA-F]{6}$/.test(color) ? color.toUpperCase() : \"\",\n    fields,\n    images\n  };\n});\nif (!options.length) throw new Error(\"The agent returned no options. Try again, or try another page of the site.\");\nawait output(\"fillOptions\", options);\nawait output(\"fillChoice\", \"\");\nawait output(\"fillReport\", \"\");\nprogress(100, \"Pick one option.\");",
+              "timeout": 1800
+            },
+            "ui_properties": {
+              "position": {
+                "x": 360,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {
+              "brief": {
+                "title": "Binary-choice participation card",
+                "objective": "Invite a clear A/B response without pretending an MP4 is interactive.",
+                "direction": "The two choices have equal visual weight and remain visible long enough to answer.",
+                "beats": [
+                  "0–2 s: Context image and one short question. Shows Brand color, Context image, Question.",
+                  "2–4 s: Left/top card appears with a simple visual. Shows Brand color, Choice A, Choice A text.",
+                  "4–6 s: Right/bottom card appears in the matching treatment. Shows Brand color, Choice B, Choice B text.",
+                  "6–8 s: Both choices are shown together. Shows Brand color, Choice A, Choice B, Compare prompt.",
+                  "8–10 s: Explicit instruction: comment A/B, or use a configured native poll. Shows Brand color, Choice A, Choice B, Logo, Participation call to action."
+                ],
+                "fields": [
+                  {
+                    "id": "question",
+                    "label": "Question",
+                    "purpose": "question",
+                    "maxWords": 7
+                  },
+                  {
+                    "id": "choiceA",
+                    "label": "Choice A text",
+                    "purpose": "choice a",
+                    "maxWords": 7
+                  },
+                  {
+                    "id": "choiceB",
+                    "label": "Choice B text",
+                    "purpose": "choice b",
+                    "maxWords": 7
+                  },
+                  {
+                    "id": "comparePrompt",
+                    "label": "Compare prompt",
+                    "purpose": "compare",
+                    "maxWords": 7
+                  },
+                  {
+                    "id": "participationCta",
+                    "label": "Participation call to action",
+                    "purpose": "cta",
+                    "maxWords": 8
+                  }
+                ],
+                "images": [
+                  {
+                    "id": "contextImage",
+                    "label": "Context image",
+                    "role": "decorative",
+                    "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Context image and one short question."
+                  },
+                  {
+                    "id": "choiceAImage",
+                    "label": "Choice A",
+                    "role": "decorative",
+                    "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Left/top card appears with a simple visual. | Both choices are shown together. | Explicit instruction: comment A/B, or use a configured native poll."
+                  },
+                  {
+                    "id": "choiceBImage",
+                    "label": "Choice B",
+                    "role": "decorative",
+                    "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Right/bottom card appears in the matching treatment. | Both choices are shown together. | Explicit instruction: comment A/B, or use a configured native poll."
+                  },
+                  {
+                    "id": "logo",
+                    "label": "Logo",
+                    "role": "logo",
+                    "guidance": "The brand's own logo file, such as the site header logo or its icon. Shown in: Explicit instruction: comment A/B, or use a configured native poll."
+                  }
+                ]
+              },
+              "sourceUrl": "",
+              "model": {
+                "type": "language_model",
+                "provider": "",
+                "id": "",
+                "name": ""
+              }
+            },
+            "dynamic_outputs": {
+              "fillOptions": {
+                "type": "list",
+                "type_args": [],
+                "optional": false
+              },
+              "fillChoice": {
+                "type": "str",
+                "type_args": [],
+                "optional": false
+              },
+              "fillReport": {
+                "type": "str",
+                "type_args": [],
+                "optional": false
+              }
+            },
+            "dynamic_inputs": {
+              "brief": {
+                "type": {
+                  "type": "dict"
+                }
+              },
+              "sourceUrl": {
+                "type": {
+                  "type": "str"
+                }
+              },
+              "model": {
+                "type": {
+                  "type": "language_model"
+                }
+              }
+            },
+            "sync_mode": "on_all"
+          },
+          {
+            "id": "out-fillOptions",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "fillOptions"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-fillChoice",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "fillChoice"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-fillReport",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "fillReport"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": [
+          {
+            "id": "url-to-suggest",
+            "source": "in-sourceUrl",
+            "sourceHandle": "output",
+            "target": "suggest",
+            "targetHandle": "sourceUrl"
+          },
+          {
+            "id": "model-to-suggest",
+            "source": "in-model",
+            "sourceHandle": "output",
+            "target": "suggest",
+            "targetHandle": "model"
+          },
+          {
+            "id": "suggest-to-fillOptions",
+            "source": "suggest",
+            "sourceHandle": "fillOptions",
+            "target": "out-fillOptions",
+            "targetHandle": "value"
+          },
+          {
+            "id": "suggest-to-fillChoice",
+            "source": "suggest",
+            "sourceHandle": "fillChoice",
+            "target": "out-fillChoice",
+            "targetHandle": "value"
+          },
+          {
+            "id": "suggest-to-fillReport",
+            "source": "suggest",
+            "sourceHandle": "fillReport",
+            "target": "out-fillReport",
+            "targetHandle": "value"
+          }
+        ]
+      }
+    }
+  ],
+  "scripts": [
+    {
+      "key": "apply_ad_option-v1",
+      "name": "Fill the ad from the picked option",
+      "version": 1,
+      "document": {
+        "schemaVersion": 1,
+        "code": "import { save_asset } from \"@nodetool-ai/sandbox-nodetool/assets\";\nconst brief = inputs.brief;\nconst option = (Array.isArray(inputs.options) ? inputs.options : []).find(item => item.value === inputs.choice);\nif (!option) throw new Error(\"Pick one of the suggested options.\");\nfor (const field of brief.fields) {\n  if (option.fields?.[field.id]) await output(field.id, option.fields[field.id]);\n}\nif (option.brandColor) await output(\"brandColor\", option.brandColor);\nconst missing = [];\nconst tooSmall = [];\nfor (const wanted of brief.images) {\n  const source = option.images?.[wanted.id] || \"\";\n  if (!source) { missing.push(wanted.label); continue; }\n  progress(20, \"Saving \" + wanted.label);\n  try {\n    const saved = await save_asset({name: wanted.label + \" from \" + source.split(\"/\").pop().split(\"?\")[0], source});\n    if (!saved?.asset_id || !String(saved.content_type || \"\").startsWith(\"image/\")) throw new Error(\"not an image\");\n    if (saved.content_type !== \"image/svg+xml\") {\n      const {width, height} = await image.info(await media.bytes({type: \"image\", uri: \"asset://\" + saved.asset_id}));\n      if (Math.min(width, height) < (wanted.role === \"logo\" ? 100 : 400)) {\n        tooSmall.push(wanted.label + \" (\" + width + \"x\" + height + \")\");\n        continue;\n      }\n    }\n    await output(wanted.id, {type: \"image\", uri: \"asset://\" + saved.asset_id, asset_id: saved.asset_id});\n  } catch (error) {\n    console.log(\"Could not save \" + wanted.label + \" from \" + source + \": \" + error);\n    missing.push(wanted.label);\n  }\n}\nconst report = [\n  ...(missing.length ? [\"No usable image found for: \" + missing.join(\", \") + \".\"] : []),\n  ...(tooSmall.length ? [\"Only images too small for the ad were found for: \" + tooSmall.join(\", \") + \".\"] : [])\n];\nawait output(\"fillReport\", report.length ? report.join(\" \") + \" Upload these yourself.\" : \"Filled from \" + option.title + \". Check every field before you plan.\");\nawait output(\"approval\", \"pending\");",
+        "inputs": [
+          {
+            "name": "brief",
+            "type": "dict"
+          },
+          {
+            "name": "options",
+            "type": "list[dict]"
+          },
+          {
+            "name": "choice",
+            "type": "str"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "question",
+            "type": "str"
+          },
+          {
+            "name": "choiceA",
+            "type": "str"
+          },
+          {
+            "name": "choiceB",
+            "type": "str"
+          },
+          {
+            "name": "comparePrompt",
+            "type": "str"
+          },
+          {
+            "name": "participationCta",
+            "type": "str"
+          },
+          {
+            "name": "brandColor",
+            "type": "str"
+          },
+          {
+            "name": "contextImage",
+            "type": "image"
+          },
+          {
+            "name": "choiceAImage",
+            "type": "image"
+          },
+          {
+            "name": "choiceBImage",
+            "type": "image"
+          },
+          {
+            "name": "logo",
+            "type": "image"
+          },
+          {
+            "name": "fillReport",
+            "type": "str"
+          },
+          {
+            "name": "approval",
+            "type": "str"
+          }
+        ],
+        "packages": [],
+        "secrets": [],
+        "timeoutSeconds": 120,
+        "tests": []
+      }
+    }
+  ]
+}

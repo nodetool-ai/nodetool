@@ -1,4 +1,5 @@
 import { createHash } from "node:crypto";
+import { loadImage } from "@napi-rs/canvas";
 import { z } from "zod";
 import type { StoryboardDocument, TimelineSequence } from "@nodetool-ai/models";
 import {
@@ -25,6 +26,10 @@ import {
   STAGGER_UNITS,
   DEFAULT_BEAT_TOLERANCE_MS,
   buildStoryboardDesignFrame,
+  makeClip,
+  makeTrack,
+  getAnimationPreset,
+  resolvePresetParams,
   validateProducedTimeline,
   stampStoryboardMaterializationBaseline,
   type FinishStoryboardInput,
@@ -55,6 +60,51 @@ export interface FinishedCutRuntime {
   readonly model: string;
   readonly budget?: TurnBudget | RunBudget;
 }
+
+/**
+ * What one agentic pass authors. "layout" composes the static frame of every
+ * shot and may generate decoration; "finish" authors the motion.
+ */
+export interface FinishedCutOptions {
+  readonly phase?: "layout" | "finish";
+  /** The image model a layout pass generates backgrounds and decoration with. */
+  readonly imageModel?: { readonly provider: string; readonly id: string };
+}
+
+/** A generated image the layout pass added to a shot as a decorative element. */
+export interface StoryboardDecoration {
+  readonly shotId: string;
+  readonly element: {
+    id: string;
+    kind: "asset";
+    role: "decorative";
+    asset_id: string;
+    direction: string;
+    origin: "layout_agent";
+  };
+}
+
+/** The words of a review finding that name the defect, without numbers or short words. */
+const defectWords = (finding: string): Set<string> =>
+  new Set(finding.toLowerCase().match(/[a-z]{4,}/g) ?? []);
+
+/**
+ * Whether two rounds report the same defects. A reviewer rewords a finding
+ * each round, so findings match when they share at least half their words.
+ */
+function sameDefects(previous: readonly string[], current: readonly string[]): boolean {
+  const before = previous.map(defectWords);
+  return current.length === previous.length && current.map(defectWords).every((words) =>
+    before.some((other) => {
+      const shared = [...words].filter((word) => other.has(word)).length;
+      const union = new Set([...words, ...other]).size;
+      return union > 0 && shared / union >= 0.5;
+    })
+  );
+}
+
+/** Generated decorations one layout pass may add, across the whole cut. */
+const MAX_DECORATIONS = 8;
 
 export interface FinishedCutReview {
   readonly round: number;
@@ -173,6 +223,137 @@ function sourceWindowConflict(
   return undefined;
 }
 
+/**
+ * The authored placement fields of a storyboard graphic element. The element
+ * schema passes unknown keys through, so they are read through this local shape.
+ */
+interface AuthoredPlacement {
+  readonly frame?: unknown;
+  readonly typography?: unknown;
+  readonly lock: readonly string[];
+  readonly limits: { x?: number; y?: number; scale?: number };
+}
+
+function authoredPlacement(element: unknown): AuthoredPlacement | undefined {
+  if (!isRecord(element)) {
+    return undefined;
+  }
+  const lock = Array.isArray(element["lock"])
+    ? element["lock"].filter((value): value is string => typeof value === "string")
+    : [];
+  const limits: { x?: number; y?: number; scale?: number } = {};
+  const rawLimits = element["limits"];
+  if (isRecord(rawLimits)) {
+    for (const key of ["x", "y", "scale"] as const) {
+      const value = rawLimits[key];
+      if (typeof value === "number" && Number.isFinite(value)) {
+        limits[key] = value;
+      }
+    }
+  }
+  const { frame, typography } = element;
+  if (
+    frame === undefined &&
+    typography === undefined &&
+    !lock.length &&
+    !Object.keys(limits).length
+  ) {
+    return undefined;
+  }
+  return { frame, typography, lock, limits };
+}
+
+function frameBox(placement: AuthoredPlacement): number[] | undefined {
+  const frame = placement.frame;
+  const box = isRecord(frame) ? frame["box"] : undefined;
+  return Array.isArray(box) && box.every((value) => typeof value === "number")
+    ? (box as number[])
+    : undefined;
+}
+
+/** Properties a moving animation drives, by the placement property it breaks. */
+const POSITION_PROPERTIES = new Set(["offsetX", "offsetY", "positionX", "positionY", "anchorX", "anchorY"]);
+const SCALE_PROPERTIES = new Set(["scale", "scaleX", "scaleY"]);
+
+/** The properties one animation drives, or undefined when they cannot be known. */
+function animatedProperties(
+  animation: NonNullable<TimelineClip["animations"]>[number],
+  canvas: { width: number; height: number }
+): Set<string> | undefined {
+  const properties = new Set<string>();
+  for (const track of animation.styleTracks ?? []) {
+    properties.add(track.target);
+  }
+  if (animation.preset === "custom") {
+    const curves = animation.custom?.curves;
+    if (!Array.isArray(curves)) {
+      return undefined;
+    }
+    for (const curve of curves) {
+      properties.add(curve.property);
+    }
+    return properties;
+  }
+  const preset = getAnimationPreset(animation.preset);
+  if (!preset) {
+    return undefined;
+  }
+  try {
+    for (const curve of preset.curves(
+      resolvePresetParams(preset, animation.params),
+      canvas,
+      animation.role,
+      animation.durationMs
+    )) {
+      properties.add(curve.property);
+    }
+  } catch {
+    return undefined;
+  }
+  return properties;
+}
+
+const POSITION_EPSILON_PX = 0.5;
+const RATIO_EPSILON = 0.001;
+
+/**
+ * A clip's position and scale in frame space: the parent chain composed into
+ * its own transform. Rotation and anchor of a parent are not applied.
+ */
+function worldTransform(
+  clips: ReadonlyMap<string, TimelineClip>,
+  clip: TimelineClip
+): { x: number; y: number; sx: number; sy: number } {
+  const own = clip.transform;
+  const local = {
+    x: own?.position.x ?? 0,
+    y: own?.position.y ?? 0,
+    sx: own?.scale.x ?? 1,
+    sy: own?.scale.y ?? 1
+  };
+  const seen = new Set<string>([clip.id]);
+  let parent = clip.parentId ? clips.get(clip.parentId) : undefined;
+  while (parent && !seen.has(parent.id)) {
+    seen.add(parent.id);
+    const group = parent.transform;
+    const gsx = group?.scale.x ?? 1;
+    const gsy = group?.scale.y ?? 1;
+    local.x = (group?.position.x ?? 0) + gsx * local.x;
+    local.y = (group?.position.y ?? 0) + gsy * local.y;
+    local.sx *= gsx;
+    local.sy *= gsy;
+    parent = parent.parentId ? clips.get(parent.parentId) : undefined;
+  }
+  return local;
+}
+
+const cropInsets = (clip: TimelineClip): [number, number, number, number] => [
+  clip.crop?.left ?? 0,
+  clip.crop?.top ?? 0,
+  clip.crop?.right ?? 0,
+  clip.crop?.bottom ?? 0
+];
+
 /** Existing authored presentation survives while semantic source truth is refreshed. */
 function reuseAcceptedPresentation(
   input: FinishStoryboardInput,
@@ -259,18 +440,29 @@ export async function finishStoryboardAgentically(
   board: StoryboardDocument,
   sequence: TimelineSequence,
   scaffold: FinishedStoryboardDocument,
-  runtime: FinishedCutRuntime
+  runtime: FinishedCutRuntime,
+  options: FinishedCutOptions = {}
 ): Promise<{
   document: FinishedStoryboardDocument;
   reviews: FinishedCutReview[];
   costUsd: number;
+  decorations: StoryboardDecoration[];
+  /** Layout only: every hard check passed, the visual review still has findings. */
+  needsReview?: boolean;
+  findings?: string[];
 }> {
   const initialCost = runtime.provider.getTotalCost();
-  const needsInitialAuthoring = !input.current;
+  const layoutPhase = options.phase === "layout";
+  const priorStage = input.current?.storyboardMaterializations?.find(
+    (entry) => entry.boardId === input.boardId
+  )?.stage;
+  // A cut that holds only the planned layout still needs its motion, so the
+  // finish must author it rather than accept the cut as it is.
+  const motionPending = !layoutPhase && priorStage === "layout";
+  const needsInitialAuthoring = !input.current || motionPending;
   const manualEdits = (input.current?.clips ?? [])
     .map((clip) => ({ clipId: clip.id, name: clip.name, fields: manualFields(clip) }))
     .filter((edit) => edit.fields.length > 0);
-  const scaffoldComposition = composition(scaffold);
   if (input.shots.length === 0 || input.shots.length > 24) {
     throw new Error(
       "Agentic finishing supports 1–24 shots per reviewed cut. Split a larger board before finishing."
@@ -278,6 +470,8 @@ export async function finishStoryboardAgentically(
   }
   const signal = run.signal ?? run.context.signal;
   let document = reuseAcceptedPresentation(input, scaffold);
+  // What the agent starts from: the scaffold, or the accepted layout it keeps.
+  const startComposition = composition(document);
   const preflightPolicy = validateProducedTimeline(input, document);
   const preflightStructure = validateTimelineSequence(document, {
     fps: sequence.fps,
@@ -292,12 +486,140 @@ export async function finishStoryboardAgentically(
   const reviews: FinishedCutReview[] = [];
   let feedback: unknown = [];
   const initial = new Map(scaffold.clips.map((clip) => [clip.id, clip]));
+  // Image layers this pass generated, by clip id. They are new source media,
+  // so the board gains a matching decorative element when the cut is saved.
+  const generated = new Map<string, StoryboardDecoration>();
   const windows = input.shots.map((shot) => {
     const clips = scaffold.clips.filter((clip) => clip.storyboardShotId === shot.id);
     const start = Math.min(...clips.map((clip) => clip.startMs));
     const end = Math.max(...clips.map((clip) => clip.startMs + clip.durationMs));
     return { shotId: shot.id, start, duration: end - start };
   });
+  // Authored placements by `shot/element`. The scaffold is the baseline for
+  // every lock and limit, never the previous candidate.
+  const placements = new Map<string, AuthoredPlacement>();
+  for (const shot of input.shots) {
+    for (const element of activeStoryboardGraphics(shot)) {
+      const placement = authoredPlacement(element);
+      if (placement && (placement.lock.length || Object.keys(placement.limits).length)) {
+        placements.set(`${shot.id}/${element.id}`, placement);
+      }
+    }
+  }
+  const startAnimations = new Map(
+    document.clips.map((clip) => [
+      clip.id,
+      new Set((clip.animations ?? []).map(({ id: _id, ...animation }) => json(animation)))
+    ])
+  );
+  const assertAuthoredPlacements = (
+    candidate: FinishedStoryboardDocument
+  ): void => {
+    if (!placements.size) {
+      return;
+    }
+    const baseline = new Map(scaffold.clips.map((clip) => [clip.id, clip]));
+    const after = new Map(candidate.clips.map((clip) => [clip.id, clip]));
+    const fixed = (value: number): string => String(Math.round(value * 1000) / 1000);
+    for (const clip of candidate.clips) {
+      const placement = placements.get(`${clip.storyboardShotId}/${clip.storyboardElementId}`);
+      const base = baseline.get(clip.id);
+      if (!placement || !base) {
+        continue;
+      }
+      const name = `${clip.storyboardShotId}/${clip.storyboardElementId}`;
+      const was = worldTransform(baseline, base);
+      const now = worldTransform(after, clip);
+      const dx = now.x - was.x;
+      const dy = now.y - was.y;
+      const ratioX = was.sx ? now.sx / was.sx : 1;
+      const ratioY = was.sy ? now.sy / was.sy : 1;
+      const locked = new Set(placement.lock);
+      const fail = (property: string, detail: string): never => {
+        throw new Error(
+          `Authored placement violated on ${name}: ${property} ${detail} Restore the authored value and edit only what the placement allows.`
+        );
+      };
+      if (locked.has("position")) {
+        for (const [axis, delta, authored] of [["x", dx, was.x], ["y", dy, was.y]] as const) {
+          if (Math.abs(delta) > POSITION_EPSILON_PX) {
+            fail(
+              `position.${axis}`,
+              `is locked at the authored value ${fixed(authored)}px, but the candidate has ${fixed(authored + delta)}px (limit: no change).`
+            );
+          }
+        }
+      }
+      if (locked.has("scale")) {
+        for (const [axis, ratio, authored] of [["x", ratioX, was.sx], ["y", ratioY, was.sy]] as const) {
+          if (Math.abs(ratio - 1) > RATIO_EPSILON) {
+            fail(
+              `scale.${axis}`,
+              `is locked at the authored value ${fixed(authored)}, but the candidate has ${fixed(authored * ratio)} (limit: no change).`
+            );
+          }
+        }
+      }
+      if (locked.has("crop")) {
+        const authored = cropInsets(base);
+        const value = cropInsets(clip);
+        const names = ["left", "top", "right", "bottom"];
+        value.forEach((inset, index) => {
+          if (Math.abs(inset - authored[index]) > RATIO_EPSILON) {
+            fail(
+              `crop.${names[index]}`,
+              `is locked at the authored value ${fixed(authored[index])}, but the candidate has ${fixed(inset)} (limit: no change).`
+            );
+          }
+        });
+      }
+      const { x: limitX, y: limitY, scale: limitScale } = placement.limits;
+      if (limitX !== undefined && Math.abs(dx) / input.width > limitX + 1e-6) {
+        fail(
+          "position.x",
+          `moved ${fixed(dx)}px from the authored ${fixed(was.x)}px, which is ${fixed(Math.abs(dx) / input.width)} of the frame width. The limit is ${limitX}.`
+        );
+      }
+      if (limitY !== undefined && Math.abs(dy) / input.height > limitY + 1e-6) {
+        fail(
+          "position.y",
+          `moved ${fixed(dy)}px from the authored ${fixed(was.y)}px, which is ${fixed(Math.abs(dy) / input.height)} of the frame height. The limit is ${limitY}.`
+        );
+      }
+      if (limitScale !== undefined) {
+        for (const [axis, ratio, authored] of [["x", ratioX, was.sx], ["y", ratioY, was.sy]] as const) {
+          if (Math.abs(ratio - 1) > limitScale + 1e-6) {
+            fail(
+              `scale.${axis}`,
+              `changed from the authored ${fixed(authored)} to ${fixed(authored * ratio)}, a ratio change of ${fixed(Math.abs(ratio - 1))}. The limit is ${limitScale}.`
+            );
+          }
+        }
+      }
+      if (!layoutPhase && (locked.has("position") || locked.has("scale"))) {
+        for (const animation of clip.animations ?? []) {
+          const { id: _id, ...rest } = animation;
+          if (startAnimations.get(clip.id)?.has(json(rest))) {
+            continue;
+          }
+          const properties = animatedProperties(animation, { width: input.width, height: input.height });
+          const moves = properties
+            ? [...properties].filter(
+                (property) =>
+                  (locked.has("position") && POSITION_PROPERTIES.has(property)) ||
+                  (locked.has("scale") && SCALE_PROPERTIES.has(property))
+              )
+            : undefined;
+          if (!moves || moves.length) {
+            fail(
+              `animation ${animation.preset}`,
+              `would ${moves ? `drive ${moves.join(", ")}` : "drive properties that cannot be determined"}, but this placement is locked. A locked layer takes only opacity animations such as fade.`
+            );
+          }
+        }
+      }
+    }
+  };
   const assertCandidateOwnership = (
     candidate: FinishedStoryboardDocument
   ): void => {
@@ -319,6 +641,19 @@ export async function finishStoryboardAgentically(
             clip.startMs >= value.start &&
             clip.startMs + clip.durationMs <= value.start + value.duration
         );
+        const decoration = generated.get(clip.id);
+        if (decoration) {
+          if (
+            window?.shotId !== decoration.shotId ||
+            clip.storyboardElementId !== decoration.element.id ||
+            clip.currentAssetId !== decoration.element.asset_id
+          ) {
+            throw new Error(
+              `Finishing cannot move or replace the generated decoration ${clip.id}.`
+            );
+          }
+          continue;
+        }
         if (!window || !["text", "shape", "group"].includes(clip.mediaType)) {
           throw new Error(
             "New finishing layers must be editable text/shapes/groups inside an existing shot window. Add source media to the Storyboard first."
@@ -402,6 +737,7 @@ export async function finishStoryboardAgentically(
         throw new Error(windowError);
       }
     }
+    assertAuthoredPlacements(candidate);
   };
   const permittedOpNames = [
     "get_state",
@@ -419,14 +755,19 @@ export async function finishStoryboardAgentically(
     "set_matte",
     "add_group"
   ] as const;
-  const permittedOps = new Set<string>(permittedOpNames);
+  // A layout pass composes still frames. Motion is the finish pass's work.
+  const MOTION_OPS = new Set(["list_animation_presets", "animate_clip", "clear_animations", "set_transition"]);
+  const phaseOpNames = permittedOpNames.filter(
+    (op) => !layoutPhase || !MOTION_OPS.has(op)
+  );
+  const permittedOps = new Set<string>(phaseOpNames);
   const contracts = buildTimelineToolContracts({
     staggerUnits: STAGGER_UNITS,
     animatedProperties: ANIMATED_PROPERTIES,
     beatToleranceMs: DEFAULT_BEAT_TOLERANCE_MS
   });
   const operationContracts = Object.fromEntries(
-    permittedOpNames.map((op) => {
+    phaseOpNames.map((op) => {
       const contract = contracts[`ui_timeline_${op}`];
       return [
         op,
@@ -438,9 +779,14 @@ export async function finishStoryboardAgentically(
     })
   );
   const scopeInstructions =
+    (layoutPhase
+      ? "This is the layout pass: compose the settled frame of every shot and author no motion. The finish pass adds motion later and keeps your placement. "
+      : "") +
     "Only these operations are available: " +
     [...permittedOps].join(", ") +
     ". Each op is {op, ...flat arguments} from operationContracts. There is no saved timeline_id requirement for this isolated draft. " +
+    "A layer with an authored placement in authoredPlacements keeps it: edit it only within its limits, never change a locked property (position, scale or crop), and expect a rejected edit otherwise. " +
+    (layoutPhase ? "" : "A locked layer takes only opacity animations such as fade, never a preset that moves or scales it. ") +
     "Keep existing source layer startMs/durationMs, assets, exact protected text/colors and semantic ownership unchanged. " +
     "set_clip_params uses fontSizePx (not fontSize), textStyle and transform.position.x/y in sequence pixels relative to frame center. " +
     "Protected layers may use only fade (requires allowed opacity), slide (opacity+position) or pop (opacity+scale), each with role in or out. No emphasis or loop animation is available on a protected layer; express emphasis through size, weight, color, spacing or entrance timing. " +
@@ -484,6 +830,26 @@ export async function finishStoryboardAgentically(
       "Inspect EVERY actual candidate frame and report one frameReviews entry per supplied candidate timeMs. References are separate, never candidate frames. findings contain only current unresolved material defects, never positive observations, withdrawn suspicions or resolved issues. Each frame passed must equal whether its findings are empty. Overall passed must equal every frame passed; overall findings is the unique union of frame findings. Submit an internally consistent explicit verdict and visual summary. Cannot waive source/policy/structure validation.",
     inputSchema: zodToJsonSchema(reviewSchema)
   };
+
+  const decorate: ProviderTool | undefined =
+    layoutPhase && options.imageModel
+      ? {
+          name: "generate_decoration",
+          description:
+            `Generate one image with the selected image model and add it to one shot as an editable decorative layer. Use it for a background that fills the frame or for a decorative object, never for a product, logo, person, text or a replacement of a source image. layer "background" sits directly above the shot's color background and is scaled to cover the frame. layer "overlay" sits above every layer at half size, centered; place and size it with set_clip_params. Describe the image completely in prompt, with no text, letters or logos. At most ${MAX_DECORATIONS} per cut. Reuse a name to read back the layer it already made.`,
+          inputSchema: {
+            type: "object",
+            properties: {
+              shotId: { type: "string", description: "The shot the layer belongs to." },
+              name: { type: "string", description: "A short stable name, such as warm-gradient." },
+              prompt: { type: "string", description: "The complete image description." },
+              layer: { type: "string", enum: ["background", "overlay"] }
+            },
+            required: ["shotId", "name", "prompt", "layer"],
+            additionalProperties: false
+          }
+        }
+      : undefined;
 
   const drive = async (
     label: string,
@@ -620,6 +986,228 @@ export async function finishStoryboardAgentically(
     ]
   );
 
+  const authoringPrompt = layoutPhase
+    ? "Lay out the approved WHOLE CUT as still frames: one settled frame per shot, consistent across the cut. The deterministic scaffold stacks every layer in fixed slots by role. Treat it only as the list of what each shot shows, never as a layout to keep. Inspect the design references and the semantic graphic direction, then position and scale every image and copy layer with set_clip_params so each hold frame reads as one deliberate composition: one clear focal image, a readable type hierarchy, balanced empty space, and a grid and margins that repeat from shot to shot. Set copy size, weight, alignment and line width. Scale each image to its role. An image may bleed off a frame edge. authoredPlacements lists the elements that have an authored placement: an element with a frame keeps that placement, you adjust it only within its limits, you never change a property listed in its lock, and you compose freely only the elements without a frame. A placement that breaks a lock or a limit is rejected. You may add editable shapes for panels, rules or frames that hold copy. " +
+      (decorate
+        ? "An image model is selected, so you may use generate_decoration for a background or a decorative object when the direction of a shot calls for one. A generated background carries the theme of its shot with texture, light or a scene, not a flat gradient, and keeps a calm area behind the copy. Keep every product and source image the subject, and keep copy readable on what you generate. "
+        : "") +
+      "Author no motion: entrances, exits and transitions belong to the finish pass, which keeps your placement. Use the supplied scaffold and operationContracts directly; do not request get_timeline when its data is already present. Preserve all source assets, exact copy/colors, semantic IDs, shot windows and manual edits. manualEdits lists the layer fields a person changed: never edit those fields, and compose around them. On a cut that already has a layout, keep what works and change only what the review or the new content needs. referenceLayoutDefects lists collisions the scaffold itself contains, and the layout must not repeat them. Read every edit result, correct rejected edits, then submit_finished_cut when ready. At a revision, fix every reported defect, including every previousReview.layoutDefects entry."
+    : (motionPending
+        ? "The current cut carries the approved static layout from planning. Keep every layer's position, scale, crop and type style, and author the motion: entrances, emphasis, exits and transitions that follow the motion direction and the shot timing. "
+        : "") +
+      "Finish the approved WHOLE CUT, not an isolated shot. The deterministic scaffold establishes faithful source layers and timing; it is your starting point, not evidence of agentic finishing. Inspect all derived design references and semantic graphic/motion direction, then deliberately author an editable composition: readable type hierarchy, balanced product/copy layout, graphic rhythm and continuity across the cut. Use the supplied full scaffold and operationContracts directly; do not request get_timeline or list_animation_presets redundantly when their data is already present. Author a focused batch of deliberate edits rather than redesigning every layer. Use existing Timeline operations and their exact operationContracts. Make meaningful layout, typography, decorative or animation choices that serve this board. Do not make arbitrary nudges, metadata changes or add empty layers merely to satisfy authoring. On a new cut, author actual layout or motion before submitting; on an existing finished cut, preserve good prior work and submit unchanged if no revision is needed. Preserve all source assets, exact copy/colors, semantic IDs, shot windows and manual edits. manualEdits lists the layer fields a person changed: never edit those fields, and compose around them. Do not invent or generate replacement media. The design references show content, hierarchy and intent, not approved pixel layout: referenceLayoutDefects lists collisions the references themselves contain, and the cut must not repeat them. Read every edit result, correct rejected edits, then submit_finished_cut when ready. At a revision, fix every reported defect, including every previousReview.layoutDefects entry. Storyboard contains semantic intent, never an animation implementation. The Timeline is execution truth.";
+  const decorations: StoryboardDecoration[] = [];
+  const authoredPlacements = input.shots.flatMap((shot) =>
+    activeStoryboardGraphics(shot).flatMap((element) => {
+      const placement = authoredPlacement(element);
+      return placement
+        ? [{ shotId: shot.id, elementId: element.id, frame: placement.frame, typography: placement.typography, lock: placement.lock, limits: placement.limits }]
+        : [];
+    })
+  );
+  const shotReviewRules = input.shots.flatMap((shot) => {
+    const rules: unknown = isRecord(shot.graphics) ? shot.graphics["review_rules"] : undefined;
+    const list = Array.isArray(rules) ? rules.filter((rule): rule is string => typeof rule === "string" && !!rule.trim()) : [];
+    return list.length ? [{ shotId: shot.id, rules: list }] : [];
+  });
+  // What the reviewer must not call a defect: placements a template locked.
+  const lockedSummary = input.shots.flatMap((shot) =>
+    activeStoryboardGraphics(shot).flatMap((element) => {
+      const placement = authoredPlacement(element);
+      if (!placement?.lock.length) {
+        return [];
+      }
+      const box = frameBox(placement);
+      return [`${shot.id}/${element.id}${box ? ` box [${box.join(", ")}]` : ""} locked: ${placement.lock.join(", ")}`];
+    })
+  );
+  const lockedPlacementNote = lockedSummary.length
+    ? `These placements are authored and locked: ${lockedSummary.join("; ")}. Do not report their position or size as a defect.`
+    : undefined;
+  const addDecoration = async (args: Record<string, unknown>): Promise<string> => {
+    const imageModel = options.imageModel;
+    const { shotId, name, prompt, layer } = args;
+    if (!imageModel) {
+      return json({ ok: false, error: "No image model is selected for this cut." });
+    }
+    if (
+      typeof shotId !== "string" ||
+      typeof name !== "string" ||
+      typeof prompt !== "string" ||
+      !prompt.trim() ||
+      (layer !== "background" && layer !== "overlay")
+    ) {
+      return json({ ok: false, error: "Give shotId, name, prompt and layer (background or overlay)." });
+    }
+    const window = windows.find((value) => value.shotId === shotId);
+    const shot = input.shots.find((value) => value.id === shotId);
+    const slug = name.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+    if (!window || !shot || !slug) {
+      return json({ ok: false, error: `Use a shot id from the storyboard and a name with letters or digits.` });
+    }
+    const elementId = `decor-${slug}`;
+    const existing = document.clips.find(
+      (clip) => clip.storyboardShotId === shotId && clip.storyboardElementId === elementId
+    );
+    if (existing) {
+      return json({ ok: true, alreadyExists: true, clipId: existing.id });
+    }
+    if (decorations.length >= MAX_DECORATIONS) {
+      return json({ ok: false, error: `This cut already has ${MAX_DECORATIONS} generated decorations. Place or restyle those.` });
+    }
+    // Ask for the frame's own shape, so a background covers it with little crop.
+    const portrait = input.height >= input.width;
+    const shortSide = Math.max(512, Math.round((1536 * Math.min(input.width, input.height)) / Math.max(input.width, input.height) / 64) * 64);
+    const requested =
+      layer === "overlay"
+        ? { width: 1024, height: 1024 }
+        : portrait
+          ? { width: shortSide, height: 1536 }
+          : { width: 1536, height: shortSide };
+    let result: unknown;
+    try {
+      result = await run.invoke("generate_image", {
+        model: { provider: imageModel.provider, id: imageModel.id },
+        prompt: prompt.trim(),
+        ...requested
+      });
+    } catch (error) {
+      result = { error: error instanceof Error ? error.message : String(error) };
+    }
+    signal?.throwIfAborted();
+    const assetId = isRecord(result) && typeof result["asset_id"] === "string" ? result["asset_id"] : undefined;
+    if (!assetId) {
+      const reason = isRecord(result) && typeof result["error"] === "string" ? result["error"] : "The image model returned no image.";
+      return json({ ok: false, error: reason });
+    }
+    let size = requested;
+    const bytes = await loadAsset(assetId);
+    if (bytes) {
+      try {
+        const image = await loadImage(Buffer.from(bytes));
+        size = { width: image.width, height: image.height };
+      } catch {
+        // Keep the requested size. Only the cover scale depends on it.
+      }
+    }
+    // A layer draws contained in the frame at scale 1. Covering the frame takes
+    // the ratio of the two fits.
+    const fitX = input.width / size.width;
+    const fitY = input.height / size.height;
+    const scale = layer === "background" ? Math.max(fitX, fitY) / Math.min(fitX, fitY) : 0.5;
+    const tracks = document.tracks.map((track) => ({ ...track }));
+    let index = Math.max(-1, ...tracks.map((track) => track.index)) + 1;
+    if (layer === "background") {
+      const backdrop = document.clips.find(
+        (clip) => clip.storyboardShotId === shotId && clip.storyboardElementId === "background"
+      );
+      const above = tracks.find((track) => track.id === backdrop?.trackId)?.index;
+      index = above === undefined ? Math.min(0, ...tracks.map((track) => track.index)) : above + 1;
+      for (const track of tracks) {
+        if (track.index >= index) {
+          track.index += 1;
+        }
+      }
+    }
+    const track = makeTrack({ type: "overlay", name: `${shot.slug ?? shot.id}: ${elementId}`, index });
+    const clip = makeClip({
+      trackId: track.id,
+      name: elementId,
+      startMs: window.start,
+      durationMs: window.duration,
+      mediaType: "image",
+      sourceType: "imported",
+      status: "generated",
+      versions: [],
+      storyboardBoardId: input.boardId,
+      storyboardShotId: shotId,
+      storyboardElementId: elementId,
+      storyboardElementRole: "decorative",
+      currentAssetId: assetId,
+      transform: { position: { x: 0, y: 0 }, scale: { x: scale, y: scale }, rotation: 0, anchor: { x: 0.5, y: 0.5 } },
+      animations: []
+    });
+    const decoration: StoryboardDecoration = {
+      shotId,
+      element: { id: elementId, kind: "asset", role: "decorative", asset_id: assetId, direction: prompt.trim(), origin: "layout_agent" }
+    };
+    const candidate = { ...document, tracks: [...tracks, track], clips: [...document.clips, clip] };
+    const graphics = (shot.graphics ??= { mode: "graphics_first", elements: [] });
+    const elements = (graphics.elements ??= []);
+    elements.push(decoration.element);
+    generated.set(clip.id, decoration);
+    try {
+      assertCandidateOwnership(candidate);
+      const policy = validateProducedTimeline(input, candidate);
+      if (policy.length) {
+        throw new Error(json(policy));
+      }
+    } catch (error) {
+      elements.pop();
+      generated.delete(clip.id);
+      return json({ ok: false, error: error instanceof Error ? error.message : String(error) });
+    }
+    document = candidate;
+    decorations.push(decoration);
+    return json({ ok: true, clipId: clip.id, trackId: track.id, assetId, imageSize: size, scale });
+  };
+
+  const commit = (document: FinishedStoryboardDocument): void => {
+    for (const clip of document.clips) {
+      if (clip.storyboardBoardId !== input.boardId) {
+        continue;
+      }
+      stampStoryboardMaterializationBaseline(clip);
+      const previous = input.current?.clips.find(
+        (value) => value.id === clip.id
+      );
+      if (
+        previous?.storyboardMaterializationBaseline &&
+        !clip.storyboardElementId?.startsWith("$agent:")
+      ) {
+        const prior: unknown = JSON.parse(
+          previous.storyboardMaterializationBaseline
+        );
+        const accepted: unknown = JSON.parse(
+          clip.storyboardMaterializationBaseline ?? "null"
+        );
+        if (isRecord(prior) && isRecord(accepted)) {
+          for (const field of ["transform", "startMs", "durationMs"] as const) {
+            if (canonical(previous[field]) !== canonical(prior[field])) {
+              accepted[field] = prior[field];
+            }
+          }
+          clip.storyboardMaterializationBaseline = canonical(accepted);
+        }
+      }
+    }
+    document.storyboardMaterializations = [
+      ...(document.storyboardMaterializations ?? []).filter(
+        (entry) => entry.boardId !== input.boardId
+      ),
+      {
+        boardId: input.boardId,
+        elementKeys: document.clips
+          .filter((clip) => clip.storyboardBoardId === input.boardId)
+          .map((clip) => `${clip.storyboardShotId}/${clip.storyboardElementId}`),
+        // A new layout waits for its motion. A finished cut laid out again
+        // keeps its motion, so it stays finished.
+        stage: layoutPhase && priorStage !== "finished" ? "layout" : "finished"
+      }
+    ];
+  };
+
+  // The best reviewed candidate so far, and the failing frame times (as JSON)
+  // and findings of each reviewed round, for the early stop on a repeated failure.
+  let best:
+    | {
+        document: FinishedStoryboardDocument;
+        decorations: StoryboardDecoration[];
+        failing: number;
+        findings: string[];
+      }
+    | undefined;
+  const failingByRound = new Map<number, { frames: string; findings: string[] }>();
   for (let round = 0; round < 3; round += 1) {
     const beforeRevision = json(document);
     let submitted = false;
@@ -634,13 +1222,10 @@ export async function finishStoryboardAgentically(
         previousReview: feedback,
         lastEditResults: editResults.slice(-4)
       }).slice(0, 8000);
-    await drive(
-      "finish",
-      [
+    const authoringMessages: Message[] = [
         {
           role: "system",
-          content:
-            "Finish the approved WHOLE CUT, not an isolated shot. The deterministic scaffold establishes faithful source layers and timing; it is your starting point, not evidence of agentic finishing. Inspect all derived design references and semantic graphic/motion direction, then deliberately author an editable composition: readable type hierarchy, balanced product/copy layout, graphic rhythm and continuity across the cut. Use the supplied full scaffold and operationContracts directly; do not request get_timeline or list_animation_presets redundantly when their data is already present. Author a focused batch of deliberate edits rather than redesigning every layer. Use existing Timeline operations and their exact operationContracts. Make meaningful layout, typography, decorative or animation choices that serve this board. Do not make arbitrary nudges, metadata changes or add empty layers merely to satisfy authoring. On a new cut, author actual layout or motion before submitting; on an existing finished cut, preserve good prior work and submit unchanged if no revision is needed. Preserve all source assets, exact copy/colors, semantic IDs, shot windows and manual edits. manualEdits lists the layer fields a person changed: never edit those fields, and compose around them. Do not invent or generate replacement media. The design references show content, hierarchy and intent, not approved pixel layout: referenceLayoutDefects lists collisions the references themselves contain, and the cut must not repeat them. Read every edit result, correct rejected edits, then submit_finished_cut when ready. At a revision, fix every reported defect, including every previousReview.layoutDefects entry. Storyboard contains semantic intent, never an animation implementation. The Timeline is execution truth."
+          content: authoringPrompt
         },
         {
           role: "user",
@@ -660,6 +1245,8 @@ export async function finishStoryboardAgentically(
                 referenceLayoutDefects,
                 needsInitialAuthoring,
                 manualEdits,
+                authoredPlacements,
+                ...(shotReviewRules.length && { reviewRules: shotReviewRules }),
                 operationContracts,
                 finishingConstraints: scopeInstructions
               })
@@ -668,15 +1255,18 @@ export async function finishStoryboardAgentically(
             ...previousCandidateImages
           ]
         }
-      ],
-      [inspect, edit, submit],
-      async (call) => {
+      ];
+    const authoringTools = decorate ? [inspect, edit, decorate, submit] : [inspect, edit, submit];
+    const author: Parameters<typeof drive>[3] = async (call) => {
         signal?.throwIfAborted();
         if (submitted) {
           return "The candidate is submitted. End this authoring turn.";
         }
         if (call.name === inspect.name) {
           return json(document);
+        }
+        if (decorate && call.name === decorate.name) {
+          return recordEditResult(await addDecoration(call.args));
         }
         if (call.name === submit.name) {
           if (rejectedEdit) {
@@ -686,10 +1276,12 @@ export async function finishStoryboardAgentically(
           }
           if (
             needsInitialAuthoring &&
-            composition(document) === scaffoldComposition
+            composition(document) === startComposition
           ) {
             return recordEditResult(
-              "This new cut is still the unchanged deterministic scaffold. Author meaningful editable layout or motion from the full-board direction with edit_timeline, read its result, then submit again. Read-only, no-op and metadata-only edits do not finish a new agentic cut."
+              motionPending
+                ? "This cut still holds only the planned static layout. Author its motion with animate_clip and set_transition from the motion direction, read the results, then submit again. Keep the planned placement and sizes."
+                : "This new cut is still the unchanged deterministic scaffold. Author meaningful editable layout or motion from the full-board direction with edit_timeline, read its result, then submit again. Read-only, no-op and metadata-only edits do not finish a new agentic cut."
             );
           }
           submitted = true;
@@ -837,9 +1429,27 @@ export async function finishStoryboardAgentically(
         document = candidate;
         rejectedEdit = undefined;
         return recordEditResult(json([...existingResults, ...outcome.records]));
-      }
-    );
-    if (!submitted) {
+      };
+    const phaseLabel = layoutPhase ? "layout" : "finish";
+    await drive(phaseLabel, authoringMessages, authoringTools, author);
+    // A model that ends its turn after accepted edits has authored a
+    // candidate. The checks and the visual review below still gate it.
+    const authored = (): boolean =>
+      !rejectedEdit &&
+      beforeRevision !== json(document) &&
+      (!needsInitialAuthoring || composition(document) !== startComposition);
+    if (!submitted && !authored()) {
+      // A model sometimes ends its turn after it reads a failed review. One
+      // reminder turn names the work that is still due.
+      await drive(phaseLabel, [
+        ...authoringMessages,
+        {
+          role: "user",
+          content: `Your turn ended without ${rejectedEdit ? "a corrected edit" : "an edit"} or a submission. ${round > 0 ? "Fix every finding in previousReview" : "Author the composition"} with edit_timeline, read each result, then call submit_finished_cut.`
+        }
+      ], authoringTools, author);
+    }
+    if (!submitted && !authored()) {
       throw new Error(
         `Finished-cut agent did not submit a candidate: ${diagnostics()}`
       );
@@ -882,7 +1492,8 @@ export async function finishStoryboardAgentically(
     const holdShots = new Map([...holds].map(([shotId, timeMs]) => [timeMs, shotId]));
     const timesMs = [
       ...new Set([
-        ...storyboardReviewTimes(document.clips, input.width, input.height, sequence.fps),
+        // A layout has no motion to judge, so its review sees the hold frames.
+        ...(layoutPhase ? [] : storyboardReviewTimes(document.clips, input.width, input.height, sequence.fps)),
         ...holdShots.keys()
       ])
     ].sort((left, right) => left - right);
@@ -937,9 +1548,12 @@ export async function finishStoryboardAgentically(
           frameTimesMs: frames.frames.map((frame) => frame.time_ms),
           candidateFrameCount: frames.frames.length,
           designReferenceFrameCount: referenceEvidence.length,
-          instruction:
-            "Visually review all rendered frames against approved semantic graphics and full-cut direction. The first images are labeled design references derived from the expected Storyboard revision. The subsequent images are the actual candidate cut. Use the references for content, hierarchy and intent only. They are not approved pixel layout and can contain the same defects: referenceLayoutDefects lists collisions measured in them, and a candidate that repeats a reference defect fails. Exact identity and copy clearance at hold frames are checked mechanically before this review. At each HOLD frame, check every pair of neighbouring elements: copy that touches or crosses an image edge, copy crowded against other copy, copy near the frame edge, an asset drawn as an opaque box where the design wants a cut-out, unbalanced empty areas and wrong hierarchy or contrast are all material defects. Across motion frames, find awkward motion endpoints and continuity failures. Fail on any material defect.",
-          referenceLayoutDefects
+          instruction: layoutPhase
+            ? "Visually review the settled HOLD frame of every shot as a still layout against the approved semantic graphics and the full-cut direction. The first images are labeled design references derived from the expected Storyboard revision; they show content and intent, not an approved layout. The subsequent images are the actual candidate frames. Exact identity and copy clearance were checked mechanically before this review. In each frame, check every pair of neighbouring elements: copy that touches or crosses an image edge, copy crowded against other copy, copy near the frame edge, an image too small or too large for its role, an asset drawn as an opaque box where the design wants a cut-out, a generated background that fights the copy or the product, unbalanced empty areas, a grid or margins that change from shot to shot, and wrong hierarchy or contrast are all material defects. Motion is not part of this review. Fail on any material defect."
+            : "Visually review all rendered frames against approved semantic graphics and full-cut direction. The first images are labeled design references derived from the expected Storyboard revision. The subsequent images are the actual candidate cut. Use the references for content, hierarchy and intent only. They are not approved pixel layout and can contain the same defects: referenceLayoutDefects lists collisions measured in them, and a candidate that repeats a reference defect fails. Exact identity and copy clearance at hold frames are checked mechanically before this review. At each HOLD frame, check every pair of neighbouring elements: copy that touches or crosses an image edge, copy crowded against other copy, copy near the frame edge, an asset drawn as an opaque box where the design wants a cut-out, unbalanced empty areas and wrong hierarchy or contrast are all material defects. Across motion frames, find awkward motion endpoints and continuity failures. Fail on any material defect.",
+          referenceLayoutDefects,
+          ...(shotReviewRules.length && { reviewRules: shotReviewRules }),
+          ...(lockedPlacementNote && { lockedPlacements: lockedPlacementNote })
         })
       },
       ...referenceImages,
@@ -966,7 +1580,7 @@ export async function finishStoryboardAgentically(
         {
           role: "system",
           content:
-            "You are the visual finishing reviewer. Inspect the actual supplied composited frame pixels. Design references and actual candidate frames are labeled separately. Review each actual candidate timeMs exactly once. The schedule deliberately includes entrance and exit boundaries where intended fades can be transparent. Judge layout, spacing and legibility at the labeled HOLD frames, and motion continuity across neighboring motion frames, not constant visibility at intentionally transparent boundaries. A design reference never excuses a defect: if the candidate shares a collision or crowding with its reference, report it. Call review_finished_cut with an internally consistent overall and per-frame verdict. Findings are ONLY current unresolved actionable material defects. Put positive observations and withdrawn suspicions in summary, not findings. If no material defect remains, explicitly set passed true with empty findings for every frame and overall. If any frame has a material defect, set that frame and overall passed false with the exact defect in both findings lists. Never approve without inspecting the whole cut. Never reject merely to report positive observations or previously resolved issues."
+            "You are the visual finishing reviewer. Inspect the actual supplied composited frame pixels. Design references and actual candidate frames are labeled separately. Review each actual candidate timeMs exactly once. The schedule deliberately includes entrance and exit boundaries where intended fades can be transparent. Judge layout, spacing and legibility at the labeled HOLD frames, and motion continuity across neighboring motion frames, not constant visibility at intentionally transparent boundaries. A design reference never excuses a defect: if the candidate shares a collision or crowding with its reference, report it. Call review_finished_cut with an internally consistent overall and per-frame verdict. Findings are ONLY current unresolved actionable material defects. Put positive observations and withdrawn suspicions in summary, not findings. If no material defect remains, explicitly set passed true with empty findings for every frame and overall. If any frame has a material defect, set that frame and overall passed false with the exact defect in both findings lists. When the payload lists reviewRules, judge each shot against its rules as material defects. When it lists lockedPlacements, never report the position or size of those layers as a defect. Never approve without inspecting the whole cut. Never reject merely to report positive observations or previously resolved issues."
         },
         { role: "user", content }
       ],
@@ -1028,51 +1642,51 @@ export async function finishStoryboardAgentically(
     reviews.push(evidence);
     if (!verdict.passed) {
       feedback = evidence;
+      const failing = verdict.frameReviews
+        .filter((frame) => !frame.passed)
+        .map((frame) => frame.timeMs)
+        .sort((left, right) => left - right);
+      failingByRound.set(round, { frames: json(failing), findings: verdict.findings });
+      // Every reviewed candidate passed the hard checks. The best has the
+      // fewest failing frames, and a later candidate wins a tie.
+      if (!best || failing.length <= best.failing) {
+        best = {
+          document: structuredClone(document),
+          decorations: [...decorations],
+          failing: failing.length,
+          findings: [...verdict.findings]
+        };
+      }
+      // A round repeats the last one when the same frames fail for the same
+      // defects. New defects on the same frames still earn the next round.
+      const previous = failingByRound.get(round - 1);
+      const current = failingByRound.get(round)!;
+      const repeated =
+        previous !== undefined &&
+        previous.frames === current.frames &&
+        sameDefects(previous.findings, current.findings);
+      if (repeated || round === 2) {
+        break;
+      }
       continue;
     }
-    for (const clip of document.clips) {
-      if (clip.storyboardBoardId !== input.boardId) {
-        continue;
-      }
-      stampStoryboardMaterializationBaseline(clip);
-      const previous = input.current?.clips.find(
-        (value) => value.id === clip.id
-      );
-      if (
-        previous?.storyboardMaterializationBaseline &&
-        !clip.storyboardElementId?.startsWith("$agent:")
-      ) {
-        const prior: unknown = JSON.parse(
-          previous.storyboardMaterializationBaseline
-        );
-        const accepted: unknown = JSON.parse(
-          clip.storyboardMaterializationBaseline ?? "null"
-        );
-        if (isRecord(prior) && isRecord(accepted)) {
-          for (const field of ["transform", "startMs", "durationMs"] as const) {
-            if (canonical(previous[field]) !== canonical(prior[field])) {
-              accepted[field] = prior[field];
-            }
-          }
-          clip.storyboardMaterializationBaseline = canonical(accepted);
-        }
-      }
-    }
-    document.storyboardMaterializations = [
-      ...(document.storyboardMaterializations ?? []).filter(
-        (entry) => entry.boardId !== input.boardId
-      ),
-      {
-        boardId: input.boardId,
-        elementKeys: document.clips
-          .filter((clip) => clip.storyboardBoardId === input.boardId)
-          .map((clip) => `${clip.storyboardShotId}/${clip.storyboardElementId}`)
-      }
-    ];
+    commit(document);
     return {
       document,
       reviews,
-      costUsd: Math.max(0, runtime.provider.getTotalCost() - initialCost)
+      costUsd: Math.max(0, runtime.provider.getTotalCost() - initialCost),
+      decorations
+    };
+  }
+  if (layoutPhase && best) {
+    commit(best.document);
+    return {
+      document: best.document,
+      reviews,
+      costUsd: Math.max(0, runtime.provider.getTotalCost() - initialCost),
+      decorations: best.decorations,
+      needsReview: true,
+      findings: best.findings
     };
   }
   throw new Error(

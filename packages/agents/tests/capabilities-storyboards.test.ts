@@ -219,6 +219,7 @@ describe("storyboards capability module", () => {
     expect(capabilityModuleIssues("storyboards", storyboards)).toEqual([]);
     expect(storyboards.exports.map((e) => e.spec.name)).toEqual([
       "finish_storyboard",
+      "layout_storyboard",
       "preview_storyboard_design",
       "list_storyboards",
       "create_storyboard",

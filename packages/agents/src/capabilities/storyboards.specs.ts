@@ -477,6 +477,18 @@ export const finishStoryboardSpec: CapabilitySpec = {
   }, required: ["storyboardId", "expectedStoryboardRevision"], additionalProperties: false }
 };
 
+export const layoutStoryboardSpec: CapabilitySpec = {
+  name: "layout_storyboard",
+  description: "Compose the static layout of a revision-checked still-motion-graphics Storyboard with a vision model and save it as the board's Timeline. The agent positions and scales every image and copy layer at each shot's hold frame, may add editable shapes, and with imageModel may generate backgrounds and decoration, which join the board as decorative elements. Elements with an authored frame, lock or limits keep that placement: an edit that breaks a lock or exceeds a limit is rejected. A pixel layout check and a rendered-frame visual review gate the result. No motion is authored: a later finish_storyboard with strategy agentic keeps the layout and authors the motion. Returns status laid_out, the timeline and the new revisions. When every hard check passes but the visual review still has findings after the last round, or two rounds in a row fail the same frames, it saves the best layout and returns status needs_review with findings (a list of strings).",
+  category: "write",
+  inputSchema: { type: "object", properties: {
+    model: { type: "object", properties: { provider: { type: "string", minLength: 1 }, id: { type: "string", minLength: 1 } }, required: ["provider", "id"], additionalProperties: false, description: "The vision language model that lays out the frames. Defaults to the session's model." },
+    imageModel: { type: "object", properties: { provider: { type: "string", minLength: 1 }, id: { type: "string", minLength: 1 } }, required: ["provider", "id"], additionalProperties: false, description: "The text-to-image model for backgrounds and decoration. Without it the agent decorates with shapes only." },
+    storyboardId: { type: "string" }, expectedStoryboardRevision: { type: "integer", minimum: 0 },
+    timelineId: { type: "string" }, expectedTimelineRevision: { type: "integer", minimum: 0 }
+  }, required: ["storyboardId", "expectedStoryboardRevision"], additionalProperties: false }
+};
+
 export const previewStoryboardDesignSpec: CapabilitySpec = {
   name: "preview_storyboard_design",
   description: "Read a revision-checked Storyboard design as an inline editable Timeline preview. Resolves owned source references and validates semantic intent/preservation before returning. No provider call, generation or document save.",
@@ -489,6 +501,7 @@ export const previewStoryboardDesignSpec: CapabilitySpec = {
 /** Every spec this module declares, in declaration order. */
 export const storyboardsSpecs: readonly CapabilitySpec[] = [
   finishStoryboardSpec,
+  layoutStoryboardSpec,
   previewStoryboardDesignSpec,
   listStoryboardsSpec,
   createStoryboardSpec,

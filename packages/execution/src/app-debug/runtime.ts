@@ -78,6 +78,8 @@ export interface HeadlessOperationInit {
 /** A widget's declarative logic props, as the document stores them. */
 interface HeadlessWidgetInit {
   id: string;
+  /** The layout widget this one sits in. A hidden parent hides it too. */
+  parentId?: string | null;
   visibleWhen?: ConditionProps;
   disabledWhen?: ConditionProps;
   /** `{binding|filter}` template rendered in place of the raw value. */
@@ -463,13 +465,24 @@ export class HeadlessAppRuntime {
    */
   private refreshWidgets(): void {
     for (const widget of this.compiled) {
-      const visible = widget.visible
-        ? evaluateCondition(this._state, widget.visible)
-        : true;
+      // Widgets are listed parents first, so a parent's state is already fresh.
+      const parent = widget.init.parentId
+        ? this.widgetStates.get(widget.init.parentId)
+        : undefined;
+      const visible =
+        (parent?.visible ?? true) &&
+        (widget.visible
+          ? evaluateCondition(this._state, widget.visible)
+          : true);
       const disabled = widget.disabled
         ? evaluateCondition(this._state, widget.disabled)
         : false;
       widget.state.visible = visible;
+      // Name the condition that hides the widget: its parent's, or its own.
+      widget.state.visibleWhen =
+        parent && !parent.visible
+          ? parent.visibleWhen
+          : describeCondition(widget.init.visibleWhen);
       widget.state.disabled = disabled;
       widget.state.everReachable ||= visible && !disabled;
     }

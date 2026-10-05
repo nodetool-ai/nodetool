@@ -4,6 +4,7 @@ import { applicationDocument } from "@nodetool-ai/protocol/api-schemas/applicati
 import { bundleTarget, simulateApp } from "@nodetool-ai/execution/app-debug";
 import { loadPersistedVariables, savePersistedVariables } from "../../web/src/components/appbuilder/runtime/variablePersistence.ts";
 import { COMPILED_RECIPE_FIXTURES, TESTIMONIAL_MANIFEST } from "../example-apps/recipe-manifests.mjs";
+import { AD_LIBRARY_APPS } from "../example-apps/ad-library-recipes.mjs";
 import { compileSharedRecipeBundle, sharedRecipeOperations, PLAN_STORYBOARD_CODE, FINISH_STORYBOARD_CODE } from "../recipe-operations.mjs";
 
 import { buildProductPriceDropBundle, PLAN_CODE, FINISH_CODE, PRODUCT_PRICE_DROP_DEBUG_INTERACTIONS } from "../example-apps/product-price-drop.mjs";
@@ -16,12 +17,13 @@ const execute = async (code, inputs, capabilities) => {
   return outputs;
 };
 const values = recipe => Object.fromEntries(recipe.inputs.map(input => [input.id, input.kind === "image" ? {asset_id: input.id.padEnd(32, "a")} : input.kind === "color" ? "#1248AB" : "  Exact " + input.id + "  "]));
-const plan = async (recipe, extra = {}, code = PLAN_STORYBOARD_CODE) => {
+const plan = async (recipe, extra = {}, code = PLAN_STORYBOARD_CODE, overrides = {}) => {
   let shots = []; let revision = 0;
   const inputs = {...values(recipe), recipe, ...extra};
   const outputs = await execute(code, inputs, {
     get_entity: async ({entity_id}) => ({entity: {id: entity_id, reference_images: [{asset_id: entity_id}]}}),
     preview_storyboard_design: async () => ({linkedScriptFingerprint: "approved-script", timeline: {type: "timeline", data: {durationMs: 6000, tracks: [], clips: []}}}),
+    layout_storyboard: async args => ({linkedScriptFingerprint: "approved-script", timelineId: "laid-out", timelineRevision: 0, storyboardRevision: args.expectedStoryboardRevision + 1, timeline: {type: "timeline", id: "laid-out"}}),
     create_storyboard: async () => ({id: "board", shots: []}),
     edit_storyboard: async ({ops}) => {
       for (const op of ops) {
@@ -29,7 +31,8 @@ const plan = async (recipe, extra = {}, code = PLAN_STORYBOARD_CODE) => {
         if (op.op === "update_shot") shots = shots.map(shot => shot.id === op.target ? {...shot, ...op} : shot);
       }
       return {shots: shots.map(({id, slug, action}) => ({id, slug, action})), failed: 0, revision: ++revision};
-    }
+    },
+    ...overrides
   });
   return {inputs, outputs, shots};
 };
@@ -40,9 +43,13 @@ describe("shared executable Recipe operations", () => {
     expect(bundle.app.ui.content).toContainEqual(expect.objectContaining({
       type: "ModelSelect", props: expect.objectContaining({binding: "var:finishModel", modelKind: "language_model"})
     }));
+    expect(bundle.app.ui.content).toContainEqual(expect.objectContaining({
+      type: "ModelSelect", props: expect.objectContaining({binding: "var:imageModel", modelKind: "image_model"})
+    }));
     for (const operation of bundle.app.operations) {
-      expect(operation.inputs.finishModel).toEqual({from: "variable", variableId: "finishModel"});
+      expect(operation.inputs["in-finishModel"]).toEqual({from: "variable", variableId: "finishModel"});
     }
+    expect(bundle.app.operations.find(operation => operation.id === "plan").inputs["in-imageModel"]).toEqual({from: "variable", variableId: "imageModel"});
   });
   it("uses the chosen Price Drop model and rejects a model changed after approval", async () => {
     const bundle = COMPILED_RECIPE_FIXTURES[0];
@@ -50,12 +57,13 @@ describe("shared executable Recipe operations", () => {
     const planned = await plan(bundle.app.recipe, {finishModel}, PLAN_CODE);
     let invoked;
     const capability = {
-      get_storyboard: async () => ({revision: 2}),
+      get_storyboard: async () => ({revision: planned.outputs.storyboardRevision}),
       finish_storyboard: async args => {invoked = args; return {timelineId: "t", timelineRevision: 1, storyboardRevision: 2, validation: []};}
     };
     const inputs = {...planned.inputs, ...planned.outputs, finishModel, recipeOperationId: "finish", approval: "approved", finishStrategy: "agentic"};
     await execute(FINISH_CODE, structuredClone(inputs), capability);
-    expect(invoked).toMatchObject({strategy: "agentic", model: {provider: "anthropic", id: "chosen-model"}});
+    // The build finishes the cut the layout agent saved.
+    expect(invoked).toMatchObject({strategy: "agentic", model: {provider: "anthropic", id: "chosen-model"}, timelineId: "laid-out", expectedTimelineRevision: 0});
     invoked = undefined;
     await expect(execute(FINISH_CODE, {...structuredClone(inputs), finishModel: {...finishModel, id: "changed"}}, capability)).rejects.toThrow("Inputs changed");
     expect(invoked).toBeUndefined();
@@ -69,8 +77,11 @@ describe("shared executable Recipe operations", () => {
       expect(applicationDocument.safeParse(bundle.app).success).toBe(true);
       expect(applicationDocument.parse(bundle.app).recipe).toEqual(bundle.app.recipe);
       expect(parseApplicationBundle(bundle)).not.toBeNull();
-      expect(bundle.scripts[0].document.code).toBe(bundle.app.recipe.slug === "product-price-drop" ? PLAN_CODE : PLAN_STORYBOARD_CODE);
-      expect(bundle.scripts[1].document.code).toBe(bundle.app.recipe.slug === "product-price-drop" ? FINISH_CODE : FINISH_STORYBOARD_CODE);
+      // The Price Drop app runs its agents as workflow jobs, the others as scripts.
+      const codes = bundle.app.recipe.slug === "product-price-drop"
+        ? bundle.workflows.map(workflow => workflow.graph.nodes.find(node => node.id === "run").data.code)
+        : bundle.scripts.map(script => script.document.code);
+      expect(codes).toEqual(bundle.app.recipe.slug === "product-price-drop" ? [PLAN_CODE, FINISH_CODE] : [PLAN_STORYBOARD_CODE, FINISH_STORYBOARD_CODE]);
       expect(bundle.scripts.every(script => script.document.inputs.every(port => port.type !== "any"))).toBe(true);
       const approvalIndex = bundle.app.ui.content.findIndex(widget =>
         widget.type === "Approval" ||
@@ -117,7 +128,7 @@ describe("shared executable Recipe operations", () => {
     const source = COMPILED_RECIPE_FIXTURES[0];
     const installed = applyBundle(source, {newScriptId: script => "installed-" + script.key});
     expect(installed.app.document.recipe.operations.map(operation => operation.version)).toEqual([1, 1]);
-    expect(installed.app.document.operations.map(operation => operation.target.scriptVersion)).toEqual([1, 1]);
+    expect(installed.app.document.operations.map(operation => operation.target?.scriptVersion ?? operation.workflowVersion)).toEqual([1, 1]);
   });
   it("declares all actual resource writes and keeps planning before any spend", () => {
     const {operations} = sharedRecipeOperations(TESTIMONIAL_MANIFEST);
@@ -144,6 +155,50 @@ describe("shared executable Recipe operations", () => {
       expect(outputs.plannedFingerprint).toBe(JSON.stringify([recipe, ...recipe.inputs.map(input => inputs[input.id])]));
     }
   });
+  it("carries authored frames, locks, limits and review rules from the manifest onto the storyboard", async () => {
+    const recipe = AD_LIBRARY_APPS.find(app => app.slug === "ad-fixed-glyph-changing-world").bundle.app.recipe;
+    const {shots} = await plan(recipe);
+    expect(shots).toHaveLength(recipe.creativeStrategy.shots.length);
+    for (const shot of shots) {
+      const intent = recipe.creativeStrategy.shots.find(candidate => candidate.id === shot.slug);
+      expect(shot.graphics.review_rules).toEqual([...recipe.creativeStrategy.reviewRules, ...(intent.reviewRules || [])]);
+      for (const graphic of shot.graphics.elements) {
+        const authored = intent.elements.find(element => element.id === graphic.id);
+        for (const key of ["frame", "typography", "lock", "limits"]) expect(graphic[key]).toEqual(authored[key]);
+      }
+    }
+    const glyphs = shots.map(shot => shot.graphics.elements.find(element => element.id === "glyph"));
+    expect(glyphs.every(glyph => glyph.frame.box.join() === "0.285,0.29,0.43,0.34" && glyph.lock.join() === "position,scale,crop")).toBe(true);
+  });
+  it("generates an empty optional world once from its template fallback and reuses it on a rerun", async () => {
+    const recipe = AD_LIBRARY_APPS.find(app => app.slug === "ad-fixed-glyph-changing-world").bundle.app.recipe;
+    const requests = [];
+    const generate_image = async args => { requests.push(args); return {asset_id: "generated".padEnd(32, String(requests.length))}; };
+    const imageModel = {type: "image_model", provider: "dreamina", id: "gpt_image_2"};
+    const first = await plan(recipe, {world1: null, imageModel}, PLAN_STORYBOARD_CODE, {generate_image, progress: () => {}});
+    expect(requests).toHaveLength(1);
+    expect(requests[0]).toMatchObject({provider: "dreamina", model: "gpt_image_2"});
+    // The prompt takes the copy of the inputs it names, and the image the aspect of its box.
+    expect(requests[0].prompt).toContain('"Exact label12"');
+    expect(requests[0].prompt).not.toContain("{");
+    expect(requests[0].height).toBe(1536);
+    expect(requests[0].width).toBeLessThan(1536);
+    const shot = first.shots.find(candidate => candidate.slug === "world_1");
+    expect(shot.production.protected_inputs.map(input => input.id)).not.toContain("world1");
+    const world = shot.graphics.elements.find(element => element.id === "world1");
+    expect(world).toMatchObject({asset_id: "generated".padEnd(32, "1"), origin: "template_fallback", generated: {prompt: requests[0].prompt}});
+    expect("fallback_input" in world).toBe(false);
+    // A rerun of the same plan finds the image by its prompt, model and size.
+    const board = {id: "board", revision: 1, aspect_ratio: "9:16", shots: first.shots.map(({op, ...saved}) => saved)};
+    await plan(recipe, {world1: null, imageModel, storyboardId: "board", storyboardRevision: 1, plannedFingerprint: first.outputs.plannedFingerprint}, PLAN_STORYBOARD_CODE, {generate_image, progress: () => {}, get_storyboard: async () => board, get_asset: async ({asset_id}) => ({id: asset_id})});
+    expect(requests).toHaveLength(1);
+  });
+
+  it("asks for the input or an image model when a fallback cannot be generated", async () => {
+    const recipe = AD_LIBRARY_APPS.find(app => app.slug === "ad-fixed-glyph-changing-world").bundle.app.recipe;
+    await expect(plan(recipe, {world1: null, world3: {type: "image", asset_id: null, uri: ""}})).rejects.toThrow("Add World 1, World 3, or select an image model to generate them.");
+  });
+
   it("adopts edited direction without rewriting the board and preserves it on copy changes", async () => {
     const planned = await plan(TESTIMONIAL_MANIFEST);
     const shots = structuredClone(planned.shots);
@@ -193,6 +248,30 @@ describe("shared executable Recipe operations", () => {
       preview_storyboard_design: async () => ({timeline: {type: "timeline", data: {clips: []}}})
     };
     await expect(execute(PLAN_STORYBOARD_CODE, {...planned.inputs, storyboardId: "board", quote: "Unreviewed different quote"}, capabilities)).rejects.toThrow("bound source conflict");
+  });
+  it("outputs the layout findings and shows them on the review step", async () => {
+    const bundle = COMPILED_RECIPE_FIXTURES[0];
+    const finishModel = {type: "language_model", provider: "anthropic", id: "chosen-model", name: "Chosen"};
+    const findings = ["Frame 1: the price touches the product.", "Frame 2: the logo is too close to the edge."];
+    const review = (status, extra = {}) => ({layout_storyboard: async args => ({status, ...extra, linkedScriptFingerprint: "approved-script", timelineId: "laid-out", timelineRevision: 0, storyboardRevision: args.expectedStoryboardRevision + 1, timeline: {type: "timeline", id: "laid-out"}})});
+    const needsReview = await plan(bundle.app.recipe, {finishModel}, PLAN_CODE, review("needs_review", {findings}));
+    expect(needsReview.outputs.layoutFindings).toEqual(findings);
+    expect(needsReview.outputs.step).toBe("review");
+    const laidOut = await plan(bundle.app.recipe, {finishModel}, PLAN_CODE, review("laid_out"));
+    expect(laidOut.outputs.layoutFindings).toEqual([]);
+    // Without a finishing model the deterministic design has no layout review.
+    expect((await plan(bundle.app.recipe)).outputs.layoutFindings).toEqual([]);
+
+    expect(bundle.app.variables.find(variable => variable.id === "layoutFindings")).toMatchObject({type: {type: "list[str]"}, scope: "instance", persist: false});
+    const content = bundle.app.ui.content;
+    const panel = content.find(widget => widget.props.id === "layout-review");
+    expect(panel.props.visibleWhen).toEqual({binding: "var:step", op: "eq", value: "review"});
+    const alert = panel.props.content.find(widget => widget.props.id === "layout-needs-review");
+    expect(alert).toMatchObject({type: "Alert", props: {severity: "warning", title: "The layout needs a look", visibleWhen: {binding: "var:layoutFindings", op: "notEmpty"}}});
+    expect(alert.props.text).toBe("Edit the cut or plan again. You can still approve it.");
+    expect(panel.props.content.find(widget => widget.props.id === "layout-findings")).toMatchObject({type: "List", props: {binding: "var:layoutFindings"}});
+    // The panel belongs to the review step and sits above the build button.
+    expect(content.indexOf(panel)).toBeLessThan(content.findIndex(widget => widget.props.id === "finish"));
   });
   it("persists recipe checkpoints while keeping design preview pixels transient", () => {
     const bundle = compileSharedRecipeBundle(TESTIMONIAL_MANIFEST, "Resume", "");

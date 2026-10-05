@@ -6,7 +6,7 @@ import { PRODUCT_PRICE_DROP_BUNDLE, PLAN_CODE, FINISH_CODE } from "../example-ap
 const input = {finishModel: {provider: "openai", id: "gpt-5.4-mini"}, finishStrategy: "agentic", productImage: {asset_id: "a".repeat(32)}, logo: {asset_id: "b".repeat(32)}, headline: "  Better coffee  ", oldPrice: "€49", newPrice: "€29", cta: "Shop now", brandColor: "#1248AB", direction: "Bold editorial rhythm"};
 const execute = async (code, inputs, capabilities) => {
   const results = {};
-  capabilities = {get_entity: async ({entity_id}) => ({entity: {id: entity_id, reference_images: [{asset_id: entity_id}]}}), preview_storyboard_design: async () => ({timeline: {type: "timeline", data: {durationMs: 6000, tracks: [], clips: []}}}), ...capabilities};
+  capabilities = {get_entity: async ({entity_id}) => ({entity: {id: entity_id, reference_images: [{asset_id: entity_id}]}}), preview_storyboard_design: async () => ({timeline: {type: "timeline", data: {durationMs: 6000, tracks: [], clips: []}}}), layout_storyboard: async args => ({status: "laid_out", timelineId: args.timelineId ?? "laid-out", timelineRevision: (args.expectedTimelineRevision ?? -1) + 1, storyboardRevision: args.expectedStoryboardRevision + 1, timeline: {type: "timeline", id: args.timelineId ?? "laid-out"}}), ...capabilities};
   const body = code.replace(/^import .*;\n/gm, "");
   const fn = new Function("inputs", "output", ...Object.keys(capabilities), `return (async () => {${body}})();`);
   await fn({recipe: PRODUCT_PRICE_DROP_BUNDLE.app.recipe, recipeOperationId: "finish", ...inputs}, async (name, value) => {results[name] = value;}, ...Object.values(capabilities));
@@ -16,11 +16,16 @@ test("normal bundle preserves Recipe metadata and pinned operation mappings", ()
   const parsed = parseApplicationBundle(PRODUCT_PRICE_DROP_BUNDLE);
   assert.ok(parsed);
   assert.deepEqual(parsed.app.recipe, PRODUCT_PRICE_DROP_BUNDLE.app.recipe);
-  assert.equal(parsed.scripts.length, 2);
+  // Planning and finishing run agents, so both are workflow jobs.
+  assert.equal(parsed.scripts.length, 0);
+  assert.deepEqual(parsed.workflows.map(workflow => workflow.key), ["plan", "finish"]);
   assert.ok(parsed.app.ui.content.every(widget => isKnownWidget(widget.type)));
   assert.deepEqual(JSON.parse(readFileSync(new URL("../../packages/base-nodes/nodetool/examples/apps/product-price-drop.app.json", import.meta.url))), JSON.parse(JSON.stringify(PRODUCT_PRICE_DROP_BUNDLE)));
-  assert.equal(parsed.app.operations[0].inputs.productImage.variableId, "productImage");
-  assert.equal(parsed.app.operations[1].target.kind, "script");
+  assert.equal(parsed.app.operations[0].inputs["in-productImage"].variableId, "productImage");
+  assert.equal(parsed.app.operations[0].inputs["in-imageModel"].variableId, "imageModel");
+  assert.equal(parsed.app.operations[1].workflowId, "finish");
+  assert.equal(parsed.workflows[0].graph.nodes.find(node => node.id === "run").data.code, PLAN_CODE);
+  assert.equal(parsed.workflows[1].graph.nodes.find(node => node.id === "run").data.code, FINISH_CODE);
 });
 test("plan retains exact sources and whitespace with graphics-only strategy", async () => {
   let shots = [];
@@ -46,14 +51,29 @@ test("plan retains exact sources and whitespace with graphics-only strategy", as
   assert.equal(result.planPreview.shots.length, 2);
   for (const protectedInput of shots[0].production.protected_inputs) assert.deepEqual(protectedInput.allowed_transformations, PRODUCT_PRICE_DROP_BUNDLE.app.recipe.preservationRules.find(rule => rule.inputId === protectedInput.id).allowedTransformations);
   assert.equal(edits[1][0].motion_design.continuities[0].shot_ids.length, 2);
-  const refreshed = await execute(PLAN_CODE, {...input, storyboardId: result.storyboardId}, {
+  let laidOut;
+  const refreshed = await execute(PLAN_CODE, {...input, imageModel: {type: "image_model", provider: "fal_ai", id: "painter"}, storyboardId: result.storyboardId}, {
     create_storyboard: async () => {throw Error("must reuse");},
-    get_storyboard: async () => ({id: result.storyboardId, aspect_ratio: "9:16", shots, timeline_id: "linked"}),
+    get_storyboard: async () => ({id: result.storyboardId, aspect_ratio: "9:16", shots, timeline_id: "linked", revision: 2}),
     get_timeline: async () => ({timeline: {id: "linked"}, revision: 7}),
-    edit_storyboard: async ({ops}) => {assert.ok(ops.every(op => op.op !== "add_shot")); return {shots, failed: 0, revision: 2};}
+    edit_storyboard: async ({ops}) => {assert.ok(ops.every(op => op.op !== "add_shot")); return {shots, failed: 0, revision: 2};},
+    layout_storyboard: async args => {laidOut = args; return {timelineId: "linked", timelineRevision: 8, storyboardRevision: 3, timeline: {type: "timeline", id: "linked"}};}
   });
+  // The layout agent saves onto the linked cut, so the build keeps its layout.
+  assert.deepEqual(laidOut, {storyboardId: result.storyboardId, expectedStoryboardRevision: 2, model: {provider: "openai", id: "gpt-5.4-mini"}, imageModel: {provider: "fal_ai", id: "painter"}, timelineId: "linked", expectedTimelineRevision: 7});
   assert.equal(refreshed.timelineId, "linked");
-  assert.equal(refreshed.timelineRevision, 7);
+  assert.equal(refreshed.timelineRevision, 8);
+  assert.equal(refreshed.storyboardRevision, 3);
+  assert.deepEqual(refreshed.layoutFindings, []);
+  const flagged = await execute(PLAN_CODE, {...input, storyboardId: result.storyboardId}, {
+    get_storyboard: async () => ({id: result.storyboardId, aspect_ratio: "9:16", shots, timeline_id: "linked", revision: 2}),
+    get_timeline: async () => ({timeline: {id: "linked"}, revision: 7}),
+    edit_storyboard: async () => ({shots, failed: 0, revision: 2}),
+    layout_storyboard: async () => ({status: "needs_review", findings: ["The price touches the product."], timelineId: "linked", timelineRevision: 8, storyboardRevision: 3, timeline: {type: "timeline", id: "linked"}})
+  });
+  assert.deepEqual(flagged.layoutFindings, ["The price touches the product."]);
+  assert.equal(flagged.step, "review");
+  assert.deepEqual(refreshed.designPreview, {type: "timeline", id: "linked"});
 });
 test("finish rejects stale approval before invoking finishing", async () => {
   const plannedFingerprint = JSON.stringify([PRODUCT_PRICE_DROP_BUNDLE.app.recipe, ...PRODUCT_PRICE_DROP_BUNDLE.app.recipe.inputs.map(spec => input[spec.id])]);
@@ -97,7 +117,7 @@ test("changing the finishing model after planning does not read as a changed Rec
     storyboardId: planned.storyboardId,
     storyboardRevision: planned.storyboardRevision,
     plannedFingerprint: planned.plannedFingerprint
-  }, capabilities(1));
+  }, capabilities(planned.storyboardRevision));
   assert.equal(replanned.approval, "pending");
   assert.notEqual(replanned.plannedFingerprint, planned.plannedFingerprint);
 });

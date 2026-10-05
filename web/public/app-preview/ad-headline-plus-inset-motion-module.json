@@ -1,0 +1,4115 @@
+{
+  "slug": "ad-headline-plus-inset-motion-module",
+  "name": "Headline plus inset motion module",
+  "description": "Turn many motion assets into a consistent vertical ad family. Builds an editable 10-second vertical ad from your images, logo and copy. AI can suggest options from a website to fill the fields with its copy and images. No generated video.",
+  "tagline": "You want a consistent family of ads around replaceable motion modules.",
+  "note": null,
+  "featured": false,
+  "image": "/app-preview/img/ad-headline-plus-inset-motion-module.jpg",
+  "app": {
+    "schemaVersion": 5,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Headline plus inset motion module"
+        }
+      },
+      "content": [
+        {
+          "type": "Stepper",
+          "props": {
+            "id": "steps",
+            "binding": "var:step",
+            "steps": [
+              {
+                "value": "start",
+                "title": "Start"
+              },
+              {
+                "value": "headline",
+                "title": "Headline"
+              },
+              {
+                "value": "modules",
+                "title": "Two modules"
+              },
+              {
+                "value": "ending",
+                "title": "Ending"
+              },
+              {
+                "value": "review",
+                "title": "Review"
+              },
+              {
+                "value": "build",
+                "title": "Build"
+              },
+              {
+                "value": "result",
+                "title": "Result"
+              }
+            ],
+            "allowBack": true
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-start",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "start"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "start-title",
+                  "text": "What you will make",
+                  "level": "2",
+                  "subtitle": "A 5-scene vertical ad, 10 seconds long. You supply images and short lines of copy. The app builds an editable cut, not a generated video."
+                }
+              },
+              {
+                "type": "Container",
+                "props": {
+                  "id": "start-strip",
+                  "variant": "plain",
+                  "columns": 5,
+                  "content": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-1",
+                        "binding": "var:beatExample1",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "0–1.5 s · Hook",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-2",
+                        "binding": "var:beatExample2",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "1.5–4.5 s · Module A",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-3",
+                        "binding": "var:beatExample3",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "4.5–6.5 s · Module B",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-4",
+                        "binding": "var:beatExample4",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "6.5–8 s · Payoff",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-5",
+                        "binding": "var:beatExample5",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "8–10 s · CTA",
+                        "download": false
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "finishModel",
+                  "label": "Finishing model",
+                  "binding": "var:finishModel",
+                  "modelKind": "language_model",
+                  "events": [
+                    {
+                      "trigger": "change",
+                      "kind": "setVariable",
+                      "key": "var:approval",
+                      "value": "pending"
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "finishModel-help",
+                  "text": "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
+                  "tone": "hint"
+                }
+              },
+              {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "imageModel",
+                  "label": "Image model",
+                  "binding": "var:imageModel",
+                  "modelKind": "image_model",
+                  "events": []
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "imageModel-help",
+                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "tone": "hint"
+                }
+              },
+              {
+                "type": "ChoiceCards",
+                "props": {
+                  "id": "fillPath",
+                  "binding": "var:fillPath",
+                  "label": "How do you want to start?",
+                  "columns": 2,
+                  "options": [
+                    {
+                      "value": "web",
+                      "title": "Fill from a website",
+                      "description": "Paste a product page. AI suggests the copy and images."
+                    },
+                    {
+                      "value": "self",
+                      "title": "Fill in myself",
+                      "description": "Go through 3 short steps."
+                    }
+                  ],
+                  "events": []
+                }
+              },
+              {
+                "type": "Container",
+                "props": {
+                  "id": "ai-fill",
+                  "variant": "plain",
+                  "visibleWhen": {
+                    "binding": "var:fillPath",
+                    "op": "eq",
+                    "value": "web"
+                  },
+                  "content": [
+                    {
+                      "type": "Columns",
+                      "props": {
+                        "id": "source-row",
+                        "layout": "main-aside",
+                        "gap": 16,
+                        "left": [
+                          {
+                            "type": "TextInput",
+                            "props": {
+                              "id": "sourceUrl",
+                              "binding": "var:sourceUrl",
+                              "label": "Website",
+                              "placeholder": "https://your-product.com",
+                              "hint": "The agent reads the page with the finishing model and suggests three filled versions, with real images from the site. Pick one, then check each step.",
+                              "events": []
+                            }
+                          }
+                        ],
+                        "right": [
+                          {
+                            "type": "Text",
+                            "props": {
+                              "id": "source-example-label",
+                              "text": "No site at hand? Try this one.",
+                              "tone": "hint"
+                            }
+                          },
+                          {
+                            "type": "Button",
+                            "props": {
+                              "id": "source-example",
+                              "label": "descript.com",
+                              "variant": "outlined",
+                              "fullWidth": false,
+                              "events": [
+                                {
+                                  "trigger": "click",
+                                  "kind": "setVariable",
+                                  "key": "var:sourceUrl",
+                                  "value": "https://www.descript.com"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "suggest",
+                        "label": "Suggest options",
+                        "variant": "contained",
+                        "fullWidth": false,
+                        "disabledWhen": {
+                          "binding": "op:suggest/exec#running",
+                          "op": "notEmpty"
+                        },
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "suggest"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "suggest-error",
+                        "binding": "op:suggest/exec#error",
+                        "title": "Could not suggest options",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:suggest/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "AgentActivity",
+                      "props": {
+                        "id": "suggest-activity",
+                        "binding": "op:suggest/exec#transcript",
+                        "label": "Agent",
+                        "height": 280,
+                        "placeholder": "The agent's reading and image searches appear here."
+                      }
+                    },
+                    {
+                      "type": "ChoiceCards",
+                      "props": {
+                        "id": "fillChoice",
+                        "binding": "var:fillChoice",
+                        "optionsBinding": "var:fillOptions",
+                        "label": "Pick one option",
+                        "columns": 3,
+                        "visibleWhen": {
+                          "binding": "var:fillOptions",
+                          "op": "notEmpty"
+                        },
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "apply"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "apply-error",
+                        "binding": "op:apply/exec#error",
+                        "title": "Could not fill the ad",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:apply/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "fill-report",
+                        "binding": "var:fillReport",
+                        "text": "",
+                        "visibleWhen": {
+                          "binding": "var:fillReport",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "start-nav",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "start-next",
+                        "label": "Next: Headline",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "headline"
+                          }
+                        ],
+                        "align": "end",
+                        "visibleWhen": {
+                          "binding": "var:fillPath",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-headline",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "headline"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "headline-title",
+                  "text": "Headline",
+                  "level": "2",
+                  "subtitle": "A large headline sits above a media window. It gets a short payoff near the end."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "headline-group-1",
+                  "layout": "main-aside",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "hook",
+                        "label": "Headline",
+                        "binding": "var:hook",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "Edit video by editing text",
+                        "hint": "Large, above the media window."
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "payoff",
+                        "label": "Payoff",
+                        "binding": "var:payoff",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "Done before lunch",
+                        "hint": "Shows when the result settles near the end."
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "headline-frame-1",
+                        "binding": "var:beatExample1",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "0–1.5 s · Hook",
+                        "download": false,
+                        "width": 112
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "headline-frame-4",
+                        "binding": "var:beatExample4",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "6.5–8 s · Payoff",
+                        "download": false,
+                        "width": 112
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "headline-divider"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "headline-nav",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "headline-back",
+                        "label": "Back: Start",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "start"
+                          }
+                        ],
+                        "variant": "outlined"
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "headline-next",
+                        "label": "Next: Two modules",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "modules"
+                          }
+                        ],
+                        "align": "end"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-modules",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "modules"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "modules-title",
+                  "text": "Two modules",
+                  "level": "2",
+                  "subtitle": "The window shows two images in turn: the premise, then the result."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "modules-group-1",
+                  "layout": "main-aside",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "Container",
+                      "props": {
+                        "id": "modules-cards-1",
+                        "variant": "plain",
+                        "columns": 2,
+                        "content": [
+                          {
+                            "type": "Container",
+                            "props": {
+                              "id": "card-moduleA",
+                              "variant": "card",
+                              "content": [
+                                {
+                                  "type": "ImageInput",
+                                  "props": {
+                                    "id": "moduleA",
+                                    "label": "Module A",
+                                    "binding": "var:moduleA",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "TextInput",
+                                  "props": {
+                                    "id": "benefitA",
+                                    "label": "Module A line",
+                                    "binding": "var:benefitA",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ],
+                                    "placeholder": "Cut a word, cut the clip"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Container",
+                            "props": {
+                              "id": "card-moduleB",
+                              "variant": "card",
+                              "content": [
+                                {
+                                  "type": "ImageInput",
+                                  "props": {
+                                    "id": "moduleB",
+                                    "label": "Module B",
+                                    "binding": "var:moduleB",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "TextInput",
+                                  "props": {
+                                    "id": "benefitB",
+                                    "label": "Module B line",
+                                    "binding": "var:benefitB",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ],
+                                    "placeholder": "Export in one click"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "modules-frame-2",
+                        "binding": "var:beatExample2",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "1.5–4.5 s · Module A",
+                        "download": false,
+                        "width": 112
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "modules-frame-3",
+                        "binding": "var:beatExample3",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "4.5–6.5 s · Module B",
+                        "download": false,
+                        "width": 112
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "modules-divider"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "modules-nav",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "modules-back",
+                        "label": "Back: Headline",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "headline"
+                          }
+                        ],
+                        "variant": "outlined"
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "modules-next",
+                        "label": "Next: Ending",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "ending"
+                          }
+                        ],
+                        "align": "end"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-ending",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "ending"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "ending-title",
+                  "text": "Ending",
+                  "level": "2",
+                  "subtitle": "A call to action strip shows below the media window."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "ending-group-1",
+                  "layout": "main-aside",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "cta",
+                        "label": "Call to action",
+                        "binding": "var:cta",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "Try it free"
+                      }
+                    },
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "logo",
+                        "label": "Logo",
+                        "binding": "var:logo",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "ColorInput",
+                      "props": {
+                        "id": "brandColor",
+                        "label": "Brand color",
+                        "binding": "var:brandColor",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "ending-frame-5",
+                        "binding": "var:beatExample5",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "8–10 s · CTA",
+                        "download": false,
+                        "width": 112
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "plan-error",
+                  "binding": "op:plan/exec#error"
+                }
+              },
+              {
+                "type": "AgentActivity",
+                "props": {
+                  "id": "plan-activity",
+                  "binding": "op:plan/exec#transcript",
+                  "label": "Layout agent",
+                  "height": 280,
+                  "placeholder": "The agent's layout edits and frame reviews appear here."
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "ending-divider"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "ending-nav",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "ending-back",
+                        "label": "Back: Two modules",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "modules"
+                          }
+                        ],
+                        "variant": "outlined"
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "plan",
+                        "label": "Plan the storyboard",
+                        "disabledWhen": {
+                          "binding": "op:plan/exec#running",
+                          "op": "notEmpty"
+                        },
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "plan"
+                          }
+                        ],
+                        "fullWidth": false,
+                        "align": "end"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Storyboard",
+          "props": {
+            "id": "output-storyboardId",
+            "binding": "var:storyboardId",
+            "label": "Storyboard",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "StoryboardPreview",
+          "props": {
+            "id": "output-storyboardId-preview",
+            "binding": "var:storyboardId",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "layout-review",
+            "variant": "plain",
+            "content": [
+              {
+                "type": "Alert",
+                "props": {
+                  "id": "layout-needs-review",
+                  "severity": "warning",
+                  "title": "The layout needs a look",
+                  "text": "Edit the cut or plan again. You can still approve it.",
+                  "visibleWhen": {
+                    "binding": "var:layoutFindings",
+                    "op": "notEmpty"
+                  }
+                }
+              },
+              {
+                "type": "List",
+                "props": {
+                  "id": "layout-findings",
+                  "binding": "var:layoutFindings",
+                  "visibleWhen": {
+                    "binding": "var:layoutFindings",
+                    "op": "notEmpty"
+                  }
+                }
+              }
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Timeline",
+          "props": {
+            "id": "output-designPreview",
+            "binding": "var:designPreview",
+            "label": "Composed design preview",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "review-nav",
+            "gap": 16,
+            "left": [
+              {
+                "type": "Button",
+                "props": {
+                  "id": "request-changes",
+                  "label": "Request changes",
+                  "variant": "outlined",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:approval",
+                      "value": "pending"
+                    },
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:step",
+                      "value": "headline"
+                    }
+                  ],
+                  "fullWidth": false
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Button",
+                "props": {
+                  "id": "finish",
+                  "label": "Build editable cut",
+                  "disabledWhen": {
+                    "binding": "op:finish/exec#running",
+                    "op": "notEmpty"
+                  },
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:approval",
+                      "value": "approved"
+                    },
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:step",
+                      "value": "build"
+                    },
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "operationId": "finish"
+                    }
+                  ],
+                  "fullWidth": false,
+                  "align": "end"
+                }
+              }
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "finish-error",
+            "binding": "op:finish/exec#error",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "build"
+            }
+          }
+        },
+        {
+          "type": "AgentActivity",
+          "props": {
+            "id": "finish-activity",
+            "binding": "op:finish/exec#transcript",
+            "label": "Build editable cut: agent activity",
+            "height": 360,
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "build"
+            }
+          }
+        },
+        {
+          "type": "Timeline",
+          "props": {
+            "id": "output-timeline",
+            "binding": "var:timeline",
+            "label": "Editable result",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "result"
+            }
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "finish-status",
+            "binding": "var:finishStatus",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "result"
+            }
+          }
+        }
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "name": "Plan or refresh Storyboard",
+        "workflowId": "plan",
+        "workflowVersion": 1,
+        "inputs": {
+          "in-recipe": {
+            "from": "constant",
+            "value": {
+              "schemaVersion": 1,
+              "slug": "ad-headline-plus-inset-motion-module",
+              "inputs": [
+                {
+                  "id": "moduleA",
+                  "label": "Module A",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "moduleB",
+                  "label": "Module B",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "logo",
+                  "label": "Logo",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "hook",
+                  "label": "Headline",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "benefitA",
+                  "label": "Module A line",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "benefitB",
+                  "label": "Module B line",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "payoff",
+                  "label": "Payoff",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "cta",
+                  "label": "Call to action",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "brandColor",
+                  "label": "Brand color",
+                  "kind": "color",
+                  "required": true
+                }
+              ],
+              "operations": [
+                {
+                  "id": "plan",
+                  "bindingId": "plan",
+                  "intent": "plan_storyboard",
+                  "version": 1
+                },
+                {
+                  "id": "finish",
+                  "bindingId": "finish",
+                  "intent": "finish_storyboard",
+                  "version": 1,
+                  "strategy": "agentic",
+                  "model": {
+                    "provider": "openai",
+                    "id": "gpt-5.4-mini"
+                  }
+                }
+              ],
+              "outputs": [
+                {
+                  "id": "storyboardId",
+                  "kind": "storyboard",
+                  "label": "Storyboard"
+                },
+                {
+                  "id": "designPreview",
+                  "kind": "timeline",
+                  "label": "Composed design preview"
+                },
+                {
+                  "id": "timeline",
+                  "kind": "timeline",
+                  "label": "Editable result"
+                }
+              ],
+              "category": "Ad library",
+              "defaults": {
+                "step": "start"
+              },
+              "creativeStrategy": {
+                "objective": "Turn many motion assets into a consistent vertical ad family.",
+                "direction": "Keep the wrapper fixed while swapping the inner motion, hook and offer.",
+                "aspectRatio": "9:16",
+                "shots": [
+                  {
+                    "id": "hook",
+                    "title": "Large headline occupies the upper region; media window is already present.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "moduleA",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "moduleA"
+                      },
+                      {
+                        "id": "hook",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "hook",
+                        "direction": "Headline enters in 250 ms; one phrase receives a restrained underline."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "module_a",
+                    "title": "Inset media demonstrates the premise.",
+                    "durationSeconds": 3,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "moduleA",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "moduleA"
+                      },
+                      {
+                        "id": "benefitA",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "benefitA",
+                        "direction": "Run the module inside a stable crop; wrapper stays still."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "module_b",
+                    "title": "A result or continuation plays inside the same window.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "moduleB",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "moduleB"
+                      },
+                      {
+                        "id": "benefitB",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "benefitB",
+                        "direction": "Cut inside the window rather than animating the full layout again."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "payoff",
+                    "title": "Result freezes or settles while the headline gains a short payoff.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "moduleB",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "moduleB"
+                      },
+                      {
+                        "id": "payoff",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "payoff",
+                        "direction": "180 ms text replacement; hold inner result."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cta",
+                    "title": "CTA strip is visible below the media frame.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "moduleB",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "moduleB"
+                      },
+                      {
+                        "id": "logo",
+                        "kind": "asset",
+                        "role": "logo",
+                        "inputId": "logo"
+                      },
+                      {
+                        "id": "cta",
+                        "kind": "text",
+                        "role": "cta",
+                        "inputId": "cta",
+                        "direction": "One 200 ms entrance; hold."
+                      }
+                    ]
+                  }
+                ]
+              },
+              "preservationRules": [
+                {
+                  "inputId": "moduleA",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "moduleB",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "logo",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "hook",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "benefitA",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "benefitB",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "payoff",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "cta",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "brandColor",
+                  "policy": "exact_color",
+                  "allowedTransformations": [
+                    "opacity",
+                    "composite"
+                  ]
+                }
+              ],
+              "mediaPolicy": {
+                "defaultStrategy": "still_motion_graphics",
+                "allowGeneratedVideo": false
+              },
+              "presentation": {
+                "groups": [
+                  {
+                    "id": "visuals",
+                    "title": "Images and brand",
+                    "inputIds": [
+                      "moduleA",
+                      "moduleB",
+                      "logo",
+                      "brandColor"
+                    ]
+                  },
+                  {
+                    "id": "copy",
+                    "title": "Exact copy",
+                    "inputIds": [
+                      "hook",
+                      "benefitA",
+                      "benefitB",
+                      "payoff",
+                      "cta"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "in-moduleA": {
+            "from": "variable",
+            "variableId": "moduleA"
+          },
+          "in-moduleB": {
+            "from": "variable",
+            "variableId": "moduleB"
+          },
+          "in-logo": {
+            "from": "variable",
+            "variableId": "logo"
+          },
+          "in-hook": {
+            "from": "variable",
+            "variableId": "hook"
+          },
+          "in-benefitA": {
+            "from": "variable",
+            "variableId": "benefitA"
+          },
+          "in-benefitB": {
+            "from": "variable",
+            "variableId": "benefitB"
+          },
+          "in-payoff": {
+            "from": "variable",
+            "variableId": "payoff"
+          },
+          "in-cta": {
+            "from": "variable",
+            "variableId": "cta"
+          },
+          "in-brandColor": {
+            "from": "variable",
+            "variableId": "brandColor"
+          },
+          "in-storyboardId": {
+            "from": "variable",
+            "variableId": "storyboardId"
+          },
+          "in-storyboardRevision": {
+            "from": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "in-plannedFingerprint": {
+            "from": "variable",
+            "variableId": "plannedFingerprint"
+          },
+          "in-finishModel": {
+            "from": "variable",
+            "variableId": "finishModel"
+          },
+          "in-imageModel": {
+            "from": "variable",
+            "variableId": "imageModel"
+          }
+        },
+        "outputs": {
+          "out-storyboardId": {
+            "to": "variable",
+            "variableId": "storyboardId"
+          },
+          "out-storyboardRevision": {
+            "to": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "out-timelineId": {
+            "to": "variable",
+            "variableId": "timelineId"
+          },
+          "out-timelineRevision": {
+            "to": "variable",
+            "variableId": "timelineRevision"
+          },
+          "out-linkedScriptFingerprint": {
+            "to": "variable",
+            "variableId": "linkedScriptFingerprint"
+          },
+          "out-plannedFingerprint": {
+            "to": "variable",
+            "variableId": "plannedFingerprint"
+          },
+          "out-approval": {
+            "to": "variable",
+            "variableId": "approval"
+          },
+          "out-planPreview": {
+            "to": "variable",
+            "variableId": "planPreview"
+          },
+          "out-designPreview": {
+            "to": "variable",
+            "variableId": "designPreview"
+          },
+          "out-layoutFindings": {
+            "to": "variable",
+            "variableId": "layoutFindings"
+          },
+          "out-step": {
+            "to": "variable",
+            "variableId": "step"
+          }
+        },
+        "policy": "queue"
+      },
+      {
+        "id": "finish",
+        "name": "Build editable cut",
+        "workflowId": "finish",
+        "workflowVersion": 1,
+        "inputs": {
+          "in-recipe": {
+            "from": "constant",
+            "value": {
+              "schemaVersion": 1,
+              "slug": "ad-headline-plus-inset-motion-module",
+              "inputs": [
+                {
+                  "id": "moduleA",
+                  "label": "Module A",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "moduleB",
+                  "label": "Module B",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "logo",
+                  "label": "Logo",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "hook",
+                  "label": "Headline",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "benefitA",
+                  "label": "Module A line",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "benefitB",
+                  "label": "Module B line",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "payoff",
+                  "label": "Payoff",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "cta",
+                  "label": "Call to action",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "brandColor",
+                  "label": "Brand color",
+                  "kind": "color",
+                  "required": true
+                }
+              ],
+              "operations": [
+                {
+                  "id": "plan",
+                  "bindingId": "plan",
+                  "intent": "plan_storyboard",
+                  "version": 1
+                },
+                {
+                  "id": "finish",
+                  "bindingId": "finish",
+                  "intent": "finish_storyboard",
+                  "version": 1,
+                  "strategy": "agentic",
+                  "model": {
+                    "provider": "openai",
+                    "id": "gpt-5.4-mini"
+                  }
+                }
+              ],
+              "outputs": [
+                {
+                  "id": "storyboardId",
+                  "kind": "storyboard",
+                  "label": "Storyboard"
+                },
+                {
+                  "id": "designPreview",
+                  "kind": "timeline",
+                  "label": "Composed design preview"
+                },
+                {
+                  "id": "timeline",
+                  "kind": "timeline",
+                  "label": "Editable result"
+                }
+              ],
+              "category": "Ad library",
+              "defaults": {
+                "step": "start"
+              },
+              "creativeStrategy": {
+                "objective": "Turn many motion assets into a consistent vertical ad family.",
+                "direction": "Keep the wrapper fixed while swapping the inner motion, hook and offer.",
+                "aspectRatio": "9:16",
+                "shots": [
+                  {
+                    "id": "hook",
+                    "title": "Large headline occupies the upper region; media window is already present.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "moduleA",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "moduleA"
+                      },
+                      {
+                        "id": "hook",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "hook",
+                        "direction": "Headline enters in 250 ms; one phrase receives a restrained underline."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "module_a",
+                    "title": "Inset media demonstrates the premise.",
+                    "durationSeconds": 3,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "moduleA",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "moduleA"
+                      },
+                      {
+                        "id": "benefitA",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "benefitA",
+                        "direction": "Run the module inside a stable crop; wrapper stays still."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "module_b",
+                    "title": "A result or continuation plays inside the same window.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "moduleB",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "moduleB"
+                      },
+                      {
+                        "id": "benefitB",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "benefitB",
+                        "direction": "Cut inside the window rather than animating the full layout again."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "payoff",
+                    "title": "Result freezes or settles while the headline gains a short payoff.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "moduleB",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "moduleB"
+                      },
+                      {
+                        "id": "payoff",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "payoff",
+                        "direction": "180 ms text replacement; hold inner result."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cta",
+                    "title": "CTA strip is visible below the media frame.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "moduleB",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "moduleB"
+                      },
+                      {
+                        "id": "logo",
+                        "kind": "asset",
+                        "role": "logo",
+                        "inputId": "logo"
+                      },
+                      {
+                        "id": "cta",
+                        "kind": "text",
+                        "role": "cta",
+                        "inputId": "cta",
+                        "direction": "One 200 ms entrance; hold."
+                      }
+                    ]
+                  }
+                ]
+              },
+              "preservationRules": [
+                {
+                  "inputId": "moduleA",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "moduleB",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "logo",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "hook",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "benefitA",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "benefitB",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "payoff",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "cta",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "brandColor",
+                  "policy": "exact_color",
+                  "allowedTransformations": [
+                    "opacity",
+                    "composite"
+                  ]
+                }
+              ],
+              "mediaPolicy": {
+                "defaultStrategy": "still_motion_graphics",
+                "allowGeneratedVideo": false
+              },
+              "presentation": {
+                "groups": [
+                  {
+                    "id": "visuals",
+                    "title": "Images and brand",
+                    "inputIds": [
+                      "moduleA",
+                      "moduleB",
+                      "logo",
+                      "brandColor"
+                    ]
+                  },
+                  {
+                    "id": "copy",
+                    "title": "Exact copy",
+                    "inputIds": [
+                      "hook",
+                      "benefitA",
+                      "benefitB",
+                      "payoff",
+                      "cta"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "in-recipeOperationId": {
+            "from": "constant",
+            "value": "finish"
+          },
+          "in-moduleA": {
+            "from": "variable",
+            "variableId": "moduleA"
+          },
+          "in-moduleB": {
+            "from": "variable",
+            "variableId": "moduleB"
+          },
+          "in-logo": {
+            "from": "variable",
+            "variableId": "logo"
+          },
+          "in-hook": {
+            "from": "variable",
+            "variableId": "hook"
+          },
+          "in-benefitA": {
+            "from": "variable",
+            "variableId": "benefitA"
+          },
+          "in-benefitB": {
+            "from": "variable",
+            "variableId": "benefitB"
+          },
+          "in-payoff": {
+            "from": "variable",
+            "variableId": "payoff"
+          },
+          "in-cta": {
+            "from": "variable",
+            "variableId": "cta"
+          },
+          "in-brandColor": {
+            "from": "variable",
+            "variableId": "brandColor"
+          },
+          "in-storyboardId": {
+            "from": "variable",
+            "variableId": "storyboardId"
+          },
+          "in-storyboardRevision": {
+            "from": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "in-linkedScriptFingerprint": {
+            "from": "variable",
+            "variableId": "linkedScriptFingerprint"
+          },
+          "in-timelineId": {
+            "from": "variable",
+            "variableId": "timelineId"
+          },
+          "in-timelineRevision": {
+            "from": "variable",
+            "variableId": "timelineRevision"
+          },
+          "in-approval": {
+            "from": "variable",
+            "variableId": "approval"
+          },
+          "in-plannedFingerprint": {
+            "from": "variable",
+            "variableId": "plannedFingerprint"
+          },
+          "in-finishStrategy": {
+            "from": "constant",
+            "value": "agentic"
+          },
+          "in-finishModel": {
+            "from": "variable",
+            "variableId": "finishModel"
+          }
+        },
+        "outputs": {
+          "out-approval": {
+            "to": "variable",
+            "variableId": "approval"
+          },
+          "out-finishStatus": {
+            "to": "variable",
+            "variableId": "finishStatus"
+          },
+          "out-timelineId": {
+            "to": "variable",
+            "variableId": "timelineId"
+          },
+          "out-timelineRevision": {
+            "to": "variable",
+            "variableId": "timelineRevision"
+          },
+          "out-storyboardRevision": {
+            "to": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "out-timeline": {
+            "to": "variable",
+            "variableId": "timeline"
+          },
+          "out-validation": {
+            "to": "variable",
+            "variableId": "validation"
+          },
+          "out-reviews": {
+            "to": "variable",
+            "variableId": "reviews"
+          },
+          "out-step": {
+            "to": "variable",
+            "variableId": "step"
+          }
+        },
+        "policy": "queue"
+      },
+      {
+        "id": "suggest",
+        "name": "Suggest options from a website",
+        "workflowId": "suggest",
+        "policy": "replace",
+        "inputs": {
+          "in-sourceUrl": {
+            "from": "variable",
+            "variableId": "sourceUrl"
+          },
+          "in-model": {
+            "from": "variable",
+            "variableId": "finishModel"
+          }
+        },
+        "outputs": {
+          "out-fillOptions": {
+            "to": "variable",
+            "variableId": "fillOptions"
+          },
+          "out-fillChoice": {
+            "to": "variable",
+            "variableId": "fillChoice"
+          },
+          "out-fillReport": {
+            "to": "variable",
+            "variableId": "fillReport"
+          }
+        }
+      },
+      {
+        "id": "apply",
+        "name": "Fill the ad from the picked option",
+        "workflowId": "",
+        "policy": "replace",
+        "target": {
+          "kind": "script",
+          "scriptId": "apply_ad_option-v1",
+          "scriptVersion": 1
+        },
+        "inputs": {
+          "brief": {
+            "from": "constant",
+            "value": {
+              "title": "Headline plus inset motion module",
+              "objective": "Turn many motion assets into a consistent vertical ad family.",
+              "direction": "Keep the wrapper fixed while swapping the inner motion, hook and offer.",
+              "beats": [
+                "0–1.5 s: Large headline occupies the upper region; media window is already present. Shows Brand color, Module A, Headline.",
+                "1.5–4.5 s: Inset media demonstrates the premise. Shows Brand color, Module A, Module A line.",
+                "4.5–6.5 s: A result or continuation plays inside the same window. Shows Brand color, Module B, Module B line.",
+                "6.5–8 s: Result freezes or settles while the headline gains a short payoff. Shows Brand color, Module B, Payoff.",
+                "8–10 s: CTA strip is visible below the media frame. Shows Brand color, Module B, Logo, Call to action."
+              ],
+              "fields": [
+                {
+                  "id": "hook",
+                  "label": "Headline",
+                  "purpose": "hook",
+                  "maxWords": 7
+                },
+                {
+                  "id": "benefitA",
+                  "label": "Module A line",
+                  "purpose": "module a",
+                  "maxWords": 7
+                },
+                {
+                  "id": "benefitB",
+                  "label": "Module B line",
+                  "purpose": "module b",
+                  "maxWords": 7
+                },
+                {
+                  "id": "payoff",
+                  "label": "Payoff",
+                  "purpose": "payoff",
+                  "maxWords": 7
+                },
+                {
+                  "id": "cta",
+                  "label": "Call to action",
+                  "purpose": "cta",
+                  "maxWords": 4
+                }
+              ],
+              "images": [
+                {
+                  "id": "moduleA",
+                  "label": "Module A",
+                  "role": "decorative",
+                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Large headline occupies the upper region; media window is already present. | Inset media demonstrates the premise."
+                },
+                {
+                  "id": "moduleB",
+                  "label": "Module B",
+                  "role": "decorative",
+                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: A result or continuation plays inside the same window. | Result freezes or settles while the headline gains a short payoff. | CTA strip is visible below the media frame."
+                },
+                {
+                  "id": "logo",
+                  "label": "Logo",
+                  "role": "logo",
+                  "guidance": "The brand's own logo file, such as the site header logo or its icon. Shown in: CTA strip is visible below the media frame."
+                }
+              ]
+            }
+          },
+          "options": {
+            "from": "variable",
+            "variableId": "fillOptions"
+          },
+          "choice": {
+            "from": "variable",
+            "variableId": "fillChoice"
+          }
+        },
+        "outputs": {
+          "hook": {
+            "to": "variable",
+            "variableId": "hook"
+          },
+          "benefitA": {
+            "to": "variable",
+            "variableId": "benefitA"
+          },
+          "benefitB": {
+            "to": "variable",
+            "variableId": "benefitB"
+          },
+          "payoff": {
+            "to": "variable",
+            "variableId": "payoff"
+          },
+          "cta": {
+            "to": "variable",
+            "variableId": "cta"
+          },
+          "brandColor": {
+            "to": "variable",
+            "variableId": "brandColor"
+          },
+          "moduleA": {
+            "to": "variable",
+            "variableId": "moduleA"
+          },
+          "moduleB": {
+            "to": "variable",
+            "variableId": "moduleB"
+          },
+          "logo": {
+            "to": "variable",
+            "variableId": "logo"
+          },
+          "fillReport": {
+            "to": "variable",
+            "variableId": "fillReport"
+          },
+          "approval": {
+            "to": "variable",
+            "variableId": "approval"
+          }
+        }
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "moduleA",
+        "name": "Module A",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "moduleB",
+        "name": "Module B",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "logo",
+        "name": "Logo",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "hook",
+        "name": "Headline",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "benefitA",
+        "name": "Module A line",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "benefitB",
+        "name": "Module B line",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "payoff",
+        "name": "Payoff",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "cta",
+        "name": "Call to action",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "brandColor",
+        "name": "Brand color",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "storyboardId",
+        "name": "storyboardId",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "storyboardRevision",
+        "name": "storyboardRevision",
+        "type": {
+          "type": "int",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "plannedFingerprint",
+        "name": "plannedFingerprint",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "timelineId",
+        "name": "timelineId",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "timelineRevision",
+        "name": "timelineRevision",
+        "type": {
+          "type": "int",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "linkedScriptFingerprint",
+        "name": "linkedScriptFingerprint",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "approval",
+        "name": "approval",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "planPreview",
+        "name": "planPreview",
+        "type": {
+          "type": "dict",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "designPreview",
+        "name": "designPreview",
+        "type": {
+          "type": "timeline",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "layoutFindings",
+        "name": "layoutFindings",
+        "type": {
+          "type": "list[str]",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "step",
+        "name": "step",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "default": "start",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "finishStatus",
+        "name": "finishStatus",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "timeline",
+        "name": "timeline",
+        "type": {
+          "type": "timeline",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "validation",
+        "name": "validation",
+        "type": {
+          "type": "list[dict]",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "reviews",
+        "name": "reviews",
+        "type": {
+          "type": "list[dict]",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "finishModel",
+        "name": "Finishing model",
+        "type": {
+          "type": "dict"
+        },
+        "scope": "user",
+        "persist": true,
+        "default": {
+          "type": "language_model",
+          "provider": "",
+          "id": "",
+          "name": ""
+        }
+      },
+      {
+        "id": "imageModel",
+        "name": "Image model",
+        "type": {
+          "type": "dict"
+        },
+        "scope": "user",
+        "persist": true,
+        "default": {
+          "type": "image_model",
+          "provider": "",
+          "id": "",
+          "name": ""
+        }
+      },
+      {
+        "id": "fillPath",
+        "name": "How to start",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "sourceUrl",
+        "name": "Website URL",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "fillOptions",
+        "name": "Suggested options",
+        "type": {
+          "type": "list[dict]"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": []
+      },
+      {
+        "id": "fillChoice",
+        "name": "Picked option",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "fillReport",
+        "name": "Fill report",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "beatExample1",
+        "name": "Beat 1 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R09-B01.webp"
+        }
+      },
+      {
+        "id": "beatExample2",
+        "name": "Beat 2 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R09-B02.webp"
+        }
+      },
+      {
+        "id": "beatExample3",
+        "name": "Beat 3 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R09-B03.webp"
+        }
+      },
+      {
+        "id": "beatExample4",
+        "name": "Beat 4 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R09-B04.webp"
+        }
+      },
+      {
+        "id": "beatExample5",
+        "name": "Beat 5 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R09-B05.webp"
+        }
+      }
+    ],
+    "recipe": {
+      "schemaVersion": 1,
+      "slug": "ad-headline-plus-inset-motion-module",
+      "inputs": [
+        {
+          "id": "moduleA",
+          "label": "Module A",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "moduleB",
+          "label": "Module B",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "logo",
+          "label": "Logo",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "hook",
+          "label": "Headline",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "benefitA",
+          "label": "Module A line",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "benefitB",
+          "label": "Module B line",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "payoff",
+          "label": "Payoff",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "cta",
+          "label": "Call to action",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "brandColor",
+          "label": "Brand color",
+          "kind": "color",
+          "required": true
+        }
+      ],
+      "operations": [
+        {
+          "id": "plan",
+          "bindingId": "plan",
+          "intent": "plan_storyboard",
+          "version": 1
+        },
+        {
+          "id": "finish",
+          "bindingId": "finish",
+          "intent": "finish_storyboard",
+          "version": 1,
+          "strategy": "agentic",
+          "model": {
+            "provider": "openai",
+            "id": "gpt-5.4-mini"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "id": "storyboardId",
+          "kind": "storyboard",
+          "label": "Storyboard"
+        },
+        {
+          "id": "designPreview",
+          "kind": "timeline",
+          "label": "Composed design preview"
+        },
+        {
+          "id": "timeline",
+          "kind": "timeline",
+          "label": "Editable result"
+        }
+      ],
+      "category": "Ad library",
+      "defaults": {
+        "step": "start"
+      },
+      "creativeStrategy": {
+        "objective": "Turn many motion assets into a consistent vertical ad family.",
+        "direction": "Keep the wrapper fixed while swapping the inner motion, hook and offer.",
+        "aspectRatio": "9:16",
+        "shots": [
+          {
+            "id": "hook",
+            "title": "Large headline occupies the upper region; media window is already present.",
+            "durationSeconds": 1.5,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor"
+              },
+              {
+                "id": "moduleA",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "moduleA"
+              },
+              {
+                "id": "hook",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "hook",
+                "direction": "Headline enters in 250 ms; one phrase receives a restrained underline."
+              }
+            ]
+          },
+          {
+            "id": "module_a",
+            "title": "Inset media demonstrates the premise.",
+            "durationSeconds": 3,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor"
+              },
+              {
+                "id": "moduleA",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "moduleA"
+              },
+              {
+                "id": "benefitA",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "benefitA",
+                "direction": "Run the module inside a stable crop; wrapper stays still."
+              }
+            ]
+          },
+          {
+            "id": "module_b",
+            "title": "A result or continuation plays inside the same window.",
+            "durationSeconds": 2,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor"
+              },
+              {
+                "id": "moduleB",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "moduleB"
+              },
+              {
+                "id": "benefitB",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "benefitB",
+                "direction": "Cut inside the window rather than animating the full layout again."
+              }
+            ]
+          },
+          {
+            "id": "payoff",
+            "title": "Result freezes or settles while the headline gains a short payoff.",
+            "durationSeconds": 1.5,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor"
+              },
+              {
+                "id": "moduleB",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "moduleB"
+              },
+              {
+                "id": "payoff",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "payoff",
+                "direction": "180 ms text replacement; hold inner result."
+              }
+            ]
+          },
+          {
+            "id": "cta",
+            "title": "CTA strip is visible below the media frame.",
+            "durationSeconds": 2,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor"
+              },
+              {
+                "id": "moduleB",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "moduleB"
+              },
+              {
+                "id": "logo",
+                "kind": "asset",
+                "role": "logo",
+                "inputId": "logo"
+              },
+              {
+                "id": "cta",
+                "kind": "text",
+                "role": "cta",
+                "inputId": "cta",
+                "direction": "One 200 ms entrance; hold."
+              }
+            ]
+          }
+        ]
+      },
+      "preservationRules": [
+        {
+          "inputId": "moduleA",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "moduleB",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "logo",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "hook",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "benefitA",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "benefitB",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "payoff",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "cta",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "brandColor",
+          "policy": "exact_color",
+          "allowedTransformations": [
+            "opacity",
+            "composite"
+          ]
+        }
+      ],
+      "mediaPolicy": {
+        "defaultStrategy": "still_motion_graphics",
+        "allowGeneratedVideo": false
+      },
+      "presentation": {
+        "groups": [
+          {
+            "id": "visuals",
+            "title": "Images and brand",
+            "inputIds": [
+              "moduleA",
+              "moduleB",
+              "logo",
+              "brandColor"
+            ]
+          },
+          {
+            "id": "copy",
+            "title": "Exact copy",
+            "inputIds": [
+              "hook",
+              "benefitA",
+              "benefitB",
+              "payoff",
+              "cta"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "workflows": [
+    {
+      "key": "plan",
+      "name": "Plan or refresh Storyboard",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in-recipe",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "recipe",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-moduleA",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "moduleA",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-moduleB",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "moduleB",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-logo",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "logo",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-hook",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "hook",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-benefitA",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "benefitA",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-benefitB",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "benefitB",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-payoff",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "payoff",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-cta",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "cta",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-brandColor",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "brandColor",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardRevision",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardRevision",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-plannedFingerprint",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "plannedFingerprint",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-finishModel",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "finishModel",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-imageModel",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "imageModel",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-storyboardId",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "storyboardId"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-storyboardRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "storyboardRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineId",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineId"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-linkedScriptFingerprint",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "linkedScriptFingerprint"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-plannedFingerprint",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "plannedFingerprint"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-approval",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "approval"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-planPreview",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "planPreview"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-designPreview",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "designPreview"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-layoutFindings",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "layoutFindings"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-step",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "step"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "finish",
+      "name": "Build editable cut",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in-recipe",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "recipe",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-recipeOperationId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "recipeOperationId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-moduleA",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "moduleA",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-moduleB",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "moduleB",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-logo",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "logo",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-hook",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "hook",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-benefitA",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "benefitA",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-benefitB",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "benefitB",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-payoff",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "payoff",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-cta",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "cta",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-brandColor",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "brandColor",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-finishStrategy",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "finishStrategy",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-finishModel",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "finishModel",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardRevision",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardRevision",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-linkedScriptFingerprint",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "linkedScriptFingerprint",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-timelineId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "timelineId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-timelineRevision",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "timelineRevision",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-approval",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "approval",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-plannedFingerprint",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "plannedFingerprint",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-approval",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "approval"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-finishStatus",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "finishStatus"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineId",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineId"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-storyboardRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "storyboardRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timeline",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timeline"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-validation",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "validation"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-reviews",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "reviews"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-step",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "step"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "suggest",
+      "name": "Suggest Headline plus inset motion module ad options",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in-sourceUrl",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "sourceUrl",
+              "value": "",
+              "description": "The product or brand page to read."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-model",
+            "type": "nodetool.input.LanguageModelInput",
+            "data": {
+              "name": "model",
+              "value": {
+                "type": "language_model",
+                "provider": "",
+                "id": "",
+                "name": ""
+              },
+              "description": "The model the agent runs on."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-fillOptions",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "fillOptions"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-fillChoice",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "fillChoice"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-fillReport",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "fillReport"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "scripts": [
+    {
+      "key": "apply_ad_option-v1",
+      "name": "Fill the ad from the picked option",
+      "version": 1,
+      "document": {
+        "schemaVersion": 1,
+        "code": "import { save_asset } from \"@nodetool-ai/sandbox-nodetool/assets\";\nconst brief = inputs.brief;\nconst option = (Array.isArray(inputs.options) ? inputs.options : []).find(item => item.value === inputs.choice);\nif (!option) throw new Error(\"Pick one of the suggested options.\");\nfor (const field of brief.fields) {\n  if (option.fields?.[field.id]) await output(field.id, option.fields[field.id]);\n}\nif (option.brandColor) await output(\"brandColor\", option.brandColor);\nconst missing = [];\nconst tooSmall = [];\nfor (const wanted of brief.images) {\n  const source = option.images?.[wanted.id] || \"\";\n  if (!source) { missing.push(wanted.label); continue; }\n  progress(20, \"Saving \" + wanted.label);\n  try {\n    const saved = await save_asset({name: wanted.label + \" from \" + source.split(\"/\").pop().split(\"?\")[0], source});\n    if (!saved?.asset_id || !String(saved.content_type || \"\").startsWith(\"image/\")) throw new Error(\"not an image\");\n    if (saved.content_type !== \"image/svg+xml\") {\n      const {width, height} = await image.info(await media.bytes({type: \"image\", uri: \"asset://\" + saved.asset_id}));\n      if (Math.min(width, height) < (wanted.role === \"logo\" ? 100 : 400)) {\n        tooSmall.push(wanted.label + \" (\" + width + \"x\" + height + \")\");\n        continue;\n      }\n    }\n    await output(wanted.id, {type: \"image\", uri: \"asset://\" + saved.asset_id, asset_id: saved.asset_id});\n  } catch (error) {\n    console.log(\"Could not save \" + wanted.label + \" from \" + source + \": \" + error);\n    missing.push(wanted.label);\n  }\n}\nconst report = [\n  ...(missing.length ? [\"No usable image found for: \" + missing.join(\", \") + \".\"] : []),\n  ...(tooSmall.length ? [\"Only images too small for the ad were found for: \" + tooSmall.join(\", \") + \".\"] : [])\n];\nawait output(\"fillReport\", report.length ? report.join(\" \") + \" Upload these yourself.\" : \"Filled from \" + option.title + \". Check every field before you plan.\");\nawait output(\"approval\", \"pending\");",
+        "inputs": [
+          {
+            "name": "brief",
+            "type": "dict"
+          },
+          {
+            "name": "options",
+            "type": "list[dict]"
+          },
+          {
+            "name": "choice",
+            "type": "str"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "hook",
+            "type": "str"
+          },
+          {
+            "name": "benefitA",
+            "type": "str"
+          },
+          {
+            "name": "benefitB",
+            "type": "str"
+          },
+          {
+            "name": "payoff",
+            "type": "str"
+          },
+          {
+            "name": "cta",
+            "type": "str"
+          },
+          {
+            "name": "brandColor",
+            "type": "str"
+          },
+          {
+            "name": "moduleA",
+            "type": "image"
+          },
+          {
+            "name": "moduleB",
+            "type": "image"
+          },
+          {
+            "name": "logo",
+            "type": "image"
+          },
+          {
+            "name": "fillReport",
+            "type": "str"
+          },
+          {
+            "name": "approval",
+            "type": "str"
+          }
+        ],
+        "packages": [],
+        "secrets": [],
+        "timeoutSeconds": 120,
+        "tests": []
+      }
+    }
+  ],
+  "values": {
+    "var:step": "start",
+    "var:finishModel": {
+      "type": "language_model",
+      "provider": "",
+      "id": "",
+      "name": ""
+    },
+    "var:imageModel": {
+      "type": "image_model",
+      "provider": "",
+      "id": "",
+      "name": ""
+    },
+    "var:fillPath": "",
+    "var:sourceUrl": "",
+    "var:fillOptions": [],
+    "var:fillChoice": "",
+    "var:fillReport": "",
+    "var:beatExample1": {
+      "type": "image",
+      "uri": "package://nodetool-base/ad-library/R09-B01.webp"
+    },
+    "var:beatExample2": {
+      "type": "image",
+      "uri": "package://nodetool-base/ad-library/R09-B02.webp"
+    },
+    "var:beatExample3": {
+      "type": "image",
+      "uri": "package://nodetool-base/ad-library/R09-B03.webp"
+    },
+    "var:beatExample4": {
+      "type": "image",
+      "uri": "package://nodetool-base/ad-library/R09-B04.webp"
+    },
+    "var:beatExample5": {
+      "type": "image",
+      "uri": "package://nodetool-base/ad-library/R09-B05.webp"
+    }
+  }
+}

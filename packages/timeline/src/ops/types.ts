@@ -33,7 +33,7 @@ export interface TimelineOpState {
   tracks: TimelineTrack[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
-  storyboardMaterializations?: Array<{ boardId: string; elementKeys: string[] }>;
+  storyboardMaterializations?: Array<{ boardId: string; elementKeys: string[]; stage?: "layout" | "finished" }>;
   /**
    * Subject/object tracks (P0 AI Video, Phase 2). Optional so a host built
    * before they existed — every literal `TimelineOpState` in this package's

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { graph } from "./workflows.js";
+import { graphicsFrame, graphicsTypography, graphicsLock, graphicsLimits, graphicsShapeStyle, graphicsFallback } from "./storyboards.js";
 import { jsScriptDocument } from "./js-scripts.js";
 
 // ── Application document ────────────────────────────────────────────────────
@@ -129,8 +130,10 @@ export const recipeManifest = z.object({
     aspectRatio: z.enum(["9:16", "4:5", "1:1", "16:9"]).optional(),
     shots: z.array(z.object({
       id: z.string().min(1), title: z.string().min(1), durationSeconds: z.number().positive(),
-      elements: z.array(z.object({id: z.string().min(1), inputId: z.string().min(1), kind: z.enum(["asset", "text", "shape"]), role: z.enum(["product", "logo", "headline", "price", "cta", "decorative"]), direction: z.string().optional()}))
-    })).min(1).optional()
+      elements: z.array(z.object({id: z.string().min(1), inputId: z.string().min(1).optional(), kind: z.enum(["asset", "text", "shape"]), role: z.enum(["product", "logo", "headline", "price", "cta", "decorative"]), direction: z.string().optional(), frame: graphicsFrame.optional(), typography: graphicsTypography.optional(), lock: graphicsLock.optional(), limits: graphicsLimits.optional(), style: graphicsShapeStyle.optional(), fallback: graphicsFallback.optional()})),
+      reviewRules: z.array(z.string()).optional()
+    })).min(1).optional(),
+    reviewRules: z.array(z.string()).optional()
   }).optional(),
   preservationRules: z.array(recipePreservationRule).optional(),
   mediaPolicy: z.object({
@@ -178,7 +181,13 @@ export const recipeManifest = z.object({
   shots.forEach((shot, index) => {
     if (new Set(shot.elements.map((element) => element.id)).size !== shot.elements.length) context.addIssue({code: "custom", path: ["creativeStrategy", "shots", index, "elements"], message: "Graphic element ids must be unique in a shot."});
     shot.elements.forEach((element, elementIndex) => {
+      // A template-owned shape has no input: its style is its source.
+      if (element.inputId === undefined) {
+        if (element.kind !== "shape" || !(element.style?.fill || element.style?.stroke)) context.addIssue({code: "custom", path: ["creativeStrategy", "shots", index, "elements", elementIndex, "inputId"], message: "Only a shape with a fill or stroke style may have no source input."});
+        return;
+      }
       if (!knownInputs.has(element.inputId)) context.addIssue({code: "custom", path: ["creativeStrategy", "shots", index, "elements", elementIndex, "inputId"], message: "Graphic source must reference a Recipe input."});
+      if (element.fallback && element.kind !== "asset") context.addIssue({code: "custom", path: ["creativeStrategy", "shots", index, "elements", elementIndex, "fallback"], message: "Only an asset element can fall back to a generated image."});
     });
   });
   manifest.preservationRules?.forEach((rule, index) => {

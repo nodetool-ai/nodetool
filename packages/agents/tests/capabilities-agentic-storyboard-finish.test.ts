@@ -286,7 +286,7 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
         call("submit_finished_cut")
       ],
       done,
-      approve,
+      // The reminder turn after the refused submission.
       done
     ]);
     const result = await execute(provider, context, board);
@@ -802,6 +802,8 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
         }),
         call("submit_finished_cut")
       ],
+      done,
+      // The reminder turn after a rejected edit.
       done
     ]);
     const result = await execute(

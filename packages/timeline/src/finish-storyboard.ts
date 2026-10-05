@@ -192,6 +192,7 @@ const priceDirection = (element: GraphicsElement): string | undefined =>
   element.role === "price" ? element.direction?.trim().toLowerCase() : undefined;
 
 function textFontSizePx(element: GraphicsElement, width: number): number {
+  if (element.typography?.size) return width * element.typography.size;
   const price = priceDirection(element);
   return element.role === "price" ? width * (price === "superseded price" ? 0.055 : 0.12) : width * 0.065;
 }
@@ -250,6 +251,51 @@ function planShotSlots(elements: readonly GraphicsElement[], input: Pick<FinishS
     halfHeight.set(element.id, half);
   }
   return slots;
+}
+
+interface FramePlacement { x: number; y: number; scale: number; crop?: { left: number; right: number; top: number; bottom: number } }
+const ALIGN_FRACTION = { start: 0, center: 0.5, end: 1 } as const;
+
+/**
+ * Place an image into its authored box. `contain` keeps the whole picture inside the box.
+ * `cover` fills the box. With `clip` the overflow is cut with `clip.crop`, whose kept rectangle
+ * becomes the layer's picture, so the layer is then re-fit to exactly the box.
+ * Positions are canvas-centre-relative pixels, as in `ClipTransform`. Without a known asset size
+ * the picture is assumed to have the box's own aspect.
+ */
+function placeInFrame(frame: NonNullable<GraphicsElement["frame"]>, size: { width: number; height: number } | undefined, canvas: { width: number; height: number }): FramePlacement {
+  const [bx, by, bw, bh] = frame.box;
+  const boxW = bw * canvas.width, boxH = bh * canvas.height;
+  const boxLeft = bx * canvas.width, boxTop = by * canvas.height;
+  const ax = ALIGN_FRACTION[frame.align?.x ?? "center"], ay = ALIGN_FRACTION[frame.align?.y ?? "center"];
+  const known = !!size && size.width > 0 && size.height > 0;
+  const w = known ? size.width : boxW, h = known ? size.height : boxH;
+  const cover = frame.fit === "cover";
+  const fitScale = cover ? Math.max(boxW / w, boxH / h) : Math.min(boxW / w, boxH / h);
+  const shown = { w: w * fitScale, h: h * fitScale };
+  const centreX = boxLeft + boxW / 2 - canvas.width / 2, centreY = boxTop + boxH / 2 - canvas.height / 2;
+  // Picture size on canvas for scale 1 is the contain base of the (possibly cropped) source.
+  const unitScale = (sw: number, sh: number): number => containBaseScale(sw, sh, canvas.width, canvas.height).x * canvas.width;
+  if (cover && frame.clip) {
+    const keepW = Math.min(1, boxW / fitScale / w), keepH = Math.min(1, boxH / fitScale / h);
+    const cutX = 1 - keepW, cutY = 1 - keepH;
+    const crop = { left: cutX * ax, right: cutX * (1 - ax), top: cutY * ay, bottom: cutY * (1 - ay) };
+    const scale = boxW / unitScale(keepW * w, keepH * h);
+    const placed: FramePlacement = { x: centreX, y: centreY, scale };
+    if (cutX > 1e-4 || cutY > 1e-4) placed.crop = crop;
+    return placed;
+  }
+  const scale = shown.w / unitScale(w, h);
+  return { x: centreX + (ax - 0.5) * (boxW - shown.w), y: centreY + (ay - 0.5) * (boxH - shown.h), scale };
+}
+
+/** Block centre of a framed text element. Wrapping happens inside `maxWidthFrac` = box width. */
+function placeTextInFrame(frame: NonNullable<GraphicsElement["frame"]>, fontSizePx: number, lines: number, canvas: { width: number; height: number }): { x: number; y: number } {
+  const [bx, by, bw, bh] = frame.box;
+  const blockH = Math.min(bh * canvas.height, lines * fontSizePx * 1.2);
+  const ay = ALIGN_FRACTION[frame.align?.y ?? "center"];
+  const top = by * canvas.height + ay * (bh * canvas.height - blockH);
+  return { x: (bx + bw / 2) * canvas.width - canvas.width / 2, y: top + blockH / 2 - canvas.height / 2 };
 }
 
 /** Deterministic editable composition. Reruns preserve manually changed placement/timing. */
@@ -314,7 +360,8 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
     if (source) {
       elements.unshift({ id: "$source", kind: "asset", asset_id: source.currentAssetId });
     }
-    const slots = planShotSlots(elements, input, (element) => (element.protected_input_id ? protectedInputs.get(element.protected_input_id)?.asset_id : undefined) ?? element.asset_id);
+    // An element with an authored frame is placed from its box, never from a slot.
+    const slots = planShotSlots(elements.filter((element) => !element.frame), input, (element) => (element.protected_input_id ? protectedInputs.get(element.protected_input_id)?.asset_id : undefined) ?? element.asset_id);
     for (const [index, element] of elements.entries()) {
       const key = identity(shot.id, element.id);
       const previous = existing.get(key);
@@ -329,6 +376,19 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
       const isBackground = element.kind === "shape" && element.id === "background";
       const priceIntent = priceDirection(element);
       const { y, scale } = slots.get(element.id) ?? defaultSlot(element, index);
+      const frame = element.frame;
+      const framedAssetId = (element.kind === "asset" ? protection?.asset_id ?? element.asset_id : undefined);
+      const fontSizePx = textFontSizePx(element, input.width);
+      const canvas = { width: input.width, height: input.height };
+      const placed = frame && element.kind === "asset" ? placeInFrame(frame, framedAssetId ? input.assetSizes?.[framedAssetId] : undefined, canvas) : undefined;
+      const textAt = frame && element.kind === "text" ? placeTextInFrame(frame, fontSizePx, element.typography?.maxLines ?? 1, canvas) : undefined;
+      const transform = isBackground ? undefined
+        : placed ? { position: { x: placed.x, y: placed.y }, scale: { x: placed.scale, y: placed.scale }, rotation: 0, anchor: { x: 0.5, y: 0.5 } }
+        : textAt ? { position: textAt, scale: { x: 1, y: 1 }, rotation: 0, anchor: { x: 0.5, y: 0.5 } }
+        : frame && element.kind === "shape" ? { position: { x: 0, y: 0 }, scale: { x: 1, y: 1 }, rotation: 0, anchor: { x: 0.5, y: 0.5 } }
+        : { position: { x: 0, y: (y - 0.5) * input.height }, scale: { x: scale, y: scale }, rotation: 0, anchor: { x: 0.5, y: 0.5 } };
+      const typography = element.typography;
+      const shapeBox = frame && element.kind === "shape" ? { x: frame.box[0], y: frame.box[1], width: frame.box[2], height: frame.box[3] } : undefined;
       const generatedClip = makeClip({
         id: previous?.id ?? createTimeOrderedUuid(), trackId: track.id, name: previous?.name ?? element.id,
         startMs, durationMs, mediaType: element.id === "$source" && source?.mediaType === "video" ? "video" : element.kind === "asset" ? "image" : element.kind,
@@ -336,11 +396,18 @@ export function materializeStoryboard(input: FinishStoryboardInput): {
         storyboardBoardId: input.boardId, storyboardShotId: shot.id,
         storyboardElementId: element.id, storyboardElementRole: element.role,
         currentAssetId: element.kind === "asset" ? protection?.asset_id ?? element.asset_id : undefined,
-        transform: isBackground ? undefined : { position: { x: 0, y: (y - 0.5) * input.height }, scale: { x: scale, y: scale }, rotation: 0, anchor: { x: 0.5, y: 0.5 } },
-        textStyle: element.kind === "text" ? { text: protection?.value ?? element.text ?? "", fontSizePx: textFontSizePx(element, input.width), fontWeight: 600, color: "#FFFFFF", align: "center", maxWidthFrac: 0.85, strikethrough: priceIntent === "superseded price" || undefined } : undefined,
-        shapeStyle: element.kind === "shape" ? { kind: "rect", fill: protection?.kind === "brand_color" ? protection.value : "#21263A", x: isBackground ? 0 : 0.12, y: isBackground ? 0 : 0.74, width: isBackground ? 1 : 0.76, height: isBackground ? 1 : 0.008 } : undefined,
+        transform,
+        textStyle: element.kind === "text" ? { text: protection?.value ?? element.text ?? "", fontSizePx, fontWeight: typography?.weight ?? 600, color: "#FFFFFF", align: typography?.align ?? "center", maxWidthFrac: frame ? Math.min(1, Math.max(0.05, frame.box[2])) : 0.85, strikethrough: priceIntent === "superseded price" || undefined } : undefined,
+        shapeStyle: element.kind === "shape" ? { kind: "rect", fill: protection?.kind === "brand_color" ? protection.value : element.style?.fill ?? "#21263A", x: shapeBox?.x ?? (isBackground ? 0 : 0.12), y: shapeBox?.y ?? (isBackground ? 0 : 0.74), width: shapeBox?.width ?? (isBackground ? 1 : 0.76), height: shapeBox?.height ?? (isBackground ? 1 : 0.008) } : undefined,
         animations: isBackground || !allowedMotion ? [] : [{ id: previous?.animations?.[0]?.id ?? createTimeOrderedUuid(), role: "in", preset: bold && slideAllowed ? "slide" : "fade", durationMs: quiet ? 700 : 400, delayMs: (quiet ? 40 : 80) * index, params: bold && slideAllowed ? { direction: "up", distance: 0.12 } : undefined }]
       });
+      if (placed?.crop) generatedClip.crop = placed.crop;
+      // A brand-color binding decides the fill. A template-owned style supplies the rest.
+      if (generatedClip.shapeStyle && element.style?.stroke) {
+        generatedClip.shapeStyle.stroke = element.style.stroke;
+        generatedClip.shapeStyle.strokeWidthPx = (element.style.strokeWidth ?? 0.004) * input.width;
+      }
+      if (generatedClip.shapeStyle && element.style?.cornerRadius !== undefined) generatedClip.shapeStyle.cornerRadius = element.style.cornerRadius;
       const clip = element.id === "$source" && source
         ? { ...structuredClone(source), id: previous?.id ?? source.id, trackId: track.id, name: previous?.name ?? source.name, storyboardElementId: "$source", linkId: previous?.linkId ?? source.linkId }
         : generatedClip;

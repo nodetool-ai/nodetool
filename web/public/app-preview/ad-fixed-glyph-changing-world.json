@@ -1,0 +1,6136 @@
+{
+  "slug": "ad-fixed-glyph-changing-world",
+  "name": "Fixed glyph, changing world",
+  "description": "Make a memorable product promise through a consistent visual anchor. Builds an editable 12-second vertical ad from your images, logo and copy. AI can suggest options from a website to fill the fields with its copy and images. No generated video.",
+  "tagline": "One stable icon can connect several product contexts or outputs.",
+  "note": null,
+  "featured": false,
+  "image": "/app-preview/img/ad-fixed-glyph-changing-world.jpg",
+  "app": {
+    "schemaVersion": 5,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Fixed glyph, changing world"
+        }
+      },
+      "content": [
+        {
+          "type": "Stepper",
+          "props": {
+            "id": "steps",
+            "binding": "var:step",
+            "steps": [
+              {
+                "value": "start",
+                "title": "Start"
+              },
+              {
+                "value": "anchor",
+                "title": "Anchor"
+              },
+              {
+                "value": "worlds",
+                "title": "Worlds"
+              },
+              {
+                "value": "ending",
+                "title": "Ending"
+              },
+              {
+                "value": "review",
+                "title": "Review"
+              },
+              {
+                "value": "build",
+                "title": "Build"
+              },
+              {
+                "value": "result",
+                "title": "Result"
+              }
+            ],
+            "allowBack": true
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-start",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "start"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "start-title",
+                  "text": "What you will make",
+                  "level": "2",
+                  "subtitle": "A 5-scene vertical ad, 12 seconds long. You supply images and short lines of copy. The app builds an editable cut, not a generated video."
+                }
+              },
+              {
+                "type": "Container",
+                "props": {
+                  "id": "start-strip",
+                  "variant": "plain",
+                  "columns": 5,
+                  "content": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-1",
+                        "binding": "var:beatExample1",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "0–1.5 s · Anchor",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-2",
+                        "binding": "var:beatExample2",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "1.5–4.5 s · Worlds 1",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-3",
+                        "binding": "var:beatExample3",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "4.5–7.5 s · Worlds 2",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-4",
+                        "binding": "var:beatExample4",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "7.5–9.5 s · Promise",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-5",
+                        "binding": "var:beatExample5",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "9.5–12 s · CTA",
+                        "download": false
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "finishModel",
+                  "label": "Finishing model",
+                  "binding": "var:finishModel",
+                  "modelKind": "language_model",
+                  "events": [
+                    {
+                      "trigger": "change",
+                      "kind": "setVariable",
+                      "key": "var:approval",
+                      "value": "pending"
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "finishModel-help",
+                  "text": "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
+                  "tone": "hint"
+                }
+              },
+              {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "imageModel",
+                  "label": "Image model",
+                  "binding": "var:imageModel",
+                  "modelKind": "image_model",
+                  "events": []
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "imageModel-help",
+                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "tone": "hint"
+                }
+              },
+              {
+                "type": "ChoiceCards",
+                "props": {
+                  "id": "fillPath",
+                  "binding": "var:fillPath",
+                  "label": "How do you want to start?",
+                  "columns": 2,
+                  "options": [
+                    {
+                      "value": "web",
+                      "title": "Fill from a website",
+                      "description": "Paste a product page. AI suggests the copy and images."
+                    },
+                    {
+                      "value": "self",
+                      "title": "Fill in myself",
+                      "description": "Go through 3 short steps."
+                    }
+                  ],
+                  "events": []
+                }
+              },
+              {
+                "type": "Container",
+                "props": {
+                  "id": "ai-fill",
+                  "variant": "plain",
+                  "visibleWhen": {
+                    "binding": "var:fillPath",
+                    "op": "eq",
+                    "value": "web"
+                  },
+                  "content": [
+                    {
+                      "type": "Columns",
+                      "props": {
+                        "id": "source-row",
+                        "layout": "main-aside",
+                        "gap": 16,
+                        "left": [
+                          {
+                            "type": "TextInput",
+                            "props": {
+                              "id": "sourceUrl",
+                              "binding": "var:sourceUrl",
+                              "label": "Website",
+                              "placeholder": "https://your-product.com",
+                              "hint": "The agent reads the page with the finishing model and suggests three filled versions, with real images from the site. Pick one, then check each step.",
+                              "events": []
+                            }
+                          }
+                        ],
+                        "right": [
+                          {
+                            "type": "Text",
+                            "props": {
+                              "id": "source-example-label",
+                              "text": "No site at hand? Try this one.",
+                              "tone": "hint"
+                            }
+                          },
+                          {
+                            "type": "Button",
+                            "props": {
+                              "id": "source-example",
+                              "label": "figma.com",
+                              "variant": "outlined",
+                              "fullWidth": false,
+                              "events": [
+                                {
+                                  "trigger": "click",
+                                  "kind": "setVariable",
+                                  "key": "var:sourceUrl",
+                                  "value": "https://www.figma.com"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "suggest",
+                        "label": "Suggest options",
+                        "variant": "contained",
+                        "fullWidth": false,
+                        "disabledWhen": {
+                          "binding": "op:suggest/exec#running",
+                          "op": "notEmpty"
+                        },
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "suggest"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "suggest-error",
+                        "binding": "op:suggest/exec#error",
+                        "title": "Could not suggest options",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:suggest/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "AgentActivity",
+                      "props": {
+                        "id": "suggest-activity",
+                        "binding": "op:suggest/exec#transcript",
+                        "label": "Agent",
+                        "height": 280,
+                        "placeholder": "The agent's reading and image searches appear here."
+                      }
+                    },
+                    {
+                      "type": "ChoiceCards",
+                      "props": {
+                        "id": "fillChoice",
+                        "binding": "var:fillChoice",
+                        "optionsBinding": "var:fillOptions",
+                        "label": "Pick one option",
+                        "columns": 3,
+                        "visibleWhen": {
+                          "binding": "var:fillOptions",
+                          "op": "notEmpty"
+                        },
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "apply"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "apply-error",
+                        "binding": "op:apply/exec#error",
+                        "title": "Could not fill the ad",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:apply/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "fill-report",
+                        "binding": "var:fillReport",
+                        "text": "",
+                        "visibleWhen": {
+                          "binding": "var:fillReport",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "start-nav",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "start-next",
+                        "label": "Next: Anchor",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "anchor"
+                          }
+                        ],
+                        "align": "end",
+                        "visibleWhen": {
+                          "binding": "var:fillPath",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-anchor",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "anchor"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "anchor-title",
+                  "text": "Anchor",
+                  "level": "2",
+                  "subtitle": "The one icon that stays in the center of every scene, and the two lines it stands for."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "anchor-group-1",
+                  "layout": "main-aside",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "glyph",
+                        "label": "Anchor glyph",
+                        "binding": "var:glyph",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "glyph-hint",
+                        "text": "One icon or symbol, ideally on a transparent background.",
+                        "tone": "hint"
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "premise",
+                        "label": "Premise",
+                        "binding": "var:premise",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "One idea, many worlds.",
+                        "hint": "Shows with the glyph at the start."
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "promise",
+                        "label": "Promise",
+                        "binding": "var:promise",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "Keep the idea in focus.",
+                        "hint": "Shows when the worlds clear."
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "anchor-frame-1",
+                        "binding": "var:beatExample1",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "0–1.5 s · Anchor",
+                        "download": false,
+                        "width": 112
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "anchor-frame-4",
+                        "binding": "var:beatExample4",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "7.5–9.5 s · Promise",
+                        "download": false,
+                        "width": 112
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "anchor-divider"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "anchor-nav",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "anchor-back",
+                        "label": "Back: Start",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "start"
+                          }
+                        ],
+                        "variant": "outlined"
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "anchor-next",
+                        "label": "Next: Worlds",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "worlds"
+                          }
+                        ],
+                        "align": "end"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-worlds",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "worlds"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "worlds-title",
+                  "text": "Worlds",
+                  "level": "2",
+                  "subtitle": "Four scenes that appear behind the anchor, one at a time. Each pair shares one label. Leave a scene empty to generate it."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "worlds-group-1",
+                  "layout": "main-aside",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "Container",
+                      "props": {
+                        "id": "worlds-cards-1",
+                        "variant": "plain",
+                        "columns": 2,
+                        "content": [
+                          {
+                            "type": "Container",
+                            "props": {
+                              "id": "card-world1",
+                              "variant": "card",
+                              "content": [
+                                {
+                                  "type": "ImageInput",
+                                  "props": {
+                                    "id": "world1",
+                                    "label": "World 1",
+                                    "binding": "var:world1",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "Text",
+                                  "props": {
+                                    "id": "world1-hint",
+                                    "text": "Optional. Leave it empty and pick an image model to generate it.",
+                                    "tone": "hint"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Container",
+                            "props": {
+                              "id": "card-world2",
+                              "variant": "card",
+                              "content": [
+                                {
+                                  "type": "ImageInput",
+                                  "props": {
+                                    "id": "world2",
+                                    "label": "World 2",
+                                    "binding": "var:world2",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "Text",
+                                  "props": {
+                                    "id": "world2-hint",
+                                    "text": "Optional. Leave it empty and pick an image model to generate it.",
+                                    "tone": "hint"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "label12",
+                        "label": "Label for worlds 1 and 2",
+                        "binding": "var:label12",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "A different perspective."
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "worlds-frame-2",
+                        "binding": "var:beatExample2",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "1.5–4.5 s · Worlds 1",
+                        "download": false,
+                        "width": 112
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "worlds-group-2",
+                  "layout": "main-aside",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "Container",
+                      "props": {
+                        "id": "worlds-cards-2",
+                        "variant": "plain",
+                        "columns": 2,
+                        "content": [
+                          {
+                            "type": "Container",
+                            "props": {
+                              "id": "card-world3",
+                              "variant": "card",
+                              "content": [
+                                {
+                                  "type": "ImageInput",
+                                  "props": {
+                                    "id": "world3",
+                                    "label": "World 3",
+                                    "binding": "var:world3",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "Text",
+                                  "props": {
+                                    "id": "world3-hint",
+                                    "text": "Optional. Leave it empty and pick an image model to generate it.",
+                                    "tone": "hint"
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Container",
+                            "props": {
+                              "id": "card-world4",
+                              "variant": "card",
+                              "content": [
+                                {
+                                  "type": "ImageInput",
+                                  "props": {
+                                    "id": "world4",
+                                    "label": "World 4",
+                                    "binding": "var:world4",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ]
+                                  }
+                                },
+                                {
+                                  "type": "Text",
+                                  "props": {
+                                    "id": "world4-hint",
+                                    "text": "Optional. Leave it empty and pick an image model to generate it.",
+                                    "tone": "hint"
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "label34",
+                        "label": "Label for worlds 3 and 4",
+                        "binding": "var:label34",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "More ways to create."
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "worlds-frame-3",
+                        "binding": "var:beatExample3",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "4.5–7.5 s · Worlds 2",
+                        "download": false,
+                        "width": 112
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "worlds-divider"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "worlds-nav",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "worlds-back",
+                        "label": "Back: Anchor",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "anchor"
+                          }
+                        ],
+                        "variant": "outlined"
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "worlds-next",
+                        "label": "Next: Ending",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "ending"
+                          }
+                        ],
+                        "align": "end"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-ending",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "ending"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "ending-title",
+                  "text": "Ending",
+                  "level": "2",
+                  "subtitle": "The last frame: the anchor joins your logo and the call to action."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "ending-group-1",
+                  "layout": "main-aside",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "cta",
+                        "label": "Call to action",
+                        "binding": "var:cta",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "Make your next idea real"
+                      }
+                    },
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "logo",
+                        "label": "Logo",
+                        "binding": "var:logo",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "ColorInput",
+                      "props": {
+                        "id": "brandColor",
+                        "label": "Brand color",
+                        "binding": "var:brandColor",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "ending-frame-5",
+                        "binding": "var:beatExample5",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "9.5–12 s · CTA",
+                        "download": false,
+                        "width": 112
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "plan-error",
+                  "binding": "op:plan/exec#error"
+                }
+              },
+              {
+                "type": "AgentActivity",
+                "props": {
+                  "id": "plan-activity",
+                  "binding": "op:plan/exec#transcript",
+                  "label": "Layout agent",
+                  "height": 280,
+                  "placeholder": "The agent's layout edits and frame reviews appear here."
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "ending-divider"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "ending-nav",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "ending-back",
+                        "label": "Back: Worlds",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "worlds"
+                          }
+                        ],
+                        "variant": "outlined"
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "plan",
+                        "label": "Plan the storyboard",
+                        "disabledWhen": {
+                          "binding": "op:plan/exec#running",
+                          "op": "notEmpty"
+                        },
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "plan"
+                          }
+                        ],
+                        "fullWidth": false,
+                        "align": "end"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Storyboard",
+          "props": {
+            "id": "output-storyboardId",
+            "binding": "var:storyboardId",
+            "label": "Storyboard",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "StoryboardPreview",
+          "props": {
+            "id": "output-storyboardId-preview",
+            "binding": "var:storyboardId",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "layout-review",
+            "variant": "plain",
+            "content": [
+              {
+                "type": "Alert",
+                "props": {
+                  "id": "layout-needs-review",
+                  "severity": "warning",
+                  "title": "The layout needs a look",
+                  "text": "Edit the cut or plan again. You can still approve it.",
+                  "visibleWhen": {
+                    "binding": "var:layoutFindings",
+                    "op": "notEmpty"
+                  }
+                }
+              },
+              {
+                "type": "List",
+                "props": {
+                  "id": "layout-findings",
+                  "binding": "var:layoutFindings",
+                  "visibleWhen": {
+                    "binding": "var:layoutFindings",
+                    "op": "notEmpty"
+                  }
+                }
+              }
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Timeline",
+          "props": {
+            "id": "output-designPreview",
+            "binding": "var:designPreview",
+            "label": "Composed design preview",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "review-nav",
+            "gap": 16,
+            "left": [
+              {
+                "type": "Button",
+                "props": {
+                  "id": "request-changes",
+                  "label": "Request changes",
+                  "variant": "outlined",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:approval",
+                      "value": "pending"
+                    },
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:step",
+                      "value": "anchor"
+                    }
+                  ],
+                  "fullWidth": false
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Button",
+                "props": {
+                  "id": "finish",
+                  "label": "Build editable cut",
+                  "disabledWhen": {
+                    "binding": "op:finish/exec#running",
+                    "op": "notEmpty"
+                  },
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:approval",
+                      "value": "approved"
+                    },
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:step",
+                      "value": "build"
+                    },
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "operationId": "finish"
+                    }
+                  ],
+                  "fullWidth": false,
+                  "align": "end"
+                }
+              }
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "finish-error",
+            "binding": "op:finish/exec#error",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "build"
+            }
+          }
+        },
+        {
+          "type": "AgentActivity",
+          "props": {
+            "id": "finish-activity",
+            "binding": "op:finish/exec#transcript",
+            "label": "Build editable cut: agent activity",
+            "height": 360,
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "build"
+            }
+          }
+        },
+        {
+          "type": "Timeline",
+          "props": {
+            "id": "output-timeline",
+            "binding": "var:timeline",
+            "label": "Editable result",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "result"
+            }
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "finish-status",
+            "binding": "var:finishStatus",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "result"
+            }
+          }
+        }
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "name": "Plan or refresh Storyboard",
+        "workflowId": "plan",
+        "workflowVersion": 1,
+        "inputs": {
+          "in-recipe": {
+            "from": "constant",
+            "value": {
+              "schemaVersion": 1,
+              "slug": "ad-fixed-glyph-changing-world",
+              "inputs": [
+                {
+                  "id": "glyph",
+                  "label": "Anchor glyph",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "world1",
+                  "label": "World 1",
+                  "kind": "image",
+                  "required": false
+                },
+                {
+                  "id": "world2",
+                  "label": "World 2",
+                  "kind": "image",
+                  "required": false
+                },
+                {
+                  "id": "world3",
+                  "label": "World 3",
+                  "kind": "image",
+                  "required": false
+                },
+                {
+                  "id": "world4",
+                  "label": "World 4",
+                  "kind": "image",
+                  "required": false
+                },
+                {
+                  "id": "logo",
+                  "label": "Logo",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "premise",
+                  "label": "Premise",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "label12",
+                  "label": "Label for worlds 1 and 2",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "label34",
+                  "label": "Label for worlds 3 and 4",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "promise",
+                  "label": "Promise",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "cta",
+                  "label": "Call to action",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "brandColor",
+                  "label": "Brand color",
+                  "kind": "color",
+                  "required": true
+                }
+              ],
+              "operations": [
+                {
+                  "id": "plan",
+                  "bindingId": "plan",
+                  "intent": "plan_storyboard",
+                  "version": 1
+                },
+                {
+                  "id": "finish",
+                  "bindingId": "finish",
+                  "intent": "finish_storyboard",
+                  "version": 1,
+                  "strategy": "agentic",
+                  "model": {
+                    "provider": "openai",
+                    "id": "gpt-5.4-mini"
+                  }
+                }
+              ],
+              "outputs": [
+                {
+                  "id": "storyboardId",
+                  "kind": "storyboard",
+                  "label": "Storyboard"
+                },
+                {
+                  "id": "designPreview",
+                  "kind": "timeline",
+                  "label": "Composed design preview"
+                },
+                {
+                  "id": "timeline",
+                  "kind": "timeline",
+                  "label": "Editable result"
+                }
+              ],
+              "category": "Ad library",
+              "defaults": {
+                "step": "start"
+              },
+              "creativeStrategy": {
+                "objective": "Make a memorable product promise through a consistent visual anchor.",
+                "direction": "The anchor never changes position or silhouette while the world around it changes.",
+                "aspectRatio": "9:16",
+                "shots": [
+                  {
+                    "id": "anchor",
+                    "title": "One large glyph/icon and a short premise.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
+                      },
+                      {
+                        "id": "glyph",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "glyph",
+                        "frame": {
+                          "box": [
+                            0.285,
+                            0.29,
+                            0.43,
+                            0.34
+                          ],
+                          "fit": "contain"
+                        },
+                        "lock": [
+                          "position",
+                          "scale",
+                          "crop"
+                        ]
+                      },
+                      {
+                        "id": "premise",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "premise",
+                        "direction": "Anchor settles in 250 ms.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.16,
+                            0.78,
+                            0.14
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.075,
+                          "weight": 700,
+                          "align": "center",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "world_1",
+                    "title": "Two worlds appear around the same anchor.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
+                      },
+                      {
+                        "id": "world1",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "world1",
+                        "fallback": {
+                          "prompt": "A full-bleed photograph of a warm open landscape at golden hour, standing for the line \"{label12}\" in an ad about \"{premise}\". Its own vivid palette and light, rich detail, a calm and uncluttered center where an icon will sit. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            -0.02,
+                            0.31,
+                            1.04,
+                            0.71
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.05,
+                          "y": 0.05,
+                          "scale": 0.15
+                        }
+                      },
+                      {
+                        "id": "glyph",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "glyph",
+                        "frame": {
+                          "box": [
+                            0.285,
+                            0.29,
+                            0.43,
+                            0.34
+                          ],
+                          "fit": "contain"
+                        },
+                        "lock": [
+                          "position",
+                          "scale",
+                          "crop"
+                        ]
+                      },
+                      {
+                        "id": "label12",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "label12",
+                        "direction": "Cut every 1500 ms; supporting objects move tangentially or scale gently.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.16,
+                            0.78,
+                            0.14
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.075,
+                          "weight": 700,
+                          "align": "center",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      }
+                    ],
+                    "reviewRules": [
+                      "Anchor position is identical across cuts.",
+                      "Each world is distinguishable without relying on its caption."
+                    ]
+                  },
+                  {
+                    "id": "world_2",
+                    "title": "Two worlds appear around the same anchor.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
+                      },
+                      {
+                        "id": "world2",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "world2",
+                        "fallback": {
+                          "prompt": "A full-bleed photograph of lush green nature in soft mist, standing for the line \"{label12}\" in an ad about \"{premise}\". Its own vivid palette and light, rich detail, a calm and uncluttered center where an icon will sit. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            -0.02,
+                            0.31,
+                            1.04,
+                            0.71
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.05,
+                          "y": 0.05,
+                          "scale": 0.15
+                        }
+                      },
+                      {
+                        "id": "glyph",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "glyph",
+                        "frame": {
+                          "box": [
+                            0.285,
+                            0.29,
+                            0.43,
+                            0.34
+                          ],
+                          "fit": "contain"
+                        },
+                        "lock": [
+                          "position",
+                          "scale",
+                          "crop"
+                        ]
+                      },
+                      {
+                        "id": "label12",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "label12",
+                        "direction": "Cut every 1500 ms; supporting objects move tangentially or scale gently.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.16,
+                            0.78,
+                            0.14
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.075,
+                          "weight": 700,
+                          "align": "center",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      }
+                    ],
+                    "reviewRules": [
+                      "Anchor position is identical across cuts.",
+                      "Each world is distinguishable without relying on its caption."
+                    ]
+                  },
+                  {
+                    "id": "world_3",
+                    "title": "Two more worlds expand the range.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
+                      },
+                      {
+                        "id": "world3",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "world3",
+                        "fallback": {
+                          "prompt": "A full-bleed photograph of an underwater scene full of light and color, standing for the line \"{label34}\" in an ad about \"{premise}\". Its own vivid palette and light, rich detail, a calm and uncluttered center where an icon will sit. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            -0.02,
+                            0.31,
+                            1.04,
+                            0.71
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.05,
+                          "y": 0.05,
+                          "scale": 0.15
+                        }
+                      },
+                      {
+                        "id": "glyph",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "glyph",
+                        "frame": {
+                          "box": [
+                            0.285,
+                            0.29,
+                            0.43,
+                            0.34
+                          ],
+                          "fit": "contain"
+                        },
+                        "lock": [
+                          "position",
+                          "scale",
+                          "crop"
+                        ]
+                      },
+                      {
+                        "id": "label34",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "label34",
+                        "direction": "Repeat timing; vary palette and surrounding objects, not the anchor geometry.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.16,
+                            0.78,
+                            0.14
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.075,
+                          "weight": 700,
+                          "align": "center",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      }
+                    ],
+                    "reviewRules": [
+                      "Do not introduce a new grammar on every cut.",
+                      "Each world is distinguishable without relying on its caption."
+                    ]
+                  },
+                  {
+                    "id": "world_4",
+                    "title": "Two more worlds expand the range.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
+                      },
+                      {
+                        "id": "world4",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "world4",
+                        "fallback": {
+                          "prompt": "A full-bleed photograph of a city street at night with neon reflections, standing for the line \"{label34}\" in an ad about \"{premise}\". Its own vivid palette and light, rich detail, a calm and uncluttered center where an icon will sit. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            -0.02,
+                            0.31,
+                            1.04,
+                            0.71
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.05,
+                          "y": 0.05,
+                          "scale": 0.15
+                        }
+                      },
+                      {
+                        "id": "glyph",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "glyph",
+                        "frame": {
+                          "box": [
+                            0.285,
+                            0.29,
+                            0.43,
+                            0.34
+                          ],
+                          "fit": "contain"
+                        },
+                        "lock": [
+                          "position",
+                          "scale",
+                          "crop"
+                        ]
+                      },
+                      {
+                        "id": "label34",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "label34",
+                        "direction": "Repeat timing; vary palette and surrounding objects, not the anchor geometry.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.16,
+                            0.78,
+                            0.14
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.075,
+                          "weight": 700,
+                          "align": "center",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      }
+                    ],
+                    "reviewRules": [
+                      "Do not introduce a new grammar on every cut.",
+                      "Each world is distinguishable without relying on its caption."
+                    ]
+                  },
+                  {
+                    "id": "promise",
+                    "title": "Worlds clear to reveal the concrete promise.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
+                      },
+                      {
+                        "id": "glyph",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "glyph",
+                        "frame": {
+                          "box": [
+                            0.285,
+                            0.29,
+                            0.43,
+                            0.34
+                          ],
+                          "fit": "contain"
+                        },
+                        "lock": [
+                          "position",
+                          "scale",
+                          "crop"
+                        ]
+                      },
+                      {
+                        "id": "promise",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "promise",
+                        "direction": "300 ms exits; anchor stays.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.16,
+                            0.78,
+                            0.14
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.075,
+                          "weight": 700,
+                          "align": "center",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cta",
+                    "title": "Anchor becomes part of the brand/CTA lockup.",
+                    "durationSeconds": 2.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
+                      },
+                      {
+                        "id": "glyph",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "glyph",
+                        "frame": {
+                          "box": [
+                            0.285,
+                            0.29,
+                            0.43,
+                            0.34
+                          ],
+                          "fit": "contain"
+                        },
+                        "lock": [
+                          "position",
+                          "scale",
+                          "crop"
+                        ]
+                      },
+                      {
+                        "id": "logoPanel",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "style": {
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 0.03
+                        },
+                        "frame": {
+                          "box": [
+                            0.26,
+                            0.15,
+                            0.48,
+                            0.14
+                          ]
+                        },
+                        "limits": {
+                          "x": 0.03,
+                          "y": 0.03,
+                          "scale": 0.1
+                        }
+                      },
+                      {
+                        "id": "ctaPill",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "style": {
+                          "stroke": "#FFFFFF",
+                          "strokeWidth": 0.005,
+                          "cornerRadius": 0.066
+                        },
+                        "frame": {
+                          "box": [
+                            0.21,
+                            0.715,
+                            0.58,
+                            0.075
+                          ]
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      },
+                      {
+                        "id": "logo",
+                        "kind": "asset",
+                        "role": "logo",
+                        "inputId": "logo",
+                        "frame": {
+                          "box": [
+                            0.3,
+                            0.17,
+                            0.4,
+                            0.1
+                          ],
+                          "fit": "contain"
+                        },
+                        "limits": {
+                          "x": 0.03,
+                          "y": 0.03,
+                          "scale": 0.1
+                        }
+                      },
+                      {
+                        "id": "cta",
+                        "kind": "text",
+                        "role": "cta",
+                        "inputId": "cta",
+                        "direction": "Hold.",
+                        "frame": {
+                          "box": [
+                            0.21,
+                            0.715,
+                            0.58,
+                            0.075
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.05,
+                          "weight": 600,
+                          "align": "center",
+                          "maxLines": 1
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      }
+                    ],
+                    "reviewRules": [
+                      "The final brand and CTA are fully settled and readable."
+                    ]
+                  }
+                ],
+                "reviewRules": [
+                  "The anchor never changes position or silhouette while the world around it changes.",
+                  "Anchor center and silhouette remain fixed at all scene boundaries."
+                ]
+              },
+              "preservationRules": [
+                {
+                  "inputId": "glyph",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "world1",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "crop",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "world2",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "crop",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "world3",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "crop",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "world4",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "crop",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "logo",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "premise",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "label12",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "label34",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "promise",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "cta",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "brandColor",
+                  "policy": "exact_color",
+                  "allowedTransformations": [
+                    "opacity",
+                    "composite"
+                  ]
+                }
+              ],
+              "mediaPolicy": {
+                "defaultStrategy": "still_motion_graphics",
+                "allowGeneratedVideo": false
+              },
+              "presentation": {
+                "groups": [
+                  {
+                    "id": "visuals",
+                    "title": "Images and brand",
+                    "inputIds": [
+                      "glyph",
+                      "world1",
+                      "world2",
+                      "world3",
+                      "world4",
+                      "logo",
+                      "brandColor"
+                    ]
+                  },
+                  {
+                    "id": "copy",
+                    "title": "Exact copy",
+                    "inputIds": [
+                      "premise",
+                      "label12",
+                      "label34",
+                      "promise",
+                      "cta"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "in-glyph": {
+            "from": "variable",
+            "variableId": "glyph"
+          },
+          "in-world1": {
+            "from": "variable",
+            "variableId": "world1"
+          },
+          "in-world2": {
+            "from": "variable",
+            "variableId": "world2"
+          },
+          "in-world3": {
+            "from": "variable",
+            "variableId": "world3"
+          },
+          "in-world4": {
+            "from": "variable",
+            "variableId": "world4"
+          },
+          "in-logo": {
+            "from": "variable",
+            "variableId": "logo"
+          },
+          "in-premise": {
+            "from": "variable",
+            "variableId": "premise"
+          },
+          "in-label12": {
+            "from": "variable",
+            "variableId": "label12"
+          },
+          "in-label34": {
+            "from": "variable",
+            "variableId": "label34"
+          },
+          "in-promise": {
+            "from": "variable",
+            "variableId": "promise"
+          },
+          "in-cta": {
+            "from": "variable",
+            "variableId": "cta"
+          },
+          "in-brandColor": {
+            "from": "variable",
+            "variableId": "brandColor"
+          },
+          "in-storyboardId": {
+            "from": "variable",
+            "variableId": "storyboardId"
+          },
+          "in-storyboardRevision": {
+            "from": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "in-plannedFingerprint": {
+            "from": "variable",
+            "variableId": "plannedFingerprint"
+          },
+          "in-finishModel": {
+            "from": "variable",
+            "variableId": "finishModel"
+          },
+          "in-imageModel": {
+            "from": "variable",
+            "variableId": "imageModel"
+          }
+        },
+        "outputs": {
+          "out-storyboardId": {
+            "to": "variable",
+            "variableId": "storyboardId"
+          },
+          "out-storyboardRevision": {
+            "to": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "out-timelineId": {
+            "to": "variable",
+            "variableId": "timelineId"
+          },
+          "out-timelineRevision": {
+            "to": "variable",
+            "variableId": "timelineRevision"
+          },
+          "out-linkedScriptFingerprint": {
+            "to": "variable",
+            "variableId": "linkedScriptFingerprint"
+          },
+          "out-plannedFingerprint": {
+            "to": "variable",
+            "variableId": "plannedFingerprint"
+          },
+          "out-approval": {
+            "to": "variable",
+            "variableId": "approval"
+          },
+          "out-planPreview": {
+            "to": "variable",
+            "variableId": "planPreview"
+          },
+          "out-designPreview": {
+            "to": "variable",
+            "variableId": "designPreview"
+          },
+          "out-layoutFindings": {
+            "to": "variable",
+            "variableId": "layoutFindings"
+          },
+          "out-step": {
+            "to": "variable",
+            "variableId": "step"
+          }
+        },
+        "policy": "queue"
+      },
+      {
+        "id": "finish",
+        "name": "Build editable cut",
+        "workflowId": "finish",
+        "workflowVersion": 1,
+        "inputs": {
+          "in-recipe": {
+            "from": "constant",
+            "value": {
+              "schemaVersion": 1,
+              "slug": "ad-fixed-glyph-changing-world",
+              "inputs": [
+                {
+                  "id": "glyph",
+                  "label": "Anchor glyph",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "world1",
+                  "label": "World 1",
+                  "kind": "image",
+                  "required": false
+                },
+                {
+                  "id": "world2",
+                  "label": "World 2",
+                  "kind": "image",
+                  "required": false
+                },
+                {
+                  "id": "world3",
+                  "label": "World 3",
+                  "kind": "image",
+                  "required": false
+                },
+                {
+                  "id": "world4",
+                  "label": "World 4",
+                  "kind": "image",
+                  "required": false
+                },
+                {
+                  "id": "logo",
+                  "label": "Logo",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "premise",
+                  "label": "Premise",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "label12",
+                  "label": "Label for worlds 1 and 2",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "label34",
+                  "label": "Label for worlds 3 and 4",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "promise",
+                  "label": "Promise",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "cta",
+                  "label": "Call to action",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "brandColor",
+                  "label": "Brand color",
+                  "kind": "color",
+                  "required": true
+                }
+              ],
+              "operations": [
+                {
+                  "id": "plan",
+                  "bindingId": "plan",
+                  "intent": "plan_storyboard",
+                  "version": 1
+                },
+                {
+                  "id": "finish",
+                  "bindingId": "finish",
+                  "intent": "finish_storyboard",
+                  "version": 1,
+                  "strategy": "agentic",
+                  "model": {
+                    "provider": "openai",
+                    "id": "gpt-5.4-mini"
+                  }
+                }
+              ],
+              "outputs": [
+                {
+                  "id": "storyboardId",
+                  "kind": "storyboard",
+                  "label": "Storyboard"
+                },
+                {
+                  "id": "designPreview",
+                  "kind": "timeline",
+                  "label": "Composed design preview"
+                },
+                {
+                  "id": "timeline",
+                  "kind": "timeline",
+                  "label": "Editable result"
+                }
+              ],
+              "category": "Ad library",
+              "defaults": {
+                "step": "start"
+              },
+              "creativeStrategy": {
+                "objective": "Make a memorable product promise through a consistent visual anchor.",
+                "direction": "The anchor never changes position or silhouette while the world around it changes.",
+                "aspectRatio": "9:16",
+                "shots": [
+                  {
+                    "id": "anchor",
+                    "title": "One large glyph/icon and a short premise.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
+                      },
+                      {
+                        "id": "glyph",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "glyph",
+                        "frame": {
+                          "box": [
+                            0.285,
+                            0.29,
+                            0.43,
+                            0.34
+                          ],
+                          "fit": "contain"
+                        },
+                        "lock": [
+                          "position",
+                          "scale",
+                          "crop"
+                        ]
+                      },
+                      {
+                        "id": "premise",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "premise",
+                        "direction": "Anchor settles in 250 ms.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.16,
+                            0.78,
+                            0.14
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.075,
+                          "weight": 700,
+                          "align": "center",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "world_1",
+                    "title": "Two worlds appear around the same anchor.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
+                      },
+                      {
+                        "id": "world1",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "world1",
+                        "fallback": {
+                          "prompt": "A full-bleed photograph of a warm open landscape at golden hour, standing for the line \"{label12}\" in an ad about \"{premise}\". Its own vivid palette and light, rich detail, a calm and uncluttered center where an icon will sit. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            -0.02,
+                            0.31,
+                            1.04,
+                            0.71
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.05,
+                          "y": 0.05,
+                          "scale": 0.15
+                        }
+                      },
+                      {
+                        "id": "glyph",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "glyph",
+                        "frame": {
+                          "box": [
+                            0.285,
+                            0.29,
+                            0.43,
+                            0.34
+                          ],
+                          "fit": "contain"
+                        },
+                        "lock": [
+                          "position",
+                          "scale",
+                          "crop"
+                        ]
+                      },
+                      {
+                        "id": "label12",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "label12",
+                        "direction": "Cut every 1500 ms; supporting objects move tangentially or scale gently.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.16,
+                            0.78,
+                            0.14
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.075,
+                          "weight": 700,
+                          "align": "center",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      }
+                    ],
+                    "reviewRules": [
+                      "Anchor position is identical across cuts.",
+                      "Each world is distinguishable without relying on its caption."
+                    ]
+                  },
+                  {
+                    "id": "world_2",
+                    "title": "Two worlds appear around the same anchor.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
+                      },
+                      {
+                        "id": "world2",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "world2",
+                        "fallback": {
+                          "prompt": "A full-bleed photograph of lush green nature in soft mist, standing for the line \"{label12}\" in an ad about \"{premise}\". Its own vivid palette and light, rich detail, a calm and uncluttered center where an icon will sit. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            -0.02,
+                            0.31,
+                            1.04,
+                            0.71
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.05,
+                          "y": 0.05,
+                          "scale": 0.15
+                        }
+                      },
+                      {
+                        "id": "glyph",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "glyph",
+                        "frame": {
+                          "box": [
+                            0.285,
+                            0.29,
+                            0.43,
+                            0.34
+                          ],
+                          "fit": "contain"
+                        },
+                        "lock": [
+                          "position",
+                          "scale",
+                          "crop"
+                        ]
+                      },
+                      {
+                        "id": "label12",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "label12",
+                        "direction": "Cut every 1500 ms; supporting objects move tangentially or scale gently.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.16,
+                            0.78,
+                            0.14
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.075,
+                          "weight": 700,
+                          "align": "center",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      }
+                    ],
+                    "reviewRules": [
+                      "Anchor position is identical across cuts.",
+                      "Each world is distinguishable without relying on its caption."
+                    ]
+                  },
+                  {
+                    "id": "world_3",
+                    "title": "Two more worlds expand the range.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
+                      },
+                      {
+                        "id": "world3",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "world3",
+                        "fallback": {
+                          "prompt": "A full-bleed photograph of an underwater scene full of light and color, standing for the line \"{label34}\" in an ad about \"{premise}\". Its own vivid palette and light, rich detail, a calm and uncluttered center where an icon will sit. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            -0.02,
+                            0.31,
+                            1.04,
+                            0.71
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.05,
+                          "y": 0.05,
+                          "scale": 0.15
+                        }
+                      },
+                      {
+                        "id": "glyph",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "glyph",
+                        "frame": {
+                          "box": [
+                            0.285,
+                            0.29,
+                            0.43,
+                            0.34
+                          ],
+                          "fit": "contain"
+                        },
+                        "lock": [
+                          "position",
+                          "scale",
+                          "crop"
+                        ]
+                      },
+                      {
+                        "id": "label34",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "label34",
+                        "direction": "Repeat timing; vary palette and surrounding objects, not the anchor geometry.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.16,
+                            0.78,
+                            0.14
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.075,
+                          "weight": 700,
+                          "align": "center",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      }
+                    ],
+                    "reviewRules": [
+                      "Do not introduce a new grammar on every cut.",
+                      "Each world is distinguishable without relying on its caption."
+                    ]
+                  },
+                  {
+                    "id": "world_4",
+                    "title": "Two more worlds expand the range.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
+                      },
+                      {
+                        "id": "world4",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "world4",
+                        "fallback": {
+                          "prompt": "A full-bleed photograph of a city street at night with neon reflections, standing for the line \"{label34}\" in an ad about \"{premise}\". Its own vivid palette and light, rich detail, a calm and uncluttered center where an icon will sit. No text, letters, logos or faces."
+                        },
+                        "frame": {
+                          "box": [
+                            -0.02,
+                            0.31,
+                            1.04,
+                            0.71
+                          ],
+                          "fit": "cover",
+                          "clip": true
+                        },
+                        "limits": {
+                          "x": 0.05,
+                          "y": 0.05,
+                          "scale": 0.15
+                        }
+                      },
+                      {
+                        "id": "glyph",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "glyph",
+                        "frame": {
+                          "box": [
+                            0.285,
+                            0.29,
+                            0.43,
+                            0.34
+                          ],
+                          "fit": "contain"
+                        },
+                        "lock": [
+                          "position",
+                          "scale",
+                          "crop"
+                        ]
+                      },
+                      {
+                        "id": "label34",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "label34",
+                        "direction": "Repeat timing; vary palette and surrounding objects, not the anchor geometry.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.16,
+                            0.78,
+                            0.14
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.075,
+                          "weight": 700,
+                          "align": "center",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      }
+                    ],
+                    "reviewRules": [
+                      "Do not introduce a new grammar on every cut.",
+                      "Each world is distinguishable without relying on its caption."
+                    ]
+                  },
+                  {
+                    "id": "promise",
+                    "title": "Worlds clear to reveal the concrete promise.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
+                      },
+                      {
+                        "id": "glyph",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "glyph",
+                        "frame": {
+                          "box": [
+                            0.285,
+                            0.29,
+                            0.43,
+                            0.34
+                          ],
+                          "fit": "contain"
+                        },
+                        "lock": [
+                          "position",
+                          "scale",
+                          "crop"
+                        ]
+                      },
+                      {
+                        "id": "promise",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "promise",
+                        "direction": "300 ms exits; anchor stays.",
+                        "frame": {
+                          "box": [
+                            0.1,
+                            0.16,
+                            0.78,
+                            0.14
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.075,
+                          "weight": 700,
+                          "align": "center",
+                          "maxLines": 2
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cta",
+                    "title": "Anchor becomes part of the brand/CTA lockup.",
+                    "durationSeconds": 2.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "frame": {
+                          "box": [
+                            0,
+                            0,
+                            1,
+                            1
+                          ]
+                        }
+                      },
+                      {
+                        "id": "glyph",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "glyph",
+                        "frame": {
+                          "box": [
+                            0.285,
+                            0.29,
+                            0.43,
+                            0.34
+                          ],
+                          "fit": "contain"
+                        },
+                        "lock": [
+                          "position",
+                          "scale",
+                          "crop"
+                        ]
+                      },
+                      {
+                        "id": "logoPanel",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "style": {
+                          "fill": "#FFFFFF",
+                          "cornerRadius": 0.03
+                        },
+                        "frame": {
+                          "box": [
+                            0.26,
+                            0.15,
+                            0.48,
+                            0.14
+                          ]
+                        },
+                        "limits": {
+                          "x": 0.03,
+                          "y": 0.03,
+                          "scale": 0.1
+                        }
+                      },
+                      {
+                        "id": "ctaPill",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor",
+                        "style": {
+                          "stroke": "#FFFFFF",
+                          "strokeWidth": 0.005,
+                          "cornerRadius": 0.066
+                        },
+                        "frame": {
+                          "box": [
+                            0.21,
+                            0.715,
+                            0.58,
+                            0.075
+                          ]
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      },
+                      {
+                        "id": "logo",
+                        "kind": "asset",
+                        "role": "logo",
+                        "inputId": "logo",
+                        "frame": {
+                          "box": [
+                            0.3,
+                            0.17,
+                            0.4,
+                            0.1
+                          ],
+                          "fit": "contain"
+                        },
+                        "limits": {
+                          "x": 0.03,
+                          "y": 0.03,
+                          "scale": 0.1
+                        }
+                      },
+                      {
+                        "id": "cta",
+                        "kind": "text",
+                        "role": "cta",
+                        "inputId": "cta",
+                        "direction": "Hold.",
+                        "frame": {
+                          "box": [
+                            0.21,
+                            0.715,
+                            0.58,
+                            0.075
+                          ]
+                        },
+                        "typography": {
+                          "size": 0.05,
+                          "weight": 600,
+                          "align": "center",
+                          "maxLines": 1
+                        },
+                        "limits": {
+                          "y": 0.03,
+                          "scale": 0.15
+                        }
+                      }
+                    ],
+                    "reviewRules": [
+                      "The final brand and CTA are fully settled and readable."
+                    ]
+                  }
+                ],
+                "reviewRules": [
+                  "The anchor never changes position or silhouette while the world around it changes.",
+                  "Anchor center and silhouette remain fixed at all scene boundaries."
+                ]
+              },
+              "preservationRules": [
+                {
+                  "inputId": "glyph",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "world1",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "crop",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "world2",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "crop",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "world3",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "crop",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "world4",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "crop",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "logo",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "premise",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "label12",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "label34",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "promise",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "cta",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "brandColor",
+                  "policy": "exact_color",
+                  "allowedTransformations": [
+                    "opacity",
+                    "composite"
+                  ]
+                }
+              ],
+              "mediaPolicy": {
+                "defaultStrategy": "still_motion_graphics",
+                "allowGeneratedVideo": false
+              },
+              "presentation": {
+                "groups": [
+                  {
+                    "id": "visuals",
+                    "title": "Images and brand",
+                    "inputIds": [
+                      "glyph",
+                      "world1",
+                      "world2",
+                      "world3",
+                      "world4",
+                      "logo",
+                      "brandColor"
+                    ]
+                  },
+                  {
+                    "id": "copy",
+                    "title": "Exact copy",
+                    "inputIds": [
+                      "premise",
+                      "label12",
+                      "label34",
+                      "promise",
+                      "cta"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "in-recipeOperationId": {
+            "from": "constant",
+            "value": "finish"
+          },
+          "in-glyph": {
+            "from": "variable",
+            "variableId": "glyph"
+          },
+          "in-world1": {
+            "from": "variable",
+            "variableId": "world1"
+          },
+          "in-world2": {
+            "from": "variable",
+            "variableId": "world2"
+          },
+          "in-world3": {
+            "from": "variable",
+            "variableId": "world3"
+          },
+          "in-world4": {
+            "from": "variable",
+            "variableId": "world4"
+          },
+          "in-logo": {
+            "from": "variable",
+            "variableId": "logo"
+          },
+          "in-premise": {
+            "from": "variable",
+            "variableId": "premise"
+          },
+          "in-label12": {
+            "from": "variable",
+            "variableId": "label12"
+          },
+          "in-label34": {
+            "from": "variable",
+            "variableId": "label34"
+          },
+          "in-promise": {
+            "from": "variable",
+            "variableId": "promise"
+          },
+          "in-cta": {
+            "from": "variable",
+            "variableId": "cta"
+          },
+          "in-brandColor": {
+            "from": "variable",
+            "variableId": "brandColor"
+          },
+          "in-storyboardId": {
+            "from": "variable",
+            "variableId": "storyboardId"
+          },
+          "in-storyboardRevision": {
+            "from": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "in-linkedScriptFingerprint": {
+            "from": "variable",
+            "variableId": "linkedScriptFingerprint"
+          },
+          "in-timelineId": {
+            "from": "variable",
+            "variableId": "timelineId"
+          },
+          "in-timelineRevision": {
+            "from": "variable",
+            "variableId": "timelineRevision"
+          },
+          "in-approval": {
+            "from": "variable",
+            "variableId": "approval"
+          },
+          "in-plannedFingerprint": {
+            "from": "variable",
+            "variableId": "plannedFingerprint"
+          },
+          "in-finishStrategy": {
+            "from": "constant",
+            "value": "agentic"
+          },
+          "in-finishModel": {
+            "from": "variable",
+            "variableId": "finishModel"
+          }
+        },
+        "outputs": {
+          "out-approval": {
+            "to": "variable",
+            "variableId": "approval"
+          },
+          "out-finishStatus": {
+            "to": "variable",
+            "variableId": "finishStatus"
+          },
+          "out-timelineId": {
+            "to": "variable",
+            "variableId": "timelineId"
+          },
+          "out-timelineRevision": {
+            "to": "variable",
+            "variableId": "timelineRevision"
+          },
+          "out-storyboardRevision": {
+            "to": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "out-timeline": {
+            "to": "variable",
+            "variableId": "timeline"
+          },
+          "out-validation": {
+            "to": "variable",
+            "variableId": "validation"
+          },
+          "out-reviews": {
+            "to": "variable",
+            "variableId": "reviews"
+          },
+          "out-step": {
+            "to": "variable",
+            "variableId": "step"
+          }
+        },
+        "policy": "queue"
+      },
+      {
+        "id": "suggest",
+        "name": "Suggest options from a website",
+        "workflowId": "suggest",
+        "policy": "replace",
+        "inputs": {
+          "in-sourceUrl": {
+            "from": "variable",
+            "variableId": "sourceUrl"
+          },
+          "in-model": {
+            "from": "variable",
+            "variableId": "finishModel"
+          }
+        },
+        "outputs": {
+          "out-fillOptions": {
+            "to": "variable",
+            "variableId": "fillOptions"
+          },
+          "out-fillChoice": {
+            "to": "variable",
+            "variableId": "fillChoice"
+          },
+          "out-fillReport": {
+            "to": "variable",
+            "variableId": "fillReport"
+          }
+        }
+      },
+      {
+        "id": "apply",
+        "name": "Fill the ad from the picked option",
+        "workflowId": "",
+        "policy": "replace",
+        "target": {
+          "kind": "script",
+          "scriptId": "apply_ad_option-v1",
+          "scriptVersion": 1
+        },
+        "inputs": {
+          "brief": {
+            "from": "constant",
+            "value": {
+              "title": "Fixed glyph, changing world",
+              "objective": "Make a memorable product promise through a consistent visual anchor.",
+              "direction": "The anchor never changes position or silhouette while the world around it changes.",
+              "beats": [
+                "0–1.5 s: One large glyph/icon and a short premise. Shows Brand color, Anchor glyph, Premise.",
+                "1.5–4.5 s: Two worlds appear around the same anchor. Shows Brand color, World 1, Anchor glyph, Label for worlds 1 and 2.",
+                "4.5–7.5 s: Two more worlds expand the range. Shows Brand color, World 2, Anchor glyph, Label for worlds 1 and 2.",
+                "7.5–9.5 s: Worlds clear to reveal the concrete promise. Shows Brand color, World 3, Anchor glyph, Label for worlds 3 and 4.",
+                "9.5–12 s: Anchor becomes part of the brand/CTA lockup. Shows Brand color, World 4, Anchor glyph, Label for worlds 3 and 4."
+              ],
+              "fields": [
+                {
+                  "id": "premise",
+                  "label": "Premise",
+                  "purpose": "anchor",
+                  "maxWords": 7
+                },
+                {
+                  "id": "label12",
+                  "label": "Label for worlds 1 and 2",
+                  "purpose": "worlds 1",
+                  "maxWords": 7
+                },
+                {
+                  "id": "label34",
+                  "label": "Label for worlds 3 and 4",
+                  "purpose": "worlds 2",
+                  "maxWords": 7
+                },
+                {
+                  "id": "promise",
+                  "label": "Promise",
+                  "purpose": "promise",
+                  "maxWords": 7
+                },
+                {
+                  "id": "cta",
+                  "label": "Call to action",
+                  "purpose": "cta",
+                  "maxWords": 4
+                }
+              ],
+              "images": [
+                {
+                  "id": "glyph",
+                  "label": "Anchor glyph",
+                  "role": "decorative",
+                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: One large glyph/icon and a short premise. | Two worlds appear around the same anchor. | Two worlds appear around the same anchor. | Two more worlds expand the range. | Two more worlds expand the range. | Worlds clear to reveal the concrete promise. | Anchor becomes part of the brand/CTA lockup."
+                },
+                {
+                  "id": "world1",
+                  "label": "World 1",
+                  "role": "decorative",
+                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Two worlds appear around the same anchor."
+                },
+                {
+                  "id": "world2",
+                  "label": "World 2",
+                  "role": "decorative",
+                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Two worlds appear around the same anchor."
+                },
+                {
+                  "id": "world3",
+                  "label": "World 3",
+                  "role": "decorative",
+                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Two more worlds expand the range."
+                },
+                {
+                  "id": "world4",
+                  "label": "World 4",
+                  "role": "decorative",
+                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Two more worlds expand the range."
+                },
+                {
+                  "id": "logo",
+                  "label": "Logo",
+                  "role": "logo",
+                  "guidance": "The brand's own logo file, such as the site header logo or its icon. Shown in: Anchor becomes part of the brand/CTA lockup."
+                }
+              ]
+            }
+          },
+          "options": {
+            "from": "variable",
+            "variableId": "fillOptions"
+          },
+          "choice": {
+            "from": "variable",
+            "variableId": "fillChoice"
+          }
+        },
+        "outputs": {
+          "premise": {
+            "to": "variable",
+            "variableId": "premise"
+          },
+          "label12": {
+            "to": "variable",
+            "variableId": "label12"
+          },
+          "label34": {
+            "to": "variable",
+            "variableId": "label34"
+          },
+          "promise": {
+            "to": "variable",
+            "variableId": "promise"
+          },
+          "cta": {
+            "to": "variable",
+            "variableId": "cta"
+          },
+          "brandColor": {
+            "to": "variable",
+            "variableId": "brandColor"
+          },
+          "glyph": {
+            "to": "variable",
+            "variableId": "glyph"
+          },
+          "world1": {
+            "to": "variable",
+            "variableId": "world1"
+          },
+          "world2": {
+            "to": "variable",
+            "variableId": "world2"
+          },
+          "world3": {
+            "to": "variable",
+            "variableId": "world3"
+          },
+          "world4": {
+            "to": "variable",
+            "variableId": "world4"
+          },
+          "logo": {
+            "to": "variable",
+            "variableId": "logo"
+          },
+          "fillReport": {
+            "to": "variable",
+            "variableId": "fillReport"
+          },
+          "approval": {
+            "to": "variable",
+            "variableId": "approval"
+          }
+        }
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "glyph",
+        "name": "Anchor glyph",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "world1",
+        "name": "World 1",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "world2",
+        "name": "World 2",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "world3",
+        "name": "World 3",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "world4",
+        "name": "World 4",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "logo",
+        "name": "Logo",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "premise",
+        "name": "Premise",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "label12",
+        "name": "Label for worlds 1 and 2",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "label34",
+        "name": "Label for worlds 3 and 4",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "promise",
+        "name": "Promise",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "cta",
+        "name": "Call to action",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "brandColor",
+        "name": "Brand color",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "storyboardId",
+        "name": "storyboardId",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "storyboardRevision",
+        "name": "storyboardRevision",
+        "type": {
+          "type": "int",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "plannedFingerprint",
+        "name": "plannedFingerprint",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "timelineId",
+        "name": "timelineId",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "timelineRevision",
+        "name": "timelineRevision",
+        "type": {
+          "type": "int",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "linkedScriptFingerprint",
+        "name": "linkedScriptFingerprint",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "approval",
+        "name": "approval",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "planPreview",
+        "name": "planPreview",
+        "type": {
+          "type": "dict",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "designPreview",
+        "name": "designPreview",
+        "type": {
+          "type": "timeline",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "layoutFindings",
+        "name": "layoutFindings",
+        "type": {
+          "type": "list[str]",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "step",
+        "name": "step",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "default": "start",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "finishStatus",
+        "name": "finishStatus",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "timeline",
+        "name": "timeline",
+        "type": {
+          "type": "timeline",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "validation",
+        "name": "validation",
+        "type": {
+          "type": "list[dict]",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "reviews",
+        "name": "reviews",
+        "type": {
+          "type": "list[dict]",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "finishModel",
+        "name": "Finishing model",
+        "type": {
+          "type": "dict"
+        },
+        "scope": "user",
+        "persist": true,
+        "default": {
+          "type": "language_model",
+          "provider": "",
+          "id": "",
+          "name": ""
+        }
+      },
+      {
+        "id": "imageModel",
+        "name": "Image model",
+        "type": {
+          "type": "dict"
+        },
+        "scope": "user",
+        "persist": true,
+        "default": {
+          "type": "image_model",
+          "provider": "",
+          "id": "",
+          "name": ""
+        }
+      },
+      {
+        "id": "fillPath",
+        "name": "How to start",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "sourceUrl",
+        "name": "Website URL",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "fillOptions",
+        "name": "Suggested options",
+        "type": {
+          "type": "list[dict]"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": []
+      },
+      {
+        "id": "fillChoice",
+        "name": "Picked option",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "fillReport",
+        "name": "Fill report",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "beatExample1",
+        "name": "Beat 1 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R12-B01.webp"
+        }
+      },
+      {
+        "id": "beatExample2",
+        "name": "Beat 2 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R12-B02.webp"
+        }
+      },
+      {
+        "id": "beatExample3",
+        "name": "Beat 3 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R12-B03.webp"
+        }
+      },
+      {
+        "id": "beatExample4",
+        "name": "Beat 4 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R12-B04.webp"
+        }
+      },
+      {
+        "id": "beatExample5",
+        "name": "Beat 5 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R12-B05.webp"
+        }
+      }
+    ],
+    "recipe": {
+      "schemaVersion": 1,
+      "slug": "ad-fixed-glyph-changing-world",
+      "inputs": [
+        {
+          "id": "glyph",
+          "label": "Anchor glyph",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "world1",
+          "label": "World 1",
+          "kind": "image",
+          "required": false
+        },
+        {
+          "id": "world2",
+          "label": "World 2",
+          "kind": "image",
+          "required": false
+        },
+        {
+          "id": "world3",
+          "label": "World 3",
+          "kind": "image",
+          "required": false
+        },
+        {
+          "id": "world4",
+          "label": "World 4",
+          "kind": "image",
+          "required": false
+        },
+        {
+          "id": "logo",
+          "label": "Logo",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "premise",
+          "label": "Premise",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "label12",
+          "label": "Label for worlds 1 and 2",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "label34",
+          "label": "Label for worlds 3 and 4",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "promise",
+          "label": "Promise",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "cta",
+          "label": "Call to action",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "brandColor",
+          "label": "Brand color",
+          "kind": "color",
+          "required": true
+        }
+      ],
+      "operations": [
+        {
+          "id": "plan",
+          "bindingId": "plan",
+          "intent": "plan_storyboard",
+          "version": 1
+        },
+        {
+          "id": "finish",
+          "bindingId": "finish",
+          "intent": "finish_storyboard",
+          "version": 1,
+          "strategy": "agentic",
+          "model": {
+            "provider": "openai",
+            "id": "gpt-5.4-mini"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "id": "storyboardId",
+          "kind": "storyboard",
+          "label": "Storyboard"
+        },
+        {
+          "id": "designPreview",
+          "kind": "timeline",
+          "label": "Composed design preview"
+        },
+        {
+          "id": "timeline",
+          "kind": "timeline",
+          "label": "Editable result"
+        }
+      ],
+      "category": "Ad library",
+      "defaults": {
+        "step": "start"
+      },
+      "creativeStrategy": {
+        "objective": "Make a memorable product promise through a consistent visual anchor.",
+        "direction": "The anchor never changes position or silhouette while the world around it changes.",
+        "aspectRatio": "9:16",
+        "shots": [
+          {
+            "id": "anchor",
+            "title": "One large glyph/icon and a short premise.",
+            "durationSeconds": 1.5,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor",
+                "frame": {
+                  "box": [
+                    0,
+                    0,
+                    1,
+                    1
+                  ]
+                }
+              },
+              {
+                "id": "glyph",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "glyph",
+                "frame": {
+                  "box": [
+                    0.285,
+                    0.29,
+                    0.43,
+                    0.34
+                  ],
+                  "fit": "contain"
+                },
+                "lock": [
+                  "position",
+                  "scale",
+                  "crop"
+                ]
+              },
+              {
+                "id": "premise",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "premise",
+                "direction": "Anchor settles in 250 ms.",
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.16,
+                    0.78,
+                    0.14
+                  ]
+                },
+                "typography": {
+                  "size": 0.075,
+                  "weight": 700,
+                  "align": "center",
+                  "maxLines": 2
+                },
+                "limits": {
+                  "y": 0.03,
+                  "scale": 0.15
+                }
+              }
+            ]
+          },
+          {
+            "id": "world_1",
+            "title": "Two worlds appear around the same anchor.",
+            "durationSeconds": 1.5,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor",
+                "frame": {
+                  "box": [
+                    0,
+                    0,
+                    1,
+                    1
+                  ]
+                }
+              },
+              {
+                "id": "world1",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "world1",
+                "fallback": {
+                  "prompt": "A full-bleed photograph of a warm open landscape at golden hour, standing for the line \"{label12}\" in an ad about \"{premise}\". Its own vivid palette and light, rich detail, a calm and uncluttered center where an icon will sit. No text, letters, logos or faces."
+                },
+                "frame": {
+                  "box": [
+                    -0.02,
+                    0.31,
+                    1.04,
+                    0.71
+                  ],
+                  "fit": "cover",
+                  "clip": true
+                },
+                "limits": {
+                  "x": 0.05,
+                  "y": 0.05,
+                  "scale": 0.15
+                }
+              },
+              {
+                "id": "glyph",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "glyph",
+                "frame": {
+                  "box": [
+                    0.285,
+                    0.29,
+                    0.43,
+                    0.34
+                  ],
+                  "fit": "contain"
+                },
+                "lock": [
+                  "position",
+                  "scale",
+                  "crop"
+                ]
+              },
+              {
+                "id": "label12",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "label12",
+                "direction": "Cut every 1500 ms; supporting objects move tangentially or scale gently.",
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.16,
+                    0.78,
+                    0.14
+                  ]
+                },
+                "typography": {
+                  "size": 0.075,
+                  "weight": 700,
+                  "align": "center",
+                  "maxLines": 2
+                },
+                "limits": {
+                  "y": 0.03,
+                  "scale": 0.15
+                }
+              }
+            ],
+            "reviewRules": [
+              "Anchor position is identical across cuts.",
+              "Each world is distinguishable without relying on its caption."
+            ]
+          },
+          {
+            "id": "world_2",
+            "title": "Two worlds appear around the same anchor.",
+            "durationSeconds": 1.5,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor",
+                "frame": {
+                  "box": [
+                    0,
+                    0,
+                    1,
+                    1
+                  ]
+                }
+              },
+              {
+                "id": "world2",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "world2",
+                "fallback": {
+                  "prompt": "A full-bleed photograph of lush green nature in soft mist, standing for the line \"{label12}\" in an ad about \"{premise}\". Its own vivid palette and light, rich detail, a calm and uncluttered center where an icon will sit. No text, letters, logos or faces."
+                },
+                "frame": {
+                  "box": [
+                    -0.02,
+                    0.31,
+                    1.04,
+                    0.71
+                  ],
+                  "fit": "cover",
+                  "clip": true
+                },
+                "limits": {
+                  "x": 0.05,
+                  "y": 0.05,
+                  "scale": 0.15
+                }
+              },
+              {
+                "id": "glyph",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "glyph",
+                "frame": {
+                  "box": [
+                    0.285,
+                    0.29,
+                    0.43,
+                    0.34
+                  ],
+                  "fit": "contain"
+                },
+                "lock": [
+                  "position",
+                  "scale",
+                  "crop"
+                ]
+              },
+              {
+                "id": "label12",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "label12",
+                "direction": "Cut every 1500 ms; supporting objects move tangentially or scale gently.",
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.16,
+                    0.78,
+                    0.14
+                  ]
+                },
+                "typography": {
+                  "size": 0.075,
+                  "weight": 700,
+                  "align": "center",
+                  "maxLines": 2
+                },
+                "limits": {
+                  "y": 0.03,
+                  "scale": 0.15
+                }
+              }
+            ],
+            "reviewRules": [
+              "Anchor position is identical across cuts.",
+              "Each world is distinguishable without relying on its caption."
+            ]
+          },
+          {
+            "id": "world_3",
+            "title": "Two more worlds expand the range.",
+            "durationSeconds": 1.5,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor",
+                "frame": {
+                  "box": [
+                    0,
+                    0,
+                    1,
+                    1
+                  ]
+                }
+              },
+              {
+                "id": "world3",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "world3",
+                "fallback": {
+                  "prompt": "A full-bleed photograph of an underwater scene full of light and color, standing for the line \"{label34}\" in an ad about \"{premise}\". Its own vivid palette and light, rich detail, a calm and uncluttered center where an icon will sit. No text, letters, logos or faces."
+                },
+                "frame": {
+                  "box": [
+                    -0.02,
+                    0.31,
+                    1.04,
+                    0.71
+                  ],
+                  "fit": "cover",
+                  "clip": true
+                },
+                "limits": {
+                  "x": 0.05,
+                  "y": 0.05,
+                  "scale": 0.15
+                }
+              },
+              {
+                "id": "glyph",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "glyph",
+                "frame": {
+                  "box": [
+                    0.285,
+                    0.29,
+                    0.43,
+                    0.34
+                  ],
+                  "fit": "contain"
+                },
+                "lock": [
+                  "position",
+                  "scale",
+                  "crop"
+                ]
+              },
+              {
+                "id": "label34",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "label34",
+                "direction": "Repeat timing; vary palette and surrounding objects, not the anchor geometry.",
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.16,
+                    0.78,
+                    0.14
+                  ]
+                },
+                "typography": {
+                  "size": 0.075,
+                  "weight": 700,
+                  "align": "center",
+                  "maxLines": 2
+                },
+                "limits": {
+                  "y": 0.03,
+                  "scale": 0.15
+                }
+              }
+            ],
+            "reviewRules": [
+              "Do not introduce a new grammar on every cut.",
+              "Each world is distinguishable without relying on its caption."
+            ]
+          },
+          {
+            "id": "world_4",
+            "title": "Two more worlds expand the range.",
+            "durationSeconds": 1.5,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor",
+                "frame": {
+                  "box": [
+                    0,
+                    0,
+                    1,
+                    1
+                  ]
+                }
+              },
+              {
+                "id": "world4",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "world4",
+                "fallback": {
+                  "prompt": "A full-bleed photograph of a city street at night with neon reflections, standing for the line \"{label34}\" in an ad about \"{premise}\". Its own vivid palette and light, rich detail, a calm and uncluttered center where an icon will sit. No text, letters, logos or faces."
+                },
+                "frame": {
+                  "box": [
+                    -0.02,
+                    0.31,
+                    1.04,
+                    0.71
+                  ],
+                  "fit": "cover",
+                  "clip": true
+                },
+                "limits": {
+                  "x": 0.05,
+                  "y": 0.05,
+                  "scale": 0.15
+                }
+              },
+              {
+                "id": "glyph",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "glyph",
+                "frame": {
+                  "box": [
+                    0.285,
+                    0.29,
+                    0.43,
+                    0.34
+                  ],
+                  "fit": "contain"
+                },
+                "lock": [
+                  "position",
+                  "scale",
+                  "crop"
+                ]
+              },
+              {
+                "id": "label34",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "label34",
+                "direction": "Repeat timing; vary palette and surrounding objects, not the anchor geometry.",
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.16,
+                    0.78,
+                    0.14
+                  ]
+                },
+                "typography": {
+                  "size": 0.075,
+                  "weight": 700,
+                  "align": "center",
+                  "maxLines": 2
+                },
+                "limits": {
+                  "y": 0.03,
+                  "scale": 0.15
+                }
+              }
+            ],
+            "reviewRules": [
+              "Do not introduce a new grammar on every cut.",
+              "Each world is distinguishable without relying on its caption."
+            ]
+          },
+          {
+            "id": "promise",
+            "title": "Worlds clear to reveal the concrete promise.",
+            "durationSeconds": 2,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor",
+                "frame": {
+                  "box": [
+                    0,
+                    0,
+                    1,
+                    1
+                  ]
+                }
+              },
+              {
+                "id": "glyph",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "glyph",
+                "frame": {
+                  "box": [
+                    0.285,
+                    0.29,
+                    0.43,
+                    0.34
+                  ],
+                  "fit": "contain"
+                },
+                "lock": [
+                  "position",
+                  "scale",
+                  "crop"
+                ]
+              },
+              {
+                "id": "promise",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "promise",
+                "direction": "300 ms exits; anchor stays.",
+                "frame": {
+                  "box": [
+                    0.1,
+                    0.16,
+                    0.78,
+                    0.14
+                  ]
+                },
+                "typography": {
+                  "size": 0.075,
+                  "weight": 700,
+                  "align": "center",
+                  "maxLines": 2
+                },
+                "limits": {
+                  "y": 0.03,
+                  "scale": 0.15
+                }
+              }
+            ]
+          },
+          {
+            "id": "cta",
+            "title": "Anchor becomes part of the brand/CTA lockup.",
+            "durationSeconds": 2.5,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor",
+                "frame": {
+                  "box": [
+                    0,
+                    0,
+                    1,
+                    1
+                  ]
+                }
+              },
+              {
+                "id": "glyph",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "glyph",
+                "frame": {
+                  "box": [
+                    0.285,
+                    0.29,
+                    0.43,
+                    0.34
+                  ],
+                  "fit": "contain"
+                },
+                "lock": [
+                  "position",
+                  "scale",
+                  "crop"
+                ]
+              },
+              {
+                "id": "logoPanel",
+                "kind": "shape",
+                "role": "decorative",
+                "style": {
+                  "fill": "#FFFFFF",
+                  "cornerRadius": 0.03
+                },
+                "frame": {
+                  "box": [
+                    0.26,
+                    0.15,
+                    0.48,
+                    0.14
+                  ]
+                },
+                "limits": {
+                  "x": 0.03,
+                  "y": 0.03,
+                  "scale": 0.1
+                }
+              },
+              {
+                "id": "ctaPill",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor",
+                "style": {
+                  "stroke": "#FFFFFF",
+                  "strokeWidth": 0.005,
+                  "cornerRadius": 0.066
+                },
+                "frame": {
+                  "box": [
+                    0.21,
+                    0.715,
+                    0.58,
+                    0.075
+                  ]
+                },
+                "limits": {
+                  "y": 0.03,
+                  "scale": 0.15
+                }
+              },
+              {
+                "id": "logo",
+                "kind": "asset",
+                "role": "logo",
+                "inputId": "logo",
+                "frame": {
+                  "box": [
+                    0.3,
+                    0.17,
+                    0.4,
+                    0.1
+                  ],
+                  "fit": "contain"
+                },
+                "limits": {
+                  "x": 0.03,
+                  "y": 0.03,
+                  "scale": 0.1
+                }
+              },
+              {
+                "id": "cta",
+                "kind": "text",
+                "role": "cta",
+                "inputId": "cta",
+                "direction": "Hold.",
+                "frame": {
+                  "box": [
+                    0.21,
+                    0.715,
+                    0.58,
+                    0.075
+                  ]
+                },
+                "typography": {
+                  "size": 0.05,
+                  "weight": 600,
+                  "align": "center",
+                  "maxLines": 1
+                },
+                "limits": {
+                  "y": 0.03,
+                  "scale": 0.15
+                }
+              }
+            ],
+            "reviewRules": [
+              "The final brand and CTA are fully settled and readable."
+            ]
+          }
+        ],
+        "reviewRules": [
+          "The anchor never changes position or silhouette while the world around it changes.",
+          "Anchor center and silhouette remain fixed at all scene boundaries."
+        ]
+      },
+      "preservationRules": [
+        {
+          "inputId": "glyph",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "world1",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "crop",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "world2",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "crop",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "world3",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "crop",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "world4",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "crop",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "logo",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "premise",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "label12",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "label34",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "promise",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "cta",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "brandColor",
+          "policy": "exact_color",
+          "allowedTransformations": [
+            "opacity",
+            "composite"
+          ]
+        }
+      ],
+      "mediaPolicy": {
+        "defaultStrategy": "still_motion_graphics",
+        "allowGeneratedVideo": false
+      },
+      "presentation": {
+        "groups": [
+          {
+            "id": "visuals",
+            "title": "Images and brand",
+            "inputIds": [
+              "glyph",
+              "world1",
+              "world2",
+              "world3",
+              "world4",
+              "logo",
+              "brandColor"
+            ]
+          },
+          {
+            "id": "copy",
+            "title": "Exact copy",
+            "inputIds": [
+              "premise",
+              "label12",
+              "label34",
+              "promise",
+              "cta"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "workflows": [
+    {
+      "key": "plan",
+      "name": "Plan or refresh Storyboard",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in-recipe",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "recipe",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-glyph",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "glyph",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-world1",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "world1",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-world2",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "world2",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-world3",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "world3",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-world4",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "world4",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-logo",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "logo",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-premise",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "premise",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-label12",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "label12",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-label34",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "label34",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-promise",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "promise",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-cta",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "cta",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-brandColor",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "brandColor",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardRevision",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardRevision",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-plannedFingerprint",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "plannedFingerprint",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-finishModel",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "finishModel",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-imageModel",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "imageModel",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-storyboardId",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "storyboardId"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-storyboardRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "storyboardRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineId",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineId"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-linkedScriptFingerprint",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "linkedScriptFingerprint"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-plannedFingerprint",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "plannedFingerprint"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-approval",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "approval"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-planPreview",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "planPreview"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-designPreview",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "designPreview"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-layoutFindings",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "layoutFindings"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-step",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "step"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "finish",
+      "name": "Build editable cut",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in-recipe",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "recipe",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-recipeOperationId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "recipeOperationId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-glyph",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "glyph",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-world1",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "world1",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-world2",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "world2",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-world3",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "world3",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-world4",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "world4",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-logo",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "logo",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-premise",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "premise",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-label12",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "label12",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-label34",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "label34",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-promise",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "promise",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-cta",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "cta",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-brandColor",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "brandColor",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-finishStrategy",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "finishStrategy",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-finishModel",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "finishModel",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardRevision",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardRevision",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-linkedScriptFingerprint",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "linkedScriptFingerprint",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-timelineId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "timelineId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-timelineRevision",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "timelineRevision",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-approval",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "approval",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-plannedFingerprint",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "plannedFingerprint",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-approval",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "approval"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-finishStatus",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "finishStatus"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineId",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineId"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-storyboardRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "storyboardRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timeline",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timeline"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-validation",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "validation"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-reviews",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "reviews"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-step",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "step"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "suggest",
+      "name": "Suggest Fixed glyph, changing world ad options",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in-sourceUrl",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "sourceUrl",
+              "value": "",
+              "description": "The product or brand page to read."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-model",
+            "type": "nodetool.input.LanguageModelInput",
+            "data": {
+              "name": "model",
+              "value": {
+                "type": "language_model",
+                "provider": "",
+                "id": "",
+                "name": ""
+              },
+              "description": "The model the agent runs on."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-fillOptions",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "fillOptions"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-fillChoice",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "fillChoice"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-fillReport",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "fillReport"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "scripts": [
+    {
+      "key": "apply_ad_option-v1",
+      "name": "Fill the ad from the picked option",
+      "version": 1,
+      "document": {
+        "schemaVersion": 1,
+        "code": "import { save_asset } from \"@nodetool-ai/sandbox-nodetool/assets\";\nconst brief = inputs.brief;\nconst option = (Array.isArray(inputs.options) ? inputs.options : []).find(item => item.value === inputs.choice);\nif (!option) throw new Error(\"Pick one of the suggested options.\");\nfor (const field of brief.fields) {\n  if (option.fields?.[field.id]) await output(field.id, option.fields[field.id]);\n}\nif (option.brandColor) await output(\"brandColor\", option.brandColor);\nconst missing = [];\nconst tooSmall = [];\nfor (const wanted of brief.images) {\n  const source = option.images?.[wanted.id] || \"\";\n  if (!source) { missing.push(wanted.label); continue; }\n  progress(20, \"Saving \" + wanted.label);\n  try {\n    const saved = await save_asset({name: wanted.label + \" from \" + source.split(\"/\").pop().split(\"?\")[0], source});\n    if (!saved?.asset_id || !String(saved.content_type || \"\").startsWith(\"image/\")) throw new Error(\"not an image\");\n    if (saved.content_type !== \"image/svg+xml\") {\n      const {width, height} = await image.info(await media.bytes({type: \"image\", uri: \"asset://\" + saved.asset_id}));\n      if (Math.min(width, height) < (wanted.role === \"logo\" ? 100 : 400)) {\n        tooSmall.push(wanted.label + \" (\" + width + \"x\" + height + \")\");\n        continue;\n      }\n    }\n    await output(wanted.id, {type: \"image\", uri: \"asset://\" + saved.asset_id, asset_id: saved.asset_id});\n  } catch (error) {\n    console.log(\"Could not save \" + wanted.label + \" from \" + source + \": \" + error);\n    missing.push(wanted.label);\n  }\n}\nconst report = [\n  ...(missing.length ? [\"No usable image found for: \" + missing.join(\", \") + \".\"] : []),\n  ...(tooSmall.length ? [\"Only images too small for the ad were found for: \" + tooSmall.join(\", \") + \".\"] : [])\n];\nawait output(\"fillReport\", report.length ? report.join(\" \") + \" Upload these yourself.\" : \"Filled from \" + option.title + \". Check every field before you plan.\");\nawait output(\"approval\", \"pending\");",
+        "inputs": [
+          {
+            "name": "brief",
+            "type": "dict"
+          },
+          {
+            "name": "options",
+            "type": "list[dict]"
+          },
+          {
+            "name": "choice",
+            "type": "str"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "premise",
+            "type": "str"
+          },
+          {
+            "name": "label12",
+            "type": "str"
+          },
+          {
+            "name": "label34",
+            "type": "str"
+          },
+          {
+            "name": "promise",
+            "type": "str"
+          },
+          {
+            "name": "cta",
+            "type": "str"
+          },
+          {
+            "name": "brandColor",
+            "type": "str"
+          },
+          {
+            "name": "glyph",
+            "type": "image"
+          },
+          {
+            "name": "world1",
+            "type": "image"
+          },
+          {
+            "name": "world2",
+            "type": "image"
+          },
+          {
+            "name": "world3",
+            "type": "image"
+          },
+          {
+            "name": "world4",
+            "type": "image"
+          },
+          {
+            "name": "logo",
+            "type": "image"
+          },
+          {
+            "name": "fillReport",
+            "type": "str"
+          },
+          {
+            "name": "approval",
+            "type": "str"
+          }
+        ],
+        "packages": [],
+        "secrets": [],
+        "timeoutSeconds": 120,
+        "tests": []
+      }
+    }
+  ],
+  "values": {
+    "var:step": "start",
+    "var:finishModel": {
+      "type": "language_model",
+      "provider": "",
+      "id": "",
+      "name": ""
+    },
+    "var:imageModel": {
+      "type": "image_model",
+      "provider": "",
+      "id": "",
+      "name": ""
+    },
+    "var:fillPath": "",
+    "var:sourceUrl": "",
+    "var:fillOptions": [],
+    "var:fillChoice": "",
+    "var:fillReport": "",
+    "var:beatExample1": {
+      "type": "image",
+      "uri": "package://nodetool-base/ad-library/R12-B01.webp"
+    },
+    "var:beatExample2": {
+      "type": "image",
+      "uri": "package://nodetool-base/ad-library/R12-B02.webp"
+    },
+    "var:beatExample3": {
+      "type": "image",
+      "uri": "package://nodetool-base/ad-library/R12-B03.webp"
+    },
+    "var:beatExample4": {
+      "type": "image",
+      "uri": "package://nodetool-base/ad-library/R12-B04.webp"
+    },
+    "var:beatExample5": {
+      "type": "image",
+      "uri": "package://nodetool-base/ad-library/R12-B05.webp"
+    }
+  }
+}

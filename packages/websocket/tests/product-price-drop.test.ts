@@ -7,8 +7,7 @@ import sharp from "sharp";
 import { afterEach, expect, it, vi } from "vitest";
 import { createJsScriptAppRunner } from "@nodetool-ai/agents";
 import { parseApplicationBundle, type ApplicationDocument } from "@nodetool-ai/app-runtime";
-import { jsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
-import { Application, Asset, JsScriptVersion, ModelObserver, Storyboard, TimelineSequence, initTestDb, entityFromAsset, publishApplication, releasedApplicationRelease } from "@nodetool-ai/models";
+import { Application, Asset, ModelObserver, Storyboard, TimelineSequence, Workflow, initTestDb, entityFromAsset, publishApplication, releasedApplicationRelease } from "@nodetool-ai/models";
 import { ProcessingContext } from "@nodetool-ai/runtime";
 import type { TimelineClip } from "@nodetool-ai/timeline";
 import { RenderTimelineNode } from "@nodetool-ai/video-nodes";
@@ -43,6 +42,24 @@ const authoredLayers = (timeline: {clips: TimelineClip[]}) => {
   })).sort((left, right) => String(left.identity).localeCompare(String(right.identity)));
 };
 
+/**
+ * Plan and Build run as workflow jobs: a ValueInput per port, one Code node
+ * named `run`, and an Output per port. The Code node's code runs here through
+ * the script runner with the same sandbox capabilities. Ports map through the
+ * job's `in-<port>` and `out-<port>` node ids.
+ */
+const runJob = async (runner: ReturnType<typeof createJsScriptAppRunner>, operation: ApplicationDocument["operations"][number], inputValue: (key: string, mapping: ApplicationDocument["operations"][number]["inputs"][string]) => unknown, codeOf: (code: string) => string = code => code) => {
+  const workflow = await Workflow.find(USER, operation.workflowId);
+  const node = workflow?.graph.nodes.find(candidate => candidate.id === "run");
+  if (!node) throw new Error(`Expected the job graph of ${operation.id}`);
+  const ports = (record: unknown) => Object.keys((record ?? {}) as Record<string, unknown>).map(name => ({name, type: "any"}));
+  const document = {schemaVersion: 1, code: codeOf(String((node.data as Record<string, unknown>).code)), inputs: ports(node.dynamic_inputs), outputs: ports(node.dynamic_outputs), description: "", secrets: [], timeoutSeconds: 120, tests: []};
+  const inputs = Object.fromEntries(Object.entries(operation.inputs).map(([key, mapping]) => [key.replace(/^in-/, ""), inputValue(key, mapping)]));
+  const result = await runner({scriptId: `job-${operation.id}`, scriptVersion: 1, name: operation.name, document, inputs});
+  const outputs = Object.fromEntries(Object.entries(operation.outputs).map(([key, mapping]) => [key, {mapping, value: result.outputs?.[key.replace(/^out-/, "")]}]));
+  return {result, outputs};
+};
+
 let temporary: string | undefined;
 afterEach(async () => {vi.restoreAllMocks(); ModelObserver.clear(); if (temporary) await rm(temporary, {recursive: true, force: true});});
 
@@ -57,8 +74,8 @@ it("installs, plans, deterministically finishes, renders and reopens the exact e
     if (operation.intent === "finish_storyboard") operation.strategy = "deterministic";
   }
   for (const operation of bundle.app.operations) {
-    operation.inputs.recipe = {from: "constant", value: bundle.app.recipe};
-    if (operation.id === "finish") operation.inputs.finishStrategy = {from: "constant", value: "deterministic"};
+    operation.inputs["in-recipe"] = {from: "constant", value: bundle.app.recipe};
+    if (operation.id === "finish") operation.inputs["in-finishStrategy"] = {from: "constant", value: "deterministic"};
   }
   const installed = await importApplicationBundle(USER, {bundle: bundle!, projectId: null});
   const row = await Application.findById(installed.id);
@@ -72,19 +89,15 @@ it("installs, plans, deterministically finishes, renders and reopens the exact e
   const release = await publishApplication(row!);
   expect(release.document.recipe).toEqual(bundle!.app.recipe);
   expect(release.document.operations).toEqual(doc.operations);
-  expect(release.workflows).toEqual([]);
+  // The release pins the Plan and Build job graphs.
+  expect(release.workflows.map(entry => entry.workflowId).sort()).toEqual(doc.operations.map(operation => operation.workflowId).sort());
   doc = (await releasedApplicationRelease(installed.id, USER))!.document;
   const exported = await exportApplicationBundle(USER, installed.id, {released: true});
-  expect(exported.scripts).toHaveLength(2);
+  expect(exported.scripts ?? []).toHaveLength(0);
+  expect(exported.workflows).toHaveLength(2);
   for (const operation of exported.app.operations) {
-    if (operation.target?.kind !== "script") throw new Error("Expected exported script binding");
-    const source = doc.operations.find(entry => entry.id === operation.id)!;
-    if (source.target?.kind !== "script") throw new Error("Expected released script binding");
-    const pinned = await JsScriptVersion.findByVersion(source.target.scriptId, source.target.scriptVersion);
-    const scriptKey = operation.target.scriptId;
-    const carried = exported.scripts.find(script => script.key === scriptKey);
-    expect(carried?.document).toEqual(jsScriptDocument.parse(JSON.parse(pinned!.document)));
-    expect(operation.target.scriptVersion).toBe(source.target.scriptVersion);
+    const carried = exported.workflows.find(workflow => workflow.key === operation.workflowId);
+    expect(carried?.graph.nodes.some(node => node.id === "run" && node.type === "nodetool.code.Code")).toBe(true);
   }
   expect(exported.app.recipe).toEqual(bundle!.app.recipe);
   for (const [id, name, contentType] of [[PRODUCT, "product.jpg", "image/jpeg"], [LOGO, "logo.svg", "image/svg+xml"]]) {
@@ -94,21 +107,26 @@ it("installs, plans, deterministically finishes, renders and reopens the exact e
   const values: Record<string, unknown> = {productImage: {type: "image", asset_id: PRODUCT.slice(0, 12)}, logo: {type: "image", asset_id: LOGO.slice(0, 12)}, headline: "  Better coffee  ", oldPrice: "€49", newPrice: "€29", cta: "Shop now", brandColor: "#1248AB", direction: "Bold editorial rhythm"};
   values.finishModel = {type: "language_model", provider: "fake", id: "selected-finisher"};
   const runner = createJsScriptAppRunner(USER);
+  // With a finishing model, the app's Plan lays the cut out with an agent. This
+  // proof covers the deterministic scaffold, so Plan drops the model after the
+  // job selects it, right before the shared planning code.
+  const {PLAN_STORYBOARD_CODE} = await import(fileURLToPath(new URL("../../../scripts/recipe-operations.mjs", import.meta.url)));
+  const sharedPlanning = (code: string) => {
+    expect(code.endsWith(PLAN_STORYBOARD_CODE)).toBe(true);
+    return code.slice(0, -PLAN_STORYBOARD_CODE.length) + "delete inputs.finishModel;\n" + PLAN_STORYBOARD_CODE;
+  };
   const run = async (operationId: string, expectSuccess = true) => {
     const op = doc.operations.find(operation => operation.id === operationId)!;
-    if (op.target?.kind !== "script") throw new Error("Expected normal script binding");
-    const version = await JsScriptVersion.findByVersion(op.target.scriptId, op.target.scriptVersion);
-    expect(version).not.toBeNull();
-    const inputs = Object.fromEntries(Object.entries(op.inputs).map(([port, mapping]) => {
-      if (mapping.from === "constant") return [port, mapping.value];
+    const planning = operationId === "plan";
+    const {result, outputs} = await runJob(runner, op, (key, mapping) => {
+      if (mapping.from === "constant") return mapping.value;
       if (mapping.from !== "variable") throw new Error("Expected variable mapping");
-      return [port, values[mapping.variableId]];
-    }));
-    const result = await runner({scriptId: op.target.scriptId, scriptVersion: op.target.scriptVersion, name: op.name, document: JSON.parse(version!.document), inputs});
+      return values[mapping.variableId];
+    }, planning ? sharedPlanning : undefined);
     if (!expectSuccess) return result;
     expect(result.error).toBeUndefined();
     expect(result.ok).toBe(true);
-    for (const [port, mapping] of Object.entries(op.outputs)) if (mapping.to === "variable") values[mapping.variableId] = result.outputs?.[port];
+    for (const {mapping, value} of Object.values(outputs)) if (mapping.to === "variable") values[mapping.variableId] = value;
     return result;
   };
   await run("plan");
@@ -266,18 +284,14 @@ it.runIf(process.env.RECIPE_LIVE_FINISH === "1")("finishes and renders a Price D
   const runner = createJsScriptAppRunner(USER);
   const run = async (id: string) => {
     const operation = doc.operations.find(op => op.id === id)!;
-    if (operation.target?.kind !== "script") throw new Error("Expected an installed pinned script");
-    const version = await JsScriptVersion.findByVersion(operation.target.scriptId, operation.target.scriptVersion);
-    expect(version).not.toBeNull();
-    const inputs = Object.fromEntries(Object.entries(operation.inputs).map(([port, mapping]) => {
-      if (mapping.from === "constant") return [port, mapping.value];
+    const {result, outputs} = await runJob(runner, operation, (_key, mapping) => {
+      if (mapping.from === "constant") return mapping.value;
       if (mapping.from !== "variable") throw new Error("Expected ordinary Application input mapping");
-      return [port, values[mapping.variableId]];
-    }));
-    const result = await runner({scriptId: operation.target.scriptId, scriptVersion: operation.target.scriptVersion, name: operation.name, document: JSON.parse(version!.document), inputs});
+      return values[mapping.variableId];
+    });
     expect(result.error).toBeUndefined();
     expect(result.ok).toBe(true);
-    for (const [port, mapping] of Object.entries(operation.outputs)) if (mapping.to === "variable") values[mapping.variableId] = result.outputs?.[port];
+    for (const {mapping, value} of Object.values(outputs)) if (mapping.to === "variable") values[mapping.variableId] = value;
   };
   await run("plan");
   expect(values.designPreview).toMatchObject({type: "timeline", data: {width: 1080, height: 1920}});

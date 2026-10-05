@@ -12,6 +12,8 @@ import {
   evaluateCondition,
   formatTemplate,
   parseCondition,
+  readRef,
+  refFromBinding,
   resolveBinding,
   stateKey,
   type AppAction,
@@ -98,6 +100,11 @@ export const useBindingValue = (ref: BindingRef | null): unknown => {
         return s.variables[key];
       case "view":
         return s.view[key];
+      case "execution": {
+        // A run's state lives on its invocation, not in a keyed slot.
+        const execution = refFromBinding(ref);
+        return execution ? readRef(s, execution) : undefined;
+      }
       default:
         return s.inputs[key]?.value;
     }

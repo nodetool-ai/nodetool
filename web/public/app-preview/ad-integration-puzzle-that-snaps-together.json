@@ -1,0 +1,4669 @@
+{
+  "slug": "ad-integration-puzzle-that-snaps-together",
+  "name": "Integration puzzle that snaps together",
+  "description": "Represent connected products or integrations as a satisfying assembly. Builds an editable 10-second vertical ad from your images, logo and copy. AI can suggest options from a website to fill the fields with its copy and images. No generated video.",
+  "tagline": "Assembly is a useful metaphor for supported integrations or components.",
+  "note": null,
+  "featured": false,
+  "image": "/app-preview/img/ad-integration-puzzle-that-snaps-together.jpg",
+  "app": {
+    "schemaVersion": 5,
+    "ui": {
+      "root": {
+        "props": {
+          "title": "Integration puzzle that snaps together"
+        }
+      },
+      "content": [
+        {
+          "type": "Stepper",
+          "props": {
+            "id": "steps",
+            "binding": "var:step",
+            "steps": [
+              {
+                "value": "start",
+                "title": "Start"
+              },
+              {
+                "value": "pieces",
+                "title": "The pieces"
+              },
+              {
+                "value": "benefit",
+                "title": "The benefit"
+              },
+              {
+                "value": "ending",
+                "title": "Ending"
+              },
+              {
+                "value": "review",
+                "title": "Review"
+              },
+              {
+                "value": "build",
+                "title": "Build"
+              },
+              {
+                "value": "result",
+                "title": "Result"
+              }
+            ],
+            "allowBack": true
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-start",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "start"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "start-title",
+                  "text": "What you will make",
+                  "level": "2",
+                  "subtitle": "A 5-scene vertical ad, 10 seconds long. You supply images and short lines of copy. The app builds an editable cut, not a generated video."
+                }
+              },
+              {
+                "type": "Container",
+                "props": {
+                  "id": "start-strip",
+                  "variant": "plain",
+                  "columns": 5,
+                  "content": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-1",
+                        "binding": "var:beatExample1",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "0–1.5 s · Hook",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-2",
+                        "binding": "var:beatExample2",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "1.5–4 s · Assembly",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-3",
+                        "binding": "var:beatExample3",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "4–6.5 s · Resolve",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-4",
+                        "binding": "var:beatExample4",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "6.5–8 s · Explain",
+                        "download": false
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "start-frame-5",
+                        "binding": "var:beatExample5",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "8–10 s · CTA",
+                        "download": false
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "finishModel",
+                  "label": "Finishing model",
+                  "binding": "var:finishModel",
+                  "modelKind": "language_model",
+                  "events": [
+                    {
+                      "trigger": "change",
+                      "kind": "setVariable",
+                      "key": "var:approval",
+                      "value": "pending"
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "finishModel-help",
+                  "text": "Lays out every frame and finishes the cut. Pick one that reads images. Saved for next time.",
+                  "tone": "hint"
+                }
+              },
+              {
+                "type": "ModelSelect",
+                "props": {
+                  "id": "imageModel",
+                  "label": "Image model",
+                  "binding": "var:imageModel",
+                  "modelKind": "image_model",
+                  "events": []
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "imageModel-help",
+                  "text": "Optional. Paints backgrounds and decoration for the layout. Saved for next time.",
+                  "tone": "hint"
+                }
+              },
+              {
+                "type": "ChoiceCards",
+                "props": {
+                  "id": "fillPath",
+                  "binding": "var:fillPath",
+                  "label": "How do you want to start?",
+                  "columns": 2,
+                  "options": [
+                    {
+                      "value": "web",
+                      "title": "Fill from a website",
+                      "description": "Paste a product page. AI suggests the copy and images."
+                    },
+                    {
+                      "value": "self",
+                      "title": "Fill in myself",
+                      "description": "Go through 3 short steps."
+                    }
+                  ],
+                  "events": []
+                }
+              },
+              {
+                "type": "Container",
+                "props": {
+                  "id": "ai-fill",
+                  "variant": "plain",
+                  "visibleWhen": {
+                    "binding": "var:fillPath",
+                    "op": "eq",
+                    "value": "web"
+                  },
+                  "content": [
+                    {
+                      "type": "Columns",
+                      "props": {
+                        "id": "source-row",
+                        "layout": "main-aside",
+                        "gap": 16,
+                        "left": [
+                          {
+                            "type": "TextInput",
+                            "props": {
+                              "id": "sourceUrl",
+                              "binding": "var:sourceUrl",
+                              "label": "Website",
+                              "placeholder": "https://your-product.com",
+                              "hint": "The agent reads the page with the finishing model and suggests three filled versions, with real images from the site. Pick one, then check each step.",
+                              "events": []
+                            }
+                          }
+                        ],
+                        "right": [
+                          {
+                            "type": "Text",
+                            "props": {
+                              "id": "source-example-label",
+                              "text": "No site at hand? Try this one.",
+                              "tone": "hint"
+                            }
+                          },
+                          {
+                            "type": "Button",
+                            "props": {
+                              "id": "source-example",
+                              "label": "zapier.com",
+                              "variant": "outlined",
+                              "fullWidth": false,
+                              "events": [
+                                {
+                                  "trigger": "click",
+                                  "kind": "setVariable",
+                                  "key": "var:sourceUrl",
+                                  "value": "https://zapier.com"
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "suggest",
+                        "label": "Suggest options",
+                        "variant": "contained",
+                        "fullWidth": false,
+                        "disabledWhen": {
+                          "binding": "op:suggest/exec#running",
+                          "op": "notEmpty"
+                        },
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "suggest"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "suggest-error",
+                        "binding": "op:suggest/exec#error",
+                        "title": "Could not suggest options",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:suggest/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "AgentActivity",
+                      "props": {
+                        "id": "suggest-activity",
+                        "binding": "op:suggest/exec#transcript",
+                        "label": "Agent",
+                        "height": 280,
+                        "placeholder": "The agent's reading and image searches appear here."
+                      }
+                    },
+                    {
+                      "type": "ChoiceCards",
+                      "props": {
+                        "id": "fillChoice",
+                        "binding": "var:fillChoice",
+                        "optionsBinding": "var:fillOptions",
+                        "label": "Pick one option",
+                        "columns": 3,
+                        "visibleWhen": {
+                          "binding": "var:fillOptions",
+                          "op": "notEmpty"
+                        },
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "run",
+                            "operationId": "apply"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "apply-error",
+                        "binding": "op:apply/exec#error",
+                        "title": "Could not fill the ad",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:apply/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "Text",
+                      "props": {
+                        "id": "fill-report",
+                        "binding": "var:fillReport",
+                        "text": "",
+                        "visibleWhen": {
+                          "binding": "var:fillReport",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "start-nav",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "start-next",
+                        "label": "Next: The pieces",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "pieces"
+                          }
+                        ],
+                        "align": "end",
+                        "visibleWhen": {
+                          "binding": "var:fillPath",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-pieces",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "pieces"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "pieces-title",
+                  "text": "The pieces",
+                  "level": "2",
+                  "subtitle": "Four tiles, one for each tool you connect. Use logos or icons on a plain background."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "pieces-group-1",
+                  "layout": "main-aside",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "Container",
+                      "props": {
+                        "id": "pieces-cards-1",
+                        "variant": "plain",
+                        "columns": 4,
+                        "content": [
+                          {
+                            "type": "Container",
+                            "props": {
+                              "id": "card-tile1",
+                              "variant": "card",
+                              "content": [
+                                {
+                                  "type": "ImageInput",
+                                  "props": {
+                                    "id": "tile1",
+                                    "label": "Tile 1",
+                                    "binding": "var:tile1",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Container",
+                            "props": {
+                              "id": "card-tile2",
+                              "variant": "card",
+                              "content": [
+                                {
+                                  "type": "ImageInput",
+                                  "props": {
+                                    "id": "tile2",
+                                    "label": "Tile 2",
+                                    "binding": "var:tile2",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Container",
+                            "props": {
+                              "id": "card-tile3",
+                              "variant": "card",
+                              "content": [
+                                {
+                                  "type": "ImageInput",
+                                  "props": {
+                                    "id": "tile3",
+                                    "label": "Tile 3",
+                                    "binding": "var:tile3",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Container",
+                            "props": {
+                              "id": "card-tile4",
+                              "variant": "card",
+                              "content": [
+                                {
+                                  "type": "ImageInput",
+                                  "props": {
+                                    "id": "tile4",
+                                    "label": "Tile 4",
+                                    "binding": "var:tile4",
+                                    "events": [
+                                      {
+                                        "trigger": "change",
+                                        "kind": "setVariable",
+                                        "key": "var:approval",
+                                        "value": "pending"
+                                      }
+                                    ]
+                                  }
+                                }
+                              ]
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "integrationProblem",
+                        "label": "Problem",
+                        "binding": "var:integrationProblem",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "Your tools do not talk"
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "connectionLabel",
+                        "label": "Connection line",
+                        "binding": "var:connectionLabel",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "Connect them in minutes",
+                        "hint": "Shows as the tiles move into place."
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "pieces-frame-1",
+                        "binding": "var:beatExample1",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "0–1.5 s · Hook",
+                        "download": false,
+                        "width": 112
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "pieces-frame-2",
+                        "binding": "var:beatExample2",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "1.5–4 s · Assembly",
+                        "download": false,
+                        "width": 112
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "pieces-divider"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "pieces-nav",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "pieces-back",
+                        "label": "Back: Start",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "start"
+                          }
+                        ],
+                        "variant": "outlined"
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "pieces-next",
+                        "label": "Next: The benefit",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "benefit"
+                          }
+                        ],
+                        "align": "end"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-benefit",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "benefit"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "benefit-title",
+                  "text": "The benefit",
+                  "level": "2",
+                  "subtitle": "The finished object pulses once. Then a short benefit sits beside it."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "benefit-group-1",
+                  "layout": "main-aside",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "benefit",
+                        "label": "Benefit",
+                        "binding": "var:benefit",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "One workflow, no copy and paste"
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "benefitDetail",
+                        "label": "Benefit detail",
+                        "binding": "var:benefitDetail",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "Syncs every 5 minutes",
+                        "hint": "Shows beside the finished object."
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "benefit-frame-3",
+                        "binding": "var:beatExample3",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "4–6.5 s · Resolve",
+                        "download": false,
+                        "width": 112
+                      }
+                    },
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "benefit-frame-4",
+                        "binding": "var:beatExample4",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "6.5–8 s · Explain",
+                        "download": false,
+                        "width": 112
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "benefit-divider"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "benefit-nav",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "benefit-back",
+                        "label": "Back: The pieces",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "pieces"
+                          }
+                        ],
+                        "variant": "outlined"
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "benefit-next",
+                        "label": "Next: Ending",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "ending"
+                          }
+                        ],
+                        "align": "end"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-ending",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "ending"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "ending-title",
+                  "text": "Ending",
+                  "level": "2",
+                  "subtitle": "The finished object holds with the next step."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "ending-group-1",
+                  "layout": "main-aside",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "cta",
+                        "label": "Call to action",
+                        "binding": "var:cta",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ],
+                        "placeholder": "Connect your tools"
+                      }
+                    },
+                    {
+                      "type": "ImageInput",
+                      "props": {
+                        "id": "logo",
+                        "label": "Logo",
+                        "binding": "var:logo",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ]
+                      }
+                    },
+                    {
+                      "type": "ColorInput",
+                      "props": {
+                        "id": "brandColor",
+                        "label": "Brand color",
+                        "binding": "var:brandColor",
+                        "events": [
+                          {
+                            "trigger": "change",
+                            "kind": "setVariable",
+                            "key": "var:approval",
+                            "value": "pending"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Image",
+                      "props": {
+                        "id": "ending-frame-5",
+                        "binding": "var:beatExample5",
+                        "fit": "cover",
+                        "aspectRatio": "9 / 16",
+                        "caption": "8–10 s · CTA",
+                        "download": false,
+                        "width": 112
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Text",
+                "props": {
+                  "id": "plan-error",
+                  "binding": "op:plan/exec#error"
+                }
+              },
+              {
+                "type": "AgentActivity",
+                "props": {
+                  "id": "plan-activity",
+                  "binding": "op:plan/exec#transcript",
+                  "label": "Layout agent",
+                  "height": 280,
+                  "placeholder": "The agent's layout edits and frame reviews appear here."
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "ending-divider"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "ending-nav",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "ending-back",
+                        "label": "Back: The benefit",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "benefit"
+                          }
+                        ],
+                        "variant": "outlined"
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "plan",
+                        "label": "Plan the storyboard",
+                        "disabledWhen": {
+                          "binding": "op:plan/exec#running",
+                          "op": "notEmpty"
+                        },
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "plan"
+                          }
+                        ],
+                        "fullWidth": false,
+                        "align": "end"
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Storyboard",
+          "props": {
+            "id": "output-storyboardId",
+            "binding": "var:storyboardId",
+            "label": "Storyboard",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "StoryboardPreview",
+          "props": {
+            "id": "output-storyboardId-preview",
+            "binding": "var:storyboardId",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "layout-review",
+            "variant": "plain",
+            "content": [
+              {
+                "type": "Alert",
+                "props": {
+                  "id": "layout-needs-review",
+                  "severity": "warning",
+                  "title": "The layout needs a look",
+                  "text": "Edit the cut or plan again. You can still approve it.",
+                  "visibleWhen": {
+                    "binding": "var:layoutFindings",
+                    "op": "notEmpty"
+                  }
+                }
+              },
+              {
+                "type": "List",
+                "props": {
+                  "id": "layout-findings",
+                  "binding": "var:layoutFindings",
+                  "visibleWhen": {
+                    "binding": "var:layoutFindings",
+                    "op": "notEmpty"
+                  }
+                }
+              }
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Timeline",
+          "props": {
+            "id": "output-designPreview",
+            "binding": "var:designPreview",
+            "label": "Composed design preview",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Columns",
+          "props": {
+            "id": "review-nav",
+            "gap": 16,
+            "left": [
+              {
+                "type": "Button",
+                "props": {
+                  "id": "request-changes",
+                  "label": "Request changes",
+                  "variant": "outlined",
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:approval",
+                      "value": "pending"
+                    },
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:step",
+                      "value": "pieces"
+                    }
+                  ],
+                  "fullWidth": false
+                }
+              }
+            ],
+            "right": [
+              {
+                "type": "Button",
+                "props": {
+                  "id": "finish",
+                  "label": "Build editable cut",
+                  "disabledWhen": {
+                    "binding": "op:finish/exec#running",
+                    "op": "notEmpty"
+                  },
+                  "events": [
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:approval",
+                      "value": "approved"
+                    },
+                    {
+                      "trigger": "click",
+                      "kind": "setVariable",
+                      "key": "var:step",
+                      "value": "build"
+                    },
+                    {
+                      "trigger": "click",
+                      "kind": "run",
+                      "operationId": "finish"
+                    }
+                  ],
+                  "fullWidth": false,
+                  "align": "end"
+                }
+              }
+            ],
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "review"
+            }
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "finish-error",
+            "binding": "op:finish/exec#error",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "build"
+            }
+          }
+        },
+        {
+          "type": "AgentActivity",
+          "props": {
+            "id": "finish-activity",
+            "binding": "op:finish/exec#transcript",
+            "label": "Build editable cut: agent activity",
+            "height": 360,
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "build"
+            }
+          }
+        },
+        {
+          "type": "Timeline",
+          "props": {
+            "id": "output-timeline",
+            "binding": "var:timeline",
+            "label": "Editable result",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "result"
+            }
+          }
+        },
+        {
+          "type": "Text",
+          "props": {
+            "id": "finish-status",
+            "binding": "var:finishStatus",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "result"
+            }
+          }
+        }
+      ]
+    },
+    "operations": [
+      {
+        "id": "plan",
+        "name": "Plan or refresh Storyboard",
+        "workflowId": "plan",
+        "workflowVersion": 1,
+        "inputs": {
+          "in-recipe": {
+            "from": "constant",
+            "value": {
+              "schemaVersion": 1,
+              "slug": "ad-integration-puzzle-that-snaps-together",
+              "inputs": [
+                {
+                  "id": "tile1",
+                  "label": "Tile 1",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "tile2",
+                  "label": "Tile 2",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "tile3",
+                  "label": "Tile 3",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "tile4",
+                  "label": "Tile 4",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "logo",
+                  "label": "Logo",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "integrationProblem",
+                  "label": "Problem",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "connectionLabel",
+                  "label": "Connection line",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "benefit",
+                  "label": "Benefit",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "benefitDetail",
+                  "label": "Benefit detail",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "cta",
+                  "label": "Call to action",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "brandColor",
+                  "label": "Brand color",
+                  "kind": "color",
+                  "required": true
+                }
+              ],
+              "operations": [
+                {
+                  "id": "plan",
+                  "bindingId": "plan",
+                  "intent": "plan_storyboard",
+                  "version": 1
+                },
+                {
+                  "id": "finish",
+                  "bindingId": "finish",
+                  "intent": "finish_storyboard",
+                  "version": 1,
+                  "strategy": "agentic",
+                  "model": {
+                    "provider": "openai",
+                    "id": "gpt-5.4-mini"
+                  }
+                }
+              ],
+              "outputs": [
+                {
+                  "id": "storyboardId",
+                  "kind": "storyboard",
+                  "label": "Storyboard"
+                },
+                {
+                  "id": "designPreview",
+                  "kind": "timeline",
+                  "label": "Composed design preview"
+                },
+                {
+                  "id": "timeline",
+                  "kind": "timeline",
+                  "label": "Editable result"
+                }
+              ],
+              "category": "Ad library",
+              "defaults": {
+                "step": "start"
+              },
+              "creativeStrategy": {
+                "objective": "Represent connected products or integrations as a satisfying assembly.",
+                "direction": "Separate elements become one coherent object; the assembly is the proof metaphor, not the actual proof of integration.",
+                "aspectRatio": "9:16",
+                "shots": [
+                  {
+                    "id": "hook",
+                    "title": "Separated tiles or a partly assembled object are already visible.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "tile1",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile1"
+                      },
+                      {
+                        "id": "tile2",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile2"
+                      },
+                      {
+                        "id": "tile3",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile3"
+                      },
+                      {
+                        "id": "tile4",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile4"
+                      },
+                      {
+                        "id": "integrationProblem",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "integrationProblem",
+                        "direction": "Small opposing offsets create tension."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "assembly",
+                    "title": "Tiles move toward their assigned cells.",
+                    "durationSeconds": 2.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "tile1",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile1"
+                      },
+                      {
+                        "id": "tile2",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile2"
+                      },
+                      {
+                        "id": "tile3",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile3"
+                      },
+                      {
+                        "id": "tile4",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile4"
+                      },
+                      {
+                        "id": "connectionLabel",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "connectionLabel",
+                        "direction": "Stagger by 100 ms; 350 ms easeOutBack with <=5% overshoot, or play rendered assembly footage."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "resolve",
+                    "title": "The completed object rotates slightly or pulses once.",
+                    "durationSeconds": 2.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "tile1",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile1"
+                      },
+                      {
+                        "id": "tile2",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile2"
+                      },
+                      {
+                        "id": "tile3",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile3"
+                      },
+                      {
+                        "id": "tile4",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile4"
+                      },
+                      {
+                        "id": "benefit",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "benefit",
+                        "direction": "Native 2D version uses scale only; true depth uses an original 3D asset."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "explain",
+                    "title": "Short supported benefit sits beside the coherent system.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "tile1",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile1"
+                      },
+                      {
+                        "id": "tile2",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile2"
+                      },
+                      {
+                        "id": "tile3",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile3"
+                      },
+                      {
+                        "id": "tile4",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile4"
+                      },
+                      {
+                        "id": "benefitDetail",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "benefitDetail",
+                        "direction": "Type fade; object holds."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cta",
+                    "title": "Final object and next step.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "tile1",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile1"
+                      },
+                      {
+                        "id": "tile2",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile2"
+                      },
+                      {
+                        "id": "tile3",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile3"
+                      },
+                      {
+                        "id": "tile4",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile4"
+                      },
+                      {
+                        "id": "logo",
+                        "kind": "asset",
+                        "role": "logo",
+                        "inputId": "logo"
+                      },
+                      {
+                        "id": "cta",
+                        "kind": "text",
+                        "role": "cta",
+                        "inputId": "cta",
+                        "direction": "Hold."
+                      }
+                    ]
+                  }
+                ]
+              },
+              "preservationRules": [
+                {
+                  "inputId": "tile1",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "tile2",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "tile3",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "tile4",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "logo",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "integrationProblem",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "connectionLabel",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "benefit",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "benefitDetail",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "cta",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "brandColor",
+                  "policy": "exact_color",
+                  "allowedTransformations": [
+                    "opacity",
+                    "composite"
+                  ]
+                }
+              ],
+              "mediaPolicy": {
+                "defaultStrategy": "still_motion_graphics",
+                "allowGeneratedVideo": false
+              },
+              "presentation": {
+                "groups": [
+                  {
+                    "id": "visuals",
+                    "title": "Images and brand",
+                    "inputIds": [
+                      "tile1",
+                      "tile2",
+                      "tile3",
+                      "tile4",
+                      "logo",
+                      "brandColor"
+                    ]
+                  },
+                  {
+                    "id": "copy",
+                    "title": "Exact copy",
+                    "inputIds": [
+                      "integrationProblem",
+                      "connectionLabel",
+                      "benefit",
+                      "benefitDetail",
+                      "cta"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "in-tile1": {
+            "from": "variable",
+            "variableId": "tile1"
+          },
+          "in-tile2": {
+            "from": "variable",
+            "variableId": "tile2"
+          },
+          "in-tile3": {
+            "from": "variable",
+            "variableId": "tile3"
+          },
+          "in-tile4": {
+            "from": "variable",
+            "variableId": "tile4"
+          },
+          "in-logo": {
+            "from": "variable",
+            "variableId": "logo"
+          },
+          "in-integrationProblem": {
+            "from": "variable",
+            "variableId": "integrationProblem"
+          },
+          "in-connectionLabel": {
+            "from": "variable",
+            "variableId": "connectionLabel"
+          },
+          "in-benefit": {
+            "from": "variable",
+            "variableId": "benefit"
+          },
+          "in-benefitDetail": {
+            "from": "variable",
+            "variableId": "benefitDetail"
+          },
+          "in-cta": {
+            "from": "variable",
+            "variableId": "cta"
+          },
+          "in-brandColor": {
+            "from": "variable",
+            "variableId": "brandColor"
+          },
+          "in-storyboardId": {
+            "from": "variable",
+            "variableId": "storyboardId"
+          },
+          "in-storyboardRevision": {
+            "from": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "in-plannedFingerprint": {
+            "from": "variable",
+            "variableId": "plannedFingerprint"
+          },
+          "in-finishModel": {
+            "from": "variable",
+            "variableId": "finishModel"
+          },
+          "in-imageModel": {
+            "from": "variable",
+            "variableId": "imageModel"
+          }
+        },
+        "outputs": {
+          "out-storyboardId": {
+            "to": "variable",
+            "variableId": "storyboardId"
+          },
+          "out-storyboardRevision": {
+            "to": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "out-timelineId": {
+            "to": "variable",
+            "variableId": "timelineId"
+          },
+          "out-timelineRevision": {
+            "to": "variable",
+            "variableId": "timelineRevision"
+          },
+          "out-linkedScriptFingerprint": {
+            "to": "variable",
+            "variableId": "linkedScriptFingerprint"
+          },
+          "out-plannedFingerprint": {
+            "to": "variable",
+            "variableId": "plannedFingerprint"
+          },
+          "out-approval": {
+            "to": "variable",
+            "variableId": "approval"
+          },
+          "out-planPreview": {
+            "to": "variable",
+            "variableId": "planPreview"
+          },
+          "out-designPreview": {
+            "to": "variable",
+            "variableId": "designPreview"
+          },
+          "out-layoutFindings": {
+            "to": "variable",
+            "variableId": "layoutFindings"
+          },
+          "out-step": {
+            "to": "variable",
+            "variableId": "step"
+          }
+        },
+        "policy": "queue"
+      },
+      {
+        "id": "finish",
+        "name": "Build editable cut",
+        "workflowId": "finish",
+        "workflowVersion": 1,
+        "inputs": {
+          "in-recipe": {
+            "from": "constant",
+            "value": {
+              "schemaVersion": 1,
+              "slug": "ad-integration-puzzle-that-snaps-together",
+              "inputs": [
+                {
+                  "id": "tile1",
+                  "label": "Tile 1",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "tile2",
+                  "label": "Tile 2",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "tile3",
+                  "label": "Tile 3",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "tile4",
+                  "label": "Tile 4",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "logo",
+                  "label": "Logo",
+                  "kind": "image",
+                  "required": true
+                },
+                {
+                  "id": "integrationProblem",
+                  "label": "Problem",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "connectionLabel",
+                  "label": "Connection line",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "benefit",
+                  "label": "Benefit",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "benefitDetail",
+                  "label": "Benefit detail",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "cta",
+                  "label": "Call to action",
+                  "kind": "text",
+                  "required": true
+                },
+                {
+                  "id": "brandColor",
+                  "label": "Brand color",
+                  "kind": "color",
+                  "required": true
+                }
+              ],
+              "operations": [
+                {
+                  "id": "plan",
+                  "bindingId": "plan",
+                  "intent": "plan_storyboard",
+                  "version": 1
+                },
+                {
+                  "id": "finish",
+                  "bindingId": "finish",
+                  "intent": "finish_storyboard",
+                  "version": 1,
+                  "strategy": "agentic",
+                  "model": {
+                    "provider": "openai",
+                    "id": "gpt-5.4-mini"
+                  }
+                }
+              ],
+              "outputs": [
+                {
+                  "id": "storyboardId",
+                  "kind": "storyboard",
+                  "label": "Storyboard"
+                },
+                {
+                  "id": "designPreview",
+                  "kind": "timeline",
+                  "label": "Composed design preview"
+                },
+                {
+                  "id": "timeline",
+                  "kind": "timeline",
+                  "label": "Editable result"
+                }
+              ],
+              "category": "Ad library",
+              "defaults": {
+                "step": "start"
+              },
+              "creativeStrategy": {
+                "objective": "Represent connected products or integrations as a satisfying assembly.",
+                "direction": "Separate elements become one coherent object; the assembly is the proof metaphor, not the actual proof of integration.",
+                "aspectRatio": "9:16",
+                "shots": [
+                  {
+                    "id": "hook",
+                    "title": "Separated tiles or a partly assembled object are already visible.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "tile1",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile1"
+                      },
+                      {
+                        "id": "tile2",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile2"
+                      },
+                      {
+                        "id": "tile3",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile3"
+                      },
+                      {
+                        "id": "tile4",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile4"
+                      },
+                      {
+                        "id": "integrationProblem",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "integrationProblem",
+                        "direction": "Small opposing offsets create tension."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "assembly",
+                    "title": "Tiles move toward their assigned cells.",
+                    "durationSeconds": 2.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "tile1",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile1"
+                      },
+                      {
+                        "id": "tile2",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile2"
+                      },
+                      {
+                        "id": "tile3",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile3"
+                      },
+                      {
+                        "id": "tile4",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile4"
+                      },
+                      {
+                        "id": "connectionLabel",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "connectionLabel",
+                        "direction": "Stagger by 100 ms; 350 ms easeOutBack with <=5% overshoot, or play rendered assembly footage."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "resolve",
+                    "title": "The completed object rotates slightly or pulses once.",
+                    "durationSeconds": 2.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "tile1",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile1"
+                      },
+                      {
+                        "id": "tile2",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile2"
+                      },
+                      {
+                        "id": "tile3",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile3"
+                      },
+                      {
+                        "id": "tile4",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile4"
+                      },
+                      {
+                        "id": "benefit",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "benefit",
+                        "direction": "Native 2D version uses scale only; true depth uses an original 3D asset."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "explain",
+                    "title": "Short supported benefit sits beside the coherent system.",
+                    "durationSeconds": 1.5,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "tile1",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile1"
+                      },
+                      {
+                        "id": "tile2",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile2"
+                      },
+                      {
+                        "id": "tile3",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile3"
+                      },
+                      {
+                        "id": "tile4",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile4"
+                      },
+                      {
+                        "id": "benefitDetail",
+                        "kind": "text",
+                        "role": "headline",
+                        "inputId": "benefitDetail",
+                        "direction": "Type fade; object holds."
+                      }
+                    ]
+                  },
+                  {
+                    "id": "cta",
+                    "title": "Final object and next step.",
+                    "durationSeconds": 2,
+                    "elements": [
+                      {
+                        "id": "background",
+                        "kind": "shape",
+                        "role": "decorative",
+                        "inputId": "brandColor"
+                      },
+                      {
+                        "id": "tile1",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile1"
+                      },
+                      {
+                        "id": "tile2",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile2"
+                      },
+                      {
+                        "id": "tile3",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile3"
+                      },
+                      {
+                        "id": "tile4",
+                        "kind": "asset",
+                        "role": "decorative",
+                        "inputId": "tile4"
+                      },
+                      {
+                        "id": "logo",
+                        "kind": "asset",
+                        "role": "logo",
+                        "inputId": "logo"
+                      },
+                      {
+                        "id": "cta",
+                        "kind": "text",
+                        "role": "cta",
+                        "inputId": "cta",
+                        "direction": "Hold."
+                      }
+                    ]
+                  }
+                ]
+              },
+              "preservationRules": [
+                {
+                  "inputId": "tile1",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "tile2",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "tile3",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "tile4",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "logo",
+                  "policy": "exact_asset",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "integrationProblem",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "connectionLabel",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "benefit",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "benefitDetail",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "cta",
+                  "policy": "exact_text",
+                  "allowedTransformations": [
+                    "position",
+                    "scale",
+                    "opacity",
+                    "composite"
+                  ]
+                },
+                {
+                  "inputId": "brandColor",
+                  "policy": "exact_color",
+                  "allowedTransformations": [
+                    "opacity",
+                    "composite"
+                  ]
+                }
+              ],
+              "mediaPolicy": {
+                "defaultStrategy": "still_motion_graphics",
+                "allowGeneratedVideo": false
+              },
+              "presentation": {
+                "groups": [
+                  {
+                    "id": "visuals",
+                    "title": "Images and brand",
+                    "inputIds": [
+                      "tile1",
+                      "tile2",
+                      "tile3",
+                      "tile4",
+                      "logo",
+                      "brandColor"
+                    ]
+                  },
+                  {
+                    "id": "copy",
+                    "title": "Exact copy",
+                    "inputIds": [
+                      "integrationProblem",
+                      "connectionLabel",
+                      "benefit",
+                      "benefitDetail",
+                      "cta"
+                    ]
+                  }
+                ]
+              }
+            }
+          },
+          "in-recipeOperationId": {
+            "from": "constant",
+            "value": "finish"
+          },
+          "in-tile1": {
+            "from": "variable",
+            "variableId": "tile1"
+          },
+          "in-tile2": {
+            "from": "variable",
+            "variableId": "tile2"
+          },
+          "in-tile3": {
+            "from": "variable",
+            "variableId": "tile3"
+          },
+          "in-tile4": {
+            "from": "variable",
+            "variableId": "tile4"
+          },
+          "in-logo": {
+            "from": "variable",
+            "variableId": "logo"
+          },
+          "in-integrationProblem": {
+            "from": "variable",
+            "variableId": "integrationProblem"
+          },
+          "in-connectionLabel": {
+            "from": "variable",
+            "variableId": "connectionLabel"
+          },
+          "in-benefit": {
+            "from": "variable",
+            "variableId": "benefit"
+          },
+          "in-benefitDetail": {
+            "from": "variable",
+            "variableId": "benefitDetail"
+          },
+          "in-cta": {
+            "from": "variable",
+            "variableId": "cta"
+          },
+          "in-brandColor": {
+            "from": "variable",
+            "variableId": "brandColor"
+          },
+          "in-storyboardId": {
+            "from": "variable",
+            "variableId": "storyboardId"
+          },
+          "in-storyboardRevision": {
+            "from": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "in-linkedScriptFingerprint": {
+            "from": "variable",
+            "variableId": "linkedScriptFingerprint"
+          },
+          "in-timelineId": {
+            "from": "variable",
+            "variableId": "timelineId"
+          },
+          "in-timelineRevision": {
+            "from": "variable",
+            "variableId": "timelineRevision"
+          },
+          "in-approval": {
+            "from": "variable",
+            "variableId": "approval"
+          },
+          "in-plannedFingerprint": {
+            "from": "variable",
+            "variableId": "plannedFingerprint"
+          },
+          "in-finishStrategy": {
+            "from": "constant",
+            "value": "agentic"
+          },
+          "in-finishModel": {
+            "from": "variable",
+            "variableId": "finishModel"
+          }
+        },
+        "outputs": {
+          "out-approval": {
+            "to": "variable",
+            "variableId": "approval"
+          },
+          "out-finishStatus": {
+            "to": "variable",
+            "variableId": "finishStatus"
+          },
+          "out-timelineId": {
+            "to": "variable",
+            "variableId": "timelineId"
+          },
+          "out-timelineRevision": {
+            "to": "variable",
+            "variableId": "timelineRevision"
+          },
+          "out-storyboardRevision": {
+            "to": "variable",
+            "variableId": "storyboardRevision"
+          },
+          "out-timeline": {
+            "to": "variable",
+            "variableId": "timeline"
+          },
+          "out-validation": {
+            "to": "variable",
+            "variableId": "validation"
+          },
+          "out-reviews": {
+            "to": "variable",
+            "variableId": "reviews"
+          },
+          "out-step": {
+            "to": "variable",
+            "variableId": "step"
+          }
+        },
+        "policy": "queue"
+      },
+      {
+        "id": "suggest",
+        "name": "Suggest options from a website",
+        "workflowId": "suggest",
+        "policy": "replace",
+        "inputs": {
+          "in-sourceUrl": {
+            "from": "variable",
+            "variableId": "sourceUrl"
+          },
+          "in-model": {
+            "from": "variable",
+            "variableId": "finishModel"
+          }
+        },
+        "outputs": {
+          "out-fillOptions": {
+            "to": "variable",
+            "variableId": "fillOptions"
+          },
+          "out-fillChoice": {
+            "to": "variable",
+            "variableId": "fillChoice"
+          },
+          "out-fillReport": {
+            "to": "variable",
+            "variableId": "fillReport"
+          }
+        }
+      },
+      {
+        "id": "apply",
+        "name": "Fill the ad from the picked option",
+        "workflowId": "",
+        "policy": "replace",
+        "target": {
+          "kind": "script",
+          "scriptId": "apply_ad_option-v1",
+          "scriptVersion": 1
+        },
+        "inputs": {
+          "brief": {
+            "from": "constant",
+            "value": {
+              "title": "Integration puzzle that snaps together",
+              "objective": "Represent connected products or integrations as a satisfying assembly.",
+              "direction": "Separate elements become one coherent object; the assembly is the proof metaphor, not the actual proof of integration.",
+              "beats": [
+                "0–1.5 s: Separated tiles or a partly assembled object are already visible. Shows Brand color, Tile 1, Tile 2, Tile 3, Tile 4, Problem.",
+                "1.5–4 s: Tiles move toward their assigned cells. Shows Brand color, Tile 1, Tile 2, Tile 3, Tile 4, Connection line.",
+                "4–6.5 s: The completed object rotates slightly or pulses once. Shows Brand color, Tile 1, Tile 2, Tile 3, Tile 4, Benefit.",
+                "6.5–8 s: Short supported benefit sits beside the coherent system. Shows Brand color, Tile 1, Tile 2, Tile 3, Tile 4, Benefit detail.",
+                "8–10 s: Final object and next step. Shows Brand color, Tile 1, Tile 2, Tile 3, Tile 4, Logo, Call to action."
+              ],
+              "fields": [
+                {
+                  "id": "integrationProblem",
+                  "label": "Problem",
+                  "purpose": "hook",
+                  "maxWords": 7
+                },
+                {
+                  "id": "connectionLabel",
+                  "label": "Connection line",
+                  "purpose": "assembly",
+                  "maxWords": 7
+                },
+                {
+                  "id": "benefit",
+                  "label": "Benefit",
+                  "purpose": "resolve",
+                  "maxWords": 7
+                },
+                {
+                  "id": "benefitDetail",
+                  "label": "Benefit detail",
+                  "purpose": "explain",
+                  "maxWords": 7
+                },
+                {
+                  "id": "cta",
+                  "label": "Call to action",
+                  "purpose": "cta",
+                  "maxWords": 4
+                }
+              ],
+              "images": [
+                {
+                  "id": "tile1",
+                  "label": "Tile 1",
+                  "role": "decorative",
+                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step."
+                },
+                {
+                  "id": "tile2",
+                  "label": "Tile 2",
+                  "role": "decorative",
+                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step."
+                },
+                {
+                  "id": "tile3",
+                  "label": "Tile 3",
+                  "role": "decorative",
+                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step."
+                },
+                {
+                  "id": "tile4",
+                  "label": "Tile 4",
+                  "role": "decorative",
+                  "guidance": "A real photo or screenshot that matches the beats that show it. Shown in: Separated tiles or a partly assembled object are already visible. | Tiles move toward their assigned cells. | The completed object rotates slightly or pulses once. | Short supported benefit sits beside the coherent system. | Final object and next step."
+                },
+                {
+                  "id": "logo",
+                  "label": "Logo",
+                  "role": "logo",
+                  "guidance": "The brand's own logo file, such as the site header logo or its icon. Shown in: Final object and next step."
+                }
+              ]
+            }
+          },
+          "options": {
+            "from": "variable",
+            "variableId": "fillOptions"
+          },
+          "choice": {
+            "from": "variable",
+            "variableId": "fillChoice"
+          }
+        },
+        "outputs": {
+          "integrationProblem": {
+            "to": "variable",
+            "variableId": "integrationProblem"
+          },
+          "connectionLabel": {
+            "to": "variable",
+            "variableId": "connectionLabel"
+          },
+          "benefit": {
+            "to": "variable",
+            "variableId": "benefit"
+          },
+          "benefitDetail": {
+            "to": "variable",
+            "variableId": "benefitDetail"
+          },
+          "cta": {
+            "to": "variable",
+            "variableId": "cta"
+          },
+          "brandColor": {
+            "to": "variable",
+            "variableId": "brandColor"
+          },
+          "tile1": {
+            "to": "variable",
+            "variableId": "tile1"
+          },
+          "tile2": {
+            "to": "variable",
+            "variableId": "tile2"
+          },
+          "tile3": {
+            "to": "variable",
+            "variableId": "tile3"
+          },
+          "tile4": {
+            "to": "variable",
+            "variableId": "tile4"
+          },
+          "logo": {
+            "to": "variable",
+            "variableId": "logo"
+          },
+          "fillReport": {
+            "to": "variable",
+            "variableId": "fillReport"
+          },
+          "approval": {
+            "to": "variable",
+            "variableId": "approval"
+          }
+        }
+      }
+    ],
+    "resources": [],
+    "variables": [
+      {
+        "id": "tile1",
+        "name": "Tile 1",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "tile2",
+        "name": "Tile 2",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "tile3",
+        "name": "Tile 3",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "tile4",
+        "name": "Tile 4",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "logo",
+        "name": "Logo",
+        "type": {
+          "type": "image",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "integrationProblem",
+        "name": "Problem",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "connectionLabel",
+        "name": "Connection line",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "benefit",
+        "name": "Benefit",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "benefitDetail",
+        "name": "Benefit detail",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "cta",
+        "name": "Call to action",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "brandColor",
+        "name": "Brand color",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "storyboardId",
+        "name": "storyboardId",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "storyboardRevision",
+        "name": "storyboardRevision",
+        "type": {
+          "type": "int",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "plannedFingerprint",
+        "name": "plannedFingerprint",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "timelineId",
+        "name": "timelineId",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "timelineRevision",
+        "name": "timelineRevision",
+        "type": {
+          "type": "int",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "linkedScriptFingerprint",
+        "name": "linkedScriptFingerprint",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "approval",
+        "name": "approval",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "planPreview",
+        "name": "planPreview",
+        "type": {
+          "type": "dict",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "designPreview",
+        "name": "designPreview",
+        "type": {
+          "type": "timeline",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "layoutFindings",
+        "name": "layoutFindings",
+        "type": {
+          "type": "list[str]",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "step",
+        "name": "step",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "default": "start",
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "finishStatus",
+        "name": "finishStatus",
+        "type": {
+          "type": "str",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "timeline",
+        "name": "timeline",
+        "type": {
+          "type": "timeline",
+          "optional": false
+        },
+        "scope": "user",
+        "persist": true
+      },
+      {
+        "id": "validation",
+        "name": "validation",
+        "type": {
+          "type": "list[dict]",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "reviews",
+        "name": "reviews",
+        "type": {
+          "type": "list[dict]",
+          "optional": false
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "finishModel",
+        "name": "Finishing model",
+        "type": {
+          "type": "dict"
+        },
+        "scope": "user",
+        "persist": true,
+        "default": {
+          "type": "language_model",
+          "provider": "",
+          "id": "",
+          "name": ""
+        }
+      },
+      {
+        "id": "imageModel",
+        "name": "Image model",
+        "type": {
+          "type": "dict"
+        },
+        "scope": "user",
+        "persist": true,
+        "default": {
+          "type": "image_model",
+          "provider": "",
+          "id": "",
+          "name": ""
+        }
+      },
+      {
+        "id": "fillPath",
+        "name": "How to start",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "sourceUrl",
+        "name": "Website URL",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "fillOptions",
+        "name": "Suggested options",
+        "type": {
+          "type": "list[dict]"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": []
+      },
+      {
+        "id": "fillChoice",
+        "name": "Picked option",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "fillReport",
+        "name": "Fill report",
+        "type": {
+          "type": "str"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": ""
+      },
+      {
+        "id": "beatExample1",
+        "name": "Beat 1 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R10-B01.webp"
+        }
+      },
+      {
+        "id": "beatExample2",
+        "name": "Beat 2 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R10-B02.webp"
+        }
+      },
+      {
+        "id": "beatExample3",
+        "name": "Beat 3 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R10-B03.webp"
+        }
+      },
+      {
+        "id": "beatExample4",
+        "name": "Beat 4 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R10-B04.webp"
+        }
+      },
+      {
+        "id": "beatExample5",
+        "name": "Beat 5 example",
+        "type": {
+          "type": "image"
+        },
+        "scope": "instance",
+        "persist": false,
+        "default": {
+          "type": "image",
+          "uri": "package://nodetool-base/ad-library/R10-B05.webp"
+        }
+      }
+    ],
+    "recipe": {
+      "schemaVersion": 1,
+      "slug": "ad-integration-puzzle-that-snaps-together",
+      "inputs": [
+        {
+          "id": "tile1",
+          "label": "Tile 1",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "tile2",
+          "label": "Tile 2",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "tile3",
+          "label": "Tile 3",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "tile4",
+          "label": "Tile 4",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "logo",
+          "label": "Logo",
+          "kind": "image",
+          "required": true
+        },
+        {
+          "id": "integrationProblem",
+          "label": "Problem",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "connectionLabel",
+          "label": "Connection line",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "benefit",
+          "label": "Benefit",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "benefitDetail",
+          "label": "Benefit detail",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "cta",
+          "label": "Call to action",
+          "kind": "text",
+          "required": true
+        },
+        {
+          "id": "brandColor",
+          "label": "Brand color",
+          "kind": "color",
+          "required": true
+        }
+      ],
+      "operations": [
+        {
+          "id": "plan",
+          "bindingId": "plan",
+          "intent": "plan_storyboard",
+          "version": 1
+        },
+        {
+          "id": "finish",
+          "bindingId": "finish",
+          "intent": "finish_storyboard",
+          "version": 1,
+          "strategy": "agentic",
+          "model": {
+            "provider": "openai",
+            "id": "gpt-5.4-mini"
+          }
+        }
+      ],
+      "outputs": [
+        {
+          "id": "storyboardId",
+          "kind": "storyboard",
+          "label": "Storyboard"
+        },
+        {
+          "id": "designPreview",
+          "kind": "timeline",
+          "label": "Composed design preview"
+        },
+        {
+          "id": "timeline",
+          "kind": "timeline",
+          "label": "Editable result"
+        }
+      ],
+      "category": "Ad library",
+      "defaults": {
+        "step": "start"
+      },
+      "creativeStrategy": {
+        "objective": "Represent connected products or integrations as a satisfying assembly.",
+        "direction": "Separate elements become one coherent object; the assembly is the proof metaphor, not the actual proof of integration.",
+        "aspectRatio": "9:16",
+        "shots": [
+          {
+            "id": "hook",
+            "title": "Separated tiles or a partly assembled object are already visible.",
+            "durationSeconds": 1.5,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor"
+              },
+              {
+                "id": "tile1",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile1"
+              },
+              {
+                "id": "tile2",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile2"
+              },
+              {
+                "id": "tile3",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile3"
+              },
+              {
+                "id": "tile4",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile4"
+              },
+              {
+                "id": "integrationProblem",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "integrationProblem",
+                "direction": "Small opposing offsets create tension."
+              }
+            ]
+          },
+          {
+            "id": "assembly",
+            "title": "Tiles move toward their assigned cells.",
+            "durationSeconds": 2.5,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor"
+              },
+              {
+                "id": "tile1",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile1"
+              },
+              {
+                "id": "tile2",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile2"
+              },
+              {
+                "id": "tile3",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile3"
+              },
+              {
+                "id": "tile4",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile4"
+              },
+              {
+                "id": "connectionLabel",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "connectionLabel",
+                "direction": "Stagger by 100 ms; 350 ms easeOutBack with <=5% overshoot, or play rendered assembly footage."
+              }
+            ]
+          },
+          {
+            "id": "resolve",
+            "title": "The completed object rotates slightly or pulses once.",
+            "durationSeconds": 2.5,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor"
+              },
+              {
+                "id": "tile1",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile1"
+              },
+              {
+                "id": "tile2",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile2"
+              },
+              {
+                "id": "tile3",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile3"
+              },
+              {
+                "id": "tile4",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile4"
+              },
+              {
+                "id": "benefit",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "benefit",
+                "direction": "Native 2D version uses scale only; true depth uses an original 3D asset."
+              }
+            ]
+          },
+          {
+            "id": "explain",
+            "title": "Short supported benefit sits beside the coherent system.",
+            "durationSeconds": 1.5,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor"
+              },
+              {
+                "id": "tile1",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile1"
+              },
+              {
+                "id": "tile2",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile2"
+              },
+              {
+                "id": "tile3",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile3"
+              },
+              {
+                "id": "tile4",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile4"
+              },
+              {
+                "id": "benefitDetail",
+                "kind": "text",
+                "role": "headline",
+                "inputId": "benefitDetail",
+                "direction": "Type fade; object holds."
+              }
+            ]
+          },
+          {
+            "id": "cta",
+            "title": "Final object and next step.",
+            "durationSeconds": 2,
+            "elements": [
+              {
+                "id": "background",
+                "kind": "shape",
+                "role": "decorative",
+                "inputId": "brandColor"
+              },
+              {
+                "id": "tile1",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile1"
+              },
+              {
+                "id": "tile2",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile2"
+              },
+              {
+                "id": "tile3",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile3"
+              },
+              {
+                "id": "tile4",
+                "kind": "asset",
+                "role": "decorative",
+                "inputId": "tile4"
+              },
+              {
+                "id": "logo",
+                "kind": "asset",
+                "role": "logo",
+                "inputId": "logo"
+              },
+              {
+                "id": "cta",
+                "kind": "text",
+                "role": "cta",
+                "inputId": "cta",
+                "direction": "Hold."
+              }
+            ]
+          }
+        ]
+      },
+      "preservationRules": [
+        {
+          "inputId": "tile1",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "tile2",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "tile3",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "tile4",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "logo",
+          "policy": "exact_asset",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "integrationProblem",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "connectionLabel",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "benefit",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "benefitDetail",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "cta",
+          "policy": "exact_text",
+          "allowedTransformations": [
+            "position",
+            "scale",
+            "opacity",
+            "composite"
+          ]
+        },
+        {
+          "inputId": "brandColor",
+          "policy": "exact_color",
+          "allowedTransformations": [
+            "opacity",
+            "composite"
+          ]
+        }
+      ],
+      "mediaPolicy": {
+        "defaultStrategy": "still_motion_graphics",
+        "allowGeneratedVideo": false
+      },
+      "presentation": {
+        "groups": [
+          {
+            "id": "visuals",
+            "title": "Images and brand",
+            "inputIds": [
+              "tile1",
+              "tile2",
+              "tile3",
+              "tile4",
+              "logo",
+              "brandColor"
+            ]
+          },
+          {
+            "id": "copy",
+            "title": "Exact copy",
+            "inputIds": [
+              "integrationProblem",
+              "connectionLabel",
+              "benefit",
+              "benefitDetail",
+              "cta"
+            ]
+          }
+        ]
+      }
+    }
+  },
+  "workflows": [
+    {
+      "key": "plan",
+      "name": "Plan or refresh Storyboard",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in-recipe",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "recipe",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-tile1",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "tile1",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-tile2",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "tile2",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-tile3",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "tile3",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-tile4",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "tile4",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-logo",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "logo",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-integrationProblem",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "integrationProblem",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-connectionLabel",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "connectionLabel",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-benefit",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "benefit",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-benefitDetail",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "benefitDetail",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-cta",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "cta",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-brandColor",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "brandColor",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardRevision",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardRevision",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-plannedFingerprint",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "plannedFingerprint",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-finishModel",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "finishModel",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-imageModel",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "imageModel",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-storyboardId",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "storyboardId"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-storyboardRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "storyboardRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineId",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineId"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-linkedScriptFingerprint",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "linkedScriptFingerprint"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-plannedFingerprint",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "plannedFingerprint"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-approval",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "approval"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-planPreview",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "planPreview"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-designPreview",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "designPreview"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-layoutFindings",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "layoutFindings"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-step",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "step"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "finish",
+      "name": "Build editable cut",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in-recipe",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "recipe",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-recipeOperationId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "recipeOperationId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-tile1",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "tile1",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-tile2",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "tile2",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-tile3",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "tile3",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-tile4",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "tile4",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-logo",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "logo",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-integrationProblem",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "integrationProblem",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-connectionLabel",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "connectionLabel",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-benefit",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "benefit",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-benefitDetail",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "benefitDetail",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-cta",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "cta",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-brandColor",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "brandColor",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-finishStrategy",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "finishStrategy",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-finishModel",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "finishModel",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-storyboardRevision",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "storyboardRevision",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-linkedScriptFingerprint",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "linkedScriptFingerprint",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-timelineId",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "timelineId",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-timelineRevision",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "timelineRevision",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-approval",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "approval",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-plannedFingerprint",
+            "type": "nodetool.input.ValueInput",
+            "data": {
+              "name": "plannedFingerprint",
+              "value": null,
+              "description": ""
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-approval",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "approval"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-finishStatus",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "finishStatus"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineId",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineId"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timelineRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timelineRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-storyboardRevision",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "storyboardRevision"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-timeline",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "timeline"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-validation",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "validation"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-reviews",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "reviews"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-step",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "step"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "suggest",
+      "name": "Suggest Integration puzzle that snaps together ad options",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in-sourceUrl",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "sourceUrl",
+              "value": "",
+              "description": "The product or brand page to read."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-model",
+            "type": "nodetool.input.LanguageModelInput",
+            "data": {
+              "name": "model",
+              "value": {
+                "type": "language_model",
+                "provider": "",
+                "id": "",
+                "name": ""
+              },
+              "description": "The model the agent runs on."
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-fillOptions",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "fillOptions"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-fillChoice",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "fillChoice"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out-fillReport",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "fillReport"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 820,
+                "y": 0
+              }
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    }
+  ],
+  "scripts": [
+    {
+      "key": "apply_ad_option-v1",
+      "name": "Fill the ad from the picked option",
+      "version": 1,
+      "document": {
+        "schemaVersion": 1,
+        "code": "import { save_asset } from \"@nodetool-ai/sandbox-nodetool/assets\";\nconst brief = inputs.brief;\nconst option = (Array.isArray(inputs.options) ? inputs.options : []).find(item => item.value === inputs.choice);\nif (!option) throw new Error(\"Pick one of the suggested options.\");\nfor (const field of brief.fields) {\n  if (option.fields?.[field.id]) await output(field.id, option.fields[field.id]);\n}\nif (option.brandColor) await output(\"brandColor\", option.brandColor);\nconst missing = [];\nconst tooSmall = [];\nfor (const wanted of brief.images) {\n  const source = option.images?.[wanted.id] || \"\";\n  if (!source) { missing.push(wanted.label); continue; }\n  progress(20, \"Saving \" + wanted.label);\n  try {\n    const saved = await save_asset({name: wanted.label + \" from \" + source.split(\"/\").pop().split(\"?\")[0], source});\n    if (!saved?.asset_id || !String(saved.content_type || \"\").startsWith(\"image/\")) throw new Error(\"not an image\");\n    if (saved.content_type !== \"image/svg+xml\") {\n      const {width, height} = await image.info(await media.bytes({type: \"image\", uri: \"asset://\" + saved.asset_id}));\n      if (Math.min(width, height) < (wanted.role === \"logo\" ? 100 : 400)) {\n        tooSmall.push(wanted.label + \" (\" + width + \"x\" + height + \")\");\n        continue;\n      }\n    }\n    await output(wanted.id, {type: \"image\", uri: \"asset://\" + saved.asset_id, asset_id: saved.asset_id});\n  } catch (error) {\n    console.log(\"Could not save \" + wanted.label + \" from \" + source + \": \" + error);\n    missing.push(wanted.label);\n  }\n}\nconst report = [\n  ...(missing.length ? [\"No usable image found for: \" + missing.join(\", \") + \".\"] : []),\n  ...(tooSmall.length ? [\"Only images too small for the ad were found for: \" + tooSmall.join(\", \") + \".\"] : [])\n];\nawait output(\"fillReport\", report.length ? report.join(\" \") + \" Upload these yourself.\" : \"Filled from \" + option.title + \". Check every field before you plan.\");\nawait output(\"approval\", \"pending\");",
+        "inputs": [
+          {
+            "name": "brief",
+            "type": "dict"
+          },
+          {
+            "name": "options",
+            "type": "list[dict]"
+          },
+          {
+            "name": "choice",
+            "type": "str"
+          }
+        ],
+        "outputs": [
+          {
+            "name": "integrationProblem",
+            "type": "str"
+          },
+          {
+            "name": "connectionLabel",
+            "type": "str"
+          },
+          {
+            "name": "benefit",
+            "type": "str"
+          },
+          {
+            "name": "benefitDetail",
+            "type": "str"
+          },
+          {
+            "name": "cta",
+            "type": "str"
+          },
+          {
+            "name": "brandColor",
+            "type": "str"
+          },
+          {
+            "name": "tile1",
+            "type": "image"
+          },
+          {
+            "name": "tile2",
+            "type": "image"
+          },
+          {
+            "name": "tile3",
+            "type": "image"
+          },
+          {
+            "name": "tile4",
+            "type": "image"
+          },
+          {
+            "name": "logo",
+            "type": "image"
+          },
+          {
+            "name": "fillReport",
+            "type": "str"
+          },
+          {
+            "name": "approval",
+            "type": "str"
+          }
+        ],
+        "packages": [],
+        "secrets": [],
+        "timeoutSeconds": 120,
+        "tests": []
+      }
+    }
+  ],
+  "values": {
+    "var:step": "start",
+    "var:finishModel": {
+      "type": "language_model",
+      "provider": "",
+      "id": "",
+      "name": ""
+    },
+    "var:imageModel": {
+      "type": "image_model",
+      "provider": "",
+      "id": "",
+      "name": ""
+    },
+    "var:fillPath": "",
+    "var:sourceUrl": "",
+    "var:fillOptions": [],
+    "var:fillChoice": "",
+    "var:fillReport": "",
+    "var:beatExample1": {
+      "type": "image",
+      "uri": "package://nodetool-base/ad-library/R10-B01.webp"
+    },
+    "var:beatExample2": {
+      "type": "image",
+      "uri": "package://nodetool-base/ad-library/R10-B02.webp"
+    },
+    "var:beatExample3": {
+      "type": "image",
+      "uri": "package://nodetool-base/ad-library/R10-B03.webp"
+    },
+    "var:beatExample4": {
+      "type": "image",
+      "uri": "package://nodetool-base/ad-library/R10-B04.webp"
+    },
+    "var:beatExample5": {
+      "type": "image",
+      "uri": "package://nodetool-base/ad-library/R10-B05.webp"
+    }
+  }
+}

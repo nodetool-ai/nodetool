@@ -55,7 +55,11 @@ export interface TimelineSequence {
   trackFolders?: TimelineTrackFolder[];
   clips: TimelineClip[];
   markers: TimelineMarker[];
-  storyboardMaterializations?: Array<{ boardId: string; elementKeys: string[] }>;
+  /**
+   * The layers each board owns. `stage` is "layout" when an agent composed
+   * the static frames and no one has authored the motion yet.
+   */
+  storyboardMaterializations?: Array<{ boardId: string; elementKeys: string[]; stage?: "layout" | "finished" }>;
   /**
    * Studio transcript lines. Optional so sequences written before Studio
    * existed load with no transcript. Persisted inside the document blob so
