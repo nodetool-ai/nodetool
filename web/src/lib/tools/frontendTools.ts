@@ -50,7 +50,6 @@ export interface FrontendToolState {
   searchTemplates: (query: string) => Promise<WorkflowList>;
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   getOpenWorkflowIds?: () => string[];
-  openWorkflow?: (workflowId: string) => Promise<void>;
   runWorkflow?: (
     workflowId: string,
     params?: Record<string, unknown>,

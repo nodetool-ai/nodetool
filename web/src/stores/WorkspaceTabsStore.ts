@@ -759,8 +759,11 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
         return tabs.find((t) => t.id === activeTabId) ?? null;
       },
 
-      setActiveProjectId: (projectId) =>
+      setActiveProjectId: (requestedProjectId) =>
         set((state) => {
+          // Tabs spell the loose bucket as no project, so an active "default"
+          // would put every loose tab out of scope.
+          const projectId = projectOf(requestedProjectId ?? undefined) ?? null;
           const session = sessionFor(
             state.projectSessions,
             projectId ?? undefined

@@ -2,6 +2,7 @@ import { z } from "zod";
 import { uiOpenWorkflowParams, uiRunWorkflowParams, uiSwitchTabParams, uiCopyParams } from "@nodetool-ai/protocol";
 import { getWorkflowRunnerStore } from "../../../stores/WorkflowRunner";
 import { FrontendToolRegistry } from "../frontendTools";
+import { openDocument } from "./openDocument";
 
 async function writeClipboardText(
   text: string,
@@ -48,20 +49,10 @@ FrontendToolRegistry.register({
   description: "Open a workflow tab and switch to it by workflow id.",
   parameters: z.object(uiOpenWorkflowParams),
   async execute({ workflow_id }, ctx) {
-    const state = ctx.getState();
-
-    if (state.openWorkflow) {
-      await state.openWorkflow(workflow_id);
-    } else {
-      await state.fetchWorkflow(workflow_id);
-      const workflow = state.getWorkflow(workflow_id);
-      if (!workflow) {
-        throw new Error(`Workflow not found: ${workflow_id}`);
-      }
-      state.setCurrentWorkflowId(workflow_id);
-    }
-
-    return { ok: true, workflow_id };
+    // The workspace tab is what the user sees. Loading the workflow into the
+    // editor store alone reported success with no tab on screen.
+    const opened = await openDocument("workflow", workflow_id, ctx);
+    return { ok: true, workflow_id: opened.id };
   }
 });
 

@@ -479,6 +479,25 @@ describe("creationProjectId", () => {
     expect(create()).toBe(LOOSE_PROJECT_ID);
   });
 
+  it("keeps a loose document's tab in scope when its project is the loose bucket", () => {
+    // Opening a document reads its project from the server, where the loose
+    // bucket is spelled "default". A tab stores that bucket as no project, so
+    // an active "default" would hide the tab it just opened.
+    const store = useWorkspaceTabsStore.getState();
+    store.setActiveProjectId(LOOSE_PROJECT_ID);
+    const id = store.openTab({
+      type: "workflow",
+      ref: "wf-loose",
+      mode: "edit",
+      projectId: LOOSE_PROJECT_ID
+    });
+
+    const state = useWorkspaceTabsStore.getState();
+    expect(state.activeProjectId).toBeNull();
+    const opened = state.tabs.find((t) => t.id === id);
+    expect(opened && isTabInScope(opened, state.activeProjectId)).toBe(true);
+  });
+
   it("clears a project tab when switching to Personal with no Personal tab", () => {
     useWorkspaceTabsStore.getState().openProject({
       id: "proj-1",

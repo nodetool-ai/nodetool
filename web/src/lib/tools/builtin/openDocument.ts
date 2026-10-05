@@ -128,6 +128,88 @@ const waitUntilReady = (
   return wait[type](id, ctx.abortSignal);
 };
 
+/**
+ * Open a document as a workspace tab and wait for its editor to load. Throws
+ * when the editor never loads, so a caller never reports an unopened document
+ * as open.
+ */
+export async function openDocument(
+  type: OpenableType,
+  id: string,
+  ctx: FrontendToolContext
+): Promise<{
+  ok: true;
+  type: OpenableType;
+  id: string;
+  already_open: boolean;
+  url: string;
+}> {
+  const document = await resolveDocumentProject(TAB_TYPE[type], id);
+  id = document.id;
+  const tabs = useWorkspaceTabsStore.getState();
+  const previousProjectId = tabs.activeProjectId;
+  const previousActiveTabId = tabs.activeTabId;
+  const wasOpen = tabs.tabs.some(
+    (tab) => tab.id === tabId(TAB_TYPE[type], id)
+  );
+
+  if (wasOpen && ready(type, id, ctx)) {
+    tabs.setActiveProjectId(document.projectId ?? null);
+    tabs.openTab({
+      type: TAB_TYPE[type],
+      ref: id,
+      mode: "edit",
+      projectId: document.projectId ?? LOOSE_PROJECT_ID
+    });
+    return {
+      ok: true,
+      type,
+      id,
+      already_open: true,
+      url: docUrl(type, id)
+    };
+  }
+
+  // Tabs only mount inside the workspace shell, so a session driving the
+  // agent from a legacy route has to land there first.
+  if (
+    typeof window !== "undefined" &&
+    !window.location.pathname.startsWith("/workspace")
+  ) {
+    navigateTo("/workspace");
+  }
+
+  // Editors register their agent handler; viewers do not — so always edit.
+  tabs.setActiveProjectId(document.projectId ?? null);
+  tabs.openTab({
+    type: TAB_TYPE[type],
+    ref: id,
+    mode: "edit",
+    projectId: document.projectId ?? LOOSE_PROJECT_ID
+  });
+
+  if (await waitUntilReady(type, id, ctx)) {
+    return {
+      ok: true,
+      type,
+      id,
+      already_open: wasOpen,
+      url: docUrl(type, id)
+    };
+  }
+
+  // Nothing loaded — leave no broken tab behind for the user to close.
+  if (!wasOpen) {
+    useWorkspaceTabsStore.getState().closeTab(tabId(TAB_TYPE[type], id));
+  }
+  tabs.setActiveProjectId(previousProjectId);
+  if (previousActiveTabId) tabs.setActiveTab(previousActiveTabId);
+  throw new Error(
+    `The ${LABEL[type]} "${id}" did not open. Check that the id is right — ` +
+      `it may have been deleted, or belong to another user.`
+  );
+}
+
 FrontendToolRegistry.register({
   name: "ui_open_document",
   description:
@@ -138,70 +220,5 @@ FrontendToolRegistry.register({
       .describe("Kind of document to open, as named in the ui_context block."),
     id: z.string().trim().min(1).describe("Id of the document to open.")
   }),
-  async execute({ type, id }, ctx) {
-    const document = await resolveDocumentProject(TAB_TYPE[type], id);
-    id = document.id;
-    const tabs = useWorkspaceTabsStore.getState();
-    const previousProjectId = tabs.activeProjectId;
-    const previousActiveTabId = tabs.activeTabId;
-    const wasOpen = tabs.tabs.some(
-      (tab) => tab.id === tabId(TAB_TYPE[type], id)
-    );
-
-    if (wasOpen && ready(type, id, ctx)) {
-      tabs.setActiveProjectId(document.projectId ?? null);
-      tabs.openTab({
-        type: TAB_TYPE[type],
-        ref: id,
-        mode: "edit",
-        projectId: document.projectId ?? LOOSE_PROJECT_ID
-      });
-      return {
-        ok: true,
-        type,
-        id,
-        already_open: true,
-        url: docUrl(type, id)
-      };
-    }
-
-    // Tabs only mount inside the workspace shell, so a session driving the
-    // agent from a legacy route has to land there first.
-    if (
-      typeof window !== "undefined" &&
-      !window.location.pathname.startsWith("/workspace")
-    ) {
-      navigateTo("/workspace");
-    }
-
-    // Editors register their agent handler; viewers do not — so always edit.
-    tabs.setActiveProjectId(document.projectId ?? null);
-    tabs.openTab({
-      type: TAB_TYPE[type],
-      ref: id,
-      mode: "edit",
-      projectId: document.projectId ?? LOOSE_PROJECT_ID
-    });
-
-    if (await waitUntilReady(type, id, ctx)) {
-      return {
-        ok: true,
-        type,
-        id,
-        already_open: wasOpen,
-        url: docUrl(type, id)
-      };
-    }
-
-    // Nothing loaded — leave no broken tab behind for the user to close.
-    if (!wasOpen) {
-      useWorkspaceTabsStore.getState().closeTab(tabId(TAB_TYPE[type], id));
-    }
-    tabs.setActiveProjectId(previousProjectId);
-    if (previousActiveTabId) tabs.setActiveTab(previousActiveTabId);
-    throw new Error(
-      `The ${LABEL[type]} "${id}" did not open. Check that the id is right — ` +
-        `it may have been deleted, or belong to another user.`
-    );
-  }
+  execute: ({ type, id }, ctx) => openDocument(type, id, ctx)
 });
