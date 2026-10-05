@@ -1,0 +1,333 @@
+{
+  "schemaVersion": 1,
+  "name": "Dawn Run",
+  "description": "A runner crosses a quiet city bridge at sunrise in one unbroken stride.",
+  "tags": [
+    "advertising",
+    "sport",
+    "running",
+    "vertical"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "dawn-run-screenplay",
+      "title": "Dawn Run",
+      "brief": "A running shoe ad shot like a short film. One runner, one bridge, one sunrise, and the shoes are the quiet hero of every frame.",
+      "style_bible": "Sports commercial, anamorphic warmth, golden sunrise backlight with long haze, crisp motion, slight film grain. Teal shadows against orange light.",
+      "aspect_ratio": "9:16",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "dawn-run-shot-1",
+          "index": 0,
+          "slug": "first-stride",
+          "action": "The runner starts down the empty bridge, mist lifting from the river on both sides, his breath visible in the cold.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "tracking backward in front of him"
+          },
+          "motion": "track",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dawn-run/first-stride.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/dawn-run/first-stride.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "dawn-run-shot-2",
+          "index": 1,
+          "slug": "shoe-strike",
+          "action": "An orange-and-white running shoe strikes the wet asphalt, spray and a flare of sunlight bursting from the impact.",
+          "camera": {
+            "framing": "extreme close-up",
+            "movement": "static, slow motion"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dawn-run/shoe-strike.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/dawn-run/shoe-strike.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "dawn-run-shot-3",
+          "index": 2,
+          "slug": "steady-pace",
+          "action": "The runner in profile pushes along the rail, golden light skimming across his shoulder and face, skyline beyond.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "tracking alongside at his speed"
+          },
+          "motion": "track",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dawn-run/steady-pace.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/dawn-run/steady-pace.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "dawn-run-shot-4",
+          "index": 3,
+          "slug": "sun-crest",
+          "action": "The runner climbs the crest of the bridge into the full sunrise, a flare filling the frame as he lifts his chin.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "slow crane up as he reaches the crest"
+          },
+          "motion": "crane-up",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dawn-run/sun-crest.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/dawn-run/sun-crest.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "dawn-run-shot-5",
+          "index": 4,
+          "slug": "the-view",
+          "action": "He turns to look back along the empty bridge as the light floods the city, the shoes planted on the glowing asphalt.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "slow pull back"
+          },
+          "motion": "pull-back",
+          "duration_seconds": 2,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dawn-run/the-view.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/dawn-run/the-view.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "dawn-run-shot-1",
+        "index": 0,
+        "slug": "first-stride",
+        "action": "The runner starts down the empty bridge, mist lifting from the river on both sides, his breath visible in the cold.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "tracking backward in front of him"
+        },
+        "motion": "track",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/dawn-run/first-stride.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dawn-run/first-stride.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "dawn-run-shot-2",
+        "index": 1,
+        "slug": "shoe-strike",
+        "action": "An orange-and-white running shoe strikes the wet asphalt, spray and a flare of sunlight bursting from the impact.",
+        "camera": {
+          "framing": "extreme close-up",
+          "movement": "static, slow motion"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/dawn-run/shoe-strike.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dawn-run/shoe-strike.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "dawn-run-shot-3",
+        "index": 2,
+        "slug": "steady-pace",
+        "action": "The runner in profile pushes along the rail, golden light skimming across his shoulder and face, skyline beyond.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "tracking alongside at his speed"
+        },
+        "motion": "track",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/dawn-run/steady-pace.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dawn-run/steady-pace.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "dawn-run-shot-4",
+        "index": 3,
+        "slug": "sun-crest",
+        "action": "The runner climbs the crest of the bridge into the full sunrise, a flare filling the frame as he lifts his chin.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "slow crane up as he reaches the crest"
+        },
+        "motion": "crane-up",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/dawn-run/sun-crest.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dawn-run/sun-crest.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "dawn-run-shot-5",
+        "index": 4,
+        "slug": "the-view",
+        "action": "He turns to look back along the empty bridge as the light floods the city, the shoes planted on the glowing asphalt.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "slow pull back"
+        },
+        "motion": "pull-back",
+        "duration_seconds": 2,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/dawn-run/the-view.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dawn-run/the-view.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A running shoe ad shot like a short film. One runner, one bridge, one sunrise, and the shoes are the quiet hero of every frame.",
+    "style": "Sports commercial, anamorphic warmth, golden sunrise backlight with long haze, crisp motion, slight film grain. Teal shadows against orange light.",
+    "entityIds": [],
+    "aspectRatio": "9:16",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

@@ -1,0 +1,331 @@
+{
+  "schemaVersion": 1,
+  "name": "Mars Greenhouse",
+  "description": "An astronaut finds the first tomato ripening in a greenhouse on Mars.",
+  "tags": [
+    "film",
+    "science-fiction"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "mars-greenhouse-screenplay",
+      "title": "Mars Greenhouse",
+      "brief": "An astronaut finds the first tomato ripening in a greenhouse on Mars. Strong colour story (red, green, white) and one emotional beat.",
+      "style_bible": "Grounded sci-fi feature film, anamorphic look, subtle lens flares. Warm magenta-white grow lights inside, pale butterscotch sky outside.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "mars-greenhouse-shot-1",
+          "index": 0,
+          "slug": "complex on the dunes",
+          "action": "A huge greenhouse complex of seven linked translucent domes and long glass tunnels glowing across red dunes under a pale sky, a tiny rover parked beside it for scale.",
+          "camera": {
+            "framing": "extreme wide shot",
+            "movement": "slow push in"
+          },
+          "motion": "push-in",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mars-greenhouse/complex-on-the-dunes.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/mars-greenhouse/complex-on-the-dunes.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "mars-greenhouse-shot-2",
+          "index": 1,
+          "slug": "inside the great dome",
+          "action": "Wide view inside the largest dome: terraced hydroponic rows stretching far into the distance under a high curved ceiling, the astronaut a small figure in the central aisle, helmet on.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "steadicam follow from behind"
+          },
+          "motion": "track",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mars-greenhouse/inside-the-great-dome.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/mars-greenhouse/inside-the-great-dome.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "mars-greenhouse-shot-3",
+          "index": 2,
+          "slug": "first tomato",
+          "action": "A single ripe red tomato hanging among green leaves.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "rack focus from leaves to fruit"
+          },
+          "motion": "rack-focus",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mars-greenhouse/first-tomato.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/mars-greenhouse/first-tomato.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "mars-greenhouse-shot-4",
+          "index": 3,
+          "slug": "cupped in hand",
+          "action": "Astronaut in her helmet cupping the tomato in her gloved hand, a quiet smile visible through the visor, warm light on her face.",
+          "camera": {
+            "framing": "medium close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mars-greenhouse/cupped-in-hand.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/mars-greenhouse/cupped-in-hand.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "mars-greenhouse-shot-5",
+          "index": 4,
+          "slug": "storm over the complex",
+          "action": "The whole greenhouse complex seen from high above, its seven glowing domes and tunnels small against the dunes, a vast dust storm rolling in on the horizon.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "crane up and back"
+          },
+          "motion": "crane-up",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mars-greenhouse/storm-over-the-complex.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/mars-greenhouse/storm-over-the-complex.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "mars-greenhouse-shot-1",
+        "index": 0,
+        "slug": "complex on the dunes",
+        "action": "A huge greenhouse complex of seven linked translucent domes and long glass tunnels glowing across red dunes under a pale sky, a tiny rover parked beside it for scale.",
+        "camera": {
+          "framing": "extreme wide shot",
+          "movement": "slow push in"
+        },
+        "motion": "push-in",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/mars-greenhouse/complex-on-the-dunes.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mars-greenhouse/complex-on-the-dunes.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "mars-greenhouse-shot-2",
+        "index": 1,
+        "slug": "inside the great dome",
+        "action": "Wide view inside the largest dome: terraced hydroponic rows stretching far into the distance under a high curved ceiling, the astronaut a small figure in the central aisle, helmet on.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "steadicam follow from behind"
+        },
+        "motion": "track",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/mars-greenhouse/inside-the-great-dome.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mars-greenhouse/inside-the-great-dome.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "mars-greenhouse-shot-3",
+        "index": 2,
+        "slug": "first tomato",
+        "action": "A single ripe red tomato hanging among green leaves.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "rack focus from leaves to fruit"
+        },
+        "motion": "rack-focus",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/mars-greenhouse/first-tomato.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mars-greenhouse/first-tomato.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "mars-greenhouse-shot-4",
+        "index": 3,
+        "slug": "cupped in hand",
+        "action": "Astronaut in her helmet cupping the tomato in her gloved hand, a quiet smile visible through the visor, warm light on her face.",
+        "camera": {
+          "framing": "medium close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/mars-greenhouse/cupped-in-hand.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mars-greenhouse/cupped-in-hand.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "mars-greenhouse-shot-5",
+        "index": 4,
+        "slug": "storm over the complex",
+        "action": "The whole greenhouse complex seen from high above, its seven glowing domes and tunnels small against the dunes, a vast dust storm rolling in on the horizon.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "crane up and back"
+        },
+        "motion": "crane-up",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/mars-greenhouse/storm-over-the-complex.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mars-greenhouse/storm-over-the-complex.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "An astronaut finds the first tomato ripening in a greenhouse on Mars. Strong colour story (red, green, white) and one emotional beat.",
+    "style": "Grounded sci-fi feature film, anamorphic look, subtle lens flares. Warm magenta-white grow lights inside, pale butterscotch sky outside.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

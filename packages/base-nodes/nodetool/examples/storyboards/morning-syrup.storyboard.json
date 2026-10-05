@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "name": "Morning Syrup",
+  "description": "A pancake ad built on one perfect pour of maple syrup.",
+  "tags": [
+    "advertising",
+    "food",
+    "vertical"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "morning-syrup-screenplay",
+      "title": "Morning Syrup",
+      "brief": "A pancake ad built on one perfect pour of maple syrup. Viscous pouring and pooling is one of Seedance's strongest effects. No packaging or branding in frame.",
+      "style_bible": "Premium food commercial, macro photography, shallow depth of field. Warm golden morning window light from frame left, amber highlights, warm grade in every shot.",
+      "aspect_ratio": "9:16",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "morning-syrup-shot-1",
+          "index": 0,
+          "slug": "the stack",
+          "action": "The pancake stack centred, butter pat on top, steam wisps, warm window light raking from the left.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "slow push in"
+          },
+          "motion": "push-in",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/morning-syrup/the-stack.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/morning-syrup/the-stack.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "morning-syrup-shot-2",
+          "index": 1,
+          "slug": "syrup on butter",
+          "action": "A thick amber ribbon of syrup falling from the top of frame onto the butter pat.",
+          "camera": {
+            "framing": "extreme close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/morning-syrup/syrup-on-butter.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/morning-syrup/syrup-on-butter.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "morning-syrup-shot-3",
+          "index": 2,
+          "slug": "the pool",
+          "action": "Syrup running down the stack's edges, pooling on the plate in a glossy ring.",
+          "camera": {
+            "framing": "medium close-up",
+            "movement": "orbit 90 degrees right"
+          },
+          "motion": "orbit",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/morning-syrup/the-pool.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/morning-syrup/the-pool.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "morning-syrup-shot-4",
+          "index": 3,
+          "slug": "fork lift",
+          "action": "A silver fork presses down through the edge of the pancake stack, the cut face showing fluffy layers as syrup runs into the cut.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/morning-syrup/fork-lift.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/morning-syrup/fork-lift.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "morning-syrup-shot-1",
+        "index": 0,
+        "slug": "the stack",
+        "action": "The pancake stack centred, butter pat on top, steam wisps, warm window light raking from the left.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "slow push in"
+        },
+        "motion": "push-in",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/morning-syrup/the-stack.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/morning-syrup/the-stack.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "morning-syrup-shot-2",
+        "index": 1,
+        "slug": "syrup on butter",
+        "action": "A thick amber ribbon of syrup falling from the top of frame onto the butter pat.",
+        "camera": {
+          "framing": "extreme close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/morning-syrup/syrup-on-butter.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/morning-syrup/syrup-on-butter.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "morning-syrup-shot-3",
+        "index": 2,
+        "slug": "the pool",
+        "action": "Syrup running down the stack's edges, pooling on the plate in a glossy ring.",
+        "camera": {
+          "framing": "medium close-up",
+          "movement": "orbit 90 degrees right"
+        },
+        "motion": "orbit",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/morning-syrup/the-pool.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/morning-syrup/the-pool.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "morning-syrup-shot-4",
+        "index": 3,
+        "slug": "fork lift",
+        "action": "A silver fork presses down through the edge of the pancake stack, the cut face showing fluffy layers as syrup runs into the cut.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/morning-syrup/fork-lift.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/morning-syrup/fork-lift.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A pancake ad built on one perfect pour of maple syrup. Viscous pouring and pooling is one of Seedance's strongest effects. No packaging or branding in frame.",
+    "style": "Premium food commercial, macro photography, shallow depth of field. Warm golden morning window light from frame left, amber highlights, warm grade in every shot.",
+    "entityIds": [],
+    "aspectRatio": "9:16",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

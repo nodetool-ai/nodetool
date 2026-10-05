@@ -1,0 +1,273 @@
+{
+  "schemaVersion": 1,
+  "name": "Silent Arrival",
+  "description": "An electric car crosses a desert at dawn with almost no sound at all.",
+  "tags": [
+    "advertising",
+    "automotive",
+    "electric",
+    "cinematic"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "silent-arrival-screenplay",
+      "title": "Silent Arrival",
+      "brief": "An electric car ad about silence. A sleek car crosses a desert road at dawn and the film lets the quiet do the selling: sand barely stirs, a bird is louder than the engine.",
+      "style_bible": "Cinematic car commercial, anamorphic lens flares, golden-hour backlight with a long soft haze. Warm orange sand against a cool teal sky, slow confident camera moves.",
+      "aspect_ratio": "21:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "silent-arrival-shot-1",
+          "index": 0,
+          "slug": "empty-road",
+          "action": "A long straight desert road at first light, heat haze rising, the white car a tiny shape far down the asphalt.",
+          "camera": {
+            "framing": "extreme wide shot",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silent-arrival/empty-road.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/silent-arrival/empty-road.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "silent-arrival-shot-2",
+          "index": 1,
+          "slug": "low-pass",
+          "action": "The car glides past very close to the camera at road level, sand lifting in a thin line behind it.",
+          "camera": {
+            "framing": "low-angle wide shot",
+            "movement": "static, car passes through frame"
+          },
+          "motion": "track",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silent-arrival/low-pass.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/silent-arrival/low-pass.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "silent-arrival-shot-3",
+          "index": 2,
+          "slug": "calm-driver",
+          "action": "Through the side window the driver rests one hand on the wheel, golden light sliding across his face.",
+          "camera": {
+            "framing": "medium close-up",
+            "movement": "tracking alongside the window"
+          },
+          "motion": "track",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silent-arrival/calm-driver.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/silent-arrival/calm-driver.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "silent-arrival-shot-4",
+          "index": 3,
+          "slug": "dawn-flare",
+          "action": "The car crests a rise into the rising sun, a long anamorphic flare stretching across the frame.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "slow crane up over the road"
+          },
+          "motion": "crane-up",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silent-arrival/dawn-flare.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/silent-arrival/dawn-flare.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "silent-arrival-shot-1",
+        "index": 0,
+        "slug": "empty-road",
+        "action": "A long straight desert road at first light, heat haze rising, the white car a tiny shape far down the asphalt.",
+        "camera": {
+          "framing": "extreme wide shot",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/silent-arrival/empty-road.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silent-arrival/empty-road.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "silent-arrival-shot-2",
+        "index": 1,
+        "slug": "low-pass",
+        "action": "The car glides past very close to the camera at road level, sand lifting in a thin line behind it.",
+        "camera": {
+          "framing": "low-angle wide shot",
+          "movement": "static, car passes through frame"
+        },
+        "motion": "track",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/silent-arrival/low-pass.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silent-arrival/low-pass.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "silent-arrival-shot-3",
+        "index": 2,
+        "slug": "calm-driver",
+        "action": "Through the side window the driver rests one hand on the wheel, golden light sliding across his face.",
+        "camera": {
+          "framing": "medium close-up",
+          "movement": "tracking alongside the window"
+        },
+        "motion": "track",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/silent-arrival/calm-driver.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silent-arrival/calm-driver.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "silent-arrival-shot-4",
+        "index": 3,
+        "slug": "dawn-flare",
+        "action": "The car crests a rise into the rising sun, a long anamorphic flare stretching across the frame.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "slow crane up over the road"
+        },
+        "motion": "crane-up",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/silent-arrival/dawn-flare.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silent-arrival/dawn-flare.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "An electric car ad about silence. A sleek car crosses a desert road at dawn and the film lets the quiet do the selling: sand barely stirs, a bird is louder than the engine.",
+    "style": "Cinematic car commercial, anamorphic lens flares, golden-hour backlight with a long soft haze. Warm orange sand against a cool teal sky, slow confident camera moves.",
+    "entityIds": [],
+    "aspectRatio": "21:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

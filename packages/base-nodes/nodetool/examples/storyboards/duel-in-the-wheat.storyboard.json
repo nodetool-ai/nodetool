@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "name": "Duel in the Wheat",
+  "description": "Two swordsmen face off in a windblown wheat field. One strike.",
+  "tags": [
+    "film",
+    "action",
+    "samurai"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "duel-in-the-wheat-screenplay",
+      "title": "Duel in the Wheat",
+      "brief": "Two swordsmen face off in a windblown wheat field. One strike. Classic face-off structure keeps the two fighters in separate shots until one beat of contact, which Seedance handles better than sustained fighting.",
+      "style_bible": "Epic samurai cinema, golden hour, wind-swept, painterly realism. Low golden sun from behind the ronin, long shadows, warm haze.",
+      "aspect_ratio": "21:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "duel-in-the-wheat-shot-1",
+          "index": 0,
+          "slug": "two in the wheat",
+          "action": "Two small figures far apart in the wheat, the ronin on the left, the duelist on the right, the tree between them on the horizon.",
+          "camera": {
+            "framing": "extreme wide shot",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/two-in-the-wheat.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/two-in-the-wheat.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "duel-in-the-wheat-shot-2",
+          "index": 1,
+          "slug": "the ronin",
+          "action": "The ronin alone in a medium close-up, scar over his left eye, hair stirring in the wind, facing right toward his unseen opponent, one hand resting on the hilt of his sheathed katana. Nobody else is in the frame.",
+          "camera": {
+            "framing": "medium close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/the-ronin.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/the-ronin.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "duel-in-the-wheat-shot-3",
+          "index": 2,
+          "slug": "one strike",
+          "action": "Both men sprint toward each other through the wheat with drawn katanas, the ronin in indigo from the left and the duelist in crimson from the right. They meet in the middle and trade a fast exchange of blows, three clean steel-on-steel clashes with sparks, the duelist driving the ronin back a step, the ronin turning the blade aside. Then they pass each other in one final slash and run out of contact.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "fast lateral track that keeps both men in frame"
+          },
+          "motion": "track",
+          "duration_seconds": 6,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/one-strike.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/one-strike.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "duel-in-the-wheat-shot-4",
+          "index": 3,
+          "slug": "the fall",
+          "action": "After the crossing, the duelist in crimson on the left sinks to one knee, head bowed, his sword hanging from his hand, while the ronin in indigo on the right stands with his back to him, sword lowered, seen from the same camera side as the first shot. They are far apart; wheat settling.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/the-fall.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/the-fall.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "duel-in-the-wheat-shot-1",
+        "index": 0,
+        "slug": "two in the wheat",
+        "action": "Two small figures far apart in the wheat, the ronin on the left, the duelist on the right, the tree between them on the horizon.",
+        "camera": {
+          "framing": "extreme wide shot",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/two-in-the-wheat.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/two-in-the-wheat.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "duel-in-the-wheat-shot-2",
+        "index": 1,
+        "slug": "the ronin",
+        "action": "The ronin alone in a medium close-up, scar over his left eye, hair stirring in the wind, facing right toward his unseen opponent, one hand resting on the hilt of his sheathed katana. Nobody else is in the frame.",
+        "camera": {
+          "framing": "medium close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/the-ronin.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/the-ronin.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "duel-in-the-wheat-shot-3",
+        "index": 2,
+        "slug": "one strike",
+        "action": "Both men sprint toward each other through the wheat with drawn katanas, the ronin in indigo from the left and the duelist in crimson from the right. They meet in the middle and trade a fast exchange of blows, three clean steel-on-steel clashes with sparks, the duelist driving the ronin back a step, the ronin turning the blade aside. Then they pass each other in one final slash and run out of contact.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "fast lateral track that keeps both men in frame"
+        },
+        "motion": "track",
+        "duration_seconds": 6,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/one-strike.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/one-strike.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "duel-in-the-wheat-shot-4",
+        "index": 3,
+        "slug": "the fall",
+        "action": "After the crossing, the duelist in crimson on the left sinks to one knee, head bowed, his sword hanging from his hand, while the ronin in indigo on the right stands with his back to him, sword lowered, seen from the same camera side as the first shot. They are far apart; wheat settling.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/the-fall.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/duel-in-the-wheat/the-fall.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "Two swordsmen face off in a windblown wheat field. One strike. Classic face-off structure keeps the two fighters in separate shots until one beat of contact, which Seedance handles better than sustained fighting.",
+    "style": "Epic samurai cinema, golden hour, wind-swept, painterly realism. Low golden sun from behind the ronin, long shadows, warm haze.",
+    "entityIds": [],
+    "aspectRatio": "21:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

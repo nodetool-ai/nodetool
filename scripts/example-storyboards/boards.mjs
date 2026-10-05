@@ -19,10 +19,12 @@
 //
 // `motion` is the director's camera move for a clip rendered after install.
 
+import { SEEDANCE_STORYBOARDS } from "./seedance-boards.mjs";
+
 const NIGHT = "#050a12";
 const INK = "#070d16";
 
-export const EXAMPLE_STORYBOARDS = [
+const CURATED_STORYBOARDS = [
   {
     slug: "lighthouse-keeper",
     name: "Lighthouse Keeper — Opening",
@@ -307,3 +309,7 @@ export const EXAMPLE_STORYBOARDS = [
     ]
   }
 ];
+
+/** The curated boards plus the Seedance boards, whose stills are generated. */
+export const EXAMPLE_STORYBOARDS = [...CURATED_STORYBOARDS, ...SEEDANCE_STORYBOARDS];
+export { CURATED_STORYBOARDS };

@@ -1,0 +1,332 @@
+{
+  "schemaVersion": 1,
+  "name": "Fox in Snow",
+  "description": "A red fox hears a mouse beneath the snow and dives head first.",
+  "tags": [
+    "nature",
+    "wildlife",
+    "documentary"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "fox-in-snow-screenplay",
+      "title": "Fox in Snow",
+      "brief": "A red fox hears a mouse beneath the snow and dives head first. Single animal and one clear motion per shot. The empty snowfield gives Seedance nothing to confuse.",
+      "style_bible": "Wildlife documentary, telephoto lens, crisp winter light. Low pink-gold sunrise, long blue shadows on the snow.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "fox-in-snow-shot-1",
+          "index": 0,
+          "slug": "trot across the snow",
+          "action": "The fox trotting left to right across the snowfield, breath visible.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "static, telephoto"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/fox-in-snow/trot-across-the-snow.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/fox-in-snow/trot-across-the-snow.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "fox-in-snow-shot-2",
+          "index": 1,
+          "slug": "listening",
+          "action": "Fox frozen mid-step, ears swivelled forward, head tilted toward the snow.",
+          "camera": {
+            "framing": "medium close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/fox-in-snow/listening.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/fox-in-snow/listening.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "fox-in-snow-shot-3",
+          "index": 2,
+          "slug": "the leap",
+          "action": "Fox mid-air in a high arc, front paws tucked, nose pointed down.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "tracking the leap"
+          },
+          "motion": "track",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/fox-in-snow/the-leap.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/fox-in-snow/the-leap.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "fox-in-snow-shot-4",
+          "index": 3,
+          "slug": "nose dive",
+          "action": "Fox buried head first in the snow, only the hind legs and tail sticking out.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/fox-in-snow/nose-dive.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/fox-in-snow/nose-dive.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "fox-in-snow-shot-5",
+          "index": 4,
+          "slug": "shake off",
+          "action": "Fox's head popping up, face dusted with snow.",
+          "camera": {
+            "framing": "medium close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/fox-in-snow/shake-off.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/fox-in-snow/shake-off.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "fox-in-snow-shot-1",
+        "index": 0,
+        "slug": "trot across the snow",
+        "action": "The fox trotting left to right across the snowfield, breath visible.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "static, telephoto"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/fox-in-snow/trot-across-the-snow.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/fox-in-snow/trot-across-the-snow.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "fox-in-snow-shot-2",
+        "index": 1,
+        "slug": "listening",
+        "action": "Fox frozen mid-step, ears swivelled forward, head tilted toward the snow.",
+        "camera": {
+          "framing": "medium close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/fox-in-snow/listening.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/fox-in-snow/listening.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "fox-in-snow-shot-3",
+        "index": 2,
+        "slug": "the leap",
+        "action": "Fox mid-air in a high arc, front paws tucked, nose pointed down.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "tracking the leap"
+        },
+        "motion": "track",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/fox-in-snow/the-leap.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/fox-in-snow/the-leap.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "fox-in-snow-shot-4",
+        "index": 3,
+        "slug": "nose dive",
+        "action": "Fox buried head first in the snow, only the hind legs and tail sticking out.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/fox-in-snow/nose-dive.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/fox-in-snow/nose-dive.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "fox-in-snow-shot-5",
+        "index": 4,
+        "slug": "shake off",
+        "action": "Fox's head popping up, face dusted with snow.",
+        "camera": {
+          "framing": "medium close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/fox-in-snow/shake-off.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/fox-in-snow/shake-off.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A red fox hears a mouse beneath the snow and dives head first. Single animal and one clear motion per shot. The empty snowfield gives Seedance nothing to confuse.",
+    "style": "Wildlife documentary, telephoto lens, crisp winter light. Low pink-gold sunrise, long blue shadows on the snow.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

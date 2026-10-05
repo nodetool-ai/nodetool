@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "name": "The Diver and the Whale",
+  "description": "A free diver hangs in open blue water as a humpback glides close enough to touch.",
+  "tags": [
+    "nature",
+    "underwater",
+    "documentary"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "diver-and-the-whale-screenplay",
+      "title": "The Diver and the Whale",
+      "brief": "A free diver hangs in open blue water as a humpback glides close enough to touch. Slow motion reads natural underwater, so the 4-second shots never feel stalled. Keep the whale's scale huge in every shot.",
+      "style_bible": "Photoreal underwater documentary, natural light, gentle film grain. Cool blue water but warm golden rays from above; soft caustics on skin.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "diver-and-the-whale-shot-1",
+          "index": 0,
+          "slug": "diver in the blue",
+          "action": "Tiny figure of the diver suspended in endless blue, sun rays fanning down from the top of frame.",
+          "camera": {
+            "framing": "extreme wide shot",
+            "movement": "static, slight drift"
+          },
+          "motion": "hold",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/diver-and-the-whale/diver-in-the-blue.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/diver-and-the-whale/diver-in-the-blue.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "diver-and-the-whale-shot-2",
+          "index": 1,
+          "slug": "shadow below",
+          "action": "Diver in profile, hair drifting, head turned down; a vast dark shape fills the lower third below her.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "slow orbit left"
+          },
+          "motion": "orbit",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/diver-and-the-whale/shadow-below.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/diver-and-the-whale/shadow-below.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "diver-and-the-whale-shot-3",
+          "index": 2,
+          "slug": "whale passes",
+          "action": "Humpback passes left to right across frame, its eye level with the diver, who is small at frame right.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "track alongside the whale"
+          },
+          "motion": "track",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/diver-and-the-whale/whale-passes.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/diver-and-the-whale/whale-passes.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "diver-and-the-whale-shot-4",
+          "index": 3,
+          "slug": "almost touching",
+          "action": "Diver's open hand in the foreground, inches from the whale's ridged grey skin; bubbles drift up.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/diver-and-the-whale/almost-touching.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/diver-and-the-whale/almost-touching.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "diver-and-the-whale-shot-1",
+        "index": 0,
+        "slug": "diver in the blue",
+        "action": "Tiny figure of the diver suspended in endless blue, sun rays fanning down from the top of frame.",
+        "camera": {
+          "framing": "extreme wide shot",
+          "movement": "static, slight drift"
+        },
+        "motion": "hold",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/diver-and-the-whale/diver-in-the-blue.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/diver-and-the-whale/diver-in-the-blue.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "diver-and-the-whale-shot-2",
+        "index": 1,
+        "slug": "shadow below",
+        "action": "Diver in profile, hair drifting, head turned down; a vast dark shape fills the lower third below her.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "slow orbit left"
+        },
+        "motion": "orbit",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/diver-and-the-whale/shadow-below.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/diver-and-the-whale/shadow-below.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "diver-and-the-whale-shot-3",
+        "index": 2,
+        "slug": "whale passes",
+        "action": "Humpback passes left to right across frame, its eye level with the diver, who is small at frame right.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "track alongside the whale"
+        },
+        "motion": "track",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/diver-and-the-whale/whale-passes.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/diver-and-the-whale/whale-passes.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "diver-and-the-whale-shot-4",
+        "index": 3,
+        "slug": "almost touching",
+        "action": "Diver's open hand in the foreground, inches from the whale's ridged grey skin; bubbles drift up.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/diver-and-the-whale/almost-touching.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/diver-and-the-whale/almost-touching.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A free diver hangs in open blue water as a humpback glides close enough to touch. Slow motion reads natural underwater, so the 4-second shots never feel stalled. Keep the whale's scale huge in every shot.",
+    "style": "Photoreal underwater documentary, natural light, gentle film grain. Cool blue water but warm golden rays from above; soft caustics on skin.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

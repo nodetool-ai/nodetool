@@ -1,0 +1,331 @@
+{
+  "schemaVersion": 1,
+  "name": "Rooftop Run",
+  "description": "A parkour runner crosses three rooftops at golden hour.",
+  "tags": [
+    "action",
+    "parkour"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "rooftop-run-screenplay",
+      "title": "Rooftop Run",
+      "brief": "A parkour runner crosses three rooftops at golden hour. One runner and one clear direction; every shot has a single verb.",
+      "style_bible": "Action film, golden hour, handheld energy, warm haze. Low golden sun, warm orange, long shadows.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "rooftop-run-shot-1",
+          "index": 0,
+          "slug": "across the roof",
+          "action": "Runner sprinting across a flat rooftop toward the edge.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "drone follow from behind"
+          },
+          "motion": "track",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/rooftop-run/across-the-roof.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/rooftop-run/across-the-roof.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "rooftop-run-shot-2",
+          "index": 1,
+          "slug": "the vault",
+          "action": "Runner vaulting over a metal AC unit.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "tracking side"
+          },
+          "motion": "track",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/rooftop-run/the-vault.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/rooftop-run/the-vault.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "rooftop-run-shot-3",
+          "index": 2,
+          "slug": "the gap",
+          "action": "Runner mid-air leaping a gap between two buildings, street far below.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "static side, wide"
+          },
+          "motion": "hold",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/rooftop-run/the-gap.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/rooftop-run/the-gap.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "rooftop-run-shot-4",
+          "index": 3,
+          "slug": "the roll",
+          "action": "Runner rolling on landing.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 2,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/rooftop-run/the-roll.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/rooftop-run/the-roll.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "rooftop-run-shot-5",
+          "index": 4,
+          "slug": "at the edge",
+          "action": "Runner standing at the roof edge, silhouetted against the sun.",
+          "camera": {
+            "framing": "extreme wide shot",
+            "movement": "drone pull back"
+          },
+          "motion": "pull-back",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/rooftop-run/at-the-edge.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/rooftop-run/at-the-edge.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "rooftop-run-shot-1",
+        "index": 0,
+        "slug": "across the roof",
+        "action": "Runner sprinting across a flat rooftop toward the edge.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "drone follow from behind"
+        },
+        "motion": "track",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/rooftop-run/across-the-roof.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/rooftop-run/across-the-roof.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "rooftop-run-shot-2",
+        "index": 1,
+        "slug": "the vault",
+        "action": "Runner vaulting over a metal AC unit.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "tracking side"
+        },
+        "motion": "track",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/rooftop-run/the-vault.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/rooftop-run/the-vault.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "rooftop-run-shot-3",
+        "index": 2,
+        "slug": "the gap",
+        "action": "Runner mid-air leaping a gap between two buildings, street far below.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "static side, wide"
+        },
+        "motion": "hold",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/rooftop-run/the-gap.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/rooftop-run/the-gap.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "rooftop-run-shot-4",
+        "index": 3,
+        "slug": "the roll",
+        "action": "Runner rolling on landing.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 2,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/rooftop-run/the-roll.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/rooftop-run/the-roll.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "rooftop-run-shot-5",
+        "index": 4,
+        "slug": "at the edge",
+        "action": "Runner standing at the roof edge, silhouetted against the sun.",
+        "camera": {
+          "framing": "extreme wide shot",
+          "movement": "drone pull back"
+        },
+        "motion": "pull-back",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/rooftop-run/at-the-edge.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/rooftop-run/at-the-edge.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A parkour runner crosses three rooftops at golden hour. One runner and one clear direction; every shot has a single verb.",
+    "style": "Action film, golden hour, handheld energy, warm haze. Low golden sun, warm orange, long shadows.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

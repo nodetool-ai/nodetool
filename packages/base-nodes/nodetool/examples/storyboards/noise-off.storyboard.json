@@ -1,0 +1,273 @@
+{
+  "schemaVersion": 1,
+  "name": "Noise Off",
+  "description": "A rush-hour train goes silent the moment the headphones go on.",
+  "tags": [
+    "advertising",
+    "tech",
+    "audio",
+    "lifestyle"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "noise-off-screenplay",
+      "title": "Noise Off",
+      "brief": "A headphone ad about quiet. A packed morning train is loud and chaotic until she puts the headphones on, and the whole world drops into slow, silent calm.",
+      "style_bible": "Lifestyle tech commercial, shallow depth of field, cool blue train interior with warm window light. Chaotic handheld energy that resolves into smooth still frames.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "noise-off-shot-1",
+          "index": 0,
+          "slug": "rush-hour-chaos",
+          "action": "A packed train in motion, commuters jostling, hands gripping poles, flashes of motion blur. The commuter wears no headphones yet and has bare ears.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "shaky handheld"
+          },
+          "motion": "handheld",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/noise-off/rush-hour-chaos.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/noise-off/rush-hour-chaos.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "noise-off-shot-2",
+          "index": 1,
+          "slug": "headphones-on",
+          "action": "The commuter lifts one pair of matte black over-ear headphones from her bag and lowers them over her ears. Exactly one pair of headphones is in frame.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "slow push in"
+          },
+          "motion": "push-in",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/noise-off/headphones-on.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/noise-off/headphones-on.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "noise-off-shot-3",
+          "index": 2,
+          "slug": "silence-falls",
+          "action": "The carriage freezes into slow motion around her: commuters drift in soft focus, light motes float, her face is calm.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "smooth slow orbit around her"
+          },
+          "motion": "orbit",
+          "duration_seconds": 5,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/noise-off/silence-falls.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/noise-off/silence-falls.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "noise-off-shot-4",
+          "index": 3,
+          "slug": "window-smile",
+          "action": "She leans her head against the window as golden city light slides over her face and she smiles faintly.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/noise-off/window-smile.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/noise-off/window-smile.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "noise-off-shot-1",
+        "index": 0,
+        "slug": "rush-hour-chaos",
+        "action": "A packed train in motion, commuters jostling, hands gripping poles, flashes of motion blur. The commuter wears no headphones yet and has bare ears.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "shaky handheld"
+        },
+        "motion": "handheld",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/noise-off/rush-hour-chaos.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/noise-off/rush-hour-chaos.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "noise-off-shot-2",
+        "index": 1,
+        "slug": "headphones-on",
+        "action": "The commuter lifts one pair of matte black over-ear headphones from her bag and lowers them over her ears. Exactly one pair of headphones is in frame.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "slow push in"
+        },
+        "motion": "push-in",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/noise-off/headphones-on.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/noise-off/headphones-on.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "noise-off-shot-3",
+        "index": 2,
+        "slug": "silence-falls",
+        "action": "The carriage freezes into slow motion around her: commuters drift in soft focus, light motes float, her face is calm.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "smooth slow orbit around her"
+        },
+        "motion": "orbit",
+        "duration_seconds": 5,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/noise-off/silence-falls.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/noise-off/silence-falls.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "noise-off-shot-4",
+        "index": 3,
+        "slug": "window-smile",
+        "action": "She leans her head against the window as golden city light slides over her face and she smiles faintly.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/noise-off/window-smile.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/noise-off/window-smile.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A headphone ad about quiet. A packed morning train is loud and chaotic until she puts the headphones on, and the whole world drops into slow, silent calm.",
+    "style": "Lifestyle tech commercial, shallow depth of field, cool blue train interior with warm window light. Chaotic handheld energy that resolves into smooth still frames.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

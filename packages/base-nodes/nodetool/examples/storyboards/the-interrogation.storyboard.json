@@ -1,0 +1,332 @@
+{
+  "schemaVersion": 1,
+  "name": "The Interrogation",
+  "description": "Two people, one table, one lie exposed in two lines of dialogue.",
+  "tags": [
+    "film",
+    "dialogue",
+    "noir"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "the-interrogation-screenplay",
+      "title": "The Interrogation",
+      "brief": "Two people, one table, one lie exposed in two lines of dialogue. A lip-sync test: two short quoted lines, one speaker each. A surveillance camera in the corner of the room stands in for any evidence, so no image or text needs rendering.",
+      "style_bible": "Neo-noir crime drama, 35mm film look, deep shadows. Single warm overhead lamp, hard top light, falloff to black at the edges.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "the-interrogation-shot-1",
+          "index": 0,
+          "slug": "the room",
+          "action": "Symmetrical wide: detective on the left, suspect on the right, lamp hanging over the table between them.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "static, centred"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-interrogation/the-room.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/the-interrogation/the-room.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "the-interrogation-shot-2",
+          "index": 1,
+          "slug": "home at nine",
+          "action": "Detective in close-up, calm, eyes fixed on the suspect.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-interrogation/home-at-nine.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/the-interrogation/home-at-nine.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "the-interrogation-shot-3",
+          "index": 2,
+          "slug": "i was",
+          "action": "Suspect alone in close-up, eyes down at the table. The detective is not in the shot.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "slow push in"
+          },
+          "motion": "push-in",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-interrogation/i-was.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/the-interrogation/i-was.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "the-interrogation-shot-4",
+          "index": 3,
+          "slug": "surveillance cam",
+          "action": "A black security camera mounted high in the corner of the concrete interrogation room, a small red recording light glowing on it, aimed down at the table. The edge of the lamp glow is visible below it. Nobody else is in the shot.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "slow push in on the camera, low angle"
+          },
+          "motion": "push-in",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-interrogation/surveillance-cam.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/the-interrogation/surveillance-cam.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "the-interrogation-shot-5",
+          "index": 4,
+          "slug": "the look up",
+          "action": "Suspect seated at the table, his face lifting, eyes widening, a drop of sweat at his temple, the metal table and lamp in the frame.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "quick push in"
+          },
+          "motion": "push-in",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-interrogation/the-look-up.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/the-interrogation/the-look-up.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "the-interrogation-shot-1",
+        "index": 0,
+        "slug": "the room",
+        "action": "Symmetrical wide: detective on the left, suspect on the right, lamp hanging over the table between them.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "static, centred"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/the-interrogation/the-room.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-interrogation/the-room.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "the-interrogation-shot-2",
+        "index": 1,
+        "slug": "home at nine",
+        "action": "Detective in close-up, calm, eyes fixed on the suspect.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/the-interrogation/home-at-nine.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-interrogation/home-at-nine.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "the-interrogation-shot-3",
+        "index": 2,
+        "slug": "i was",
+        "action": "Suspect alone in close-up, eyes down at the table. The detective is not in the shot.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "slow push in"
+        },
+        "motion": "push-in",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/the-interrogation/i-was.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-interrogation/i-was.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "the-interrogation-shot-4",
+        "index": 3,
+        "slug": "surveillance cam",
+        "action": "A black security camera mounted high in the corner of the concrete interrogation room, a small red recording light glowing on it, aimed down at the table. The edge of the lamp glow is visible below it. Nobody else is in the shot.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "slow push in on the camera, low angle"
+        },
+        "motion": "push-in",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/the-interrogation/surveillance-cam.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-interrogation/surveillance-cam.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "the-interrogation-shot-5",
+        "index": 4,
+        "slug": "the look up",
+        "action": "Suspect seated at the table, his face lifting, eyes widening, a drop of sweat at his temple, the metal table and lamp in the frame.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "quick push in"
+        },
+        "motion": "push-in",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/the-interrogation/the-look-up.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-interrogation/the-look-up.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "Two people, one table, one lie exposed in two lines of dialogue. A lip-sync test: two short quoted lines, one speaker each. A surveillance camera in the corner of the room stands in for any evidence, so no image or text needs rendering.",
+    "style": "Neo-noir crime drama, 35mm film look, deep shadows. Single warm overhead lamp, hard top light, falloff to black at the edges.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}
