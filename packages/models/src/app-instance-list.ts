@@ -1,16 +1,13 @@
 import { and, desc, eq, lt, or } from "drizzle-orm";
 import { z } from "zod";
-import { appInstanceResponse } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
+import { appInstanceMetadataResponse } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
 import { getDatabase } from "./db.js";
 import {
   AppRunError,
   resolveAppInstanceApplicationId
 } from "./app-instance.js";
 
-const metadataSchema = appInstanceResponse.omit({
-  snapshot: true,
-  variables: true
-});
+const metadataSchema = appInstanceMetadataResponse;
 const cursorSchema = z.object({
   updated_at: z.string().datetime(),
   id: z.string().regex(/^[0-9a-f]{32}$/)

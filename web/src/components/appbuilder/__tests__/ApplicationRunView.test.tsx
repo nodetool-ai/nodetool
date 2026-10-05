@@ -150,7 +150,7 @@ describe("ApplicationRunView", () => {
     renderView();
 
     expect(await screen.findByTestId("title")).toHaveTextContent("Released");
-    expect(screen.getByText(/Running released version 3/)).toBeInTheDocument();
+    expect(screen.queryByText(/Running released version 3/)).not.toBeInTheDocument();
     // The pinned graph is used, so the live workflow is never fetched.
     expect(fetchWorkflow).not.toHaveBeenCalled();
   });

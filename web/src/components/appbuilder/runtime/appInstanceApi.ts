@@ -1,6 +1,8 @@
 import { z } from "zod";
 import {
   appInstanceResponse,
+  appInstanceMetadataResponse,
+  listInstanceMetadataResponse,
   appRunResponse
 } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
 import { restFetch } from "../../../lib/rest-fetch";
@@ -9,11 +11,8 @@ const instanceSchema = appInstanceResponse;
 
 export type ServerAppInstance = z.infer<typeof instanceSchema>;
 
-const metadataSchema = instanceSchema.omit({ snapshot: true, variables: true });
-const metadataListSchema = z.object({
-  instances: z.array(metadataSchema),
-  next_cursor: z.string().nullable()
-});
+const metadataSchema = appInstanceMetadataResponse;
+const metadataListSchema = listInstanceMetadataResponse;
 export type ServerAppInstanceMetadata = z.infer<typeof metadataSchema>;
 export type AppInstanceMetadataPage = z.infer<typeof metadataListSchema>;
 export interface AppInstanceListOptions {

@@ -8,8 +8,12 @@ import {
 } from "react";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CloseIcon from "@mui/icons-material/Close";
-import type { AppDocument } from "../appbuilder/appData";
+import {
+  parseApplicationDocument,
+  type AppDocument
+} from "../appbuilder/appData";
 
+import type { ServerAppInstance } from "../appbuilder/runtime/appInstanceApi";
 import ApplicationGovernancePanel from "../applications/ApplicationGovernancePanel";
 import ApplicationAppBuilder from "../appbuilder/ApplicationAppBuilder";
 import ApplicationRunView from "../appbuilder/ApplicationRunView";
@@ -40,6 +44,8 @@ import {
 
 interface ApplicationSurfaceProps {
   refId: string;
+  instanceId?: string;
+  selectedRunId?: string;
   mode?: WorkspaceTabMode;
 }
 
@@ -82,6 +88,8 @@ const overlayPanelSx = {
  */
 const ApplicationSurface = ({
   refId,
+  instanceId,
+  selectedRunId,
   mode = "view"
 }: ApplicationSurfaceProps) => {
   const {
@@ -153,26 +161,55 @@ const ApplicationSurface = ({
   // Background tabs stay mounted, so the linked graphs only load once this
   // app is the focused tab.
   const isActiveTab = useWorkspaceTabsStore(
-    (state) => state.activeTabId === tabId("application", refId)
+    (state) => state.activeTabId === tabId("application", refId, instanceId)
   );
   const setTabTitle = useWorkspaceTabsStore((state) => state.setTitle);
 
+  const [previewDocument, setPreviewDocument] = useState<AppDocument>();
+  const resolveInstance = useWorkspaceTabsStore(
+    (state) => state.resolveApplicationInstance
+  );
+  const selectRun = useWorkspaceTabsStore(
+    (state) => state.setApplicationRunSelection
+  );
+  const onInstanceReady = useCallback(
+    (instance: ServerAppInstance) => {
+      if (mode === "view") {
+        resolveInstance(refId, instance.id, instance.name);
+      }
+    },
+    [mode, refId, resolveInstance]
+  );
+  const onSelectRun = useCallback(
+    (id: string | null) => {
+      selectRun(tabId("application", refId, instanceId), id);
+    },
+    [refId, instanceId, selectRun]
+  );
   const handleViewChange = useCallback(
     (_event: MouseEvent<HTMLElement>, next: ApplicationView | null) => {
       if (!next) return;
+      if (next === "preview") {
+        const frozen = parseApplicationDocument(
+          draftDocument ?? application?.document
+        );
+        if (frozen) {
+          setPreviewDocument(structuredClone(frozen));
+        }
+      }
       setView(next);
       const mountedView = next === "preview" ? "run" : next;
       setOpened((views) =>
         views.includes(mountedView) ? views : [...views, mountedView]
       );
     },
-    []
+    [draftDocument, application?.document]
   );
 
   useEffect(() => {
-    if (!application) return;
+    if (!application || instanceId) return;
     setTabTitle(refId, "application", application.name || "Untitled app");
-  }, [application, refId, setTabTitle]);
+  }, [application, refId, instanceId, setTabTitle]);
 
   if (isLoading) {
     return <LoadingSpinner size="large" text="Loading app" />;
@@ -274,8 +311,14 @@ const ApplicationSurface = ({
             >
               <ApplicationRunView
                 applicationId={application.id}
+                instanceId={instanceId}
+                selectedRunId={selectedRunId}
+                onSelectRun={onSelectRun}
+                onInstanceReady={
+                  view === "preview" ? undefined : onInstanceReady
+                }
                 previewDraft={view === "preview"}
-                draftDocument={draftDocument}
+                draftDocument={previewDocument}
               />
             </Box>
           )}

@@ -810,13 +810,15 @@ export const createWorkflowRunnerStore = (
 const runnerStores = new Map<string, WorkflowRunnerStore>();
 
 export const getWorkflowRunnerStore = (
-  workflowId: string
+  workflowId: string,
+  instanceScope?: string
 ): WorkflowRunnerStore => {
-  let store = runnerStores.get(workflowId);
+  const key = instanceScope ? `${workflowId}:${instanceScope}` : workflowId;
+  let store = runnerStores.get(key);
 
   if (!store) {
     store = createWorkflowRunnerStore(workflowId);
-    runnerStores.set(workflowId, store);
+    runnerStores.set(key, store);
   }
 
   return store;

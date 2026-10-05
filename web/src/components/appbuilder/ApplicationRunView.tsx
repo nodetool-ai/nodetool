@@ -7,7 +7,7 @@
  * nothing about what runs here until the next publish. With nothing released
  * the draft runs instead, which is what makes an unpublished app testable.
  */
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Data } from "@puckeditor/core";
 
@@ -27,11 +27,16 @@ import {
   SPACING
 } from "../ui_primitives";
 import { parseApplicationDocument, type AppDocument } from "./appData";
+import type { ServerAppInstance } from "./runtime/appInstanceApi";
 import AppRuntimeView from "./AppRuntimeView";
 import ReportBugButton from "../support/ReportBugButton";
 
 interface ApplicationRunViewProps {
   applicationId: string;
+  instanceId?: string;
+  selectedRunId?: string | null;
+  onSelectRun?: (id: string | null) => void;
+  onInstanceReady?: (instance: ServerAppInstance) => void;
   /** Run the current draft for the owner without changing the released app. */
   previewDraft?: boolean;
   draftDocument?: AppDocument;
@@ -54,9 +59,14 @@ const pinnedWorkflow = (
 
 const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
   applicationId,
+  instanceId,
+  selectedRunId,
+  onSelectRun,
+  onInstanceReady,
   previewDraft = false,
   draftDocument
 }) => {
+  const [executionEpoch, setExecutionEpoch] = useState(0);
   const applicationQuery = useApplication(applicationId);
   const { data: application, isLoading } = applicationQuery;
   const releaseQuery = useReleasedApplicationDocument(applicationId);
@@ -187,18 +197,20 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
 
   return (
     <FlexColumn gap={0} fullWidth sx={{ height: "100%", minHeight: 0 }}>
-      {!previewDraft && release && (
-        <Caption color="secondary" sx={{ px: SPACING.lg, py: SPACING.xs }}>
-          {`Running released version ${release.version}`}
-        </Caption>
-      )}
       {previewDraft && (
         <Caption color="secondary" sx={{ px: SPACING.lg, py: SPACING.xs }}>
           Previewing current draft. This does not change the released app.
         </Caption>
       )}
       <AppRuntimeView
+        key={`${previewDraft ? "preview" : (instanceId ?? "default")}:${executionEpoch}`}
+        onAdvanced={() => setExecutionEpoch((epoch) => epoch + 1)}
+        onInstanceReady={onInstanceReady}
+        selectedRunId={selectedRunId}
+        onSelectRun={onSelectRun}
         workflow={workflow}
+        instanceId={previewDraft ? undefined : instanceId}
+        previewDraft={previewDraft}
         data={document.ui as Data}
         document={document}
         application={{

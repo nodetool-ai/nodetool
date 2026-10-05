@@ -58,7 +58,7 @@ const instances = new Map<string, ServerAppInstance>();
 const instance = (id: string): ServerAppInstance => ({
   id,
   user_id: account,
-  application_id: null,
+  application_id: "app",
   source_id: "fixture",
   name: "Default",
   version: null,

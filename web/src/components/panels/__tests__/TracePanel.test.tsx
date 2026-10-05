@@ -26,7 +26,7 @@ const log: RunLog = { id: "event-1", span_id: makeRecord(2).span_id, span_name: 
 function summary(id: string): GetRunResult {
   return { run: makeTrace(id).run, summary: { content_state: "available", content_expired: false, truncated: false, incomplete: false,
     first_failed_span_id: makeRecord(2).span_id, failure_path: [], cost_by_provider: { fixture: 0.01 },
-    slowest_spans: [], counts_by_name: {}, span_count: 3, event_count: 1, generation_ids: [], document_ids: [], summary_truncated: false } };
+    slowest_spans: [], counts_by_name: {}, span_count: 3, event_count: 1, generation_ids: [], document_ids: [], documents: [], documents_limited: false, summary_truncated: false } };
 }
 const renderPanel = (view: "trace" | "logs" = "trace") => render(<QueryClientProvider client={client}><ThemeProvider theme={mockTheme}><TracePanel view={view} /></ThemeProvider></QueryClientProvider>);
 const originalWidth = Object.getOwnPropertyDescriptor(HTMLElement.prototype, "offsetWidth");

@@ -73,6 +73,10 @@ export const updateInstanceInput = getInstanceInput.extend({
   name: z.string().min(1).max(200).optional(),
   variables: z.record(z.string(), z.unknown()).optional()
 });
+export const advanceInstanceInput = getInstanceInput.extend({
+  expected_revision: z.number().int().min(0),
+  version: z.number().int().min(1)
+});
 export const duplicateInstanceInput = getInstanceInput.extend({
   name: z.string().min(1).max(200).optional()
 });
@@ -80,6 +84,17 @@ export const listInstancesInput = z.object({
   application_id: z.string().optional(),
   source_id: z.string().optional(),
   limit: z.number().int().min(1).max(100).default(50)
+});
+export const appInstanceMetadataResponse = appInstanceResponse.omit({
+  snapshot: true,
+  variables: true
+});
+export const listInstanceMetadataInput = listInstancesInput.extend({
+  cursor: z.string().max(500).optional()
+});
+export const listInstanceMetadataResponse = z.object({
+  instances: z.array(appInstanceMetadataResponse),
+  next_cursor: z.string().nullable()
 });
 export const getRunInput = getInstanceInput;
 export const listRunsInput = z.object({

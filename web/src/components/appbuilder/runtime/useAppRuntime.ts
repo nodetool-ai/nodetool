@@ -136,6 +136,7 @@ export interface AppRuntimeOptions {
   application?: { id: string; version?: number };
   /** Choose an existing working copy. Omit to use the automatic default. */
   instanceId?: string;
+  previewDraft?: boolean;
   /**
    * Workflow graphs supplied by the caller, by workflow id — the graphs a
    * release pinned. An operation whose workflow is here runs that exact graph
@@ -294,7 +295,7 @@ export const useAppRuntime = (
           io: extractScriptIO(script),
           // Never used for a script run, but every entry carries one so the
           // rest of the hook needs no null check.
-          runnerStore: getWorkflowRunnerStore(workflowId || "__app_runtime__")
+          runnerStore: getWorkflowRunnerStore(workflowId || "__app_runtime__", persistence.instance ? `${persistence.account}:${persistence.instance.id}:${operation.id}` : undefined)
         });
         continue;
       }
@@ -309,7 +310,8 @@ export const useAppRuntime = (
         script: undefined,
         io: extractWorkflowIO(graph),
         runnerStore: getWorkflowRunnerStore(
-          targetId || workflowId || "__app_runtime__"
+          targetId || workflowId || "__app_runtime__",
+          persistence.instance ? `${persistence.account}:${persistence.instance.id}:${operation.id}` : undefined
         )
       });
     }
@@ -318,6 +320,8 @@ export const useAppRuntime = (
     // scripts have arrived; the documents themselves are read from the refs so
     // the dep list stays fixed-length.
   }, [
+    persistence.account,
+    persistence.instance?.id,
     fetchedKey,
     fetchedScriptsKey,
     operations,
@@ -1052,8 +1056,7 @@ export const useAppRuntime = (
 
     const runners = new Map<string, WorkflowRunnerStore>();
     for (const entry of operationRuntimesRef.current.values()) {
-      const key = entry.workflow?.id;
-      if (key) runners.set(key, entry.runnerStore);
+      if (entry.workflow) runners.set(entry.operation.id, entry.runnerStore);
     }
     const runnerUnsubscribes = [...runners.entries()].map(([key, runner]) => {
       updateJobSubscription(key, runner.getState().job_id);
@@ -1072,7 +1075,7 @@ export const useAppRuntime = (
     // `workflowIdsKey` stands in for the workflow id list; the runner stores
     // themselves are read from the ref.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [designMode, workflowIdsKey]);
+  }, [designMode, workflowIdsKey, persistence.instance?.id]);
 
   const run = useCallback(
     async (operationId: string, widgetId?: string) => {
@@ -1708,6 +1711,9 @@ export const useAppRuntime = (
       instanceLoading: persistence.loading,
       instanceError: persistence.error,
       instanceId: persistence.instance?.id,
+      instance: persistence.instance,
+      flushInstance: persistence.flush,
+      refreshInstance: persistence.refresh,
       reloadInstance: persistence.reload,
       dispatch,
       write,
@@ -1726,7 +1732,9 @@ export const useAppRuntime = (
       designMode,
       persistence.loading,
       persistence.error,
-      persistence.instance?.id,
+      persistence.instance,
+      persistence.flush,
+      persistence.refresh,
       persistence.reload,
       dispatch,
       write,
