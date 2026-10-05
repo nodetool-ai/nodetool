@@ -9,7 +9,7 @@ import Lock from "@mui/icons-material/Lock";
 import LockOpen from "@mui/icons-material/LockOpen";
 import MoreVert from "@mui/icons-material/MoreVert";
 import SwapHoriz from "@mui/icons-material/SwapHoriz";
-import { useNodes } from "../../contexts/NodeContext";
+import { useOptionalNodes } from "../../contexts/NodeContext";
 import { ImageSizePresetsMenu } from "./ImageSizePresetsMenu";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";
@@ -24,7 +24,7 @@ const ImageSizeProperty = (props: PropertyProps<ImageSizeValue>) => {
   const { property, nodeId, value, onChange, tabIndex } = props;
 
   const isConnectedSelector = useIsConnectedSelector(nodeId, property.name);
-  const isConnected = useNodes(isConnectedSelector);
+  const isConnected = useOptionalNodes(isConnectedSelector, false);
 
   // Ensure value is an object with defaults - memoized to prevent useCallback dependency changes
   const safeValue: ImageSizeValue = useMemo(() => {

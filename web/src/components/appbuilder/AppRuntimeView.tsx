@@ -1,5 +1,5 @@
 /** @jsxImportSource @emotion/react */
-import React, { useEffect, useMemo } from "react";
+import React from "react";
 import { Render, type Data } from "@puckeditor/core";
 import "@puckeditor/core/puck.css";
 
@@ -8,8 +8,6 @@ import type { runJsScript } from "../jsScript/runJsScript";
 import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
 
 import { Workflow } from "../../stores/ApiTypes";
-import { createNodeStore } from "../../stores/NodeStore";
-import { NodeContext } from "../../contexts/NodeContext";
 import ReportBugButton from "../support/ReportBugButton";
 import { AskRunAgentButton } from "../runs/AskRunAgentButton";
 import { useAppOperationRun } from "../../hooks/useAppOperationRun";
@@ -179,11 +177,6 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
     scriptOverrides,
     scriptRunner
   });
-  // Input widgets render the graph editor's property controls, which read
-  // connection state and node data from a node store. A running app has no
-  // editor around it, so it gets its own store over the host workflow.
-  const nodeStore = useMemo(() => createNodeStore(workflow), [workflow]);
-  useEffect(() => () => nodeStore.getState().cleanup(), [nodeStore]);
   if (runtime.instanceLoading)
     return <LoadingSpinner text="Loading instance" />;
   if (runtime.instanceError)
@@ -209,25 +202,23 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
       </AlertBanner>
     );
   return (
-    <NodeContext.Provider value={nodeStore}>
-      <AppRuntimeContext.Provider value={runtime}>
-        <Box
-          data-focus-id="app-runtime"
-          className="appbuilder-runtime"
-          sx={{ width: "100%", height: "100%", overflow: "auto" }}
-        >
-          <RuntimeErrorBanner />
-          <RuntimeRunLinks />
-          {/* The parser validates Puck data while leaving widget-specific props opaque. */}
-          <Render
-            config={appConfig}
-            data={
-              runtime.document ? (runtime.document.ui as unknown as Data) : data
-            }
-          />
-        </Box>
-      </AppRuntimeContext.Provider>
-    </NodeContext.Provider>
+    <AppRuntimeContext.Provider value={runtime}>
+      <Box
+        data-focus-id="app-runtime"
+        className="appbuilder-runtime"
+        sx={{ width: "100%", height: "100%", overflow: "auto" }}
+      >
+        <RuntimeErrorBanner />
+        <RuntimeRunLinks />
+        {/* The parser validates Puck data while leaving widget-specific props opaque. */}
+        <Render
+          config={appConfig}
+          data={
+            runtime.document ? (runtime.document.ui as unknown as Data) : data
+          }
+        />
+      </Box>
+    </AppRuntimeContext.Provider>
   );
 };
 

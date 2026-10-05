@@ -21,7 +21,7 @@ import { useAssetGridStore } from "../../stores/AssetGridStore";
 import { useUpstreamValue } from "../../hooks/nodes/useNodeIO";
 import { useAppendsStaticInput } from "../../hooks/nodes/useAppendsStaticInput";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
-import { useNodes } from "../../contexts/NodeContext";
+import { useOptionalNodes } from "../../contexts/NodeContext";
 import { mediaRefFromAsset } from "../../utils/mediaRef";
 import { ListImageThumb } from "./PropertyListThumb";
 
@@ -169,7 +169,7 @@ const ImageListProperty = (props: PropertyProps<ImageItem[] | null>) => {
     props.nodeId,
     props.property.name
   );
-  const hasEdge = useNodes(isConnectedSelector);
+  const hasEdge = useOptionalNodes(isConnectedSelector, false);
   const leadingUpstreamImages =
     appendsStatic && hasEdge ? upstreamImages : EMPTY_IMAGES;
 

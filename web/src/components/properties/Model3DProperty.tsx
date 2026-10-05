@@ -7,7 +7,7 @@ import PropertyLabel from "../node/PropertyLabel";
 import { PropertyProps } from "../node/PropertyInput";
 import { memo, useState, useCallback } from "react";
 import isEqual from "../../utils/isEqual";
-import { useNodes } from "../../contexts/NodeContext";
+import { useOptionalNodes } from "../../contexts/NodeContext";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import ConnectedBadge from "./ConnectedBadge";
 import { useFileDrop } from "../../hooks/handlers/useFileDrop";
@@ -142,7 +142,7 @@ const Model3DProperty = (props: PropertyProps) => {
   const previewUrl = resolveAssetUri(uri);
 
   const isConnectedSelector = useIsConnectedSelector(props.nodeId, props.property.name);
-  const isConnected = useNodes(isConnectedSelector);
+  const isConnected = useOptionalNodes(isConnectedSelector, false);
 
   const [showUrlInput, setShowUrlInput] = useState(false);
   const [openViewer, setOpenViewer] = useState(false);

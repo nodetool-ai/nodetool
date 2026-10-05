@@ -1,5 +1,5 @@
 import { useMemo } from "react";
-import { useNodes } from "../contexts/NodeContext";
+import { useOptionalNodes } from "../contexts/NodeContext";
 import type { NodeStoreState } from "../stores/NodeStore";
 import { isNumber } from "../utils/typePredicates";
 
@@ -53,7 +53,7 @@ export const useInputMinMax = ({
     };
   }, [shouldLookupBounds, nodeId]);
 
-  const nodeBounds = useNodes(selector);
+  const nodeBounds = useOptionalNodes(selector, undefined);
 
   const min =
     nodeBounds?.min != null
