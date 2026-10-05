@@ -284,7 +284,7 @@ keeps the run's outputs and asks you to reload the instance.
 
 The instance header offers New, Rename, Duplicate, Delete, and advancement to a
 newer release. New starts from app defaults. Duplicate copies working values
-and the frozen definition without copying history or media. Each instance opens
+and the frozen definition, reuses media references, and starts with empty history. Each instance opens
 in its own workspace tab. Editing opens the application editor, while Run
 returns to a working instance tab.
 
