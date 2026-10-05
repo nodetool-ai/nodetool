@@ -42,6 +42,7 @@ import CustomEdge from "../node_editor/CustomEdge";
 import ControlEdge from "../node_editor/ControlEdge";
 import { GROUP_NODE_TYPE, COMMENT_NODE_TYPE } from "../../constants/nodeTypes";
 import { usePlaceholderNodeTypes } from "../node_types/usePlaceholderNodeTypes";
+import { useIsDarkMode } from "../../hooks/useIsDarkMode";
 
 interface WorkflowGraphPreviewProps {
   graph: Graph | null | undefined;
@@ -61,6 +62,7 @@ const GraphPreviewInner: React.FC<{
   const { fitView } = useReactFlow();
   const nodesInitialized = useNodesInitialized();
   const theme = useTheme();
+  const isDarkMode = useIsDarkMode();
 
   const baseNodeTypes = useMetadataStore((state) => state.nodeTypes);
   const placeholderNodeTypes = usePlaceholderNodeTypes();
@@ -103,13 +105,17 @@ const GraphPreviewInner: React.FC<{
       minZoom={0.02}
       maxZoom={1.5}
       deleteKeyCode={null}
+      // Without it ReactFlow applies its light defaults to nodes and the
+      // canvas, so a dark-mode preview drew white nodes on a black canvas.
+      colorMode={isDarkMode ? "dark" : "light"}
     >
       <Background
-        gap={100}
-        offset={4}
-        size={8}
-        color={theme.palette.divider}
+        gap={25}
+        offset={1}
+        size={3}
+        color={theme.vars.palette.c_editor_grid_color}
         lineWidth={1}
+        style={{ backgroundColor: theme.vars.palette.c_editor_bg_color }}
         variant={BackgroundVariant.Cross}
       />
     </ReactFlow>

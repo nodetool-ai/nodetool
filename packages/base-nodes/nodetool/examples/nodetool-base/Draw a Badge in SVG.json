@@ -50,13 +50,13 @@
     },
     "ui_properties": {
      "position": {
-      "x": 640,
+      "x": 440,
       "y": 120
      },
      "zIndex": 0,
      "width": 280,
      "selectable": true,
-     "title": "4  Document"
+     "title": "2  Document"
     },
     "dynamic_properties": {},
     "dynamic_outputs": {}
@@ -69,13 +69,13 @@
     },
     "ui_properties": {
      "position": {
-      "x": 0,
-      "y": 340
+      "x": 760,
+      "y": 120
      },
      "zIndex": 0,
      "width": 280,
      "selectable": true,
-     "title": "5  SVG"
+     "title": "3  SVG"
     },
     "dynamic_properties": {},
     "dynamic_outputs": {}

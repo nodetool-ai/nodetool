@@ -131,7 +131,7 @@ export const templateEntries: TemplateEntry[] = [
           "id": "img",
           "type": "lib.svg.SVGToImage",
           "title": "SVG To Image",
-          "x": 640,
+          "x": 440,
           "y": 120,
           "width": 280
         },
@@ -139,8 +139,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 340,
+          "x": 760,
+          "y": 120,
           "width": 280
         }
       ],
@@ -3521,16 +3521,16 @@ export const templateEntries: TemplateEntry[] = [
           "id": "doc",
           "type": "lib.svg.Document",
           "title": "Document",
-          "x": 0,
-          "y": 340,
+          "x": 440,
+          "y": 120,
           "width": 280
         },
         {
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 320,
-          "y": 340,
+          "x": 760,
+          "y": 120,
           "width": 280
         }
       ],
@@ -6917,7 +6917,7 @@ export const templateEntries: TemplateEntry[] = [
           "id": "doc",
           "type": "lib.svg.Document",
           "title": "Document",
-          "x": 640,
+          "x": 440,
           "y": 120,
           "width": 280
         },
@@ -6925,8 +6925,8 @@ export const templateEntries: TemplateEntry[] = [
           "id": "out",
           "type": "nodetool.output.Output",
           "title": "Output",
-          "x": 0,
-          "y": 340,
+          "x": 760,
+          "y": 120,
           "width": 280
         }
       ],
