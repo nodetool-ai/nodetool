@@ -32,3 +32,19 @@ test("Pages releases wait for the Docker workflow's successful server job", () =
   assert.ok(gate.includes('"${conclusion}" = "success"'));
   assert.ok(web.jobs.deploy.if.includes("needs.gate.outputs.deploy == 'true'"));
 });
+
+test("main's image builds once a day, and the release gate never waits on a runner", () => {
+  const docker = workflow("docker.yml");
+  assert.ok(docker.on.schedule?.length === 1);
+  assert.equal(docker.on.push.branches.includes("main"), false);
+  assert.ok(docker.on.workflow_dispatch !== undefined);
+  const gate = workflow("fly-deploy.yml").jobs.gate.steps.map((step) => step.run ?? "").join("\n");
+  assert.equal(/\bsleep\b/.test(gate), false);
+  assert.ok(gate.includes("docker.yml/runs?branch=main"));
+});
+
+test("the Flatpak bundle builds once a day, not on push", () => {
+  const flatpak = workflow("flatpak-ci.yml");
+  assert.ok(flatpak.on.schedule?.length === 1);
+  assert.equal(flatpak.on.push, undefined);
+});

@@ -16,12 +16,19 @@ checked out at `/home/claude/nodetool-deploy` on that host.
 
 ## Release chain
 
-A push to `main` starts the Docker image build and User Journeys independently.
-The **Deploy to Docker** workflow waits for both to succeed for that exact commit
-and rejects a commit superseded on `main`. It retains the historical filename
+The Docker image for `main` builds once a day, and on manual dispatch of
+[docker.yml](https://github.com/nodetool-ai/nodetool/blob/main/.github/workflows/docker.yml).
+A scheduled build cancels itself when `main` has not moved since the last image.
+Every push to `main` runs User Journeys. The **Deploy to Docker** workflow runs
+when either workflow completes and deploys a commit only when both have
+succeeded for it. It does not wait: the second workflow to finish triggers the
+release. It skips a commit that is not the head of the newest Docker build on
+`main`. Production therefore releases at most once a day unless someone
+dispatches `docker.yml`. It retains the historical filename
 [fly-deploy.yml](https://github.com/nodetool-ai/nodetool/blob/main/.github/workflows/fly-deploy.yml), but does not invoke Fly or
 use its credentials. Manual dispatch follows the same gates and uses the
-dispatch commit, never a mutable image tag.
+dispatch commit, never a mutable image tag. Dispatching it for a commit with no
+image yet does nothing, so dispatch `docker.yml` instead.
 
 The **Deploy server** job connects to the host over SSH and sends only the full
 commit SHA. A host-side forced command validates the SHA, rechecks the build
