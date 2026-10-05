@@ -273,6 +273,16 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
         {runtime.instanceError}
       </AlertBanner>
     );
+  // Resolve the workspace identity before widgets seed inputs or queue writes.
+  if (
+    application &&
+    !instanceId &&
+    !previewDraft &&
+    onInstanceReady &&
+    getAppSessionToken() === null
+  ) {
+    return <LoadingSpinner text="Opening instance" />;
+  }
   return (
     <AppRuntimeContext.Provider value={runtime}>
       <Box
