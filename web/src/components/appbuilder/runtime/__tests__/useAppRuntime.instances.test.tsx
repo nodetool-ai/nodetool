@@ -236,7 +236,7 @@ it("resolves a bootstrap instance without seeding or saving working inputs", asy
     graph: {
       ...workflowA.graph,
       nodes: workflowA.graph.nodes.map((node) =>
-        node.id === "in1" ? { ...node, data: { ...node.data, value: "default prompt" } } : node
+        node.id === "in1" ? { ...node, data: { name: "prompt", label: "Prompt", value: "default prompt" } } : node
       )
     }
   };

@@ -93,7 +93,7 @@ test("stores an in-browser workflow and node spans beneath its durable app root"
   }, graph);
   expect(eligible).toBe(true);
   const firstReservation = page.waitForResponse((candidate) => candidate.request().method() === "POST" && /\/api\/app-instances\/[^/]+\/runs$/.test(candidate.url()));
-  const refreshed = page.waitForResponse((candidate) => candidate.request().method() === "POST" && /\/api\/app-instances\/default$/.test(candidate.url()));
+  const refreshed = page.waitForResponse((candidate) => candidate.request().method() === "GET" && /\/api\/app-instances\/[0-9a-f]{32}$/.test(candidate.url()));
   await app.fillPrompt("warm-browser-cache");
   await app.promptInput().blur();
   await app.waitForOutput("warm-browser-cache");
