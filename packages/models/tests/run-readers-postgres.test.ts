@@ -25,7 +25,7 @@ describe.skipIf(!connectionUrl)("run readers on actual PostgreSQL", () => {
         failed_at text,error text,error_message text,cost real,logs text,retry_count integer,max_retries integer,
         version integer,execution_strategy text,execution_id text,runner_instance text,metadata_json text,
         created_at text,updated_at text)`);
-      await client.unsafe("CREATE TABLE application_invocations (id text PRIMARY KEY,user_id text,inputs text,outputs text,content_expired integer DEFAULT 0)");
+      await client.unsafe("CREATE TABLE application_invocations (id text PRIMARY KEY,user_id text,inputs text,outputs text,instance_id text,operation_id text,version integer,application_id text,content_expired integer DEFAULT 0)");
       const runId = "1".repeat(32); const sourceId = "2".repeat(32); const parentId = "aabbccddeeff" + "3".repeat(20); const spanId = "4".repeat(16);
       await client.unsafe("INSERT INTO nodetool_run_traces (id,user_id,kind,source_id,canonical_root_id,trace_id,origin,started_at,parents) VALUES ($1,'owner','workflow',$2,$1,$1,'ui','2026-01-01T00:00:00.000Z',$3)", [runId, sourceId, JSON.stringify([{ kind: "workflow", id: parentId }])]);
       const record = { trace_id: runId, span_id: spanId, parent_span_id: null, name: "workflow.run", kind: "INTERNAL", start_time_ms: 0, end_time_ms: 1, duration_ms: 1, status: { code: "OK" }, attributes: {}, events: [], resource: {} };

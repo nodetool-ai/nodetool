@@ -45,7 +45,7 @@ async function resolveParentId(userId: string, kind: "app" | "instance" | "workf
   if (!rows[0]) { throw new RunTraceError("not_found", `${kind} not found`); }
   return rows[0].id;
 }
-export async function queryRunReaders(userId: string, options: RunListOptions): Promise<RunTraceRegistration[]> {
+export async function queryRunReaders(userId: string, options: RunListOptions): Promise<Array<RunTraceRegistration & { app?: NonNullable<GetRunResult["run"]["app"]> }>> {
   const c = getDatabase(); const t = c.schema.runTraces;
   const conditions: Array<SQL | undefined> = [eq(t.user_id, userId), options.kind ? eq(t.kind, options.kind) : undefined,
     options.status ? eq(t.status, options.status) : undefined, options.origin ? eq(t.origin, options.origin) : undefined,
@@ -58,14 +58,18 @@ export async function queryRunReaders(userId: string, options: RunListOptions): 
       ? sql`EXISTS (SELECT 1 FROM json_each(${t.parents}) p WHERE json_extract(p.value, '$.kind') = ${kind} AND json_extract(p.value, '$.id') = ${id})`
       : sql`${t.parents}::jsonb @> ${JSON.stringify([{ kind, id }])}::jsonb`);
   }
+  const a = c.schema.applicationInvocations;
+  if (options.operation_id) { conditions.push(eq(a.operation_id, options.operation_id)); }
   if (options.cursor) {
     const cursor = parseListCursor(options.cursor);
     conditions.push(or(lt(t.started_at, cursor.started_at), and(eq(t.started_at, cursor.started_at), lt(t.id, cursor.id))));
   }
   const where = and(...conditions); const limit = (options.limit ?? 20) + 1;
-  const rows = c.dialect === "sqlite" ? await c.db.select().from(c.schema.runTraces).where(where).orderBy(desc(t.started_at), desc(t.id)).limit(limit)
-    : await c.db.select().from(c.schema.runTraces).where(where).orderBy(desc(t.started_at), desc(t.id)).limit(limit);
-  return rows.map((row) => runTraceRegistrationSchema.parse(row));
+  const join = and(eq(t.kind, "app"), eq(a.id, t.source_id), eq(a.user_id, userId));
+  const rows = c.dialect === "sqlite"
+    ? await c.db.select({ run: c.schema.runTraces, app: { id: c.schema.applicationInvocations.id, instance_id: c.schema.applicationInvocations.instance_id, operation_id: c.schema.applicationInvocations.operation_id, app_version: c.schema.applicationInvocations.version, application_id: c.schema.applicationInvocations.application_id } }).from(c.schema.runTraces).leftJoin(c.schema.applicationInvocations, join).where(where).orderBy(desc(t.started_at), desc(t.id)).limit(limit)
+    : await c.db.select({ run: c.schema.runTraces, app: { id: c.schema.applicationInvocations.id, instance_id: c.schema.applicationInvocations.instance_id, operation_id: c.schema.applicationInvocations.operation_id, app_version: c.schema.applicationInvocations.version, application_id: c.schema.applicationInvocations.application_id } }).from(c.schema.runTraces).leftJoin(c.schema.applicationInvocations, join).where(where).orderBy(desc(t.started_at), desc(t.id)).limit(limit);
+  return rows.map((row) => ({ ...runTraceRegistrationSchema.parse(row.run), ...(row.app ? { app: { instance_id: row.app.instance_id, operation_id: row.app.operation_id, app_version: row.app.app_version, application_id: row.app.application_id } } : {}) }));
 }
 /** Metadata-only readers never load the content column. All reads use the indexed owner/trace path. */
 export async function queryRunReaderSpans(userId: string, run: RunTraceRegistration, options: { includeContent?: boolean; cursor?: number; limit?: number; spanIds?: readonly string[] } = {}): Promise<RunReaderSpan[]> {

@@ -45,7 +45,7 @@ export async function listRuns(userId: string, options: RunListOptions = {}): Pr
   if (parsed.since && parsed.until && parsed.since > parsed.until) { throw new RunsError("invalid_input", "since must precede until"); }
   const rows = await modelRead(() => queryRunReaders(userId, parsed)); const runs = rows.slice(0, parsed.limit);
   const last = runs.at(-1);
-  return { runs: runs.map(publicRunRecord), next_cursor: rows.length > parsed.limit && last ? encodeRunListCursor(last) : null };
+  return { runs: runs.map((run) => ({ ...publicRunRecord(run), ...(run.app ? { app: run.app } : {}) })), next_cursor: rows.length > parsed.limit && last ? encodeRunListCursor(last) : null };
 }
 function compareSpans(a: RunReaderSpan, b: RunReaderSpan): number {
   return a.metadata.start_time_ms - b.metadata.start_time_ms || a.span_id.localeCompare(b.span_id);
