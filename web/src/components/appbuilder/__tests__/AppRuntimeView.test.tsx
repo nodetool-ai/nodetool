@@ -263,3 +263,55 @@ describe("AppRuntimeView (Puck Render)", () => {
     );
   });
 });
+
+describe("AppRuntimeView input widgets", () => {
+  const listWorkflow = stub<Workflow>({
+    id: "wf-runtime-image-list",
+    name: "Batch Photos",
+    access: "private",
+    graph: {
+      nodes: [
+        {
+          id: "in-photos",
+          type: "nodetool.input.ImageListInput",
+          data: { name: "photos", label: "Photos" }
+        }
+      ],
+      edges: []
+    }
+  });
+  const listData: Data = {
+    root: { props: {} },
+    content: [
+      {
+        type: "WorkflowInput",
+        props: { id: "in-batch-photos", binding: "photos", label: "Your photos" }
+      }
+    ],
+    zones: {}
+  };
+
+  afterEach(() =>
+    disposeAppRuntimeStore(workflowInstanceId(listWorkflow.id))
+  );
+
+  // The property components read the graph's connection state from the node
+  // store. A running app has no graph editor around it, so the view itself
+  // must supply one or the image list control throws on mount.
+  it("renders an image list input without a graph editor around it", () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ThemeProvider theme={mockTheme}>
+          <AppRuntimeView workflow={listWorkflow} data={listData} />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+
+    expect(
+      screen.queryByText(/failed to render/)
+    ).not.toBeInTheDocument();
+    expect(
+      document.querySelector('.image-list-property input[type="file"]')
+    ).not.toBeNull();
+  });
+});
