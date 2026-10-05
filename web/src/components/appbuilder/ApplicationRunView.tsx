@@ -137,13 +137,13 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
     pinnedHost
   ]);
 
-  if (isLoading || (!previewDraft && releaseLoading)) {
+  if (isLoading || (!hasPinnedInstance && !previewDraft && releaseLoading)) {
     return <LoadingSpinner size="large" text="Loading app" />;
   }
 
   const failedQuery = applicationQuery.isError
     ? applicationQuery
-    : !previewDraft && releaseQuery.isError
+    : !hasPinnedInstance && !previewDraft && releaseQuery.isError
       ? releaseQuery
       : null;
   if (failedQuery) {

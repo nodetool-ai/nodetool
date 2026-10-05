@@ -103,6 +103,18 @@ beforeEach(() => {
 });
 
 describe("ApplicationRunView", () => {
+  it("loads an explicit instance when the latest release lookup fails", async () => {
+    useReleasedApplicationDocument.mockReturnValue({
+      data: undefined,
+      isLoading: false,
+      isError: true,
+      error: new Error("Connection lost"),
+      refetch: jest.fn()
+    });
+    renderView(false, undefined, "pinned-instance");
+    expect(await screen.findByTestId("runtime")).toBeInTheDocument();
+    expect(fetchWorkflow).not.toHaveBeenCalled();
+  });
   it("loads an explicit instance despite an empty latest release and unavailable latest workflow", async () => {
     const latest = appDocument("Latest");
     latest.ui.content = [];
