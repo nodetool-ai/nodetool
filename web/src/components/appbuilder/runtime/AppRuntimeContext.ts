@@ -25,6 +25,7 @@ import {
   type ResourceRef
 } from "@nodetool-ai/app-runtime";
 
+import type { ServerAppInstance } from "./appInstanceApi";
 import { WorkflowIO } from "../workflowIO";
 import { AppRuntimeStore, AppRuntimeState } from "./appRuntimeStore";
 
@@ -50,9 +51,16 @@ export interface AppRuntimeContextValue {
   instanceLoading?: boolean;
   instanceError?: string;
   instanceId?: string;
+  instance?: ServerAppInstance;
+  flushInstance?: () => Promise<void>;
+  refreshInstance?: () => Promise<void>;
   reloadInstance?: () => Promise<void>;
   dispatch: (action: AppAction, source?: { widgetId: string }) => void;
-  reportWidgetError?: (error: Error, component: string, binding?: string) => { trace_id: string; app_run_id: string; span_id: string } | undefined;
+  reportWidgetError?: (
+    error: Error,
+    component: string,
+    binding?: string
+  ) => { trace_id: string; app_run_id: string; span_id: string } | undefined;
   /** Write a value through a resolved binding. */
   write: (ref: BindingRef, value: unknown) => void;
   /**
@@ -111,7 +119,7 @@ export const useBindingValue = (ref: BindingRef | null): unknown => {
   });
 };
 
-export const useRuntimeSelector = <T,>(
+export const useRuntimeSelector = <T>(
   selector: (state: AppRuntimeState) => T
 ): T => {
   const { store } = useAppRuntimeContext();

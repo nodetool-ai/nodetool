@@ -30,6 +30,7 @@ export interface AppInstanceOptions {
   document?: ApplicationDocument;
   application?: { id: string; version?: number };
   instanceId?: string;
+  previewDraft?: boolean;
   workflowOverrides?: Record<string, Workflow>;
   scriptOverrides?: Record<string, JsScriptDocument>;
 }
@@ -71,7 +72,7 @@ export const useAppInstance = (
   const enabled =
     !designMode && !visitor && Boolean(document) && account !== "anonymous";
   const source = options.application?.id ?? workflow?.id ?? "draft";
-  const inline = !options.application;
+  const inline = !options.application || options.previewDraft === true;
   const definitionKey = inline
     ? JSON.stringify({
         document,
@@ -91,7 +92,14 @@ export const useAppInstance = (
     queryKey,
     queryFn: async () => {
       if (options.instanceId) {
-        return loadAppInstance(options.instanceId);
+        const selected = await loadAppInstance(options.instanceId);
+        if (
+          options.application &&
+          selected.application_id !== options.application.id
+        ) {
+          throw new Error("This instance belongs to another app.");
+        }
+        return selected;
       }
       const graphs = Object.fromEntries(
         Object.entries(options.workflowOverrides ?? {}).map(([id, graph]) => [
@@ -125,7 +133,9 @@ export const useAppInstance = (
         application_id?: string;
         version?: number;
       } = {
-        source_id: inline ? `${source}:${digest}` : `application:${source}`,
+        source_id: inline
+          ? `${options.previewDraft ? "preview:" : ""}${source}:${digest}`
+          : `application:${source}`,
         snapshot: {
           document,
           workflow_graphs: graphs,
@@ -135,7 +145,10 @@ export const useAppInstance = (
       };
       if (options.application) {
         initial.application_id = options.application.id;
-        if (options.application.version !== undefined) {
+        if (
+          !options.previewDraft &&
+          options.application.version !== undefined
+        ) {
           initial.version = options.application.version;
         }
       }
@@ -183,6 +196,7 @@ export const useAppInstance = (
     }
   }, []);
   const bindingRef = useRef<string | null>(null);
+  const [readyBinding, setReadyBinding] = useState<string | null>(null);
   const storeRef = useRef<AppRuntimeStore | null>(null);
   const instance = query.data;
   const instanceRef = useRef(instance);
@@ -268,6 +282,7 @@ export const useAppInstance = (
       }
       timer = setTimeout(flush, 150);
     });
+    setReadyBinding(binding);
     return () => {
       active = false;
       unsubscribe();
@@ -382,7 +397,10 @@ export const useAppInstance = (
     serverFold,
     refresh,
     reload,
-    loading: enabled && query.isPending,
+    loading:
+      enabled &&
+      (query.isPending ||
+        Boolean(instance && readyBinding !== `${account}:${instance.id}`)),
     error:
       account === "anonymous" && !visitor && !designMode
         ? "Sign in to load this app instance."

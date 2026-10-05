@@ -1,6 +1,7 @@
 import {
   buildRunJobData,
   createWorkflowRunnerStore,
+  getWorkflowRunnerStore,
   deriveJobTitle
 } from "../WorkflowRunner";
 import { stub } from "../../test-utils/doubles";
@@ -674,4 +675,18 @@ describe("authoritative app-run workflow transport", () => {
       store.getState().cleanup();
     }
   });
+});
+
+it("isolates same-workflow app instances and cancels only the selected job", async () => {
+  const first = getWorkflowRunnerStore("shared-app-workflow", "instance-a:main");
+  const second = getWorkflowRunnerStore("shared-app-workflow", "instance-b:main");
+  expect(first).not.toBe(second);
+  expect(getWorkflowRunnerStore("shared-app-workflow", "instance-a:main")).toBe(first);
+  first.setState({ job_id: "job-a", state: "running" });
+  second.setState({ job_id: "job-b", state: "running" });
+  await first.getState().cancel();
+  expect(first.getState().state).toBe("cancelled");
+  expect(second.getState().state).toBe("running");
+  expect(second.getState().job_id).toBe("job-b");
+  expect(globalWebSocketManager.send).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ job_id: "job-a" }) }));
 });

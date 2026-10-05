@@ -262,6 +262,25 @@ const ToolRow: React.FC<{ entry: ToolEntry; connected: boolean; runId?: string; 
   );
 };
 
+/** Historical inspection always reads the explicitly selected run. */
+export function StoredRunActivity({ runId }: { runId: string }): React.ReactElement {
+  const logs = useRunLogs(runId, { source: "agent", include_content: true, limit: 100 });
+  const pages = logs.data?.pages ?? [];
+  const unavailable = pages.some((page) => page.content_state !== "available");
+  const activity = logs.error || unavailable ? [] : replayAppRunActivity(pages.flatMap((page) => page.logs));
+  return <FlexColumn gap={SPACING.sm}>
+    <Text weight={600}>Recorded activity</Text>
+    {logs.isLoading ? <LoadingSpinner text="Loading activity" /> : null}
+    {logs.error ? <AlertBanner severity="error" action={<ReportBugButton context={{ source: "operation-failure", summary: "Historical activity could not load", errorText: logs.error.message }} />}>{logs.error.message}</AlertBanner> : null}
+    {unavailable ? <Caption>Activity content {pages[0]?.content_state}.</Caption> : null}
+    {activity.map(({ key, entry, spanId }, index) => entry.kind === "tool"
+      ? <ToolRow key={key} entry={entry} runId={runId} spanId={spanId} connected={activity[index + 1]?.entry.kind === "tool"} />
+      : <MarkdownBlock key={key} text={entry.text} />)}
+    {pages.some((page) => page.limited || page.truncated) ? <Caption>Activity recording was limited.</Caption> : null}
+    {logs.hasNextPage && !unavailable ? <EditorButton disabled={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>Load more activity</EditorButton> : null}
+  </FlexColumn>;
+}
+
 export const AgentActivityWidget: React.FC<AgentActivityWidgetProps> = (
   props
 ) => {

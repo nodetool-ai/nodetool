@@ -1,31 +1,124 @@
 import { z } from "zod";
 import {
   appInstanceResponse,
+  appInstanceMetadataResponse,
+  listInstanceMetadataResponse,
   appRunResponse
 } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
 import { restFetch } from "../../../lib/rest-fetch";
 
-const instanceSchema = appInstanceResponse.pick({
-  id: true,
-  user_id: true,
-  revision: true,
-  variables: true,
-  snapshot: true
-});
+const instanceSchema = appInstanceResponse;
 
 export type ServerAppInstance = z.infer<typeof instanceSchema>;
+
+const metadataSchema = appInstanceMetadataResponse;
+const metadataListSchema = listInstanceMetadataResponse;
+export type ServerAppInstanceMetadata = z.infer<typeof metadataSchema>;
+export type AppInstanceMetadataPage = z.infer<typeof metadataListSchema>;
+export interface AppInstanceListOptions {
+  application_id?: string;
+  source_id?: string;
+  limit?: number;
+  cursor?: string;
+}
+
+export async function listAppInstanceMetadata(
+  options: AppInstanceListOptions,
+  signal?: AbortSignal
+): Promise<AppInstanceMetadataPage> {
+  const query = new URLSearchParams();
+  if (options.application_id) {
+    query.set("application_id", options.application_id);
+  }
+  if (options.source_id) {
+    query.set("source_id", options.source_id);
+  }
+  if (options.cursor) {
+    query.set("cursor", options.cursor);
+  }
+  query.set("limit", String(options.limit ?? 50));
+  return metadataListSchema.parse(
+    await request(
+      `/api/app-instances/metadata?${query}`,
+      "GET",
+      undefined,
+      signal
+    )
+  );
+}
+
+export async function createAppInstance(
+  body: unknown
+): Promise<ServerAppInstance> {
+  return instanceSchema.parse(
+    await request("/api/app-instances", "POST", body)
+  );
+}
+
+export async function renameAppInstance(
+  id: string,
+  revision: number,
+  name: string
+): Promise<ServerAppInstance> {
+  return instanceSchema.parse(
+    await request(`/api/app-instances/${encodeURIComponent(id)}`, "PATCH", {
+      expected_revision: revision,
+      name
+    })
+  );
+}
+
+export async function duplicateAppInstance(
+  id: string,
+  name?: string
+): Promise<ServerAppInstance> {
+  return instanceSchema.parse(
+    await request(
+      `/api/app-instances/${encodeURIComponent(id)}/duplicate`,
+      "POST",
+      name === undefined ? {} : { name }
+    )
+  );
+}
+
+export async function deleteAppInstance(id: string): Promise<void> {
+  const result = z
+    .object({ ok: z.boolean() })
+    .parse(
+      await request(`/api/app-instances/${encodeURIComponent(id)}`, "DELETE")
+    );
+  if (!result.ok) {
+    throw new Error("App instance no longer exists.");
+  }
+}
+
+export async function advanceAppInstance(
+  id: string,
+  revision: number,
+  version: number
+): Promise<ServerAppInstance> {
+  return instanceSchema.parse(
+    await request(
+      `/api/app-instances/${encodeURIComponent(id)}/advance`,
+      "POST",
+      { expected_revision: revision, version }
+    )
+  );
+}
 
 async function request(
   path: string,
   method: string,
-  body?: unknown
+  body?: unknown,
+  signal?: AbortSignal
 ): Promise<unknown> {
-  const init: RequestInit = {
-    method,
-    headers: { "content-type": "application/json" }
-  };
+  const init: RequestInit = { method };
   if (body !== undefined) {
+    init.headers = { "content-type": "application/json" };
     init.body = JSON.stringify(body);
+  }
+  if (signal) {
+    init.signal = signal;
   }
   const response = await restFetch(path, init);
   const data: unknown = await response.json();
@@ -46,9 +139,17 @@ async function request(
   return data;
 }
 
-export const loadAppInstance = async (id: string): Promise<ServerAppInstance> =>
+export const loadAppInstance = async (
+  id: string,
+  signal?: AbortSignal
+): Promise<ServerAppInstance> =>
   instanceSchema.parse(
-    await request(`/api/app-instances/${encodeURIComponent(id)}`, "GET")
+    await request(
+      `/api/app-instances/${encodeURIComponent(id)}`,
+      "GET",
+      undefined,
+      signal
+    )
   );
 
 export const defaultAppInstance = async (
@@ -96,9 +197,15 @@ export const startBrowserAppRun = async (
   id: string,
   traceparent: string
 ): Promise<{ root_span_id: string }> =>
-  z.object({ root_span_id: z.string().regex(/^[0-9a-f]{16}$/) }).parse(
-    await request(`/api/runs/${encodeURIComponent(id)}/browser-start`, "POST", { traceparent })
-  );
+  z
+    .object({ root_span_id: z.string().regex(/^[0-9a-f]{16}$/) })
+    .parse(
+      await request(
+        `/api/runs/${encodeURIComponent(id)}/browser-start`,
+        "POST",
+        { traceparent }
+      )
+    );
 
 export const getAppRun = async (
   id: string

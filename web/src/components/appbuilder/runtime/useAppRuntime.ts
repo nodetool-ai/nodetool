@@ -58,6 +58,7 @@ import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scri
 import { Workflow } from "../../../stores/ApiTypes";
 import {
   getWorkflowRunnerStore,
+  applyScopedRunnerJobUpdate,
   MsgpackData,
   WorkflowRunnerStore,
   type RunOptions
@@ -122,6 +123,7 @@ interface ReactiveRunState {
 }
 
 export interface AppRuntimeOptions {
+  deferInitialization?: boolean;
   /**
    * The app document, when the app has one. A legacy app running straight off
    * a workflow gets a synthesized single-operation document instead, so both
@@ -136,6 +138,7 @@ export interface AppRuntimeOptions {
   application?: { id: string; version?: number };
   /** Choose an existing working copy. Omit to use the automatic default. */
   instanceId?: string;
+  previewDraft?: boolean;
   /**
    * Workflow graphs supplied by the caller, by workflow id — the graphs a
    * release pinned. An operation whose workflow is here runs that exact graph
@@ -294,7 +297,7 @@ export const useAppRuntime = (
           io: extractScriptIO(script),
           // Never used for a script run, but every entry carries one so the
           // rest of the hook needs no null check.
-          runnerStore: getWorkflowRunnerStore(workflowId || "__app_runtime__")
+          runnerStore: getWorkflowRunnerStore(workflowId || "__app_runtime__", persistence.instance ? `${persistence.account}:${persistence.instance.id}:${operation.id}` : undefined)
         });
         continue;
       }
@@ -309,7 +312,8 @@ export const useAppRuntime = (
         script: undefined,
         io: extractWorkflowIO(graph),
         runnerStore: getWorkflowRunnerStore(
-          targetId || workflowId || "__app_runtime__"
+          targetId || workflowId || "__app_runtime__",
+          persistence.instance ? `${persistence.account}:${persistence.instance.id}:${operation.id}` : undefined
         )
       });
     }
@@ -318,6 +322,8 @@ export const useAppRuntime = (
     // scripts have arrived; the documents themselves are read from the refs so
     // the dep list stays fixed-length.
   }, [
+    persistence.account,
+    persistence.instance?.id,
     fetchedKey,
     fetchedScriptsKey,
     operations,
@@ -396,6 +402,9 @@ export const useAppRuntime = (
   // runs with what it shows. Idempotent, so re-running it on any identity churn
   // costs nothing and clobbers nothing.
   useEffect(() => {
+    if (options.deferInitialization) {
+      return;
+    }
     const dispatchEvent = store.getState().dispatchEvent;
     const values: Record<string, unknown> = {};
     for (const entry of operationRuntimes.values()) {
@@ -431,6 +440,7 @@ export const useAppRuntime = (
     document,
     identity,
     operationRuntimes,
+    options.deferInitialization,
     persistence.enabled,
     persistence.visitor,
     store
@@ -603,6 +613,17 @@ export const useAppRuntime = (
   const fold = useCallback(
     (message: MsgpackData) => {
       const transportId = "job_id" in message && typeof message.job_id === "string" ? message.job_id : undefined;
+      if (transportId && persistence.instance && message.type === "job_update" && "status" in message && typeof message.status === "string") {
+        const invocation = ownedRef.current.get(transportId);
+        const entry = invocation ? operationRuntimesRef.current.get(invocation.operationId) : undefined;
+        if (entry && invocation && isLiveInvocation(invocation)) {
+          applyScopedRunnerJobUpdate(entry.runnerStore, {
+            job_id: transportId,
+            status: message.status,
+            queue_position: "queue_position" in message && typeof message.queue_position === "number" ? message.queue_position : undefined
+          });
+        }
+      }
       const recorder = transportId ? browserTracesRef.current.get(transportId) : undefined;
       const foldSpan = recorder?.startSpan("ui.fold", { "ui.message.type": message.type });
       const events = messageToEvents(message as Record<string, unknown>, {
@@ -667,7 +688,7 @@ export const useAppRuntime = (
       }
       foldSpan?.end();
     },
-    [clearTimeoutTimer, outputKey, settleRun, store]
+    [clearTimeoutTimer, outputKey, settleRun, store, persistence.instance]
   );
   foldRef.current = fold;
 
@@ -1010,9 +1031,8 @@ export const useAppRuntime = (
   useEffect(() => {
     if (designMode || workflowIds.length === 0) return;
 
-    // Protocol-level handling (runner state machine, ResultsStore, node stores)
-    // already runs via the workflow-manager subscription installed when the
-    // workflow was opened — calling into it here would double-append.
+    // The manager folds shared node/results state once. App runner lifecycle
+    // updates are folded separately by owned job because its runner is scoped.
     const handler = (message: MsgpackData) => {
       const jobId = (message as Record<string, unknown>).job_id;
       // A message carrying no job id cannot be attributed to an invocation, so
@@ -1052,8 +1072,7 @@ export const useAppRuntime = (
 
     const runners = new Map<string, WorkflowRunnerStore>();
     for (const entry of operationRuntimesRef.current.values()) {
-      const key = entry.workflow?.id;
-      if (key) runners.set(key, entry.runnerStore);
+      if (entry.workflow) runners.set(entry.operation.id, entry.runnerStore);
     }
     const runnerUnsubscribes = [...runners.entries()].map(([key, runner]) => {
       updateJobSubscription(key, runner.getState().job_id);
@@ -1072,7 +1091,7 @@ export const useAppRuntime = (
     // `workflowIdsKey` stands in for the workflow id list; the runner stores
     // themselves are read from the ref.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [designMode, workflowIdsKey]);
+  }, [designMode, workflowIdsKey, persistence.instance?.id]);
 
   const run = useCallback(
     async (operationId: string, widgetId?: string) => {
@@ -1708,6 +1727,9 @@ export const useAppRuntime = (
       instanceLoading: persistence.loading,
       instanceError: persistence.error,
       instanceId: persistence.instance?.id,
+      instance: persistence.instance,
+      flushInstance: persistence.flush,
+      refreshInstance: persistence.refresh,
       reloadInstance: persistence.reload,
       dispatch,
       write,
@@ -1726,7 +1748,9 @@ export const useAppRuntime = (
       designMode,
       persistence.loading,
       persistence.error,
-      persistence.instance?.id,
+      persistence.instance,
+      persistence.flush,
+      persistence.refresh,
       persistence.reload,
       dispatch,
       write,

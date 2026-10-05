@@ -167,6 +167,32 @@ describe("phase 3 common run readers", () => {
     const result = await getRun(OWNER, run.id); expect(result.run.parents).toHaveLength(20); expect(result.run.parents_limited).toBe(true);
     expect((await listRuns(OWNER)).runs[0]?.parents).toHaveLength(20);
   });
+  it("lists app identity and finds an exact operation beyond 500 unrelated runs", async () => {
+    const instance = await createAppInstance({ userId: OWNER, sourceId: "example:recovery", snapshot: { document: { ...createEmptyDocument(), operations: [{ id: "abcdef012345", name: "Run", workflowId: "wf", inputs: {}, outputs: {}, policy: "parallel" }] }, workflow_graphs: { wf: { nodes: [], edges: [] } }, script_documents: {} } });
+    const reserved = await reserveAppRun({ userId: OWNER, instanceId: instance.id, operationId: "abcdef012345", invocationId: "recovery", origin: "ui" });
+    if (!reserved.allowed) { throw new Error(reserved.reason); }
+    const trace = await registerRunTrace(OWNER, { kind: "app", sourceId: reserved.run.id, origin: "ui", parents: [] });
+    await getDb().update(runTraces).set({ started_at: "2020-01-01T00:00:00.000Z" }).where(eq(runTraces.id, trace.id));
+    for (let offset = 0; offset < 600; offset += 100) {
+      await getDb().insert(runTraces).values(Array.from({ length: 100 }, (_, index) => {
+        const id = (offset + index + 1).toString(16).padStart(32, "0");
+        return { id, user_id: OWNER, kind: "app", source_id: `legacy-${id}`, canonical_root_id: id, trace_id: id, origin: "ui", started_at: "2026-01-01T00:00:00.000Z", parents: [{ kind: "instance" as const, id: instance.id }] };
+      }));
+    }
+    const options = { kind: "app" as const, instance_id: instance.id.slice(0, 12), operation_id: "abcdef012345", limit: 1 };
+    const page = await listRuns(OWNER, options);
+    expect(page.runs.map((run) => run.id)).toEqual([trace.id]);
+    expect(page.next_cursor).toBeNull();
+    expect(page.runs[0]?.app).toEqual((await getRun(OWNER, trace.id)).run.app);
+    expect(page.runs[0]?.app).not.toHaveProperty("inputs");
+    expect((await listRuns(OWNER, { ...options, operation_id: "abcdef01234" })).runs).toEqual([]);
+    expect((await listRuns("foreign", { ...options, instance_id: instance.id })).runs).toEqual([]);
+    const legacy = await listRuns(OWNER, { kind: "app", instance_id: instance.id, limit: 1 });
+    expect(legacy.runs[0]?.app).toBeUndefined();
+    expect(legacy.next_cursor).not.toBeNull();
+    const next = await listRuns(OWNER, { kind: "app", instance_id: instance.id, limit: 1, cursor: legacy.next_cursor ?? undefined });
+    expect(next.runs[0]?.id).not.toBe(legacy.runs[0]?.id);
+  });
   it("offers bounded app input/output drill-down while default summaries avoid private columns", async () => {
     const instance = await createAppInstance({ userId: OWNER, sourceId: "example:run-reader", snapshot: { document: { ...createEmptyDocument(), operations: [{ id: "op", name: "Run", workflowId: "wf", inputs: {}, outputs: {}, policy: "parallel" }] }, workflow_graphs: { wf: { nodes: [], edges: [] } }, script_documents: {} } });
     const reserved = await reserveAppRun({ userId: OWNER, instanceId: instance.id, operationId: "op", invocationId: "test", origin: "ui" });
@@ -179,6 +205,12 @@ describe("phase 3 common run readers", () => {
     expect(metadata.run.app).not.toHaveProperty("inputs"); expect(metadata.run.app).not.toHaveProperty("outputs");
     expect(metadata.summary.content_state).toBe("available");
     expect((await getRun(OWNER, trace.id, { include_content: true })).run.app).toMatchObject({ inputs: { prompt: "Private app input" }, outputs: { answer: "Private app output" }, content_limited: false });
+    await getDb().update(applicationInvocations).set({ documents: Array.from({ length: 150 }, (_, index) => ({ kind: "storyboard", id: `board-${index}` })) }).where(eq(applicationInvocations.id, reserved.run.id));
+    const history = await getRun(OWNER, trace.id);
+    expect(history.summary.documents).toHaveLength(100);
+    expect(history.summary.documents[0]).toEqual({ kind: "storyboard", id: "board-0" });
+    expect(history.summary.documents_limited).toBe(true);
+    expect(history.summary.summary_truncated).toBe(true);
     await expect(getRun("foreign", trace.id, { include_content: true })).rejects.toMatchObject({ code: "not_found" });
     await getDb().update(applicationInvocations).set({ inputs: sql`'invalid JSON'` }).where(eq(applicationInvocations.id, reserved.run.id));
     expect((await getRun(OWNER, trace.id)).run.app).not.toHaveProperty("inputs");
@@ -187,5 +219,6 @@ describe("phase 3 common run readers", () => {
     await eraseRunTraceParentContent(OWNER, { kind: "app_run", id: reserved.run.id });
     const expired = await getRun(OWNER, trace.id, { include_content: true });
     expect(expired.summary.content_state).toBe("expired"); expect(expired.run.app).toMatchObject({ inputs: null, outputs: null });
+    expect(expired.summary.documents).toEqual([]);
   });
 });
