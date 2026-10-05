@@ -122,6 +122,7 @@ interface ReactiveRunState {
 }
 
 export interface AppRuntimeOptions {
+  deferInitialization?: boolean;
   /**
    * The app document, when the app has one. A legacy app running straight off
    * a workflow gets a synthesized single-operation document instead, so both
@@ -400,6 +401,9 @@ export const useAppRuntime = (
   // runs with what it shows. Idempotent, so re-running it on any identity churn
   // costs nothing and clobbers nothing.
   useEffect(() => {
+    if (options.deferInitialization) {
+      return;
+    }
     const dispatchEvent = store.getState().dispatchEvent;
     const values: Record<string, unknown> = {};
     for (const entry of operationRuntimes.values()) {
@@ -435,6 +439,7 @@ export const useAppRuntime = (
     document,
     identity,
     operationRuntimes,
+    options.deferInitialization,
     persistence.enabled,
     persistence.visitor,
     store

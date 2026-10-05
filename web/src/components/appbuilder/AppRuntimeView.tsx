@@ -235,7 +235,15 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
   scriptOverrides,
   scriptRunner
 }) => {
+  const resolvingInstance = Boolean(
+    application &&
+    !instanceId &&
+    !previewDraft &&
+    onInstanceReady &&
+    getAppSessionToken() === null
+  );
   const runtime = useAppRuntime(workflow, false, {
+    deferInitialization: resolvingInstance,
     document,
     application,
     instanceId,
@@ -274,13 +282,7 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
       </AlertBanner>
     );
   // Resolve the workspace identity before widgets seed inputs or queue writes.
-  if (
-    application &&
-    !instanceId &&
-    !previewDraft &&
-    onInstanceReady &&
-    getAppSessionToken() === null
-  ) {
+  if (resolvingInstance) {
     return <LoadingSpinner text="Opening instance" />;
   }
   return (
