@@ -27,8 +27,7 @@ import type {
 import {
   createTimeOrderedUuid,
   presetIdForInstrument,
-  resolveTempo,
-  validateNotes
+  resolveTempo
 } from "@nodetool-ai/timeline";
 import {
   applyTimelineOp,
@@ -50,7 +49,6 @@ import {
   getTimelineAgentHandler,
   hasTimelineAgentHandler,
   setTimelineAgentHandler,
-  type MidiNoteInput,
   type TimelineAddMediaClipOptions,
   type TimelineAddMidiClipOptions,
   type TimelineAddShapeClipOptions,
@@ -87,20 +85,6 @@ const KIND_TO_MODEL_KIND = {
   "text-to-image": "image",
   "text-to-audio": "audio"
 } satisfies Record<TimelineGenerateKind, ModelKind>;
-
-const KIND_TO_MEDIA_TYPE = {
-  "text-to-video": "video",
-  "text-to-image": "image",
-  "text-to-audio": "audio"
-} satisfies Record<
-  TimelineGenerateKind,
-  "image" | "video" | "audio" | "overlay"
->;
-
-/** Velocity a note gets when the agent names none — mirrors
- *  `DEFAULT_MIDI_VELOCITY` in `@nodetool-ai/timeline`, which `createMidiNote`
- *  applies when the store mints the note. */
-const DEFAULT_AGENT_NOTE_VELOCITY = 100;
 
 const DEFAULT_FRAME_COUNT = 3;
 const MAX_FRAME_COUNT = 8;
@@ -627,52 +611,6 @@ export const useTimelineAgentBridge = (
       return clip;
     };
 
-    /**
-     * The notes, with every problem reported at once. `validateNotes` reads a
-     * complete note, so ids and velocities are filled in first — the agent
-     * sends neither and would otherwise be told its own defaults are wrong.
-     */
-    const requireValidNotes = (notes: MidiNoteInput[]): MidiNoteInput[] => {
-      const complete = notes.map((note, index) => ({
-        id: note.id ?? `pending-${index}`,
-        velocity: note.velocity ?? DEFAULT_AGENT_NOTE_VELOCITY,
-        pitch: note.pitch,
-        startTick: note.startTick,
-        durationTick: note.durationTick
-      }));
-      const problems = validateNotes(complete);
-      if (problems.length > 0) {
-        throw new Error(
-          `These notes cannot be stored: ${problems
-            .map((p) =>
-              p.index !== undefined
-                ? `note ${p.index}: ${p.message}`
-                : p.message
-            )
-            .join(" ")}`
-        );
-      }
-      return notes;
-    };
-
-    /** The clip `target` names, refusing anything that carries no notes. */
-    const requireMidiClip = (target: string): TimelineClip => {
-      const clip = requireClip(target);
-      if (clip.mediaType !== "midi") {
-        throw new Error(
-          `"${clip.name}" is a ${clip.mediaType} clip; only a midi clip carries notes.`
-        );
-      }
-      return clip;
-    };
-
-    /** End of the last clip on a track, or 0 when the track is empty. */
-    const trackEndMs = (trackId: string): number =>
-      doc
-        .getState()
-        .clips.filter((c) => c.trackId === trackId)
-        .reduce((end, c) => Math.max(end, c.startMs + c.durationMs), 0);
-
     const handlerImpl: TimelineAgentHandler = {
       applyOp: editOp,
       getSnapshot(): TimelineSnapshot {
@@ -789,7 +727,6 @@ export const useTimelineAgentBridge = (
 
       async generateClip(opts) {
         const kind = opts.kind;
-        const store = doc.getState();
 
         // Resolve provider/model: explicit args, else the last-used model.
         const remembered = getRememberedModel(KIND_TO_MODEL_KIND[kind]);

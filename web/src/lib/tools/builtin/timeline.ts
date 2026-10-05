@@ -9,14 +9,8 @@ import {
   CUSTOM_ANIMATION_CONTRACT,
   DEFAULT_BEAT_TOLERANCE_MS,
   STAGGER_UNITS,
-  beatCountToCover,
-  buildBeatGrid,
-  snapClipsToGrid,
-  type ClipSnapResult,
   type MidiInstrument,
-  type QuantizeOptions,
-  type SnapBoundaryMode,
-  type SnapAction
+  type QuantizeOptions
 } from "@nodetool-ai/timeline";
 import {
   resolveDeleteTrackArgs,
@@ -28,7 +22,6 @@ import {
 import {
   buildTimelineToolContracts,
   liftCustomAnimation,
-  rejectUnknownClipParams,
   type TimelineToolArgs,
   type TimelineToolName
 } from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
@@ -37,10 +30,7 @@ import { FrontendToolRegistry } from "../frontendTools";
 import {
   getTimelineAgentHandler,
   type ClipAnimationInput,
-  type MidiNoteInput,
-  type TimelineAgentHandler,
-  type TimelineClipNode,
-  type TimelineMarkerNode
+  type MidiNoteInput
 } from "../../../components/timeline/timelineAgentBridge";
 import { docUrl } from "./resourceLinks";
 
@@ -936,40 +926,6 @@ FrontendToolRegistry.register({
     return { ...result, url: docUrl("timeline", timeline_id) };
   }
 });
-
-/** The clip a target names — an id, a name, or the literal "selected". */
-function resolveClip(
-  handler: TimelineAgentHandler,
-  target: string
-): TimelineClipNode | undefined {
-  const snapshot = handler.getSnapshot();
-  if (target === "selected") {
-    return snapshot.clips.find((c) => snapshot.selectedClipIds.includes(c.id));
-  }
-  return resolveSnapTargets(snapshot.clips, [target]).clips[0];
-}
-
-/** Clips a snap targets: named ones resolved by id or name, else every clip. */
-function resolveSnapTargets(
-  clips: TimelineClipNode[],
-  targets: string[] | undefined
-): { clips: TimelineClipNode[]; missing: string[] } {
-  if (!targets || targets.length === 0) {
-    return { clips: [...clips], missing: [] };
-  }
-  const resolved: TimelineClipNode[] = [];
-  const missing: string[] = [];
-  for (const target of targets) {
-    const lower = target.toLowerCase();
-    const clip =
-      clips.find((c) => c.id === target) ??
-      clips.find((c) => c.name.toLowerCase() === lower);
-    // Recorded as a skip in the op's own report, with the reason.
-    if (!clip) missing.push(target);
-    else if (!resolved.includes(clip)) resolved.push(clip);
-  }
-  return { clips: resolved, missing };
-}
 
 FrontendToolRegistry.register({
   ...shared("ui_timeline_snap_to_beats"),

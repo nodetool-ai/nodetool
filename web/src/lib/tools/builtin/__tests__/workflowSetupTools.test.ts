@@ -13,10 +13,7 @@ import { z } from "zod";
 
 import { FrontendToolRegistry } from "../../frontendTools";
 import type { FrontendToolState } from "../../frontendTools";
-import {
-  readWorkflowSetup,
-  writeWorkflowSetup
-} from "@nodetool-ai/protocol/api-schemas/workflows.js";
+import { readWorkflowSetup } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import useMetadataStore from "../../../../stores/MetadataStore";
 import type { NodeMetadata } from "../../../../stores/ApiTypes";
 import "../workflowSetup";
