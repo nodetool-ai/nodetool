@@ -2,7 +2,7 @@
 // -----------------------------------------------------------------
 // The unified tab registry for the tabbed-document workspace.
 //
-// A workspace tab is a `(type, ref)` document opened in a `mode`
+// A workspace tab is a document or an application instance opened in a `mode`
 // (view | edit). This store owns ONLY the tab list, the active tab,
 // and each tab's mode — the navigation state. Document *content*
 // stays in its existing store (WorkflowManagerStore for workflows,
@@ -56,11 +56,13 @@ export type WorkspaceTabType =
 export type WorkspaceTabMode = "view" | "edit";
 
 export interface WorkspaceTab {
-  /** Stable id, `${type}:${ref}` — one tab per document. */
+  /** Stable document or application instance navigation identity. */
   id: string;
   type: WorkspaceTabType;
   /** Document id: workflowId, sequenceId, assetId, sketchDocumentId, … */
   ref: string;
+  instanceId?: string;
+  selectedRunId?: string;
   mode: WorkspaceTabMode;
   title: string;
   /**
@@ -107,6 +109,8 @@ export const isTabInScope = (
 export interface OpenTabInput {
   type: WorkspaceTabType;
   ref: string;
+  instanceId?: string;
+  selectedRunId?: string;
   /**
    * Apps, games, and timelines default to "view". Other new tabs default
    * to "edit". Explicit modes override these defaults.
@@ -127,6 +131,8 @@ export interface ProjectTabDocument {
   type: WorkspaceTabType;
   ref: string;
   title: string;
+  instanceId?: string;
+  selectedRunId?: string;
 }
 
 export interface OpenProjectInput {
@@ -186,7 +192,9 @@ interface WorkspaceTabsState {
   setActiveTab: (id: string) => void;
   setMode: (id: string, mode: WorkspaceTabMode) => void;
   toggleMode: (id: string) => void;
-  setTitle: (ref: string, type: WorkspaceTabType, title: string) => void;
+  setTitle: (ref: string, type: WorkspaceTabType, title: string, instanceId?: string) => void;
+  resolveApplicationInstance: (ref: string, instanceId: string, title?: string) => string;
+  setApplicationRunSelection: (id: string, runId: string | null) => void;
   setGuidedFlowTarget: (ref: string, target: GuidedFlowTarget | null) => void;
   moveTab: (id: string, toIndex: number) => void;
   getActiveTab: () => WorkspaceTab | null;
@@ -211,8 +219,23 @@ export const PROJECT_LIST_REF = "projects";
 /** The new-project surface is one tab, so its `ref` is a constant too. */
 export const PROJECT_NEW_REF = "new";
 
-export const tabId = (type: WorkspaceTabType, ref: string): string =>
-  `${type}:${ref}`;
+export const tabId = (type: WorkspaceTabType, ref: string, instanceId?: string): string =>
+  type === "application" && instanceId ? `${type}:${ref}:instance:${instanceId}` : `${type}:${ref}`;
+
+const restoreInstanceFields = (tab: WorkspaceTab): WorkspaceTab => {
+  const { instanceId, selectedRunId, ...documentTab } = tab;
+  if (tab.type !== "application") { return documentTab; }
+  const restored: WorkspaceTab = { ...documentTab };
+  if (typeof instanceId === "string" && instanceId.length > 0) {
+    restored.instanceId = instanceId;
+    restored.mode = "view";
+    restored.id = tabId(tab.type, tab.ref, instanceId);
+  }
+  if (typeof selectedRunId === "string" && selectedRunId.length > 0) {
+    restored.selectedRunId = selectedRunId;
+  }
+  return restored;
+};
 
 /** A tab's project, with the loose bucket read as no project. */
 const projectOf = (projectId: string | undefined): string | undefined =>
@@ -407,12 +430,13 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
   persist(
     (set, get) => {
       const openTab = (
-        { type, ref, mode, title, projectId, setupTarget }: OpenTabInput,
+        { type, ref, mode, title, projectId, setupTarget, instanceId, selectedRunId }: OpenTabInput,
         foreground = false
       ): string => {
         mode ??= type === "application" || type === "game" || type === "timeline"
           ? "view" : undefined;
-        const id = tabId(type, ref);
+        if (type === "application" && instanceId) { mode = "view"; }
+        const id = tabId(type, ref, instanceId);
         const existing = get().tabs.find((t) => t.id === id);
         const project =
           projectId === undefined ? existing?.projectId : projectOf(projectId);
@@ -461,6 +485,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
                         mode: mode ?? t.mode,
                         title: title ?? t.title,
                         setupTarget: setupTarget ?? t.setupTarget,
+                        selectedRunId: selectedRunId ?? t.selectedRunId,
                         projectId:
                           projectId === undefined ? t.projectId : project
                       }
@@ -482,6 +507,8 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
         if (project) {
           tab.projectId = project;
         }
+        if (type === "application" && instanceId) { tab.instanceId = instanceId; }
+        if (type === "application" && selectedRunId) { tab.selectedRunId = selectedRunId; }
         if (setupTarget) {
           tab.setupTarget = setupTarget;
         }
@@ -613,29 +640,74 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           };
         }),
 
-      setMode: (id, mode) =>
+      setMode: (id, mode) => {
+        const tab = get().tabs.find((entry) => entry.id === id);
+        if (
+          mode === "edit" &&
+          tab?.type === "application" &&
+          tab.instanceId
+        ) {
+          openTab({
+            type: "application",
+            ref: tab.ref,
+            mode: "edit",
+            projectId: tab.projectId
+          });
+          return;
+        }
         set((state) => ({
           tabs: state.tabs.map((t) => (t.id === id ? { ...t, mode } : t))
-        })),
+        }));
+      },
 
-      toggleMode: (id) =>
-        set((state) => ({
-          tabs: state.tabs.map((t) =>
-            t.id === id
-              ? { ...t, mode: t.mode === "edit" ? "view" : "edit" }
-              : t
-          )
-        })),
+      toggleMode: (id) => {
+        const tab = get().tabs.find((entry) => entry.id === id);
+        if (tab) {
+          get().setMode(id, tab.mode === "edit" ? "view" : "edit");
+        }
+      },
 
-      setTitle: (ref, type, title) =>
+      setTitle: (ref, type, title, instanceId) =>
         set((state) => {
-          const id = tabId(type, ref);
+          const id = tabId(type, ref, instanceId);
           const existing = state.tabs.find((t) => t.id === id);
           if (!existing || existing.title === title) return state;
           return {
             tabs: state.tabs.map((t) => (t.id === id ? { ...t, title } : t))
           };
         }),
+
+      resolveApplicationInstance: (ref, instanceId, title) => {
+        const oldId = tabId("application", ref);
+        const id = tabId("application", ref, instanceId);
+        set((state) => {
+          const legacy = state.tabs.find((tab) => tab.id === oldId && tab.mode === "view");
+          if (!legacy) { return state; }
+          const existing = state.tabs.find((tab) => tab.id === id);
+          const tabs = existing
+            ? state.tabs.filter((tab) => tab.id !== oldId)
+            : state.tabs.map((tab) => tab.id === oldId ? { ...tab, id, instanceId, title: title ?? tab.title } : tab);
+          return {
+            tabs,
+            activeTabId: state.activeTabId === oldId ? id : state.activeTabId,
+            projectSessions: Object.fromEntries(Object.entries(state.projectSessions).map(([key, session]) => [key, {
+              ...session,
+              tabIds: [...new Set(session.tabIds.map((savedId) => savedId === oldId ? id : savedId))],
+              activeTabId: session.activeTabId === oldId ? id : session.activeTabId
+            }]))
+          };
+        });
+        return id;
+      },
+
+      setApplicationRunSelection: (id, runId) => set((state) => ({
+        tabs: state.tabs.map((tab) => {
+          if (tab.id !== id || tab.type !== "application") { return tab; }
+          if (runId) { return { ...tab, selectedRunId: runId }; }
+          const { selectedRunId: _selectedRunId, ...workingTab } = tab;
+          return workingTab;
+        })
+      })),
 
       setGuidedFlowTarget: (ref, target) =>
         set((state) => ({
@@ -790,7 +862,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           );
           const available = new Map(
             (documents ?? []).map((document) => [
-              tabId(document.type, document.ref),
+              tabId(document.type, document.ref, document.instanceId),
               document
             ])
           );
@@ -800,7 +872,9 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
                   documents === undefined
                     ? owned.get(savedTabId)
                     : owned.get(savedTabId)?.type === "guided-flow" ||
-                        available.has(savedTabId)
+                        available.has(savedTabId) ||
+                        (owned.get(savedTabId)?.type === "application" &&
+                          available.has(tabId("application", owned.get(savedTabId)?.ref ?? "")))
                       ? owned.get(savedTabId)
                       : undefined
                 )
@@ -887,7 +961,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
     },
     {
       name: "workspace-tabs-storage",
-      version: 3,
+      version: 4,
       partialize: (state) => ({
         tabs: state.tabs,
         activeTabId: state.activeTabId,
@@ -905,6 +979,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
           ...current,
           ...(persisted as Partial<WorkspaceTabsState> | undefined)
         };
+        merged.tabs = (merged.tabs ?? []).map(restoreInstanceFields);
         const projectSessions =
           merged.projectSessions &&
           Object.keys(merged.projectSessions).length > 0
@@ -932,7 +1007,7 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
       migrate: (persisted, version) => {
         const state = persisted as Partial<WorkspaceTabsState>;
         return {
-          tabs: state.tabs ?? [],
+          tabs: (state.tabs ?? []).map(restoreInstanceFields),
           activeTabId: state.activeTabId ?? null,
           activeProjectId: state.activeProjectId ?? null,
           personalProjectId: state.personalProjectId ?? null,
