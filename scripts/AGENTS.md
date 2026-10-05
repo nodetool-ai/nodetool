@@ -12,6 +12,9 @@ npm run test:packages    # Run the backend package tests
 npm run test:affected    # Run only the suites that depend on changed code
                          # (scripts/test-affected.mjs; rules pinned by
                          #  scripts/__tests__/test-affected.test.mjs)
+node scripts/ci-plan.mjs plan --base <sha>
+                         # Which CI quality-gate legs a diff needs (same
+                         # mapping; rules pinned by scripts/__tests__/ci-plan.test.mjs)
 npm run clean            # Remove build artifacts and dependencies
 npm run clean:build      # Remove build artifacts only
 ./scripts/setup-agent-env.sh  # Prepare a fresh agent container (see Root AGENTS.md)
