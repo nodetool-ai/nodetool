@@ -13,7 +13,7 @@ jest.mock("../../themes/ThemeNodetool", () => ({
 }));
 jest.mock("../../../config/data_types", () => ({}));
 jest.mock("../../../contexts/NodeContext", () => ({
-  useNodes: jest.fn((selector) => {
+  useOptionalNodes: jest.fn((selector) => {
     const state = { edges: [] };
     return selector(state);
   })

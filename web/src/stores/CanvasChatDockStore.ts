@@ -10,6 +10,8 @@ import { persist } from "zustand/middleware";
  *  - `overlayHeight` — height (px) of the conversation overlay.
  *  - `dockWidth` — width (px) of the whole dock, or `null` for the responsive
  *                  default (`min(820px, 100vw - 32px)`).
+ *  - `composerCollapsed` — the prompt is hidden and only the workflow toolbar
+ *                  row (Run, canvas tools) stays on the canvas.
  *
  * Transient view flags (`conversationCollapsed`, `threadsOpen`) are kept here
  * too so the keyboard shortcut and command menu can drive them, but they are
@@ -38,6 +40,7 @@ interface CanvasChatDockState {
   position: DockPosition;
   overlayHeight: number;
   dockWidth: number | null;
+  composerCollapsed: boolean;
   conversationCollapsed: boolean;
   threadsOpen: boolean;
 
@@ -45,6 +48,7 @@ interface CanvasChatDockState {
   resetPosition: () => void;
   setOverlayHeight: (height: number) => void;
   setDockWidth: (width: number | null) => void;
+  setComposerCollapsed: (collapsed: boolean) => void;
   setConversationCollapsed: (collapsed: boolean) => void;
   toggleConversation: () => void;
   setThreadsOpen: (open: boolean) => void;
@@ -57,6 +61,7 @@ export const useCanvasChatDockStore = create<CanvasChatDockState>()(
       position: DEFAULT_POSITION,
       overlayHeight: DEFAULT_OVERLAY_HEIGHT,
       dockWidth: null,
+      composerCollapsed: false,
       conversationCollapsed: true,
       threadsOpen: false,
 
@@ -66,12 +71,17 @@ export const useCanvasChatDockStore = create<CanvasChatDockState>()(
         set({ overlayHeight: clampOverlayHeight(height) }),
       setDockWidth: (width) =>
         set({ dockWidth: width === null ? null : clampDockWidth(width) }),
+      setComposerCollapsed: (composerCollapsed) => set({ composerCollapsed }),
       setConversationCollapsed: (conversationCollapsed) =>
         set({ conversationCollapsed }),
+      // The overlay is hidden while the composer is collapsed, so toggling
+      // it then expands the composer and opens the conversation.
       toggleConversation: () =>
-        set((state) => ({
-          conversationCollapsed: !state.conversationCollapsed
-        })),
+        set((state) =>
+          state.composerCollapsed
+            ? { composerCollapsed: false, conversationCollapsed: false }
+            : { conversationCollapsed: !state.conversationCollapsed }
+        ),
       setThreadsOpen: (threadsOpen) => set({ threadsOpen }),
       toggleThreads: () =>
         set((state) => ({ threadsOpen: !state.threadsOpen }))
@@ -82,7 +92,8 @@ export const useCanvasChatDockStore = create<CanvasChatDockState>()(
       partialize: (state) => ({
         position: state.position,
         overlayHeight: state.overlayHeight,
-        dockWidth: state.dockWidth
+        dockWidth: state.dockWidth,
+        composerCollapsed: state.composerCollapsed
       })
     }
   )

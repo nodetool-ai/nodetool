@@ -151,6 +151,15 @@ export function collectPageLoadErrors(
       return;
     }
     const failure = request.failure();
+    // Instance lists are cancelled when the default tab gains its instance ID.
+    if (
+      request.method() === "GET" &&
+      !CRITICAL_RESOURCE_TYPES.has(request.resourceType()) &&
+      /\/api\/app-instances\/metadata(?:[?]|$)/.test(request.url()) &&
+      failure?.errorText === "net::ERR_ABORTED"
+    ) {
+      return;
+    }
     errors.push({
       kind: "requestfailed",
       text: `${request.method()} ${request.url()} — ${

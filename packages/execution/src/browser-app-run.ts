@@ -1,6 +1,6 @@
 import { randomBytes } from "node:crypto";
 import {
-  getAppRun, claimAppRun, resolveRunReader, queryRunReaderSpans, writeRunTraceUpdate, settleAppRun, AppRunError, RunTraceError
+  getAppRun, getAppInstance, claimAppRun, resolveRunReader, queryRunReaderSpans, writeRunTraceUpdate, settleAppRun, AppRunError, RunTraceError
 } from "@nodetool-ai/models";
 import { browserRunStartInputSchema, BROWSER_TRACE_SOURCE_KEY, BROWSER_APP_RUNNER_INSTANCE, type TraceRecord } from "@nodetool-ai/protocol";
 import { RunsError } from "./runs.js";
@@ -48,6 +48,11 @@ async function startBrowserRun(userId: string, id: string, input: unknown): Prom
   const spanId = randomBytes(8).toString("hex");
   const start = Date.now();
   try {
+    const instance = await getAppInstance(userId, run.instance_id);
+    if (!instance || instance.version !== run.version ||
+      (run.snapshot !== null && JSON.stringify(instance.snapshot) !== JSON.stringify(run.snapshot))) {
+      throw new RunsError("invalid_input", "App instance snapshot changed before execution. Start a new run.");
+    }
     const committed = await writeRunTraceUpdate(userId, run.id, { kind: "span_started", record: {
       trace_id: run.trace_id, span_id: spanId, parent_span_id: parentId, name: "app.run", kind: "INTERNAL",
       start_time_ms: start, end_time_ms: start, duration_ms: 0, status: { code: "UNSET" },
@@ -61,7 +66,7 @@ async function startBrowserRun(userId: string, id: string, input: unknown): Prom
     rememberBrowserTracePolicy({ userId, runId: run.id, traceId: run.trace_id, origin: run.origin, secretValues: new Set(), policy: { contentSuppressed: false } });
     return { root_span_id: spanId };
   } catch (error) {
-    await settleAppRun(userId, run.id, { status: "failed", error: "Browser execution could not start", updateInstance: false });
+    await settleAppRun(userId, run.id, { status: "failed", error: "Browser execution could not start", actualUsd: 0, knownLlmUsd: 0, updateInstance: false });
     throw error;
   }
 }

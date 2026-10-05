@@ -1,19 +1,24 @@
+import { listAppInstanceMetadata } from "@nodetool-ai/models";
 import { TRPCError } from "@trpc/server";
 import type { FastifyPluginAsync, FastifyRequest } from "fastify";
 import { z } from "zod";
 import {
   appInstanceResponse,
+  advanceInstanceInput,
   appRunResponse,
   createInstanceInput,
   duplicateInstanceInput,
   getInstanceInput,
   listInstancesInput,
+  listInstanceMetadataInput,
+  listInstanceMetadataResponse,
   listRunsInput,
   reserveRunInput,
   updateInstanceInput
 } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
 import {
   appRunApi,
+  advanceOwnedAppInstance,
   createOwnedAppInstance,
   deleteAppInstance,
   deleteAppRun,
@@ -140,6 +145,32 @@ const appRunsRoutes: FastifyPluginAsync = async (app) => {
     }
   );
   app.get(
+    "/api/app-instances/metadata",
+    {
+      schema: {
+        querystring: jsonSchema(
+          listQuery.extend({ cursor: z.string().max(500).optional() })
+        ),
+        response: { 200: jsonSchema(listInstanceMetadataResponse) }
+      }
+    },
+    async (req) => {
+      const input = listInstanceMetadataInput.parse(
+        listQuery
+          .extend({ cursor: z.string().max(500).optional() })
+          .parse(req.query)
+      );
+      return appRunApi(() =>
+        listAppInstanceMetadata(owner(req), {
+          applicationId: input.application_id,
+          sourceId: input.source_id,
+          limit: input.limit,
+          cursor: input.cursor
+        })
+      );
+    }
+  );
+  app.get(
     "/api/app-instances/:id",
     { schema: { params: jsonSchema(idParams), response: instanceResponse } },
     async (req) =>
@@ -171,6 +202,23 @@ const appRunsRoutes: FastifyPluginAsync = async (app) => {
       appRunApi(async () => ({
         ok: await deleteAppInstance(owner(req), idParams.parse(req.params).id)
       }))
+  );
+  app.post(
+    "/api/app-instances/:id/advance",
+    {
+      schema: {
+        params: jsonSchema(idParams),
+        body: jsonSchema(advanceInstanceInput.omit({ id: true })),
+        response: instanceResponse
+      }
+    },
+    async (req) =>
+      appRunApi(() =>
+        advanceOwnedAppInstance(owner(req), {
+          ...advanceInstanceInput.omit({ id: true }).parse(req.body),
+          ...idParams.parse(req.params)
+        })
+      )
   );
   app.post(
     "/api/app-instances/:id/duplicate",

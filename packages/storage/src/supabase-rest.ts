@@ -1,7 +1,7 @@
 /**
  * Minimal fetch-backed client for the Supabase Storage REST API
  * (`/storage/v1/`), covering exactly the surface this package uses:
- * upload, download, remove, list, createSignedUrl, getPublicUrl.
+ * upload, download, info, remove, list, createSignedUrl, getPublicUrl.
  *
  * The shape mirrors the supabase-js subset previously consumed
  * (`client.storage.from(bucket).<op>()` returning `{ data, error }`), so
@@ -21,6 +21,14 @@ interface SupabaseDownloadData {
 export interface SupabaseObjectMetadata {
   size?: number;
   mimetype?: string;
+}
+
+/** One object's metadata, read off a `HEAD` of its key. */
+export interface SupabaseObjectInfo {
+  size: number;
+  contentType?: string;
+  /** Epoch milliseconds, absent when the response has no `Last-Modified`. */
+  modifiedAt?: number;
 }
 
 /** One entry from the Storage `list` endpoint. */
@@ -54,6 +62,11 @@ export interface SupabaseBucketApi {
     key: string
   ): Promise<{
     data: SupabaseDownloadData | null;
+    error: SupabaseError | null;
+  }>;
+  /** Metadata for exactly `key`. `data` is null when the object is absent. */
+  info(key: string): Promise<{
+    data: SupabaseObjectInfo | null;
     error: SupabaseError | null;
   }>;
   remove(keys: string[]): Promise<{ error: SupabaseError | null }>;
@@ -192,6 +205,26 @@ export function createSupabaseStorageClient(
               data: { arrayBuffer: async () => bytes },
               error: null
             };
+          },
+
+          async info(key) {
+            const response = await fetch(objectUrl(key), {
+              method: "HEAD",
+              headers: authHeaders
+            });
+            if (!response.ok) {
+              return { data: null, error: await readError(response) };
+            }
+            const info: SupabaseObjectInfo = {
+              size: Number(response.headers.get("content-length") ?? 0)
+            };
+            const contentType = response.headers.get("content-type");
+            if (contentType) info.contentType = contentType;
+            const lastModified = Date.parse(
+              response.headers.get("last-modified") ?? ""
+            );
+            if (Number.isFinite(lastModified)) info.modifiedAt = lastModified;
+            return { data: info, error: null };
           },
 
           async remove(keys) {

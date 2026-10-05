@@ -99,6 +99,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "appInstances.create": {
     gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
   },
+  "appInstances.advance": {
+    withheld: "Owner UI instance management uses revision-checked release advancement. Sandboxed code cannot change its own execution snapshot."
+  },
+  "appInstances.listMetadata": {
+    elsewhere: "Owner UI instance switcher pagination. Sandboxed code reads run metadata through the runs capabilities."
+  },
   "appInstances.delete": {
     gap: "Instance management is served to the owner UI in phase 1. No sandbox instance capability is exposed yet."
   },

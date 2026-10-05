@@ -13,9 +13,10 @@ import { stub } from "../../../test-utils/doubles";
 import { floodFill } from "../tools/FillTool";
 import { MoveTool } from "../tools/MoveTool";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
-import type { Point, SketchDocument } from "../types";
+import type { Point } from "../types";
 import { createDefaultDocument } from "../types";
 import { ellipseSelectionMask } from "../selection";
+import { makeToolContext } from "./_toolContextFixture";
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -45,64 +46,8 @@ function makeToolPointerEvent(
   };
 }
 
-function makeMinimalCtx(overrides: Partial<ToolContext> = {}): ToolContext {
-  const doc: SketchDocument = createDefaultDocument(100, 100);
-  return {
-    doc,
-    activeTool: "crop",
-    zoom: 1,
-    pan: { x: 0, y: 0 },
-    mirrorX: false,
-    mirrorY: false,
-    symmetryMode: "none",
-    symmetryRays: 2,
-    selection: null,
-    displayCanvasRef: { current: null },
-    overlayCanvasRef: { current: null },
-    gizmoCanvasRef: { current: null },
-    cursorCanvasRef: { current: null },
-    containerRef: { current: null },
-    layerCanvasesRef: { current: new Map() },
-    mousePositionRef: { current: { x: 0, y: 0 } },
-    activeStrokeRef: { current: null },
-    getOrCreateLayerCanvas: (() => {
-      const cache = new Map<string, HTMLCanvasElement>();
-      return jest.fn((layerId: string) => {
-        let c = cache.get(layerId);
-        if (!c) {
-          c = document.createElement("canvas");
-          c.width = 100;
-          c.height = 100;
-          cache.set(layerId, c);
-        }
-        return c;
-      });
-    })(),
-    redraw: jest.fn(),
-    redrawDirty: jest.fn(),
-    requestRedraw: jest.fn(),
-    requestDirtyRedraw: jest.fn(),
-    clearOverlay: jest.fn(),
-    drawSelectionOverlay: jest.fn(),
-    drawOverlayShape: jest.fn(),
-    drawOverlayGradient: jest.fn(),
-    drawOverlayCrop: jest.fn(),
-    drawOverlaySelection: jest.fn(),
-    drawOverlayLassoPreview: jest.fn(),
-    drawCursor: jest.fn(),
-    clearGizmo: jest.fn(),
-    drawGizmo: jest.fn(),
-    onZoomChange: jest.fn(),
-    onPanChange: jest.fn(),
-    onStrokeStart: jest.fn(),
-    onStrokeEnd: jest.fn(),
-    screenToCanvas: jest.fn((cx, cy) => ({ x: cx, y: cy })),
-    shiftHeldRef: { current: false },
-    altHeldRef: { current: false },
-    withMirror: jest.fn((ctx, fn, from, to) => fn(from, to, ctx, 0)),
-    ...overrides
-  };
-}
+const makeMinimalCtx = (overrides: Partial<ToolContext> = {}): ToolContext =>
+  makeToolContext({ activeTool: "crop", ...overrides });
 
 // ─── CropTool ESC cancel ──────────────────────────────────────────────────
 

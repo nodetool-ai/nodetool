@@ -6,6 +6,8 @@ import { stub } from "../../../test-utils/doubles";
 import { act, renderHook } from "@testing-library/react";
 import { usePointerHandlers } from "../sketchCanvasHooks/usePointerHandlers";
 import { getToolHandler } from "../tools";
+import * as tools from "../tools";
+import type { ToolHandler } from "../tools";
 import { TransformTool } from "../tools/TransformTool";
 import { MoveTool } from "../tools/MoveTool";
 import { createDefaultDocument } from "../types";
@@ -82,6 +84,57 @@ function makeParams(): UsePointerHandlersParams {
 }
 
 describe("usePointerHandlers", () => {
+  it("commits after pointer up and cancels through the active tool lifecycle", async () => {
+    const params = makeParams();
+    const events: string[] = [];
+    const onCommit = jest.fn(async () => { events.push("commit"); });
+    const onCancel = jest.fn();
+    const handler: ToolHandler = {
+      toolId: "brush",
+      onDown: jest.fn(() => true),
+      onUp: jest.fn(() => { events.push("up"); }),
+      onCommit,
+      onCancel
+    };
+    const realGetToolHandler = tools.getToolHandler;
+    const factory = jest.spyOn(tools, "getToolHandler").mockImplementation(
+      (tool) => tool === "brush" ? handler : realGetToolHandler(tool)
+    );
+    try {
+      const { result, rerender, unmount } = renderHook(
+        (hookParams: UsePointerHandlersParams) => usePointerHandlers(hookParams),
+        { initialProps: params }
+      );
+      const target = document.createElement("div");
+      target.setPointerCapture = jest.fn();
+      const event = stub<React.PointerEvent>({
+        button: 0,
+        clientX: 10,
+        clientY: 10,
+        pointerId: 1,
+        altKey: false,
+        ctrlKey: false,
+        metaKey: false,
+        nativeEvent: {} as PointerEvent,
+        target
+      });
+      act(() => { result.current.handlePointerDown(event); });
+      expect(handler.onDown).toHaveBeenCalledTimes(1);
+      expect(onCommit).not.toHaveBeenCalled();
+      await act(async () => { result.current.handlePointerUp(event); });
+      expect(events).toEqual(["up", "commit"]);
+      expect(onCommit).toHaveBeenCalledTimes(1);
+      expect(onCommit).toHaveBeenCalledWith(expect.objectContaining({ doc: params.doc }));
+      act(() => { result.current.cancelActiveTool(); });
+      expect(onCancel).toHaveBeenCalledTimes(1);
+      rerender({ ...params, activeTool: "select", interactionTool: "select" });
+      expect(onCancel).toHaveBeenCalledTimes(2);
+      unmount();
+    } finally {
+      factory.mockRestore();
+    }
+  });
+
   it("shows grabbing cursor while actively panning", () => {
     const params = makeParams();
     const target = document.createElement("div");

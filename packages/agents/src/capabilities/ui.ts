@@ -64,7 +64,10 @@ function documentCore(name: WorkflowDocumentToolName): CapabilityImpl {
     if (!workflowId) {
       return {
         error: "workflow_id_required",
-        message: "workflow_id is required when no workflow is active."
+        message:
+          "workflow_id is required: this call was served from saved workflows " +
+          "and no editor tab is reachable. Pass workflow_id, or open the " +
+          "workflow with ui_open_workflow({workflow_id}) first."
       };
     }
 

@@ -209,23 +209,6 @@ export async function persistFormatAdaptationsDetailed(
   return outcome;
 }
 
-/** Ids of the created sequences. Throws when none could be created. */
-export async function persistFormatAdaptations(
-  source: TimelineSequence,
-  state: AdaptationDocumentState,
-  options: CreateFormatAdaptationOptions
-): Promise<string[]> {
-  const outcome = await persistFormatAdaptationsDetailed(
-    source,
-    state,
-    options
-  );
-  if (outcome.createdIds.length === 0 && outcome.failures.length > 0) {
-    throw new Error(outcome.failures[0].message);
-  }
-  return outcome.createdIds;
-}
-
 /** Persist derived cuts without ever loading them over the source editor. */
 export function useCreateFormatAdaptation(
   source: TimelineSequence | undefined

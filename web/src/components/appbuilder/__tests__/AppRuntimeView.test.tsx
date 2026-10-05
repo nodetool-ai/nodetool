@@ -7,6 +7,7 @@ import type { Data } from "@puckeditor/core";
 
 import mockTheme from "../../../__mocks__/themeMock";
 import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
+import type { ServerAppInstance } from "../runtime/appInstanceApi";
 
 import AppRuntimeView from "../AppRuntimeView";
 import { useBugReportStore } from "../../../stores/BugReportStore";
@@ -20,8 +21,10 @@ import {
   workflowInstanceId
 } from "../runtime/appRuntimeStore";
 
+let mockLoadedInstance: ServerAppInstance | undefined;
+let mockInstanceError: string | undefined;
 jest.mock("../runtime/useAppInstance", () => ({
-  useAppInstance: () => ({ enabled: false, visitor: false, account: "1", instance: undefined, attach: () => undefined, flush: async () => undefined, serverFold: (apply: () => void) => apply(), refresh: async () => undefined, loading: false })
+  useAppInstance: () => ({ enabled: false, visitor: false, account: "1", instance: mockLoadedInstance, error: mockInstanceError, attach: () => undefined, flush: async () => undefined, serverFold: (apply: () => void) => apply(), refresh: async () => undefined, loading: false })
 }));
 jest.mock("../../../serverState/useRuns", () => ({
   ...jest.requireActual("../../../serverState/useRuns"),
@@ -84,12 +87,56 @@ const startRun = (id: string) =>
   );
 
 beforeEach(() => {
+  mockLoadedInstance = undefined;
+  mockInstanceError = undefined;
   disposeAppRuntimeStore(instance);
   useTraceStore.getState().clear();
   jest.mocked(useRun).mockReturnValue(stub<ReturnType<typeof useRun>>({ data: undefined }));
 });
 
 describe("AppRuntimeView (Puck Render)", () => {
+  it("keeps working values visible when a loaded instance has a save conflict", async () => {
+    mockLoadedInstance = stub<ServerAppInstance>({
+      id: "loaded-instance",
+      user_id: "1",
+      variables: {},
+      snapshot: {
+        document: {
+          schemaVersion: 3,
+          ui: { ...data, content: [{ type: "Text", props: { id: "t1", text: "", binding: "var:unsaved" } }] },
+          operations: [],
+          resources: [],
+          variables: [{ id: "unsaved", name: "Unsaved", scope: "instance", persist: false, type: { type: "str" } }]
+        },
+        workflow_graphs: {},
+        script_documents: {}
+      }
+    });
+    mockInstanceError = "This instance changed in another session";
+    act(() => {
+      store().getState().dispatchEvent({ type: "seedVariables", values: { unsaved: "Working draft" } });
+    });
+    renderView();
+    expect(await screen.findByText(mockInstanceError)).toBeInTheDocument();
+    expect(screen.getByText("Working draft")).toBeInTheDocument();
+    expect(store().getState().variables.unsaved).toBe("Working draft");
+  });
+  it("waits for explicit workspace instance identity before mounting widgets", () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ThemeProvider theme={mockTheme}>
+          <AppRuntimeView
+            workflow={workflow}
+            data={data}
+            application={{ id: "app" }}
+            onInstanceReady={jest.fn()}
+          />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+    expect(screen.getByText("Opening instance")).toBeInTheDocument();
+    expect(screen.queryByText("Reactive App")).not.toBeInTheDocument();
+  });
   it("opens the stored failed span and hands the same typed IDs to chat", async () => {
     const runId = "a".repeat(32), spanId = "b".repeat(16);
     startRun("failed-job");
@@ -261,5 +308,57 @@ describe("AppRuntimeView (Puck Render)", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Review: Review failed"
     );
+  });
+});
+
+describe("AppRuntimeView input widgets", () => {
+  const listWorkflow = stub<Workflow>({
+    id: "wf-runtime-image-list",
+    name: "Batch Photos",
+    access: "private",
+    graph: {
+      nodes: [
+        {
+          id: "in-photos",
+          type: "nodetool.input.ImageListInput",
+          data: { name: "photos", label: "Photos" }
+        }
+      ],
+      edges: []
+    }
+  });
+  const listData: Data = {
+    root: { props: {} },
+    content: [
+      {
+        type: "WorkflowInput",
+        props: { id: "in-batch-photos", binding: "photos", label: "Your photos" }
+      }
+    ],
+    zones: {}
+  };
+
+  afterEach(() =>
+    disposeAppRuntimeStore(workflowInstanceId(listWorkflow.id))
+  );
+
+  // The property components read the graph's connection state from the node
+  // store. A running app has no graph editor around it, so the view itself
+  // must supply one or the image list control throws on mount.
+  it("renders an image list input without a graph editor around it", () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ThemeProvider theme={mockTheme}>
+          <AppRuntimeView workflow={listWorkflow} data={listData} />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+
+    expect(
+      screen.queryByText(/failed to render/)
+    ).not.toBeInTheDocument();
+    expect(
+      document.querySelector('.image-list-property input[type="file"]')
+    ).not.toBeNull();
   });
 });

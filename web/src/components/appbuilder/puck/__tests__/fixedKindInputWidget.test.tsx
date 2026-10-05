@@ -5,13 +5,17 @@
  */
 import { render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { makeTestRuntime } from "../../__tests__/testRuntime";
 import { getComponentForProperty } from "../../../node/PropertyInput.resolver";
 import { createPropertyForInput } from "../../inputProperty";
 import type { WorkflowInputKind } from "../../inputKinds";
-import { FixedKindInputWidget } from "../WorkflowInputWidget";
+import {
+  FixedKindInputWidget,
+  WorkflowInputControl
+} from "../WorkflowInputWidget";
 import DataframeProperty from "../../../properties/DataframeProperty";
 import FilePathProperty from "../../../properties/FilePathProperty";
 import FolderPathProperty from "../../../properties/FolderPathProperty";
@@ -68,4 +72,33 @@ describe("FixedKindInputWidget", () => {
     expect(screen.getByText(/Source File/i)).toBeInTheDocument();
     expect(screen.getByText("Pick a file…")).toBeInTheDocument();
   });
+});
+
+// A running app has no graph editor, so no node store is mounted. These are
+// the kinds whose editors read connection state, node bounds, undo history, or
+// the node itself from that store.
+describe("input controls without a node store", () => {
+  it.each(["integer", "float", "audio", "image_list", "image_size"] as const)(
+    "renders %s",
+    (kind) => {
+      const { container } = render(
+        <QueryClientProvider client={new QueryClient()}>
+          <ThemeProvider theme={mockTheme}>
+            <WorkflowInputControl
+              input={{
+                nodeId: "n1",
+                nodeType: "nodetool.input.Test",
+                name: "value",
+                label: "Value",
+                kind
+              }}
+              value={undefined}
+              onValue={() => undefined}
+            />
+          </ThemeProvider>
+        </QueryClientProvider>
+      );
+      expect(container.firstChild).not.toBeNull();
+    }
+  );
 });

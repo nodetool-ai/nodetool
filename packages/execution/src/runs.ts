@@ -8,7 +8,7 @@ import {
   type RunReaderFlags, type RunTraceRegistration, type TraceRecord, type RunLog
 } from "@nodetool-ai/protocol";
 import {
-  resolveRunReader, findRunReaderSource, queryRunReaders, queryRunReaderSpans, queryRunReaderGenerationIds, queryRunReaderDocumentIds, queryRunReaderAppMetadata, queryRunReaderAppContent, queryRunReaderAppContentPresent, queryRunReaderGenerationCosts, encodeRunListCursor,
+  resolveRunReader, findRunReaderSource, queryRunReaders, queryRunReaderSpans, queryRunReaderGenerationIds, queryRunReaderDocuments, queryRunReaderAppMetadata, queryRunReaderAppContent, queryRunReaderAppContentPresent, queryRunReaderGenerationCosts, encodeRunListCursor,
   RunTraceError, type RunReaderSpan
 } from "@nodetool-ai/models";
 
@@ -45,7 +45,11 @@ export async function listRuns(userId: string, options: RunListOptions = {}): Pr
   if (parsed.since && parsed.until && parsed.since > parsed.until) { throw new RunsError("invalid_input", "since must precede until"); }
   const rows = await modelRead(() => queryRunReaders(userId, parsed)); const runs = rows.slice(0, parsed.limit);
   const last = runs.at(-1);
-  return { runs: runs.map(publicRunRecord), next_cursor: rows.length > parsed.limit && last ? encodeRunListCursor(last) : null };
+  return { runs: runs.map((run) => {
+    const record = publicRunRecord(run);
+    if (run.app) { record.app = run.app; }
+    return record;
+  }), next_cursor: rows.length > parsed.limit && last ? encodeRunListCursor(last) : null };
 }
 function compareSpans(a: RunReaderSpan, b: RunReaderSpan): number {
   return a.metadata.start_time_ms - b.metadata.start_time_ms || a.span_id.localeCompare(b.span_id);
@@ -114,10 +118,11 @@ export async function getRun(userId: string, id: string, options: RunGetOptions 
     const provider = attrs["llm.provider"] ?? attrs["gen_ai.system"] ?? attrs["generation.provider"];
     if (typeof cost === "number" && Number.isFinite(cost) && typeof provider === "string") { const name = provider.slice(0, 200); costs.set(name, (costs.get(name) ?? 0) + cost); if (typeof attrs["generation.id"] === "string") { chargedGenerations.add(attrs["generation.id"]); } }
     if (typeof attrs["generation.id"] === "string") { generations.add(attrs["generation.id"]); }
-    if (typeof attrs["document.id"] === "string") { documents.add(attrs["document.id"]); }
+    if (run.kind !== "app" && run.origin !== "public" && !run.content_expired && typeof attrs["document.id"] === "string") { documents.add(attrs["document.id"]); }
   }
   for (const generation of await queryRunReaderGenerationIds(userId, run)) { generations.add(generation); }
-  for (const document of await queryRunReaderDocumentIds(userId, run)) { documents.add(document); }
+  const documentReferences = await queryRunReaderDocuments(userId, run);
+  for (const document of documentReferences) { documents.add(document.id); }
   for (const generation of await queryRunReaderGenerationCosts(userId, run, [...generations].slice(0, 100))) {
     generations.add(generation.id);
     if (!chargedGenerations.has(generation.id) && generation.cost !== null && Number.isFinite(generation.cost)) { const provider = generation.provider.slice(0, 200); costs.set(provider, (costs.get(provider) ?? 0) + generation.cost); }
@@ -136,7 +141,7 @@ export async function getRun(userId: string, id: string, options: RunGetOptions 
     failure_path: failurePath.map(spanSummary), cost_by_provider: Object.fromEntries([...costs].sort(([a], [b]) => a.localeCompare(b)).slice(0, 20)),
     slowest_spans: [...rows].sort((a, b) => b.metadata.duration_ms - a.metadata.duration_ms || compareSpans(a, b)).slice(0, RUN_SUMMARY_SPAN_LIMIT).map(spanSummary),
     counts_by_name: Object.fromEntries([...counts].sort(([a], [b]) => a.localeCompare(b)).slice(0, 50)), span_count: rows.length, event_count: rows.reduce((count, row) => count + row.metadata.events.length, 0),
-    generation_ids: [...generations].sort().slice(0, 100), document_ids: [...documents].sort().slice(0, 100),
+    documents: documentReferences.slice(0, 100), documents_limited: documentReferences.length > 100, generation_ids: [...generations].sort().slice(0, 100), document_ids: [...documents].sort().slice(0, 100),
     summary_truncated: path.length > RUN_SUMMARY_SPAN_LIMIT || counts.size > 50 || costs.size > 20 || generations.size > 100 || documents.size > 100 } };
 }
 interface ReaderBudget { remaining: number; string_limit?: number; limited?: boolean }

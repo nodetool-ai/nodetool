@@ -3,7 +3,7 @@ import { useInputMinMax } from "../useInputMinMax";
 
 jest.mock("../../contexts/NodeContext");
 
-import { useNodes } from "../../contexts/NodeContext";
+import { useOptionalNodes } from "../../contexts/NodeContext";
 
 // The hook looks a node up through the store's `findNode` index, so the
 // double has to answer that call.
@@ -14,7 +14,7 @@ const nodeStoreState = <T extends { id: string }>(nodes: T[]) => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
-  (useNodes as jest.Mock).mockImplementation((selector) =>
+  (useOptionalNodes as jest.Mock).mockImplementation((selector) =>
     selector(nodeStoreState([]))
   );
 });
@@ -176,7 +176,7 @@ describe("useInputMinMax", () => {
 
   describe("node bounds lookup", () => {
     it("uses node min/max when available for FloatInput", () => {
-      (useNodes as jest.Mock).mockImplementation((selector) =>
+      (useOptionalNodes as jest.Mock).mockImplementation((selector) =>
         selector(
           nodeStoreState([
             {

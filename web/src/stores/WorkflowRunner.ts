@@ -809,14 +809,37 @@ export const createWorkflowRunnerStore = (
 
 const runnerStores = new Map<string, WorkflowRunnerStore>();
 
+/** App scopes share a workflow transport but only their own job may change their runner. */
+export function applyScopedRunnerJobUpdate(
+  store: WorkflowRunnerStore,
+  update: { job_id: string; status: string; queue_position?: number | null }
+): void {
+  const runner = store.getState();
+  if (runner.job_id !== update.job_id) { return; }
+  let state: WorkflowRunner["state"];
+  switch (update.status) {
+    case "queued":
+    case "running": state = "running"; break;
+    case "completed": state = "idle"; break;
+    case "failed":
+    case "timed_out": state = "error"; break;
+    case "cancelled": state = "cancelled"; break;
+    default: return;
+  }
+  if (runner.state === "cancelled" && state === "running") { return; }
+  store.setState({ state, queuePosition: update.status === "queued" ? update.queue_position ?? null : null, statusMessage: null });
+}
+
 export const getWorkflowRunnerStore = (
-  workflowId: string
+  workflowId: string,
+  instanceScope?: string
 ): WorkflowRunnerStore => {
-  let store = runnerStores.get(workflowId);
+  const key = instanceScope ? `${workflowId}:${instanceScope}` : workflowId;
+  let store = runnerStores.get(key);
 
   if (!store) {
     store = createWorkflowRunnerStore(workflowId);
-    runnerStores.set(workflowId, store);
+    runnerStores.set(key, store);
   }
 
   return store;

@@ -150,6 +150,14 @@ export async function executeAppOperation(
     if (!instance) {
       throw new Error("App instance was deleted before execution");
     }
+    if (instance.version !== run.version ||
+      (run.snapshot !== null && JSON.stringify(instance.snapshot) !== JSON.stringify(run.snapshot))) {
+      const error = "App instance snapshot changed before execution. Start a new run.";
+      run = await settleOperationRun(options.userId, run, {
+        status: "failed", actualUsd: 0, knownLlmUsd: 0, updateInstance: false, error
+      });
+      throw new Error(error);
+    }
     const snapshot = run.snapshot ?? instance.snapshot;
     const document = parseApplicationDocument(snapshot.document);
     if (!document) {

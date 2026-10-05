@@ -20,6 +20,8 @@ import DownloadIcon from "@mui/icons-material/Download";
 import LinearScaleIcon from "@mui/icons-material/LinearScale";
 import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
+import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
+import ExpandLessIcon from "@mui/icons-material/ExpandLess";
 import { useLocation } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 
@@ -157,6 +159,21 @@ const dockStyles = (theme: Theme) =>
       },
       ".media-cost-estimate": {
         display: "none"
+      }
+    },
+
+    // Collapsed composer: only the workflow toolbar row stays visible, so the
+    // dock shrinks to a slim bar that keeps Run reachable. Hidden with CSS
+    // rather than unmounted so a draft prompt and attachments survive.
+    "&.composer-collapsed": {
+      ".media-compose-card > :not(.media-chip-row), .media-chip-row > :not(.composer-workflow-actions)":
+        {
+          display: "none"
+        },
+      ".composer-workflow-actions": {
+        marginTop: 0,
+        paddingTop: 0,
+        borderTop: "none"
       }
     },
 
@@ -447,6 +464,9 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   const {
     conversationCollapsed,
     setConversationCollapsed,
+    toggleConversation,
+    composerCollapsed,
+    setComposerCollapsed,
     dockWidth,
     storePosition,
     setStorePosition,
@@ -455,6 +475,9 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     useShallow((state) => ({
       conversationCollapsed: state.conversationCollapsed,
       setConversationCollapsed: state.setConversationCollapsed,
+      toggleConversation: state.toggleConversation,
+      composerCollapsed: state.composerCollapsed,
+      setComposerCollapsed: state.setComposerCollapsed,
       dockWidth: state.dockWidth,
       storePosition: state.position,
       setStorePosition: state.setPosition,
@@ -470,7 +493,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   // The composer is the canvas chat entry point now that the left chat panel
   // is gone, so the conversation toggle is always available — opening the
   // overlay reaches the thread (even empty), the thread list, and full chat.
-  const conversationOpen = !conversationCollapsed;
+  // A collapsed composer also hides the overlay.
+  const conversationOpen = !conversationCollapsed && !composerCollapsed;
+
+  const handleToggleComposer = useCallback(() => {
+    setComposerCollapsed(!composerCollapsed);
+  }, [composerCollapsed, setComposerCollapsed]);
 
   // Draggable dock. `useDraggable` owns the dock's transform; we persist the
   // final (on-screen clamped) offset to the store on release so it survives
@@ -525,7 +553,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
 
   // Mobile ignores the persisted (desktop) width and MIN_DOCK_WIDTH — a phone
   // viewport can be narrower than both.
-  const dockWidthCss = isMobile
+  // A collapsed composer is only as wide as its toolbar row.
+  const dockWidthCss = composerCollapsed
+    ? "auto"
+    : isMobile
     ? "calc(100vw - 16px)"
     : dockWidth != null
       ? `clamp(${MIN_DOCK_WIDTH}px, ${dockWidth}px, min(${MAX_DOCK_WIDTH}px, calc(100vw - 32px)))`
@@ -630,7 +661,7 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           <button
             type="button"
             className={cn("composer-convo", conversationOpen && "active")}
-            onClick={() => setConversationCollapsed(!conversationCollapsed)}
+            onClick={toggleConversation}
             aria-label="Toggle conversation"
             aria-pressed={conversationOpen}
           >
@@ -725,6 +756,22 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         </Tooltip>
 
         <Tooltip
+          title={composerCollapsed ? "Show prompt" : "Hide prompt"}
+          placement="top"
+          delay={TOOLTIP_ENTER_DELAY}
+        >
+          <button
+            type="button"
+            className="composer-action composer-collapse"
+            onClick={handleToggleComposer}
+            aria-label={composerCollapsed ? "Show prompt" : "Hide prompt"}
+            aria-expanded={!composerCollapsed}
+          >
+            {composerCollapsed ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+          </button>
+        </Tooltip>
+
+        <Tooltip
           title="Workflow actions"
           placement="top"
           delay={TOOLTIP_ENTER_DELAY}
@@ -757,7 +804,10 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
         <div
           ref={dockRef}
           css={dockStyles(theme)}
-          className="floating-toolbar canvas-chat-dock"
+          className={cn(
+            "floating-toolbar canvas-chat-dock",
+            composerCollapsed && "composer-collapsed"
+          )}
           style={{ width: dockWidthCss }}
         >
           {conversationOpen && (

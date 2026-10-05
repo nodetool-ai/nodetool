@@ -515,6 +515,13 @@ export async function updateAppInstance(
   if (input.snapshot) {
     const next = appRunSnapshot.parse(input.snapshot);
     const variables = new Set(next.document.variables.map((v) => v.id));
+    for (const graph of Object.values(next.workflow_graphs)) {
+      for (const node of graph.nodes) {
+        if (node.type === "nodetool.variable.SetVariable" && isJsonRecord(node.properties) && typeof node.properties.name === "string") {
+          variables.add(node.properties.name.trim());
+        }
+      }
+    }
     if (
       Object.keys(existing.variables).some(
         (k) => !k.startsWith("__app_") && !variables.has(k)
@@ -779,18 +786,21 @@ export async function reserveAppRun(
     created_at: new Date().toISOString(),
     ...fields
   };
-  const rows =
-    c.dialect === "sqlite"
-      ? await c.db
-          .insert(c.schema.applicationInvocations)
-          .values(row)
-          .onConflictDoNothing()
-          .returning()
-      : await c.db
-          .insert(c.schema.applicationInvocations)
-          .values(row)
-          .onConflictDoNothing()
-          .returning();
+  const rows = c.dialect === "sqlite"
+    ? c.db.transaction((tx) => {
+      const i = c.schema.appInstances;
+      const current = tx.select({ revision: i.revision }).from(i)
+        .where(and(eq(i.id, instance.id), eq(i.user_id, input.userId))).get();
+      if (!current || current.revision !== instance.revision) { throw new AppInstanceConflictError(); }
+      return tx.insert(c.schema.applicationInvocations).values(row).onConflictDoNothing().returning().all();
+    })
+    : await c.db.transaction(async (tx) => {
+      const i = c.schema.appInstances;
+      const [current] = await tx.select({ revision: i.revision }).from(i)
+        .where(and(eq(i.id, instance.id), eq(i.user_id, input.userId))).for("update").limit(1);
+      if (!current || current.revision !== instance.revision) { throw new AppInstanceConflictError(); }
+      return tx.insert(c.schema.applicationInvocations).values(row).onConflictDoNothing().returning();
+    });
   if (rows[0]) {
     return { allowed: true, run: appRunResponse.parse(rows[0]), created: true };
   }
@@ -1017,7 +1027,9 @@ export async function settleAppRun(
           and(
             eq(i.id, run.instance_id),
             eq(i.user_id, userId),
-            eq(i.revision, revision)
+            eq(i.revision, revision),
+            run.snapshot === null ? undefined : eq(i.snapshot, run.snapshot),
+            run.version === null ? isNull(i.version) : eq(i.version, run.version)
           )
         )
         .returning({ id: i.id })
@@ -1064,7 +1076,7 @@ export async function settleAppRun(
       }
       const revision = input.expectedRevision ?? run.instance_revision;
       const instance = current[0];
-      if (!instance || instance.revision !== revision) {
+      if (!instance || instance.revision !== revision || instance.version !== run.version || (run.snapshot !== null && JSON.stringify(instance.snapshot) !== JSON.stringify(run.snapshot))) {
         await tx.update(t).set({ state_conflict: 1 }).where(eq(t.id, run.id));
         return;
       }
@@ -1082,7 +1094,9 @@ export async function settleAppRun(
           and(
             eq(i.id, run.instance_id),
             eq(i.user_id, userId),
-            eq(i.revision, revision)
+            eq(i.revision, revision),
+            run.snapshot === null ? undefined : eq(i.snapshot, run.snapshot),
+            run.version === null ? isNull(i.version) : eq(i.version, run.version)
           )
         );
     });

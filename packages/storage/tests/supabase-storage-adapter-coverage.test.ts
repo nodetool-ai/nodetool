@@ -16,6 +16,7 @@ function makeClient(
     download: vi.fn(async () => ({ data: null, error: null })),
     remove: vi.fn(async () => ({ error: null })),
     list: vi.fn(async () => ({ data: [], error: null })),
+    info: vi.fn(async () => ({ data: null, error: { message: "not found" } })),
     createSignedUrl: vi.fn(async () => ({ data: null, error: null })),
     getPublicUrl: (key: string) => ({
       data: { publicUrl: `https://x.supabase.co/pub/${key}` }
@@ -293,22 +294,20 @@ describe("SupabaseStorageAdapter list", () => {
 });
 
 describe("SupabaseStorageAdapter stat", () => {
-  it("returns stat for a matching nested key", async () => {
+  it("reads metadata for the exact key", async () => {
     const { adapter, bucket } = makeAdapter({
-      list: vi.fn(async () => ({
-        data: [
-          {
-            name: "file.txt",
-            id: "1",
-            updated_at: "2022-06-01T00:00:00.000Z",
-            metadata: { size: 42, mimetype: "text/plain" }
-          }
-        ],
+      info: vi.fn(async () => ({
+        data: {
+          size: 42,
+          contentType: "text/plain",
+          modifiedAt: new Date("2022-06-01T00:00:00.000Z").getTime()
+        },
         error: null
       }))
     });
     const stat = await adapter.stat("supabase://uploads/dir/file.txt");
-    expect(bucket.list).toHaveBeenCalledWith("dir", { search: "file.txt", limit: 1 });
+    expect(bucket.info).toHaveBeenCalledWith("dir/file.txt");
+    expect(bucket.list).not.toHaveBeenCalled();
     expect(stat).toEqual({
       key: "dir/file.txt",
       size: 42,
@@ -317,29 +316,20 @@ describe("SupabaseStorageAdapter stat", () => {
     });
   });
 
-  it("defaults size and modifiedAt when metadata / updated_at missing", async () => {
+  it("defaults modifiedAt and omits contentType when the response lacks them", async () => {
     const { adapter } = makeAdapter({
-      list: vi.fn(async () => ({ data: [{ name: "top.txt", id: "1" }], error: null }))
+      info: vi.fn(async () => ({ data: { size: 7 }, error: null }))
     });
     const before = Date.now();
     const stat = await adapter.stat("supabase://uploads/top.txt");
     expect(stat?.key).toBe("top.txt");
-    expect(stat?.size).toBe(0);
+    expect(stat?.size).toBe(7);
     expect(stat?.contentType).toBeUndefined();
     expect(stat?.modifiedAt).toBeGreaterThanOrEqual(before);
   });
 
-  it("returns null when no entry matches the name", async () => {
-    const { adapter } = makeAdapter({
-      list: vi.fn(async () => ({ data: [{ name: "other.txt", id: "1" }], error: null }))
-    });
-    expect(await adapter.stat("supabase://uploads/file.txt")).toBeNull();
-  });
-
-  it("returns null when list errors", async () => {
-    const { adapter } = makeAdapter({
-      list: vi.fn(async () => ({ data: null, error: { message: "x" } }))
-    });
+  it("returns null when the object is absent", async () => {
+    const { adapter } = makeAdapter();
     expect(await adapter.stat("supabase://uploads/file.txt")).toBeNull();
   });
 

@@ -187,8 +187,8 @@ const PuckAppEditor: React.FC<PuckAppEditorProps> = ({
     document: designDocument,
     workflowOverrides: operationWorkflows
   });
-  // Property components resolved by WorkflowInputWidget (AudioProperty) read
-  // the workflow's node store via NodeContext — same wrap as the runtime view.
+  // The builder sits next to the graph, so its preview controls read the
+  // workflow's live node store. They also work without one.
   const nodeStore = useWorkflowManager((s) => s.nodeStores[workflow.id]);
   const [previewWidth, setPreviewWidth] = useState<PreviewWidth>("fit");
 
