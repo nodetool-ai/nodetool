@@ -303,7 +303,7 @@ function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
-function readPackages(extraWorkspacePaths) {
+export function readPackages(extraWorkspacePaths) {
   // Workspaces come from the root package.json, not a scan of packages/ —
   // reliability/harness is a workspace too.
   const rootPkg = readJson(join(repoRoot, "package.json"));
