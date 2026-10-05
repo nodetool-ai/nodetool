@@ -8,7 +8,7 @@ import {
   useAppInstances,
   useAppInstanceMutations
 } from "../useAppInstances";
-import { loadAppInstance } from "../../components/appbuilder/runtime/appInstanceApi";
+import { deleteAppInstance, loadAppInstance } from "../../components/appbuilder/runtime/appInstanceApi";
 
 let account = "owner";
 let visitor: string | null = null;
@@ -60,6 +60,14 @@ const mount = () => {
 };
 
 describe("instance management query boundary", () => {
+  it("sends a bodyless DELETE without a JSON content type", async () => {
+    respond({ ok: true });
+    await deleteAppInstance(instance.id);
+    const init = fetchMock.mock.calls[0][1];
+    expect(init?.method).toBe("DELETE");
+    expect(init?.body).toBeUndefined();
+    expect(new Headers(init?.headers).has("content-type")).toBe(false);
+  });
   beforeEach(() => {
     fetchMock.mockReset();
     account = "owner";

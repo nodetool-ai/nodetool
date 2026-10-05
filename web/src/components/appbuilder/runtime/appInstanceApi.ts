@@ -112,11 +112,9 @@ async function request(
   body?: unknown,
   signal?: AbortSignal
 ): Promise<unknown> {
-  const init: RequestInit = {
-    method,
-    headers: { "content-type": "application/json" }
-  };
+  const init: RequestInit = { method };
   if (body !== undefined) {
+    init.headers = { "content-type": "application/json" };
     init.body = JSON.stringify(body);
   }
   if (signal) {
