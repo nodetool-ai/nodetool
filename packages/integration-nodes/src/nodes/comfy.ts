@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { comfyDynamicSlots } from "./comfy-schema.js";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
   executeComfy,
@@ -106,9 +107,11 @@ async function* streamComfyV2(
  * derived from the workflow.
  *
  * The workflow is supplied in ComfyUI's API ("prompt") format — a map of
- * node id to `{ class_type, inputs }`. The web UI loads a workflow (paste or
- * drop a `.json`/`.png`) and exposes its `Load*` nodes as typed inputs and
- * `Save*` nodes as streaming outputs. Dynamic input handles are keyed
+ * node id to `{ class_type, inputs }`. Its `Load*` nodes and prompt text
+ * become typed inputs and its `Save*` nodes streaming outputs, derived from
+ * the `workflow` property by {@link comfyDynamicSlots} at graph hydration, so
+ * a workflow set over the API wires the same way as one loaded in the editor.
+ * Dynamic input handles are keyed
  * `"<comfyNodeId>:<field>"`; connected values are injected into the prompt
  * before submission (assets are uploaded to the ComfyUI server first).
  *
@@ -130,6 +133,7 @@ export class ComfyWorkflowNode extends BaseNode {
     "Run a ComfyUI workflow on a ComfyUI server.\n    comfy, comfyui, workflow, image, diffusion\n\n    Use cases:\n    - Generate images with an existing ComfyUI workflow\n    - Call a local or remote ComfyUI server (RunPod, etc.)\n    - Embed ComfyUI generation inside a NodeTool workflow";
   static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
+  static readonly resolveDynamicSlots = comfyDynamicSlots;
   static readonly metadataOutputTypes = {
     output: "dict[str, any]"
   };

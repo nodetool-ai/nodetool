@@ -421,6 +421,10 @@ export {
   resolveKieDynamicSchema
 } from "@nodetool-ai/integration-nodes/nodes/kie-dynamic";
 export {
+  resolveComfyWorkflow,
+  type ComfyResolvedSchema
+} from "@nodetool-ai/integration-nodes/nodes/comfy-schema";
+export {
   CollectionNode,
   CountNode,
   GetDocumentsNode,
