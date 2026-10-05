@@ -179,31 +179,62 @@ export default function AppInstanceManager({
             ? "Draft working copy"
             : `Pinned version ${instance.version}`}
         </Caption>
-        <EditorButton disabled={busy} onClick={() => show("new")}>
+        <EditorButton
+          variant="outlined"
+          color="inherit"
+          disabled={busy}
+          onClick={() => show("new")}
+        >
           New instance
         </EditorButton>
-        <EditorButton disabled={busy} onClick={() => show("rename")}>
+        <EditorButton
+          variant="outlined"
+          color="inherit"
+          disabled={busy}
+          onClick={() => show("rename")}
+        >
           Rename
         </EditorButton>
-        <EditorButton disabled={busy} onClick={() => show("duplicate")}>
+        <EditorButton
+          variant="outlined"
+          color="inherit"
+          disabled={busy}
+          onClick={() => show("duplicate")}
+        >
           Duplicate
         </EditorButton>
-        <EditorButton disabled={busy} onClick={() => show("delete")}>
+        <EditorButton
+          variant="outlined"
+          color="inherit"
+          disabled={busy}
+          onClick={() => show("delete")}
+        >
           Delete instance
         </EditorButton>
         {latestVersion !== undefined &&
         latestVersion > (instance.version ?? 0) ? (
-          <EditorButton disabled={busy} onClick={() => show("advance")}>
+          <EditorButton
+            variant="outlined"
+            color="inherit"
+            disabled={busy}
+            onClick={() => show("advance")}
+          >
             Advance to version {latestVersion}
           </EditorButton>
         ) : null}
         {pageIndex > 0 ? (
-          <EditorButton onClick={() => setPageIndex((index) => index - 1)}>
+          <EditorButton
+            variant="outlined"
+            color="inherit"
+            onClick={() => setPageIndex((index) => index - 1)}
+          >
             Newer instances
           </EditorButton>
         ) : null}
         {list.hasNextPage || list.data?.pages[pageIndex + 1] ? (
           <EditorButton
+            variant="outlined"
+            color="inherit"
             disabled={list.isFetchingNextPage}
             onClick={() => void older()}
           >
