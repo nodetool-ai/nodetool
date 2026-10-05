@@ -19,15 +19,15 @@ concurrency:
 
 jobs:
   # Deploys a commit once both of its release checks have passed: the Docker
-  # image build (once a day on main, or dispatched) and User Journeys with
-  # reliability Ring 1 (every push to main). Each workflow's completion
+  # image build and User Journeys with reliability Ring 1, both on every
+  # push to main. Each workflow's completion
   # triggers this one, so the gate never waits: when the other check has not
   # finished, it exits without deploying, and that check's own completion
   # runs the gate again.
   #
   # A commit is superseded when it is not the head of the newest Docker build
-  # on main. Comparing with main's tip instead would skip the daily release
-  # whenever anything merged while the image was building.
+  # on main. A newer build on main is the release candidate instead; its
+  # own completion runs this gate again.
   gate:
     name: Check Docker build + reliability Ring 1
     runs-on: ubuntu-latest

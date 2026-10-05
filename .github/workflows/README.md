@@ -32,8 +32,8 @@ hatch. The same workflow's **`reliability-ring1`** job runs on every push to
 | `quality-checks.yml` | Reusable gate: deps/lint static legs plus the TypeScript 6 build when manifests change, one shared build, and `built` legs chosen per diff (typecheck+parity+examples, four `test-packages-*` shards of the backend suite, three web Jest shards or one related-tests leg, electron+mobile, bundle, harness gate). The `docker` leg builds the image, boots it, and loads the app in a browser when a diff changes the image's own files, and nightly | 0 | Required (infra called by `test.yml`) |
 | `page-load-smoke.yml` | Playwright: every route loads against a seeded backend | 0 | Required |
 | `e2e-runner.yml` | Browser-driven e2e_runner suite against the real backend stack | 1 | Required (also gates PRs today, ahead of the ring split) |
-| `docker.yml` | Build and push the GHCR image: main once a day (skipped when main has not moved) or on dispatch, `preview/**` pushes, tags | 1 | Required |
-| `fly-deploy.yml` | **Deploy to Docker**: release the GHCR image to the production host over restricted SSH, gated on Docker + User Journeys succeeding for the same commit. Production therefore releases once a day | 1 | Required |
+| `docker.yml` | Build and push the GHCR image (main, `preview/**`, tags) | 1 | Required |
+| `fly-deploy.yml` | **Deploy to Docker**: release the GHCR image to the production host over restricted SSH, gated on Docker + User Journeys succeeding for the same commit | 1 | Required |
 | `web-deploy.yml` | Build the web app and deploy to Cloudflare Pages | 1 | Required |
 | `user-journeys.yml` | `journeys`: Playwright journey suite on pull requests, nightly, and dispatch (build a graph and run it, chat, mini app, library). `reliability-ring1` (on push to `main`, schedule, dispatch): full `reliability/journeys/*` suite on kernel+ws-server with `--diff`, plus one packaged-backend journey — gates `fly-deploy.yml` | 1 | Required |
 | `release.yaml` | Cross-platform signed release artifacts, packed-tree smoke, a packed-backend reliability journey per OS, updater assets | 2 | Required |
@@ -112,8 +112,7 @@ F2 wires this table into the actual gates:
   cancelled by the next merge would read as "Ring 1 failed" and block the
   release. A commit that is not the head of the newest Docker build on `main`
   is skipped instead of deployed: that commit's image is not what anyone is
-  releasing. `docker.yml` builds `main` once a day, so production releases
-  once a day; dispatch `docker.yml` on `main` to release sooner.
+  releasing.
 - **Ring 2**: `release.yaml` gained a per-OS "Reliability Ring 2
   packed-backend journey" step right after each OS's existing smoke-boot
   step, running linear-text-pipeline against that OS's packed backend

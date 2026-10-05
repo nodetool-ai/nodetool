@@ -85,7 +85,7 @@ jobs:
   #
   # Each leg's `when` names the plan key that selects it (`always`: every run
   # with code). `docker` is the image smoke test: the caller turns it off on
-  # push, where docker.yml's daily build covers main.
+  # push, where docker.yml builds main and gates the deploy.
   #
   # Notes on the legs, kept beside their definitions:
   #
@@ -778,7 +778,7 @@ jobs:
           path: .jest-cache
           key: ${{ runner.os }}-jest-${{ matrix.jest-cache }}-${{ github.sha }}
 
-  # The deploy artifact. docker.yml only builds main (once a day), so until
+  # The deploy artifact. docker.yml only builds after a merge to main, so until
   # this leg existed nothing verified the image before it landed: a Dockerfile
   # that could not build survived 49 commits on main, taking the Fly deploy with
   # it (fly-deploy.yml gates on docker.yml). Runs here, inside the gate, so it
@@ -789,7 +789,7 @@ jobs:
   #
   # Runs only when the diff changes the image's own inputs (`DOCKER_FILES` in
   # scripts/ci-plan.mjs) and in the nightly full run, never on push: docker.yml
-  # builds main once a day. Building and booting a container costs a runner
+  # builds every push to main. Building and booting a container costs a runner
   # for ~10 minutes, and the account-wide concurrency cap makes that time
   # other jobs spend queued. A skipped leg counts as a pass in the aggregate
   # below, so the required check still lands.

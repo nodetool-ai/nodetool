@@ -1,18 +1,14 @@
 name: Docker
 
 on:
-  # main builds once a day, not on every merge: each build takes a runner for
-  # 5-12 minutes, and a finished build starts the production release
-  # (fly-deploy.yml). Dispatch the workflow on main to release sooner.
-  schedule:
-    - cron: "41 4 * * *"
   push:
-    # Build images for any `preview/**` branch. The metadata-action step below
-    # tags non-tag refs as `{branch}-{shortsha}` (and `latest` only on main).
-    # `pull_request` is intentionally not used to avoid duplicate builds for
-    # in-repo PRs (which would fire both events). Fork PRs cannot push to GHCR
-    # anyway, so the loss of fork preview images is not a regression.
+    # Build images for main and any `preview/**` branch. The metadata-action
+    # step below tags non-tag refs as `{branch}-{shortsha}` (and `latest` only on
+    # main). `pull_request` is intentionally not used to avoid duplicate builds
+    # for in-repo PRs (which would fire both events). Fork PRs cannot push to
+    # GHCR anyway, so the loss of fork preview images is not a regression.
     branches:
+      - main
       - 'preview/**'
     tags:
       - 'v*.*.*'
@@ -32,8 +28,6 @@ jobs:
     permissions:
       contents: read
       packages: write
-      # Lets a scheduled run cancel itself when main has no new commit.
-      actions: write
       # Required by docker/build-push-action for OCI provenance / SBOM
       # attestations pushed alongside the image to GHCR.
       id-token: write
@@ -67,22 +61,6 @@ jobs:
       - name: Compute short SHA
         id: vars
         run: echo "short_sha=${GITHUB_SHA::7}" >> "$GITHUB_OUTPUT"
-
-      # A day with no merge leaves main where yesterday's build left it.
-      # Rebuilding would push the same image and start a release of a commit
-      # production already runs, so the run cancels itself instead. A
-      # cancelled run does not start fly-deploy.yml, which requires success.
-      - name: Skip a commit main already built
-        if: github.event_name == 'schedule'
-        env:
-          GH_TOKEN: ${{ github.token }}
-          IMAGE: ghcr.io/nodetool-ai/nodetool:main-${{ steps.vars.outputs.short_sha }}
-        run: |
-          if docker manifest inspect "$IMAGE" >/dev/null 2>&1; then
-            echo "::notice::$IMAGE already exists; nothing new on main since the last build."
-            gh run cancel "$GITHUB_RUN_ID" --repo "$GITHUB_REPOSITORY"
-            sleep 300
-          fi
 
       - name: Extract metadata
         id: meta
