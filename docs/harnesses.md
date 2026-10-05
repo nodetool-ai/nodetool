@@ -2537,7 +2537,7 @@ The `browser-run-spans` and `run-inspection-ui` entries in the
 recorder, replay and panel checks when these surfaces change.
 
 The real browser journey starts a keyless app operation, reads its stored
-`ui.action → app.run` ancestry, reloads the page, selects the same run, and
+`ui.action → app.run` ancestry, reloads the page, recovers the operation's run, and
 checks Trace and Logs against the reader API. A second journey runs the real
 in-browser kernel and reads its `app.run → workflow.run → node.process`
 ancestry from the same store:
@@ -2550,3 +2550,25 @@ The registry lists this browser journey as a manual check. It owns development
 servers through the existing journey fixtures. To isolate ports, set
 `SCREENSHOT_BACKEND_PORT`, `SCREENSHOT_WEB_PORT` and `PROXY_API_TARGET` as
 described in [web testing](https://github.com/nodetool-ai/nodetool/blob/main/web/TESTING.md).
+
+## App instances and history phase 5
+
+Instance management and historical results use the existing instance API and
+common run readers. The `app-instance-history` selfcheck covers bounded instance
+lists, operation-specific run recovery, revision-checked version advancement,
+and preservation of old execution snapshots:
+
+```bash
+npm run test --workspace=packages/models --workspace=packages/execution --workspace=packages/websocket -- app-instance run-list-app-metadata runs-phase3 app-operation
+```
+
+The browser completion journey uses real persistence and scripted execution.
+Run it after building packages:
+
+```bash
+npm run test:journeys --workspace=web -- app-instances.spec.ts run-observability.spec.ts
+```
+
+The registry lists browser journeys as manual checks. Instance tabs retain the
+application and instance IDs separately. Selecting a historical run is inspection
+state and does not replace working variables or invoke an operation.

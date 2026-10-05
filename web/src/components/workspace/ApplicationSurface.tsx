@@ -194,7 +194,7 @@ const ApplicationSurface = ({
       const instance = await defaultAppInstance({
         application_id: application.id,
         source_id: `application:${application.id}`,
-        ...(release ? { version: release.version } : {}),
+        version: release?.version,
         snapshot: { document, workflow_graphs: {}, script_documents: {} },
         variables: loadPersistedVariables(
           `application:${application.id}`,

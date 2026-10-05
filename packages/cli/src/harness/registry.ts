@@ -406,6 +406,38 @@ export const HARNESSES: HarnessEntry[] = [
     docs: "docs/harnesses.md § Run inspection phase 4"
   },
   {
+    id: "app-instance-history",
+    title: "Instance management, pinned versions and history projection check",
+    command: "npm run test --workspace=packages/models --workspace=packages/execution --workspace=packages/websocket -- app-instance run-list-app-metadata runs-phase3 app-operation",
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § App instances and history phase 5",
+    selfcheck: {
+      command: "npm run test --workspace=packages/models --workspace=packages/execution --workspace=packages/websocket -- app-instance run-list-app-metadata runs-phase3 app-operation",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "app-instance-history-ui",
+    title: "Instance tabs, management cache and app host check",
+    command: "npm run test --workspace=web -- --runInBand --testPathPattern='WorkspaceTabsStore|useAppInstances|useAppInstance|ApplicationSurface|ApplicationRunView|AppRuntimeView|useAppRuntime'",
+    kind: "execution",
+    capabilities: [],
+    docs: "docs/harnesses.md § App instances and history phase 5",
+    selfcheck: {
+      command: "npm run test --workspace=web -- --runInBand --testPathPattern='WorkspaceTabsStore|useAppInstances|useAppInstance|ApplicationSurface|ApplicationRunView|AppRuntimeView|useAppRuntime'",
+      cost: "cheap"
+    }
+  },
+  {
+    id: "app-instance-history-browser",
+    title: "Independent app instances and read-only historical results journey",
+    command: "npm run test:journeys --workspace=web -- app-instances.spec.ts run-observability.spec.ts",
+    kind: "execution",
+    capabilities: ["browser"],
+    docs: "docs/harnesses.md § App instances and history phase 5"
+  },
+  {
     id: "app-build",
     title: "Mini-app build harness (spec→plan→author→check→run→judge)",
     command: "nodetool app build <prompt|spec.json> -p <provider> -m <model>",
@@ -1341,6 +1373,27 @@ export const SURFACES: SurfaceEntry[] = [
       "web/src/hooks/useRunInspection.ts",
       "web/src/stores/TraceStore.ts",
       "web/tests/journeys/run-observability.spec.ts"
+    ]
+  },
+  {
+    id: "app-instance-history",
+    title: "App instance management and historical results",
+    harnesses: ["app-instance-history", "app-instance-history-ui", "app-instance-history-browser"],
+    paths: [
+      "packages/models/src/app-instance",
+      "packages/models/src/run-readers.ts",
+      "packages/execution/src/runs.ts",
+      "packages/protocol/src/api-schemas/app-runs.ts",
+      "packages/websocket/src/lib/app-instances-service.ts",
+      "packages/websocket/src/routes/app-runs.ts",
+      "packages/websocket/src/trpc/routers/app-instances.ts",
+      "web/src/components/appbuilder/",
+      "web/src/components/workspace/ApplicationSurface.tsx",
+      "web/src/components/workspace/TabContent.tsx",
+      "web/src/stores/WorkspaceTabsStore.ts",
+      "web/src/serverState/useAppInstances.ts",
+      "web/src/serverState/useRuns.ts",
+      "web/tests/journeys/app-instances.spec.ts"
     ]
   },
   {

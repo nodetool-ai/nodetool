@@ -90,6 +90,22 @@ beforeEach(() => {
 });
 
 describe("AppRuntimeView (Puck Render)", () => {
+  it("waits for explicit workspace instance identity before mounting widgets", () => {
+    render(
+      <QueryClientProvider client={new QueryClient()}>
+        <ThemeProvider theme={mockTheme}>
+          <AppRuntimeView
+            workflow={workflow}
+            data={data}
+            application={{ id: "app" }}
+            onInstanceReady={jest.fn()}
+          />
+        </ThemeProvider>
+      </QueryClientProvider>
+    );
+    expect(screen.getByText("Opening instance")).toBeInTheDocument();
+    expect(screen.queryByText("Reactive App")).not.toBeInTheDocument();
+  });
   it("opens the stored failed span and hands the same typed IDs to chat", async () => {
     const runId = "a".repeat(32), spanId = "b".repeat(16);
     startRun("failed-job");
