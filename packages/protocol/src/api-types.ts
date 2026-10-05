@@ -1130,6 +1130,9 @@ export const PROVIDER_IDS = {
   // Claude via the Claude Agent SDK / `claude` CLI (no API key — uses the
   // machine's logged-in Claude subscription, spawning the CLI as a subprocess).
   CLAUDE_AGENT_SDK: "claude_agent_sdk",
+  // Dreamina (CapCut) driven through the NodeTool Chrome extension in the
+  // user's own logged-in Chrome tab (no API key, local installs only).
+  DREAMINA: "dreamina",
   GEMINI: "gemini",
   GROQ: "groq",
   MISTRAL: "mistral",
