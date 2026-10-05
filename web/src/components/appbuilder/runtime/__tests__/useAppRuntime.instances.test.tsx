@@ -279,6 +279,13 @@ beforeEach(() => {
     const created = {
       id,
       user_id: "1",
+      application_id: input.application_id,
+      source_id: `application:${input.application_id}`,
+      name: "Default",
+      version: null,
+      is_default: 1,
+      created_at: "2026-01-01T00:00:00.000Z",
+      updated_at: "2026-01-01T00:00:00.000Z",
       revision: 0,
       variables: input.variables,
       snapshot: input.snapshot
