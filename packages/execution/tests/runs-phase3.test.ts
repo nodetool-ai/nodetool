@@ -205,6 +205,12 @@ describe("phase 3 common run readers", () => {
     expect(metadata.run.app).not.toHaveProperty("inputs"); expect(metadata.run.app).not.toHaveProperty("outputs");
     expect(metadata.summary.content_state).toBe("available");
     expect((await getRun(OWNER, trace.id, { include_content: true })).run.app).toMatchObject({ inputs: { prompt: "Private app input" }, outputs: { answer: "Private app output" }, content_limited: false });
+    await getDb().update(applicationInvocations).set({ documents: Array.from({ length: 150 }, (_, index) => ({ kind: "storyboard", id: `board-${index}` })) }).where(eq(applicationInvocations.id, reserved.run.id));
+    const history = await getRun(OWNER, trace.id);
+    expect(history.summary.documents).toHaveLength(100);
+    expect(history.summary.documents[0]).toEqual({ kind: "storyboard", id: "board-0" });
+    expect(history.summary.documents_limited).toBe(true);
+    expect(history.summary.summary_truncated).toBe(true);
     await expect(getRun("foreign", trace.id, { include_content: true })).rejects.toMatchObject({ code: "not_found" });
     await getDb().update(applicationInvocations).set({ inputs: sql`'invalid JSON'` }).where(eq(applicationInvocations.id, reserved.run.id));
     expect((await getRun(OWNER, trace.id)).run.app).not.toHaveProperty("inputs");
@@ -213,5 +219,6 @@ describe("phase 3 common run readers", () => {
     await eraseRunTraceParentContent(OWNER, { kind: "app_run", id: reserved.run.id });
     const expired = await getRun(OWNER, trace.id, { include_content: true });
     expect(expired.summary.content_state).toBe("expired"); expect(expired.run.app).toMatchObject({ inputs: null, outputs: null });
+    expect(expired.summary.documents).toEqual([]);
   });
 });

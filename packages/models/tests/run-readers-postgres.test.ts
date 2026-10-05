@@ -18,19 +18,21 @@ describe.skipIf(!connectionUrl)("run readers on actual PostgreSQL", () => {
       await admin.unsafe(`CREATE DATABASE ${name}`); const url = new URL(connectionUrl); url.pathname = `/${name}`;
       client = postgres(url.toString(), { max: 1 });
       for (const statement of RUN_TRACES_DDL) { await client.unsafe(statement); }
-      await client.unsafe("CREATE TABLE nodetool_predictions (id text PRIMARY KEY,user_id text,job_id text,provider text,cost real)");
+      await client.unsafe("CREATE TABLE nodetool_predictions (id text PRIMARY KEY,user_id text,job_id text,provider text,cost real,asset_ids text,status text)");
+      await client.unsafe("CREATE TABLE nodetool_generation_attachments (generation_id text,target_type text,target_id text)");
+      await client.unsafe("CREATE TABLE nodetool_assets (id text PRIMARY KEY,user_id text,content_type text)");
       await client.unsafe(`CREATE TABLE nodetool_jobs (
         id text PRIMARY KEY,user_id text,job_type text,workflow_id text,project_id text,status text,name text,
         graph text,params text,worker_id text,heartbeat_at text,started_at text,finished_at text,completed_at text,
         failed_at text,error text,error_message text,cost real,logs text,retry_count integer,max_retries integer,
         version integer,execution_strategy text,execution_id text,runner_instance text,metadata_json text,
         created_at text,updated_at text)`);
-      await client.unsafe("CREATE TABLE application_invocations (id text PRIMARY KEY,user_id text,inputs text,outputs text,instance_id text,operation_id text,version integer,application_id text,content_expired integer DEFAULT 0)");
+      await client.unsafe("CREATE TABLE application_invocations (id text PRIMARY KEY,user_id text,inputs text,outputs text,instance_id text,operation_id text,version integer,application_id text,actual_usd real,known_llm_usd real,status text,origin text,content_expired integer DEFAULT 0)");
       const runId = "1".repeat(32); const sourceId = "2".repeat(32); const parentId = "aabbccddeeff" + "3".repeat(20); const spanId = "4".repeat(16);
       await client.unsafe("INSERT INTO nodetool_run_traces (id,user_id,kind,source_id,canonical_root_id,trace_id,origin,started_at,parents) VALUES ($1,'owner','workflow',$2,$1,$1,'ui','2026-01-01T00:00:00.000Z',$3)", [runId, sourceId, JSON.stringify([{ kind: "workflow", id: parentId }])]);
       const record = { trace_id: runId, span_id: spanId, parent_span_id: null, name: "workflow.run", kind: "INTERNAL", start_time_ms: 0, end_time_ms: 1, duration_ms: 1, status: { code: "OK" }, attributes: {}, events: [], resource: {} };
       await client.unsafe("INSERT INTO nodetool_run_spans (id,user_id,run_id,trace_id,span_id,cursor,update_kind,metadata,content) VALUES ('span','owner',$1,$1,$2,1,'span_ended',$3,$4)", [runId,spanId,JSON.stringify(record),JSON.stringify({ attributes: { private: "Owner content" } })]);
-      await client.unsafe("INSERT INTO nodetool_predictions VALUES ('generation','owner',$1,'test',1.5)", [sourceId]);
+      await client.unsafe("INSERT INTO nodetool_predictions (id,user_id,job_id,provider,cost) VALUES ('generation','owner',$1,'test',1.5)", [sourceId]);
       await client.unsafe("INSERT INTO nodetool_jobs (id,user_id) VALUES ($1,'owner'),($2,'foreign')", [sourceId, `${sourceId.slice(0, 12)}${"3".repeat(20)}`]);
       const marker = migrations.find((entry) => entry.version === "20261004_000003"); if (!marker) { throw new Error("Trace marker migration absent"); }
       const adapter = new PostgresJsMigrationAdapter(client); await marker.up(adapter); await adapter.commit(); await adapter.release();

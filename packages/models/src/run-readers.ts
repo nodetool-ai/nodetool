@@ -1,6 +1,6 @@
 import { and, asc, desc, eq, gt, gte, inArray, lt, lte, or, sql, type SQL } from "drizzle-orm";
 import { z } from "zod";
-import { TRACE_SPAN_LIMIT, RUN_READER_CONTENT_LIMIT, runTraceRegistrationSchema, type RunListOptions, type RunTraceRegistration, type GetRunResult } from "@nodetool-ai/protocol";
+import { TRACE_SPAN_LIMIT, TRACE_RESTRICTED_CAPABILITY_MODULES, RUN_READER_CONTENT_LIMIT, runTraceRegistrationSchema, type RunListOptions, type RunTraceRegistration, type GetRunResult } from "@nodetool-ai/protocol";
 import { getDatabase } from "./db.js";
 import { RunTraceError } from "./run-trace.js";
 import type { runSpans } from "./schema/run-traces.js";
@@ -45,6 +45,26 @@ async function resolveParentId(userId: string, kind: "app" | "instance" | "workf
   if (!rows[0]) { throw new RunTraceError("not_found", `${kind} not found`); }
   return rows[0].id;
 }
+function restrictedRunContent(userId: string, traceId: SQL | string): SQL {
+  const c = getDatabase();
+  const moduleExpression = c.dialect === "sqlite" ? sql`json_extract(s.metadata, '$.attributes."capability.module"')` : sql`s.metadata::jsonb->'attributes'->>'capability.module'`;
+  const toolExpression = c.dialect === "sqlite" ? sql`json_extract(s.metadata, '$.attributes."tool.module"')` : sql`s.metadata::jsonb->'attributes'->>'tool.module'`;
+  return sql`EXISTS (SELECT 1 FROM ${c.schema.runSpans} s WHERE s.user_id = ${userId} AND s.trace_id = ${traceId} AND (${moduleExpression} IN (${sql.join(TRACE_RESTRICTED_CAPABILITY_MODULES.map((name) => sql`${name}`), sql`,`)}) OR ${toolExpression} IN (${sql.join(TRACE_RESTRICTED_CAPABILITY_MODULES.map((name) => sql`${name}`), sql`,`)})))`;
+}
+function appHistoryProjection(userId: string, traceId: SQL | string, privateRun: SQL) {
+  const c = getDatabase(); const a = c.schema.applicationInvocations;
+  const costState = sql<string>`CASE WHEN ${a.actual_usd} IS NOT NULL THEN 'settled' WHEN ${a.status} = 'running' OR ${a.known_llm_usd} IS NOT NULL THEN 'unsettled' ELSE 'unavailable' END`;
+  const restricted = restrictedRunContent(userId, traceId);
+  const mediaType = sql`CASE WHEN asset.content_type LIKE 'image/%' THEN 'image' WHEN asset.content_type LIKE 'video/%' THEN 'video' WHEN asset.content_type LIKE 'audio/%' THEN 'audio' END`;
+  const assetIds = c.dialect === "sqlite" ? sql`json_each(p.asset_ids) output` : sql`jsonb_array_elements_text(p.asset_ids::jsonb) output(value)`;
+  const result = c.dialect === "sqlite" ? sql`json_object('type', ${mediaType}, 'asset_id', asset.id)` : sql`json_build_object('type', ${mediaType}, 'asset_id', asset.id)::text`;
+  const reference = sql<string | null>`CASE WHEN NOT (${privateRun}) OR ${a.origin} = 'public' OR ${a.content_expired} <> 0 OR ${restricted} THEN NULL ELSE (SELECT ${result} FROM ${c.schema.generationAttachments} attachment JOIN ${c.schema.predictions} p ON attachment.generation_id = p.id JOIN ${assetIds} ON true JOIN ${c.schema.assets} asset ON asset.id = output.value WHERE attachment.target_type = 'app_run' AND attachment.target_id = ${a}.${sql.identifier("id")} AND p.user_id = ${userId} AND asset.user_id = ${userId} AND p.status = 'completed' AND ${mediaType} IS NOT NULL ORDER BY p.id, asset.id LIMIT 1) END`;
+  return { actual_usd: sql<number | null>`${a.actual_usd}`, cost_state: costState, result_reference: reference };
+}
+const resultReferenceSchema = z.object({ type: z.enum(["image", "video", "audio"]), asset_id: z.string() });
+function parseAppHistory<T extends { cost_state: string; result_reference: string | null }>(row: T) {
+  return { ...row, cost_state: z.enum(["settled", "unsettled", "unavailable"]).parse(row.cost_state), result_reference: row.result_reference ? resultReferenceSchema.parse(JSON.parse(row.result_reference)) : null };
+}
 export async function queryRunReaders(userId: string, options: RunListOptions): Promise<Array<RunTraceRegistration & { app?: NonNullable<GetRunResult["run"]["app"]> }>> {
   const c = getDatabase(); const t = c.schema.runTraces;
   const conditions: Array<SQL | undefined> = [eq(t.user_id, userId), options.kind ? eq(t.kind, options.kind) : undefined,
@@ -67,9 +87,9 @@ export async function queryRunReaders(userId: string, options: RunListOptions): 
   const where = and(...conditions); const limit = (options.limit ?? 20) + 1;
   const join = and(eq(t.kind, "app"), eq(a.id, t.source_id), eq(a.user_id, userId));
   const rows = c.dialect === "sqlite"
-    ? await c.db.select({ run: c.schema.runTraces, app: { id: c.schema.applicationInvocations.id, instance_id: c.schema.applicationInvocations.instance_id, operation_id: c.schema.applicationInvocations.operation_id, app_version: c.schema.applicationInvocations.version, application_id: c.schema.applicationInvocations.application_id } }).from(c.schema.runTraces).leftJoin(c.schema.applicationInvocations, join).where(where).orderBy(desc(t.started_at), desc(t.id)).limit(limit)
-    : await c.db.select({ run: c.schema.runTraces, app: { id: c.schema.applicationInvocations.id, instance_id: c.schema.applicationInvocations.instance_id, operation_id: c.schema.applicationInvocations.operation_id, app_version: c.schema.applicationInvocations.version, application_id: c.schema.applicationInvocations.application_id } }).from(c.schema.runTraces).leftJoin(c.schema.applicationInvocations, join).where(where).orderBy(desc(t.started_at), desc(t.id)).limit(limit);
-  return rows.map((row) => ({ ...runTraceRegistrationSchema.parse(row.run), ...(row.app ? { app: { instance_id: row.app.instance_id, operation_id: row.app.operation_id, app_version: row.app.app_version, application_id: row.app.application_id } } : {}) }));
+    ? await c.db.select({ run: c.schema.runTraces, app: { id: c.schema.applicationInvocations.id, instance_id: c.schema.applicationInvocations.instance_id, operation_id: c.schema.applicationInvocations.operation_id, app_version: c.schema.applicationInvocations.version, application_id: c.schema.applicationInvocations.application_id, ...appHistoryProjection(userId, sql`${t.trace_id}`, sql`${t.origin} <> ${"public"} AND ${t.content_expired} = 0`) } }).from(c.schema.runTraces).leftJoin(c.schema.applicationInvocations, join).where(where).orderBy(desc(t.started_at), desc(t.id)).limit(limit)
+    : await c.db.select({ run: c.schema.runTraces, app: { id: c.schema.applicationInvocations.id, instance_id: c.schema.applicationInvocations.instance_id, operation_id: c.schema.applicationInvocations.operation_id, app_version: c.schema.applicationInvocations.version, application_id: c.schema.applicationInvocations.application_id, ...appHistoryProjection(userId, sql`${t.trace_id}`, sql`${t.origin} <> ${"public"} AND ${t.content_expired} = 0`) } }).from(c.schema.runTraces).leftJoin(c.schema.applicationInvocations, join).where(where).orderBy(desc(t.started_at), desc(t.id)).limit(limit);
+  return rows.map((row) => ({ ...runTraceRegistrationSchema.parse(row.run), ...(row.app ? { app: { instance_id: row.app.instance_id, operation_id: row.app.operation_id, app_version: row.app.app_version, application_id: row.app.application_id, ...parseAppHistory({ actual_usd: row.app.actual_usd, cost_state: row.app.cost_state, result_reference: row.app.result_reference }) } } : {}) }));
 }
 /** Metadata-only readers never load the content column. All reads use the indexed owner/trace path. */
 export async function queryRunReaderSpans(userId: string, run: RunTraceRegistration, options: { includeContent?: boolean; cursor?: number; limit?: number; spanIds?: readonly string[] } = {}): Promise<RunReaderSpan[]> {
@@ -96,20 +116,26 @@ export async function queryRunReaderGenerationIds(userId: string, run: RunTraceR
     : await c.db.selectDistinct({ id: c.schema.generationAttachments.generation_id }).from(c.schema.generationAttachments).innerJoin(c.schema.predictions, eq(a.generation_id, p.id)).where(where).orderBy(asc(a.generation_id)).limit(101);
   return rows.map((row) => row.id);
 }
-export async function queryRunReaderDocumentIds(userId: string, run: RunTraceRegistration): Promise<string[]> {
+export async function queryRunReaderDocuments(userId: string, run: RunTraceRegistration): Promise<Array<{kind:string;id:string}>> {
   if (run.kind !== "app" || run.origin === "public" || run.content_expired) { return []; }
   const c = getDatabase(); const a = c.schema.applicationInvocations;
-  const where = and(eq(a.user_id, userId), eq(a.id, run.source_id), eq(a.content_expired, 0));
-  const rows = c.dialect === "sqlite" ? await c.db.select({ documents: c.schema.applicationInvocations.documents }).from(c.schema.applicationInvocations).where(where).limit(1)
-    : await c.db.select({ documents: c.schema.applicationInvocations.documents }).from(c.schema.applicationInvocations).where(where).limit(1);
-  return rows[0]?.documents?.slice(0, 101).map((document) => document.id) ?? [];
+  const where = and(eq(a.user_id, userId), eq(a.id, run.source_id), eq(a.content_expired, 0), sql`(${a.origin} IS NULL OR ${a.origin} <> ${"public"})`, sql`NOT ${restrictedRunContent(userId, run.trace_id)}`);
+  const entries = c.dialect === "sqlite" ? sql`json_each(${a.documents}) document` : sql`jsonb_array_elements(${a.documents}::jsonb) document(value)`;
+  const kind = c.dialect === "sqlite" ? sql<string>`json_extract(document.value, '$.kind')` : sql<string>`document.value->>'kind'`;
+  const id = c.dialect === "sqlite" ? sql<string>`json_extract(document.value, '$.id')` : sql<string>`document.value->>'id'`;
+  const rows = c.dialect === "sqlite" ? await c.db.select({ kind, id }).from(c.schema.applicationInvocations).innerJoin(entries, sql`true`).where(where).limit(101)
+    : await c.db.select({ kind, id }).from(c.schema.applicationInvocations).innerJoin(entries, sql`true`).where(where).limit(101);
+  return rows;
+}
+export async function queryRunReaderDocumentIds(userId: string, run: RunTraceRegistration): Promise<string[]> {
+  return (await queryRunReaderDocuments(userId, run)).map((document) => document.id);
 }
 export async function queryRunReaderAppMetadata(userId: string, run: RunTraceRegistration) {
   if (run.kind !== "app") { return undefined; }
   const c = getDatabase(); const t = c.schema.applicationInvocations; const where = and(eq(t.user_id, userId), eq(t.id, run.source_id));
-  const rows = c.dialect === "sqlite" ? await c.db.select({ instance_id: c.schema.applicationInvocations.instance_id, operation_id: c.schema.applicationInvocations.operation_id, app_version: c.schema.applicationInvocations.version, application_id: c.schema.applicationInvocations.application_id }).from(c.schema.applicationInvocations).where(where).limit(1)
-    : await c.db.select({ instance_id: c.schema.applicationInvocations.instance_id, operation_id: c.schema.applicationInvocations.operation_id, app_version: c.schema.applicationInvocations.version, application_id: c.schema.applicationInvocations.application_id }).from(c.schema.applicationInvocations).where(where).limit(1);
-  return rows[0];
+  const rows = c.dialect === "sqlite" ? await c.db.select({ instance_id: c.schema.applicationInvocations.instance_id, operation_id: c.schema.applicationInvocations.operation_id, app_version: c.schema.applicationInvocations.version, application_id: c.schema.applicationInvocations.application_id, ...appHistoryProjection(userId, run.trace_id, sql`${run.origin === "public" || run.content_expired ? 0 : 1} = 1`) }).from(c.schema.applicationInvocations).where(where).limit(1)
+    : await c.db.select({ instance_id: c.schema.applicationInvocations.instance_id, operation_id: c.schema.applicationInvocations.operation_id, app_version: c.schema.applicationInvocations.version, application_id: c.schema.applicationInvocations.application_id, ...appHistoryProjection(userId, run.trace_id, sql`${run.origin === "public" || run.content_expired ? 0 : 1} = 1`) }).from(c.schema.applicationInvocations).where(where).limit(1);
+  return rows[0] ? parseAppHistory(rows[0]) : undefined;
 }
 type AppReaderContent = Pick<NonNullable<GetRunResult["run"]["app"]>, "inputs" | "outputs" | "content_limited">;
 export async function queryRunReaderAppContent(userId: string, run: RunTraceRegistration): Promise<AppReaderContent> {
