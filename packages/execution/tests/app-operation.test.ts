@@ -15,7 +15,10 @@ import {
   getAppInstance,
   getAppRun,
   initTestDb,
-  listAppRuns
+  listAppRuns,
+  updateAppInstance,
+  reserveAppRun,
+  registerRunTrace
 } from "@nodetool-ai/models";
 import { emptyJsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import { createJsScriptAppRunner } from "@nodetool-ai/agents";
@@ -25,6 +28,7 @@ import {
   recordGenerationReceipt
 } from "@nodetool-ai/runtime";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { startBrowserAppRun } from "../src/browser-app-run.js";
 import { executeAppOperation } from "../src/service/app-operation.js";
 
 async function instance(applicationId?: string) {
@@ -67,6 +71,111 @@ async function instance(applicationId?: string) {
 
 describe("durable app operations", () => {
   beforeEach(() => initTestDb());
+  it("rejects a reserved older snapshot before execution and releases its estimated spend", async () => {
+    const application = await Application.create<Application>({
+      user_id: "owner",
+      name: "App"
+    });
+    await setApplicationBudget(application.id, {
+      maxUsd: 2,
+      maxInvocations: 4
+    });
+    const app = await instance(application.id);
+    const pinned = await updateAppInstance("owner", app.id, {
+      expectedRevision: 0,
+      version: 1
+    });
+    const reserved = await reserveAppRun({
+      userId: "owner",
+      instanceId: app.id,
+      operationId: "add",
+      invocationId: "reserved",
+      origin: "ui",
+      estimatedUsd: 1
+    });
+    if (!reserved.allowed) {
+      throw new Error(reserved.reason);
+    }
+    const advanced = await updateAppInstance("owner", app.id, {
+      expectedRevision: pinned.revision,
+      version: 2,
+      snapshot: pinned.snapshot,
+      variables: { answer: "advanced" }
+    });
+    const scriptRunner = vi.fn(async () => ({
+      ok: true,
+      outputs: { sum: 999 },
+      logs: [],
+      duration_ms: 1
+    }));
+    const outcome = await executeAppOperation({
+      userId: "owner",
+      instanceId: app.id,
+      operationId: "add",
+      invocationId: "reserved",
+      runId: reserved.run.id,
+      origin: "ui",
+      context: new ProcessingContext({ jobId: "host", userId: "owner" }),
+      registry: new NodeRegistry(),
+      scriptRunner
+    });
+    expect(scriptRunner).not.toHaveBeenCalled();
+    expect(outcome.run).toMatchObject({
+      status: "failed",
+      actual_usd: 0,
+      known_llm_usd: 0,
+      version: 1
+    });
+    expect(outcome.run.error).toContain("snapshot changed before execution");
+    expect(outcome.variables).toEqual({});
+    expect(outcome.messages).toEqual([]);
+    expect(await getAppInstance("owner", app.id)).toEqual(advanced);
+    expect((await applicationUsage(application.id, "total")).spentUsd).toBe(0);
+  });
+
+  it("rejects browser start after snapshot advancement and closes its reservation", async () => {
+    const app = await instance();
+    const reserved = await reserveAppRun({
+      userId: "owner",
+      instanceId: app.id,
+      operationId: "add",
+      invocationId: "browser",
+      origin: "ui",
+      estimatedUsd: 1
+    });
+    if (!reserved.allowed) {
+      throw new Error(reserved.reason);
+    }
+    await registerRunTrace("owner", {
+      id: reserved.run.id,
+      kind: "app",
+      sourceId: reserved.run.id,
+      traceId: reserved.run.trace_id,
+      origin: "ui",
+      parents: [
+        { kind: "app_run", id: reserved.run.id },
+        { kind: "instance", id: app.id }
+      ]
+    });
+    const snapshot = structuredClone(app.snapshot);
+    snapshot.script_documents.script!.code = 'await output("sum", 8)';
+    const advanced = await updateAppInstance("owner", app.id, {
+      expectedRevision: 0,
+      snapshot
+    });
+    await expect(
+      startBrowserAppRun("owner", reserved.run.id, {
+        traceparent: `00-${reserved.run.trace_id}-${"b".repeat(16)}-01`
+      })
+    ).rejects.toThrow("snapshot changed before execution");
+    expect(await getAppRun("owner", reserved.run.id)).toMatchObject({
+      status: "failed",
+      actual_usd: 0,
+      known_llm_usd: 0
+    });
+    expect(await getAppInstance("owner", app.id)).toEqual(advanced);
+  });
+
   it("opens before execution, folds output to server state, and does not execute a transport retry twice", async () => {
     const app = await instance();
     let calls = 0;
