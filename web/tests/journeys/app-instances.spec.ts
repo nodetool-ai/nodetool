@@ -2,8 +2,74 @@ import { z } from "zod";
 import { unpack } from "msgpackr";
 import { appInstanceResponse, appRunResponse } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
 import { applicationResponse, applicationVersionResponse } from "@nodetool-ai/protocol/api-schemas/applications.js";
+import { workflowResponse } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { test, expect, FIXTURES } from "./fixtures";
 import { MiniAppPage } from "./pages";
+
+test("cancels only its own instance while another instance runs the same workflow", async ({ page, request }) => {
+  const loaded = await request.get(`/trpc/workflows.get?input=${encodeURIComponent(JSON.stringify({ id: FIXTURES.miniApp }))}`);
+  const workflow = z.object({ result: z.object({ data: workflowResponse }) }).parse(await loaded.json()).result.data;
+  const graph = workflow.graph!;
+  graph.nodes.push({ id: "overlap_wait", type: "nodetool.triggers.Wait", data: { timeout_seconds: 20 }, ui_properties: { position: { x: 800, y: 200 } } });
+  graph.edges = [
+    { id: "wait-input", source: "prompt_input", sourceHandle: "output", target: "overlap_wait", targetHandle: "input" },
+    { id: "wait-output", source: "overlap_wait", sourceHandle: "data", target: "result_output", targetHandle: "value" }
+  ];
+  expect((await request.post("/trpc/workflows.update", { data: { id: workflow.id, name: workflow.name, run_mode: workflow.run_mode, graph } })).ok()).toBe(true);
+  const loadedApp = await request.get(`/trpc/applications.get?input=${encodeURIComponent(JSON.stringify({ id: FIXTURES.miniAppId }))}`);
+  const application = z.object({ result: z.object({ data: applicationResponse }) }).parse(await loadedApp.json()).result.data;
+  application.document.operations[0].policy = "parallel";
+  const container = z.object({ props: z.record(z.string(), z.unknown()) }).parse(application.document.ui.content[0]);
+  const widgets = z.array(z.object({ type: z.string(), props: z.record(z.string(), z.unknown()) })).parse(container.props.content);
+  widgets.push({ type: "Button", props: { id: "cancel-operation", label: "Cancel echo", events: [{ trigger: "click", kind: "cancel", operationId: "main" }] } });
+  container.props.content = widgets;
+  application.document.ui.content[0] = { ...application.document.ui.content[0], props: container.props };
+  expect((await request.post("/trpc/applications.update", { data: { id: application.id, document: application.document } })).ok()).toBe(true);
+  const app = new MiniAppPage(page);
+  await app.open(FIXTURES.miniAppName);
+  const active = () => page.locator(".tab-layer:not([inert])").filter({ has: page.getByTestId("application-run-layer") });
+  const runtime = () => active().locator(".appbuilder-runtime");
+  const status = async (id: string) => {
+    const response = await request.get(`/api/app-runs/${id}`);
+    expect(response.ok()).toBe(true);
+    return appRunResponse.parse(await response.json()).status;
+  };
+  const start = async (value: string) => {
+    await runtime().getByRole("textbox").first().fill(value);
+    const reserved = page.waitForResponse((response) => response.request().method() === "POST" && /\/api\/app-instances\/[^/]+\/runs$/.test(response.url()));
+    await runtime().getByRole("button", { name: "Run echo", exact: true }).click();
+    const run = appRunResponse.parse(await (await reserved).json());
+    await expect.poll(() => status(run.id)).toBe("running");
+    return run;
+  };
+  const first = await start("cancelled-instance-input");
+  await active().getByRole("button", { name: "New instance", exact: true }).click();
+  const dialog = page.getByRole("dialog");
+  await dialog.getByRole("textbox", { name: "Instance name" }).fill("Concurrent survivor");
+  await dialog.getByRole("button", { name: "Save", exact: true }).click();
+  await expect(dialog).not.toBeVisible();
+  const second = await start("surviving-instance-output");
+  expect(second.instance_id).not.toBe(first.instance_id);
+  expect(await status(first.id)).toBe("running");
+  await active().getByRole("combobox", { name: "App instance" }).click();
+  await page.getByRole("option", { name: "Default", exact: true }).click();
+  await runtime().getByRole("button", { name: "Cancel echo", exact: true }).click();
+  await expect.poll(() => status(first.id)).toBe("cancelled");
+  expect(await status(second.id)).toBe("running");
+  const cancelledInstance = appInstanceResponse.parse(await (await request.get(`/api/app-instances/${first.instance_id}`)).json());
+  await active().getByRole("combobox", { name: "App instance" }).click();
+  await page.getByRole("option", { name: "Concurrent survivor", exact: true }).click();
+  await expect.poll(() => status(second.id), { timeout: 30_000 }).toBe("completed");
+  await expect(runtime().getByText("surviving-instance-output", { exact: true })).toBeVisible();
+  expect(await status(first.id)).toBe("cancelled");
+  const firstInstance = appInstanceResponse.parse(await (await request.get(`/api/app-instances/${first.instance_id}`)).json());
+  const secondInstance = appInstanceResponse.parse(await (await request.get(`/api/app-instances/${second.instance_id}`)).json());
+  expect(firstInstance.revision).toBe(cancelledInstance.revision);
+  expect(JSON.stringify(firstInstance.variables)).toContain("cancelled-instance-input");
+  expect(JSON.stringify(firstInstance.variables)).not.toContain("surviving-instance-output");
+  expect(JSON.stringify(secondInstance.variables)).toContain("surviving-instance-output");
+  expect(JSON.stringify(secondInstance.variables)).not.toContain("cancelled-instance-input");
+});
 
 test("keeps named instances, restored tabs and historical inspection independent", async ({ page, request }) => {
   const executionCommands: unknown[] = [];
