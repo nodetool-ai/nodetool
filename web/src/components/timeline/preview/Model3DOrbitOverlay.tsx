@@ -59,12 +59,16 @@ import {
 /** How long after the last wheel notch the accumulated zoom is written. */
 export const WHEEL_COMMIT_IDLE_MS = 250;
 
-const overlayStyles = css({
-  position: "absolute",
-  inset: 0,
-  zIndex: PREVIEW_OVERLAY_Z.gizmo,
-  pointerEvents: "none"
-});
+// A function, not a module-level value: `@nodetool-ai/timeline/render` has a
+// top-level await (Yoga), and iOS Safari ran this module before that await
+// resumed, so `PREVIEW_OVERLAY_Z` was still undefined here.
+const overlayStyles = () =>
+  css({
+    position: "absolute",
+    inset: 0,
+    zIndex: PREVIEW_OVERLAY_Z.gizmo,
+    pointerEvents: "none"
+  });
 
 const readoutStyles = (theme: Theme) =>
   css({
@@ -302,7 +306,7 @@ export const Model3DOrbitOverlay: React.FC<Model3DOrbitOverlayProps> = memo(
     return (
       <div
         ref={rootRef}
-        css={overlayStyles}
+        css={overlayStyles()}
         data-testid="timeline-model3d-orbit-overlay"
       >
         {pose && (

@@ -4,7 +4,7 @@
 
 import { eq, and, desc, inArray } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { workflowVersions } from "./schema/workflow-versions.js";
 import type { WorkflowGraph } from "./workflow.js";
 
@@ -41,7 +41,7 @@ export class WorkflowVersion extends DBModel {
     opts: { limit?: number } = {}
   ): Promise<WorkflowVersion[]> {
     const { limit = 100 } = opts;
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(workflowVersions)
@@ -56,7 +56,7 @@ export class WorkflowVersion extends DBModel {
     workflowId: string,
     version: number
   ): Promise<WorkflowVersion | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const [row] = await db
       .select()
       .from(workflowVersions)
@@ -89,7 +89,7 @@ export class WorkflowVersion extends DBModel {
     workflowId: string,
     maxAutosaves: number
   ): Promise<void> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select({ id: workflowVersions.id })
       .from(workflowVersions)

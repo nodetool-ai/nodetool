@@ -1,3 +1,4 @@
+import type { TimelineToolArgs } from "@nodetool-ai/protocol/api-schemas/timeline-tool-contracts.js";
 /**
  * The op union `applyTimelineOp` dispatches on.
  *
@@ -221,7 +222,7 @@ export interface SetClipParamsOp {
     hidden?: boolean;
     muted?: boolean;
     locked?: boolean;
-    textStyle?: TextStyleInput;
+    textStyle?: Partial<TextStyleInput>;
     shapeStyle?: ShapeStyleInput;
     captionStyle?: CaptionStyleInput;
   };
@@ -298,6 +299,7 @@ export interface SetEffectsOp {
 }
 
 export interface SetClipBindingOp {
+  seed?: number;
   op: "set_clip_binding";
   target: string;
   prompt?: string;
@@ -458,7 +460,36 @@ export interface UnbindTrackOp {
   target: string;
 }
 
+/** Additional edits reuse the shared tool argument schemas. */
+type ContractOpName =
+  | "add_midi_clip"
+  | "set_notes"
+  | "set_tempo"
+  | "set_track_instrument"
+  | "transpose_clip"
+  | "quantize_notes"
+  | "scale_velocity"
+  | "set_reframe_subject"
+  | "add_reframe_keyframe"
+  | "clear_reframe"
+  | "retarget_format"
+  | "stagger_animations"
+  | "set_setup"
+  | "plan_beats"
+  | "update_beat"
+  | "remove_beat"
+  | "generate_from_beats";
+type ContractOp = {
+  [K in ContractOpName]: { op: K } & (K extends "add_midi_clip"
+    ? Omit<
+        TimelineToolArgs<"ui_timeline_add_midi_clip">,
+        "track" | "start_ms"
+      > & { track?: string; start_ms?: number }
+    : TimelineToolArgs<`ui_timeline_${K}`>);
+}[ContractOpName];
+
 export type TimelineOp =
+  | ContractOp
   | GetStateOp
   | AddTrackOp
   | MoveTrackOp
@@ -513,6 +544,23 @@ export type TimelineOpName = TimelineOp["op"];
  * it samples rendered video and has no document mutation to share.
  */
 export const TIMELINE_OP_NAMES = [
+  "add_midi_clip",
+  "set_notes",
+  "set_tempo",
+  "set_track_instrument",
+  "transpose_clip",
+  "quantize_notes",
+  "scale_velocity",
+  "set_reframe_subject",
+  "add_reframe_keyframe",
+  "clear_reframe",
+  "retarget_format",
+  "stagger_animations",
+  "set_setup",
+  "plan_beats",
+  "update_beat",
+  "remove_beat",
+  "generate_from_beats",
   "get_state",
   "add_track",
   "move_track",

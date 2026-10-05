@@ -17,7 +17,9 @@ jest.mock("../../../trpc/client", () => ({
     storyboards: { get: { query: jest.fn() } },
     sketch: { get: { query: jest.fn() } },
     scripts: { get: { query: jest.fn() } },
+    jsScripts: { get: { query: jest.fn() } },
     applications: { get: { query: jest.fn() } },
+    games: { get: { query: jest.fn() } },
     assets: { get: { query: jest.fn() } }
   }
 }));
@@ -35,7 +37,9 @@ describe("openResource", () => {
     jest.mocked(trpcClient.storyboards.get.query).mockImplementation(async ({ id }) => ({ id, projectId: "p-1" }) as never);
     jest.mocked(trpcClient.sketch.get.query).mockImplementation(async ({ id }) => ({ id, projectId: "p-1" }) as never);
     jest.mocked(trpcClient.scripts.get.query).mockImplementation(async ({ id }) => ({ id, projectId: "p-1" }) as never);
+    jest.mocked(trpcClient.jsScripts.get.query).mockImplementation(async ({ id }) => ({ id, projectId: "p-1" }) as never);
     jest.mocked(trpcClient.applications.get.query).mockImplementation(async ({ id }) => ({ id, projectId: "p-1" }) as never);
+    jest.mocked(trpcClient.games.get.query).mockImplementation(async ({ id }) => ({ game: { id, projectId: "p-1" } }) as never);
     jest.mocked(trpcClient.assets.get.query).mockImplementation(async ({ id }) => ({ id, project_id: "p-1" }) as never);
   });
 
@@ -45,7 +49,9 @@ describe("openResource", () => {
     ["storyboard", "storyboard"],
     ["sketch", "sketch"],
     ["script", "script"],
+    ["jsscript", "jsscript"],
     ["app", "application"],
+    ["game", "game"],
     ["model3d", "model3d"]
   ] as const)("opens a %s document in its project", async (kind, tabType) => {
     await expect(openResource({ kind, id: "r_1" })).resolves.toBe(true);
@@ -83,7 +89,56 @@ describe("openResource", () => {
     }));
   });
 
-  it.each(["asset", "collection", "thread"] as const)(
+  it.each([
+    ["image/png", "render.png", "image"],
+    ["image/svg+xml", "logo.svg", "svg"],
+    ["audio/mpeg", "take.mp3", "audio"],
+    ["model/gltf-binary", "robot.glb", "model3d"],
+    ["text/markdown", "notes.md", "text"]
+  ])("opens a %s asset in its %s tab", async (contentType, name, tabType) => {
+    const assetId = "3b9f0c2e7d4a41c6a8e5f1d2c3b4a596";
+    jest.mocked(trpcClient.assets.get.query).mockResolvedValue({
+      id: assetId,
+      name,
+      content_type: contentType,
+      project_id: "p-1"
+    } as never);
+
+    await expect(
+      openResource({ kind: "asset", id: `${assetId}.${name.split(".")[1]}` })
+    ).resolves.toBe(true);
+    // The locator's extension is not part of the asset row's id.
+    expect(trpcClient.assets.get.query).toHaveBeenCalledWith({ id: assetId });
+    expect(openTab).toHaveBeenCalledWith({
+      type: tabType,
+      ref: assetId,
+      mode: "edit",
+      title: name,
+      projectId: "p-1"
+    });
+  });
+
+  it("opens a file with no workspace surface in a browser tab", async () => {
+    const open = jest.spyOn(window, "open").mockReturnValue(null);
+    jest.mocked(trpcClient.assets.get.query).mockResolvedValue({
+      id: "as_1",
+      name: "report.pdf",
+      content_type: "application/pdf",
+      project_id: "p-1",
+      get_url: "https://files.test/report.pdf"
+    } as never);
+
+    await expect(openResource({ kind: "asset", id: "as_1.pdf" })).resolves.toBe(true);
+    expect(openTab).not.toHaveBeenCalled();
+    expect(open).toHaveBeenCalledWith(
+      "https://files.test/report.pdf",
+      "_blank",
+      "noopener,noreferrer"
+    );
+    open.mockRestore();
+  });
+
+  it.each(["collection", "thread"] as const)(
     "opens nothing for %s",
     async (kind) => {
       await expect(openResource({ kind, id: "r_1" })).resolves.toBe(false);

@@ -268,7 +268,8 @@ the agent path they are the source, not a bake of one.
 | Wire schema | `packages/protocol/src/api-schemas/timeline.ts` |
 | Bake (the one place the body runs) | `packages/agents/src/custom-animation-bake.ts` |
 | HTTP surface | `packages/websocket/src/routes/timeline-animations.ts` |
-| Agent op (one bridge, both surfaces) | `packages/agents/src/evals/surfaces/timeline.ts` |
+| Shared edit engine | `packages/timeline/src/ops/apply.ts` |
+| Server host adapter | `packages/agents/src/capabilities/timeline-bridge.ts` |
 | Baked-curve write and its replace rule (pure) | `packages/timeline/src/animation/bakedAnimation.ts` |
 | Audio bake: the three clocks and the two curve shapes | `packages/agents/src/capabilities/timeline-audio-bake.ts` |
 | Validation | `packages/execution/src/timeline-debug/validate.ts` |

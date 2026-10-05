@@ -6,7 +6,7 @@
 
 import { eq, and } from "drizzle-orm";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import { secrets } from "./schema/secrets.js";
 import {
   encryptFernet,
@@ -44,7 +44,7 @@ export class Secret extends DBModel {
 
   /** Find a secret by user_id and key. */
   static async find(userId: string, key: string): Promise<Secret | null> {
-    const db = getDb();
+    const db = getPortableDb();
     const [row] = await db
       .select()
       .from(secrets)
@@ -138,7 +138,7 @@ export class Secret extends DBModel {
     userId: string,
     limit = 100
   ): Promise<[Secret[], string]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db
       .select()
       .from(secrets)
@@ -154,7 +154,7 @@ export class Secret extends DBModel {
 
   /** List all secrets across all users (admin only). */
   static async listAll(limit = 1000): Promise<Secret[]> {
-    const db = getDb();
+    const db = getPortableDb();
     const rows = await db.select().from(secrets).limit(limit);
     return rows.map((r: Record<string, unknown>) => new Secret(r));
   }

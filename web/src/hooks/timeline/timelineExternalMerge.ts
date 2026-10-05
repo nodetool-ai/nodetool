@@ -267,7 +267,7 @@ export function rebaseTimelineSnapshots(
       storyboardMaterializations: snapshot.storyboardMaterializations,
       camera2d: snapshot.camera2d ?? null,
       tempo: snapshot.tempo,
-      setup: before.setup ?? null
+      setup: snapshot.setup ?? null
     })),
     before,
     after,
@@ -293,6 +293,7 @@ export function rebaseTimelineSnapshots(
       storyboardMaterializations: typedNext.storyboardMaterializations,
       camera2d: typedNext.camera2d ?? null,
       tempo: typedNext.tempo,
+      setup: typedNext.setup ?? null,
       durationMs: reflowed.durationMs
     } satisfies TimelinePartializedState;
   });

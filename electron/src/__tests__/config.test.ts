@@ -10,6 +10,8 @@ import {
   webPath,
 } from '../config';
 import { readSettings } from '../settings';
+import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
 import { app } from 'electron';
 
@@ -385,6 +387,28 @@ describe('Config', () => {
       expect(result.HOME).toBeDefined();
       expect(result.HOME).toEqual(expect.any(String));
       expect(result.HOME.length).toBeGreaterThan(0);
+    });
+
+    it('puts the bundled runtime directory first on PATH when packaged', () => {
+      // npm lifecycle scripts run `sh -c node …`; a Finder-launched macOS app
+      // has no node on PATH — nodetool-ai/nodetool#6090.
+      const resources = fs.mkdtempSync(path.join(os.tmpdir(), 'nt-res-'));
+      const runtimeDir = path.join(resources, 'backend', 'runtime');
+      fs.mkdirSync(runtimeDir, { recursive: true });
+      fs.writeFileSync(path.join(runtimeDir, 'node'), '#!/bin/sh\n', { mode: 0o755 });
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+      const originalPackaged = app.isPackaged;
+      const originalResources = (process as any).resourcesPath;
+      (app as any).isPackaged = true;
+      (process as any).resourcesPath = resources;
+      try {
+        const result = getProcessEnv();
+        expect((result.PATH ?? '').split(path.delimiter)[0]).toBe(runtimeDir);
+      } finally {
+        (app as any).isPackaged = originalPackaged;
+        (process as any).resourcesPath = originalResources;
+        fs.rmSync(resources, { recursive: true, force: true });
+      }
     });
 
     it('should set UV_CACHE_DIR to a writable location inside userData', () => {

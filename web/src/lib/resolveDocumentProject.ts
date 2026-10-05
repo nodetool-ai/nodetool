@@ -3,7 +3,7 @@ import type { WorkspaceTabType } from "../stores/WorkspaceTabsStore";
 
 export type DocumentTabType = Extract<
   WorkspaceTabType,
-  "workflow" | "timeline" | "storyboard" | "script" | "jsscript" | "sketch" | "application" | "model3d"
+  "workflow" | "timeline" | "storyboard" | "script" | "jsscript" | "sketch" | "application" | "game" | "model3d"
 >;
 
 interface DocumentLocation {
@@ -43,6 +43,10 @@ export const resolveDocumentProject = async (
     case "application": {
       const document = await trpcClient.applications.get.query({ id });
       return { id: document.id, projectId: document.projectId };
+    }
+    case "game": {
+      const { game } = await trpcClient.games.get.query({ id });
+      return { id: game.id, projectId: game.projectId };
     }
     case "model3d": {
       const document = await trpcClient.assets.get.query({ id });

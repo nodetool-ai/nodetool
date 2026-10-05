@@ -1,4 +1,4 @@
-import { renderHook, waitFor } from "@testing-library/react";
+import { act, renderHook } from "@testing-library/react";
 import { asMock, stub } from "../../../../../test-utils/doubles";
 import type { Entity } from "@nodetool-ai/protocol";
 import {
@@ -39,14 +39,19 @@ describe("useAssetMentionSearch", () => {
       next_cursor: null
     });
 
-    const { result } = renderHook(() => useAssetMentionSearch(""));
-    result.current.setActiveTab("saved");
-
-    await waitFor(() => {
+    jest.useFakeTimers();
+    try {
+      const { result } = renderHook(() => useAssetMentionSearch(""));
+      await act(async () => {
+        result.current.setActiveTab("saved");
+        await jest.runOnlyPendingTimersAsync();
+      });
       expect(result.current.displayedAssets).toEqual([
         { id: "file-1", name: "cat.png", content_type: "image/png" }
       ]);
-    });
+    } finally {
+      jest.useRealTimers();
+    }
   });
 
   it("surfaces library entities filtered by the query", async () => {

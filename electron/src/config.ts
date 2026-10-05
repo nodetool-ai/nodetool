@@ -242,7 +242,13 @@ const getProcessEnv = (): ProcessEnv => {
     ".bin"
   );
 
+  // npm lifecycle scripts run through `sh -c node …`. A Finder-launched app on
+  // macOS has only the launchd PATH, so the bundled node must be on PATH itself.
+  const bundledNode = getBundledNodeBinary();
+  const bundledNodeDir = bundledNode ? path.dirname(bundledNode) : "";
+
   const pathSegmentsWin = [
+    bundledNodeDir,
     path.join(condaPath),
     path.join(condaPath, "Library", "mingw-w64", "bin"),
     path.join(condaPath, "Library", "usr", "bin"),
@@ -252,6 +258,7 @@ const getProcessEnv = (): ProcessEnv => {
     baseEnv.PATH || "",
   ];
   const pathSegmentsUnix = [
+    bundledNodeDir,
     path.join(condaPath, "bin"),
     path.join(condaPath, "lib"),
     optionalNodeBin,

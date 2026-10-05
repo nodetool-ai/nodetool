@@ -1,12 +1,15 @@
 /**
  * The bug-report form. Collects what happened, shows exactly which data will
- * leave the machine, and saves a zip the reporter attaches to a GitHub issue.
+ * leave the machine, and builds a zip of what the reporter left checked.
  *
- * Nothing is uploaded. The bundle is a local download, and the issue is the
- * normal pre-filled GitHub URL — so no server holds a reporter's prompts.
+ * Where the zip goes depends on where NodeTool runs. A local install or the
+ * desktop app saves it as a download and opens a pre-filled GitHub issue, so
+ * no server holds a reporter's prompts. The hosted app sends the report to
+ * its own backend (`bugReports.submit`), so a reporter needs no GitHub account.
  */
 import { memo, useCallback, useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
+import { MAX_BUG_REPORT_BUNDLE_BYTES } from "@nodetool-ai/protocol/api-schemas/bug-reports.js";
 import {
   AlertBanner,
   Caption,
@@ -31,6 +34,7 @@ import { formatProviderCallFailures } from "../../utils/providerCallReport";
 import { getConsoleEntries, formatConsoleEntries } from "../../utils/consoleCapture";
 import { getSystemInfo } from "../../utils/systemInfo";
 import { trpcClient } from "../../trpc/client";
+import { isElectron, isProduction } from "../../lib/env";
 import {
   buildBundleSections,
   buildBundleReadme,
@@ -39,14 +43,19 @@ import {
   buildIssueTitle,
   buildIssueUrl,
   bundleFileName,
+  bytesToBase64,
   sourceLabel,
   zipBundle,
+  zipBundleBytes,
   type BugReportContext,
   type BundleFile,
   type BundleSection
 } from "../../utils/bugReportBundle";
 
 const GITHUB_ISSUE_URL = "https://github.com/nodetool-ai/nodetool/issues/new";
+
+/** The hosted app files reports with its backend instead of on GitHub. */
+const SUBMIT_TO_BACKEND = isProduction && !isElectron;
 
 /** How far back the "Recent server errors" section looks. */
 const SERVER_ERROR_WINDOW_MS = 60 * 60 * 1000;
@@ -78,6 +87,8 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
     zipName: string;
     issueUrl: string;
   } | null>(null);
+  /** Set once the backend has the report. */
+  const [sent, setSent] = useState(false);
 
   const getCurrentWorkflow = useWorkflowManager(
     (state) => state.getCurrentWorkflow
@@ -211,16 +222,14 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
         ...attachments.map((file) => `attachments/${file.name}`)
       ];
 
+      const readme = buildBundleReadme({
+        ...fields,
+        context,
+        systemInfo,
+        bundleFileNames
+      });
       const files: BundleFile[] = [
-        {
-          name: "report.md",
-          content: buildBundleReadme({
-            ...fields,
-            context,
-            systemInfo,
-            bundleFileNames
-          })
-        },
+        { name: "report.md", content: readme },
         { name: "system.txt", content: systemInfo },
         ...included.map((section) => ({
           name: section.fileName,
@@ -233,6 +242,26 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
           name: `attachments/${file.name}`,
           content: new Uint8Array(await file.arrayBuffer())
         });
+      }
+
+      if (SUBMIT_TO_BACKEND) {
+        const zipped = zipBundleBytes(files);
+        if (zipped.length > MAX_BUG_REPORT_BUNDLE_BYTES) {
+          throw new Error(
+            `the attached data is over ${formatBytes(MAX_BUG_REPORT_BUNDLE_BYTES)}. Remove a file and try again.`
+          );
+        }
+        await trpcClient.bugReports.submit.mutate({
+          source: context.source,
+          title: buildIssueTitle(context, description),
+          description,
+          steps: steps || undefined,
+          expected: expected || undefined,
+          body: readme,
+          bundle_base64: bytesToBase64(zipped)
+        });
+        setSent(true);
+        return;
       }
 
       const zipName = bundleFileName(context, new Date());
@@ -265,7 +294,7 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
     } catch (error) {
       addNotification({
         type: "error",
-        content: `Could not build the report: ${
+        content: `Could not ${SUBMIT_TO_BACKEND ? "send" : "build"} the report: ${
           error instanceof Error ? error.message : String(error)
         }`,
         alert: true
@@ -290,6 +319,30 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
     window.open(saved.issueUrl, "_blank", "noopener,noreferrer");
     onClose();
   }, [saved, onClose]);
+
+  if (sent) {
+    return (
+      <Dialog
+        className="bug-report-dialog"
+        open
+        onClose={onClose}
+        title="Report sent"
+        maxWidth="sm"
+        fullWidth
+      >
+        <FlexColumn gap={SPACING.lg} sx={{ pb: 2 }}>
+          <AlertBanner severity="success">
+            Thanks. Your report was sent.
+          </AlertBanner>
+          <FlexRow justify="flex-end" gap={SPACING.sm}>
+            <EditorButton variant="contained" onClick={onClose}>
+              Close
+            </EditorButton>
+          </FlexRow>
+        </FlexColumn>
+      </Dialog>
+    );
+  }
 
   if (saved) {
     return (
@@ -333,9 +386,9 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
     >
       <FlexColumn gap={SPACING.lg} sx={{ pb: 2 }}>
         <AlertBanner severity="info">
-          Nothing is uploaded. NodeTool saves a zip to your downloads. You then
-          open a pre-filled GitHub issue and attach the zip there. Review what it
-          contains below.
+          {SUBMIT_TO_BACKEND
+            ? "Your report and the data checked below are sent to this NodeTool server. Review what it contains before you send it."
+            : "Nothing is uploaded. NodeTool saves a zip to your downloads. You then open a pre-filled GitHub issue and attach the zip there. Review what it contains below."}
         </AlertBanner>
 
         <Caption>Reported from: {sourceLabel(context.source)}</Caption>
@@ -480,7 +533,13 @@ const BugReportDialog = ({ context, onClose }: BugReportDialogProps) => {
             onClick={() => void handleSaveBundle()}
             disabled={busy || description.trim() === ""}
           >
-            {busy ? "Saving…" : "Save report bundle"}
+            {SUBMIT_TO_BACKEND
+              ? busy
+                ? "Sending…"
+                : "Send report"
+              : busy
+                ? "Saving…"
+                : "Save report bundle"}
           </EditorButton>
         </FlexRow>
       </FlexColumn>

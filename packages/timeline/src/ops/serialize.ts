@@ -1,10 +1,18 @@
 /** The clip and track shapes an op result reports. */
 
+import { activeTakeIdOf } from "../takes.js";
+import { formatBarsBeats } from "../midi/grid.js";
+import { resolveTempo } from "../midi/tempo.js";
+import { visibleNotes } from "../midi/notes.js";
 import { presetIdForInstrument } from "../midi/presets.js";
 import type { MediaTrack, TimelineClip, TimelineTrack } from "../types.js";
 import type { TimelineOpState } from "./types.js";
 
-export function serializeTrack(state: TimelineOpState, t: TimelineTrack, clipCount?: number) {
+export function serializeTrack(
+  state: TimelineOpState,
+  t: TimelineTrack,
+  clipCount?: number
+) {
   return {
     id: t.id,
     name: t.name,
@@ -14,7 +22,8 @@ export function serializeTrack(state: TimelineOpState, t: TimelineTrack, clipCou
     locked: t.locked,
     muted: t.muted ?? false,
     solo: t.solo ?? false,
-    clipCount: clipCount ?? state.clips.filter((c) => c.trackId === t.id).length,
+    clipCount:
+      clipCount ?? state.clips.filter((c) => c.trackId === t.id).length,
     instrument: t.instrument,
     presetId: t.instrument ? presetIdForInstrument(t.instrument) : undefined
   };
@@ -45,6 +54,18 @@ export function serializeClip(state: TimelineOpState, c: TimelineClip) {
     inPointMs: c.inPointMs,
     outPointMs: c.outPointMs,
     status: c.status,
+    currentAssetId: c.currentAssetId,
+    activeTakeId: activeTakeIdOf(c),
+    takeCount: c.versions?.length ?? 0,
+    noteCount: c.notes?.length,
+    audibleNoteCount:
+      c.mediaType === "midi"
+        ? visibleNotes(c, resolveTempo(state).bpm).length
+        : undefined,
+    startBarsBeats:
+      c.mediaType === "midi"
+        ? formatBarsBeats(c.startMs, resolveTempo(state))
+        : undefined,
     prompt: c.prompt,
     provider: c.provider,
     model: c.model,

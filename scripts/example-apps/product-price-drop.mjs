@@ -41,7 +41,7 @@ export const buildProductPriceDropBundle = () => {
   const stepOf = (item) => {
     const id = item.props.id;
     if (id === "steps") return undefined;
-    if (["output-storyboardId", "output-designPreview", "finish", "request-changes"].includes(id)) return "review";
+    if (["output-storyboardId", "output-storyboardId-preview", "output-designPreview", "finish", "request-changes"].includes(id)) return "review";
     if (["finish-error", "finish-activity"].includes(id)) return "build";
     if (["output-timeline", "finish-status"].includes(id)) return "result";
     return "inputs";
@@ -78,3 +78,6 @@ export const buildProductPriceDropBundle = () => {
   return bundle;
 };
 export const PRODUCT_PRICE_DROP_BUNDLE = buildProductPriceDropBundle();
+// The plan script moves the stepper to review, which a no-run debug never
+// executes. Without this step the build button is unreachable.
+export const PRODUCT_PRICE_DROP_DEBUG_INTERACTIONS = [{set: {key: "step", value: "review"}}];

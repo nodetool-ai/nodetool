@@ -140,6 +140,7 @@ const animationInput = (vocab: TimelineToolVocabulary) => {
   const curves = customCurvesParam(vocab.animatedProperties);
   return z.object({
     role: animationRole,
+    enabled: z.boolean().optional(),
     preset: z
       .string()
       .describe(

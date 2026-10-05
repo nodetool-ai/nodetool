@@ -7,6 +7,7 @@ import {
 import type { TimelineAgentHandler } from "../timelineAgentBridge";
 
 const makeMockHandler = (): TimelineAgentHandler => ({
+  applyOp: jest.fn(),
   getSnapshot: jest.fn(),
   retargetFormat: jest.fn(),
   setReframeSubject: jest.fn(),
@@ -119,8 +120,14 @@ describe("timelineAgentBridge", () => {
     });
 
     it("rejects an ambiguous 12-character sequence prefix (F41)", () => {
-      setTimelineAgentHandler("0123456789abcdef0123456789abcdef", makeMockHandler());
-      setTimelineAgentHandler("0123456789abffffffffffffffffffff", makeMockHandler());
+      setTimelineAgentHandler(
+        "0123456789abcdef0123456789abcdef",
+        makeMockHandler()
+      );
+      setTimelineAgentHandler(
+        "0123456789abffffffffffffffffffff",
+        makeMockHandler()
+      );
       expect(() => getTimelineAgentHandler("0123456789ab")).toThrow(
         "matches more than one open sequence"
       );

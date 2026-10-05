@@ -63,6 +63,7 @@ const isDirectGenKind = (kind: string | undefined): boolean =>
   kind === "text-to-image" ||
   kind === "image-to-image" ||
   kind === "text-to-video" ||
+  kind === "image-to-video" ||
   kind === "text-to-audio" ||
   kind === "text-to-music";
 
@@ -422,6 +423,7 @@ export const useGenerateClip = (clipId: string): UseGenerateClipResult => {
         !!clip.model &&
         (clip.prompt ?? "").trim().length > 0 &&
         (clip.bindingKind !== "image-to-image" || !!clip.sourceClipId) &&
+        (clip.bindingKind !== "image-to-video" || !!clip.sourceClipId) &&
         (clip.bindingKind !== "text-to-audio" || !!clip.voice)
       : !!clip.workflowId;
 

@@ -2959,6 +2959,7 @@ export const RENDERERS: Record<string, React.FC<WidgetProps>> = {
   Sketch: SketchWidget,
   Timeline: TimelineWidget,
   Storyboard: StoryboardWidget,
+  StoryboardPreview: StoryboardWidget,
   Table: TableWidget,
   Progress: ProgressWidget,
   AgentActivity: AgentActivityWidget,

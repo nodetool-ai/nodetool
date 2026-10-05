@@ -495,13 +495,17 @@ The form has three steps:
    run logs, the browser console. Each row has a **View** button that shows the
    exact content, and a checkbox to leave it out. You can add screenshots here
    too; a picture of the broken screen is the most useful thing you can attach.
-3. **Save, then open the issue.** **Save report bundle** writes one zip to your
-   downloads. **Open GitHub issue** then opens a pre-filled issue. Drag the zip
-   into it and submit.
+3. **Send or save it.** What happens depends on where you run NodeTool:
+   - **Web app on a hosted server, such as nodetool.ai:** **Send report**
+     stores your description and the checked files on that server, where its
+     operators read them. You need no GitHub account.
+   - **Desktop app or local server:** **Save report bundle** writes one zip to
+     your downloads. **Open GitHub issue** then opens a pre-filled issue. Drag
+     the zip into it and submit. NodeTool uploads nothing, and the zip never
+     leaves your machine if you close the dialog.
 
-NodeTool uploads nothing. The zip stays on your machine until you attach it,
-and it never leaves if you close the dialog. API keys, tokens and embedded
-media are stripped before anything is written to the file.
+Only the rows you leave checked are sent or saved. API keys, tokens and
+embedded media are stripped before anything is written to the file.
 
 ### How to Ask Effectively
 

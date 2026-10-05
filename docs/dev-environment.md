@@ -67,6 +67,12 @@ clone the dependency and build folders from an existing checkout instead.
 `cp -c` makes a copy-on-write clone: it takes seconds, uses almost no disk,
 and a later write in one tree does not change the other.
 
+Run `scripts/setup-agent-env.sh` inside a new worktree to do this
+automatically. It finds the main checkout through git, clones with `cp -cR` on
+macOS or `cp -R --reflink=always` on Linux, skips worktrees nested in the main
+checkout, and runs `npm install` when the file system cannot clone. The manual
+steps:
+
 ```bash
 MAIN=~/workspace/nodetool                  # checkout with installed deps
 WT=~/workspace/nodetool-wt/<name>

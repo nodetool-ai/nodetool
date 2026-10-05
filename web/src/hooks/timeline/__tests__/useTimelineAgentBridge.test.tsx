@@ -1,11 +1,25 @@
-import { applyTimelineTrackOp, type TimelineOpState } from "@nodetool-ai/timeline/ops";
+import {
+  FIXTURES,
+  directState,
+  directContext
+} from "../../../../../packages/timeline/tests/fixtures/ops";
+import { HOST_OP_FIXTURES } from "../../../../../packages/timeline/tests/fixtures/host-ops";
+import { applyTimelineOp } from "@nodetool-ai/timeline/ops";
+import {
+  FrontendToolRegistry,
+  type FrontendToolState
+} from "../../../lib/tools/frontendTools";
+import "../../../lib/tools/builtin/timeline";
+import {
+  applyTimelineTrackOp,
+  type TimelineOpState
+} from "@nodetool-ai/timeline/ops";
 /**
  * @jest-environment jsdom
  */
 import { renderHook } from "@testing-library/react";
 import { createMediaEditRequest, makeClip } from "@nodetool-ai/timeline";
 import type { MidiInstrument, TimelineClip } from "@nodetool-ai/timeline";
-
 import {
   createTimelineStore,
   timelineTemporalOf,
@@ -22,16 +36,14 @@ import {
 import { getTimelineAgentHandler } from "../../../components/timeline/timelineAgentBridge";
 import { useTimelineAgentBridge } from "../useTimelineAgentBridge";
 import { useLastModelStore } from "../../../stores/lastModelStore";
-
 /** The waveform of a voice, when the voice is the built-in synth. */
 const waveformOf = (instrument: MidiInstrument | undefined) =>
   instrument?.type === "subtractive" ? instrument.waveform : undefined;
-
 let mockDoc: TimelineStoreApi;
 let mockUi: TimelineUIStoreApi;
 let mockPlayback: TimelinePlaybackStoreApi;
 const mockStartEdit = jest.fn();
-
+const mockAssetGet = jest.fn();
 // The hook reads its three stores off the surrounding editor's contexts; a test
 // hands it standalone instances instead of mounting a whole TimelineEditor.
 jest.mock("../../../stores/timeline/TimelineStore", () => ({
@@ -48,21 +60,20 @@ jest.mock("../../../stores/timeline/TimelinePlaybackStore", () => ({
 }));
 jest.mock("../useTimelineDirectGenJob", () => ({
   ...jest.requireActual("../useTimelineDirectGenJob"),
-  useTimelineDirectGenJob: () => ({ start: jest.fn(), startEdit: mockStartEdit })
+  useTimelineDirectGenJob: () => ({
+    start: jest.fn(),
+    startEdit: mockStartEdit
+  })
 }));
-
 const { landMediaEdit } = jest.requireActual<
   typeof import("../useTimelineDirectGenJob")
 >("../useTimelineDirectGenJob");
-
 const SEQ_ID = "seq-1";
-
 const clipById = (id: string): TimelineClip => {
   const clip = mockDoc.getState().clips.find((c) => c.id === id);
   if (!clip) throw new Error(`no clip ${id}`);
   return clip;
 };
-
 /** A group holding two clips, plus a loose clip on the same track. */
 const seedGroup = (): void => {
   mockDoc.getState().addTrack("video", "Video 1");
@@ -93,33 +104,48 @@ const seedGroup = (): void => {
     );
   }
 };
-
 beforeEach(() => {
   mockDoc = createTimelineStore();
+  mockDoc.setState({ sequenceId: SEQ_ID });
   mockUi = createTimelineUIStore();
   mockPlayback = createTimelinePlaybackStore();
   mockStartEdit.mockReset();
+  mockAssetGet.mockReset().mockResolvedValue({
+    id: "asset-1",
+    name: "Asset.mp4",
+    content_type: "video/mp4",
+    duration: 4,
+    get_url: "https://example.test/a.mp4"
+  });
   useLastModelStore.setState({ byKind: {}, byTask: {} });
 });
-
 describe("useTimelineAgentBridge compact track IDs", () => {
-  it("resolves a unique track prefix and rejects ambiguous prefixes", () => {
+  it("resolves a unique track prefix and rejects ambiguous prefixes", async () => {
     mockDoc.getState().addTrack("video", "First");
     const track = mockDoc.getState().tracks[0];
     const id = "a2aee50221dc4c4bb342a137c045e88a";
     mockDoc.setState({ tracks: [{ ...track, id }] });
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
     const handler = getTimelineAgentHandler(SEQ_ID);
-    expect(handler.moveTrack(id.slice(0, 12), { toIndex: 0 })[0].id).toBe(id);
-    mockDoc.setState({ tracks: [
-      { ...track, id },
-      { ...track, id: "a2aee50221dc4c4bb342a137c045e88b", name: "Second", index: 1 }
-    ] });
-    expect(() => handler.moveTrack(id.slice(0, 12), { toIndex: 0 }))
-      .toThrow("matches more than one track");
+    expect(
+      (await handler.moveTrack(id.slice(0, 12), { toIndex: 0 }))[0].id
+    ).toBe(id);
+    mockDoc.setState({
+      tracks: [
+        { ...track, id },
+        {
+          ...track,
+          id: "a2aee50221dc4c4bb342a137c045e88b",
+          name: "Second",
+          index: 1
+        }
+      ]
+    });
+    await expect(
+      handler.moveTrack(id.slice(0, 12), { toIndex: 0 })
+    ).rejects.toThrow("matches more than one track");
   });
 });
-
 describe("useTimelineAgentBridge AI edit", () => {
   it("keeps a trimmed source active until explicit apply, then undoes once", async () => {
     mockDoc.getState().addTrack("video", "Video 1");
@@ -154,14 +180,12 @@ describe("useTimelineAgentBridge AI edit", () => {
     mockStartEdit.mockResolvedValue("generation-edit");
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
     const handler = getTimelineAgentHandler(SEQ_ID);
-
     const submitted = await handler.generativelyEditClip({
       clipId: original.id,
       instruction: "Make this station deserted at night",
       provider: "fal",
       model: "video-edit-model"
     });
-
     expect(mockStartEdit).toHaveBeenCalledWith({
       clipId: original.id,
       instruction: "Make this station deserted at night",
@@ -174,12 +198,10 @@ describe("useTimelineAgentBridge AI edit", () => {
       candidate: { id: "generation-edit", status: "pending" }
     });
     expect(clipById(original.id).currentAssetId).toBe("asset-original");
-
     // The production landing path rejects a stale destination. This store is
     // assembled directly for the bridge test, so give it the same sequence id
     // the mounted editor registered under before settling the request.
     mockDoc.setState({ sequenceId: SEQ_ID });
-
     // Settle through the production edit landing path. Directly patching a
     // take here would let this selfcheck pass without exercising candidate
     // creation, destination validation, or its inactive state.
@@ -206,7 +228,6 @@ describe("useTimelineAgentBridge AI edit", () => {
       { assetIds: ["asset-edited"], errored: false }
     );
     timelineTemporalOf(mockDoc).clear();
-
     const inactiveCandidate = clipById(original.id).versions?.find(
       (take) => take.id === "generation-edit"
     );
@@ -219,7 +240,6 @@ describe("useTimelineAgentBridge AI edit", () => {
       }
     });
     expect(clipById(original.id).activeTakeId).toBe("take-original");
-
     handler.applyTake(original.id, "generation-edit");
     expect(clipById(original.id)).toMatchObject({
       currentAssetId: "asset-edited",
@@ -228,7 +248,6 @@ describe("useTimelineAgentBridge AI edit", () => {
       outPointMs: 4000
     });
     expect(timelineTemporalOf(mockDoc).pastStates).toHaveLength(1);
-
     timelineTemporalOf(mockDoc).undo();
     expect(clipById(original.id)).toEqual({
       ...original,
@@ -238,7 +257,6 @@ describe("useTimelineAgentBridge AI edit", () => {
     expect(clipById(original.id).inPointMs).toBe(40000);
     expect(clipById(original.id).outPointMs).toBe(44000);
   });
-
   it("uses the remembered video-to-video pair instead of a clip's text-to-video model", async () => {
     mockDoc.getState().addTrack("video", "Video 1");
     const trackId = mockDoc.getState().tracks[0].id;
@@ -266,12 +284,10 @@ describe("useTimelineAgentBridge AI edit", () => {
     });
     mockStartEdit.mockResolvedValue("generation-edit");
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
-
     await getTimelineAgentHandler(SEQ_ID).generativelyEditClip({
       clipId: clip.id,
       instruction: "Make it nighttime"
     });
-
     expect(mockStartEdit).toHaveBeenCalledWith({
       clipId: clip.id,
       instruction: "Make it nighttime",
@@ -280,9 +296,8 @@ describe("useTimelineAgentBridge AI edit", () => {
     });
   });
 });
-
 describe("useTimelineAgentBridge 12-character ids on id-only tools (F41)", () => {
-  it("resolves a marker by its 12-character prefix and rejects an ambiguous one", () => {
+  it("resolves a marker by its 12-character prefix and rejects an ambiguous one", async () => {
     const first = "bb11cc22dd33ee44ff5566778899aabb";
     mockDoc.setState({
       markers: [{ id: first, timeMs: 1000, label: "Hook" }]
@@ -295,15 +310,14 @@ describe("useTimelineAgentBridge 12-character ids on id-only tools (F41)", () =>
         { id: "bb11cc22dd33ee44ff5566778899aabc", timeMs: 2000, label: "Two" }
       ]
     });
-    expect(() => handler.deleteMarker(first.slice(0, 12))).toThrow(
+    await expect(handler.deleteMarker(first.slice(0, 12))).rejects.toThrow(
       "matches more than one marker"
     );
     mockDoc.setState({
       markers: [{ id: first, timeMs: 1000, label: "Hook" }]
     });
-    expect(handler.deleteMarker(first.slice(0, 12)).id).toBe(first);
+    expect((await handler.deleteMarker(first.slice(0, 12))).id).toBe(first);
   });
-
   it("starts an AI edit from a 12-character clip id, with the full id", async () => {
     mockDoc.getState().addTrack("video", "Video 1");
     const trackId = mockDoc.getState().tracks[0].id;
@@ -332,7 +346,6 @@ describe("useTimelineAgentBridge 12-character ids on id-only tools (F41)", () =>
       expect.objectContaining({ clipId: fullId })
     );
   });
-
   it("rejects an ambiguous clip prefix on an AI edit", async () => {
     mockDoc.getState().addTrack("video", "Video 1");
     const trackId = mockDoc.getState().tracks[0].id;
@@ -363,27 +376,25 @@ describe("useTimelineAgentBridge 12-character ids on id-only tools (F41)", () =>
     ).rejects.toThrow("matches more than one clip");
   });
 });
-
 describe("useTimelineAgentBridge group-aware edits", () => {
-  it("moves a group's children with it", () => {
+  it("moves a group's children with it", async () => {
     seedGroup();
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
-
-    getTimelineAgentHandler(SEQ_ID).moveClip("group-1", { startMs: 3000 });
-
+    await getTimelineAgentHandler(SEQ_ID).moveClip("group-1", {
+      startMs: 3000
+    });
     // The group moved by +2000ms, so everything it holds did too. Writing
     // startMs straight onto the group left the children behind.
     expect(clipById("group-1").startMs).toBe(3000);
     expect(clipById("child-a").startMs).toBe(3000);
     expect(clipById("child-b").startMs).toBe(3500);
   });
-
-  it("trims a group's children inside the shorter window", () => {
+  it("trims a group's children inside the shorter window", async () => {
     seedGroup();
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
-
-    getTimelineAgentHandler(SEQ_ID).trimClip("group-1", { durationMs: 1200 });
-
+    await getTimelineAgentHandler(SEQ_ID).trimClip("group-1", {
+      durationMs: 1200
+    });
     expect(clipById("group-1").durationMs).toBe(1200);
     // child-b ran 1500–2000; the group now ends at 2200, so it stays inside.
     const childB = clipById("child-b");
@@ -391,8 +402,7 @@ describe("useTimelineAgentBridge group-aware edits", () => {
       clipById("group-1").startMs + clipById("group-1").durationMs
     );
   });
-
-  it("moves a lone clip to an absolute start", () => {
+  it("moves a lone clip to an absolute start", async () => {
     mockDoc.getState().addTrack("video", "Video 1");
     const trackId = mockDoc.getState().tracks[0].id;
     mockDoc.getState().addClip(
@@ -407,16 +417,13 @@ describe("useTimelineAgentBridge group-aware edits", () => {
       })
     );
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
-
-    const node = getTimelineAgentHandler(SEQ_ID).moveClip("solo", {
+    const node = await getTimelineAgentHandler(SEQ_ID).moveClip("solo", {
       startMs: 4000
     });
-
     expect(node.startMs).toBe(4000);
     expect(clipById("solo").durationMs).toBe(800);
   });
 });
-
 describe("useTimelineAgentBridge setTimeRemap", () => {
   const seedClip = (): void => {
     mockDoc.getState().addTrack("video", "Video 1");
@@ -433,13 +440,11 @@ describe("useTimelineAgentBridge setTimeRemap", () => {
       })
     );
   };
-
-  it("stores a curve and clears it with null", () => {
+  it("stores a curve and clears it with null", async () => {
     seedClip();
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
     const handler = getTimelineAgentHandler(SEQ_ID);
-
-    handler.setTimeRemap("clip-1", {
+    await handler.setTimeRemap("clip-1", {
       keyframes: [
         { t: 0, sourceMs: 0 },
         { t: 0.5, sourceMs: 200, easing: "easeInOut" },
@@ -447,27 +452,23 @@ describe("useTimelineAgentBridge setTimeRemap", () => {
       ]
     });
     expect(clipById("clip-1").timeRemap?.keyframes).toHaveLength(3);
-
-    handler.setTimeRemap("clip-1", null);
+    await handler.setTimeRemap("clip-1", null);
     expect(clipById("clip-1").timeRemap).toBeUndefined();
   });
-
-  it("refuses a curve that does not span the clip", () => {
+  it("refuses a curve that does not span the clip", async () => {
     seedClip();
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
-
-    expect(() =>
+    await expect(
       getTimelineAgentHandler(SEQ_ID).setTimeRemap("clip-1", {
         keyframes: [
           { t: 0.3, sourceMs: 0 },
           { t: 1, sourceMs: 2000 }
         ]
       })
-    ).toThrow(/must span the clip/);
+    ).rejects.toThrow(/must span the clip/);
     expect(clipById("clip-1").timeRemap).toBeUndefined();
   });
 });
-
 // The frame extractor and the asset lookup are the two things a frame grab
 // touches outside the store; both are stubbed so the test is about which
 // times the bridge asks for.
@@ -484,7 +485,7 @@ jest.mock("../../../components/timeline/Tracks/clipThumbnails", () => ({
 }));
 jest.mock("../../../stores/AssetStore", () => {
   const getState = () => ({
-    get: async () => ({ id: "asset-1", get_url: "https://example.test/a.mp4" }),
+    get: (id: string) => mockAssetGet(id),
     createAsset: jest.fn()
   });
   // The bridge reads the store both ways: `getState()` for a one-off lookup,
@@ -494,7 +495,6 @@ jest.mock("../../../stores/AssetStore", () => {
   useAssetStore.getState = getState;
   return { useAssetStore };
 });
-
 describe("useTimelineAgentBridge getClipFrames", () => {
   /** A clip whose media starts a long way into the cut, as an assembly lays it. */
   const seedLateClip = (id = "shot-4"): void => {
@@ -514,11 +514,9 @@ describe("useTimelineAgentBridge getClipFrames", () => {
       })
     );
   };
-
   it("reads clip-relative times on a clip that does not start at zero", async () => {
     seedLateClip();
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
-
     // "200ms into this clip" is what a caller inspecting one clip means. It
     // used to be refused outright: `Frame time 200ms is outside clip "Shot 4"`.
     const result = await getTimelineAgentHandler(SEQ_ID).getClipFrames(
@@ -528,11 +526,9 @@ describe("useTimelineAgentBridge getClipFrames", () => {
     expect(result.frames.map((f) => f.timelineTimeMs)).toEqual([15752, 17352]);
     expect(result.frames.map((f) => f.sourceTimeMs)).toEqual([200, 1800]);
   });
-
   it("still reads a timeline time inside the clip as a timeline time", async () => {
     seedLateClip();
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
-
     const result = await getTimelineAgentHandler(SEQ_ID).getClipFrames(
       "shot-4",
       { timesMs: [15752, 20400] }
@@ -540,72 +536,67 @@ describe("useTimelineAgentBridge getClipFrames", () => {
     expect(result.frames.map((f) => f.timelineTimeMs)).toEqual([15752, 20400]);
     expect(result.frames.map((f) => f.sourceTimeMs)).toEqual([200, 4848]);
   });
-
   it("accepts the compact clip id returned to the agent", async () => {
     const fullId = "fac9a239f3434aeea8215b680013f047";
     seedLateClip(fullId);
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
-
     const result = await getTimelineAgentHandler(SEQ_ID).getClipFrames(
       fullId.slice(0, 12),
       { timesMs: [200] }
     );
-
     expect(result.clip.id).toBe(fullId);
     expect(result.frames[0].clipId).toBe(fullId);
   });
-
   it("names both accepted ranges when a time fits neither", async () => {
     seedLateClip();
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
-
     await expect(
       getTimelineAgentHandler(SEQ_ID).getClipFrames("shot-4", {
         timesMs: [90000]
       })
     ).rejects.toThrow(/15552–20736ms.*0–5184ms/s);
   });
-
   it("rejects an ambiguous compact clip id", async () => {
     seedLateClip("fac9a239f3434aeea8215b680013f047");
     seedLateClip("fac9a239f3434aeea8215b680013f048");
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
     await expect(
-      getTimelineAgentHandler(SEQ_ID).getClipFrames("fac9a239f343", { timesMs: [200] })
+      getTimelineAgentHandler(SEQ_ID).getClipFrames("fac9a239f343", {
+        timesMs: [200]
+      })
     ).rejects.toThrow("matches more than one clip");
   });
 });
-
 describe("useTimelineAgentBridge midi", () => {
   /** One midi track with one two-note clip, addressed by name. */
-  const seedMidi = (): string => {
+  const seedMidi = async (): Promise<string> => {
     mockDoc.getState().addTrack("midi", "Bass");
     const trackId = mockDoc.getState().tracks[0].id;
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
-    return getTimelineAgentHandler(SEQ_ID).addMidiClip({
-      trackId,
-      startMs: 1000,
-      durationMs: 2000,
-      name: "Riff",
-      notes: [
-        { pitch: 60, startTick: 0, durationTick: 480 },
-        { pitch: 64, startTick: 480, durationTick: 480 }
-      ]
-    }).id;
+    return (
+      await getTimelineAgentHandler(SEQ_ID).addMidiClip({
+        trackId,
+        startMs: 1000,
+        durationMs: 2000,
+        name: "Riff",
+        notes: [
+          { pitch: 60, startTick: 0, durationTick: 480 },
+          { pitch: 64, startTick: 480, durationTick: 480 }
+        ]
+      })
+    ).id;
   };
-
-  it("places a midi clip and reports its note count", () => {
-    const clipId = seedMidi();
+  it("places a midi clip and reports its note count", async () => {
+    const clipId = await seedMidi();
     const clip = getTimelineAgentHandler(SEQ_ID)
       .getSnapshot()
       .clips.find((c) => c.id === clipId);
     expect(clip?.mediaType).toBe("midi");
     expect(clip?.noteCount).toBe(2);
   });
-
-  it("creates a midi track when the caller names none", () => {
+  it("creates a midi track when the caller names none", async () => {
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
-    const clip = getTimelineAgentHandler(SEQ_ID).addMidiClip({
+    const clip = await getTimelineAgentHandler(SEQ_ID).addMidiClip({
       durationMs: 2000,
       notes: [{ pitch: 60, startTick: 0, durationTick: 480 }]
     });
@@ -614,50 +605,45 @@ describe("useTimelineAgentBridge midi", () => {
     // Placed after the (empty) track's content, which is the top.
     expect(clip.startMs).toBe(0);
   });
-
-  it("refuses a midi clip on a track that is not midi", () => {
+  it("refuses a midi clip on a track that is not midi", async () => {
     mockDoc.getState().addTrack("video", "Video 1");
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
-    expect(() =>
+    await expect(
       getTimelineAgentHandler(SEQ_ID).addMidiClip({
         trackId: "Video 1",
         startMs: 0,
         durationMs: 1000
       })
-    ).toThrow(/midi track/i);
+    ).rejects.toThrow(/midi track/i);
   });
-
-  it("reports the resolved tempo even when the document stores none", () => {
-    seedMidi();
+  it("reports the resolved tempo even when the document stores none", async () => {
+    await seedMidi();
     expect(getTimelineAgentHandler(SEQ_ID).getSnapshot().tempo).toEqual({
       bpm: 120,
       offsetMs: 0,
       timeSignature: { beatsPerBar: 4, beatUnit: 4 }
     });
   });
-
-  it("replaces a clip's whole note list", () => {
-    const clipId = seedMidi();
-    const node = getTimelineAgentHandler(SEQ_ID).setNotes(clipId, [
+  it("replaces a clip's whole note list", async () => {
+    const clipId = await seedMidi();
+    const node = await getTimelineAgentHandler(SEQ_ID).setNotes(clipId, [
       { pitch: 55, startTick: 0, durationTick: 960 }
     ]);
     expect(node.noteCount).toBe(1);
     expect(clipById(clipId).notes?.[0].pitch).toBe(55);
   });
-
-  it("refuses a note the document cannot store", () => {
-    const clipId = seedMidi();
-    expect(() =>
+  it("refuses a note the document cannot store", async () => {
+    const clipId = await seedMidi();
+    await expect(
       getTimelineAgentHandler(SEQ_ID).setNotes(clipId, [
         { pitch: 200, startTick: 0, durationTick: 480 }
       ])
-    ).toThrow(/pitch/);
+    ).rejects.toThrow(/pitch/);
     expect(clipById(clipId).notes).toHaveLength(2);
   });
-
-  it("rescales the midi clips on a tempo change and answers with the document", () => {
-    const clipId = seedMidi();
-    const snapshot = getTimelineAgentHandler(SEQ_ID).setTempo({
+  it("rescales the midi clips on a tempo change and answers with the document", async () => {
+    const clipId = await seedMidi();
+    const snapshot = await getTimelineAgentHandler(SEQ_ID).setTempo({
       bpm: 60,
       offsetMs: 0,
       timeSignature: { beatsPerBar: 4, beatUnit: 4 }
@@ -667,20 +653,22 @@ describe("useTimelineAgentBridge midi", () => {
     expect(clip.startMs).toBe(2000);
     expect(clip.durationMs).toBe(4000);
   });
-
-  it("sets a midi track's instrument and reports it in the snapshot", () => {
-    seedMidi();
-    const track = getTimelineAgentHandler(SEQ_ID).setTrackInstrument("Bass", {
-      type: "subtractive",
-      waveform: "square",
-      attackMs: 1,
-      decayMs: 50,
-      sustain: 0.5,
-      releaseMs: 100,
-      cutoffHz: 2000,
-      resonance: 1,
-      gainDb: -3
-    });
+  it("sets a midi track's instrument and reports it in the snapshot", async () => {
+    await seedMidi();
+    const track = await getTimelineAgentHandler(SEQ_ID).setTrackInstrument(
+      "Bass",
+      {
+        type: "subtractive",
+        waveform: "square",
+        attackMs: 1,
+        decayMs: 50,
+        sustain: 0.5,
+        releaseMs: 100,
+        cutoffHz: 2000,
+        resonance: 1,
+        gainDb: -3
+      }
+    );
     expect(waveformOf(track.instrument)).toBe("square");
     expect(
       waveformOf(
@@ -688,13 +676,11 @@ describe("useTimelineAgentBridge midi", () => {
       )
     ).toBe("square");
   });
-
-  it("names the preset a track's voice matches, and drops it once edited", () => {
-    seedMidi();
+  it("names the preset a track's voice matches, and drops it once edited", async () => {
+    await seedMidi();
     const handler = getTimelineAgentHandler(SEQ_ID);
     expect(handler.getSnapshot().tracks[0].presetId).toBe("wt1-prime-lead");
-
-    handler.setTrackInstrument("Bass", {
+    await handler.setTrackInstrument("Bass", {
       type: "subtractive",
       waveform: "saw",
       attackMs: 5,
@@ -707,28 +693,23 @@ describe("useTimelineAgentBridge midi", () => {
     });
     expect(handler.getSnapshot().tracks[0].presetId).toBeUndefined();
   });
-
-  it("transposes, quantizes and scales a clip's notes", () => {
-    const clipId = seedMidi();
+  it("transposes, quantizes and scales a clip's notes", async () => {
+    const clipId = await seedMidi();
     const handler = getTimelineAgentHandler(SEQ_ID);
     const notes = () =>
       mockDoc.getState().clips.find((c) => c.id === clipId)!.notes!;
-
-    handler.transposeClip("Riff", -12);
+    await handler.transposeClip("Riff", -12);
     expect(notes().map((n) => n.pitch)).toEqual([48, 52]);
-
-    handler.setNotes("Riff", [
+    await handler.setNotes("Riff", [
       { pitch: 48, startTick: 20, durationTick: 200 }
     ]);
-    handler.quantizeClip("Riff", { division: "1/8" });
+    await handler.quantizeClip("Riff", { division: "1/8" });
     expect(notes()[0].startTick).toBe(0);
-
-    handler.scaleClipVelocity("Riff", 0.5);
+    await handler.scaleClipVelocity("Riff", 0.5);
     expect(notes()[0].velocity).toBe(50);
   });
-
-  it("refuses a note edit on a clip that carries no notes", () => {
-    seedMidi();
+  it("refuses a note edit on a clip that carries no notes", async () => {
+    await seedMidi();
     mockDoc.getState().addTrack("video", "V1");
     const videoTrackId = mockDoc.getState().tracks[1].id;
     mockDoc.getState().addClip(
@@ -742,15 +723,14 @@ describe("useTimelineAgentBridge midi", () => {
         durationMs: 1000
       })
     );
-    expect(() =>
+    await expect(
       getTimelineAgentHandler(SEQ_ID).transposeClip("shot-1", 1)
-    ).toThrow(/only a midi clip/i);
+    ).rejects.toThrow(/only a midi clip/i);
   });
-
-  it("refuses an instrument on a track that is not midi", () => {
+  it("refuses an instrument on a track that is not midi", async () => {
     mockDoc.getState().addTrack("audio", "VO");
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
-    expect(() =>
+    await expect(
       getTimelineAgentHandler(SEQ_ID).setTrackInstrument("VO", {
         type: "subtractive",
         waveform: "sine",
@@ -762,11 +742,9 @@ describe("useTimelineAgentBridge midi", () => {
         resonance: 1,
         gainDb: -3
       })
-    ).toThrow(/midi track/i);
+    ).rejects.toThrow(/midi track/i);
   });
 });
-
-
 describe("shared track document operations", () => {
   const snapshot = (): TimelineOpState => {
     const store = mockDoc.getState();
@@ -783,27 +761,24 @@ describe("shared track document operations", () => {
       selectedClipIds: [...mockUi.getState().selectedClipIds]
     });
   };
-
   it.each(["track ID", "track name"])(
     "matches pure document semantics for move/delete using %s",
-    (kind) => {
+    async (kind) => {
       seedGroup();
       mockDoc.getState().addTrack("overlay", "Surviving children");
       const [first, second] = mockDoc.getState().tracks;
       mockDoc.getState().patchClip("child-b", { trackId: second.id });
       mockDoc.setState({
-        clips: mockDoc
-          .getState()
-          .clips.map((clip) =>
-            clip.id === "child-b"
-              ? {
-                  ...clip,
-                  sourceType: "generated",
-                  bindingKind: "text-to-audio",
-                  startMs: 5000
-                }
-              : clip
-          )
+        clips: mockDoc.getState().clips.map((clip) =>
+          clip.id === "child-b"
+            ? {
+                ...clip,
+                sourceType: "generated",
+                bindingKind: "text-to-audio",
+                startMs: 5000
+              }
+            : clip
+        )
       });
       mockUi.getState().setSelection(["group-1", "child-b"]);
       renderHook(() => useTimelineAgentBridge(SEQ_ID));
@@ -815,19 +790,18 @@ describe("shared track document operations", () => {
         { op: "move_track", target, after: second.name },
         { newId: () => "unused" }
       );
-      const returned = handler.moveTrack(target, { after: second.name });
+      const returned = await handler.moveTrack(target, { after: second.name });
       expect(snapshot()).toEqual(moved.state);
       expect(returned.map((track) => track.id)).toEqual(
         moved.state.tracks.map((track) => track.id)
       );
-
       const beforeDelete = snapshot();
       const deleted = applyTimelineTrackOp(
         beforeDelete,
         { op: "delete_track", target, deleteClips: true },
         { newId: () => "unused" }
       );
-      const result = handler.deleteTrack(target, true);
+      const result = await handler.deleteTrack(target, true);
       expect(snapshot()).toEqual(deleted.state);
       expect(result.deletedClipIds).toEqual(deleted.result.deletedClipIds);
       expect(clipById("child-b").parentId).toBeUndefined();
@@ -838,31 +812,29 @@ describe("shared track document operations", () => {
       expect(mockDoc.getState().tracks).toEqual(beforeDelete.tracks);
     }
   );
-
-  it("rejects populated track deletion and invalid moves without a write or undo entry", () => {
+  it("rejects populated track deletion and invalid moves without a write or undo entry", async () => {
     seedGroup();
     renderHook(() => useTimelineAgentBridge(SEQ_ID));
     const handler = getTimelineAgentHandler(SEQ_ID);
     const before = snapshot();
     const history = timelineTemporalOf(mockDoc).pastStates.length;
-    expect(() => handler.deleteTrack(before.tracks[0].id, false)).toThrow(
-      "still holds"
-    );
-    expect(() =>
+    await expect(
+      handler.deleteTrack(before.tracks[0].id, false)
+    ).rejects.toThrow("still holds");
+    await expect(
       handler.moveTrack(before.tracks[0].id, { before: "absent" })
-    ).toThrow();
-    expect(() => handler.moveTrack(before.tracks[0].id, {})).toThrow();
+    ).rejects.toThrow();
+    await expect(handler.moveTrack(before.tracks[0].id, {})).rejects.toThrow();
     expect(snapshot()).toEqual(before);
     expect(timelineTemporalOf(mockDoc).pastStates.length).toBe(history);
   });
-
   it.each(["video", "midi"] as const)(
     "adds %s with shared defaults, stable returned ID and one undo entry",
-    (type) => {
+    async (type) => {
       renderHook(() => useTimelineAgentBridge(SEQ_ID));
       const before = snapshot();
       const history = timelineTemporalOf(mockDoc).pastStates.length;
-      const returned = getTimelineAgentHandler(SEQ_ID).addTrack(
+      const returned = await getTimelineAgentHandler(SEQ_ID).addTrack(
         type,
         "Authored"
       );
@@ -880,4 +852,203 @@ describe("shared track document operations", () => {
       expect(before.tracks).toEqual([]);
     }
   );
+});
+
+describe("shared timeline fixtures through the web handler", () => {
+  for (const fixture of FIXTURES) {
+    it(fixture.tool, async () => {
+      const initial = directState();
+      mockDoc.setState({ ...initial, sequenceId: SEQ_ID });
+      const expected = await applyTimelineOp(
+        initial,
+        fixture.op,
+        directContext(initial)
+      );
+      expect(expected.error).toBeUndefined();
+      const context = directContext(initial);
+      renderHook(() => useTimelineAgentBridge(SEQ_ID, context));
+      await getTimelineAgentHandler(SEQ_ID).applyOp(fixture.op);
+      const state = mockDoc.getState();
+      expect(state.tracks).toEqual(expected.state.tracks);
+      expect(state.clips).toEqual(expected.state.clips);
+      expect(state.markers).toEqual(expected.state.markers);
+      expect(state.mediaTracks).toEqual(expected.state.mediaTracks ?? []);
+      expect(state.setup).toEqual(expected.state.setup);
+      expect(state.tempo).toEqual(expected.state.tempo);
+    });
+  }
+  for (const fixture of HOST_OP_FIXTURES) {
+    it(fixture.name, async () => {
+      const initial = fixture.initial();
+      mockDoc.setState({ ...initial, sequenceId: SEQ_ID });
+      const context = { ...directContext(initial), ...fixture.context };
+      renderHook(() => useTimelineAgentBridge(SEQ_ID, context));
+      const handler = getTimelineAgentHandler(SEQ_ID);
+      if (fixture.error) {
+        await expect(handler.applyOp(fixture.op)).rejects.toThrow(
+          fixture.error
+        );
+        expect(mockDoc.getState().clips).toEqual(initial.clips);
+        return;
+      }
+      await handler.applyOp(fixture.op);
+      for (const track of fixture.tracks ?? []) {
+        expect(
+          mockDoc.getState().tracks.find((entry) => entry.id === track.id)
+        ).toMatchObject(track);
+      }
+      if (fixture.tempo) {
+        expect(mockDoc.getState().tempo).toEqual(fixture.tempo);
+      }
+      if (fixture.clipCount !== undefined)
+        expect(mockDoc.getState().clips).toHaveLength(fixture.clipCount);
+      for (const expected of fixture.clips ?? []) {
+        const clip = clipById(String(expected.id));
+        for (const [key, value] of Object.entries(expected)) {
+          if (value === undefined) expect(clip).not.toHaveProperty(key);
+          else expect(clip).toMatchObject({ [key]: value });
+        }
+      }
+    });
+  }
+  it("forwards a non-quarter beat unit through the tool", async () => {
+    const initial = directState();
+    mockDoc.setState({ ...initial, sequenceId: SEQ_ID });
+    renderHook(() => useTimelineAgentBridge(SEQ_ID, directContext(initial)));
+    await FrontendToolRegistry.call(
+      "ui_timeline_set_tempo",
+      { timeline_id: SEQ_ID, bpm: 90, beats_per_bar: 6, beat_unit: 8 },
+      "tempo",
+      { getState: () => ({}) as FrontendToolState }
+    );
+    expect(mockDoc.getState().tempo?.timeSignature).toEqual({
+      beatsPerBar: 6,
+      beatUnit: 8
+    });
+  });
+
+  it("remembers a binding model for the next generation", async () => {
+    const initial = directState();
+    initial.clips[2].bindingKind = "text-to-video";
+    mockDoc.setState({ ...initial, sequenceId: SEQ_ID });
+    renderHook(() => useTimelineAgentBridge(SEQ_ID, directContext(initial)));
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    await handler.setClipBinding("clip_c", {
+      provider: "fal",
+      model: "chosen-model"
+    });
+    const clip = await handler.generateClip({
+      kind: "text-to-video",
+      prompt: "Next shot",
+      autoGenerate: false
+    });
+    expect(clip.clip).toMatchObject({ provider: "fal", model: "chosen-model" });
+  });
+  it("setup edits create one undo entry and restore the prior setup", async () => {
+    const initial = directState();
+    mockDoc.setState({ ...initial, sequenceId: SEQ_ID });
+    renderHook(() => useTimelineAgentBridge(SEQ_ID, directContext(initial)));
+    timelineTemporalOf(mockDoc).clear();
+    await getTimelineAgentHandler(SEQ_ID).applyOp({
+      op: "set_setup",
+      brief: "Revised"
+    });
+    expect(timelineTemporalOf(mockDoc).pastStates).toHaveLength(1);
+    timelineTemporalOf(mockDoc).undo();
+    expect(mockDoc.getState().setup).toEqual(initial.setup);
+  });
+  it("returns only the split halves when another edit precedes it", async () => {
+    const initial = directState();
+    mockDoc.setState({ ...initial, sequenceId: SEQ_ID });
+    renderHook(() => useTimelineAgentBridge(SEQ_ID, directContext(initial)));
+    const handler = getTimelineAgentHandler(SEQ_ID);
+    const [added, halves] = await Promise.all([
+      handler.addTextClip({ text: "Another" }),
+      handler.splitClip("clip_a", 1000)
+    ]);
+    expect(halves).toHaveLength(2);
+    expect(halves.map((clip) => clip.id)).not.toContain(added.id);
+  });
+  it("returns the renamed clip when the target was a name", async () => {
+    const initial = directState();
+    mockDoc.setState({ ...initial, sequenceId: SEQ_ID });
+    renderHook(() => useTimelineAgentBridge(SEQ_ID, directContext(initial)));
+    expect(
+      await getTimelineAgentHandler(SEQ_ID).setClipParams("Title", {
+        name: "Opening"
+      })
+    ).toMatchObject({ id: "clip_b", name: "Opening" });
+  });
+
+  it("preserves a manual edit made during asset lookup", async () => {
+    const initial = directState();
+    mockDoc.setState({ ...initial, sequenceId: SEQ_ID });
+    renderHook(() => useTimelineAgentBridge(SEQ_ID));
+    const delayedAsset = {
+      id: "asset-1",
+      name: "Delayed.mp4",
+      content_type: "video/mp4",
+      duration: 2,
+      metadata: { thumbnails: ["thumb-1"] }
+    };
+    let finish!: (asset: typeof delayedAsset) => void;
+    let started!: () => void;
+    const lookup = new Promise<typeof delayedAsset>((resolve) => {
+      finish = resolve;
+    });
+    const invoked = new Promise<void>((resolve) => {
+      started = resolve;
+    });
+    mockAssetGet.mockImplementation(() => {
+      started();
+      return lookup;
+    });
+    const pending = getTimelineAgentHandler(SEQ_ID).addMediaClip({
+      asset: "asset-1"
+    });
+    await invoked;
+    mockDoc.setState({
+      clips: mockDoc
+        .getState()
+        .clips.map((clip) =>
+          clip.id === "clip_b" ? { ...clip, opacity: 0.4 } : clip
+        )
+    });
+    finish(delayedAsset);
+    const added = await pending;
+    expect(added.id).toBeDefined();
+    expect(clipById("clip_b").opacity).toBe(0.4);
+    expect(clipById(added.id).thumbnailAssetId).toBe("thumb-1");
+    expect(mockDoc.getState().clips).toHaveLength(initial.clips.length + 1);
+    expect(mockAssetGet).toHaveBeenCalledTimes(1);
+  });
+
+  it("a compound tool edit records one undo entry and preserves unrelated timing", async () => {
+    const initial = directState();
+    mockDoc.setState({ ...initial, sequenceId: SEQ_ID });
+    const context = directContext(initial);
+    renderHook(() => useTimelineAgentBridge(SEQ_ID, context));
+    timelineTemporalOf(mockDoc).clear();
+    await FrontendToolRegistry.call(
+      "ui_timeline_set_clip_params",
+      {
+        timeline_id: SEQ_ID,
+        target: "clip_b",
+        startMs: 1500,
+        durationMs: 2500,
+        opacity: 0.5
+      },
+      "compound",
+      { getState: () => ({}) as FrontendToolState }
+    );
+    expect(timelineTemporalOf(mockDoc).pastStates).toHaveLength(1);
+    expect(clipById("clip_b")).toMatchObject({
+      startMs: 1500,
+      durationMs: 2500,
+      opacity: 0.5
+    });
+    expect(clipById("clip_a").startMs).toBe(initial.clips[0].startMs);
+    timelineTemporalOf(mockDoc).undo();
+    expect(mockDoc.getState().clips).toEqual(initial.clips);
+  });
 });

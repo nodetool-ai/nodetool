@@ -39,6 +39,7 @@ export interface FrontendToolState {
   addWorkflow: (workflow: Workflow) => void;
   removeWorkflow: (workflowId: string) => void;
   getNodeStore: (workflowId: string) => NodeStore | undefined;
+  whenWorkflowReady?: (workflowId: string, signal: AbortSignal) => Promise<boolean>;
   updateWorkflow: (workflow: Workflow) => void;
   saveWorkflow: (workflow: Workflow) => Promise<void>;
   getCurrentWorkflow: () => Workflow | undefined;

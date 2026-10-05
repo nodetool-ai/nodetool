@@ -1,3 +1,4 @@
+import { createAgentHandlerRegistry } from "../../lib/tools/agentHandlerRegistry";
 /**
  * storyboardAgentBridge
  *
@@ -332,7 +333,7 @@ export interface StoryboardAgentHandler {
   }>;
 }
 
-const handlers = new Map<string, StoryboardAgentHandler>();
+const handlers = createAgentHandlerRegistry<StoryboardAgentHandler>();
 
 /**
  * Register (or clear, with null) the handler for one board id. Each open
@@ -346,7 +347,7 @@ export function setStoryboardAgentHandler(
   if (next) {
     handlers.set(boardId, next);
   } else {
-    handlers.delete(boardId);
+    handlers.set(boardId, null);
   }
 }
 
@@ -370,8 +371,13 @@ export function getStoryboardAgentHandler(
         (open.length > 0
           ? `Open storyboards: ${open.join(", ")}. `
           : "No storyboards are currently open. ") +
-        'Call ui_open_document with type "storyboard" to open it.'
+        "Not open in the editor. Use edit_storyboard to edit it, or ui_open_document to show it to the user."
     );
   }
   return handler;
 }
+
+export const whenStoryboardAgentReady = (
+  id: string,
+  signal: AbortSignal
+): Promise<boolean> => handlers.whenReady(id, () => true, signal);

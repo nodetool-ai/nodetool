@@ -562,6 +562,8 @@ export interface TrackChromaKeyEffect {
  *     param overrides. `sourceClipId` is the input clip for i2i.
  *   - `"text-to-video"`: calls the runner's `generate_media` RPC with a video
  *     model + prompt. Returns a single `video/mp4` asset.
+ *   - `"image-to-video"`: the same video request with the `sourceClipId`
+ *     image as the first frame.
  *   - `"text-to-music"`: generates music as an audio asset.
  *   - `"text-to-audio"`: calls the runner's `generate_media` RPC with a TTS
  *     model + voice + prompt text. Returns a single audio asset (wav/mp3/...).
@@ -574,6 +576,7 @@ export type ClipBindingKind =
   | "text-to-image"
   | "image-to-image"
   | "text-to-video"
+  | "image-to-video"
   | "text-to-audio"
   | "text-to-music";
 
@@ -901,7 +904,7 @@ export interface TimelineClip {
    * reading as one paragraph while distinct authored beats stay separate.
    */
   paragraphId?: string;
-  /** Source clip for image-to-image. Reads the source clip's currentAssetId at submit time. */
+  /** Source clip for image-to-image and image-to-video. Reads the source clip's currentAssetId at submit time. */
   sourceClipId?: string | null;
   /**
    * Links this clip to one or more sibling clips. Clips sharing a `linkId`

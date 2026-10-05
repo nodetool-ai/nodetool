@@ -1,3 +1,4 @@
+import { createAgentHandlerRegistry } from "../../lib/tools/agentHandlerRegistry";
 /**
  * jsScriptAgentBridge
  *
@@ -73,7 +74,7 @@ export interface JsScriptAgentHandler {
   test: () => Promise<JsScriptTestReport>;
 }
 
-const handlers = new Map<string, JsScriptAgentHandler>();
+const handlers = createAgentHandlerRegistry<JsScriptAgentHandler>();
 
 /**
  * Register (or clear, with null) the handler for one JS script id. Each open
@@ -86,7 +87,7 @@ export function setJsScriptAgentHandler(
   if (next) {
     handlers.set(scriptId, next);
   } else {
-    handlers.delete(scriptId);
+    handlers.set(scriptId, null);
   }
 }
 
@@ -115,3 +116,8 @@ export function getJsScriptAgentHandler(
   }
   return handler;
 }
+
+export const whenJsScriptAgentReady = (
+  id: string,
+  signal: AbortSignal
+): Promise<boolean> => handlers.whenReady(id, () => true, signal);

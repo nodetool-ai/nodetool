@@ -34,7 +34,7 @@
 import { and, count, eq, inArray, notInArray, type SQL } from "drizzle-orm";
 import type { SQLiteColumn, SQLiteTable } from "drizzle-orm/sqlite-core";
 
-import { getDb } from "./db.js";
+import { getPortableDb } from "./db.js";
 import {
   PERSONAL_DATA_REGISTRY,
   WITHHELD_VALUE,
@@ -95,6 +95,7 @@ import { triggerInputs } from "./schema/trigger-inputs.js";
 import { triggerRegistrations } from "./schema/trigger-registrations.js";
 import { userEvents } from "./schema/user-events.js";
 import { errorTraces } from "./schema/error-traces.js";
+import { bugReports } from "./schema/bug-reports.js";
 import {
   workflowCollaborators,
   workflowShares
@@ -198,7 +199,7 @@ async function countRows(
   table: SQLiteTable,
   where: SQL | undefined
 ): Promise<number> {
-  const [row] = await getDb()
+  const [row] = await getPortableDb()
     .select({ value: count() })
     .from(table)
     .where(where);
@@ -216,7 +217,7 @@ async function deleteRows(
 ): Promise<number> {
   const total = await countRows(table, where);
   if (total === 0) return 0;
-  await getDb().delete(table).where(where);
+  await getPortableDb().delete(table).where(where);
   return total;
 }
 
@@ -238,7 +239,7 @@ async function selectIds(
   column: TableColumn,
   where: SQL
 ): Promise<string[]> {
-  const rows = await getDb().select({ id: column }).from(table).where(where);
+  const rows = await getPortableDb().select({ id: column }).from(table).where(where);
   return (rows as { id: string }[]).map((row) => row.id);
 }
 
@@ -474,6 +475,7 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
   directStep("nodetool_threads", threads, threads.user_id),
   directStep("nodetool_memories", memories, memories.user_id),
   directStep("nodetool_error_traces", errorTraces, errorTraces.user_id),
+  directStep("nodetool_bug_reports", bugReports, bugReports.user_id),
   directStep("nodetool_settings", appSettings, appSettings.user_id),
   directStep("nodetool_workspaces", workspacesSchema, workspacesSchema.user_id),
   indirectStep("game_draft_changes", gameDraftChanges, gameDraftChanges.game_id, (c) => c.gameIds),
@@ -722,7 +724,7 @@ async function selectRows(
   where: SQL | undefined,
   limit: number
 ): Promise<readonly Record<string, unknown>[]> {
-  const rows = await getDb().select().from(table).where(where).limit(limit);
+  const rows = await getPortableDb().select().from(table).where(where).limit(limit);
   return rows as Record<string, unknown>[];
 }
 
@@ -800,6 +802,7 @@ export const EXPORT_HANDLERS: Readonly<Record<string, ExportHandler>> = {
   nodetool_jobs: directExport(jobs, jobs.user_id),
   nodetool_memories: directExport(memories, memories.user_id),
   nodetool_error_traces: directExport(errorTraces, errorTraces.user_id),
+  nodetool_bug_reports: directExport(bugReports, bugReports.user_id),
   nodetool_messages: directExport(messages, messages.user_id),
   nodetool_oauth_credentials: directExport(
     oauthCredentials,

@@ -25,10 +25,10 @@ const handler = () => {
     beats: [{ id: "b1", prompt: "the kerb", duration_ms: 3000 }]
   };
   return {
-    setSetup: jest.fn(() => setup),
+    setSetup: jest.fn(async () => setup),
     planBeats: jest.fn(async () => setup.beats),
-    updateBeat: jest.fn(() => setup.beats[0]),
-    removeBeat: jest.fn(() => setup.beats[0]),
+    updateBeat: jest.fn(async () => setup.beats[0]),
+    removeBeat: jest.fn(async () => setup.beats[0]),
     generateFromBeats: jest.fn(async () => ({
       videoClipIds: ["c1"],
       voiceoverClipIds: [],
