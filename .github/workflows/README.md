@@ -110,9 +110,9 @@ F2 wires this table into the actual gates:
   gates. Because the gate reads a per-commit conclusion,
   `user-journeys.yml` does not cancel superseded runs on `main` — a run
   cancelled by the next merge would read as "Ring 1 failed" and block the
-  release. A commit that is not the head of the newest Docker build on `main`
-  is skipped instead of deployed: that commit's image is not what anyone is
-  releasing.
+  release. And when the gate sees a commit `main` has already moved past, it
+  skips the deploy instead of failing: that commit's image is not what anyone
+  is releasing.
 - **Ring 2**: `release.yaml` gained a per-OS "Reliability Ring 2
   packed-backend journey" step right after each OS's existing smoke-boot
   step, running linear-text-pipeline against that OS's packed backend

@@ -38,7 +38,6 @@ test("main's image builds on every push, and the release gate never waits on a r
   assert.ok(docker.on.push.branches.includes("main"));
   const gate = workflow("fly-deploy.yml").jobs.gate.steps.map((step) => step.run ?? "").join("\n");
   assert.equal(/\bsleep\b/.test(gate), false);
-  assert.ok(gate.includes("docker.yml/runs?branch=main"));
 });
 
 test("the Flatpak bundle builds once a day, not on push", () => {

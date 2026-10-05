@@ -18,16 +18,10 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
-  # Deploys a commit once both of its release checks have passed: the Docker
-  # image build and User Journeys with reliability Ring 1, both on every
-  # push to main. Each workflow's completion
-  # triggers this one, so the gate never waits: when the other check has not
-  # finished, it exits without deploying, and that check's own completion
-  # runs the gate again.
-  #
-  # A commit is superseded when it is not the head of the newest Docker build
-  # on main. A newer build on main is the release candidate instead; its
-  # own completion runs this gate again.
+  # Each workflow's completion triggers this one, so the gate checks once and
+  # never waits: when the other workflow has not finished for the commit, it
+  # exits without deploying, and that workflow's own completion runs the gate
+  # again. Polling here held a runner for up to an hour per push.
   gate:
     name: Check Docker build + reliability Ring 1
     runs-on: ubuntu-latest
@@ -38,15 +32,15 @@ jobs:
         github.event.workflow_run.head_repository.full_name == github.repository))
     timeout-minutes: 5
     outputs:
-      sha: ${{ steps.check.outputs.sha }}
-      deploy: ${{ steps.check.outputs.deploy }}
+      sha: ${{ steps.poll.outputs.sha }}
+      deploy: ${{ steps.poll.outputs.deploy }}
     env:
       GH_TOKEN: ${{ github.token }}
       RELEASE_SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
       RELEASE_REPO: ${{ github.repository }}
     steps:
       - name: Check both workflows on the exact commit
-        id: check
+        id: poll
         shell: bash
         run: |
           set -euo pipefail
@@ -55,34 +49,33 @@ jobs:
           [[ "$sha" =~ ^[0-9a-f]{40}$ ]] || exit 1
           echo "sha=$sha" >> "$GITHUB_OUTPUT"
 
-          latest_build="$(gh api "repos/$repo/actions/workflows/docker.yml/runs?branch=main&per_page=1" \
-            --jq '.workflow_runs[0].head_sha // ""')"
-          if [[ "$latest_build" != "$sha" ]]; then
-            echo "::notice::Not deploying $sha: the newest Docker build on main is ${latest_build:-none}."
+          conclusion_for() {
+            gh api "repos/$repo/actions/workflows/$1/runs?head_sha=$sha&status=completed&per_page=1" \
+              --jq '.workflow_runs[0].conclusion // "pending"'
+          }
+
+          if [[ "$(gh api "repos/$repo/commits/main" --jq .sha)" != "$sha" ]]; then
+            echo "::notice::Skipping superseded commit $sha."
             echo "deploy=false" >> "$GITHUB_OUTPUT"
             exit 0
           fi
-
-          # A scheduled Docker run that found nothing new cancels itself, so
-          # look for any successful build of this commit, not the latest run.
-          docker_builds="$(gh api "repos/$repo/actions/workflows/docker.yml/runs?head_sha=$sha&status=success&per_page=1" \
-            --jq '.total_count')"
-          journeys_conclusion="$(gh api "repos/$repo/actions/workflows/user-journeys.yml/runs?head_sha=$sha&status=completed&per_page=1" \
-            --jq '.workflow_runs[0].conclusion // "pending"')"
-          echo "Docker successful builds=$docker_builds User Journeys=$journeys_conclusion"
-
-          case "$journeys_conclusion" in
-            failure|cancelled|timed_out|action_required|startup_failure|stale)
-              echo "::error::User Journeys did not pass for $sha."
-              exit 1
-              ;;
-          esac
-          if [[ "$docker_builds" -gt 0 && "$journeys_conclusion" == success ]]; then
+          docker_conclusion="$(conclusion_for docker.yml)"
+          journeys_conclusion="$(conclusion_for user-journeys.yml)"
+          echo "Docker=$docker_conclusion User Journeys=$journeys_conclusion"
+          if [[ "$docker_conclusion" == success && "$journeys_conclusion" == success ]]; then
             echo "deploy=true" >> "$GITHUB_OUTPUT"
-          else
-            echo "::notice::Release checks for $sha are not finished; the last one to finish deploys it."
-            echo "deploy=false" >> "$GITHUB_OUTPUT"
+            exit 0
           fi
+          for conclusion in "$docker_conclusion" "$journeys_conclusion"; do
+            case "$conclusion" in
+              failure|cancelled|timed_out|action_required|startup_failure|stale)
+                echo "::error::Release checks did not pass for $sha."
+                exit 1
+                ;;
+            esac
+          done
+          echo "::notice::Release checks for $sha are not finished; the last one to finish deploys it."
+          echo "deploy=false" >> "$GITHUB_OUTPUT"
 
   deploy:
     name: Deploy server
