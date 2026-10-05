@@ -10,6 +10,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import Fastify, { type FastifyInstance } from "fastify";
+import * as agents from "@nodetool-ai/agents";
 import {
   emptyJsScriptDocument,
   type JsScriptDocument
@@ -78,6 +79,7 @@ describe("POST /api/js-scripts/:id/run", () => {
 
   beforeEach(() => initTestDb());
   afterEach(async () => {
+    vi.restoreAllMocks();
     ModelObserver.clear();
     setDefaultModelInterfaces(null);
     await app?.close();
@@ -759,6 +761,27 @@ await output("answer", answer.text);`,
     const body = response.json() as Record<string, unknown>;
     expect(body.ok).toBe(false);
     expect(String(body.error)).toContain("boom");
+  });
+
+  it.each([false, true])("does not serialize an unexpected thrown object's stack (stream=%s)", async (stream) => {
+    const script = await seedScript({ code: 'await output("out", "ok");', outputs: [{ name: "out", type: "str" }] });
+    const failure = {
+      stack: "Error: host failure\n    at privateHandler (/srv/private/backend.js:42:7)",
+      toString() { return this.stack; }
+    };
+    vi.spyOn(agents, "runCodeBody").mockRejectedValueOnce(failure);
+    app = await buildServer(USER_ID);
+    const response = await app.inject({
+      method: "POST",
+      url: `/api/js-scripts/${script.id}/run`,
+      payload: { inputs: {} },
+      ...(stream && { headers: { accept: "application/x-ndjson" } })
+    });
+    expect(response.statusCode).toBe(200);
+    const body = stream ? JSON.parse(response.body.trim()).result : response.json();
+    expect(body).toMatchObject({ ok: false, error: "Script execution failed" });
+    expect(response.body).not.toContain("privateHandler");
+    expect(response.body).not.toContain("backend.js");
   });
 
   it("gives the guest the Code-node toolbelt", async () => {

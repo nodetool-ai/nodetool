@@ -220,7 +220,7 @@ async function executeScriptDocument(
     if (!appRun) {
       throw error;
     }
-    const message = error instanceof Error ? error.message : String(error);
+    const message = error instanceof Error ? error.message : "Script execution failed";
     await settleAppRunIfPresent(userId, appRun.run.id, {
       status: "failed",
       error: message
@@ -405,7 +405,7 @@ async function executeScriptDocumentInner(
       body = {
         ok: false,
         logs: [],
-        error: error instanceof Error ? error.message : String(error),
+        error: error instanceof Error ? error.message : "Script execution failed",
         duration_ms: 0
       };
     } finally {
@@ -459,7 +459,7 @@ async function executeScriptDocumentInner(
           result: {
             ok: false,
             logs: [],
-            error: error instanceof Error ? error.message : String(error),
+            error: error instanceof Error ? error.message : "Script execution failed",
             duration_ms: 0
           }
         });
