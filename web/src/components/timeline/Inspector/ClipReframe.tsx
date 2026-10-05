@@ -1,5 +1,6 @@
 import React, { memo, useCallback, useState } from "react";
 import CenterFocusStrongOutlinedIcon from "@mui/icons-material/CenterFocusStrongOutlined";
+import { useShallow } from "zustand/react/shallow";
 
 import {
   clipSourceMsAt,
@@ -42,8 +43,10 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
   const storedClip = useTimelineStore((state) =>
     state.clips.find((candidate) => candidate.id === clip.id)
   );
-  const clipMediaTracks = useTimelineStore((state) =>
-    state.mediaTracks.filter((track) => track.clipId === clip.id)
+  const clipMediaTracks = useTimelineStore(
+    useShallow((state) =>
+      state.mediaTracks.filter((track) => track.clipId === clip.id)
+    )
   );
   const setSubject = useTimelineStore((state) => state.setClipReframeSubject);
   const addKeyframe = useTimelineStore((state) => state.addClipReframeKeyframe);
