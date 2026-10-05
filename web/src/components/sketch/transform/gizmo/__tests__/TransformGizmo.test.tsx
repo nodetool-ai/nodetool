@@ -17,64 +17,14 @@ import { render } from "@testing-library/react";
 import { TransformGizmo } from "../TransformGizmo";
 import { TransformTool } from "../../../tools/TransformTool";
 import type { ToolContext } from "../../../tools";
-import { createDefaultDocument, makeAffineTransform } from "../../../types";
+import { makeAffineTransform } from "../../../types";
 import { useSketchStore } from "../../../state";
+import { makeToolContext } from "../../../__tests__/_toolContextFixture";
 
 function makeCtx(): ToolContext {
-  const doc = createDefaultDocument(64, 64);
-  doc.layers[0].contentBounds = { x: 0, y: 0, width: 64, height: 64 };
-  return {
-    doc,
-    activeTool: "transform",
-    zoom: 1,
-    pan: { x: 0, y: 0 },
-    mirrorX: false,
-    mirrorY: false,
-    symmetryMode: "off",
-    symmetryRays: 6,
-    selection: null,
-    displayCanvasRef: { current: null },
-    overlayCanvasRef: { current: null },
-    gizmoCanvasRef: { current: null },
-    cursorCanvasRef: { current: null },
-    containerRef: { current: null },
-    layerCanvasesRef: { current: new Map() },
-    mousePositionRef: { current: { x: 0, y: 0 } },
-    activeStrokeRef: { current: null },
-    getOrCreateLayerCanvas: jest.fn(),
-    redraw: jest.fn(),
-    redrawDirty: jest.fn(),
-    requestRedraw: jest.fn(),
-    requestDirtyRedraw: jest.fn(),
-    clearOverlay: jest.fn(),
-    drawSelectionOverlay: jest.fn(),
-    drawOverlayShape: jest.fn(),
-    drawOverlayGradient: jest.fn(),
-    drawOverlayCrop: jest.fn(),
-    drawOverlayLassoPreview: jest.fn(),
-    drawOverlaySelection: jest.fn(),
-    drawCursor: jest.fn(),
-    clearGizmo: jest.fn(),
-    drawGizmo: jest.fn(),
-    onZoomChange: jest.fn(),
-    onPanChange: jest.fn(),
-    onStrokeStart: jest.fn(),
-    onStrokeEnd: jest.fn(),
-    onLayerTransformChange: jest.fn(),
-    setLayerTransformPreview: jest.fn(),
-    clearLayerTransformPreview: jest.fn(),
-    onLayerContentBoundsChange: jest.fn(),
-    onBrushSizeChange: jest.fn(),
-    onContextMenu: jest.fn(),
-    onCropComplete: jest.fn(),
-    onEyedropperPick: jest.fn(),
-    onSelectionChange: jest.fn(),
-    onAutoPickLayer: jest.fn(),
-    screenToCanvas: jest.fn((x: number, y: number) => ({ x, y })),
-    shiftHeldRef: { current: false },
-    altHeldRef: { current: false },
-    withMirror: jest.fn((c, fn, from, to) => fn(from, to, c, 0))
-  };
+  const ctx = makeToolContext({ activeTool: "transform" });
+  ctx.doc.layers[0].contentBounds = { x: 0, y: 0, width: 64, height: 64 };
+  return ctx;
 }
 
 function withContainerSize<T extends HTMLDivElement>(

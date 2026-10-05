@@ -27,6 +27,7 @@ import {
 import { reconcileLayerToDocumentSpace } from "../rendering/canvas2d/reconcile";
 import { setCanvasRasterBounds, getCanvasRasterBounds } from "../transform/geometry/layerGeometry";
 import type { ToolContext, ToolPointerEvent } from "../tools/types";
+import { makeToolContext } from "./_toolContextFixture";
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 
@@ -95,29 +96,15 @@ function makeMockCtx(docOverrides?: {
   const ch = docOverrides?.canvasHeight ?? 100;
   const layerCanvasesRef = { current: new Map<string, HTMLCanvasElement>() };
 
-  return stub<ToolContext>({
-    doc: {
+  return makeToolContext({
+    doc: stub<ToolContext["doc"]>({
       canvas: { width: cw, height: ch },
       activeLayerId,
       layers,
       toolSettings: {} as ToolContext["doc"]["toolSettings"]
-    },
+    }),
     activeTool: "move",
-    zoom: 1,
-    pan: { x: 0, y: 0 },
-    mirrorX: false,
-    mirrorY: false,
-    symmetryMode: "none",
-    symmetryRays: 2,
-    selection: null,
-    displayCanvasRef: { current: null },
-    overlayCanvasRef: { current: null },
-    gizmoCanvasRef: { current: null },
-    cursorCanvasRef: { current: null },
-    containerRef: { current: null },
     layerCanvasesRef,
-    mousePositionRef: { current: { x: 0, y: 0 } },
-    activeStrokeRef: { current: null },
     getOrCreateLayerCanvas: jest.fn((layerId: string) => {
       const existing = layerCanvasesRef.current.get(layerId);
       if (existing) {
@@ -126,32 +113,7 @@ function makeMockCtx(docOverrides?: {
       const canvas = makeMockCanvas(cw, ch);
       layerCanvasesRef.current.set(layerId, canvas);
       return canvas;
-    }),
-    redraw: jest.fn(),
-    redrawDirty: jest.fn(),
-    requestRedraw: jest.fn(),
-    requestDirtyRedraw: jest.fn(),
-    clearOverlay: jest.fn(),
-    drawSelectionOverlay: jest.fn(),
-    drawOverlayShape: jest.fn(),
-    drawOverlayGradient: jest.fn(),
-    drawOverlayCrop: jest.fn(),
-    drawOverlaySelection: jest.fn(),
-    drawOverlayLassoPreview: jest.fn(),
-    drawCursor: jest.fn(),
-    clearGizmo: jest.fn(),
-    drawGizmo: jest.fn(),
-    onZoomChange: jest.fn(),
-    onPanChange: jest.fn(),
-    onStrokeStart: jest.fn(),
-    onStrokeEnd: jest.fn(),
-    onLayerTransformChange: jest.fn(),
-    screenToCanvas: jest.fn(),
-    shiftHeldRef: { current: false },
-    altHeldRef: { current: false },
-    withMirror: jest.fn(),
-    setLayerTransformPreview: jest.fn(),
-    clearLayerTransformPreview: jest.fn()
+    })
   });
 }
 
