@@ -6,6 +6,22 @@ import { globalWebSocketManager } from "../GlobalWebSocketManager";
  * the canvas/stores identically.
  */
 describe("GlobalWebSocketManager.deliverLocal", () => {
+  it("routes durable run trace records by the full run ID without mixing sibling runs", () => {
+    const runId = "a".repeat(32);
+    const siblingId = "b".repeat(32);
+    const own = jest.fn();
+    const sibling = jest.fn();
+    const unsubscribe = globalWebSocketManager.subscribe(runId, own);
+    const unsubscribeSibling = globalWebSocketManager.subscribe(siblingId, sibling);
+    const message = { type: "run_trace", run_id: runId, cursor: 1 };
+    globalWebSocketManager.deliverLocal(message);
+    expect(own).toHaveBeenCalledWith(message);
+    expect(sibling).not.toHaveBeenCalled();
+    unsubscribe(); unsubscribeSibling();
+    globalWebSocketManager.deliverLocal({ ...message, cursor: 2 });
+    expect(own).toHaveBeenCalledTimes(1);
+  });
+
   it("routes a message to subscribers keyed by workflow_id and job_id", () => {
     const wfHandler = jest.fn();
     const jobHandler = jest.fn();

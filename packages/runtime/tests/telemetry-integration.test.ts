@@ -131,7 +131,8 @@ describe("telemetry integration", () => {
     expect(llmSpan?.parent_span_id).toBe(agentSpan?.span_id);
 
     // Agent attributes
-    expect(agentSpan?.attributes["agent.objective"]).toBe("test objective");
+    expect(agentSpan?.attributes["agent.objective"]).toBeUndefined();
+    expect(llmSpan?.attributes["llm.response.content"]).toBeUndefined();
     expect(agentSpan?.attributes["agent.kind"]).toBe("execute");
     expect(agentSpan?.attributes["agent.model"]).toBe("claude-sonnet-4-6");
 

@@ -80,3 +80,13 @@ The [deployment setup guide](https://github.com/nodetool-ai/nodetool-deploy/blob
 covers DNS, trigger-dispatch handover, pool sizing, and affinity checks.
 The retained [Fly guide](fly-production-deploy.md) covers legacy rollback
 operations, not the active GitHub release destination.
+
+## Run history retention
+
+The production image sets `NODETOOL_STORAGE_AUTO_CLEANUP=1`. The server sweeps
+run trace owners on startup and on its maintenance timer, using each account's
+retention settings. Run content expires under `runTraceRetentionDays` and
+finished records under `terminalJobRetentionDays`. Keep automatic cleanup
+enabled on the hosted service to meet the [privacy policy](https://nodetool.ai/privacy).
+Self-hosted operators can override the image setting when configuring their
+container. Local desktop installs keep the existing manual cleanup default.

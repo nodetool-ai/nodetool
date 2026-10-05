@@ -149,7 +149,7 @@ export const useWidgetRuntime = ({
       };
       const fire = (event: AppEvent) => {
         const action = eventToAction(event, ctx);
-        if (action) dispatch(action);
+        if (action) dispatch(action, { widgetId: id });
       };
 
       const debounced: AppEvent[] = [];
@@ -181,7 +181,7 @@ export const useWidgetRuntime = ({
         debounced.forEach(fire);
       }, DEBOUNCE_MS);
     },
-    [dispatch, events, from, scope]
+    [dispatch, events, from, id, scope]
   );
 
   return { value, setValue, emit, designMode, runnerState, progress, activity };

@@ -74,6 +74,10 @@ export default defineConfig({
         __dirname,
         "../timeline/src/examples/node.ts"
       ),
+      "@nodetool-ai/timeline/ops": resolve(
+        __dirname,
+        "../timeline/src/ops/index.ts"
+      ),
       "@nodetool-ai/timeline": resolve(__dirname, "../timeline/src/index.ts")
     }
   },

@@ -30,6 +30,11 @@ const plan = (files) => buildPlan(files, PACKAGES, computeAffected);
 const labels = (files) => plan(files).steps.map((s) => s.label);
 
 describe("buildPlan", () => {
+  it("selects the browser tracing shim regression for its standalone test", () => {
+    const { steps, globalFiles } = plan(["scripts/__tests__/browser-tracing-stub.test.mjs"]);
+    expect(globalFiles).toEqual([]);
+    expect(steps).toEqual([{ label: "browser tracing shim", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/browser-tracing-stub.test.mjs"] }]);
+  });
   it("runs a changed package and its dependents, and no app it does not reach", () => {
     const { steps } = plan(["packages/kernel/src/runner.ts"]);
     expect(steps).toHaveLength(2);

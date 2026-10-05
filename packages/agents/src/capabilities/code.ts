@@ -22,6 +22,8 @@
  */
 
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { withSpan, recordTraceEvent } from "@nodetool-ai/runtime";
+import { SpanStatusCode } from "@opentelemetry/api";
 import type { RunSandboxOptions } from "../js-sandbox.js";
 import { resolveImportedPacks } from "../sandbox-pack-resolution.js";
 import type {
@@ -86,6 +88,19 @@ export async function runCodeBody(
      */
     onEmit?: (name: string, value: unknown) => void;
   }
+): Promise<HarnessRunResult> {
+  return withSpan("script.run", {}, async (span) => {
+    const result = await runCodeBodyImpl(context, params);
+    if (!result.ok) {
+      span?.setStatus({ code: SpanStatusCode.ERROR });
+    }
+    return result;
+  });
+}
+
+async function runCodeBodyImpl(
+  context: ProcessingContext,
+  params: Parameters<typeof runCodeBody>[1]
 ): Promise<HarnessRunResult> {
   const {
     hasReturnStatement,
@@ -191,6 +206,9 @@ export async function runCodeBody(
       timeoutMs: params.timeoutSeconds * 1000,
       globals,
       limits: { secretScope: [...params.secrets] },
+      onLog: (level, message) => {
+        recordTraceEvent("console", { "log.level": level, "log.source": "script", "log.message": message });
+      },
       ...(staged ?? {})
     };
     if (modules) sandboxOptions.modules = modules;

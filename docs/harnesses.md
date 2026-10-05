@@ -2443,3 +2443,110 @@ Each line in the file is one span:
 ```
 
 See [packages/agents/AGENTS.md](https://github.com/nodetool-ai/nodetool/blob/main/packages/agents/AGENTS.md) for agent architecture, parallel execution, skills, and tuning.
+
+## App runs phase 1
+
+Run the durable-operation check from the repository root:
+
+```bash
+npm run test --workspace=packages/execution -- app-operation app-run-generation
+```
+
+The fixtures open a server-owned app run before execution, propagate its
+identity to child work, fold its outputs into revisioned instance state, and
+read its generation attachment back from the database. They also check
+transport retries, failed preparation, cancellation, and stale state writes.
+The `app-runs` entry in the [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts)
+selects this check for instance, run, and app-runtime changes.
+
+## Run traces phase 2
+
+Run the stored-trace check from the repository root:
+
+```bash
+npm run test --workspace=packages/execution --workspace=packages/runtime --workspace=packages/models --workspace=packages/websocket -- run-trace external-trace-privacy http-tracing
+```
+
+The fixture executes a scripted app with a scripted provider and reads the
+stored `app.run`, `script.run`, `capability.call` and `llm.*` tree without an
+external sink. It checks captured request/response and activity events,
+run-resolved secret masking and content-free visitor runs. The bridge check
+verifies that live readers receive committed snapshots only. The same check
+exercises external content filtering, ownership, deletion and retention. The `run-traces`
+entry in the [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts) selects
+this check for the trace store and its execution hosts.
+
+Model and runtime suites cover content separation, duplicate events, limits,
+parent deletion, late writes, expiry, export/erasure, external sink filtering
+and recording failures. HTTP and WebSocket checks reject cross-owner ancestry.
+The model PostgreSQL test uses an isolated test database and actual non-bypass
+roles to verify owner reads and denied client writes. Set
+`NODETOOL_TEST_POSTGRES_URL` to a local PostgreSQL administrative connection to
+run that check.
+
+## Run readers phase 3
+
+`nodetool runs list`, `show`, `trace`, `logs` and `tail` read the same
+owner-scoped service as the tRPC `runs` router and `nodetool.runs.*`
+capabilities. Start with `show <id> --json`, then focus `trace` on the span
+named in `summary.first_failed_span_id`. Resource ids accept their exact
+12-character prefixes. Trace and span ids remain full OpenTelemetry ids.
+
+Run the reader check from the repository root after building packages:
+
+```bash
+npm run test --workspace=packages/execution --workspace=packages/models --workspace=packages/websocket --workspace=packages/agents --workspace=packages/cli -- runs-phase3 app-debug-versioned-targets app-debug-workflow-inputs-phase3 capabilities-runs runs-command runs-integration run-readers job-find runs-trpc sandbox-api-coverage
+```
+
+The check invokes the real CLI on a persisted failing script and verifies its
+failed span and ancestor path. It compares reader adapters, exercises bounded
+queries and cancellation, and checks that executing `debug_app` operations
+return run ids with origin `debug`. Static debug validation creates no run.
+Debug workflow runs with widget property bindings record their inputs as
+`parameters` and `node_properties`, alongside the pinned workflow snapshot.
+Traced jobs read stored events even when content expired. Only jobs without a
+registered trace may fall back to their legacy logs.
+
+`tail --json` emits newline-delimited JSON with snapshot updates and a terminal
+result. The store retains the latest snapshot of each span, so readers receive
+an explicit resnapshot indicator when replay cannot reconstruct intermediate
+updates. The CLI deduplicates event identities across polling and resume. See
+[run commands](cli.md#nodetool-runs) for filters and output flags. The
+`run-readers` entry in the [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts)
+selects the check for these surfaces.
+
+## Run inspection phase 4
+
+The bottom panel's Trace and Logs tabs share a durable run picker. The picker
+lists app runs, workflow jobs and chat turns. Browser spans appear above server
+spans, and focused spans expose their bounded content. AgentActivity reloads
+stored events by instance and operation. “View trace” opens the producing run,
+and “Ask the agent” passes run and span ids into chat.
+
+Run the browser-ingestion check from the repository root after building packages:
+
+```bash
+npm run test --workspace=packages/websocket -- browser-run-spans-phase4 browser-app-run-phase4 app-runs-workflow
+```
+
+The check uses production HTTP routes and the native UI harness. It verifies
+owner and visitor restrictions, payload caps, retries, cycle rejection,
+server-span protection, browser-root recovery and first-run W3C ancestry.
+The `browser-run-spans` and `run-inspection-ui` entries in the
+[harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts) run ingestion,
+recorder, replay and panel checks when these surfaces change.
+
+The real browser journey starts a keyless app operation, reads its stored
+`ui.action → app.run` ancestry, reloads the page, selects the same run, and
+checks Trace and Logs against the reader API. A second journey runs the real
+in-browser kernel and reads its `app.run → workflow.run → node.process`
+ancestry from the same store:
+
+```bash
+npm run test:journeys --workspace=web -- run-observability.spec.ts
+```
+
+The registry lists this browser journey as a manual check. It owns development
+servers through the existing journey fixtures. To isolate ports, set
+`SCREENSHOT_BACKEND_PORT`, `SCREENSHOT_WEB_PORT` and `PROXY_API_TARGET` as
+described in [web testing](https://github.com/nodetool-ai/nodetool/blob/main/web/TESTING.md).

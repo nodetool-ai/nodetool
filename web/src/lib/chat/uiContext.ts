@@ -64,6 +64,7 @@ export interface BuildUiContextOptions {
   selection?: UiContext["selection"];
   /** Chat surface that sent this turn. Always forwarded to the LLM. */
   source?: ChatSource | null;
+  run?: UiContext["run"];
 }
 
 export type UiContextInput =
@@ -91,16 +92,18 @@ export const buildUiContext = (
   }
 
   const source = options.source ?? null;
-  if (!focused && open.length === 0 && !source) {
+  if (!focused && open.length === 0 && !source && !options.run) {
     return null;
   }
 
-  return {
+  const context: UiContext = {
     focused,
     open,
     selection: options.selection ?? null,
     source
   };
+  if (options.run) { context.run = options.run; }
+  return context;
 };
 
 /** Resolve options that a composer may compute at send time. */

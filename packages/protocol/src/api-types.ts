@@ -791,6 +791,11 @@ export type ChatSource =
   | "text_editor"
   | "model3d_assistant";
 
+export interface UiRunReference {
+  run_id: string;
+  span_id?: string;
+}
+
 export interface UiContext {
   /** The surface the user is currently looking at. */
   focused?: UiDocumentRef | null;
@@ -809,6 +814,8 @@ export interface UiContext {
   } | null;
   /** Chat surface the user typed in. The server names it in the system prompt. */
   source?: ChatSource | null;
+  /** The stored run the user asked the agent to inspect. Readers enforce ownership. */
+  run?: UiRunReference | null;
 }
 
 export interface MessageCreateRequest {
@@ -1004,6 +1011,7 @@ export interface JobListResponse {
 
 export interface RunJobRequest {
   type?: "run_job_request";
+  traceparent?: string;
   job_id?: string | null;
   /** Human-readable title for the run (workflow name, or node name for a single-node run). */
   job_name?: string | null;
@@ -1040,6 +1048,8 @@ export interface RunJobRequest {
    * job and settles the ledger when it finishes.
    */
   application_id?: string | null;
+  app_run_id?: string;
+  instance_id?: string;
   /** Released version the run executes against; absent for a draft run. */
   application_version?: number | null;
   /**

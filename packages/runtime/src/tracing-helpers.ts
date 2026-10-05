@@ -1,3 +1,4 @@
+import { recordAppRunLlmCost } from "./run-context.js";
 /**
  * Helpers for wrapping agent / workflow / node code in OpenTelemetry spans.
  *
@@ -98,6 +99,7 @@ export function setLastUsage(usage: LlmUsage): void {
   // made outside a capture slot still cost money, and retry safety turns on
   // whether this invocation spent anything.
   recordInvocationCost(usage.cost);
+  recordAppRunLlmCost(usage.cost);
   const slot = usageStore.getStore();
   if (!slot) return;
   const previous = slot.usage;
@@ -195,7 +197,7 @@ export async function withSpan<T>(
     setAttributes(span, attributes);
     try {
       const result = await fn(span);
-      span.setStatus({ code: SpanStatusCode.OK });
+      if (!spanEndedWithError(span)) { span.setStatus({ code: SpanStatusCode.OK }); }
       return result;
     } catch (err) {
       span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
@@ -235,7 +237,7 @@ export async function* withSpanGen<T, TReturn = void>(
       const result = await otelContext.with(ctx, () => inner.next());
       if (result.done) {
         exhausted = true;
-        span.setStatus({ code: SpanStatusCode.OK });
+        if (!spanEndedWithError(span)) { span.setStatus({ code: SpanStatusCode.OK }); }
         return result.value;
       }
       yield result.value;
@@ -254,6 +256,10 @@ export async function* withSpanGen<T, TReturn = void>(
     }
     span.end();
   }
+}
+
+function spanEndedWithError(span: Span): boolean {
+  return "status" in span && typeof span.status === "object" && span.status !== null && "code" in span.status && span.status.code === SpanStatusCode.ERROR;
 }
 
 function setAttributes(span: Span, attributes: Record<string, unknown>): void {
@@ -384,3 +390,5 @@ export function withNodeSpan<T>(
 function truncate(s: string, max: number): string {
   return s.length > max ? s.slice(0, max - 1) + "…" : s;
 }
+
+export { SpanStatusCode };

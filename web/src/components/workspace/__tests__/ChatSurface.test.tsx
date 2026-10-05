@@ -7,6 +7,9 @@ import ChatSurface from "../ChatSurface";
 import useChatDraftStore from "../../../stores/ChatDraftStore";
 import { clearChatTurn, peekChatTurn, stageChatTurn } from "../../chat/pendingChatTurn";
 import mockTheme from "../../../__mocks__/themeMock";
+import { resolveUiContext, type UiContextInput } from "../../../lib/chat/uiContext";
+import type { Message } from "../../../stores/ApiTypes";
+import { stub } from "../../../test-utils/doubles";
 
 const fetchThread = jest.fn();
 const ensureLocalThread = jest.fn();
@@ -89,13 +92,16 @@ jest.mock("../../../stores/WorkspaceTabsStore", () => ({
 jest.mock("../../chat/containers/ChatView", () => ({
   __esModule: true,
   default: ({
-    noMessagesPlaceholder
+    noMessagesPlaceholder, uiContext, sendMessage: send
   }: {
     noMessagesPlaceholder?: React.ReactNode;
+    uiContext?: UiContextInput;
+    sendMessage: (message: Message) => void;
   }) => (
     <div>
       chat view
       {noMessagesPlaceholder}
+      <button onClick={() => send(stub<Message>({ role: "user", content: "Diagnose the run", ui_context: resolveUiContext(uiContext, "workspace_chat") }))}>Send inspection</button>
     </div>
   )
 }));
@@ -119,12 +125,23 @@ const renderSurface = (refId = "thread-new") =>
 describe("ChatSurface", () => {
   beforeEach(() => {
     jest.clearAllMocks();
+    useChatDraftStore.setState({ drafts: {}, runReferences: {} });
     chatState.currentThreadId = null;
     chatState.threads = {};
     chatState.messageCache = {};
     fetchThread.mockResolvedValue(null);
     clearChatTurn("thread-new");
     trySendMessage.mockResolvedValue({ ok: true, threadId: "thread-new" });
+  });
+
+  it("passes the current thread's typed run reference through the send boundary", async () => {
+    const reference = { run_id: "a".repeat(32), span_id: "b".repeat(16) };
+    useChatDraftStore.getState().setRunReference("thread-new", reference);
+    useChatDraftStore.getState().setRunReference("thread-other", { run_id: "c".repeat(32) });
+    renderSurface();
+    await userEvent.click(screen.getByRole("button", { name: "Send inspection" }));
+    expect(sendMessage).toHaveBeenCalledWith(expect.objectContaining({ content: "Diagnose the run", ui_context: expect.objectContaining({ run: reference }) }), "thread-new");
+    expect(JSON.stringify(sendMessage.mock.calls)).not.toContain("c".repeat(32));
   });
 
   it("shows the composer when a new thread is not on the server yet", async () => {

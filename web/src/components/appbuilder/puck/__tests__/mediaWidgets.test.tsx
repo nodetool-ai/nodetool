@@ -188,7 +188,8 @@ describe("GalleryWidget selection", () => {
       B
     );
     expect(runtime.value.dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: "run", operationId: "main" })
+      expect.objectContaining({ kind: "run", operationId: "main" }),
+      { widgetId: "g1" }
     );
   });
 

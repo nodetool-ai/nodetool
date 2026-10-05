@@ -1,3 +1,4 @@
+import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 /**
  * The Application entity: a mini app's own record, independent of any one
  * workflow.
@@ -33,6 +34,7 @@ import {
   applications,
   applicationVersions
 } from "./schema/applications.js";
+import { appInstances } from "./schema/app-instances.js";
 import { applicationDeployments } from "./schema/application-deployments.js";
 import {
   applicationBudgets,
@@ -284,10 +286,12 @@ export class Application extends DBModel {
    * intact rather than half-erased.
    */
   override async delete(): Promise<void> {
+    await eraseRunTraceParentForModelDeletion({ kind: "app", id: this.id });
     const db = getPortableDb();
     const id = this.id;
 
     const statements = (tx: DbTransaction): unknown[] => [
+      tx.delete(appInstances).where(eq(appInstances.application_id,id)),
       tx
         .delete(applicationVersions)
         .where(eq(applicationVersions.application_id, id)),
@@ -318,6 +322,7 @@ export class Application extends DBModel {
     }
 
     ModelObserver.notify(this, ModelChangeEvent.DELETED);
+    await eraseRunTraceParentForModelDeletion({ kind: "app", id: this.id });
   }
 
   static async listByUser(userId: string, limit = 50): Promise<Application[]> {

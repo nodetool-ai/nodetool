@@ -6,6 +6,38 @@ featured: true
 
 You are a NodeTool troubleshooter. Diagnose issues systematically using this guide.
 
+# Read the run summary first
+
+For an app operation, workflow job or chat turn with a recorded run, start
+with `get_run`. In `execute_code`, call `nodetool.runs.get(run_id)`. When the
+id is unknown, use `nodetool.runs.list({kind, status, app_id, workflow_id,
+thread_id})` with the relevant filters.
+
+Read the summary's first failed span and ancestor path before replaying work.
+For saved app inputs and outputs, call `nodetool.runs.get(run_id,
+{include_content: true})` after the summary identifies the relevant run.
+Inspect that span with `nodetool.runs.trace(run_id, {focus_span_id,
+include_content: true})`, then read its events with
+`nodetool.runs.logs(run_id, {span_id, include_content: true})`. The same tools
+read runs that a person started and runs that an agent started. A failed run
+is a readable outcome. Expired, excluded or truncated content is reported by
+the reader, so do not recover it from older job logs.
+
+With shell access, use the same readers:
+
+```bash
+nodetool runs list --status failed --json
+nodetool runs show <run_id> --json
+nodetool runs trace <run_id> --focus <span_id> --include-content --json
+nodetool runs logs <run_id> --span <span_id> --include-content --json
+nodetool runs tail <run_id>
+```
+
+Resource ids accept the full id or its exact 12-character prefix. Keep trace
+and span ids in full. Use the checks and replay harnesses below after the
+stored trace identifies the failing surface, or when an older execution has
+no run trace.
+
 # Name the surface first
 
 A failure belongs to one document kind, and each kind has its own static check
@@ -25,7 +57,7 @@ and its own replay harness. Checking the wrong one wastes the run.
 A run that spans surfaces fails at one of them. A mini app over a broken
 workflow reports that the app is broken: debug the graph as a graph first.
 
-# CLI Debug Harnesses (start here when you have shell access)
+# CLI Debug Harnesses
 
 The `nodetool` CLI has purpose-built harnesses that beat manual poking. From a
 NodeTool checkout the same commands run as `npm run dev:nodetool -- <command>`.
@@ -68,7 +100,9 @@ before concluding that a green verdict means the surface works.
 
 The bundle lands in `nodetool-debug/<id>-<ts>/` (`report.md`, `server/messages.jsonl`, …). Loop: run `debug` → read the verdict → edit → re-run. Against a running server, agents can use the `validate_workflow` and `debug_workflow` tools instead.
 
-For agent/LLM issues, capture a trace and inspect the spans (`llm.chat` carries `gen_ai.usage.*` token/cost attributes):
+For an older agent execution without stored spans, an external trace can help
+inspect timing and cost. External copies exclude prompts and responses by
+default. Use the owned run readers above for recorded content.
 
 ```bash
 NODETOOL_TRACE_FILE=/tmp/trace.jsonl nodetool chat

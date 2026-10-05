@@ -79,6 +79,10 @@ function websocketTest(name) {
  */
 export const PATH_CHECKS = [
   {
+    path: /^(?:scripts\/__tests__\/browser-tracing-stub\.test\.mjs|web\/vite-node-stubs\/tracing-stub\.js)$/,
+    steps: [{ label: "browser tracing shim", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/browser-tracing-stub.test.mjs"] }]
+  },
+  {
     path: /^scripts\/(example-timelines\/|render-example-timeline\.mjs$)/,
     steps: [VALIDATE_EXAMPLES, websocketTest("example-timelines")]
   },

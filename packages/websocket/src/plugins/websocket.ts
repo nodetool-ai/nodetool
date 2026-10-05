@@ -4,7 +4,7 @@ import { WsAdapter } from "../ws-adapter.js";
 import { WebSocketClientSession } from "../websocket-client-session.js";
 import { createGraphNodeTypeResolver, type NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
-import { PythonNodeExecutor, getProvider } from "@nodetool-ai/runtime";
+import { PythonNodeExecutor, getProvider, recordRunTraceSecret } from "@nodetool-ai/runtime";
 import type { WorkerManager } from "@nodetool-ai/compute";
 import { getSecret as getStoredSecret } from "@nodetool-ai/models";
 import type { HttpApiOptions } from "../http-api.js";
@@ -45,9 +45,11 @@ export interface WebSocketPluginOptions {
 }
 
 async function resolveProvider(providerId: string, userId: string) {
-  return getProvider(providerId.toLowerCase(), (key) =>
-    getStoredSecret(key, userId).then((v) => v ?? undefined)
-  );
+  return getProvider(providerId.toLowerCase(), async (key) => {
+    const value = await getStoredSecret(key, userId);
+    recordRunTraceSecret(value);
+    return value ?? undefined;
+  });
 }
 
 const isProduction = process.env["NODETOOL_ENV"] === "production";

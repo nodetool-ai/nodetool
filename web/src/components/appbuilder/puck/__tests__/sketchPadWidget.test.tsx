@@ -156,7 +156,8 @@ describe("SketchPadWidget", () => {
 
     expect(value.dispatch).toHaveBeenCalledTimes(1);
     expect(value.dispatch).toHaveBeenCalledWith(
-      expect.objectContaining({ kind: "run" })
+      expect.objectContaining({ kind: "run" }),
+      { widgetId: "pad-1" }
     );
   });
 

@@ -3,7 +3,7 @@
  * (truncate / redact / binary / cycle-safe) and the failure-log formatter.
  */
 
-import { describe, it, expect } from "vitest";
+import { afterEach, beforeEach, vi, describe, it, expect } from "vitest";
 import type { Logger } from "@nodetool-ai/config";
 import {
   sanitizeForLog,
@@ -32,7 +32,7 @@ function fakeLogger(): {
 
 describe("sanitizeForLog", () => {
   it("truncates long strings and notes the original length", () => {
-    const long = "x".repeat(5000);
+    const long = "word ".repeat(1000);
     const out = sanitizeForLog({ content: long }) as { content: string };
     expect(out.content.length).toBeLessThan(long.length);
     expect(out.content).toContain("truncated");
@@ -168,3 +168,7 @@ describe("logProviderRequestFailure", () => {
     expect((req.prompt as string).length).toBeLessThan(5000);
   });
 });
+
+// Existing formatting fixtures exercise the explicitly enabled local diagnostic copy.
+beforeEach(() => { vi.stubEnv("NODETOOL_TRACE_INCLUDE_CONTENT", "1"); });
+afterEach(() => { vi.unstubAllEnvs(); });

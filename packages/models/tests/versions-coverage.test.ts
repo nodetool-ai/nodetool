@@ -83,6 +83,50 @@ describe("built-in migration versions", () => {
     expect(await adapter.tableExists("nodetool_settings")).toBe(true);
   });
 
+  it("downgrades app runs without losing saved-app billing or media", async () => {
+    const runner = new MigrationRunner(adapter);
+    await runner.migrate();
+    await adapter.execute(`INSERT INTO applications
+      (id,user_id,project_id,name,document,created_at,updated_at)
+      VALUES ('app','u1','p1','App','{}','old','old')`);
+    await adapter.execute(`INSERT INTO app_instances
+      (id,user_id,application_id,source_id,name,snapshot,variables,created_at,updated_at)
+      VALUES ('instance','u1','app','app','Default','{}','{}','old','old')`);
+    await adapter.execute(`INSERT INTO application_invocations
+      (id,application_id,user_id,invocation_id,estimated_usd,actual_usd,status,created_at,settled_at,instance_id,inputs)
+      VALUES ('saved','app','u1','inv-saved',3,2,'completed','old','new','instance','{"prompt":"private"}'),
+             ('inline',NULL,'u1','inv-inline',1,NULL,'running','old',NULL,'instance','{}')`);
+    await adapter.execute("INSERT INTO nodetool_assets (id,user_id) VALUES ('asset','u1')");
+    await adapter.execute("INSERT INTO nodetool_predictions (id,user_id) VALUES ('generation','u1')");
+    await adapter.execute(`INSERT INTO nodetool_generation_attempts
+      (id,generation_id,provider,created_at,updated_at) VALUES ('attempt','generation','test','old','old')`);
+    await adapter.execute(`INSERT INTO nodetool_generation_outputs
+      (id,generation_id,attempt_id,output_key,asset_id,created_at,updated_at)
+      VALUES ('output','generation','attempt','result','asset','old','old')`);
+    await adapter.execute(`INSERT INTO nodetool_generation_attachments
+      (id,generation_id,output_id,target_type,target_id,created_at,updated_at)
+      VALUES ('attachment','generation','output','app_run','saved','old','old')`);
+    const migration = migrations.find((item) => item.version === "20261004_000001")!;
+    await migration.up(adapter);
+    expect(await adapter.fetchone("SELECT inputs FROM application_invocations WHERE id='saved'"))
+      .toEqual({ inputs: '{"prompt":"private"}' });
+    await migration.down(adapter);
+    expect(await adapter.tableExists("app_instances")).toBe(false);
+    expect(await adapter.columnExists("application_invocations", "inputs")).toBe(false);
+    expect(await adapter.fetchall("SELECT id,actual_usd,estimated_usd,status FROM application_invocations"))
+      .toEqual([{ id: "saved", actual_usd: 2, estimated_usd: 3, status: "completed" }]);
+    expect(await adapter.fetchall("SELECT id FROM nodetool_generation_attachments")).toEqual([]);
+    for (const table of ["nodetool_assets", "nodetool_predictions", "nodetool_generation_outputs"]) {
+      expect(await adapter.fetchone(`SELECT count(*) AS n FROM ${table}`)).toEqual({ n: 1 });
+    }
+    await expect(adapter.execute(`INSERT INTO application_invocations
+      (id,application_id,invocation_id,created_at) VALUES ('rejected',NULL,'inv','old')`)).rejects.toThrow();
+    await migration.up(adapter);
+    expect(await adapter.fetchone("SELECT actual_usd FROM application_invocations WHERE id='saved'"))
+      .toEqual({ actual_usd: 2 });
+    expect(await adapter.columnExists("application_invocations", "instance_id")).toBe(true);
+  });
+
   it("backfills sketch_document_id from legacy metadata JSON", async () => {
     // Apply migrations up to (but not including) the sketch backfill so we can
     // seed a legacy row, then run that migration's up() to exercise the

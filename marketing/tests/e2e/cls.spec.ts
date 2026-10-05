@@ -30,17 +30,22 @@ test.describe("Cumulative Layout Shift budget", () => {
       await imageReady;
       await route.continue();
     });
+    const imageRequested = page.waitForRequest("**/templates/samples/movie-posters.webp");
 
     try {
       await page.goto("/templates/movie-posters", { waitUntil: "domcontentloaded" });
       const image = page.locator("figure img");
+      await image.scrollIntoViewIfNeeded();
+      await imageRequested;
       const before = await image.boundingBox();
       expect(before).not.toBeNull();
       expect(before!.width).toBeGreaterThan(400);
       expect(before!.height).toBeGreaterThan(600);
       expect(await image.evaluate((element: HTMLImageElement) => element.complete)).toBe(false);
 
+      const imageResponse = page.waitForResponse("**/templates/samples/movie-posters.webp");
       releaseImage();
+      expect((await imageResponse).ok()).toBe(true);
       await image.evaluate((element: HTMLImageElement) => element.decode());
       const after = await image.boundingBox();
       expect(after!.width).toBeCloseTo(before!.width, 0);

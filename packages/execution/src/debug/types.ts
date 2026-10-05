@@ -141,6 +141,7 @@ export interface TraceSummary {
 
 export interface ServerRunReport {
   surface: "server";
+  app_run_id?: string;
   /** True when the job reached the `completed` status. */
   ok: boolean;
   status: string;

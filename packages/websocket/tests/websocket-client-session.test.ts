@@ -55,6 +55,7 @@ describe("WebSocketClientSession", () => {
   let runner: WebSocketClientSession;
 
   beforeEach(() => {
+    initTestDb();
     ws = new MockWebSocket();
     runner = new WebSocketClientSession({ resolveExecutor });
   });

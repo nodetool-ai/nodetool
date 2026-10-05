@@ -8,6 +8,7 @@ import { eq, and, or, gt, lt, desc, asc } from "drizzle-orm";
 import type { ProviderSession } from "@nodetool-ai/protocol";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getPortableDb } from "./db.js";
+import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 import { messages } from "./schema/messages.js";
 
 /**
@@ -67,6 +68,14 @@ export class Message extends DBModel {
   /** Provider session continuation token (state after this turn). */
   declare provider_session: ProviderSession | null;
   declare created_at: string;
+
+  override async delete(): Promise<void> {
+    await eraseRunTraceParentForModelDeletion({ kind: "message", id: this.id });
+    await eraseRunTraceParentForModelDeletion({ kind: "thread", id: this.thread_id });
+    await super.delete();
+    await eraseRunTraceParentForModelDeletion({ kind: "message", id: this.id });
+    await eraseRunTraceParentForModelDeletion({ kind: "thread", id: this.thread_id });
+  }
 
   constructor(data: Record<string, unknown>) {
     super(data);
@@ -162,7 +171,9 @@ export class Message extends DBModel {
       .from(messages)
       .where(where);
     if (existing.length === 0) return 0;
+    await eraseRunTraceParentForModelDeletion({ kind: "thread", id: threadId });
     await db.delete(messages).where(where);
+    await eraseRunTraceParentForModelDeletion({ kind: "thread", id: threadId });
     return existing.length;
   }
 }

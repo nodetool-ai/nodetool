@@ -13,6 +13,11 @@ describe("buildUiContext", () => {
     expect(buildUiContext()).toBeNull();
   });
 
+  it("keeps a typed run reference even when no document is open", () => {
+    const run = { run_id: "a".repeat(32), span_id: "b".repeat(16) };
+    expect(buildUiContext({ run })).toMatchObject({ run, open: [], focused: null });
+  });
+
   it("still emits a source when no document is open", () => {
     expect(buildUiContext({ source: "model3d_assistant" })).toEqual({
       focused: null,

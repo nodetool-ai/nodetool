@@ -560,3 +560,11 @@ export { commitFinishedStoryboard, findFinishResourceIds } from "./finish-storyb
 
 export { storyboards } from "./schema/storyboards.js";
 export { assertStoryboardClipGenerationAllowed } from "./storyboard-generation-policy.js";
+
+export * from "./app-instance.js";
+
+export { listRunTraceOwners, registerRunTrace, getRunTrace, getRegisteredRunTrace, getRegisteredTrace, setRunTraceRoot, settleRunTrace, registerRunTraceParent, registerRunTraceParents, writeRunTraceUpdate, listRunTraceRecords, markRunTraceIncomplete, eraseRunTraceParentContent, deleteRunTrace, pruneRunTraces, sanitizeRunTraceRecord, RunTraceError } from "./run-trace.js";
+export type { RegisterRunTraceInput, RunTraceSanitizationOptions } from "./run-trace.js";
+export { resolveRunReader, findRunReaderSource, queryRunReaders, queryRunReaderSpans, queryRunReaderGenerationIds, queryRunReaderDocumentIds, queryRunReaderAppMetadata, queryRunReaderAppContent, queryRunReaderAppContentPresent, queryRunReaderGenerationCosts, encodeRunListCursor } from "./run-readers.js";
+export type { RunReaderSpan } from "./run-readers.js";
+export { threadHasTraceContentTools } from "./trace-provenance.js";

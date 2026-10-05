@@ -18,6 +18,8 @@ import {
   type JsScriptOperationLoader,
   type JsScriptOperationRunner
 } from "@nodetool-ai/execution/app-debug";
+import type { NodeRegistry } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ProcessingMessage } from "@nodetool-ai/protocol";
 import { resolveAppTarget, type AppTargetDeps } from "./app-target.js";
 import { formatRunJson } from "../run-json.js";
@@ -35,7 +37,8 @@ const LOCAL_USER_ID = "1";
 export interface AppDebugDeps {
   /** Load a workflow by DB id, including its legacy `app_doc`. */
   loadFromDb: (
-    id: string
+    id: string,
+    version?: number
   ) => Promise<{ graph: DebugGraph; app_doc?: unknown } | null>;
   /**
    * Load an application by DB id. Without it a bare id is only ever read as a
@@ -50,6 +53,7 @@ export interface AppDebugDeps {
   runScript?: JsScriptOperationRunner;
   /** Resolve a pinned script version an operation targets but the target lacks. */
   loadScript?: JsScriptOperationLoader;
+  registry?: NodeRegistry;
 }
 
 function defaultOutDir(ref: string): string {
@@ -150,7 +154,29 @@ export async function runAppDebug(
   if (deps.onLog) {
     simulateDeps.onLog = deps.onLog;
   }
+  const runIds = new Set<string>();
+  if (options.run !== false) {
+    const [{ createAppDebugRunRecording }, { ProcessingContext: Context }, { buildFullRegistry }, { getSecret }, { FileStorageAdapter }, { getDefaultAssetsPath }] = await Promise.all([
+      import("@nodetool-ai/execution/app-debug"), import("@nodetool-ai/runtime"), import("../node-registry.js"),
+      import("@nodetool-ai/models"), import("@nodetool-ai/storage"), import("@nodetool-ai/config")
+    ]);
+    const context = new Context({ userId: LOCAL_USER_ID, jobId: `app-debug-${Date.now()}`,
+      secretResolver: getSecret, storage: new FileStorageAdapter(getDefaultAssetsPath()) });
+    const recording = createAppDebugRunRecording({ userId: LOCAL_USER_ID, target: resolved,
+      context, registry: deps.registry ?? buildFullRegistry(), loadWorkflow: deps.loadFromDb, loadScript,
+      onRunCreated: (id) => { runIds.add(id); },
+      applicationId: resolved.info.source === "application" ? resolved.info.ref : undefined,
+      runWorkflow: (parent: ProcessingContext, input) => runOnServer({ ...input, context: parent }),
+      runScript: async (parent, input) => {
+        if (deps.runScript) { return deps.runScript(input); }
+        const { createJsScriptAppRunner } = await import("@nodetool-ai/agents");
+        return createJsScriptAppRunner(LOCAL_USER_ID, { context: parent, secretResolver: getSecret })(input);
+      }
+    });
+    Object.assign(simulateDeps, recording);
+  }
   const report = await simulateApp(resolved, options, simulateDeps);
+  report.run_ids = [...runIds];
   report.bundleDir = outDir;
 
   await writeFile(

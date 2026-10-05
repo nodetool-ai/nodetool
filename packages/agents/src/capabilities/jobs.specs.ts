@@ -81,7 +81,9 @@ export const getJobLogsSpec: CapabilitySpec = {
   name: "get_job_logs",
   description:
     "Get logs for a job to debug workflow executions. Answers the log tail " +
-    "even when the job failed; its failure message is under `job_error`.",
+    "even when the job failed; its failure message is under `job_error`. " +
+    "Reads recorded run events when the job has a trace, including expiry " +
+    "and truncation flags. Uses legacy job logs only when no run trace exists.",
   inputSchema: GET_JOB_LOGS_SCHEMA,
   category: "read",
   userMessage: (params) => `Getting logs for job ${params["job_id"]}`

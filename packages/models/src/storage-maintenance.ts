@@ -1,3 +1,4 @@
+import { eraseRunTraceParentForModelDeletion, pruneRunTraces } from "./run-trace.js";
 /**
  * Database history retention and maintenance.
  *
@@ -15,6 +16,7 @@ import { statSync } from "node:fs";
 import { and, count, desc, eq, inArray, isNotNull, lt, or } from "drizzle-orm";
 import { isAutomaticStorageCleanupEnabled } from "@nodetool-ai/config";
 import { getPortableDb, getDbType, getRawDb } from "./db.js";
+import { appRunRetentionCandidates, pruneAppRuns } from "./app-instance.js";
 import { jobs } from "./schema/jobs.js";
 import { predictions } from "./schema/predictions.js";
 import { runEvents } from "./schema/run-events.js";
@@ -34,6 +36,7 @@ export interface StorageRetentionPolicy {
    * instead of to zero days.
    */
   runEventRetentionDays?: number;
+  runTraceRetentionDays?: number;
   /**
    * How long a prediction keeps its request payload. The row itself is never
    * deleted. Unset means
@@ -49,6 +52,7 @@ export const DEFAULT_STORAGE_RETENTION_POLICY: StorageRetentionPolicy = {
   manualVersionRetentionDays: 90,
   terminalJobRetentionDays: 30,
   runEventRetentionDays: 30,
+  runTraceRetentionDays: 30,
   predictionRetentionDays: 400,
   // A local install cleans up when asked. A hosted deployment sets
   // NODETOOL_STORAGE_AUTO_CLEANUP=1 so the sweep runs on its own.
@@ -56,6 +60,8 @@ export const DEFAULT_STORAGE_RETENTION_POLICY: StorageRetentionPolicy = {
 };
 
 export interface StorageCleanupPreview {
+  appRuns?: number;
+  expiredAppRunContent?: number;
   autosaves: number;
   manualVersions: number;
   terminalJobs: number;
@@ -313,6 +319,10 @@ interface CleanupCandidates extends VersionAndJobCandidates {
   runEventCutoff: string;
   expiredRunEvents: number;
   redactablePredictionIds: string[];
+  appRunContentCutoff: string;
+  appRunRecordCutoff: string;
+  expiredAppRunContent: number;
+  terminalAppRuns: number;
 }
 
 async function collectCandidates(
@@ -340,8 +350,23 @@ async function collectCandidates(
       )
     )
   ).toISOString();
+  const appRunContentCutoff = new Date(
+    cutoffTime(now, retentionDays(policy.runTraceRetentionDays, 30))
+  ).toISOString();
+  const appRunRecordCutoff = new Date(
+    cutoffTime(now, policy.terminalJobRetentionDays)
+  ).toISOString();
+  const appRuns = await appRunRetentionCandidates(
+    userId,
+    appRunContentCutoff,
+    appRunRecordCutoff
+  );
   return {
     ...base,
+    appRunContentCutoff,
+    appRunRecordCutoff,
+    expiredAppRunContent: appRuns.expiredContent,
+    terminalAppRuns: appRuns.terminalRuns,
     runEventCutoff,
     expiredRunEvents: await countRunEvents(
       base.survivingRunIds,
@@ -361,14 +386,24 @@ function previewFromCandidates(
   const manualVersions = candidates.manualVersionIds.length;
   const terminalJobs = candidates.terminalJobIds.length;
   const runEventCount = candidates.expiredRunEvents;
-  return {
+  const preview: StorageCleanupPreview = {
     autosaves,
     manualVersions,
     terminalJobs,
     runEvents: runEventCount,
     redactedPredictions: candidates.redactablePredictionIds.length,
-    total: autosaves + manualVersions + terminalJobs + runEventCount
+    total:
+      autosaves +
+      manualVersions +
+      terminalJobs +
+      runEventCount +
+      candidates.terminalAppRuns
   };
+  if (candidates.terminalAppRuns > 0)
+    preview.appRuns = candidates.terminalAppRuns;
+  if (candidates.expiredAppRunContent > 0)
+    preview.expiredAppRunContent = candidates.expiredAppRunContent;
+  return preview;
 }
 
 function sqliteFileStatus(): {
@@ -439,6 +474,7 @@ async function deleteVersions(ids: string[]): Promise<void> {
 
 async function deleteJobs(ids: string[]): Promise<void> {
   const db = getPortableDb();
+  for (const id of ids) { await eraseRunTraceParentForModelDeletion({ kind: "job", id }); }
   for (const batch of batches(ids)) {
     await db.delete(runEvents).where(inArray(runEvents.run_id, batch));
     await db
@@ -447,6 +483,7 @@ async function deleteJobs(ids: string[]): Promise<void> {
     await db.delete(triggerInputs).where(inArray(triggerInputs.run_id, batch));
     await db.delete(jobs).where(inArray(jobs.id, batch));
   }
+  for (const id of ids) { await eraseRunTraceParentForModelDeletion({ kind: "job", id }); }
 }
 
 export async function cleanupStorage(
@@ -460,6 +497,7 @@ export async function cleanupStorage(
     policy,
     now
   );
+  await pruneRunTraces(userId, candidates.appRunContentCutoff, candidates.appRunRecordCutoff);
   await deleteVersions([
     ...candidates.autosaveIds,
     ...candidates.manualVersionIds
@@ -470,6 +508,11 @@ export async function cleanupStorage(
   );
   await deleteJobs(candidates.terminalJobIds);
   await redactPredictions(candidates.redactablePredictionIds);
+  await pruneAppRuns(
+    userId,
+    candidates.appRunContentCutoff,
+    candidates.appRunRecordCutoff
+  );
   return {
     ...previewFromCandidates(candidates),
     completedAt: now.toISOString()

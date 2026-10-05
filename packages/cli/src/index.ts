@@ -149,7 +149,7 @@ if (process.stdin.isTTY && traceStdout !== undefined && parseTraceStdout(traceSt
 
 // Initialize OpenLLMetry before any LLM SDK calls are made. Honors CLI flags
 // and env vars (TRACELOOP_API_KEY, OTEL_EXPORTER_OTLP_ENDPOINT,
-// NODETOOL_TRACE_FILE, NODETOOL_TRACE_STDOUT). No-op if nothing is configured.
+// NODETOOL_TRACE_FILE, NODETOOL_TRACE_STDOUT). Registered run recording is always on.
 await initTelemetry({
   ...(opts.traceFile && { traceFile: opts.traceFile }),
   ...(opts.traceStdout !== undefined && {

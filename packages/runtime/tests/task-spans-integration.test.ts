@@ -3,7 +3,7 @@
  * OTel SDK: outbound fetch, workspace IO, a subprocess and a PNG encode.
  */
 
-import { describe, it, expect, afterAll, beforeAll } from "vitest";
+import { describe, it, expect, afterAll, beforeAll, beforeEach, vi } from "vitest";
 import { createServer, type Server } from "node:http";
 import type { AddressInfo } from "node:net";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -63,10 +63,16 @@ beforeAll(async () => {
   serverUrl = `http://127.0.0.1:${(server.address() as AddressInfo).port}/`;
 }, HOOK_TIMEOUT_MS);
 
+beforeEach(() => {
+  // These hierarchy checks inspect custom diagnostic names and attributes.
+  vi.stubEnv("NODETOOL_TRACE_INCLUDE_CONTENT", "1");
+});
+
 afterAll(async () => {
   await new Promise((resolve) => server.close(resolve));
   await rm(traceDir, { recursive: true, force: true });
   _resetTelemetryForTest();
+  vi.unstubAllEnvs();
 }, HOOK_TIMEOUT_MS);
 
 describe("task spans", () => {
