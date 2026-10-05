@@ -67,6 +67,7 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
   draftDocument
 }) => {
   const [executionEpoch, setExecutionEpoch] = useState(0);
+  const hasPinnedInstance = Boolean(instanceId) && !previewDraft;
   const applicationQuery = useApplication(applicationId);
   const { data: application, isLoading } = applicationQuery;
   const releaseQuery = useReleasedApplicationDocument(applicationId);
@@ -103,6 +104,7 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
     queryFn: async () => await fetchWorkflow(hostWorkflowId),
     enabled:
       Boolean(hostWorkflowId) &&
+      !hasPinnedInstance &&
       !pinnedHost &&
       (previewDraft || (!releaseLoading && !releaseQuery.isError)),
     staleTime: 0,
@@ -114,13 +116,26 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
   // content are a whole app. With no operation bound, the runtime still wants
   // a workflow shape, so it gets an empty one that contributes no IO.
   const workflow = useMemo<Workflow | undefined>(() => {
+    if (hasPinnedInstance) {
+      return pinnedWorkflow(applicationId, application?.name ?? "", {
+        nodes: [],
+        edges: []
+      });
+    }
     if (pinnedHost ?? liveHost) return pinnedHost ?? liveHost;
     if (hostWorkflowId) return undefined;
     return pinnedWorkflow(applicationId, application?.name ?? "", {
       nodes: [],
       edges: []
     });
-  }, [applicationId, application?.name, hostWorkflowId, liveHost, pinnedHost]);
+  }, [
+    applicationId,
+    application?.name,
+    hasPinnedInstance,
+    hostWorkflowId,
+    liveHost,
+    pinnedHost
+  ]);
 
   if (isLoading || (!previewDraft && releaseLoading)) {
     return <LoadingSpinner size="large" text="Loading app" />;
@@ -158,7 +173,7 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
     );
   }
 
-  if (!document || document.ui.content.length === 0) {
+  if (!document || (!hasPinnedInstance && document.ui.content.length === 0)) {
     return (
       <EmptyState
         variant="empty"
@@ -168,7 +183,12 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
     );
   }
 
-  if (!pinnedHost && hostWorkflowId && hostQuery.isLoading) {
+  if (
+    !hasPinnedInstance &&
+    !pinnedHost &&
+    hostWorkflowId &&
+    hostQuery.isLoading
+  ) {
     return <LoadingSpinner size="large" text="Loading workflow" />;
   }
 

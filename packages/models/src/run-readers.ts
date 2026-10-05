@@ -89,7 +89,13 @@ export async function queryRunReaders(userId: string, options: RunListOptions): 
   const rows = c.dialect === "sqlite"
     ? await c.db.select({ run: c.schema.runTraces, app: { id: c.schema.applicationInvocations.id, instance_id: c.schema.applicationInvocations.instance_id, operation_id: c.schema.applicationInvocations.operation_id, app_version: c.schema.applicationInvocations.version, application_id: c.schema.applicationInvocations.application_id, ...appHistoryProjection(userId, sql`${t.trace_id}`, sql`${t.origin} <> ${"public"} AND ${t.content_expired} = 0`) } }).from(c.schema.runTraces).leftJoin(c.schema.applicationInvocations, join).where(where).orderBy(desc(t.started_at), desc(t.id)).limit(limit)
     : await c.db.select({ run: c.schema.runTraces, app: { id: c.schema.applicationInvocations.id, instance_id: c.schema.applicationInvocations.instance_id, operation_id: c.schema.applicationInvocations.operation_id, app_version: c.schema.applicationInvocations.version, application_id: c.schema.applicationInvocations.application_id, ...appHistoryProjection(userId, sql`${t.trace_id}`, sql`${t.origin} <> ${"public"} AND ${t.content_expired} = 0`) } }).from(c.schema.runTraces).leftJoin(c.schema.applicationInvocations, join).where(where).orderBy(desc(t.started_at), desc(t.id)).limit(limit);
-  return rows.map((row) => ({ ...runTraceRegistrationSchema.parse(row.run), ...(row.app ? { app: { instance_id: row.app.instance_id, operation_id: row.app.operation_id, app_version: row.app.app_version, application_id: row.app.application_id, ...parseAppHistory({ actual_usd: row.app.actual_usd, cost_state: row.app.cost_state, result_reference: row.app.result_reference }) } } : {}) }));
+  return rows.map((row) => {
+    const record: RunTraceRegistration & { app?: NonNullable<GetRunResult["run"]["app"]> } = runTraceRegistrationSchema.parse(row.run);
+    if (row.app) {
+      record.app = { instance_id: row.app.instance_id, operation_id: row.app.operation_id, app_version: row.app.app_version, application_id: row.app.application_id, ...parseAppHistory({ actual_usd: row.app.actual_usd, cost_state: row.app.cost_state, result_reference: row.app.result_reference }) };
+    }
+    return record;
+  });
 }
 /** Metadata-only readers never load the content column. All reads use the indexed owner/trace path. */
 export async function queryRunReaderSpans(userId: string, run: RunTraceRegistration, options: { includeContent?: boolean; cursor?: number; limit?: number; spanIds?: readonly string[] } = {}): Promise<RunReaderSpan[]> {

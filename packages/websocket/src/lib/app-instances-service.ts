@@ -246,10 +246,10 @@ export async function advanceOwnedAppInstance(
       "App instance revision changed. Reload before advancing."
     );
   }
-  if (!instance.application_id || instance.version === null) {
+  if (!instance.application_id || instance.source_id.startsWith("preview:")) {
     throw new AppRunError(
       "invalid_input",
-      "Only a published app instance can advance to a release"
+      "Only an application working instance can advance to a release"
     );
   }
   const snapshot = await freezeSnapshot(userId, {

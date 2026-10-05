@@ -91,6 +91,33 @@ async function nextRelease(application: Application) {
   await publishApplication(application);
 }
 describe("explicit app instance release advancement", () => {
+  it("advances an application working copy created before its first release", async () => {
+    const document = createEmptyDocument();
+    const application = await Application.create<Application>({
+      user_id: "owner",
+      name: "Unpublished app",
+      document: JSON.stringify(document)
+    });
+    const instance = await createOwnedAppInstance(
+      "owner",
+      {
+        application_id: application.id,
+        source_id: `application:${application.id}`,
+        snapshot: { document, workflow_graphs: {}, script_documents: {} }
+      },
+      true
+    );
+    expect(instance.version).toBeNull();
+    await publishApplication(application);
+    const advanced = await advanceOwnedAppInstance("owner", {
+      id: instance.id,
+      expected_revision: instance.revision,
+      version: 1
+    });
+    expect(advanced.version).toBe(1);
+    expect(advanced.id).toBe(instance.id);
+    expect(advanced.revision).toBe(instance.revision + 1);
+  });
   it.each([false, true])(
     "refuses stale snapshot reservation with configured budget=%s",
     async (budgeted) => {
@@ -284,6 +311,6 @@ describe("explicit app instance release advancement", () => {
         expected_revision: 0,
         version: 1
       })
-    ).rejects.toThrow("published app instance");
+    ).rejects.toThrow("application working instance");
   });
 });
