@@ -232,6 +232,27 @@ const renderRuntime = (
     wrapper
   });
 
+it("seeds workflow inputs before making a preview editable and preserves its first edit", async () => {
+  const seededWorkflow = { ...workflowA, graph: { ...workflowA.graph, nodes: workflowA.graph.nodes.map((node) => node.id === "in1" ? { ...node, data: { name: "prompt", value: "default prompt" } } : node) } };
+  const readyInputs: unknown[] = [];
+  const hook = renderHook(() => {
+    const runtime = useAppRuntime(seededWorkflow, false, { document: doc(), application: { id: "app-a" }, previewDraft: true });
+    React.useLayoutEffect(() => {
+      if (!runtime.instanceLoading) {
+        readyInputs.push(runtime.store.getState().inputs["main:in1"]?.value);
+        runtime.write({ kind: "input", operationId: "main", nodeId: "in1" }, "first preview edit");
+      }
+    }, [runtime.instanceLoading]);
+    return runtime;
+  }, { wrapper });
+  await waitFor(() => expect(hook.result.current.instanceLoading).toBe(false));
+  expect(readyInputs).toEqual(["default prompt"]);
+  expect(hook.result.current.store.getState().inputs["main:in1"]?.value).toBe("first preview edit");
+  await act(async () => { await hook.result.current.flushInstance?.(); });
+  expect(serverInstances.get("server-a")?.variables.__app_inputs).toEqual({ "main:in1": "first preview edit" });
+  hook.unmount();
+});
+
 it("settles the scoped runner by owned job and admits a browser reactive run after server warmup", async () => {
   const actual = jest.requireActual<typeof import("../../../../stores/WorkflowRunner")>("../../../../stores/WorkflowRunner");
   const scoped = new Map<string, ReturnType<typeof actual.createWorkflowRunnerStore>>();

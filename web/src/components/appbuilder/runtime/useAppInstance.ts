@@ -196,6 +196,7 @@ export const useAppInstance = (
     }
   }, []);
   const bindingRef = useRef<string | null>(null);
+  const [readyBinding, setReadyBinding] = useState<string | null>(null);
   const storeRef = useRef<AppRuntimeStore | null>(null);
   const instance = query.data;
   const instanceRef = useRef(instance);
@@ -281,6 +282,7 @@ export const useAppInstance = (
       }
       timer = setTimeout(flush, 150);
     });
+    setReadyBinding(binding);
     return () => {
       active = false;
       unsubscribe();
@@ -395,7 +397,10 @@ export const useAppInstance = (
     serverFold,
     refresh,
     reload,
-    loading: enabled && query.isPending,
+    loading:
+      enabled &&
+      (query.isPending ||
+        Boolean(instance && readyBinding !== `${account}:${instance.id}`)),
     error:
       account === "anonymous" && !visitor && !designMode
         ? "Sign in to load this app instance."

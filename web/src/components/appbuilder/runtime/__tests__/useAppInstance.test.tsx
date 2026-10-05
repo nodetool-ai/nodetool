@@ -133,6 +133,29 @@ beforeEach(() => {
     });
 });
 
+it("finishes instance hydration before exposing an editable runtime", async () => {
+  const store = createAppRuntimeStore();
+  const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
+  const wrapper = ({ children }: { children: React.ReactNode }) => (
+    <QueryClientProvider client={client}>{children}</QueryClientProvider>
+  );
+  const hook = renderHook(() => {
+    const persistence = useAppInstance(undefined, false, { application: { id: "app" }, document, previewDraft: true });
+    persistence.attach(store);
+    React.useLayoutEffect(() => {
+      if (!persistence.loading) {
+        store.getState().dispatchEvent({ type: "setVariable", variableId: "result", value: "first visible edit" });
+      }
+    }, [persistence.loading]);
+    return persistence;
+  }, { wrapper });
+  await waitFor(() => expect(hook.result.current.loading).toBe(false));
+  expect(store.getState().variables.result).toBe("first visible edit");
+  await act(async () => { await hook.result.current.flush(); });
+  expect(instances.get("default")?.variables.result).toBe("first visible edit");
+  hook.unmount();
+});
+
 it("imports legacy state only into an empty default and loads shared state in a second browser", async () => {
   window.localStorage.setItem(
     variableStorageKey("application:app"),
