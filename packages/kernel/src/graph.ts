@@ -29,7 +29,11 @@ import {
   TypeMetadata
 } from "@nodetool-ai/protocol";
 import { syntheticEdgeId } from "./edge-ids.js";
-import { dynamicSlotPropertyTypes } from "./dynamic-slots.js";
+import {
+  dynamicSlotPropertyTypes,
+  mergeDerivedSlots,
+  type DerivedDynamicSlots
+} from "./dynamic-slots.js";
 import { isCallable, isObjectValue, isString } from "./predicates.js";
 
 // ---------------------------------------------------------------------------
@@ -76,6 +80,15 @@ export interface ResolvedNodeType {
   resolveInstanceFlags?: (node: {
     properties?: Record<string, unknown>;
   }) => { is_streaming_input?: boolean };
+  /**
+   * Dynamic slots the individual node derives from its saved properties, such
+   * as the Save nodes of a Comfy runner's `workflow`. Merged under the slots
+   * saved on the node, so a graph built without the editor (over the API,
+   * where nothing declared the slots) can still wire them.
+   */
+  resolveInstanceSlots?: (node: {
+    properties?: Record<string, unknown>;
+  }) => DerivedDynamicSlots | undefined;
 }
 
 export type NodeTypeResolver =
@@ -415,9 +428,20 @@ export class Graph {
       // A per-instance answer, when the resolver has one for this type, is read
       // from the node as saved — the same properties the node will run with.
       const instanceFlags = resolved.resolveInstanceFlags?.(node) ?? {};
+      const derivedSlots = resolved.resolveInstanceSlots?.(node);
+      const dynamicInputs = mergeDerivedSlots(
+        derivedSlots?.dynamic_inputs,
+        node.dynamic_inputs
+      );
+      const dynamicOutputs = mergeDerivedSlots(
+        derivedSlots?.dynamic_outputs,
+        node.dynamic_outputs
+      );
       const hydratedNode: HydratedNodeDescriptor = {
         ...descriptorDefaults,
         ...node,
+        ...(dynamicInputs && { dynamic_inputs: dynamicInputs }),
+        ...(dynamicOutputs && { dynamic_outputs: dynamicOutputs }),
         type: resolved.nodeType,
         properties: mergedProperties,
         propertyTypes: {
@@ -426,7 +450,7 @@ export class Graph {
           // static property the registry already declares.
           ...Object.fromEntries(
             Object.entries(
-              dynamicSlotPropertyTypes(node.dynamic_inputs)
+              dynamicSlotPropertyTypes(dynamicInputs)
             ).filter(([name]) => !Object.hasOwn(resolvedPropertyTypes, name))
           ),
           ...(node.propertyTypes ?? {})

@@ -1,331 +1,103 @@
 /**
- * ComfyUI dynamic-schema parser (client-side).
+ * ComfyUI workflow schema resolution via the backend.
  *
- * Parses a ComfyUI workflow in API ("prompt") format and derives typed dynamic
- * inputs/outputs for the Run ComfyUI Workflow node — mirroring the FAL/Replicate
- * dynamic-schema pattern, but resolved entirely in the browser (no backend call).
+ * The server parses a ComfyUI workflow in API ("prompt") format, or the prompt
+ * embedded in a ComfyUI-exported PNG, and derives the typed dynamic inputs and
+ * outputs of the Run ComfyUI Workflow nodes
+ * (`packages/integration-nodes/src/nodes/comfy-schema.ts`). The same parser
+ * declares the slots at run time, so a workflow set over the API runs with the
+ * slots the editor would have shown.
  *
- * Convention: every dynamic handle is keyed `"<comfyNodeId>:<field>"`. The
- * runtime node (packages/integration-nodes/src/nodes/comfy.ts) injects connected
- * values into `prompt[nodeId].inputs[field]` and returns output files under the
- * same `"<comfyNodeId>:<kind>"` keys, so frontend and backend never diverge.
+ * Convention: every dynamic handle is keyed `"<comfyNodeId>:<field>"` for
+ * inputs and `"<comfyNodeId>:<kind>"` for outputs.
  */
 
+import { restFetch } from "../lib/rest-fetch";
 import type { TypeMetadata } from "../stores/ApiTypes";
-import { isBoolean, isNumber, isObjectLike, isString } from "./typePredicates";
-
-type ComfyPromptNode = {
-  class_type: string;
-  inputs: Record<string, unknown>;
-  _meta?: { title?: string };
-};
-
-function isComfyPromptNode(value: unknown): value is ComfyPromptNode {
-  return (
-    value != null &&
-    typeof value === "object" &&
-    "class_type" in value && typeof value.class_type === "string" &&
-    "inputs" in value && typeof value.inputs === "object"
-  );
-}
-export type ComfyPrompt = Record<string, ComfyPromptNode>;
-
-export type ComfyDynInput = TypeMetadata & {
-  description?: string;
-  min?: number;
-  max?: number;
-  default?: unknown;
-};
+import { isRecord, isString } from "./typePredicates";
 
 /** A literal input that the user may optionally expose as a typed handle. */
-interface ComfyParam {
-  handle: string; // "<id>:<field>"
-  nodeId: string;
+export interface ComfyParam {
+  handle: string;
+  node_id: string;
   field: string;
-  classType: string;
+  class_type: string;
   label: string;
   type: string;
   default: unknown;
 }
 
+/** One dynamic input declaration as the server returns it. */
+export interface ComfyDynInput {
+  type: TypeMetadata;
+  description?: string;
+  default?: unknown;
+}
+
 export interface ComfyResolvedSchema {
   /** Normalized API-format prompt to store in the node's `workflow` prop. */
-  prompt: ComfyPrompt;
-  /** Auto-exposed typed inputs (Load* nodes), keyed by handle. */
+  prompt: Record<string, unknown>;
+  /** Auto-exposed typed inputs (Load* media and prompt text), by handle. */
   dynamic_inputs: Record<string, ComfyDynInput>;
-  /** Auto-exposed typed outputs (Save* nodes), keyed by handle. */
+  /** Auto-exposed typed outputs (Save* and Preview* nodes), by handle. */
   dynamic_outputs: Record<string, TypeMetadata>;
-  /** Default values for the exposed inputs. */
+  /** Current values of the exposed inputs. */
   dynamic_properties: Record<string, unknown>;
-  /** Literal inputs the user can additionally expose as params. */
-  availableParams: ComfyParam[];
+  /** Literal inputs the user can additionally expose as inputs. */
+  available_params: ComfyParam[];
 }
 
-/** Curated Load* classes → typed media input field. */
-const LOAD_CLASS_INPUTS: Record<string, { field: string; type: string }> = {
-  LoadImage: { field: "image", type: "image" },
-  LoadImageMask: { field: "image", type: "image" },
-  LoadImageOutput: { field: "image", type: "image" },
-  LoadAudio: { field: "audio", type: "audio" },
-  VHS_LoadAudioUpload: { field: "audio", type: "audio" },
-  LoadVideo: { field: "video", type: "video" },
-  VHS_LoadVideo: { field: "video", type: "video" }
-};
+export type ComfyWorkflowSource =
+  | { workflow: string }
+  | { png_base64: string };
 
-/**
- * Curated Save / Preview classes -> streaming output kind. Outputs stream one
- * item per file, so each slot is a singular media type (not a list), keyed
- * `"<nodeId>:<kind>"` to match the backend's emitted handles.
- */
-const SAVE_CLASS_OUTPUTS: Record<string, { kind: "image" | "audio" | "video" } > = {
-  SaveImage: { kind: "image" },
-  PreviewImage: { kind: "image" },
-  SaveAnimatedWEBP: { kind: "image" },
-  SaveAnimatedPNG: { kind: "image" },
-  SaveAudio: { kind: "audio" },
-  SaveAudioMP3: { kind: "audio" },
-  SaveAudioOpus: { kind: "audio" },
-  PreviewAudio: { kind: "audio" },
-  SaveVideo: { kind: "video" },
-  VHS_VideoCombine: { kind: "video" }
-};
-
-const meta = (type: string): TypeMetadata => ({
-  type,
-  optional: false,
-  type_args: []
-});
-
-/** A ComfyUI input value `[sourceId, slot]` denotes a connection, not a literal. */
-export function isComfyConnection(value: unknown): boolean {
-  return (
-    Array.isArray(value) &&
-    value.length === 2 &&
-    (isString(value[0]) || isNumber(value[0])) &&
-    isNumber(value[1])
-  );
-}
-
-function nodeLabel(node: ComfyPromptNode): string {
-  return node._meta?.title?.trim() || node.class_type;
-}
-
-/** Resolve a Load* class to its media input field + type (curated, then prefix). */
-function resolveLoadInput(
-  classType: string,
-  inputs: Record<string, unknown>
-): { field: string; type: string } | null {
-  const curated = LOAD_CLASS_INPUTS[classType];
-  if (curated) return curated;
-  if (!classType.startsWith("Load")) return null;
-  // Prefix fallback: pick a media type from the class name and the first
-  // literal string input as the file field.
-  const type = classType.includes("Audio")
-    ? "audio"
-    : classType.includes("Video")
-      ? "video"
-      : "image";
-  const field = Object.entries(inputs).find(
-    ([, v]) => isString(v) && !isComfyConnection(v)
-  )?.[0];
-  return field ? { field, type } : null;
-}
-
-/** Resolve a Save or Preview class to its streaming output kind. */
-function resolveSaveOutput(
-  classType: string
-): { kind: "image" | "audio" | "video" } | null {
-  const curated = SAVE_CLASS_OUTPUTS[classType];
-  if (curated) return curated;
-  if (!classType.startsWith("Save") && !classType.startsWith("Preview")) {
-    return null;
-  }
-  if (classType.includes("Audio")) return { kind: "audio" };
-  if (classType.includes("Video")) return { kind: "video" };
-  return { kind: "image" };
-}
-
-function inferScalarType(value: unknown): string {
-  if (isBoolean(value)) return "bool";
-  if (isNumber(value)) {
-    return Number.isInteger(value) ? "int" : "float";
-  }
-  if (isString(value)) return "str";
-  return "any";
-}
-
-/**
- * Validate and normalize a parsed JSON object into an API-format ComfyUI prompt.
- * Accepts either the bare prompt map or an object wrapping it under `prompt`.
- * Throws a helpful error for the UI/full ("nodes" array) format.
- */
-export function normalizeComfyPrompt(parsed: unknown): ComfyPrompt {
-  if (parsed && isObjectLike(parsed) && "prompt" in parsed) {
-    const inner = parsed.prompt;
-    if (inner && isObjectLike(inner)) return normalizeComfyPrompt(inner);
-  }
-  if (parsed && isObjectLike(parsed) && "nodes" in parsed) {
-    throw new Error(
-      "This looks like a ComfyUI UI workflow. Use “Save (API Format)” in ComfyUI, or drop a PNG exported by ComfyUI."
-    );
-  }
-  if (!parsed || !isObjectLike(parsed) || Array.isArray(parsed)) {
-    throw new Error("Not a ComfyUI workflow (expected a JSON object).");
-  }
-  const entries = Object.entries(parsed as Record<string, unknown>);
-  if (entries.length === 0) {
-    throw new Error("Workflow is empty.");
-  }
-  for (const [id, node] of entries) {
-    if (!isComfyPromptNode(node)) {
-      throw new Error(
-        `Node "${id}" is not in API format (expected { class_type, inputs }).`
-      );
-    }
-  }
-  return parsed as ComfyPrompt;
-}
-
-/** Parse pasted JSON text into a normalized ComfyUI prompt. */
-export function parseComfyWorkflowJson(text: string): ComfyPrompt {
-  let parsed: unknown;
-  try {
-    parsed = JSON.parse(text);
-  } catch {
-    throw new Error("Invalid JSON.");
-  }
-  return normalizeComfyPrompt(parsed);
-}
-
-/**
- * Extract the embedded API-format prompt from a ComfyUI-exported PNG.
- * ComfyUI stores the prompt JSON in a `tEXt`/`iTXt` chunk keyed "prompt".
- */
-export function extractComfyPromptFromPng(buffer: ArrayBuffer): ComfyPrompt {
+/** Base64-encode a file's bytes for the JSON request body. */
+export function bytesToBase64(buffer: ArrayBuffer): string {
   const bytes = new Uint8Array(buffer);
-  const sig = [137, 80, 78, 71, 13, 10, 26, 10];
-  for (let i = 0; i < sig.length; i++) {
-    if (bytes[i] !== sig[i]) throw new Error("Not a PNG file.");
+  let binary = "";
+  const chunk = 0x8000;
+  for (let i = 0; i < bytes.length; i += chunk) {
+    binary += String.fromCharCode(...bytes.subarray(i, i + chunk));
   }
-  const view = new DataView(buffer);
-  const decoder = new TextDecoder("latin1");
-  let offset = 8;
-  const texts: Record<string, string> = {};
-  while (offset + 8 <= bytes.length) {
-    const length = view.getUint32(offset);
-    const type = decoder.decode(bytes.subarray(offset + 4, offset + 8));
-    const dataStart = offset + 8;
-    const dataEnd = dataStart + length;
-    if (dataEnd > bytes.length) break;
-    if (type === "tEXt") {
-      const chunk = bytes.subarray(dataStart, dataEnd);
-      const nul = chunk.indexOf(0);
-      if (nul > 0) {
-        const key = decoder.decode(chunk.subarray(0, nul));
-        const utf8 = new TextDecoder("utf-8");
-        texts[key] = utf8.decode(chunk.subarray(nul + 1));
-      }
-    } else if (type === "iTXt") {
-      const chunk = bytes.subarray(dataStart, dataEnd);
-      const nul = chunk.indexOf(0);
-      if (nul > 0) {
-        const key = decoder.decode(chunk.subarray(0, nul));
-        // iTXt: keyword \0 compflag \0 compmethod \0 langtag \0 transkeyword \0 text
-        let p = nul + 3;
-        for (let skip = 0; skip < 2 && p < chunk.length; skip++) {
-          const next = chunk.indexOf(0, p);
-          if (next < 0) break;
-          p = next + 1;
-        }
-        const utf8 = new TextDecoder("utf-8");
-        texts[key] = utf8.decode(chunk.subarray(p));
-      }
-    }
-    if (type === "IEND") break;
-    offset = dataEnd + 4; // skip CRC
-  }
-  const raw = texts.prompt ?? texts.Prompt;
-  if (!raw) {
-    throw new Error(
-      "No ComfyUI prompt found in this PNG. Export it from ComfyUI with metadata enabled."
-    );
-  }
-  return parseComfyWorkflowJson(raw);
+  return btoa(binary);
 }
 
 /**
- * Derive typed dynamic inputs/outputs from a ComfyUI prompt:
- * - Load nodes -> typed media inputs.
- * - Save / Preview nodes -> typed outputs.
- * - All other literal inputs -> `availableParams` (user-exposable).
+ * Ask the server to parse a ComfyUI workflow and derive its schema. Rejects
+ * with the server's explanation when the workflow is not usable.
  */
-export function resolveComfySchema(prompt: ComfyPrompt): ComfyResolvedSchema {
-  const dynamic_inputs: Record<string, ComfyDynInput> = {};
-  const dynamic_outputs: Record<string, TypeMetadata> = {};
-  const dynamic_properties: Record<string, unknown> = {};
-  const availableParams: ComfyParam[] = [];
-
-  // Stable ordering by numeric node id when possible.
-  const ids = Object.keys(prompt).sort((a, b) => {
-    const na = Number(a);
-    const nb = Number(b);
-    return Number.isNaN(na) || Number.isNaN(nb) ? a.localeCompare(b) : na - nb;
+export async function resolveComfyWorkflow(
+  source: ComfyWorkflowSource,
+  signal?: AbortSignal
+): Promise<ComfyResolvedSchema> {
+  const res = await restFetch("/api/comfy/resolve-workflow", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(source),
+    signal
   });
-
-  for (const nodeId of ids) {
-    const node = prompt[nodeId];
-    const label = nodeLabel(node);
-
-    const loadInput = resolveLoadInput(node.class_type, node.inputs);
-    const saveOutput = resolveSaveOutput(node.class_type);
-
-    if (saveOutput) {
-      // Singular media slot keyed "<nodeId>:<kind>" — the backend is a
-      // streaming-output node and emits one media ref per file as it runs.
-      const handle = `${nodeId}:${saveOutput.kind}`;
-      dynamic_outputs[handle] = meta(saveOutput.kind);
+  if (!res.ok) {
+    const text = await res.text();
+    let message = text;
+    try {
+      const json: unknown = JSON.parse(text);
+      if (isRecord(json) && isString(json.detail)) {
+        message = json.detail;
+      }
+    } catch {
+      // Not JSON: use the text as-is.
     }
-
-    if (loadInput && !isComfyConnection(node.inputs[loadInput.field])) {
-      const handle = `${nodeId}:${loadInput.field}`;
-      dynamic_inputs[handle] = {
-        ...meta(loadInput.type),
-        optional: true,
-        description: `${label} · ${loadInput.field}`,
-        default: node.inputs[loadInput.field]
-      };
-      dynamic_properties[handle] = node.inputs[loadInput.field];
-    }
-
-    for (const [field, value] of Object.entries(node.inputs)) {
-      if (isComfyConnection(value)) continue;
-      if (loadInput && field === loadInput.field) continue;
-      availableParams.push({
-        handle: `${nodeId}:${field}`,
-        nodeId,
-        field,
-        classType: node.class_type,
-        label: `${label} · ${field}`,
-        type: inferScalarType(value),
-        default: value
-      });
-    }
+    throw new Error(
+      message || `Failed to load workflow: ${res.status} ${res.statusText}`
+    );
   }
-
-  return {
-    prompt,
-    dynamic_inputs,
-    dynamic_outputs,
-    dynamic_properties,
-    availableParams
-  };
+  return (await res.json()) as ComfyResolvedSchema;
 }
 
-/** Build the input handle metadata for a user-selected param. */
+/** Build the input slot declaration for a user-selected param. */
 export function paramToDynInput(param: ComfyParam): ComfyDynInput {
   return {
-    ...meta(param.type),
-    optional: true,
+    type: { type: param.type, optional: true, type_args: [] },
     description: param.label,
     default: param.default
   };

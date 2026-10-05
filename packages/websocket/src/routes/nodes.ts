@@ -4,7 +4,10 @@ import type { HttpApiOptions } from "../http-api.js";
 import {
   handleNodeMetadata
 } from "../http-api.js";
-import { resolveKieDynamicSchema } from "@nodetool-ai/base-nodes";
+import {
+  resolveComfyWorkflow,
+  resolveKieDynamicSchema
+} from "@nodetool-ai/base-nodes";
 import { ApiErrorCode, apiError } from "../error-codes.js";
 import {
   isNonBlankString,
@@ -61,6 +64,50 @@ const nodesRoutes: FastifyPluginAsync<RouteOptions> = async (app, opts) => {
         );
     }
   });
+
+  /**
+   * ComfyUI workflow parsing for the Comfy runner nodes. Takes a workflow in
+   * API format (`workflow`, JSON text or object) or a ComfyUI-exported PNG
+   * (`png_base64`), and returns the normalized prompt with the dynamic inputs,
+   * outputs, and exposable params the editor shows. Stateless, like the KIE
+   * route above.
+   */
+  app.post(
+    "/api/comfy/resolve-workflow",
+    {
+      schema: {
+        body: {
+          type: "object",
+          properties: {
+            workflow: {},
+            png_base64: { type: "string", minLength: 1 }
+          },
+          oneOf: [{ required: ["workflow"] }, { required: ["png_base64"] }]
+        }
+      }
+    },
+    async (req, reply) => {
+      const body = req.body as { workflow?: unknown; png_base64?: string };
+      try {
+        reply.send(
+          resolveComfyWorkflow(
+            isString(body.png_base64)
+              ? { png_base64: body.png_base64 }
+              : { workflow: body.workflow }
+          )
+        );
+      } catch (error) {
+        reply
+          .status(400)
+          .send(
+            apiError(
+              ApiErrorCode.INVALID_INPUT,
+              error instanceof Error ? error.message : String(error)
+            )
+          );
+      }
+    }
+  );
 };
 
 /** A decoded JSON value from the request body. */

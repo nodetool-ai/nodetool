@@ -29,10 +29,10 @@ offered because ComfyUI wires them internally, is
 
 Two facts shape every recipe below:
 
-- **A handle only exists if you asked for it.** Media inputs and save outputs
-  are derived automatically. Seeds, steps, CFG, and prompt text are offered as
-  a checkbox list in the Load Workflow dialog. Until you tick one there is no
-  handle, and the prompt keeps its exported value. See
+- **A handle only exists if you asked for it.** Media inputs, prompt text, and
+  save outputs are derived automatically. Seeds, steps, CFG, and sizes are
+  offered as a checkbox list in the Load Workflow dialog. Until you tick one
+  there is no handle, and the prompt keeps its exported value. See
   [Loading a workflow](comfyui.md#loading-a-workflow).
 - **The node runs on the server, not in your browser.** All three ComfyUI nodes
   are server-side, so `endpoint` has to resolve from wherever the NodeTool
@@ -64,10 +64,9 @@ graph LR
 handle. `nodetool.agents.Agent` works the same way when you want tools or a
 system prompt, and its `text` output is the one to wire.
 
-**Watch out.** `6:text` is not there until you tick that `CLIPTextEncode`
-field in the loader dialog. A negative prompt is a second `CLIPTextEncode` with
-its own id, so leaving it as a literal and driving only the positive one is the
-usual arrangement.
+**Watch out.** A negative prompt is a second `CLIPTextEncode` with its own id
+and its own handle. Leaving it unconnected keeps its exported text, so driving
+only the positive one is the usual arrangement.
 
 ---
 

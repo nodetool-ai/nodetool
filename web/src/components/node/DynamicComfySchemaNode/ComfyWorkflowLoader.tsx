@@ -1,4 +1,11 @@
-import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import UploadFileIcon from "@mui/icons-material/UploadFile";
 import {
   Dialog,
@@ -20,14 +27,20 @@ import { useNodes } from "../../../contexts/NodeContext";
 import { NodeData } from "../../../stores/NodeData";
 import { TOOLTIP_ENTER_DELAY } from "../../../config/constants";
 import {
-  parseComfyWorkflowJson,
-  extractComfyPromptFromPng,
-  resolveComfySchema,
+  bytesToBase64,
+  resolveComfyWorkflow,
   paramToDynInput,
   type ComfyResolvedSchema,
   type ComfyDynInput
 } from "../../../utils/comfyDynamicSchema";
 import { normalizeDynamicSlots } from "../../../utils/dynamicSlots";
+import { isString } from "../../../utils/typePredicates";
+
+/** Wait this long after the last keystroke before parsing pasted JSON. */
+const PARSE_DEBOUNCE_MS = 300;
+
+const errorMessage = (err: unknown, fallback: string): string =>
+  err instanceof Error ? err.message : fallback;
 
 interface ComfyWorkflowLoaderProps {
   nodeId: string;
@@ -50,45 +63,94 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
     const [selected, setSelected] = useState<Set<string>>(new Set());
     const fileInputRef = useRef<HTMLInputElement>(null);
 
+    // A workflow set without the loader (over the API, or by an agent) has
+    // no slots on the node. Derive them once so its handles can be wired;
+    // the run declares the same slots from the same server-side parser.
+    const workflow = data.properties?.workflow;
+    const hasSlots =
+      Object.keys(data.dynamic_inputs ?? {}).length > 0 ||
+      Object.keys(data.dynamic_outputs ?? {}).length > 0;
+    const dynamicPropertiesRef = useRef(data.dynamic_properties);
+    useEffect(() => {
+      dynamicPropertiesRef.current = data.dynamic_properties;
+    }, [data.dynamic_properties]);
+    useEffect(() => {
+      if (hasSlots || !isString(workflow) || !workflow.trim()) {
+        return;
+      }
+      const controller = new AbortController();
+      resolveComfyWorkflow({ workflow }, controller.signal)
+        .then((resolved) => {
+          updateNodeData(
+            nodeId,
+            {
+              dynamic_inputs: normalizeDynamicSlots(resolved.dynamic_inputs),
+              dynamic_outputs: resolved.dynamic_outputs,
+              dynamic_properties: {
+                ...resolved.dynamic_properties,
+                ...dynamicPropertiesRef.current
+              }
+            },
+            { quiet: true }
+          );
+        })
+        .catch(() => {
+          // An unparseable workflow keeps no slots; running it reports why.
+        });
+      return () => controller.abort();
+    }, [hasSlots, workflow, nodeId, updateNodeData]);
+
     const applySchema = useCallback((resolved: ComfyResolvedSchema) => {
       setSchema(resolved);
       setError(null);
       setSelected(new Set());
     }, []);
 
-    const parseText = useCallback(
-      (value: string) => {
-        setText(value);
-        if (!value.trim()) {
-          setSchema(null);
-          setError(null);
-          return;
-        }
-        try {
-          applySchema(resolveComfySchema(parseComfyWorkflowJson(value)));
-        } catch (err) {
-          setSchema(null);
-          setError(err instanceof Error ? err.message : "Failed to parse");
-        }
-      },
-      [applySchema]
-    );
+    // The server parses the workflow. Pasted text is sent once typing pauses,
+    // and a newer edit cancels the request still in flight.
+    useEffect(() => {
+      if (!text.trim()) {
+        return;
+      }
+      const controller = new AbortController();
+      const timer = setTimeout(() => {
+        resolveComfyWorkflow({ workflow: text }, controller.signal)
+          .then(applySchema)
+          .catch((err: unknown) => {
+            if (controller.signal.aborted) return;
+            setSchema(null);
+            setError(errorMessage(err, "Failed to parse"));
+          });
+      }, PARSE_DEBOUNCE_MS);
+      return () => {
+        clearTimeout(timer);
+        controller.abort();
+      };
+    }, [text, applySchema]);
+
+    const parseText = useCallback((value: string) => {
+      setText(value);
+      if (!value.trim()) {
+        setSchema(null);
+        setError(null);
+      }
+    }, []);
 
     const handleFile = useCallback(
       async (file: File) => {
         try {
           if (file.name.toLowerCase().endsWith(".png")) {
-            const buf = await file.arrayBuffer();
-            applySchema(resolveComfySchema(extractComfyPromptFromPng(buf)));
             setText("");
+            const buf = await file.arrayBuffer();
+            applySchema(
+              await resolveComfyWorkflow({ png_base64: bytesToBase64(buf) })
+            );
           } else {
-            const content = await file.text();
-            setText(content);
-            applySchema(resolveComfySchema(parseComfyWorkflowJson(content)));
+            setText(await file.text());
           }
         } catch (err) {
           setSchema(null);
-          setError(err instanceof Error ? err.message : "Failed to load file");
+          setError(errorMessage(err, "Failed to load file"));
         }
       },
       [applySchema]
@@ -120,7 +182,7 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
       const dynamic_properties = {
         ...schema.dynamic_properties
       } satisfies Record<string, unknown>;
-      for (const param of schema.availableParams) {
+      for (const param of schema.available_params) {
         if (!selected.has(param.handle)) continue;
         dynamic_inputs[param.handle] = paramToDynInput(param);
         dynamic_properties[param.handle] = param.default;
@@ -237,12 +299,12 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
             {schema && (
               <FlexColumn gap={0.5}>
                 <Text size="small">{summary}</Text>
-                {schema.availableParams.length > 0 && (
+                {schema.available_params.length > 0 && (
                   <>
                     <Caption>Expose additional parameters as inputs:</Caption>
                     <ScrollArea style={{ maxHeight: 180 }}>
                       <FlexColumn gap={0}>
-                        {schema.availableParams.map((param) => (
+                        {schema.available_params.map((param) => (
                           <Checkbox
                             key={param.handle}
                             compact

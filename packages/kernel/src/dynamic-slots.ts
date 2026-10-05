@@ -210,3 +210,26 @@ export function applyDynamicSlotTypes(
   }
   return result;
 }
+
+/**
+ * Dynamic slots a node derives from its own properties, such as the Comfy
+ * runners' Save nodes read out of their `workflow`. Returned by a node class's
+ * `resolveDynamicSlots` hook and merged at graph hydration.
+ */
+export interface DerivedDynamicSlots {
+  dynamic_inputs?: Record<string, DynamicSlotMeta>;
+  dynamic_outputs?: NodeDescriptor["dynamic_outputs"];
+}
+
+/**
+ * Merge derived slots under the slots saved on a node. A saved declaration
+ * wins for the same handle, so a type the user picked in the editor stays.
+ * Returns `saved` itself when nothing was derived.
+ */
+export function mergeDerivedSlots<T>(
+  derived: Record<string, T> | undefined,
+  saved: Record<string, T> | undefined
+): Record<string, T> | undefined {
+  if (!derived || Object.keys(derived).length === 0) return saved;
+  return { ...derived, ...saved };
+}
