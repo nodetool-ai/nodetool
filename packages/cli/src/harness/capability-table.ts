@@ -813,7 +813,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "list_runs",
     module: "runs",
     impl: "packages/agents/src/capabilities/runs.ts",
-    contract: "c608c4d28be4",
+    contract: "883b99a2dd71",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-runs.test.ts",
