@@ -241,7 +241,7 @@ export class RunTraceSpanProcessor implements SpanProcessor {
       userId: scope.userId,
       update: { kind, record },
       secretValues: scope?.secretValues ?? NO_SECRETS,
-      contentSuppressed: scope?.policy.contentSuppressed ?? false,
+      contentSuppressed: scope.origin === "public" || scope.policy.contentSuppressed,
       isRoot
     };
     const key = `${record.trace_id}:${record.span_id}`;

@@ -179,6 +179,14 @@ describe("always-on durable run processor", () => {
     vi.stubEnv("NODETOOL_TRACE_INCLUDE_CONTENT", "");
   });
 
+  it("preserves a visitor child's content policy when trace lookup returns an owner run", async () => {
+    const owner = scope("f");
+    await withRunTrace({ ...owner, runId: "e".repeat(32), origin: "public" }, () => withSpan("app.run", { "app.inputs": "visitor private input", "unknown": "visitor private value" }, async (span) => span?.addEvent("visitor private event", { body: "visitor private body" })));
+    await flushTelemetry();
+    expect(records.size).toBe(1);
+    expect(JSON.stringify([...records.values()])).not.toContain("visitor private");
+  });
+
   it("enforces the captured visitor policy in direct exporters after the async scope ends", async () => {
     vi.stubEnv("NODETOOL_TRACE_INCLUDE_CONTENT", "1");
     let ended: ReadableSpan | undefined;
