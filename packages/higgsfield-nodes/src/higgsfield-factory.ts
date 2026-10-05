@@ -1,5 +1,5 @@
 import { loadPackageAssetJson } from "@nodetool-ai/config";
-import { applyContentCardBody, BaseNode, classifyFields, defaultForPropType, propertyOf, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
+import { applyContentCardBody, BaseNode, classifyFields, defaultForPropType, isNumber, isRecord, propertyOf, registerDeclaredProperty } from "@nodetool-ai/node-sdk";
 import type { NodeClass, NodeValue, PropOptions } from "@nodetool-ai/node-sdk";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { higgsfieldAwaitResult, higgsfieldDownloadResult, higgsfieldOutputUrls, higgsfieldSubmit } from "@nodetool-ai/runtime";
@@ -16,16 +16,15 @@ function mime(type: "image" | "video" | "audio"): string { return type === "vide
 function outputMime(type: "image" | "video", input: Record<string, NodeValue>): string {
   return type === "video" && input.output_format === "mov" ? "video/quicktime" : mime(type);
 }
-function scalar(value: NodeValue, type: HiggsfieldFieldType): NodeValue { if (type === "int" && typeof value === "number") return Math.trunc(value); return value; }
+function scalar(value: NodeValue, type: HiggsfieldFieldType): NodeValue { if (type === "int" && isNumber(value)) return Math.trunc(value); return value; }
 function validateNumericRange(value: NodeValue, field: HiggsfieldField): void {
-  if (typeof value !== "number") return;
+  if (!isNumber(value)) return;
   if (field.min !== undefined && value < field.min) throw new Error(`${field.name} must be at least ${field.min}`);
   if (field.max !== undefined && value > field.max) throw new Error(`${field.name} must be at most ${field.max}`);
 }
 function isEmptyMediaRef(value: NodeValue): boolean {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const record = value as Record<string, NodeValue>;
-  return record.uri === "" && record.data === null && record.asset_id === null;
+  if (!isRecord(value)) return false;
+  return value.uri === "" && value.data === null && value.asset_id === null;
 }
 
 export function createHiggsfieldNodeClass(spec: HiggsfieldManifestEntry): NodeClass {
@@ -82,6 +81,7 @@ export function createHiggsfieldNodeClass(spec: HiggsfieldManifestEntry): NodeCl
     if (field.max !== undefined) options.max = field.max;
     registerDeclaredProperty(Node, field.name, options);
   }
+  // SAFETY: nodeType, title and description are the NodeClass statics, installed above with defineProperties, which TypeScript does not see on the class expression.
   return Node as NodeClass;
 }
 
