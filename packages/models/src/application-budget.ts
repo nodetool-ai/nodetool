@@ -20,6 +20,8 @@ import {
   applicationInvocations
 } from "./schema/application-budgets.js";
 import type { AppRunSnapshot } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
+import { AppInstanceConflictError } from "./app-instance.js";
+import { appInstances } from "./schema/app-instances.js";
 import { applications } from "./schema/applications.js";
 
 export type BudgetPeriod = "day" | "month" | "total";
@@ -412,24 +414,13 @@ export async function reserveInvocation(
 
   // No budget row means unmetered, so there is nothing to serialize on.
   const configured = await getApplicationBudget(input.applicationId);
-  if (!configured) {
+  if (!configured && !input.appRunFields) {
     if (input.requireFiniteBudget) return missingPublicBudget();
-    try {
-      const record = await recordInvocation({ ...input, userId });
-      return { allowed: true, record, created:true, usage: await applicationUsage(input.applicationId,"total",now) };
-    } catch (error) {
-      if (!input.appRunFields) throw error;
-      const rows=await db.select().from(applicationInvocations).where(and(
-        eq(applicationInvocations.application_id,input.applicationId),eq(applicationInvocations.invocation_id,input.invocationId),
-        eq(applicationInvocations.user_id,userId??""),eq(applicationInvocations.instance_id,input.appRunFields.instance_id),
-        eq(applicationInvocations.operation_id,input.operationId??"")
-      )).limit(1);
-      if (!rows[0]) throw error;
-      return {allowed:true,record:toRecord(rows[0]),created:false,usage:await applicationUsage(input.applicationId,"total",now)};
-    }
+    const record = await recordInvocation({ ...input, userId });
+    return { allowed: true, record, created: true, usage: await applicationUsage(input.applicationId, "total", now) };
   }
 
-  if (input.requireFiniteBudget && !hasFiniteBudgetLimit(configured)) {
+  if (configured && input.requireFiniteBudget && !hasFiniteBudgetLimit(configured)) {
     return missingPublicBudget();
   }
 
@@ -462,6 +453,13 @@ export async function reserveInvocation(
         if (existing) {
           if (existing.user_id!==userId || existing.instance_id!==input.appRunFields.instance_id || existing.operation_id!==input.operationId) throw new Error("Invocation id already in use");
           return {allowed:true,record:toRecord(existing),created:false,usage:emptyUsage()};
+        }
+      }
+      if (input.appRunFields) {
+        const instance = tx.select({ revision: appInstances.revision }).from(appInstances)
+          .where(and(eq(appInstances.id, input.appRunFields.instance_id), eq(appInstances.user_id, userId ?? ""))).get();
+        if (!instance || instance.revision !== input.appRunFields.instance_revision) {
+          throw new AppInstanceConflictError();
         }
       }
       // The row was there a moment ago and is the thing being locked; if it
@@ -530,6 +528,13 @@ export async function reserveInvocation(
       if (existing) {
         if (existing.user_id!==userId || existing.instance_id!==input.appRunFields.instance_id || existing.operation_id!==input.operationId) throw new Error("Invocation id already in use");
         return {allowed:true,record:toRecord(existing),created:false,usage:emptyUsage()};
+      }
+    }
+    if (input.appRunFields) {
+      const [instance] = await forUpdate(tx.select({ revision: appInstances.revision }).from(appInstances)
+        .where(and(eq(appInstances.id, input.appRunFields.instance_id), eq(appInstances.user_id, userId ?? ""))).limit(1));
+      if (!instance || instance.revision !== input.appRunFields.instance_revision) {
+        throw new AppInstanceConflictError();
       }
     }
     if (!budgetRow) {

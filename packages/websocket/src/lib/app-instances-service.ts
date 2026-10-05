@@ -1,5 +1,9 @@
+import { createHash } from "node:crypto";
 import { z } from "zod";
-import { operationTarget } from "@nodetool-ai/app-runtime";
+import {
+  initialVariableValues,
+  operationTarget
+} from "@nodetool-ai/app-runtime";
 import {
   applicationReleaseVersion,
   AppRunError,
@@ -29,6 +33,7 @@ import {
   createInstanceInput,
   reserveRunInput,
   updateInstanceInput,
+  type AppInstanceRecord,
   type AppRunRecord,
   type AppRunSnapshot
 } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
@@ -39,7 +44,16 @@ import { throwApiError } from "../trpc/error-formatter.js";
 import { loadOwnedApplication } from "./applications-service.js";
 import { cancelAppRun } from "./app-run-cancellation.js";
 import { jobRunRegistry } from "../job-run-registry.js";
-import { getBrowserAppRunRoot, finishBrowserAppRunTrace } from "@nodetool-ai/execution";
+import {
+  debugGraphOf,
+  extractAppIO,
+  scriptAppIO,
+  type AppIO
+} from "@nodetool-ai/execution/app-debug";
+import {
+  getBrowserAppRunRoot,
+  finishBrowserAppRunTrace
+} from "@nodetool-ai/execution";
 
 export const patchAppRunInput = z
   .object({
@@ -155,6 +169,26 @@ export async function createOwnedAppInstance(
       )
     };
   }
+  const previewSnapshot = input.source_id.startsWith("preview:")
+    ? await freezeSnapshot(userId, {
+        ...input,
+        version: null,
+        snapshot: input.application_id
+          ? {
+              document: input.snapshot.document,
+              workflow_graphs: {},
+              script_documents: {}
+            }
+          : input.snapshot
+      })
+    : null;
+  if (previewSnapshot) {
+    input = {
+      ...input,
+      source_id: `preview:${input.application_id ?? "inline"}:${createHash("sha256").update(JSON.stringify(previewSnapshot)).digest("hex")}`,
+      version: null
+    };
+  }
   if (useDefault) {
     const existing = await getDefaultAppInstance(
       userId,
@@ -165,7 +199,7 @@ export async function createOwnedAppInstance(
       return existing;
     }
   }
-  const snapshot = await freezeSnapshot(userId, input);
+  const snapshot = previewSnapshot ?? (await freezeSnapshot(userId, input));
   const fields = {
     userId,
     applicationId: input.application_id ?? null,
@@ -198,6 +232,203 @@ export async function updateOwnedAppInstance(
     ...(input.name !== undefined && { name: input.name }),
     ...(input.variables !== undefined && { variables: input.variables })
   });
+}
+
+/** Resolve a published execution snapshot on the server and advance with CAS. */
+export async function advanceOwnedAppInstance(
+  userId: string,
+  input: { id: string; expected_revision: number; version: number }
+): Promise<AppInstanceRecord> {
+  const instance = await getOwnedAppInstance(userId, input.id);
+  if (instance.revision !== input.expected_revision) {
+    throw new AppRunError(
+      "conflict",
+      "App instance revision changed. Reload before advancing."
+    );
+  }
+  if (!instance.application_id || instance.version === null) {
+    throw new AppRunError(
+      "invalid_input",
+      "Only a published app instance can advance to a release"
+    );
+  }
+  const snapshot = await freezeSnapshot(userId, {
+    application_id: instance.application_id,
+    source_id: instance.source_id,
+    version: input.version,
+    snapshot: instance.snapshot
+  });
+  const variables = compatibleInstanceValues(
+    instance.snapshot,
+    snapshot,
+    instance.variables
+  );
+  return updateAppInstance(userId, instance.id, {
+    expectedRevision: input.expected_revision,
+    snapshot,
+    version: input.version,
+    variables
+  });
+}
+
+function snapshotIO(snapshot: AppRunSnapshot): Map<string, AppIO> {
+  return new Map(
+    snapshot.document.operations.map((operation) => {
+      const target = operationTarget(operation);
+      if (target.kind === "script") {
+        const script = snapshot.script_documents[`${target.scriptId}@${target.scriptVersion}`] ?? snapshot.script_documents[target.scriptId];
+        if (!script) {
+          throw new AppRunError(
+            "invalid_input",
+            "Pinned script snapshot is missing"
+          );
+        }
+        return [operation.id, scriptAppIO(script)];
+      }
+      const graph = debugGraphOf(
+        snapshot.workflow_graphs[
+          `${target.workflowId}@${target.workflowVersion ?? "latest"}`
+        ] ?? snapshot.workflow_graphs[target.workflowId]
+      );
+      if (!graph) {
+        throw new AppRunError(
+          "invalid_input",
+          "Pinned workflow snapshot is missing"
+        );
+      }
+      const io = extractAppIO(graph);
+      for (const node of graph.nodes) {
+        if (
+          !node.properties ||
+          typeof node.properties !== "object" ||
+          Array.isArray(node.properties)
+        ) {
+          continue;
+        }
+        for (const [property, value] of Object.entries(node.properties)) {
+          io.inputs.push({
+            nodeId: `${node.id}#${property}`,
+            nodeType: `${node.type}#${typeof value}`,
+            name: property
+          });
+        }
+      }
+      return [operation.id, io];
+    })
+  );
+}
+
+/** Refuse incompatible working state rather than discarding or coercing it. */
+function compatibleInstanceValues(
+  previous: AppRunSnapshot,
+  next: AppRunSnapshot,
+  values: Record<string, unknown>
+): Record<string, unknown> {
+  const oldIO = snapshotIO(previous);
+  const newIO = snapshotIO(next);
+  const oldOperations = new Map(
+    previous.document.operations.map((operation) => [operation.id, operation])
+  );
+  const newOperations = new Map(
+    next.document.operations.map((operation) => [operation.id, operation])
+  );
+  const indexPorts = (
+    ios: Map<string, AppIO>,
+    namespace: "inputs" | "outputs"
+  ) =>
+    new Map<string, AppIO["inputs"][number]>(
+      [...ios].flatMap(([operationId, io]) =>
+        io[namespace].map(
+          (port) => [`${operationId}:${port.nodeId}`, port] as const
+        )
+      )
+    );
+  const oldInputs = indexPorts(oldIO, "inputs");
+  const newInputs = indexPorts(newIO, "inputs");
+  const oldOutputs = indexPorts(oldIO, "outputs");
+  const newOutputs = indexPorts(newIO, "outputs");
+  const oldVariables = new Map(
+    previous.document.variables.map((variable) => [variable.id, variable])
+  );
+  const newVariables = new Map(
+    next.document.variables.map((variable) => [variable.id, variable])
+  );
+  const channels = new Set([...newIO.values()].flatMap((io) => io.variables));
+  const incompatible = (key: string): never => {
+    throw new AppRunError(
+      "invalid_input",
+      `New app version is incompatible with instance state: ${key}`
+    );
+  };
+  for (const key of Object.keys(values)) {
+    if (key === "__app_inputs" || key === "__app_outputs") {
+      const cached = values[key];
+      if (!cached || typeof cached !== "object" || Array.isArray(cached)) {
+        return incompatible(key);
+      }
+      const namespace = key === "__app_inputs" ? "inputs" : "outputs";
+      for (const slot of Object.keys(cached)) {
+        const separator = slot.indexOf(":");
+        const operationId = slot.slice(0, separator);
+        const nodeId = slot.slice(separator + 1);
+        const oldOperation = oldOperations.get(operationId);
+        const newOperation = newOperations.get(operationId);
+        const oldPort = (namespace === "inputs" ? oldInputs : oldOutputs).get(
+          slot
+        );
+        const newPort = (namespace === "inputs" ? newInputs : newOutputs).get(
+          slot
+        );
+        if (
+          !oldOperation ||
+          !newOperation ||
+          !oldPort ||
+          !newPort ||
+          oldPort.nodeType !== newPort.nodeType ||
+          JSON.stringify(oldOperation[namespace][nodeId]) !==
+            JSON.stringify(newOperation[namespace][nodeId])
+        ) {
+          incompatible(slot);
+        }
+      }
+      continue;
+    }
+    const oldVariable = oldVariables.get(key);
+    const newVariable = newVariables.get(key);
+    if (!newVariable && !channels.has(key)) {
+      incompatible(key);
+    }
+    if (
+      oldVariable &&
+      newVariable &&
+      (JSON.stringify(oldVariable.type ?? null) !==
+        JSON.stringify(newVariable.type ?? null) ||
+        oldVariable.scope !== newVariable.scope)
+    ) {
+      incompatible(key);
+    }
+  }
+  const variableIds = new Set([...newVariables.keys(), ...channels]);
+  const resourceIds = new Set(
+    next.document.resources.map((resource) => resource.id)
+  );
+  for (const operation of next.document.operations) {
+    for (const mapping of Object.values(operation.inputs)) {
+      if (
+        (mapping.from === "variable" && !variableIds.has(mapping.variableId)) ||
+        (mapping.from === "resource" &&
+          !resourceIds.has(mapping.resourceBindingId))
+      ) {
+        incompatible(operation.id);
+      }
+    }
+    for (const mapping of Object.values(operation.outputs)) {
+      if (mapping.to === "variable" && !variableIds.has(mapping.variableId)) {
+        incompatible(operation.id);
+      }
+    }
+  }
+  return { ...initialVariableValues(next.document.variables), ...values };
 }
 
 export async function getOwnedAppRun(
