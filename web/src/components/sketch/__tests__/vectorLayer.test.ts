@@ -5,6 +5,7 @@ import { useTransformActions } from "../hooks/useTransformActions";
 import { createSketchStore } from "../state/useSketchStore";
 import {
   createVectorLayer,
+  formatSvgSource,
   getVectorSource,
   prepareVectorSvg
 } from "../vectorLayer";
@@ -161,5 +162,29 @@ it("commits and undoes a vector transform without baking its pixels", () => {
   store.getState().undo();
   expect(store.getState().document.layers.at(-1)).toMatchObject({
     data: original.data, type: "vector", transform: original.transform
+  });
+});
+
+describe("formatSvgSource", () => {
+  it("puts one element per line and keeps text content intact", () => {
+    const formatted = formatSvgSource(
+      '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><g fill="red"><path d="M0 0L1 1"/><text x="1"> Hi <tspan>there</tspan></text></g></svg>'
+    );
+    expect(formatted).toBe(
+      [
+        '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10">',
+        '  <g fill="red">',
+        '    <path d="M0 0L1 1"/>',
+        '    <text x="1"> Hi <tspan>there</tspan></text>',
+        "  </g>",
+        "</svg>"
+      ].join("\n")
+    );
+    expect(formatSvgSource(formatted)).toBe(formatted);
+    expect(prepareVectorSvg(formatted).width).toBe(10);
+  });
+
+  it("returns markup that does not parse unchanged", () => {
+    expect(formatSvgSource("<svg")).toBe("<svg");
   });
 });

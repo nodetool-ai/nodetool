@@ -23,12 +23,44 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
   const binding = useLayerBinding(activeLayerId);
 
   const layer = useSketchStore((s) => s.document.layers.find((entry) => entry.id === activeLayerId));
+  const sectionSx = {
+    minHeight: 0,
+    flex: "1 0 auto",
+    "& > [role='button']": {
+      padding: theme.spacing(SPACING.md, SPACING.lg),
+      "&:focus-visible": {
+        outline: `2px solid ${theme.vars.palette.primary.main}`,
+        outlineOffset: "-2px"
+      }
+    }
+  };
+  // Match the other right-panel section headers (COLOR / LAYERS):
+  // small, bright, uppercase, letter-spaced — not the default body size.
+  const sectionTitle = (text: string): React.ReactNode => (
+    <Text
+      size="small"
+      sx={{
+        ...TYPOGRAPHY.sans.label,
+        color: "text.primary",
+        fontSize: FONT_SIZE_SANS.label
+      }}
+    >
+      {text}
+    </Text>
+  );
   if (!binding || layer?.type === "vector") {
     return <>
       <ImportVectorLayer />
-      {layer?.type === "vector" && <CollapsibleSection title="Vector layer" defaultOpen>
-        <VectorLayerPanel key={layer.id} layer={layer} />
-      </CollapsibleSection>}
+      {layer?.type === "vector" && (
+        <CollapsibleSection
+          title={sectionTitle("Vector layer")}
+          defaultOpen
+          compact
+          sx={sectionSx}
+        >
+          <VectorLayerPanel key={layer.id} layer={layer} />
+        </CollapsibleSection>
+      )}
     </>;
   }
 
@@ -40,33 +72,10 @@ const ConnectedGeneratedLayerSectionInner: React.FC = () => {
 
   return (
     <CollapsibleSection
-      title={
-        // Match the other right-panel section headers (COLOR / LAYERS):
-        // small, bright, uppercase, letter-spaced — not the default body size.
-        <Text
-          size="small"
-          sx={{
-            ...TYPOGRAPHY.sans.label,
-            color: "text.primary",
-            fontSize: FONT_SIZE_SANS.label
-          }}
-        >
-          {titleText}
-        </Text>
-      }
+      title={sectionTitle(titleText)}
       defaultOpen
       compact
-      sx={{
-        minHeight: 0,
-        flex: "1 0 auto",
-        "& > [role='button']": {
-          padding: theme.spacing(SPACING.md, SPACING.lg),
-          "&:focus-visible": {
-            outline: `2px solid ${theme.vars.palette.primary.main}`,
-            outlineOffset: "-2px"
-          }
-        }
-      }}
+      sx={sectionSx}
     >
       {/* SketchAIToolbar (inpaint/regen) is workflow-binding only. */}
       {isWorkflowBound && <SketchAIToolbar />}
