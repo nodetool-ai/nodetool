@@ -642,6 +642,13 @@ export const useWorkspaceTabsStore = create<WorkspaceTabsState>()(
 
       setMode: (id, mode) => {
         const tab = get().tabs.find((entry) => entry.id === id);
+        if (mode === "view" && tab?.type === "application" && !tab.instanceId) {
+          const workingTab = get().tabs.find((entry) => entry.type === "application" && entry.ref === tab.ref && entry.instanceId);
+          if (workingTab) {
+            get().setActiveTab(workingTab.id);
+            return;
+          }
+        }
         if (
           mode === "edit" &&
           tab?.type === "application" &&

@@ -104,6 +104,13 @@ describe("application instance navigation", () => {
         .getState()
         .tabs.find((tab) => tab.id === tabId("application", "app"))?.mode
     ).toBe("edit");
+    store.setMode(tabId("application", "app"), "view");
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBe(a);
+    expect(
+      useWorkspaceTabsStore
+        .getState()
+        .tabs.find((tab) => tab.id === tabId("application", "app"))?.mode
+    ).toBe("edit");
   });
   it("keeps two instances distinct while focusing an already-open instance", () => {
     const store = useWorkspaceTabsStore.getState();
