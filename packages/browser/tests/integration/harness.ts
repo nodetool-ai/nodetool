@@ -4,22 +4,19 @@
  * Stands up the real round-trip — there is no mocking below the test:
  *
  *   test (host)            real ExtensionCdpClient + ExtensionCdpPage
- *      |  ws://…/ws/extension          |
+ *      |  unix socket                  |
  *      v                               v
- *   ws server  <----JSON frames---->  extension service worker (chrome.debugger)
- *                                        |
- *                                        v
- *                                   fixture page in headless Chrome
+ *   native host  <--native messaging-->  extension service worker (chrome.debugger)
+ *   (spawned by Chrome)                     |
+ *                                           v
+ *                                      fixture page in headless Chrome
  *
  * The extension is the *only* CDP client on the tab — the test never attaches a
  * debugger itself (Playwright/Puppeteer would contend with `chrome.debugger`).
  * Chrome is launched with `chrome-launcher` and the built extension loaded; the
  * test plays the role nodetool plays in production, talking to the extension
- * over the `/ws/extension` side channel.
- *
- * The ws→{@link ExtensionChannel} adapter here mirrors the production
- * `ExtensionBridge` (in `@nodetool-ai/websocket`), reimplemented locally so the
- * test does not invert the package dependency (websocket → browser).
+ * through the native host's socket. Chrome starts the host itself from a
+ * manifest written into the test profile.
  */
 
 import http from "node:http";
@@ -27,29 +24,21 @@ import path from "node:path";
 import { existsSync, readdirSync, statSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { AddressInfo } from "node:net";
+import { mkdtempSync, mkdirSync, writeFileSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
 import { launch, type LaunchedChrome } from "chrome-launcher";
-import { WebSocketServer, type WebSocket as WsSocket } from "ws";
 import {
   createExtensionPage,
   type ExtensionPageHandle
 } from "../../src/extension/page.js";
-import type { ExtensionChannel } from "../../src/extension/client.js";
-import {
-  parseExtensionFrame,
-  type ExtensionFrame
-} from "../../src/extension/protocol.js";
+import { NATIVE_HOST_NAME } from "../../src/extension/bridge-paths.js";
+import { EXTENSION_ID } from "../../src/extension/install-native-host.js";
+import { isBridgeAvailable } from "../../src/extension/socket-channel.js";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 /** Repo root: packages/browser/tests/integration → ../../../.. */
 const REPO_ROOT = path.resolve(__dirname, "../../../..");
 const EXTENSION_DIST = path.join(REPO_ROOT, "chrome-extension", "dist");
-
-/**
- * The extension connects to its hardcoded default `/ws/extension` URL unless
- * overridden via `chrome.storage` (which we cannot set before the service
- * worker starts). So the bridge server must bind this exact port.
- */
-const EXTENSION_WS_PORT = 7777;
 
 /** A 1×1 red PNG. The capture assertions compare against these exact bytes. */
 export const FIXTURE_PNG_BASE64 =
@@ -79,37 +68,8 @@ export interface ExtensionBrowserHarness {
   fixtureUrl: string;
   /** Absolute URL of the fixture image. */
   fixtureImageUrl: string;
-  /** Tear down page, Chrome, ws server, and http server. */
+  /** Tear down page, Chrome, the profile, and the http server. */
   close(): Promise<void>;
-}
-
-/** Wrap a `ws` socket as the {@link ExtensionChannel} the client consumes. */
-function makeChannel(socket: WsSocket): ExtensionChannel {
-  let handler: ((frame: ExtensionFrame) => void) | null = null;
-  socket.on("message", (raw: Buffer) => {
-    const frame = parseExtensionFrame(raw.toString("utf8"));
-    if (frame && handler) handler(frame);
-  });
-  socket.on("close", () => {
-    // Surface disconnects so the client rejects pending commands, matching the
-    // production bridge's synthetic error frame.
-    handler?.({ kind: "error", message: "Extension connection closed" });
-  });
-  return {
-    send(frame) {
-      if (socket.readyState === socket.OPEN) socket.send(JSON.stringify(frame));
-    },
-    onMessage(cb) {
-      handler = cb;
-    },
-    close() {
-      try {
-        socket.close();
-      } catch {
-        /* already closing */
-      }
-    }
-  };
 }
 
 function startFixtureServer(): Promise<{ server: http.Server; url: string }> {
@@ -128,41 +88,6 @@ function startFixtureServer(): Promise<{ server: http.Server; url: string }> {
       const { port } = server.address() as AddressInfo;
       resolve({ server, url: `http://127.0.0.1:${port}` });
     });
-  });
-}
-
-/**
- * Bind the `/ws/extension` server and resolve with the first extension socket
- * once its service worker connects.
- */
-function startBridgeServer(): Promise<{
-  wss: WebSocketServer;
-  socket: Promise<WsSocket>;
-}> {
-  const wss = new WebSocketServer({
-    port: EXTENSION_WS_PORT,
-    path: "/ws/extension"
-  });
-
-  let resolveSocket: (s: WsSocket) => void;
-  let rejectSocket: (err: Error) => void;
-  const socket = new Promise<WsSocket>((resolve, reject) => {
-    resolveSocket = resolve;
-    rejectSocket = reject;
-  });
-  wss.on("connection", (s: WsSocket) => resolveSocket(s));
-
-  return new Promise((resolve, reject) => {
-    wss.on("error", (err) => {
-      rejectSocket(err);
-      reject(
-        new Error(
-          `Could not bind ws://127.0.0.1:${EXTENSION_WS_PORT}/ws/extension ` +
-            `(is a nodetool server already on ${EXTENSION_WS_PORT}?): ${err.message}`
-        )
-      );
-    });
-    wss.on("listening", () => resolve({ wss, socket }));
   });
 }
 
@@ -216,8 +141,34 @@ function findFile(dir: string, name: string, depth: number): string | null {
   return null;
 }
 
+/**
+ * Write the native messaging manifest into a throwaway profile. The wrapper
+ * runs the built host, so the integration run needs `npm run build` first.
+ */
+function writeNativeHostManifest(profileDir: string): void {
+  const hostScript = path.join(__dirname, "../../dist/extension/native-host-bin.js");
+  if (!existsSync(hostScript)) {
+    throw new Error(`Native host not built at ${hostScript}. Run \`npm run build\` in packages/browser first.`);
+  }
+  const wrapper = path.join(profileDir, "native-host.sh");
+  writeFileSync(wrapper, `#!/bin/sh\nexec "${process.execPath}" "${hostScript}"\n`, { mode: 0o755 });
+  const dir = path.join(profileDir, "NativeMessagingHosts");
+  mkdirSync(dir, { recursive: true });
+  writeFileSync(
+    path.join(dir, `${NATIVE_HOST_NAME}.json`),
+    JSON.stringify({
+      name: NATIVE_HOST_NAME,
+      description: "NodeTool browser bridge (integration test)",
+      path: wrapper,
+      type: "stdio",
+      allowed_origins: [`chrome-extension://${EXTENSION_ID}/`]
+    })
+  );
+}
+
 async function launchChromeWithExtension(
-  startingUrl: string
+  startingUrl: string,
+  profileDir: string
 ): Promise<LaunchedChrome> {
   const headless = process.env.HEADLESS !== "0";
   const flags = [
@@ -226,6 +177,7 @@ async function launchChromeWithExtension(
     "--disable-dev-shm-usage",
     "--no-first-run",
     "--no-default-browser-check",
+    `--user-data-dir=${profileDir}`,
     // Re-enable the extension-loading switch newer Chrome gates by default.
     "--disable-features=DisableLoadExtensionCommandLineSwitch",
     `--disable-extensions-except=${EXTENSION_DIST}`,
@@ -258,7 +210,10 @@ export async function startExtensionBrowser(): Promise<ExtensionBrowserHarness> 
   }
 
   const { server, url: fixtureUrl } = await startFixtureServer();
-  const { wss, socket: socketPromise } = await startBridgeServer();
+  const profileDir = mkdtempSync(path.join(tmpdir(), "nt-chrome-profile-"));
+  // Chrome passes its environment to the host it spawns, so the host listens
+  // here instead of in the shared temp directory a real install uses.
+  process.env.NODETOOL_BROWSER_BRIDGE_SOCKET = path.join(profileDir, "bridge.sock");
 
   let chrome: LaunchedChrome | undefined;
   let handle: ExtensionPageHandle | undefined;
@@ -278,23 +233,30 @@ export async function startExtensionBrowser(): Promise<ExtensionBrowserHarness> 
         /* process already gone */
       }
     }
-    await new Promise<void>((r) => wss.close(() => r()));
+    delete process.env.NODETOOL_BROWSER_BRIDGE_SOCKET;
+    rmSync(profileDir, { recursive: true, force: true });
     await new Promise<void>((r) => server.close(() => r()));
   };
 
   try {
-    chrome = await launchChromeWithExtension(fixtureUrl);
+    writeNativeHostManifest(profileDir);
+    chrome = await launchChromeWithExtension(fixtureUrl, profileDir);
 
-    // The service worker connects out to the bridge shortly after load.
-    const socket = await withTimeout(
-      socketPromise,
+    // The service worker connects to the native host shortly after load, and
+    // Chrome starts the host, which then opens its socket.
+    await withTimeout(
+      (async () => {
+        while (!(await isBridgeAvailable())) {
+          await new Promise((r) => setTimeout(r, 250));
+        }
+      })(),
       30_000,
-      "extension service worker to connect"
+      "the native host socket to open"
     );
 
     // Play the nodetool host: attach the debugger to the active (fixture) tab
     // and build the page over the channel.
-    handle = await createExtensionPage(makeChannel(socket));
+    handle = await createExtensionPage();
 
     // Navigate explicitly so the page is in a known, fully-loaded state
     // regardless of how far the starting-url load had progressed at attach.

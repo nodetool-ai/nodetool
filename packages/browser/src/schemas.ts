@@ -95,9 +95,8 @@ export const BrowserStatusOutput = z.object({
   /** Whether a page session is already open in this process. */
   session_open: z.boolean(),
   /**
-   * Whether a Chrome extension currently holds the `/ws/extension` socket.
-   * `null` when this process cannot answer — it is not the server holding the
-   * bridge, so it would have to open a socket to find out.
+   * Whether a native host is currently accepting connections.
+   * `null` on the local transport, where the question does not apply.
    */
   extension_connected: z.boolean().nullable(),
   url: z.string().nullable(),

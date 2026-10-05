@@ -32,8 +32,6 @@ describe("popup chat launcher", () => {
     const ids = [
       "status-dot",
       "status-label",
-      "server-url",
-      "save-url",
       "attach-info",
       "open-chat",
       "attach-btn",
@@ -60,7 +58,6 @@ describe("popup chat launcher", () => {
             ok: true,
             status: {
               connection: "connected",
-              serverUrl: "ws://localhost:7777/ws/extension",
               attachedTabId: 7,
               lastError: null,
             },

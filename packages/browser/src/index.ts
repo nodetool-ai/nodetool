@@ -2,7 +2,7 @@
  * `@nodetool-ai/browser` — driving one real Chrome page.
  *
  * The page is either a headless Chrome this process launched or, through the
- * NodeTool Chrome extension's `/ws/extension` relay, the tab the user is
+ * NodeTool Chrome extension's native-messaging relay, the tab the user is
  * already signed in to. Nothing above {@link ensureSession} knows which: the
  * action loop is transport-agnostic, so the only two entry points that mention
  * transports are {@link browserStatus}, which reports the one in force, and
@@ -84,7 +84,22 @@ export {
 } from "./extension/page.js";
 
 export {
-  setExtensionChannelProvider,
-  getInProcessExtensionChannel,
-  type ExtensionChannelProvider
-} from "./extension/channel.js";
+  createSocketChannel,
+  isBridgeAvailable,
+  listBridgeSockets,
+  BRIDGE_UNAVAILABLE_MESSAGE
+} from "./extension/socket-channel.js";
+
+export { NativeHost, runNativeHost } from "./extension/native-host.js";
+export {
+  NATIVE_HOST_NAME,
+  bridgeSocketDir,
+  bridgeSocketPath
+} from "./extension/bridge-paths.js";
+export {
+  EXTENSION_ID,
+  installNativeHost,
+  nativeHostManifestDirs,
+  type InstallNativeHostOptions,
+  type InstallNativeHostResult
+} from "./extension/install-native-host.js";

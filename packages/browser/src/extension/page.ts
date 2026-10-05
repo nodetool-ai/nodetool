@@ -34,16 +34,18 @@ export interface ExtensionPageHandle {
 
 interface CreateExtensionPageOptions extends ExtensionCdpClientOptions {
   viewport?: { width: number; height: number };
+  /** Attach a tab whose URL contains this text instead of the active tab. */
+  urlMatch?: string;
 }
 
 /**
  * Attach to the extension's active tab and return a ready {@link CdpPage}.
  *
- * @param transport In-process {@link ExtensionChannel} or a `ws://` URL (or
- *   `undefined` to use `NODETOOL_EXTENSION_WS_URL`).
+ * @param transport A frame channel, or `undefined` to connect to the native
+ *   messaging host's socket.
  */
 export async function createExtensionPage(
-  transport?: ExtensionChannel | string,
+  transport?: ExtensionChannel,
   options: CreateExtensionPageOptions = {}
 ): Promise<ExtensionPageHandle> {
   const viewport = options.viewport ?? DEFAULT_VIEWPORT;
@@ -51,7 +53,7 @@ export async function createExtensionPage(
 
   let attached = false;
   try {
-    await cdp.attach();
+    await cdp.attach(undefined, options.urlMatch);
     attached = true;
 
     const page = await CdpPage.create(cdp.client, viewport);

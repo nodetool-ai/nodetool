@@ -7,7 +7,7 @@
  * MCP, CodeAct, a Code node, a JS script.
  *
  * The page they drive is either a headless Chrome this process launched or —
- * over the NodeTool Chrome extension's `/ws/extension` relay — the tab the
+ * over the NodeTool Chrome extension's native-messaging relay — the tab the
  * user is already signed in to, cookies, 2FA and all. Nothing here knows
  * which: the action loop in `@nodetool-ai/browser` is transport-agnostic, so
  * the only two capabilities that mention transports at all are

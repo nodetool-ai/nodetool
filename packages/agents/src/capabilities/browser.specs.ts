@@ -2,7 +2,7 @@
  * The `browser` module's specs — data only, no implementation.
  *
  * These drive one real Chrome page: either a headless one this process
- * launched, or — through the NodeTool Chrome extension's `/ws/extension`
+ * launched, or — through the NodeTool Chrome extension's native-messaging
  * relay — the tab the user is already signed in to. The action loop is the
  * same either way, which is why the transport is not a per-action argument:
  * `browser_status` reports which one is live and `browser_restart` switches it.

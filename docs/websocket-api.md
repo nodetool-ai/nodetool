@@ -1012,16 +1012,6 @@ Client                              Server
 
 ## Other WebSocket Endpoints
 
-### `/ws/extension`
-
-The browser extension attaches to a tab through this endpoint, and the
-in-process browser agent drives the tab over it. Frames are JSON text, not
-MessagePack. The server keeps one extension socket, and a new connection
-replaces the old one. The endpoint has no authentication of its own beyond the
-server's global handshake rules, so anyone who can connect can proxy
-Chrome DevTools Protocol calls through the server. It is disabled when
-`NODETOOL_ENV=production` unless `NODETOOL_ENABLE_EXTENSION_BRIDGE=1`.
-
 ### `/ws/download`
 
 Model downloads. The endpoint exists only when `NODETOOL_ENV` is not

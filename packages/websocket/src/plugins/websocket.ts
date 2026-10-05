@@ -9,11 +9,6 @@ import type { WorkerManager } from "@nodetool-ai/compute";
 import { getSecret as getStoredSecret } from "@nodetool-ai/models";
 import type { HttpApiOptions } from "../http-api.js";
 import { resolveWorkflowWorkspace } from "../lib/workflow-workspace.js";
-import {
-  extensionBridge,
-  type ExtensionSocket
-} from "../extension-cdp-bridge.js";
-import { setExtensionChannelProvider } from "@nodetool-ai/browser";
 import { packWebSocketMessage } from "../messagepack.js";
 import type { SdkLiveRunnerRegistry } from "../sdk/sdk-live-runner-registry.js";
 import { runTransformersJsModelDownload } from "../model-download-runtime.js";
@@ -222,55 +217,6 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
           sdkLiveRunnerRegistry?.unregister(runnerTargetId);
       });
   });
-
-  // Chrome-extension CDP side channel.
-  //
-  // JSON text frames (NOT MsgPack — the main /ws stays MsgPack). The extension
-  // connects here after the user clicks "Attach to this tab" in the popup; the
-  // in-process action loop rides the channel via `extensionBridge.getChannel()`.
-  // Auth/localhost-bypass is handled by the global onRequest hook in server.ts
-  // (the /ws prefix is exempt from static-asset bypass and subject to the same
-  // localhost rule as /ws).
-  //
-  // v1 is single-connection: a new socket replaces any existing one.
-  //
-  // Register the in-process channel factory so the browser action loop running
-  // in this server rides the bridge instead of opening its own client WS. The
-  // dependency points websocket → automation-nodes (no cycle).
-  //
-  // This is an unauthenticated, single-connection side channel: whoever connects
-  // to /ws/extension becomes THE extension socket and can proxy CDP through this
-  // server. It is disabled in production by default; set
-  // NODETOOL_ENABLE_EXTENSION_BRIDGE=1 to opt back in for deployments that
-  // actually use the browser extension.
-  const extensionBridgeEnabled =
-    !isProduction ||
-    process.env["NODETOOL_ENABLE_EXTENSION_BRIDGE"] === "1";
-
-  if (extensionBridgeEnabled) {
-    setExtensionChannelProvider(() => extensionBridge.getChannel());
-
-    app.get("/ws/extension", { websocket: true }, (socket, _req) => {
-      // The @fastify/websocket socket satisfies the ExtensionSocket surface
-      // (send(string) / close() / on("message"|"close"|"error")).
-      // SAFETY: the @fastify/websocket socket satisfies the ExtensionSocket
-      // surface — send(string) / close() / on("message"|"close"|"error").
-      const extSocket = socket as ExtensionSocket;
-      socket.on("error", (error: Error) => {
-        log.error("Extension WebSocket error", error);
-      });
-      log.info("Extension WebSocket client connected");
-      extensionBridge.registerSocket(extSocket);
-      socket.on("close", () => {
-        extensionBridge.clear(extSocket);
-        log.info("Extension WebSocket client disconnected");
-      });
-    });
-  } else {
-    log.info(
-      "Extension CDP bridge (/ws/extension) disabled in production; set NODETOOL_ENABLE_EXTENSION_BRIDGE=1 to enable"
-    );
-  }
 
   // Download WebSocket endpoint — local development only
   if (!isProduction) {

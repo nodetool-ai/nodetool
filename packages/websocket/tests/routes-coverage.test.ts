@@ -42,7 +42,7 @@ const mocks = vi.hoisted(() => ({
   // @nodetool-ai/models Workflow.paginate for the /names route
   paginate: vi.fn(),
   // extension router deps
-  extensionBridge: { connected: true } as { connected: boolean },
+  isBridgeAvailable: vi.fn(),
   resolveExtensionDist: vi.fn()
 }));
 
@@ -82,8 +82,8 @@ vi.mock("../src/http-api.js", () => ({
 vi.mock("@nodetool-ai/models", () => ({
   Workflow: { paginate: mocks.paginate }
 }));
-vi.mock("../src/extension-cdp-bridge.js", () => ({
-  extensionBridge: mocks.extensionBridge
+vi.mock("@nodetool-ai/browser", () => ({
+  isBridgeAvailable: mocks.isBridgeAvailable
 }));
 vi.mock("../src/lib/extension-dist.js", () => ({
   resolveExtensionDist: mocks.resolveExtensionDist
@@ -119,7 +119,7 @@ let app: FastifyInstance | undefined;
 
 beforeEach(() => {
   vi.clearAllMocks();
-  mocks.extensionBridge.connected = true;
+  mocks.isBridgeAvailable.mockResolvedValue(true);
   // Sensible defaults; individual tests override.
   mocks.getUserId.mockReturnValue("user-1");
   mocks.createStorageHandler.mockReturnValue(mocks.storageHandler);
@@ -414,7 +414,7 @@ describe("extension tRPC router", () => {
   const createCaller = createCallerFactory(extensionRouter);
 
   it("reports connection status and dist info", async () => {
-    mocks.extensionBridge.connected = true;
+    mocks.isBridgeAvailable.mockResolvedValue(true);
     mocks.resolveExtensionDist.mockReturnValue({
       path: "/build/ext",
       exists: true
@@ -429,7 +429,7 @@ describe("extension tRPC router", () => {
   });
 
   it("reflects a disconnected extension and missing build", async () => {
-    mocks.extensionBridge.connected = false;
+    mocks.isBridgeAvailable.mockResolvedValue(false);
     mocks.resolveExtensionDist.mockReturnValue({ path: "", exists: false });
     const caller = createCaller({} as never);
     const res = await caller.status();

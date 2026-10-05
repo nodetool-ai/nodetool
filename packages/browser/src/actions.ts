@@ -134,30 +134,19 @@ let transportOverride: BrowserTransport | null = null;
 /**
  * Resolve the transport for the shared browser session.
  *
- * The extension transport drives the user's real, logged-in Chrome via the
- * `/ws/extension` side channel. It is selected by `NODETOOL_BROWSER_TRANSPORT`
- * or implied by the presence of `NODETOOL_EXTENSION_WS_URL`.
+ * The extension transport drives the user's real, logged-in Chrome through the
+ * native messaging host's socket. It is selected by `NODETOOL_BROWSER_TRANSPORT`.
  */
 function resolveTransport(): BrowserTransport {
   if (transportOverride) return transportOverride;
   if (process.env.NODETOOL_BROWSER_TRANSPORT === "extension") return "extension";
-  if (process.env.NODETOOL_EXTENSION_WS_URL) return "extension";
   return "local";
 }
 
-/**
- * Whether an extension currently holds the server's `/ws/extension` socket.
- *
- * Only the process that owns the `ExtensionBridge` can answer: elsewhere the
- * transport is a WS URL and finding out would mean opening a socket, so the
- * answer is `null` rather than a guess.
- */
-async function extensionConnected(): Promise<boolean | null> {
-  const { getInProcessExtensionChannel } = await import(
-    "./extension/channel.js"
-  );
-  const channel = getInProcessExtensionChannel();
-  return channel?.connected ?? null;
+/** Whether a native host is accepting connections, meaning the extension is running. */
+async function extensionConnected(): Promise<boolean> {
+  const { isBridgeAvailable } = await import("./extension/socket-channel.js");
+  return isBridgeAvailable();
 }
 
 /**
@@ -203,32 +192,12 @@ async function ensureState(): Promise<BrowserState> {
 
   if (transport === "extension") {
     const { createExtensionPage } = await import("./extension/page.js");
-    const { getInProcessExtensionChannel } = await import(
-      "./extension/channel.js"
-    );
-    // In-server: ride the ExtensionBridge channel. Out-of-server (e.g. CLI):
-    // fall back to the WS-URL client (NODETOOL_EXTENSION_WS_URL / default).
-    const channel = getInProcessExtensionChannel();
-    // The in-process bridge channel answers `connected` (whether an extension
-    // socket is currently registered) — the single most useful signal when the
-    // extension "fails": if false here, no extension is attached to the server.
-    const connected = channel?.connected;
     log.info("Extension transport selected", {
-      channel: channel ? "in-process bridge" : "ws-url fallback",
-      extensionConnected: connected ?? "unknown",
-      wsUrl:
-        process.env.NODETOOL_EXTENSION_WS_URL ??
-        "ws://localhost:7777/ws/extension"
+      extensionConnected: await extensionConnected()
     });
-    if (channel && connected === false) {
-      log.warn(
-        "No browser extension is connected to /ws/extension — attach will " +
-          "time out. Install the extension and click 'Attach to this tab'."
-      );
-    }
     let handle: Awaited<ReturnType<typeof createExtensionPage>>;
     try {
-      handle = await createExtensionPage(channel ?? undefined, {
+      handle = await createExtensionPage(undefined, {
         viewport: { width: 1280, height: 900 }
       });
       log.info("Extension attached; CDP page ready");
@@ -400,9 +369,9 @@ export async function browserStatus(): Promise<BrowserStatusOutput> {
       "the user's own signed-in Chrome instead.";
   } else if (connected === false) {
     hint =
-      "No Chrome extension is connected to /ws/extension. Ask the user to " +
-      "install the NodeTool extension and click 'Attach to this tab'; until " +
-      "then every browser action will time out attaching.";
+      "No NodeTool browser bridge is running. Ask the user to run " +
+      "`nodetool extension install`, load the NodeTool extension in Chrome and " +
+      "reload it; until then every browser action fails to attach.";
   }
 
   if (!state) {

@@ -91,7 +91,7 @@ Nothing in here originates a command. The server side does, through the
 `browser_input_text`, `browser_capture_media` and the rest — which drive one
 CDP page over either transport: a headless Chrome the server launched, or the
 tab this extension attached. `browser_status` reports which, and whether an
-extension currently holds the `/ws/extension` socket.
+native host is currently accepting connections.
 
 Implementations: `packages/agents/src/capabilities/browser.ts` (the
 capabilities), `packages/browser/src/actions.ts` (the action loop),

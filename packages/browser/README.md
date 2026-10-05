@@ -3,7 +3,7 @@
 Driving one real Chrome page over the Chrome DevTools Protocol.
 
 The page is either a **headless Chrome** this process launched or, through the
-NodeTool **Chrome extension**'s `/ws/extension` relay, the tab the user is
+NodeTool **Chrome extension**'s native-messaging relay, the tab the user is
 already signed in to — cookies, sessions and 2FA in place, which is what makes
 sites that block headless browsers reachable at all. The action loop is the
 same either way: only `browserStatus` (which transport is live) and
@@ -38,7 +38,7 @@ no browser and loads no CDP client until an action runs.
 | `src/schemas.ts` | Zod schemas for every action's input and output |
 | `src/capture.ts` | Pulling generated media out of a page (response body, then in-page fetch) |
 | `src/upload.ts` | Injecting bytes into a page's file input (native, then in-page `DataTransfer`) |
-| `src/extension/` | The `/ws/extension` transport: wire `protocol`, the RPC `client`, the synthetic CDP `page`, and the in-process `channel` seam the server registers |
+| `src/extension/` | The extension transport: wire `protocol`, the RPC `client`, the synthetic CDP `page`, the `native-host` Chrome launches, the unix-socket `socket-channel` clients use, and `install-native-host` |
 
 ## The session is a process singleton
 

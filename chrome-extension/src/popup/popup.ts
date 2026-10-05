@@ -1,8 +1,7 @@
 /**
  * Popup controller.
  *
- * Renders the relay connection status, lets the user edit the server URL, and
- * exposes the explicit "Attach to this tab" gesture. All actual work happens in
+ * Renders the relay connection status and exposes the explicit "Attach to this tab" gesture. All actual work happens in
  * the service worker; the popup only sends runtime messages and renders the
  * returned {@link RelayStatus}.
  *
@@ -11,7 +10,6 @@
  */
 
 import {
-  DEFAULT_SERVER_URL,
   type RelayConnectionState,
   type RelayStatus,
 } from "../lib/cdp-relay.js";
@@ -25,8 +23,6 @@ interface PopupResponse {
 const dom = {
   statusDot: requireEl<HTMLSpanElement>("status-dot"),
   statusLabel: requireEl<HTMLSpanElement>("status-label"),
-  serverUrl: requireEl<HTMLInputElement>("server-url"),
-  saveUrl: requireEl<HTMLButtonElement>("save-url"),
   attachInfo: requireEl<HTMLParagraphElement>("attach-info"),
   openChat: requireEl<HTMLButtonElement>("open-chat"),
   attachBtn: requireEl<HTMLButtonElement>("attach-btn"),
@@ -62,10 +58,6 @@ async function sendRequest(message: unknown): Promise<PopupResponse> {
 function render(status: RelayStatus): void {
   dom.statusDot.dataset.state = status.connection;
   dom.statusLabel.textContent = CONNECTION_LABELS[status.connection];
-
-  if (document.activeElement !== dom.serverUrl) {
-    dom.serverUrl.value = status.serverUrl || DEFAULT_SERVER_URL;
-  }
 
   const attached = status.attachedTabId !== null;
   dom.attachInfo.dataset.attached = String(attached);
@@ -134,20 +126,6 @@ dom.openChat.addEventListener("click", () => {
   })();
 });
 
-dom.saveUrl.addEventListener("click", () => {
-  void (async () => {
-    try {
-      applyResponse(
-        await sendRequest({
-          type: "set-server-url",
-          url: dom.serverUrl.value,
-        }),
-      );
-    } catch (err) {
-      showError(err instanceof Error ? err.message : String(err));
-    }
-  })();
-});
 
 dom.attachBtn.addEventListener("click", () => {
   void (async () => {

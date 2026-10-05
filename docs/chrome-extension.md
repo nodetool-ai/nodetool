@@ -20,13 +20,13 @@ They work together: opening the chat panel attaches the proxy to your current ta
 
 | | Chat side panel | CDP proxy |
 |---|---|---|
-| **What it is** | NodeTool's chat, in Chrome's side panel | A relay between your server and `chrome.debugger` |
+| **What it is** | NodeTool's chat, in Chrome's side panel | A relay between local NodeTool clients and `chrome.debugger` |
 | **What you get** | Ask an agent about the current page; the same threads as the app | Workflows and agents drive your logged-in tab |
-| **Transport** | `/trpc` and the `/ws` chat socket, msgpack frames | `/ws/extension`, JSON frames |
+| **Transport** | `/trpc` and the `/ws` chat socket, msgpack frames | Chrome native messaging to a local host, then a unix socket. No server involved |
 | **Scope** | One conversation at a time, any thread on the server | One tab at a time, attached explicitly — never automatic |
 | **What it is not** | Not the full app: no media generation, no workflow editor | Not an automation engine — it originates no commands, it only relays them |
 
-Both are served by a standard NodeTool server. Chrome 116 or newer is required for the side panel.
+The chat panel talks to a NodeTool server. The CDP proxy does not: the backend and the CLI reach it directly. Chrome 116 or newer is required for the side panel.
 
 ---
 
@@ -143,39 +143,50 @@ The Chrome Extension solves this by reusing the browser you already use every da
 
 1. **Install** the extension (see [Installing](#installing) above) and pin it to your toolbar.
 2. **Sign in** to the target site (e.g. Midjourney) in a normal Chrome tab, as you would manually.
-3. **Start your NodeTool server**: `nodetool serve --port 7777` (the extension talks to it over `ws://localhost:7777/ws/extension` by default).
+3. **Register the native host once**: `nodetool extension install`, then reload the extension in `chrome://extensions`. Check it with `nodetool extension status`. No server needs to run.
 4. **Open the extension popup** on the signed-in tab and click **Attach to this tab**. Chrome shows its standard "Nodetool is debugging this browser" banner while attached.
-5. **Ask the agent**, or build a workflow. Either way the `browser_*` tools drive the attached tab — `browser_status` first to confirm the extension is attached, then `browser_restart` with `transport: "extension"` if the server is still on its headless Chrome (or set `NODETOOL_BROWSER_TRANSPORT=extension` before starting it — see [Transport selection](#transport-selection)).
+5. **Ask the agent**, run a workflow, or call a provider such as `nodetool generate dreamina …`. The `browser_*` tools drive the attached tab — `browser_status` first to confirm the extension is connected, then `browser_restart` with `transport: "extension"` if the process is still on its headless Chrome (or set `NODETOOL_BROWSER_TRANSPORT=extension` before starting it — see [Transport selection](#transport-selection)).
 6. **Run it**. The action loop drives your attached tab: it types the prompt, submits the form, waits for the result, and captures a screenshot or the generated asset into your library.
 7. **Detach** from the popup (or just close the tab) when you're done — an attachment lasts only for the current browser session.
 
 Because the site sees your real, logged-in browser rather than a bot-like headless process, you avoid the CAPTCHAs, bot-detection blocks, and re-authentication flows that a server-launched browser would hit.
 
-### Configuring the relay URL
+### Example: the Dreamina provider
 
-By default the extension connects to `ws://localhost:7777/ws/extension` — your local NodeTool server. To point it at a different server (a remote deployment, a different port), open the popup, edit the **Server URL** field, and click **Save**. The value persists in the extension's local storage across restarts.
+The `dreamina` provider generates images, videos and music through your own logged-in Dreamina tab, so it needs no API key and exists on local installs only. Keep a signed-in `dreamina.capcut.com` tab open and the extension connected (`nodetool extension status`). The provider asks the extension for that tab by URL, so the active tab does not matter.
+
+```bash
+nodetool generate dreamina --list-models
+nodetool generate dreamina high_aes_general_v50p_large "a red apple" --aspect-ratio 16:9 -o apple.png
+```
+
+Images go through `textToImage` and `imageToImage`. Image-to-image uses the site's blend mode, takes up to nine source images and a `strength` from 0 to 1, and works on models that list `byte_edit`. Video goes through the provider API: `textToVideo` for every model Dreamina lists, `imageToVideo` for models that list `first_frame` (the image is the first frame, and `endImage` is the last frame on models that list `end_frame`), and `referenceToVideo` for the Seedance 2.x models (up to nine reference images, three reference videos and three reference audios, placed in the prompt with `[Image N]`, `[Video N]` and `[Audio N]` markers). A reference audio needs an image or video beside it. Multiframes, smart edit and long video are not supported. Music goes through `textToMusic`. The `instrumental` model needs no model key and returns a WAV track (44.1 kHz stereo) of the length you ask for in whole seconds, 10 seconds by default. Vocal models, with optional lyrics, appear in `getAvailableMusicModels` only when your Dreamina account lists them. The calls spend your Dreamina credits.
+
+### The native host
+
+Chrome starts the host when the extension connects and ends it when the connection closes. It listens on a per-user unix socket (`<tmp>/nodetool-browser-bridge-<user>/<pid>.sock`, mode 0600 in a 0700 directory), so only your OS user reaches the extension. Several clients can share one extension: the host rewrites command ids per client, sends events to all, and keeps the debugger attached until the last client lets go. `nodetool extension install` writes the host manifest for Chrome, Chromium, Brave, Edge and Arc. The extension ID is fixed by the `key` in `chrome-extension/manifest.json`.
 
 ### How it works
 
-The extension is deliberately "dumb" — a pure conduit with no CDP logic of its own. All browser-automation semantics (which elements to click, how to wait for a page to settle, the action loop) live on the NodeTool server; the extension just carries the bytes.
+The extension is deliberately "dumb" — a pure conduit with no CDP logic of its own. All browser-automation semantics (which elements to click, how to wait for a page to settle, the action loop) live in the client process; the extension just carries the bytes.
 
 ```
-NodeTool server (browser-automation node)
-        │  CDP commands/events, JSON frames
+NodeTool backend / CLI / provider
+        │  CDP commands/events, NDJSON on a unix socket
         ▼
-   ws://<server>/ws/extension
-        ▲
-        │  chrome.debugger.sendCommand / onEvent
+   native host  (started by Chrome)
+        │  native messaging, length-prefixed JSON
+        ▼
 Chrome Extension (service worker)
-        │
+        │  chrome.debugger.sendCommand / onEvent
         ▼
    Your real, logged-in Chrome tab
 ```
 
 - **Background service worker** (`src/background/service-worker.ts`) owns the relay. It restarts the relay on `chrome.runtime.onInstalled`/`onStartup` because Manifest V3 service workers get evicted and need to reconnect, and it uses a `chrome.alarms` keepalive (roughly every 24 seconds) to stop the worker idling out while a debugger session is attached.
-- **CDP relay** (`src/lib/cdp-relay.ts`) maintains the WebSocket to your server with exponential backoff (1–30s) if the connection drops, and answers server heartbeat pings (`ping`/`pong`, ~15s).
-- **Attach is a user gesture, with one exception**: `chrome.debugger.attach` is never called on page load. The popup's **Attach to this tab** button is the intended path, but a host `attach` frame on an unattached relay also attaches the *currently active* tab as a convenience (`handleAttachRequest` in `src/lib/cdp-relay.ts`). Since `/ws/extension` is unauthenticated and single-connection, any process that can reach the port can therefore start driving whatever tab is focused — which is why the bridge is off in production unless `NODETOOL_ENABLE_EXTENSION_BRIDGE=1` is set. Attaching is mutually exclusive with having Chrome DevTools open on the same tab.
-- **Wire protocol**: JSON text frames (not the MsgPack used by NodeTool's main `/ws` chat/workflow channel). Five frame kinds are live: `cdp` / `cdp_result` / `cdp_event` (command/response/event relay), `attach` / `attached` / `detach` (session lifecycle), `ping` / `pong` (heartbeat), and `error` (fatal — e.g. the user closed the tab or DevTools banner). Three more are **declared but not implemented on either side**: `asset_chunk` (server → extension, a file-upload injection) and `media_chunk` / `media_end` (extension → server, a `chrome.downloads` capture). Uploads reach a file input through an in-page `DataTransfer` injection instead, and media is captured with `Network.getResponseBody` or an in-page `fetch`; the three frames are the shape a `chrome.downloads` fallback would take if a site defeats both.
+- **CDP relay** (`src/lib/cdp-relay.ts`) holds a native messaging port to the host with exponential backoff (1–30s) if it drops. A missing host shows up as the popup's error text.
+- **Attach is a user gesture, with one exception**: `chrome.debugger.attach` is never called on page load. The popup's **Attach to this tab** button is the intended path, but a host `attach` frame on an unattached relay also attaches the *currently active* tab as a convenience (`handleAttachRequest` in `src/lib/cdp-relay.ts`). Any process running as your OS user can reach the host socket and so start driving whatever tab is focused. Filesystem permissions on the socket are the access control. Attaching is mutually exclusive with having Chrome DevTools open on the same tab.
+- **Wire protocol**: JSON frames (native messaging between Chrome and the host, newline-delimited JSON on the socket). Five frame kinds are live: `cdp` / `cdp_result` / `cdp_event` (command/response/event relay), `attach` / `attached` / `detach` (session lifecycle), `ping` / `pong` (heartbeat), and `error` (fatal — e.g. the user closed the tab or DevTools banner). Three more are **declared but not implemented on either side**: `asset_chunk` (server → extension, a file-upload injection) and `media_chunk` / `media_end` (extension → server, a `chrome.downloads` capture). Uploads reach a file input through an in-page `DataTransfer` injection instead, and media is captured with `Network.getResponseBody` or an in-page `fetch`; the three frames are the shape a `chrome.downloads` fallback would take if a site defeats both.
 
 #### Transport selection
 
@@ -187,8 +198,8 @@ Set the default before the server starts:
 # Use the extension-attached browser instead of a headless one
 NODETOOL_BROWSER_TRANSPORT=extension nodetool serve
 
-# Or implicitly, by pointing at a specific extension WebSocket URL
-NODETOOL_EXTENSION_WS_URL=ws://localhost:7777/ws/extension nodetool serve
+# Or pin a specific host socket (rarely needed)
+NODETOOL_BROWSER_BRIDGE_SOCKET=/path/to/host.sock nodetool serve
 ```
 
 Or switch a running server from the agent side, which is the same decision made later:
@@ -199,7 +210,7 @@ Or switch a running server from the agent side, which is the same decision made 
 
 Restarting is the only point the transport can change, because the session is a process singleton: switching tears the current one down first. On the local transport that kills Chrome and relaunches it (cookies and history gone); on the extension transport it only detaches and re-attaches the debugger, leaving your browser alone.
 
-When the extension transport is selected but nothing is attached, the log says so — *"No browser extension is connected to `/ws/extension` — attach will time out. Install the extension and click 'Attach to this tab'."* — and the attach then spends its 30-second timeout. `browser_status` is how an agent finds this out first instead.
+When the extension transport is selected but no native host is running, the attach fails at once with *"The NodeTool browser bridge is not running. Install the native host with `nodetool extension install` …"*. `browser_status` is how an agent finds this out first.
 
 ### As an agent capability
 
@@ -227,16 +238,16 @@ Element indexes are rebuilt on every `browser_view`, so an agent views before it
   "extension_connected": false,
   "url": null,
   "title": null,
-  "hint": "No Chrome extension is connected to /ws/extension. Ask the user to install the NodeTool extension and click 'Attach to this tab'; until then every browser action will time out attaching."
+  "hint": "No NodeTool browser bridge is running. Ask the user to run `nodetool extension install`, load the NodeTool extension in Chrome and reload it; until then every browser action fails to attach."
 }
 ```
 
-`extension_connected` is `null`, not `false`, where the process cannot answer — a CLI reaching `/ws/extension` over a URL would have to open a socket to find out, so it reports "unknown" rather than guessing.
+`extension_connected` is `null` on the local transport, where the question does not apply.
 
 **Not available on nodetool.ai.** The cloud profile drops all fourteen: the
 browser session is one page per server process, shared by every caller, which
 is a single-tenant shape — and the extension transport would put one user's own
-Chrome behind an unauthenticated socket on a shared server. They are offered
+Chrome behind a shared server. They are offered
 where the machine belongs to its user: the desktop app, a local server, or a
 self-hosted install (`NODETOOL_NODE_PROFILE=full`).
 
@@ -248,9 +259,8 @@ The action loop itself is `@nodetool-ai/browser` (`packages/browser/`), which kn
 
 ## Server requirements
 
-- A running NodeTool server: `nodetool serve --port 7777` (or your deployed URL).
-- The `/ws/extension` route (CDP proxy) and the `/trpc` + `/ws` routes (chat panel) are part of the standard NodeTool WebSocket server. The `/ws/extension` route is registered outside production only. A production server needs `NODETOOL_ENABLE_EXTENSION_BRIDGE=1` to serve it, and the chat panel works without it.
-- The extension and the server must be able to reach each other over the configured WebSocket URL (typically `localhost` for local development).
+- The CDP proxy needs no server. It needs the native host (`nodetool extension install`) on the same machine and OS user as the extension and the client.
+- The chat panel needs a running NodeTool server (`nodetool serve --port 7777` or your deployed URL), reached through `/trpc` and `/ws`.
 - Chrome 116 or newer — `chrome.sidePanel` is what the chat panel opens into.
 
 ---
@@ -276,13 +286,13 @@ Check the server URL in the panel's settings (gear icon). If it names a host tha
 
 ### Popup shows "disconnected"
 
-- Confirm your NodeTool server is running and the **Server URL** in the popup matches it (default `ws://localhost:7777/ws/extension`).
-- Check that nothing else is bound to port 7777, and that firewall rules allow the local WebSocket connection.
+- The popup shows the Chrome error when the native host is missing ("Specified native messaging host not found"). Run `nodetool extension install` and reload the extension.
+- The host is registered for one extension ID. If you loaded the extension from another folder, check that its ID matches `nodetool extension install` output.
 
 ### "No browser extension is connected" error from a workflow
 
 - The extension must be **attached** to a tab before running a workflow that uses the extension transport — attaching is never automatic. Open the popup and click **Attach to this tab**.
-- Verify `NODETOOL_BROWSER_TRANSPORT=extension` (or `NODETOOL_EXTENSION_WS_URL`) is set on the server process running the workflow.
+- Verify `NODETOOL_BROWSER_TRANSPORT=extension` is set on the process running the workflow.
 
 ### Chrome shows "Nodetool is debugging this browser" and I can't open DevTools
 

@@ -1,43 +1,36 @@
 /**
  * `browser_status` — the question an agent asks before it spends a 30-second
- * attach timeout finding out nobody clicked "Attach to this tab".
+ * attach timeout finding out nobody loaded the extension.
  *
  * It is the one browser action that answers without opening a session, so it
  * is also the one that can be checked without a Chrome: everything here runs
- * against the transport resolution and the extension-channel seam, with no
- * page in existence.
+ * against the transport resolution and the native host's socket, with no page
+ * in existence.
  */
 
 import { afterEach, describe, expect, it } from "vitest";
+import { PassThrough } from "node:stream";
+import { mkdtempSync, rmSync } from "node:fs";
+import { tmpdir } from "node:os";
+import path from "node:path";
 import { browserStatus } from "../src/actions.js";
-import { setExtensionChannelProvider } from "../src/extension/channel.js";
-import type { ExtensionChannel } from "../src/extension/client.js";
+import { NativeHost } from "../src/extension/native-host.js";
 
-const ENV_KEYS = ["NODETOOL_BROWSER_TRANSPORT", "NODETOOL_EXTENSION_WS_URL"];
+const ENV_KEYS = ["NODETOOL_BROWSER_TRANSPORT", "NODETOOL_BROWSER_BRIDGE_SOCKET"];
 const saved = Object.fromEntries(ENV_KEYS.map((k) => [k, process.env[k]]));
+const cleanup: Array<() => Promise<void> | void> = [];
 
-/** A channel that reports a connection state and relays nothing. */
-function channel(connected: boolean): ExtensionChannel {
-  return {
-    send: () => undefined,
-    onMessage: () => undefined,
-    close: () => undefined,
-    connected
-  };
-}
-
-afterEach(() => {
+afterEach(async () => {
   for (const key of ENV_KEYS) {
     if (saved[key] === undefined) delete process.env[key];
     else process.env[key] = saved[key];
   }
-  setExtensionChannelProvider(null);
+  for (const fn of cleanup.splice(0)) await fn();
 });
 
 describe("browserStatus", () => {
   it("reports the local transport, and how to reach the signed-in browser", async () => {
     delete process.env["NODETOOL_BROWSER_TRANSPORT"];
-    delete process.env["NODETOOL_EXTENSION_WS_URL"];
 
     const status = await browserStatus();
 
@@ -48,40 +41,29 @@ describe("browserStatus", () => {
     expect(status.hint).toContain("transport:'extension'");
   });
 
-  it("says nobody is attached when the bridge holds no socket", async () => {
+  it("says nobody is connected when no native host runs", async () => {
     process.env["NODETOOL_BROWSER_TRANSPORT"] = "extension";
-    setExtensionChannelProvider(() => channel(false));
+    process.env["NODETOOL_BROWSER_BRIDGE_SOCKET"] = path.join(tmpdir(), "nt-missing.sock");
 
     const status = await browserStatus();
 
     expect(status.transport).toBe("extension");
     expect(status.extension_connected).toBe(false);
-    expect(status.hint).toContain("Attach to this tab");
+    expect(status.hint).toContain("nodetool extension install");
   });
 
-  it("reports an attached extension with nothing left to warn about", async () => {
+  it("reports a connected extension with nothing left to warn about", async () => {
+    const dir = mkdtempSync(path.join(tmpdir(), "nt-status-"));
+    const socketPath = path.join(dir, "host.sock");
+    const host = new NativeHost({ input: new PassThrough(), output: new PassThrough(), socketPath });
+    await host.start();
+    cleanup.push(() => host.close(), () => rmSync(dir, { recursive: true, force: true }));
     process.env["NODETOOL_BROWSER_TRANSPORT"] = "extension";
-    setExtensionChannelProvider(() => channel(true));
+    process.env["NODETOOL_BROWSER_BRIDGE_SOCKET"] = socketPath;
 
     const status = await browserStatus();
 
     expect(status.extension_connected).toBe(true);
     expect(status.hint).toBeNull();
-  });
-
-  it("selects the extension from a configured ws url alone", async () => {
-    delete process.env["NODETOOL_BROWSER_TRANSPORT"];
-    process.env["NODETOOL_EXTENSION_WS_URL"] = "ws://localhost:7777/ws/extension";
-
-    expect((await browserStatus()).transport).toBe("extension");
-  });
-
-  it("cannot answer for the extension outside the process holding the bridge", async () => {
-    process.env["NODETOOL_BROWSER_TRANSPORT"] = "extension";
-    setExtensionChannelProvider(null);
-
-    // A CLI talking to /ws/extension over a URL would have to open a socket to
-    // find out, so it reports "unknown" rather than "not connected".
-    expect((await browserStatus()).extension_connected).toBeNull();
   });
 });

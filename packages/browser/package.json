@@ -20,13 +20,11 @@
     "@nodetool-ai/config": "*",
     "chrome-launcher": "^1.2.0",
     "chrome-remote-interface": "^0.34.0",
-    "ws": "^8.18.0",
     "zod": "^3.24.1"
   },
   "devDependencies": {
     "@types/chrome-remote-interface": "^0.33.0",
     "@types/node": "^22.0.0",
-    "@types/ws": "^8.5.0",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^5.0.1"
   },

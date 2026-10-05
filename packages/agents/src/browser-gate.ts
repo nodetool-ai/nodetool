@@ -6,8 +6,8 @@
  * every caller in the process — so on a managed server two tenants' agents
  * drive the same tab, and whatever the first one signed into is what the
  * second one's `browser_view` reads. The extension transport is worse still:
- * `/ws/extension` is unauthenticated and single-connection, so one user's
- * Chrome would be reachable by anybody's run.
+ * it drives one user's own Chrome, which a shared server would hand to
+ * anybody's run.
  *
  * Neither is a defect to fix behind a flag; both are what the surface is for.
  * It belongs on a machine its user owns — a desktop app, a local server, a

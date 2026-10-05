@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Nodetool",
   "version": "2.1.0",
-  "description": "Chat with your Nodetool agent, and bridge your logged-in Chrome to a Nodetool server's live browser agent over the Chrome DevTools Protocol.",
+  "description": "Chat with your Nodetool agent, and let local Nodetool clients drive your logged-in Chrome over the Chrome DevTools Protocol.",
   "minimum_chrome_version": "116",
   "permissions": [
     "storage",
@@ -12,7 +12,8 @@
     "scripting",
     "debugger",
     "downloads",
-    "sidePanel"
+    "sidePanel",
+    "nativeMessaging"
   ],
   "host_permissions": [
     "http://localhost:*/*",
@@ -41,5 +42,6 @@
     "16": "assets/icons/icon16.png",
     "48": "assets/icons/icon48.png",
     "128": "assets/icons/icon128.png"
-  }
+  },
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAt1XveXpAvyyNiTooMS0ngAdMcmLbhHjXCxH8AlPEyqy8aO2Rp3j3ftUoTGyfXS7leDgX8eXkBJA38FOjpZfjRj1zvRczdu5s255rgaa16bmqNit8zMJBjMuId3SOf8IyPsU/eRa+ARgzBxb4AAoEl0DOggDkIOyh/Xb07g8qCfgClWXExFhLXeN0V8Xzpv3N5wGaOBO60J8+7Xeu4XdOlrhQYdb2VKjmz7dJ1MsVDJIVoGd+S4j+g91zQTWNeWTUKcQa5RP64Cw2Rp5jklF7x8EGUUoYRdG5Ik+JWNaaYk5KU6Lo18iZzLB90YzJ9WpdfG6MT/KbmxcfAdYSQR1kRwIDAQAB"
 }

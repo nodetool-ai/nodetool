@@ -1,5 +1,5 @@
 /**
- * Wire-protocol types for the `/ws/extension` side channel.
+ * Wire-protocol types for the extension side channel (native messaging).
  *
  * This is the host-side canonical copy. An IDENTICAL mirror of the type
  * definitions lives at `chrome-extension/src/lib/protocol.ts` (the extension is
@@ -7,7 +7,7 @@
  * files byte-identical in their type/guard definitions; only the header comment
  * differs.
  *
- * Frames are JSON text on `/ws/extension` (the main `/ws` stays MsgPack).
+ * Frames are JSON objects over native messaging; clients see them as NDJSON on the host's socket.
  * Every frame is discriminated by `kind`.
  *
  * Direction legend:
@@ -58,6 +58,11 @@ export interface AttachFrame {
   kind: "attach";
   /** Logical session key the host uses to route frames. */
   sessionId?: string;
+  /**
+   * Prefer a tab whose URL contains this text (e.g. `dreamina.capcut.com`).
+   * Without it the extension attaches the active tab.
+   */
+  urlMatch?: string;
 }
 
 /** Acknowledges a successful {@link AttachFrame}. ext→host. */
@@ -171,7 +176,7 @@ export type ExtensionExtToHostFrame =
   | MediaChunkFrame
   | MediaEndFrame;
 
-/** The full discriminated union of all `/ws/extension` frames. */
+/** The full discriminated union of all extension frames. */
 export type ExtensionFrame = ExtensionHostToExtFrame | ExtensionExtToHostFrame;
 
 /** Narrow an {@link ExtensionFrame} to a {@link CdpResultFrame}. */

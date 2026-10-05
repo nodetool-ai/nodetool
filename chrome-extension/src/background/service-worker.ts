@@ -4,7 +4,7 @@
  * Owns the single {@link CdpRelay} instance and routes:
  *   - keepalive alarms (to keep the worker alive so `chrome.debugger` stays
  *     attached),
- *   - runtime messages from the popup (status, set-url, attach, detach).
+ *   - runtime messages from the popup (status, attach, detach).
  *
  * The worker holds no chat or UI logic — it is purely the CDP conduit.
  */
@@ -18,7 +18,6 @@ import {
 /** Messages the popup sends to the service worker. */
 type PopupRequest =
   | { type: "get-status" }
-  | { type: "set-server-url"; url: string }
   | { type: "attach" }
   | { type: "detach" };
 
@@ -77,9 +76,6 @@ async function handlePopupRequest(
   switch (request.type) {
     case "get-status":
       return { ok: true, status: relay.getStatus() };
-    case "set-server-url":
-      await relay.setServerUrl(request.url);
-      return { ok: true, status: relay.getStatus() };
     case "attach":
       await relay.attachActiveTab();
       return { ok: true, status: relay.getStatus() };
@@ -98,7 +94,6 @@ function isPopupRequest(value: unknown): value is PopupRequest {
   const type = (value as { type?: unknown }).type;
   return (
     type === "get-status" ||
-    type === "set-server-url" ||
     type === "attach" ||
     type === "detach"
   );
