@@ -283,7 +283,7 @@ keeps the run's outputs and asks you to reload the instance.
 
 Deployed-app visitors keep local working state. Their server runs retain no
 visitor inputs or outputs. The instance switcher and history views are planned
-for a later phase. See [App runs](app-runs-design.md#phase-1-contracts) for the
+for a later phase. See [App runs](https://github.com/nodetool-ai/nodetool/blob/main/docs/app-runs-design.md#phase-1-contracts) for the
 persistence and API contracts.
 
 ### Showing that something is happening

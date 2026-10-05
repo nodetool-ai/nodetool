@@ -87,6 +87,6 @@ The production image sets `NODETOOL_STORAGE_AUTO_CLEANUP=1`. The server sweeps
 run trace owners on startup and on its maintenance timer, using each account's
 retention settings. Run content expires under `runTraceRetentionDays` and
 finished records under `terminalJobRetentionDays`. Keep automatic cleanup
-enabled on the hosted service to meet the [privacy policy](../marketing/src/app/privacy/page.tsx).
+enabled on the hosted service to meet the [privacy policy](https://nodetool.ai/privacy).
 Self-hosted operators can override the image setting when configuring their
 container. Local desktop installs keep the existing manual cleanup default.

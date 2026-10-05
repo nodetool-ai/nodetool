@@ -2456,7 +2456,7 @@ The fixtures open a server-owned app run before execution, propagate its
 identity to child work, fold its outputs into revisioned instance state, and
 read its generation attachment back from the database. They also check
 transport retries, failed preparation, cancellation, and stale state writes.
-The `app-runs` entry in the [harness registry](../packages/cli/src/harness/registry.ts)
+The `app-runs` entry in the [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts)
 selects this check for instance, run, and app-runtime changes.
 
 ## Run traces phase 2
@@ -2473,7 +2473,7 @@ external sink. It checks captured request/response and activity events,
 run-resolved secret masking and content-free visitor runs. The bridge check
 verifies that live readers receive committed snapshots only. The same check
 exercises external content filtering, ownership, deletion and retention. The `run-traces`
-entry in the [harness registry](../packages/cli/src/harness/registry.ts) selects
+entry in the [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts) selects
 this check for the trace store and its execution hosts.
 
 Model and runtime suites cover content separation, duplicate events, limits,
@@ -2512,7 +2512,7 @@ result. The store retains the latest snapshot of each span, so readers receive
 an explicit resnapshot indicator when replay cannot reconstruct intermediate
 updates. The CLI deduplicates event identities across polling and resume. See
 [run commands](cli.md#nodetool-runs) for filters and output flags. The
-`run-readers` entry in the [harness registry](../packages/cli/src/harness/registry.ts)
+`run-readers` entry in the [harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts)
 selects the check for these surfaces.
 
 ## Run inspection phase 4
@@ -2533,7 +2533,7 @@ The check uses production HTTP routes and the native UI harness. It verifies
 owner and visitor restrictions, payload caps, retries, cycle rejection,
 server-span protection, browser-root recovery and first-run W3C ancestry.
 The `browser-run-spans` and `run-inspection-ui` entries in the
-[harness registry](../packages/cli/src/harness/registry.ts) run ingestion,
+[harness registry](https://github.com/nodetool-ai/nodetool/blob/main/packages/cli/src/harness/registry.ts) run ingestion,
 recorder, replay and panel checks when these surfaces change.
 
 The real browser journey starts a keyless app operation, reads its stored
@@ -2549,4 +2549,4 @@ npm run test:journeys --workspace=web -- run-observability.spec.ts
 The registry lists this browser journey as a manual check. It owns development
 servers through the existing journey fixtures. To isolate ports, set
 `SCREENSHOT_BACKEND_PORT`, `SCREENSHOT_WEB_PORT` and `PROXY_API_TARGET` as
-described in [web testing](../web/TESTING.md).
+described in [web testing](https://github.com/nodetool-ai/nodetool/blob/main/web/TESTING.md).
