@@ -8,11 +8,42 @@ import { nativeCapabilityTool } from "./lazy-tool.js";
 import { contextSecretAvailability, createCapabilityRun } from "./invoke.js";
 import type { CapabilityRun } from "./types.js";
 
-/**
- * One invocation run per context and legacy belt. Native compatibility tools
- * contribute their original spec and implementation, never Tool.process().
- * Their injected dependencies remain scoped to the capability they belong to.
- */
+/** Preserve each native capability's injected dependencies on one belt run. */
+export function capabilityRunForTools(
+  tools: Tool[],
+  context: ProcessingContext,
+  options: { gate: PermissionGateOptions; signal?: AbortSignal }
+): CapabilityRun {
+  const capabilities = tools.map((tool) => {
+    const native = nativeCapabilityTool(tool);
+    if (!native) {
+      return capabilityFromTool(tool);
+    }
+    const entry = native.capability();
+    const source = native.run(context);
+    let scoped: CapabilityRun | undefined;
+    return {
+      spec: entry.spec,
+      impl: (beltRun: CapabilityRun, args: Record<string, unknown>) => {
+        scoped ??= {
+          ...source,
+          gate: beltRun.gate,
+          signal: beltRun.signal,
+          invoke: beltRun.invoke
+        };
+        return entry.impl(scoped, args);
+      }
+    };
+  });
+  return createCapabilityRun({
+    context,
+    ...options,
+    capabilities,
+    availableSecrets: contextSecretAvailability(context)
+  });
+}
+
+/** One cached run per context for consumers that still require Tool[]. */
 export function gateLegacyTools(
   tools: Tool[],
   gate: PermissionGateOptions
@@ -20,32 +51,10 @@ export function gateLegacyTools(
   const runs = new WeakMap<ProcessingContext, CapabilityRun>();
   const runFor = (context: ProcessingContext): CapabilityRun => {
     let run = runs.get(context);
-    if (run) {
-      return run;
+    if (!run) {
+      run = capabilityRunForTools(tools, context, { gate });
+      runs.set(context, run);
     }
-    const capabilities = tools.map((tool) => {
-      const native = nativeCapabilityTool(tool);
-      if (!native) {
-        return capabilityFromTool(tool);
-      }
-      const entry = native.capability();
-      const source = native.run(context);
-      let scoped: CapabilityRun | undefined;
-      return {
-        spec: entry.spec,
-        impl: (beltRun: CapabilityRun, args: Record<string, unknown>) => {
-          scoped ??= { ...source, gate: beltRun.gate, invoke: beltRun.invoke };
-          return entry.impl(scoped, args);
-        }
-      };
-    });
-    run = createCapabilityRun({
-      context,
-      gate,
-      capabilities,
-      availableSecrets: contextSecretAvailability(context)
-    });
-    runs.set(context, run);
     return run;
   };
   return tools.map((inner) => new LegacyGatedTool(inner, runFor));

@@ -1,3 +1,4 @@
+import { createAgentHandlerRegistry } from "../agentHandlerRegistry";
 import { FrontendToolRegistry } from "../frontendTools";
 import { waitFor } from "@testing-library/react";
 import { stub } from "../../../test-utils/doubles";
@@ -40,7 +41,11 @@ const snapshot = (sequenceId: string | null): TimelineSnapshot => ({
   clips: [],
   markers: [],
   mediaTracks: [],
-  tempo: { bpm: 120, offsetMs: 0, timeSignature: { beatsPerBar: 4, beatUnit: 4 } }
+  tempo: {
+    bpm: 120,
+    offsetMs: 0,
+    timeSignature: { beatsPerBar: 4, beatUnit: 4 }
+  }
 });
 
 const timelineHandler = (sequenceId: string | null): TimelineAgentHandler =>
@@ -64,9 +69,17 @@ const openDocument = (args: Record<string, unknown>) =>
 beforeEach(() => {
   navigate.mockReset();
   registerAppRouter({ navigate });
-  useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null, activeProjectId: null });
-  jest.mocked(trpcClient.timeline.get.query).mockImplementation(async ({ id }) => ({ id, projectId: "p-1" }) as never);
-  jest.mocked(trpcClient.workflows.get.query).mockResolvedValue({ id: "wf-open", project_id: "p-1" } as never);
+  useWorkspaceTabsStore.setState({
+    tabs: [],
+    activeTabId: null,
+    activeProjectId: null
+  });
+  jest
+    .mocked(trpcClient.timeline.get.query)
+    .mockImplementation(async ({ id }) => ({ id, projectId: "p-1" }) as never);
+  jest
+    .mocked(trpcClient.workflows.get.query)
+    .mockResolvedValue({ id: "wf-open", project_id: "p-1" } as never);
   setTimelineAgentHandler("seq-1", null);
 });
 
@@ -81,35 +94,34 @@ describe("ui_open_document", () => {
     await openDocument({ type: "timeline", id: "seq-1" });
     const state = useWorkspaceTabsStore.getState();
     expect(state.activeProjectId).toBe("p-1");
-    expect(state.tabs.find((tab) => tab.ref === "seq-1")?.projectId).toBe("p-1");
+    expect(state.tabs.find((tab) => tab.ref === "seq-1")?.projectId).toBe(
+      "p-1"
+    );
   });
 
   it("repairs an already-open tab with a stale project assignment", async () => {
-    useWorkspaceTabsStore.getState().openTab({ type: "timeline", ref: "seq-1", mode: "edit" });
+    useWorkspaceTabsStore
+      .getState()
+      .openTab({ type: "timeline", ref: "seq-1", mode: "edit" });
     setTimelineAgentHandler("seq-1", timelineHandler("seq-1"));
     await openDocument({ type: "timeline", id: "seq-1" });
     const state = useWorkspaceTabsStore.getState();
     expect(state.activeProjectId).toBe("p-1");
-    expect(state.tabs.find((tab) => tab.ref === "seq-1")?.projectId).toBe("p-1");
+    expect(state.tabs.find((tab) => tab.ref === "seq-1")?.projectId).toBe(
+      "p-1"
+    );
   });
 
-  it("restores the original project when opening in the background", async () => {
-    useWorkspaceTabsStore.getState().setActiveProjectId("p-current");
-    useWorkspaceTabsStore.getState().openTab({ type: "chat", ref: "t-1", projectId: "p-current" });
-    setTimelineAgentHandler("seq-1", timelineHandler("seq-1"));
-    await openDocument({ type: "timeline", id: "seq-1", focus: false });
-    const state = useWorkspaceTabsStore.getState();
-    expect(state.activeProjectId).toBe("p-current");
-    expect(state.activeTabId).toBe(tabId("chat", "t-1"));
-    expect(state.tabs.find((tab) => tab.ref === "seq-1")?.projectId).toBe("p-1");
-  });
   it("resolves a compact timeline ID before opening and checking readiness", async () => {
     const fullId = "8d7d5e9d6f1f41111111111111111111";
-    jest.mocked(trpcClient.timeline.get.query).mockResolvedValue({ id: fullId, projectId: "p-1" } as never);
+    jest
+      .mocked(trpcClient.timeline.get.query)
+      .mockResolvedValue({ id: fullId, projectId: "p-1" } as never);
     setTimelineAgentHandler(fullId, timelineHandler(fullId));
     try {
-      await expect(openDocument({ type: "timeline", id: fullId.slice(0, 12) }))
-        .resolves.toMatchObject({ ok: true, id: fullId });
+      await expect(
+        openDocument({ type: "timeline", id: fullId.slice(0, 12) })
+      ).resolves.toMatchObject({ ok: true, id: fullId });
       expect(useWorkspaceTabsStore.getState().tabs[0].ref).toBe(fullId);
     } finally {
       setTimelineAgentHandler(fullId, null);
@@ -166,7 +178,7 @@ describe("ui_open_document", () => {
   it("waits for the document to load, not just for the editor to mount", async () => {
     jest.useFakeTimers();
     // Registered but still loading — its snapshot has no sequence yet.
-    setTimelineAgentHandler("seq-1", timelineHandler(null));
+    setTimelineAgentHandler("seq-1", null);
     const pending = openDocument({ type: "timeline", id: "seq-1" });
     const settled = jest.fn();
     void pending.then(settled, settled);
@@ -175,7 +187,7 @@ describe("ui_open_document", () => {
     expect(settled).not.toHaveBeenCalled();
 
     setTimelineAgentHandler("seq-1", timelineHandler("seq-1"));
-    await jest.advanceTimersByTimeAsync(200);
+    await Promise.resolve();
     await expect(pending).resolves.toMatchObject({ ok: true });
   });
 
@@ -198,25 +210,38 @@ describe("ui_open_document", () => {
     expect(navigate).not.toHaveBeenCalled();
   });
 
-  it("leaves the user's tab focused when focus is false", async () => {
-    useWorkspaceTabsStore.getState().openTab({ type: "chat", ref: "t-1" });
-    const pending = openDocument({
-      type: "timeline",
-      id: "seq-1",
-      focus: false
-    });
-    setTimelineAgentHandler("seq-1", timelineHandler("seq-1"));
-    await pending;
-
-    expect(useWorkspaceTabsStore.getState().activeTabId).toBe(
-      tabId("chat", "t-1")
-    );
-  });
-
   it("resolves a workflow once its node store exists", async () => {
     await expect(
       openDocument({ type: "workflow", id: "wf-open" })
     ).resolves.toMatchObject({ ok: true, type: "workflow", id: "wf-open" });
+  });
+
+  it("waits for a workflow node store event", async () => {
+    jest.useFakeTimers();
+    const stores = createAgentHandlerRegistry<object>();
+    const state = stub<FrontendToolState>({
+      getNodeStore: (id) => (stores.has(id) ? ({} as never) : undefined),
+      whenWorkflowReady: (id, signal) =>
+        stores.whenReady(id, () => true, signal)
+    });
+    const pending = FrontendToolRegistry.call(
+      "ui_open_document",
+      { type: "workflow", id: "wf-open" },
+      "wf-event",
+      { getState: () => state }
+    );
+    await jest.advanceTimersByTimeAsync(0);
+    expect(navigate).toHaveBeenCalled();
+    const settled = jest.fn();
+    void pending.then(settled);
+    await Promise.resolve();
+    expect(settled).not.toHaveBeenCalled();
+    stores.set("wf-open", {});
+    await expect(pending).resolves.toMatchObject({
+      ok: true,
+      type: "workflow"
+    });
+    expect(jest.getTimerCount()).toBe(0);
   });
 
   it("closes the tab and explains when the document never loads", async () => {

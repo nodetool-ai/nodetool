@@ -320,7 +320,7 @@ Removing the covering shot clears the coverage and reports which shots it uncove
 ### Storyboard — browser (`ui_storyboard_*`)
 
 The board must be open as a workspace tab; its id comes from the `ui_context` system
-block. Not open → `ui_open_document {type: "storyboard", id, focus?}`. Target =
+block. Not open → `edit_storyboard` edits the saved board. Use `ui_open_document {type: "storyboard", id}` to show it to the user. Target =
 shot id, index as a string, or `"selected"`. **Slugs are not resolved here.**
 
 | Tool | Arguments |

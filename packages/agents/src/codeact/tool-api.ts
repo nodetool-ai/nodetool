@@ -10,7 +10,10 @@
  * never hit.
  */
 
-import { DIRECT_TOOL_NAMES, type ProcessingContext } from "@nodetool-ai/runtime";
+import {
+  DIRECT_TOOL_NAMES,
+  type ProcessingContext
+} from "@nodetool-ai/runtime";
 import type {
   JsonSchema,
   MessageContent,
@@ -22,6 +25,7 @@ import { sandboxCapabilitySpecifier } from "@nodetool-ai/protocol";
 import { capabilityModuleOf } from "../capabilities/registry.js";
 import { MAX_ACTION_IMAGES } from "../constants.js";
 import { Tool } from "../tools/base-tool.js";
+import { TOOL_CALL_ID_FIELD } from "../tools/subtask-fields.js";
 import {
   extractInjectableImages,
   stripImagePayload
@@ -46,7 +50,9 @@ export { TOOLS_PRELUDE } from "./tools-prelude.js";
 export const DEFAULT_MAX_TOOL_CALLS_PER_ACTION = 50;
 
 /** Never-rejecting bridge envelope; the guest prelude re-throws on `ok: false`. */
-type BridgeResult = { ok: true; result: unknown } | { ok: false; error: string };
+type BridgeResult =
+  | { ok: true; result: unknown }
+  | { ok: false; error: string };
 
 export interface ToolCallRecord {
   name: string;
@@ -64,9 +70,13 @@ export interface ToolResultRecord {
   isError: boolean;
 }
 
-interface ToolBridgeOptions {
-  tools: Tool[];
-  context: ProcessingContext;
+export interface ToolBridgeOptions {
+  tools: readonly { name: string; needsToolCallId?: boolean }[];
+  invoke: (
+    name: string,
+    args: Record<string, unknown>,
+    toolCallId: string
+  ) => Promise<unknown>;
   /** Observability hook — fires before each bridged tool executes. */
   onToolCall?: (record: ToolCallRecord) => void;
   /** Observability hook — fires with what the call returned. */
@@ -106,11 +116,7 @@ function generationIdOf(result: unknown): string | null {
 /** Force a value through JSON so it marshals cleanly across the WASM boundary. */
 export function toTransferable(value: unknown): JsonValue {
   if (value === null || value === undefined) return null;
-  if (
-    isString(value) ||
-    isNumber(value) ||
-    isBoolean(value)
-  ) {
+  if (isString(value) || isNumber(value) || isBoolean(value)) {
     return value;
   }
   try {
@@ -138,7 +144,12 @@ export function extractErrorPayload(result: unknown): string | null {
       : summary;
   }
   const { applied, failed, ops } = record;
-  if (isNumber(applied) && isNumber(failed) && failed > 0 && Array.isArray(ops)) {
+  if (
+    isNumber(applied) &&
+    isNumber(failed) &&
+    failed > 0 &&
+    Array.isArray(ops)
+  ) {
     const errors = ops.flatMap((op) => {
       if (!isObjectLike(op) || op.ok !== false || !isString(op.error)) {
         return [];
@@ -189,7 +200,8 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
     argsJson: unknown
   ): Promise<BridgeResult> => {
     try {
-      if (!isString(name) || !byName.has(name)) {
+      const tool = isString(name) ? byName.get(name) : undefined;
+      if (!isString(name) || !tool) {
         return {
           ok: false,
           error: `Unknown tool "${String(name)}". Available: ${[...byName.keys()].join(", ")}`
@@ -216,18 +228,22 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
             };
           }
         } catch {
-          return { ok: false, error: `tools.${name}: arguments must be JSON-serializable` };
+          return {
+            ok: false,
+            error: `tools.${name}: arguments must be JSON-serializable`
+          };
         }
       }
 
-      const tool = byName.get(name) as Tool;
       totalCalls++;
       const toolCallId = `codeact_${totalCalls}`;
       options.onToolCall?.({ name, args, toolCallId });
 
-      let result = await Tool.executeTool(tool, options.context, args, {
-        toolCallId
-      });
+      const input = Tool.stripMessage(args);
+      if (tool.needsToolCallId) {
+        input[TOOL_CALL_ID_FIELD] = toolCallId;
+      }
+      let result = await options.invoke(name, input, toolCallId);
       // Read before the error branch: a failed generation still answers with
       // its id, and the registry decides later whether it completed.
       const generationId = generationIdOf(result);
@@ -239,7 +255,8 @@ export function buildToolBridge(options: ToolBridgeOptions): ToolBridge {
       const injected = extractInjectableImages(result);
       if (injected) {
         for (const image of injected.images) {
-          if (pendingImages.length < MAX_ACTION_IMAGES) pendingImages.push(image);
+          if (pendingImages.length < MAX_ACTION_IMAGES)
+            pendingImages.push(image);
           else droppedImages++;
         }
         result = stripImagePayload(result);
@@ -474,9 +491,7 @@ export function toolSignature(tool: ToolSignatureSource): string {
 /** The specifier a capability is imported from, or `undefined` for a session tool. */
 export function toolSpecifier(name: string): string | undefined {
   const module = capabilityModuleOf(name);
-  return module === undefined
-    ? undefined
-    : sandboxCapabilitySpecifier(module);
+  return module === undefined ? undefined : sandboxCapabilitySpecifier(module);
 }
 
 /**
@@ -540,8 +555,10 @@ export function renderToolCatalog(
     );
   if (ungrouped.length > 0) {
     blocks.push(
-      ["// no import — these are called as ordinary tools:",
-        ...ungrouped.map(renderToolSignature)].join("\n")
+      [
+        "// no import — these are called as ordinary tools:",
+        ...ungrouped.map(renderToolSignature)
+      ].join("\n")
     );
   }
   return blocks.join("\n\n");

@@ -1,7 +1,7 @@
 /**
  * `add_model3d_clip` and `set_model3d_style` through `applyTimelineOp`.
  *
- * The op module is the one implementation the three hosts share (I11), so
+ * The op module is the implementation the editing hosts share (I11), so
  * placement, the defaults an under-specified call gets, and the merge depth of
  * a style patch are pinned here rather than in any host's own suite.
  */

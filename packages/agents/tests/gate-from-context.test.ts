@@ -102,7 +102,9 @@ describe("gateFromContext", () => {
   });
 
   it("fails closed when the context cannot answer", () => {
-    expect(gateFromContext(undefined, "kernel job runner").mode).toBe("default");
+    expect(gateFromContext(undefined, "kernel job runner").mode).toBe(
+      "default"
+    );
     expect(gateFromContext(null, "kernel job runner").mode).toBe("default");
     expect(gateFromContext({}, "kernel job runner").mode).toBe("default");
   });
@@ -204,10 +206,7 @@ describe("headlessGate", () => {
 // The runs that stay ungated
 // ---------------------------------------------------------------------------
 
-const packagesDir = resolve(
-  dirname(fileURLToPath(import.meta.url)),
-  "../.."
-);
+const packagesDir = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 
 /**
  * Files allowed to name `ungatedCapabilityRun`, and why each one is not a hole.
@@ -279,6 +278,9 @@ const MAY_BUILD_UNGATED: Record<string, string> = {
   "agents/src/capabilities/invoke.ts": "declares it",
   "agents/src/capabilities/index.ts": "re-export",
   "agents/src/index.ts": "re-export",
+  "agents/src/sandbox-toolbelt.ts":
+    "preserves the sandbox belt's existing ungated run, pinned by sandbox-tool-bridge.test.ts",
+
   "agents/src/capabilities/files.ts":
     "fileCapabilityRun backs CapabilityTool instances a host wraps in gateLegacyTools",
   "agents/src/capabilities/google.ts":
@@ -322,7 +324,9 @@ describe("UNGATED construction sites", () => {
 describe("ungatedCapabilityRun users", () => {
   const referencing = [...packageSourceDirs(packagesDir)]
     .flatMap((dir) => [...sourceFiles(dir)])
-    .filter((file) => readFileSync(file, "utf8").includes("ungatedCapabilityRun"))
+    .filter((file) =>
+      readFileSync(file, "utf8").includes("ungatedCapabilityRun")
+    )
     .map((file) => relative(packagesDir, file).split("\\").join("/"))
     .sort();
 

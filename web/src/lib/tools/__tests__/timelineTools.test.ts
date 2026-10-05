@@ -1,8 +1,12 @@
+import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
+import { navigateTo } from "../../appNavigation";
+jest.mock("../../appNavigation", () => ({ navigateTo: jest.fn() }));
+import { applyTimelineOp } from "@nodetool-ai/timeline/ops";
 /**
  * @jest-environment node
  */
 import { SHARED_TIMELINE_TOOL_NAMES } from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
-import { findInstrumentPreset } from "@nodetool-ai/timeline";
+import { findInstrumentPreset, makeClip } from "@nodetool-ai/timeline";
 import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import {
@@ -71,59 +75,84 @@ const snapshot = (): TimelineSnapshot => ({
   }
 });
 
-const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => ({
-  getSnapshot: jest.fn(),
-  retargetFormat: jest.fn(),
-  setReframeSubject: jest.fn(),
-  addReframeKeyframe: jest.fn(),
-  clearReframe: jest.fn(),
-  addTrack: jest.fn(),
-  moveTrack: jest.fn(),
-  deleteTrack: jest.fn(),
-  addMediaClip: jest.fn(),
-  addTextClip: jest.fn(),
-  addShapeClip: jest.fn(),
-  addModel3DClip: jest.fn(),
-  setModel3DStyle: jest.fn(),
-  bakeModel3DClip: jest.fn(),
-  generateClip: jest.fn(),
-  generativelyEditClip: jest.fn(),
-  applyTake: jest.fn(),
-  splitClip: jest.fn(),
-  trimClip: jest.fn(),
-  moveClip: jest.fn(),
-  deleteClip: jest.fn(),
-  duplicateClip: jest.fn(),
-  setClipParams: jest.fn(),
-  setClipBinding: jest.fn(),
-  setClipAnimations: jest.fn(),
-  staggerAnimations: jest.fn(),
-  clearClipAnimations: jest.fn(),
-  getClipFrames: jest.fn(),
-  addGroup: jest.fn(),
-  setParent: jest.fn(),
-  setTransition: jest.fn(),
-  setMask: jest.fn(),
-  setMatte: jest.fn(),
-  setTimeRemap: jest.fn(),
-  setEffects: jest.fn(),
-  selectClip: jest.fn(),
-  seek: jest.fn(),
-  addMarker: jest.fn(),
-  deleteMarker: jest.fn(),
-  addMidiClip: jest.fn(),
-  setNotes: jest.fn(),
-  setTempo: jest.fn(),
-  setTrackInstrument: jest.fn(),
-  transposeClip: jest.fn(),
-  quantizeClip: jest.fn(),
-  scaleClipVelocity: jest.fn(),
-  setSetup: jest.fn(),
-  planBeats: jest.fn(),
-  updateBeat: jest.fn(),
-  removeBeat: jest.fn(),
-  generateFromBeats: jest.fn()
-});
+const createMockHandler = (): jest.Mocked<TimelineAgentHandler> => {
+  const handler: jest.Mocked<TimelineAgentHandler> = {
+    applyOp: jest.fn(),
+    getSnapshot: jest.fn(),
+    retargetFormat: jest.fn(),
+    setReframeSubject: jest.fn(),
+    addReframeKeyframe: jest.fn(),
+    clearReframe: jest.fn(),
+    addTrack: jest.fn(),
+    moveTrack: jest.fn(),
+    deleteTrack: jest.fn(),
+    addMediaClip: jest.fn(),
+    addTextClip: jest.fn(),
+    addShapeClip: jest.fn(),
+    addModel3DClip: jest.fn(),
+    setModel3DStyle: jest.fn(),
+    bakeModel3DClip: jest.fn(),
+    generateClip: jest.fn(),
+    generativelyEditClip: jest.fn(),
+    applyTake: jest.fn(),
+    splitClip: jest.fn(),
+    trimClip: jest.fn(),
+    moveClip: jest.fn(),
+    deleteClip: jest.fn(),
+    duplicateClip: jest.fn(),
+    setClipParams: jest.fn(),
+    setClipBinding: jest.fn(),
+    setClipAnimations: jest.fn(),
+    staggerAnimations: jest.fn(),
+    clearClipAnimations: jest.fn(),
+    getClipFrames: jest.fn(),
+    addGroup: jest.fn(),
+    setParent: jest.fn(),
+    setTransition: jest.fn(),
+    setMask: jest.fn(),
+    setMatte: jest.fn(),
+    setTimeRemap: jest.fn(),
+    setEffects: jest.fn(),
+    selectClip: jest.fn(),
+    seek: jest.fn(),
+    addMarker: jest.fn(),
+    deleteMarker: jest.fn(),
+    addMidiClip: jest.fn(),
+    setNotes: jest.fn(),
+    setTempo: jest.fn(),
+    setTrackInstrument: jest.fn(),
+    transposeClip: jest.fn(),
+    quantizeClip: jest.fn(),
+    scaleClipVelocity: jest.fn(),
+    setSetup: jest.fn(),
+    planBeats: jest.fn(),
+    updateBeat: jest.fn(),
+    removeBeat: jest.fn(),
+    generateFromBeats: jest.fn()
+  };
+  handler.getSnapshot.mockReturnValue({
+    ...snapshot(),
+    selectedClipIds: ["clip-1"]
+  });
+  let nextId = 0;
+  handler.applyOp.mockImplementation(async (op) => {
+    const current = handler.getSnapshot();
+    const outcome = await applyTimelineOp(
+      {
+        ...current,
+        mediaTracks: [],
+        clips: current.clips.map((clip) =>
+          makeClip({ ...clip, status: "draft", bindingKind: undefined, versions: [] })
+        )
+      },
+      { ...op },
+      { newId: (kind) => `${kind}_${++nextId}` }
+    );
+    if (outcome.error) throw new Error(outcome.error);
+    return outcome.result;
+  });
+  return handler;
+};
 
 // The timeline tools never touch the workflow state, so a bare stub satisfies ctx.
 const ctx = { getState: () => ({}) as FrontendToolState };
@@ -183,9 +212,23 @@ describe("ui_timeline_* tools", () => {
     ).rejects.toThrow('No timeline sequence "seq-1" is open');
   });
 
+  it("routes a closed sequence edit to the server without opening a tab", async () => {
+    const tabs = useWorkspaceTabsStore.getState();
+    await expect(
+      FrontendToolRegistry.call(
+        "ui_timeline_set_clip_params",
+        { timeline_id: SEQ_ID, target: "clip-1", opacity: 0.5 },
+        "closed-edit",
+        ctx
+      )
+    ).rejects.toThrow("Use edit_timeline to edit it");
+    expect(useWorkspaceTabsStore.getState()).toBe(tabs);
+    expect(navigateTo).not.toHaveBeenCalled();
+  });
+
   it("deletes a track through the handler, in either spelling", async () => {
     const handler = createMockHandler();
-    handler.deleteTrack.mockReturnValue({
+    handler.deleteTrack.mockResolvedValue({
       deleted: trackNode(),
       deletedClipIds: [],
       tracks: []
@@ -306,9 +349,7 @@ describe("ui_timeline_* tools", () => {
 
   it("applies a candidate through the handler's shared take action", async () => {
     const handler = createMockHandler();
-    handler.applyTake.mockReturnValue(
-      clipNode({ activeTakeId: "take-edit" })
-    );
+    handler.applyTake.mockReturnValue(clipNode({ activeTakeId: "take-edit" }));
     setTimelineAgentHandler(SEQ_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
@@ -345,7 +386,7 @@ describe("ui_timeline_* tools", () => {
 
   it("adds authored text with optional styling", async () => {
     const handler = createMockHandler();
-    handler.addTextClip.mockReturnValue(
+    handler.addTextClip.mockResolvedValue(
       clipNode({
         mediaType: "text",
         textStyle: {
@@ -389,7 +430,7 @@ describe("ui_timeline_* tools", () => {
 
   it("accepts a minimal shape and forwards it to the handler", async () => {
     const handler = createMockHandler();
-    handler.addShapeClip.mockReturnValue(
+    handler.addShapeClip.mockResolvedValue(
       clipNode({
         mediaType: "shape",
         shapeStyle: { kind: "rect", fill: "#fff" }
@@ -413,8 +454,12 @@ describe("ui_timeline_* tools", () => {
 
   it("places a 3D clip and patches its style through the handler", async () => {
     const handler = createMockHandler();
-    handler.addModel3DClip.mockReturnValue(clipNode({ mediaType: "model3d" }));
-    handler.setModel3DStyle.mockReturnValue(clipNode({ mediaType: "model3d" }));
+    handler.addModel3DClip.mockResolvedValue(
+      clipNode({ mediaType: "model3d" })
+    );
+    handler.setModel3DStyle.mockResolvedValue(
+      clipNode({ mediaType: "model3d" })
+    );
     setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
@@ -456,7 +501,7 @@ describe("ui_timeline_* tools", () => {
 
   it("splits a clip at a time through the handler", async () => {
     const handler = createMockHandler();
-    handler.splitClip.mockReturnValue([
+    handler.splitClip.mockResolvedValue([
       clipNode({ id: "left", durationMs: 1000, endMs: 1000 }),
       clipNode({ id: "right", startMs: 1000, durationMs: 3000, endMs: 4000 })
     ]);
@@ -475,7 +520,7 @@ describe("ui_timeline_* tools", () => {
 
   it("forwards clip param patches to the handler", async () => {
     const handler = createMockHandler();
-    handler.setClipParams.mockReturnValue(clipNode({ opacity: 0.5 }));
+    handler.setClipParams.mockResolvedValue(clipNode({ opacity: 0.5 }));
     setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
@@ -485,15 +530,19 @@ describe("ui_timeline_* tools", () => {
       ctx
     );
 
-    expect(handler.setClipParams).toHaveBeenCalledWith("selected", {
-      opacity: 0.5,
-      fadeOutMs: 500
+    expect(handler.applyOp).toHaveBeenCalledWith({
+      op: "set_clip_params",
+      target: "selected",
+      patch: {
+        opacity: 0.5,
+        fadeOutMs: 500
+      }
     });
   });
 
   it("forwards shape style patches to the handler", async () => {
     const handler = createMockHandler();
-    handler.setClipParams.mockReturnValue(
+    handler.setClipParams.mockResolvedValue(
       clipNode({ mediaType: "shape", shapeStyle: { kind: "ellipse" } })
     );
     setTimelineAgentHandler(SEQ_ID, handler);
@@ -509,8 +558,12 @@ describe("ui_timeline_* tools", () => {
       ctx
     );
 
-    expect(handler.setClipParams).toHaveBeenCalledWith("selected", {
-      shapeStyle: { kind: "ellipse", fill: "#123456" }
+    expect(handler.applyOp).toHaveBeenCalledWith({
+      op: "set_clip_params",
+      target: "selected",
+      patch: {
+        shapeStyle: { kind: "ellipse", fill: "#123456" }
+      }
     });
   });
 
@@ -549,7 +602,7 @@ describe("ui_timeline_* tools", () => {
 
   it("moves a clip to a new start and track", async () => {
     const handler = createMockHandler();
-    handler.moveClip.mockReturnValue(
+    handler.moveClip.mockResolvedValue(
       clipNode({ startMs: 2000, endMs: 6000, trackId: "track-2" })
     );
     setTimelineAgentHandler(SEQ_ID, handler);
@@ -590,7 +643,7 @@ describe("ui_timeline_* tools", () => {
 
   it("animates a clip, defaulting mode to replace", async () => {
     const handler = createMockHandler();
-    handler.setClipAnimations.mockReturnValue(clipNode());
+    handler.setClipAnimations.mockResolvedValue(clipNode());
     setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
@@ -613,7 +666,7 @@ describe("ui_timeline_* tools", () => {
 
   it("passes mode add through to the handler", async () => {
     const handler = createMockHandler();
-    handler.setClipAnimations.mockReturnValue(clipNode());
+    handler.setClipAnimations.mockResolvedValue(clipNode());
     setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
@@ -637,7 +690,7 @@ describe("ui_timeline_* tools", () => {
 
   it("passes ordered clip IDs and offset to cross-clip stagger", async () => {
     const handler = createMockHandler();
-    handler.staggerAnimations.mockReturnValue([clipNode()]);
+    handler.staggerAnimations.mockResolvedValue([clipNode()]);
     setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
@@ -647,7 +700,10 @@ describe("ui_timeline_* tools", () => {
       ctx
     );
 
-    expect(handler.staggerAnimations).toHaveBeenCalledWith(["logo", "wordmark"], 120);
+    expect(handler.staggerAnimations).toHaveBeenCalledWith(
+      ["logo", "wordmark"],
+      120
+    );
   });
 
   it("rejects an animation with an unknown role during validation", async () => {
@@ -668,7 +724,7 @@ describe("ui_timeline_* tools", () => {
 
   it("clears animations, forwarding an optional role filter", async () => {
     const handler = createMockHandler();
-    handler.clearClipAnimations.mockReturnValue(clipNode());
+    handler.clearClipAnimations.mockResolvedValue(clipNode());
     setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
@@ -712,7 +768,7 @@ describe("marker tools", () => {
 
   it("adds a marker, passing every field through to the handler", async () => {
     const handler = createMockHandler();
-    handler.addMarker.mockReturnValue(marker);
+    handler.addMarker.mockResolvedValue(marker);
     setTimelineAgentHandler(SEQ_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
@@ -737,7 +793,7 @@ describe("marker tools", () => {
 
   it("deletes a marker by label", async () => {
     const handler = createMockHandler();
-    handler.deleteMarker.mockReturnValue(marker);
+    handler.deleteMarker.mockResolvedValue(marker);
     setTimelineAgentHandler(SEQ_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
@@ -765,7 +821,7 @@ describe("marker tools", () => {
 describe("ui_timeline_edit (batch)", () => {
   it("applies every op in order through the single-tool handlers", async () => {
     const handler = createMockHandler();
-    handler.addTrack.mockReturnValue(trackNode({ id: "track-2" }));
+    handler.addTrack.mockResolvedValue(trackNode({ id: "track-2" }));
     handler.seek.mockReturnValue(1200);
     setTimelineAgentHandler(SEQ_ID, handler);
 
@@ -870,7 +926,7 @@ describe("beat tools", () => {
   it("lays a marker on every beat of a tempo grid", async () => {
     const handler = createMockHandler();
     handler.getSnapshot.mockReturnValue(snapshot());
-    handler.addMarker.mockImplementation((opts) => ({
+    handler.addMarker.mockImplementation(async (opts) => ({
       id: `m-${opts.timeMs}`,
       timeMs: opts.timeMs,
       label: opts.label ?? ""
@@ -885,13 +941,9 @@ describe("beat tools", () => {
     )) as { ok: boolean; grid: { count: number }; added: { timeMs: number }[] };
 
     // 120bpm is one beat every 500ms.
-    expect(handler.addMarker).toHaveBeenCalledTimes(3);
+    expect(handler.applyOp).toHaveBeenCalledTimes(1);
     expect(result.grid.count).toBe(3);
     expect(result.added.map((m) => m.timeMs)).toEqual([0, 500, 1000]);
-    expect(handler.addMarker).toHaveBeenLastCalledWith({
-      timeMs: 1000,
-      label: "Beat 3"
-    });
   });
 
   it("skips a beat that already carries a marker", async () => {
@@ -900,7 +952,7 @@ describe("beat tools", () => {
       ...snapshot(),
       markers: [{ id: "m-0", timeMs: 0, label: "Beat 1" }]
     });
-    handler.addMarker.mockImplementation((opts) => ({
+    handler.addMarker.mockImplementation(async (opts) => ({
       id: `m-${opts.timeMs}`,
       timeMs: opts.timeMs,
       label: opts.label ?? ""
@@ -921,7 +973,7 @@ describe("beat tools", () => {
   it("snaps a clip start onto the nearest beat through the handler", async () => {
     const handler = createMockHandler();
     handler.getSnapshot.mockReturnValue(snapshot());
-    handler.moveClip.mockReturnValue(clipNode({ startMs: 50 }));
+    handler.moveClip.mockResolvedValue(clipNode({ startMs: 50 }));
     setTimelineAgentHandler(SEQ_ID, handler);
 
     const result = (await FrontendToolRegistry.call(
@@ -935,7 +987,9 @@ describe("beat tools", () => {
       clips: { clipId: string; snapped: boolean; after: { startMs: number } }[];
     };
 
-    expect(handler.moveClip).toHaveBeenCalledWith("clip-1", { startMs: 50 });
+    expect(handler.applyOp).toHaveBeenCalledWith(
+      expect.objectContaining({ op: "snap_to_beats" })
+    );
     // `move` keeps the length, so nothing is trimmed.
     expect(handler.trimClip).not.toHaveBeenCalled();
     expect(result.snapped).toBe(1);
@@ -977,7 +1031,7 @@ describe("beat tools", () => {
 describe("ui_timeline_set_time_remap", () => {
   it("passes the curve to the handler", async () => {
     const handler = createMockHandler();
-    handler.setTimeRemap.mockReturnValue(clipNode());
+    handler.setTimeRemap.mockResolvedValue(clipNode());
     setTimelineAgentHandler(SEQ_ID, handler);
 
     const keyframes = [
@@ -997,7 +1051,7 @@ describe("ui_timeline_set_time_remap", () => {
 
   it("clears the curve with null", async () => {
     const handler = createMockHandler();
-    handler.setTimeRemap.mockReturnValue(clipNode());
+    handler.setTimeRemap.mockResolvedValue(clipNode());
     setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
@@ -1030,7 +1084,7 @@ describe("ui_timeline_set_time_remap", () => {
   });
   it("maps a midi note's snake_case ticks onto the document's fields", async () => {
     const handler = createMockHandler();
-    handler.addMidiClip.mockReturnValue(
+    handler.addMidiClip.mockResolvedValue(
       clipNode({ mediaType: "midi", noteCount: 1 })
     );
     setTimelineAgentHandler(SEQ_ID, handler);
@@ -1060,7 +1114,7 @@ describe("ui_timeline_set_time_remap", () => {
 
   it("passes a note's id and velocity through when given", async () => {
     const handler = createMockHandler();
-    handler.setNotes.mockReturnValue(
+    handler.setNotes.mockResolvedValue(
       clipNode({ mediaType: "midi", noteCount: 1 })
     );
     setTimelineAgentHandler(SEQ_ID, handler);
@@ -1091,7 +1145,7 @@ describe("ui_timeline_set_time_remap", () => {
 
   it("fills in the time signature and offset set_tempo leaves out", async () => {
     const handler = createMockHandler();
-    handler.setTempo.mockReturnValue(snapshot());
+    handler.setTempo.mockResolvedValue(snapshot());
     setTimelineAgentHandler(SEQ_ID, handler);
 
     await FrontendToolRegistry.call(
@@ -1110,7 +1164,7 @@ describe("ui_timeline_set_time_remap", () => {
 
   it("forwards a track instrument unchanged", async () => {
     const handler = createMockHandler();
-    handler.setTrackInstrument.mockReturnValue(
+    handler.setTrackInstrument.mockResolvedValue(
       trackNode({ type: "midi", name: "Bass" })
     );
     setTimelineAgentHandler(SEQ_ID, handler);
@@ -1138,7 +1192,7 @@ describe("ui_timeline_set_time_remap", () => {
 
   it("resolves a named preset to the instrument it stands for", async () => {
     const handler = createMockHandler();
-    handler.setTrackInstrument.mockReturnValue(
+    handler.setTrackInstrument.mockResolvedValue(
       trackNode({ type: "midi", name: "Bass" })
     );
     setTimelineAgentHandler(SEQ_ID, handler);
@@ -1179,7 +1233,7 @@ describe("ui_timeline_set_time_remap", () => {
 
   it("transposes a clip by whole semitones", async () => {
     const handler = createMockHandler();
-    handler.transposeClip.mockReturnValue(
+    handler.transposeClip.mockResolvedValue(
       clipNode({ mediaType: "midi", noteCount: 2 })
     );
     setTimelineAgentHandler(SEQ_ID, handler);
@@ -1211,7 +1265,7 @@ describe("ui_timeline_set_time_remap", () => {
 
   it("passes only the quantize options the caller named", async () => {
     const handler = createMockHandler();
-    handler.quantizeClip.mockReturnValue(
+    handler.quantizeClip.mockResolvedValue(
       clipNode({ mediaType: "midi", noteCount: 2 })
     );
     setTimelineAgentHandler(SEQ_ID, handler);
@@ -1247,7 +1301,7 @@ describe("ui_timeline_set_time_remap", () => {
 
   it("scales a clip's velocities", async () => {
     const handler = createMockHandler();
-    handler.scaleClipVelocity.mockReturnValue(
+    handler.scaleClipVelocity.mockResolvedValue(
       clipNode({ mediaType: "midi", noteCount: 2 })
     );
     setTimelineAgentHandler(SEQ_ID, handler);
@@ -1283,9 +1337,9 @@ describe("ui_timeline_set_time_remap", () => {
       sequenceId: "derived-1",
       name: "Campaign — 9:16"
     });
-    handler.setReframeSubject.mockReturnValue(clipNode());
-    handler.addReframeKeyframe.mockReturnValue(clipNode());
-    handler.clearReframe.mockReturnValue(clipNode());
+    handler.setReframeSubject.mockResolvedValue(clipNode());
+    handler.addReframeKeyframe.mockResolvedValue(clipNode());
+    handler.clearReframe.mockResolvedValue(clipNode());
     setTimelineAgentHandler(SEQ_ID, handler);
 
     const retargeted = await FrontendToolRegistry.call(

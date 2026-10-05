@@ -10,7 +10,10 @@ import {
   webPath,
 } from '../config';
 import { readSettings } from '../settings';
+import * as fs from 'fs';
+import * as os from 'os';
 import * as path from 'path';
+import { spawnSync } from 'child_process';
 import { app } from 'electron';
 
 // Mock dependencies
@@ -386,6 +389,92 @@ describe('Config', () => {
       expect(result.HOME).toEqual(expect.any(String));
       expect(result.HOME.length).toBeGreaterThan(0);
     });
+
+    it('puts the bundled runtime directory first on PATH when packaged', () => {
+      // npm lifecycle scripts run `sh -c node …`; a Finder-launched macOS app
+      // has no node on PATH — nodetool-ai/nodetool#6090.
+      const resources = fs.mkdtempSync(path.join(os.tmpdir(), 'nt-res-'));
+      const runtimeDir = path.join(resources, 'backend', 'runtime');
+      fs.mkdirSync(runtimeDir, { recursive: true });
+      fs.writeFileSync(path.join(runtimeDir, 'node'), '#!/bin/sh\n', { mode: 0o755 });
+      Object.defineProperty(process, 'platform', { value: 'linux' });
+      const originalPackaged = app.isPackaged;
+      const originalResources = (process as any).resourcesPath;
+      (app as any).isPackaged = true;
+      (process as any).resourcesPath = resources;
+      try {
+        const result = getProcessEnv();
+        expect((result.PATH ?? '').split(path.delimiter)[0]).toBe(runtimeDir);
+      } finally {
+        (app as any).isPackaged = originalPackaged;
+        (process as any).resourcesPath = originalResources;
+        fs.rmSync(resources, { recursive: true, force: true });
+      }
+    });
+
+    it('lets lifecycle scripts run node and nested npm commands with the bundled runtime', () => {
+      // Only node was on PATH, so an install script that reached
+      // `npm run build` failed with exit 127 — nodetool-ai/nodetool#6090.
+      if (process.platform === 'win32') return;
+      const root = fs.mkdtempSync(path.join(os.tmpdir(), "nt npm '"));
+      const runtimeDir = path.join(root, 'resources', 'backend', 'runtime');
+      fs.mkdirSync(runtimeDir, { recursive: true });
+      fs.symlinkSync(process.execPath, path.join(runtimeDir, 'node'));
+      const npmPackage = path.join(
+        path.dirname(path.dirname(process.execPath)),
+        'lib',
+        'node_modules',
+        'npm'
+      );
+      fs.symlinkSync(npmPackage, path.join(runtimeDir, 'npm'));
+      const project = path.join(root, 'project');
+      fs.mkdirSync(project);
+      fs.writeFileSync(
+        path.join(project, 'package.json'),
+        JSON.stringify({
+          name: 'lifecycle-fixture',
+          version: '1.0.0',
+          scripts: {
+            postinstall: 'node --version && npm run smoke-child',
+            'smoke-child': "node -e \"require('fs').writeFileSync('child-ran', 'ok')\""
+          }
+        })
+      );
+      const userData = path.join(root, 'userData');
+      const originalPackaged = app.isPackaged;
+      const originalResources = (process as any).resourcesPath;
+      const getPath = jest.mocked(app.getPath);
+      const originalGetPath = getPath.getMockImplementation();
+      (app as any).isPackaged = true;
+      (process as any).resourcesPath = path.join(root, 'resources');
+      getPath.mockImplementation((name: string) =>
+        name === 'userData' ? userData : `/mock/${name}`
+      );
+      // The launchd PATH of a Finder-launched app: a shell, no node or npm.
+      process.env.PATH = '/usr/bin:/bin';
+      try {
+        const env = getProcessEnv();
+        const install = spawnSync(
+          path.join(runtimeDir, 'node'),
+          [path.join(runtimeDir, 'npm', 'bin', 'npm-cli.js'), 'install', '--offline', '--no-audit', '--no-fund'],
+          {
+            cwd: project,
+            env: { ...env, npm_config_cache: path.join(root, 'npm-cache') },
+            encoding: 'utf8'
+          }
+        );
+        expect({ status: install.status, stderr: install.stderr }).toEqual({
+          status: 0,
+          stderr: expect.any(String)
+        });
+        expect(fs.readFileSync(path.join(project, 'child-ran'), 'utf8')).toBe('ok');
+      } finally {
+        (app as any).isPackaged = originalPackaged;
+        (process as any).resourcesPath = originalResources;
+        getPath.mockImplementation(originalGetPath);
+        fs.rmSync(root, { recursive: true, force: true });
+      }
+    }, 60000);
 
     it('should set UV_CACHE_DIR to a writable location inside userData', () => {
       const result = getProcessEnv();

@@ -163,15 +163,26 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
       return [requireShot(target)];
     };
 
-    const assertGenerationAllowed = (shot: Shot, kind: "keyframe" | "clip" | "revision") => {
+    const assertGenerationAllowed = (
+      shot: Shot,
+      kind: "keyframe" | "clip" | "revision"
+    ) => {
       const policy = shot.production;
       if (!policy) return;
-      if (kind !== "keyframe" && policy.media_strategy === "still_motion_graphics") {
-        throw new Error(`Shot ${shot.id} is still_motion_graphics; video generation is forbidden. Materialize its still/assets as editable Timeline layers instead.`);
+      if (
+        kind !== "keyframe" &&
+        policy.media_strategy === "still_motion_graphics"
+      ) {
+        throw new Error(
+          `Shot ${shot.id} is still_motion_graphics; video generation is forbidden. Materialize its still/assets as editable Timeline layers instead.`
+        );
       }
-      const protectedAssets = policy.protected_inputs?.filter((input) => input.asset_id) ?? [];
+      const protectedAssets =
+        policy.protected_inputs?.filter((input) => input.asset_id) ?? [];
       if (kind === "keyframe" && protectedAssets.length > 0) {
-        throw new Error(`Shot ${shot.id} protects source assets; the current keyframe generator cannot prove it preserves them. Use the protected assets directly in the Timeline or a policy-aware finishing path.`);
+        throw new Error(
+          `Shot ${shot.id} protects source assets; the current keyframe generator cannot prove it preserves them. Use the protected assets directly in the Timeline or a policy-aware finishing path.`
+        );
       }
     };
 
@@ -388,7 +399,8 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
             next.graphics = patch.graphics;
           }
         }
-        if (patch.production !== undefined) next.production = patch.production ?? undefined;
+        if (patch.production !== undefined)
+          next.production = patch.production ?? undefined;
         if (patch.status !== undefined) next.status = patch.status;
         if (patch.dialogue !== undefined) next.dialogue = patch.dialogue;
         if (patch.notes !== undefined) next.notes = patch.notes;
@@ -524,11 +536,17 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
       },
 
       async generateKeyframe(target, options) {
-        return renderShots(target, "keyframe", options, (shot) => { assertGenerationAllowed(shot, "keyframe"); return generateKeyframe(boardId, shot); });
+        return renderShots(target, "keyframe", options, (shot) => {
+          assertGenerationAllowed(shot, "keyframe");
+          return generateKeyframe(boardId, shot);
+        });
       },
 
       async generateClip(target, options) {
-        return renderShots(target, "clip", options, (shot) => { assertGenerationAllowed(shot, "clip"); return generateClip(boardId, shot); });
+        return renderShots(target, "clip", options, (shot) => {
+          assertGenerationAllowed(shot, "clip");
+          return generateClip(boardId, shot);
+        });
       },
 
       async reviseShot(target, instruction) {
@@ -576,8 +594,27 @@ export const useStoryboardAgentBridge = (boardId: string): void => {
 
   useEffect(() => {
     if (!boardId) return;
-    setStoryboardAgentHandler(boardId, handler);
+    let installed = false;
+    const register = (): void => {
+      if (useStoryboardStore.getState().getBoard(boardId) !== undefined) {
+        if (!installed) {
+          setStoryboardAgentHandler(boardId, handler);
+          installed = true;
+        }
+      } else if (installed) {
+        if (
+          hasStoryboardAgentHandler(boardId) &&
+          getStoryboardAgentHandler(boardId) === handler
+        ) {
+          setStoryboardAgentHandler(boardId, null);
+        }
+        installed = false;
+      }
+    };
+    register();
+    const unsubscribe = useStoryboardStore.subscribe(register);
     return () => {
+      unsubscribe();
       if (
         hasStoryboardAgentHandler(boardId) &&
         getStoryboardAgentHandler(boardId) === handler
