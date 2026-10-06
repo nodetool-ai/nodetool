@@ -315,9 +315,20 @@ The encode writes `hero-flow.{mp4,webm}` and the posters into
 `marketing/public/`. The README GIF, `marketing/public/hero-flow-readme.gif`,
 comes from the same master at 720 px and 8 fps.
 
+The "Seven editors" tabs play six-second loops from `editors/`, one per
+editor, on the same project. Each loop is one action on look-alike
+surfaces: approve and animate shots, re-voice a changed line, trim and
+ripple the opening, regenerate a prompt-bound layer, block and render a
+set, and play a level.
+
+```bash
+npm run render:surfaces                # → out/surfaces/surface-<id>.mp4
+npm run encode:hero -- --only surface-storyboard   # one tab; omit --only for all
+```
+
 ## Published marketing demos (`demo/src/marketing/`)
 
-The homepage serves the conversation demo and the editor loops from
+The homepage serves the conversation demo from
 `marketing/public/`. Their finishing compositions live in
 [`src/marketing/`](src/marketing/catalog.ts). The accepted footage is pinned
 under `public/casts/marketing/` so repeated renders never process their own
