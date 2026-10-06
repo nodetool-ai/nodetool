@@ -60,6 +60,7 @@ export interface GameRenderer3D {
   readonly capabilities: GameRendererCapabilities3D;
   render(frame: GameRenderFrame3D, interpolation?: number): Promise<GameRendererStats3D>;
   resize(width: number, height: number): void;
+  invalidateAsset(slot: string): void;
   pick(normalizedX: number, normalizedY: number): string | null;
   setCameraOverride(camera: GameRenderFrame3D["camera"] | null): void;
   getScene(): THREE.Scene;
@@ -75,6 +76,7 @@ interface CachedModel {
   readonly gltf: GLTF;
 }
 interface RenderInstance {
+  modelAssetId?: string;
   sampledAnimationKey?: string;
   readonly descriptor: string;
   readonly object: THREE.Object3D;
@@ -218,6 +220,7 @@ class ThreeGameRenderer implements GameRenderer3D {
   private readonly scene = new THREE.Scene();
   private readonly ambient = new THREE.AmbientLight();
   private readonly instances = new Map<string, RenderInstance>();
+  private readonly invalidatedAssets = new Set<string>();
   private readonly models = new Map<string, Promise<CachedModel>>();
   private readonly loadedModels = new Set<CachedModel>();
   private readonly fonts = new Map<string, FontFace>();
@@ -348,6 +351,10 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.renderTail = promise.then(() => undefined, () => undefined);
     return promise;
   }
+  invalidateAsset(slot: string): void {
+    this.invalidatedAssets.add(slot);
+  }
+
   private async getModel(id: string): Promise<CachedModel> {
     let pending = this.models.get(id);
     if (!pending) {
@@ -466,8 +473,15 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.hudTexture.needsUpdate = true;
   }
   private async loadFonts(frame: GameRenderFrame3D): Promise<void> {
+    const present = new Set(Object.entries(frame.fonts ?? {}).map(([id, binding]) => JSON.stringify([frame.gameId, id, binding])));
+    for (const [key, face] of this.fonts) {
+      if (!present.has(key)) { document.fonts.delete(face); this.fonts.delete(key); }
+    }
+    for (const key of this.optionalFonts) {
+      if (!present.has(key)) { this.optionalFonts.delete(key); }
+    }
     for (const [id, binding] of Object.entries(frame.fonts ?? {})) {
-      const key = `${frame.gameId}:${id}:${binding.digest}`;
+      const key = JSON.stringify([frame.gameId, id, binding]);
       if (this.fonts.has(key) || this.optionalFonts.has(key)) { continue; }
       try {
         const source = await this.options.resolveFont?.(id, this.controller.signal);
@@ -494,6 +508,18 @@ class ThreeGameRenderer implements GameRenderer3D {
   }
   private async renderFrame(frame: GameRenderFrame3D, interpolation: number): Promise<GameRendererStats3D> {
     const started = performance.now();
+    for (const slot of this.invalidatedAssets) {
+      for (const [id, instance] of this.instances) {
+        if (instance.modelAssetId === slot) { releaseInstance(instance); this.instances.delete(id); }
+      }
+      const pending = this.models.get(slot);
+      this.models.delete(slot);
+      if (pending) {
+        const cached = await pending.catch(() => null);
+        if (cached) { releaseModel(cached); this.loadedModels.delete(cached); }
+      }
+    }
+    this.invalidatedAssets.clear();
     this.controller.signal.throwIfAborted();
     if (this.status === "lost") { throw new Error("WebGL2 context is lost; simulation must remain paused until recovery"); }
     if (this.presentation && (this.presentation.gameId !== frame.gameId || this.presentation.sceneId !== frame.sceneId || frame.tick < this.presentation.tick)) {
@@ -510,7 +536,10 @@ class ThreeGameRenderer implements GameRenderer3D {
       let instance = this.instances.get(entity.entityId);
       if (instance && instance.descriptor !== descriptor) { releaseInstance(instance); this.instances.delete(entity.entityId); instance = undefined; }
       if (!instance) {
-        if (entity.model) { instance = modelInstance(entity.model, await this.getModel(entity.model.assetId)); }
+        if (entity.model) {
+          instance = modelInstance(entity.model, await this.getModel(entity.model.assetId));
+          instance.modelAssetId = entity.model.assetId;
+        }
         else if (entity.primitive) { instance = primitiveInstance(entity.primitive); }
         else { instance = { descriptor: "transform", object: new THREE.Group(), materials: [] }; }
         this.controller.signal.throwIfAborted();
@@ -601,6 +630,7 @@ class ThreeGameRenderer implements GameRenderer3D {
     this.models.clear();
     this.fonts.forEach((face) => document.fonts.delete(face));
     this.fonts.clear();
+    this.optionalFonts.clear();
     this.lights.forEach((light) => this.removeLight(light));
     this.lights.clear();
     this.hudTexture.dispose();

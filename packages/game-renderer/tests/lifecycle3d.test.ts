@@ -1,4 +1,4 @@
-import { writeFile } from "node:fs/promises";
+import { readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join, resolve } from "node:path";
 import { build } from "esbuild";
@@ -54,7 +54,7 @@ describe("3D renderer lifecycle", () => {
         window.rendererLossExtension.restoreContext();
       });
       await page.waitForFunction(() => window.lifecycleRenderer.capabilities.deviceStatus === "ready");
-      const recovered = await page.evaluate(async ({ frame, model }) => {
+      const recovered = await page.evaluate(async ({ frame, model, font }) => {
         const renderer = window.lifecycleRenderer;
         await renderer.render(frame, 1);
         const capabilities = renderer.capabilities;
@@ -73,7 +73,11 @@ describe("3D renderer lifecycle", () => {
         queueMicrotask(() => interrupted.dispose());
         const failure = await pending.then(() => "unexpected-success", (error: unknown) => error instanceof Error ? error.name : "unknown");
         await new Promise((resolve) => setTimeout(resolve, 20));
-        const skinRenderer = await window.gameRendererFactory({ canvas: renderer.canvas, preserveDrawingBuffer: true, resolveModel: async () => ({ bytes: new Uint8Array(model) }) });
+        let fontBytes: Uint8Array | null = new Uint8Array(font);
+        let modelLoads = 0;
+        const skinRenderer = await window.gameRendererFactory({ canvas: renderer.canvas, preserveDrawingBuffer: true,
+          resolveModel: async () => { modelLoads++; return { bytes: new Uint8Array(model) }; },
+          resolveFont: async () => fontBytes ? { bytes: fontBytes } : null });
         const transform = frame.entities[0].transform;
         frame.entities = [{ entityId: "skin", transform, previousTransform: transform, model: { assetId: "rig", castShadow: true, receiveShadow: true },
           animation: { clipId: "clip:1", startTick: 0, playbackRate: 1, loop: false } }];
@@ -106,9 +110,43 @@ describe("3D renderer lifecycle", () => {
         frame.tick = 0; delete frame.entities[0].animation; await skinRenderer.render(frame, 1);
         const resetX = skinRenderer.getEntityObject("skin")?.getObjectByName("joint")?.position.x;
         const resetInstance = skinRenderer.getEntityObject("skin") !== beforeReset;
+        const loadsBeforeInvalidation = modelLoads;
+        const objectBeforeInvalidation = skinRenderer.getEntityObject("skin");
+        skinRenderer.invalidateAsset("rig");
+        await skinRenderer.render(frame, 1);
+        const reloadedInstance = skinRenderer.getEntityObject("skin") !== objectBeforeInvalidation;
+        const fontCounts: number[] = [];
+        const bindFont = async (bytes: Uint8Array, required: boolean): Promise<void> => {
+          const hash = await crypto.subtle.digest("SHA-256", new Uint8Array(bytes).buffer);
+          const digest = Array.from(new Uint8Array(hash), (value) => value.toString(16).padStart(2, "0")).join("");
+          frame.fonts = { display: { mediaKind: "font", assetId: "font", fontFormat: "ttf", digest, required } };
+        };
+        for (let index = 0; index < 10; index++) {
+          fontBytes = new Uint8Array([...font, ...new Array<number>(index).fill(0)]);
+          await bindFont(fontBytes, true);
+          await skinRenderer.render(frame, 1);
+          fontCounts.push(document.fonts.size);
+        }
+        frame.fonts = {};
+        await skinRenderer.render(frame, 1);
+        const fontsAfterRemoval = document.fonts.size;
+        fontBytes = null;
+        await bindFont(new Uint8Array(font), false);
+        await skinRenderer.render(frame, 1);
+        fontBytes = new Uint8Array(font);
+        await bindFont(fontBytes, true);
+        await skinRenderer.render(frame, 1);
+        const requiredFontCount = document.fonts.size;
         skinRenderer.dispose();
-        return { removedAnimationX, restoredOriginalPixels, newSceneX, newSceneInstance, resetX, resetInstance, initialBounds, animatedBounds, rewoundBounds, skinPicked, matchingRewind: animatedPixels === restoredPixels, capabilities, disposed, picked, times, failure, interruptedStatus: interrupted.capabilities.deviceStatus, userAgent: navigator.userAgent };
-      }, { frame: blockoutFrame(), model: Array.from(skinnedGlb()) });
+        return { fontCounts, fontsAfterRemoval, requiredFontCount, modelLoads, loadsBeforeInvalidation, reloadedInstance, removedAnimationX, restoredOriginalPixels, newSceneX, newSceneInstance, resetX, resetInstance, initialBounds, animatedBounds, rewoundBounds, skinPicked, matchingRewind: animatedPixels === restoredPixels, capabilities, disposed, picked, times, failure, interruptedStatus: interrupted.capabilities.deviceStatus, userAgent: navigator.userAgent };
+      }, { frame: blockoutFrame(), model: Array.from(skinnedGlb()),
+        font: Array.from(await readFile(resolve("../timeline/fonts/BebasNeue-Regular.ttf"))) });
+      expect(recovered.fontCounts).toEqual(new Array<number>(10).fill(1));
+      expect(recovered.fontsAfterRemoval).toBe(0);
+      expect(recovered.requiredFontCount).toBe(1);
+      expect(recovered.loadsBeforeInvalidation).toBe(1);
+      expect(recovered.modelLoads).toBe(2);
+      expect(recovered.reloadedInstance).toBe(true);
       expect(recovered.capabilities).toMatchObject({ deviceStatus: "ready", deviceLossCount: 1, minimalRenderSucceeded: true });
       expect(recovered.disposed).toBe("disposed"); expect(recovered.picked).toBe("box");
       expect(recovered.failure).toBe("AbortError"); expect(recovered.interruptedStatus).toBe("disposed");

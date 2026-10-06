@@ -4,6 +4,7 @@ import { createGameSession3D, type GameSession3D, type GameSession3DOptions } fr
 import { FixedTickClock, GameInput3D } from "@nodetool-ai/game-renderer";
 import { GameAudioPlayer } from "@nodetool-ai/game-renderer/audio";
 import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
+import { GameReplayHistory } from "./gameReplayHistory";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
 
 export const EMPTY_INPUT_3D: GameInputFrame3D = { pressed: [], justPressed: [], axes: {}, look: { x: 0, y: 0 } };
@@ -35,13 +36,17 @@ export interface GamePlaySession3D {
 
 export function useGamePlaySession3D({ refId, document, active, editorSceneId }: GamePlaySession3DOptions): GamePlaySession3D {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const previousBindingsRef = useRef<GameDocument3D["assets"] | null>(null);
+  const assetBytesRef = useRef(new Map<string, Uint8Array>());
+  const rendererControllerRef = useRef(new AbortController());
+  const rendererPromiseRef = useRef<Promise<GameRenderer3D> | null>(null);
+  const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const rendererRef = useRef<GameRenderer3D | null>(null);
   const sessionRef = useRef<GameSession3D | null>(null);
   const sessionOptionsRef = useRef<GameSession3DOptions>({});
   const generationRef = useRef(0);
-  const replayStartRef = useRef<GameSnapshot3D | undefined>(undefined);
   const inputRef = useRef(new GameInput3D());
-  const historyRef = useRef<GameInputFrame3D[]>([]);
+  const historyRef = useRef(new GameReplayHistory<GameInputFrame3D, GameSnapshot3D>());
   const audioRef = useRef<GameAudioPlayer | null>(null);
   const [playing, setPlaying] = useState(false);
   const [playDocument, setPlayDocument] = useState<GameDocument3D | null>(null);
@@ -97,9 +102,13 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     const session = sessionRef.current;
     if (!session) { return; }
     try {
+      const previous = historyRef.current.needsCheckpoint() ? session.snapshot() : undefined;
       const result = session.step(input);
       lastFrameRef.current = result.frame;
-      historyRef.current.push(structuredClone(input));
+      historyRef.current.record(input, () => {
+        if (!previous) { throw new Error("Replay checkpoint is unavailable"); }
+        return previous;
+      });
       const state = session.inspect();
       committedRef.current = state;
       audioRef.current?.sync(session.snapshot());
@@ -120,15 +129,40 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   }, [display]);
 
   useEffect(() => {
+    rendererControllerRef.current = new AbortController();
+    return () => {
+      rendererControllerRef.current.abort();
+      resizeObserverRef.current?.disconnect();
+      resizeObserverRef.current = null;
+      rendererRef.current = null;
+      void rendererPromiseRef.current?.then((renderer) => renderer.dispose(), () => {});
+      rendererPromiseRef.current = null;
+      audioRef.current?.dispose();
+      audioRef.current = null;
+    };
+  }, []);
+
+  useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) { return; }
     const controller = new AbortController();
     const generation = ++generationRef.current;
     const current = sourceRef.current;
+    if (previousBindingsRef.current) {
+      for (const slot of new Set([...Object.keys(previousBindingsRef.current), ...Object.keys(current.assets)])) {
+        if (JSON.stringify(previousBindingsRef.current[slot]) !== JSON.stringify(current.assets[slot])) {
+          rendererRef.current?.invalidateAsset(slot);
+        }
+      }
+    }
+    previousBindingsRef.current = current.assets;
+    const bindingKeys = new Set(Object.values(current.assets).map((binding) => JSON.stringify(binding)));
+    for (const key of assetBytesRef.current.keys()) {
+      if (!bindingKeys.has(key)) { assetBytesRef.current.delete(key); }
+    }
     let session: GameSession3D | null = null;
     let renderer: GameRenderer3D | null = null;
-    let resizeObserver: ResizeObserver | null = null;
-    const audio = new GameAudioPlayer({
+    const audio = audioRef.current ?? new GameAudioPlayer({
       assets: Object.fromEntries(Object.entries(current.assets).flatMap(([slot, binding]) => binding.mediaKind === "audio" || binding.mediaKind === "font" ? [[slot,
         gameAssetBinding.parse({ ...binding, width: 1, height: 1 })]] : [])),
       tickRate: current.tickRate,
@@ -136,18 +170,25 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       status: setError
     });
     audioRef.current = audio;
+    audio.updateAssets(current.assets);
+    if (!playingRef.current) { audio.pause(); }
     audio.preload();
     const readAsset = async (slot: string, signal: AbortSignal): Promise<Uint8Array | null> => {
-      const binding = current.assets[slot];
+      const binding = sourceRef.current.assets[slot];
       if (!binding) { return null; }
+      const key = JSON.stringify(binding);
+      const cached = assetBytesRef.current.get(key);
+      if (cached) { return cached; }
       const url = await resolveMediaUri(binding.assetId.startsWith("package://") ? binding.assetId : `asset://${binding.assetId}`);
       if (!url) { return null; }
       const response = await fetch(url, { signal });
       if (!response.ok) { throw new Error(`Game asset ${slot} failed to load`); }
-      return new Uint8Array(await response.arrayBuffer());
+      const bytes = new Uint8Array(await response.arrayBuffer());
+      assetBytesRef.current.set(key, bytes);
+      return bytes;
     };
     const initialize = async (): Promise<void> => {
-      setBackend("Initializing");
+      if (!rendererRef.current) { setBackend("Initializing"); }
       setError(null);
       const options: GameSession3DOptions = {
         signal: controller.signal,
@@ -169,16 +210,16 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       const initialFrame = session.frame();
       lastFrameRef.current = initialFrame;
       setFrame(initialFrame);
-      audio.sync(session.snapshot());
+      audio.reset(session.snapshot());
       const { createGameRenderer3D } = await import("@nodetool-ai/game-renderer/browser3d");
-      renderer = await createGameRenderer3D({ canvas, signal: controller.signal,
+      rendererPromiseRef.current ??= createGameRenderer3D({ canvas, signal: rendererControllerRef.current.signal,
         resolveModel: async (slot, signal) => {
           const bytes = await readAsset(slot, signal);
-          return bytes ? { bytes, digest: current.assets[slot]?.digest } : null;
+          return bytes ? { bytes, digest: sourceRef.current.assets[slot]?.digest } : null;
         },
         resolveFont: async (slot, signal) => {
           const bytes = await readAsset(slot, signal);
-          return bytes ? { bytes, digest: current.assets[slot]?.digest } : null;
+          return bytes ? { bytes, digest: sourceRef.current.assets[slot]?.digest } : null;
         },
         onDiagnostic: setError,
         onContextState: (state) => {
@@ -186,6 +227,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
           else { setBackend("WebGL2"); }
         }
       });
+      renderer = await rendererPromiseRef.current;
       controller.signal.throwIfAborted();
       rendererRef.current = renderer;
       const resize = (): void => {
@@ -193,8 +235,10 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
         renderer?.resize(Math.max(1, Math.round(bounds.width)), Math.max(1, Math.round(bounds.height)));
         if (lastFrameRef.current) { display(lastFrameRef.current, 1); }
       };
-      resizeObserver = new ResizeObserver(resize);
-      resizeObserver.observe(canvas);
+      if (!resizeObserverRef.current) {
+        resizeObserverRef.current = new ResizeObserver(resize);
+        resizeObserverRef.current.observe(canvas);
+      }
       resize();
       await renderer.render(initialFrame, 1);
       setBackend("WebGL2");
@@ -202,29 +246,26 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     };
     void initialize().catch((cause: unknown) => {
       session?.dispose();
-      renderer?.dispose();
       if (controller.signal.aborted) { return; }
       sessionRef.current = null;
-      rendererRef.current = null;
+      if (!rendererRef.current) { rendererPromiseRef.current = null; }
       setBackend("Unavailable");
       setError(cause instanceof Error ? cause.message : String(cause));
       setPlaying(false);
     });
     return () => {
       controller.abort();
-      resizeObserver?.disconnect();
-      session?.dispose();
-      renderer?.dispose();
+      if (session && sessionRef.current !== session) { session.dispose(); }
       if (generationRef.current === generation) {
         sessionRef.current?.dispose();
         sessionRef.current = null;
-        rendererRef.current = null;
       }
       inputRef.current.release();
-      audio.dispose();
-      audioRef.current = null;
+
     };
   }, [sessionDocument, effectiveEditorSceneId, display]);
+
+
 
   useEffect(() => {
     if (!playing || !active) { inputRef.current.release(); audioRef.current?.pause(); return; }
@@ -247,11 +288,12 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   }, [playing, active, sessionDocument, step, display]);
 
   const beginPlay = (): void => {
-    if (!playDocument) { historyRef.current = []; replayStartRef.current = undefined; setPlayDocument(structuredClone(document)); }
+    if (!playDocument) { historyRef.current.clear(); setPlayDocument(structuredClone(document)); }
+    inputRef.current.release();
     setPlaying((value) => !value);
     canvasRef.current?.focus();
   };
-  const stop = (): void => { setPlaying(false); setPlayDocument(null); historyRef.current = []; setError(null); };
+  const stop = (): void => { setPlaying(false); setPlayDocument(null); historyRef.current.clear(); setError(null); };
   const save = (): void => {
     const session = sessionRef.current;
     if (!session) { return; }
@@ -266,8 +308,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       const generation = generationRef.current;
       const restored = await createGameSession3D(sessionDocument, 1, snapshot, sessionOptionsRef.current);
       if (generation !== generationRef.current || sessionOptionsRef.current.signal?.aborted) { restored.dispose(); return; }
-      historyRef.current = [];
-      replayStartRef.current = snapshot;
+      historyRef.current.clear(snapshot);
       sessionRef.current?.dispose();
       sessionRef.current = restored;
       committedRef.current = restored.inspect();
@@ -283,9 +324,10 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const replayBeforeError = async (): Promise<void> => {
     try {
       const generation = generationRef.current;
-      const restored = await createGameSession3D(sessionDocument, 1, replayStartRef.current, sessionOptionsRef.current);
+      const history = historyRef.current.replay();
+      const restored = await createGameSession3D(sessionDocument, 1, history.snapshot, sessionOptionsRef.current);
       if (generation !== generationRef.current || sessionOptionsRef.current.signal?.aborted) { restored.dispose(); return; }
-      try { for (const input of historyRef.current) { restored.step(input); } }
+      try { for (const input of history.inputs) { restored.step(input); } }
       catch (cause) { restored.dispose(); throw cause; }
       sessionRef.current?.dispose();
       sessionRef.current = restored;

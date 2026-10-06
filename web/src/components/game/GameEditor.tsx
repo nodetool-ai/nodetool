@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { GameEntity } from "@nodetool-ai/protocol/game.js";
@@ -74,7 +74,8 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const loadedTokenRef = useRef<string | null>(null);
   const clipboardRef = useRef<GameEntity[]>([]);
   const savingPromiseRef = useRef<Promise<void> | null>(null);
-  const playDraftOps = playDocument && document ? diffGameDocuments(playDocument, document) : [];
+  const playDraftOps = useMemo(() => playDocument && document ? diffGameDocuments(playDocument, document) : [], [playDocument, document]);
+  const documentValidation = useMemo(() => document ? validateGame(document) : null, [document]);
   const needsPlayRestart = playDraftOps.some((op) => Boolean(playDocument?.authoring) || op.op !== "bind_asset" && op.op !== "unbind_asset");
 
   const selectScene = (sceneId: string) => {
@@ -238,9 +239,8 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
 
   const publish = async () => {
     if (!data || !document) return;
-    const validation = validateGame(document);
-    if (!validation.valid) {
-      setError(validation.errors.join("; "));
+    if (documentValidation && !documentValidation.valid) {
+      setError(documentValidation.errors.join("; "));
       return;
     }
     setSaving(true);
@@ -354,7 +354,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const activeScript = scriptKey && document?.scenes.find((scene) => scene.id === scriptKey.sceneId)
     ?.entities.find((entity) => entity.id === scriptKey.entityId);
   const scriptBehavior = activeScript?.behaviors[scriptKey?.index ?? -1];
-  const validationIssues = document ? validateGame(document).issues : [];
+  const validationIssues = documentValidation?.issues ?? [];
   const runtimeEntity = runtimeEntities?.find((entity) => entity.id === selectedIds[0]) ?? null;
 
   if (isPending || (data && !document)) return <LoadingSpinner text="Loading game" />;

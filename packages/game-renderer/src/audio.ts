@@ -24,7 +24,8 @@ export class GameAudioPlayer {
   private readonly buffers = new Map<string, Promise<AudioBuffer | null>>();
   private readonly voices = new Map<string, Voice>();
   private readonly fading = new Set<Voice>();
-  private readonly pending = new Map<string, symbol>();
+  private readonly pending = new Map<string, { token: symbol; assetId: string }>();
+  private readonly voiceAssets = new WeakMap<Voice, string>();
   private desiredMusic: GameSnapshot["music"] = null;
   private sceneId: string | null = null;
   private tick = 0;
@@ -33,7 +34,7 @@ export class GameAudioPlayer {
   private disposed = false;
   private paused = false;
 
-  constructor(private readonly options: GameAudioOptions) {
+  constructor(private options: GameAudioOptions) {
     this.context = options.context ?? new AudioContext();
   }
 
@@ -56,6 +57,33 @@ export class GameAudioPlayer {
     });
     this.buffers.set(assetId, pending);
     return pending;
+  }
+
+  /** Keeps decoded audio for unchanged bindings when the editor document changes. */
+  updateAssets(assets: GameAudioOptions["assets"]): void {
+    if (this.disposed) return;
+    const changed = new Set<string>();
+    for (const slot of new Set([...Object.keys(this.options.assets), ...Object.keys(assets)])) {
+      if (JSON.stringify(this.options.assets[slot]) !== JSON.stringify(assets[slot])) {
+        this.buffers.delete(slot);
+        changed.add(slot);
+      }
+    }
+    for (const [id, pending] of this.pending) {
+      if (changed.has(pending.assetId)) this.pending.delete(id);
+    }
+    for (const [id, voice] of this.voices) {
+      if (changed.has(this.voiceAssets.get(voice) ?? "")) this.stop(id, 0);
+    }
+    for (const voice of this.fading) {
+      if (changed.has(this.voiceAssets.get(voice) ?? "")) {
+        voice.source.stop();
+        this.fading.delete(voice);
+      }
+    }
+    this.options = { ...this.options, assets };
+    this.preload();
+    this.startDesiredMusic();
   }
 
   preload(): void {
@@ -109,13 +137,13 @@ export class GameAudioPlayer {
 
   private startDesiredMusic(): void {
     const music = this.desiredMusic;
-    if (!music || this.paused || this.context.state !== "running" || this.voices.has(music.voiceId) || this.pending.has(music.voiceId)) return;
+    if (!music || !this.options.assets[music.assetId] || this.paused || this.context.state !== "running" || this.voices.has(music.voiceId) || this.pending.has(music.voiceId)) return;
     const token = Symbol();
-    this.pending.set(music.voiceId, token);
+    this.pending.set(music.voiceId, { token, assetId: music.assetId });
     void this.start(music.voiceId, music.assetId, true, music.volume, music.fadeInTicks, music.fadeOutTicks,
       token, music.startTick)
       .catch((error: unknown) => this.options.status(`Music could not start: ${error instanceof Error ? error.message : String(error)}`))
-      .finally(() => { if (this.pending.get(music.voiceId) === token) this.pending.delete(music.voiceId); });
+      .finally(() => { if (this.pending.get(music.voiceId)?.token === token) this.pending.delete(music.voiceId); });
   }
 
   handle(event: GameEvent): void {
@@ -128,10 +156,10 @@ export class GameAudioPlayer {
     const voiceId = event.voiceId ?? `legacy:${this.tick}:${this.legacySequence++}`;
     if (this.pending.has(voiceId)) return;
     const token = Symbol();
-    this.pending.set(voiceId, token);
+    this.pending.set(voiceId, { token, assetId: event.assetId });
     void this.start(voiceId, event.assetId, event.loop, event.volume, event.fadeInTicks, event.fadeOutTicks, token)
       .catch((error: unknown) => this.options.status(`Audio effect could not start: ${error instanceof Error ? error.message : String(error)}`))
-      .finally(() => { if (this.pending.get(voiceId) === token) this.pending.delete(voiceId); });
+      .finally(() => { if (this.pending.get(voiceId)?.token === token) this.pending.delete(voiceId); });
   }
 
   private async start(id: string, assetId: string, loop: boolean, volume: number, fadeInTicks: number, fadeOutTicks: number, token: symbol, logicalStartTick?: number): Promise<void> {
@@ -144,7 +172,7 @@ export class GameAudioPlayer {
     }
     const buffer = await this.buffer(assetId);
     if (!buffer || this.disposed || this.paused || this.context.state !== "running" || generation !== this.generation ||
-      this.pending.get(id) !== token || this.voices.has(id)) return;
+      this.pending.get(id)?.token !== token || this.voices.has(id)) return;
     if (this.voices.size + this.fading.size >= MAX_VOICES && this.fading.size > 0) {
       const fading = this.fading.values().next().value;
       if (fading) {
@@ -167,6 +195,7 @@ export class GameAudioPlayer {
     if (fadeInTicks > 0) gain.gain.linearRampToValueAtTime(volume, now + fadeInTicks / this.options.tickRate);
     const voice: Voice = { id, source, gain, loop, fadeOutTicks };
     this.voices.set(id, voice);
+    this.voiceAssets.set(voice, assetId);
     source.onended = () => {
       if (this.voices.get(id) === voice) this.voices.delete(id);
       this.fading.delete(voice);
