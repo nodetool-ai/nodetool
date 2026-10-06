@@ -23,6 +23,7 @@ export * as libImageMask from "./lib.image.mask.js";
 export * as libImageWarp from "./lib.image.warp.js";
 export * as libPdf from "./lib.pdf.js";
 export * as libSqlite from "./lib.sqlite.js";
+export * as libStable_diffusion_cpp from "./lib.stable_diffusion_cpp.js";
 export * as libSvg from "./lib.svg.js";
 export * as libVideoDownload from "./lib.video.download.js";
 export * as messagingDiscord from "./messaging.discord.js";
