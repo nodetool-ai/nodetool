@@ -69,22 +69,22 @@ this order of importance:
 
 Provider lists, node counts, tool counts, and architecture belong under those
 claims, not next to them. On the homepage they are one strip of links to
-`/studio`, `/developers`, and `/apps`, not ten sections.
+`/studio` and `/developers`, not ten sections.
 
 ## Order of the page
 
 Hero → the editors, framed as control over the project → finished films with
-their editable timelines → recipes for related production work → example
-storyboards → **the agent builds the project** (a brief, then a board, takes,
-and a cut that opens) → **every model, your keys** → **apps for everything** →
-ownership → **build the workflows that work for you** → comparison → Studio vs
+their editable timelines → ad library → example storyboards → **the agent
+builds the project** (a brief, then a board, takes, and a cut that opens) →
+**every model, your keys** → recipes for related
+production work ("Build your next campaign") → ownership → **build the workflows that work for you** → comparison → Studio vs
 Cloud → ways in → FAQ → community → download.
 
 Three rules produced that order:
 
 **The product before its parts.** The agent working inside a real project is the
 second beat, because it is the only one a hosted platform cannot copy sentence
-for sentence. Recipes, models, and apps read as evidence for that story once it
+for sentence. Recipes and models read as evidence for that story once it
 has landed, and as a catalogue before it.
 
 **Control answers velocity.** The editors follow the agent immediately, because
@@ -159,20 +159,6 @@ but it is not their product category.
   automation around real creative artifacts. It starts with one product
   example, then exposes the technical entry points.
 
-## Apps for everything
-
-A grid of small, single-purpose tools, each named as a verb phrase for the job
-it does and described in one sentence: "Cut a product out of its background."
-"Relight a product for a seasonal campaign." "Score a silent clip."
-
-The names come from the recipe steps in `recipeEntries.generated.ts` and the
-mini-apps in `miniAppEntries.generated.ts`, so the grid is never aspirational —
-every tile opens something that runs. The homepage shows a strip and links to
-`/apps`; the full catalogue lives there.
-
-This beat exists because a reader who does not want to direct a film still needs
-to see something they would use on Tuesday. It sits after the editors and before
-ownership.
 
 ## Jobs, not demos
 

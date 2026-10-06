@@ -9,7 +9,7 @@ import NodeOutput from "./NodeOutput";
 import { OutputSlot } from "../../stores/ApiTypes";
 import { useNodes } from "../../contexts/NodeContext";
 import { shallow } from "zustand/shallow";
-import { Z_INDEX } from "../ui_primitives";
+import { SPACING, Z_INDEX } from "../ui_primitives";
 import { inferredCodeOutputNames } from "../../utils/codeNodeHandles";
 import { ANY_TYPE } from "../../utils/dynamicSlots";
 import { isString } from "../../utils/typePredicates";
@@ -20,7 +20,9 @@ const styles = (theme: Theme) =>
   css({
     "&.output-handle-column": {
       position: "absolute",
-      top: theme.spacing(4),
+      // Same offset as the input column, so the first output faces the
+      // first input row.
+      top: theme.spacing(SPACING.xs),
       right: 0,
       width: 0,
       pointerEvents: "none",

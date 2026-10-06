@@ -100,6 +100,14 @@ const REELS = [
   // The landing hero: one brief to a finished short (src/heroflow), posted
   // on the storyboard with every clip playing.
   { master: "heroflow", slug: "hero-flow", frame: 600, widths: [[1920, ""], [960, "-960"]] },
+  // The "Seven editors" tabs (src/heroflow/editors), each posted on its
+  // finished state.
+  ...["storyboard", "script", "timeline", "sketch", "3d", "game", "nodes"].map((id) => ({
+    master: `surfaces/surface-${id}`,
+    slug: `surface-${id}`,
+    frame: 172,
+    widths: [[1920, ""]]
+  })),
   // The agents section: the wide shot of the board after the redo, with the
   // night card among five unchanged ones.
   { master: "redo", slug: "agent-redo", frame: 395, widths: [[1920, ""], [960, "-960"]] },

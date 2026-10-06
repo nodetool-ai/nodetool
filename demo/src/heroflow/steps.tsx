@@ -17,6 +17,7 @@ import {
   SCORE,
   TITLE,
   TOTAL_SECONDS,
+  LINES,
   entity,
   shotAt,
   shotLength,
@@ -453,7 +454,9 @@ export const ShotCard: React.FC<{
   reveal?: number;
   /** The playing clip, drawn over the media once the shot is a clip. */
   video?: React.ReactNode;
-}> = ({ index, width, state, progress = 0.5, reveal = 1, video }) => {
+  /** Shows the approve toggle; true when the still is approved. */
+  approved?: boolean;
+}> = ({ index, width, state, progress = 0.5, reveal = 1, video, approved }) => {
   const beat = BEATS[index];
   const hf = useHf();
   const media = hf(`card-media-${index}`);
@@ -561,6 +564,31 @@ export const ShotCard: React.FC<{
             {beat.slug}
           </div>
         </div>
+        {approved !== undefined ? (
+          <div
+            data-hf={`approve-${index}`}
+            style={{
+              position: "absolute",
+              right: 14,
+              bottom: 20,
+              width: 40,
+              height: 40,
+              borderRadius: 20,
+              display: "grid",
+              placeItems: "center",
+              background: approved ? C.success : "rgba(8,9,10,0.72)",
+              border: `1px solid ${approved ? C.success : C.lineStrong}`,
+              boxShadow: approved ? `0 0 18px ${C.success}66` : undefined
+            }}
+          >
+            <Icon
+              name="check"
+              size={22}
+              stroke={2.6}
+              color={approved ? "#08130B" : C.dim}
+            />
+          </div>
+        ) : null}
         {busy ? (
           <div style={{ position: "absolute", left: 0, right: 0, bottom: 0 }}>
             <ProgressBar
@@ -620,7 +648,10 @@ export const StoryboardStep: React.FC<{
   progress?: number | number[];
   reveal?: number[];
   video?: (index: number) => React.ReactNode;
-}> = ({ states, progress = 0.62, reveal, video }) => {
+  approved?: boolean[];
+  /** A control at the end of the header, after the meta chips. */
+  action?: React.ReactNode;
+}> = ({ states, progress = 0.62, reveal, video, approved, action }) => {
   const cardW = 528;
   const stills = states.filter(
     (s) => s !== "queued" && s !== "still-rendering"
@@ -646,6 +677,7 @@ export const StoryboardStep: React.FC<{
                 color={C.video}
               />
               <MetaChip label={`16:9 · ${TOTAL_SECONDS} s`} />
+              {action}
             </div>
           }
         />
@@ -667,6 +699,7 @@ export const StoryboardStep: React.FC<{
               progress={Array.isArray(progress) ? progress[i] : progress}
               reveal={reveal?.[i]}
               video={video?.(i)}
+              approved={approved?.[i]}
             />
           ))}
         </div>
@@ -693,18 +726,38 @@ const wave = (n: number): number[] =>
  * `monitor` replaces the monitor's picture, so the motion pass can lift the
  * playing film out of the panel.
  */
+export type ClipSpan = { start: number; length: number };
+
+const SHOT_SPANS: ClipSpan[] = BEATS.map((_, i) => ({
+  start: shotStart(i),
+  length: shotLength(i)
+}));
+
+/**
+ * `layout` moves the clips on V1 (in seconds) for a trim or a ripple, and
+ * `trim` lights one clip's out-point handle (0..1). `voice` adds the
+ * dialogue track, whose takes follow their shots.
+ */
 export const TimelineStep: React.FC<{
   playhead?: number;
   placed?: number;
   ruler?: number;
   wave?: number;
   monitor?: React.ReactNode;
+  layout?: ClipSpan[];
+  trim?: { index: number; amount: number };
+  voice?: boolean;
+  total?: number;
 }> = ({
   playhead = 7.6,
   placed = BEATS.length,
   ruler = 1,
   wave: waveIn = 1,
-  monitor
+  monitor,
+  layout = SHOT_SPANS,
+  trim,
+  voice = false,
+  total = TOTAL_SECONDS
 }) => {
   const hf = useHf();
   const W = 1760;
@@ -756,7 +809,7 @@ export const TimelineStep: React.FC<{
             ) : (
               monitor
             )}
-            <MonitorBar playhead={playhead} />
+            <MonitorBar playhead={playhead} total={total} />
           </div>
         </div>
         <div style={{ padding: "6px 20px 22px", position: "relative" }}>
@@ -777,7 +830,7 @@ export const TimelineStep: React.FC<{
                   key={b.label}
                   style={{
                     position: "absolute",
-                    left: shotStart(i) * pps,
+                    left: layout[i].start * pps,
                     bottom: 0,
                     height: 40,
                     borderLeft: `1px solid ${C.lineStrong}`,
@@ -801,7 +854,7 @@ export const TimelineStep: React.FC<{
                   <span
                     style={{ fontFamily: MONO, fontSize: 13, color: C.dim }}
                   >
-                    {timecode(shotStart(i))}
+                    {timecode(layout[i].start)}
                   </span>
                 </div>
               ))}
@@ -821,13 +874,16 @@ export const TimelineStep: React.FC<{
                   data-hf={`v1-${i}`}
                   style={{
                     position: "absolute",
-                    left: shotStart(i) * pps + 1,
-                    width: shotLength(i) * pps - 3,
+                    left: layout[i].start * pps + 1,
+                    width: layout[i].length * pps - 3,
                     top: 6,
                     bottom: 6,
                     borderRadius: R.sm,
                     overflow: "hidden",
-                    border: `1px solid ${C.video}88`,
+                    border:
+                      trim?.index === i && trim.amount > 0
+                        ? `2px solid ${C.warning}`
+                        : `1px solid ${C.video}88`,
                     background: C.paper,
                     ...hf(`v1-${i}`).style
                   }}
@@ -874,6 +930,30 @@ export const TimelineStep: React.FC<{
                     />
                     {b.slug}
                   </div>
+                  {trim?.index === i ? (
+                    <div
+                      style={{
+                        position: "absolute",
+                        right: 0,
+                        top: 0,
+                        bottom: 0,
+                        width: 10,
+                        background: C.warning,
+                        opacity: trim.amount,
+                        display: "grid",
+                        placeItems: "center"
+                      }}
+                    >
+                      <div
+                        style={{
+                          width: 2,
+                          height: 26,
+                          borderRadius: 1,
+                          background: "rgba(8,9,10,0.7)"
+                        }}
+                      />
+                    </div>
+                  ) : null}
                 </div>
               ) : null
             )}
@@ -931,6 +1011,44 @@ export const TimelineStep: React.FC<{
               </div>
             </div>
           </TrackRow>
+          {voice ? (
+            <TrackRow
+              label="A2"
+              icon="mic"
+              color={C.audio}
+              headerW={headerW}
+              height={52}
+            >
+              {LINES.map((line) => {
+                const e = entity(line.speaker);
+                return (
+                  <div
+                    key={line.text}
+                    style={{
+                      position: "absolute",
+                      left: (layout[line.shot].start + line.offset) * pps,
+                      width: line.seconds * pps,
+                      top: 6,
+                      bottom: 6,
+                      borderRadius: R.sm,
+                      background: `${KIND_COLOR[e.kind]}22`,
+                      border: `1px solid ${KIND_COLOR[e.kind]}66`,
+                      display: "flex",
+                      alignItems: "center",
+                      padding: "0 9px",
+                      fontSize: 13,
+                      fontWeight: 600,
+                      color: C.text,
+                      whiteSpace: "nowrap",
+                      overflow: "hidden"
+                    }}
+                  >
+                    {e.name}
+                  </div>
+                );
+              })}
+            </TrackRow>
+          ) : null}
           {/* Playhead spans ruler and tracks. */}
           <div
             style={{
@@ -962,10 +1080,11 @@ export const TimelineStep: React.FC<{
 };
 
 /** The monitor's transport line: state icon and timecode over a scrim. */
-export const MonitorBar: React.FC<{ playhead: number; opacity?: number }> = ({
-  playhead,
-  opacity = 1
-}) => (
+export const MonitorBar: React.FC<{
+  playhead: number;
+  opacity?: number;
+  total?: number;
+}> = ({ playhead, opacity = 1, total = TOTAL_SECONDS }) => (
   <div
     style={{
       position: "absolute",
@@ -984,13 +1103,15 @@ export const MonitorBar: React.FC<{ playhead: number; opacity?: number }> = ({
   >
     <Icon name="pause" size={22} color={C.text} fill />
     <span>{`0:${playhead.toFixed(1).padStart(4, "0")}`}</span>
-    <span style={{ color: C.dim }}>/ {timecode(TOTAL_SECONDS)}.0</span>
+    <span style={{ color: C.dim }}>
+      / 0:{total.toFixed(1).padStart(4, "0")}
+    </span>
   </div>
 );
 
 const TrackRow: React.FC<{
   label: string;
-  icon: "film" | "music";
+  icon: "film" | "music" | "mic";
   color: string;
   headerW: number;
   height: number;

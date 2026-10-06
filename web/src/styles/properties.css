@@ -20,6 +20,35 @@
   margin-bottom: 0;
 }
 
+/* Node-editor rows: the body padding is the only side inset, and rows sit
+   closer together than in the inspector. */
+.react-flow__node .node-property:not(.handle-only) {
+  padding-left: 0;
+  padding-right: 0;
+  margin-bottom: var(--spacing-sm);
+}
+
+.react-flow__node .node-property:not(.handle-only):last-child {
+  margin-bottom: 0;
+}
+
+/* A label fills one 18px handle row, so its text centers on the handle. */
+.react-flow__node .node-property .property-label {
+  margin-bottom: 0;
+}
+
+.react-flow__node .node-property .property-label label {
+  line-height: 18px;
+  min-height: 18px;
+  max-height: 36px;
+}
+
+/* These offsets pulled the first row above its handle. */
+.react-flow__node .node-property .slider-value,
+.react-flow__node .node-property .drop-container {
+  margin-top: 0;
+}
+
 /* Value differs from default — subtle star marker near the label, no layout shift. */
 .node-property:has(> .property-input-container.value-changed)::after {
   content: "✦";
@@ -86,10 +115,6 @@
 }
 .node-property.has-validation-error .MuiOutlinedInput-notchedOutline {
   border-color: var(--palette-error-main, #f44336) !important;
-}
-
-.node-property .react-flow__handle {
-  margin-top: var(--spacing-micro);
 }
 
 /* Connected property: label left, link icon right, single row */

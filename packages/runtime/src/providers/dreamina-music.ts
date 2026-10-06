@@ -107,10 +107,9 @@ export function createDreaminaMusic(api: DreaminaMusicApi): DreaminaMusic {
   };
 
   return {
+    /** Only instrumental is listed, so listing never waits on the browser tab. A vocal model id still generates when the account offers it. */
     async models(): Promise<MusicModel[]> {
-      const instrumental: MusicModel = { id: DREAMINA_INSTRUMENTAL_MODEL, name: "Dreamina Instrumental", provider: PROVIDER_IDS.DREAMINA, supportedTasks: ["text_to_music"] };
-      const songs = await songModels().catch(() => []);
-      return [instrumental, ...songs.map((m): MusicModel => ({ id: m.model_req_key, name: m.model_name, provider: PROVIDER_IDS.DREAMINA, supportedTasks: ["text_to_music"] }))];
+      return [{ id: DREAMINA_INSTRUMENTAL_MODEL, name: "Dreamina Instrumental", provider: PROVIDER_IDS.DREAMINA, supportedTasks: ["text_to_music"] }];
     },
 
     async generate(params: TextToMusicParams): Promise<EncodedAudioResult> {

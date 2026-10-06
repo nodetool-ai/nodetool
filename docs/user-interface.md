@@ -202,7 +202,6 @@ Press `Ctrl/⌘+/` for the full list inside the app.
 | Shortcut | Action |
 |----------|--------|
 | `Ctrl/⌘+F` | Find in workflow |
-| `Ctrl/⌘+Shift+A` | Quick add node |
 | `Ctrl/⌘+D` | Duplicate |
 | `Ctrl/⌘+G` | Group |
 | `B` | Disable or enable selected nodes |

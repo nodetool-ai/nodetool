@@ -67,7 +67,7 @@ description: "Open-source agent-first creative workspace. Create images, video, 
 
 <section class="home-block">
   <p class="section-kicker">Editors</p>
-  <h2 id="six-editors">Six editors. One project.</h2>
+  <h2 id="seven-editors">Seven editors. One project.</h2>
   <p class="section-lead">
     Everything the agent makes opens in an editor. The agent works each editor
     with the same tools you click.
@@ -157,11 +157,21 @@ description: "Open-source agent-first creative workspace. Create images, video, 
         <a href="{{ '/game-editor' | relative_url }}">Game Editor →</a>
       </div>
     </article>
+    <article class="surface-card full">
+      <div class="media-frame">
+        <video class="inview-video" muted loop playsinline preload="none"
+          poster="https://nodetool.ai/surface-nodes-poster.webp" aria-label="Node editor">
+          <source src="https://nodetool.ai/surface-nodes.webm" type="video/webm">
+          <source src="https://nodetool.ai/surface-nodes.mp4" type="video/mp4">
+        </video>
+      </div>
+      <div class="surface-body">
+        <h3>Nodes</h3>
+        <p>Every editor above sits on a graph you can open. Wire typed ports, press Run, and read the output at every step.</p>
+        <a href="{{ '/workflow-editor' | relative_url }}">Workflow Editor →</a>
+      </div>
+    </article>
   </div>
-  <p class="section-note">
-    The <a href="{{ '/workflow-editor' | relative_url }}">node canvas</a> sits
-    under all six. Open it when you want to change how a step runs.
-  </p>
 </section>
 
 <section class="home-block">

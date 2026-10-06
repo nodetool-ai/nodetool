@@ -17,6 +17,15 @@
   outline-offset: 0;
 }
 
+/* Nodes that draw their own 1px edge: the outer outline would double it. */
+.react-flow__node:has(> .node-body),
+.react-flow__node:has(> .output-node),
+.react-flow__node:has(> .compare-images-node),
+.react-flow__node:has(> .sketch-node),
+.react-flow__node-nodetool\.workflows\.base_node\.Preview {
+  outline: none;
+}
+
 /* Grouped nodes: use group header color for outline */
 .react-flow__node:has(.node-header.has-parent):not(.selected) {
   outline-color: var(--c_node_header_bg_group) !important;
@@ -37,7 +46,6 @@
 
 .react-flow__node.bypassed .base-node {
   border-style: dashed !important;
-  border-width: 2px !important;
   background: repeating-linear-gradient(
     45deg,
     transparent,

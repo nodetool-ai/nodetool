@@ -105,6 +105,11 @@ const styles = (theme: Theme) =>
       padding: `${theme.spacing(1)} ${theme.spacing(0.5)} ${theme.spacing(0.5)}`,
       minHeight: 0
     },
+    // Inputs sit inside this body's own padding as well as the node's, so the
+    // handle steps back past both to center on the node edge.
+    "&.content-card-body .react-flow__handle-left": {
+      left: `calc(-6px - var(--node-body-padding, 0px) - ${theme.spacing(0.5)})`
+    },
     // Text variant inherits the node body color instead of the dark media
     // backdrop — keeps text content visually flush with the rest of the
     // node and matches the PreviewNode look.

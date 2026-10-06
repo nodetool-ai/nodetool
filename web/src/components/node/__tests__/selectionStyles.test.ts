@@ -12,7 +12,7 @@ describe("selectionStyles", () => {
     expect(sx.backdropFilter).toBe("none");
     expect(sx.WebkitBackdropFilter).toBe("none");
     expect(sx.filter).toBe("none");
-    expect(String(sx.boxShadow)).toContain("var(--palette-grey-100)");
+    expect(String(sx.border)).toMatch(/^1px solid /);
   });
 
   it("returns crisp selected styles for output nodes", () => {
@@ -21,7 +21,7 @@ describe("selectionStyles", () => {
     expect(sx.backdropFilter).toBe("none");
     expect(sx.WebkitBackdropFilter).toBe("none");
     expect(sx.filter).toBe("none");
-    expect(String(sx.border)).toContain("3px solid");
+    expect(String(sx.border)).toContain("1px solid");
   });
 
   it("keeps base-node selection visible without blur keys", () => {
@@ -40,50 +40,17 @@ describe("selectionStyles", () => {
     expect(sx.backdropFilter).toBe("none");
     expect(sx.WebkitBackdropFilter).toBe("none");
     expect(sx.filter).toBe("none");
-    expect(String(sx.outline)).toContain("#77b4e6");
-    expect(String(sx.boxShadow)).toContain("#77b4e6");
+    expect(String(sx.border)).toContain("#77b4e6");
   });
 
-  it("keeps the crisp outer selection ring when the node is idle", () => {
+  it.each([
+    { selected: false, isFocused: false, isLoading: false },
+    { selected: true, isFocused: false, isLoading: false },
+    { selected: true, isFocused: false, isLoading: true },
+    { selected: false, isFocused: true, isLoading: false }
+  ])("draws one 1px edge with no outer ring (%o)", (state) => {
     const sx = getBaseNodeSelectionStyles({
-      selected: true,
-      isFocused: false,
-      isLoading: false,
-      hasParent: false,
-      hasToggleableResult: false,
-      baseColor: "#77b4e6",
-      parentColor: null,
-      theme: mockTheme,
-      minHeight: 150
-    });
-
-    expect(String(sx.boxShadow)).toContain("0 0 0 1px");
-  });
-
-  it("drops the outer selection ring while loading (selection moves inside)", () => {
-    const sx = getBaseNodeSelectionStyles({
-      selected: true,
-      isFocused: false,
-      isLoading: true,
-      hasParent: false,
-      hasToggleableResult: false,
-      baseColor: "#77b4e6",
-      parentColor: null,
-      theme: mockTheme,
-      minHeight: 150
-    });
-
-    // Inset outline still marks the selection...
-    expect(String(sx.outline)).toContain("#77b4e6");
-    // ...but the crisp outer 1px ring is gone so it won't fight the run ring.
-    expect(String(sx.boxShadow)).not.toContain("0 0 0 1px");
-  });
-
-  it("drops the outer selection ring when the ambient ring is showing", () => {
-    const sx = getBaseNodeSelectionStyles({
-      selected: true,
-      isFocused: false,
-      isLoading: false,
+      ...state,
       hasAmbientRing: true,
       hasParent: false,
       hasToggleableResult: false,
@@ -93,7 +60,8 @@ describe("selectionStyles", () => {
       minHeight: 150
     });
 
-    expect(String(sx.outline)).toContain("#77b4e6");
-    expect(String(sx.boxShadow)).not.toContain("0 0 0 1px");
+    expect(String(sx.border)).toMatch(/^1px (solid|dashed) /);
+    expect(sx.outline).toBe("none");
+    expect(String(sx.boxShadow)).not.toMatch(/(^|, )0 0 0 \d/);
   });
 });

@@ -112,6 +112,11 @@ const styles = (theme: Theme) =>
       padding: theme.spacing(SPACING.micro),
       minHeight: 0
     },
+    // Inputs sit inside this body's own padding as well as the node's, so the
+    // handle steps back past both to center on the node edge.
+    "&.code-body .node-inputs .react-flow__handle-left": {
+      left: `calc(-6px - var(--node-body-padding, 0px) - ${theme.spacing(SPACING.micro)})`
+    },
     ".code-toolbar": {
       flex: "0 0 auto",
       display: "flex",

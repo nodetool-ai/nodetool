@@ -34,7 +34,6 @@ import { useTheme } from "@mui/material/styles";
 import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
 import CommandMenu from "../menus/CommandMenu";
-import QuickAddNodeDialog from "./QuickAddNodeDialog";
 import { useCombo } from "../../stores/KeyPressedStore";
 import { isMac } from "../../utils/platform";
 import { EditorUiProvider } from "../editor_ui";
@@ -92,7 +91,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
   const store = useNodeStoreRef();
   const [showShortcuts, setShowShortcuts] = useState(false);
   const [commandMenuOpen, setCommandMenuOpen] = useState(false);
-  const [quickAddNodeOpen, setQuickAddNodeOpen] = useState(false);
   const reactFlowWrapperRef = useRef<HTMLDivElement>(null);
   const editorRoot = useCallback(() => reactFlowWrapperRef.current, []);
   useNodeEditorShortcuts(
@@ -143,21 +141,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     true,
     active,
     { scope: "global" }
-  );
-
-  // Keyboard shortcut for Quick Add Node (Ctrl+Shift+A on all platforms)
-  const quickAddNodeCombo = isMac()
-    ? ["meta", "shift", "a"]
-    : ["control", "shift", "a"];
-  useCombo(
-    quickAddNodeCombo,
-    () => {
-      if (active) {
-        setQuickAddNodeOpen(true);
-      }
-    },
-    true,
-    active
   );
 
   // Keyboard shortcut for Node Info Panel (Ctrl+I / Meta+I)
@@ -225,11 +208,6 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
                 setOpen={setCommandMenuOpen}
                 undo={undo}
                 redo={redo}
-                reactFlowWrapper={reactFlowWrapperRef}
-              />
-              <QuickAddNodeDialog
-                open={quickAddNodeOpen}
-                setOpen={setQuickAddNodeOpen}
                 reactFlowWrapper={reactFlowWrapperRef}
               />
               <FindInWorkflowDialog workflowId={workflowId} />

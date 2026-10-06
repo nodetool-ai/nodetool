@@ -22,11 +22,12 @@ import React, {
   useEffect
 } from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
-import { Box, Text, MOTION, SPACING, getSpacingPx, Z_INDEX } from "../../ui_primitives";
+import { Box, CheckerDropzone, Text, MOTION, SPACING, SHADOW, BORDER_RADIUS, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import EditIcon from "@mui/icons-material/Edit";
+import BrushIcon from "@mui/icons-material/Brush";
 import isEqual from "../../../utils/isEqual";
 import { NodeData } from "../../../stores/NodeData";
 import { NodeHeader } from "../NodeHeader";
@@ -119,36 +120,24 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       maxWidth: "unset",
       minHeight: "200px",
       borderRadius: theme.rounded.node,
-      border: `1px solid ${theme.vars.palette.grey[900]}`,
+      // One 1px edge, recolored by selection and focus, as on every node.
+      border: `1px ${opts.isFocused ? "dashed" : "solid"} ${
+        opts.isFocused
+          ? theme.vars.palette.warning.main
+          : opts.selected
+            ? `color-mix(in srgb, ${opts.baseColor} 82%, white 18%)`
+            : theme.vars.palette.divider
+      }`,
       backgroundColor: theme.vars.palette.c_node_bg,
       position: "relative",
-      transition: `border-color ${MOTION.fast}, box-shadow ${MOTION.fast}, outline ${MOTION.fast}`,
-      boxShadow: opts.selected
-        ? `0 0 0 1px ${opts.baseColor}, 0 1px 10px rgba(0,0,0,0.5)`
-        : opts.isFocused
-          ? `0 0 0 2px ${theme.vars.palette.warning.main}`
-          : "none",
-      outline: opts.isFocused
-        ? `2px dashed ${theme.vars.palette.warning.main}`
-        : opts.selected
-          ? `3px solid ${opts.baseColor}`
-          : "none",
-      outlineOffset: "-2px",
+      transition: `border-color ${MOTION.fast}, box-shadow ${MOTION.fast}`,
+      boxShadow: opts.selected ? SHADOW(theme).sm : "none",
       "--node-primary-color": opts.baseColor,
-      backdropFilter: opts.selected ? theme.vars.palette.glass.blur : "none",
-      WebkitBackdropFilter: opts.selected
-        ? theme.vars.palette.glass.blur
-        : "none",
-      "&:hover:not(.sketch-node--selected)": {
-        borderColor: theme.vars.palette.grey[500]
-      }
-    },
-    "&.sketch-node--selected": {
-      backgroundColor: "transparent"
+      "--node-body-padding": "8px"
     },
     ".sketch-node-content": {
       position: "absolute",
-      inset: 0,
+      inset: "var(--node-body-padding)",
       backgroundColor: "transparent",
       overflow: "visible",
       display: "flex",
@@ -162,19 +151,27 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       minHeight: 0,
       overflow: "visible"
     },
-    // Preview + handles: main fills space below header only (inputs start under header)
+    ".node-header": {
+      width: "100%",
+      margin: 0,
+      border: 0
+    },
+    // Preview + handles: main fills space below header only (inputs start
+    // under header). Rows are 18px on the 28px handle pitch of other nodes.
     ".sketch-main": {
       position: "relative",
       flex: "1 1 auto",
+      marginTop: getSpacingPx(SPACING.xs),
       minHeight: 0,
       minWidth: 0,
       overflow: "visible",
-      "--sketch-handle-stack-gap": "1rem"
+      borderRadius: BORDER_RADIUS.sm,
+      "--sketch-handle-stack-gap": "10px"
     },
     ".sketch-input-handles": {
       position: "absolute",
       left: 0,
-      top: "1em",
+      top: 0,
       zIndex: Z_INDEX.raised,
       display: "flex",
       flexDirection: "column",
@@ -184,7 +181,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
     ".sketch-output-handles": {
       position: "absolute",
       right: 0,
-      top: "1em",
+      top: 0,
       zIndex: Z_INDEX.raised,
       display: "flex",
       flexDirection: "column",
@@ -241,20 +238,6 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       color: theme.vars.palette.c_white,
       letterSpacing: "0.02em"
     },
-    ".hint": {
-      position: "absolute",
-      textAlign: "center",
-      top: "50%",
-      left: "50%",
-      width: "80%",
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 400,
-      transform: "translate(-50%, -50%)",
-      zIndex: Z_INDEX.raised,
-      color: theme.vars.palette.grey[400],
-      opacity: 0.8,
-      pointerEvents: "none"
-    },
     // Per-output wrapper in vertical stack (overrides global full-height output rail)
     "& .sketch-output-handles .output-handle-container": {
       position: "relative",
@@ -263,7 +246,7 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       bottom: "auto",
       left: "auto",
       width: "auto",
-      height: "auto",
+      height: 18,
       textAlign: "right"
     },
     // Global handle CSS pins every .react-flow__handle-left to top: 5px on the whole
@@ -273,21 +256,22 @@ const styles = (theme: Theme, opts: SketchNodeStyleOptions) =>
       position: "relative",
       flexShrink: 0,
       width: 18,
+      height: 18,
       display: "flex",
       alignItems: "center",
       justifyContent: "flex-start"
     },
     "& .sketch-input-handles .react-flow__handle.react-flow__handle-left": {
       position: "absolute",
-      left: -6,
+      left: "calc(-6px - var(--node-body-padding))",
       top: "50%",
       bottom: "auto",
       transform: "translate(0, -50%)",
-      transformOrigin: "right center"
+      transformOrigin: "center"
     },
     "& .sketch-input-handles .react-flow__handle.react-flow__handle-left:hover":
       {
-        transform: "translate(0, -50%) scale(1.75, 1.5)"
+        transform: "translate(0, -50%) scale(1.3)"
       }
   });
 
@@ -1323,10 +1307,8 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
             hasParent={hasParent}
             metadataTitle="Sketch"
             selected={props.selected}
-            backgroundColor="transparent"
             iconType="image"
             iconBaseColor={inputAccentColor}
-            showIcon={false}
             workflowId={props.data.workflow_id}
           />
 
@@ -1358,9 +1340,10 @@ const SketchNode: React.FC<SketchNodeProps> = (props) => {
                     </div>
                   </>
                 ) : (
-                  <Text className="hint">
-                    Click to open sketch editor
-                  </Text>
+                  <CheckerDropzone
+                    message="Click to open the sketch editor"
+                    icon={<BrushIcon />}
+                  />
                 )}
               </div>
             </div>

@@ -56,9 +56,9 @@ const styles = (theme: Theme) =>
       alignItems: "center",
       justifyContent: "center",
       "& > .handle-column": {
-        top: 0,
+        top: theme.spacing(SPACING.micro),
         bottom: 0,
-        left: `calc(${theme.spacing(0)})`
+        left: `calc(-1 * ${theme.spacing(SPACING.micro)})`
       },
       "& img": {
         display: "block",

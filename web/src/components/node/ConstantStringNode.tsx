@@ -21,10 +21,10 @@ import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import { NodeData } from "../../stores/NodeData";
-import { NodeHeader } from "./NodeHeader";
+import { NodeHeader, NODE_HEADER_MIN_HEIGHT } from "./NodeHeader";
 import { NodeOutputs } from "./NodeOutputs";
 import NodeResizeHandle from "./NodeResizeHandle";
-import { CopyButton, ToolbarIconButton, Container, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
+import { CopyButton, ToolbarIconButton, Container, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, Z_INDEX, SHADOW } from "../ui_primitives";
 import TextEditorModal from "../properties/TextEditorModal";
 import useMetadataStore from "../../stores/MetadataStore";
 import { useNodes } from "../../contexts/NodeContext";
@@ -53,21 +53,22 @@ const styles = (theme: Theme) =>
       maxWidth: "600px",
       minHeight: "100px",
       borderRadius: theme.rounded.node,
-      border: `1px solid ${theme.vars.palette.grey[900]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.c_node_bg
     },
     "&.selected": {
-      outline: `3px solid var(--node-primary-color, ${theme.vars.palette.primary.main})`,
-      outlineOffset: "-2px",
-      boxShadow: `0 0 0 1px var(--node-primary-color, #666), 0 1px 10px rgba(0,0,0,0.5)`
+      borderColor: `color-mix(in srgb, var(--node-primary-color, ${theme.vars.palette.primary.main}) 82%, white 18%)`,
+      boxShadow: SHADOW(theme).sm
     },
     ".header-wrapper": {
       position: "relative",
       flexShrink: 0
     },
+    // Like every other node, the handle is centered on the node's edge: the
+    // header sits inside the body padding, so step back past it.
     ".header-wrapper .input-handle-wrapper": {
       position: "absolute",
-      left: "-8px",
+      left: "calc(-6px - var(--node-body-padding, 0px))",
       top: "50%",
       transform: "translateY(-50%)",
       zIndex: Z_INDEX.dropdown + 1
@@ -76,6 +77,15 @@ const styles = (theme: Theme) =>
       top: "50%",
       left: 0,
       transform: "translateY(-50%)"
+    },
+    // The output column spans the full body width, outside the padding.
+    // Its first row sits on the header line, level with the input.
+    // Doubled class: outranks the column's own offset from NodeOutputs.
+    ".output-handle-column.output-handle-column": {
+      top: `calc(var(--node-body-padding, 0px) + ${(NODE_HEADER_MIN_HEIGHT - 18) / 2}px)`
+    },
+    ".output-handle-container .react-flow__handle-right": {
+      right: "-6px"
     },
     ".header-actions": {
       position: "absolute",
@@ -98,7 +108,9 @@ const styles = (theme: Theme) =>
       flex: "1 1 auto",
       display: "flex",
       flexDirection: "column",
-      padding: `0 ${getSpacingPx(SPACING.md)} ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)}`,
+      // The node padding is the only side inset, as on other nodes; the
+      // value starts 4px below the header.
+      padding: `${getSpacingPx(SPACING.xs)} 0 0`,
       minHeight: 0,
       overflow: "hidden"
     },
@@ -117,7 +129,7 @@ const styles = (theme: Theme) =>
       fontSize: theme.fontSizeSmaller || "0.75rem",
       fontWeight: 400,
       lineHeight: "1.2em",
-      padding: getSpacingPx(SPACING.md),
+      padding: getSpacingPx(SPACING.sm),
       overflowY: "auto",
       transition: MOTION.background,
       "&:focus": {

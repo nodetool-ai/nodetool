@@ -225,7 +225,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
 
         <ToolbarIconButton
           icon={<CenterFocusStrongIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />}
-          tooltip={`Fit all · ${getShortcutTooltip("fitView")}`}
+          tooltip={getShortcutTooltip("fitView")}
           tooltipPlacement="top"
           onClick={handleFitView}
           size="small"
