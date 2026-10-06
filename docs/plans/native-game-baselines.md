@@ -30,8 +30,16 @@ that have already been collected. It excludes WASM allocations and is not an
 allocation count. Heap delta is measured across the timing pass and can vary
 with garbage collection.
 
-Per-system timing is unavailable until W2 adds the runtime system pipeline.
-The report returns `perSystemMs: null` with that reason.
+The original CPU measurements below were collected without per-system
+instrumentation. The benchmark now enables `recordTimings` and returns
+`perSystemMs`, a map of stage names to p50, p95 and p99 durations. The existing
+`perSystemUnavailableReason` field is `null`. Warmup and allocation-profiler
+ticks do not contribute stage samples. Missing measured timings fail the run.
+
+Instrumented runs include timing clock calls and records in the tick and
+allocation measurements. Their results are recorded separately from the original
+untimed baselines. Stage percentiles do not sum to the outer tick percentile.
+Default runtime sessions keep timing disabled.
 
 ### 2D workload
 
