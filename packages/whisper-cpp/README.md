@@ -11,6 +11,12 @@ The providers are excluded from the cloud profile.
   cache scan. `WHISPER_CPP_GPU_BACKEND` accepts `auto`, `metal`, `cuda`,
   `vulkan`, or `cpu`. Restart after changing the backend because the binding
   caches the first native variant loaded.
+- Enable the `whisper-cpp` node pack for `whisper_cpp.LiveTranscription`.
+  Supply mono PCM16 audio as base64 chunks. `content_metadata.sample_rate`
+  defaults to 16000. A `done: true` chunk ends the stream. Install
+  `ggml-org/whisper-vad/ggml-silero-v5.1.2.bin` for speech boundaries, otherwise
+  the node uses fixed windows.
+
 The binding returns transcription timestamps in milliseconds and VAD times
 in centiseconds. The provider returns ASR timestamps in seconds.
 

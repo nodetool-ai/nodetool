@@ -351,7 +351,8 @@ describe("shared built-in host policy", () => {
       "minimax",
       "replicate",
       "reve",
-      "transformers-js"
+      "transformers-js",
+      "whisper-cpp"
     ]);
     const server = new NodeRegistry();
     registerBuiltInNodes(server, {

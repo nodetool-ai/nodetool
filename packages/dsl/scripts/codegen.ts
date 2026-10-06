@@ -19,6 +19,7 @@
 import fs from "node:fs";
 import path from "node:path";
 import { ALL_BASE_NODES } from "@nodetool-ai/base-nodes";
+import { ALL_NODES as WHISPER_CPP_NODES } from "@nodetool-ai/whisper-cpp";
 import { getNodeMetadata, typeMetaToString } from "@nodetool-ai/node-sdk";
 import type {
   NodeMetadata,
@@ -563,7 +564,7 @@ function generateAll(): GeneratedOutput {
   const byNamespace = new Map<string, NodeInfo[]>();
   let totalNodes = 0;
 
-  for (const nodeClass of ALL_BASE_NODES) {
+  for (const nodeClass of [...ALL_BASE_NODES, ...WHISPER_CPP_NODES]) {
     let meta: NodeMetadata;
     try {
       meta = getNodeMetadata(nodeClass);

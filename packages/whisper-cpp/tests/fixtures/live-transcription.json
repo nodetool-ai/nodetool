@@ -1,0 +1,44 @@
+{
+  "name": "Live whisper.cpp transcription",
+  "graph": {
+    "nodes": [
+      {
+        "id": "audio",
+        "type": "nodetool.input.RealtimeAudioInput",
+        "data": { "name": "audio" }
+      },
+      {
+        "id": "transcribe",
+        "type": "whisper_cpp.LiveTranscription",
+        "data": {
+          "model": {
+            "type": "asr_model",
+            "provider": "whisper_cpp",
+            "id": "ggml-base.en.bin"
+          }
+        }
+      },
+      {
+        "id": "text",
+        "type": "nodetool.output.Output",
+        "data": { "name": "transcript" }
+      }
+    ],
+    "edges": [
+      {
+        "id": "audio-transcribe",
+        "source": "audio",
+        "sourceHandle": "chunk",
+        "target": "transcribe",
+        "targetHandle": "chunk"
+      },
+      {
+        "id": "transcribe-text",
+        "source": "transcribe",
+        "sourceHandle": "text",
+        "target": "text",
+        "targetHandle": "value"
+      }
+    ]
+  }
+}

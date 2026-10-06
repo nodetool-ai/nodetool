@@ -50,7 +50,8 @@ describe("CLI command host policies", () => {
       "minimax",
       "replicate",
       "reve",
-      "transformers-js"
+      "transformers-js",
+      "whisper-cpp"
     ];
     expect(JSON.parse(output.trim())).toEqual([
       ["atlascloud", ...local],

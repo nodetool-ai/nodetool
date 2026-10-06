@@ -343,6 +343,11 @@
         "file": "sandbox/generated/vector.js"
       },
       {
+        "name": "whisper_cpp",
+        "kind": "js",
+        "file": "sandbox/generated/whisper_cpp.js"
+      },
+      {
         "name": "xai.image",
         "kind": "js",
         "file": "sandbox/generated/xai.image.js"

@@ -23,6 +23,7 @@ import { join } from "node:path";
 
 import { runInSandbox } from "@nodetool-ai/agents";
 import { registerBaseNodes } from "@nodetool-ai/base-nodes";
+import { registerWhisperCppNodes } from "@nodetool-ai/whisper-cpp";
 import { NodeRegistry, validateGraph } from "@nodetool-ai/node-sdk";
 
 import { packDir, resolveFor } from "./pack-harness.js";
@@ -97,6 +98,7 @@ async function buildGraph(code: string, declared: string[]): Promise<Graph> {
 function liveRegistry(): NodeRegistry {
   const registry = new NodeRegistry();
   registerBaseNodes(registry);
+  registerWhisperCppNodes(registry);
   return registry;
 }
 

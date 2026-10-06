@@ -202,7 +202,8 @@ optional `@fugood/whisper.node@1.1.3` package. Install it from Package Manager.
 GGML models use the Hugging Face hub cache. `WHISPER_CPP_MODELS_DIR` adds a
 directory, and `WHISPER_CPP_GPU_BACKEND` selects `auto`, `metal`, `cuda`,
 `vulkan`, or `cpu`. Restart the backend after changing the GPU backend.
-Local only.
+`whisper_cpp.LiveTranscription` transcribes streaming PCM16 audio, with Silero
+VAD or fixed windows when no VAD model is installed. Local only.
 
 ## Transformers.js
 

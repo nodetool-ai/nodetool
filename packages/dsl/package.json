@@ -46,7 +46,8 @@
     "@nodetool-ai/reve-nodes": "*",
     "@nodetool-ai/runtime": "*",
     "@nodetool-ai/storage": "*",
-    "@nodetool-ai/transformers-js-nodes": "*"
+    "@nodetool-ai/transformers-js-nodes": "*",
+    "@nodetool-ai/whisper-cpp": "*"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",
