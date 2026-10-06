@@ -20,6 +20,7 @@ import type { JsScriptDebugReport } from "@nodetool-ai/execution/js-script-debug
 import type { JsScriptRecord } from "../js-script-debug/target.js";
 import type { JsScriptTestReport } from "../js-script-debug/harness.js";
 import { printCommandError } from "../command-errors.js";
+import { printDebugSummary } from "./debug-summary-output.js";
 import { renderJsScriptValidation } from "./js-script-validation-output.js";
 import { registerJsScriptVersionsCommands } from "./js-script-versions.js";
 import { isRecord } from "../predicates.js";
@@ -78,9 +79,7 @@ export function parseInputsOption(raw: string): Record<string, unknown> {
  * `--input-streams` stages items per handle for a body that reads `stream`:
  * a JSON object whose every value is an array.
  */
-export function parseInputStreamsOption(
-  raw: string
-) {
+export function parseInputStreamsOption(raw: string) {
   let parsed: unknown;
   try {
     parsed = JSON.parse(raw);
@@ -259,7 +258,11 @@ export function registerJsScriptCommands(program: Command): void {
         if (opts.json) {
           console.log(JSON.stringify(report, null, 2));
         } else {
-          printJsScriptSummary(report, bundleDir);
+          printDebugSummary(report, bundleDir, {
+            label: "script",
+            meta: `${report.meta.inputCount} input(s), ${report.meta.outputCount} output(s), ${report.meta.testCount} test(s)`,
+            file: "jsscript.json"
+          });
         }
         process.exit(report.verdict.ok ? 0 : 1);
       } catch (e) {
@@ -305,32 +308,4 @@ function printTestReport(report: JsScriptTestReport): void {
       );
     }
   }
-}
-
-function printJsScriptSummary(
-  report: JsScriptDebugReport,
-  bundleDir: string
-): void {
-  const mark = report.verdict.ok ? "✅" : "❌";
-  console.log(`\n${mark} ${report.verdict.headline}`);
-  console.log(
-    `  script:  ${report.meta.inputCount} input(s), ${report.meta.outputCount} output(s), ${report.meta.testCount} test(s)`
-  );
-  const failed = report.interactions.filter((i) => !i.ok).length;
-  if (report.interactions.length > 0) {
-    console.log(
-      `  session: ${report.interactions.length} step(s), ${failed} failed`
-    );
-  }
-  if (report.verdict.issues.length > 0) {
-    console.log("\nIssues:");
-    for (const issue of report.verdict.issues) console.log(`  - ${issue}`);
-  }
-  if (report.verdict.warnings && report.verdict.warnings.length > 0) {
-    console.log("\nWarnings:");
-    for (const warning of report.verdict.warnings)
-      console.log(`  - ${warning}`);
-  }
-  console.log(`\nDebug bundle: ${bundleDir}`);
-  console.log("  report.md / report.json · jsscript.json");
 }
