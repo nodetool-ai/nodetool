@@ -11,7 +11,7 @@ after its dependencies have merged, as specified in the plan.
 |---|---|---|
 | K | K1–K7 | [K1: draft save correctness](https://github.com/nodetool-ai/nodetool/pull/6163), [K2: play resource reuse](https://github.com/nodetool-ai/nodetool/pull/6164), [K3: child transforms and selection](https://github.com/nodetool-ai/nodetool/pull/6165), [K5: input and parity fixes](https://github.com/nodetool-ai/nodetool/pull/6169), [K7: missing-Vulkan investigation](https://github.com/nodetool-ai/nodetool/pull/6168) |
 | W | W1–W6 | [W1: component schemas](https://github.com/nodetool-ai/nodetool/pull/6166), [W3: renderer modules](https://github.com/nodetool-ai/nodetool/pull/6170), [W6: workstream scaffolding](https://github.com/nodetool-ai/nodetool/pull/6161) |
-| B | B1–B3 | [B3: exported build smoke test](https://github.com/nodetool-ai/nodetool/pull/6167) |
+| B | B1–B3 | [B1: supported workload benchmarks](https://github.com/nodetool-ai/nodetool/pull/6173), [B2: example and benchmark goldens](https://github.com/nodetool-ai/nodetool/pull/6174), [B3: exported build smoke test](https://github.com/nodetool-ai/nodetool/pull/6167) |
 | R | R1–R11 | |
 | V | V1–V8 | |
 | P | P1a–P1d, P2–P9 | |
