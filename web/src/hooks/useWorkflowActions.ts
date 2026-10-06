@@ -72,7 +72,7 @@ export const useWorkflowActions = (): WorkflowActions => {
         openTab({
           type: "workflow",
           ref: newWorkflow.id,
-          mode: "view",
+          mode: "edit",
           title: newWorkflow.name || example.name,
           projectId
         });

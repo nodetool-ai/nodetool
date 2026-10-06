@@ -1,0 +1,331 @@
+{
+  "schemaVersion": 1,
+  "name": "The Long Hallway",
+  "description": "A night-shift nurse sees something at the end of a hospital corridor.",
+  "tags": [
+    "film",
+    "horror"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "the-long-hallway-screenplay",
+      "title": "The Long Hallway",
+      "brief": "A night-shift nurse sees something at the end of a hospital corridor. Dolly zoom is a named move Seedance knows, and the scare comes from light, not complex action.",
+      "style_bible": "Psychological horror, cold desaturated look, fluorescent green tint. Flickering fluorescent tubes, green-white cast.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "the-long-hallway-shot-1",
+          "index": 0,
+          "slug": "the corridor",
+          "action": "Long empty corridor, one fluorescent tube flickering.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "static, centred"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-long-hallway/the-corridor.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/the-long-hallway/the-corridor.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "the-long-hallway-shot-2",
+          "index": 1,
+          "slug": "walking away",
+          "action": "Nurse walking away from camera down the corridor.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "tracking from behind"
+          },
+          "motion": "track",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-long-hallway/walking-away.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/the-long-hallway/walking-away.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "the-long-hallway-shot-3",
+          "index": 2,
+          "slug": "she stops",
+          "action": "Nurse stopping, eyes widening.",
+          "camera": {
+            "framing": "medium close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-long-hallway/she-stops.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/the-long-hallway/she-stops.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "the-long-hallway-shot-4",
+          "index": 3,
+          "slug": "dolly zoom",
+          "action": "The corridor stretching, a dark figure at the far end.",
+          "camera": {
+            "framing": "point-of-view shot",
+            "movement": "dolly zoom"
+          },
+          "motion": "dolly-zoom",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-long-hallway/dolly-zoom.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/the-long-hallway/dolly-zoom.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "the-long-hallway-shot-5",
+          "index": 4,
+          "slug": "lights out",
+          "action": "Nurse's face lit by flickering light.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-long-hallway/lights-out.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/the-long-hallway/lights-out.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "the-long-hallway-shot-1",
+        "index": 0,
+        "slug": "the corridor",
+        "action": "Long empty corridor, one fluorescent tube flickering.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "static, centred"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/the-long-hallway/the-corridor.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-long-hallway/the-corridor.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "the-long-hallway-shot-2",
+        "index": 1,
+        "slug": "walking away",
+        "action": "Nurse walking away from camera down the corridor.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "tracking from behind"
+        },
+        "motion": "track",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/the-long-hallway/walking-away.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-long-hallway/walking-away.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "the-long-hallway-shot-3",
+        "index": 2,
+        "slug": "she stops",
+        "action": "Nurse stopping, eyes widening.",
+        "camera": {
+          "framing": "medium close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/the-long-hallway/she-stops.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-long-hallway/she-stops.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "the-long-hallway-shot-4",
+        "index": 3,
+        "slug": "dolly zoom",
+        "action": "The corridor stretching, a dark figure at the far end.",
+        "camera": {
+          "framing": "point-of-view shot",
+          "movement": "dolly zoom"
+        },
+        "motion": "dolly-zoom",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/the-long-hallway/dolly-zoom.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-long-hallway/dolly-zoom.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "the-long-hallway-shot-5",
+        "index": 4,
+        "slug": "lights out",
+        "action": "Nurse's face lit by flickering light.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/the-long-hallway/lights-out.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/the-long-hallway/lights-out.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A night-shift nurse sees something at the end of a hospital corridor. Dolly zoom is a named move Seedance knows, and the scare comes from light, not complex action.",
+    "style": "Psychological horror, cold desaturated look, fluorescent green tint. Flickering fluorescent tubes, green-white cast.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

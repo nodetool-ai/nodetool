@@ -1,0 +1,273 @@
+{
+  "schemaVersion": 1,
+  "name": "Movement in Gold",
+  "description": "A luxury watch seen as a living mechanism, from gears to wrist.",
+  "tags": [
+    "advertising",
+    "luxury",
+    "product",
+    "macro"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "movement-in-gold-screenplay",
+      "title": "Movement in Gold",
+      "brief": "A luxury watch ad that treats the movement as the star. Macro shots of gears and a sweeping second hand build to one calm shot of the watch on a wrist.",
+      "style_bible": "High-end watch commercial, probe macro lens, black studio with a single warm key light and crisp gold highlights. Deep blacks, brushed metal, razor-thin depth of field.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "movement-in-gold-shot-1",
+          "index": 0,
+          "slug": "gear-turn",
+          "action": "Extreme macro of a gold gear train filling the whole frame, tiny red jewels glowing between the wheels. Only gears, no watch case or dial in the shot.",
+          "camera": {
+            "framing": "extreme macro",
+            "movement": "slow push in"
+          },
+          "motion": "push-in",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/movement-in-gold/gear-turn.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/movement-in-gold/gear-turn.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "movement-in-gold-shot-2",
+          "index": 1,
+          "slug": "second-hand",
+          "action": "The thin second hand sweeps across the champagne dial, catching a bright glint at each marker.",
+          "camera": {
+            "framing": "macro close-up",
+            "movement": "rack focus from the hand to the dial edge"
+          },
+          "motion": "rack-focus",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/movement-in-gold/second-hand.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/movement-in-gold/second-hand.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "movement-in-gold-shot-3",
+          "index": 2,
+          "slug": "crown-detail",
+          "action": "The knurled gold crown of the watch stands perfectly still on the case edge, the gold shimmering as light glides across it, the thin second hand sweeping on the champagne dial behind. No people and no hands in the shot.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "slow orbit left"
+          },
+          "motion": "orbit",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/movement-in-gold/crown-detail.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/movement-in-gold/crown-detail.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "movement-in-gold-shot-4",
+          "index": 3,
+          "slug": "on-the-wrist",
+          "action": "The watch lies on a dark table edge on a folded charcoal wool cloth, the dial glowing. No people, no wrist and no hands in the shot.",
+          "camera": {
+            "framing": "medium close-up",
+            "movement": "slow pull back"
+          },
+          "motion": "pull-back",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/movement-in-gold/on-the-wrist.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/movement-in-gold/on-the-wrist.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "movement-in-gold-shot-1",
+        "index": 0,
+        "slug": "gear-turn",
+        "action": "Extreme macro of a gold gear train filling the whole frame, tiny red jewels glowing between the wheels. Only gears, no watch case or dial in the shot.",
+        "camera": {
+          "framing": "extreme macro",
+          "movement": "slow push in"
+        },
+        "motion": "push-in",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/movement-in-gold/gear-turn.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/movement-in-gold/gear-turn.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "movement-in-gold-shot-2",
+        "index": 1,
+        "slug": "second-hand",
+        "action": "The thin second hand sweeps across the champagne dial, catching a bright glint at each marker.",
+        "camera": {
+          "framing": "macro close-up",
+          "movement": "rack focus from the hand to the dial edge"
+        },
+        "motion": "rack-focus",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/movement-in-gold/second-hand.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/movement-in-gold/second-hand.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "movement-in-gold-shot-3",
+        "index": 2,
+        "slug": "crown-detail",
+        "action": "The knurled gold crown of the watch stands perfectly still on the case edge, the gold shimmering as light glides across it, the thin second hand sweeping on the champagne dial behind. No people and no hands in the shot.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "slow orbit left"
+        },
+        "motion": "orbit",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/movement-in-gold/crown-detail.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/movement-in-gold/crown-detail.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "movement-in-gold-shot-4",
+        "index": 3,
+        "slug": "on-the-wrist",
+        "action": "The watch lies on a dark table edge on a folded charcoal wool cloth, the dial glowing. No people, no wrist and no hands in the shot.",
+        "camera": {
+          "framing": "medium close-up",
+          "movement": "slow pull back"
+        },
+        "motion": "pull-back",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/movement-in-gold/on-the-wrist.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/movement-in-gold/on-the-wrist.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A luxury watch ad that treats the movement as the star. Macro shots of gears and a sweeping second hand build to one calm shot of the watch on a wrist.",
+    "style": "High-end watch commercial, probe macro lens, black studio with a single warm key light and crisp gold highlights. Deep blacks, brushed metal, razor-thin depth of field.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

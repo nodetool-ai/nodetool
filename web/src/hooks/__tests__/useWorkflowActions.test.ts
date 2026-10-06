@@ -176,7 +176,7 @@ describe("useWorkflowActions", () => {
       );
     });
 
-    it("opens a new workflow in view mode after creation", async () => {
+    it("navigates to the workspace after creation", async () => {
       const { result } = renderHook(() => useWorkflowActions());
 
       await result.current.handleExampleClick(mockWorkflow);

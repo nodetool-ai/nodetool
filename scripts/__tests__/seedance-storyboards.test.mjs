@@ -1,11 +1,11 @@
 /**
- * The Seedance boards are written ahead of their stills, so nothing builds them
- * yet. These checks keep each one ready to promote into EXAMPLE_STORYBOARDS and
- * keep its Seedance prompt in step with its shots.
+ * The Seedance boards ship through EXAMPLE_STORYBOARDS once their stills are
+ * rendered. These checks keep each one in the shipped board shape and keep its
+ * Seedance prompt in step with its shots.
  */
 import { describe, expect, it } from "vitest";
 
-import { EXAMPLE_STORYBOARDS } from "../example-storyboards/boards.mjs";
+import { CURATED_STORYBOARDS } from "../example-storyboards/boards.mjs";
 import {
   SEEDANCE_STORYBOARDS,
   seedancePrompt
@@ -17,7 +17,7 @@ describe("seedance storyboards", () => {
   });
 
   it("uses slugs no shipped board or other Seedance board has", () => {
-    const slugs = [...EXAMPLE_STORYBOARDS, ...SEEDANCE_STORYBOARDS].map((b) => b.slug);
+    const slugs = [...CURATED_STORYBOARDS, ...SEEDANCE_STORYBOARDS].map((b) => b.slug);
     expect(new Set(slugs).size).toBe(slugs.length);
   });
 

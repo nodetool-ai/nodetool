@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "name": "Dust Ballet",
+  "description": "A dancer performs alone in an abandoned theatre lit through holes in the roof.",
+  "tags": [
+    "film",
+    "dance",
+    "atmosphere"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "dust-ballet-screenplay",
+      "title": "Dust Ballet",
+      "brief": "A dancer performs alone in an abandoned theatre lit through holes in the roof. One performer, an orbit move and volumetric light all play to Seedance's strengths.",
+      "style_bible": "Arthouse film, volumetric light, muted palette, 35mm. Hard shafts of daylight through holes in the roof, dust glowing in the beams.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "dust-ballet-shot-1",
+          "index": 0,
+          "slug": "ruined theatre",
+          "action": "Ruined theatre from the back rows, light shafts falling onto the empty stage.",
+          "camera": {
+            "framing": "extreme wide shot",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dust-ballet/ruined-theatre.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/dust-ballet/ruined-theatre.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "dust-ballet-shot-2",
+          "index": 1,
+          "slug": "en pointe",
+          "action": "The dancer rising en pointe inside a light shaft, arms in an arc.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "steadicam orbit"
+          },
+          "motion": "orbit",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dust-ballet/en-pointe.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/dust-ballet/en-pointe.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "dust-ballet-shot-3",
+          "index": 2,
+          "slug": "pointe shoes",
+          "action": "Pointe shoes turning on dusty floorboards.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "static, floor level"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dust-ballet/pointe-shoes.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/dust-ballet/pointe-shoes.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "dust-ballet-shot-4",
+          "index": 3,
+          "slug": "final spin",
+          "action": "Dancer in a final spin, skirt flaring, inside the brightest shaft.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "crane up"
+          },
+          "motion": "crane-up",
+          "duration_seconds": 5,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dust-ballet/final-spin.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/dust-ballet/final-spin.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "dust-ballet-shot-1",
+        "index": 0,
+        "slug": "ruined theatre",
+        "action": "Ruined theatre from the back rows, light shafts falling onto the empty stage.",
+        "camera": {
+          "framing": "extreme wide shot",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/dust-ballet/ruined-theatre.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dust-ballet/ruined-theatre.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "dust-ballet-shot-2",
+        "index": 1,
+        "slug": "en pointe",
+        "action": "The dancer rising en pointe inside a light shaft, arms in an arc.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "steadicam orbit"
+        },
+        "motion": "orbit",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/dust-ballet/en-pointe.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dust-ballet/en-pointe.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "dust-ballet-shot-3",
+        "index": 2,
+        "slug": "pointe shoes",
+        "action": "Pointe shoes turning on dusty floorboards.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "static, floor level"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/dust-ballet/pointe-shoes.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dust-ballet/pointe-shoes.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "dust-ballet-shot-4",
+        "index": 3,
+        "slug": "final spin",
+        "action": "Dancer in a final spin, skirt flaring, inside the brightest shaft.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "crane up"
+        },
+        "motion": "crane-up",
+        "duration_seconds": 5,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/dust-ballet/final-spin.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dust-ballet/final-spin.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A dancer performs alone in an abandoned theatre lit through holes in the roof. One performer, an orbit move and volumetric light all play to Seedance's strengths.",
+    "style": "Arthouse film, volumetric light, muted palette, 35mm. Hard shafts of daylight through holes in the roof, dust glowing in the beams.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

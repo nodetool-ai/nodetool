@@ -1193,16 +1193,15 @@ export const SURFACES: SurfaceEntry[] = [
     // `capability-suites` covers the seam — dispatch, classification, and what
     // a process with no action layer answers. The half below it runs in
     // `npm run test:integration --workspace=packages/browser`, which
-    // launches a real Chrome with the built extension loaded and drives the
-    // production transport end to end. It is not a selfcheck: it downloads
-    // Chrome and binds port 7777, so a diff to the relay still needs it run
-    // by hand.
+    // launches a real Chrome with the built extension loaded and its native
+    // host registered, and drives the production transport end to end. It is
+    // not a selfcheck: it downloads Chrome, so a diff to the relay still
+    // needs it run by hand.
     paths: [
       "chrome-extension/",
       "packages/browser/",
       "packages/agents/src/capabilities/browser.ts",
-      "packages/agents/src/capabilities/browser.specs.ts",
-      "packages/websocket/src/extension-cdp-bridge.ts"
+      "packages/agents/src/capabilities/browser.specs.ts"
     ]
   },
   {

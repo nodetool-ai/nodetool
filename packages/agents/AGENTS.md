@@ -561,7 +561,11 @@ around every tool- and plan-approval round trip.
   bridge as a native one. Host → guest is not: a returned `Uint8Array` arrives
   in the guest as a numeric-keyed plain object. Bridges that produce bytes
   therefore return a base64 marker object and the guest prelude rebuilds a real
-  `Uint8Array` — the pattern to follow for any new binary bridge.
+  `Uint8Array` — the pattern to follow for any new binary bridge. The
+  prelude's deep revive must stop at a typed array: walking a rebuilt
+  `Uint8Array` key by key made one string per byte, and a photo-sized
+  `media.bytes` aborted the runtime on free. Pinned by "host→guest binary
+  volume" in `tests/js-sandbox.test.ts`.
 - `serializeResult` scans for typed arrays at **any** depth. It used to look
   only one level in, so binary nested deeper fell onto the `JSON.stringify`
   path, where a `Uint8Array` becomes `{"0":137,"1":80}` — lossy, and

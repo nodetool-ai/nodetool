@@ -76,7 +76,4 @@ export { createAssetUrlBuilder } from "./url-builder.js";
 
 // Caches
 export { MemoryUriCache } from "./memory-uri-cache.js";
-export {
-  MemoryNodeCache,
-  type AbstractNodeCache
-} from "./memory-node-cache.js";
+export { MemoryNodeCache } from "./memory-node-cache.js";

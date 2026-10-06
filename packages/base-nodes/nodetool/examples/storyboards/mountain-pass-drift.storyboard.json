@@ -1,0 +1,332 @@
+{
+  "schemaVersion": 1,
+  "name": "Mountain Pass Drift",
+  "description": "A lone car drifts a hairpin at night, headlights carving through fog.",
+  "tags": [
+    "action",
+    "automotive",
+    "night"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "mountain-pass-drift-screenplay",
+      "title": "Mountain Pass Drift",
+      "brief": "A lone car drifts a hairpin at night, headlights carving through fog. Tyre smoke and light in fog are easy wins. One car means no collision to get wrong.",
+      "style_bible": "Night car film, cinematic, wet road sheen, haze. Headlights and red taillights only, cool blue moonlight.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "mountain-pass-drift-shot-1",
+          "index": 0,
+          "slug": "switchbacks",
+          "action": "Switchback road snaking down the mountain, a single pair of headlights.",
+          "camera": {
+            "framing": "extreme wide shot",
+            "movement": "fast high drone dive following the headlights down the switchbacks"
+          },
+          "motion": "track",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mountain-pass-drift/switchbacks.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/mountain-pass-drift/switchbacks.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "mountain-pass-drift-shot-2",
+          "index": 1,
+          "slug": "into the hairpin",
+          "action": "The white coupe sideways in the hairpin, tyre smoke pouring.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "tracking side"
+          },
+          "motion": "track",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mountain-pass-drift/into-the-hairpin.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/mountain-pass-drift/into-the-hairpin.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "mountain-pass-drift-shot-3",
+          "index": 2,
+          "slug": "countersteer",
+          "action": "Close-up from the passenger seat of the gloved hands on the thin wheel of the 90s coupe, the left hand sliding the wheel as the car drifts, amber analog gauges glowing on the dashboard, the wet road and fog visible through the windshield.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "handheld inside the car, shaking with the drift"
+          },
+          "motion": "handheld",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mountain-pass-drift/countersteer.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/mountain-pass-drift/countersteer.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "mountain-pass-drift-shot-4",
+          "index": 3,
+          "slug": "taillights in fog",
+          "action": "Red taillights snaking through fog.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "fast low drone chase behind the car"
+          },
+          "motion": "track",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mountain-pass-drift/taillights-in-fog.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/mountain-pass-drift/taillights-in-fog.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "mountain-pass-drift-shot-5",
+          "index": 4,
+          "slug": "smoke hangs",
+          "action": "Empty wet hairpin at realistic scale, a thin drifting layer of tyre smoke hanging low over the asphalt and guardrail, lit by the faint red glow of taillights disappearing far down the road, no car in frame.",
+          "camera": {
+            "framing": "extreme wide shot",
+            "movement": "low static start, then a fast whip pan following the car past the camera"
+          },
+          "motion": "whip-pan",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mountain-pass-drift/smoke-hangs.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/mountain-pass-drift/smoke-hangs.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "mountain-pass-drift-shot-1",
+        "index": 0,
+        "slug": "switchbacks",
+        "action": "Switchback road snaking down the mountain, a single pair of headlights.",
+        "camera": {
+          "framing": "extreme wide shot",
+          "movement": "fast high drone dive following the headlights down the switchbacks"
+        },
+        "motion": "track",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/mountain-pass-drift/switchbacks.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mountain-pass-drift/switchbacks.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "mountain-pass-drift-shot-2",
+        "index": 1,
+        "slug": "into the hairpin",
+        "action": "The white coupe sideways in the hairpin, tyre smoke pouring.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "tracking side"
+        },
+        "motion": "track",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/mountain-pass-drift/into-the-hairpin.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mountain-pass-drift/into-the-hairpin.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "mountain-pass-drift-shot-3",
+        "index": 2,
+        "slug": "countersteer",
+        "action": "Close-up from the passenger seat of the gloved hands on the thin wheel of the 90s coupe, the left hand sliding the wheel as the car drifts, amber analog gauges glowing on the dashboard, the wet road and fog visible through the windshield.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "handheld inside the car, shaking with the drift"
+        },
+        "motion": "handheld",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/mountain-pass-drift/countersteer.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mountain-pass-drift/countersteer.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "mountain-pass-drift-shot-4",
+        "index": 3,
+        "slug": "taillights in fog",
+        "action": "Red taillights snaking through fog.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "fast low drone chase behind the car"
+        },
+        "motion": "track",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/mountain-pass-drift/taillights-in-fog.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mountain-pass-drift/taillights-in-fog.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "mountain-pass-drift-shot-5",
+        "index": 4,
+        "slug": "smoke hangs",
+        "action": "Empty wet hairpin at realistic scale, a thin drifting layer of tyre smoke hanging low over the asphalt and guardrail, lit by the faint red glow of taillights disappearing far down the road, no car in frame.",
+        "camera": {
+          "framing": "extreme wide shot",
+          "movement": "low static start, then a fast whip pan following the car past the camera"
+        },
+        "motion": "whip-pan",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/mountain-pass-drift/smoke-hangs.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/mountain-pass-drift/smoke-hangs.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A lone car drifts a hairpin at night, headlights carving through fog. Tyre smoke and light in fog are easy wins. One car means no collision to get wrong.",
+    "style": "Night car film, cinematic, wet road sheen, haze. Headlights and red taillights only, cool blue moonlight.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

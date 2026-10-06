@@ -1,0 +1,273 @@
+{
+  "schemaVersion": 1,
+  "name": "Bowl Time",
+  "description": "A dog hears the kibble hit the bowl and the whole house knows it.",
+  "tags": [
+    "advertising",
+    "pets",
+    "food",
+    "comedy"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "bowl-time-screenplay",
+      "title": "Bowl Time",
+      "brief": "A pet food ad told from the dog's point of view of dinner time. A sleepy golden retriever hears one sound and bursts into joyful action, ending with one clean bowl.",
+      "style_bible": "Warm family-brand commercial, soft natural kitchen light, golden tones, slightly low camera at dog height, playful and clean.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "bowl-time-shot-1",
+          "index": 0,
+          "slug": "sleepy-dog",
+          "action": "The golden retriever dozes alone on a rug in the living room in a patch of afternoon sun, eyes closed, both soft floppy ears hanging down relaxed against his head. No people and no bowl in the shot.",
+          "camera": {
+            "framing": "low-angle medium shot",
+            "movement": "static at dog height"
+          },
+          "motion": "hold",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/bowl-time/sleepy-dog.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/bowl-time/sleepy-dog.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "bowl-time-shot-2",
+          "index": 1,
+          "slug": "kibble-sound",
+          "action": "Kibble pours from a scoop at the top edge of the frame into a plain ceramic bowl on the wooden floor, bouncing and rattling as it fills. Only the bowl and the falling kibble are in frame, with no people and no dog.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "static, slow motion"
+          },
+          "motion": "hold",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/bowl-time/kibble-sound.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/bowl-time/kibble-sound.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "bowl-time-shot-3",
+          "index": 2,
+          "slug": "happy-eating",
+          "action": "The dog sits alone in front of the bowl with a wagging tail and digs in, kibble crunching as he eats happily. No people in the shot.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "slow push in"
+          },
+          "motion": "push-in",
+          "duration_seconds": 5,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/bowl-time/happy-eating.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/bowl-time/happy-eating.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "bowl-time-shot-4",
+          "index": 3,
+          "slug": "clean-bowl",
+          "action": "The empty bowl sits spotless on the floor while the dog looks up at the camera with a hopeful grin and a tilted head.",
+          "camera": {
+            "framing": "medium close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 2,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/bowl-time/clean-bowl.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/bowl-time/clean-bowl.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "bowl-time-shot-1",
+        "index": 0,
+        "slug": "sleepy-dog",
+        "action": "The golden retriever dozes alone on a rug in the living room in a patch of afternoon sun, eyes closed, both soft floppy ears hanging down relaxed against his head. No people and no bowl in the shot.",
+        "camera": {
+          "framing": "low-angle medium shot",
+          "movement": "static at dog height"
+        },
+        "motion": "hold",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/bowl-time/sleepy-dog.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/bowl-time/sleepy-dog.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "bowl-time-shot-2",
+        "index": 1,
+        "slug": "kibble-sound",
+        "action": "Kibble pours from a scoop at the top edge of the frame into a plain ceramic bowl on the wooden floor, bouncing and rattling as it fills. Only the bowl and the falling kibble are in frame, with no people and no dog.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "static, slow motion"
+        },
+        "motion": "hold",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/bowl-time/kibble-sound.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/bowl-time/kibble-sound.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "bowl-time-shot-3",
+        "index": 2,
+        "slug": "happy-eating",
+        "action": "The dog sits alone in front of the bowl with a wagging tail and digs in, kibble crunching as he eats happily. No people in the shot.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "slow push in"
+        },
+        "motion": "push-in",
+        "duration_seconds": 5,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/bowl-time/happy-eating.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/bowl-time/happy-eating.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "bowl-time-shot-4",
+        "index": 3,
+        "slug": "clean-bowl",
+        "action": "The empty bowl sits spotless on the floor while the dog looks up at the camera with a hopeful grin and a tilted head.",
+        "camera": {
+          "framing": "medium close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 2,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/bowl-time/clean-bowl.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/bowl-time/clean-bowl.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A pet food ad told from the dog's point of view of dinner time. A sleepy golden retriever hears one sound and bursts into joyful action, ending with one clean bowl.",
+    "style": "Warm family-brand commercial, soft natural kitchen light, golden tones, slightly low camera at dog height, playful and clean.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

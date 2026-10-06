@@ -1,8 +1,10 @@
 /**
  * CDP relay: the heart of the thin proxy.
  *
- * Maintains a single WebSocket to the Nodetool server's `/ws/extension` side
- * channel and, when the user explicitly attaches a tab, bridges JSON wire
+ * Maintains a native messaging port to the Nodetool native host (see
+ * `packages/browser/src/extension/native-host.ts`). The host exposes a local
+ * unix socket, so the backend and the CLI reach this relay with no server in
+ * between. When the user explicitly attaches a tab, the relay bridges JSON wire
  * frames to the `chrome.debugger` API:
  *
  *   host {kind:"cdp"}        -> chrome.debugger.sendCommand -> {kind:"cdp_result"}
@@ -18,7 +20,6 @@
  */
 
 import {
-  parseExtensionFrame,
   type AttachedFrame,
   type CdpEventFrame,
   type CdpResultFrame,
@@ -42,19 +43,14 @@ export type RelayConnectionState =
 /** A snapshot of relay state for the popup. */
 export interface RelayStatus {
   connection: RelayConnectionState;
-  /** The configured server WS URL. */
-  serverUrl: string;
   /** The tab id the debugger is attached to, or null when detached. */
   attachedTabId: number | null;
   /** Last error message, if any. */
   lastError: string | null;
 }
 
-/** Default `/ws/extension` URL when none is stored. */
-export const DEFAULT_SERVER_URL = "ws://localhost:7777/ws/extension";
-
-/** chrome.storage key holding the server WS URL. */
-export const STORAGE_KEY_SERVER_URL = "nodetool_server_ws_url";
+/** Native messaging host name. Must match `NATIVE_HOST_NAME` in `@nodetool-ai/browser`. */
+export const NATIVE_HOST_NAME = "ai.nodetool.browser_bridge";
 
 /** Reconnect backoff bounds (ms). */
 const RECONNECT_MIN_MS = 1_000;
@@ -70,14 +66,12 @@ type StatusListener = (status: RelayStatus) => void;
  * Singleton relay. The service worker constructs exactly one of these.
  */
 export class CdpRelay {
-  private ws: WebSocket | null = null;
-  private serverUrl = DEFAULT_SERVER_URL;
+  private port: chrome.runtime.Port | null = null;
   private connection: RelayConnectionState = "disconnected";
   private attachedTabId: number | null = null;
   private lastError: string | null = null;
   private reconnectDelay = RECONNECT_MIN_MS;
   private reconnectTimer: ReturnType<typeof setTimeout> | null = null;
-  private manualClose = false;
   private started = false;
   private readonly statusListeners = new Set<StatusListener>();
 
@@ -114,15 +108,14 @@ export class CdpRelay {
   };
 
   /**
-   * Load the persisted server URL and open the socket. Idempotent: safe to call
-   * from the service worker's top-level boot, `onInstalled`, and `onStartup`.
-   * The one-time listener/alarm setup runs once; subsequent calls only ensure
-   * the socket is (re)connecting.
+   * Open the native messaging port. Idempotent: safe to call from the service
+   * worker's top-level boot, `onInstalled`, and `onStartup`. The one-time
+   * listener/alarm setup runs once; subsequent calls only ensure the port is
+   * (re)connecting.
    */
   async start(): Promise<void> {
     if (!this.started) {
       this.started = true;
-      this.serverUrl = await loadServerUrl();
       chrome.debugger.onEvent.addListener(this.onDebuggerEvent);
       chrome.debugger.onDetach.addListener(this.onDebuggerDetach);
       this.ensureKeepalive();
@@ -134,7 +127,6 @@ export class CdpRelay {
   getStatus(): RelayStatus {
     return {
       connection: this.connection,
-      serverUrl: this.serverUrl,
       attachedTabId: this.attachedTabId,
       lastError: this.lastError,
     };
@@ -147,18 +139,6 @@ export class CdpRelay {
     return () => {
       this.statusListeners.delete(listener);
     };
-  }
-
-  /** Update and persist the server URL, then reconnect. */
-  async setServerUrl(url: string): Promise<void> {
-    const trimmed = url.trim();
-    if (!trimmed) {
-      return;
-    }
-    this.serverUrl = trimmed;
-    await chrome.storage.local.set({ [STORAGE_KEY_SERVER_URL]: trimmed });
-    this.reconnectDelay = RECONNECT_MIN_MS;
-    this.reconnect();
   }
 
   /**
@@ -192,7 +172,7 @@ export class CdpRelay {
     this.emitStatus();
   }
 
-  /** Reply to a keepalive alarm by nudging the socket. */
+  /** Reply to a keepalive alarm by reconnecting a dropped port. */
   handleKeepalive(): void {
     if (this.connection === "disconnected" || this.connection === "error") {
       this.connect();
@@ -200,64 +180,40 @@ export class CdpRelay {
   }
 
   private connect(): void {
-    if (
-      this.ws &&
-      (this.ws.readyState === WebSocket.OPEN ||
-        this.ws.readyState === WebSocket.CONNECTING)
-    ) {
+    if (this.port) {
       return;
     }
-    this.manualClose = false;
     this.setConnection("connecting");
 
-    let socket: WebSocket;
+    let port: chrome.runtime.Port;
     try {
-      socket = new WebSocket(this.serverUrl);
+      port = chrome.runtime.connectNative(NATIVE_HOST_NAME);
     } catch (err) {
       this.lastError = errorMessage(err);
       this.setConnection("error");
       this.scheduleReconnect();
       return;
     }
-    this.ws = socket;
+    this.port = port;
 
-    socket.addEventListener("open", () => {
-      this.reconnectDelay = RECONNECT_MIN_MS;
-      this.lastError = null;
-      this.setConnection("connected");
+    port.onMessage.addListener((message: unknown) => {
+      void this.handleMessage(message);
     });
 
-    socket.addEventListener("message", (event) => {
-      void this.handleMessage(event.data);
-    });
-
-    socket.addEventListener("close", () => {
-      if (this.ws === socket) {
-        this.ws = null;
+    port.onDisconnect.addListener(() => {
+      // Chrome reports a missing or forbidden host here, as `lastError`.
+      const reason = chrome.runtime.lastError?.message ?? null;
+      if (this.port === port) {
+        this.port = null;
       }
-      if (!this.manualClose) {
-        this.setConnection("disconnected");
-        this.scheduleReconnect();
-      }
+      this.lastError = reason;
+      this.setConnection(reason ? "error" : "disconnected");
+      this.scheduleReconnect();
     });
 
-    socket.addEventListener("error", () => {
-      this.lastError = "WebSocket connection error.";
-      this.setConnection("error");
-    });
-  }
-
-  private reconnect(): void {
-    this.manualClose = true;
-    if (this.ws) {
-      try {
-        this.ws.close();
-      } catch {
-        // Socket may already be closing; ignore.
-      }
-      this.ws = null;
-    }
-    this.connect();
+    this.reconnectDelay = RECONNECT_MIN_MS;
+    this.lastError = null;
+    this.setConnection("connected");
   }
 
   private scheduleReconnect(): void {
@@ -273,10 +229,7 @@ export class CdpRelay {
   }
 
   private async handleMessage(raw: unknown): Promise<void> {
-    if (typeof raw !== "string") {
-      return;
-    }
-    const frame = parseExtensionFrame(raw);
+    const frame = asFrame(raw);
     if (!frame) {
       return;
     }
@@ -285,7 +238,7 @@ export class CdpRelay {
         await this.handleCdpCommand(frame.id, frame.method, frame.params);
         break;
       case "attach":
-        await this.handleAttachRequest();
+        await this.handleAttachRequest(frame.urlMatch);
         break;
       case "detach":
         await this.teardownDebugger(frame.reason ?? "Host detached", false);
@@ -345,8 +298,8 @@ export class CdpRelay {
    * different extension") that reaches the agent as an unexplained tool
    * error. Falling back to a real web page is what the host asked for anyway.
    */
-  private async handleAttachRequest(): Promise<void> {
-    if (this.attachedTabId !== null) {
+  private async handleAttachRequest(urlMatch?: string): Promise<void> {
+    if (this.attachedTabId !== null && (await this.attachedTabMatches(urlMatch))) {
       this.send<AttachedFrame>({
         kind: "attached",
         tabId: this.attachedTabId,
@@ -354,8 +307,13 @@ export class CdpRelay {
       return;
     }
     try {
-      const tab = await findAttachableTab();
+      const tab = await findAttachableTab(urlMatch);
       if (!tab) {
+        if (urlMatch) {
+          throw new Error(
+            `No open tab matches ${urlMatch}. Open it in Chrome, sign in, and try again.`,
+          );
+        }
         throw new Error(
           "No debuggable tab is open. Chrome blocks debugging of its own pages, other extensions' pages and the Web Store — open a normal web page and try again.",
         );
@@ -364,6 +322,19 @@ export class CdpRelay {
       this.send<AttachedFrame>({ kind: "attached", tabId: tab.id });
     } catch (err) {
       this.sendFatal(errorMessage(err));
+    }
+  }
+
+  /** Whether the attached tab satisfies the host's URL hint, if it gave one. */
+  private async attachedTabMatches(urlMatch?: string): Promise<boolean> {
+    if (!urlMatch || this.attachedTabId === null) {
+      return true;
+    }
+    try {
+      const tab = await chrome.tabs.get(this.attachedTabId);
+      return tab.url?.includes(urlMatch) ?? false;
+    } catch {
+      return false;
     }
   }
 
@@ -407,9 +378,7 @@ export class CdpRelay {
   }
 
   private send<T extends ExtensionExtToHostFrame>(frame: T): void {
-    if (this.ws && this.ws.readyState === WebSocket.OPEN) {
-      this.ws.send(JSON.stringify(frame));
-    }
+    this.port?.postMessage(frame);
   }
 
   private sendFatal(message: string): void {
@@ -482,7 +451,20 @@ const WEB_STORE_HOSTS = [
  * The tab a host-initiated attach should use: the active one when it is
  * debuggable, else the most recently used tab that is.
  */
-export async function findAttachableTab(): Promise<{ id: number } | null> {
+export async function findAttachableTab(
+  urlMatch?: string,
+): Promise<{ id: number } | null> {
+  if (urlMatch) {
+    const all = await chrome.tabs.query({});
+    const matches = all.filter(
+      (tab) =>
+        tab.id !== undefined &&
+        tab.url?.includes(urlMatch) &&
+        !attachBlockReason(tab.url),
+    );
+    const best = matches.find((tab) => tab.active) ?? matches[0];
+    return best?.id !== undefined ? { id: best.id } : null;
+  }
   const [active] = await chrome.tabs.query({ active: true, currentWindow: true });
   if (active?.id !== undefined && !attachBlockReason(active.url)) {
     return { id: active.id };
@@ -508,11 +490,16 @@ export async function findAttachableTab(): Promise<{ id: number } | null> {
 /** The keepalive alarm name, exported for the service worker's alarm router. */
 export const KEEPALIVE_ALARM_NAME = KEEPALIVE_ALARM;
 
-/** Load the stored server URL, falling back to the default. */
-export async function loadServerUrl(): Promise<string> {
-  const stored = await chrome.storage.local.get(STORAGE_KEY_SERVER_URL);
-  const url = stored[STORAGE_KEY_SERVER_URL];
-  return typeof url === "string" && url.trim() ? url.trim() : DEFAULT_SERVER_URL;
+/** A native message is a parsed JSON object; accept it when it has a string `kind`. */
+function asFrame(value: unknown): ExtensionFrame | null {
+  if (
+    typeof value === "object" &&
+    value !== null &&
+    typeof (value as { kind?: unknown }).kind === "string"
+  ) {
+    return value as ExtensionFrame;
+  }
+  return null;
 }
 
 function errorMessage(err: unknown): string {

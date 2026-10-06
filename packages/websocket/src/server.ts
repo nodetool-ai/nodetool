@@ -1151,9 +1151,8 @@ app.addHook("onRequest", async (req, reply) => {
   // application it may act on, and its whole point is that it reaches nothing
   // else — so the confinement is applied right here, at the door, rather than
   // trusted to every handler downstream. `/ws` is the only path it opens: the
-  // run transport, and exactly that path — `/ws/download` and `/ws/extension`
-  // are model downloads and the browser-extension bridge, neither of which a
-  // visitor to somebody's app has any business opening. The public app routes
+  // run transport, and exactly that path — `/ws/download` is model downloads,
+  // which a visitor to somebody's app has no business opening. The public app routes
   // need no token at all (they are auth-exempt above), and every other path —
   // tRPC, the REST library, assets, settings — is refused, because the
   // owner's account is not what the visitor was given a link to.

@@ -1,0 +1,271 @@
+{
+  "schemaVersion": 1,
+  "name": "Summit Reveal",
+  "description": "A climber pulls onto a summit as the clouds break below.",
+  "tags": [
+    "nature",
+    "adventure"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "summit-reveal-screenplay",
+      "title": "Summit Reveal",
+      "brief": "A climber pulls onto a summit as the clouds break below. The crane-up reveal is the payoff. The prompt ties the move to her standing up so it lands.",
+      "style_bible": "Epic adventure documentary, high altitude, crisp air, IMAX feel. Sunrise, warm orange on the snow, deep blue sky.",
+      "aspect_ratio": "21:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "summit-reveal-shot-1",
+          "index": 0,
+          "slug": "final hold",
+          "action": "Gloved hand gripping the final rock, frost on the glove.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/summit-reveal/final-hold.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/summit-reveal/final-hold.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "summit-reveal-shot-2",
+          "index": 1,
+          "slug": "onto the ridge",
+          "action": "Climber hauling onto the summit ridge, breathing hard.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/summit-reveal/onto-the-ridge.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/summit-reveal/onto-the-ridge.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "summit-reveal-shot-3",
+          "index": 2,
+          "slug": "goggles up",
+          "action": "Climber standing and pushing her goggles up.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "slow orbit"
+          },
+          "motion": "orbit",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/summit-reveal/goggles-up.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/summit-reveal/goggles-up.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "summit-reveal-shot-4",
+          "index": 3,
+          "slug": "sea of clouds",
+          "action": "Tiny red figure on the summit above a vast sea of clouds and distant peaks at sunrise.",
+          "camera": {
+            "framing": "extreme wide shot",
+            "movement": "crane up and back"
+          },
+          "motion": "crane-up",
+          "duration_seconds": 6,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/summit-reveal/sea-of-clouds.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/summit-reveal/sea-of-clouds.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "summit-reveal-shot-1",
+        "index": 0,
+        "slug": "final hold",
+        "action": "Gloved hand gripping the final rock, frost on the glove.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/summit-reveal/final-hold.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/summit-reveal/final-hold.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "summit-reveal-shot-2",
+        "index": 1,
+        "slug": "onto the ridge",
+        "action": "Climber hauling onto the summit ridge, breathing hard.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/summit-reveal/onto-the-ridge.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/summit-reveal/onto-the-ridge.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "summit-reveal-shot-3",
+        "index": 2,
+        "slug": "goggles up",
+        "action": "Climber standing and pushing her goggles up.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "slow orbit"
+        },
+        "motion": "orbit",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/summit-reveal/goggles-up.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/summit-reveal/goggles-up.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "summit-reveal-shot-4",
+        "index": 3,
+        "slug": "sea of clouds",
+        "action": "Tiny red figure on the summit above a vast sea of clouds and distant peaks at sunrise.",
+        "camera": {
+          "framing": "extreme wide shot",
+          "movement": "crane up and back"
+        },
+        "motion": "crane-up",
+        "duration_seconds": 6,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/summit-reveal/sea-of-clouds.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/summit-reveal/sea-of-clouds.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A climber pulls onto a summit as the clouds break below. The crane-up reveal is the payoff. The prompt ties the move to her standing up so it lands.",
+    "style": "Epic adventure documentary, high altitude, crisp air, IMAX feel. Sunrise, warm orange on the snow, deep blue sky.",
+    "entityIds": [],
+    "aspectRatio": "21:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

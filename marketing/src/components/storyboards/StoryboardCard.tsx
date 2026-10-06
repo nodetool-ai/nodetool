@@ -67,7 +67,7 @@ export function StoryboardCard({ board }: { board: Storyboard }) {
         <p className="text-xs font-medium text-amber-300">
           {categoryLabel(board.category)}
           {isVertical(board) && (
-            <span className="ml-2 text-slate-500">Vertical</span>
+            <span className="ml-2 text-slate-400">Vertical</span>
           )}
         </p>
         <h3 className="mt-2 flex items-start justify-between gap-3 text-lg font-semibold leading-snug tracking-tight text-slate-100 transition-colors group-hover:text-white md:text-xl">

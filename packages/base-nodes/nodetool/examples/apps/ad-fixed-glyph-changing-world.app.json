@@ -1914,7 +1914,9 @@
                         "kind": "shape",
                         "role": "decorative",
                         "style": {
-                          "fill": "#FFFFFF",
+                          "fill": "#0B1633",
+                          "stroke": "#FFFFFF",
+                          "strokeWidth": 0.003,
                           "cornerRadius": 0.03
                         },
                         "frame": {
@@ -1935,8 +1937,8 @@
                         "id": "ctaPill",
                         "kind": "shape",
                         "role": "decorative",
-                        "inputId": "brandColor",
                         "style": {
+                          "fill": "#0B1633",
                           "stroke": "#FFFFFF",
                           "strokeWidth": 0.005,
                           "cornerRadius": 0.066
@@ -2967,7 +2969,9 @@
                         "kind": "shape",
                         "role": "decorative",
                         "style": {
-                          "fill": "#FFFFFF",
+                          "fill": "#0B1633",
+                          "stroke": "#FFFFFF",
+                          "strokeWidth": 0.003,
                           "cornerRadius": 0.03
                         },
                         "frame": {
@@ -2988,8 +2992,8 @@
                         "id": "ctaPill",
                         "kind": "shape",
                         "role": "decorative",
-                        "inputId": "brandColor",
                         "style": {
+                          "fill": "#0B1633",
                           "stroke": "#FFFFFF",
                           "strokeWidth": 0.005,
                           "cornerRadius": 0.066
@@ -4638,7 +4642,9 @@
                 "kind": "shape",
                 "role": "decorative",
                 "style": {
-                  "fill": "#FFFFFF",
+                  "fill": "#0B1633",
+                  "stroke": "#FFFFFF",
+                  "strokeWidth": 0.003,
                   "cornerRadius": 0.03
                 },
                 "frame": {
@@ -4659,8 +4665,8 @@
                 "id": "ctaPill",
                 "kind": "shape",
                 "role": "decorative",
-                "inputId": "brandColor",
                 "style": {
+                  "fill": "#0B1633",
                   "stroke": "#FFFFFF",
                   "strokeWidth": 0.005,
                   "cornerRadius": 0.066

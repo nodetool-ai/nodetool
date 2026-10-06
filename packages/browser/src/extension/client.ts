@@ -1,6 +1,6 @@
 /**
- * WebSocket RPC layer that speaks the `/ws/extension` wire protocol and exposes
- * a synthetic `chrome-remote-interface`-shaped `client`.
+ * RPC layer that speaks the extension wire protocol and exposes a synthetic
+ * `chrome-remote-interface`-shaped `client`.
  *
  * The agentic action loop (`CdpPage`) is transport-agnostic: it only ever uses
  * `client.Domain.command(params) => Promise<result>` and
@@ -8,10 +8,9 @@
  * shape, but instead of talking to a local CDP socket it tunnels CDP commands
  * and events to/from the Chrome extension over a JSON side channel.
  *
- * Transport is pluggable: the constructor accepts either an in-process
- * {@link ExtensionChannel} (when the action loop runs inside the nodetool
- * server and rides the `ExtensionBridge`) or a WebSocket URL (when it runs in a
- * separate CLI process and connects to `/ws/extension` directly).
+ * Transport is pluggable. By default the client connects to the native
+ * messaging host's unix socket (see {@link createSocketChannel}), which needs no
+ * server. Tests pass their own {@link ExtensionChannel}.
  *
  * See {@link file://./protocol.ts} for the wire-protocol types.
  */
@@ -23,21 +22,15 @@ import type {
   ExtensionFrame,
   ExtensionHostToExtFrame
 } from "./protocol.js";
-import { parseExtensionFrame } from "./protocol.js";
 import { createLogger } from "@nodetool-ai/config";
+import { createSocketChannel } from "./socket-channel.js";
 
 const log = createLogger("nodetool.browser.extension");
-
-/** Default `/ws/extension` endpoint used when only a URL transport is needed. */
-const DEFAULT_WS_URL = "ws://localhost:7777/ws/extension";
 
 /** Heartbeat interval. A missed pong by the next tick fails the connection. */
 const HEARTBEAT_MS = 15_000;
 
-/**
- * A bidirectional frame channel. The in-process bridge implements this directly;
- * the WS-URL transport is adapted to it internally.
- */
+/** A bidirectional frame channel to the extension. */
 export interface ExtensionChannel {
   /** Send a host→ext frame. */
   send(frame: ExtensionHostToExtFrame): void;
@@ -46,11 +39,11 @@ export interface ExtensionChannel {
   /** Tear down the channel. */
   close(): void;
   /**
-   * Whether an extension socket is currently registered. Only the in-process
-   * bridge can answer — the WS-URL transport would have to open a socket to
-   * find out — so it is absent there rather than guessed at.
+   * Called with whether a request is in flight. A channel may hold its
+   * connection open only while busy, so an idle connection does not keep the
+   * process alive.
    */
-  readonly connected?: boolean;
+  setBusy?(busy: boolean): void;
 }
 
 /** Listener for forwarded CDP events, keyed by fully-qualified method name. */
@@ -103,8 +96,8 @@ export interface ExtensionCdpClientOptions {
  * RPC bridge to the Chrome extension. Construct, then read {@link client}.
  *
  * Lifecycle: construct → {@link attach} → use {@link client} → {@link detach}
- * (or {@link close}). The transport opens lazily on first use for the WS-URL
- * form; the in-process channel is assumed already open.
+ * (or {@link close}). The default socket channel connects on construction and
+ * buffers frames until it is up.
  */
 export class ExtensionCdpClient {
   private readonly channel: ExtensionChannel;
@@ -124,23 +117,15 @@ export class ExtensionCdpClient {
   readonly client: ExtensionCdpClientApi;
 
   /**
-   * @param transport In-process {@link ExtensionChannel} or a `ws://` URL. When
-   *   omitted, `NODETOOL_EXTENSION_WS_URL` (default {@link DEFAULT_WS_URL}) is used.
+   * @param transport A frame channel. When omitted, the client connects to the
+   *   native messaging host's socket.
    */
   constructor(
-    transport?: ExtensionChannel | string,
+    transport?: ExtensionChannel,
     options: ExtensionCdpClientOptions = {}
   ) {
     this.sessionId = options.sessionId;
-    if (transport && typeof transport !== "string") {
-      this.channel = transport;
-    } else {
-      const url =
-        transport ??
-        process.env.NODETOOL_EXTENSION_WS_URL ??
-        DEFAULT_WS_URL;
-      this.channel = createWebSocketChannel(url);
-    }
+    this.channel = transport ?? createSocketChannel();
     this.channel.onMessage((frame) => this.handleFrame(frame));
     this.client = this.buildClient();
     this.startHeartbeat();
@@ -150,11 +135,12 @@ export class ExtensionCdpClient {
    * Send an `attach` control frame and resolve once the extension acknowledges
    * with `attached`. Rejects on a fatal `error`/`detach` before acknowledgment.
    */
-  attach(timeoutMs = 30_000): Promise<void> {
+  attach(timeoutMs = 30_000, urlMatch?: string): Promise<void> {
     return new Promise<void>((resolve, reject) => {
       const timer = setTimeout(() => {
         this.attachResolve = null;
         this.attachReject = null;
+        this.updateBusy();
         log.warn(
           `Attach timed out after ${timeoutMs}ms — no 'attached' frame from ` +
             "the extension (is it installed and attached to a tab?)"
@@ -169,8 +155,9 @@ export class ExtensionCdpClient {
         clearTimeout(timer);
         reject(err);
       };
+      this.updateBusy();
       log.debug("Sending attach frame", { sessionId: this.sessionId });
-      this.channel.send({ kind: "attach", sessionId: this.sessionId });
+      this.channel.send({ kind: "attach", sessionId: this.sessionId, urlMatch });
     });
   }
 
@@ -262,10 +249,12 @@ export class ExtensionCdpClient {
     };
     return new Promise<Record<string, unknown>>((resolve, reject) => {
       this.pending.set(id, { resolve, reject });
+      this.updateBusy();
       try {
         this.channel.send(frame);
       } catch (err) {
         this.pending.delete(id);
+        this.updateBusy();
         reject(err instanceof Error ? err : new Error(String(err)));
       }
     });
@@ -287,6 +276,11 @@ export class ExtensionCdpClient {
   }
 
   private handleFrame(frame: ExtensionFrame): void {
+    this.dispatchFrame(frame);
+    this.updateBusy();
+  }
+
+  private dispatchFrame(frame: ExtensionFrame): void {
     switch (frame.kind) {
       case "cdp_result":
         this.handleResult(frame);
@@ -340,6 +334,7 @@ export class ExtensionCdpClient {
     const pending = this.pending.get(frame.id);
     if (!pending) return;
     this.pending.delete(frame.id);
+    this.updateBusy();
     if (frame.error) {
       log.debug(`CDP command #${frame.id} failed: ${frame.error.message}`);
       pending.reject(new Error(frame.error.message));
@@ -357,9 +352,15 @@ export class ExtensionCdpClient {
     }
   }
 
+  /** Tell the channel whether a command or an attach is waiting on the extension. */
+  private updateBusy(): void {
+    this.channel.setBusy?.(this.pending.size > 0 || this.attachResolve !== null);
+  }
+
   private rejectAll(err: Error): void {
     const pending = [...this.pending.values()];
     this.pending.clear();
+    this.updateBusy();
     for (const p of pending) p.reject(err);
   }
 
@@ -401,47 +402,4 @@ export class ExtensionCdpClient {
     }
     this.awaitingPong = false;
   }
-}
-
-/**
- * Adapt a `ws` WebSocket URL to the {@link ExtensionChannel} interface. The
- * socket is created eagerly; frames sent before `open` are buffered and flushed
- * once connected.
- */
-function createWebSocketChannel(url: string): ExtensionChannel {
-  let handler: ((frame: ExtensionFrame) => void) | null = null;
-  const outbox: string[] = [];
-  let open = false;
-  let socket: import("ws").WebSocket | null = null;
-
-  const ready = (async () => {
-    const { WebSocket } = await import("ws");
-    socket = new WebSocket(url);
-    socket.on("open", () => {
-      open = true;
-      for (const raw of outbox.splice(0)) socket?.send(raw);
-    });
-    socket.on("message", (data: import("ws").RawData) => {
-      const frame = parseExtensionFrame(data.toString());
-      if (frame && handler) handler(frame);
-    });
-  })();
-
-  return {
-    send(frame: ExtensionHostToExtFrame): void {
-      const raw = JSON.stringify(frame);
-      if (open && socket) {
-        socket.send(raw);
-      } else {
-        outbox.push(raw);
-        void ready;
-      }
-    },
-    onMessage(cb: (frame: ExtensionFrame) => void): void {
-      handler = cb;
-    },
-    close(): void {
-      void ready.then(() => socket?.close()).catch(() => undefined);
-    }
-  };
 }

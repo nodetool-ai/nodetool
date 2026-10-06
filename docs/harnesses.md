@@ -1419,7 +1419,7 @@ The `browser_*` capabilities drive one real Chrome page action by action —
 are rebuilt on every view, so a caller views before it acts on an index.
 
 The page is either a headless Chrome the process launched or, through the
-**Chrome extension** relay on `/ws/extension`, the tab the user is already
+**Chrome extension** relay (native messaging host and a local socket), the tab the user is already
 signed in to — cookies, sessions and 2FA in place, which is what makes
 Midjourney, Sora and the rest reachable at all. The action loop is the same
 either way, so only two capabilities mention transports: `browser_status`

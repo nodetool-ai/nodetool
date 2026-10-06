@@ -22,6 +22,7 @@
     "@inquirer/prompts": "^8.5.2",
     "@nodetool-ai/agents": "*",
     "@nodetool-ai/atlascloud-nodes": "*",
+    "@nodetool-ai/browser": "*",
     "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/base-nodes": "*",
     "@nodetool-ai/chat": "*",

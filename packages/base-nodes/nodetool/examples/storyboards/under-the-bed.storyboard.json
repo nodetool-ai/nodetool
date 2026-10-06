@@ -1,0 +1,331 @@
+{
+  "schemaVersion": 1,
+  "name": "Under the Bed",
+  "description": "A kid shines a flashlight under the bed and finds a monster more scared than she is.",
+  "tags": [
+    "animation",
+    "family"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "under-the-bed-screenplay",
+      "title": "Under the Bed",
+      "brief": "A kid shines a flashlight under the bed and finds a monster more scared than she is. The flashlight reveal is a strong storyboard beat, and the stylised 3D look stays consistent.",
+      "style_bible": "Stylised 3D animated family film, soft shading, rich moonlit colour. Blue moonlight, warm yellow flashlight beam.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "under-the-bed-shot-1",
+          "index": 0,
+          "slug": "moonlit bedroom",
+          "action": "Dark bedroom in moonlight, Mia sitting up in bed holding a flashlight. The monster is not visible yet.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/under-the-bed/moonlit-bedroom.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/under-the-bed/moonlit-bedroom.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "under-the-bed-shot-2",
+          "index": 1,
+          "slug": "flashlight on",
+          "action": "Mia leaning over the edge of the bed, flashlight in hand. The monster is not visible yet.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "slow push in"
+          },
+          "motion": "push-in",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/under-the-bed/flashlight-on.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/under-the-bed/flashlight-on.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "under-the-bed-shot-3",
+          "index": 2,
+          "slug": "eyes under the bed",
+          "action": "Flashlight beam under the bed revealing two big glowing green eyes in the dark.",
+          "camera": {
+            "framing": "point-of-view shot",
+            "movement": "handheld"
+          },
+          "motion": "handheld",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/under-the-bed/eyes-under-the-bed.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/under-the-bed/eyes-under-the-bed.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "under-the-bed-shot-4",
+          "index": 3,
+          "slug": "scared monster",
+          "action": "The purple monster hiding under the bed, covering its eyes with its paws, trembling, the bed frame and mattress edge above it.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/under-the-bed/scared-monster.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/under-the-bed/scared-monster.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "under-the-bed-shot-5",
+          "index": 4,
+          "slug": "the teddy",
+          "action": "Mia holding out her teddy bear under the bed; the monster reaching for it.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/under-the-bed/the-teddy.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/under-the-bed/the-teddy.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "under-the-bed-shot-1",
+        "index": 0,
+        "slug": "moonlit bedroom",
+        "action": "Dark bedroom in moonlight, Mia sitting up in bed holding a flashlight. The monster is not visible yet.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/under-the-bed/moonlit-bedroom.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/under-the-bed/moonlit-bedroom.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "under-the-bed-shot-2",
+        "index": 1,
+        "slug": "flashlight on",
+        "action": "Mia leaning over the edge of the bed, flashlight in hand. The monster is not visible yet.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "slow push in"
+        },
+        "motion": "push-in",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/under-the-bed/flashlight-on.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/under-the-bed/flashlight-on.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "under-the-bed-shot-3",
+        "index": 2,
+        "slug": "eyes under the bed",
+        "action": "Flashlight beam under the bed revealing two big glowing green eyes in the dark.",
+        "camera": {
+          "framing": "point-of-view shot",
+          "movement": "handheld"
+        },
+        "motion": "handheld",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/under-the-bed/eyes-under-the-bed.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/under-the-bed/eyes-under-the-bed.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "under-the-bed-shot-4",
+        "index": 3,
+        "slug": "scared monster",
+        "action": "The purple monster hiding under the bed, covering its eyes with its paws, trembling, the bed frame and mattress edge above it.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/under-the-bed/scared-monster.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/under-the-bed/scared-monster.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "under-the-bed-shot-5",
+        "index": 4,
+        "slug": "the teddy",
+        "action": "Mia holding out her teddy bear under the bed; the monster reaching for it.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/under-the-bed/the-teddy.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/under-the-bed/the-teddy.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A kid shines a flashlight under the bed and finds a monster more scared than she is. The flashlight reveal is a strong storyboard beat, and the stylised 3D look stays consistent.",
+    "style": "Stylised 3D animated family film, soft shading, rich moonlit colour. Blue moonlight, warm yellow flashlight beam.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

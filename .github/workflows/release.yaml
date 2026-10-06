@@ -239,25 +239,29 @@ jobs:
           echo "Using Python: $(which python)"
           python --version
 
+      # Not a login shell: on macOS `bash -l` runs path_helper, which puts
+      # Homebrew's node ahead of the setup-node one. The postinstall then builds
+      # better-sqlite3 against Homebrew's headers, and later steps that load it
+      # under the .nvmrc Node abort in the addon (seen with 24.20 vs 24.18).
       - name: Install dependencies
-        shell: bash -l {0}
+        shell: bash
         run: npm ci
 
       # Validate both compiler roles before the cross-platform package build.
       # This catches a missing platform-native package or an incorrect npm
       # alias before the release job spends time compiling and packaging.
       - name: Check TypeScript compiler roles
-        shell: bash -l {0}
+        shell: bash
         run: npm run check:typescript
 
       - name: Build workspace packages
-        shell: bash -l {0}
+        shell: bash
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
         run: npm run build:packages
 
       - name: Build Web
-        shell: bash -l {0}
+        shell: bash
         env:
           NODE_OPTIONS: "--max_old_space_size=4096"
         run: npm run build --workspace=web

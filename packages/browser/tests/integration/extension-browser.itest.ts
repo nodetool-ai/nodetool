@@ -8,7 +8,7 @@
  * round-trip actually works.
  *
  * Not part of the default `npm test`. Run with `npm run test:integration`
- * (builds the extension first). Requires Chrome and a free port 7777.
+ * (builds the extension first). Requires Chrome for Testing and a built `packages/browser`.
  */
 
 import { afterAll, beforeAll, describe, expect, it } from "vitest";

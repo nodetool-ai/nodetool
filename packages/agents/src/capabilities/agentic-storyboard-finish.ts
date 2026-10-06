@@ -1203,6 +1203,7 @@ export async function finishStoryboardAgentically(
     | {
         document: FinishedStoryboardDocument;
         decorations: StoryboardDecoration[];
+        defects: number;
         failing: number;
         findings: string[];
       }
@@ -1648,11 +1649,19 @@ export async function finishStoryboardAgentically(
         .sort((left, right) => left - right);
       failingByRound.set(round, { frames: json(failing), findings: verdict.findings });
       // Every reviewed candidate passed the hard checks. The best has the
-      // fewest failing frames, and a later candidate wins a tie.
-      if (!best || failing.length <= best.failing) {
+      // fewest distinct defects, then the fewest failing frames, and a later
+      // candidate wins a tie. One defect repeated on every world shot is not
+      // worse than a missing logo on one frame.
+      const defects = new Set(verdict.findings).size;
+      if (
+        !best ||
+        defects < best.defects ||
+        (defects === best.defects && failing.length <= best.failing)
+      ) {
         best = {
           document: structuredClone(document),
           decorations: [...decorations],
+          defects,
           failing: failing.length,
           findings: [...verdict.findings]
         };

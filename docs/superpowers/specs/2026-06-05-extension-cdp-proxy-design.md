@@ -157,3 +157,11 @@ the `chrome.downloads` capture fallback).
   against a real target site.
 - Single-session v1: one extension socket, one active tab; concurrent live-browser nodes
   would collide on the shared singleton — documented as unsupported for v1.
+
+## Update: transport is native messaging, not `/ws/extension`
+
+The server WebSocket described above was replaced. Chrome starts a native
+messaging host when the extension connects. The host listens on a per-user unix
+socket and clients (backend, CLI, providers) connect to it directly, so no
+NodeTool server is needed. The frame protocol is unchanged. See
+[Chrome Extension](../../chrome-extension.md).

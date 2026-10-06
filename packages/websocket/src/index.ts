@@ -43,12 +43,6 @@ export {
   type FrontendRendererService
 } from "./frontend-renderer-registry.js";
 export {
-  extensionBridge,
-  ExtensionBridge,
-  type ExtensionChannel,
-  type ExtensionSocket
-} from "./extension-cdp-bridge.js";
-export {
   resolveWorkflowWorkspace,
   buildWorkspaceExecutionContext
 } from "./lib/workflow-workspace.js";

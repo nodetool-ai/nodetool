@@ -1,14 +1,10 @@
 /**
  * Chat settings persisted in `chrome.storage.local`.
  *
- * The CDP relay stores its own `/ws/extension` URL (see `cdp-relay.ts`); the
- * chat panel needs an HTTP base instead, for `/trpc` calls and the `/ws` chat
- * socket. They are separate keys so changing one cannot break the other, but
- * an unset base is seeded from the relay URL's origin — a user who already
- * pointed the relay at a server should not have to type the host twice.
+ * The CDP relay talks to the native host and needs no server URL; the chat
+ * panel needs an HTTP base for `/trpc` calls and the `/ws` chat socket.
  */
 
-import { DEFAULT_SERVER_URL, STORAGE_KEY_SERVER_URL } from "./cdp-relay.js";
 import type { PermissionMode } from "./chat-socket.js";
 
 /** Base URL of the NodeTool server the chat panel talks to. */
@@ -43,14 +39,11 @@ export async function loadChatSettings(): Promise<ChatSettings> {
     STORAGE_KEY_API_BASE_URL,
     STORAGE_KEY_AUTH_TOKEN,
     STORAGE_KEY_SELECTED_MODEL,
-    STORAGE_KEY_PERMISSION_MODE,
-    STORAGE_KEY_SERVER_URL
+    STORAGE_KEY_PERMISSION_MODE
   ]);
   return {
     apiBaseUrl:
-      readString(stored[STORAGE_KEY_API_BASE_URL]) ??
-      originOfRelayUrl(readString(stored[STORAGE_KEY_SERVER_URL])) ??
-      DEFAULT_API_BASE_URL,
+      readString(stored[STORAGE_KEY_API_BASE_URL]) ?? DEFAULT_API_BASE_URL,
     authToken: readString(stored[STORAGE_KEY_AUTH_TOKEN]) ?? "",
     selectedModel: readSelectedModel(stored[STORAGE_KEY_SELECTED_MODEL]),
     permissionMode: readPermissionMode(stored[STORAGE_KEY_PERMISSION_MODE])
@@ -97,13 +90,6 @@ export function normalizeBaseUrl(raw: string): string {
   } catch {
     return trimmed;
   }
-}
-
-/** `ws://localhost:7777/ws/extension` → `http://localhost:7777`. */
-function originOfRelayUrl(relayUrl: string | null): string | null {
-  if (!relayUrl || relayUrl === DEFAULT_SERVER_URL) return null;
-  const origin = normalizeBaseUrl(relayUrl);
-  return origin || null;
 }
 
 /**

@@ -152,7 +152,7 @@ const DashboardExampleStoryboards = () => {
   const theme = useTheme();
   const sectionWrap = useSectionWrap();
   const navigate = useNavigate();
-  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const openTab = useWorkspaceTabsStore((state) => state.openForegroundTab);
   const addNotification = useNotificationStore((state) => state.addNotification);
   const { data, isLoading, isError, refetch } = useExampleStoryboards();
   const install = useInstallExampleStoryboard();

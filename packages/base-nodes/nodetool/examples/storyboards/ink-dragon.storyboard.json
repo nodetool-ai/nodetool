@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "name": "Ink Dragon",
+  "description": "A drop of black ink in water blooms into a sumi-e dragon.",
+  "tags": [
+    "animation",
+    "fluid",
+    "ink"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "ink-dragon-screenplay",
+      "title": "Ink Dragon",
+      "brief": "A drop of black ink in water blooms into a sumi-e dragon. Ink in water is fluid physics at its prettiest, and the style change happens once.",
+      "style_bible": "Macro liquid photography that turns into Chinese sumi-e ink painting. Soft white diffused light, pure white background.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "ink-dragon-shot-1",
+          "index": 0,
+          "slug": "clear water",
+          "action": "Clear glass of still water against a pure white background.",
+          "camera": {
+            "framing": "extreme close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/ink-dragon/clear-water.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/ink-dragon/clear-water.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "ink-dragon-shot-2",
+          "index": 1,
+          "slug": "ink drop",
+          "action": "Black ink plume blooming down through the water in curling tendrils.",
+          "camera": {
+            "framing": "extreme close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/ink-dragon/ink-drop.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/ink-dragon/ink-drop.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "ink-dragon-shot-3",
+          "index": 2,
+          "slug": "dragon forms",
+          "action": "Ink tendrils forming the head and coiling body of a dragon inside the glass.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "slow orbit"
+          },
+          "motion": "orbit",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/ink-dragon/dragon-forms.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/ink-dragon/dragon-forms.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "ink-dragon-shot-4",
+          "index": 3,
+          "slug": "onto the paper",
+          "action": "The ink dragon crawls up and out over the rim of the glass, its head and front claws pulling onto the rice paper while its tail still coils inside the water, ink trailing as brush strokes behind it.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "pull back"
+          },
+          "motion": "pull-back",
+          "duration_seconds": 5,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/ink-dragon/onto-the-paper.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/ink-dragon/onto-the-paper.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "ink-dragon-shot-1",
+        "index": 0,
+        "slug": "clear water",
+        "action": "Clear glass of still water against a pure white background.",
+        "camera": {
+          "framing": "extreme close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/ink-dragon/clear-water.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/ink-dragon/clear-water.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "ink-dragon-shot-2",
+        "index": 1,
+        "slug": "ink drop",
+        "action": "Black ink plume blooming down through the water in curling tendrils.",
+        "camera": {
+          "framing": "extreme close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/ink-dragon/ink-drop.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/ink-dragon/ink-drop.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "ink-dragon-shot-3",
+        "index": 2,
+        "slug": "dragon forms",
+        "action": "Ink tendrils forming the head and coiling body of a dragon inside the glass.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "slow orbit"
+        },
+        "motion": "orbit",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/ink-dragon/dragon-forms.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/ink-dragon/dragon-forms.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "ink-dragon-shot-4",
+        "index": 3,
+        "slug": "onto the paper",
+        "action": "The ink dragon crawls up and out over the rim of the glass, its head and front claws pulling onto the rice paper while its tail still coils inside the water, ink trailing as brush strokes behind it.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "pull back"
+        },
+        "motion": "pull-back",
+        "duration_seconds": 5,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/ink-dragon/onto-the-paper.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/ink-dragon/onto-the-paper.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A drop of black ink in water blooms into a sumi-e dragon. Ink in water is fluid physics at its prettiest, and the style change happens once.",
+    "style": "Macro liquid photography that turns into Chinese sumi-e ink painting. Soft white diffused light, pure white background.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

@@ -1,0 +1,273 @@
+{
+  "schemaVersion": 1,
+  "name": "Dew Drop Serum",
+  "description": "A skincare ad that follows one drop of serum onto skin.",
+  "tags": [
+    "advertising",
+    "beauty",
+    "skincare",
+    "vertical"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "dew-drop-serum-screenplay",
+      "title": "Dew Drop Serum",
+      "brief": "A skincare ad that follows a single drop of serum from the dropper to glowing skin. Clean, soft, tactile, with no packaging text in frame.",
+      "style_bible": "Clean beauty commercial, soft diffused daylight, pale peach and white palette, macro skin texture, slow and weightless.",
+      "aspect_ratio": "9:16",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "dew-drop-serum-shot-1",
+          "index": 0,
+          "slug": "bottle-reveal",
+          "action": "The frosted dropper bottle stands on white marble, morning light glowing through the glass and a soft haze behind it.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "slow push in"
+          },
+          "motion": "push-in",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dew-drop-serum/bottle-reveal.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/dew-drop-serum/bottle-reveal.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "dew-drop-serum-shot-2",
+          "index": 1,
+          "slug": "drop-falls",
+          "action": "Close-up of the model's face tilted slightly up with eyes closed, a glass dropper held above her cheekbone, a round golden serum drop hanging at its tip and about to fall onto her dewy skin.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "static, slow motion"
+          },
+          "motion": "hold",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dew-drop-serum/drop-falls.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/dew-drop-serum/drop-falls.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "dew-drop-serum-shot-3",
+          "index": 2,
+          "slug": "skin-touch",
+          "action": "The drop lands on a cheek; fingertips spread it in a slow circle, leaving a soft dewy sheen.",
+          "camera": {
+            "framing": "extreme close-up",
+            "movement": "slow glide following the fingertips"
+          },
+          "motion": "track",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dew-drop-serum/skin-touch.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/dew-drop-serum/skin-touch.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "dew-drop-serum-shot-4",
+          "index": 3,
+          "slug": "glow-smile",
+          "action": "The model turns her face toward the window light with eyes closed and a small calm smile, her skin radiant.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "slow pull back"
+          },
+          "motion": "pull-back",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dew-drop-serum/glow-smile.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/dew-drop-serum/glow-smile.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "dew-drop-serum-shot-1",
+        "index": 0,
+        "slug": "bottle-reveal",
+        "action": "The frosted dropper bottle stands on white marble, morning light glowing through the glass and a soft haze behind it.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "slow push in"
+        },
+        "motion": "push-in",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/dew-drop-serum/bottle-reveal.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dew-drop-serum/bottle-reveal.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "dew-drop-serum-shot-2",
+        "index": 1,
+        "slug": "drop-falls",
+        "action": "Close-up of the model's face tilted slightly up with eyes closed, a glass dropper held above her cheekbone, a round golden serum drop hanging at its tip and about to fall onto her dewy skin.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "static, slow motion"
+        },
+        "motion": "hold",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/dew-drop-serum/drop-falls.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dew-drop-serum/drop-falls.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "dew-drop-serum-shot-3",
+        "index": 2,
+        "slug": "skin-touch",
+        "action": "The drop lands on a cheek; fingertips spread it in a slow circle, leaving a soft dewy sheen.",
+        "camera": {
+          "framing": "extreme close-up",
+          "movement": "slow glide following the fingertips"
+        },
+        "motion": "track",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/dew-drop-serum/skin-touch.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dew-drop-serum/skin-touch.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "dew-drop-serum-shot-4",
+        "index": 3,
+        "slug": "glow-smile",
+        "action": "The model turns her face toward the window light with eyes closed and a small calm smile, her skin radiant.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "slow pull back"
+        },
+        "motion": "pull-back",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/dew-drop-serum/glow-smile.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/dew-drop-serum/glow-smile.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A skincare ad that follows a single drop of serum from the dropper to glowing skin. Clean, soft, tactile, with no packaging text in frame.",
+    "style": "Clean beauty commercial, soft diffused daylight, pale peach and white palette, macro skin texture, slow and weightless.",
+    "entityIds": [],
+    "aspectRatio": "9:16",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

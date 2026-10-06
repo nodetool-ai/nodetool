@@ -1,4 +1,4 @@
-// Seedance-ready storyboards, written ahead of their stills.
+// Seedance-ready storyboards.
 //
 // Each entry has the same shape as a board in `boards.mjs` (slug, name,
 // description, tags, brief, style, aspectRatio, shots with slug, action,
@@ -11,10 +11,11 @@
 // most two characters, and no legible text in frame, which is what Seedance
 // holds together best.
 //
-// These boards are not built or shipped yet: a shipped example must arrive
-// with a still per shot (see `build-example-storyboards.mjs`). To ship one,
-// render its stills with `nodetool generate`, add the board to
-// `EXAMPLE_STORYBOARDS`, and run the build.
+// `boards.mjs` appends these to `EXAMPLE_STORYBOARDS`. A shipped example needs
+// a still per shot under `assets/nodetool-base/storyboards/<slug>/` (see
+// `build-example-storyboards.mjs`).
+
+import { AD_STORYBOARDS } from "./ad-boards.mjs";
 
 const SHOT_CLOSE =
   "Constraints: no subtitles, no on-screen text, no logos, no watermark. One main action per shot.";
@@ -62,7 +63,7 @@ export function seedancePrompt(board, { timecodes = true } = {}) {
   return lines.join("\n");
 }
 
-export const SEEDANCE_STORYBOARDS = [
+const BASE_STORYBOARDS = [
   {
     slug: "diver-and-the-whale",
     name: "The Diver and the Whale",
@@ -204,14 +205,14 @@ export const SEEDANCE_STORYBOARDS = [
       {
         slug: "fork lift",
         action:
-          "A silver fork lifting a wedge cut from the stack, syrup strings stretching, one drip mid-fall.",
+          "A silver fork presses down through the edge of the pancake stack, the cut face showing fluffy layers as syrup runs into the cut.",
         motion: "hold",
         camera: {
           framing: "close-up",
           movement: "static"
         },
         durationSeconds: 4,
-        beat: "Fork cuts and lifts the wedge; the syrup string thins and a drop falls back to the plate.",
+        beat: "The fork slices down through the layers and syrup slides into the cut.",
         sound: "fork tap on ceramic"
       }
     ]
@@ -236,7 +237,7 @@ export const SEEDANCE_STORYBOARDS = [
       }
     ],
     continuity:
-      "Same white sneakers with red heel tab in every shot. Shoes stay unbranded with no visible logos or text.",
+      "Same white sneakers with red heel tab in every shot. Shoes stay unbranded with no visible logos or text. The runner always moves from left to right with the toes pointing right, and the camera stays on the same side of the street. Motion rules: realistic human gait with alternating legs, one runner with exactly two legs, real-time speed except the splash, physically correct water, no morphing, no extra limbs, no reversing motion.",
     music: "Deep bass pulse building to a hit",
     shots: [
       {
@@ -249,7 +250,7 @@ export const SEEDANCE_STORYBOARDS = [
           movement: "low static, ground level"
         },
         durationSeconds: 3,
-        beat: "Puddle surface is still; a car's light passes far behind.",
+        beat: "The puddle surface is calm and mirror-like. Nothing moves except a faint ripple from a slow raindrop and a soft car light far behind.",
         sound: "distant traffic hum"
       },
       {
@@ -262,7 +263,7 @@ export const SEEDANCE_STORYBOARDS = [
           movement: "low tracking alongside"
         },
         durationSeconds: 3,
-        beat: "Legs run toward the puddle, camera tracking at shoe height.",
+        beat: "One runner jogs left to right at a natural pace, with a normal running gait: alternating steps, heel to toe, knees bending naturally, each foot landing flat on the wet road. The camera tracks alongside at shoe height at the same speed. Real-time speed, no slow motion.",
         sound: "rhythmic footsteps"
       },
       {
@@ -275,7 +276,7 @@ export const SEEDANCE_STORYBOARDS = [
           movement: "static, ground level"
         },
         durationSeconds: 4,
-        beat: "The foot lands; the splash crown rises and breaks into droplets.",
+        beat: "The right sneaker lands flat in the centre of the puddle at a normal running speed and the water bursts outward in a single crown that rises and breaks into droplets under gravity. The motion is natural and slightly slow, with physically correct water. One foot only strikes the puddle.",
         sound: "big splash, bass hit"
       },
       {
@@ -288,7 +289,7 @@ export const SEEDANCE_STORYBOARDS = [
           movement: "tilt up"
         },
         durationSeconds: 5,
-        beat: "Droplets rain down; ripples settle; the sneaker lifts out of frame.",
+        beat: "Droplets fall back under gravity into the puddle, ring ripples spread and settle, and the runner's rear foot pushes off and the planted sneaker lifts away left to right out of frame. No extra feet and no sudden jumps.",
         sound: "droplets patter"
       }
     ]
@@ -300,7 +301,7 @@ export const SEEDANCE_STORYBOARDS = [
       "Two people, one table, one lie exposed in two lines of dialogue.",
     tags: ["film", "dialogue", "noir"],
     brief:
-      "Two people, one table, one lie exposed in two lines of dialogue. A lip-sync test: two short quoted lines, one speaker each. The photo is face-down so no image or text needs rendering.",
+      "Two people, one table, one lie exposed in two lines of dialogue. A lip-sync test: two short quoted lines, one speaker each. A surveillance camera in the corner of the room stands in for any evidence, so no image or text needs rendering.",
     style:
       "Neo-noir crime drama, 35mm film look, deep shadows. Single warm overhead lamp, hard top light, falloff to black at the edges.",
     aspectRatio: "16:9",
@@ -348,7 +349,7 @@ export const SEEDANCE_STORYBOARDS = [
       },
       {
         slug: "i was",
-        action: "Suspect in close-up, eyes down at the table.",
+        action: "Suspect alone in close-up, eyes down at the table. The detective is not in the shot.",
         motion: "push-in",
         camera: {
           framing: "close-up",
@@ -360,22 +361,22 @@ export const SEEDANCE_STORYBOARDS = [
         dialogue: "I was."
       },
       {
-        slug: "the photo",
+        slug: "surveillance cam",
         action:
-          "Detective's hand sliding a face-down photograph across the metal table.",
-        motion: "hold",
+          "A black security camera mounted high in the corner of the concrete interrogation room, a small red recording light glowing on it, aimed down at the table. The edge of the lamp glow is visible below it. Nobody else is in the shot.",
+        motion: "push-in",
         camera: {
-          framing: "insert shot",
-          movement: "top-down static"
+          framing: "close-up",
+          movement: "slow push in on the camera, low angle"
         },
         durationSeconds: 3,
-        beat: "The photo slides to the centre of the table and stops.",
-        sound: "paper slides on metal"
+        beat: "The red light blinks steadily and the lens slowly tilts down toward the table below.",
+        sound: "faint electronic whirr, one soft beep"
       },
       {
         slug: "the look up",
         action:
-          "Suspect's face lifting, eyes widening, a drop of sweat at his temple.",
+          "Suspect seated at the table, his face lifting, eyes widening, a drop of sweat at his temple, the metal table and lamp in the frame.",
         motion: "push-in",
         camera: {
           framing: "close-up",
@@ -399,21 +400,21 @@ export const SEEDANCE_STORYBOARDS = [
       "Grounded sci-fi feature film, anamorphic look, subtle lens flares. Warm magenta-white grow lights inside, pale butterscotch sky outside.",
     aspectRatio: "16:9",
     setting:
-      "Inflatable dome greenhouse on rust-red Martian dunes, rows of green plants in hydroponic troughs",
+      "A vast greenhouse complex on rust-red Martian dunes: seven large interconnected translucent domes joined by long glass tunnels, with rows of green plants in hydroponic troughs inside. Every dome and tunnel is a fully sealed, airtight, intact shell: no open doors, hatches, gaps, cracks or broken panels anywhere",
     cast: [
       {
         name: "the astronaut",
-        look: "woman in her 40s, short curly hair, white and orange flight suit with sleeves rolled up, helmet off"
+        look: "woman in her 40s, white and orange pressure suit with gloves, helmet always on with a clear visor so her face and short curly hair show through it"
       }
     ],
     continuity:
-      "Same astronaut, same white and orange suit, same single tomato. Interior light stays warm.",
+      "Same astronaut, same white and orange pressure suit, helmet on in every shot because Mars has no breathable air. Same single tomato. The greenhouse is always the same huge complex of seven linked domes and tunnels. Interior light stays warm. The greenhouse is never open to the Martian atmosphere: every dome and tunnel is always sealed and intact, with no open door, hatch, gap, crack or broken panel in any shot, and no dust enters.",
     music: "Soft rising strings",
     shots: [
       {
-        slug: "dome on the dunes",
+        slug: "complex on the dunes",
         action:
-          "A glowing translucent dome alone on red dunes under a pale sky.",
+          "A huge greenhouse complex of seven linked translucent domes and long glass tunnels glowing across red dunes under a pale sky, a tiny rover parked beside it for scale.",
         motion: "push-in",
         camera: {
           framing: "extreme wide shot",
@@ -424,9 +425,9 @@ export const SEEDANCE_STORYBOARDS = [
         sound: "thin Martian wind"
       },
       {
-        slug: "between the rows",
+        slug: "inside the great dome",
         action:
-          "Astronaut walking between rows of leafy plants, helmet tucked under her arm.",
+          "Wide view inside the largest dome: terraced hydroponic rows stretching far into the distance under a high curved ceiling, the astronaut a small figure in the central aisle, helmet on.",
         motion: "track",
         camera: {
           framing: "medium shot",
@@ -451,20 +452,20 @@ export const SEEDANCE_STORYBOARDS = [
       {
         slug: "cupped in hand",
         action:
-          "Astronaut cupping the tomato in her hand, a quiet smile, warm light on her face.",
+          "Astronaut in her helmet cupping the tomato in her gloved hand, a quiet smile visible through the visor, warm light on her face.",
         motion: "hold",
         camera: {
           framing: "medium close-up",
           movement: "static"
         },
         durationSeconds: 3,
-        beat: "She gently cups the tomato and smiles.",
+        beat: "She gently cups the tomato in her gloved hand and smiles behind the visor.",
         sound: "a small breath of laughter"
       },
       {
-        slug: "storm on the horizon",
+        slug: "storm over the complex",
         action:
-          "The dome seen from above, tiny figure inside, a dust storm on the horizon.",
+          "The whole greenhouse complex seen from high above, its seven glowing domes and tunnels small against the dunes, a vast dust storm rolling in on the horizon.",
         motion: "crane-up",
         camera: {
           framing: "wide shot",
@@ -638,94 +639,6 @@ export const SEEDANCE_STORYBOARDS = [
     ]
   },
   {
-    slug: "empty-pool-dawn",
-    name: "Empty Pool Dawn",
-    description:
-      "A skater drops into an empty backyard pool for one clean carve at sunrise.",
-    tags: ["action", "sport", "skate"],
-    brief:
-      "A skater drops into an empty backyard pool for one clean carve at sunrise. Fisheye skate grammar is iconic and easy to describe. One rider, one line.",
-    style:
-      "90s skate video, fisheye lens, sun flare, light grain. Low orange sunrise behind the pool, long shadows.",
-    aspectRatio: "16:9",
-    setting:
-      "Drained kidney-shaped backyard pool, pale blue tiles, rounded coping, palm trees",
-    cast: [
-      {
-        name: "the skater",
-        look: "young man, green beanie, oversized white T-shirt, baggy tan trousers, black skate shoes, maple board with red wheels"
-      }
-    ],
-    continuity:
-      "Same skater outfit and red-wheeled board in every shot. Tiles are plain, with no graffiti or text.",
-    music: "Lo-fi punk guitar riff",
-    shots: [
-      {
-        slug: "empty pool",
-        action:
-          "Empty pool from the shallow end, clean blue tiles, sun rising behind the far wall.",
-        motion: "hold",
-        camera: {
-          framing: "wide shot",
-          movement: "static wide"
-        },
-        durationSeconds: 3,
-        beat: "Leaves blow across the pool floor.",
-        sound: "birds at dawn"
-      },
-      {
-        slug: "tail tap",
-        action:
-          "Skater on the coping with the board's tail hanging over the edge.",
-        motion: "handheld",
-        camera: {
-          framing: "medium shot",
-          movement: "fisheye handheld"
-        },
-        durationSeconds: 3,
-        beat: "He taps the tail on the coping twice.",
-        sound: "tail tap"
-      },
-      {
-        slug: "drop in",
-        action: "Skater dropping in down the wall, crouched, arms out.",
-        motion: "track",
-        camera: {
-          framing: "wide shot",
-          movement: "fisheye follow"
-        },
-        durationSeconds: 4,
-        beat: "He drops in and carves across the deep end.",
-        sound: "urethane roll, rising"
-      },
-      {
-        slug: "coping grind",
-        action: "Red wheels and truck grinding along the coping.",
-        motion: "hold",
-        camera: {
-          framing: "close-up",
-          movement: "static low"
-        },
-        durationSeconds: 2,
-        beat: "Truck grinds along the coping, sparks of grit.",
-        sound: "coping grind"
-      },
-      {
-        slug: "roll out",
-        action:
-          "Skater rolling out on the flat, kicking the board up into his hand.",
-        motion: "hold",
-        camera: {
-          framing: "medium shot",
-          movement: "static"
-        },
-        durationSeconds: 3,
-        beat: "He rolls out, kicks the board up and catches it.",
-        sound: "board clack"
-      }
-    ]
-  },
-  {
     slug: "duel-in-the-wheat",
     name: "Duel in the Wheat",
     description:
@@ -748,7 +661,7 @@ export const SEEDANCE_STORYBOARDS = [
       }
     ],
     continuity:
-      "Ronin in indigo always on the left, duelist in crimson always on the right until they cross. Same costumes throughout. They touch only in shot 4.",
+      "Ronin in indigo on the left, duelist in crimson on the right until they cross in shot 3. After the crossing, seen from the same camera side as shot 1, the duelist is on the left and the ronin on the right, back to back, facing away from each other. Same costumes throughout. Both katanas stay in the hands during the fight, one sword each. They are far apart in every shot except the fight in shot 3. All motion plays forward at normal speed, never reversed.",
     music: "Taiko drum, single hit at the strike",
     shots: [
       {
@@ -767,52 +680,40 @@ export const SEEDANCE_STORYBOARDS = [
       {
         slug: "the ronin",
         action:
-          "Ronin's eyes, scar over the left one, hair stirring in the wind.",
+          "The ronin alone in a medium close-up, scar over his left eye, hair stirring in the wind, facing right toward his unseen opponent, one hand resting on the hilt of his sheathed katana. Nobody else is in the frame.",
         motion: "hold",
         camera: {
-          framing: "close-up",
+          framing: "medium close-up",
           movement: "static"
         },
         durationSeconds: 3,
-        beat: "He narrows his eyes. No movement otherwise.",
+        beat: "He narrows his eyes and his hand tightens on the hilt. No other movement.",
         sound: "wind"
-      },
-      {
-        slug: "hand on the hilt",
-        action: "Duelist's hand tightening on the hilt of his sheathed sword.",
-        motion: "hold",
-        camera: {
-          framing: "close-up",
-          movement: "static"
-        },
-        durationSeconds: 3,
-        beat: "His knuckles whiten as he grips the hilt.",
-        sound: "leather creak"
       },
       {
         slug: "one strike",
         action:
-          "Both men running toward each other through the wheat, then passing in a blur of one slash.",
+          "Both men sprint toward each other through the wheat with drawn katanas, the ronin in indigo from the left and the duelist in crimson from the right. They meet in the middle and trade a fast exchange of blows, three clean steel-on-steel clashes with sparks, the duelist driving the ronin back a step, the ronin turning the blade aside. Then they pass each other in one final slash and run out of contact.",
         motion: "track",
         camera: {
           framing: "wide shot",
-          movement: "fast lateral track"
+          movement: "fast lateral track that keeps both men in frame"
         },
-        durationSeconds: 3,
-        beat: "They charge and cross; one flash of steel.",
-        sound: "steel ring, taiko hit"
+        durationSeconds: 6,
+        beat: "0-2s: the charge across the field, wheat whipping. 2-4s: three blade clashes in quick succession, sparks, each man shifting his feet. 4-6s: the final slash as they cross, one flash of steel, wheat bursting. Every motion is fast, sharp and plays forward.",
+        sound: "running steps, three steel rings, taiko hit at the final slash"
       },
       {
         slug: "the fall",
         action:
-          "Both standing back to back, far apart, swords out; wheat settling.",
+          "After the crossing, the duelist in crimson on the left sinks to one knee, head bowed, his sword hanging from his hand, while the ronin in indigo on the right stands with his back to him, sword lowered, seen from the same camera side as the first shot. They are far apart; wheat settling.",
         motion: "hold",
         camera: {
           framing: "wide shot",
           movement: "static"
         },
         durationSeconds: 3,
-        beat: "A beat of stillness, then the duelist in crimson drops to one knee.",
+        beat: "A beat of stillness, then the kneeling duelist in crimson on the left slumps forward into the wheat, falling forward at normal speed, never backwards. The ronin does not turn.",
         sound: "silence, then wind returns"
       }
     ]
@@ -964,7 +865,7 @@ export const SEEDANCE_STORYBOARDS = [
       {
         slug: "onto the paper",
         action:
-          "The ink dragon flowing out of the glass onto the rice paper as brush strokes.",
+          "The ink dragon crawls up and out over the rim of the glass, its head and front claws pulling onto the rice paper while its tail still coils inside the water, ink trailing as brush strokes behind it.",
         motion: "pull-back",
         camera: {
           framing: "wide shot",
@@ -999,20 +900,20 @@ export const SEEDANCE_STORYBOARDS = [
       }
     ],
     continuity:
-      "One white coupe, no badges or plates. Same road and guardrails throughout.",
+      "One white coupe, no badges or plates. Same boxy matte-white 90s coupe with pop-up headlights in every shot. Same road with a steel guardrail on the outer edge, the same pine forest, the same low fog and cool blue moonlight. The car always travels down the mountain. The car is always moving fast and sliding with realistic physics. The camera is always moving and fog and smoke always stream past, so every shot is full of speed.",
     music: "Synth bassline",
     shots: [
       {
         slug: "switchbacks",
         action:
           "Switchback road snaking down the mountain, a single pair of headlights.",
-        motion: "hold",
+        motion: "track",
         camera: {
           framing: "extreme wide shot",
-          movement: "high drone, static"
+          movement: "fast high drone dive following the headlights down the switchbacks"
         },
         durationSeconds: 3,
-        beat: "The headlights wind down the road toward the hairpin.",
+        beat: "The white coupe races down two switchbacks at speed, sliding wide on each bend, headlights sweeping across the pines and fog streaming past the drone.",
         sound: "distant engine"
       },
       {
@@ -1024,19 +925,19 @@ export const SEEDANCE_STORYBOARDS = [
           movement: "tracking side"
         },
         durationSeconds: 3,
-        beat: "The car slides into the corner sideways.",
+        beat: "The car whips into the hairpin and slides in a long sideways drift, rear tyres spinning, thick tyre smoke pouring and gravel flying, the camera tracking hard alongside.",
         sound: "engine scream, tyre squeal"
       },
       {
         slug: "countersteer",
-        action: "Gloved hands countersteering the wheel.",
-        motion: "hold",
+        action: "Close-up from the passenger seat of the gloved hands on the thin wheel of the 90s coupe, the left hand sliding the wheel as the car drifts, amber analog gauges glowing on the dashboard, the wet road and fog visible through the windshield.",
+        motion: "handheld",
         camera: {
           framing: "close-up",
-          movement: "static inside the car"
+          movement: "handheld inside the car, shaking with the drift"
         },
         durationSeconds: 3,
-        beat: "Hands whip the wheel the opposite way.",
+        beat: "The hands whip the wheel hard to one side, then catch it and whip it back, the gauge needles swinging, headlight beams sweeping across the fog outside.",
         sound: "tyres screech"
       },
       {
@@ -1045,22 +946,22 @@ export const SEEDANCE_STORYBOARDS = [
         motion: "track",
         camera: {
           framing: "wide shot",
-          movement: "drone follow from behind"
+          movement: "fast low drone chase behind the car"
         },
         durationSeconds: 3,
-        beat: "The car exits the corner and accelerates away.",
+        beat: "The car snaps straight out of the corner and accelerates down the next bends, taillights streaking, fog swirling in its wake.",
         sound: "gear shift"
       },
       {
         slug: "smoke hangs",
-        action: "Empty hairpin with tyre smoke hanging in the headlight glow.",
-        motion: "hold",
+        action: "Empty wet hairpin at realistic scale, a thin drifting layer of tyre smoke hanging low over the asphalt and guardrail, lit by the faint red glow of taillights disappearing far down the road, no car in frame.",
+        motion: "whip-pan",
         camera: {
           framing: "extreme wide shot",
-          movement: "static"
+          movement: "low static start, then a fast whip pan following the car past the camera"
         },
         durationSeconds: 3,
-        beat: "The smoke drifts and thins.",
+        beat: "The hairpin is empty for a heartbeat, then the white coupe roars into frame and slides through the corner right past the camera, smoke swirling behind it as it disappears down the road.",
         sound: "engine echo fading"
       }
     ]
@@ -1171,7 +1072,7 @@ export const SEEDANCE_STORYBOARDS = [
       {
         slug: "moonlit bedroom",
         action:
-          "Dark bedroom in moonlight, Mia sitting up in bed holding a flashlight.",
+          "Dark bedroom in moonlight, Mia sitting up in bed holding a flashlight. The monster is not visible yet.",
         motion: "hold",
         camera: {
           framing: "wide shot",
@@ -1183,7 +1084,7 @@ export const SEEDANCE_STORYBOARDS = [
       },
       {
         slug: "flashlight on",
-        action: "Mia leaning over the edge of the bed, flashlight in hand.",
+        action: "Mia leaning over the edge of the bed, flashlight in hand. The monster is not visible yet.",
         motion: "push-in",
         camera: {
           framing: "medium shot",
@@ -1209,7 +1110,7 @@ export const SEEDANCE_STORYBOARDS = [
       {
         slug: "scared monster",
         action:
-          "The purple monster covering its eyes with its paws, trembling.",
+          "The purple monster hiding under the bed, covering its eyes with its paws, trembling, the bed frame and mattress edge above it.",
         motion: "hold",
         camera: {
           framing: "close-up",
@@ -1324,7 +1225,7 @@ export const SEEDANCE_STORYBOARDS = [
       }
     ],
     continuity:
-      "Same bottle, rose liquid and gold cap. No label, text or logo anywhere.",
+      "Same single rectangular faceted bottle with a thick faceted base, rose liquid and one round gold sphere cap. No label, text or logo anywhere.",
     music: "Airy synth, slow",
     shots: [
       {
@@ -1397,7 +1298,7 @@ export const SEEDANCE_STORYBOARDS = [
       }
     ],
     continuity:
-      "Same runner and outfit throughout. She always runs left to right.",
+      "Same runner and outfit throughout. She always runs left to right. Every shot shows a gap between two buildings, with her above it or right beside it.",
     music: "Driving electronic beat",
     shots: [
       {
@@ -1553,3 +1454,6 @@ export const SEEDANCE_STORYBOARDS = [
     ]
   }
 ];
+
+/** The Seedance boards plus the advertising boards from `ad-boards.mjs`. */
+export const SEEDANCE_STORYBOARDS = [...BASE_STORYBOARDS, ...AD_STORYBOARDS];

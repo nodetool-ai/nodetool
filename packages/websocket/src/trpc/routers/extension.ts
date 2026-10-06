@@ -1,14 +1,14 @@
 /**
  * Browser-extension router — status for the install helper UI.
  *
- * `connected` reflects whether the Chrome extension currently has a live
- * `/ws/extension` socket (i.e. the user installed it and it reached the
- * server). `distPath` lets the UI reveal/copy the build location.
+ * `connected` reflects whether a native host is accepting connections, which
+ * means the extension is running and reached its host. `distPath` lets the UI
+ * reveal/copy the build location.
  */
 
 import { z } from "zod";
 import { router, publicProcedure } from "../index.js";
-import { extensionBridge } from "../../extension-cdp-bridge.js";
+import { isBridgeAvailable } from "@nodetool-ai/browser";
 import { resolveExtensionDist } from "../../lib/extension-dist.js";
 
 export const extensionRouter = router({
@@ -20,10 +20,10 @@ export const extensionRouter = router({
         distExists: z.boolean()
       })
     )
-    .query(() => {
+    .query(async () => {
       const dist = resolveExtensionDist();
       return {
-        connected: extensionBridge.connected,
+        connected: await isBridgeAvailable(),
         distPath: dist.path,
         distExists: dist.exists
       };

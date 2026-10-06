@@ -1,0 +1,273 @@
+{
+  "schemaVersion": 1,
+  "name": "Cold Brew Pour",
+  "description": "An iced cold brew ad built on one slow pour and the first cold sip.",
+  "tags": [
+    "advertising",
+    "food",
+    "beverage",
+    "vertical"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "cold-brew-pour-screenplay",
+      "title": "Cold Brew Pour",
+      "brief": "An iced cold brew ad built on one slow pour. Ice, coffee and condensation carry the whole film, and the last shot is the reward: a long, cold sip.",
+      "style_bible": "Premium beverage commercial, macro photography, shallow depth of field. Cool morning light from frame right, deep amber coffee against pale cream milk, crisp highlights on the glass.",
+      "aspect_ratio": "9:16",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "cold-brew-pour-shot-1",
+          "index": 0,
+          "slug": "ice-drop",
+          "action": "A single large ice cube falls into the tall glass that already holds a few clear ice cubes, water droplets leaping from the impact. Only ice cubes in the glass: no coffee and no milk yet.",
+          "camera": {
+            "framing": "macro close-up",
+            "movement": "static, slow motion"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/cold-brew-pour/ice-drop.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/cold-brew-pour/ice-drop.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "cold-brew-pour-shot-2",
+          "index": 1,
+          "slug": "coffee-pour",
+          "action": "Dark cold brew pours into the iced glass in a thick stream, clouds of coffee blooming through the ice.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "slow tilt down following the pour"
+          },
+          "motion": "track",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/cold-brew-pour/coffee-pour.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/cold-brew-pour/coffee-pour.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "cold-brew-pour-shot-3",
+          "index": 2,
+          "slug": "cream-swirl",
+          "action": "A ribbon of cream is poured in and spirals down through the amber coffee, glowing in the window light.",
+          "camera": {
+            "framing": "extreme close-up",
+            "movement": "slow push in"
+          },
+          "motion": "push-in",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/cold-brew-pour/cream-swirl.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/cold-brew-pour/cream-swirl.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "cold-brew-pour-shot-4",
+          "index": 3,
+          "slug": "cold-sip",
+          "action": "The drinker lifts the glass to her lips and drinks, condensation sliding down the glass over her fingers. The glass shows the same drink as the previous shot: amber cold brew with thick swirls of pale cream marbled through it and a cream layer at the top.",
+          "camera": {
+            "framing": "medium close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/cold-brew-pour/cold-sip.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/cold-brew-pour/cold-sip.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "cold-brew-pour-shot-1",
+        "index": 0,
+        "slug": "ice-drop",
+        "action": "A single large ice cube falls into the tall glass that already holds a few clear ice cubes, water droplets leaping from the impact. Only ice cubes in the glass: no coffee and no milk yet.",
+        "camera": {
+          "framing": "macro close-up",
+          "movement": "static, slow motion"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/cold-brew-pour/ice-drop.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/cold-brew-pour/ice-drop.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "cold-brew-pour-shot-2",
+        "index": 1,
+        "slug": "coffee-pour",
+        "action": "Dark cold brew pours into the iced glass in a thick stream, clouds of coffee blooming through the ice.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "slow tilt down following the pour"
+        },
+        "motion": "track",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/cold-brew-pour/coffee-pour.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/cold-brew-pour/coffee-pour.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "cold-brew-pour-shot-3",
+        "index": 2,
+        "slug": "cream-swirl",
+        "action": "A ribbon of cream is poured in and spirals down through the amber coffee, glowing in the window light.",
+        "camera": {
+          "framing": "extreme close-up",
+          "movement": "slow push in"
+        },
+        "motion": "push-in",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/cold-brew-pour/cream-swirl.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/cold-brew-pour/cream-swirl.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "cold-brew-pour-shot-4",
+        "index": 3,
+        "slug": "cold-sip",
+        "action": "The drinker lifts the glass to her lips and drinks, condensation sliding down the glass over her fingers. The glass shows the same drink as the previous shot: amber cold brew with thick swirls of pale cream marbled through it and a cream layer at the top.",
+        "camera": {
+          "framing": "medium close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/cold-brew-pour/cold-sip.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/cold-brew-pour/cold-sip.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "An iced cold brew ad built on one slow pour. Ice, coffee and condensation carry the whole film, and the last shot is the reward: a long, cold sip.",
+    "style": "Premium beverage commercial, macro photography, shallow depth of field. Cool morning light from frame right, deep amber coffee against pale cream milk, crisp highlights on the glass.",
+    "entityIds": [],
+    "aspectRatio": "9:16",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

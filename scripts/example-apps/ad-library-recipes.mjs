@@ -98,6 +98,17 @@ const R12_WORLD = [-0.02, 0.31, 1.04, 0.71];
 // The art direction of each world when its input is empty. Each one differs in place and palette.
 const R12_WORLD_PROMPT = (label, place) => `A full-bleed photograph of ${place}, standing for the line "{${label}}" in an ad about "{premise}". Its own vivid palette and light, rich detail, a calm and uncluttered center where an icon will sit. No text, letters, logos or faces.`;
 const R12_COPY_LIMITS = {y: 0.03, scale: 0.15};
+// R06: one large panel above two smaller ones, on the concept's media grid box.
+// The grid keeps its edges on every cut, so a panel only changes cell.
+const R06_HEADLINE = [0.1, 0.14, 0.78, 0.16];   // layout.headline_box
+const R06_FULL = [0.1, 0.34, 0.78, 0.34];       // layout.media_grid_box
+const R06_CTA = [0.1, 0.72, 0.78, 0.08];        // layout.cta_box
+const R06_TOP = [0.1, 0.34, 0.78, 0.205];
+const R06_LEFT = [0.1, 0.56, 0.385, 0.12];
+const R06_RIGHT = [0.495, 0.56, 0.385, 0.12];
+const R06_GRID = {panel_2: {panel1: R06_TOP, panel2: R06_LEFT}, panel_3: {panel1: R06_TOP, panel2: R06_LEFT, panel3: R06_RIGHT}};
+const R06_PANEL_PROMPT = (label, subject) => `An editorial photograph of ${subject}, for the line "{${label}}". Natural light, one clear focal point, room to crop. No text, letters, logos or faces.`;
+const R06_COPY_LIMITS = {y: 0.02, scale: 0.1};
 const AUTHORED_FRAMES = {
   "fixed-glyph-changing-world": {
     reviewRules: [
@@ -117,12 +128,13 @@ const AUTHORED_FRAMES = {
       worlds_2: ["Do not introduce a new grammar on every cut.", "Each world is distinguishable without relying on its caption."],
       cta: ["The final brand and CTA are fully settled and readable."]
     },
-    // The CTA lockup of R12-B05: the logo on a light panel, so a logo in the
-    // brand color stays visible, and the call to action in an outlined pill.
+    // The CTA lockup of R12-B05: the logo and the call to action on dark ink
+    // panels, because brand-colored or white shapes vanish against the
+    // brand-colored background or a light logo.
     extras: {
       cta: [
-        {id: "logoPanel", kind: "shape", role: "decorative", frame: {box: [0.26, 0.15, 0.48, 0.14]}, style: {fill: "#FFFFFF", cornerRadius: 0.03}, limits: {x: 0.03, y: 0.03, scale: 0.1}},
-        {id: "ctaPill", inputId: "brandColor", kind: "shape", role: "decorative", frame: {box: [0.21, 0.715, 0.58, 0.075]}, style: {stroke: "#FFFFFF", strokeWidth: 0.005, cornerRadius: 0.066}, limits: R12_COPY_LIMITS}
+        {id: "logoPanel", kind: "shape", role: "decorative", frame: {box: [0.26, 0.15, 0.48, 0.14]}, style: {fill: "#0B1633", stroke: "#FFFFFF", strokeWidth: 0.003, cornerRadius: 0.03}, limits: {x: 0.03, y: 0.03, scale: 0.1}},
+        {id: "ctaPill", kind: "shape", role: "decorative", frame: {box: [0.21, 0.715, 0.58, 0.075]}, style: {fill: "#0B1633", stroke: "#FFFFFF", strokeWidth: 0.005, cornerRadius: 0.066}, limits: R12_COPY_LIMITS}
       ]
     },
     // The concept's layer stack, bottom to top. Element order sets the track order.
@@ -136,6 +148,41 @@ const AUTHORED_FRAMES = {
       if (element.kind === "asset" && element.role === "logo") return {frame: {box: [0.3, 0.17, 0.4, 0.1], fit: "contain"}, limits: {x: 0.03, y: 0.03, scale: 0.1}};
       if (element.kind === "text" && element.role === "cta") return {frame: {box: [0.21, 0.715, 0.58, 0.075]}, typography: {size: 0.05, weight: 600, align: "center", maxLines: 1}, limits: R12_COPY_LIMITS};
       if (element.kind === "text") return {frame: {box: R12_CAPTION}, typography: {size: 0.075, weight: 700, align: "center", maxLines: 2}, limits: R12_COPY_LIMITS};
+      return {};
+    }
+  },
+  "editorial-image-panels": {
+    reviewRules: [
+      "Panel edges align consistently across cuts.",
+      "Images remain sharp at their largest displayed crop."
+    ],
+    fallbacks: {
+      panel1: R06_PANEL_PROMPT("headline", "the hero subject in its best light"),
+      panel2: R06_PANEL_PROMPT("benefit1", "a close detail of the subject"),
+      panel3: R06_PANEL_PROMPT("benefit2", "the subject in use, in its setting")
+    },
+    shotRules: {
+      panel_2: ["Image subject remains inside its crop."],
+      panel_3: ["One main focal point remains.", "Panel edges align with the previous cut."],
+      cta: ["The final brand and CTA are fully settled and readable."]
+    },
+    // The CTA lockup: a dark ink pill under the call to action, as in R12.
+    extras: {
+      cta: [{id: "ctaPill", kind: "shape", role: "decorative", frame: {box: R06_CTA}, style: {fill: "#0B1633", stroke: "#FFFFFF", strokeWidth: 0.005, cornerRadius: 0.066}, limits: R06_COPY_LIMITS}]
+    },
+    // Neutral stage, image panels, pill, logo, then type on top.
+    layerOf(element) {
+      return element.id === "background" ? 0 : element.id.startsWith("panel") ? 1 : element.kind === "shape" ? 2 : element.kind === "asset" ? 3 : 4;
+    },
+    frameOf(element, shot) {
+      if (element.kind === "shape") return {frame: {box: [0, 0, 1, 1]}};
+      if (element.kind === "asset" && element.id.startsWith("panel")) {
+        const box = R06_GRID[shot.id]?.[element.id] ?? R06_FULL;
+        return {frame: {box, fit: "cover", clip: true}, limits: {x: 0.01, y: 0.01, scale: 0.05}, fallback: {prompt: this.fallbacks[element.id]}};
+      }
+      if (element.kind === "asset" && element.role === "logo") return {frame: {box: [0.3, 0.17, 0.4, 0.1], fit: "contain"}, limits: {x: 0.03, y: 0.03, scale: 0.1}};
+      if (element.kind === "text" && element.role === "cta") return {frame: {box: R06_CTA}, typography: {size: 0.05, weight: 600, align: "center", maxLines: 1}, limits: R06_COPY_LIMITS};
+      if (element.kind === "text") return {frame: {box: R06_HEADLINE}, typography: {size: 0.07, weight: 700, align: "left", maxLines: 2}, limits: R06_COPY_LIMITS};
       return {};
     }
   }
@@ -152,9 +199,9 @@ const authorFrames = (concept, built) => {
     return parts.map(keep => ({...shot, id: keep.replace(/^world(\d)$/, "world_$1"), beat: shot.id, durationSeconds: shot.durationSeconds / parts.length, elements: shot.elements.filter(element => !parts.includes(element.id) || element.id === keep)}));
   });
   for (const shot of shots) {
-    const extras = authored.extras[shot.id] ?? [];
-    shot.elements = [...shot.elements.map(element => ({...element, ...authored.frameOf(element)})), ...extras].sort((a, b) => authored.layerOf(a) - authored.layerOf(b));
-    if (authored.shotRules[shot.beat]) shot.reviewRules = authored.shotRules[shot.beat];
+    const extras = authored.extras?.[shot.id] ?? [];
+    shot.elements = [...shot.elements.map(element => ({...element, ...authored.frameOf(element, shot)})), ...extras].sort((a, b) => authored.layerOf(a) - authored.layerOf(b));
+    if (authored.shotRules?.[shot.beat]) shot.reviewRules = authored.shotRules[shot.beat];
     delete shot.beat;
   }
   return {shots, reviewRules: authored.reviewRules};

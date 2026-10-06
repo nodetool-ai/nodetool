@@ -1,0 +1,273 @@
+{
+  "schemaVersion": 1,
+  "name": "Suite Morning",
+  "description": "A hotel suite wakes up to an ocean view, from curtains to balcony coffee.",
+  "tags": [
+    "advertising",
+    "travel",
+    "hospitality",
+    "lifestyle"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "suite-morning-screenplay",
+      "title": "Suite Morning",
+      "brief": "A boutique hotel ad about the perfect first morning. A drone reveals the hotel and its coastline, a guest wakes in the sunlit suite, coffee waits on the terrace, and she steps out to take in the ocean.",
+      "style_bible": "Luxury travel commercial, natural morning light from frame right, soft airy whites and sand tones with a deep blue sea, golden glow, gentle slow camera moves, shallow depth of field.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "suite-morning-shot-1",
+          "index": 0,
+          "slug": "hotel-from-above",
+          "action": "A drone shot starts close above the sea-facing terrace of the small white limestone hotel: two open white French doors with sheer curtains, the bistro table, the olive tree and the white balustrade at the cliff edge, the deep blue sea beyond. No people.",
+          "camera": {
+            "framing": "aerial shot widening to an extreme wide shot",
+            "movement": "one long drone move that pulls far back and rises, zooming out from the terrace to the whole cliff, bay and coastline"
+          },
+          "motion": "pull-back",
+          "duration_seconds": 6,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/suite-morning/hotel-from-above.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/suite-morning/hotel-from-above.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "suite-morning-shot-2",
+          "index": 1,
+          "slug": "terrace-table",
+          "action": "On the limestone terrace a white ceramic cup of coffee with a thin curl of steam and a single golden croissant on a white plate rest on the round black bistro table, the calm blue sea behind. Nobody in the shot.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "static, shallow depth of field"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/suite-morning/terrace-table.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/suite-morning/terrace-table.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "suite-morning-shot-3",
+          "index": 2,
+          "slug": "guest-wakes",
+          "action": "The guest sits up in the king bed against the white pillows, smiling softly as she turns her face toward the open doors and the light.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "static, very slow drift to the right"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/suite-morning/guest-wakes.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/suite-morning/guest-wakes.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "suite-morning-shot-4",
+          "index": 3,
+          "slug": "balcony-view",
+          "action": "The guest stands at the limestone balustrade with her back to the camera, holding the coffee cup, looking out over the calm blue sea in the morning sun.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "slow crane up and back to reveal the coast"
+          },
+          "motion": "crane-up",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/suite-morning/balcony-view.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/suite-morning/balcony-view.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "suite-morning-shot-1",
+        "index": 0,
+        "slug": "hotel-from-above",
+        "action": "A drone shot starts close above the sea-facing terrace of the small white limestone hotel: two open white French doors with sheer curtains, the bistro table, the olive tree and the white balustrade at the cliff edge, the deep blue sea beyond. No people.",
+        "camera": {
+          "framing": "aerial shot widening to an extreme wide shot",
+          "movement": "one long drone move that pulls far back and rises, zooming out from the terrace to the whole cliff, bay and coastline"
+        },
+        "motion": "pull-back",
+        "duration_seconds": 6,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/suite-morning/hotel-from-above.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/suite-morning/hotel-from-above.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "suite-morning-shot-2",
+        "index": 1,
+        "slug": "terrace-table",
+        "action": "On the limestone terrace a white ceramic cup of coffee with a thin curl of steam and a single golden croissant on a white plate rest on the round black bistro table, the calm blue sea behind. Nobody in the shot.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "static, shallow depth of field"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/suite-morning/terrace-table.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/suite-morning/terrace-table.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "suite-morning-shot-3",
+        "index": 2,
+        "slug": "guest-wakes",
+        "action": "The guest sits up in the king bed against the white pillows, smiling softly as she turns her face toward the open doors and the light.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "static, very slow drift to the right"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/suite-morning/guest-wakes.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/suite-morning/guest-wakes.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "suite-morning-shot-4",
+        "index": 3,
+        "slug": "balcony-view",
+        "action": "The guest stands at the limestone balustrade with her back to the camera, holding the coffee cup, looking out over the calm blue sea in the morning sun.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "slow crane up and back to reveal the coast"
+        },
+        "motion": "crane-up",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/suite-morning/balcony-view.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/suite-morning/balcony-view.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A boutique hotel ad about the perfect first morning. A drone reveals the hotel and its coastline, a guest wakes in the sunlit suite, coffee waits on the terrace, and she steps out to take in the ocean.",
+    "style": "Luxury travel commercial, natural morning light from frame right, soft airy whites and sand tones with a deep blue sea, golden glow, gentle slow camera moves, shallow depth of field.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

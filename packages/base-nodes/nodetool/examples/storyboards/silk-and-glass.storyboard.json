@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "name": "Silk and Glass",
+  "description": "A perfume ad built on falling silk and water droplets on glass.",
+  "tags": [
+    "advertising",
+    "fragrance",
+    "vertical"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "silk-and-glass-screenplay",
+      "title": "Silk and Glass",
+      "brief": "A perfume ad built on falling silk and water droplets on glass. Cloth and water on glass are signature Seedance textures. The unbranded bottle avoids text errors.",
+      "style_bible": "Luxury fragrance commercial, macro, glossy black studio. Single soft key light from above, rim light, light flares across the glass.",
+      "aspect_ratio": "9:16",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "silk-and-glass-shot-1",
+          "index": 0,
+          "slug": "droplets on glass",
+          "action": "Water droplets beaded on the bottle's facets, rose liquid glowing inside.",
+          "camera": {
+            "framing": "extreme close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silk-and-glass/droplets-on-glass.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/silk-and-glass/droplets-on-glass.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "silk-and-glass-shot-2",
+          "index": 1,
+          "slug": "silk falls",
+          "action": "Deep red silk falling over the bottle.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "slow orbit"
+          },
+          "motion": "orbit",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silk-and-glass/silk-falls.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/silk-and-glass/silk-falls.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "silk-and-glass-shot-3",
+          "index": 2,
+          "slug": "silk slides away",
+          "action": "Silk sliding off the bottle; a droplet running down the glass.",
+          "camera": {
+            "framing": "medium close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silk-and-glass/silk-slides-away.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/silk-and-glass/silk-slides-away.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "silk-and-glass-shot-4",
+          "index": 3,
+          "slug": "the bottle alone",
+          "action": "The bottle alone on black, a light flare sweeping across it.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "slow pull back"
+          },
+          "motion": "pull-back",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silk-and-glass/the-bottle-alone.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/silk-and-glass/the-bottle-alone.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "silk-and-glass-shot-1",
+        "index": 0,
+        "slug": "droplets on glass",
+        "action": "Water droplets beaded on the bottle's facets, rose liquid glowing inside.",
+        "camera": {
+          "framing": "extreme close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/silk-and-glass/droplets-on-glass.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silk-and-glass/droplets-on-glass.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "silk-and-glass-shot-2",
+        "index": 1,
+        "slug": "silk falls",
+        "action": "Deep red silk falling over the bottle.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "slow orbit"
+        },
+        "motion": "orbit",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/silk-and-glass/silk-falls.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silk-and-glass/silk-falls.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "silk-and-glass-shot-3",
+        "index": 2,
+        "slug": "silk slides away",
+        "action": "Silk sliding off the bottle; a droplet running down the glass.",
+        "camera": {
+          "framing": "medium close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/silk-and-glass/silk-slides-away.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silk-and-glass/silk-slides-away.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "silk-and-glass-shot-4",
+        "index": 3,
+        "slug": "the bottle alone",
+        "action": "The bottle alone on black, a light flare sweeping across it.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "slow pull back"
+        },
+        "motion": "pull-back",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/silk-and-glass/the-bottle-alone.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/silk-and-glass/the-bottle-alone.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A perfume ad built on falling silk and water droplets on glass. Cloth and water on glass are signature Seedance textures. The unbranded bottle avoids text errors.",
+    "style": "Luxury fragrance commercial, macro, glossy black studio. Single soft key light from above, rim light, light flares across the glass.",
+    "entityIds": [],
+    "aspectRatio": "9:16",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

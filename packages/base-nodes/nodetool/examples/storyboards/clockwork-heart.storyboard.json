@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "name": "Clockwork Heart",
+  "description": "A macro journey into a brass mechanical heart as it starts to beat.",
+  "tags": [
+    "animation",
+    "macro",
+    "steampunk"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "clockwork-heart-screenplay",
+      "title": "Clockwork Heart",
+      "brief": "A macro journey into a brass mechanical heart as it starts to beat. Interlocking mechanical motion and metal reflections hold up well, and there's no face to drift.",
+      "style_bible": "Macro steampunk, polished brass, candlelit, shallow depth of field. Warm candlelight, glinting highlights on metal, dust motes.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "clockwork-heart-shot-1",
+          "index": 0,
+          "slug": "still gears",
+          "action": "Still brass gears in macro, dust motes in candlelight.",
+          "camera": {
+            "framing": "extreme close-up",
+            "movement": "slow push in"
+          },
+          "motion": "push-in",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clockwork-heart/still-gears.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/clockwork-heart/still-gears.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "clockwork-heart-shot-2",
+          "index": 1,
+          "slug": "the key turns",
+          "action": "A small brass winding key in the side of the heart.",
+          "camera": {
+            "framing": "extreme close-up",
+            "movement": "rack focus"
+          },
+          "motion": "rack-focus",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clockwork-heart/the-key-turns.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/clockwork-heart/the-key-turns.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "clockwork-heart-shot-3",
+          "index": 2,
+          "slug": "gears cascade",
+          "action": "Gears, cogs and pistons in motion across the heart's surface.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "slow orbit"
+          },
+          "motion": "orbit",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clockwork-heart/gears-cascade.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/clockwork-heart/gears-cascade.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "clockwork-heart-shot-4",
+          "index": 3,
+          "slug": "the heart beats",
+          "action": "The whole brass heart beating under its glass dome on the bench.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "pull back"
+          },
+          "motion": "pull-back",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clockwork-heart/the-heart-beats.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/clockwork-heart/the-heart-beats.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "clockwork-heart-shot-1",
+        "index": 0,
+        "slug": "still gears",
+        "action": "Still brass gears in macro, dust motes in candlelight.",
+        "camera": {
+          "framing": "extreme close-up",
+          "movement": "slow push in"
+        },
+        "motion": "push-in",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/clockwork-heart/still-gears.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clockwork-heart/still-gears.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "clockwork-heart-shot-2",
+        "index": 1,
+        "slug": "the key turns",
+        "action": "A small brass winding key in the side of the heart.",
+        "camera": {
+          "framing": "extreme close-up",
+          "movement": "rack focus"
+        },
+        "motion": "rack-focus",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/clockwork-heart/the-key-turns.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clockwork-heart/the-key-turns.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "clockwork-heart-shot-3",
+        "index": 2,
+        "slug": "gears cascade",
+        "action": "Gears, cogs and pistons in motion across the heart's surface.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "slow orbit"
+        },
+        "motion": "orbit",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/clockwork-heart/gears-cascade.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clockwork-heart/gears-cascade.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "clockwork-heart-shot-4",
+        "index": 3,
+        "slug": "the heart beats",
+        "action": "The whole brass heart beating under its glass dome on the bench.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "pull back"
+        },
+        "motion": "pull-back",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/clockwork-heart/the-heart-beats.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clockwork-heart/the-heart-beats.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A macro journey into a brass mechanical heart as it starts to beat. Interlocking mechanical motion and metal reflections hold up well, and there's no face to drift.",
+    "style": "Macro steampunk, polished brass, candlelit, shallow depth of field. Warm candlelight, glinting highlights on metal, dust motes.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

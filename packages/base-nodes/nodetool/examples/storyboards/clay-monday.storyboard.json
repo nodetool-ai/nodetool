@@ -1,0 +1,332 @@
+{
+  "schemaVersion": 1,
+  "name": "Clay Monday",
+  "description": "A claymation character drags himself out of bed and makes coffee.",
+  "tags": [
+    "animation",
+    "claymation",
+    "comedy"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "clay-monday-screenplay",
+      "title": "Clay Monday",
+      "brief": "A claymation character drags himself out of bed and makes coffee. The stop-motion look forgives imperfect motion and stays consistent.",
+      "style_bible": "Stop-motion claymation, visible thumbprints, slightly choppy 12 fps feel. Soft warm morning light through the round window.",
+      "aspect_ratio": "16:9",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "clay-monday-shot-1",
+          "index": 0,
+          "slug": "alarm",
+          "action": "Pip asleep in bed under a felt cover; a round alarm clock on the nightstand.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clay-monday/alarm.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/clay-monday/alarm.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "clay-monday-shot-2",
+          "index": 1,
+          "slug": "out of bed",
+          "action": "Pip flopped face down on the floor beside the bed.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clay-monday/out-of-bed.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/clay-monday/out-of-bed.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "clay-monday-shot-3",
+          "index": 2,
+          "slug": "the kettle",
+          "action": "Pip shuffling to a tiny kettle on the counter.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "pan right"
+          },
+          "motion": "pan-right",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clay-monday/the-kettle.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/clay-monday/the-kettle.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "clay-monday-shot-4",
+          "index": 3,
+          "slug": "the pour",
+          "action": "Coffee pouring into a yellow mug, sculpted clay steam.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "static"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clay-monday/the-pour.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/clay-monday/the-pour.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "clay-monday-shot-5",
+          "index": 4,
+          "slug": "first sip",
+          "action": "Pip sipping from the yellow mug.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "push in"
+          },
+          "motion": "push-in",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clay-monday/first-sip.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/clay-monday/first-sip.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "clay-monday-shot-1",
+        "index": 0,
+        "slug": "alarm",
+        "action": "Pip asleep in bed under a felt cover; a round alarm clock on the nightstand.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/clay-monday/alarm.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clay-monday/alarm.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "clay-monday-shot-2",
+        "index": 1,
+        "slug": "out of bed",
+        "action": "Pip flopped face down on the floor beside the bed.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/clay-monday/out-of-bed.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clay-monday/out-of-bed.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "clay-monday-shot-3",
+        "index": 2,
+        "slug": "the kettle",
+        "action": "Pip shuffling to a tiny kettle on the counter.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "pan right"
+        },
+        "motion": "pan-right",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/clay-monday/the-kettle.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clay-monday/the-kettle.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "clay-monday-shot-4",
+        "index": 3,
+        "slug": "the pour",
+        "action": "Coffee pouring into a yellow mug, sculpted clay steam.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "static"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/clay-monday/the-pour.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clay-monday/the-pour.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "clay-monday-shot-5",
+        "index": 4,
+        "slug": "first sip",
+        "action": "Pip sipping from the yellow mug.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "push in"
+        },
+        "motion": "push-in",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/clay-monday/first-sip.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/clay-monday/first-sip.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A claymation character drags himself out of bed and makes coffee. The stop-motion look forgives imperfect motion and stays consistent.",
+    "style": "Stop-motion claymation, visible thumbprints, slightly choppy 12 fps feel. Soft warm morning light through the round window.",
+    "entityIds": [],
+    "aspectRatio": "16:9",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

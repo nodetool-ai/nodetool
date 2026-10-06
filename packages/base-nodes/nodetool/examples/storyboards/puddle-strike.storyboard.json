@@ -1,0 +1,272 @@
+{
+  "schemaVersion": 1,
+  "name": "Puddle Strike",
+  "description": "A sneaker ad where one stride through a city puddle becomes a crown of water.",
+  "tags": [
+    "advertising",
+    "product",
+    "vertical"
+  ],
+  "document": {
+    "screenplay": {
+      "type": "screenplay",
+      "id": "puddle-strike-screenplay",
+      "title": "Puddle Strike",
+      "brief": "A sneaker ad where one stride through a city puddle becomes a crown of water. Splash physics plus a hero product moment. Seedance may make the splash smaller than asked, so the prompt calls it big.",
+      "style_bible": "Night sports commercial, wet asphalt, high contrast, crisp detail. Orange sodium streetlights and blue dusk sky, strong reflections.",
+      "aspect_ratio": "9:16",
+      "script_id": null,
+      "shots": [
+        {
+          "type": "shot",
+          "id": "puddle-strike-shot-1",
+          "index": 0,
+          "slug": "still puddle",
+          "action": "Ground-level view of a still puddle in the foreground reflecting streetlights; empty street beyond.",
+          "camera": {
+            "framing": "wide shot",
+            "movement": "low static, ground level"
+          },
+          "motion": "hold",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/puddle-strike/still-puddle.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/puddle-strike/still-puddle.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "puddle-strike-shot-2",
+          "index": 1,
+          "slug": "the stride",
+          "action": "Runner's legs mid-stride from the knee down, white sneakers, wet road blurring past.",
+          "camera": {
+            "framing": "medium shot",
+            "movement": "low tracking alongside"
+          },
+          "motion": "track",
+          "duration_seconds": 3,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/puddle-strike/the-stride.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/puddle-strike/the-stride.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "puddle-strike-shot-3",
+          "index": 2,
+          "slug": "splash crown",
+          "action": "Sneaker sole striking the puddle centre, a crown of water exploding outward, droplets catching orange light.",
+          "camera": {
+            "framing": "extreme close-up",
+            "movement": "static, ground level"
+          },
+          "motion": "hold",
+          "duration_seconds": 4,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/puddle-strike/splash-crown.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/puddle-strike/splash-crown.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        },
+        {
+          "type": "shot",
+          "id": "puddle-strike-shot-4",
+          "index": 3,
+          "slug": "droplets settle",
+          "action": "Droplets falling around the planted sneaker, reflection reforming in the rippling puddle.",
+          "camera": {
+            "framing": "close-up",
+            "movement": "tilt up"
+          },
+          "motion": "tilt-up",
+          "duration_seconds": 5,
+          "duration_source": "manual",
+          "entity_ids": [],
+          "keyframe": {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/puddle-strike/droplets-settle.jpg",
+            "asset_id": null
+          },
+          "keyframe_versions": [
+            {
+              "type": "image",
+              "uri": "package://nodetool-base/storyboards/puddle-strike/droplets-settle.jpg",
+              "asset_id": null
+            }
+          ],
+          "clip": null,
+          "clip_versions": [],
+          "status": "keyframe_ready"
+        }
+      ]
+    },
+    "shots": [
+      {
+        "type": "shot",
+        "id": "puddle-strike-shot-1",
+        "index": 0,
+        "slug": "still puddle",
+        "action": "Ground-level view of a still puddle in the foreground reflecting streetlights; empty street beyond.",
+        "camera": {
+          "framing": "wide shot",
+          "movement": "low static, ground level"
+        },
+        "motion": "hold",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/puddle-strike/still-puddle.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/puddle-strike/still-puddle.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "puddle-strike-shot-2",
+        "index": 1,
+        "slug": "the stride",
+        "action": "Runner's legs mid-stride from the knee down, white sneakers, wet road blurring past.",
+        "camera": {
+          "framing": "medium shot",
+          "movement": "low tracking alongside"
+        },
+        "motion": "track",
+        "duration_seconds": 3,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/puddle-strike/the-stride.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/puddle-strike/the-stride.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "puddle-strike-shot-3",
+        "index": 2,
+        "slug": "splash crown",
+        "action": "Sneaker sole striking the puddle centre, a crown of water exploding outward, droplets catching orange light.",
+        "camera": {
+          "framing": "extreme close-up",
+          "movement": "static, ground level"
+        },
+        "motion": "hold",
+        "duration_seconds": 4,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/puddle-strike/splash-crown.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/puddle-strike/splash-crown.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      },
+      {
+        "type": "shot",
+        "id": "puddle-strike-shot-4",
+        "index": 3,
+        "slug": "droplets settle",
+        "action": "Droplets falling around the planted sneaker, reflection reforming in the rippling puddle.",
+        "camera": {
+          "framing": "close-up",
+          "movement": "tilt up"
+        },
+        "motion": "tilt-up",
+        "duration_seconds": 5,
+        "duration_source": "manual",
+        "entity_ids": [],
+        "keyframe": {
+          "type": "image",
+          "uri": "package://nodetool-base/storyboards/puddle-strike/droplets-settle.jpg",
+          "asset_id": null
+        },
+        "keyframe_versions": [
+          {
+            "type": "image",
+            "uri": "package://nodetool-base/storyboards/puddle-strike/droplets-settle.jpg",
+            "asset_id": null
+          }
+        ],
+        "clip": null,
+        "clip_versions": [],
+        "status": "keyframe_ready"
+      }
+    ],
+    "brief": "A sneaker ad where one stride through a city puddle becomes a crown of water. Splash physics plus a hero product moment. Seedance may make the splash smaller than asked, so the prompt calls it big.",
+    "style": "Night sports commercial, wet asphalt, high contrast, crisp detail. Orange sodium streetlights and blue dusk sky, strong reflections.",
+    "entityIds": [],
+    "aspectRatio": "9:16",
+    "directorModel": null,
+    "imageModel": null,
+    "videoModel": null
+  }
+}

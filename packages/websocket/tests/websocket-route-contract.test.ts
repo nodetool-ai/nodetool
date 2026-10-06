@@ -28,7 +28,7 @@ describe("WebSocket route contract", () => {
 
     expect(files.length).toBeGreaterThan(0);
     expect(paths.length).toBeGreaterThan(0);
-    expect(paths).toEqual(["/ws", "/ws/extension", "/ws/download"]);
+    expect(paths).toEqual(["/ws", "/ws/download"]);
     expect(paths).not.toContain("/ws/agent");
     expect(registrations.every((route) => dirname(route.file).startsWith(sourceRoot))).toBe(
       true
