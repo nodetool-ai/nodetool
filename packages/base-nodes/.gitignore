@@ -35,3 +35,5 @@ src.txt
 sub/
 test.txt
 top/
+# Films play from media.nodetool.ai and are not committed or bundled.
+nodetool/assets/nodetool-base/storyboards/*/*.mp4

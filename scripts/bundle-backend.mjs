@@ -1327,7 +1327,15 @@ async function main() {
 
   if (fs.existsSync(assetsSrc)) {
     await fsp.mkdir(path.dirname(assetsDest), { recursive: true });
-    await copyDir(assetsSrc, assetsDest);
+    // Storyboard films play from media.nodetool.ai, so the app does not ship them.
+    await fsp.cp(assetsSrc, assetsDest, {
+      recursive: true,
+      force: true,
+      preserveTimestamps: true,
+      filter: (source) =>
+        path.basename(source) !== "node_modules" &&
+        !/[\\/]storyboards[\\/][^\\/]+[\\/][^\\/]+\.mp4$/i.test(source),
+    });
     const assetCount = (await fsp.readdir(assetsDest)).filter((f) =>
       /\.(jpg|jpeg|png|gif|webp)$/i.test(f)
     ).length;
