@@ -80,8 +80,10 @@ const selectorStyles = (theme: Theme, inline: boolean) =>
     [theme.breakpoints.down("sm")]: inline
       ? {}
       : {
-          "& .selector-name": { display: "none" },
+          "& .selector-name, & .selector-caret": { display: "none" },
           "& .selector-button": {
+            justifyContent: "center",
+            minWidth: CONTROL.height.xl,
             padding: `0 ${getSpacingPx(SPACING.md)}`
           }
         }

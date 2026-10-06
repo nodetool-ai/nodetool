@@ -29,6 +29,7 @@ import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
 import { useLocation } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 
@@ -48,6 +49,7 @@ import { useDraggable } from "../../hooks/useDraggable";
 import { useFloatingToolbarState } from "../../hooks/useFloatingToolbarState";
 import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions";
 import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
+import { useWorkflowApp } from "../../hooks/useWorkflowApp";
 import { useRunningTime } from "../../hooks/useRunningTime";
 import { formatRunningTime } from "../../utils/timeFormat";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
@@ -424,6 +426,16 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     queuePosition,
     pendingRunCount
   } = useFloatingToolbarActions();
+
+  const {
+    openWorkflowApp,
+    hasApp,
+    isPending: isAppPending
+  } = useWorkflowApp();
+  const appActionLabel = hasApp ? "Open app" : "Make app";
+  const appActionTooltip = hasApp
+    ? "Open the app that runs this workflow"
+    : "Make an app from this workflow, with a field for each input";
 
   const { bottomPanelVisible, bottomPanelSize } = useBottomPanelStore(
     useShallow((state) => ({
@@ -822,6 +834,24 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           </Tooltip>
         )}
 
+        {!isMobile && (
+          <Tooltip
+            title={appActionTooltip}
+            placement="top"
+            delay={TOOLTIP_ENTER_DELAY}
+          >
+            <button
+              type="button"
+              className="composer-action"
+              onClick={() => void openWorkflowApp()}
+              aria-label={appActionLabel}
+              disabled={isAppPending}
+            >
+              <DashboardCustomizeOutlinedIcon />
+            </button>
+          </Tooltip>
+        )}
+
         {/* Shown at every width: arming and disarming a trigger is the whole
             point of the feature, and a phone browser needs it too. */}
         <TriggerActivationButton />
@@ -995,6 +1025,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             onClick={runWithClose(handleSave)}
           />
         )}
+        <MenuItemPrimitive
+          label={appActionLabel}
+          icon={<DashboardCustomizeOutlinedIcon fontSize="small" />}
+          disabled={isAppPending}
+          onClick={runWithClose(() => void openWorkflowApp())}
+        />
         <MenuItemPrimitive
           label="Mini Map"
           icon={<MapIcon fontSize="small" />}

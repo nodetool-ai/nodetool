@@ -147,31 +147,20 @@ describe("RightPanelStore", () => {
     });
   });
 
-  describe("inspector visibility intent", () => {
-    it("keeps an explicit close closed when selection changes", () => {
+  describe("inspector visibility", () => {
+    it("reopens on the next selection after a close", () => {
       const { closeInspector, revealForSelection } =
         useRightPanelStore.getState();
       act(() => {
         revealForSelection();
         closeInspector();
-        revealForSelection();
       });
-
       expect(useRightPanelStore.getState().panel.isVisible).toBe(false);
-      expect(useRightPanelStore.getState().panel.explicitlyClosed).toBe(true);
-    });
 
-    it("reopens explicitly and resumes following selection", () => {
-      const { closeInspector, toggleInspector, revealForSelection } =
-        useRightPanelStore.getState();
       act(() => {
-        closeInspector();
-        toggleInspector();
         revealForSelection();
       });
-
       expect(useRightPanelStore.getState().panel.isVisible).toBe(true);
-      expect(useRightPanelStore.getState().panel.explicitlyClosed).toBe(false);
     });
   });
 

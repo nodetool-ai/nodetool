@@ -48,7 +48,10 @@ vi.mock("@nodetool-ai/execution", () => ({
 }));
 vi.mock("@nodetool-ai/execution/debug", () => ({ summarizeInterventions: () => null }));
 vi.mock("@nodetool-ai/config", () => ({ getDefaultAssetsPath: () => "/tmp/assets" }));
-vi.mock("@nodetool-ai/models", () => ({ getSecret: async () => undefined }));
+vi.mock("@nodetool-ai/models", () => ({
+  getSecret: async () => undefined,
+  Project: { ensurePersonal: async () => ({ id: "personal:1" }) }
+}));
 vi.mock("@nodetool-ai/runtime", () => ({
   ProcessingContext: class {
     private readonly listeners = new Set<(message: unknown) => void>();
