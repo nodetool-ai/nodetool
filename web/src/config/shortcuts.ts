@@ -27,6 +27,16 @@ export interface Shortcut {
 }
 
 /**
+ * Node types added at the cursor with Shift + key.
+ */
+export const ADD_NODE_HOTKEYS = [
+  { slug: "addPromptNode", key: "P", label: "Prompt", nodeType: "nodetool.text.Prompt" },
+  { slug: "addTextToImageNode", key: "G", label: "Text to Image", nodeType: "nodetool.image.TextToImage" },
+  { slug: "addTextToVideoNode", key: "M", label: "Text to Video", nodeType: "nodetool.video.TextToVideo" },
+  { slug: "addAgentNode", key: "L", label: "Agent", nodeType: "nodetool.agents.Agent" }
+] as const;
+
+/**
  * Maps common modifier keys to their macOS equivalents.
  * e.g. "Control" -> "Meta" (⌘), "Alt" -> "Option" (⌥)
  * @param key The key to map.
@@ -469,6 +479,32 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     description: "Distribute selected nodes evenly horizontally",
     registerCombo: true
   },
+  {
+    title: "Stack Selected",
+    slug: "stackSelected",
+    keyCombo: ["V"],
+    category: "editor",
+    description: "Stack selected nodes in one column",
+    registerCombo: true
+  },
+  {
+    title: "Arrange in Grid",
+    slug: "arrangeGrid",
+    keyCombo: ["G"],
+    category: "editor",
+    description: "Arrange selected nodes in a grid",
+    registerCombo: true
+  },
+  ...ADD_NODE_HOTKEYS.map(
+    ({ slug, key, label }): Shortcut => ({
+      title: `Add ${label}`,
+      slug,
+      keyCombo: ["Shift", key],
+      category: "editor",
+      description: `Add a ${label} node at the cursor`,
+      registerCombo: true
+    })
+  ),
   {
     title: "Delete Selected",
     slug: "deleteSelected",

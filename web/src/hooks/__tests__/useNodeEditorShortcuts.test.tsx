@@ -7,6 +7,38 @@ import {
 } from "../../stores/KeyPressedStore";
 
 const mockOpenNodeMenu = jest.fn();
+const mockAddNode = jest.fn();
+const mockCreateNode = jest.fn(
+  (metadata: { node_type: string }, position: { x: number; y: number }) => ({
+    id: "new-node",
+    type: metadata.node_type,
+    position
+  })
+);
+const mockAddRecentNode = jest.fn();
+
+jest.mock("../../stores/MetadataStore", () => ({
+  __esModule: true,
+  default: {
+    getState: () => ({
+      getMetadata: (nodeType: string) => ({ node_type: nodeType })
+    })
+  }
+}));
+
+jest.mock("../../stores/RecentNodesStore", () => ({
+  useRecentNodesStore: <T,>(
+    selector: (state: { addRecentNode: (nodeType: string) => void }) => T
+  ) => selector({ addRecentNode: mockAddRecentNode })
+}));
+
+jest.mock("../../utils/instantiatePaletteNode", () => ({
+  instantiatePaletteNode: (
+    metadata: unknown,
+    position: unknown,
+    createNode: (metadata: unknown, position: unknown) => unknown
+  ) => ({ node: createNode(metadata, position) })
+}));
 
 jest.mock("../../stores/KeyPressedStore", () => ({
   // registerComboCallback returns a disposer; hand back a no-op so cleanup works
@@ -34,6 +66,9 @@ const { renderHook } = nodeStoreRenderers(
       selectAllNodes: jest.fn(),
       setNodes: jest.fn(),
       toggleBypassSelected: jest.fn(),
+      createNode: mockCreateNode,
+      addNode: mockAddNode,
+      updateNodeData: jest.fn(),
       edges: [],
       getSelectedNodes: () => []
     },
@@ -71,7 +106,11 @@ jest.mock("@xyflow/react", () => ({
   useReactFlow: () => ({
     zoomIn: jest.fn(),
     zoomOut: jest.fn(),
-    zoomTo: jest.fn()
+    zoomTo: jest.fn(),
+    screenToFlowPosition: (p: { x: number; y: number }) => ({
+      x: p.x * 2,
+      y: p.y * 2
+    })
   })
 }));
 
@@ -157,6 +196,8 @@ jest.mock("../useSelectionActions", () => ({
     alignBottom: jest.fn(),
     distributeHorizontal: jest.fn(),
     distributeVertical: jest.fn(),
+    stackSelected: jest.fn(),
+    arrangeGrid: jest.fn(),
     deleteSelected: jest.fn()
   })
 }));
@@ -213,5 +254,34 @@ describe("useNodeEditorShortcuts", () => {
     for (const [, options] of registrations) {
       expect(options).toEqual(expect.objectContaining({ scope: "canvas" }));
     }
+  });
+
+  it("registers stack, grid and add-node hotkeys", () => {
+    renderHook(() => useNodeEditorShortcuts(true));
+
+    const combos = jest
+      .mocked(registerComboCallback)
+      .mock.calls.map(([combo]) => combo);
+    expect(combos).toEqual(
+      expect.arrayContaining(["v", "g", "p+shift", "g+shift", "m+shift", "l+shift"])
+    );
+  });
+
+  it("adds a Prompt node at the cursor on Shift+P", () => {
+    renderHook(() => useNodeEditorShortcuts(true));
+
+    const registration = jest
+      .mocked(registerComboCallback)
+      .mock.calls.find(([combo]) => combo === "p+shift");
+    registration?.[1].callback();
+
+    expect(mockCreateNode).toHaveBeenCalledWith(
+      { node_type: "nodetool.text.Prompt" },
+      { x: 20, y: 40 }
+    );
+    expect(mockAddNode).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "new-node", position: { x: 20, y: 40 } })
+    );
+    expect(mockAddRecentNode).toHaveBeenCalledWith("nodetool.text.Prompt");
   });
 });
