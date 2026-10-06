@@ -1287,8 +1287,8 @@ candidates. Dependencies must come from the owned workspace. Models and prepared
 colliders require explicit installation with the draft timestamp. Captures return
 committed simulation hashes and projected bounds. The renderer package's tests
 exercise skinning, shadows, context recovery, disposal and a closed-network
-standalone completion route. Desktop capture uses packaged Playwright. A server
-build without browser automation reports unavailable capture capability.
+standalone completion route. Desktop capture uses Playwright, which the Package
+Manager installs. A build without it reports unavailable capture capability.
 See the [3D design](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/native-game-3d-upgrade.md) and
 [runtime contract](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/README.md).
 

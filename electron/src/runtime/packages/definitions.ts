@@ -166,4 +166,15 @@ export const RUNTIME_PACKAGES = {
     packageNames: ["@fugood/whisper.node"],
     approxSizeMB: process.platform === "darwin" ? 5 : 257,
   }),
+  playwright: new NpmRuntimePackage({
+    id: "playwright",
+    name: "Playwright",
+    description:
+      "Browser automation library that captures frames of 3D games. The Chromium build it drives is a separate Playwright download.",
+    category: "library",
+    versionRange: "1.60.x",
+    npmPackages: ["playwright@1.60.0"],
+    packageNames: ["playwright"],
+    approxSizeMB: 12,
+  }),
 } satisfies Record<RuntimePackageId, RuntimePackage>;

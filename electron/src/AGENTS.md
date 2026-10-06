@@ -35,6 +35,10 @@ The packaged backend is one esbuild bundle (`resources/backend/server.mjs`), so 
 
 Data files a package loads at runtime go through one guarded path: declare the file in `PACKAGE_RUNTIME_ASSETS` (`packages/config/src/package-asset-registry.ts`) and load it with `loadPackageAssetJson` from `@nodetool-ai/config` — never with `readFileSync(new URL(...))` or `createRequire` directly. The accessor resolves both layouts, rejects unregistered files immediately in dev, and records outcomes for diagnostics (`getPackageAssetResolutions`). The registry also drives packaging: the repo-root `scripts/bundle-backend.mjs` stages every entry (and fails on a `dist/*-manifest.json` that isn't registered), and `scripts/verify-backend-bundle.mjs` (run automatically after bundling, also `npm run verify:backend-bundle`) re-checks the final artifact — manifests referenced by `server.mjs`, examples, assets, webgpu dawn binaries.
 
+electron-builder copies the production tree of `electron/package.json` into `app.asar`. Keep `dependencies` to the modules `dist-electron/main.js` requires at runtime: the main-process externals in `vite.config.ts`, plus `esbuild`, which pack compilation spawns. Put everything Vite inlines in `devDependencies`. The backend has its own modules under `resources/backend`, so a workspace package listed here ships a second copy of its whole dependency graph.
+
+A large library that only some nodes use belongs in `RUNTIME_PACKAGES` (`src/runtime/packages/definitions.ts`), not in the bundle. The Package Manager installs it under the optional-node root, and the backend must load it through `importOptionalModule` from `@nodetool-ai/config`, which falls back to that root. List it in `ESBUILD_ONLY_EXTERNAL_PACKAGES` in `scripts/bundle-backend.mjs` so the bundle neither inlines nor stages it. A library another staged package imports statically, such as `tesseract.js` under `@llamaindex/liteparse`, cannot move.
+
 ### Development Modes
 
 ```bash
