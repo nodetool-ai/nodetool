@@ -255,7 +255,7 @@ W cards are pure refactors. Each must prove no behavior change: the full game se
 
 **B1. Benchmark harness.**
 - Depends on: none.
-- Do: add `nodetool game bench <file>` (or a vitest bench in `packages/game-runtime/bench/`) that runs N ticks headless and reports p50, p95 and p99 tick time, per-system time (after W2), script time and allocations. Add fixtures: `bench-2d-500.json` (500 entities, 50 scripted, tilemap), `bench-3d-1000.json` (1,000 entities, 100 dynamic bodies, 30 scripted, 10 models). Add a browser bench that renders 600 frames and reports frame time, draw calls and triangles, using `capture`'s browser path. Extend `scripts/benchmark-effects.ts` rather than duplicating it.
+- Do: add `nodetool game bench <file>` (or a vitest bench in `packages/game-runtime/bench/`) that runs N ticks headless and reports p50, p95 and p99 tick time, per-system time (after W2), script time and allocations. Add fixtures: `bench-2d-500.json` (500 entities, 32 scripted, tilemap), `bench-3d-1000.json` (1,000 entities, 100 dynamic bodies, 0 scripted, 10 models), and `bench-3d-64-scripted.json` (64 entities, 61 dynamic bodies, 30 scripted, 10 models). Add a browser bench that renders 600 frames and reports frame time, draw calls and triangles, using `capture`'s browser path. Extend `packages/game-renderer/scripts/benchmark-effects.ts` rather than duplicating it. The 2D fixture uses the runtime limit of 32 scripted behaviors. The 3D workloads separate scale from scripting because the combined 1,000-entity script input exceeds the 64 KiB budget. The scripted companion completed a 120-tick replay probe within existing budgets.
 - Accept: running it twice on the same machine gives p95 within 10%. Baselines saved to `docs/plans/native-game-baselines.md` with machine, browser and backend recorded.
 
 **B2. Golden image set.**
@@ -432,7 +432,7 @@ Targets: 60 fps at 1280×720 on a mid-range desktop GPU for `bench-3d-1000` with
 
 **S1. Script input cost (G26).**
 - Do: stop embedding the input JSON in evaluated source per call (`scripts.ts:243-246`). Compile each script once per session and keep the function resident. Pass the per-tick world once per tick as a shared frozen value inside the QuickJS context, not once per call. Add `world.near(radius)` and `world.byTag(tag)` queries so scripts stop iterating the full list.
-- Accept: B1 shows script time on `bench-3d-1000` drops by at least 5×. All script tests pass. Budgets still interrupt runaway scripts.
+- Accept: B1 shows script time on `bench-3d-64-scripted` drops by at least 5×. All script tests pass. Budgets still interrupt runaway scripts.
 
 **S2. Tags and entity properties (G27).**
 - Do: `tags: string[]` and `props: Record<string, JSON>` on entities, both 2D and 3D. Scripts read `entity.tags`, `entity.props`, other entities' tags and props, rotation and active state. Props can be changed by script commands and are snapshot state.

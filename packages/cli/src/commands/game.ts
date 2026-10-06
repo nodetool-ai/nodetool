@@ -6,6 +6,7 @@ import { z } from "zod";
 import { gameEvent, gameInputFrame, type GameEvent, type GameInputFrame, type GameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { gameEvent3D, gameInputFrame3D, type GameDocument3D, type GameEvent3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
 import { createScriptedGameSession, createGameSession3D, decodePreparedGameCollider3D, hashGameSnapshot3D, validateGame, validateAnyGame } from "@nodetool-ai/game-runtime";
+import { benchmarkNativeGame } from "./game-benchmark.js";
 import { printCommandError } from "../command-errors.js";
 import { registerGameSmokeCommand } from "./game-smoke.js";
 
@@ -246,6 +247,21 @@ export function registerGameCommands(program: Command): void {
         printCommandError(error, options.json);
         process.exitCode = 1;
       }
+    });
+
+  game.command("bench <game_file>")
+    .description("Measure headless native game tick, script and sampled allocation costs")
+    .option("--ticks <count>", "Measured ticks", "1200")
+    .option("--warmup <count>", "Warmup ticks", "300")
+    .option("--seed <integer>", "Random seed", "1")
+    .option("--json", "Print a machine-readable report")
+    .action(async (path: string, options: { ticks: string; warmup: string; seed: string; json?: boolean }) => {
+      try {
+        const validated = validateCliDocument(await readDocument(path));
+        if (!validated.valid || !validated.document) { throw new Error(validated.errors.join("\n")); }
+        const report = await benchmarkNativeGame(validated.document, Number(options.ticks), Number(options.warmup), Number(options.seed));
+        process.stdout.write(`${JSON.stringify(report, null, options.json ? undefined : 2)}\n`);
+      } catch (error) { printCommandError(error, options.json); process.exitCode = 1; }
     });
 
   game
