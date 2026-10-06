@@ -263,7 +263,7 @@ describe("useNodeEditorShortcuts", () => {
       .mocked(registerComboCallback)
       .mock.calls.map(([combo]) => combo);
     expect(combos).toEqual(
-      expect.arrayContaining(["v", "g", "p+shift", "g+shift", "m+shift", "l+shift"])
+      expect.arrayContaining(["v", "g", "p+shift", "g+shift", "v+shift", "l+shift"])
     );
   });
 

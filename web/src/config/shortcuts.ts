@@ -32,7 +32,7 @@ export interface Shortcut {
 export const ADD_NODE_HOTKEYS = [
   { slug: "addPromptNode", key: "P", label: "Prompt", nodeType: "nodetool.text.Prompt" },
   { slug: "addTextToImageNode", key: "G", label: "Text to Image", nodeType: "nodetool.image.TextToImage" },
-  { slug: "addTextToVideoNode", key: "M", label: "Text to Video", nodeType: "nodetool.video.TextToVideo" },
+  { slug: "addTextToVideoNode", key: "V", label: "Text to Video", nodeType: "nodetool.video.TextToVideo" },
   { slug: "addAgentNode", key: "L", label: "Agent", nodeType: "nodetool.agents.Agent" }
 ] as const;
 
@@ -458,7 +458,7 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
   {
     title: "Align Middle",
     slug: "alignMiddle",
-    keyCombo: ["Shift", "V"],
+    keyCombo: ["Shift", "E"],
     category: "editor",
     description: "Align selected nodes to their vertical center",
     registerCombo: true
