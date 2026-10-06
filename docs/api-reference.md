@@ -111,6 +111,7 @@ For detailed schemas, see [Chat API](chat-api.md) and [Workflow API](workflow-ap
 | Documents | `/api/documents/extract-text`     | `POST`            | Session auth                                   | no                          | Extract text from an uploaded PDF or DOCX (25 MB cap). Stores nothing |
 | Apps      | `/api/apps/{token}`               | `GET`             | none (the token is the credential)             | no                          | A deployed mini app's released document. Production only |
 | Apps      | `/api/apps/{token}/session`       | `POST`            | none (the token is the credential)             | no                          | Mint the short-lived `nda_` session a deployed app's visitor runs on. Production only |
+| Workflows | `/api/shared-workflows/{token}`   | `GET`             | none (the token is the credential)             | no                          | A workflow's name, description, tags, and graph behind a public share link |
 | Timelines | `/api/timelines/{id}/track-object` | `POST`           | Session auth                                   | no                          | Track a subject through a clip with the `track_object` capability |
 | Timelines | `/api/timelines/{id}/bake-audio-animation` | `POST`   | Session auth                                   | no                          | Turn an audio clip's loudness or beats into keyframes on another clip |
 | Timelines | `/api/timelines/{id}/isolate-subject` | `POST`        | Session auth                                   | no                          | Cut a clip's subject out with a matte model |
@@ -221,7 +222,7 @@ Procedures by router. Nested routers appear as a dotted path.
 | `triggers` | `listByWorkflow` | `fire` |
 | `users` | `list` | `create`, `remove`, `resetToken` |
 | `worker` | `profiles.list`, `instances.list`, `apiKeyStatus`, `health` | `profiles.create`, `profiles.delete`, `provision`, `stop`, `resume`, `terminate`, `stopAll`, `reconcile`, `attach`, `detach` |
-| `workflows` | `list`, `get`, `examples`, `recipes`, `public.list`, `public.get`, `terminalOutputs`, `versions.list`, `sharing.get`, `sharing.sharedWithMe` | `create`, `update`, `delete`, `autosave`, `versions.create`, `versions.restore`, `versions.delete`, `sharing.createLink`, `sharing.revokeLink`, `sharing.setRole`, `sharing.removeCollaborator`, `sharing.accept` |
+| `workflows` | `list`, `get`, `examples`, `recipes`, `public.list`, `public.get`, `terminalOutputs`, `versions.list`, `sharing.get`, `sharing.sharedWithMe` | `create`, `update`, `delete`, `autosave`, `versions.create`, `versions.restore`, `versions.delete`, `sharing.createLink`, `sharing.revokeLink`, `sharing.setRole`, `sharing.removeCollaborator`, `sharing.accept`, `sharing.duplicatePublic` |
 | `workspace` | `list`, `listFiles`, `readFile` | `create`, `update`, `delete`, `writeFile` |
 
 `healthz` is a root-level query that returns `{"ok": true}`. Input and output
@@ -2670,6 +2671,18 @@ and the detail names the field.
 session auth. Both answer `404` with `{"detail": "This app is not available"}`
 for an unknown or revoked token, and for every request outside production. The
 `GET` response is gzip-compressed when the client accepts it.
+
+### Public Workflow Links
+
+`GET /api/shared-workflows/{token}` returns the name, description, tags, and
+graph of the workflow behind a public share link. The owner mints the link with
+`workflows.sharing.createLink` and `role: "public"`, and revokes it with
+`workflows.sharing.revokeLink`. The token is the credential, so the route uses
+no session auth. It answers `404` with
+`{"detail": "This workflow is not available"}` for an unknown, revoked, view,
+or edit token. A public link grants no role. A signed-in user copies the
+workflow into their own workflows with the `workflows.sharing.duplicatePublic`
+tRPC mutation, which creates a new private workflow.
 
 ### Provider Callbacks
 

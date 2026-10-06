@@ -1013,7 +1013,7 @@ describe("workflows.sharing router", () => {
   function makeShare(opts: {
     id?: string;
     workflow_id?: string;
-    role?: "viewer" | "editor";
+    role?: "viewer" | "editor" | "public";
     revoked_at?: string | null;
   }) {
     const revokedAt = opts.revoked_at ?? null;
@@ -1247,6 +1247,74 @@ describe("workflows.sharing router", () => {
       await expect(
         caller.workflows.sharing.accept({ token: "nope" })
       ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
+  describe("public links", () => {
+    it("accept refuses a public token instead of granting a role", async () => {
+      asMock(WorkflowShare.findByToken).mockResolvedValue(
+        makeShare({ role: "public" })
+      );
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.sharing.accept({ token: "tok_abc" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      expect(WorkflowCollaborator.upsert).not.toHaveBeenCalled();
+    });
+
+    it("duplicatePublic copies the workflow into the caller's account", async () => {
+      const graph = {
+        nodes: [{ id: "n1", type: "nodetool.input.StringInput", data: {} }],
+        edges: []
+      };
+      asMock(WorkflowShare.findByToken).mockResolvedValue(
+        makeShare({ role: "public" })
+      );
+      asMock(Workflow.get).mockResolvedValue(
+        makeWorkflow({ id: "wf-1", user_id: "owner-1", name: "Shared", graph })
+      );
+      asMock(Workflow.create).mockImplementation(
+        async (row: Record<string, unknown>) => ({
+          ...makeWorkflow({ id: "wf-copy" }),
+          ...row,
+          id: "wf-copy"
+        })
+      );
+
+      const caller = createCaller(makeCtx());
+      const result = await caller.workflows.sharing.duplicatePublic({
+        token: "tok_abc"
+      });
+      expect(result.id).toBe("wf-copy");
+      expect(Workflow.create).toHaveBeenCalledWith(
+        expect.objectContaining({
+          user_id: "user-1",
+          name: "Shared",
+          access: "private",
+          graph
+        })
+      );
+      expect(WorkflowCollaborator.upsert).not.toHaveBeenCalled();
+    });
+
+    it("duplicatePublic refuses a viewer token", async () => {
+      asMock(WorkflowShare.findByToken).mockResolvedValue(
+        makeShare({ role: "viewer" })
+      );
+
+      const caller = createCaller(makeCtx());
+      await expect(
+        caller.workflows.sharing.duplicatePublic({ token: "tok_abc" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      expect(Workflow.create).not.toHaveBeenCalled();
+    });
+
+    it("duplicatePublic requires an account", async () => {
+      const caller = createCaller(makeCtx({ userId: null }));
+      await expect(
+        caller.workflows.sharing.duplicatePublic({ token: "tok_abc" })
+      ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
     });
   });
 

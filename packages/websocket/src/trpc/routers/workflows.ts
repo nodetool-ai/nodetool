@@ -85,6 +85,7 @@ import {
   sharingOkOutput,
   sharingAcceptInput,
   sharingAcceptOutput,
+  sharingPublicTokenInput,
   shareItem,
   collaboratorItem,
   sharedWithMeInput,
@@ -94,6 +95,7 @@ import {
 } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 import { isString } from "../../lib/wire-values.js";
 import { getStorageRetentionSettings } from "../../storage-retention.js";
+import { loadPublicShareWorkflow } from "../../lib/public-workflow-share.js";
 
 const log = createLogger("nodetool.websocket.trpc.workflows");
 
@@ -884,7 +886,8 @@ export const workflowsRouter = router({
       .output(sharingAcceptOutput)
       .mutation(async ({ ctx, input }) => {
         const share = await WorkflowShare.findByToken(input.token);
-        if (!share || share.isRevoked) {
+        // A public link grants nothing; see lib/public-workflow-share.ts.
+        if (!share || share.isRevoked || share.role === "public") {
           throwApiError(
             ApiErrorCode.NOT_FOUND,
             "Share link is invalid or revoked"
@@ -906,6 +909,28 @@ export const workflowsRouter = router({
           });
         }
         return { workflow: toWorkflowResponse(workflow), role: share.role };
+      }),
+
+    // Copy a publicly linked workflow into the caller's own workflows as a
+    // new private row. The source stays untouched and grants nothing. The
+    // read side is the unauthenticated GET /api/shared-workflows/:token.
+    duplicatePublic: protectedProcedure
+      .input(sharingPublicTokenInput)
+      .output(workflowResponse)
+      .mutation(async ({ ctx, input }) => {
+        const source = await loadPublicShareWorkflow(input.token);
+        const copy = await runWorkflowService(() =>
+          createWorkflow(ctx.userId, {
+            name: source.name,
+            description: source.description,
+            tags: source.tags,
+            access: "private",
+            graph: safeGraph(source.id, source.graph),
+            settings: source.settings,
+            run_mode: source.run_mode
+          })
+        );
+        return toWorkflowResponse(copy);
       }),
 
     // Workflows shared with the caller, with their role on each.
