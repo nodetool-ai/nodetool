@@ -9,7 +9,7 @@ for (const route of ["/", "/marketing"]) {
     await page.emulateMedia({ reducedMotion: "reduce" });
     await page.route(/\.webm$/, (request) => request.abort());
     await page.goto(route);
-    const showcase = page.getByRole("region", { name: "Watch the film. Make it yours." });
+    const showcase = page.getByRole("region", { name: "Every film is a timeline you can open." });
     const selectors = showcase.getByRole("group", { name: "Example films" });
     await showcase.scrollIntoViewIfNeeded();
     expect(await selectors.getByRole("button").allTextContents()).toEqual(

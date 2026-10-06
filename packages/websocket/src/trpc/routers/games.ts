@@ -19,6 +19,7 @@ import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
+import { boundedGameDraftHistory, MAX_GAME_DRAFT_OPS } from "./gameDraftHistory.js";
 
 const log = createLogger("nodetool.games");
 
@@ -364,7 +365,7 @@ export const gamesRouter = router({
     }),
 
   saveDraft: protectedProcedure
-    .input(idInput.extend({ baseUpdatedAt: z.string(), ops: z.array(gameDocumentOp).min(1) }))
+    .input(idInput.extend({ baseUpdatedAt: z.string(), ops: z.array(gameDocumentOp).min(1).max(MAX_GAME_DRAFT_OPS) }))
     .output(gameWithDocument)
     .mutation(async ({ ctx, input }) => {
       const game = await ownedGame(ctx.userId, input.id);
@@ -420,7 +421,7 @@ export const gamesRouter = router({
     })))
     .query(async ({ ctx, input }) => {
       const game = await ownedGame(ctx.userId, input.id);
-      return (await Game.listDraftChanges(ctx.userId, game.id)).map(({ gameId: _gameId, ...change }) => change);
+      return boundedGameDraftHistory((await Game.listDraftChanges(ctx.userId, game.id)).map(({ gameId: _gameId, ...change }) => change));
     }),
 
   draftBeforeChange: protectedProcedure

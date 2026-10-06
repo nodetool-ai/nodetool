@@ -36,17 +36,13 @@ import { OutputNode } from "../node/OutputNode";
 import { CompareImagesNode } from "../node/CompareImagesNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
 import RerouteNode from "../node/RerouteNode";
-import {
-  DynamicFalSchemaNode,
-  DYNAMIC_FAL_NODE_TYPE
-} from "../node/DynamicFalSchemaNode";
+import DynamicFalSchemaNode from "../node/DynamicFalSchemaNode/DynamicFalSchemaNode";
+import { DYNAMIC_FAL_NODE_TYPE } from "../node/DynamicFalSchemaNode/FalSchemaLoader";
 import DynamicKieSchemaNode from "../node/DynamicKieSchemaNode/DynamicKieSchemaNode";
 import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode/KieSchemaLoader";
 import DynamicComfySchemaNode from "../node/DynamicComfySchemaNode/DynamicComfySchemaNode";
-import {
-  DynamicReplicateNode,
-  DYNAMIC_REPLICATE_NODE_TYPE
-} from "../node/DynamicReplicateNode";
+import DynamicReplicateNode from "../node/DynamicReplicateNode/DynamicReplicateNode";
+import { DYNAMIC_REPLICATE_NODE_TYPE } from "../node/DynamicReplicateNode/ReplicateSchemaLoader";
 import {
   WorkflowNode,
   WORKFLOW_NODE_TYPE
@@ -71,6 +67,12 @@ import useConnectionHandlers from "../../hooks/handlers/useConnectionHandlers";
 import useEdgeHandlers from "../../hooks/handlers/useEdgeHandlers";
 import useDragHandlers from "../../hooks/handlers/useDragHandlers";
 import { useProcessedEdges } from "../../hooks/useProcessedEdges";
+import {
+  EMPTY_UNTAKEN_BRANCH,
+  findUntakenBranch,
+  sameUntakenBranch,
+  type UntakenBranch
+} from "../../utils/untakenBranches";
 import { useFitNodeEvent } from "../../hooks/useFitNodeEvent";
 import { useNodeDragDiagnostics } from "../../hooks/useNodeDragDiagnostics";
 import { MAX_ZOOM, MIN_ZOOM, ZOOMED_OUT } from "../../config/constants";
@@ -103,7 +105,7 @@ import { useConnectionEvents } from "../../hooks/handlers/useConnectionEvents";
 import type { NodeData } from "../../stores/NodeData";
 import type { NodeStoreState } from "../../stores/NodeStore";
 import { scheduleNodeInternalsRefresh } from "../../utils/scheduleNodeInternalsRefresh";
-import type { EdgeKey, NodeKey } from "../../stores/nodeKey";
+import { edgeKey, type EdgeKey, type NodeKey } from "../../stores/nodeKey";
 import FirstWorkflowGuide from "../node_editor/FirstWorkflowGuide";
 import { Slugify } from "../../utils/TypeHandler";
 import { PortLabelVisibilityContext } from "../../contexts/PortLabelVisibilityContext";
@@ -961,19 +963,40 @@ const ReactFlowWrapper = ({
     return result;
   }, [edges, selectedNodeIds]);
 
+  // After a run reports which If/Switch output fired, dim the nodes and edges
+  // on the untaken branch. Node types come from the ref so position-only
+  // drags don't recompute; the set keeps its identity while unchanged.
+  const untakenBranchRef = useRef<UntakenBranch>(EMPTY_UNTAKEN_BRANCH);
+  const untakenBranch = useMemo(() => {
+    let next = EMPTY_UNTAKEN_BRANCH;
+    if (workflowId && focusedJobId) {
+      const nodeTypes = new Map(
+        nodesRef.current.map((node) => [node.id, node.type])
+      );
+      next = findUntakenBranch(nodeTypes, edges, (edgeId) =>
+        edgeStatuses[edgeKey(workflowId, focusedJobId, edgeId)]
+      );
+    }
+    if (sameUntakenBranch(next, untakenBranchRef.current)) {
+      return untakenBranchRef.current;
+    }
+    untakenBranchRef.current = next;
+    return next;
+  }, [edges, edgeStatuses, workflowId, focusedJobId]);
+
   const comprehensionNodeCacheRef = useRef(
     new Map<
       string,
       {
         source: Node<NodeData>;
-        relation: "related" | "dimmed";
+        classes: string;
         result: Node<NodeData>;
       }
     >()
   );
 
   const comprehensionNodes = useMemo(() => {
-    if (selectedNodeIds.size === 0) {
+    if (selectedNodeIds.size === 0 && untakenBranch.nodeIds.size === 0) {
       return nodes;
     }
     const previous = comprehensionNodeCacheRef.current;
@@ -981,58 +1004,65 @@ const ReactFlowWrapper = ({
       string,
       {
         source: Node<NodeData>;
-        relation: "related" | "dimmed";
+        classes: string;
         result: Node<NodeData>;
       }
     >();
     const mapped = nodes.map((node) => {
-      const relation: "related" | "dimmed" = branchNodeIds.has(node.id)
-        ? "related"
-        : "dimmed";
+      const extra: string[] = [];
+      if (selectedNodeIds.size > 0) {
+        extra.push(
+          branchNodeIds.has(node.id) ? "branch-related" : "branch-dimmed"
+        );
+      }
+      if (untakenBranch.nodeIds.has(node.id)) {
+        extra.push("not-run");
+      }
+      const classes = extra.join(" ");
+      if (!classes) {
+        return node;
+      }
       const cached = previous.get(node.id);
-      if (cached?.source === node && cached.relation === relation) {
+      if (cached?.source === node && cached.classes === classes) {
+        next.set(node.id, cached);
         return cached.result;
       }
       const result = {
         ...node,
-        className: [
-          node.className,
-          relation === "related" ? "branch-related" : "branch-dimmed"
-        ]
-          .filter(Boolean)
-          .join(" ")
+        className: [node.className, classes].filter(Boolean).join(" ")
       };
-      next.set(node.id, { source: node, relation, result });
+      next.set(node.id, { source: node, classes, result });
       return result;
     });
-    for (const node of nodes) {
-      if (!next.has(node.id)) {
-        const cached = previous.get(node.id);
-        if (cached) {
-          next.set(node.id, cached);
-        }
-      }
-    }
     comprehensionNodeCacheRef.current = next;
     return mapped;
-  }, [branchNodeIds, nodes, selectedNodeIds.size]);
+  }, [branchNodeIds, nodes, selectedNodeIds.size, untakenBranch]);
 
   const comprehensionEdges = useMemo(() => {
-    if (selectedNodeIds.size === 0) {
+    if (selectedNodeIds.size === 0 && untakenBranch.edgeIds.size === 0) {
       return processedEdges;
     }
-    return processedEdges.map((edge) => ({
-      ...edge,
-      className: [
-        edge.className,
-        branchNodeIds.has(edge.source) && branchNodeIds.has(edge.target)
-          ? "branch-related"
-          : "branch-dimmed"
-      ]
-        .filter(Boolean)
-        .join(" ")
-    }));
-  }, [branchNodeIds, processedEdges, selectedNodeIds.size]);
+    return processedEdges.map((edge) => {
+      const extra: string[] = [];
+      if (selectedNodeIds.size > 0) {
+        extra.push(
+          branchNodeIds.has(edge.source) && branchNodeIds.has(edge.target)
+            ? "branch-related"
+            : "branch-dimmed"
+        );
+      }
+      if (untakenBranch.edgeIds.has(edge.id)) {
+        extra.push("not-run");
+      }
+      if (extra.length === 0) {
+        return edge;
+      }
+      return {
+        ...edge,
+        className: [edge.className, ...extra].filter(Boolean).join(" ")
+      };
+    });
+  }, [branchNodeIds, processedEdges, selectedNodeIds.size, untakenBranch]);
 
   // Track previous selectedNodeIds to skip edge processing when selection hasn't changed
   const prevSelectedNodeIdsRef = useRef<Set<string> | null>(null);

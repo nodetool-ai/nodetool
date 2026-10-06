@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { gameSnapshot, type GameEvent } from "@nodetool-ai/protocol";
+import { gameAssetBinding, gameSnapshot, type GameEvent } from "@nodetool-ai/protocol";
 import { GameAudioPlayer } from "../src/audio.js";
 
 class FakeParam {
@@ -173,3 +173,49 @@ describe("shared game audio lifecycle", () => {
     audio.dispose();
   });
 });
+
+it("keeps decoded audio through unchanged bindings and reloads a changed slot", async () => {
+  const fetchAsset = vi.fn(async () => new Response(new Uint8Array([1])));
+  vi.stubGlobal("fetch", fetchAsset);
+  const context = new FakeContext();
+  const binding = gameAssetBinding.parse({ assetId: "./music.wav", digest: "d", mediaKind: "audio", width: 1, height: 1 });
+  const audio = new GameAudioPlayer({ context: context as unknown as AudioContext, tickRate: 60,
+    assets: { music: binding }, resolveAsset: async (asset) => asset.assetId, status: vi.fn() });
+  audio.preload();
+  await vi.waitFor(() => expect(fetchAsset).toHaveBeenCalledTimes(1));
+  for (let index = 0; index < 10; index++) { audio.updateAssets({ music: { ...binding } }); }
+  expect(fetchAsset).toHaveBeenCalledTimes(1);
+  audio.updateAssets({ music: { ...binding, assetId: "./replacement.wav" } });
+  await vi.waitFor(() => expect(fetchAsset).toHaveBeenCalledTimes(2));
+  audio.dispose();
+});
+
+for (const delayed of [false, true]) {
+  it(`replaces ${delayed ? "pending" : "playing"} music when its asset slot changes`, async () => {
+    vi.stubGlobal("fetch", vi.fn(async (url: string) => new Response(new Uint8Array([url.includes("replacement") ? 2 : 1]))));
+    const context = delayed ? new DelayedContext() : new FakeContext();
+    const binding = gameAssetBinding.parse({ assetId: "./music.wav", digest: "old", mediaKind: "audio", width: 1, height: 1 });
+    const audio = new GameAudioPlayer({ context: context as unknown as AudioContext, tickRate: 60,
+      assets: { music: binding }, resolveAsset: async (asset) => asset.assetId, status: vi.fn() });
+    await audio.unlock();
+    audio.sync(snapshot(90, 0));
+    if (context instanceof DelayedContext) {
+      await vi.waitFor(() => expect(context.resolveOldDecodes).toHaveLength(1));
+    } else {
+      await vi.waitFor(() => expect(context.sources).toHaveLength(1));
+    }
+    audio.updateAssets({ music: { ...binding, assetId: "./replacement.wav", digest: "new" } });
+    await vi.waitFor(() => expect(context.sources).toHaveLength(delayed ? 1 : 2));
+    expect(context.sources.at(-1)!.starts).toEqual([1.5]);
+    if (context instanceof DelayedContext) {
+      context.resolveOldDecodes[0]({ duration: 2 } as AudioBuffer);
+      await new Promise<void>((resolve) => setImmediate(resolve));
+      expect(context.sources).toHaveLength(1);
+    } else {
+      expect(context.sources[0].stops).toHaveLength(1);
+    }
+    audio.updateAssets({});
+    expect(context.sources.at(-1)!.stops).toHaveLength(1);
+    audio.dispose();
+  });
+}

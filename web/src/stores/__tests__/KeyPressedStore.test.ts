@@ -89,6 +89,50 @@ describe("KeyPressedStore", () => {
       unregister();
     });
 
+    it("fires a Shift+? combo from a real ? key event, but not while typing in an input", () => {
+      const callback = jest.fn();
+      const unregister = registerComboCallback("?+shift", {
+        callback,
+        scope: "canvas"
+      });
+      const releaseListeners = initKeyListeners();
+      const press = () => {
+        act(() => {
+          window.dispatchEvent(
+            new KeyboardEvent("keydown", {
+              key: "?",
+              code: "Slash",
+              shiftKey: true,
+              bubbles: true
+            })
+          );
+        });
+        act(() => {
+          window.dispatchEvent(
+            new KeyboardEvent("keyup", {
+              key: "?",
+              code: "Slash",
+              shiftKey: false,
+              bubbles: true
+            })
+          );
+        });
+      };
+
+      press();
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      const input = document.createElement("input");
+      document.body.appendChild(input);
+      input.focus();
+      press();
+      expect(callback).toHaveBeenCalledTimes(1);
+
+      input.remove();
+      releaseListeners();
+      unregister();
+    });
+
     it("adds a pressed key", () => {
       const { setKeysPressed } = useKeyPressedStore.getState();
       act(() => {

@@ -24,6 +24,7 @@ import GamePanelHeader from "./GamePanelHeader";
 import GameScriptPane from "./GameScriptPane";
 import GameStatusBar from "./GameStatusBar";
 import GameToolbar from "./GameToolbar";
+import { handleGameUndo } from "./gameEditorShortcuts";
 import { GAME_EDITOR_ROOT_SX } from "./gameEditorStyles";
 import GameViewport3D from "./GameViewport3D";
 import { useGamePlaySession3D } from "./useGamePlaySession3D";
@@ -48,6 +49,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const [scriptIndex, setScriptIndex] = useState<number | null>(null);
   const [assetId, setAssetId] = useState("");
   const [assetSlot, setAssetSlot] = useState("model");
+  const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
   const [operationError, setOperationError] = useState<string | null>(null);
   const [focusMessage, setFocusMessage] = useState<{ threadId: string; messageId: string; requestId: number } | null>(null);
   const activeSceneId = document.scenes.some((scene) => scene.id === sceneId) ? sceneId : document.entrySceneId;
@@ -82,6 +84,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
 
   const pull = useCallback(async (): Promise<void> => {
     await pullGameDraft(savingRef, pullFromServer);
+    setOperationError(null);
   }, [pullFromServer]);
 
   const flush = useCallback(async (): Promise<void> => {
@@ -116,6 +119,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
       }
     };
     await flushGameDraft(savingRef, save);
+    setOperationError(null);
   }, [refId, pullFromServer]);
 
   useEffect(() => registerDocumentSync("game", refId, {
@@ -186,18 +190,14 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
           nodeDetail: `Game: ${refId}\nScene: ${activeSceneId}\nEntity: ${selected?.id ?? "none"}\nTick: ${host.inspection?.tick ?? 0}` }} /></FlexRow>}
       {restart && <Caption role="status">The draft changed. Stop and play again to apply it.</Caption>}
     </FlexColumn>}
-    <GameAuthoringPreview key={refId} gameId={refId} document={document} flush={flush} onHighlight={(ids) => getGameDraftStore(refId).getState().selectMany(ids)} />
+    <GameAuthoringPreview key={refId} gameId={refId} document={document} flush={flush} onHighlight={setHighlightedIds} />
     {conflicts.items.length > 0 && <ConflictBanner conflicts={conflicts.items} onAccept={conflicts.accept} onDiscard={conflicts.discard} />}
-    <GameChanges gameId={refId} document={document} onOps={onOps} onHover={() => undefined}
+    <GameChanges gameId={refId} document={document} onOps={onOps} onHover={setHighlightedIds}
       onFocusMessage={(threadId, messageId) => { setAssistantOpen(true); setFocusMessage({ threadId, messageId, requestId: Date.now() }); }} />
-    <FlexRow sx={{ flex: 1, minHeight: 0 }} onKeyDown={(event) => {
-      if ((event.ctrlKey || event.metaKey) && event.code === "KeyZ") {
-        event.preventDefault();
-        if (event.shiftKey) { getGameDraftStore(refId).getState().redo(); } else { getGameDraftStore(refId).getState().undo(); }
-      }
-    }}>
+    <FlexRow sx={{ flex: 1, minHeight: 0 }} onKeyDown={(event) => handleGameUndo(event, Boolean(host.playDocument),
+      () => getGameDraftStore(refId).getState().undo(), () => getGameDraftStore(refId).getState().redo())}>
       {treeOpen && <ResizableDock storageKey="sceneTree3d" storagePrefix="nodetool.gameEditor." side="left" defaultWidth={260} minWidth={220} maxWidth={480} ariaLabel="Resize 3D scene tree">
-        <GameHierarchy3D document={document} scene={scene} selectedIds={selectedIds} onSelect={select} onAdd={add}
+        <FlexColumn data-game-undo-scope sx={{ flex: 1, minHeight: 0 }}><GameHierarchy3D document={document} scene={scene} selectedIds={selectedIds} onSelect={select} onAdd={add}
           onSelectScene={(value) => { setSceneId(value); getGameDraftStore(refId).getState().selectMany([]); }}
           footer={<CollapsibleSection title={<Label component="span" sx={{ mb: 0 }}>Model assets</Label>} compact defaultOpen={false}>
             <FlexColumn gap={SPACING.sm} sx={{ pb: SPACING.md }}>
@@ -212,10 +212,10 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
               </FlexRow>)}
               <Caption>After saving model changes, prepare and install them again.</Caption>
             </FlexColumn>
-          </CollapsibleSection>} />
+          </CollapsibleSection>} /></FlexColumn>
       </ResizableDock>}
       <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
-        <GameViewport3D document={document} host={host} selectedId={selected?.id} sceneId={activeSceneId} onSelect={select} onOps={onOps} />
+        <GameViewport3D document={document} host={host} selectedId={selected?.id} highlightedIds={highlightedIds} sceneId={activeSceneId} onSelect={select} onOps={onOps} />
         {selected && behavior?.kind === "script" && scriptIndex !== null && <FlexColumn sx={{ height: "40%", minHeight: 0, borderTop: 1, borderColor: "divider" }}>
           <GameScriptPane dimension="3d" entityId={selected.id} entityName={selected.name} behaviorIndex={scriptIndex} behavior={behavior}
             onChange={(source) => onOps([{ op: "set_script", scene_id: activeSceneId, entity_id: selected.id, index: scriptIndex, source }])} onClose={() => setScriptIndex(null)} />

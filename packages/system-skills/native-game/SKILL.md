@@ -339,6 +339,13 @@ before publishing again. Restoring a revision requires confirmation because it
 replaces the draft and clears its undo history. The newest 100 published
 revision files are retained, including the live revision.
 
+When the script pane reports a draft conflict, local typing remains unsaved
+until you choose **Keep my version** or **Use draft version**. Keeping your
+version saves the current text and resumes normal editing. Using the draft
+discards the local text. The editor saves at most 1,024 operations per request.
+The changes panel receives at most 1 MiB of recent history and omits a group
+that would cross the byte limit instead of splitting its undo operations.
+
 ### W: Foundation interfaces
 
 ### B: Benchmarks and verification

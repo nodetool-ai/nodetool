@@ -214,4 +214,17 @@ describe("useNodeEditorShortcuts", () => {
       expect(options).toEqual(expect.objectContaining({ scope: "canvas" }));
     }
   });
+
+  it("opens the shortcut list with ? as well as Control+/", () => {
+    const onShowShortcuts = jest.fn();
+    renderHook(() => useNodeEditorShortcuts(true, onShowShortcuts));
+
+    const calls = jest.mocked(registerComboCallback).mock.calls;
+    for (const combo of ["/+control", "?+shift"]) {
+      const registration = calls.find(([registered]) => registered === combo);
+      expect(registration).toBeDefined();
+      registration?.[1]?.callback?.();
+    }
+    expect(onShowShortcuts).toHaveBeenCalledTimes(2);
+  });
 });
