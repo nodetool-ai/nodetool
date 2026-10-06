@@ -43,7 +43,8 @@ const registry = {
   getClass: () => undefined,
   resolveMetadata: () => undefined,
   getMetadata: () => undefined,
-  listMetadata: () => []
+  listMetadata: () => [],
+  validateNode: () => []
 } as unknown as NodeRegistry;
 
 beforeEach(async () => {

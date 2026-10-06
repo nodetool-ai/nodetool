@@ -1,5 +1,9 @@
 import type { Graph } from "@nodetool-ai/protocol/api-schemas/workflows.js";
-import { wouldCreateLoopUnsafeCycle, WORKFLOW_REVISION_TOOL_NAMES } from "@nodetool-ai/protocol";
+import {
+  isDynamicSchemaNodeType,
+  wouldCreateLoopUnsafeCycle,
+  WORKFLOW_REVISION_TOOL_NAMES
+} from "@nodetool-ai/protocol";
 import {
   inferredCodeInputNames,
   inferredCodeOutputNames
@@ -27,6 +31,7 @@ interface WorkflowNodeMetadata {
     required?: boolean;
   }>;
   outputs: Array<{ name: string; type: TypeMeta }>;
+  supports_dynamic_inputs?: boolean;
 }
 
 export interface WorkflowDocumentToolOptions {
@@ -168,6 +173,50 @@ function inputType(
     return ANY_TYPE;
   }
   return undefined;
+}
+
+/**
+ * A node that accepts user-named inputs (Concat, Prompt, Images To List…) gets
+ * the missing slot declared by the connection, as a drop on the node body does
+ * in the editor. Code nodes infer their ports from the body, and schema-driven
+ * nodes take theirs from the provider schema, so neither gets one invented.
+ */
+function canDeclareDynamicInput(
+  node: GraphNode,
+  metadata: WorkflowNodeMetadata,
+  handle: string
+): boolean {
+  const type = String(node.type ?? "");
+  const dynamicOutputs = isRecord(node.dynamic_outputs)
+    ? node.dynamic_outputs
+    : {};
+  return (
+    metadata.supports_dynamic_inputs === true &&
+    handle.trim() !== "" &&
+    !isJsCodeNodeType(type) &&
+    !isDynamicSchemaNodeType(type) &&
+    !(handle in dynamicOutputs)
+  );
+}
+
+/**
+ * Declare dynamic input `handle`, typed after the output wired into it. An
+ * `any` source leaves the slot an untyped legacy slot.
+ */
+function declareDynamicInput(
+  node: GraphNode,
+  handle: string,
+  sourceType: TypeMeta
+): void {
+  const dynamicProperties = isRecord(node.dynamic_properties)
+    ? node.dynamic_properties
+    : {};
+  node.dynamic_properties = { ...dynamicProperties, [handle]: "" };
+  if (typeMetaToString(sourceType) === "any") return;
+  const dynamicInputs = isRecord(node.dynamic_inputs)
+    ? node.dynamic_inputs
+    : {};
+  node.dynamic_inputs = { ...dynamicInputs, [handle]: { type: sourceType } };
 }
 
 /** Stamp inferred Code-node slots onto the node without replacing existing ones. */
@@ -326,7 +375,15 @@ export function applyWorkflowDocumentTool(
       throw new Error(`Target node has no metadata: ${targetNode.type}`);
     }
     const sourceType = outputType(sourceNode, sourceMetadata, sourceHandle);
-    const targetType = inputType(targetNode, targetMetadata, targetHandle);
+    const declaredTargetType = inputType(
+      targetNode,
+      targetMetadata,
+      targetHandle
+    );
+    const declaresInput =
+      !declaredTargetType &&
+      canDeclareDynamicInput(targetNode, targetMetadata, targetHandle);
+    const targetType = declaredTargetType ?? (declaresInput ? ANY_TYPE : undefined);
     if (!sourceType) {
       const available = sourceMetadata.outputs.map((slot) => slot.name);
       throw new Error(
@@ -390,6 +447,14 @@ export function applyWorkflowDocumentTool(
       target: targetId,
       targetHandle
     });
+    if (declaresInput) {
+      declareDynamicInput(targetNode, targetHandle, sourceType);
+      return {
+        graph,
+        result: { ok: true, edge_id: edgeId, declared_input: targetHandle },
+        changed: true
+      };
+    }
     return { graph, result: { ok: true, edge_id: edgeId }, changed: true };
   }
 

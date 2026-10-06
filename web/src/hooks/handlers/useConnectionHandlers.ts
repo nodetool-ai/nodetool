@@ -23,11 +23,7 @@ import {
   REROUTE_NODE_TYPE
 } from "../../constants/nodeTypes";
 import { wouldCreateCycle } from "../../utils/graphCycle";
-import {
-  defaultValueForType,
-  normalizeDynamicSlots,
-  normalizeTypeMetadata
-} from "../../utils/dynamicSlots";
+import { dynamicInputSlotPatch } from "../../utils/dynamicSlots";
 import { CONTROL_HANDLE_ID } from "../../stores/graphEdgeToReactFlowEdge";
 import { shallow } from "zustand/shallow";
 import { isFunction } from "../../utils/typePredicates";
@@ -361,26 +357,10 @@ export default function useConnectionHandlers() {
           }
 
           if (!dynamicProps[propertyName]) {
-            // Declare the new slot with the dragged output's type (mirrors
-            // the dynamic-output path below), so most slots are typed for free.
-            const declaredType =
-              connectType && connectType.type !== "any"
-                ? normalizeTypeMetadata(connectType)
-                : undefined;
-            updateNodeData(nodeId, {
-              dynamic_properties: {
-                ...dynamicProps,
-                [propertyName]: declaredType
-                  ? defaultValueForType(declaredType)
-                  : ""
-              },
-              ...(declaredType && {
-                dynamic_inputs: {
-                  ...normalizeDynamicSlots(node.data?.dynamic_inputs),
-                  [propertyName]: { type: declaredType }
-                }
-              })
-            });
+            updateNodeData(
+              nodeId,
+              dynamicInputSlotPatch(node.data ?? {}, propertyName, connectType)
+            );
           }
 
           // handleOnConnect derives the edge className from the source handle.

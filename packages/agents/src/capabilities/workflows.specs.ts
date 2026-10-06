@@ -260,7 +260,8 @@ export const createWorkflowSpec: CapabilitySpec = {
     "Create a new workflow with a name, graph structure, and optional " +
     "metadata. Model properties are checked before the workflow is created: " +
     "an unregistered provider or a model id the provider does not offer is " +
-    "returned as an error instead of being saved.",
+    "returned as an error instead of being saved. A model left unselected " +
+    "is saved with a warning, and a run is refused until one is picked.",
   inputSchema: CREATE_WORKFLOW_SCHEMA,
   category: "write",
   userMessage: (params) => `Creating workflow '${params["name"]}'`

@@ -265,6 +265,7 @@ export class ExecutionSession {
         await assertPreflight(normalized, {
           catalogs: options.catalogs,
           providerConfiguration,
+          ...(registry && { registry }),
           resolveSecret: (key) => context.getSecret(key)
         });
       }

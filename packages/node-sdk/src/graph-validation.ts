@@ -195,6 +195,17 @@ export interface GraphValidationRegistry {
 }
 
 /**
+ * How to gather several values into one list. `Collect` gathers the items of
+ * one stream, so an agent reaching for it with N edges needs the list-typed
+ * fan-in target named.
+ */
+const FAN_IN_REMEDY =
+  "To gather several values into one list, wire each edge into a list-typed " +
+  "input instead: `value` on nodetool.constant.List accepts any number of " +
+  "edges and outputs them as one list. nodetool.control.Collect gathers the " +
+  "items of a single stream.";
+
+/**
  * Editor-only base nodes that carry no executable class — the graph loader
  * prunes them before a run, so they must not be flagged as "unknown". Their
  * short names; matched against the `nodetool.workflows.base_node.*` namespace.
@@ -1503,7 +1514,7 @@ export function validateGraph(
         message:
           `Handle "${handle}" on node "${targetId}" receives ${count} edges but its ` +
           `type "${typeStr || "unknown"}" is not a list; the kernel's correlation ` +
-          `analysis rejects this at run time`
+          `analysis rejects this at run time. ${FAN_IN_REMEDY}`
       });
     }
   }

@@ -36,7 +36,7 @@ import {
   outcomeResult,
   resolveRunEnvironment,
   summarizeWorkflowGraph,
-  unsetModelSelectionError,
+  unsetModelSelectionWarning,
   userIdOf,
   workflowRecord
 } from "../tools/mcp-tool-support.js";
@@ -228,10 +228,9 @@ const createWorkflow: CapabilityExport = {
     if (badModels) return badModels;
     const leftoverHandles = leftoverWiringHandleError(graph);
     if (leftoverHandles) return leftoverHandles;
-    if (run.nodeRegistry) {
-      const unselected = unsetModelSelectionError(graph, run.nodeRegistry);
-      if (unselected) return unselected;
-    }
+    const unselected = run.nodeRegistry
+      ? unsetModelSelectionWarning(graph, run.nodeRegistry)
+      : null;
 
     const created = (await Workflow.create({
       user_id: userIdOf(run.context),
@@ -244,7 +243,7 @@ const createWorkflow: CapabilityExport = {
       run_mode: "workflow",
       project_id: projectId
     })) as WorkflowRow;
-    return workflowRecord(created);
+    return { ...workflowRecord(created), ...unselected };
   }
 };
 
@@ -282,6 +281,7 @@ const updateWorkflow: CapabilityExport = {
     if (!existing) return notYours(id);
 
     const fields: Record<string, unknown> = {};
+    let unselected: Record<string, unknown> | null = null;
     if (params["graph"] !== undefined) {
       // The same three passes create_workflow runs, in the same order: an
       // update that skipped them could store a graph the create path would
@@ -298,8 +298,7 @@ const updateWorkflow: CapabilityExport = {
       const leftoverHandles = leftoverWiringHandleError(graph);
       if (leftoverHandles) return leftoverHandles;
       if (run.nodeRegistry) {
-        const unselected = unsetModelSelectionError(graph, run.nodeRegistry);
-        if (unselected) return unselected;
+        unselected = unsetModelSelectionWarning(graph, run.nodeRegistry);
       }
       fields.graph = graph;
     }
@@ -331,7 +330,7 @@ const updateWorkflow: CapabilityExport = {
           `Workflow ${id} changed since you read it — read it again and retry.`
       };
     }
-    return workflowRecord(updated as WorkflowRow);
+    return { ...workflowRecord(updated as WorkflowRow), ...unselected };
   }
 };
 
