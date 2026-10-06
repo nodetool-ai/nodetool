@@ -40,7 +40,7 @@ export default function TimelineShowcase() {
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <div className="mb-10 max-w-3xl">
           <h2 id="timeline-showcase-title" className="text-3xl font-semibold tracking-tight text-slate-100 md:text-5xl">
-            Watch the film. Make it yours.
+            Every film is a timeline you can open.
           </h2>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-300">
             Made with NodeTool. Open these examples in Studio and change the scenes, text, and motion.
