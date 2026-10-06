@@ -73,10 +73,10 @@ claims, not next to them. On the homepage they are one strip of links to
 
 ## Order of the page
 
-Hero → **the agent builds the project** (a brief, then a board, takes, and a cut
-that opens) → the editors, framed as control over that project → finished films
-with their editable timelines → recipes for related production work → **every
-model, your keys** → **apps for everything** →
+Hero → the editors, framed as control over the project → finished films with
+their editable timelines → recipes for related production work → example
+storyboards → **the agent builds the project** (a brief, then a board, takes,
+and a cut that opens) → **every model, your keys** → **apps for everything** →
 ownership → **build the workflows that work for you** → comparison → Studio vs
 Cloud → ways in → FAQ → community → download.
 
