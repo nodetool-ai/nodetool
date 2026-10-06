@@ -321,3 +321,37 @@ motion are outside this release. A glTF model is an asset, so use
 `nodetool-3d-scene` to edit one. Existing external-engine source files can remain
 in a workspace as files; their scripts and scenes need reconstruction in the
 built-in game document to become playable.
+
+## Workstream authoring reference
+
+The sections below group authoring instructions by their implementation owner.
+
+### K: Editor stabilisation
+
+### W: Foundation interfaces
+
+### B: Benchmarks and verification
+
+### R: 3D rendering
+
+### V: 2D rendering and visual effects
+
+### P: Physics
+
+### A: Audio
+
+### N: Animation
+
+### S: Scripting and gameplay
+
+### U: Input and game UI
+
+### G: Navigation and AI
+
+### E: Editor tools
+
+### C: Content and assets
+
+### D: Performance and delivery
+
+### M: Milestone games

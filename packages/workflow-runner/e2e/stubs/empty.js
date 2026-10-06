@@ -23,6 +23,10 @@ export function createGzip() {
   throw new Error("Browser stub: node:zlib.createGzip not supported");
 }
 
+export function crc32() {
+  throw new Error("Browser stub: node:zlib.crc32 not supported");
+}
+
 /** `node:module`. A bundle reaching for CJS resolution has no browser path. */
 export function createRequire() {
   throw new Error("Browser stub: node:module.createRequire not supported");
