@@ -14,9 +14,11 @@ import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStor
 import { diffAnyGameDocuments as diffGameDocuments } from "../../stores/game/diffAnyGameDocuments";
 import { anyGameMergeAdapter as gameMergeAdapter } from "../../stores/game/anyMerge";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
-import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorButton, EditorUiProvider, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, LoadingSpinner, MobileBottomSheet, ResizableDock, SPACING, Text, TextInput } from "../ui_primitives";
+import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorUiProvider, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, LoadingSpinner, MobileBottomSheet, ResizableDock, SPACING, Text, TextInput } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./GameAgentPanel";
+import GameRevisions from "./GameRevisions";
+import { publishGameDraft } from "./gamePublish";
 import GameChanges from "./GameChanges";
 import GameAuthoringPreview from "./GameAuthoringPreview";
 import GameInspector from "./GameInspector";
@@ -66,6 +68,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const focusRequestRef = useRef(0);
   const [assistantThreadId, setAssistantThreadId] = useState<string | null>(null);
   const pendingAssistantPromptRef = useRef<string | null>(null);
+  const publishFlight = useRef<Promise<void> | null>(null);
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishMessage, setPublishMessage] = useState("");
   const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
@@ -236,18 +239,29 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     setAssistantOpen(true);
   };
 
-  const publish = async () => {
-    if (!data || !document) return;
-    const validation = validateGame(document);
-    if (!validation.valid) {
-      setError(validation.errors.join("; "));
-      return;
-    }
+  const restoreRevision = async (revision: string): Promise<void> => {
+    const state = getGameDraftStore(refId).getState();
+    if (!state.baseUpdatedAt) { return; }
     setSaving(true);
     try {
       await flushDraft();
-      await trpcClient.games.publish.mutate({ id: refId, baseRevision: data.game.revision,
-        message: publishMessage.trim() || undefined });
+      const fresh = getGameDraftStore(refId).getState();
+      const result = await trpcClient.games.restoreDraft.mutate({ id: refId, baseUpdatedAt: fresh.baseUpdatedAt ?? "", revision });
+      getGameDraftStore(refId).getState().load(result.document, result.game.draftUpdatedAt);
+      loadedTokenRef.current = result.game.draftUpdatedAt;
+      setError(null);
+    } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
+    finally { setSaving(false); }
+  };
+
+  const publish = async () => {
+    if (!data || !document) return;
+    setSaving(true);
+    try {
+      await publishGameDraft({ id: refId, document, flight: publishFlight, message: publishMessage.trim(),
+        flush: flushDraft, getDraft: () => getGameDraftStore(refId).getState(),
+        fetchRevision: async () => (await trpcClient.games.get.query({ id: refId })).game.revision,
+        publish: (request) => trpcClient.games.publish.mutate(request) });
       await queries.games.getDraft.invalidate({ id: refId });
       await queries.games.revisions.invalidate({ id: refId });
       await queries.games.draftChanges.invalidate({ id: refId });
@@ -402,23 +416,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
           <CollapsibleSection title={<Label component="span" sx={{ mb: 0 }}>Revisions</Label>} compact defaultOpen={false}
             sx={{ flexShrink: 0, maxHeight: "30%", overflowY: "auto", px: SPACING.md,
               "& > [role='button'] > svg": { fontSize: FONT_SIZE_SANS.body } }}>
-          {revisions?.slice(0, 10).map((entry) => <FlexRow key={entry.revision} gap={SPACING.xs} align="center">
-            <Caption>{entry.message || entry.revision.slice(0, 12)} · {new Date(entry.modifiedAt).toLocaleString()}{entry.current ? " · Current" : ""}</Caption>
-            <EditorButton disabled={saving} onClick={async () => {
-              const state = getGameDraftStore(refId).getState();
-              if (!state.baseUpdatedAt) return;
-              setSaving(true);
-              try {
-                await flushDraft();
-                const fresh = getGameDraftStore(refId).getState();
-                const result = await trpcClient.games.restoreDraft.mutate({ id: refId, baseUpdatedAt: fresh.baseUpdatedAt ?? "", revision: entry.revision });
-                getGameDraftStore(refId).getState().load(result.document, result.game.draftUpdatedAt);
-                loadedTokenRef.current = result.game.draftUpdatedAt;
-                setError(null);
-              } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
-              finally { setSaving(false); }
-            }}>Restore to draft</EditorButton>
-          </FlexRow>)}
+          <GameRevisions revisions={revisions ?? []} busy={saving} onRestore={restoreRevision} />
           </CollapsibleSection>
           </FlexColumn>
         </ResizableDock>}

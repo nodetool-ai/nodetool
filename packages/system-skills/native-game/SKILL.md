@@ -333,6 +333,12 @@ transforms. Reparenting preserves the world pose. Parent choices exclude the
 entity and its descendants. When selecting an ancestor and descendant together,
 move or delete the ancestor once.
 
+Publish validates the document you reviewed, flushes edits, and checks its draft
+token and digest. If edits arrive during the flush, review the updated draft
+before publishing again. Restoring a revision requires confirmation because it
+replaces the draft and clears its undo history. The newest 100 published
+revision files are retained, including the live revision.
+
 ### W: Foundation interfaces
 
 ### B: Benchmarks and verification

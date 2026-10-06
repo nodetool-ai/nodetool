@@ -122,4 +122,74 @@ describe("game revision pointer", () => {
     });
   });
 
+  it("F7 recovers a missing version file from the published revision and accepts the next edit", async () => {
+    const game = await insert(`${PREFIX}${"1".repeat(20)}`);
+    const original = { ...createTopDownRoomGame(game.id), revision: game.current_revision };
+    const files = new Map([[`${game.source_root}/revisions/${game.current_revision}/game.json`, JSON.stringify(original)]]);
+    const workspace = {
+      readText: async (path: string) => files.get(path) ?? null,
+      write: async (path: string, data: string) => { files.set(path, data); },
+      delete: async (path: string) => files.delete(path)
+    };
+    const saved = await Game.updateDraft(USER, game.id, game.draft_updated_at,
+      [{ op: "update_scene", scene_id: original.entrySceneId, set: { name: "Lost edit" } }], workspace);
+    if (!saved) { throw new Error("Missing saved draft"); }
+    files.delete(`${game.source_root}/drafts/${saved.game.draft_version_id}.json`);
+    files.delete(`${game.source_root}/draft.json`);
+    const recovered = await Game.readDraft(USER, game.id, workspace);
+    expect(recovered?.document).toEqual(original);
+    expect(recovered?.game.draft_updated_at).not.toBe(saved.game.draft_updated_at);
+    expect(await Game.updateDraft(USER, game.id, saved.game.draft_updated_at,
+      [{ op: "update_scene", scene_id: original.entrySceneId, set: { name: "Stale" } }], workspace)).toBeNull();
+    const next = await Game.updateDraft(USER, game.id, recovered?.game.draft_updated_at ?? "",
+      [{ op: "update_scene", scene_id: original.entrySceneId, set: { name: "Recovered edit" } }], workspace);
+    expect(next?.document.scenes[0].name).toBe("Recovered edit");
+  });
+
+  it("F27 removes a failed compare-and-set draft without deleting the winning draft", async () => {
+    const game = await insert(`${PREFIX}${"1".repeat(20)}`);
+    const original = { ...createTopDownRoomGame(game.id), revision: game.current_revision };
+    const files = new Map([[`${game.source_root}/revisions/${game.current_revision}/game.json`, JSON.stringify(original)]]);
+    let injectWinner = true;
+    const workspace = {
+      readText: async (path: string) => files.get(path) ?? null,
+      write: async (path: string, data: string) => {
+        files.set(path, data);
+        if (injectWinner && data.includes('"name":"Losing edit"')) {
+          injectWinner = false;
+          await Game.updateDraft(USER, game.id, game.draft_updated_at,
+            [{ op: "update_scene", scene_id: original.entrySceneId, set: { name: "Winning edit" } }], workspace);
+        }
+      },
+      delete: async (path: string) => files.delete(path)
+    };
+    expect(await Game.updateDraft(USER, game.id, game.draft_updated_at,
+      [{ op: "update_scene", scene_id: original.entrySceneId, set: { name: "Losing edit" } }], workspace)).toBeNull();
+    expect((await Game.readDraft(USER, game.id, workspace))?.document.scenes[0].name).toBe("Winning edit");
+    expect([...files.values()].some((source) => source.includes('"name":"Losing edit"'))).toBe(false);
+  });
+
+  it("F27 prunes old orphan drafts while preserving recent writes and retained undo sources", async () => {
+    const game = await insert(`${PREFIX}${"1".repeat(20)}`);
+    const original = { ...createTopDownRoomGame(game.id), revision: game.current_revision };
+    const oldOrphan = `${game.source_root}/drafts/${"f".repeat(64)}.json`;
+    const recentWrite = `${game.source_root}/drafts/${"e".repeat(64)}.json`;
+    const files = new Map([[`${game.source_root}/revisions/${game.current_revision}/game.json`, JSON.stringify(original)],
+      [oldOrphan, "old orphan"], [recentWrite, "in-flight write"]]);
+    const workspace = {
+      readText: async (path: string) => files.get(path) ?? null,
+      write: async (path: string, data: string) => { files.set(path, data); },
+      delete: async (path: string) => files.delete(path),
+      list: async (prefix: string) => [...files.keys()].filter((path) => path.startsWith(prefix))
+        .map((path) => ({ path, modifiedAt: path === recentWrite ? Date.now() : 0 }))
+    };
+    const saved = await Game.updateDraft(USER, game.id, game.draft_updated_at,
+      [{ op: "update_scene", scene_id: original.entrySceneId, set: { name: "Retained edit" } }], workspace);
+    expect(saved?.document.scenes[0].name).toBe("Retained edit");
+    expect(files.has(oldOrphan)).toBe(false);
+    expect(files.has(recentWrite)).toBe(true);
+    const changes = await Game.listDraftChanges(USER, game.id);
+    expect(await Game.readDraftBeforeChange(USER, game.id, changes[0].id, workspace)).toEqual(original);
+  });
+
 });

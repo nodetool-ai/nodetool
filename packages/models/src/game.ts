@@ -23,6 +23,7 @@ export interface GameDraftWorkspace {
   readText(path: string): Promise<string | null>;
   write(path: string, data: string, contentType?: string): Promise<void>;
   delete(path: string): Promise<boolean>;
+  list?(path: string, options: { recursive: boolean }): Promise<readonly { path: string; modifiedAt: number }[]>;
 }
 
 export interface GameDraftChange {
@@ -212,10 +213,29 @@ export class Game extends DBModel {
   ): Promise<{ game: Game; document: GameDocument } | null> {
     const game = await Game.findOwned(userId, id);
     if (!game) return null;
-    const versioned = game.draft_version_id
+    let versioned = game.draft_version_id
       ? await workspace.readText(draftVersionPath(game, game.draft_version_id))
       : null;
-    if (game.draft_version_id && versioned === null) throw new Error("Game draft source is missing");
+    if (game.draft_version_id && versioned === null) {
+      const mirror = await workspace.readText(`${game.source_root}/draft.json`);
+      if (mirror !== null && createHash("sha256").update(mirror).digest("hex") === game.draft_version_id) {
+        await workspace.write(draftVersionPath(game, game.draft_version_id), mirror, "application/json");
+        versioned = mirror;
+      } else {
+        const published = await workspace.readText(`${game.source_root}/revisions/${game.current_revision}/game.json`);
+        if (published === null) { throw new Error("Game draft and published source are missing"); }
+        const document = parseStoredDocument(JSON.parse(published));
+        if (document.id !== game.id || document.revision !== game.current_revision) { throw new Error("Game published source is corrupt"); }
+        const rows = await getPortableDb().update(games).set({ draft_version_id: "",
+          draft_updated_at: nextUpdatedAtAfter(game.draft_updated_at) }).where(and(eq(games.id, game.id),
+          eq(games.user_id, userId), eq(games.draft_updated_at, game.draft_updated_at),
+          eq(games.current_revision, game.current_revision))).returning();
+        if (!rows[0]) { return Game.readDraft(userId, game.id, workspace); }
+        const recovered = new Game(rows[0]);
+        ModelObserver.notify(recovered, ModelChangeEvent.UPDATED);
+        return { game: recovered, document };
+      }
+    }
     const path = `${game.source_root}/revisions/${game.current_revision}/game.json`;
     const source = versioned ?? await workspace.readText(path);
     if (source === null) throw new Error("Game draft source is missing");
@@ -251,6 +271,7 @@ export class Game extends DBModel {
     await workspace.write(newPath, nextSource, "application/json");
     const updated = await Game.commitDraft(game, userId, expectedUpdatedAt, now, versionId, ops, beforeDigest, context, summarizeOps(ops));
     if (!updated) {
+      await Game.cleanupDraftVersions(game, workspace, [versionId, beforeDigest]);
       return null;
     }
     try {
@@ -324,6 +345,7 @@ export class Game extends DBModel {
     await workspace.write(newPath, nextSource, "application/json");
     const updated = await Game.commitDraft(game, userId, expectedUpdatedAt, now, versionId, [], beforeDigest, context, summary);
     if (!updated) {
+      await Game.cleanupDraftVersions(game, workspace, [versionId, beforeDigest]);
       return null;
     }
     try {
@@ -426,19 +448,62 @@ export class Game extends DBModel {
     return source ? parseStoredDocument(JSON.parse(source)) : null;
   }
 
+  private static async cleanupDraftVersions(game: Game, workspace: GameDraftWorkspace, digests: readonly string[]): Promise<void> {
+    try {
+      const current = await Game.findOwned(game.user_id, game.id);
+      if (!current) { return; }
+      const rows = await getPortableDb().select({ before_digest: gameDraftChanges.before_digest })
+        .from(gameDraftChanges).where(eq(gameDraftChanges.game_id, game.id));
+      const retained = new Set(rows.map((row) => row.before_digest));
+      retained.add(current.draft_version_id);
+      for (const digest of new Set(digests)) {
+        if (!retained.has(digest)) { await workspace.delete(draftVersionPath(game, digest)); }
+      }
+    } catch (error) {
+      log.error("Game orphan draft cleanup failed", { gameId: game.id, error: String(error) });
+    }
+  }
+
   private static async pruneDraftChanges(game: Game, workspace: GameDraftWorkspace): Promise<void> {
     const rows = await getPortableDb().select({ id: gameDraftChanges.id, before_digest: gameDraftChanges.before_digest })
       .from(gameDraftChanges)
       .where(eq(gameDraftChanges.game_id, game.id))
       .orderBy(desc(gameDraftChanges.created_at), desc(gameDraftChanges.id));
-    if (rows.length <= 500) return;
     const expired = rows.slice(500);
-    await getPortableDb().delete(gameDraftChanges).where(inArray(gameDraftChanges.id, expired.map((row) => row.id)));
-    const retained = new Set(rows.slice(0, 500).map((row) => row.before_digest));
-    for (const digest of new Set(expired.map((row) => row.before_digest))) {
-      if (!retained.has(digest) && digest !== game.draft_version_id) {
-        await workspace.delete(`${game.source_root}/drafts/${digest}.json`);
-      }
+    if (expired.length > 0) {
+      await getPortableDb().delete(gameDraftChanges).where(inArray(gameDraftChanges.id, expired.map((row) => row.id)));
+      await Game.cleanupDraftVersions(game, workspace, expired.map((row) => row.before_digest));
+    }
+    if (workspace.list) {
+      const prefix = `${game.source_root}/drafts/`;
+      const entries = await workspace.list(prefix, { recursive: true });
+      // Recent uncommitted versions can belong to another in-flight writer.
+      const cutoff = Date.now() - 60 * 60 * 1000;
+      const oldVersions = entries.flatMap((entry) => {
+        const match = /^([a-f0-9]{64})\.json$/.exec(entry.path.slice(prefix.length));
+        return match && entry.modifiedAt < cutoff ? [match[1]] : [];
+      });
+      await Game.cleanupDraftVersions(game, workspace, oldVersions);
+    }
+  }
+
+  static async pruneRevisionFiles(userId: string, id: string, workspace: GameDraftWorkspace): Promise<void> {
+    if (!workspace.list) { return; }
+    const game = await Game.findOwned(userId, id);
+    if (!game) { return; }
+    const prefix = `${game.source_root}/revisions/`;
+    const entries = await workspace.list(prefix, { recursive: true });
+    const revisions = entries.flatMap((entry) => {
+      const match = /^([a-f0-9]{32})\/game\.json$/.exec(entry.path.slice(prefix.length));
+      return match ? [{ revision: match[1], path: entry.path, modifiedAt: entry.modifiedAt }] : [];
+    }).sort((left, right) => right.modifiedAt - left.modifiedAt || right.revision.localeCompare(left.revision));
+    const archived = revisions.filter((entry) => entry.revision !== game.current_revision);
+    for (const entry of archived.slice(99)) {
+      const current = await Game.findOwned(userId, game.id);
+      if (!current || entry.revision === current.current_revision) { continue; }
+      await workspace.delete(entry.path);
+      await getPortableDb().delete(gameRevisionMessages).where(and(eq(gameRevisionMessages.game_id, game.id),
+        eq(gameRevisionMessages.revision, entry.revision)));
     }
   }
 
@@ -498,9 +563,7 @@ export class Game extends DBModel {
         const rows = await getPortableDb().select({ before_digest: gameDraftChanges.before_digest })
           .from(gameDraftChanges).where(eq(gameDraftChanges.game_id, id));
         await getPortableDb().delete(gameDraftChanges).where(eq(gameDraftChanges.game_id, id));
-        for (const digest of new Set(rows.map((change) => change.before_digest))) {
-          await workspace.delete(`${updated.source_root}/drafts/${digest}.json`);
-        }
+        await Game.cleanupDraftVersions(updated, workspace, rows.map((change) => change.before_digest));
       } else {
         await getPortableDb().delete(gameDraftChanges).where(eq(gameDraftChanges.game_id, id));
       }
