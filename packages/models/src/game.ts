@@ -50,6 +50,15 @@ function draftVersionPath(game: Game, versionId: string): string {
   return `${game.source_root}/drafts/${versionId}.json`;
 }
 
+function newDraftVersionId(digest: string, baseUpdatedAt: string): string {
+  return `${digest}.${Buffer.from(baseUpdatedAt).toString("base64url")}.${createTimeOrderedUuid()}`;
+}
+
+function draftVersionInfo(versionId: string): { digest: string; baseUpdatedAt: string | null } | null {
+  const match = /^([a-f0-9]{64})(?:\.([A-Za-z0-9_-]+)\.([a-f0-9]{32}))?$/.exec(versionId);
+  return match ? { digest: match[1], baseUpdatedAt: match[2] ? Buffer.from(match[2], "base64url").toString("utf8") : null } : null;
+}
+
 function summarizeOps(ops: readonly GameDocumentOp[]): string {
   const counts = new Map<GameDocumentOp["op"], number>();
   for (const op of ops) {
@@ -213,33 +222,32 @@ export class Game extends DBModel {
   ): Promise<{ game: Game; document: GameDocument } | null> {
     const game = await Game.findOwned(userId, id);
     if (!game) return null;
-    let versioned = game.draft_version_id
+    const versioned = game.draft_version_id
       ? await workspace.readText(draftVersionPath(game, game.draft_version_id))
       : null;
     if (game.draft_version_id && versioned === null) {
       const mirror = await workspace.readText(`${game.source_root}/draft.json`);
-      if (mirror !== null && createHash("sha256").update(mirror).digest("hex") === game.draft_version_id) {
-        await workspace.write(draftVersionPath(game, game.draft_version_id), mirror, "application/json");
-        versioned = mirror;
-      } else {
-        const published = await workspace.readText(`${game.source_root}/revisions/${game.current_revision}/game.json`);
-        if (published === null) { throw new Error("Game draft and published source are missing"); }
-        const document = parseStoredDocument(JSON.parse(published));
-        if (document.id !== game.id || document.revision !== game.current_revision) { throw new Error("Game published source is corrupt"); }
-        const rows = await getPortableDb().update(games).set({ draft_version_id: "",
-          draft_updated_at: nextUpdatedAtAfter(game.draft_updated_at) }).where(and(eq(games.id, game.id),
-          eq(games.user_id, userId), eq(games.draft_updated_at, game.draft_updated_at),
-          eq(games.current_revision, game.current_revision))).returning();
-        if (!rows[0]) { return Game.readDraft(userId, game.id, workspace); }
-        const recovered = new Game(rows[0]);
-        ModelObserver.notify(recovered, ModelChangeEvent.UPDATED);
-        return { game: recovered, document };
-      }
+      const matchesMirror = mirror !== null && createHash("sha256").update(mirror).digest("hex") === draftVersionInfo(game.draft_version_id)?.digest;
+      const recoveredSource = matchesMirror ? mirror : await workspace.readText(`${game.source_root}/revisions/${game.current_revision}/game.json`);
+      if (recoveredSource === null) { throw new Error("Game draft and published source are missing"); }
+      const document = parseStoredDocument(JSON.parse(recoveredSource));
+      if (document.id !== game.id || document.revision !== game.current_revision) { throw new Error("Game recovery source is corrupt"); }
+      const digest = createHash("sha256").update(recoveredSource).digest("hex");
+      const versionId = newDraftVersionId(digest, game.draft_updated_at);
+      await workspace.write(draftVersionPath(game, versionId), recoveredSource, "application/json");
+      const rows = await getPortableDb().update(games).set({ draft_version_id: versionId,
+        draft_updated_at: nextUpdatedAtAfter(game.draft_updated_at) }).where(and(eq(games.id, game.id),
+        eq(games.user_id, userId), eq(games.draft_updated_at, game.draft_updated_at),
+        eq(games.current_revision, game.current_revision))).returning();
+      if (!rows[0]) { return Game.readDraft(userId, game.id, workspace); }
+      const recovered = new Game(rows[0]);
+      ModelObserver.notify(recovered, ModelChangeEvent.UPDATED);
+      return { game: recovered, document };
     }
     const path = `${game.source_root}/revisions/${game.current_revision}/game.json`;
     const source = versioned ?? await workspace.readText(path);
     if (source === null) throw new Error("Game draft source is missing");
-    if (versioned !== null && createHash("sha256").update(versioned).digest("hex") !== game.draft_version_id) {
+    if (versioned !== null && createHash("sha256").update(versioned).digest("hex") !== draftVersionInfo(game.draft_version_id)?.digest) {
       throw new Error("Game draft source is corrupt");
     }
     const document = parseStoredDocument(JSON.parse(source));
@@ -263,16 +271,15 @@ export class Game extends DBModel {
     const now = nextUpdatedAtAfter(expectedUpdatedAt);
     const beforeSource = JSON.stringify(before);
     const beforeDigest = createHash("sha256").update(beforeSource).digest("hex");
-    const beforePath = `${game.source_root}/drafts/${beforeDigest}.json`;
+    const beforeVersionId = game.draft_version_id || newDraftVersionId(beforeDigest, game.draft_updated_at);
     const nextSource = JSON.stringify(document);
-    const versionId = createHash("sha256").update(nextSource).digest("hex");
+    const versionId = newDraftVersionId(createHash("sha256").update(nextSource).digest("hex"), game.draft_updated_at);
     const newPath = draftVersionPath(game, versionId);
-    await workspace.write(beforePath, beforeSource, "application/json");
+    if (!game.draft_version_id) { await workspace.write(draftVersionPath(game, beforeVersionId), beforeSource, "application/json"); }
     await workspace.write(newPath, nextSource, "application/json");
-    const updated = await Game.commitDraft(game, userId, expectedUpdatedAt, now, versionId, ops, beforeDigest, context, summarizeOps(ops));
+    const updated = await Game.commitDraft(game, userId, expectedUpdatedAt, now, versionId, ops, beforeVersionId, context, summarizeOps(ops));
     if (!updated) {
-      // Another writer can adopt these content-addressed files after a failed CAS.
-      // Leave them for the orphan scan, which gives in-flight writes an hour.
+      // The orphan scan reclaims attempts only after their base token is stale.
       return null;
     }
     try {
@@ -339,15 +346,15 @@ export class Game extends DBModel {
       throw new InvalidGameDocumentError([{ code: "dimension_mismatch", path: ["dimension"], message: "A game cannot change dimension" }]);
     }
     const now = nextUpdatedAtAfter(expectedUpdatedAt);
-    await workspace.write(`${game.source_root}/drafts/${beforeDigest}.json`, beforeSource, "application/json");
+    const beforeVersionId = game.draft_version_id || newDraftVersionId(beforeDigest, game.draft_updated_at);
+    if (!game.draft_version_id) { await workspace.write(draftVersionPath(game, beforeVersionId), beforeSource, "application/json"); }
     const nextSource = JSON.stringify(replacement);
-    const versionId = createHash("sha256").update(nextSource).digest("hex");
+    const versionId = newDraftVersionId(createHash("sha256").update(nextSource).digest("hex"), game.draft_updated_at);
     const newPath = draftVersionPath(game, versionId);
     await workspace.write(newPath, nextSource, "application/json");
-    const updated = await Game.commitDraft(game, userId, expectedUpdatedAt, now, versionId, [], beforeDigest, context, summary);
+    const updated = await Game.commitDraft(game, userId, expectedUpdatedAt, now, versionId, [], beforeVersionId, context, summary);
     if (!updated) {
-      // Another writer can adopt these content-addressed files after a failed CAS.
-      // Leave them for the orphan scan, which gives in-flight writes an hour.
+      // The orphan scan reclaims attempts only after their base token is stale.
       return null;
     }
     try {
@@ -371,7 +378,7 @@ export class Game extends DBModel {
     now: string,
     versionId: string,
     ops: readonly GameDocumentOp[],
-    beforeDigest: string,
+    beforeVersionId: string,
     context: GameDraftWriteContext,
     summary: string
   ): Promise<Game | null> {
@@ -379,7 +386,7 @@ export class Game extends DBModel {
       id: createTimeOrderedUuid(), game_id: game.id, actor: context.actor,
       thread_id: context.threadId ?? null, message_id: context.messageId ?? null,
       ops: JSON.stringify(ops), summary, before_updated_at: beforeUpdatedAt,
-      before_digest: beforeDigest, created_at: now
+      before_digest: beforeVersionId, created_at: now
     };
     const condition = and(eq(games.id, game.id), eq(games.user_id, userId), eq(games.draft_updated_at, beforeUpdatedAt));
     const db = getPortableDb();
@@ -418,7 +425,7 @@ export class Game extends DBModel {
       affectedEntityIds: [],
       summary: row.summary,
       beforeUpdatedAt: row.before_updated_at,
-      beforeDigest: row.before_digest,
+      beforeDigest: draftVersionInfo(row.before_digest)?.digest ?? row.before_digest,
       createdAt: row.created_at
     })).map((change) => ({
       ...change,
@@ -458,8 +465,14 @@ export class Game extends DBModel {
         .from(gameDraftChanges).where(eq(gameDraftChanges.game_id, game.id));
       const retained = new Set(rows.map((row) => row.before_digest));
       retained.add(current.draft_version_id);
-      for (const digest of new Set(digests)) {
-        if (!retained.has(digest)) { await workspace.delete(draftVersionPath(game, digest)); }
+      const committedTime = Date.parse(current.draft_updated_at);
+      for (const versionId of new Set(digests)) {
+        const base = draftVersionInfo(versionId)?.baseUpdatedAt;
+        const baseTime = base ? Date.parse(base) : NaN;
+        // A pending attempt can still win only while its captured base token is current.
+        if (!retained.has(versionId) && Number.isFinite(baseTime) && baseTime < committedTime) {
+          await workspace.delete(draftVersionPath(game, versionId));
+        }
       }
     } catch (error) {
       log.error("Game orphan draft cleanup failed", { gameId: game.id, error: String(error) });
@@ -482,7 +495,7 @@ export class Game extends DBModel {
       // Recent uncommitted versions can belong to another in-flight writer.
       const cutoff = Date.now() - 60 * 60 * 1000;
       const oldVersions = entries.flatMap((entry) => {
-        const match = /^([a-f0-9]{64})\.json$/.exec(entry.path.slice(prefix.length));
+        const match = /^([a-f0-9]{64}\.[A-Za-z0-9_-]+\.[a-f0-9]{32})\.json$/.exec(entry.path.slice(prefix.length));
         return match && entry.modifiedAt < cutoff ? [match[1]] : [];
       });
       await Game.cleanupDraftVersions(game, workspace, oldVersions);
@@ -528,17 +541,23 @@ export class Game extends DBModel {
     workspace?: GameDraftWorkspace,
     message?: string
   ): Promise<Game | null> {
+    let capturedDraftUpdatedAt = expectedDraftUpdatedAt;
+    if (capturedDraftUpdatedAt === undefined) {
+      const current = await Game.findOwned(userId, id);
+      if (!current) { return null; }
+      capturedDraftUpdatedAt = current.draft_updated_at;
+    }
     const publishedAt = new Date().toISOString();
     const fields = {
       current_revision: revision,
       draft_base_revision: revision,
       draft_version_id: "",
-      draft_updated_at: nextUpdatedAtAfter(expectedDraftUpdatedAt ?? publishedAt),
+      draft_updated_at: nextUpdatedAtAfter(capturedDraftUpdatedAt),
       updated_at: publishedAt
     };
     const condition = and(
       eq(games.id, id), eq(games.user_id, userId), eq(games.current_revision, expectedRevision),
-      ...(expectedDraftUpdatedAt ? [eq(games.draft_updated_at, expectedDraftUpdatedAt)] : [])
+      eq(games.draft_updated_at, capturedDraftUpdatedAt)
     );
     const revisionMessage = { revision, game_id: id, message: message?.trim() || null, created_at: publishedAt };
     const db = getPortableDb();
