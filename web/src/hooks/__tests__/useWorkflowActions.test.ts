@@ -184,6 +184,16 @@ describe("useWorkflowActions", () => {
       expect(mockNavigate).toHaveBeenCalledWith("/workspace");
     });
 
+    it("clears loading state after success so the still-mounted page stays clickable", async () => {
+      const { result } = renderHook(() => useWorkflowActions());
+
+      await act(async () => {
+        await result.current.handleExampleClick(mockWorkflow);
+      });
+
+      expect(result.current.loadingExampleId).toBeNull();
+    });
+
     it("clears loading state on error", async () => {
       mockCreateWorkflow.mockRejectedValueOnce(new Error("Creation failed"));
       const consoleSpy = jest.spyOn(console, "error").mockImplementation();

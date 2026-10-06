@@ -75,6 +75,22 @@ describe("loop analysis", () => {
     expect(result.nodes.get("out")!.invocationScope).toEqual([]);
   });
 
+  it("scopes a body node whose outputs are only declared as dynamic outputs", () => {
+    // The editor saves a Code node with `dynamic_outputs` and no `outputs`.
+    const g = simpleLoop();
+    g.nodes[2] = node("body", "test.Code", {
+      outputs: undefined,
+      dynamic_outputs: { next: { type: "int" }, again: { type: "bool" } }
+    });
+    g.edges[2] = edge("body", "next", "loop", "next");
+    g.edges.push(edge("body", "again", "loop", "condition"));
+    const result = analyzeCorrelation(g);
+    expect(result.issues).toEqual([]);
+    expect(result.nodes.get("body")!.outputs.get("next")!.scope).toEqual([
+      "loop:loop"
+    ]);
+  });
+
   it("nests the loop root under an iterating initial", () => {
     const g = simpleLoop();
     g.nodes.push(forEach("fe"));
