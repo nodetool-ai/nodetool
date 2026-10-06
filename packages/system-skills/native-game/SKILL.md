@@ -66,9 +66,9 @@ then keep later edits and asset prompts consistent with that spec.
    candidate_workspace_id?}` installs a staged candidate and binds it to the
    draft. The staged bytes must match `binding.digest`.
 6. `publish_native_game {game_id, base_revision}` publishes the current draft
-   only when the user asks. An explicit `document` also requires the paired
-   `base_updated_at` returned by `get_native_game`. On a conflict, read the draft
-   and reconcile edits.
+   only when the user asks. For an explicit `document`, pass the paired
+   `draft_updated_at` returned by `get_native_game` as `base_updated_at`. On a
+   conflict, read the draft and reconcile edits.
 7. `build_native_game {game_id, revision?}` writes a standalone web player for
    an owned revision under the project workspace and returns its path. On a touch
    screen the 2D player adds a floating stick for `left`/`right`/`up`/`down` and one
