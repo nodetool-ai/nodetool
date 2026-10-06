@@ -58,6 +58,7 @@ import os from "node:os";
 import path from "node:path";
 import { AssetFiles, assetFileName } from "./timeline/assetFiles.js";
 import {
+  atempoChain,
   execFfmpeg,
   execFfprobe,
   ffprobeDuration,
@@ -417,22 +418,6 @@ function audioClipFilter(
   const delay = Math.max(0, Math.round(clip.startMs));
   steps.push(`adelay=${delay}|${delay}`);
   return `[${inputIndex}:a]${steps.join(",")}[${label}]`;
-}
-
-/** `rate` as atempo factors, each inside the filter's own 0.5–2 range. */
-function atempoChain(rate: number): string[] {
-  const factors: string[] = [];
-  let remaining = rate;
-  while (remaining > 2) {
-    factors.push("2");
-    remaining /= 2;
-  }
-  while (remaining < 0.5) {
-    factors.push("0.5");
-    remaining *= 2;
-  }
-  factors.push(String(Number(remaining.toFixed(6))));
-  return factors;
 }
 
 /**

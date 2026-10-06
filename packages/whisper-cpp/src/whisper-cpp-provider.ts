@@ -34,7 +34,7 @@ export class WhisperCppProvider extends BaseProvider {
   static override requiredSecrets(): string[] {
     return [];
   }
-  protected override declaredCapabilities() {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
     return ["automatic_speech_recognition"] as const;
   }
   override getCapabilities(): ProviderCapability[] {

@@ -4,6 +4,7 @@ import {
   type StreamingInputs,
   type StreamingOutputs
 } from "@nodetool-ai/node-sdk";
+import { z } from "zod";
 import { createLogger } from "@nodetool-ai/config";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import type { ASRModel } from "@nodetool-ai/runtime";
@@ -15,6 +16,17 @@ import {
 import { pcm16Base64ToSamples, samplesToPcm16 } from "../audio.js";
 import { discoverVadModels } from "../model-discovery.js";
 import { WhisperCppProvider } from "../whisper-cpp-provider.js";
+
+/** Each field degrades to absent when malformed, so one bad field never drops the chunk. */
+const liveItemSchema = z.object({
+  done: z.boolean().optional().catch(undefined),
+  content_type: z.string().optional().catch(undefined),
+  content: z.string().optional().catch(undefined),
+  content_metadata: z
+    .object({ sample_rate: z.number().optional().catch(undefined) })
+    .optional()
+    .catch(undefined)
+});
 
 const log = createLogger("whisper-cpp.live-transcription");
 export class LiveTranscriptionNode extends BaseNode {
@@ -48,7 +60,7 @@ export class LiveTranscriptionNode extends BaseNode {
   @prop({ type: "float", default: 20, min: 1, title: "Maximum Segment (s)" })
   declare max_segment_s: number;
 
-  override async process(): Promise<Record<string, unknown>> {
+  override async process(): Promise<Record<string, never>> {
     return {};
   }
   override async run(
@@ -81,8 +93,8 @@ export class LiveTranscriptionNode extends BaseNode {
     let buffer: Float32Array = new Float32Array();
     const maxSamples = Math.floor(this.max_segment_s * 16000);
     const enqueue = (samples: Float32Array) => {
-      worker = worker
-        .then(async () => {
+      worker = worker.then(async () => {
+        try {
           signal?.throwIfAborted();
           if (workerError) {
             return;
@@ -100,10 +112,10 @@ export class LiveTranscriptionNode extends BaseNode {
             content_type: "text",
             done: false
           });
-        })
-        .catch((error: unknown) => {
+        } catch (error) {
           workerError = error;
-        });
+        }
+      });
     };
     try {
       const vadModel = (await discoverVadModels(provider.modelsDir))[0];
@@ -128,23 +140,16 @@ export class LiveTranscriptionNode extends BaseNode {
         let content = "";
         let sampleRate = 16000;
         let done = false;
-        if (typeof item === "string") {
-          content = item;
-        } else if (item && typeof item === "object") {
-          done = "done" in item && item.done === true;
-          if ("content_type" in item && item.content_type === "audio") {
-            if ("content" in item && typeof item.content === "string") {
-              content = item.content;
-            }
-            if (
-              "content_metadata" in item &&
-              item.content_metadata &&
-              typeof item.content_metadata === "object" &&
-              "sample_rate" in item.content_metadata &&
-              typeof item.content_metadata.sample_rate === "number"
-            ) {
-              sampleRate = item.content_metadata.sample_rate;
-            }
+        const text = z.string().safeParse(item);
+        const parsed = liveItemSchema.safeParse(item);
+        if (text.success) {
+          content = text.data;
+        } else if (parsed.success) {
+          const value = parsed.data;
+          done = value.done === true;
+          if (value.content_type === "audio") {
+            content = value.content ?? "";
+            sampleRate = value.content_metadata?.sample_rate ?? sampleRate;
           }
         }
         if (content) {

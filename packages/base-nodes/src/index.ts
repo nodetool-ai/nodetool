@@ -241,6 +241,7 @@ export {
   ResizeVideoNode,
   RotateVideoNode,
   SetSpeedVideoNode,
+  EaseCurveVideoNode,
   OverlayVideoNode,
   ColorBalanceVideoNode,
   DenoiseVideoNode,

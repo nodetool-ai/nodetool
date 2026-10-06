@@ -88,7 +88,9 @@ export const applicationsRouter = router({
   list: protectedProcedure
     .input(listInput)
     .output(z.array(applicationListItem))
-    .query(({ ctx, input }) => listApplications(ctx.userId, input.projectId)),
+    .query(({ ctx, input }) =>
+      listApplications(ctx.userId, input.projectId, input.workflowId)
+    ),
 
   get: protectedProcedure
     .input(idInput)

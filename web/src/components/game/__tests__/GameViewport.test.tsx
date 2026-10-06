@@ -169,3 +169,37 @@ it("hits entities in the supplied scene", () => {
     if (originalGetContext) Object.defineProperty(HTMLCanvasElement.prototype, "getContext", originalGetContext);
   }
 });
+
+it("drags a selected parent and child once using parent-local coordinates", () => {
+  const childDocument = gameDocument.parse({ ...document, scenes: [{ id: "room", name: "Room", entities: [
+    { id: "parent", transform2d: { x: 5, y: 0 } },
+    { id: "child", parentId: "parent", transform2d: { x: 2, y: 0 } },
+    { id: "other", transform2d: { x: -2, y: 0 } }
+  ] }] });
+  const originalGetContext = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, "getContext");
+  Object.defineProperty(HTMLCanvasElement.prototype, "getContext", { configurable: true,
+    value: jest.fn(() => ({ clearRect: jest.fn(), fillRect: jest.fn() })) });
+  const onMove = jest.fn();
+  try {
+    render(<ThemeProvider theme={theme}><GameViewport canvasRef={createRef<HTMLCanvasElement>()}
+      frame={{ ...frame, sprites: [] }} document={childDocument} playing={false} paused={false} active
+      selectedIds={["parent", "child", "other"]} highlightedIds={[]}
+      onSelect={jest.fn()} onSelectMany={jest.fn()} onMove={onMove} onTransform={jest.fn()}
+      onLight={jest.fn()} onCamera={jest.fn()} onViewportAspect={jest.fn()}
+      onKeyDown={jest.fn()} onKeyUp={jest.fn()} onBlur={jest.fn()} /></ThemeProvider>);
+    const overlay = screen.getByRole("group", { name: "Game edit overlay" });
+    overlay.setPointerCapture = jest.fn();
+    jest.spyOn(overlay, "getBoundingClientRect").mockReturnValue({ x: 0, y: 0, left: 0, top: 0,
+      right: 512, bottom: 288, width: 512, height: 288, toJSON: () => undefined });
+    const down = createEvent.pointerDown(overlay);
+    Object.defineProperties(down, { button: { value: 0 }, pointerId: { value: 1 }, clientX: { value: 480 }, clientY: { value: 144 } });
+    fireEvent(overlay, down);
+    const move = createEvent.pointerMove(overlay);
+    Object.defineProperties(move, { pointerId: { value: 1 }, clientX: { value: 512 }, clientY: { value: 144 } });
+    fireEvent(overlay, move);
+    fireEvent.pointerUp(overlay);
+    expect(onMove.mock.calls).toEqual([["parent", 6, 0], ["other", -1, 0]]);
+  } finally {
+    if (originalGetContext) Object.defineProperty(HTMLCanvasElement.prototype, "getContext", originalGetContext);
+  }
+});

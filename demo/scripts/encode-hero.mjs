@@ -7,7 +7,7 @@
 // `remotion render` writes visually lossless masters (a 22 s reel comes out
 // around 12 MB); the hero autoplays on first paint, so it ships re-encoded at
 // roughly a third of that, in both codecs, with the WebP posters the
-// <img> srcSet needs. Reads `out/hero-project*.mp4`, `out/sizzle.mp4` and `out/redo.mp4`, and
+// <img> srcSet needs. Reads `out/hero-project*.mp4`, `out/sizzle.mp4`, `out/heroflow.mp4` and `out/redo.mp4`, and
 // writes into `marketing/public/`.
 //
 // ffmpeg comes from Remotion's bundled binary, so this needs nothing on PATH
@@ -94,9 +94,12 @@ const size = (file) =>
 const REELS = [
   { master: "hero-project", slug: "hero-project", frame: HERO_POSTER_FRAME, widths: [[1920, ""], [960, "-960"]] },
   { master: "hero-project-vertical", slug: "hero-project-vertical", frame: HERO_POSTER_FRAME, widths: [[1080, ""]] },
-  // The landing hero: the beat-cut spot, posted on its "Cut." shot. The
-  // page plays it muted, so the score is dropped with the rest.
+  // The studio page's hero: the beat-cut spot, posted on its "Cut." shot.
+  // The page plays it muted, so the score is dropped with the rest.
   { master: "sizzle", slug: "hero-sizzle", frame: 612, widths: [[1920, ""], [960, "-960"]] },
+  // The landing hero: one brief to a finished short (src/heroflow), posted
+  // on the storyboard with every clip playing.
+  { master: "heroflow", slug: "hero-flow", frame: 600, widths: [[1920, ""], [960, "-960"]] },
   // The agents section: the wide shot of the board after the redo, with the
   // night card among five unchanged ones.
   { master: "redo", slug: "agent-redo", frame: 395, widths: [[1920, ""], [960, "-960"]] },

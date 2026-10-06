@@ -30,6 +30,7 @@ import GameViewport from "./GameViewport";
 import { pastedEntities } from "./gameClipboard";
 import { pressGameKey } from "./gameInputFrame";
 import { EMPTY_INPUT, scriptFailure, useGamePlaySession } from "./useGamePlaySession";
+import { localTransform, selectionRoots, worldTransforms } from "./viewportGeometry";
 
 interface GameEditorProps {
   refId: string;
@@ -314,7 +315,13 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     if (!entity || !scene) return;
     if (event.code === "KeyF") {
       event.preventDefault();
-      onCamera({ x: entity.transform2d.x, y: entity.transform2d.y, zoom: frame?.camera.zoom ?? 1 });
+      const transforms = worldTransforms(scene);
+      const selected = scene.entities.filter(entry => selectedIds.includes(entry.id)).flatMap(entry => {
+        const transform = transforms.get(entry.id);
+        return transform ? [transform] : [];
+      });
+      if (selected.length) onCamera({ x: selected.reduce((sum, entry) => sum + entry.x, 0) / selected.length,
+        y: selected.reduce((sum, entry) => sum + entry.y, 0) / selected.length, zoom: frame?.camera.zoom ?? 1 });
       return;
     }
     if (command && event.code === "KeyD") {
@@ -331,10 +338,16 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     const delta = direction[event.code];
     if (delta) {
       event.preventDefault();
-      moveEntity(entity.id, entity.transform2d.x + delta[0], entity.transform2d.y + delta[1]);
+      const transforms = worldTransforms(scene);
+      onOps(selectionRoots(scene, selectedIds).flatMap(entry => {
+        const world = transforms.get(entry.id);
+        if (!world) return [];
+        const local = localTransform(scene, entry.parentId, { ...world, x: world.x + delta[0], y: world.y + delta[1] }, transforms);
+        return [{ op: "update_entity" as const, entity_id: entry.id, scene_id: scene.id, set: { transform2d: { x: local.x, y: local.y } } }];
+      }));
     } else if (event.code === "Delete" || event.code === "Backspace") {
       event.preventDefault();
-      onOps([{ op: "remove_entity", entity_id: entity.id, scene_id: scene.id, children: "remove" }]);
+      onOps(selectionRoots(scene, selectedIds).map(entry => ({ op: "remove_entity", entity_id: entry.id, scene_id: scene.id, children: "remove" })));
     }
   };
 

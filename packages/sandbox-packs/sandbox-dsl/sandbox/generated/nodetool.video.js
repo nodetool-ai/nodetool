@@ -45,6 +45,9 @@ function rotate(inputs, options) {
 function setSpeed(inputs, options) {
   return createNode("nodetool.video.SetSpeed", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "video" }, defaultOutput: "output" });
 }
+function easeCurve(inputs, options) {
+  return createNode("nodetool.video.EaseCurve", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "video" }, defaultOutput: "output" });
+}
 function overlay(inputs, options) {
   return createNode("nodetool.video.Overlay", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "video" }, defaultOutput: "output" });
 }
@@ -104,6 +107,7 @@ export {
   colorBalance,
   concat,
   denoise,
+  easeCurve,
   extractAudio,
   extractFrame,
   forEachFrame,
