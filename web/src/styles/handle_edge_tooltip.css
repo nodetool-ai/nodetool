@@ -64,7 +64,7 @@
 }
 
 .react-flow.is-connecting .react-flow__node .react-flow__handle.is-connectable {
-  transform: translate(0, -50%) scale(1.2, 1.1);
+  transform: translate(0, -50%) scale(1.2);
   opacity: 1;
   box-shadow: 0 0 4px 1px color-mix(in srgb, currentColor 40%, transparent);
 }
@@ -254,24 +254,25 @@
 }
 
 /* CONTROL HANDLE - special handle at the top/bottom of controlled nodes */
+/* Same circle as every other handle, centered on the top or bottom edge. */
 .react-flow__node .react-flow__handle.control-handle {
-  width: 14px;
-  height: 8px;
+  width: var(--handle_width);
+  height: var(--handle_height);
   background: var(--palette-warning-main);
-  border: 1px solid var(--palette-warning-dark);
+  border: 2px solid var(--c_node_bg);
+  border-radius: 50%;
   z-index: 1000;
   left: 50%;
   transform: translateX(-50%);
 }
 
 .react-flow__node .react-flow__handle.control-handle-top {
-  top: -6px;
-  border-radius: var(--rounded-sm) var(--rounded-sm) 0 0;
+  top: calc(var(--handle_height) / -2);
 }
 
 .react-flow__node .react-flow__handle.control-handle-bottom {
-  bottom: -6px;
-  border-radius: 0 0 var(--rounded-sm) var(--rounded-sm);
+  top: auto;
+  bottom: calc(var(--handle_height) / -2);
 }
 
 /* Control handle visibility */
@@ -288,47 +289,40 @@
 /* HANDLE */
 .react-flow__node .react-flow__handle {
   transform: translate(0, -50%) scale(1, 1);
-  transform-origin: right center;
+  transform-origin: center;
   transition: transform var(--motion-fast), width var(--motion-fast),
     height var(--motion-fast), opacity var(--motion-fast),
     background-color var(--motion-fast), box-shadow var(--motion-fast);
   width: var(--handle_width);
   height: var(--handle_height);
   background-color: var(--palette-grey-700);
-  border: 0;
+  /* A type-colored dot in a ring of the node's own background, centered on
+     the node edge. */
+  border: 2px solid var(--c_node_bg);
+  border-radius: 50%;
   z-index: 999;
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   opacity: 1;
 }
 
 .react-flow__node .react-flow__handle-left {
-  transform-origin: right center;
-  /* -6px (visual overhang) - node-body padding so handle sits on the outer edge */
+  /* Half the handle (-6px) minus node-body padding centers it on the outer edge */
   left: calc(-6px - var(--node-body-padding, 0px));
-  top: 5px;
-  border-left: 1px solid var(--palette-grey-700);
-  border-top: 1px solid var(--palette-grey-700);
-  border-bottom: 1px solid var(--palette-grey-700);
-  border-radius: var(--rounded-xs) 0 0 var(--rounded-xs);
+  top: var(--handle-row-center);
 }
 .react-flow__node .react-flow__handle-right {
-  transform-origin: left center;
-  border-right: 1px solid var(--palette-grey-700);
-  border-top: 1px solid var(--palette-grey-700);
-  border-bottom: 1px solid var(--palette-grey-700);
   right: calc(-6px - var(--node-body-padding, 0px));
-  top: 5px;
-  border-radius: 0 var(--rounded-xs) var(--rounded-xs) 0;
+  top: var(--handle-row-center);
 }
 
 /* handle hover */
 .react-flow__node .react-flow__handle-left:hover {
-  transform: translate(0, -50%) scale(1.75, 1.2);
+  transform: translate(0, -50%) scale(1.3);
   cursor: cell;
   opacity: 0.9;
 }
 .react-flow__node .react-flow__handle-right:hover {
-  transform: translate(0, -50%) scale(1.75, 1.2);
+  transform: translate(0, -50%) scale(1.3);
   cursor: cell;
   opacity: 0.9;
 }
@@ -357,51 +351,34 @@
 
 /* COLLECT HANDLE - list[T] inputs that can accept multiple connections */
 /* Uses a distinctive double-line pattern to signify "collect" behavior */
+/* The standard circle with a hollow center: a ring that takes many edges. */
 .react-flow__node .react-flow__handle-left.collect-handle {
-  /* Wider handle to signify multiple inputs */
-  height: calc(var(--handle_height) * 1.6);
-  border-radius: var(--rounded-sm) 0 0 var(--rounded-sm);
-  /* Double border effect for visual distinction */
-  border-left-width: 3px;
-  border-left-style: double;
-  /* Subtle glow to make it more noticeable */
-  box-shadow:
-    0 1px 3px rgba(0, 0, 0, 0.3),
-    inset 1px 0 0 rgba(255, 255, 255, 0.1);
-}
-
-.react-flow__node .react-flow__handle-left.collect-handle:hover {
-  height: calc(var(--handle_height) * 1.8);
-  transform: translate(0, -50%) scale(1.3, 1);
+  background-image: radial-gradient(
+    circle,
+    var(--c_node_bg) 0 2px,
+    transparent 2.5px
+  );
 }
 
 /* Enhance visibility during connection */
 .react-flow.is-connecting
   .react-flow__node
   .react-flow__handle-left.is-connectable {
-  height: calc(var(--handle_height) * 1.5);
-  width: calc(var(--handle_width) * 1.3) !important;
-  transform: translate(-2px, -50%) scale(1.2, 1.1);
+  transform: translate(0, -50%) scale(1.3);
   opacity: 1;
 }
 .react-flow.is-connecting
   .react-flow__node
   .react-flow__handle-right.is-connectable {
-  height: calc(var(--handle_height) * 1.5);
-  width: calc(var(--handle_width) * 1.3) !important;
-  transform: translate(2px, -50%) scale(1.2, 1.1);
+  transform: translate(0, -50%) scale(1.3);
   opacity: 1;
 }
 
 /* STREAMING OUTPUT HANDLE - outputs that stream data continuously */
 /* Uses striped overlay pattern to signify streaming behavior while preserving type color */
+/* The standard circle with stripes over the type color. */
 .react-flow__node .react-flow__handle-right.streaming-handle {
-  /* Wider handle to signify streaming */
-  height: calc(var(--handle_height) * 1.25);
-  border-radius: 0 var(--rounded-sm) var(--rounded-sm) 0;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.3);
-  position: relative;
-  overflow: visible;
+  overflow: hidden;
 }
 
 /* Stripe overlay that shows on top of the type color */
@@ -423,8 +400,7 @@
 .react-flow.is-connecting
   .react-flow__node
   .react-flow__handle-right.streaming-handle.is-connectable {
-  height: calc(var(--handle_height) * 1.8);
-  transform: translate(0, -50%) scale(1.15, 1);
+  transform: translate(0, -50%) scale(1.3);
   opacity: 1;
 }
 

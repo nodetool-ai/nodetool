@@ -87,23 +87,6 @@
 .react-flow .output-node .node-header {
   margin: 0;
 }
-/* Preview node */
-.react-flow__nodes .react-flow__node-nodetool\.workflows\.base_node\.Preview {
-  border: 1px solid var(--palette-grey-700) !important;
-}
-
-/* Preview target handle — global .handle-left uses top:5px; align with title row expanded + strip when collapsed */
-.react-flow__node-nodetool\.workflows\.base_node\.Preview:not(.collapsed)
-  .preview-node
-  .react-flow__handle-left {
-  top: var(--preview-target-handle-top-expanded) !important;
-}
-
-.react-flow__node-nodetool\.workflows\.base_node\.Preview:not(.collapsed)
-  .preview-node
-  .react-flow__handle-left:hover {
-  transform: translate(0, -50%) scale(1.75, 1.5) !important;
-}
 
 .react-flow__node-nodetool\.workflows\.base_node\.Preview.collapsed
   .preview-node
@@ -120,7 +103,7 @@
     var(--node-collapsed-handle-mid-y) + var(--preview-target-handle-extra-top-collapsed)
   ) !important;
   transform: translate(0, calc(-50% - var(--node-collapsed-handle-y-nudge)))
-    scale(1.75, 1.5) !important;
+    scale(1.3) !important;
 }
 
 /* Constant node */
@@ -129,12 +112,6 @@
 .react-flow__node-nodetool\.constant\.Video .node-property .property-label,
 .react-flow__node-nodetool\.constant\.Bool .node-property .property-label {
   display: none;
-}
-
-/* Constant.String uses a custom node (ConstantStringNode) —
-   keep the input handle flush left. */
-.react-flow__node-nodetool\.constant\.String .input-handle-wrapper {
-  left: -8px !important;
 }
 
 /* Let Constant.Model3D use the full body area */
@@ -155,7 +132,7 @@
 }
 
 .react-flow__node-nodetool\.constant\.Model3D .node-inputs {
-  margin: 0 !important;
+  margin: var(--spacing-xs) 0 0 !important;
   padding: 0 !important;
   display: flex;
   flex-direction: column;
@@ -230,12 +207,6 @@
   border-radius: 0 !important;
 }
 
-.react-flow__node-nodetool\.constant\.Model3D
-  .node-property.model_3d
-  .handle-popup {
-  left: -8px !important;
-}
-
 /* Let Constant.Image use the full body area — image fills the resizable node. */
 .react-flow__node-nodetool\.constant\.Image .node-content-container,
 .react-flow__node-nodetool\.constant\.Image .node-content-container > div {
@@ -247,7 +218,7 @@
 }
 
 .react-flow__node-nodetool\.constant\.Image .node-inputs {
-  margin: 0 !important;
+  margin: var(--spacing-xs) 0 0 !important;
   padding: 0 !important;
   display: flex;
   flex-direction: column;
@@ -311,7 +282,7 @@
 }
 
 .react-flow__node-nodetool\.constant\.Video .node-inputs {
-  margin: 0 !important;
+  margin: var(--spacing-xs) 0 0 !important;
   padding: 0 !important;
   display: flex;
   flex-direction: column;

@@ -1,7 +1,6 @@
 import { DATA_TYPES } from "../../config/data_types";
 import { SerializedStyles, css } from "@emotion/react";
 import type { Theme } from "@mui/material/styles";
-import { darkenHexColor } from "../../utils/ColorUtils";
 
 export const generateCSS = (() => {
   let result: SerializedStyles | null = null;
@@ -17,7 +16,6 @@ export const generateCSS = (() => {
     for (const key in DATA_TYPES) {
       const dataType = DATA_TYPES[key];
       const { color, textColor, slug } = dataType;
-      const borderColor = darkenHexColor(color, 70);
       s += `
         .node-menu ul li.${slug} {border-left: 4px solid  ${color};}
         .react-flow g.custom-connection-line path.${slug} {
@@ -41,7 +39,6 @@ export const generateCSS = (() => {
         .react-flow__handle-left.${slug},
         .react-flow__handle-right.${slug} {
           background-color: ${color};
-          border-color: ${borderColor};
         }
       `;
     }

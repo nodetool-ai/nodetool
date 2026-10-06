@@ -21,7 +21,7 @@ import { Property } from "../../stores/ApiTypes";
 import type { Edge } from "@xyflow/react";
 import HandleOnlyField from "./HandleOnlyField";
 import { NODE_HEADER_MIN_HEIGHT } from "./NodeHeader";
-import { Z_INDEX } from "../ui_primitives";
+import { SPACING, Z_INDEX } from "../ui_primitives";
 
 const HANDLE_ROW_HEIGHT = 18;
 /** Offset that centers the first handle row on the header row. */
@@ -31,7 +31,7 @@ const styles = (theme: Theme) =>
   css({
     "&.handle-column": {
       position: "absolute",
-      top: theme.spacing(4),
+      top: theme.spacing(SPACING.xs),
       left: 0,
       width: 0,
       pointerEvents: "none",
@@ -50,7 +50,8 @@ const styles = (theme: Theme) =>
       position: "relative",
       top: "auto",
       zIndex: "auto",
-      marginBottom: theme.spacing(1)
+      marginTop: theme.spacing(SPACING.xs),
+      marginBottom: theme.spacing(SPACING.xs)
     },
     // Header-aligned variant: used when the column's positioned ancestor
     // contains the node header (OutputNode), where the floating variant's
@@ -74,10 +75,10 @@ const styles = (theme: Theme) =>
       top: "50%",
       bottom: "auto",
       transform: "translate(0, -50%)",
-      transformOrigin: "right center"
+      transformOrigin: "center"
     },
     "& .handle-only .react-flow__handle.react-flow__handle-left:hover": {
-      transform: "translate(0, -50%) scale(1.75, 1.2)"
+      transform: "translate(0, -50%) scale(1.3)"
     }
   });
 

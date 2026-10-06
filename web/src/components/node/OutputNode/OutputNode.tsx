@@ -4,7 +4,8 @@ import { css } from "@emotion/react";
 import React, { memo, useCallback, useMemo, useState } from "react";
 import { NodeProps } from "@xyflow/react";
 import { getCopySource, getOutputFromResult } from "../outputResult";
-import { Text, Container, MOTION, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../../ui_primitives";
+import { Container, CheckerDropzone, MOTION, BORDER_RADIUS, Z_INDEX, getSpacingPx, SPACING } from "../../ui_primitives";
+import OutputIcon from "@mui/icons-material/Output";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "../../../utils/isEqual";
@@ -39,13 +40,6 @@ const styles = (theme: Theme) =>
         display: "flex",
         flexDirection: "column",
         overflow: "visible",
-        // `.react-flow__node .node-body` (nodes.base.css) sets `padding: 0` and
-        // outranks this emotion class, so the body renders flush. The var must
-        // say the same: left handles offset themselves by
-        // `-6px - var(--node-body-padding)`, and claiming a padding the body
-        // does not have pushed the input dot 8px off the node's edge.
-        "--node-body-padding": "0px",
-        padding: "var(--node-body-padding)",
         width: "100%",
         height: "100%",
         minWidth: "150px",
@@ -53,6 +47,14 @@ const styles = (theme: Theme) =>
         minHeight: "150px",
         borderRadius: theme.rounded.node,
         border: `1px solid ${theme.vars.palette.grey[700]}`
+      },
+      // The body padding of every other node, so the header and the content
+      // sit where they do on a base node. `.react-flow__node .node-body`
+      // (nodes.base.css) resets the padding at equal specificity and loads
+      // later, so the class is doubled to outrank it.
+      ".react-flow__node &&": {
+        "--node-body-padding": "8px",
+        padding: "var(--node-body-padding)"
       },
       "&.output-node": {
         margin: 0,
@@ -68,7 +70,11 @@ const styles = (theme: Theme) =>
           display: "none"
         }
       },
+      // Fills the body: `height: 100%` alone resolves to auto while the node
+      // has no explicit height, which left the empty state short.
       ".output-node-content": {
+        flex: "1 1 auto",
+        minHeight: 0,
         height: "100%",
         width: "100%",
         backgroundColor: "transparent",
@@ -78,6 +84,8 @@ const styles = (theme: Theme) =>
         flexDirection: "column"
       },
       ".output-node-content .content": {
+        flex: "1 1 auto",
+        minHeight: 0,
         overflow: "hidden"
       },
       ".output-node-content > .output": {
@@ -111,20 +119,23 @@ const styles = (theme: Theme) =>
       {
         height: "fit-content !important"
       },
-      // header — inherit minHeight from NodeHeader; parent padding provides spacing
+      // The same header as every other node; the input handle sits on the
+      // first row below it, as a node's first input does.
       ".node-header": {
         width: "100%",
         margin: 0,
-        marginTop: getSpacingPx(SPACING.lg),
         border: 0
       },
-      // The input handle sits below the header row, not beside the title.
       ".handle-column.handle-column--header": {
-        top: `calc(${NODE_HEADER_MIN_HEIGHT}px + ${getSpacingPx(SPACING.lg)} + ${getSpacingPx(SPACING.md)})`
+        top: `calc(${NODE_HEADER_MIN_HEIGHT}px + ${getSpacingPx(SPACING.xs)})`
       },
-      // No icon: inset the title so it clears the input handle on the edge.
-      ".node-header .header-left": {
-        paddingLeft: getSpacingPx(SPACING.lg)
+      // Without inline fields the inputs row is empty; its margins would
+      // push the output down from the header.
+      ".output-node-content > .node-inputs:empty": {
+        display: "none"
+      },
+      ".output-node-content > .content": {
+        marginTop: getSpacingPx(SPACING.xs)
       },
       ".media-aspect-resize-handle .resize-grip": {
         opacity: 0,
@@ -171,23 +182,6 @@ const styles = (theme: Theme) =>
           width: "100%",
           height: "100%"
         }
-      },
-      ".hint": {
-        position: "absolute",
-        opacity: 0,
-        textAlign: "center",
-        top: "50px",
-        left: "50%",
-        width: "80%",
-        fontSize: "var(--fontSizeSmaller)",
-        fontWeight: 400,
-        transform: "translate(-50%, -50%)",
-        zIndex: 0,
-        color: theme.vars.palette.grey[200],
-        transition: `opacity ${MOTION.normal} ${1000}ms`
-      },
-      "&:hover .hint": {
-        opacity: 0.7
       },
       "& .tensor": {
         width: "100%",
@@ -409,8 +403,9 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
             hasParent={hasParent}
             metadataTitle="Output"
             selected={props.selected}
-            backgroundColor={"transparent"}
-            showIcon={false}
+            backgroundColor={theme.vars.palette.info.main}
+            iconType={nodeMetadata?.properties?.[0]?.type?.type ?? "any"}
+            iconBaseColor={theme.vars.palette.info.main}
             workflowId={props.data.workflow_id}
             hideLogs={true}
           />
@@ -435,11 +430,6 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
               </>
           )}
 
-          {result === null || result === undefined && (
-            <Text className="hint">
-              Exposes data to App Mode
-            </Text>
-          )}
           <PreviewActions
             onDownload={handleDownload}
             onAddToAssets={handleAddToAssets}
@@ -458,7 +448,14 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
           onBlur={handleContentBlur}
           onPointerDown={handleContentPointerDown}
         >
-          {memoizedOutputRenderer}
+          {result === null || result === undefined ? (
+            <CheckerDropzone
+              message="Run to see the output"
+              icon={<OutputIcon />}
+            />
+          ) : (
+            memoizedOutputRenderer
+          )}
         </div>
       </div>
     </Container>
