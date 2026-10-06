@@ -97,7 +97,9 @@ when its rendered film exists in
   `ffprobe`.
 - Films are not in git. They live in the `nodetool-media` R2 bucket under
   `showcase/storyboards/<slug>/<slug>.mp4` and play from
-  `media.nodetool.ai`. Upload a re-rendered film to the same key.
+  `media.nodetool.ai`. Upload a re-rendered film to the same key. The generator
+  reads a film's facts from a local copy when one exists, else from that URL.
+  Neither git nor the app bundle holds the films.
 - The generator reads each film's dimensions and duration. Shot start times
   scale the planned shot lengths to the measured duration.
 - Add `StoryboardTeaser` to a landing page with a hand-picked `slugs` list that

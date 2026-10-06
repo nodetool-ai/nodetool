@@ -176,8 +176,8 @@ ownership.
 
 ## Jobs, not demos
 
-The homepage shows shipped timeline examples under "Watch the film. Make it
-yours." Each pairs a full film with a capture of its editable timeline. Lead
+The homepage shows shipped timeline examples under "Every film is a timeline you
+can open." Each pairs a full film with a capture of its editable timeline. Lead
 with Serein, Kite, and Tidewater, followed by Cadence, Prism, and Voltra.
 T minus 30 stays outside the marketing showcase. The advertising page uses the
 same showcase directly below its ad library.
