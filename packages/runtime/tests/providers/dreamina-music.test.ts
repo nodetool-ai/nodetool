@@ -38,23 +38,12 @@ const draftOf = (submit: { body: Record<string, any> }) => JSON.parse(submit.bod
 const instrumental: MusicModel = { id: "instrumental", name: "Dreamina Instrumental", provider: "dreamina" };
 
 describe("Dreamina music models", () => {
-  it("offers only the instrumental model when the account lists no vocal model", async () => {
+  it("lists the instrumental model without a config call", async () => {
     const { music, calls } = setup();
     const models = await music.models();
     expect(models.map((m) => m.id)).toEqual(["instrumental"]);
     expect(models[0].supportedTasks).toEqual(["text_to_music"]);
-    expect(calls[0]).toEqual({ path: "/mweb/v1/audio_generate/get_common_config", body: { scene_list: ["song"] } });
-  });
-
-  it("adds online vocal models from the config and skips offline ones", async () => {
-    const { music } = setup(SONG_CONFIG);
-    expect((await music.models()).map((m) => m.id)).toEqual(["instrumental", "song_v1"]);
-  });
-
-  it("still offers instrumental music when the config call fails", async () => {
-    const { api } = setup();
-    api.callApi = vi.fn(async () => { throw new Error("offline"); });
-    expect((await createDreaminaMusic(api).models()).map((m) => m.id)).toEqual(["instrumental"]);
+    expect(calls).toEqual([]);
   });
 });
 

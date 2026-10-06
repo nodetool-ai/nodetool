@@ -162,6 +162,40 @@ describe("ExtensionCdpClient", () => {
     await client.close();
   });
 
+  it("rejects a command that gets no reply within the timeout", async () => {
+    vi.useFakeTimers();
+    const channel = new FakeChannel();
+    const client = new ExtensionCdpClient(channel, { commandTimeoutMs: 1_000 });
+
+    const pending = client.client.Page.enable();
+    const assertion = expect(pending).rejects.toThrow("CDP Page.enable timed out after 1000ms");
+    vi.advanceTimersByTime(1_000);
+    await assertion;
+
+    // A late reply for the abandoned id is ignored.
+    channel.inject({ kind: "cdp_result", id: 1, result: {} });
+    await client.close();
+  });
+
+  it("passes the health check when the tab evaluates", async () => {
+    const { channel, client } = makeClient();
+    const health = client.checkHealth();
+    expect(channel.sent.find((f) => f.kind === "cdp")).toMatchObject({ method: "Runtime.evaluate", params: { expression: "1" } });
+    channel.inject({ kind: "cdp_result", id: 1, result: { result: { value: 1 } } });
+    await expect(health).resolves.toBeUndefined();
+    await client.close();
+  });
+
+  it("fails the health check of a tab that does not respond", async () => {
+    vi.useFakeTimers();
+    const { channel, client } = makeClient();
+    channel.inject({ kind: "attached", tabId: 42 });
+    const assertion = expect(client.checkHealth(500)).rejects.toThrow("The attached tab (id 42) does not respond to the debugger. Reload the tab and try again");
+    vi.advanceTimersByTime(500);
+    await assertion;
+    await client.close();
+  });
+
   it("rejects all pending commands on a fatal error frame", async () => {
     const { channel, client } = makeClient();
 
