@@ -153,3 +153,14 @@ it("hides focused span content when its refreshed snapshot reports expiration", 
   await waitFor(() => expect(screen.getAllByRole("status").every((notice) => notice.textContent?.includes("Run content expired"))).toBe(true));
   expect(screen.queryAllByText(/Readable console fixture/)).toHaveLength(0);
 });
+
+it("labels span status and duration in aligned columns, including spans without an explicit status", async () => {
+  trace = { ...trace, nodes: [...trace.nodes, { record: { ...makeRecord(4), name: "llm.stream", status: { code: "UNSET" }, duration_ms: 4032 }, depth: 1 }] };
+  renderPanel();
+  const list = await screen.findByRole("list", { name: "Server spans" });
+  expect(within(list).getAllByText("ok").length).toBeGreaterThan(0);
+  expect(within(list).getByText("error")).toBeInTheDocument();
+  expect(within(list).getByText("unset")).toBeInTheDocument();
+  expect(within(list).getByText("4.03 s")).toBeInTheDocument();
+  expect(within(list).getAllByText("2 ms").length).toBeGreaterThan(0);
+});
