@@ -100,3 +100,92 @@ describe("OutputContextMenu dynamic output deletion", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("OutputContextMenu image quick actions", () => {
+  const imageMetadata = (node_type: string) => ({
+    node_type,
+    title: node_type,
+    properties: [],
+    outputs: []
+  });
+
+  let createNode: jest.Mock;
+  let addNode: jest.Mock;
+  let addEdge: jest.Mock;
+
+  beforeEach(() => {
+    mockCloseContextMenu.mockClear();
+    createNode = jest.fn((metadata: { node_type: string }) => ({
+      id: `new-${metadata.node_type}`,
+      data: {}
+    }));
+    addNode = jest.fn();
+    addEdge = jest.fn();
+    useMetadataStore.setState({
+      metadata: {
+        "nodetool.image.Upscale": imageMetadata("nodetool.image.Upscale"),
+        "nodetool.image.RemoveBackground": imageMetadata(
+          "nodetool.image.RemoveBackground"
+        ),
+        "nodetool.image.ImageToImage": imageMetadata(
+          "nodetool.image.ImageToImage"
+        )
+      }
+    } as never);
+    mockNodeState = {
+      createNode,
+      addNode,
+      addEdge,
+      generateEdgeId: jest.fn(() => "e1"),
+      findNode: () => ({ id: "node-1", data: {} }),
+      updateNode: jest.fn(),
+      deleteEdges: jest.fn(),
+      updateNodeData: jest.fn(),
+      edges: []
+    };
+    mockMenuState = {
+      nodeId: "node-1",
+      menuPosition: { x: 10, y: 10 },
+      closeContextMenu: mockCloseContextMenu,
+      type: { type: "image" },
+      handleId: "output",
+      payload: null
+    };
+  });
+
+  it.each([
+    ["Upscale", "nodetool.image.Upscale"],
+    ["Remove background", "nodetool.image.RemoveBackground"],
+    ["Edit with prompt", "nodetool.image.ImageToImage"]
+  ])("%s creates %s wired to the output's image input", async (label, nodeType) => {
+    const user = userEvent.setup();
+    renderMenu();
+
+    await user.click(screen.getByRole("button", { name: label }));
+
+    expect(createNode).toHaveBeenCalledWith(
+      expect.objectContaining({ node_type: nodeType }),
+      expect.anything()
+    );
+    expect(addNode).toHaveBeenCalledWith(
+      expect.objectContaining({ id: `new-${nodeType}` })
+    );
+    expect(addEdge).toHaveBeenCalledWith(
+      expect.objectContaining({
+        source: "node-1",
+        sourceHandle: "output",
+        target: `new-${nodeType}`,
+        targetHandle: "image"
+      })
+    );
+    expect(mockCloseContextMenu).toHaveBeenCalled();
+  });
+
+  it("offers no image quick actions on a non-image output", () => {
+    mockMenuState.type = { type: "str" };
+    renderMenu();
+    expect(
+      screen.queryByRole("button", { name: "Upscale" })
+    ).not.toBeInTheDocument();
+  });
+});
