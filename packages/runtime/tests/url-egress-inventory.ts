@@ -493,6 +493,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "WHISPER_CPP_SERVER_URL names the operator's local service. This provider is excluded from the cloud profile."
   },
   {
+    file: "packages/integration-nodes/src/nodes/stable-diffusion-cpp.ts",
+    owner: "stable-diffusion.cpp server",
+    inputSource: "workflow",
+    schemes: ["http", "https"],
+    authScope: "none",
+    redirects: "manual-none",
+    dnsRebinding: "deployment-egress",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "The graph author selects a local or LAN sd-server. Redirects are rejected. This node is excluded by the cloud profile's default allowlist."
+  },
+  {
     file: "packages/runtime/src/comfy-executor.ts",
     owner: "ComfyUI executor",
     inputSource: "workflow",

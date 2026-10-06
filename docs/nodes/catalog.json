@@ -3470,6 +3470,145 @@
       "markdown_url": "https://docs.nodetool.ai/nodes/lib/sqlite/getdatabasepath.md"
     },
     {
+      "type": "lib.stable_diffusion_cpp.GenerateImage",
+      "title": "Generate Image (stable-diffusion.cpp)",
+      "namespace": "lib.stable_diffusion_cpp",
+      "description": "Generate images with a running stable-diffusion.cpp sd-server. Supports text-to-image, image-to-image, masks and reference images.\n    sdcpp, local, diffusion, gguf, image",
+      "inputs": [
+        {
+          "name": "endpoint",
+          "type": "str",
+          "description": "Address of sd-server. The model is loaded by the server.",
+          "required": false,
+          "default": "http://127.0.0.1:1234"
+        },
+        {
+          "name": "prompt",
+          "type": "str",
+          "description": "",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "negative_prompt",
+          "type": "str",
+          "description": "",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "width",
+          "type": "int",
+          "description": "",
+          "required": false,
+          "default": 512
+        },
+        {
+          "name": "height",
+          "type": "int",
+          "description": "",
+          "required": false,
+          "default": 512
+        },
+        {
+          "name": "steps",
+          "type": "int",
+          "description": "",
+          "required": false,
+          "default": 20
+        },
+        {
+          "name": "cfg_scale",
+          "type": "float",
+          "description": "",
+          "required": false,
+          "default": 7
+        },
+        {
+          "name": "seed",
+          "type": "int",
+          "description": "Use -1 for a random seed.",
+          "required": false,
+          "default": -1
+        },
+        {
+          "name": "count",
+          "type": "int",
+          "description": "",
+          "required": false,
+          "default": 1
+        },
+        {
+          "name": "sampler",
+          "type": "str",
+          "description": "Native sample_method name. Empty uses the server default.",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "scheduler",
+          "type": "str",
+          "description": "Native scheduler name. Empty uses the server default.",
+          "required": false,
+          "default": ""
+        },
+        {
+          "name": "image",
+          "type": "image",
+          "description": "",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "mask",
+          "type": "image",
+          "description": "Optional mask for image-to-image generation.",
+          "required": false,
+          "default": null
+        },
+        {
+          "name": "reference_images",
+          "type": "list[image]",
+          "description": "",
+          "required": false,
+          "default": []
+        },
+        {
+          "name": "strength",
+          "type": "float",
+          "description": "",
+          "required": false,
+          "default": 0.75
+        },
+        {
+          "name": "parameters",
+          "type": "dict[str, any]",
+          "description": "Native img_gen fields such as lora, hires and vae_tiling_params. These override generation controls, including sample_params. Connected media takes precedence.",
+          "required": false,
+          "default": {}
+        },
+        {
+          "name": "timeout",
+          "type": "int",
+          "description": "Maximum seconds for submission and generation. Requests cancellation on timeout; sd-server can cancel queued jobs but cannot interrupt active generation.",
+          "required": false,
+          "default": 600
+        }
+      ],
+      "outputs": [
+        {
+          "name": "output",
+          "type": "image"
+        },
+        {
+          "name": "images",
+          "type": "list[image]"
+        }
+      ],
+      "documentation_url": "https://docs.nodetool.ai/nodes/lib/stable_diffusion_cpp/generateimagestablediffusioncpp",
+      "markdown_url": "https://docs.nodetool.ai/nodes/lib/stable_diffusion_cpp/generateimagestablediffusioncpp.md"
+    },
+    {
       "type": "lib.svg.Document",
       "title": "SVG Document",
       "namespace": "lib.svg",
