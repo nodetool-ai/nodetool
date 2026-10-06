@@ -1,7 +1,7 @@
 import { createServer } from "node:http";
 import { readFile, realpath } from "node:fs/promises";
 import { extname, join, sep } from "node:path";
-import { chromium, type Browser } from "playwright";
+import { chromium, type Browser, type LaunchOptions } from "playwright";
 import { z } from "zod";
 import type { GameInputFrame3D } from "@nodetool-ai/protocol";
 
@@ -61,9 +61,10 @@ export async function smokeStandaloneGame(directory: string, options: GameSmokeO
     const address = server.address();
     if (!address || typeof address === "string") { throw new Error("Smoke static server did not bind"); }
     const origin = `http://127.0.0.1:${address.port}`;
-    browser = await chromium.launch({ headless: true, chromiumSandbox: true,
-      args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"],
-      ...(options.executablePath ? { executablePath: options.executablePath } : {}) });
+    const launchOptions: LaunchOptions = { headless: true, chromiumSandbox: true,
+      args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] };
+    if (options.executablePath) { launchOptions.executablePath = options.executablePath; }
+    browser = await chromium.launch(launchOptions);
     controller.signal.throwIfAborted();
     const context = await browser.newContext({ serviceWorkers: "block" });
     await context.route("**/*", route => {
