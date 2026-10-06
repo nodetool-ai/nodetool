@@ -222,6 +222,9 @@ above instead of linking them. A file that is not media (a PDF, a
 spreadsheet, a text file, an archive) is a link:
 \`[Report](asset://<id>.pdf)\`. The chat UI shows a PDF's first page above
 the link, and a click opens the file.
+The user's messages reference resources the same way: a
+\`[Label](<kind>://<id>)\` link in their text names the document they mean, so
+read it by that id rather than searching for it by name.
 
 Sketches, timelines, 3D models, and games can be SHOWN inline, not just
 linked. Embed one with image syntax on its own line —

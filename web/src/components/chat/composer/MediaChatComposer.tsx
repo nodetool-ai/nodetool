@@ -29,14 +29,26 @@ import type {
   LanguageModel,
   MessageContent
 } from "../../../stores/ApiTypes";
-import { isModelSelected, type ModelSelection } from "@nodetool-ai/protocol";
+import {
+  isModelSelected,
+  type Entity,
+  type ModelSelection
+} from "@nodetool-ai/protocol";
 import type { MediaGenerationRequest } from "../types/media.types";
-import { assetToUri } from "../../node_types/editing/promptComposer/promptTokens";
+import {
+  assetToUri,
+  entityToUri
+} from "../../node_types/editing/promptComposer/promptTokens";
 import { useTextareaAssetMention } from "./useTextareaAssetMention";
 import { useTextareaSkillMention } from "./useTextareaSkillMention";
 import { MentionedEntities } from "./MentionedEntities";
 import { VoiceInputControl } from "./voice/VoiceInputControl";
 import { FilePreview } from "./FilePreview";
+import {
+  ComposerAttachDialog,
+  type AttachedDocument
+} from "./ComposerAttachDialog";
+import { insertPromptReference } from "./insertPromptReference";
 import { useFileHandling } from "../hooks/useFileHandling";
 import { useDragAndDrop } from "../hooks/useDragAndDrop";
 import { useComposerAssetUpload } from "../hooks/useComposerAssetUpload";
@@ -207,24 +219,28 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
   // first and rides as an `asset://` reference, so the bytes never enter the
   // message. Inlining them base64-encodes the file into the thread, which the
   // client then resends with every following turn.
-  const attachInputRef = useRef<HTMLInputElement>(null);
   const { uploadFiles, isUploading } = useComposerAssetUpload(addDroppedFiles);
 
   const { isDragging, handleDragOver, handleDragLeave, handleDrop } =
     useDragAndDrop(uploadFiles, addDroppedFiles);
 
-  const openAttachPicker = useCallback(() => {
-    attachInputRef.current?.click();
+  // The plus button opens one dialog for every kind of reference: library
+  // assets, entities, project documents, and local uploads.
+  const [attachDialogOpen, setAttachDialogOpen] = useState(false);
+  const openAttachDialog = useCallback(() => setAttachDialogOpen(true), []);
+  // The dialog does not hand focus back to the plus button: closing it, with
+  // or without a pick, returns the user to the prompt they were writing.
+  const attachFocusPending = useRef(false);
+  const closeAttachDialog = useCallback(() => {
+    setAttachDialogOpen(false);
+    attachFocusPending.current = true;
   }, []);
-
-  const handleAttachPicked = useCallback(
-    (e: React.ChangeEvent<HTMLInputElement>) => {
-      uploadFiles(Array.from(e.target.files ?? []));
-      // Reset so picking the same file twice fires change again.
-      e.target.value = "";
-    },
-    [uploadFiles]
-  );
+  useEffect(() => {
+    if (!attachDialogOpen && attachFocusPending.current) {
+      attachFocusPending.current = false;
+      textareaRef.current?.focus();
+    }
+  }, [attachDialogOpen]);
 
   // Typing `@` opens the asset picker; a picked asset is attached as an
   // `asset://` reference (like a drag from the asset library) rather than
@@ -242,6 +258,33 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
       ]);
     },
     [addDroppedFiles]
+  );
+
+  /** Caret to restore once an inserted reference has rendered. */
+  const insertCaretPending = useRef<number | null>(null);
+
+  // Entities and documents are part of the sentence, so they go into the text
+  // at the caret: an entity as its `entity://<id>` token (as the `@` picker
+  // writes it), a document as a `[Name](<kind>://<id>)` resource link.
+  const insertReference = useCallback(
+    (reference: string) => {
+      const caret = textareaRef.current?.selectionStart ?? prompt.length;
+      const next = insertPromptReference(prompt, caret, reference);
+      insertCaretPending.current = next.caret;
+      setPrompt(next.value);
+    },
+    [prompt]
+  );
+
+  const handleSelectEntity = useCallback(
+    (entity: Entity) => insertReference(entityToUri(entity)),
+    [insertReference]
+  );
+
+  const handleSelectDocument = useCallback(
+    (document: AttachedDocument) =>
+      insertReference(`[${document.name.replace(/[[\]]/g, "")}](${document.uri})`),
+    [insertReference]
   );
 
   const { mentionMenu, handleKeyDown: handleMentionKeyDown } =
@@ -288,6 +331,13 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
 
   useLayoutEffect(() => {
     adjustHeight();
+    const insertCaret = insertCaretPending.current;
+    if (insertCaret !== null) {
+      insertCaretPending.current = null;
+      const el = textareaRef.current;
+      el?.focus();
+      el?.setSelectionRange(insertCaret, insertCaret);
+    }
     if (!seedCaretPending.current) {
       return;
     }
@@ -749,6 +799,14 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
           autoComplete="off"
         />
         {mentionMenu}
+        <ComposerAttachDialog
+          open={attachDialogOpen}
+          onClose={closeAttachDialog}
+          onSelectAsset={handleSelectAsset}
+          onSelectEntity={handleSelectEntity}
+          onSelectDocument={handleSelectDocument}
+          onUploadFiles={uploadFiles}
+        />
         {skillMenu}
 
         {providerSetup.needsSetup && providerSetup.reason && (
@@ -820,14 +878,6 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
         >
           {/* Chip cluster: mode/model chips. */}
           <div className="media-chip-main">
-            {/* Attach: uploads to the asset library and attaches the asset. */}
-            <input
-              ref={attachInputRef}
-              type="file"
-              hidden
-              multiple
-              onChange={handleAttachPicked}
-            />
             <MediaControlChip
               icon={
                 isUploading ? (
@@ -836,8 +886,8 @@ const MediaChatComposer: React.FC<MediaChatComposerProps> = ({
                   <AddIcon fontSize="small" />
                 )
               }
-              title={isUploading ? "Uploading…" : "Attach files"}
-              onClick={openAttachPicker}
+              title={isUploading ? "Uploading…" : "Add to message"}
+              onClick={openAttachDialog}
               disabled={disabled}
               showChevron={false}
             />

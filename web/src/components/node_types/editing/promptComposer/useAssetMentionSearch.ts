@@ -74,9 +74,12 @@ export const filterEntitiesForMention = (
  * (`null` while no mention is active), it exposes the two buckets — **Recent**
  * (assets used this session) and **Saved** (the library, debounced-searched by
  * the query) — plus a rename that syncs back to the asset library.
+ * `initialTab` overrides the opening bucket, which otherwise is Recent when
+ * there is anything recent.
  */
 export const useAssetMentionSearch = (
-  queryString: string | null
+  queryString: string | null,
+  initialTab?: MentionTab
 ): AssetMentionSearch => {
   const search = useAssetStore((state) => state.search);
   const updateAsset = useAssetStore((state) => state.update);
@@ -91,7 +94,7 @@ export const useAssetMentionSearch = (
   const [savedAssets, setSavedAssets] = useState<Asset[]>([]);
   const [savedCursor, setSavedCursor] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<MentionTab>(
-    recentAssets.length > 0 ? "recent" : "saved"
+    initialTab ?? (recentAssets.length > 0 ? "recent" : "saved")
   );
 
   // Bumped on every query change so in-flight requests from a stale query

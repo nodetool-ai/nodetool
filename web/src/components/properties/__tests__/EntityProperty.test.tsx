@@ -158,27 +158,23 @@ describe("EntityProperty", () => {
     expect(onChange).toHaveBeenCalledWith(null);
   });
 
-  it("offers only assets that carry an entity marker", async () => {
+  it("narrows the picker by search and by kind", async () => {
     const user = userEvent.setup();
-    assetSearch.mockResolvedValue({
-      assets: [
-        assetFor(nova),
-        {
-          id: "asset-plain",
-          name: "screenshot.png",
-          content_type: "image/png",
-          get_url: "/api/storage/asset-plain.png",
-          thumb_url: "/api/storage/asset-plain.png"
-        }
-      ]
-    });
     renderProperty();
 
     await user.click(screen.getByRole("button", { name: /pick entity/i }));
+    await user.type(
+      screen.getByRole("textbox", { name: "Search entities" }),
+      "stu"
+    );
+    expect(screen.queryByRole("button", { name: "Nova" })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Studio" })).toBeInTheDocument();
 
-    expect(await screen.findByRole("button", { name: "Nova" })).toBeInTheDocument();
+    await user.clear(screen.getByRole("textbox", { name: "Search entities" }));
+    await user.click(screen.getByRole("button", { name: "Characters" }));
+    expect(screen.getByRole("button", { name: "Nova" })).toBeInTheDocument();
     expect(
-      screen.queryByRole("button", { name: "screenshot.png" })
+      screen.queryByRole("button", { name: "Studio" })
     ).not.toBeInTheDocument();
   });
 });

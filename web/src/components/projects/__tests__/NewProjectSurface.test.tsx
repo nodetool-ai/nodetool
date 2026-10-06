@@ -1430,7 +1430,7 @@ describe("NewProjectSurface", () => {
     await user.click(
       screen.getByRole("button", { name: /^Entities · none/ })
     );
-    await user.click(screen.getByRole("menuitem", { name: /Aurora lamp/ }));
+    await user.click(screen.getByRole("button", { name: "Aurora lamp" }));
     await user.keyboard("{Escape}");
 
     await user.click(
@@ -1453,7 +1453,7 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface();
     await user.click(screen.getByRole("button", { name: /^Entities · none/ }));
-    await user.click(screen.getByRole("menuitem", { name: /Aurora lamp/ }));
+    await user.click(screen.getByRole("button", { name: "Aurora lamp" }));
     await user.keyboard("{Escape}");
 
     await user.click(
