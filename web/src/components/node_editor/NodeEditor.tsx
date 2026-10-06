@@ -29,6 +29,7 @@ import { generateCSS } from "../themes/GenerateCSS";
 import { useTemporalNodes, useNodeStoreRef } from "../../contexts/NodeContext";
 import NodeMenu from "../node_menu/NodeMenu";
 import { useNodeEditorShortcuts } from "../../hooks/useNodeEditorShortcuts";
+import { useWorkflowAutosave } from "../../hooks/useWorkflowAutosave";
 import { useTheme } from "@mui/material/styles";
 import KeyboardShortcutsView from "../content/Help/KeyboardShortcutsView";
 import { NODE_EDITOR_SHORTCUTS } from "../../config/shortcuts";
@@ -99,6 +100,8 @@ const NodeEditor: React.FC<NodeEditorProps> = ({ workflowId, active }) => {
     () => setShowShortcuts((v) => !v),
     editorRoot
   );
+  // Periodic autosave runs for every mounted tab, not just the active one.
+  useWorkflowAutosave();
 
   const { missing: missingRuntimes } = useWorkflowRuntimeCheck(workflowId);
   // Let the user dismiss the install prompt without acting on it.

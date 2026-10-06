@@ -202,6 +202,28 @@ const MediaAspectResizeControl = memo(function MediaAspectResizeControl({
     [corner]
   );
 
+  /** Snapshot the node's geometry and media box in flow units. */
+  const measureDragStart = useCallback(
+    (nodeEl: HTMLElement, clientX: number, clientY: number): DragState => {
+      const zoom = reactFlow.getViewport().zoom || 1;
+      const rect = nodeEl.getBoundingClientRect();
+      const startWidth = rect.width / zoom;
+      const startHeight = rect.height / zoom;
+      const position = reactFlow.getNode(nodeId)?.position ?? { x: 0, y: 0 };
+      return {
+        startX: clientX,
+        startY: clientY,
+        startWidth,
+        startHeight,
+        startPosX: position.x,
+        startPosY: position.y,
+        zoom,
+        box: measureNodeMedia(nodeEl, zoom, startWidth, startHeight)
+      };
+    },
+    [reactFlow, nodeId]
+  );
+
   const handlePointerDown = useCallback(
     (event: React.PointerEvent<HTMLButtonElement>) => {
       if (event.button !== 0) {
@@ -216,22 +238,7 @@ const MediaAspectResizeControl = memo(function MediaAspectResizeControl({
       event.stopPropagation();
       event.preventDefault();
 
-      const zoom = reactFlow.getViewport().zoom || 1;
-      const rect = nodeEl.getBoundingClientRect();
-      const startWidth = rect.width / zoom;
-      const startHeight = rect.height / zoom;
-      const position = reactFlow.getNode(nodeId)?.position ?? { x: 0, y: 0 };
-
-      dragRef.current = {
-        startX: event.clientX,
-        startY: event.clientY,
-        startWidth,
-        startHeight,
-        startPosX: position.x,
-        startPosY: position.y,
-        zoom,
-        box: measureNodeMedia(nodeEl, zoom, startWidth, startHeight)
-      };
+      dragRef.current = measureDragStart(nodeEl, event.clientX, event.clientY);
       // Moving-corner resizes shift the node origin every frame. React Flow only
       // adds `.dragging` when *it* drags the node, so the `:not(.dragging)`
       // transform transition stays live here and the node lags ~180ms behind,
@@ -241,7 +248,7 @@ const MediaAspectResizeControl = memo(function MediaAspectResizeControl({
       containerRef.current?.classList.add("node-resizing");
       event.currentTarget.setPointerCapture(event.pointerId);
     },
-    [reactFlow, nodeId]
+    [measureDragStart]
   );
 
   const handlePointerMove = useCallback(
@@ -296,6 +303,38 @@ const MediaAspectResizeControl = memo(function MediaAspectResizeControl({
     [nodeId, updateNode]
   );
 
+  // Double-click fits the node to its media: keep the current width and derive
+  // the height so the media box matches the media's aspect ratio, anchoring the
+  // opposite corner like a drag does. No-op when the node holds no media.
+  const handleDoubleClick = useCallback(
+    (event: React.MouseEvent<HTMLButtonElement>) => {
+      event.stopPropagation();
+      event.preventDefault();
+      const nodeEl = event.currentTarget.closest<HTMLElement>(
+        ".react-flow__node"
+      );
+      if (!nodeEl) {
+        return;
+      }
+      const start = measureDragStart(nodeEl, event.clientX, event.clientY);
+      if (!start.box) {
+        return;
+      }
+      const result = computeAspectResize(
+        {
+          startWidth: start.startWidth,
+          startHeight: start.startHeight,
+          deltaX: 0,
+          deltaY: 0
+        },
+        start.box,
+        { minWidth, maxWidth, minHeight }
+      );
+      updateNode(nodeId, toUpdate(result, start));
+    },
+    [measureDragStart, minWidth, maxWidth, minHeight, nodeId, updateNode, toUpdate]
+  );
+
   return (
     <Box
       className="node-resize-handle media-aspect-resize-handle"
@@ -304,11 +343,12 @@ const MediaAspectResizeControl = memo(function MediaAspectResizeControl({
       <button
         type="button"
         className="resize-grip nodrag nopan"
-        aria-label="Resize node, keeping image aspect ratio"
+        aria-label="Resize node, keeping image aspect ratio. Double-click to fit the media."
         onPointerDown={handlePointerDown}
         onPointerMove={handlePointerMove}
         onPointerUp={endDrag}
         onPointerCancel={endDrag}
+        onDoubleClick={handleDoubleClick}
       >
         <KeyboardArrowDownIcon />
       </button>

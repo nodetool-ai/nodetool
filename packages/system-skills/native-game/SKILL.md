@@ -333,6 +333,13 @@ transforms. Reparenting preserves the world pose. Parent choices exclude the
 entity and its descendants. When selecting an ancestor and descendant together,
 move or delete the ancestor once.
 
+When the script pane reports a draft conflict, local typing remains unsaved
+until you choose **Keep my version** or **Use draft version**. Keeping your
+version saves the current text and resumes normal editing. Using the draft
+discards the local text. The editor saves at most 1,024 operations per request.
+The changes panel receives at most 1 MiB of recent history and omits a group
+that would cross the byte limit instead of splitting its undo operations.
+
 ### W: Foundation interfaces
 
 ### B: Benchmarks and verification
