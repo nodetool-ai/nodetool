@@ -6,7 +6,8 @@ import type { AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
 import { trpc, trpcClient } from "../../trpc/client";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
-import { anyGameMergeAdapter, acceptServerAnyGameUnit } from "../../stores/game/anyMerge";
+import { anyGameMergeAdapter } from "../../stores/game/anyMerge";
+import { flushGameDraft, pullGameDraft, reloadRejectedGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { useConflictStore } from "../../stores/ConflictStore";
 import { registerDocumentSync } from "../../stores/documentSync";
@@ -56,7 +57,7 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
   const onOps = useCallback((ops: AnyGameDocumentOp[]): void => { getGameDraftStore(refId).getState().apply(ops); }, [refId]);
   const select = useCallback((id: string): void => { getGameDraftStore(refId).getState().select(id); }, [refId]);
 
-  const pull = useCallback(async (): Promise<void> => {
+  const pullFromServer = useCallback(async (): Promise<void> => {
     const server = await trpcClient.games.getDraft.query({ id: refId });
     const store = getGameDraftStore(refId);
     const current = store.getState();
@@ -70,16 +71,19 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
     useConflictStore.getState().addConflicts(`game:${refId}`, merged.conflicts, {
       onAccept: (unitId) => {
         const conflict = merged.conflicts.find((entry) => entry.unit.id === unitId);
-        const latest = store.getState().document;
-        if (conflict && latest) { store.getState().applyMerged(acceptServerAnyGameUnit(latest, server.document, conflict.unit.kind, unitId), server.document, server.game.draftUpdatedAt); }
+        if (conflict) { store.getState().acceptConflict(server.document, conflict.unit.kind, unitId); }
       }, onDiscard: () => undefined
     });
   }, [refId]);
 
+  const pull = useCallback(async (): Promise<void> => {
+    await pullGameDraft(savingRef, pullFromServer);
+  }, [pullFromServer]);
+
   const flush = useCallback(async (): Promise<void> => {
-    if (savingRef.current) { await savingRef.current; }
     const save = async (): Promise<void> => {
       const store = getGameDraftStore(refId);
+      let retries = 0;
       while (store.getState().pendingOps.length > 0) {
         const state = store.getState();
         if (!state.baseUpdatedAt) { return; }
@@ -88,17 +92,27 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
         try {
           const result = await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops });
           store.getState().acknowledge(result.document, result.game.draftUpdatedAt, ops.length);
+          retries = 0;
         } catch (cause) {
-          await pull();
+          try {
+            const server = await trpcClient.games.getDraft.query({ id: refId });
+            reloadRejectedGameDraft(refId, state.baseUpdatedAt, server.document, server.game.draftUpdatedAt, cause);
+            if (server.game.draftUpdatedAt !== state.baseUpdatedAt) {
+              await pullFromServer();
+              if (++retries <= 3 && (useConflictStore.getState().byKey[`game:${refId}`]?.conflicts.length ?? 0) === 0) { continue; }
+            }
+          } catch (recoveryError) {
+            store.getState().failSave(recoveryError instanceof Error ? recoveryError.message : String(recoveryError));
+            throw recoveryError;
+          }
           const message = cause instanceof Error ? cause.message : String(cause);
-          store.getState().failSave(message);
+          if (store.getState().saveStatus !== "unsaved") { store.getState().failSave(message); }
           throw cause;
         }
       }
     };
-    savingRef.current = save();
-    try { await savingRef.current; } finally { savingRef.current = null; }
-  }, [refId, pull]);
+    await flushGameDraft(savingRef, save);
+  }, [refId, pullFromServer]);
 
   useEffect(() => registerDocumentSync("game", refId, {
     localRevision: () => getGameDraftStore(refId).getState().baseUpdatedAt,
@@ -108,10 +122,10 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
   }), [refId, pull]);
 
   useEffect(() => {
-    if (saveStatus !== "unsaved") { return; }
+    if (saveStatus !== "unsaved" || conflicts.items.length > 0) { return; }
     const timer = window.setTimeout(() => { void flush().catch((cause: unknown) => setOperationError(cause instanceof Error ? cause.message : String(cause))); }, 500);
     return () => window.clearTimeout(timer);
-  }, [saveStatus, document, flush]);
+  }, [saveStatus, document, flush, conflicts.items.length]);
 
   const add = (kind: "box" | "sphere" | "light"): void => {
     const id = crypto.randomUUID().replaceAll("-", "");
@@ -134,10 +148,12 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
   const installModel = async (): Promise<void> => {
     try {
       await flush();
-      const state = getGameDraftStore(refId).getState();
-      if (!state.baseUpdatedAt) { throw new Error("The draft is not ready for model installation"); }
-      await trpcClient.games.installAsset.mutate({ id: refId, assetId, slot: assetSlot, baseUpdatedAt: state.baseUpdatedAt });
-      await pull();
+      await flushGameDraft(savingRef, async () => {
+        const state = getGameDraftStore(refId).getState();
+        if (!state.baseUpdatedAt) { throw new Error("The draft is not ready for model installation"); }
+        await trpcClient.games.installAsset.mutate({ id: refId, assetId, slot: assetSlot, baseUpdatedAt: state.baseUpdatedAt });
+        await pullFromServer();
+      });
       setOperationError(null);
     } catch (cause) { setOperationError(cause instanceof Error ? cause.message : String(cause)); }
   };

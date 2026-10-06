@@ -7,7 +7,13 @@ import { useShallow } from "zustand/react/shallow";
 import useOnboardingStore, {
   type OnboardingStepId
 } from "../../stores/OnboardingStore";
-import { BORDER_RADIUS, MOTION, SPACING, getSpacingPx } from "../ui_primitives";
+import {
+  BORDER_RADIUS,
+  CONTROL,
+  MOTION,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 
 const styles = (theme: Theme) =>
   css({
@@ -80,6 +86,33 @@ const styles = (theme: Theme) =>
       "&:hover": {
         color: theme.vars.palette.text.primary,
         background: theme.vars.palette.action.hover
+      }
+    },
+
+    // Phones: the pills wrapped into a ragged centered cloud. Stack the open
+    // steps as full-width rows under a label/dismiss header, and drop the
+    // finished ones — the count already says how far along the user is.
+    [theme.breakpoints.down("sm")]: {
+      ".checklist-inner": {
+        justifyContent: "flex-start",
+        gap: getSpacingPx(SPACING.sm),
+        padding: 0
+      },
+      ".checklist-label": {
+        order: -2,
+        flex: 1,
+        marginRight: 0
+      },
+      ".checklist-dismiss": {
+        order: -1,
+        minHeight: CONTROL.height.xl
+      },
+      ".checklist-step": {
+        flexBasis: "100%",
+        height: CONTROL.height.xl,
+        padding: `0 ${getSpacingPx(SPACING.lg)}`,
+        borderRadius: BORDER_RADIUS.lg,
+        "&:disabled": { display: "none" }
       }
     }
   });

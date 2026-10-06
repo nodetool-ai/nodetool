@@ -44,6 +44,9 @@ import type { ProjectDetail } from "./projectStatus";
  */
 const LOOSE_STRIP_LIMIT = 12;
 
+/** Page gutter: the desktop margin wastes a phone's width. */
+const PAGE_PX = { xs: SPACING.lg, sm: SPACING.xxl };
+
 /** A loose document travels as its `(type, ref, name)` on the drag payload. */
 type LooseDocument = RouterOutputs["projects"]["unassigned"][number];
 
@@ -152,32 +155,49 @@ const ProjectListSurface = () => {
 
   return (
     <FlexColumn fullHeight sx={{ overflow: "hidden" }}>
+      {/* On phones the search drops to its own full-width row and the
+          explainer hides, so neither the title nor the button is squeezed. */}
       <FlexRow
         align="center"
-        gap={SPACING.xl}
-        sx={{ px: SPACING.xxl, pt: SPACING.xxl, pb: SPACING.md }}
+        wrap
+        sx={{
+          columnGap: { xs: SPACING.md, sm: SPACING.xl },
+          rowGap: SPACING.md,
+          px: PAGE_PX,
+          pt: { xs: SPACING.xl, sm: SPACING.xxl },
+          pb: SPACING.md
+        }}
       >
         <Text size="big">Projects</Text>
-        <Caption color="secondary">
+        <Caption color="secondary" sx={{ display: { xs: "none", md: "block" } }}>
           One piece of work — the documents an agent built for it, what it
           cost, where it stands.
         </Caption>
         <Box sx={{ flex: 1 }} />
-        <SearchInput
-          value={search}
-          onChange={setSearch}
-          placeholder="Search projects"
-        />
+        <Box
+          sx={{
+            order: { xs: 1, sm: 0 },
+            flexBasis: { xs: "100%", sm: "auto" }
+          }}
+        >
+          <SearchInput
+            value={search}
+            onChange={setSearch}
+            placeholder="Search projects"
+            fullWidth
+          />
+        </Box>
         <EditorButton
           variant="contained"
           color="primary"
           onClick={openNewProject}
+          sx={{ whiteSpace: "nowrap" }}
         >
           + New project
         </EditorButton>
       </FlexRow>
 
-      <ScrollArea fullHeight sx={{ px: SPACING.xxl, py: SPACING.xl }}>
+      <ScrollArea fullHeight sx={{ px: PAGE_PX, py: SPACING.xl }}>
         {summaries.isPending ? (
           <LoadingSpinner />
         ) : summaries.error ? (
@@ -186,7 +206,7 @@ const ProjectListSurface = () => {
           <Box
             sx={{
               display: "grid",
-              gap: SPACING.xl,
+              gap: { xs: SPACING.lg, sm: SPACING.xl },
               gridTemplateColumns: {
                 xs: "1fr",
                 sm: "repeat(2, minmax(0, 1fr))",
@@ -207,7 +227,7 @@ const ProjectListSurface = () => {
               type="button"
               onClick={openNewProject}
               sx={{
-                minHeight: "268px",
+                minHeight: { xs: "160px", sm: "268px" },
                 display: "flex",
                 flexDirection: "column",
                 alignItems: "center",
@@ -233,7 +253,7 @@ const ProjectListSurface = () => {
       </ScrollArea>
 
       {loose.length > 0 && (
-        <Box sx={{ px: SPACING.xxl, pb: SPACING.xl }}>
+        <Box sx={{ px: PAGE_PX, pb: SPACING.xl }}>
           <Divider />
           <FlexRow
             align="center"
@@ -252,7 +272,9 @@ const ProjectListSurface = () => {
               </Caption>
             )}
             <Box sx={{ flex: 1 }} />
-            <Caption color="muted">Drag onto a project card to move it in</Caption>
+            <Caption color="muted" sx={{ display: { xs: "none", sm: "block" } }}>
+              Drag onto a project card to move it in
+            </Caption>
           </FlexRow>
           <FlexRow gap={SPACING.lg} wrap>
             {loose.map((document) => (
@@ -298,7 +320,7 @@ const ProjectListSurface = () => {
         </Box>
       )}
       {(archived.data?.length ?? 0) > 0 && (
-        <FlexColumn gap={SPACING.md} sx={{ px: SPACING.xxl, pb: SPACING.xl }}>
+        <FlexColumn gap={SPACING.md} sx={{ px: PAGE_PX, pb: SPACING.xl }}>
           <Divider />
           <Caption color="muted" sx={{ textTransform: "uppercase", letterSpacing: "0.08em" }}>
             Archived projects
