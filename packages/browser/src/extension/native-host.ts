@@ -195,7 +195,9 @@ export class NativeHost {
   private detachIfUnused(reason?: string): void {
     for (const client of this.clients.values()) if (client.attached) return;
     this.lastAttached = null;
-    this.toChrome({ kind: "detach", ...(reason ? { reason } : {}) });
+    const frame: { kind: string; reason?: string } = { kind: "detach" };
+    if (reason) { frame.reason = reason; }
+    this.toChrome(frame);
   }
 
   private toChrome(frame: unknown): void {

@@ -368,9 +368,9 @@ function imagexHeaders(token: UploadToken, method: "GET" | "POST", query: Record
   const toSign = ["AWS4-HMAC-SHA256", amzDate, scope, sha256Hex(canonical)].join("\n");
   const key = hmac(hmac(hmac(hmac(`AWS4${token.secret_access_key}`, day), region), service), "aws4_request");
   const signature = createHmac("sha256", key).update(toSign).digest("hex");
+  if (method === "POST") { headers["Content-Type"] = "application/json"; }
   return {
     ...headers,
-    ...(method === "POST" ? { "Content-Type": "application/json" } : {}),
     Authorization: `AWS4-HMAC-SHA256 Credential=${token.access_key_id}/${scope}, SignedHeaders=${signedNames.join(";")}, Signature=${signature}`
   };
 }
@@ -537,6 +537,39 @@ interface FrameImages { first: UploadedImage; last?: UploadedImage }
 function videoDraftFor(model: string, prompt: string, seed: number, ratio: string, resolution: string, durationMs: number, submitId: string, references: UploadedImage[] = [], frames?: FrameImages, videos: UploadedVideo[] = [], audios: UploadedVideo[] = []): string {
   const id = (): string => randomUUID();
   const frameImage = (image: UploadedImage) => ({ type: "image", source_from: "upload", platform_type: 1, name: "", image_uri: image.uri, aigc_image: {}, width: image.width, height: image.height, format: "", uri: image.uri });
+  const videoInput: Record<string, unknown> = {
+    type: "",
+    id: id(),
+    min_version: references.length + videos.length + audios.length > 0 ? "3.3.9" : "3.0.5",
+    prompt: references.length + videos.length + audios.length > 0 ? "" : prompt,
+    video_mode: 2,
+    fps: VIDEO_FPS,
+    duration_ms: durationMs,
+    resolution,
+    idip_meta_list: [],
+  };
+  if (frames) {
+    videoInput.first_frame_image = frameImage(frames.first);
+    if (frames.last) {
+      videoInput.end_frame_image = frameImage(frames.last);
+      videoInput.ending_control = "1.0";
+    }
+  }
+  if (references.length + videos.length + audios.length > 0) {
+    videoInput.unified_edit_input = {
+      material_list: [...references.map((image) => ({
+        material_type: "image",
+        image_info: { type: "image", source_from: "upload", platform_type: 1, name: "", image_uri: image.uri, aigc_image: {}, width: image.width, height: image.height, format: "", title: "", uri: image.uri }
+      })), ...videos.map((video) => ({
+        material_type: "video",
+        video_info: { type: "video", source_from: "upload", name: "", vid: video.vid, fps: 0, width: video.width, height: video.height, duration: video.durationMs }
+      })), ...audios.map((audio) => ({
+        material_type: "audio",
+        audio_info: { type: "audio", source_from: "upload", vid: audio.vid, duration: audio.durationMs, name: "" }
+      }))],
+      meta_list: referenceMeta(prompt, references.length, videos.length, audios.length)
+    };
+  }
   const component = {
     type: "video_base_component",
     id: id(),
@@ -553,31 +586,7 @@ function videoDraftFor(model: string, prompt: string, seed: number, ratio: strin
         text_to_video_params: {
           type: "",
           id: id(),
-          video_gen_inputs: [{
-            type: "",
-            id: id(),
-            min_version: references.length + videos.length + audios.length > 0 ? "3.3.9" : "3.0.5",
-            prompt: references.length + videos.length + audios.length > 0 ? "" : prompt,
-            video_mode: 2,
-            fps: VIDEO_FPS,
-            duration_ms: durationMs,
-            resolution,
-            idip_meta_list: [],
-            ...(frames ? { first_frame_image: frameImage(frames.first), ...(frames.last ? { end_frame_image: frameImage(frames.last), ending_control: "1.0" } : {}) } : {}),
-            ...(references.length + videos.length + audios.length > 0 ? { unified_edit_input: {
-              material_list: [...references.map((image) => ({
-                material_type: "image",
-                image_info: { type: "image", source_from: "upload", platform_type: 1, name: "", image_uri: image.uri, aigc_image: {}, width: image.width, height: image.height, format: "", title: "", uri: image.uri }
-              })), ...videos.map((video) => ({
-                material_type: "video",
-                video_info: { type: "video", source_from: "upload", name: "", vid: video.vid, fps: 0, width: video.width, height: video.height, duration: video.durationMs }
-              })), ...audios.map((audio) => ({
-                material_type: "audio",
-                audio_info: { type: "audio", source_from: "upload", vid: audio.vid, duration: audio.durationMs, name: "" }
-              }))],
-              meta_list: referenceMeta(prompt, references.length, videos.length, audios.length)
-            } } : {})
-          }],
+          video_gen_inputs: [videoInput],
           video_aspect_ratio: ratio,
           seed,
           model_req_key: model,
