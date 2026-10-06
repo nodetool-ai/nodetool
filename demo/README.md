@@ -288,9 +288,36 @@ The promo's casts live with the other synthetic casts —
 `web/src/demo/timeline/promoTimelineCast.ts` (invariants guarded by
 `web/src/demo/__tests__/promoCasts.test.ts`).
 
+## Landing page hero (`demo/src/heroflow/`)
+
+The homepage hero follows one project, "Under the Bed", from a typed brief
+to the finished 15-second film: prompt, beat sheet, entities, storyboard
+stills and clips, then the timeline. The surfaces are look-alike components
+of the product UI, not captures. Each surface is a function of its state, and
+`clock.ts` derives every state from the frame. `HeroFlow.tsx` renders the
+surfaces once, hidden, measures the elements tagged with `data-hf`, and
+moves flying copies between those boxes for each hand-off. A layout change
+in a surface moves its hand-off with it.
+
+The footage is the shipped `under-the-bed` storyboard example. The clips
+under `public/casts/heroflow/bed/` are cut from its film at the real cut
+points, which `data.ts` records.
+
+```bash
+cd demo
+npm run studio:heroflow -- --no-open   # the reel and one still per design frame
+npm run still:heroflow                 # design frames → out/heroflow/
+npm run render:heroflow                # → out/heroflow.mp4
+npm run encode:hero -- --only hero-flow
+```
+
+The encode writes `hero-flow.{mp4,webm}` and the posters into
+`marketing/public/`. The README GIF, `marketing/public/hero-flow-readme.gif`,
+comes from the same master at 720 px and 8 fps.
+
 ## Published marketing demos (`demo/src/marketing/`)
 
-The homepage serves the projector campaign hero, the conversation demo, and the editor loops from
+The homepage serves the conversation demo and the editor loops from
 `marketing/public/`. Their finishing compositions live in
 [`src/marketing/`](src/marketing/catalog.ts). The accepted footage is pinned
 under `public/casts/marketing/` so repeated renders never process their own
@@ -324,9 +351,7 @@ A silent 44 s loop of one project going from a sentence to a finished cut —
 the same story the landing page tells below the fold, so the reel and the
 section under it are the same session rather than two pitches. This older
 SCRAPHEART composition is retained for cast development. It is not the
-projector campaign currently published on the homepage. Its `encode:hero`
-command overwrites the same public hero filenames, so use `render:marketing`
-for the current campaign.
+hero published on the homepage, which comes from `demo/src/heroflow/`.
 
 ```bash
 cd demo
