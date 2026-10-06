@@ -146,7 +146,7 @@ describe("game revision pointer", () => {
     expect(next?.document.scenes[0].name).toBe("Recovered edit");
   });
 
-  it("F27 removes a failed compare-and-set draft without deleting the winning draft", async () => {
+  it("F27 defers failed compare-and-set draft cleanup without deleting the winning draft", async () => {
     const game = await insert(`${PREFIX}${"1".repeat(20)}`);
     const original = { ...createTopDownRoomGame(game.id), revision: game.current_revision };
     const files = new Map([[`${game.source_root}/revisions/${game.current_revision}/game.json`, JSON.stringify(original)]]);
@@ -166,7 +166,40 @@ describe("game revision pointer", () => {
     expect(await Game.updateDraft(USER, game.id, game.draft_updated_at,
       [{ op: "update_scene", scene_id: original.entrySceneId, set: { name: "Losing edit" } }], workspace)).toBeNull();
     expect((await Game.readDraft(USER, game.id, workspace))?.document.scenes[0].name).toBe("Winning edit");
-    expect([...files.values()].some((source) => source.includes('"name":"Losing edit"'))).toBe(false);
+    expect([...files.values()].some((source) => source.includes('"name":"Losing edit"'))).toBe(true);
+  });
+
+  it("F27 retains a failed-CAS version adopted by a writer during cleanup", async () => {
+    const game = await insert(`${PREFIX}${"1".repeat(20)}`);
+    const original = { ...createTopDownRoomGame(game.id), revision: game.current_revision };
+    const files = new Map([[`${game.source_root}/revisions/${game.current_revision}/game.json`, JSON.stringify(original)]]);
+    let injectWinner = true;
+    let adoptedPath = "";
+    const workspace = {
+      readText: async (path: string) => files.get(path) ?? null,
+      write: async (path: string, data: string) => {
+        files.set(path, data);
+        if (injectWinner && data.includes('"name":"Adopted edit"')) {
+          injectWinner = false;
+          await Game.updateDraft(USER, game.id, game.draft_updated_at,
+            [{ op: "update_scene", scene_id: original.entrySceneId, set: { name: "Winning edit" } }], workspace);
+        }
+      },
+      delete: async (path: string) => {
+        if (files.get(path)?.includes('"name":"Adopted edit"')) {
+          const current = await Game.findOwned(USER, game.id);
+          if (!current) { throw new Error("Missing game"); }
+          const adopted = await Game.updateDraft(USER, game.id, current.draft_updated_at,
+            [{ op: "update_scene", scene_id: original.entrySceneId, set: { name: "Adopted edit" } }], workspace);
+          adoptedPath = `${game.source_root}/drafts/${adopted?.game.draft_version_id}.json`;
+        }
+        return files.delete(path);
+      }
+    };
+    expect(await Game.updateDraft(USER, game.id, game.draft_updated_at,
+      [{ op: "update_scene", scene_id: original.entrySceneId, set: { name: "Adopted edit" } }], workspace)).toBeNull();
+    expect(adoptedPath === "" || files.has(adoptedPath)).toBe(true);
+    expect([...files.entries()].some(([path, source]) => path.includes("/drafts/") && source.includes('"name":"Adopted edit"'))).toBe(true);
   });
 
   it("F27 prunes old orphan drafts while preserving recent writes and retained undo sources", async () => {

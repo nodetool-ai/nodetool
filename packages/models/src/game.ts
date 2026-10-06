@@ -271,7 +271,8 @@ export class Game extends DBModel {
     await workspace.write(newPath, nextSource, "application/json");
     const updated = await Game.commitDraft(game, userId, expectedUpdatedAt, now, versionId, ops, beforeDigest, context, summarizeOps(ops));
     if (!updated) {
-      await Game.cleanupDraftVersions(game, workspace, [versionId, beforeDigest]);
+      // Another writer can adopt these content-addressed files after a failed CAS.
+      // Leave them for the orphan scan, which gives in-flight writes an hour.
       return null;
     }
     try {
@@ -345,7 +346,8 @@ export class Game extends DBModel {
     await workspace.write(newPath, nextSource, "application/json");
     const updated = await Game.commitDraft(game, userId, expectedUpdatedAt, now, versionId, [], beforeDigest, context, summary);
     if (!updated) {
-      await Game.cleanupDraftVersions(game, workspace, [versionId, beforeDigest]);
+      // Another writer can adopt these content-addressed files after a failed CAS.
+      // Leave them for the orphan scan, which gives in-flight writes an hour.
       return null;
     }
     try {
