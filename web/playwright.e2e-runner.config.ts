@@ -59,7 +59,7 @@ export default defineConfig({
   ],
 
   webServer: {
-    command: "npm start",
+    command: "node --import tsx tests/e2e-runner/prepareSuite.ts && npm start",
     url: "http://localhost:3000",
     reuseExistingServer: !process.env.CI,
     timeout: 120_000
