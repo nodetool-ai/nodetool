@@ -893,7 +893,12 @@ function buildApp(app, templates) {
 
 function buildBundle(app, templates) {
   // Script-backed examples already carry normal pinned operation documents.
-  if (app.bundle) return {bundle: app.bundle, values: {}};
+  // The preview page seeds only `values`, so carry each variable default the
+  // runtime would seed, such as a Recipe's step and example images.
+  if (app.bundle) {
+    const values = Object.fromEntries(app.bundle.app.variables.filter((variable) => variable.default !== undefined).map((variable) => [`var:${variable.id}`, variable.default]));
+    return {bundle: app.bundle, values};
+  }
   const { document, values } = buildApp(app, templates);
   const workflows = Object.entries(app.workflows).map(([key, templateName]) => {
     const template = templates.get(templateName);
@@ -971,7 +976,10 @@ function writeFile(file, contents) {
  * build. `values` is keyed by the same binding tokens the widgets carry.
  */
 function previewFor(app, bundle, values) {
-  const artFile = path.join(ART, `${Object.values(app.workflows)[0]}.jpg`);
+  // An app that binds no workflow ships its art under its own slug, as the
+  // example app gallery reads it.
+  const firstWorkflow = Object.values(app.workflows)[0];
+  const artFile = path.join(ART, `${firstWorkflow ?? app.slug}.jpg`);
   let image = null;
   if (fs.existsSync(artFile)) {
     image = `/app-preview/img/${app.slug}.jpg`;

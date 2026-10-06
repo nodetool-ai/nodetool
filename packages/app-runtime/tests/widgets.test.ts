@@ -238,6 +238,7 @@ describe("widgetFields", () => {
     expect(widgetFields("Heading")).toEqual({
       text: "text",
       level: "select",
+      subtitle: "textarea",
       binding: "custom",
       visibleWhen: "custom",
       disabledWhen: "custom",
@@ -253,10 +254,14 @@ describe("widgetFields", () => {
   });
 
   it("gives layout widgets their own fields only", () => {
+    // A layout widget may declare visibleWhen itself, but never inherits
+    // disabledWhen or format.
     expect(widgetFields("Columns")).toEqual({
       gap: "number",
+      layout: "select",
       left: "slot",
-      right: "slot"
+      right: "slot",
+      visibleWhen: "custom"
     });
     expect(widgetFields("Divider")).toEqual({});
   });

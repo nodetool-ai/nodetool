@@ -234,6 +234,16 @@ is a variable and `streamBinding` is an output.
 **Buttons and layout:** Button, Panel, Columns (`left` and `right` slots),
 Divider.
 
+Panel, Columns and Accordion take `visibleWhen`, so one condition shows or
+hides a whole group, such as one step of a Guided Steps flow. Panel's
+`variant` is `panel`, `card` (a small raised card for one item) or `plain` (no
+frame), and `columns` lays its children in a grid. Columns' `layout:
+"main-aside"` gives the left slot the free width and sizes the right slot to
+its content. A Button with `fullWidth: false` fits its label, and `align:
+"end"` puts it at the right. Heading takes a `subtitle`, Text a `tone`
+(`muted` or `hint`), Text Input a `hint`, and Image an `aspectRatio`, a
+`width` and a `caption`.
+
 ### Document shape
 
 ```ts

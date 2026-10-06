@@ -9,6 +9,7 @@ import { ideasPageEntries } from "./ideasEntries";
 import { templateEntries } from "./templates";
 import { adLibraryEntries } from "./adLibrary";
 import { recipeEntries } from "./recipes";
+import { storyboardEntryPages } from "./storyboards";
 import { miniAppEntries } from "./miniApps";
 import { solutionRegistryEntries } from "./landingEntries";
 import { taskRegistryEntries } from "./taskEntries";
@@ -42,6 +43,7 @@ export const registryModules: RegistryModule[] = [
   { name: "templates", entries: templateEntries },
   { name: "recipes", entries: recipeEntries },
   { name: "ad-library", entries: adLibraryEntries },
+  { name: "storyboards", entries: storyboardEntryPages },
   { name: "apps", entries: miniAppEntries },
   { name: "solutions", entries: solutionRegistryEntries },
   { name: "tasks", entries: taskRegistryEntries },

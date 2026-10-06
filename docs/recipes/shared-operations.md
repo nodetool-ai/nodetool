@@ -43,10 +43,40 @@ is reused. A changed entity reference image causes an explicit conflict.
 Graphics and protected inputs retain their exact `asset_id` plus the entity
 relationship. Graphics-only entities are not cast into generation prompt lists.
 
-The planner invokes the read-only `preview_storyboard_design` operation and
-exposes its inline Timeline envelope through the existing Timeline widget
-before Approval. That is a composed visual preview, with no persisted Timeline
-or new renderer. Its textual source list remains available alongside it.
+Without a finishing model, the planner invokes the read-only
+`preview_storyboard_design` operation and exposes its inline Timeline envelope
+through the existing Timeline widget before Approval. That is a composed visual
+preview, with no persisted Timeline or new renderer. Its textual source list
+remains available alongside it.
+
+With a finishing model, the planner invokes `layout_storyboard` instead. A
+vision model positions and scales every image and copy layer at each shot's
+hold frame. The pixel layout check and a rendered-frame review gate its work,
+as in agentic finishing. With an optional `imageModel`, it can also generate
+backgrounds and decoration. Each generated image joins the Storyboard as a
+decorative element marked `origin: "layout_agent"`, so a rerun of the plan keeps
+it. The layout is saved as the board's Timeline with the materialization stage
+`layout`, and the review shows that Timeline. The next agentic finish keeps the
+placement and must author the motion before it reports a finished cut.
+
+A Recipe can author the placement of a graphic element. An element with a
+`frame` has an authored box. The scaffold places it there, and the agent keeps
+that placement. An element can also carry `typography`, a `lock` (`position`,
+`scale` or `crop`) and `limits` (`x`, `y` and `scale`). The agent checks every
+edit against the scaffold, never against the previous candidate. An edit that
+changes a locked property or exceeds a limit is rejected with the element, the
+property, the authored value and the limit. A parent group cannot move a locked
+child. In the finish pass, a locked layer takes only opacity animations. The
+reviewer receives each shot's `review_rules` and a note that the locked
+placements are not defects. An element without a frame is composed freely.
+
+The layout takes at most three candidates. It stops early when two rounds in a
+row fail the same frames. When the mechanical checks pass but the visual review
+still has findings, `layout_storyboard` saves the best candidate and returns
+`status: "needs_review"` with `findings`. The plan outputs them as
+`layoutFindings`, and the review step shows them in a warning. The person can
+edit the cut, plan again or approve it. A candidate that fails a mechanical
+check never saves. The finish pass still fails after three candidates.
 
 To opt into agentic finishing, declare `strategy: "agentic"` and an existing
 `model: {provider, id}` on the Recipe's finishing operation. Both become normal
@@ -57,7 +87,10 @@ ambient chat session. Omitting the strategy produces an unreviewed draft. Struct
 do not certify legible rendered pixels. Only agentic finishing that passes the
 rendered review gate reports a reviewed finished cut.
 Agentic script execution uses the protocol's bounded 120-second timeout.
-Deterministic planning and finishing retain 60-second timeouts.
+Deterministic planning and finishing retain 60-second timeouts. A layout or
+finishing agent that reviews rendered frames takes longer, so the Recipe apps
+built by `scripts/example-apps/recipe-app.mjs` run both operations as bundled
+workflow jobs. A Code node runs the same code with a 30-minute limit.
 
 Each Recipe specializes the shared scripts' declared input ports to its own
 typed inputs. The implementation code and semantic operation version remain

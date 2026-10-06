@@ -466,6 +466,7 @@ export const appConfig: Config = {
             { label: "H3", value: "3" }
           ]
         },
+        subtitle: { type: "textarea", label: "Subtitle" },
         binding: bindingField("read"),
         ...conditionalFields()
       },
@@ -476,10 +477,19 @@ export const appConfig: Config = {
       label: "Text",
       fields: {
         text: { type: "textarea", label: "Text" },
+        tone: {
+          type: "select",
+          label: "Tone",
+          options: [
+            { label: "Default", value: "default" },
+            { label: "Muted", value: "muted" },
+            { label: "Hint", value: "hint" }
+          ]
+        },
         binding: bindingField("read"),
         ...conditionalFields()
       },
-      defaultProps: { text: "Text block" },
+      defaultProps: { text: "Text block", tone: "default" },
       render: withConditions((props) => <TextWidget {...props} />)
     },
     Markdown: {
@@ -515,6 +525,9 @@ export const appConfig: Config = {
           ]
         },
         filename: { type: "text", label: "Download filename" },
+        aspectRatio: { type: "text", label: "Aspect ratio (e.g. 9 / 16, replaces height)" },
+        width: { type: "number", label: "Width (px, empty fills the row)" },
+        caption: { type: "text", label: "Caption" },
         ...conditionalFields({ format: false })
       },
       defaultProps: {
@@ -923,6 +936,7 @@ export const appConfig: Config = {
         binding: bindingField("write"),
         label: { type: "text", label: "Label" },
         placeholder: { type: "text", label: "Placeholder" },
+        hint: { type: "text", label: "Hint" },
         multiline: {
           type: "radio",
           label: "Multiline",
@@ -1357,6 +1371,22 @@ export const appConfig: Config = {
             { label: "Warning", value: "warning" }
           ]
         },
+        fullWidth: {
+          type: "radio",
+          label: "Width",
+          options: [
+            { label: "Full", value: true },
+            { label: "Fit label", value: false }
+          ]
+        },
+        align: {
+          type: "radio",
+          label: "Align (fit label)",
+          options: [
+            { label: "Start", value: "start" },
+            { label: "End", value: "end" }
+          ]
+        },
         events: eventsField("click"),
         ...conditionalFields({ format: false })
       },
@@ -1373,24 +1403,40 @@ export const appConfig: Config = {
       label: "Panel",
       fields: {
         title: { type: "text", label: "Title" },
-        content: { type: "slot" }
+        variant: {
+          type: "select",
+          label: "Style",
+          options: [
+            { label: "Panel", value: "panel" },
+            { label: "Card", value: "card" },
+            { label: "Plain", value: "plain" }
+          ]
+        },
+        columns: { type: "number", label: "Columns" },
+        content: { type: "slot" },
+        visibleWhen: conditionField("Visible when")
       },
-      defaultProps: { title: "", content: [] },
-      render: ({ title, content }) => (
-        <ContainerWidget title={title} content={content} />
-      )
+      defaultProps: { title: "", variant: "panel", columns: 1, content: [] },
+      render: withConditions((props) => <ContainerWidget {...props} />)
     },
     Columns: {
       label: "Columns",
       fields: {
         gap: { type: "number", label: "Gap (px)" },
+        layout: {
+          type: "select",
+          label: "Layout",
+          options: [
+            { label: "Equal halves", value: "equal" },
+            { label: "Main and aside", value: "main-aside" }
+          ]
+        },
         left: { type: "slot" },
-        right: { type: "slot" }
+        right: { type: "slot" },
+        visibleWhen: conditionField("Visible when")
       },
-      defaultProps: { gap: 16, left: [], right: [] },
-      render: ({ gap, left, right }) => (
-        <ColumnsWidget gap={gap} left={left} right={right} />
-      )
+      defaultProps: { gap: 16, layout: "equal", left: [], right: [] },
+      render: withConditions((props) => <ColumnsWidget {...props} />)
     },
     Tabs: {
       label: "Tabs",
@@ -1433,16 +1479,11 @@ export const appConfig: Config = {
             { label: "No", value: false }
           ]
         },
-        content: { type: "slot" }
+        content: { type: "slot" },
+        visibleWhen: conditionField("Visible when")
       },
       defaultProps: { title: "Section", defaultOpen: true, content: [] },
-      render: ({ title, defaultOpen, content }) => (
-        <AccordionWidget
-          title={title}
-          defaultOpen={defaultOpen}
-          content={content}
-        />
-      )
+      render: withConditions((props) => <AccordionWidget {...props} />)
     },
     Divider: {
       label: "Divider",

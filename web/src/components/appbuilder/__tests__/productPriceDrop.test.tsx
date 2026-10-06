@@ -25,6 +25,7 @@ it("writes exact Recipe copy and generic decisions into normal Application varia
   const buttons = content.filter(item => item.type === "Button" && item.props.visibleWhen?.value === "review").map(item => item.props.label);
   expect(buttons).toEqual(["Build editable cut", "Request changes"]);
   expect(content.some(item => item.type === "Approval")).toBe(false);
-  const mapping = app.operations.find(op => op.id === "plan")!.inputs.newPrice;
+  // Plan runs as a workflow job, whose input node for a port is in-<port>.
+  const mapping = app.operations.find(op => op.id === "plan")!.inputs["in-newPrice"];
   expect(mapping).toEqual({from: "variable", variableId: "newPrice"});
 });

@@ -32,6 +32,50 @@ const shotModelRef = z.object({
   name: z.string().optional()
 });
 
+/** Authored box of an element, normalized to the canvas (top-left origin). Values may leave 0..1 to bleed off an edge. */
+export const graphicsFrame = z.object({
+  box: z.tuple([z.number(), z.number(), z.number(), z.number()]),
+  fit: z.enum(["contain", "cover"]).optional(),
+  align: z.object({
+    x: z.enum(["start", "center", "end"]).optional(),
+    y: z.enum(["start", "center", "end"]).optional()
+  }).optional(),
+  clip: z.boolean().optional()
+});
+/** Default type style of a text element. `size` is a fraction of the canvas width. */
+export const graphicsTypography = z.object({
+  size: z.number().positive().optional(),
+  weight: z.union([z.literal(400), z.literal(500), z.literal(600), z.literal(700)]).optional(),
+  align: z.enum(["left", "center", "right"]).optional(),
+  maxLines: z.number().int().positive().optional()
+});
+/** Properties agents may not change from the authored placement. */
+export const graphicsLock = z.array(z.enum(["position", "scale", "crop"]));
+/** Maximum deviation from the scaffold baseline: x, y as canvas fractions, scale as a ratio. */
+export const graphicsLimits = z.object({
+  x: z.number().nonnegative().optional(),
+  y: z.number().nonnegative().optional(),
+  scale: z.number().nonnegative().optional()
+});
+
+/** Template-owned shape style. A brand-color binding still decides the fill. `strokeWidth` is a fraction of the canvas width, `cornerRadius` is in normalized shape units. */
+const hexColor = z.string().regex(/^#[0-9a-fA-F]{6}$/);
+export const graphicsShapeStyle = z.object({
+  fill: hexColor.optional(),
+  stroke: hexColor.optional(),
+  strokeWidth: z.number().positive().optional(),
+  cornerRadius: z.number().nonnegative().optional()
+});
+
+/**
+ * How a template fills an asset element when its optional input is empty: an
+ * image generated from `prompt`. `{inputId}` placeholders take the text of that
+ * input, or the hex value of a color input.
+ */
+export const graphicsFallback = z.object({
+  prompt: z.string().trim().min(1)
+});
+
 export const storyboardShotGraphicsElement = z
   .object({
     id: z.string(),
@@ -52,7 +96,12 @@ export const storyboardShotGraphicsElement = z
     asset_id: z.string().optional(),
     entity_id: z.string().optional(),
     protected_input_id: z.string().optional(),
-    direction: z.string().optional()
+    direction: z.string().optional(),
+    frame: graphicsFrame.optional(),
+    typography: graphicsTypography.optional(),
+    lock: graphicsLock.optional(),
+    limits: graphicsLimits.optional(),
+    style: graphicsShapeStyle.optional()
   })
   .passthrough();
 
@@ -62,7 +111,8 @@ export const storyboardShotGraphics = z
       .enum(["none", "overlay", "graphics_first", "hybrid"])
       .optional(),
     direction: z.string().optional(),
-    elements: z.array(storyboardShotGraphicsElement).optional()
+    elements: z.array(storyboardShotGraphicsElement).optional(),
+    review_rules: z.array(z.string()).optional()
   })
   .passthrough()
   .superRefine((graphics, context) => {

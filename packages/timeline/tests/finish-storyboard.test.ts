@@ -539,3 +539,116 @@ it("keeps source/audio links and timing on a large assembled cut", () => {
     expect(pair[1]).toMatchObject({ startMs: pair[0].startMs, durationMs: pair[0].durationMs, inPointMs: pair[0].inPointMs, outPointMs: pair[0].outPointMs });
   }
 });
+
+describe("Authored frames", () => {
+  const W = 1080, H = 1920;
+  const framed = (elements: NonNullable<Shot["graphics"]>["elements"], assetSizes: Record<string, { width: number; height: number }> = {}) => {
+    const authored: Shot = { type: "shot", id: "s", index: 0, action: "Frame", status: "planned", duration_seconds: 3, graphics: { mode: "graphics_first", elements } };
+    const result = materializeStoryboard({ boardId: "board", shots: [authored], width: W, height: H, assetSizes });
+    const clip = (id: string) => result.document.clips.find((value) => value.storyboardElementId === id) as TimelineClip;
+    return { result, clip };
+  };
+  /** Canvas pixels the layer covers: contain base of its (cropped) source times scale. */
+  const covered = (clip: TimelineClip, size: { width: number; height: number }) => {
+    const crop = clip.crop ?? { left: 0, right: 0, top: 0, bottom: 0 };
+    const sw = size.width * (1 - crop.left - crop.right), sh = size.height * (1 - crop.top - crop.bottom);
+    const aspect = sw / sh, canvasAspect = W / H;
+    const base = aspect > canvasAspect ? { x: 1, y: canvasAspect / aspect } : { x: aspect / canvasAspect, y: 1 };
+    const t = clip.transform!;
+    const w = base.x * t.scale.x * W, h = base.y * t.scale.y * H;
+    const cx = W / 2 + t.position.x, cy = H / 2 + t.position.y;
+    return { left: cx - w / 2, right: cx + w / 2, top: cy - h / 2, bottom: cy + h / 2, w, h };
+  };
+  const box = [0.285, 0.29, 0.43, 0.34] as [number, number, number, number];
+  const boxPx = { left: 0.285 * W, right: 0.715 * W, top: 0.29 * H, bottom: 0.63 * H };
+
+  it("fits a contain asset inside its box and centres it", () => {
+    const { clip } = framed([{ id: "glyph", kind: "asset", asset_id: "g", frame: { box } }], { g: { width: 1000, height: 500 } });
+    const rect = covered(clip("glyph"), { width: 1000, height: 500 });
+    expect(rect.w).toBeCloseTo(0.43 * W, 3);
+    expect(rect.h).toBeCloseTo(0.215 * W, 3);
+    expect((rect.left + rect.right) / 2).toBeCloseTo((boxPx.left + boxPx.right) / 2, 3);
+    expect((rect.top + rect.bottom) / 2).toBeCloseTo((boxPx.top + boxPx.bottom) / 2, 3);
+    expect(clip("glyph").crop).toBeUndefined();
+  });
+
+  it("aligns a contain asset to the start and end of the free axis", () => {
+    const sizes = { g: { width: 1000, height: 500 } };
+    const start = framed([{ id: "glyph", kind: "asset", asset_id: "g", frame: { box, align: { y: "start" } } }], sizes).clip("glyph");
+    const end = framed([{ id: "glyph", kind: "asset", asset_id: "g", frame: { box, align: { y: "end" } } }], sizes).clip("glyph");
+    expect(covered(start, sizes.g).top).toBeCloseTo(boxPx.top, 3);
+    expect(covered(end, sizes.g).bottom).toBeCloseTo(boxPx.bottom, 3);
+    const left = framed([{ id: "glyph", kind: "asset", asset_id: "g", frame: { box, align: { x: "start" } } }], { g: { width: 500, height: 1000 } }).clip("glyph");
+    expect(covered(left, { width: 500, height: 1000 }).left).toBeCloseTo(boxPx.left, 3);
+  });
+
+  it("covers the box and clips the overflow with a crop that makes the picture the box", () => {
+    const sizes = { w: { width: 2000, height: 1000 } };
+    const { clip } = framed([{ id: "world", kind: "asset", asset_id: "w", frame: { box, fit: "cover", clip: true } }], sizes);
+    const layer = clip("world");
+    expect(layer.crop).toBeDefined();
+    const rect = covered(layer, sizes.w);
+    expect(rect.left).toBeCloseTo(boxPx.left, 3);
+    expect(rect.right).toBeCloseTo(boxPx.right, 3);
+    expect(rect.top).toBeCloseTo(boxPx.top, 3);
+    expect(rect.bottom).toBeCloseTo(boxPx.bottom, 3);
+    // a wide source loses width only, split evenly with centre alignment
+    expect(layer.crop!.top).toBeCloseTo(0, 6);
+    expect(layer.crop!.left).toBeCloseTo(layer.crop!.right, 6);
+  });
+
+  it("anchors the kept part of a clipped cover from the aligned side", () => {
+    const sizes = { w: { width: 2000, height: 1000 } };
+    const layer = framed([{ id: "world", kind: "asset", asset_id: "w", frame: { box, fit: "cover", clip: true, align: { x: "start" } } }], sizes).clip("world");
+    expect(layer.crop!.left).toBeCloseTo(0, 6);
+    expect(layer.crop!.right).toBeGreaterThan(0.3);
+  });
+
+  it("lets a cover asset without clip overflow the box and keeps no crop", () => {
+    const sizes = { w: { width: 2000, height: 1000 } };
+    const layer = framed([{ id: "world", kind: "asset", asset_id: "w", frame: { box, fit: "cover" } }], sizes).clip("world");
+    expect(layer.crop).toBeUndefined();
+    expect(covered(layer, sizes.w).h).toBeCloseTo(0.34 * H, 3);
+    expect(covered(layer, sizes.w).w).toBeGreaterThan(0.43 * W);
+  });
+
+  it("keeps an extremely wide glyph inside its box", () => {
+    const sizes = { g: { width: 4000, height: 40 } };
+    const rect = covered(framed([{ id: "glyph", kind: "asset", asset_id: "g", frame: { box } }], sizes).clip("glyph"), sizes.g);
+    expect(rect.left).toBeGreaterThanOrEqual(boxPx.left - 1e-6);
+    expect(rect.right).toBeLessThanOrEqual(boxPx.right + 1e-6);
+    expect(rect.top).toBeGreaterThanOrEqual(boxPx.top - 1e-6);
+    expect(rect.bottom).toBeLessThanOrEqual(boxPx.bottom + 1e-6);
+    expect(rect.w / rect.h).toBeCloseTo(100, 3);
+  });
+
+  it("applies typography and the box to text", () => {
+    const { clip } = framed([{ id: "copy", kind: "text", role: "headline", text: "Same sign.", frame: { box: [0.1, 0.16, 0.78, 0.14] }, typography: { size: 0.07, weight: 700, align: "left", maxLines: 2 } }]);
+    const layer = clip("copy");
+    expect(layer.textStyle).toMatchObject({ text: "Same sign.", fontSizePx: 0.07 * W, fontWeight: 700, align: "left", maxWidthFrac: 0.78 });
+    expect(layer.transform!.position.x).toBeCloseTo((0.1 + 0.39) * W - W / 2, 3);
+    expect(layer.transform!.position.y).toBeCloseTo((0.16 + 0.07) * H - H / 2, 3);
+  });
+
+  it("places a framed shape from its box", () => {
+    const layer = framed([{ id: "background", kind: "shape", frame: { box: [0, 0, 1, 1] } }]).clip("background");
+    expect(layer.shapeStyle).toMatchObject({ x: 0, y: 0, width: 1, height: 1 });
+  });
+
+  it("draws a template-owned shape style, and a brand-color binding keeps its fill", () => {
+    const panel = framed([{ id: "panel", kind: "shape", frame: { box: [0.26, 0.15, 0.48, 0.14] }, style: { fill: "#FFFFFF", cornerRadius: 0.03 } }]).clip("panel");
+    expect(panel.shapeStyle).toMatchObject({ fill: "#FFFFFF", cornerRadius: 0.03, x: 0.26, width: 0.48 });
+    const pill = framed([{ id: "pill", kind: "shape", frame: { box: [0.2, 0.7, 0.6, 0.08] }, style: { stroke: "#FFFFFF", strokeWidth: 0.005 } }]).clip("pill");
+    expect(pill.shapeStyle).toMatchObject({ stroke: "#FFFFFF", strokeWidthPx: 0.005 * W });
+  });
+
+  it("keeps the default slots for an element without a frame", () => {
+    const plain = framed([{ id: "headline", kind: "text", role: "headline", text: "Hello" }, { id: "img", kind: "asset", role: "product", asset_id: "p" }]);
+    const mixed = framed([{ id: "headline", kind: "text", role: "headline", text: "Hello" }, { id: "img", kind: "asset", role: "product", asset_id: "p" }, { id: "glyph", kind: "asset", asset_id: "g", frame: { box } }]);
+    expect(plain.clip("headline").transform!.position.y).toBeCloseTo((0.18 - 0.5) * H, 6);
+    expect(plain.clip("headline").textStyle).toMatchObject({ fontSizePx: 0.065 * W, fontWeight: 600, align: "center", maxWidthFrac: 0.85 });
+    expect(plain.clip("img").transform).toEqual({ position: { x: 0, y: (0.42 - 0.5) * H }, scale: { x: 0.65, y: 0.65 }, rotation: 0, anchor: { x: 0.5, y: 0.5 } });
+    expect(mixed.clip("headline").transform).toEqual(plain.clip("headline").transform);
+    expect(mixed.clip("img").transform).toEqual(plain.clip("img").transform);
+  });
+});

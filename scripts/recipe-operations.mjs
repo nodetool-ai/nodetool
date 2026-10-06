@@ -1,10 +1,11 @@
 import { compileRecipeApplication, inspectRecipeManifest, parseApplicationBundle, recipeInputType } from "@nodetool-ai/app-runtime";
 
 /** Shared deterministic Storyboard planning. Variation is semantic manifest data. */
-export const PLAN_STORYBOARD_CODE = `import { create_storyboard, get_storyboard, edit_storyboard, preview_storyboard_design } from "@nodetool-ai/sandbox-nodetool/storyboards";
+export const PLAN_STORYBOARD_CODE = `import { create_storyboard, get_storyboard, edit_storyboard, preview_storyboard_design, layout_storyboard } from "@nodetool-ai/sandbox-nodetool/storyboards";
 import { get_timeline } from "@nodetool-ai/sandbox-nodetool/timelines";
 import { get_entity, create_entity } from "@nodetool-ai/sandbox-nodetool/entities";
 import { get_asset } from "@nodetool-ai/sandbox-nodetool/assets";
+import { generate_image } from "@nodetool-ai/sandbox-nodetool/media";
 const recipe = inputs.recipe;
 if (recipe.mediaPolicy?.defaultStrategy !== "still_motion_graphics" || !recipe.creativeStrategy?.shots?.length) throw new Error("This operation requires still motion graphics shot intent.");
 const keys = recipe.inputs.map(input => input.id);
@@ -12,6 +13,13 @@ const fingerprint = JSON.stringify([recipe, ...keys.map(key => inputs[key])]);
 for (const input of recipe.inputs) {
   const value = inputs[input.id];
   if (input.required && (value === undefined || value === null || (typeof value === "string" && !value.trim()))) throw new Error(input.id + " is required.");
+}
+// An empty optional input whose element has a template fallback gets a
+// generated image. It is not a user source, so nothing preserves it.
+const blank = value => value === undefined || value === null || (typeof value === "string" && !value.trim()) || (typeof value === "object" && !value.asset_id && !value.uri);
+const fallbacks = {};
+for (const element of recipe.creativeStrategy.shots.flatMap(shot => shot.elements)) {
+  if (element.fallback && blank(inputs[element.inputId]) && !fallbacks[element.inputId]) fallbacks[element.inputId] = {prompt: element.fallback.prompt, box: element.frame?.box};
 }
 const assetId = (value, label) => {
   const id = value?.asset_id || (typeof value?.uri === "string" && value.uri.startsWith("asset://") ? value.uri.slice(8) : undefined);
@@ -44,7 +52,7 @@ for (const input of recipe.inputs) {
     sourceEntities[input.id] = id;
   }
 }
-const protectedInputs = (recipe.preservationRules || []).map(rule => {
+const protectedInputs = (recipe.preservationRules || []).filter(rule => !fallbacks[rule.inputId]).map(rule => {
   const value = inputs[rule.inputId];
   const input = recipe.inputs.find(candidate => candidate.id === rule.inputId);
   const role = recipe.creativeStrategy.shots.flatMap(shot => shot.elements).find(element => element.inputId === rule.inputId)?.role;
@@ -58,7 +66,7 @@ const shots = recipe.creativeStrategy.shots.map(intent => {
   const ids = intent.elements.map(element => element.inputId);
   return {slug: intent.id, action: intent.title, duration_seconds: intent.durationSeconds,
     production: {schema_version: 1, media_strategy: "still_motion_graphics", protected_inputs: protectedInputs.filter(input => ids.includes(input.id))},
-    graphics: {mode: "graphics_first", direction: inputs.direction || recipe.creativeStrategy.direction || "Clear editorial composition", elements: intent.elements.map(element => ({id: element.id, kind: element.kind, role: element.role, ...(protectedInputs.some(input => input.id === element.inputId) ? {protected_input_id: element.inputId} : {}), ...(sourceEntities[element.inputId] ? {entity_id: sourceEntities[element.inputId]} : {}), ...(element.direction ? {direction: element.direction} : {}), ...(element.kind === "text" ? {text: inputs[element.inputId]} : element.kind === "asset" ? {asset_id: assetId(inputs[element.inputId], element.inputId)} : {})}))}
+    graphics: {mode: "graphics_first", direction: inputs.direction || recipe.creativeStrategy.direction || "Clear editorial composition", ...((recipe.creativeStrategy.reviewRules?.length || intent.reviewRules?.length) ? {review_rules: [...(recipe.creativeStrategy.reviewRules || []), ...(intent.reviewRules || [])]} : {}), elements: intent.elements.map(element => ({id: element.id, kind: element.kind, role: element.role, ...(protectedInputs.some(input => input.id === element.inputId) ? {protected_input_id: element.inputId} : {}), ...(sourceEntities[element.inputId] ? {entity_id: sourceEntities[element.inputId]} : {}), ...(element.direction ? {direction: element.direction} : {}), ...(element.frame ? {frame: element.frame} : {}), ...(element.typography ? {typography: element.typography} : {}), ...(element.lock ? {lock: element.lock} : {}), ...(element.limits ? {limits: element.limits} : {}), ...(element.style ? {style: element.style} : {}), ...(element.kind === "text" ? {text: inputs[element.inputId]} : element.kind === "asset" ? (fallbacks[element.inputId] ? {fallback_input: element.inputId} : {asset_id: assetId(inputs[element.inputId], element.inputId)}) : {})}))}
   };
 });
 const board = inputs.storyboardId ? await get_storyboard({storyboard_id: inputs.storyboardId}) : await create_storyboard({name: recipe.slug, aspect_ratio: recipe.creativeStrategy.aspectRatio || "9:16"});
@@ -71,6 +79,36 @@ if (board.timeline_id) {
   linkedTimeline = linked;
 }
 const existingShots = Array.isArray(board.shots) ? board.shots : [];
+const fallbackIds = Object.keys(fallbacks);
+if (fallbackIds.length) {
+  const labelOf = id => recipe.inputs.find(input => input.id === id)?.label || id;
+  const imageModel = inputs.imageModel?.provider && inputs.imageModel?.id ? {provider: inputs.imageModel.provider, id: inputs.imageModel.id} : undefined;
+  if (!imageModel) throw new Error("Add " + fallbackIds.map(labelOf).join(", ") + ", or select an image model to generate " + (fallbackIds.length > 1 ? "them." : "it."));
+  const fill = text => text.replace(/\\{(\\w+)\\}/g, (match, id) => typeof inputs[id] === "string" ? inputs[id].trim() : inputs[id]?.type === "color" ? inputs[id].value : match);
+  const [ratioW, ratioH] = (recipe.creativeStrategy.aspectRatio || "9:16").split(":").map(Number);
+  // A rerun reuses the image of an unchanged prompt, model and size.
+  const cached = new Map(existingShots.flatMap(shot => shot.graphics?.elements || []).filter(element => element.generated?.key && element.asset_id).map(element => [element.generated.key, element.asset_id]));
+  const generated = {};
+  for (const [index, id] of fallbackIds.entries()) {
+    const {prompt, box} = fallbacks[id];
+    const resolved = fill(prompt);
+    // Generate at the aspect of the box the image fills, long side 1536.
+    const [w, h] = box ? [box[2] * ratioW, box[3] * ratioH] : [1, 1];
+    const size = {width: Math.round(1536 * Math.min(1, w / h) / 16) * 16, height: Math.round(1536 * Math.min(1, h / w) / 16) * 16};
+    const key = JSON.stringify([resolved, imageModel.provider, imageModel.id, size.width, size.height]);
+    let asset = cached.get(key);
+    if (!asset) {
+      progress(Math.round(100 * index / fallbackIds.length), "Generating " + labelOf(id));
+      const result = await generate_image({provider: imageModel.provider, model: imageModel.id, prompt: resolved, ...size});
+      if (result?.error || !result?.asset_id) throw new Error("Could not generate " + labelOf(id) + ". " + (result?.error || "The image model returned no image."));
+      asset = result.asset_id;
+    }
+    generated[id] = {asset_id: asset, origin: "template_fallback", generated: {key, prompt: resolved}};
+  }
+  for (const shot of shots) {
+    shot.graphics.elements = shot.graphics.elements.map(({fallback_input, ...element}) => fallback_input ? {...element, ...generated[fallback_input]} : element);
+  }
+}
 if (existingShots.length && JSON.stringify(existingShots.map(shot => shot.slug)) !== JSON.stringify(shots.map(shot => shot.slug))) throw new Error("Storyboard shot structure differs from this Recipe. Start a new plan without storyboardId or explicitly reconcile the board before planning.");
 if (existingShots.some(shot => shot.production?.media_strategy !== "still_motion_graphics")) throw new Error("Storyboard media strategy conflict. This Recipe supports still motion graphics only.");
 const inputsChanged = inputs.plannedFingerprint && inputs.plannedFingerprint !== fingerprint;
@@ -99,6 +137,8 @@ if (existingShots.length && !inputsChanged) {
       if (!actual || actual.kind !== expected.kind || actual.value !== expected.value || !(await sameAsset(actual.asset_id, expected.asset_id)) || JSON.stringify([...(actual.allowed_transformations || [])].sort()) !== JSON.stringify([...expected.allowed_transformations].sort())) throw new Error("Storyboard bound source conflict for " + expected.id + ". Restore the reviewed inputs or explicitly reconcile the Storyboard.");
     }
     for (const expected of shot.graphics.elements) {
+      // A generated fallback is no user source, so it cannot conflict.
+      if (expected.generated) continue;
       const actual = existing.graphics?.elements?.find(element => element.id === expected.id);
       if (!actual || actual.kind !== expected.kind || actual.protected_input_id !== expected.protected_input_id || actual.text !== expected.text || !(await sameAsset(actual.asset_id, expected.asset_id))) throw new Error("Storyboard bound source conflict for " + expected.id + ". Restore the reviewed inputs or explicitly reconcile the Storyboard.");
     }
@@ -108,11 +148,12 @@ const ops = shots.map(shot => {
   const existing = existingShots.find(candidate => candidate.slug === shot.slug);
   if (!existing) return {op: "add_shot", ...shot};
   if (!inputsChanged) return null;
-  if (JSON.stringify(existing.graphics?.elements?.map(element => element.id)) !== JSON.stringify(shot.graphics.elements.map(element => element.id))) throw new Error("Storyboard graphic structure conflict. Reconcile edited elements before changing inputs.");
-  return {op: "update_shot", target: existing.id, production: {...existing.production, ...shot.production}, graphics: {...existing.graphics, elements: existing.graphics.elements.map(element => {
+  if (JSON.stringify(existing.graphics?.elements?.filter(element => element.origin !== "layout_agent").map(element => element.id)) !== JSON.stringify(shot.graphics.elements.map(element => element.id))) throw new Error("Storyboard graphic structure conflict. Reconcile edited elements before changing inputs.");
+  return {op: "update_shot", target: existing.id, production: {...existing.production, ...shot.production}, graphics: {...existing.graphics, ...(shot.graphics.review_rules ? {review_rules: shot.graphics.review_rules} : {}), elements: existing.graphics.elements.map(element => {
     const bound = shot.graphics.elements.find(candidate => candidate.id === element.id);
+    if (!bound && element.origin === "layout_agent") return element;
     if (bound.kind !== element.kind) throw new Error("Storyboard graphic kind conflict.");
-    return {...element, ...(bound.kind === "text" ? {text: bound.text} : bound.kind === "asset" ? {asset_id: bound.asset_id, ...(bound.entity_id ? {entity_id: bound.entity_id} : {})} : {}), protected_input_id: bound.protected_input_id};
+    return {...element, ...(bound.kind === "text" ? {text: bound.text} : bound.kind === "asset" ? {asset_id: bound.asset_id, ...(bound.entity_id ? {entity_id: bound.entity_id} : {})} : {}), ...(bound.frame ? {frame: bound.frame} : {}), ...(bound.typography ? {typography: bound.typography} : {}), ...(bound.lock ? {lock: bound.lock} : {}), ...(bound.limits ? {limits: bound.limits} : {}), ...(bound.style ? {style: bound.style} : {}), ...(bound.generated ? {origin: bound.origin, generated: bound.generated} : {}), protected_input_id: bound.protected_input_id};
   })}};
 });
 const updates = ops.filter(Boolean);
@@ -125,16 +166,28 @@ const continuity = backgrounds[0] && backgrounds.every(id => id === backgrounds[
 const motion = {direction: recipe.creativeStrategy.direction || "One consistent editorial rhythm", transitions: ids.slice(1).map((id, index) => ({from_shot_id: ids[index], to_shot_id: id, direction: "fade"})), continuities: continuity};
 const directed = existingShots.length ? saved : await edit_storyboard({storyboard_id: board.id, expected_revision: saved.revision, ops: [{op: "set_board", motion_design: motion}]});
 if (directed.error || directed.failed) throw new Error(directed.error || JSON.stringify(directed.ops));
-const preview = await preview_storyboard_design({storyboardId: board.id, expectedStoryboardRevision: directed.revision});
+// With a finishing model, an agent lays out every frame and saves the cut, so
+// the review shows the composition the build keeps. Without one, the review
+// shows the deterministic design.
+const layoutModel = inputs.finishModel?.provider && inputs.finishModel?.id ? {provider: inputs.finishModel.provider, id: inputs.finishModel.id} : undefined;
+const imageModel = inputs.imageModel?.provider && inputs.imageModel?.id ? {provider: inputs.imageModel.provider, id: inputs.imageModel.id} : undefined;
+const preview = layoutModel
+  ? await layout_storyboard({storyboardId: board.id, expectedStoryboardRevision: directed.revision, model: layoutModel, ...(imageModel ? {imageModel} : {}), ...(linkedTimeline ? {timelineId: linkedTimeline.timeline.id, expectedTimelineRevision: linkedTimeline.revision} : {})})
+  : await preview_storyboard_design({storyboardId: board.id, expectedStoryboardRevision: directed.revision});
 if (preview.error) throw new Error(preview.error);
-if (linkedTimeline) {
+if (layoutModel) {
+  await output("timelineId", preview.timelineId);
+  await output("timelineRevision", preview.timelineRevision);
+} else if (linkedTimeline) {
   await output("timelineId", linkedTimeline.timeline.id);
   await output("timelineRevision", linkedTimeline.revision);
 }
 await output("linkedScriptFingerprint", preview.linkedScriptFingerprint || "");
 await output("designPreview", preview.timeline);
+// A layout the agent could not finish still saves its best cut. The review step shows what it found.
+await output("layoutFindings", layoutModel && preview.status === "needs_review" && Array.isArray(preview.findings) ? preview.findings.map(finding => String(finding)) : []);
 await output("storyboardId", board.id);
-await output("storyboardRevision", directed.revision);
+await output("storyboardRevision", layoutModel ? preview.storyboardRevision : directed.revision);
 await output("plannedFingerprint", fingerprint);
 await output("approval", "pending");
 await output("planPreview", {shots: shots.map(shot => { const existing = existingShots.find(candidate => candidate.slug === shot.slug); const update = updates.find(candidate => candidate.target === existing?.id); const reviewed = existing ? {...existing, ...update} : shot; return {title: reviewed.action, duration: reviewed.duration_seconds, elements: reviewed.graphics?.elements || []}; }), motionDesign: (existingShots.length ? board.motion_design : motion)?.direction || ""});
@@ -172,7 +225,7 @@ await output("step", "result");`;
 const statePorts = {
   storyboardId: {type: "str"}, storyboardRevision: {type: "int"},
   timelineId: {type: "str"}, timelineRevision: {type: "int"},
-  linkedScriptFingerprint: {type: "str"}, plannedFingerprint: {type: "str"}, approval: {type: "str"}, planPreview: {type: "dict"}, designPreview: {type: "timeline"}, step: {type: "str"}
+  linkedScriptFingerprint: {type: "str"}, plannedFingerprint: {type: "str"}, approval: {type: "str"}, planPreview: {type: "dict"}, designPreview: {type: "timeline"}, layoutFindings: {type: "list[str]"}, step: {type: "str"}
 };
 const preservation = ["exact_asset", "exact_text", "exact_color"];
 
@@ -186,6 +239,8 @@ export const sharedRecipeOperations = recipe => {
   const reserved = new Set(["recipe", "recipeOperationId", "finishStrategy", "finishModel", ...Object.keys(statePorts), "timeline", "validation", "reviews", "finishStatus"]);
   for (const input of recipe.inputs) if (reserved.has(input.id)) throw new Error(`recipe.inputs.${input.id}: reserved shared-operation state port`);
   for (const shot of recipe.creativeStrategy?.shots ?? []) for (const element of shot.elements) {
+    // A template-owned shape has no source input to preserve.
+    if (element.inputId === undefined) continue;
     const policy = element.kind === "asset" ? "exact_asset" : element.kind === "shape" ? "exact_color" : "exact_text";
     if (!recipe.preservationRules?.some(rule => rule.inputId === element.inputId && rule.policy === policy)) throw new Error(`recipe.creativeStrategy.shots.${shot.id}.${element.id}: shared planning requires ${policy} source preservation`);
   }

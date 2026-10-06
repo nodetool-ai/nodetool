@@ -11,6 +11,8 @@ export interface FinishStoryboardWrite {
   width: number;
   height: number;
   durationMs: number;
+  /** The board document with layers the finish added, such as generated decoration. */
+  boardDocument?: string;
 }
 
 /** The board link and produced document commit together or neither commits. */
@@ -18,7 +20,7 @@ export async function commitFinishedStoryboard(input: FinishStoryboardWrite): Pr
   const connection = getDatabase();
   const id = input.timeline?.id ?? createTimeOrderedUuid();
   const now = new Date(Math.max(Date.now(), Date.parse(input.board.updated_at) + 1, Date.parse(input.timeline?.updated_at ?? "") + 1 || 0)).toISOString();
-  const boardFields = { timeline_id: id, revision: input.board.revision + 1, updated_at: now };
+  const boardFields = { timeline_id: id, revision: input.board.revision + 1, updated_at: now, ...(input.boardDocument !== undefined && { document: input.boardDocument }) };
   const timelineFields = { document: JSON.stringify(input.document), duration_ms: input.durationMs, updated_at: now };
   const initial = { ...timelineFields, id, user_id: input.board.user_id, project_id: input.board.project_id, name: input.board.name, fps: 30, width: input.width, height: input.height, revision: 0, created_at: now };
   if (connection.dialect === "sqlite") {

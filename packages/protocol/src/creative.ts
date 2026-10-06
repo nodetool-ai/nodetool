@@ -455,6 +455,21 @@ export interface ShotGraphicsElement {
   protected_input_id?: string;
   /** Semantic placement/motion direction, not Timeline keyframes. */
   direction?: string;
+  /** Authored box, normalized to the canvas. See `graphicsFrame`. */
+  frame?: {
+    box: [number, number, number, number];
+    fit?: "contain" | "cover";
+    align?: { x?: "start" | "center" | "end"; y?: "start" | "center" | "end" };
+    clip?: boolean;
+  };
+  /** Default text style. `size` is a fraction of the canvas width. */
+  typography?: { size?: number; weight?: 400 | 500 | 600 | 700; align?: "left" | "center" | "right"; maxLines?: number };
+  /** Properties agents may not change from the authored placement. */
+  lock?: Array<"position" | "scale" | "crop">;
+  /** Maximum deviation from the scaffold baseline. */
+  limits?: { x?: number; y?: number; scale?: number };
+  /** Template-owned shape style. See `graphicsShapeStyle`. */
+  style?: { fill?: string; stroke?: string; strokeWidth?: number; cornerRadius?: number };
 }
 
 /**
@@ -467,6 +482,8 @@ export interface ShotGraphics {
   mode?: "none" | "overlay" | "graphics_first" | "hybrid";
   direction?: string;
   elements?: ShotGraphicsElement[];
+  /** Visual rules the reviewer checks for this shot. */
+  review_rules?: string[];
 }
 
 /** A transition idea between two Storyboard shots. */

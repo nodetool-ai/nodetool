@@ -103,6 +103,29 @@ describe("useBindingValue", () => {
     expect(read("dark", "read")).toBe(true);
   });
 
+  it("reads a run's error and state from an execution binding", () => {
+    // An Alert bound to op:<id>/exec#error used to read the input slots and
+    // stay empty, so a failed run showed no message in the app.
+    const { wrapper } = makeTestRuntime({
+      invocations: {
+        j1: {
+          id: "j1",
+          operationId: "main",
+          status: "failed",
+          error: "Could not read the website.",
+          startedAt: 1
+        }
+      },
+      activeInvocation: { main: "j1" }
+    });
+    const read = (binding: string) =>
+      renderHook(() => useBindingValue(useBindingRef(binding, "read")), {
+        wrapper
+      }).result.current;
+    expect(read("op:main/exec#error")).toBe("Could not read the website.");
+    expect(read("op:main/exec#running")).toBe(false);
+  });
+
   it("returns undefined for a null ref", () => {
     const { wrapper } = seeded();
     const { result } = renderHook(() => useBindingValue(null), { wrapper });

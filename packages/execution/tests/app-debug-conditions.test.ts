@@ -146,6 +146,46 @@ describe("app debug — conditions", () => {
     );
   });
 
+  it("hides a widget whose layout group a visibleWhen hides", async () => {
+    // A stepper app hides each step as one Container. The button inside has no
+    // condition of its own, yet no user can click it while its step is hidden.
+    const target = appTarget(
+      [
+        { type: "TextInput", props: { id: "TextInput-1", binding: "prompt" } },
+        {
+          type: "Container",
+          props: {
+            id: "step-review",
+            visibleWhen: { binding: "var:draft", op: "notEmpty" },
+            content: [
+              {
+                type: "Button",
+                props: {
+                  id: "Button-1",
+                  label: "Approve",
+                  events: [{ trigger: "click", kind: "run", key: "", value: "" }]
+                }
+              }
+            ]
+          }
+        }
+      ],
+      [{ id: "draft", name: "draft", scope: "instance", persist: false }]
+    );
+
+    const hidden = await run(target, [{ click: "Approve" }]);
+    expect(hidden.runOnServer).not.toHaveBeenCalled();
+    expect(hidden.report.interactions[0].error).toBe(
+      'clicked "Approve" while hidden by `var:draft notEmpty`.'
+    );
+
+    const shown = await run(target, [
+      { set: { key: "var:draft", value: "a draft" } },
+      { click: "Approve" }
+    ]);
+    expect(shown.runOnServer).toHaveBeenCalledOnce();
+  });
+
   it("does not flag a trigger that was reachable at some point", async () => {
     const { report } = await run(
       approveApp({ visibleWhen: { binding: "var:draft", op: "notEmpty" } }),

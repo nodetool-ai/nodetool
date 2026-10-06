@@ -25,6 +25,7 @@ const COLUMNS: Col[] = [
       { name: "Node-based AI", href: "/node-based-ai" },
       { name: "Templates", href: "/templates" },
       { name: "Recipes", href: "/recipes" },
+      { name: "Storyboards", href: "/storyboards" },
       { name: "Tasks", href: "/tasks" },
       { name: "Pricing", href: "/pricing" },
     ],

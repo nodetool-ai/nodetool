@@ -49,4 +49,12 @@ describe("Recipe Application API validation", () => {
     expect(applicationDocument.safeParse({...value, recipe: {...value.recipe, creativeStrategy}}).success).toBe(false);
     expect(applicationDocument.safeParse({...value, recipe: {...value.recipe, operations: [{...value.recipe.operations[0], strategy: "unknown"}]}}).success).toBe(false);
   });
+  it("accepts a template-owned shape only with a fill or stroke style", () => {
+    const value = document();
+    const withShape = (element: Record<string, unknown>) => ({...value, recipe: {...value.recipe, creativeStrategy: {shots: [{id: "hook", title: "Hook", durationSeconds: 3, elements: [{id: "price", inputId: "price", kind: "text", role: "price"}, element]}]}}});
+    expect(applicationDocument.safeParse(withShape({id: "panel", kind: "shape", role: "decorative", style: {fill: "#FFFFFF", cornerRadius: 0.03}})).success).toBe(true);
+    expect(applicationDocument.safeParse(withShape({id: "panel", kind: "shape", role: "decorative"})).success).toBe(false);
+    expect(applicationDocument.safeParse(withShape({id: "panel", kind: "text", role: "decorative", style: {fill: "#FFFFFF"}})).success).toBe(false);
+    expect(applicationDocument.safeParse(withShape({id: "panel", kind: "shape", role: "decorative", style: {fill: "white"}})).success).toBe(false);
+  });
 });

@@ -1918,7 +1918,7 @@ export const timelineDocument = z.object({
   trackFolders: z.array(timelineTrackFolder).optional(),
   clips: z.array(timelineClip),
   markers: z.array(timelineMarker),
-  storyboardMaterializations: z.array(z.object({ boardId: z.string(), elementKeys: z.array(z.string()) })).optional(),
+  storyboardMaterializations: z.array(z.object({ boardId: z.string(), elementKeys: z.array(z.string()), stage: z.enum(["layout", "finished"]).optional() })).optional(),
   transcript: z.array(transcriptLine).optional(),
   scriptEnabled: z.boolean().optional(),
   /** Constant tempo the midi clips are read against. Without this field Zod
@@ -1990,7 +1990,7 @@ export const timelineSequenceResponse = z.object({
   trackFolders: z.array(timelineTrackFolder).optional(),
   clips: z.array(timelineClip),
   markers: z.array(timelineMarker),
-  storyboardMaterializations: z.array(z.object({ boardId: z.string(), elementKeys: z.array(z.string()) })).optional(),
+  storyboardMaterializations: z.array(z.object({ boardId: z.string(), elementKeys: z.array(z.string()), stage: z.enum(["layout", "finished"]).optional() })).optional(),
   transcript: z.array(transcriptLine).optional(),
   scriptEnabled: z.boolean().optional(),
   /** Constant tempo, mirroring the document's. Without this field Zod strips

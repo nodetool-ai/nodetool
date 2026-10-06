@@ -160,6 +160,7 @@ export const compileRecipeApplication = (
   }
   for (const [index, shot] of (recipe.creativeStrategy?.shots ?? []).entries()) {
     for (const [elementIndex, element] of shot.elements.entries()) {
+      if (element.inputId === undefined && element.kind === "shape" && (element.style?.fill || element.style?.stroke)) {continue;}
       const input = recipe.inputs.find((candidate) => candidate.id === element.inputId);
       if (!input || (element.kind === "asset" && input.kind !== "image") || (element.kind === "text" && input.kind !== "text") || (element.kind === "shape" && input.kind !== "color")) {error(`recipe.creativeStrategy.shots[${index}].elements[${elementIndex}]`, "Graphic kind must match an image, text or color source input.");}
     }

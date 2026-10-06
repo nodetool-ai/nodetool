@@ -226,17 +226,31 @@ const ImageItem: React.FC<{
   src: string;
   fit?: string;
   height: number;
+  /** A CSS aspect ratio such as "9 / 16". It replaces the fixed height. */
+  aspectRatio?: string;
+  caption?: string;
+  /** A fixed width in px, for a frame beside other content. */
+  width?: number;
   download?: boolean;
   filename?: string;
-}> = React.memo(({ src, fit, height, download = true, filename }) => (
-  <FlexColumn gap={SPACING.xs} align="flex-start" fullWidth>
+}> = React.memo(({ src, fit, height, aspectRatio, caption, width, download = true, filename }) => (
+  <FlexColumn gap={SPACING.xs} align="flex-start" fullWidth={!width} sx={width ? { width } : undefined}>
     <ResponsiveImage
       locator={src}
-      alt=""
+      alt={caption ?? ""}
       fit={fit === "cover" ? "cover" : "contain"}
       borderRadius={BORDER_RADIUS.md}
-      sx={{ height }}
+      sx={
+        aspectRatio
+          ? { width: "100%", height: "auto", aspectRatio, border: "1px solid", borderColor: "divider" }
+          : { height }
+      }
     />
+    {caption ? (
+      <Caption color="secondary" sx={{ fontVariantNumeric: "tabular-nums" }}>
+        {caption}
+      </Caption>
+    ) : null}
     {download ? (
       <MediaDownloadButton
         src={src}
@@ -332,6 +346,8 @@ export const HeadingWidget: React.FC<
   WidgetCommon & {
     text?: string;
     level?: string;
+    /** A muted line directly under the heading, such as a step introduction. */
+    subtitle?: string;
   }
 > = (props) => {
   const { value } = useBinding(props, "read");
@@ -339,21 +355,40 @@ export const HeadingWidget: React.FC<
     props.formattedValue ?? (value != null ? str(value) : (props.text ?? ""));
   const level = props.level ?? "1";
   const size = level === "1" ? "giant" : "big";
-  return (
+  const heading = (
     <Text size={size} weight={600}>
       {text}
     </Text>
   );
+  if (!props.subtitle) return heading;
+  return (
+    <FlexColumn gap={SPACING.xs} fullWidth>
+      {heading}
+      <Text color="secondary" sx={{ maxWidth: "62ch" }}>
+        {props.subtitle}
+      </Text>
+    </FlexColumn>
+  );
 };
 
-export const TextWidget: React.FC<WidgetCommon & { text?: string }> = (
+/** "muted" is secondary body text, such as a step introduction. "hint" is the
+ * small secondary line under a field. */
+type TextTone = "default" | "muted" | "hint";
+
+export const TextWidget: React.FC<WidgetCommon & { text?: string; tone?: TextTone }> = (
   props
 ) => {
   const { value } = useBinding(props, "read");
   const text =
     props.formattedValue ?? (value != null ? str(value) : (props.text ?? ""));
+  const tone = props.tone ?? "default";
   return (
-    <Text data-focus-id={`app-widget-${props.id}`} size="normal" sx={{ whiteSpace: "pre-wrap" }}>
+    <Text
+      data-focus-id={`app-widget-${props.id}`}
+      size={tone === "hint" ? "small" : "normal"}
+      color={tone === "default" ? undefined : "secondary"}
+      sx={{ whiteSpace: "pre-wrap", ...(tone === "muted" && { maxWidth: "62ch" }) }}
+    >
       {text}
     </Text>
   );
@@ -387,9 +422,14 @@ export const ImageWidget: React.FC<
     placeholder?: string;
     download?: boolean;
     filename?: string;
+    aspectRatio?: string;
+    caption?: string;
+    width?: number;
   }
 > = (props) => {
   const { value } = useBinding(props, "read");
+  const aspectRatio = props.aspectRatio || undefined;
+  const width = isNumber(props.width) && props.width > 0 ? props.width : undefined;
   const sources = React.useMemo(
     () =>
       asItems(value)
@@ -412,6 +452,9 @@ export const ImageWidget: React.FC<
         src={sources[0]}
         fit={props.fit}
         height={height}
+        aspectRatio={aspectRatio}
+        caption={props.caption || undefined}
+        width={width}
         download={props.download !== false}
         filename={mediaFilename(props.filename, "image", 0, sources.length)}
       />
@@ -432,6 +475,7 @@ export const ImageWidget: React.FC<
           src={src}
           fit={props.fit}
           height={height}
+          aspectRatio={aspectRatio}
           download={props.download !== false}
           filename={mediaFilename(
             props.filename,
@@ -1031,6 +1075,8 @@ export const TextInputWidget: React.FC<
   WidgetCommon & {
     label?: string;
     placeholder?: string;
+    /** A short guide under the field. */
+    hint?: string;
     multiline?: boolean;
   }
 > = (props) => {
@@ -1040,6 +1086,8 @@ export const TextInputWidget: React.FC<
       data-focus-id={`app-widget-${props.id}`}
       label={props.label ?? ""}
       placeholder={props.placeholder ?? ""}
+      helperText={props.hint || undefined}
+      slotProps={{ formHelperText: { sx: { mx: 0 } } }}
       value={str(value)}
       multiline={Boolean(props.multiline)}
       minRows={props.multiline ? 3 : undefined}
@@ -1238,11 +1286,16 @@ export const ChoiceCardsWidget: React.FC<
               key={option.value}
               variant="outlined"
               padding="none"
+              // Card spreads an object sx, so these colors are CSS variables, not a theme callback.
               sx={{
-                p: SPACING.md,
+                p: SPACING.lg,
                 cursor: disabled ? "not-allowed" : "pointer",
-                outline: active ? "2px solid currentColor" : "none",
-                opacity: disabled ? 0.5 : 1
+                opacity: disabled ? 0.5 : 1,
+                borderColor: active ? "primary.main" : "divider",
+                bgcolor: active ? "rgba(var(--palette-primary-mainChannel) / 0.12)" : "action.hover",
+                transition: MOTION.border,
+                "&:hover": disabled || active ? {} : { borderColor: "rgba(var(--palette-primary-mainChannel) / 0.5)" },
+                "&:focus-within": { outline: "2px solid", outlineColor: "primary.main", outlineOffset: 2 }
               }}
             >
               <Box
@@ -1268,13 +1321,14 @@ export const ChoiceCardsWidget: React.FC<
                     emit("change");
                   }
                 }}
-                sx={{ width: "100%" }}
+                sx={{ width: "100%", outline: "none" }}
               >
-                <FlexColumn gap={SPACING.micro} fullWidth>
+                <FlexColumn gap={SPACING.xs} fullWidth>
                   {option.image ? (
                     <ResponsiveImage
                       locator={option.image}
                       alt=""
+                      borderRadius={BORDER_RADIUS.sm}
                       sx={{
                         width: "100%",
                         aspectRatio: "16 / 9",
@@ -1282,9 +1336,9 @@ export const ChoiceCardsWidget: React.FC<
                       }}
                     />
                   ) : null}
-                  <Text>{option.title || option.value}</Text>
+                  <Text weight={600}>{option.title || option.value}</Text>
                   {option.description ? (
-                    <Caption color="secondary">{option.description}</Caption>
+                    <Text size="small" color="secondary">{option.description}</Text>
                   ) : null}
                 </FlexColumn>
               </Box>
@@ -1335,23 +1389,28 @@ export const StepperWidget: React.FC<
   return (
     <FlexColumn gap={SPACING.sm} fullWidth>
       {props.label ? <Label>{props.label}</Label> : null}
-      <FlexRow gap={SPACING.sm} fullWidth sx={{ flexWrap: "wrap" }}>
+      <FlexRow gap={SPACING.sm} fullWidth align="center" sx={{ flexWrap: "wrap" }}>
         {steps.map((step, index) => (
-          <EditorButton
-            key={step.value}
-            variant={index === current ? "contained" : "outlined"}
-            size="small"
-            disabled={
-              props.disabled ||
-              step.disabled ||
-              (index < current && props.allowBack === false)
-            }
-            aria-current={index === current ? "step" : undefined}
-            onClick={() => choose(index)}
-          >
-            {step.completed ? "✓ " : ""}
-            {step.title || step.value}
-          </EditorButton>
+          <React.Fragment key={step.value}>
+            {index > 0 ? (
+              <Box aria-hidden sx={{ width: getSpacingPx(SPACING.lg), height: "1px", bgcolor: "divider" }} />
+            ) : null}
+            <EditorButton
+              variant={index === current ? "contained" : "outlined"}
+              size="small"
+              disabled={
+                props.disabled ||
+                step.disabled ||
+                (index < current && props.allowBack === false)
+              }
+              aria-current={index === current ? "step" : undefined}
+              onClick={() => choose(index)}
+            >
+              {/* A step before the current one is done unless the author says otherwise. */}
+              {(step.completed ?? index < current) ? "✓ " : ""}
+              {step.title || step.value}
+            </EditorButton>
+          </React.Fragment>
         ))}
       </FlexRow>
       {steps[current]?.description ? (
@@ -1521,6 +1580,10 @@ export const ButtonWidget: React.FC<
     label?: string;
     variant?: string;
     color?: string;
+    /** False sizes the button to its label, as Back and Next do. */
+    fullWidth?: boolean;
+    /** Where a natural-width button sits in its row. */
+    align?: "start" | "end";
   }
 > = (props) => {
   const { emit, designMode, runnerState } = useBinding(props, "none");
@@ -1532,7 +1595,8 @@ export const ButtonWidget: React.FC<
   // A mixed-action button stays disabled while busy when any click event runs
   // the operation. Cancel-only and non-run buttons remain operable.
   const showRunning = isRunning && runsOnClick && !designMode;
-  return (
+  const fullWidth = props.fullWidth !== false;
+  const button = (
     <EditorButton
       data-focus-id={`app-widget-${props.id}`}
       variant={
@@ -1541,7 +1605,7 @@ export const ButtonWidget: React.FC<
       color={(props.color as "primary" | "secondary" | "warning") ?? "primary"}
       density="normal"
       size="medium"
-      fullWidth
+      fullWidth={fullWidth}
       disabled={Boolean(props.disabled) || showRunning}
       onClick={() => emit("click")}
       sx={{
@@ -1549,6 +1613,8 @@ export const ButtonWidget: React.FC<
         fontWeight: 600,
         height: "auto",
         py: SPACING.sm,
+        // A step-navigation button is compact, like the stepper above it.
+        ...(!fullWidth && { px: SPACING.lg, py: SPACING.xs, fontSize: "var(--fontSizeSmall)" }),
         position: "relative",
         overflow: "hidden",
         // Keep the run state vivid rather than dimmed-out while it works.
@@ -1571,36 +1637,101 @@ export const ButtonWidget: React.FC<
       {showRunning ? <RunningLabel /> : (props.label ?? "Button")}
     </EditorButton>
   );
+  if (fullWidth) return button;
+  return (
+    <FlexRow fullWidth justify={props.align === "end" ? "flex-end" : "flex-start"}>
+      {button}
+    </FlexRow>
+  );
 };
 
 // ── Layout widgets ──────────────────────────────────────────────────────────
 
+/**
+ * "panel" is the default framed section. "card" is a small raised card for one
+ * item, such as an image and its caption. "plain" draws no frame, for a row of
+ * cards or a group of fields.
+ */
+type ContainerVariant = "panel" | "card" | "plain";
+
+/** Lays the slot's children in a grid of at most `columns` per row. Each
+ * column stays at least 120px wide, so a narrow app wraps to fewer columns. */
+const gridStack = (columns: number): React.CSSProperties => ({
+  display: "grid",
+  gridTemplateColumns: `repeat(auto-fit, minmax(max(120px, calc((100% - ${(columns - 1) * SPACING_PX.lg}px) / ${columns})), 1fr))`,
+  gap: `${SPACING_PX.lg}px`,
+  width: "100%",
+  minWidth: 0
+});
+
 export const ContainerWidget: React.FC<{
+  /** Puck's component id; the conditional wrapper passes it through. */
+  id?: string;
   title?: string;
+  variant?: ContainerVariant;
+  columns?: number;
   content?: SlotComponent;
-}> = ({ title, content: Content }) => (
-  <Card
-    variant="outlined"
-    padding="none"
-    sx={{ width: "100%", p: SPACING.xl, borderRadius: BORDER_RADIUS.md }}
-  >
-    {title ? (
-      <SectionHeader
-        title={title}
-        size="small"
-        uppercase
-        sx={{ mb: SPACING.lg }}
-      />
-    ) : null}
-    {Content ? <Content style={slotStack} /> : null}
-  </Card>
-);
+}> = ({ title, variant = "panel", columns, content: Content }) => {
+  const count = Math.max(1, Math.floor(numOr(columns, 1)));
+  const slot = Content ? (
+    <Content style={count > 1 ? gridStack(count) : variant === "card" ? { ...slotStack, gap: `${SPACING_PX.md}px` } : slotStack} />
+  ) : null;
+  if (variant === "plain") {
+    return (
+      <FlexColumn gap={SPACING.md} fullWidth sx={{ minWidth: 0 }}>
+        {title ? <Text size="small" color="secondary">{title}</Text> : null}
+        {slot}
+      </FlexColumn>
+    );
+  }
+  if (variant === "card") {
+    return (
+      <Card
+        variant="outlined"
+        padding="none"
+        sx={{ width: "100%", p: SPACING.lg, borderRadius: BORDER_RADIUS.md, bgcolor: "action.hover" }}
+      >
+        <FlexColumn gap={SPACING.md} fullWidth>
+          {title ? <Text size="small" color="secondary">{title}</Text> : null}
+          {slot}
+        </FlexColumn>
+      </Card>
+    );
+  }
+  return (
+    <Card
+      variant="outlined"
+      padding="none"
+      sx={{ width: "100%", p: SPACING.xl, borderRadius: BORDER_RADIUS.md }}
+    >
+      {title ? (
+        <SectionHeader
+          title={title}
+          size="small"
+          uppercase
+          sx={{ mb: SPACING.lg }}
+        />
+      ) : null}
+      {slot}
+    </Card>
+  );
+};
+
+/**
+ * "equal" splits the width in half. "main-aside" gives the left slot the free
+ * width and sizes the right slot to its content, as fields beside their
+ * example frames.
+ */
+type ColumnsLayout = "equal" | "main-aside";
 
 export const ColumnsWidget: React.FC<{
+  /** Puck's component id; the conditional wrapper passes it through. */
+  id?: string;
   gap?: number;
+  layout?: ColumnsLayout;
   left?: SlotComponent;
   right?: SlotComponent;
-}> = ({ gap, left: Left, right: Right }) => (
+}> = ({ gap, layout = "equal", left: Left, right: Right }) => (
   // Container query, not an MUI breakpoint: viewport breakpoints read the
   // window, so the narrow editor canvas would still lay out two columns and
   // overflow. Querying the app root container keeps the editor preview and
@@ -1609,15 +1740,24 @@ export const ColumnsWidget: React.FC<{
     sx={{
       display: "grid",
       gridTemplateColumns: "1fr",
+      alignItems: "start",
       "@container (min-width: 700px)": {
-        gridTemplateColumns: "1fr 1fr"
+        gridTemplateColumns: layout === "main-aside" ? "minmax(0, 1fr) auto" : "1fr 1fr"
       },
       gap: `${numOr(gap, SPACING_PX.xl)}px`,
       width: "100%"
     }}
   >
     {Left ? <Left style={slotStack} /> : null}
-    {Right ? <Right style={slotStack} /> : null}
+    {Right ? (
+      <Right
+        style={
+          layout === "main-aside"
+            ? { display: "flex", flexDirection: "row", flexWrap: "wrap", gap: `${SPACING_PX.md}px`, minWidth: 0 }
+            : slotStack
+        }
+      />
+    ) : null}
   </Box>
 );
 
@@ -1691,6 +1831,8 @@ export const TabsWidget: React.FC<{
 };
 
 export const AccordionWidget: React.FC<{
+  /** Puck's component id; the conditional wrapper passes it through. */
+  id?: string;
   title?: string;
   defaultOpen?: boolean;
   content?: SlotComponent;

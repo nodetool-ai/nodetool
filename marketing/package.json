@@ -28,6 +28,7 @@
     "gen:templates": "node scripts/generate-template-entries.mjs && node scripts/generate-template-catalog.mjs",
     "gen:apps": "node scripts/generate-miniapp-entries.mjs",
     "gen:recipes": "tsx scripts/generate-recipes.mjs",
+    "gen:storyboards": "node scripts/generate-storyboards.mjs",
     "gen:games": "node scripts/export-example-games.mjs",
     "gen:blog": "node scripts/generate-blog-entries.mjs",
     "seo:typecheck": "node ../scripts/run-tsc.mjs -p seo/tsconfig.json --noEmit",

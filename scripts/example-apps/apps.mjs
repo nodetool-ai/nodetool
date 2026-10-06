@@ -27,6 +27,7 @@
 // See buildControl() in the builder for the exact props each one emits.
 
 import { PRODUCT_PRICE_DROP_BUNDLE, PRODUCT_PRICE_DROP_DEBUG_INTERACTIONS } from "./product-price-drop.mjs";
+import { AD_LIBRARY_APPS } from "./ad-library-recipes.mjs";
 import { DIRECTED_CAMPAIGN_KIT_APP } from "./directed-campaign-kit.mjs";
 import { PODCAST_PRODUCTION_DESK_APP } from "./podcast-production-desk.mjs";
 import { UGC_PRODUCT_VIDEO_APP } from "./ugc-product-video.mjs";
@@ -63,6 +64,7 @@ const ATLASCLOUD_YOUCHUAN_REMOVE_BACKGROUND = {
 
 export const EXAMPLE_APPS = [
   {slug: "product-price-drop", name: "Product Price Drop", description: PRODUCT_PRICE_DROP_BUNDLE.description, tagline: "Exact product, editable prices, deterministic motion.", workflows: {}, featured: true, bundle: PRODUCT_PRICE_DROP_BUNDLE, debugInteractions: PRODUCT_PRICE_DROP_DEBUG_INTERACTIONS},
+  ...AD_LIBRARY_APPS,
   // ── 1 ──────────────────────────────────────────────────────────────────────
   {
     slug: "photo-studio",

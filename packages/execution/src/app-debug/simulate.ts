@@ -952,11 +952,12 @@ export async function simulateApp(
       widgets: spec.widgets.map((w) => {
         type WidgetFields = {
           id: string;
+          parentId: string | null;
           visibleWhen?: typeof w.visibleWhen;
           disabledWhen?: typeof w.disabledWhen;
           format?: typeof w.format;
         };
-        const widget: WidgetFields = { id: w.id };
+        const widget: WidgetFields = { id: w.id, parentId: w.parentId };
         if (w.visibleWhen) {
           widget.visibleWhen = w.visibleWhen;
         }

@@ -41,27 +41,34 @@ export interface ExampleAppsOptions {
 }
 
 /**
- * The gallery art an app is shown with: the JPG of the first workflow it
- * binds, served through the example-workflow thumbnail route. Null when the
- * examples directory is unknown or that workflow ships no art.
+ * The gallery art an app is shown with: `<slug>.jpg` when the app ships its
+ * own art, else the JPG of the first workflow it binds, served through the
+ * example-workflow thumbnail route. Null when the examples directory is
+ * unknown or no such art ships.
  */
 function thumbnailFor(
   bundle: ApplicationBundle,
+  slug: string,
   options: ExampleAppsOptions
 ): string | null {
-  const first = bundle.workflows[0];
-  if (!first || !options.examplesDir) return null;
+  if (!options.examplesDir) return null;
   const assetsDir = deriveExampleAssetsDir(
     options.examplesDir,
     options.examplesAssetsFallbackDir
   );
-  const jpgFile = `${first.name}.jpg`;
-  const jpgPath = nodePath.join(assetsDir, jpgFile);
-  if (!existsSync(jpgPath)) return null;
-  return withCacheBuster(
-    `${EXAMPLES_THUMBNAILS_PREFIX}${encodeURIComponent(jpgFile)}`,
-    jpgPath
-  );
+  // The app's own art wins over its first bound workflow's art.
+  const first = bundle.workflows[0];
+  const candidates = [`${slug}.jpg`, ...(first ? [`${first.name}.jpg`] : [])];
+  for (const jpgFile of candidates) {
+    const jpgPath = nodePath.join(assetsDir, jpgFile);
+    if (existsSync(jpgPath)) {
+      return withCacheBuster(
+        `${EXAMPLES_THUMBNAILS_PREFIX}${encodeURIComponent(jpgFile)}`,
+        jpgPath
+      );
+    }
+  }
+  return null;
 }
 
 /**
@@ -106,7 +113,7 @@ const summarize = (
   description: bundle.description,
   workflows: bundle.workflows.map((workflow) => workflow.name),
   operationCount: bundle.app.operations.length,
-  thumbnailUrl: thumbnailFor(bundle, options)
+  thumbnailUrl: thumbnailFor(bundle, slug, options)
 });
 
 /** Every shipped example app, sorted by slug. Invalid files are skipped. */

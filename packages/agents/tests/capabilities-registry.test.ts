@@ -44,6 +44,7 @@ const CAPABILITY_CATEGORY_SNAPSHOT: Record<string, PermissionCategory> = {
   assemble_script_timeline: "write",
   assemble_storyboard_timeline: "write",
   finish_storyboard: "write",
+  layout_storyboard: "write",
   preview_storyboard_design: "read",
   asset_list: "read",
   asset_search: "read",

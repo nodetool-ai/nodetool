@@ -4,13 +4,25 @@ import type { ScriptAssemblyInput } from "@nodetool-ai/timeline";
 import { isRecord, type Shot } from "@nodetool-ai/protocol";
 import { budgetFromContext } from "@nodetool-ai/runtime";
 import type { CapabilityExport, CapabilityRun } from "./types.js";
-import { finishStoryboardSpec, previewStoryboardDesignSpec } from "./storyboards.specs.js";
+import type { StoryboardDecoration } from "./agentic-storyboard-finish.js";
+import { finishStoryboardSpec, layoutStoryboardSpec, previewStoryboardDesignSpec } from "./storyboards.specs.js";
 
-async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Record<string, unknown>, previewOnly: boolean): Promise<unknown> {
-    const strategy = params["strategy"] ?? "deterministic";
+const isModelRef = (value: unknown): value is { provider: string; id: string } =>
+  isRecord(value) && typeof value["provider"] === "string" && !!value["provider"].trim() && typeof value["id"] === "string" && !!value["id"].trim();
+
+/**
+ * "preview" returns the deterministic design in memory. "finish" saves the cut,
+ * agentic or not. "layout" saves an agent-composed static layout, which a
+ * later finish keeps while it authors the motion.
+ */
+async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Record<string, unknown>, mode: "preview" | "finish" | "layout"): Promise<unknown> {
+    const previewOnly = mode === "preview";
+    const strategy = mode === "layout" ? "agentic" : params["strategy"] ?? "deterministic";
     if (strategy !== "deterministic" && strategy !== "agentic") { return { error: "Unsupported finishing strategy." }; }
     const explicitModel = params["model"];
-    if (explicitModel !== undefined && (!isRecord(explicitModel) || typeof explicitModel["provider"] !== "string" || !explicitModel["provider"].trim() || typeof explicitModel["id"] !== "string" || !explicitModel["id"].trim())) { return { error: "Finishing model must have a non-empty provider and id." }; }
+    if (explicitModel !== undefined && !isModelRef(explicitModel)) { return { error: "Finishing model must have a non-empty provider and id." }; }
+    const imageModel = params["imageModel"];
+    if (imageModel !== undefined && !isModelRef(imageModel)) { return { error: "Image model must have a non-empty provider and id." }; }
     if (strategy === "agentic" && !explicitModel && !run.subAgent) { return { error: "Agentic finishing requires an explicit model reference or the session's provider and model." }; }
     const signal = run.signal ?? run.context.signal;
     signal?.throwIfAborted();
@@ -141,16 +153,20 @@ async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Recor
       let document = result.document;
       let reviews;
       let costUsd;
+      let decorations: readonly StoryboardDecoration[] = [];
+      let findings: string[] | undefined;
       if (strategy === "agentic") {
         const { finishStoryboardAgentically } = await import("./agentic-storyboard-finish.js");
-        const runtime = isRecord(explicitModel) && typeof explicitModel["provider"] === "string" && typeof explicitModel["id"] === "string"
-          ? { provider: await run.context.getProvider(explicitModel["provider"]), model: explicitModel["id"], budget: run.budget ?? budgetFromContext(run.context) }
+        const runtime = isModelRef(explicitModel)
+          ? { provider: await run.context.getProvider(explicitModel.provider), model: explicitModel.id, budget: run.budget ?? budgetFromContext(run.context) }
           : run.subAgent;
         if (!runtime) { return { error: "No finishing model is bound to this run." }; }
-        const candidate = await finishStoryboardAgentically(run, { boardId: board.id, shots, script, assetSizes, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, motionDesign: doc.screenplay?.motion_design, current: timeline?.toDocument() }, doc, timeline ?? new TimelineSequence({ user_id: userId, project_id: board.project_id, name: board.name, width: size.width, height: size.height, duration_ms: result.durationMs, document: JSON.stringify(result.document) }), result.document, runtime);
+        const candidate = await finishStoryboardAgentically(run, { boardId: board.id, shots, script, assetSizes, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, motionDesign: doc.screenplay?.motion_design, current: timeline?.toDocument() }, doc, timeline ?? new TimelineSequence({ user_id: userId, project_id: board.project_id, name: board.name, width: size.width, height: size.height, duration_ms: result.durationMs, document: JSON.stringify(result.document) }), result.document, runtime, { phase: mode === "layout" ? "layout" : "finish", ...(imageModel !== undefined && { imageModel }) });
         document = candidate.document;
         reviews = candidate.reviews;
         costUsd = candidate.costUsd;
+        decorations = candidate.decorations;
+        if (candidate.needsReview) { findings = candidate.findings ?? []; }
       }
       signal?.throwIfAborted();
       run.context.signal?.throwIfAborted();
@@ -161,17 +177,40 @@ async function materializeAuthorizedStoryboard(run: CapabilityRun, params: Recor
         const latestFingerprint = latestDoc ? createHash("sha256").update(stableSerialize({ scriptId: script.scriptId, cast: latestDoc.cast, sections: latestDoc.sections })).digest("hex") : "";
         if (latest?.user_id !== userId || latestFingerprint !== linkedScriptFingerprint) { return { error: "Linked script changed during finishing. Refresh the design preview before finishing again." }; }
       }
-      const saved = await commitFinishedStoryboard({ board, timeline, document, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, durationMs: result.durationMs });
+      // Generated decoration is new source media, so the board names it too.
+      // The next finish materializes it like any other element.
+      let boardDocument: string | undefined;
+      if (decorations.length) {
+        const stored: unknown = JSON.parse(board.document);
+        const storedShots = isRecord(stored) && Array.isArray(stored["shots"]) ? stored["shots"] : [];
+        for (const decoration of decorations) {
+          const shot: unknown = storedShots.find((value) => isRecord(value) && value["id"] === decoration.shotId);
+          if (!isRecord(shot)) { return { error: `Shot ${decoration.shotId} disappeared before the layout was saved.` }; }
+          const graphics = isRecord(shot["graphics"]) ? shot["graphics"] : (shot["graphics"] = { mode: "graphics_first", elements: [] });
+          const elements = Array.isArray(graphics["elements"]) ? graphics["elements"] : (graphics["elements"] = []);
+          elements.push(decoration.element);
+        }
+        boardDocument = JSON.stringify(stored);
+      }
+      const saved = await commitFinishedStoryboard({ board, timeline, document, width: timeline?.width ?? size.width, height: timeline?.height ?? size.height, durationMs: result.durationMs, ...(boardDocument !== undefined && { boardDocument }) });
+      if (mode === "layout") {
+        return { status: findings ? "needs_review" : "laid_out", ...(findings && { findings }), reviews: reviews ?? [], decorations: decorations.length, timelineId: saved.timeline.id, timelineRevision: saved.timeline.revision, storyboardRevision: saved.board.revision, linkedScriptFingerprint, timeline: { type: "timeline", id: saved.timeline.id }, validation: [], ...(costUsd !== undefined && { costUsd }) };
+      }
       return { status: strategy === "agentic" ? "reviewed_finished" : "unreviewed_draft", reviewed: strategy === "agentic", reviews: reviews ?? [], timelineId: saved.timeline.id, timelineRevision: saved.timeline.revision, storyboardRevision: saved.board.revision, validation: [], ...(costUsd !== undefined && { costUsd }) };
     } catch (error) { return { error: error instanceof Error ? error.message : String(error) }; }
 }
 
 export const finishStoryboard: CapabilityExport = {
   spec: finishStoryboardSpec,
-  impl: (run, params) => materializeAuthorizedStoryboard(run, params, false)
+  impl: (run, params) => materializeAuthorizedStoryboard(run, params, "finish")
+};
+
+export const layoutStoryboard: CapabilityExport = {
+  spec: layoutStoryboardSpec,
+  impl: (run, params) => materializeAuthorizedStoryboard(run, params, "layout")
 };
 
 export const previewStoryboardDesign: CapabilityExport = {
   spec: previewStoryboardDesignSpec,
-  impl: (run, params) => materializeAuthorizedStoryboard(run, params, true)
+  impl: (run, params) => materializeAuthorizedStoryboard(run, params, "preview")
 };

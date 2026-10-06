@@ -185,6 +185,29 @@ describe("Recipe compiler", () => {
     value.creativeStrategy.shots![0].elements[0].inputId = "missing";
     expect(messages(value)).toContain("Malformed");
   });
+  it("keeps the fallback prompt of an asset element and refuses it on text", () => {
+    const value = manifest();
+    value.inputs.push({id: "scene", label: "Scene", kind: "image", required: false});
+    const scene = {id: "scene", inputId: "scene", kind: "asset" as const, role: "decorative" as const, fallback: {prompt: "A calm scene for {quote}."}};
+    value.creativeStrategy = {shots: [{id: "quote", title: "Quote", durationSeconds: 2, elements: [{id: "quote", inputId: "quote", kind: "text", role: "headline"}, scene]}]};
+    const result = compileRecipeApplication(value, {operations: [operation()]});
+    if (result.status !== "ok") { throw new Error(JSON.stringify(result.diagnostics)); }
+    expect(parseApplicationDocument(result.document)?.recipe?.creativeStrategy?.shots?.[0]?.elements[1]).toEqual(scene);
+    value.creativeStrategy.shots![0].elements[0] = {...value.creativeStrategy.shots![0].elements[0], fallback: {prompt: "Words."}};
+    expect(messages(value)).toContain("Malformed");
+  });
+
+  it("keeps a template-owned shape that has a style and no input", () => {
+    const value = manifest();
+    const panel = {id: "panel", kind: "shape" as const, role: "decorative" as const, style: {fill: "#FFFFFF", cornerRadius: 0.03}};
+    value.creativeStrategy = {shots: [{id: "quote", title: "Quote", durationSeconds: 2, elements: [{id: "quote", inputId: "quote", kind: "text", role: "headline"}, panel]}]};
+    const result = compileRecipeApplication(value, {operations: [operation()]});
+    if (result.status !== "ok") { throw new Error(JSON.stringify(result.diagnostics)); }
+    expect(parseApplicationDocument(result.document)?.recipe?.creativeStrategy?.shots?.[0]?.elements[1]).toEqual(panel);
+    const { style: _style, ...unstyled } = panel;
+    value.creativeStrategy.shots![0].elements[1] = unstyled;
+    expect(messages(value)).toContain("Malformed");
+  });
   it.each(["", "old-workflow", "pinned-workflow"])("normalizes an explicit workflow target without losing its pin when legacy ID is %s", legacyId => {
     const bound = operation();
     bound.binding.workflowId = legacyId;

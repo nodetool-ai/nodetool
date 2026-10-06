@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import SiteHeader from "../../../components/SiteHeader";
 import SiteFooter from "../../../components/SiteFooter";
+import StoryboardTeaser from "../../../components/storyboards/StoryboardTeaser";
 import FaqSection from "../../../components/FaqSection";
 import { productVideoUseCase } from "../../../data/useCaseEntries";
 import { SmartDownloadButton } from "../../SmartDownloadButton";
@@ -374,6 +375,12 @@ export default function ProductVideoUseCase() {
             </div>
           </div>
         </section>
+
+        <StoryboardTeaser
+          slugs={["movement-in-gold", "silk-and-glass", "puddle-strike", "cold-brew-pour"]}
+          heading="Product films, planned shot by shot."
+          body="Four product spots with their storyboards. Watch the film, then read the shot list."
+        />
 
         {/* Visible FAQ — and the FAQPage schema, from these same rows. */}
         <div className="relative py-8">

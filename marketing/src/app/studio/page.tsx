@@ -13,6 +13,7 @@ import ModelSupportSection from "../../components/ModelSupportSection";
 import ProductImage from "../../components/ProductImage";
 import RecipeShowcase from "../../components/RecipeShowcase";
 import StudioHero from "../../components/StudioHero";
+import StoryboardTeaser from "../../components/storyboards/StoryboardTeaser";
 import SurfaceShowcase from "../../components/SurfaceShowcase";
 import TimelineShowcase from "../../components/TimelineShowcase";
 import { EDITIONS } from "../../data/editions";
@@ -192,6 +193,12 @@ export default function StudioPage() {
           className="mt-16"
         />
       </section>
+
+      <StoryboardTeaser
+        slugs={["duel-in-the-wheat", "movement-in-gold", "fox-in-snow", "cold-brew-pour"]}
+        heading="Storyboards that become films."
+        body="Plan the shots in Studio, then render the film. These examples ship with NodeTool."
+      />
 
       <CommunitySection />
 

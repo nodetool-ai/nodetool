@@ -96,6 +96,12 @@ describe("example apps", () => {
     expect(photo?.thumbnailUrl).toMatch(
       /^\/api\/workflows\/examples\/thumbnails\/Image%20Enhance\.jpg\?v=[0-9a-f]{8}$/
     );
+    // The JPG named after the slug wins over the bound workflow's art.
+    const offerWall = apps.find((a) => a.slug === "ad-kinetic-offer-wall");
+    expect(offerWall?.workflows).toEqual(["Plan or refresh Storyboard", "Build editable cut", "Suggest Kinetic offer wall ad options"]);
+    expect(offerWall?.thumbnailUrl).toMatch(
+      /^\/api\/workflows\/examples\/thumbnails\/ad-kinetic-offer-wall\.jpg\?v=[0-9a-f]{8}$/
+    );
   });
 
   it("carries no thumbnail when the examples directory is unknown", async () => {

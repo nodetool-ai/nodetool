@@ -50,7 +50,7 @@ import type { TimelineClip } from "./types.js";
  */
 export interface TimelineDocumentLike {
   clips: TimelineClip[];
-  storyboardMaterializations?: Array<{ boardId: string; elementKeys: string[] }>;
+  storyboardMaterializations?: Array<{ boardId: string; elementKeys: string[]; stage?: "layout" | "finished" }>;
   [key: string]: unknown;
 }
 
