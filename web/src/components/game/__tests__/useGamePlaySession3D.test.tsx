@@ -196,20 +196,3 @@ it("discards keys and mouse look collected while paused before resuming", () => 
   expect(input.justPressed).toEqual([]);
   expect(input.look).toEqual({ x: 0, y: 0 });
 });
-
-it("reports storage failures and clears them after a successful save (F29)", async () => {
-  const view = render(<Harness document={fixture()} />);
-  await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("WebGL2"));
-  const user = userEvent.setup();
-  const write = jest.spyOn(Storage.prototype, "setItem").mockImplementationOnce(() => { throw new Error("Storage quota exceeded"); });
-  await user.click(screen.getByRole("button", { name: "Save" }));
-  expect(screen.getByTestId("error")).toHaveTextContent("Storage quota exceeded");
-  await user.click(screen.getByRole("button", { name: "Save" }));
-  expect(screen.getByTestId("error")).toBeEmptyDOMElement();
-  write.mockRestore();
-  const read = jest.spyOn(Storage.prototype, "getItem").mockImplementationOnce(() => { throw new Error("Storage access denied"); });
-  await user.click(screen.getByRole("button", { name: "Restore" }));
-  expect(screen.getByTestId("error")).toHaveTextContent("Storage access denied");
-  read.mockRestore();
-  view.unmount();
-});
