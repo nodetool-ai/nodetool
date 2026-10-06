@@ -481,6 +481,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
 
   // ------------------------------------------------- deliberately private hosts
   {
+    file: "packages/whisper-cpp/src/whisper-server-provider.ts",
+    owner: "whisper.cpp server provider",
+    inputSource: "operator",
+    schemes: ["http", "https"],
+    authScope: "none",
+    redirects: "runtime-follows",
+    dnsRebinding: "n/a",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "WHISPER_CPP_SERVER_URL names the operator's local service. This provider is excluded from the cloud profile."
+  },
+  {
     file: "packages/runtime/src/comfy-executor.ts",
     owner: "ComfyUI executor",
     inputSource: "workflow",

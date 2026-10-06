@@ -514,6 +514,7 @@ missing binary.
 | `NODE_LLAMA_CPP_MODELS_DIR` | Directory the `node_llama_cpp` provider loads GGUF models from | no | Unset, node-llama-cpp uses its own default. A secret stored under the same name wins over the environment variable |
 | `WHISPER_CPP_MODELS_DIR` | Extra directory for whisper.cpp GGML and VAD models | no | The Hugging Face hub cache is always scanned |
 | `WHISPER_CPP_GPU_BACKEND` | whisper.cpp backend: `auto`, `metal`, `cuda`, `vulkan`, or `cpu` | no | `auto` uses the default build. Restart after changing |
+| `WHISPER_CPP_SERVER_URL` | Base URL of a user-run whisper-server | no | Required for `whisper_cpp_server` |
 | `NODE_LLAMA_CPP_GPU_BACKEND` | GPU backend node-llama-cpp runs against | no | `auto`, `metal`, `cuda`, `vulkan`, or `cpu`, matched case-insensitively. Any other value is ignored and the library chooses for itself. Same secret-over-environment precedence |
 | `LLAMA_CPP_CACHE_DIR` | Cache root checked for GGUF files a separate `llama.cpp` already downloaded | no | Default `~/Library/Caches/llama.cpp/hf` on every platform, so set it explicitly off macOS. Consulted only when the file is not already in the HuggingFace cache; a repo is looked for at `<dir>/<repo cache dir>/snapshots` |
 | `TRANSFORMERS_JS_CACHE_DIR` | Cache directory for the Transformers.js runtime | no | Default `<data dir>/transformers-js-cache`. Deliberately outside `~/.cache/huggingface`: Transformers.js uses a flat `{cacheDir}/{repo_id}/{file_path}` layout the Python `huggingface_hub` cache cannot share |

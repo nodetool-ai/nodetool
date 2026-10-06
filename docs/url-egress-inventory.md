@@ -161,6 +161,11 @@ at 24 hours.
 
 **Deliberately private hosts.** Reaching an internal address is the feature:
 
+- `packages/whisper-cpp/src/whisper-server-provider.ts` — the operator's
+  `WHISPER_CPP_SERVER_URL`, normally localhost or the LAN. This local-only
+  provider uses native fetch, following the llama.cpp server provider's policy.
+  Requests carry audio and transcription options without provider credentials.
+
 - `packages/runtime/src/comfy-executor.ts` — a ComfyUI server, normally
   localhost or the LAN, so screening private addresses would refuse the ordinary
   case. The address is the node's `endpoint` property, so the graph author picks

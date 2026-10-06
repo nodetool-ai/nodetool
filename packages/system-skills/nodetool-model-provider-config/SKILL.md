@@ -57,7 +57,7 @@ export OLLAMA_API_URL=http://localhost:11434
 
 ## whisper.cpp speech recognition
 
-The provider is local-only and unavailable on the cloud profile.
+Both providers are local-only and unavailable on the cloud profile.
 `whisper_cpp` runs speech recognition in the backend through the optional
 `@fugood/whisper.node@1.1.3` runtime package. Install **whisper.cpp** from the
 Package Manager, then download a GGML model from Models. It serves
@@ -71,6 +71,10 @@ Models use the Hugging Face hub cache (`HF_HUB_CACHE`, then `HF_HOME/hub`, then
 after changing the backend setting. Live transcription accepts base64 PCM16
 mono chunks with an optional `content_metadata.sample_rate` and uses Silero
 VAD when installed, otherwise fixed windows.
+
+`whisper_cpp_server` calls a user-run `whisper-server`. Set
+`WHISPER_CPP_SERVER_URL` to its base URL. The model id is `default`, representing
+the model loaded by that server. It requires no native runtime package.
 
 ## Language / Chat
 
