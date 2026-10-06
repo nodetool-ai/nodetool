@@ -3,7 +3,7 @@
 External-API integration nodes for [NodeTool](https://nodetool.ai).
 
 Connect visual AI workflows to the outside world: email, Discord and Telegram
-triggers, and ComfyUI workflows.
+triggers, ComfyUI workflows, and stable-diffusion.cpp image generation.
 
 Services that are one authenticated HTTP call — S3, Supabase, Notion, Twilio,
 Discord and Telegram sends — no longer ship as nodes. They are written as
@@ -40,6 +40,42 @@ outputs from `Save*` nodes, keyed `<comfyNodeId>:<field>`. See
 [docs/comfyui.md](https://docs.nodetool.ai/comfyui).
 
 **Other** — `kie.dynamic_schema.KieAI`.
+
+## stable-diffusion.cpp
+
+Generate images locally with `lib.stable_diffusion_cpp.GenerateImage`. Build
+and start [stable-diffusion.cpp's sd-server](https://github.com/leejet/stable-diffusion.cpp/tree/master/examples/server)
+with your model, then set the node's Server URL to `http://127.0.0.1:1234`
+(or the server's address as seen from NodeTool's backend).
+
+For a checkpoint model, a typical launch is:
+
+```bash
+sd-server -m /path/to/model.safetensors --listen-ip 127.0.0.1 --listen-port 1234
+```
+
+Models with separate diffusion weights, VAE and text encoders need the matching
+server flags. NodeTool connects to the running server and does not install the
+binary, download weights or switch models.
+
+The node uses the native `/sdcpp/v1/img_gen` async API. Use an `sd-server` build
+that exposes that endpoint. Set Prompt and sampling controls, or connect Input
+Image for image-to-image generation. Mask and Reference Images are optional
+and require a model that supports them. `output` contains the first image,
+and `images` contains the complete batch as NodeTool image refs.
+
+Advanced Parameters accepts native request fields such as structured `lora`,
+`hires` and `vae_tiling_params`. These override generation controls, including
+the entire `sample_params` object. Connected media takes precedence over the
+corresponding advanced fields. LoRA tags in prompt text are unsupported by the
+server. See the [upstream API reference](https://github.com/leejet/stable-diffusion.cpp/blob/master/examples/server/api.md)
+for native fields and model requirements.
+
+Timeout and workflow cancellation send a cancellation request for the submitted
+job. The server cancels queued jobs, but returns HTTP 409 for active generation,
+which continues on the server. The node reports a cancellation failure in that
+case. Redirects are rejected. Local and LAN servers are supported on local
+installs. The cloud profile excludes this node by default.
 
 Mail is not a node package any more. `lib.mail.GmailSearch`, `AddLabel` and
 `MoveToArchive` were removed: the same three operations ship as the

@@ -76,6 +76,9 @@ export class MessageStream implements AsyncIterable<ProcessingMessage> {
             "`limits.messageBufferLimit`."
         );
       }
+      // Messages can arrive (and the stream can close) while the consumer
+      // holds a yield above. Drain them before deciding to stop or wait.
+      if (this.queue.length > 0) continue;
       if (this.closed) return;
       await new Promise<void>((resolve) => {
         this.waiter = resolve;

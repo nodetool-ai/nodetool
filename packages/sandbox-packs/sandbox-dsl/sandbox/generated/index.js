@@ -22,6 +22,7 @@ import * as libImageMask from "./lib.image.mask.js";
 import * as libImageWarp from "./lib.image.warp.js";
 import * as libPdf from "./lib.pdf.js";
 import * as libSqlite from "./lib.sqlite.js";
+import * as libStable_diffusion_cpp from "./lib.stable_diffusion_cpp.js";
 import * as libSvg from "./lib.svg.js";
 import * as libVideoDownload from "./lib.video.download.js";
 import * as messagingDiscord from "./messaging.discord.js";
@@ -111,6 +112,7 @@ export {
   libImageWarp,
   libPdf,
   libSqlite,
+  libStable_diffusion_cpp,
   libSvg,
   libVideoDownload,
   messagingDiscord,
