@@ -1323,7 +1323,10 @@ with `publish_native_game` creates a revision when the user asks. The web Game
 tab supplies direct editing, play, pause, step, reset, a scene tree, and draft
 review. The
 [`nodetool game` CLI](cli.md#nodetool-game) validates, simulates, captures, and
-builds a standalone web player. A legacy export node reports a migration
+builds a standalone web player. Run `nodetool game smoke <directory>` after
+export to render 300 scripted frames in Chromium and check errors, missing
+assets, and tick progress. The `game-flow` selfcheck includes the smoke suite.
+A legacy export node reports a migration
 diagnostic; external-engine scene behavior requires manual reconstruction.
 
 ### Game flow (guided design and asset graph)
