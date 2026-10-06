@@ -15,6 +15,7 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { rearmTrigger } from "../../triggers/settle.js";
+import { isRecord } from "../../lib/wire-values.js";
 import {
   listInput,
   listOutput,
@@ -22,7 +23,10 @@ import {
   jobResponse,
   cancelInput,
   cancelOutput,
+  snapshotInput,
+  snapshotOutput,
   type JobResponse,
+  type SnapshotOutput,
   type BackgroundJobResponse
 } from "@nodetool-ai/protocol/api-schemas/jobs.js";
 
@@ -41,6 +45,80 @@ function toJobResponse(job: JobModel, includeOutputs: boolean): JobResponse {
     cost: job.cost ?? null,
     outputs: includeOutputs ? job.runOutputs() : null
   };
+}
+
+/**
+ * Turn a stored run graph back into the editor's saved-graph shape. Run paths
+ * store either the editor graph (`data`) or the kernel form (`properties`,
+ * `edge_type`, plus hydrated fields such as `propertyTypes`); only the saved
+ * fields come back. Each input node's value is set to the param the run
+ * received, so the reopened graph shows the inputs it ran with.
+ */
+function toEditorGraph(
+  raw: Record<string, unknown>,
+  params: Record<string, unknown>
+): NonNullable<SnapshotOutput["graph"]> | null {
+  if (!Array.isArray(raw["nodes"]) || !Array.isArray(raw["edges"])) {
+    return null;
+  }
+  const nodes = raw["nodes"].filter(isRecord).map((node) => {
+    const type = String(node["type"] ?? "");
+    const stored = node["properties"] ?? node["data"];
+    const data: Record<string, unknown> = isRecord(stored)
+      ? { ...stored }
+      : {};
+    const inputName = data["name"];
+    if (
+      type.startsWith("nodetool.input.") &&
+      typeof inputName === "string" &&
+      Object.hasOwn(params, inputName) &&
+      params[inputName] !== undefined
+    ) {
+      data["value"] = params[inputName];
+    }
+    const editorNode: NonNullable<SnapshotOutput["graph"]>["nodes"][number] =
+      { id: String(node["id"] ?? ""), type, data };
+    for (const key of [
+      "parent_id",
+      "ui_properties",
+      "dynamic_properties",
+      "dynamic_inputs",
+      "dynamic_outputs",
+      "sync_mode"
+    ]) {
+      if (node[key] !== undefined) {
+        editorNode[key] = node[key];
+      }
+    }
+    return editorNode;
+  });
+  // A queued run's placeholder row holds an empty graph; nothing to reopen.
+  if (nodes.length === 0) {
+    return null;
+  }
+  const edges = raw["edges"].filter(isRecord).map((edge) => {
+    const edgeType = edge["edge_type"] ?? edge["type"];
+    const editorEdge: NonNullable<SnapshotOutput["graph"]>["edges"][number] = {
+      source: String(edge["source"] ?? ""),
+      sourceHandle: String(edge["sourceHandle"] ?? ""),
+      target: String(edge["target"] ?? ""),
+      targetHandle: String(edge["targetHandle"] ?? "")
+    };
+    if (typeof edge["id"] === "string") {
+      editorEdge.id = edge["id"];
+    }
+    if (isRecord(edge["ui_properties"])) {
+      editorEdge.ui_properties = edge["ui_properties"] as Record<
+        string,
+        string
+      >;
+    }
+    if (typeof edgeType === "string") {
+      editorEdge.edge_type = edgeType;
+    }
+    return editorEdge;
+  });
+  return { nodes, edges };
 }
 
 function toBackgroundJobResponse(job: JobModel): BackgroundJobResponse {
@@ -154,6 +232,25 @@ export const jobsRouter = router({
         throwApiError(ApiErrorCode.NOT_FOUND, "Job not found");
       }
       return toJobResponse(job, true);
+    }),
+
+  snapshot: protectedProcedure
+    .input(snapshotInput)
+    .output(snapshotOutput)
+    .query(async ({ ctx, input }) => {
+      const job = (await Job.get(input.id)) as JobModel | null;
+      if (!job || job.user_id !== ctx.userId) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Job not found");
+      }
+      const params = isRecord(job.params) ? job.params : {};
+      return {
+        id: job.id,
+        workflow_id: job.workflow_id,
+        name: job.name || null,
+        started_at: job.started_at ?? null,
+        graph: isRecord(job.graph) ? toEditorGraph(job.graph, params) : null,
+        params: isRecord(job.params) ? job.params : null
+      };
     }),
 
   cancel: protectedProcedure
