@@ -16,6 +16,9 @@ export async function benchmarkGameBrowser(path: string, assetsDir: string, fram
       resolveAsset: async (logicalId) => {
         const binding = document.assets[logicalId];
         if (!binding || binding.mediaKind !== "model") { return null; }
+        if (!/^[a-f0-9]{32}$/.test(binding.assetId)) {
+          throw new Error(`Asset ID must be a full 32-character resource ID: ${binding.assetId}`);
+        }
         return { bytes: new Uint8Array(await readFile(resolve(assetsDir, `${binding.assetId}.glb`))), digest: binding.digest };
       } });
     process.stdout.write(JSON.stringify({ documentId: document.id, backend: "webgl2", viewport: document.presentation, benchmark: captured.benchmark, stats: captured.stats,
