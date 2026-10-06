@@ -111,6 +111,82 @@ tick.
 
 The scripted workload tick p95 differs by 0.21%, within the 10% target.
 
+## Instrumented CPU measurements
+
+These paired runs use the same Linux x64 machine, AMD Ryzen 5 3600 CPU,
+Node 24.18.0, seed 1 and headless simulation backend described above. Each
+pair ran consecutively without competing tests, builds or captures. The
+benchmark enables `recordTimings`. These results include its timing overhead
+and are separate from the original untimed tables. Runtime budgets and the
+three approved fixtures are unchanged. Every producer exited successfully.
+
+### 2D: 500 entities and 32 scripts
+
+Each run warms up 300 ticks and measures 1,200 ticks.
+Latency columns are milliseconds.
+
+| Run | Tick p50 | Tick p95 | Tick p99 | Script calls | Heap delta bytes | Sampled allocation bytes |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 17.029 | 24.756 | 27.250 | 38400 | -63221592 | 37912264 |
+| 2 | 16.852 | 23.990 | 26.080 | 38400 | 515282096 | 37630344 |
+
+Tick p95 differs by 3.19%, within the 10% requirement.
+
+| Stage | Run 1 p50 | Run 1 p95 | Run 1 p99 | Run 2 p50 | Run 2 p95 | Run 2 p99 |
+|---|---:|---:|---:|---:|---:|---:|
+| input | 0.000812 | 0.001272 | 0.001653 | 0.000712 | 0.001113 | 0.001552 |
+| scripts | 16.619243 | 23.997221 | 26.796242 | 16.459934 | 23.085603 | 25.331304 |
+| physics | 0.046388 | 0.065453 | 0.080281 | 0.045846 | 0.056185 | 0.068328 |
+| contacts | 0.028654 | 0.039004 | 0.050004 | 0.028563 | 0.036990 | 0.047510 |
+| gameplay | 0.031790 | 0.041678 | 0.049843 | 0.031319 | 0.040156 | 0.050405 |
+| presentation | 0.270109 | 0.382591 | 0.787022 | 0.268976 | 0.315885 | 5.111738 |
+
+### 3D scale: 1,000 entities and no scripts
+
+Each run warms up 3,000 ticks and measures 12,000 ticks.
+Latency columns are milliseconds.
+
+| Run | Tick p50 | Tick p95 | Tick p99 | Script calls | Heap delta bytes | Sampled allocation bytes |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 11.068 | 12.259 | 13.340 | 0 | 382235136 | 54619056 |
+| 2 | 11.052 | 12.227 | 13.265 | 0 | 379609568 | 52293896 |
+
+Tick p95 differs by 0.26%, within the 10% requirement.
+
+| Stage | Run 1 p50 | Run 1 p95 | Run 1 p99 | Run 2 p50 | Run 2 p95 | Run 2 p99 |
+|---|---:|---:|---:|---:|---:|---:|
+| input | 3.281411 | 3.797092 | 4.347820 | 3.268066 | 3.849762 | 4.317332 |
+| scripts | 0.015459 | 0.036379 | 0.048011 | 0.015529 | 0.036919 | 0.050105 |
+| character | 0.532874 | 0.639965 | 1.283036 | 0.526472 | 0.635818 | 1.284519 |
+| physics | 0.030497 | 0.038703 | 0.044524 | 0.029615 | 0.037792 | 0.043361 |
+| contacts | 0.248678 | 0.300656 | 0.381238 | 0.249390 | 0.298072 | 0.372131 |
+| gameplay | 0.053370 | 0.068048 | 0.083678 | 0.051367 | 0.066004 | 0.081915 |
+| animation | 0.117551 | 0.144482 | 0.798464 | 0.116480 | 0.143240 | 0.794156 |
+| presentation | 6.728073 | 7.588223 | 8.385344 | 6.733403 | 7.594915 | 8.343425 |
+
+### 3D scripted: 64 entities and 30 scripts
+
+Each run warms up 300 ticks and measures 1,200 ticks.
+Latency columns are milliseconds.
+
+| Run | Tick p50 | Tick p95 | Tick p99 | Script calls | Heap delta bytes | Sampled allocation bytes |
+|---|---:|---:|---:|---:|---:|---:|
+| 1 | 31.509 | 37.868 | 41.056 | 36000 | 512130912 | 41705824 |
+| 2 | 30.650 | 37.019 | 39.055 | 36000 | 466517464 | 44029192 |
+
+Tick p95 differs by 2.29%, within the 10% requirement.
+
+| Stage | Run 1 p50 | Run 1 p95 | Run 1 p99 | Run 2 p50 | Run 2 p95 | Run 2 p99 |
+|---|---:|---:|---:|---:|---:|---:|
+| input | 0.203724 | 0.251975 | 0.293192 | 0.194046 | 0.218371 | 0.271141 |
+| scripts | 30.392567 | 36.749200 | 39.759770 | 29.693920 | 35.835438 | 37.745516 |
+| character | 0.230043 | 0.285247 | 0.339780 | 0.176072 | 0.265681 | 0.328619 |
+| physics | 0.031650 | 0.039715 | 0.046908 | 0.023344 | 0.034936 | 0.041728 |
+| contacts | 0.113213 | 0.158128 | 0.191210 | 0.101231 | 0.140164 | 0.176563 |
+| gameplay | 0.018906 | 0.024487 | 0.029406 | 0.014707 | 0.021561 | 0.026940 |
+| animation | 0.041658 | 0.052058 | 0.064361 | 0.030988 | 0.049273 | 0.056626 |
+| presentation | 0.435951 | 0.524288 | 0.626871 | 0.423799 | 0.468332 | 0.598518 |
+
 ## Browser rendering measurements
 
 These runs use Chromium 148.0.7778.96 on the same machine, the WebGL2 backend,
