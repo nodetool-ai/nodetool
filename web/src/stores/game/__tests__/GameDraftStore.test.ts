@@ -56,3 +56,43 @@ describe("native game draft saves", () => {
     expect(gameDocument.parse(store.getState().document).scenes[0].entities.find((entity) => entity.id === "gem")?.transform2d.x).toBe(4);
   });
 });
+
+
+it("rejects a merge that references an asset removed by the server (F4)", () => {
+  const document = createTopDownRoomGame("invalid-merged-asset");
+  const store = getGameDraftStore(document.id);
+  store.getState().load(document, "first");
+  const merged = structuredClone(document);
+  merged.scenes[0].entities[1].sprite = { assetId: "missing", width: 1, height: 1, layer: 0 };
+  expect(() => store.getState().applyMerged(merged, document, "second")).toThrow(/missing/);
+  expect(store.getState().pendingOps).toEqual([]);
+  expect(store.getState().document).toEqual(document);
+  expect(store.getState().baseUpdatedAt).toBe("second");
+});
+
+
+it("clears an earlier failure when merging a valid draft (F8)", () => {
+  const document = createTopDownRoomGame("merge-error-recovery");
+  const store = getGameDraftStore(document.id);
+  store.getState().load(document, "first");
+  store.getState().failSave("modified concurrently");
+  const local = applyGameOps(document, [{ op: "update_entity", scene_id: "room", entity_id: "player", set: { name: "Kept locally" } }]);
+  store.getState().applyMerged(local, document, "second");
+  expect(store.getState().saveStatus).toBe("unsaved");
+  expect(store.getState().error).toBeNull();
+  expect(store.getState().baseUpdatedAt).toBe("second");
+});
+
+
+it("accepts an older conflict without rewinding the current server draft token", () => {
+  const document = createTopDownRoomGame("stale-conflict-offer");
+  const store = getGameDraftStore(document.id);
+  const oldOffer = applyGameOps(document, [{ op: "update_entity", scene_id: "room", entity_id: "player", set: { name: "Older offered name" } }]);
+  const latest = applyGameOps(document, [{ op: "update_entity", scene_id: "room", entity_id: "gem", set: { name: "Later server edit" } }]);
+  store.getState().load(latest, "latest-token");
+  store.getState().acceptConflict(oldOffer, "entity", "room:player");
+  expect(store.getState().baseUpdatedAt).toBe("latest-token");
+  expect(store.getState().savedDocument).toEqual(latest);
+  expect(gameDocument.parse(store.getState().document).scenes[0].entities.find((entity) => entity.id === "gem")?.name).toBe("Later server edit");
+  expect(gameDocument.parse(store.getState().document).scenes[0].entities.find((entity) => entity.id === "player")?.name).toBe("Older offered name");
+});

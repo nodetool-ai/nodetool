@@ -10,11 +10,12 @@ import DataObjectIcon from "@mui/icons-material/DataObject";
 import TableChartIcon from "@mui/icons-material/TableChart";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import { Asset } from "../../stores/ApiTypes";
-import { DeleteButton, StatusPill, Text, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
+import { DeleteButton, FavoriteButton, StatusPill, Text, MOTION, BORDER_RADIUS, FONT_WEIGHT, SPACING, getSpacingPx, Z_INDEX } from "../ui_primitives";
 import { secondsToHMS } from "../../utils/formatDateAndTime";
 import { formatFileSize } from "../../utils/formatUtils";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import { useAssetActions } from "./useAssetActions";
+import { useSetAssetFavorite } from "../../serverState/useAssetFavorite";
 import { useActivateOnKey } from "../../hooks/useActivateOnKey";
 import { useVideoThumbnail } from "../../hooks/useVideoThumbnail";
 import { isCoarsePointer } from "../../utils/isCoarsePointer";
@@ -235,6 +236,18 @@ const styles = (theme: Theme) =>
       borderRadius: "0 !important",
       backgroundColor: "transparent"
     },
+    ".asset-favorite": {
+      position: "absolute",
+      bottom: getSpacingPx(SPACING.micro),
+      left: getSpacingPx(SPACING.micro),
+      zIndex: Z_INDEX.modal,
+      opacity: 0,
+      transition: MOTION.opacity
+    },
+    "&:hover .asset-favorite, &:focus-within .asset-favorite, .asset-favorite.is-favorite":
+      {
+        opacity: 1
+      },
     ".asset-delete": {
       pointerEvents: "none",
       opacity: 0,
@@ -244,11 +257,18 @@ const styles = (theme: Theme) =>
       pointerEvents: "all",
       opacity: 1
     },
-    // A phone keeps :hover on the tile it last tapped, which would leave this
-    // button live over the thumbnail — the next tap deletes instead of opens.
-    // Touch deletes through the long-press context menu.
+    // A phone keeps :hover on the tile it last tapped, which would leave the
+    // delete and star buttons live over the thumbnail, so the next tap acts
+    // instead of opening. Touch deletes and stars through the long-press
+    // context menu, and a starred tile keeps the star as a marker.
     "@media (pointer: coarse)": {
       ".asset-delete-overlay": {
+        display: "none"
+      },
+      ".asset-favorite": {
+        pointerEvents: "none"
+      },
+      ".asset-favorite:not(.is-favorite)": {
         display: "none"
       }
     },
@@ -332,6 +352,8 @@ export type AssetItemProps = {
   showFiletype?: boolean;
   showDuration?: boolean;
   showFileSize?: boolean;
+  /** Star toggle on the thumbnail. Defaults to `enableContextMenu`. */
+  showFavoriteButton?: boolean;
   onSelect?: () => void;
   onClickParent?: (id: string) => void;
   onDragStart?: (assetId: string) => string[];
@@ -361,6 +383,7 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
     showFiletype = true,
     showDuration = true,
     showFileSize = true,
+    showFavoriteButton = enableContextMenu,
     onSelect,
     onDoubleClick,
     onClickParent,
@@ -443,6 +466,12 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
   }, [handleClick, onSelect, onClickParent, isParent, onDoubleClick, asset]);
 
   const handleItemKeyDown = useActivateOnKey(handleItemClick);
+
+  const setAssetFavorite = useSetAssetFavorite();
+  const handleToggleFavorite = useCallback(
+    (favorite: boolean) => setAssetFavorite([asset.id], favorite),
+    [setAssetFavorite, asset.id]
+  );
 
   const handleDoubleClickWithStop = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -601,6 +630,13 @@ const AssetItem: React.FC<AssetItemProps> = (props) => {
               titleAccess={asset.content_type || "Unknown file type"}
             />
           )}
+        {showFavoriteButton && !isParent && (
+          <FavoriteButton
+            className={`asset-favorite${asset.favorite ? " is-favorite" : ""}`}
+            isFavorite={asset.favorite === true}
+            onToggle={handleToggleFavorite}
+          />
+        )}
         {asset.offline === true && (
           <StatusPill
             tone="failed"
@@ -674,7 +710,8 @@ export default memo(AssetItem, (prevProps, nextProps) => {
   const selectionChanged = prevProps.isSelected !== nextProps.isSelected;
   const assetChanged =
     prevProps.asset.id !== nextProps.asset.id ||
-    prevProps.asset.offline !== nextProps.asset.offline;
+    prevProps.asset.offline !== nextProps.asset.offline ||
+    prevProps.asset.favorite !== nextProps.asset.favorite;
   const functionsChanged =
     prevProps.onSelect !== nextProps.onSelect ||
     prevProps.onDoubleClick !== nextProps.onDoubleClick;

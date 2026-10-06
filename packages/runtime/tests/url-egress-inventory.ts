@@ -481,6 +481,30 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
 
   // ------------------------------------------------- deliberately private hosts
   {
+    file: "packages/whisper-cpp/src/whisper-server-provider.ts",
+    owner: "whisper.cpp server provider",
+    inputSource: "operator",
+    schemes: ["http", "https"],
+    authScope: "none",
+    redirects: "runtime-follows",
+    dnsRebinding: "n/a",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "WHISPER_CPP_SERVER_URL names the operator's local service. This provider is excluded from the cloud profile."
+  },
+  {
+    file: "packages/integration-nodes/src/nodes/stable-diffusion-cpp.ts",
+    owner: "stable-diffusion.cpp server",
+    inputSource: "workflow",
+    schemes: ["http", "https"],
+    authScope: "none",
+    redirects: "manual-none",
+    dnsRebinding: "deployment-egress",
+    policy: "private-integration",
+    guardedBy: [],
+    note: "The graph author selects a local or LAN sd-server. Redirects are rejected. This node is excluded by the cloud profile's default allowlist."
+  },
+  {
     file: "packages/runtime/src/comfy-executor.ts",
     owner: "ComfyUI executor",
     inputSource: "workflow",
@@ -555,6 +579,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
 
   // ---------------------------------------------------------- browser-side only
   {
+    file: "packages/runtime/src/providers/dreamina-provider.ts",
+    owner: "Dreamina browser generation and media downloads",
+    inputSource: "provider-response",
+    schemes: ["https"],
+    authScope: "the browser tab's Dreamina cookies; none on result downloads",
+    redirects: "runtime-follows",
+    dnsRebinding: "deployment-egress",
+    policy: "browser",
+    guardedBy: ["fetchExternalMedia"],
+    note: "API and upload fetches execute in the user's Dreamina tab. Server-side result downloads delegate to fetchExternalMedia, which checks each redirect hop."
+  },
+  {
     file: "packages/game-renderer/src/standalone-player.ts",
     owner: "standalone game player assets",
     inputSource: "fixed",
@@ -579,7 +615,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "The browser fetches fixed relative game.json and manifest.json plus digest-named ./assets/ paths validated against the closed manifest. Its connect-src self CSP constrains browser redirects to the static origin, and no server socket opens."
   },
   {
-    file: "packages/game-renderer/src/audio.ts",
+    file: "packages/game-renderer/src/audio/player.ts",
     owner: "browser game audio assets",
     inputSource: "workflow",
     schemes: ["http", "https", "relative"],

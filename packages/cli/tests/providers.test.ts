@@ -6,6 +6,10 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 
 // ─── Mocks ────────────────────────────────────────────────────────────────────
 
+vi.mock("@nodetool-ai/whisper-cpp", () => ({
+  registerWhisperCppProviders: vi.fn()
+}));
+
 vi.mock("@nodetool-ai/models", () => ({
   getSecret: vi.fn(async (key: string) => process.env[key] ?? null)
 }));

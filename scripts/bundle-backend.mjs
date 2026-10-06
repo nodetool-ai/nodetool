@@ -200,10 +200,6 @@ const DESKTOP_ONLY_EXTERNAL_PACKAGES = [
   // packages/runtime/src/providers/oauth/secure-credential-store.ts) are lazy
   // try/catch imports, and headless deployments run without a keychain.
   "keytar",
-  // Server: dev-only in the workspace (reached via @playwright/test); the
-  // Docker image ships no browser automation runtime.
-  "playwright",
-  "playwright-core",
 ];
 
 const EXTERNAL_PACKAGES =
@@ -220,6 +216,11 @@ const ESBUILD_ONLY_EXTERNAL_PACKAGES = [
   // unzipper requires this only inside its optional S3 source adapter but
   // does not declare it. Keep the optional branch unresolved unless used.
   "@aws-sdk/client-s3",
+  // 3D game capture (packages/game-renderer/src/node3d.ts). The desktop app
+  // installs it through the Package Manager, and the Docker image ships no
+  // browser automation runtime.
+  "playwright",
+  "playwright-core",
 ];
 const esbuildOnlyExternalSet = new Set(ESBUILD_ONLY_EXTERNAL_PACKAGES);
 
@@ -1327,7 +1328,15 @@ async function main() {
 
   if (fs.existsSync(assetsSrc)) {
     await fsp.mkdir(path.dirname(assetsDest), { recursive: true });
-    await copyDir(assetsSrc, assetsDest);
+    // Storyboard films play from media.nodetool.ai, so the app does not ship them.
+    await fsp.cp(assetsSrc, assetsDest, {
+      recursive: true,
+      force: true,
+      preserveTimestamps: true,
+      filter: (source) =>
+        path.basename(source) !== "node_modules" &&
+        !/[\\/]storyboards[\\/][^\\/]+[\\/][^\\/]+\.mp4$/i.test(source),
+    });
     const assetCount = (await fsp.readdir(assetsDest)).filter((f) =>
       /\.(jpg|jpeg|png|gif|webp)$/i.test(f)
     ).length;

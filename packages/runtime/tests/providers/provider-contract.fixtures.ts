@@ -31,6 +31,8 @@ export const CONTRACT_MODEL_AUTH_ERROR = "contract-test-model-error-401";
  * packages/runtime/src/providers/*.ts (grep for "does not support chat").
  */
 export const MEDIA_ONLY_EXEMPTIONS: Record<string, string> = {
+  dreamina:
+    "Image/video/music generation provider; generateMessage(s) always throws.",
   nodetool:
     "Delegating provider (NodeTool's managed models): it makes no wire calls " +
     "of its own — chat routes to the delegate named in NODETOOL_MODELS, whose " +

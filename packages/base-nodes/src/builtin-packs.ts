@@ -2,6 +2,7 @@ import { registerBaseNodes } from "./index.js";
 import { registerElevenLabsNodes } from "@nodetool-ai/elevenlabs-nodes";
 import { registerMinimaxNodes } from "@nodetool-ai/minimax-nodes";
 import { registerTransformersJsNodes } from "@nodetool-ai/transformers-js-nodes";
+import { registerWhisperCppNodes } from "@nodetool-ai/whisper-cpp";
 import { registerFalNodes } from "@nodetool-ai/fal-nodes";
 import { registerKieNodes } from "@nodetool-ai/kie-nodes";
 import { registerTopazNodes } from "@nodetool-ai/topaz-nodes";
@@ -40,6 +41,7 @@ const BUILTIN_PACK_REGISTRARS = {
   elevenlabs: registerElevenLabsNodes,
   minimax: registerMinimaxNodes,
   "transformers-js": registerTransformersJsNodes,
+  "whisper-cpp": registerWhisperCppNodes,
   fal: registerFalNodes,
   kie: registerKieNodes,
   topaz: registerTopazNodes,

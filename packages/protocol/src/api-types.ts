@@ -401,6 +401,8 @@ export interface Asset {
   timeline_id?: string | null;
   /** The project the asset belongs to; `"default"` for none. */
   project_id?: string;
+  /** The user starred this asset. */
+  favorite?: boolean;
   created_at: string;
   /** URL to download/access the asset (computed by API) */
   get_url: string | null;
@@ -1177,6 +1179,8 @@ export const PROVIDER_IDS = {
   LMSTUDIO: "lmstudio",
   LLAMA_CPP: "llama_cpp",
   NODE_LLAMA_CPP: "node_llama_cpp",
+  WHISPER_CPP: "whisper_cpp",
+  WHISPER_CPP_SERVER: "whisper_cpp_server",
   VLLM: "vllm",
   HUGGINGFACE: "huggingface",
   TRANSFORMERS_JS: "transformers_js",

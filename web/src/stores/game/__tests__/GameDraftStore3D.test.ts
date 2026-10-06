@@ -37,3 +37,18 @@ describe("3D document merge", () => {
     expect(conflict.conflicts[0].unit.id).toBe(`${base.entrySceneId}:player`);
   });
 });
+
+
+it("reloads the current server draft after an invalid 3D merge (F4)", () => {
+  const document = createNative3DGame("invalid-spatial-merge");
+  const store = getGameDraftStore(document.id);
+  store.getState().load(document, "first");
+  const local = structuredClone(document);
+  local.scenes[0].entities.find((entity) => entity.id === "player")!.model = { assetId: "missing-model", castShadow: true, receiveShadow: true };
+  expect(() => store.getState().applyMerged(local, document, "second")).toThrow(/missing-model/);
+  expect(store.getState().pendingOps).toEqual([]);
+  expect(store.getState().baseUpdatedAt).toBe("second");
+  store.getState().apply([{ op: "update_entity", scene_id: document.entrySceneId, entity_id: "player", set: { name: "Next edit" } }]);
+  expect(store.getState().pendingOps).toHaveLength(1);
+  expect(store.getState().saveStatus).toBe("unsaved");
+});

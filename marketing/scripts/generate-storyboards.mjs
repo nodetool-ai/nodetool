@@ -3,12 +3,12 @@
 // pages.
 //
 // Sources: the bundles in packages/base-nodes/nodetool/examples/storyboards/
-// and, per bundle, the rendered film and shot stills in
+// and, per bundle, the shot stills in
 // packages/base-nodes/nodetool/assets/nodetool-base/storyboards/<slug>/.
-// A bundle without a rendered film gets no page.
 //
 // The script copies the stills to public/storyboards/<slug>/, extracts a poster
 // from the film, and reads the film's dimensions and duration with ffprobe.
+// A bundle without a published film gets no page.
 // The films themselves are served from the media bucket
 // (MEDIA_BASE/showcase/storyboards/<slug>/<slug>.mp4), not from git.
 //
@@ -108,14 +108,21 @@ const files = fs
 
 for (const name of files) {
   const slug = name.replace(/\.storyboard\.json$/, "");
-  const film = path.join(ASSETS, slug, `${slug}.mp4`);
-  if (!fs.existsSync(film)) {
+  const localFilm = path.join(ASSETS, slug, `${slug}.mp4`);
+  // Films are not in git. A fresh render sits locally until it is uploaded,
+  // otherwise ffprobe and ffmpeg read the published film over HTTPS.
+  const film = fs.existsSync(localFilm)
+    ? localFilm
+    : `${MEDIA_BASE}/${slug}/${slug}.mp4`;
+  const bundle = JSON.parse(fs.readFileSync(path.join(BUNDLES, name), "utf8"));
+  const doc = bundle.document;
+  let facts;
+  try {
+    facts = filmFacts(film);
+  } catch {
     console.log(`skip ${slug}: no rendered film`);
     continue;
   }
-  const bundle = JSON.parse(fs.readFileSync(path.join(BUNDLES, name), "utf8"));
-  const doc = bundle.document;
-  const facts = filmFacts(film);
   const outDir = path.join(PUBLIC_DIR, slug);
   fs.mkdirSync(outDir, { recursive: true });
 

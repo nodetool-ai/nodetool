@@ -111,14 +111,16 @@ describe(`crash oracle: validateGraph (seed ${SEED})`, () => {
 
   it.runIf(pinned)(
     "reports a stable set of issue codes across the corpus",
-    () => {
+    async () => {
       const signature = graphMutants.map((mutant) => {
         const report = validateGraph(mutant.graph, registry, {
           sandboxModuleCatalog: null
         });
         return `${mutant.id} ${mutant.mutation} ok=${report.ok} ${codesOf(report.issues).join(",")}`;
       });
-      expect(signature).toMatchSnapshot();
+      await expect(signature.join("\n")).toMatchFileSnapshot(
+        "__snapshots__/graph-issue-codes.txt"
+      );
     }
   );
 
@@ -191,7 +193,7 @@ describe(`crash oracle: Code node analysis (seed ${SEED})`, () => {
 
   it.runIf(pinned)(
     "reports a stable set of issue codes across the corpus",
-    () => {
+    async () => {
       const signature = codeMutants.map((mutant) => {
         const issues = validateCodeNodeBody({
           code: mutant.code,
@@ -202,7 +204,9 @@ describe(`crash oracle: Code node analysis (seed ${SEED})`, () => {
         });
         return `${mutant.id} ${mutant.mutation} ${codesOf(issues).join(",")}`;
       });
-      expect(signature).toMatchSnapshot();
+      await expect(signature.join("\n")).toMatchFileSnapshot(
+        "__snapshots__/code-issue-codes.txt"
+      );
     }
   );
 

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { GameDocument, GameInputFrame, GameRenderFrame } from "@nodetool-ai/protocol/game.js";
+import type { GameDocument, GameInputFrame, GameRenderFrame, GameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { gameSnapshot } from "@nodetool-ai/protocol/game.js";
 import { createScriptedGameSession, type GameSession } from "@nodetool-ai/game-runtime";
 import { createGameRenderer, loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
@@ -8,6 +8,7 @@ import { FixedTickClock, type GameRenderer } from "@nodetool-ai/game-renderer";
 
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
+import { GameReplayHistory } from "./gameReplayHistory";
 import { gameInputFrame } from "./gameInputFrame";
 
 interface PlayState { tick: number; score: number; won: boolean; sceneId: string }
@@ -42,11 +43,14 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   const sessionGenerationRef = useRef(0);
   const keysRef = useRef(new Map<string, string>());
   const newlyPressedRef = useRef(new Set<string>());
-  const inputHistoryRef = useRef<GameInputFrame[]>([]);
+  const inputHistoryRef = useRef(new GameReplayHistory<GameInputFrame, GameSnapshot>());
   const lastTickRef = useRef(0);
   const audioRef = useRef<GameAudioPlayer | null>(null);
   const editorCameraRef = useRef<{ x: number; y: number; zoom: number } | null>(null);
   const editorAspectRef = useRef<number | null>(null);
+  const loadedFontsRef = useRef<Awaited<ReturnType<typeof loadBrowserGameFonts>> | null>(null);
+  const fontsKeyRef = useRef<string | null>(null);
+  const rendererPromiseRef = useRef<Promise<GameRenderer> | null>(null);
   const assetBindingsRef = useRef<GameDocument["assets"] | null>(null);
   const [playing, setPlaying] = useState(false);
   const [playDocument, setPlayDocument] = useState<GameDocument | null>(null);
@@ -132,15 +136,17 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   const step = useCallback((input: GameInputFrame = EMPTY_INPUT) => {
     const session = sessionRef.current;
     if (!session) return;
-    if (playDocument) inputHistoryRef.current.push({ pressed: [...input.pressed], justPressed: [...input.justPressed] });
+    if (playDocument) inputHistoryRef.current.record(input, () => session.snapshot());
     try {
       const result = session.step(input);
       result.events.forEach((event) => audioRef.current?.handle(event));
       const state = session.snapshot();
       lastTickRef.current = state.tick;
       audioRef.current?.sync(state);
-      setPlayState({ tick: state.tick, score: state.score, won: state.won, sceneId: state.sceneId });
-      setFrame(result.frame);
+      if (!playbackActiveRef.current || state.tick % 6 === 0) {
+        setPlayState({ tick: state.tick, score: state.score, won: state.won, sceneId: state.sceneId });
+        setFrame(result.frame);
+      }
       void renderFrame(result.frame, 1).catch((cause: unknown) => {
         setError(cause instanceof Error ? cause.message : String(cause));
         setPlaying(false);
@@ -158,20 +164,20 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     if (!sessionDocument || !canvas) return;
     let cancelled = false;
     const generation = ++sessionGenerationRef.current;
-    let renderer: GameRenderer | null = null;
-    let loadedFonts: Awaited<ReturnType<typeof loadBrowserGameFonts>> | null = null;
-    setBackend("Initializing");
+
+    if (!rendererRef.current) setBackend("Initializing");
     setError(null);
     setScriptError(null);
     const keys = keysRef.current;
     const newlyPressed = newlyPressedRef.current;
-    const audio = new GameAudioPlayer({
+    const audio = audioRef.current ?? new GameAudioPlayer({
       assets: sessionDocument.assets,
       tickRate: sessionDocument.tickRate,
       resolveAsset: async (binding) => binding.assetId.startsWith("builtin:") ? null : resolveMediaUri(binding.assetId.startsWith("package://") ? binding.assetId : `asset://${binding.assetId}`),
       status: setError
     });
     audioRef.current = audio;
+    audio.updateAssets(sessionDocument.assets);
     if (playbackActiveRef.current) audio.resume();
     else audio.pause();
     audio.preload();
@@ -186,35 +192,41 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       try { await image.decode(); return image; }
       catch { return null; }
     };
-    void loadBrowserGameFonts(sessionDocument, async (sourceId) => {
-      if (sourceId.startsWith("builtin:")) return null;
-      return resolveMediaUri(sourceId.startsWith("package://") ? sourceId : `asset://${sourceId}`);
-    }).then((fonts) => {
-      if (cancelled) { fonts.dispose(); return null; }
-      loadedFonts = fonts;
+    const fontKey = JSON.stringify(Object.entries(sessionDocument.assets).filter(([, binding]) => binding.mediaKind === "font"));
+    const prepareFonts = async (): Promise<void> => {
+      if (fontsKeyRef.current === fontKey) return;
+      const fonts = await loadBrowserGameFonts(sessionDocument, async (sourceId) => {
+        if (sourceId.startsWith("builtin:")) return null;
+        return resolveMediaUri(sourceId.startsWith("package://") ? sourceId : `asset://${sourceId}`);
+      });
+      if (cancelled) { fonts.dispose(); return; }
+      loadedFontsRef.current?.dispose();
+      loadedFontsRef.current = fonts;
+      fontsKeyRef.current = fontKey;
       if (fonts.diagnostics.length > 0) setError(fonts.diagnostics.join("; "));
-      return createScriptedGameSession(sessionDocument, 1);
-    }).then(async (createdSession) => {
+    };
+    void prepareFonts().then(() => cancelled ? null : createScriptedGameSession(sessionDocument, 1)).then(async (createdSession) => {
       if (!createdSession) return;
       if (cancelled || sessionGenerationRef.current !== generation) { createdSession.dispose(); return; }
       sessionRef.current = createdSession;
       lastTickRef.current = createdSession.snapshot().tick;
-      audio.sync(createdSession.snapshot());
-      const created = await createGameRenderer({ canvas, backend: "auto", assets: resolveAsset });
-      if (cancelled) { created.dispose(); return; }
+      audio.reset(createdSession.snapshot());
+      if (!rendererPromiseRef.current) rendererPromiseRef.current = createGameRenderer({ canvas, backend: "auto", assets: resolveAsset });
+      const created = await rendererPromiseRef.current;
+      if (cancelled) { return; }
+      rendererRef.current = created;
       const effects = sessionDocument.renderEffects ?? [];
       if (effects.some((effect) => effect.required) && !created.capabilities.gpuEffects) {
-        created.dispose();
         throw new Error("This game requires a WebGPU effect, but WebGPU is unavailable");
       }
       created.setEffects(effects, sessionDocument.hudEffectOrder);
       if (effects.length > 0 && !created.capabilities.gpuEffects) setError("GPU effects unavailable; playing without them");
-      renderer = created;
       rendererRef.current = created;
       setBackend(created.backend === "webgpu" ? "WebGPU" : "Canvas 2D");
       showCurrentFrame();
     }).catch((cause: unknown) => {
       if (cancelled || sessionGenerationRef.current !== generation) return;
+      if (!rendererRef.current) rendererPromiseRef.current = null;
       const message = cause instanceof Error ? cause.message : String(cause);
       setError(message);
       if (message.includes("Game script")) setScriptError(scriptFailure(message, 0));
@@ -226,22 +238,30 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       keys.clear();
       newlyPressed.clear();
       disposeSession();
-      rendererRef.current = null;
-      renderer?.dispose();
-      loadedFonts?.dispose();
-      audio.dispose();
-      if (audioRef.current === audio) audioRef.current = null;
+
     };
   }, [name, disposeSession, sessionDocument, refId, setTitle, showCurrentFrame]);
 
+  useEffect(() => () => {
+    rendererRef.current = null;
+    void rendererPromiseRef.current?.then((renderer) => renderer.dispose(), () => {});
+    rendererPromiseRef.current = null;
+    loadedFontsRef.current?.dispose();
+    loadedFontsRef.current = null;
+    fontsKeyRef.current = null;
+    audioRef.current?.dispose();
+    audioRef.current = null;
+  }, []);
+
   useEffect(() => {
-    if (!playDocument || !document || playDocument.authoring) return;
+    if (!document || playDocument?.authoring) return;
+    audioRef.current?.updateAssets(assetBindingsRef.current ?? {});
     const renderer = rendererRef.current;
     if (!renderer) return;
-    for (const slot of new Set([...Object.keys(playDocument.assets), ...Object.keys(document.assets)])) {
-      if (JSON.stringify(playDocument.assets[slot]) !== JSON.stringify(document.assets[slot])) renderer.invalidateAsset(slot);
+    for (const slot of new Set([...Object.keys(renderDocument?.assets ?? {}), ...Object.keys(document.assets)])) {
+      if (JSON.stringify(renderDocument?.assets[slot]) !== JSON.stringify(document.assets[slot])) renderer.invalidateAsset(slot);
     }
-  }, [document, playDocument]);
+  }, [document, playDocument, renderDocument]);
 
   useEffect(() => {
     if (!active || !playing) audioRef.current?.pause();
@@ -267,9 +287,11 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   }, [active, sessionDocument, playing, step]);
 
   const beginPlay = () => {
+    keysRef.current.clear();
+    newlyPressedRef.current.clear();
     if (!document) return;
     if (!playing && !playDocument) {
-      inputHistoryRef.current = [];
+      inputHistoryRef.current.clear();
       setScriptError(null);
       setPlayDocument(document);
     }
@@ -280,7 +302,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   const stop = () => {
     setPlaying(false);
     setPlayDocument(null);
-    inputHistoryRef.current = [];
+    inputHistoryRef.current.clear();
     setScriptError(null);
   };
 
@@ -300,7 +322,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       const restored = await createScriptedGameSession(sessionDocument, 1, parsed.data);
       if (sessionGenerationRef.current !== generation) { restored.dispose(); return; }
       setPlaying(false);
-      inputHistoryRef.current = [];
+      inputHistoryRef.current.clear(parsed.data);
       setScriptError(null);
       disposeSession();
       sessionRef.current = restored;
@@ -313,8 +335,9 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     if (!playDocument || !scriptError || scriptError.tick < 1) return;
     setPlaying(false);
     try {
-      const replay = await createScriptedGameSession(playDocument, 1);
-      for (const input of inputHistoryRef.current.slice(0, -1)) replay.step(input);
+      const history = inputHistoryRef.current.replay();
+      const replay = await createScriptedGameSession(playDocument, 1, history.snapshot);
+      for (const input of history.inputs.slice(0, -1)) replay.step(input);
       disposeSession();
       sessionRef.current = replay;
       audioRef.current?.reset(replay.snapshot());

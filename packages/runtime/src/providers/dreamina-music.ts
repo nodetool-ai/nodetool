@@ -52,14 +52,18 @@ interface MusicDraftInput { kind: "generate_instrumental" | "generate_song"; pro
 
 export function musicDraftFor(input: MusicDraftInput, daVersion: string): string {
   const id = (): string => randomUUID();
-  const ability = {
+  const ability: Record<string, unknown> = {
     type: "",
     id: id(),
     prompt: input.prompt,
     duration: input.durationSeconds,
-    title: "",
-    ...(input.kind === "generate_song" ? { tags: [], model_req_key: input.modelKey, ...(input.lyrics ? { lyrics: lyricsNode(input.lyrics) } : {}) } : {})
+    title: ""
   };
+  if (input.kind === "generate_song") {
+    ability.tags = [];
+    ability.model_req_key = input.modelKey;
+    if (input.lyrics) { ability.lyrics = lyricsNode(input.lyrics); }
+  }
   const component = {
     type: "audio_base_component",
     id: id(),
@@ -125,7 +129,9 @@ export function createDreaminaMusic(api: DreaminaMusicApi): DreaminaMusic {
         if (!config) throw new Error(`Unknown Dreamina music model: ${params.model.id}`);
         const durations = songEnum(config, "duration");
         if (durations.length > 0 && !durations.includes(seconds)) throw new Error(`Dreamina model ${config.model_name} offers ${durations.join(", ")} second tracks, not ${seconds}`);
-        draft = musicDraftFor({ kind: "generate_song", prompt, durationSeconds: seconds, modelKey: config.model_req_key, ...(lyrics ? { lyrics } : {}) }, api.daVersion);
+        const draftInput: MusicDraftInput = { kind: "generate_song", prompt, durationSeconds: seconds, modelKey: config.model_req_key };
+        if (lyrics) { draftInput.lyrics = lyrics; }
+        draft = musicDraftFor(draftInput, api.daVersion);
       }
 
       const submitId = randomUUID();

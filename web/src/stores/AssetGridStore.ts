@@ -83,6 +83,13 @@ interface AssetGridState {
   scopeProjectId: string | null;
   resetForProject: (projectId: string) => void;
   setWorkflowFilter: (workflowId: string | null) => void;
+
+  /** Show only starred assets, from every folder. */
+  favoritesOnly: boolean;
+  setFavoritesOnly: (favoritesOnly: boolean) => void;
+  /** Model id from the asset's generation metadata; null shows every asset. */
+  modelFilter: string | null;
+  setModelFilter: (model: string | null) => void;
 }
 
 export type AssetGridStoreApi = StoreApi<AssetGridState>;
@@ -231,10 +238,17 @@ const createAssetGridStore = (
             selectedAssets: [],
             selectedFolderId: null,
             selectedFolderIds: [],
-            workflowFilter: null
+            workflowFilter: null,
+            favoritesOnly: false,
+            modelFilter: null
           }
     ),
-  setWorkflowFilter: (workflowId) => set({ workflowFilter: workflowId })
+  setWorkflowFilter: (workflowId) => set({ workflowFilter: workflowId }),
+
+  favoritesOnly: false,
+  setFavoritesOnly: (favoritesOnly) => set({ favoritesOnly }),
+  modelFilter: null,
+  setModelFilter: (model) => set({ modelFilter: model })
 }),
       {
         name: persistName,

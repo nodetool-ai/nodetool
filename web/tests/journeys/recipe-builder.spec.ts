@@ -19,41 +19,22 @@ test("Recipe metadata survives a real App Builder UI edit and save", async ({
     expect(response.ok(), await response.text()).toBe(true);
     return (await response.json()).result.data;
   };
-  // This journey backend exposes the same normal tRPC creation procedures the
-  // browser uses. The bundle's REST installation is covered by its integration test.
-  for (const carried of bundle.scripts) {
-    const script = await mutate("jsScripts.create", {
+  for (const carried of bundle.workflows) {
+    const workflow = await mutate("workflows.create", {
       name: carried.name,
-      document: carried.document
+      graph: carried.graph
     });
-    const version = await mutate("jsScripts.documentVersions.create", {
-      id: script.id
-    });
+    const version = await mutate("workflows.versions.create", { id: workflow.id });
     for (const operation of bundle.app.operations) {
-      if (operation.target.scriptId === carried.key) {
-        operation.target = {
-          kind: "script",
-          scriptId: script.id,
-          scriptVersion: version.version
-        };
+      if (operation.workflowId === carried.key) {
+        operation.workflowId = workflow.id;
+        operation.workflowVersion = version.version;
       }
     }
-  }
-  // The installed Application must keep its pinned ports and implementation.
-  // Editing the scripts' live heads must not change this released operation.
-  for (const operation of bundle.app.operations) {
-    await mutate("jsScripts.update", {
-      id: operation.target.scriptId,
-      document: {
-        schemaVersion: 1,
-        code: "throw new Error('Unpinned live script executed');",
-        inputs: [],
-        outputs: [],
-        packages: [],
-        secrets: [],
-        timeoutSeconds: 60,
-        tests: []
-      }
+    await mutate("workflows.update", {
+      id: workflow.id,
+      name: carried.name,
+      graph: { nodes: [], edges: [] }
     });
   }
   const application = await mutate("applications.create", {
@@ -99,6 +80,7 @@ test("Recipe metadata survives a real App Builder UI edit and save", async ({
   const roundTrip = (await reloaded.json()).result.data.document;
   expect(roundTrip.ui.root.props.title).toBe("My exact Price Drop");
   expect(roundTrip.recipe).toEqual(bundle.app.recipe);
+  expect(roundTrip.operations).toEqual(application.document.operations);
   expect(
     roundTrip.operations.map((operation: { id: string }) => operation.id)
   ).toEqual(["plan", "finish"]);

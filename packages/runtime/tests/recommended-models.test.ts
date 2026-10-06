@@ -3,7 +3,7 @@
  *
  * The list is curated data, but the invariants below are behavioural: the API
  * and CLI rely on every entry having a non-empty id/name, a provider, a valid
- * modality, and `downloaded === false` (these are remote models). A literal
+ * modality, and `downloaded === false` before cache discovery. A literal
  * mutated to "" or an emptied entry/array violates one of these, so the data
  * mutants die without the test having to duplicate the catalog content.
  */
@@ -18,7 +18,9 @@ const TYPES = [
   "asr_model",
   "tts_model",
   "music_model",
-  "video_model"
+  "video_model",
+  "hf.whisper_cpp",
+  "hf.whisper_cpp_vad"
 ];
 const TASKS = [
   "text_generation",
@@ -57,10 +59,18 @@ describe("RECOMMENDED_MODELS catalog invariants", () => {
         }
       });
 
-      it("is a remote model not marked downloaded, with null repo_id/path", () => {
+      it("starts undownloaded and identifies its model source", () => {
         expect(m.downloaded).toBe(false);
-        expect(m.repo_id).toBeNull();
-        expect(m.path).toBeNull();
+        if (m.provider === "whisper_cpp") {
+          expect(m.repo_id).toMatch(
+            /^(ggerganov\/whisper\.cpp|ggml-org\/whisper-vad)$/
+          );
+          expect(m.path).toMatch(/^ggml-.+\.bin$/);
+          expect(m.type).toMatch(/^hf\.whisper_cpp/);
+        } else {
+          expect(m.repo_id).toBeNull();
+          expect(m.path).toBeNull();
+        }
       });
     });
   }

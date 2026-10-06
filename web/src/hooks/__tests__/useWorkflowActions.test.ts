@@ -176,12 +176,22 @@ describe("useWorkflowActions", () => {
       );
     });
 
-    it("opens a new workflow in view mode after creation", async () => {
+    it("navigates to the workspace after creation", async () => {
       const { result } = renderHook(() => useWorkflowActions());
 
       await result.current.handleExampleClick(mockWorkflow);
 
       expect(mockNavigate).toHaveBeenCalledWith("/workspace");
+    });
+
+    it("clears loading state after success so the still-mounted page stays clickable", async () => {
+      const { result } = renderHook(() => useWorkflowActions());
+
+      await act(async () => {
+        await result.current.handleExampleClick(mockWorkflow);
+      });
+
+      expect(result.current.loadingExampleId).toBeNull();
     });
 
     it("clears loading state on error", async () => {

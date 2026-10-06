@@ -1,5 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("@nodetool-ai/whisper-cpp", () => ({
+  registerWhisperCppProviders: vi.fn()
+}));
+
 describe("cli settings and provider helpers", () => {
   afterEach(() => {
     vi.unstubAllEnvs();

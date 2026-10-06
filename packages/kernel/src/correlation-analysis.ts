@@ -528,8 +528,14 @@ export function analyzeCorrelation(
 
     // Compute per-output static facts.
     const outputCorr = node.output_correlation ?? {};
-    const declaredOutputs = node.outputs ?? {};
-    const outputHandles = Object.keys(declaredOutputs);
+    // A dynamic output (a Code node's handles) is a declared output too: the
+    // editor saves it only in `dynamic_outputs`, not in `outputs`.
+    const outputHandles = [
+      ...new Set([
+        ...Object.keys(node.outputs ?? {}),
+        ...Object.keys(node.dynamic_outputs ?? {})
+      ])
+    ];
 
     // For source nodes (no inputs declared) with no output_correlation entries,
     // we still need to emit empty-scope facts so downstream edges work.

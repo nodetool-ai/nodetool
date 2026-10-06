@@ -22,6 +22,7 @@ import * as libImageMask from "./lib.image.mask.js";
 import * as libImageWarp from "./lib.image.warp.js";
 import * as libPdf from "./lib.pdf.js";
 import * as libSqlite from "./lib.sqlite.js";
+import * as libStable_diffusion_cpp from "./lib.stable_diffusion_cpp.js";
 import * as libSvg from "./lib.svg.js";
 import * as libVideoDownload from "./lib.video.download.js";
 import * as messagingDiscord from "./messaging.discord.js";
@@ -65,6 +66,7 @@ import * as openaiAudio from "./openai.audio.js";
 import * as openaiImage from "./openai.image.js";
 import * as openaiText from "./openai.text.js";
 import * as vector from "./vector.js";
+import * as whisper_cpp from "./whisper_cpp.js";
 import * as xaiImage from "./xai.image.js";
 import * as xaiText from "./xai.text.js";
 import * as xaiVision from "./xai.vision.js";
@@ -110,6 +112,7 @@ export {
   libImageWarp,
   libPdf,
   libSqlite,
+  libStable_diffusion_cpp,
   libSvg,
   libVideoDownload,
   messagingDiscord,
@@ -132,6 +135,7 @@ export {
   variable,
   vector,
   video,
+  whisper_cpp,
   workflowsBase_node,
   workflowsSubgraph,
   workflowsWorkflow_node,

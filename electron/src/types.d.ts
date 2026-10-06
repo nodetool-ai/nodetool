@@ -1042,6 +1042,8 @@ export type RuntimePackageId =
   | "transformers-js"
   | "tensorflow-js"
   | "node-llama-cpp"
+  | "whisper-cpp"
+  | "playwright"
   | "claude-agent-sdk";
 
 export interface RuntimePackageStatus {

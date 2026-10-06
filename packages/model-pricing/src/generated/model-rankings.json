@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "source": "artificialanalysis.ai",
-  "generatedAt": "2026-10-03T20:00:21.719Z",
+  "generatedAt": "2026-10-05T10:57:40.757Z",
   "models": {
     "atlascloud:alibaba/happyhorse-1.1/image-to-video": {
       "canonical": "happyhorse-1-1",
@@ -22,7 +22,7 @@
       "creator": "Alibaba-ATH",
       "tasks": {
         "text_to_video": {
-          "score": 1039,
+          "score": 1041,
           "normalized": 0.7,
           "rank": 10,
           "of": 31
@@ -138,7 +138,7 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_video": {
-          "score": 1129,
+          "score": 1128,
           "normalized": 1,
           "rank": 1,
           "of": 31
@@ -518,7 +518,7 @@
       "creator": "Google",
       "tasks": {
         "text_to_video": {
-          "score": 955,
+          "score": 952,
           "normalized": 0.3667,
           "rank": 20,
           "of": 31
@@ -789,7 +789,7 @@
       "creator": "PixVerse",
       "tasks": {
         "text_to_video": {
-          "score": 1000,
+          "score": 997,
           "normalized": 0.5333,
           "rank": 15,
           "of": 31
@@ -880,8 +880,8 @@
       "tasks": {
         "text_to_video": {
           "score": 910,
-          "normalized": 0.2,
-          "rank": 25,
+          "normalized": 0.2333,
+          "rank": 24,
           "of": 31
         }
       }
@@ -1137,7 +1137,7 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_video": {
-          "score": 1129,
+          "score": 1128,
           "normalized": 1,
           "rank": 1,
           "of": 31
@@ -1150,7 +1150,7 @@
       "creator": "Black Forest Labs",
       "tasks": {
         "text_to_video": {
-          "score": 1094,
+          "score": 1090,
           "normalized": 0.8667,
           "rank": 5,
           "of": 31
@@ -1291,7 +1291,7 @@
       "creator": "Creatify",
       "tasks": {
         "text_to_video": {
-          "score": 842,
+          "score": 839,
           "normalized": 0.0333,
           "rank": 30,
           "of": 31
@@ -2356,7 +2356,7 @@
       "creator": "PixVerse",
       "tasks": {
         "text_to_video": {
-          "score": 1000,
+          "score": 997,
           "normalized": 0.5333,
           "rank": 15,
           "of": 31
@@ -2673,7 +2673,7 @@
       "creator": "Google",
       "tasks": {
         "text_to_video": {
-          "score": 955,
+          "score": 952,
           "normalized": 0.3667,
           "rank": 20,
           "of": 31
@@ -2931,7 +2931,7 @@
       "creator": "Google",
       "tasks": {
         "text_to_video": {
-          "score": 1070,
+          "score": 1069,
           "normalized": 0.7667,
           "rank": 8,
           "of": 31
@@ -3522,7 +3522,7 @@
       "creator": "Google",
       "tasks": {
         "text_to_video": {
-          "score": 955,
+          "score": 952,
           "normalized": 0.3667,
           "rank": 20,
           "of": 31
@@ -3689,7 +3689,7 @@
       "creator": "Google",
       "tasks": {
         "text_to_video": {
-          "score": 1070,
+          "score": 1069,
           "normalized": 0.7667,
           "rank": 8,
           "of": 31
@@ -3843,7 +3843,7 @@
       "creator": "Alibaba-ATH",
       "tasks": {
         "text_to_video": {
-          "score": 1039,
+          "score": 1041,
           "normalized": 0.7,
           "rank": 10,
           "of": 31
@@ -3959,7 +3959,7 @@
       "creator": "PixVerse",
       "tasks": {
         "text_to_video": {
-          "score": 1000,
+          "score": 997,
           "normalized": 0.5333,
           "rank": 15,
           "of": 31
@@ -4320,7 +4320,7 @@
       "creator": "Alibaba-ATH",
       "tasks": {
         "text_to_video": {
-          "score": 1035,
+          "score": 1036,
           "normalized": 0.6667,
           "rank": 11,
           "of": 31
@@ -4339,7 +4339,7 @@
       "creator": "Alibaba-ATH",
       "tasks": {
         "text_to_video": {
-          "score": 1039,
+          "score": 1041,
           "normalized": 0.7,
           "rank": 10,
           "of": 31
@@ -4396,7 +4396,7 @@
       "creator": "Alibaba",
       "tasks": {
         "text_to_video": {
-          "score": 1129,
+          "score": 1128,
           "normalized": 1,
           "rank": 1,
           "of": 31
@@ -4920,7 +4920,7 @@
       "creator": "Google",
       "tasks": {
         "text_to_video": {
-          "score": 955,
+          "score": 952,
           "normalized": 0.3667,
           "rank": 20,
           "of": 31
@@ -5134,7 +5134,7 @@
       "creator": "Lightricks",
       "tasks": {
         "text_to_video": {
-          "score": 859,
+          "score": 858,
           "normalized": 0.1333,
           "rank": 27,
           "of": 31
@@ -5153,7 +5153,7 @@
       "creator": "Lightricks",
       "tasks": {
         "text_to_video": {
-          "score": 856,
+          "score": 855,
           "normalized": 0.1,
           "rank": 28,
           "of": 31
@@ -5354,7 +5354,7 @@
       "creator": "PixVerse",
       "tasks": {
         "text_to_video": {
-          "score": 1000,
+          "score": 997,
           "normalized": 0.5333,
           "rank": 15,
           "of": 31
@@ -5684,8 +5684,8 @@
       "tasks": {
         "text_to_video": {
           "score": 910,
-          "normalized": 0.2,
-          "rank": 25,
+          "normalized": 0.2333,
+          "rank": 24,
           "of": 31
         },
         "image_to_video": {
@@ -5702,9 +5702,9 @@
       "creator": "Vidu",
       "tasks": {
         "text_to_video": {
-          "score": 911,
-          "normalized": 0.2333,
-          "rank": 24,
+          "score": 910,
+          "normalized": 0.2,
+          "rank": 25,
           "of": 31
         },
         "image_to_video": {

@@ -193,6 +193,38 @@ describe("native game revisions", () => {
     expect((await caller.games.get({ id: created.game.id, revision: published.game.revision })).document.scenes[0]?.name).toBe("Edited room");
   });
 
+  it("rejects more than 1024 draft operations before writing", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Bounded draft" });
+    const op = { op: "update_scene" as const, scene_id: created.document.scenes[0].id, set: { name: "Changed" } };
+    await expect(caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: created.game.draftUpdatedAt,
+      ops: Array.from({ length: 1025 }, () => op) })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(await caller.games.getDraft({ id: created.game.id })).toEqual(created);
+    expect(await caller.games.draftChanges({ id: created.game.id })).toEqual([]);
+    const saved = await caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: created.game.draftUpdatedAt,
+      ops: Array.from({ length: 1024 }, () => op) });
+    expect(saved.document.scenes[0].name).toBe("Changed");
+  });
+
+  it("bounds draft history bytes without returning a partial agent undo group", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Bounded history" });
+    const change = (id: string, messageId: string | null, summary: string) => ({
+      id, gameId: created.game.id, actor: "agent" as const, threadId: "thread", messageId,
+      summary, beforeUpdatedAt: created.game.draftUpdatedAt, beforeDigest: "digest", createdAt: "now",
+      ops: [{ op: "update_scene" as const, scene_id: created.document.scenes[0].id, set: { name: id } }], affectedEntityIds: []
+    });
+    const records = [change("new", "new-message", "New"), change("group-last", "old-message", "x".repeat(600_000)),
+      change("group-first", "old-message", "x".repeat(600_000))];
+    const list = vi.spyOn(Game, "listDraftChanges").mockResolvedValue(records);
+    try {
+      const changes = await caller.games.draftChanges({ id: created.game.id });
+      expect(Buffer.byteLength(JSON.stringify(changes))).toBeLessThanOrEqual(1_048_576);
+      expect(changes.map((entry) => entry.id)).toEqual(["new"]);
+      expect(changes[0].ops).toEqual(records[0].ops);
+    } finally { list.mockRestore(); }
+  });
+
   it("saves draft ops without publishing and rejects stale or invalid edits", async () => {
     const caller = createCaller(makeCtx(USER_ID));
     const created = await caller.games.create({ projectId: PROJECT_ID, name: "Draft room" });

@@ -296,6 +296,7 @@ export const assetsRouter = router({
         !input.node_id &&
         !input.job_id &&
         !input.timeline_id &&
+        !input.favorite &&
         input.project_id === undefined
           ? ctx.userId
           : input.parent_id;
@@ -307,6 +308,7 @@ export const assetsRouter = router({
         nodeId: input.node_id,
         jobId: input.job_id,
         timelineId: input.timeline_id,
+        favorite: input.favorite,
         limit: input.page_size
       };
       if (input.project_id !== undefined) {
@@ -746,6 +748,7 @@ export const assetsRouter = router({
       if (input.timeline_id !== undefined) {
         asset.timeline_id = input.timeline_id;
       }
+      if (input.favorite !== undefined) asset.favorite = input.favorite;
       // An external asset's size is its file's, recorded by import or relink.
       if (input.size !== undefined && !isExternal) asset.size = input.size;
 

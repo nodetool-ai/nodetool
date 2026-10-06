@@ -803,6 +803,14 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
     });
   }, [data.dynamic_properties, id, updateNodeData]);
 
+  const quickActionOutput = useMemo(
+    () =>
+      primaryOutput
+        ? { name: primaryOutput.name, type: primaryOutput.type.type }
+        : undefined,
+    [primaryOutput]
+  );
+
   const renderSingle = useCallback(
     (value: unknown) => (
       <PreviewArea variant={variant} value={value} nodeId={id} />
@@ -825,6 +833,7 @@ const ContentCardBodyInner: React.FC<ContentCardBodyProps> = ({
             nodeId={id}
             liveResult={liveResolvedResult}
             renderSingle={renderSingle}
+            output={quickActionOutput}
           />
         ) : (
           <PreviewArea

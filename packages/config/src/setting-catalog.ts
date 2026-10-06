@@ -231,6 +231,9 @@ s(
   "LMStudio",
   "Base URL for the LM Studio OpenAI-compatible server (e.g., http://localhost:1234)"
 );
+s("WHISPER_CPP_MODELS_DIR", "WhisperCpp", "Additional directory containing local ggml whisper.cpp and VAD model files. The Hugging Face hub cache is always scanned.");
+s("WHISPER_CPP_GPU_BACKEND", "WhisperCpp", "Backend for in-process whisper.cpp inference. 'auto' uses the default build (Metal on macOS). Restart the backend after changing this setting.", ["auto", "metal", "cuda", "vulkan", "cpu"]);
+s("WHISPER_CPP_SERVER_URL", "WhisperCppServer", "Base URL for a user-run whisper.cpp server (e.g., http://127.0.0.1:8080).");
 
 // NodeSupabase
 s(

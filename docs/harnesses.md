@@ -1287,8 +1287,8 @@ candidates. Dependencies must come from the owned workspace. Models and prepared
 colliders require explicit installation with the draft timestamp. Captures return
 committed simulation hashes and projected bounds. The renderer package's tests
 exercise skinning, shadows, context recovery, disposal and a closed-network
-standalone completion route. Desktop capture uses packaged Playwright. A server
-build without browser automation reports unavailable capture capability.
+standalone completion route. Desktop capture uses Playwright, which the Package
+Manager installs. A build without it reports unavailable capture capability.
 See the [3D design](https://github.com/nodetool-ai/nodetool/blob/main/docs/plans/native-game-3d-upgrade.md) and
 [runtime contract](https://github.com/nodetool-ai/nodetool/blob/main/packages/game-runtime/README.md).
 
@@ -1323,7 +1323,10 @@ with `publish_native_game` creates a revision when the user asks. The web Game
 tab supplies direct editing, play, pause, step, reset, a scene tree, and draft
 review. The
 [`nodetool game` CLI](cli.md#nodetool-game) validates, simulates, captures, and
-builds a standalone web player. A legacy export node reports a migration
+builds a standalone web player. Run `nodetool game smoke <directory>` after
+export to render 300 scripted frames in Chromium and check errors, missing
+assets, and tick progress. The `game-flow` selfcheck includes the smoke suite.
+A legacy export node reports a migration
 diagnostic; external-engine scene behavior requires manual reconstruction.
 
 ### Game flow (guided design and asset graph)

@@ -12,5 +12,3 @@ guidance.
 - `CONTENT_CHANGES.md`
 - `VISUAL_CHANGES.md`
 - `SCREENSHOTS.md`
-
-The live, forward-looking plan is [`../IMPROVEMENT_PLAN.md`](../IMPROVEMENT_PLAN.md).

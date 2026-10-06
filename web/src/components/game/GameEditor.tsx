@@ -1,4 +1,4 @@
-import { lazy, Suspense, useCallback, useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
 import type { GameEntity } from "@nodetool-ai/protocol/game.js";
@@ -7,11 +7,12 @@ import { createScriptedGameSession, validateGame, type AnyGameDocumentOp as Game
 import { trpc, trpcClient } from "../../trpc/client";
 import { useChatDraftStore } from "../../stores/ChatDraftStore";
 import { useConflictStore } from "../../stores/ConflictStore";
+import { flushGameDraft, pullGameDraft, reloadRejectedGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
 import { diffAnyGameDocuments as diffGameDocuments } from "../../stores/game/diffAnyGameDocuments";
-import { acceptServerAnyGameUnit as acceptServerGameUnit, anyGameMergeAdapter as gameMergeAdapter } from "../../stores/game/anyMerge";
+import { anyGameMergeAdapter as gameMergeAdapter } from "../../stores/game/anyMerge";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorButton, EditorUiProvider, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, LoadingSpinner, MobileBottomSheet, ResizableDock, SPACING, Text, TextInput } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
@@ -29,6 +30,7 @@ import GameViewport from "./GameViewport";
 import { pastedEntities } from "./gameClipboard";
 import { pressGameKey } from "./gameInputFrame";
 import { EMPTY_INPUT, scriptFailure, useGamePlaySession } from "./useGamePlaySession";
+import { localTransform, selectionRoots, worldTransforms } from "./viewportGeometry";
 
 interface GameEditorProps {
   refId: string;
@@ -72,7 +74,8 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const loadedTokenRef = useRef<string | null>(null);
   const clipboardRef = useRef<GameEntity[]>([]);
   const savingPromiseRef = useRef<Promise<void> | null>(null);
-  const playDraftOps = playDocument && document ? diffGameDocuments(playDocument, document) : [];
+  const playDraftOps = useMemo(() => playDocument && document ? diffGameDocuments(playDocument, document) : [], [playDocument, document]);
+  const documentValidation = useMemo(() => document ? validateGame(document) : null, [document]);
   const needsPlayRestart = playDraftOps.some((op) => Boolean(playDocument?.authoring) || op.op !== "bind_asset" && op.op !== "unbind_asset");
 
   const selectScene = (sceneId: string) => {
@@ -102,8 +105,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   }, [assistantThreadId]);
 
   useEffect(() => {
-    const pull = async () => {
-      await savingPromiseRef.current?.catch(() => undefined);
+    const pull = (): Promise<void> => pullGameDraft(savingPromiseRef, async () => {
       const server = await trpcClient.games.getDraft.query({ id: refId });
       const store = getGameDraftStore(refId);
       const state = store.getState();
@@ -118,16 +120,13 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
           onAccept: (unitId) => {
             const conflict = merged.conflicts.find((entry) => entry.unit.id === unitId);
             if (!conflict) return;
-            const current = store.getState().document;
-            if (!current) return;
-            const accepted = acceptServerGameUnit(current, server.document, conflict.unit.kind, unitId);
-            store.getState().applyMerged(accepted, server.document, server.game.draftUpdatedAt);
+            store.getState().acceptConflict(server.document, conflict.unit.kind, unitId);
           },
           onDiscard: () => undefined
         });
       }
       loadedTokenRef.current = server.game.draftUpdatedAt;
-    };
+    });
     return registerDocumentSync("game", refId, {
       localRevision: () => getGameDraftStore(refId).getState().baseUpdatedAt,
       isDirty: () => getGameDraftStore(refId).getState().pendingOps.length > 0,
@@ -137,11 +136,6 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   }, [refId, setError]);
 
   const flushDraft = useCallback(async (): Promise<void> => {
-    if (savingPromiseRef.current) {
-      await savingPromiseRef.current;
-      if (getGameDraftStore(refId).getState().pendingOps.length > 0) return flushDraft();
-      return;
-    }
     const save = async () => {
       const store = getGameDraftStore(refId);
       let retries = 0;
@@ -167,19 +161,17 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
               useConflictStore.getState().addConflicts(`game:${refId}`, merged.conflicts, {
                 onAccept: (unitId) => {
                   const conflict = merged.conflicts.find((entry) => entry.unit.id === unitId);
-                  const current = store.getState().document;
-                  if (conflict && current) store.getState().applyMerged(
-                    acceptServerGameUnit(current, server.document, conflict.unit.kind, unitId),
-                    server.document, server.game.draftUpdatedAt);
+                  if (conflict) { store.getState().acceptConflict(server.document, conflict.unit.kind, unitId); }
                 },
                 onDiscard: () => undefined
               });
               if (merged.conflicts.length > 0) throw new Error("Resolve draft conflicts before saving");
               if (++retries <= 3) continue;
+            } else {
+              reloadRejectedGameDraft(refId, state.baseUpdatedAt, server.document, server.game.draftUpdatedAt, cause);
             }
           } catch (recoveryError) {
             if (recoveryError instanceof Error && recoveryError.message === "Resolve draft conflicts before saving") {
-              store.getState().failSave(recoveryError.message);
               throw recoveryError;
             }
           }
@@ -189,15 +181,14 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
         }
       }
     };
-    savingPromiseRef.current = save();
-    try { await savingPromiseRef.current; } finally { savingPromiseRef.current = null; }
+    await flushGameDraft(savingPromiseRef, save);
   }, [refId]);
 
   useEffect(() => {
-    if (saveStatus !== "unsaved") return;
+    if (saveStatus !== "unsaved" || conflicts.items.length > 0) return;
     const timer = window.setTimeout(() => { void flushDraft().catch(() => undefined); }, 500);
     return () => window.clearTimeout(timer);
-  }, [flushDraft, saveStatus, document]);
+  }, [flushDraft, saveStatus, document, conflicts.items.length]);
 
   const onOps = useCallback((ops: GameDocumentOp[]) => {
     getGameDraftStore(refId).getState().apply(ops);
@@ -248,9 +239,8 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
 
   const publish = async () => {
     if (!data || !document) return;
-    const validation = validateGame(document);
-    if (!validation.valid) {
-      setError(validation.errors.join("; "));
+    if (documentValidation && !documentValidation.valid) {
+      setError(documentValidation.errors.join("; "));
       return;
     }
     setSaving(true);
@@ -325,7 +315,13 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     if (!entity || !scene) return;
     if (event.code === "KeyF") {
       event.preventDefault();
-      onCamera({ x: entity.transform2d.x, y: entity.transform2d.y, zoom: frame?.camera.zoom ?? 1 });
+      const transforms = worldTransforms(scene);
+      const selected = scene.entities.filter(entry => selectedIds.includes(entry.id)).flatMap(entry => {
+        const transform = transforms.get(entry.id);
+        return transform ? [transform] : [];
+      });
+      if (selected.length) onCamera({ x: selected.reduce((sum, entry) => sum + entry.x, 0) / selected.length,
+        y: selected.reduce((sum, entry) => sum + entry.y, 0) / selected.length, zoom: frame?.camera.zoom ?? 1 });
       return;
     }
     if (command && event.code === "KeyD") {
@@ -342,17 +338,23 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     const delta = direction[event.code];
     if (delta) {
       event.preventDefault();
-      moveEntity(entity.id, entity.transform2d.x + delta[0], entity.transform2d.y + delta[1]);
+      const transforms = worldTransforms(scene);
+      onOps(selectionRoots(scene, selectedIds).flatMap(entry => {
+        const world = transforms.get(entry.id);
+        if (!world) return [];
+        const local = localTransform(scene, entry.parentId, { ...world, x: world.x + delta[0], y: world.y + delta[1] }, transforms);
+        return [{ op: "update_entity" as const, entity_id: entry.id, scene_id: scene.id, set: { transform2d: { x: local.x, y: local.y } } }];
+      }));
     } else if (event.code === "Delete" || event.code === "Backspace") {
       event.preventDefault();
-      onOps([{ op: "remove_entity", entity_id: entity.id, scene_id: scene.id, children: "remove" }]);
+      onOps(selectionRoots(scene, selectedIds).map(entry => ({ op: "remove_entity", entity_id: entry.id, scene_id: scene.id, children: "remove" })));
     }
   };
 
   const activeScript = scriptKey && document?.scenes.find((scene) => scene.id === scriptKey.sceneId)
     ?.entities.find((entity) => entity.id === scriptKey.entityId);
   const scriptBehavior = activeScript?.behaviors[scriptKey?.index ?? -1];
-  const validationIssues = document ? validateGame(document).issues : [];
+  const validationIssues = documentValidation?.issues ?? [];
   const runtimeEntity = runtimeEntities?.find((entity) => entity.id === selectedIds[0]) ?? null;
 
   if (isPending || (data && !document)) return <LoadingSpinner text="Loading game" />;

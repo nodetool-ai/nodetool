@@ -116,6 +116,23 @@ describe("SDK model download service", () => {
 
     expect(startTjs).toHaveBeenCalledOnce();
   });
+  it("routes whisper.cpp files to the Hugging Face downloader", () => {
+    const start = vi.fn(async () => {});
+    const startTjs = vi.fn(async () => {});
+    const service = createSdkV1ModelDownloadService({
+      startHuggingFaceDownload: start,
+      startTransformersJsDownload: startTjs
+    });
+    const whisperRequest = {
+      ...request,
+      repo_id: "ggerganov/whisper.cpp",
+      path: "ggml-base.en.bin",
+      model_type: "hf.whisper_cpp"
+    };
+    service.start({ userId: "alice", request: whisperRequest });
+    expect(start).toHaveBeenCalledWith("alice", whisperRequest, expect.any(Function));
+    expect(startTjs).not.toHaveBeenCalled();
+  });
 
   it("keeps operation identity distinct across compatible model types", () => {
     const service = createSdkV1ModelDownloadService({

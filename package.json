@@ -72,7 +72,8 @@
     "demo",
     "examples/chat_app",
     "examples/nextjs-vercel",
-    "examples/nextjs-cloudflare"
+    "examples/nextjs-cloudflare",
+    "packages/whisper-cpp"
   ],
   "scripts": {
     "postinstall": "node electron/scripts/rebuild-native.mjs",

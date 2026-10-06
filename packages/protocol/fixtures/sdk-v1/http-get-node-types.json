@@ -169,6 +169,11 @@
               "id": "transformers-js",
               "name": "Transformers.js",
               "reason": "disabled by built-in pack configuration"
+            },
+            {
+              "id": "whisper-cpp",
+              "name": "whisper.cpp",
+              "reason": "disabled by built-in pack configuration"
             }
           ],
           "version": 1

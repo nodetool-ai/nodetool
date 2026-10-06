@@ -2,7 +2,14 @@
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
-import React, { memo, useCallback, useEffect } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState
+} from "react";
 import { useMediaQuery } from "@mui/material";
 import { EditorMenu } from "../ui_primitives";
 import { Tooltip, AlertBanner, FlexRow, MOTION, BORDER_RADIUS, SPACING, getSpacingPx, SHADOW, reducedMotion } from "../ui_primitives";
@@ -22,6 +29,7 @@ import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import MoreVertIcon from "@mui/icons-material/MoreVert";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import ExpandLessIcon from "@mui/icons-material/ExpandLess";
+import DashboardCustomizeOutlinedIcon from "@mui/icons-material/DashboardCustomizeOutlined";
 import { useLocation } from "react-router-dom";
 import { useShallow } from "zustand/react/shallow";
 
@@ -41,6 +49,7 @@ import { useDraggable } from "../../hooks/useDraggable";
 import { useFloatingToolbarState } from "../../hooks/useFloatingToolbarState";
 import { useFloatingToolbarActions } from "../../hooks/useFloatingToolbarActions";
 import { useFloatingToolbarPosition } from "../../hooks/useFloatingToolbarPosition";
+import { useWorkflowApp } from "../../hooks/useWorkflowApp";
 import { useRunningTime } from "../../hooks/useRunningTime";
 import { formatRunningTime } from "../../utils/timeFormat";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
@@ -101,6 +110,16 @@ const dockLayerStyles = (theme: Theme) =>
     pointerEvents: "none"
   });
 
+// The parts of the composer that fold away when only the toolbar row shows.
+const FOLDABLE =
+  ".media-compose-card > :not(.media-chip-row), .media-compose-card textarea.media-compose-input, .media-chip-row > :not(.composer-workflow-actions)";
+
+// One duration and easing for the dock's width and height animation, so the
+// two stay in step. Slower than MOTION.slow: the width travels hundreds of px.
+const DOCK_RESIZE_MS = 500;
+const DOCK_RESIZE_EASING = "ease-in-out";
+const DOCK_RESIZE = `${DOCK_RESIZE_MS}ms ${DOCK_RESIZE_EASING}`;
+
 const dockStyles = (theme: Theme) =>
   css({
     display: "flex",
@@ -112,6 +131,25 @@ const dockStyles = (theme: Theme) =>
     maxWidth: `calc(100% - ${getSpacingPx(SPACING.xl)})`,
     containerType: "inline-size",
     containerName: "canvas-dock",
+    // Lets the folding parts' height ease to and from `auto`.
+    interpolateSize: "allow-keywords",
+    "&.composer-expanding": { containerType: "normal" },
+    // Everything above the toolbar row folds to zero height instead of
+    // vanishing, so expanding grows the dock smoothly rather than jumping to
+    // full height before the width catches up.
+    [FOLDABLE]: {
+      overflow: "hidden",
+      transition: `height ${DOCK_RESIZE}, min-height ${DOCK_RESIZE}, padding ${DOCK_RESIZE}, margin ${DOCK_RESIZE}, opacity ${MOTION.normal}, visibility 0s`,
+      ...reducedMotion({ transition: MOTION.none })
+    },
+    ".media-compose-card.media-compose-card": {
+      transition: `${MOTION.border}, ${MOTION.shadow}, gap ${DOCK_RESIZE}`,
+      ...reducedMotion({ transition: MOTION.none })
+    },
+    ".media-chip-row.media-chip-row": {
+      transition: `row-gap ${DOCK_RESIZE}`,
+      ...reducedMotion({ transition: MOTION.none })
+    },
 
     ".media-compose-card": {
       borderRadius: BORDER_RADIUS.lg,
@@ -166,14 +204,34 @@ const dockStyles = (theme: Theme) =>
     // dock shrinks to a slim bar that keeps Run reachable. Hidden with CSS
     // rather than unmounted so a draft prompt and attachments survive.
     "&.composer-collapsed": {
-      ".media-compose-card > :not(.media-chip-row), .media-chip-row > :not(.composer-workflow-actions)":
-        {
-          display: "none"
-        },
+      // Inline-size containment gives the dock no intrinsic width, so its
+      // `auto` width would resolve to 0 and leave an empty pill behind.
+      containerType: "normal",
+      [FOLDABLE]: {
+        height: "0 !important",
+        minHeight: "0 !important",
+        padding: "0 !important",
+        margin: "0 !important",
+        opacity: 0,
+        visibility: "hidden",
+        pointerEvents: "none",
+        // Hide from focus only once the fold has finished.
+        transition: `height ${DOCK_RESIZE}, min-height ${DOCK_RESIZE}, padding ${DOCK_RESIZE}, margin ${DOCK_RESIZE}, opacity ${MOTION.normal}, visibility 0s linear ${DOCK_RESIZE_MS}ms`,
+        ...reducedMotion({ transition: MOTION.none })
+      },
+      ".media-compose-card.media-compose-card": { gap: 0 },
+      ".media-chip-row.media-chip-row": { rowGap: 0 },
+      // Chips would otherwise keep the collapsed bar as wide as the full dock.
+      ".media-chip-row > :not(.composer-workflow-actions)": {
+        flex: "0 0 0 !important",
+        width: "0 !important",
+        minWidth: "0 !important",
+        maxWidth: "0 !important"
+      },
       ".composer-workflow-actions": {
         marginTop: 0,
         paddingTop: 0,
-        borderTop: "none"
+        borderTopColor: "transparent"
       }
     },
 
@@ -211,6 +269,9 @@ const actionStyles = (theme: Theme) =>
     marginTop: getSpacingPx(SPACING.xs),
     paddingTop: getSpacingPx(SPACING.sm),
     borderTop: `1px solid ${theme.vars.palette.divider}`,
+    // Folds with the rest of the composer, so the toolbar row does not pop.
+    transition: `margin-top ${DOCK_RESIZE}, padding-top ${DOCK_RESIZE}, border-color ${DOCK_RESIZE}`,
+    ...reducedMotion({ transition: MOTION.none }),
 
     ".composer-tools, .composer-run-group": {
       display: "inline-flex",
@@ -366,6 +427,16 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     pendingRunCount
   } = useFloatingToolbarActions();
 
+  const {
+    openWorkflowApp,
+    hasApp,
+    isPending: isAppPending
+  } = useWorkflowApp();
+  const appActionLabel = hasApp ? "Open app" : "Make app";
+  const appActionTooltip = hasApp
+    ? "Open the app that runs this workflow"
+    : "Make an app from this workflow, with a field for each input";
+
   const { bottomPanelVisible, bottomPanelSize } = useBottomPanelStore(
     useShallow((state) => ({
       bottomPanelVisible: state.panel.isVisible,
@@ -496,6 +567,22 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
   // A collapsed composer also hides the overlay.
   const conversationOpen = !conversationCollapsed && !composerCollapsed;
 
+  // The dock turns back into a size container only after the expand finishes.
+  // Mid-animation its width crosses the narrow-dock breakpoint, which would
+  // flip the Run label and make the toolbar jump.
+  const [expandSettled, setExpandSettled] = useState(!composerCollapsed);
+  useEffect(() => {
+    if (composerCollapsed) {
+      setExpandSettled(false);
+      return undefined;
+    }
+    const timer = window.setTimeout(
+      () => setExpandSettled(true),
+      DOCK_RESIZE_MS
+    );
+    return () => window.clearTimeout(timer);
+  }, [composerCollapsed]);
+
   const handleToggleComposer = useCallback(() => {
     setComposerCollapsed(!composerCollapsed);
   }, [composerCollapsed, setComposerCollapsed]);
@@ -550,6 +637,47 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
     window.addEventListener("resize", onResize);
     return () => window.removeEventListener("resize", onResize);
   }, [clampToViewport, setStorePosition, dockRef, isMobile]);
+
+  // The dock width animates from the width it had to the width it has now,
+  // both measured in px. A CSS transition from `auto` would start from the
+  // width of the new layout, so the width would barely move while the height
+  // grows. Both use DOCK_RESIZE, from the same commit.
+  const lastDockWidth = useRef<number | null>(null);
+  const lastCollapsed = useRef(composerCollapsed);
+  useLayoutEffect(() => {
+    const dock = dockRef.current;
+    if (!dock) {
+      return;
+    }
+    const toggled = lastCollapsed.current !== composerCollapsed;
+    lastCollapsed.current = composerCollapsed;
+    const running = dock.getAnimations();
+    // A render during the animation (the expand-settled state, a store
+    // update) must not record the width of a frame in flight.
+    if (running.length > 0 && !toggled) {
+      return;
+    }
+    // A toggle during an animation starts from the width on screen.
+    const previous =
+      running.length > 0
+        ? dock.getBoundingClientRect().width
+        : lastDockWidth.current;
+    running.forEach((animation) => animation.cancel());
+    const next = dock.getBoundingClientRect().width;
+    lastDockWidth.current = next;
+    if (
+      toggled &&
+      previous !== null &&
+      Math.abs(previous - next) > 1 &&
+      typeof dock.animate === "function" &&
+      !window.matchMedia("(prefers-reduced-motion: reduce)").matches
+    ) {
+      dock.animate([{ width: `${previous}px` }, { width: `${next}px` }], {
+        duration: DOCK_RESIZE_MS,
+        easing: DOCK_RESIZE_EASING
+      });
+    }
+  });
 
   // Mobile ignores the persisted (desktop) width and MIN_DOCK_WIDTH — a phone
   // viewport can be narrower than both.
@@ -706,6 +834,24 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           </Tooltip>
         )}
 
+        {!isMobile && (
+          <Tooltip
+            title={appActionTooltip}
+            placement="top"
+            delay={TOOLTIP_ENTER_DELAY}
+          >
+            <button
+              type="button"
+              className="composer-action"
+              onClick={() => void openWorkflowApp()}
+              aria-label={appActionLabel}
+              disabled={isAppPending}
+            >
+              <DashboardCustomizeOutlinedIcon />
+            </button>
+          </Tooltip>
+        )}
+
         {/* Shown at every width: arming and disarming a trigger is the whole
             point of the feature, and a phone browser needs it too. */}
         <TriggerActivationButton />
@@ -806,7 +952,8 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
           css={dockStyles(theme)}
           className={cn(
             "floating-toolbar canvas-chat-dock",
-            composerCollapsed && "composer-collapsed"
+            composerCollapsed && "composer-collapsed",
+            !composerCollapsed && !expandSettled && "composer-expanding"
           )}
           style={{ width: dockWidthCss }}
         >
@@ -878,6 +1025,12 @@ const FloatingToolBar: React.FC = memo(function FloatingToolBar() {
             onClick={runWithClose(handleSave)}
           />
         )}
+        <MenuItemPrimitive
+          label={appActionLabel}
+          icon={<DashboardCustomizeOutlinedIcon fontSize="small" />}
+          disabled={isAppPending}
+          onClick={runWithClose(() => void openWorkflowApp())}
+        />
         <MenuItemPrimitive
           label="Mini Map"
           icon={<MapIcon fontSize="small" />}

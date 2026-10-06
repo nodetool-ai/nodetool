@@ -241,6 +241,7 @@ export {
   ResizeVideoNode,
   RotateVideoNode,
   SetSpeedVideoNode,
+  EaseCurveVideoNode,
   OverlayVideoNode,
   ColorBalanceVideoNode,
   DenoiseVideoNode,
@@ -501,6 +502,8 @@ import { KIE_DYNAMIC_NODES } from "@nodetool-ai/integration-nodes/nodes/kie-dyna
 import { VECTOR_NODES } from "@nodetool-ai/core-nodes/nodes/vector";
 import { GEMINI_NODES } from "@nodetool-ai/llm-nodes/nodes/gemini";
 import { COMFY_NODES } from "@nodetool-ai/integration-nodes/nodes/comfy";
+import { STABLE_DIFFUSION_CPP_NODES } from "@nodetool-ai/integration-nodes/nodes/stable-diffusion-cpp";
+export { StableDiffusionCppGenerateNode, STABLE_DIFFUSION_CPP_NODES } from "@nodetool-ai/integration-nodes/nodes/stable-diffusion-cpp";
 import { MESSAGING_NODES } from "@nodetool-ai/integration-nodes/nodes/messaging";
 import { MISTRAL_NODES } from "@nodetool-ai/llm-nodes/nodes/mistral";
 import { OPENAI_NODES } from "@nodetool-ai/llm-nodes/nodes/openai";
@@ -566,6 +569,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...VECTOR_NODES,
   ...GEMINI_NODES,
   ...COMFY_NODES,
+  ...STABLE_DIFFUSION_CPP_NODES,
   ...MESSAGING_NODES,
   ...MISTRAL_NODES,
   ...OPENAI_NODES,

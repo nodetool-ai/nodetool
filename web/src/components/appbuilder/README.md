@@ -179,18 +179,23 @@ Variable node and wire app state to it.
 
 ## Where it shows up
 
-Apps are opened from the **Apps** panel in the left sidebar — the only entry
-point. "New app" starts an empty one; "Create app from workflow" scaffolds a
-one-way copy bound to that workflow. Each opens one `application` workspace
-tab. A workflow never presents itself as an app, and there is no route keyed by
+Apps are opened from the **Apps** panel in the left sidebar. "New app" starts
+an empty one; "Create app from workflow" scaffolds a one-way copy bound to that
+workflow. The workflow editor's toolbar has the same scaffold as **Make app**
+(`hooks/useWorkflowApp.ts`): it opens the most recently edited app whose
+operations run the open workflow (`applications.list` with `workflowId`), and
+otherwise saves the graph and creates one from it, then reads **Open app**.
+Each opens one `application` workspace tab. A workflow never presents itself as an app, and there is no route keyed by
 workflow id: `/miniapp/:workflowId` survives only as a legacy redirect
 (`components/applications/LegacyAppRedirect.tsx`) that resolves to the app
 binding that workflow, or 404s.
 
-There is no Generate-from-workflow button any more: nothing auto-fills a
-canvas with a widget per workflow input and output. An empty app starts empty,
-and the assistant panel — reachable with or without a workflow bound — is what
-builds it.
+Creating from a workflow without a legacy `app_doc` scaffolds a first screen
+on the server (`scaffoldDocumentFromWorkflow` in
+`packages/websocket/src/lib/applications-service.ts`): one `WorkflowInput` per
+Input node, Run and Cancel buttons, and one `Output` per Output node. An empty
+app starts empty, and the assistant panel, reachable with or without a workflow
+bound, is what builds it.
 
 The mobile app renders the same documents natively (`mobile/src/components/app_runtime/`)
 on top of the same `@nodetool-ai/app-runtime` core — it runs apps, it does not

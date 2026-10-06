@@ -434,6 +434,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "jobs.cancel": { capability: "cancel_job" },
   "jobs.get": { capability: "get_job" },
   "jobs.list": { capability: "list_jobs" },
+  "jobs.snapshot": {
+    gap: "Editor-shaped graph and params of a past run, for reopening it in the editor. No sandbox capability returns a job's graph yet."
+  },
   "jobs.triggerStart": {
     withheld:
       "Arming a trigger schedules execution that outlives the run " +

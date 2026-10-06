@@ -4,7 +4,7 @@ Each concept on the marketing site's `/ad-library` pages ships as a Recipe
 mini app with the slug `ad-<concept slug>`. These apps use the [shared plan/finish
 operations](shared-operations.md) and build an editable vertical Timeline.
 
-[`scripts/example-apps/ad-library-recipes.mjs`](../../scripts/example-apps/ad-library-recipes.mjs)
+[`scripts/example-apps/ad-library-recipes.mjs`](https://github.com/nodetool-ai/nodetool/blob/main/scripts/example-apps/ad-library-recipes.mjs)
 reads `marketing/src/data/adLibrary.json`. Each beat becomes a shot with the
 beat's duration and composition. Each copy slot becomes an exact-text input.
 The file adds only the image inputs per concept and the beats that show them.
@@ -33,7 +33,7 @@ decoration. See [the layout pass](shared-operations.md). Plan and Build run as
 bundled workflow jobs, because the agents take longer than a script operation
 allows.
 
-[`ad-library-steps.mjs`](../../scripts/example-apps/ad-library-steps.mjs)
+[`ad-library-steps.mjs`](https://github.com/nodetool-ai/nodetool/blob/main/scripts/example-apps/ad-library-steps.mjs)
 holds the steps, labels, placeholders and hints of each concept. A step label
 also renames the Recipe input. The build fails when a step plan leaves an
 input without a field. The illustrations ship as
@@ -43,7 +43,7 @@ is `ad-<slug>.jpg` in the same assets directory. The gallery uses an app's
 
 **Fill from a website** opens a panel on Start. Its only input is a website
 URL. The agent uses the finishing model selected on Start.
-[`ad-library-ai.mjs`](../../scripts/example-apps/ad-library-ai.mjs) holds two
+[`ad-library-ai.mjs`](https://github.com/nodetool-ai/nodetool/blob/main/scripts/example-apps/ad-library-ai.mjs) holds two
 operations:
 
 1. **Suggest options** runs a small workflow bundled with the app, so it is a

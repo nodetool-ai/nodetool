@@ -46,6 +46,7 @@ import {
 import type { StatusType } from "../ui_primitives";
 import { relativeTime } from "../../utils/formatDateAndTime";
 import { MediaOverlaySuppressProvider } from "./MediaOverlayContext";
+import OutputQuickActionButtons from "./OutputQuickActionButtons";
 import { TextRenderer } from "./output/TextRenderer";
 import { extractTextValue } from "../../utils/extractTextValue";
 import { isString } from "../../utils/typePredicates";
@@ -62,6 +63,11 @@ interface NodeHistoryViewerProps {
    * only manages history navigation and overlay controls.
    */
   renderSingle: (value: unknown) => React.ReactNode;
+  /**
+   * The output the history shows. When set, the hover toolbar offers one-step
+   * follow-ups (Upscale, Remove background, Edit) wired to this output.
+   */
+  output?: { name: string; type: string };
 }
 
 /**
@@ -294,7 +300,8 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
   workflowId,
   nodeId,
   liveResult,
-  renderSingle
+  renderSingle,
+  output
 }) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
@@ -884,9 +891,16 @@ const NodeHistoryViewerInternal: React.FC<NodeHistoryViewerProps> = ({
         </div>
       </div>
 
-      {/* top-right overlay: fullscreen viewer + download */}
+      {/* top-right overlay: quick actions, fullscreen viewer + download */}
       <div className="node-history-overlay overlay-top-right">
         <div className="overlay-cluster">
+          {output && !showingLive ? (
+            <OutputQuickActionButtons
+              nodeId={nodeId}
+              outputName={output.name}
+              outputType={output.type}
+            />
+          ) : null}
           <ToolbarIconButton
             title={hasTextToOpen ? "Open full text" : "Open in viewer"}
             size="small"

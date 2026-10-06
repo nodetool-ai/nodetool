@@ -140,6 +140,7 @@ for (let attempt = 1; attempt <= MAX_ATTEMPTS; attempt++) {
 }
 
 reportNodeLlamaCpp();
+// @fugood/whisper.node ships prebuilt N-API binaries and needs no rebuild.
 process.exit(lastStatus);
 
 // node-llama-cpp is N-API and ships prebuilt binaries for the supported

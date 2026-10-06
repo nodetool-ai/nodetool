@@ -139,6 +139,12 @@ The guest bridge is `packages/agents/src/js-sandbox.ts`.
 
 ## Exemptions
 
+**Dreamina browser requests.**
+`packages/runtime/src/providers/dreamina-provider.ts` runs API and upload
+requests inside the user's logged-in Dreamina browser tab. Cookies stay in
+that tab. Server-side result downloads use `fetchExternalMedia`, which checks
+each redirect hop and sends no Dreamina credentials.
+
 **Fixed provider hosts.** The URL is a constant in this repo, at most
 with a path or query interpolated — `api.elevenlabs.io`, `fal.run`,
 `generativelanguage.googleapis.com`, the OAuth token endpoints, the codegen
@@ -154,6 +160,17 @@ after five seconds, coalesces concurrent refreshes, and caps key-cache freshness
 at 24 hours.
 
 **Deliberately private hosts.** Reaching an internal address is the feature:
+
+- `packages/whisper-cpp/src/whisper-server-provider.ts` — the operator's
+  `WHISPER_CPP_SERVER_URL`, normally localhost or the LAN. This local-only
+  provider uses native fetch, following the llama.cpp server provider's policy.
+  Requests carry audio and transcription options without provider credentials.
+
+- `packages/integration-nodes/src/nodes/stable-diffusion-cpp.ts` — the graph
+  author selects a running `sd-server`, normally localhost or the LAN. Requests
+  send no credentials and reject redirects. Job polling and cancellation stay
+  on the configured server, ignoring response-provided URLs. The cloud profile
+  excludes `lib.stable_diffusion_cpp.GenerateImage` by default.
 
 - `packages/runtime/src/comfy-executor.ts` — a ComfyUI server, normally
   localhost or the LAN, so screening private addresses would refuse the ordinary
@@ -199,7 +216,7 @@ and bundled `./assets/` paths),
 `packages/game-renderer/src/standalone-player3d.ts` (fixed relative `game.json`
 and `manifest.json`, then digest-named `./assets/` paths validated against the
 closed export manifest),
-`packages/game-renderer/src/audio.ts` and
+`packages/game-renderer/src/audio/player.ts` and
 `packages/game-renderer/src/browser-fonts.ts` (asset URLs resolved by the web
 app, or bundled `./assets/` paths in a standalone export),
 `packages/image-nodes/src/nodes/image-io.ts` (behind `!IS_NODE`),

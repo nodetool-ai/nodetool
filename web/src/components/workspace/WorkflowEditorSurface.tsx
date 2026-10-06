@@ -53,6 +53,7 @@ import {
   SPACING
 } from "../ui_primitives";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
+import { useBrowserPreviewsOnLoad } from "../../hooks/nodes/useBrowserPreviewsOnLoad";
 import WorkflowGraphPreview from "../version/WorkflowGraphPreview";
 import { WorkflowLandingChecklist } from "../setup/workflow/WorkflowLandingChecklist";
 
@@ -92,6 +93,7 @@ const WorkflowEditorSurface = ({
     state.getNodeStore(workflowId)
   );
   const workflow = useWorkflowManager((state) => state.getWorkflow(workflowId));
+  useBrowserPreviewsOnLoad(nodeStore, active && mode !== "view");
   const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
   const createWorkflow = useWorkflowManager((state) => state.create);
   const closeTab = useWorkspaceTabsStore((state) => state.closeTab);

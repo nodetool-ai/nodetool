@@ -48,6 +48,22 @@ describe("MessageStream", () => {
     expect((await next).done).toBe(true);
   });
 
+  it("drains messages that arrive while the consumer holds a yield", async () => {
+    const input = source();
+    const stream = new MessageStream(input, 0);
+    const iterator = stream[Symbol.asyncIterator]();
+    input.emit(0);
+    expect((await iterator.next()).value).toHaveProperty("job_id", "0");
+    // A slow consumer (e.g. a GPU read-back per message) is still processing
+    // message 0 when the run emits its last messages and closes the stream.
+    input.emit(1);
+    input.emit(2);
+    stream.close();
+    expect((await iterator.next()).value).toHaveProperty("job_id", "1");
+    expect((await iterator.next()).value).toHaveProperty("job_id", "2");
+    expect((await iterator.next()).done).toBe(true);
+  });
+
   it("drains accepted messages then reports overflow", async () => {
     const input = source();
     const stream = new MessageStream(input, 2);

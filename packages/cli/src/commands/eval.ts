@@ -646,6 +646,8 @@ const appBuildSuite: EvalSuite = {
       import("@nodetool-ai/storage")
     ]);
 
+    const { setupLocalDb } = await import("./local-db.js");
+    await setupLocalDb();
     const cases = selectCases(APP_BUILD_EVAL_CASES, deps.caseIds);
     deps.log(
       `Running ${cases.length} app-build case(s) with ${deps.providerId}/${deps.model}` +

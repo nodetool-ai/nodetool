@@ -256,3 +256,19 @@ export function coerceProviderBytes(
       `(Uint8Array/Buffer).`
   );
 }
+
+/** `rate` as atempo factors, each inside the filter's own 0.5–2 range. */
+export function atempoChain(rate: number): string[] {
+  const factors: string[] = [];
+  let remaining = rate;
+  while (remaining > 2) {
+    factors.push("2");
+    remaining /= 2;
+  }
+  while (remaining < 0.5) {
+    factors.push("0.5");
+    remaining *= 2;
+  }
+  factors.push(String(Number(remaining.toFixed(6))));
+  return factors;
+}

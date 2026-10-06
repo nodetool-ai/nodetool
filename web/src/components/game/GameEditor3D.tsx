@@ -6,7 +6,8 @@ import type { AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
 import { trpc, trpcClient } from "../../trpc/client";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
-import { anyGameMergeAdapter, acceptServerAnyGameUnit } from "../../stores/game/anyMerge";
+import { anyGameMergeAdapter } from "../../stores/game/anyMerge";
+import { flushGameDraft, pullGameDraft, reloadRejectedGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { useConflictStore } from "../../stores/ConflictStore";
 import { registerDocumentSync } from "../../stores/documentSync";
@@ -22,6 +23,7 @@ import GamePanelHeader from "./GamePanelHeader";
 import GameScriptPane from "./GameScriptPane";
 import GameStatusBar from "./GameStatusBar";
 import GameToolbar from "./GameToolbar";
+import { handleGameUndo } from "./gameEditorShortcuts";
 import { GAME_EDITOR_ROOT_SX } from "./gameEditorStyles";
 import GameViewport3D from "./GameViewport3D";
 import { useGamePlaySession3D } from "./useGamePlaySession3D";
@@ -44,6 +46,7 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
   const [scriptIndex, setScriptIndex] = useState<number | null>(null);
   const [assetId, setAssetId] = useState("");
   const [assetSlot, setAssetSlot] = useState("model");
+  const [highlightedIds, setHighlightedIds] = useState<string[]>([]);
   const [operationError, setOperationError] = useState<string | null>(null);
   const [focusMessage, setFocusMessage] = useState<{ threadId: string; messageId: string; requestId: number } | null>(null);
   const activeSceneId = document.scenes.some((scene) => scene.id === sceneId) ? sceneId : document.entrySceneId;
@@ -56,7 +59,7 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
   const onOps = useCallback((ops: AnyGameDocumentOp[]): void => { getGameDraftStore(refId).getState().apply(ops); }, [refId]);
   const select = useCallback((id: string): void => { getGameDraftStore(refId).getState().select(id); }, [refId]);
 
-  const pull = useCallback(async (): Promise<void> => {
+  const pullFromServer = useCallback(async (): Promise<void> => {
     const server = await trpcClient.games.getDraft.query({ id: refId });
     const store = getGameDraftStore(refId);
     const current = store.getState();
@@ -70,16 +73,20 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
     useConflictStore.getState().addConflicts(`game:${refId}`, merged.conflicts, {
       onAccept: (unitId) => {
         const conflict = merged.conflicts.find((entry) => entry.unit.id === unitId);
-        const latest = store.getState().document;
-        if (conflict && latest) { store.getState().applyMerged(acceptServerAnyGameUnit(latest, server.document, conflict.unit.kind, unitId), server.document, server.game.draftUpdatedAt); }
+        if (conflict) { store.getState().acceptConflict(server.document, conflict.unit.kind, unitId); }
       }, onDiscard: () => undefined
     });
   }, [refId]);
 
+  const pull = useCallback(async (): Promise<void> => {
+    await pullGameDraft(savingRef, pullFromServer);
+    setOperationError(null);
+  }, [pullFromServer]);
+
   const flush = useCallback(async (): Promise<void> => {
-    if (savingRef.current) { await savingRef.current; }
     const save = async (): Promise<void> => {
       const store = getGameDraftStore(refId);
+      let retries = 0;
       while (store.getState().pendingOps.length > 0) {
         const state = store.getState();
         if (!state.baseUpdatedAt) { return; }
@@ -88,17 +95,28 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
         try {
           const result = await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops });
           store.getState().acknowledge(result.document, result.game.draftUpdatedAt, ops.length);
+          retries = 0;
         } catch (cause) {
-          await pull();
+          try {
+            const server = await trpcClient.games.getDraft.query({ id: refId });
+            reloadRejectedGameDraft(refId, state.baseUpdatedAt, server.document, server.game.draftUpdatedAt, cause);
+            if (server.game.draftUpdatedAt !== state.baseUpdatedAt) {
+              await pullFromServer();
+              if (++retries <= 3 && (useConflictStore.getState().byKey[`game:${refId}`]?.conflicts.length ?? 0) === 0) { continue; }
+            }
+          } catch (recoveryError) {
+            store.getState().failSave(recoveryError instanceof Error ? recoveryError.message : String(recoveryError));
+            throw recoveryError;
+          }
           const message = cause instanceof Error ? cause.message : String(cause);
-          store.getState().failSave(message);
+          if (store.getState().saveStatus !== "unsaved") { store.getState().failSave(message); }
           throw cause;
         }
       }
     };
-    savingRef.current = save();
-    try { await savingRef.current; } finally { savingRef.current = null; }
-  }, [refId, pull]);
+    await flushGameDraft(savingRef, save);
+    setOperationError(null);
+  }, [refId, pullFromServer]);
 
   useEffect(() => registerDocumentSync("game", refId, {
     localRevision: () => getGameDraftStore(refId).getState().baseUpdatedAt,
@@ -108,10 +126,10 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
   }), [refId, pull]);
 
   useEffect(() => {
-    if (saveStatus !== "unsaved") { return; }
+    if (saveStatus !== "unsaved" || conflicts.items.length > 0) { return; }
     const timer = window.setTimeout(() => { void flush().catch((cause: unknown) => setOperationError(cause instanceof Error ? cause.message : String(cause))); }, 500);
     return () => window.clearTimeout(timer);
-  }, [saveStatus, document, flush]);
+  }, [saveStatus, document, flush, conflicts.items.length]);
 
   const add = (kind: "box" | "sphere" | "light"): void => {
     const id = crypto.randomUUID().replaceAll("-", "");
@@ -129,15 +147,18 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
       await queries.games.getDraft.invalidate({ id: refId });
       setPublishOpen(false);
       setPublishMessage("");
+      setOperationError(null);
     } catch (cause) { setOperationError(cause instanceof Error ? cause.message : String(cause)); }
   };
   const installModel = async (): Promise<void> => {
     try {
       await flush();
-      const state = getGameDraftStore(refId).getState();
-      if (!state.baseUpdatedAt) { throw new Error("The draft is not ready for model installation"); }
-      await trpcClient.games.installAsset.mutate({ id: refId, assetId, slot: assetSlot, baseUpdatedAt: state.baseUpdatedAt });
-      await pull();
+      await flushGameDraft(savingRef, async () => {
+        const state = getGameDraftStore(refId).getState();
+        if (!state.baseUpdatedAt) { throw new Error("The draft is not ready for model installation"); }
+        await trpcClient.games.installAsset.mutate({ id: refId, assetId, slot: assetSlot, baseUpdatedAt: state.baseUpdatedAt });
+        await pullFromServer();
+      });
       setOperationError(null);
     } catch (cause) { setOperationError(cause instanceof Error ? cause.message : String(cause)); }
   };
@@ -159,18 +180,14 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
           nodeDetail: `Game: ${refId}\nScene: ${activeSceneId}\nEntity: ${selected?.id ?? "none"}\nTick: ${host.inspection?.tick ?? 0}` }} /></FlexRow>}
       {restart && <Caption role="status">The draft changed. Stop and play again to apply it.</Caption>}
     </FlexColumn>}
-    <GameAuthoringPreview key={refId} gameId={refId} document={document} flush={flush} onHighlight={(ids) => getGameDraftStore(refId).getState().selectMany(ids)} />
+    <GameAuthoringPreview key={refId} gameId={refId} document={document} flush={flush} onHighlight={setHighlightedIds} />
     {conflicts.items.length > 0 && <ConflictBanner conflicts={conflicts.items} onAccept={conflicts.accept} onDiscard={conflicts.discard} />}
-    <GameChanges gameId={refId} document={document} onOps={onOps} onHover={() => undefined}
+    <GameChanges gameId={refId} document={document} onOps={onOps} onHover={setHighlightedIds}
       onFocusMessage={(threadId, messageId) => { setAssistantOpen(true); setFocusMessage({ threadId, messageId, requestId: Date.now() }); }} />
-    <FlexRow sx={{ flex: 1, minHeight: 0 }} onKeyDown={(event) => {
-      if ((event.ctrlKey || event.metaKey) && event.code === "KeyZ") {
-        event.preventDefault();
-        if (event.shiftKey) { getGameDraftStore(refId).getState().redo(); } else { getGameDraftStore(refId).getState().undo(); }
-      }
-    }}>
+    <FlexRow sx={{ flex: 1, minHeight: 0 }} onKeyDown={(event) => handleGameUndo(event, Boolean(host.playDocument),
+      () => getGameDraftStore(refId).getState().undo(), () => getGameDraftStore(refId).getState().redo())}>
       {treeOpen && <ResizableDock storageKey="sceneTree3d" storagePrefix="nodetool.gameEditor." side="left" defaultWidth={260} minWidth={220} maxWidth={480} ariaLabel="Resize 3D scene tree">
-        <GameHierarchy3D document={document} scene={scene} selectedIds={selectedIds} onSelect={select} onAdd={add}
+        <FlexColumn data-game-undo-scope sx={{ flex: 1, minHeight: 0 }}><GameHierarchy3D document={document} scene={scene} selectedIds={selectedIds} onSelect={select} onAdd={add}
           onSelectScene={(value) => { setSceneId(value); getGameDraftStore(refId).getState().selectMany([]); }}
           footer={<CollapsibleSection title={<Label component="span" sx={{ mb: 0 }}>Model assets</Label>} compact defaultOpen={false}>
             <FlexColumn gap={SPACING.sm} sx={{ pb: SPACING.md }}>
@@ -185,10 +202,10 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
               </FlexRow>)}
               <Caption>After saving model changes, prepare and install them again.</Caption>
             </FlexColumn>
-          </CollapsibleSection>} />
+          </CollapsibleSection>} /></FlexColumn>
       </ResizableDock>}
       <FlexColumn sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
-        <GameViewport3D document={document} host={host} selectedId={selected?.id} sceneId={activeSceneId} onSelect={select} onOps={onOps} />
+        <GameViewport3D document={document} host={host} selectedId={selected?.id} highlightedIds={highlightedIds} sceneId={activeSceneId} onSelect={select} onOps={onOps} />
         {selected && behavior?.kind === "script" && scriptIndex !== null && <FlexColumn sx={{ height: "40%", minHeight: 0, borderTop: 1, borderColor: "divider" }}>
           <GameScriptPane dimension="3d" entityId={selected.id} entityName={selected.name} behaviorIndex={scriptIndex} behavior={behavior}
             onChange={(source) => onOps([{ op: "set_script", scene_id: activeSceneId, entity_id: selected.id, index: scriptIndex, source }])} onClose={() => setScriptIndex(null)} />

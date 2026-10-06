@@ -14,17 +14,7 @@
         "dist-web/**/*",
         "!dist-web/**/*.map",
         "!dist-electron/**/*.map",
-        "app-update.yml",
-        "!node_modules/sharp/**",
-        "!node_modules/@img/**",
-        "!node_modules/better-sqlite3/**",
-        "!node_modules/sqlite-vec/**",
-        "!node_modules/bufferutil/**"
-    ],
-    "asarUnpack": [
-        "**/node-llama-cpp/**/*.node",
-        "**/@node-llama-cpp/**/*.node",
-        "**/node-llama-cpp/llama/**"
+        "app-update.yml"
     ],
     "extraResources": [
         {
@@ -60,7 +50,7 @@
         }
     ],
     "dmg": {
-        "size": "4g"
+        "size": "8g"
     },
     "mac": {
         "category": "public.app-category.developer-tools",

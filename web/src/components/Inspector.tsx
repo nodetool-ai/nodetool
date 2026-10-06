@@ -743,7 +743,23 @@ const Inspector: React.FC = () => {
   }, [metadata, visibleProperties.length]);
 
   if (selectedNodes.length === 0) {
-    return null;
+    return (
+      <Box className="inspector" css={inspectorStyles}>
+        <div className="inspector-head">
+          <div className="inspector-head-text">
+            <div className="inspector-title">No node selected</div>
+          </div>
+          <div className="inspector-head-close">
+            <CloseButton
+              onClick={handleInspectorClose}
+              tooltip="Close inspector"
+              buttonSize="small"
+              nodrag={false}
+            />
+          </div>
+        </div>
+      </Box>
+    );
   }
 
   if (isMultiSelect) {

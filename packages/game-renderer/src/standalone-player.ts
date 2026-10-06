@@ -1,9 +1,20 @@
 import { createScriptedGameSession, validateGame } from "@nodetool-ai/game-runtime";
-import { gameSnapshot, type GameRenderFrame } from "@nodetool-ai/protocol";
+import { gameSnapshot, type GameInputFrame, type GameSnapshot, type GameRenderFrame } from "@nodetool-ai/protocol";
 import { createGameRenderer, loadBrowserGameFonts } from "./browser.js";
 import { GameAudioPlayer } from "./audio.js";
 import { mountTouchControls } from "./touch-controls.js";
 import { gameKeyAction } from "./input.js";
+
+declare global {
+  interface Window {
+    nativeGamePlayer: {
+      readonly pause: () => void;
+      readonly reset: () => Promise<void>;
+      readonly step: (input: GameInputFrame) => Promise<void>;
+      readonly snapshot: () => GameSnapshot;
+    };
+  }
+}
 
 const PLAYER_VERSION = "1";
 
@@ -272,6 +283,27 @@ async function start(): Promise<void> {
     renderer.dispose();
     fonts.dispose();
     audio.dispose();
+  });
+  window.nativeGamePlayer = Object.freeze({
+    pause: () => { paused = true; releaseAll(); accumulator = 0; },
+    reset: async () => {
+      paused = true;
+      const replacement = await createScriptedGameSession(game, 1);
+      session.dispose(); session = replacement;
+      audio.reset(session.snapshot()); latest = session.frame(); releaseAll(); accumulator = 0;
+      await rendering;
+      await renderer.render(latest, 1);
+    },
+    step: async (input: GameInputFrame) => {
+      paused = true;
+      const result = session.step(input);
+      latest = result.frame;
+      result.events.forEach(event => audio.handle(event));
+      audio.sync(session.snapshot());
+      await rendering;
+      await renderer.render(latest, 1);
+    },
+    snapshot: () => session.snapshot()
   });
   showStatus(`Ready (${renderer.backend})${effectNotice ? ` · ${effectNotice}` : ""}${fonts.diagnostics.length ? ` · ${fonts.diagnostics.join("; ")}` : ""}`);
   render(1);

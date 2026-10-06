@@ -6,6 +6,10 @@ description: "How to run local OpenAI-compatible inference servers with NodeTool
 
 NodeTool ships three providers that talk to a local OpenAI-compatible HTTP server (a fourth, `node_llama_cpp`, runs in-process and is covered below): **LM Studio**, **llama.cpp** (`llama_cpp`), and **vLLM**. All three follow the same pattern: point NodeTool at the server's base URL, load a model in the server, and the model appears in the UI automatically via a `/v1/models` fetch.
 
+For local speech recognition, `whisper_cpp` runs GGML models in the backend
+and `whisper_cpp_server` calls a user-run whisper-server. See
+[provider configuration](../../providers.md) for their settings.
+
 > **Audience:** coding agents and contributors adding local models to NodeTool, or changing these providers' code.
 
 ---

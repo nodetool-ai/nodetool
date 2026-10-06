@@ -99,6 +99,12 @@ export const formatGenericProviderName = (provider?: string): string => {
   }
   // Normalize common aliases for display
   const providerLower = provider.toLowerCase();
+  if (providerLower === "whisper_cpp") {
+    return "whisper.cpp";
+  }
+  if (providerLower === "whisper_cpp_server") {
+    return "whisper.cpp server";
+  }
 
   if (PROVIDER_ALIAS_NAMES[providerLower]) {
     return PROVIDER_ALIAS_NAMES[providerLower];

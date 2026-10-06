@@ -26,6 +26,7 @@ import {
   loadEnvironment
 } from "@nodetool-ai/config";
 import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-provider";
+import { registerWhisperCppProviders } from "@nodetool-ai/whisper-cpp";
 import { setCodeNodeAgentsModule } from "@nodetool-ai/base-nodes";
 import * as agentsModule from "@nodetool-ai/agents";
 import {
@@ -581,6 +582,7 @@ log.info(`Node registry ready [${startupMs()}]`);
 setCodeNodeAgentsModule(agentsModule);
 if (process.env["NODETOOL_ENV"] !== "production") {
   registerTransformersJsProvider();
+  registerWhisperCppProviders();
 }
 
 // ---------------------------------------------------------------------------

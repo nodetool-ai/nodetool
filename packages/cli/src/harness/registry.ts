@@ -132,7 +132,7 @@ const GAME_FLOW_SUITES =
   "npm run test --workspace=packages/game-nodes && " +
   "npm run test --workspace=packages/game-runtime && " +
   "npm run test --workspace=packages/game-renderer && " +
-  "npm run test --workspace=packages/websocket -- trpc-games && " +
+  "npm run test --workspace=packages/websocket -- trpc-games gameDraftHistory && " +
   "npm run test --workspace=packages/agents -- game && " +
   "npm run test --workspace=packages/cli -- game-command && " +
   "npm run test --workspace=web -- src/stores/game src/components/game";
@@ -1278,6 +1278,7 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/godot-templates/",
       "packages/base-nodes/tests/game-graph-chips.test.ts",
       "packages/websocket/src/trpc/routers/games.ts",
+      "packages/websocket/src/trpc/routers/gameDraftHistory.ts",
       "packages/websocket/src/lib/style-presets.ts",
       "web/src/components/game/",
       "web/src/stores/game/",
@@ -1895,6 +1896,7 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/together-nodes/",
       "packages/topaz-nodes/",
       "packages/transformers-js-nodes/",
+      "packages/whisper-cpp/",
       "packages/video-nodes/",
       // Portable runner (graph + registry → a Request/Response handler); CI
       // groups it with the node packages for the same reason.
