@@ -20,7 +20,9 @@ uses the supported limit, as agreed for [B1](native-game-implementation-plan.md)
 
 ## CPU measurements
 
-Each run warms up for 300 ticks and measures 1,200 ticks. Tick time includes
+The initial short sampling window warms up for 300 ticks and measures 1,200
+ticks. The scale workload also uses the longer window documented below. Tick
+time includes
 simulation and render-frame construction. Script time comes from the runtime's
 script batch statistics. The allocation profiler runs separately for 10 ticks,
 with a 32 KiB sampling interval. Its byte estimate includes sampled allocations
