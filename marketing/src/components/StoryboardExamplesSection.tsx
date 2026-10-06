@@ -89,8 +89,11 @@ export default function StoryboardExamplesSection() {
                       <p className="mt-1 font-medium text-slate-100">
                         {shot.slug}
                       </p>
-                      <p className="mt-1 text-sm text-slate-400">
+                      <p className="mt-1 text-xs text-amber-300/90">
                         {shot.framing} · {shot.lens} · {shot.movement}
+                      </p>
+                      <p className="mt-2 line-clamp-3 text-sm leading-relaxed text-slate-400">
+                        {shot.action}
                       </p>
                     </div>
                   </li>

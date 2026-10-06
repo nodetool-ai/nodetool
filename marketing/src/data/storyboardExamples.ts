@@ -25,45 +25,6 @@ export const STORYBOARD_STILL = { width: 960, height: 540 } as const;
 
 export const storyboardExamples: readonly StoryboardExample[] = [
   {
-    slug: "sneaker-drop",
-    name: "Sneaker Drop",
-    category: "15-second product spot",
-    brief:
-      "Fifteen seconds for a running-shoe launch. Studio reveal, one texture beat, then out into the street at first light.",
-    shots: [
-      {
-        slug: "Plinth reveal",
-        action:
-          "The shoe alone on a low plinth against a swept studio wall, one hard key raking in from the left and a long shadow off to the right.",
-        framing: "Medium",
-        lens: "85mm",
-        movement: "Slow push in",
-        durationSeconds: 5,
-        image: "/storyboards/sneaker-drop/plinth-reveal.webp"
-      },
-      {
-        slug: "Sole macro",
-        action:
-          "Hard macro across the sole: tread blocks running out of focus at both edges, the accent orange picked out in the channels.",
-        framing: "Extreme close-up",
-        lens: "100mm macro",
-        movement: "Pan left across the tread",
-        durationSeconds: 4,
-        image: "/storyboards/sneaker-drop/sole-macro.webp"
-      },
-      {
-        slug: "Street run-out",
-        action:
-          "Out of the studio: a runner cuts across an empty street at first light, skyline flat behind, the shoe the only warm thing in frame.",
-        framing: "Wide",
-        lens: "35mm",
-        movement: "Whip pan right with the runner",
-        durationSeconds: 6,
-        image: "/storyboards/sneaker-drop/street-run-out.webp"
-      }
-    ]
-  },
-  {
     slug: "lighthouse-keeper",
     name: "Lighthouse Keeper",
     category: "Short film opening",
@@ -113,10 +74,50 @@ export const storyboardExamples: readonly StoryboardExample[] = [
     ]
   },
   {
+    slug: "sneaker-drop",
+    name: "Sneaker Drop",
+    category: "15-second product spot",
+    brief:
+      "Fifteen seconds for a running-shoe launch. Studio reveal, one texture beat, then out into the street at first light.",
+    shots: [
+      {
+        slug: "Plinth reveal",
+        action:
+          "The shoe alone on a low plinth against a swept studio wall, one hard key raking in from the left and a long shadow off to the right.",
+        framing: "Medium",
+        lens: "85mm",
+        movement: "Slow push in",
+        durationSeconds: 5,
+        image: "/storyboards/sneaker-drop/plinth-reveal.webp"
+      },
+      {
+        slug: "Sole macro",
+        action:
+          "Hard macro across the sole: tread blocks running out of focus at both edges, the accent orange picked out in the channels.",
+        framing: "Extreme close-up",
+        lens: "100mm macro",
+        movement: "Pan left across the tread",
+        durationSeconds: 4,
+        image: "/storyboards/sneaker-drop/sole-macro.webp"
+      },
+      {
+        slug: "Street run-out",
+        action:
+          "Out of the studio: a runner cuts across an empty street at first light, skyline flat behind, the shoe the only warm thing in frame.",
+        framing: "Wide",
+        lens: "35mm",
+        movement: "Whip pan right with the runner",
+        durationSeconds: 6,
+        image: "/storyboards/sneaker-drop/street-run-out.webp"
+      }
+    ]
+  },
+  {
     slug: "first-light",
     name: "First Light",
     category: "Travel teaser",
-    brief: "A three-shot travel teaser from dune to canyon to camp.",
+    brief:
+      "Ten seconds of travel teaser. Dune at pre-dawn, a canyon road catching the first sun, then a lit tent under the Milky Way.",
     shots: [
       {
         slug: "Dunes before sunrise",

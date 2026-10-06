@@ -212,11 +212,6 @@ export default function Home() {
           </div>
         </section>
 
-        {/* The agent, directly under the hero: a brief becomes a project that
-            is still open, and the next note goes back to the agent
-            (NARRATIVE.md § Order of the page) */}
-        <ProjectSection />
-
         {/* What the reader controls once the agent has built something: the
             six editors, each over a loop of the real thing (#surface-<id>) */}
         <SurfaceShowcase />
@@ -232,6 +227,11 @@ export default function Home() {
 
         {/* The example storyboards that ship with the app, shot by shot */}
         <StoryboardExamplesSection />
+
+        {/* The agent builds a project from a brief: shown once the reader has
+            seen the boards and cuts it produces (NARRATIVE.md § Order of the
+            page) */}
+        <ProjectSection />
 
         {/* Model breadth on your own keys, under the agent story rather than in
             front of it */}
