@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Box3, GridHelper, Matrix4, PerspectiveCamera, Quaternion, Vector3 } from "three";
+import { Box3, GridHelper, Matrix4, Object3D, PerspectiveCamera, Quaternion, Vector3 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { FlyControls } from "three/addons/controls/FlyControls.js";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
@@ -15,6 +15,7 @@ import OpenWithIcon from "@mui/icons-material/OpenWith";
 import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined";
 import ThreeSixtyIcon from "@mui/icons-material/ThreeSixty";
 import { BORDER_RADIUS, Box, Caption, FlexColumn, FlexRow, FONT_SIZE_SANS, SPACING, ToolbarIconButton } from "../ui_primitives";
+import { syncGameTransformTarget3D } from "./gameTransformTarget3D";
 import GamePanelHeader from "./GamePanelHeader";
 import { createGameViewportOverlays3D, disposeGameViewportOverlays3D } from "./gameViewportOverlays3D";
 import type { GamePlaySession3D } from "./useGamePlaySession3D";
@@ -58,7 +59,7 @@ export default function GameViewport3D({ document, host, selectedId, sceneId, on
   const [flyMode, setFlyMode] = useState(false);
   const [overlays, setOverlays] = useState(true);
   const cameraPoseRef = useRef({ position: [8, 7, 10], target: [0, 1, 0] });
-  const controlsRef = useRef<{ orbit: OrbitControls; gizmo: TransformControls; camera: PerspectiveCamera } | null>(null);
+  const controlsRef = useRef<{ orbit: OrbitControls; gizmo: TransformControls; camera: PerspectiveCamera; target: Object3D } | null>(null);
   const selectedRef = useRef(selectedId);
   selectedRef.current = selectedId;
   const currentRef = useRef({ document, frame: host.frame, onOps, sceneId });
@@ -80,7 +81,9 @@ export default function GameViewport3D({ document, host, selectedId, sceneId, on
     if (flyMode) { orbit.enabled = false; }
     const gizmo = new TransformControls(camera, canvas);
     renderer.getScene().add(gizmo.getHelper());
-    controlsRef.current = { orbit, gizmo, camera };
+    const target = new Object3D();
+    renderer.getScene().add(target);
+    controlsRef.current = { orbit, gizmo, camera, target };
     let dragging = false;
     let pending: GameTransform3D | null = null;
     let preview: GameRenderFrame3D | null = null;
@@ -183,9 +186,10 @@ export default function GameViewport3D({ document, host, selectedId, sceneId, on
       gizmo.removeEventListener("dragging-changed", draggingChange);
       canvas.removeEventListener("pointerdown", down);
       canvas.removeEventListener("pointerup", up);
-      renderer.getScene().remove(grid, gizmo.getHelper());
+      renderer.getScene().remove(grid, gizmo.getHelper(), target);
       grid.geometry.dispose();
       if (Array.isArray(grid.material)) { grid.material.forEach((material) => material.dispose()); } else { grid.material.dispose(); }
+      gizmo.detach();
       gizmo.dispose();
       orbit.dispose();
       renderer.setEditorCamera(null);
@@ -198,7 +202,7 @@ export default function GameViewport3D({ document, host, selectedId, sceneId, on
     const renderer = host.rendererRef.current;
     if (!controls || !renderer) { return; }
     const object = selectedId ? renderer.getEntityObject(selectedId) : null;
-    if (object) { controls.gizmo.attach(object); } else { controls.gizmo.detach(); }
+    if (syncGameTransformTarget3D(controls.target, object)) { controls.gizmo.attach(controls.target); } else { controls.gizmo.detach(); }
     controls.gizmo.setMode(mode);
     controls.gizmo.setTranslationSnap(snap ? 0.25 : null);
     controls.gizmo.setRotationSnap(snap ? Math.PI / 12 : null);
