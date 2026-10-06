@@ -3,7 +3,7 @@
  * the model, and the settings, so the same recipe is at hand for a variant.
  */
 
-import { render, screen } from "@testing-library/react";
+import { fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 
 import mockTheme from "../../../__mocks__/themeMock";
@@ -16,6 +16,17 @@ jest.mock("../../../stores/AssetGridStore", () => ({
 jest.mock("../../../contexts/WorkflowManagerContext", () => ({
   useWorkflowManager: <T,>(selector: (s: { getWorkflow: () => null }) => T) =>
     selector({ getWorkflow: () => null })
+}));
+
+const openWorkflow = jest.fn();
+const openSnapshot = jest.fn();
+jest.mock("../../../hooks/useOpenAssetWorkflow", () => ({
+  useOpenAssetWorkflow: () => ({ openWorkflow, openSnapshot })
+}));
+
+let snapshotData: unknown = undefined;
+jest.mock("../../../serverState/useJobSnapshot", () => ({
+  useJobSnapshot: () => ({ data: snapshotData })
 }));
 
 import AssetInfoPanel from "../AssetInfoPanel";
@@ -83,5 +94,74 @@ describe("AssetInfoPanel generation settings", () => {
       generation: { model: "m", params: { seed: 1 } }
     });
     expect(container.textContent).not.toContain("[object Object]");
+  });
+});
+
+describe("AssetInfoPanel workflow actions", () => {
+  const generated = {
+    ...asset(null),
+    workflow_id: "wf-1",
+    node_id: "gen",
+    job_id: "job-1"
+  } as Asset;
+  const snapshot = {
+    id: "job-1",
+    workflow_id: "wf-1",
+    name: null,
+    started_at: null,
+    graph: { nodes: [], edges: [] },
+    params: {}
+  };
+
+  beforeEach(() => {
+    jest.clearAllMocks();
+    snapshotData = undefined;
+  });
+
+  const renderGenerated = (onOpenWorkflow?: () => void) =>
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <AssetInfoPanel asset={generated} onOpenWorkflow={onOpenWorkflow} />
+      </ThemeProvider>
+    );
+
+  it("opens the saved workflow and lets the host close", () => {
+    const onOpenWorkflow = jest.fn();
+    renderGenerated(onOpenWorkflow);
+
+    fireEvent.click(screen.getByRole("button", { name: /open workflow/i }));
+
+    expect(openWorkflow).toHaveBeenCalledWith(generated);
+    expect(onOpenWorkflow).toHaveBeenCalled();
+  });
+
+  it("opens the run's graph when the job stored one", () => {
+    snapshotData = snapshot;
+    renderGenerated();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: /open as it was when made/i })
+    );
+
+    expect(openSnapshot).toHaveBeenCalledWith(generated, snapshot);
+  });
+
+  it("hides the as-made action when the job stored no graph", () => {
+    snapshotData = { ...snapshot, graph: null };
+    renderGenerated();
+
+    expect(
+      screen.queryByRole("button", { name: /open as it was when made/i })
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /open workflow/i })
+    ).toBeInTheDocument();
+  });
+
+  it("offers no workflow action for an uploaded asset", () => {
+    renderPanel(null);
+    expect(
+      screen.queryByRole("button", { name: /open workflow/i })
+    ).not.toBeInTheDocument();
   });
 });

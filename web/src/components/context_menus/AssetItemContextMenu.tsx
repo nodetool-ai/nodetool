@@ -351,7 +351,12 @@ const AssetItemContextMenu = () => {
           IconComponent={<RemoveCircleIcon />}
           tooltip="Delete selected assets"
         />
-        {singleAsset && <AssetInfoPanel asset={singleAsset} />}
+        {singleAsset && (
+          <AssetInfoPanel
+            asset={singleAsset}
+            onOpenWorkflow={closeContextMenu}
+          />
+        )}
       </ContextMenu>
     </>
   );

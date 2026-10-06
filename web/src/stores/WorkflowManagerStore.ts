@@ -307,7 +307,10 @@ export type WorkflowManagerState = {
     options?: { makeCurrent?: boolean; throwOnError?: boolean }
   ) => Promise<Workflow | undefined>;
   newWorkflow: (projectId?: string) => Workflow;
-  createNew: (projectId?: string) => Promise<Workflow>;
+  createNew: (
+    projectId?: string,
+    init?: Pick<Partial<Workflow>, "name" | "graph">
+  ) => Promise<Workflow>;
   create: (
     workflow: WorkflowRequest,
     fromExamplePackage?: string,
@@ -637,8 +640,8 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
        * Does not save to server until saveWorkflow() is explicitly called.
        * @returns {Promise<Workflow>} The created workflow
        */
-      createNew: async (projectId?: string) => {
-        const workflow = get().newWorkflow(projectId);
+      createNew: async (projectId, init) => {
+        const workflow = { ...get().newWorkflow(projectId), ...init };
         get().addWorkflow(workflow);
         set((state) => ({
           unsavedWorkflowIds: {
