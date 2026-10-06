@@ -22,3 +22,7 @@ export function request() {
 export function createRequire() {
   throw new Error("Browser stub: node:module.createRequire not supported");
 }
+
+export function crc32() {
+  throw new Error("Browser stub: node:zlib.crc32 not supported");
+}
