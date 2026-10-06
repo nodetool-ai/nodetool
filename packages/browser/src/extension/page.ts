@@ -49,12 +49,15 @@ export async function createExtensionPage(
   options: CreateExtensionPageOptions = {}
 ): Promise<ExtensionPageHandle> {
   const viewport = options.viewport ?? DEFAULT_VIEWPORT;
-  const cdp = new ExtensionCdpClient(transport, { sessionId: options.sessionId });
+  const clientOptions: ExtensionCdpClientOptions = { sessionId: options.sessionId };
+  if (options.commandTimeoutMs !== undefined) clientOptions.commandTimeoutMs = options.commandTimeoutMs;
+  const cdp = new ExtensionCdpClient(transport, clientOptions);
 
   let attached = false;
   try {
     await cdp.attach(undefined, options.urlMatch);
     attached = true;
+    await cdp.checkHealth();
 
     const page = await CdpPage.create(cdp.client, viewport);
     await cdp.client.Emulation.setDeviceMetricsOverride({

@@ -3,7 +3,8 @@ import { css } from "@emotion/react";
 import React, { memo, useMemo } from "react";
 import type { NodeMetadata } from "../../../stores/ApiTypes";
 import type { NodeData } from "../../../stores/NodeData";
-import { FlexColumn, GAP, PADDING } from "../../ui_primitives";
+import ViewTimelineIcon from "@mui/icons-material/ViewTimeline";
+import { CheckerDropzone, FlexColumn, GAP, PADDING } from "../../ui_primitives";
 import { NodeInputs } from "../../node/NodeInputs";
 import { NodeOutputs } from "../../node/NodeOutputs";
 import OutputRenderer from "../../node/OutputRenderer";
@@ -71,7 +72,11 @@ const ConstantTimelineBody: React.FC<ConstantTimelineBodyProps> = ({
       gap={GAP.tight}
     >
       <FlexColumn className="constant-timeline-body__preview" fullWidth>
-        <OutputRenderer value={value} showTextActions={false} />
+        {value === undefined || value === null ? (
+          <CheckerDropzone message="Choose a timeline" icon={<ViewTimelineIcon />} />
+        ) : (
+          <OutputRenderer value={value} showTextActions={false} />
+        )}
       </FlexColumn>
       {valueProperties.length > 0 && (
         <FlexColumn className="constant-timeline-body__fields" fullWidth>

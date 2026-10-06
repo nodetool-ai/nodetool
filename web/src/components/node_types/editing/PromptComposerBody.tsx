@@ -96,8 +96,7 @@ const styles = (theme: Theme) =>
       "&:hover": { borderColor: theme.vars.palette.divider },
       "&:focus-within": {
         background: theme.vars.palette.background.default,
-        borderColor: theme.vars.palette.primary.main,
-        outline: `1px solid ${theme.vars.palette.primary.main}`
+        borderColor: theme.vars.palette.primary.main
       }
     },
     ".composer-input": {

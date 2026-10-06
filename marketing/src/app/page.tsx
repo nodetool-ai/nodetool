@@ -20,7 +20,6 @@ import RecipeShowcase from "../components/RecipeShowcase";
 import AdLibraryOverview from "../components/AdLibraryOverview";
 import StoryboardExamplesSection from "../components/StoryboardExamplesSection";
 import UnderneathSection from "../components/UnderneathSection";
-import AppsSection from "../components/AppsSection";
 import WaysInSection from "../components/WaysInSection";
 import FaqBlock from "../components/FaqBlock";
 import { XMarkIcon } from "@heroicons/react/24/outline";
@@ -218,10 +217,6 @@ export default function Home() {
 
         <TimelineShowcase />
 
-        {/* Proof, after the product is understood: guided recipes with editable
-            steps and example media */}
-        <RecipeShowcase compact />
-
         {/* Social ad concepts, each a rendered NodeTool timeline */}
         <AdLibraryOverview compact />
 
@@ -237,8 +232,9 @@ export default function Home() {
             front of it */}
         <ModelSupportSection reducedMotion={reducedMotion} />
 
-        {/* One job, one tool — for the reader who is not here to direct a film */}
-        <AppsSection />
+        {/* Proof once the story has landed, after the apps: guided recipes with editable
+            steps and example media */}
+        <RecipeShowcase compact />
 
         {/* Ownership: keys, project file, source. Local inference stays on
             /studio; the calculator lives on /pricing. */}

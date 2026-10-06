@@ -14,6 +14,7 @@ import {
   isComfyConnection,
   normalizeComfyPrompt,
   parseComfyWorkflowJson,
+  readComfyAppModeInputs,
   resolveComfySchema,
   resolveComfyWorkflow,
   type ComfyWorkflowPrompt
@@ -46,8 +47,12 @@ const samplePrompt: ComfyWorkflowPrompt = {
   }
 };
 
-/** A PNG holding only a `tEXt` chunk and `IEND`. CRCs are not checked. */
+/** A PNG holding only `tEXt` chunks and `IEND`. CRCs are not checked. */
 function pngWithText(key: string, text: string): Uint8Array {
+  return pngWithTexts({ [key]: text });
+}
+
+function pngWithTexts(texts: Record<string, string>): Uint8Array {
   const signature = [137, 80, 78, 71, 13, 10, 26, 10];
   const chunk = (type: string, data: Uint8Array): number[] => {
     const length = data.length;
@@ -64,14 +69,19 @@ function pngWithText(key: string, text: string): Uint8Array {
       0
     ];
   };
-  const textData = Buffer.concat([
-    Buffer.from(key, "latin1"),
-    Buffer.from([0]),
-    Buffer.from(text, "utf8")
-  ]);
+  const textChunks = Object.entries(texts).flatMap(([key, text]) =>
+    chunk(
+      "tEXt",
+      Buffer.concat([
+        Buffer.from(key, "latin1"),
+        Buffer.from([0]),
+        Buffer.from(text, "utf8")
+      ])
+    )
+  );
   return Uint8Array.from([
     ...signature,
-    ...chunk("tEXt", textData),
+    ...textChunks,
     ...chunk("IEND", new Uint8Array())
   ]);
 }
@@ -200,6 +210,160 @@ describe("resolveComfyWorkflow", () => {
     });
     expect(fromObject).toEqual(fromText);
     expect(fromPng).toEqual(fromText);
+  });
+});
+
+/** The UI graph ComfyUI saves, with inputs picked in App Mode. */
+const appModeWorkflow = {
+  id: "0f6c1d3e-7a2b-4c5d-8e9f-a0b1c2d3e4f5",
+  nodes: [],
+  links: [],
+  extra: {
+    linearData: {
+      inputs: [
+        ["0f6c1d3e-7a2b-4c5d-8e9f-a0b1c2d3e4f5:3:seed", "seed"],
+        [
+          "0f6c1d3e-7a2b-4c5d-8e9f-a0b1c2d3e4f5:10:image",
+          "image",
+          { description: "Reference photo" }
+        ],
+        // Legacy entry: a bare node id and the widget name.
+        [6, "text"],
+        // A connection in the prompt has no literal to replace.
+        ["0f6c1d3e-7a2b-4c5d-8e9f-a0b1c2d3e4f5:3:model", "model"],
+        // A subgraph locator and an unknown node do not map onto the prompt.
+        ["a1b2c3d4-0000-4000-8000-000000000000:7", "steps"],
+        ["0f6c1d3e-7a2b-4c5d-8e9f-a0b1c2d3e4f5:99:seed", "seed"]
+      ],
+      outputs: [9]
+    }
+  }
+};
+
+describe("App Mode inputs", () => {
+  it("reads entries that name a literal input of the prompt", () => {
+    expect(readComfyAppModeInputs(appModeWorkflow, samplePrompt)).toEqual([
+      { nodeId: "3", field: "seed" },
+      { nodeId: "10", field: "image", description: "Reference photo" },
+      { nodeId: "6", field: "text" }
+    ]);
+  });
+
+  it("decodes URI-encoded widget id segments", () => {
+    const prompt: ComfyWorkflowPrompt = {
+      "4": { class_type: "Custom", inputs: { "a:b": 1 } }
+    };
+    const workflow = {
+      extra: { linearData: { inputs: [["g:4:a%3Ab", "a:b"]] } }
+    };
+    expect(readComfyAppModeInputs(workflow, prompt)).toEqual([
+      { nodeId: "4", field: "a:b" }
+    ]);
+  });
+
+  it("exposes exactly the App Mode inputs, typed by node and value", () => {
+    const schema = resolveComfySchema(samplePrompt, appModeWorkflow);
+    expect(schema.app_mode_inputs).toBe(true);
+    expect(schema.dynamic_inputs).toEqual({
+      "3:seed": {
+        type: { type: "int", type_args: [], optional: true },
+        description: "KSampler · seed",
+        default: 42
+      },
+      "6:text": {
+        type: { type: "str", type_args: [], optional: true },
+        description: "Positive Prompt · text",
+        default: "a cat"
+      },
+      "10:image": {
+        type: { type: "image", type_args: [], optional: true },
+        description: "Reference photo",
+        default: "input.png"
+      }
+    });
+    expect(schema.dynamic_properties).toEqual({
+      "3:seed": 42,
+      "6:text": "a cat",
+      "10:image": "input.png"
+    });
+    const handles = schema.available_params.map((p) => p.handle);
+    expect(handles).toContain("3:steps");
+    expect(handles).not.toContain("3:seed");
+  });
+
+  it("leaves Load* media and prompt text to the user when App Mode skips them", () => {
+    const workflow = {
+      extra: { linearData: { inputs: [["g:3:steps", "steps"]] } }
+    };
+    const schema = resolveComfySchema(samplePrompt, workflow);
+    expect(Object.keys(schema.dynamic_inputs)).toEqual(["3:steps"]);
+    const handles = schema.available_params.map((p) => p.handle);
+    expect(handles).toContain("10:image");
+    expect(handles).toContain("6:text");
+  });
+
+  it("falls back to Load* media and prompt text without App Mode inputs", () => {
+    for (const workflow of [
+      undefined,
+      { nodes: [], extra: {} },
+      { extra: { linearData: { inputs: [] } } },
+      { extra: { linearData: { inputs: [["g:99:seed", "seed"]] } } }
+    ]) {
+      const schema = resolveComfySchema(samplePrompt, workflow);
+      expect(schema.app_mode_inputs).toBe(false);
+      expect(Object.keys(schema.dynamic_inputs).sort()).toEqual([
+        "10:image",
+        "6:text"
+      ]);
+    }
+  });
+
+  it("reads the UI graph from a PNG's workflow chunk", () => {
+    const schema = resolveComfyWorkflow({
+      png_base64: Buffer.from(
+        pngWithTexts({
+          prompt: JSON.stringify(samplePrompt),
+          workflow: JSON.stringify(appModeWorkflow)
+        })
+      ).toString("base64")
+    });
+    expect(schema.app_mode_inputs).toBe(true);
+    expect(schema.prompt).toEqual(samplePrompt);
+    expect(Object.keys(schema.dynamic_inputs)).toEqual([
+      "3:seed",
+      "6:text",
+      "10:image"
+    ]);
+  });
+
+  it("ignores an unparseable workflow chunk", () => {
+    const schema = resolveComfyWorkflow({
+      png_base64: Buffer.from(
+        pngWithTexts({
+          prompt: JSON.stringify(samplePrompt),
+          workflow: "{oops"
+        })
+      ).toString("base64")
+    });
+    expect(schema.app_mode_inputs).toBe(false);
+  });
+
+  it("reads the UI graph beside a prompt in JSON", () => {
+    const wrapped = resolveComfyWorkflow({
+      workflow: JSON.stringify({
+        prompt: samplePrompt,
+        workflow: appModeWorkflow
+      })
+    });
+    const requestBody = resolveComfyWorkflow({
+      workflow: {
+        prompt: samplePrompt,
+        extra_data: { extra_pnginfo: { workflow: appModeWorkflow } }
+      }
+    });
+    expect(wrapped.app_mode_inputs).toBe(true);
+    expect(wrapped.prompt).toEqual(samplePrompt);
+    expect(requestBody).toEqual(wrapped);
   });
 });
 

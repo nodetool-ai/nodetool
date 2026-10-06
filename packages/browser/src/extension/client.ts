@@ -30,6 +30,12 @@ const log = createLogger("nodetool.browser.extension");
 /** Heartbeat interval. A missed pong by the next tick fails the connection. */
 const HEARTBEAT_MS = 15_000;
 
+/** A command without a reply by then fails, so a stuck tab cannot hang a caller. */
+const DEFAULT_COMMAND_TIMEOUT_MS = 120_000;
+
+/** A responsive tab evaluates `1` well inside this. */
+const HEALTH_CHECK_TIMEOUT_MS = 5_000;
+
 /** A bidirectional frame channel to the extension. */
 export interface ExtensionChannel {
   /** Send a host→ext frame. */
@@ -90,6 +96,8 @@ interface PendingCommand {
 export interface ExtensionCdpClientOptions {
   /** Logical session key routed in attach/detach control frames. */
   sessionId?: string;
+  /** How long a CDP command may wait for its reply. */
+  commandTimeoutMs?: number;
 }
 
 /**
@@ -102,6 +110,8 @@ export interface ExtensionCdpClientOptions {
 export class ExtensionCdpClient {
   private readonly channel: ExtensionChannel;
   private readonly sessionId?: string;
+  private readonly commandTimeoutMs: number;
+  private tabId: number | null = null;
   private nextId = 1;
   private readonly pending = new Map<number, PendingCommand>();
   /** method → set of listeners. CDP event names are fully qualified. */
@@ -125,6 +135,7 @@ export class ExtensionCdpClient {
     options: ExtensionCdpClientOptions = {}
   ) {
     this.sessionId = options.sessionId;
+    this.commandTimeoutMs = options.commandTimeoutMs ?? DEFAULT_COMMAND_TIMEOUT_MS;
     this.channel = transport ?? createSocketChannel();
     this.channel.onMessage((frame) => this.handleFrame(frame));
     this.client = this.buildClient();
@@ -159,6 +170,20 @@ export class ExtensionCdpClient {
       log.debug("Sending attach frame", { sessionId: this.sessionId });
       this.channel.send({ kind: "attach", sessionId: this.sessionId, urlMatch });
     });
+  }
+
+  /**
+   * Evaluate `1` in the attached tab. Chrome acknowledges an attach even when
+   * the tab's renderer is frozen or discarded, and then no command ever
+   * returns. This turns that state into one clear error.
+   */
+  async checkHealth(timeoutMs = HEALTH_CHECK_TIMEOUT_MS): Promise<void> {
+    try {
+      await this.sendCommand("Runtime.evaluate", { expression: "1", returnByValue: true }, timeoutMs);
+    } catch (err) {
+      const tab = this.tabId === null ? "The attached tab" : `The attached tab (id ${this.tabId})`;
+      throw new Error(`${tab} does not respond to the debugger. Reload the tab and try again`, { cause: err });
+    }
   }
 
   /** Send a `detach` control frame. Does not close the transport. */
@@ -234,7 +259,8 @@ export class ExtensionCdpClient {
 
   private sendCommand(
     method: string,
-    params?: Record<string, unknown>
+    params?: Record<string, unknown>,
+    timeoutMs = this.commandTimeoutMs
   ): Promise<Record<string, unknown>> {
     if (this.closed) {
       return Promise.reject(new Error("Extension CDP connection closed"));
@@ -248,7 +274,17 @@ export class ExtensionCdpClient {
       sessionId: this.sessionId
     };
     return new Promise<Record<string, unknown>>((resolve, reject) => {
-      this.pending.set(id, { resolve, reject });
+      const timer = setTimeout(() => {
+        if (!this.pending.delete(id)) return;
+        this.updateBusy();
+        log.warn(`CDP ${method} timed out after ${timeoutMs}ms`, { tabId: this.tabId });
+        reject(new Error(`CDP ${method} timed out after ${timeoutMs}ms. The tab may be frozen. Reload it and try again`));
+      }, timeoutMs);
+      timer.unref?.();
+      this.pending.set(id, {
+        resolve: (result) => { clearTimeout(timer); resolve(result); },
+        reject: (err) => { clearTimeout(timer); reject(err); }
+      });
       this.updateBusy();
       try {
         this.channel.send(frame);
@@ -290,6 +326,7 @@ export class ExtensionCdpClient {
         break;
       case "attached":
         log.info("Extension attached", { tabId: frame.tabId });
+        this.tabId = frame.tabId;
         this.attachResolve?.();
         this.attachResolve = null;
         this.attachReject = null;

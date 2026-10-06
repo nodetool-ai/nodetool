@@ -19,8 +19,8 @@ import {
 import { getSpacingPx, SPACING } from "../ui_primitives";
 
 const rootCss = css({
-  marginTop: getSpacingPx(SPACING.xl),
-  marginBottom: getSpacingPx(SPACING.md)
+  marginTop: getSpacingPx(SPACING.xs),
+  marginBottom: 0
 });
 
 interface NodeInputsProps {

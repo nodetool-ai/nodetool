@@ -7,7 +7,6 @@ import { storyboardExamples } from "../../src/data/storyboardExamples";
 // navigation are exercised without opening a page for every prerendered route.
 const HYDRATION_ROUTES = [
   "/",
-  "/apps",
   "/models",
   "/recipes/ugc-product-video",
   "/download"
@@ -26,17 +25,6 @@ test.describe("marketing smoke", () => {
       await expect(page.locator("h1")).toBeVisible();
     });
   }
-
-  test("mini-app cards show available results", async ({ page }) => {
-    await page.goto("/apps");
-    await expect(
-      page.getByRole("heading", { name: "AI mini apps anyone can use" })
-    ).toBeVisible();
-    await expect(page.getByTestId("mini-app-result").first()).toBeVisible();
-    const appCard = page.locator('a[href="/apps/ad-maker"]');
-    await expect(appCard.getByTestId("mini-app-result")).toBeVisible();
-    await expect(appCard.getByAltText("Ad Maker mini app")).toHaveCount(0);
-  });
 
   test("shared header exposes the global nav (Pricing + Docs)", async ({
     page
@@ -250,20 +238,6 @@ test.describe("marketing smoke", () => {
     expect(duration).toBeLessThan(15.2);
   });
 
-  test("the UGC mini app shows its captured outputs without recipe proof", async ({
-    page
-  }) => {
-    await page.goto("/apps/ugc-product-video");
-
-    await expect(
-      page.getByRole("heading", { name: "Output from a live run" })
-    ).toBeVisible();
-    await expect(page.getByText("Final Poster", { exact: true })).toBeVisible();
-    await expect(
-      page.getByRole("region", { name: "Turns out I needed the green one." })
-    ).toHaveCount(0);
-  });
-
   test("every UGC recipe step shows its source visual", async ({ page }) => {
     await page.goto("/recipes/ugc-product-video");
 
@@ -467,9 +441,6 @@ test.describe("marketing smoke", () => {
     ).toHaveAttribute("href", "/alternatives/weavy");
 
     await page.goto("/templates");
-    await expect(
-      page.getByRole("link", { name: "runnable mini apps" })
-    ).toHaveAttribute("href", "/apps");
     await expect(
       page.getByRole("link", { name: "node-based AI workflows" })
     ).toHaveAttribute("href", "/node-based-ai");

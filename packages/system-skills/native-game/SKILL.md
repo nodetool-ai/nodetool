@@ -342,6 +342,29 @@ that would cross the byte limit instead of splitting its undo operations.
 
 ### W: Foundation interfaces
 
+The 3D session runs input, scripts, character movement, physics, contacts,
+gameplay rules, animation presentation, and presentation events in that order.
+Animation commands take effect during the script phase. The animation phase
+updates hierarchy and camera presentation, then finalizes simulation events, RNG,
+and tick state. The presentation system only mirrors the committed output.
+Feature systems live in `packages/game-runtime/src/systems/`. The 2D session retains its existing
+movement and script ordering through input, scripts, physics, contacts, gameplay,
+and presentation phases.
+
+Each `GameSystem` exposes `init`, `step`, `snapshot`, and `restore`.
+`GameSystemPipeline` initializes and steps systems in registration order. It
+restores them in reverse order so gameplay restores entities before spatial
+adapters restore their state. Stateful systems expose their existing session
+state through these methods. Stateless systems snapshot to `null`. This lifecycle
+preserves the public session snapshot format.
+
+For runtime diagnostics, open a session with `recordTimings: true` and read
+`step(input).timings`, a `GameStepTimings` value with `systems` entries containing
+`system` and `durationMs`, plus `totalMs`. Timing measurements are disabled by default and are not
+saved. Read `session.takePresentationEvents()` after each tick to consume the
+latest tick's presentation events. Consuming them does not change gameplay events
+or snapshots. The channel is empty after restoring a session.
+
 ### B: Benchmarks and verification
 
 After export, run `nodetool game smoke <directory>` to load the built player in

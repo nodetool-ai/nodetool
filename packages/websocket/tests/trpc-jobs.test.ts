@@ -195,6 +195,120 @@ describe("jobs router", () => {
     });
   });
 
+  // ── snapshot ────────────────────────────────────────────────────
+  describe("snapshot", () => {
+    const mockJob = (fields: Record<string, unknown>) =>
+      (Job.get as ReturnType<typeof vi.fn>).mockResolvedValue({
+        ...makeJob({ id: "j1", started_at: "2026-10-06T10:00:00.000Z" }),
+        name: "Run",
+        ...fields
+      });
+
+    it("returns a kernel-form graph in the editor shape with the run's inputs", async () => {
+      mockJob({
+        params: { prompt: "a red fox" },
+        graph: {
+          nodes: [
+            {
+              id: "in",
+              type: "nodetool.input.StringInput",
+              properties: { name: "prompt", value: "default" },
+              ui_properties: { position: { x: 1, y: 2 } },
+              propertyTypes: { value: "str" },
+              is_streaming_output: false
+            },
+            {
+              id: "gen",
+              type: "nodetool.image.TextToImage",
+              properties: { width: 512 },
+              dynamic_properties: {}
+            }
+          ],
+          edges: [
+            {
+              id: "e1",
+              source: "in",
+              sourceHandle: "output",
+              target: "gen",
+              targetHandle: "prompt",
+              edge_type: "data"
+            }
+          ]
+        }
+      });
+
+      const result = await createCaller(makeCtx()).jobs.snapshot({ id: "j1" });
+
+      expect(result).toMatchObject({
+        id: "j1",
+        workflow_id: "wf-1",
+        name: "Run",
+        started_at: "2026-10-06T10:00:00.000Z",
+        params: { prompt: "a red fox" }
+      });
+      expect(result.graph).toEqual({
+        nodes: [
+          {
+            id: "in",
+            type: "nodetool.input.StringInput",
+            data: { name: "prompt", value: "a red fox" },
+            ui_properties: { position: { x: 1, y: 2 } }
+          },
+          {
+            id: "gen",
+            type: "nodetool.image.TextToImage",
+            data: { width: 512 },
+            dynamic_properties: {}
+          }
+        ],
+        edges: [
+          {
+            id: "e1",
+            source: "in",
+            sourceHandle: "output",
+            target: "gen",
+            targetHandle: "prompt",
+            edge_type: "data"
+          }
+        ]
+      });
+    });
+
+    it("keeps an editor-form graph's data", async () => {
+      mockJob({
+        params: {},
+        graph: {
+          nodes: [{ id: "n", type: "x.Y", data: { a: 1 } }],
+          edges: []
+        }
+      });
+      const result = await createCaller(makeCtx()).jobs.snapshot({ id: "j1" });
+      expect(result.graph?.nodes).toEqual([
+        { id: "n", type: "x.Y", data: { a: 1 } }
+      ]);
+    });
+
+    it("returns a null graph for an empty placeholder graph", async () => {
+      mockJob({ graph: { nodes: [], edges: [] }, params: {} });
+      const result = await createCaller(makeCtx()).jobs.snapshot({ id: "j1" });
+      expect(result.graph).toBeNull();
+    });
+
+    it("returns a null graph when the job stored none", async () => {
+      mockJob({ graph: null, params: null });
+      const result = await createCaller(makeCtx()).jobs.snapshot({ id: "j1" });
+      expect(result.graph).toBeNull();
+      expect(result.params).toBeNull();
+    });
+
+    it("throws NOT_FOUND when the user does not own the job", async () => {
+      mockJob({ user_id: "other-user", graph: { nodes: [], edges: [] } });
+      await expect(
+        createCaller(makeCtx()).jobs.snapshot({ id: "j1" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+    });
+  });
+
   // ── cancel ──────────────────────────────────────────────────────
   describe("cancel", () => {
     it("marks the job cancelled, saves, and returns background shape", async () => {

@@ -237,7 +237,6 @@ export default function BlogHub() {
           <div className="mt-6 grid gap-4 sm:grid-cols-2">
             {[
               { href: "/templates", label: "Workflow templates", note: "Runnable graphs for image, video, audio, and agents." },
-              { href: "/apps", label: "Mini apps", note: "Workflows wrapped in a focused interface." },
               { href: "/models", label: "Models & providers", note: "What the nodes can point at." },
               { href: "/pricing", label: "Pricing", note: "Free Studio, your keys, provider prices." },
             ].map((item) => (

@@ -11,6 +11,8 @@
   max-height: var(--node-collapsed-max-height) !important;
   overflow: var(--node-collapsed-overflow) !important;
   padding: 0 !important;
+  /* Handles step back by the body padding; a collapsed strip has none. */
+  --node-body-padding: 0px !important;
 }
 
 .react-flow__node.collapsed {
@@ -353,21 +355,21 @@
 }
 
 .react-flow__node.collapsed .react-flow__handle-left:not(.control-handle) {
-  transform-origin: right center !important;
+  transform-origin: center !important;
 }
 
 .react-flow__node.collapsed .react-flow__handle-right:not(.control-handle) {
-  transform-origin: left center !important;
+  transform-origin: center !important;
 }
 
 .react-flow__node.collapsed .react-flow__handle-left:not(.control-handle):hover {
   transform: translate(0, calc(-50% - var(--node-collapsed-handle-y-nudge)))
-    scale(1.75, 1.5) !important;
+    scale(1.3) !important;
 }
 
 .react-flow__node.collapsed .react-flow__handle-right:not(.control-handle):hover {
   transform: translate(0, calc(-50% - var(--node-collapsed-handle-y-nudge)))
-    scale(1.75, 1.5) !important;
+    scale(1.3) !important;
 }
 
 .react-flow__node.collapsed .handle-popup .react-flow__handle-left:not(.control-handle):hover,
@@ -375,7 +377,7 @@
 .react-flow__node.collapsed .output-handle-container .react-flow__handle-left:not(.control-handle):hover,
 .react-flow__node.collapsed .handle-popup .react-flow__handle-right:not(.control-handle):hover,
 .react-flow__node.collapsed .output-handle-container .react-flow__handle-right:not(.control-handle):hover {
-  transform: scale(1.75, 1.5) !important;
+  transform: scale(1.3) !important;
 }
 
 .react-flow__node.collapsed .react-flow__handle.control-handle-top {
@@ -455,7 +457,7 @@
           var(--node-collapsed-tall-handle-extra-nudge)
       )
     )
-    scale(1.3, 1) !important;
+    scale(1.15) !important;
 }
 
 .react-flow__node.collapsed .react-flow__handle-right.streaming-handle:not(.control-handle):hover {
@@ -466,7 +468,7 @@
           var(--node-collapsed-tall-handle-extra-nudge)
       )
     )
-    scale(1.3, 1) !important;
+    scale(1.15) !important;
 }
 
 .react-flow__node.collapsed .handle-popup .react-flow__handle-left.collect-handle:not(.control-handle):hover,
@@ -475,7 +477,7 @@
   .output-handle-container
   .react-flow__handle-right.streaming-handle:not(.control-handle):hover {
   transform: translate(0, calc(-1 * var(--node-collapsed-tall-handle-extra-nudge)))
-    scale(1.3, 1) !important;
+    scale(1.15) !important;
 }
 
 .react-flow__node-nodetool\.constant\.String
@@ -502,7 +504,7 @@
   .header-wrapper
   .input-handle-wrapper
   .react-flow__handle-left:not(.control-handle):hover {
-  transform: scale(1.75, 1.5) !important;
+  transform: scale(1.3) !important;
 }
 
 .react-flow__node-nodetool\.group\.Loop .loop-node.collapsed {

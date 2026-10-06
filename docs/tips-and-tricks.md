@@ -154,7 +154,6 @@ Press `Ctrl/⌘ + K` to open the command menu – the fastest way to:
 | `o` | Toggle Operator panel |
 | `Ctrl/⌘ + F` | Search nodes on canvas by label |
 | `Arrow keys` | Nudge selected nodes |
-| `Ctrl/⌘ + Shift + A` | Quick add node |
 | `Ctrl/⌘ + Alt + N` / `P` | Move focus to next / previous node |
 
 ---

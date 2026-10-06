@@ -1,6 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { createHash } from "node:crypto";
 import { DreaminaProvider, setDreaminaPageRunner } from "../../src/providers/dreamina-provider.js";
+import type { ImageModel, MusicModel, VideoModel } from "../../src/providers/types.js";
 
 interface CapturedCall { url: URL; headers: Record<string, string>; body: Record<string, any> }
 
@@ -44,6 +45,10 @@ const VIDEO_CONFIG = {
   ]
 };
 
+const IMAGE_MODEL: ImageModel = { id: "high_aes_general_v40", name: "Seedream 4.0", provider: "dreamina" };
+const INSTRUMENTAL: MusicModel = { id: "instrumental", name: "Dreamina Instrumental", provider: "dreamina" };
+const videoModel = (id: string): VideoModel => ({ id, name: id, provider: "dreamina" });
+
 const AUDIO_CONFIG = { song: { model_list: [{ model_req_key: "song_v1", model_name: "Song One", model_status: 0 }] } };
 
 function fakeRunner(history: unknown[]): { calls: CapturedCall[] } {
@@ -78,16 +83,12 @@ afterEach(() => {
 });
 
 describe("DreaminaProvider", () => {
-  it("lists no models without an attached extension", async () => {
-    expect(await new DreaminaProvider().getAvailableImageModels()).toEqual([]);
-  });
-
-  it("lists only text-to-image models from the site config", async () => {
-    fakeRunner([]);
+  it("lists the image catalog without touching the browser", async () => {
+    setDreaminaPageRunner({ evaluate: () => { throw new Error("listing must not reach the tab"); } });
     const models = await new DreaminaProvider().getAvailableImageModels();
-    expect(models.map((m) => m.id)).toEqual(["high_aes_general_v40"]);
-    expect(models[0].resolutions).toEqual(["2k"]);
-    expect(models[0].supportedTasks).toEqual(["text_to_image", "image_to_image"]);
+    expect(models.length).toBeGreaterThan(0);
+    expect(models.find((m) => m.id === "high_aes_general_v40")).toMatchObject({ resolutions: ["2k", "4k"], supportedTasks: ["text_to_image", "image_to_image"] });
+    expect(models.find((m) => m.id === "high_aes_general_v30l_art:general_v3.0_18b")?.supportedTasks).toEqual(["text_to_image"]);
   });
 
   it("signs the request, submits the draft, polls, and downloads the image", async () => {
@@ -98,7 +99,7 @@ describe("DreaminaProvider", () => {
     ]);
     vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([1, 2, 3]))));
     const provider = new DreaminaProvider();
-    const models = await provider.getAvailableImageModels();
+    const models = [IMAGE_MODEL];
 
     const pending = provider.textToImage({ model: models[0], prompt: "an apple", aspectRatio: "16:9", seed: 7 });
     await vi.advanceTimersByTimeAsync(10_000);
@@ -118,7 +119,7 @@ describe("DreaminaProvider", () => {
     vi.useFakeTimers();
     fakeRunner([{ task: { status: 30 }, fail_code: "1234", fail_msg: "Bad prompt" }]);
     const provider = new DreaminaProvider();
-    const models = await provider.getAvailableImageModels();
+    const models = [IMAGE_MODEL];
     const pending = provider.textToImage({ model: models[0], prompt: "x" });
     const settled = expect(pending).rejects.toThrow("Bad prompt (fail_code 1234)");
     await vi.advanceTimersByTimeAsync(5_000);
@@ -128,7 +129,7 @@ describe("DreaminaProvider", () => {
   it("rejects a ratio the model does not offer", async () => {
     fakeRunner([]);
     const provider = new DreaminaProvider();
-    const models = await provider.getAvailableImageModels();
+    const models = [IMAGE_MODEL];
     await expect(provider.textToImage({ model: models[0], prompt: "x", aspectRatio: "21:9" })).rejects.toThrow("does not offer 21:9");
   });
 
@@ -139,29 +140,19 @@ describe("DreaminaProvider", () => {
   describe("video", () => {
     const videoRecord = { task: { status: 50 }, item_list: [{ video: { transcoded_video: { origin: { video_url: "https://example.com/v.mp4" } } } }] };
 
-    it("lists video models with their durations, resolutions and ratios", async () => {
-      fakeRunner([]);
+    it("lists the video catalog without touching the browser", async () => {
+      setDreaminaPageRunner({ evaluate: () => { throw new Error("listing must not reach the tab"); } });
       const models = await new DreaminaProvider().getAvailableVideoModels();
-      expect(models).toEqual([
-        {
-          id: "dreamina_seedance_40_mini",
-          name: "Dreamina Seedance 2.0 Mini",
-          provider: "dreamina",
-          supportedTasks: ["text_to_video", "image_to_video", "reference_to_video"],
-          durations: [4, 5, 6],
-          resolutions: ["720p", "1080p"],
-          aspectRatios: ["21:9", "16:9", "9:16"]
-        },
-        {
-          id: "legacy_model",
-          name: "Legacy",
-          provider: "dreamina",
-          supportedTasks: ["text_to_video", "image_to_video"],
-          durations: [5],
-          resolutions: ["1080p"],
-          aspectRatios: ["16:9"]
-        }
-      ]);
+      expect(models.find((m) => m.id === "dreamina_seedance_40_mini")).toEqual({
+        id: "dreamina_seedance_40_mini",
+        name: "Dreamina Seedance 2.0 Mini",
+        provider: "dreamina",
+        supportedTasks: ["text_to_video", "image_to_video", "reference_to_video"],
+        durations: [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15],
+        resolutions: ["720p", "1080p", "2K", "4k"],
+        aspectRatios: ["21:9", "16:9", "4:3", "1:1", "3:4", "9:16"]
+      });
+      expect(models.find((m) => m.id === "dreamina_ic_generate_video_model_vgfm_3.0_fast")?.supportedTasks).toEqual(["text_to_video", "image_to_video"]);
     });
 
     it("submits a video draft and downloads the result", async () => {
@@ -169,7 +160,7 @@ describe("DreaminaProvider", () => {
       const { calls } = fakeRunner([{ task: { status: 20 } }, videoRecord]);
       vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([9, 8]))));
       const provider = new DreaminaProvider();
-      const [model] = await provider.getAvailableVideoModels();
+      const model = videoModel("dreamina_seedance_40_mini");
 
       const pending = provider.textToVideo({ model, prompt: "a teapot", durationSeconds: 5, aspectRatio: "9:16", resolution: "1080P", seed: 3 });
       await vi.advanceTimersByTimeAsync(10_000);
@@ -189,7 +180,7 @@ describe("DreaminaProvider", () => {
       const { calls } = fakeRunner([videoRecord]);
       vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([1]))));
       const provider = new DreaminaProvider();
-      const [model] = await provider.getAvailableVideoModels();
+      const model = videoModel("dreamina_seedance_40_mini");
       const pending = provider.textToVideo({ model, prompt: "x" });
       await vi.advanceTimersByTimeAsync(5_000);
       await pending;
@@ -202,7 +193,7 @@ describe("DreaminaProvider", () => {
     it("rejects a duration the model does not offer", async () => {
       fakeRunner([]);
       const provider = new DreaminaProvider();
-      const [model] = await provider.getAvailableVideoModels();
+      const model = videoModel("dreamina_seedance_40_mini");
       await expect(provider.textToVideo({ model, prompt: "x", durationSeconds: 10 })).rejects.toThrow("offers 4, 5, 6 second clips");
     });
 
@@ -210,7 +201,7 @@ describe("DreaminaProvider", () => {
       vi.useFakeTimers();
       fakeRunner([{ task: { status: 30 }, fail_code: "2052", fail_msg: "OutputAudioCopyright" }]);
       const provider = new DreaminaProvider();
-      const [model] = await provider.getAvailableVideoModels();
+      const model = videoModel("dreamina_seedance_40_mini");
       const pending = provider.textToVideo({ model, prompt: "x" });
       const settled = expect(pending).rejects.toThrow("OutputAudioCopyright");
       await vi.advanceTimersByTimeAsync(5_000);
@@ -233,7 +224,7 @@ describe("DreaminaProvider", () => {
       });
       vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([5]))));
       const provider = new DreaminaProvider();
-      const [model] = await provider.getAvailableVideoModels();
+      const model = videoModel("dreamina_seedance_40_mini");
       const pending = provider.textToVideo({ model, prompt: "x" });
       await vi.advanceTimersByTimeAsync(10_000);
       expect(Array.from(await pending)).toEqual([5]);
@@ -276,8 +267,7 @@ describe("DreaminaProvider", () => {
 
     async function render(prompt: string, images = 2, modelId = "dreamina_seedance_40_mini"): Promise<unknown> {
       const provider = new DreaminaProvider();
-      const models = await provider.getAvailableVideoModels();
-      const model = models.find((m) => m.id === modelId)!;
+      const model = videoModel(modelId);
       const pending = provider.referenceToVideo({ images: Array.from({ length: images }, (_, i) => new Uint8Array([i, 1, 2, 3])), videos: [] }, { model, prompt, durationSeconds: modelId === "legacy_model" ? 5 : 4 });
       const settled = pending.then((v) => v, (e: unknown) => e);
       await vi.advanceTimersByTimeAsync(10_000);
@@ -344,7 +334,7 @@ describe("DreaminaProvider", () => {
     it("rejects more than nine references and reference videos", async () => {
       referenceRunner();
       const provider = new DreaminaProvider();
-      const [model] = await provider.getAvailableVideoModels();
+      const model = videoModel("dreamina_seedance_40_mini");
       const png = new Uint8Array([1]);
       await expect(provider.referenceToVideo({ images: Array(10).fill(png), videos: [] }, { model, prompt: "x" })).rejects.toThrow("at most 9");
       await expect(provider.referenceToVideo({ images: [png], videos: Array(4).fill(png) }, { model, prompt: "x" })).rejects.toThrow("at most 3");
@@ -404,7 +394,7 @@ describe("DreaminaProvider", () => {
       vi.useFakeTimers();
       const { seen } = runner(imageRecord);
       const provider = new DreaminaProvider();
-      const [model] = await provider.getAvailableImageModels();
+      const model = IMAGE_MODEL;
       const out = await settle(provider.imageToImage([new Uint8Array([1]), new Uint8Array([2])], { model, prompt: "same scene at night", strength: 0.8, seed: 5 }));
       expect(Array.from(out as Uint8Array)).toEqual([9]);
 
@@ -424,7 +414,7 @@ describe("DreaminaProvider", () => {
       vi.useFakeTimers();
       const { seen } = runner(imageRecord);
       const provider = new DreaminaProvider();
-      const [model] = await provider.getAvailableImageModels();
+      const model = IMAGE_MODEL;
       await settle(provider.imageToImage([new Uint8Array([1])], { model, prompt: "x" }));
       expect(draftOf(seen).abilities.blend.core_param.image_ratio).toBe(3);
     });
@@ -433,7 +423,7 @@ describe("DreaminaProvider", () => {
       vi.useFakeTimers();
       runner(imageRecord);
       const provider = new DreaminaProvider();
-      const [model] = await provider.getAvailableImageModels();
+      const model = IMAGE_MODEL;
       await expect(provider.imageToImage([], { model, prompt: "x" })).rejects.toThrow("at least one source image");
       await expect(provider.imageToImage([new Uint8Array([1])], { model: { ...model, id: "edit_only" }, prompt: "x" })).rejects.toThrow("Unknown Dreamina image model");
     });
@@ -442,7 +432,7 @@ describe("DreaminaProvider", () => {
       vi.useFakeTimers();
       const { seen } = runner(videoRecord);
       const provider = new DreaminaProvider();
-      const model = (await provider.getAvailableVideoModels()).find((m) => m.id === "dreamina_seedance_40_mini")!;
+      const model = videoModel("dreamina_seedance_40_mini");
       const out = await settle(provider.imageToVideo(new Uint8Array([1]), { model, prompt: "push in", endImage: new Uint8Array([2]), durationSeconds: 4 }));
       expect(Array.from(out as Uint8Array)).toEqual([9]);
 
@@ -462,7 +452,7 @@ describe("DreaminaProvider", () => {
       vi.useFakeTimers();
       const { seen } = runner(videoRecord);
       const provider = new DreaminaProvider();
-      const model = (await provider.getAvailableVideoModels()).find((m) => m.id === "legacy_model")!;
+      const model = videoModel("legacy_model");
       await settle(provider.imageToVideo(new Uint8Array([1]), { model, durationSeconds: 5 }));
       const input = draftOf(seen).abilities.gen_video.text_to_video_params.video_gen_inputs[0];
       expect(input.prompt).toBe("");
@@ -475,7 +465,7 @@ describe("DreaminaProvider", () => {
       vi.useFakeTimers();
       const { seen } = runner(videoRecord);
       const provider = new DreaminaProvider();
-      const model = (await provider.getAvailableVideoModels()).find((m) => m.id === "dreamina_seedance_40_mini")!;
+      const model = videoModel("dreamina_seedance_40_mini");
       const out = await settle(provider.referenceToVideo(
         { images: [new Uint8Array([1])], videos: [new Uint8Array([2, 2]), new Uint8Array([3, 3, 3])] },
         { model, prompt: "Keep [Image 1] and copy the motion of [Video 2] then [Video 1].", durationSeconds: 4 }
@@ -514,7 +504,7 @@ describe("DreaminaProvider", () => {
       vi.useFakeTimers();
       const { seen } = runner(videoRecord);
       const provider = new DreaminaProvider();
-      const model = (await provider.getAvailableVideoModels()).find((m) => m.id === "dreamina_seedance_40_mini")!;
+      const model = videoModel("dreamina_seedance_40_mini");
       const out = await settle(provider.referenceToVideo(
         { images: [new Uint8Array([1])], videos: [new Uint8Array([2])], audios: [new Uint8Array([3, 3, 3])] },
         { model, prompt: "Show [Image 1] to the beat of [Audio 1] with the motion of [Video 1].", durationSeconds: 4 }
@@ -541,7 +531,7 @@ describe("DreaminaProvider", () => {
       vi.useFakeTimers();
       runner(videoRecord);
       const provider = new DreaminaProvider();
-      const model = (await provider.getAvailableVideoModels()).find((m) => m.id === "dreamina_seedance_40_mini")!;
+      const model = videoModel("dreamina_seedance_40_mini");
       expect(String(await settle(provider.referenceToVideo({ images: [new Uint8Array([1])], videos: [], audios: [new Uint8Array([3])] }, { model, prompt: "see [Audio 2]", durationSeconds: 4 })))).toContain("only 1 reference audio(s)");
     });
 
@@ -549,7 +539,7 @@ describe("DreaminaProvider", () => {
       vi.useFakeTimers();
       const { seen } = runner(videoRecord);
       const provider = new DreaminaProvider();
-      const model = (await provider.getAvailableVideoModels()).find((m) => m.id === "dreamina_seedance_40_mini")!;
+      const model = videoModel("dreamina_seedance_40_mini");
       await settle(provider.referenceToVideo({ images: [], videos: [new Uint8Array([2])] }, { model, prompt: "A calm lake.", durationSeconds: 4 }));
       const input = draftOf(seen).abilities.gen_video.text_to_video_params.video_gen_inputs[0];
       expect(input.unified_edit_input.meta_list.map((m: { meta_type: string }) => m.meta_type)).toEqual(["video", "text"]);
@@ -559,7 +549,7 @@ describe("DreaminaProvider", () => {
       vi.useFakeTimers();
       runner(videoRecord);
       const provider = new DreaminaProvider();
-      const model = (await provider.getAvailableVideoModels()).find((m) => m.id === "dreamina_seedance_40_mini")!;
+      const model = videoModel("dreamina_seedance_40_mini");
       expect(String(await settle(provider.referenceToVideo({ images: [], videos: [new Uint8Array([2])] }, { model, prompt: "see [Video 2]", durationSeconds: 4 })))).toContain("only 1 reference video(s)");
     });
 
@@ -567,17 +557,16 @@ describe("DreaminaProvider", () => {
       vi.useFakeTimers();
       runner(videoRecord);
       const provider = new DreaminaProvider();
-      const model = (await provider.getAvailableVideoModels()).find((m) => m.id === "legacy_model")!;
+      const model = videoModel("legacy_model");
       await expect(provider.imageToVideo(new Uint8Array([1]), { model, endImage: new Uint8Array([2]), durationSeconds: 5 })).rejects.toThrow("does not take a last frame image");
     });
   });
 
   describe("music", () => {
-    it("declares text_to_music and lists instrumental plus the account's vocal models", async () => {
-      fakeRunner([]);
+    it("declares text_to_music and lists the instrumental model", async () => {
       const provider = new DreaminaProvider();
       expect(provider.getCapabilities()).toContain("text_to_music");
-      expect((await provider.getAvailableMusicModels()).map((m) => m.id)).toEqual(["instrumental", "song_v1"]);
+      expect((await provider.getAvailableMusicModels()).map((m) => m.id)).toEqual(["instrumental"]);
     });
 
     it("signs the draft, polls the history, and downloads the track", async () => {
@@ -588,7 +577,7 @@ describe("DreaminaProvider", () => {
       ]);
       vi.stubGlobal("fetch", vi.fn(async () => new Response(new Uint8Array([9, 8, 7]))));
       const provider = new DreaminaProvider();
-      const [model] = await provider.getAvailableMusicModels();
+      const model = INSTRUMENTAL;
 
       const pending = provider.textToMusic({ model, prompt: "calm piano", durationSeconds: 12 });
       await vi.advanceTimersByTimeAsync(10_000);
@@ -608,7 +597,7 @@ describe("DreaminaProvider", () => {
       vi.useFakeTimers();
       fakeRunner([{ task: { status: 30 }, fail_code: "1001", fail_msg: "Param" }]);
       const provider = new DreaminaProvider();
-      const [model] = await provider.getAvailableMusicModels();
+      const model = INSTRUMENTAL;
       const pending = provider.textToMusic({ model, prompt: "x" });
       const assertion = expect(pending).rejects.toThrow("Param");
       await vi.advanceTimersByTimeAsync(10_000);

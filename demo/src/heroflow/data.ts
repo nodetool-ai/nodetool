@@ -180,3 +180,49 @@ export const shotAt = (t: number): number => {
 
 export const timecode = (seconds: number): string =>
   `0:${String(Math.floor(seconds)).padStart(2, "0")}`;
+
+/** The dialogue, as the script editor and the timeline's voice track show it. */
+export type Line = {
+  speaker: string;
+  text: string;
+  direction: string;
+  /** Where the take sits: the shot it plays over, and its offset into it. */
+  shot: number;
+  offset: number;
+  seconds: number;
+};
+
+export const LINES: Line[] = [
+  {
+    speaker: "mia",
+    text: "Hello? Is somebody under there?",
+    direction: "whispering",
+    shot: 1,
+    offset: 0.4,
+    seconds: 1.8
+  },
+  {
+    speaker: "monster",
+    text: "Please don't turn on the light.",
+    direction: "trembling",
+    shot: 2,
+    offset: 0.6,
+    seconds: 1.9
+  },
+  {
+    speaker: "mia",
+    text: "It's okay. Teddy is scared of the dark too.",
+    direction: "softly",
+    shot: 3,
+    offset: 0.5,
+    seconds: 2.4
+  },
+  {
+    speaker: "monster",
+    text: "Can I hold him?",
+    direction: "hopeful",
+    shot: 4,
+    offset: 0.6,
+    seconds: 1.3
+  }
+];

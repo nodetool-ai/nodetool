@@ -3,14 +3,17 @@ import { css } from "@emotion/react";
 
 import React, { memo, useMemo, useRef } from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
-import { Text, Box, Z_INDEX } from "../../ui_primitives";
+import { Box, CheckerDropzone, Z_INDEX, BORDER_RADIUS } from "../../ui_primitives";
+import CompareIcon from "@mui/icons-material/Compare";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
 import isEqual from "../../../utils/isEqual";
 
 import { NodeData } from "../../../stores/NodeData";
 import { useNodeArtifacts } from "../../../hooks/nodes/useNodeExecState";
-import { NodeHeader } from "../NodeHeader";
+import useMetadataStore from "../../../stores/MetadataStore";
+import { NodeHeader, NODE_HEADER_MIN_HEIGHT } from "../NodeHeader";
+import { NodeOutputs } from "../NodeOutputs";
 import NodeResizeHandle from "../NodeResizeHandle";
 import NodeResizer from "../NodeResizer";
 import { ImageComparer } from "../../widgets";
@@ -32,35 +35,34 @@ const styles = (theme: Theme) =>
       maxWidth: "unset",
       minHeight: "250px",
       borderRadius: theme.rounded.node,
-      border: `1px solid ${theme.vars.palette.grey[700]}`,
+      border: `1px solid ${theme.vars.palette.divider}`,
       backgroundColor: theme.vars.palette.c_node_bg,
-      position: "relative"
+      position: "relative",
+      // The body padding of every other node; handles step back by it.
+      "--node-body-padding": "8px"
+    },
+    "&.compare-images-node.selected": {
+      borderColor: theme.vars.palette.grey[100]
     },
     ".compare-node-content": {
       position: "absolute",
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
+      inset: "var(--node-body-padding)",
       backgroundColor: "transparent",
       overflow: "visible"
     },
     ".content": {
       position: "absolute",
-      top: "30px", // Below header
+      top: NODE_HEADER_MIN_HEIGHT + 4,
       left: 0,
       right: 0,
       bottom: 0,
-      overflow: "hidden"
+      overflow: "hidden",
+      borderRadius: BORDER_RADIUS.sm
     },
     ".node-header": {
       width: "100%",
-      minHeight: "unset",
       flexShrink: 0,
-      top: 0,
-      left: 0,
       margin: 0,
-      padding: 0,
       border: 0
     },
     // Resize handle - corner icon
@@ -70,30 +72,21 @@ const styles = (theme: Theme) =>
       bottom: 0,
       zIndex: Z_INDEX.overlay
     },
-    ".hint": {
-      position: "absolute",
-      textAlign: "center",
-      top: "50%",
-      left: "50%",
-      width: "80%",
-      fontSize: "var(--fontSizeSmaller)",
-      fontWeight: 400,
-      transform: "translate(-50%, -50%)",
-      zIndex: Z_INDEX.raised,
-      color: theme.vars.palette.grey[400],
-      opacity: 0.8,
-      pointerEvents: "none"
-    },
     // Handle positioning - use fixed pixel values for consistent spacing
+    // Input rows start under the header on the 28px handle pitch, level
+    // with the outputs.
     ".handle-popup": {
       position: "absolute",
       left: 0
     },
     ".handle-popup.image_a": {
-      top: "60px"
+      top: NODE_HEADER_MIN_HEIGHT + 4
     },
     ".handle-popup.image_b": {
-      top: "100px"
+      top: NODE_HEADER_MIN_HEIGHT + 4 + 28
+    },
+    ".output-handle-column.output-handle-column": {
+      top: NODE_HEADER_MIN_HEIGHT + 4
     }
   });
 
@@ -121,6 +114,9 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
   const theme = useTheme();
   const cssStyles = useMemo(() => styles(theme), [theme]);
   const hasParent = props.parentId !== undefined;
+  const nodeMetadata = useMetadataStore((state) =>
+    state.getMetadata(props.type)
+  );
 
   // The `comparison` snapshot is one of the node's regular outputs and
   // flows through the same channel as score/equal. Reads the final
@@ -185,7 +181,7 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
       css={cssStyles}
       className={`compare-images-node nopan node-drag-handle ${
         hasParent ? "hasParent" : ""
-      }`}
+      }${props.selected ? " selected" : ""}`}
     >
       <div className="compare-node-content">
         <div className="handle-popup image_a">
@@ -232,12 +228,14 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
           hasParent={hasParent}
           metadataTitle="Compare Images"
           selected={props.selected}
-          backgroundColor="transparent"
           iconType="image"
           iconBaseColor={theme.vars.palette.primary.main}
-          showIcon={false}
           workflowId={props.data.workflow_id}
         />
+
+        {nodeMetadata && (
+          <NodeOutputs id={props.id} outputs={nodeMetadata.outputs} />
+        )}
 
         <div className="content">
           {hasImages ? (
@@ -251,9 +249,10 @@ const CompareImagesNode: React.FC<CompareImagesNodeProps> = (props) => {
               initialMode="horizontal"
             />
           ) : (
-            <Text className="hint">
-              Connect two images and run workflow to compare
-            </Text>
+            <CheckerDropzone
+              message="Connect two images, then run"
+              icon={<CompareIcon />}
+            />
           )}
         </div>
 

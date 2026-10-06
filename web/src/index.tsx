@@ -85,6 +85,9 @@ import { SkipLinks } from "./components/ui_primitives";
 const AcceptSharePage = React.lazy(
   () => import("./components/workflows/AcceptSharePage")
 );
+const PublicWorkflowPage = React.lazy(
+  () => import("./components/workflows/PublicWorkflowPage")
+);
 const IntegrationLinkPage = React.lazy(
   () => import("./components/settings/IntegrationLinkPage")
 );
@@ -274,6 +277,17 @@ function getRoutes() {
       element: (
         <React.Suspense fallback={<LoadingSpinner />}>
           <PublicAppPage />
+        </React.Suspense>
+      )
+    },
+    {
+      // A workflow behind a public share link. Outside `ProtectedRoute` for
+      // the same reason as `/a/:token`: whoever has the link may look without
+      // an account. Copying it into an account asks for sign-in on the page.
+      path: "/view/:token",
+      element: (
+        <React.Suspense fallback={<LoadingSpinner />}>
+          <PublicWorkflowPage />
         </React.Suspense>
       )
     },
@@ -607,9 +621,12 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
   // A deployed app's public page has no account and never will, so the
   // logged-out branch below would leave it without node metadata — which the
   // runtime needs to decide what a widget renders and what can run in the
-  // browser. `/api/nodes/metadata` carries no per-user data and is served
-  // without auth, so this route loads it like any signed-in page does.
-  const isPublicAppRoute = window.location.pathname.startsWith("/a/");
+  // browser. A public workflow link needs it to draw the graph's nodes.
+  // `/api/nodes/metadata` carries no per-user data and is served without
+  // auth, so these routes load it like any signed-in page does.
+  const isPublicLinkRoute = ["/a/", "/view/"].some((prefix) =>
+    window.location.pathname.startsWith(prefix)
+  );
 
   useEffect(() => {
     // Register frontend tools after initial render
@@ -636,7 +653,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
     // When auth is enforced, wait until the user is logged in before fetching
     // metadata. When logged out, skip metadata so the router can render and
     // redirect to /login.
-    if (isAuthRequired() && authState !== "logged_in" && !isPublicAppRoute) {
+    if (isAuthRequired() && authState !== "logged_in" && !isPublicLinkRoute) {
       if (authState === "logged_out" || authState === "error") {
         setStatus("logged_out");
       }
@@ -654,7 +671,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
         );
         setStatus("error");
       });
-  }, [authState, configLoaded, isPublicAppRoute]);
+  }, [authState, configLoaded, isPublicLinkRoute]);
 
   const shouldRenderRouter =
     isDevTestRoute || status === "success" || status === "logged_out";

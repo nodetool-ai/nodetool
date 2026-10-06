@@ -27,21 +27,22 @@ const CRISP_NO_BLUR_STYLES = {
 
 export const getPreviewNodeSelectionSx = (theme: Theme, selected: boolean) => ({
   display: "flex" as const,
-  boxShadow: selected
-    ? `0 0 0 2px var(--palette-grey-100)`
-    : SHADOW(theme).sm,
+  border: `1px solid ${
+    selected ? theme.vars.palette.grey[100] : theme.vars.palette.divider
+  }`,
+  boxShadow: SHADOW(theme).sm,
   backgroundColor: theme.vars.palette.c_node_bg,
   ...CRISP_NO_BLUR_STYLES
 });
 
 export const getOutputNodeSelectionSx = (theme: Theme, selected: boolean) => ({
   display: "flex" as const,
-  border: selected
-    ? `3px solid ${theme.vars.palette.primary.main}`
-    : `1px solid ${theme.vars.palette.divider}`,
-  boxShadow: selected
-    ? `0 0 0 1px ${theme.vars.palette.primary.main}`
-    : SHADOW(theme).sm,
+  border: `1px solid ${
+    selected
+      ? `color-mix(in srgb, ${theme.vars.palette.info.main} 82%, white 18%)`
+      : theme.vars.palette.divider
+  }`,
+  boxShadow: SHADOW(theme).sm,
   backgroundColor: theme.vars.palette.c_node_bg,
   ...CRISP_NO_BLUR_STYLES
 });
@@ -50,7 +51,6 @@ export const getBaseNodeSelectionStyles = ({
   selected,
   isFocused,
   isLoading,
-  hasAmbientRing = false,
   hasParent,
   hasToggleableResult,
   baseColor,
@@ -60,19 +60,16 @@ export const getBaseNodeSelectionStyles = ({
   collapsed = false
 }: BaseNodeSelectionStyleArgs) => {
   const resolvedBaseColor = baseColor || theme.vars.palette.primary.main;
-  const defaultBorder = `1px solid color-mix(in srgb, ${theme.vars.palette.grey[800]} 84%, transparent)`;
-
-  // When the node carries an execution ring (the primary loading ring outside
-  // the node, or the ambient ring at its edge), selection moves *inside* the
-  // node so the two never fight over the border zone: selection is shown as the
-  // inset outline + depth shadow only, dropping its own crisp outer ring. The
-  // outer zone is left to the run animation.
-  const hasRunActivity = isLoading || hasAmbientRing;
-  const selectionDepthShadow = SHADOW(theme).sm;
-  const selectionOuterRing = `0 0 0 1px color-mix(in srgb, ${resolvedBaseColor} 75%, white 25%)`;
-  const selectionShadow = hasRunActivity
-    ? selectionDepthShadow
-    : `${selectionOuterRing}, ${selectionDepthShadow}`;
+  // One 1px hairline marks the node edge in every state, so the box and the
+  // handle positions never shift. Selection and focus only recolor it. The
+  // run rings paint outside the node and keep the edge free.
+  const borderColor = isFocused
+    ? theme.vars.palette.warning.main
+    : selected
+      ? `color-mix(in srgb, ${resolvedBaseColor} 82%, white 18%)`
+      : hasParent
+        ? `color-mix(in srgb, var(--c_node_header_bg_group) 82%, ${theme.vars.palette.primary.main} 18%)`
+        : theme.vars.palette.divider;
 
   const sizeStyles = collapsed
     ? NODE_COLLAPSED_BASE_NODE_SX
@@ -100,26 +97,14 @@ export const getBaseNodeSelectionStyles = ({
   return {
     display: "flex" as const,
     ...sizeStyles,
-    border: isLoading ? "none" : defaultBorder,
-    ...theme.applyStyles("dark", {
-      border: isLoading ? "none" : defaultBorder
-    }),
-    boxShadow: selected
-      ? selectionShadow
-      : isFocused
-        ? `0 0 0 2px ${theme.vars.palette.warning.main}`
-        : "none",
-    outline: isFocused
-      ? `2px dashed ${theme.vars.palette.warning.main}`
-      : selected
-        ? `2px solid color-mix(in srgb, ${resolvedBaseColor} 82%, white 18%)`
-        : "none",
-    outlineOffset: "-1px",
+    border: `1px ${isFocused ? "dashed" : "solid"} ${borderColor}`,
+    boxShadow: selected ? SHADOW(theme).sm : "none",
+    outline: "none",
     backgroundColor:
       hasParent && !isLoading ? parentColor : theme.vars.palette.c_node_bg,
     backgroundImage: "none",
     borderRadius: theme.rounded.node,
-    transition: `${MOTION.shadow}, outline-color ${MOTION.normal}, ${MOTION.border}`,
+    transition: `${MOTION.shadow}, ${MOTION.border}`,
     ...reducedMotion({ transition: MOTION.none }),
     "--node-primary-color": resolvedBaseColor,
     ...resizeHandleSx,

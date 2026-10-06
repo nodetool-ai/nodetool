@@ -51,8 +51,9 @@ From a workflow you already have to a run inside NodeTool.
    finds it even though `lib.comfy` is collapsed out of the browsable tree.
 4. **Load the workflow.** Use the **Load Workflow** button in the node header:
    paste the JSON, drop the `.json`, or drop a `.png` that ComfyUI wrote. The
-   workflow's `Load*` nodes become typed input handles and its `Save*` nodes
-   become typed output handles.
+   inputs picked in ComfyUI App Mode become typed input handles, or the
+   workflow's `Load*` nodes and prompt text when it has no App Mode inputs. Its
+   `Save*` nodes become typed output handles.
 5. **Run it.** Outputs arrive one file at a time as each save node finishes.
 
 If the submit fails, the cause is usually a model or custom node the server
@@ -110,10 +111,13 @@ In the editor, the node header has an upload icon with the tooltip **Load Workfl
   format gives you an error saying exactly that.
 - **A dropped `.json` file** in the same format.
 - **A dropped `.png` exported by ComfyUI**, whose `prompt` metadata chunk is read
-  out of the PNG's `tEXt`/`iTXt` chunks.
+  out of the PNG's `tEXt`/`iTXt` chunks. Its `workflow` chunk, the UI graph,
+  supplies the App Mode inputs.
 
 A wrapper object with the prompt nested under a `prompt` key is unwrapped
-automatically.
+automatically. A UI graph next to it, under `workflow` or under
+`extra_data.extra_pnginfo.workflow` as in ComfyUI's `/prompt` request body,
+supplies the App Mode inputs.
 
 The dialog summarizes what it found (node count, typed inputs, outputs). Choose **Apply** to write three things onto the node: the normalized prompt into
 the `workflow` property, the derived `dynamic_inputs`/`dynamic_outputs`, and
@@ -138,6 +142,18 @@ The parser (`packages/integration-nodes/src/nodes/comfy-schema.ts`) reads the
 prompt and derives handles. Every dynamic handle is keyed
 **`<comfyNodeId>:<field>`**.
 
+**App Mode inputs** come first. When the PNG or the JSON wrapper carries the UI
+graph, and the author picked inputs in ComfyUI App Mode, those widgets become
+the input handles and nothing else is exposed automatically. ComfyUI stores the
+selection in the UI graph's `extra.linearData.inputs` as
+`[widgetId, widgetName, config?]` entries, where `widgetId` is
+`graphId:nodeId:widgetName`. A file field of a `Load*` node gets its media type
+and any other widget gets its value's type. An input's App Mode description, when
+set, becomes the handle's description. A widget promoted from a subgraph, or one
+converted to a linked input, has no literal in the API prompt and is skipped.
+The rules below apply when no App Mode input maps onto the prompt. A plain
+API-format export has no UI graph, so it always uses them.
+
 **Typed media inputs** come from `Load*` classes. Curated classes map to a known
 field and type — `LoadImage`, `LoadImageMask`, `LoadImageOutput` (image),
 `LoadAudio`, `VHS_LoadAudioUpload` (audio), `LoadVideo`, `VHS_LoadVideo` (video).
@@ -159,7 +175,7 @@ contains `TextEncode` (`CLIPTextEncode`, `CLIPTextEncodeSDXL`,
 `str` input, so a prompt from another node can be wired in. Left unconnected,
 it keeps the exported text.
 
-**Everything else literal** is offered in the loader dialog as a checkbox list
+**Everything else literal**, with or without App Mode, is offered in the loader dialog as a checkbox list
 under *Expose additional parameters as inputs* — seeds, steps, CFG, sizes.
 Ticking one adds an optional input handle with the value's inferred type
 (`bool`, `int`, `float`, `str`). Inputs that are ComfyUI connections

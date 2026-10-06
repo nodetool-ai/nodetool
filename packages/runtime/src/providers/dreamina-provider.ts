@@ -5,6 +5,7 @@ import { PROVIDER_IDS } from "@nodetool-ai/protocol";
 import { fetchExternalMedia } from "../external-media-fetch.js";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
 import { createDreaminaMusic, type DreaminaMusic } from "./dreamina-music.js";
+import { DREAMINA_IMAGE_MODELS, DREAMINA_VIDEO_MODELS } from "./dreamina-models.js";
 import type { EncodedAudioResult, ImageModel, Message, MusicModel, ImageToImageParams, ImageToVideoParams, ProviderStreamItem, ReferenceToVideoInputs, ReferenceToVideoParams, TextToImageParams, TextToMusicParams, TextToVideoParams, VideoModel } from "./types.js";
 
 const log = createLogger("nodetool.runtime.providers.dreamina");
@@ -694,20 +695,9 @@ export class DreaminaProvider extends BaseProvider {
     return models;
   }
 
+  /** Served from the captured catalog, so listing never waits on the browser tab. */
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    try {
-      return (await this.imageConfigs()).map((m) => ({
-        id: m.model_req_key,
-        name: m.model_name,
-        provider: PROVIDER_IDS.DREAMINA,
-        supportedTasks: m.feats?.includes("byte_edit") ? ["text_to_image", "image_to_image"] : ["text_to_image"],
-        aspectRatios: Object.keys(RATIO_TYPES),
-        resolutions: Object.keys(m.resolution_map ?? {})
-      }));
-    } catch (error) {
-      log.warn("Dreamina model listing failed", { error: error instanceof Error ? error.message : String(error) });
-      return [];
-    }
+    return [...DREAMINA_IMAGE_MODELS];
   }
 
   private async imageConfig(modelId: string): Promise<DreaminaModelConfig> {
@@ -782,24 +772,7 @@ export class DreaminaProvider extends BaseProvider {
   }
 
   override async getAvailableVideoModels(): Promise<VideoModel[]> {
-    try {
-      return (await this.videoConfigs()).map((m) => ({
-        id: m.model_req_key,
-        name: m.model_name,
-        provider: PROVIDER_IDS.DREAMINA,
-        supportedTasks: [
-          "text_to_video",
-          ...(takesFirstFrame(m) ? ["image_to_video" as const] : []),
-          ...(takesReferences(m) ? ["reference_to_video" as const] : [])
-        ],
-        durations: videoDurations(m),
-        resolutions: videoEnum(m, "resolution").values.map(String),
-        aspectRatios: videoEnum(m, "video_aspect_ratio").values.map(String)
-      }));
-    } catch (error) {
-      log.warn("Dreamina video model listing failed", { error: error instanceof Error ? error.message : String(error) });
-      return [];
-    }
+    return [...DREAMINA_VIDEO_MODELS];
   }
 
   override async textToVideo(params: TextToVideoParams): Promise<Uint8Array> {

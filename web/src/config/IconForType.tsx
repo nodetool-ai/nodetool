@@ -37,6 +37,7 @@ import documentIcon from "../icons/data_types/nodetool/document.svg?react";
 import np_array from "../icons/data_types/nodetool/np_array.svg?react";
 import datetime from "../icons/data_types/nodetool/datetime.svg?react";
 import date from "../icons/data_types/nodetool/date.svg?react";
+import preview from "../icons/data_types/nodetool/preview.svg?react";
 
 const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   any,
@@ -46,6 +47,10 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   bool,
   bytes: file,
   chunk,
+  // Control voltage is an audio-rate signal stream.
+  cv: audio,
+  // Header icon of the Preview node (not a data type).
+  preview,
   collection: database,
   dataframe,
   dict,

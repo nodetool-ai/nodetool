@@ -11,6 +11,10 @@
  *   every run. A graph whose `workflow` was set over the API, and never opened
  *   in the editor, therefore still exposes its Save nodes as output slots.
  *
+ * When the workflow arrives with ComfyUI's UI graph (the `workflow` chunk of an
+ * exported PNG, or a `/prompt` request body), the widgets its author picked in
+ * ComfyUI App Mode become the inputs. Otherwise Load* media and prompt text do.
+ *
  * Convention: every dynamic handle is keyed `"<comfyNodeId>:<field>"` for
  * inputs and `"<comfyNodeId>:<kind>"` for outputs. The runner injects connected
  * values into `prompt[nodeId].inputs[field]` and emits output files under the
@@ -48,7 +52,10 @@ export interface ComfyParam {
 export interface ComfyResolvedSchema {
   /** Normalized API-format prompt to store in the node's `workflow` prop. */
   prompt: ComfyWorkflowPrompt;
-  /** Auto-exposed typed inputs (Load* media and prompt text), by handle. */
+  /**
+   * Auto-exposed typed inputs, by handle: the workflow's App Mode inputs when
+   * it has any, otherwise Load* media and prompt text.
+   */
   dynamic_inputs: Record<string, DynamicSlotMeta>;
   /** Auto-exposed typed outputs (Save* and Preview* nodes), by handle. */
   dynamic_outputs: Record<string, ComfySlotType>;
@@ -56,6 +63,8 @@ export interface ComfyResolvedSchema {
   dynamic_properties: Record<string, unknown>;
   /** Literal inputs the user can additionally expose as inputs. */
   available_params: ComfyParam[];
+  /** Whether `dynamic_inputs` came from the workflow's App Mode selection. */
+  app_mode_inputs: boolean;
 }
 
 type MediaKind = "image" | "audio" | "video";
@@ -216,13 +225,8 @@ export function parseComfyWorkflowJson(text: string): ComfyWorkflowPrompt {
 
 const PNG_SIGNATURE = [137, 80, 78, 71, 13, 10, 26, 10];
 
-/**
- * Extract the embedded API-format prompt from a ComfyUI-exported PNG.
- * ComfyUI stores the prompt JSON in a `tEXt` or `iTXt` chunk keyed "prompt".
- */
-export function extractComfyPromptFromPng(
-  bytes: Uint8Array
-): ComfyWorkflowPrompt {
+/** Read the `tEXt` and `iTXt` chunks of a PNG, by keyword. */
+function readPngTextChunks(bytes: Uint8Array): Record<string, string> {
   for (let i = 0; i < PNG_SIGNATURE.length; i++) {
     if (bytes[i] !== PNG_SIGNATURE[i]) throw new Error("Not a PNG file.");
   }
@@ -258,6 +262,12 @@ export function extractComfyPromptFromPng(
     if (type === "IEND") break;
     offset = dataEnd + 4; // skip CRC
   }
+  return texts;
+}
+
+function promptFromPngTexts(
+  texts: Record<string, string>
+): ComfyWorkflowPrompt {
   const raw = texts.prompt ?? texts.Prompt;
   if (!raw) {
     throw new Error(
@@ -265,6 +275,86 @@ export function extractComfyPromptFromPng(
     );
   }
   return parseComfyWorkflowJson(raw);
+}
+
+/**
+ * Extract the embedded API-format prompt from a ComfyUI-exported PNG.
+ * ComfyUI stores the prompt JSON in a `tEXt` or `iTXt` chunk keyed "prompt",
+ * and the UI graph it came from in one keyed "workflow".
+ */
+export function extractComfyPromptFromPng(
+  bytes: Uint8Array
+): ComfyWorkflowPrompt {
+  return promptFromPngTexts(readPngTextChunks(bytes));
+}
+
+/** An App Mode input that maps onto a literal input of the API prompt. */
+export interface ComfyAppInput {
+  nodeId: string;
+  field: string;
+  description?: string;
+}
+
+/** ComfyUI's widget id: `graphId:nodeId:widgetName`, URI-encoded segments. */
+const WIDGET_ID_PATTERN = /^[^:]+:([^:]+):([^:]+)$/;
+
+function decodeSegment(segment: string): string {
+  try {
+    return decodeURIComponent(segment);
+  } catch {
+    return segment;
+  }
+}
+
+/**
+ * Read the inputs a ComfyUI author picked in App Mode from the UI graph's
+ * `extra.linearData.inputs`. Each entry is `[id, widgetName, config?]`, where
+ * `id` is a widget id (`graphId:nodeId:widgetName`) or, in older saves, the
+ * node id. Only entries naming a literal input of a node in `prompt` are kept:
+ * widgets promoted from a subgraph, or converted to linked inputs, have no
+ * literal to replace. Returns `[]` when the graph has no App Mode inputs.
+ */
+export function readComfyAppModeInputs(
+  uiWorkflow: unknown,
+  prompt: ComfyWorkflowPrompt
+): ComfyAppInput[] {
+  const extra = isRecord(uiWorkflow) ? uiWorkflow.extra : undefined;
+  const linearData = isRecord(extra) ? extra.linearData : undefined;
+  const entries = isRecord(linearData) ? linearData.inputs : undefined;
+  if (!Array.isArray(entries)) return [];
+
+  const inputs: ComfyAppInput[] = [];
+  for (const entry of entries) {
+    if (!Array.isArray(entry)) continue;
+    const [id, widgetName, config] = entry as unknown[];
+    let nodeId: string;
+    let field: string;
+    const widgetId = typeof id === "string" ? WIDGET_ID_PATTERN.exec(id) : null;
+    if (widgetId) {
+      nodeId = decodeSegment(widgetId[1]);
+      field = decodeSegment(widgetId[2]);
+    } else if (
+      (typeof id === "number" || typeof id === "string") &&
+      typeof widgetName === "string" &&
+      !String(id).includes(":")
+    ) {
+      nodeId = String(id);
+      field = widgetName;
+    } else {
+      continue;
+    }
+    const node = prompt[nodeId];
+    if (!node || !(field in node.inputs)) continue;
+    if (isComfyConnection(node.inputs[field])) continue;
+    const description =
+      isRecord(config) && typeof config.description === "string"
+        ? config.description.trim()
+        : "";
+    inputs.push(
+      description ? { nodeId, field, description } : { nodeId, field }
+    );
+  }
+  return inputs;
 }
 
 /** Node ids in stable order: numeric when both are numbers, else lexical. */
@@ -278,14 +368,23 @@ function sortedNodeIds(prompt: ComfyWorkflowPrompt): string[] {
 
 /**
  * Derive typed dynamic inputs and outputs from a ComfyUI prompt:
- * - Load nodes → typed media inputs.
- * - Prompt text of text-encoder nodes → `str` inputs.
+ * - The App Mode inputs of `uiWorkflow`, when it has any that map onto the
+ *   prompt → inputs typed by their node (media for a Load* file field) or by
+ *   their value.
+ * - Otherwise Load nodes → typed media inputs, and prompt text of
+ *   text-encoder nodes → `str` inputs.
  * - Save and Preview nodes → typed outputs.
  * - Every other literal input → `available_params` (user-exposable).
  */
 export function resolveComfySchema(
-  prompt: ComfyWorkflowPrompt
+  prompt: ComfyWorkflowPrompt,
+  uiWorkflow?: unknown
 ): ComfyResolvedSchema {
+  const appInputs = readComfyAppModeInputs(uiWorkflow, prompt);
+  const appInputByHandle = new Map(
+    appInputs.map((input) => [`${input.nodeId}:${input.field}`, input])
+  );
+  const app_mode_inputs = appInputs.length > 0;
   const dynamic_inputs: Record<string, DynamicSlotMeta> = {};
   const dynamic_outputs: Record<string, ComfySlotType> = {};
   const dynamic_properties: Record<string, unknown> = {};
@@ -305,10 +404,21 @@ export function resolveComfySchema(
       if (isComfyConnection(value)) continue;
       const handle = `${nodeId}:${field}`;
       const isMedia = loadInput?.field === field;
-      if (isMedia || isPromptText(node.class_type, value)) {
+      const appInput = appInputByHandle.get(handle);
+      const exposed = app_mode_inputs
+        ? appInput !== undefined
+        : isMedia || isPromptText(node.class_type, value);
+      if (exposed) {
         dynamic_inputs[handle] = {
-          type: slotType(isMedia ? loadInput.type : "str", true),
-          description: `${label} · ${field}`,
+          type: slotType(
+            isMedia
+              ? loadInput.type
+              : app_mode_inputs
+                ? inferScalarType(value)
+                : "str",
+            true
+          ),
+          description: appInput?.description ?? `${label} · ${field}`,
           default: value
         };
         dynamic_properties[handle] = value;
@@ -331,7 +441,8 @@ export function resolveComfySchema(
     dynamic_inputs,
     dynamic_outputs,
     dynamic_properties,
-    available_params
+    available_params,
+    app_mode_inputs
   };
 }
 
@@ -362,10 +473,12 @@ export function readComfyWorkflowProperty(
  */
 export function comfyDynamicSlots(node: {
   properties?: Record<string, unknown>;
-}): {
-  dynamic_inputs: Record<string, DynamicSlotMeta>;
-  dynamic_outputs: Record<string, ComfySlotType>;
-} | undefined {
+}):
+  | {
+      dynamic_inputs: Record<string, DynamicSlotMeta>;
+      dynamic_outputs: Record<string, ComfySlotType>;
+    }
+  | undefined {
   const prompt = readComfyWorkflowProperty(node.properties?.workflow);
   if (!prompt) return undefined;
   const { dynamic_inputs, dynamic_outputs } = resolveComfySchema(prompt);
@@ -377,23 +490,63 @@ export type ComfyWorkflowSource =
   | { workflow: unknown }
   | { png_base64: string };
 
+/** ComfyUI's UI ("nodes" array) graph, read only for its App Mode inputs. */
+type ComfyUiWorkflow = Record<string, unknown>;
+
+/**
+ * The UI graph sent alongside a prompt: `{ prompt, workflow }`, or ComfyUI's
+ * `/prompt` request body `{ prompt, extra_data: { extra_pnginfo: { workflow } } }`.
+ */
+function uiWorkflowBesidePrompt(parsed: unknown): ComfyUiWorkflow | undefined {
+  if (!isRecord(parsed) || !isRecord(parsed.prompt)) return undefined;
+  if (isRecord(parsed.workflow)) return parsed.workflow;
+  const extraData = parsed.extra_data;
+  const pngInfo = isRecord(extraData) ? extraData.extra_pnginfo : undefined;
+  const workflow = isRecord(pngInfo) ? pngInfo.workflow : undefined;
+  return isRecord(workflow) ? workflow : undefined;
+}
+
+/** Parse a PNG's `workflow` chunk; a missing or broken chunk is no UI graph. */
+function parseUiWorkflowText(
+  text: string | undefined
+): ComfyUiWorkflow | undefined {
+  if (!text) return undefined;
+  try {
+    const parsed: unknown = JSON.parse(text);
+    return isRecord(parsed) ? parsed : undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 /**
  * Parse a ComfyUI workflow from JSON (text or a parsed value) or from a
- * ComfyUI-exported PNG, and derive its schema. Throws an `Error` whose message
- * explains what is wrong with the workflow.
+ * ComfyUI-exported PNG, and derive its schema. When the source also carries
+ * the UI graph (a PNG's `workflow` chunk, or a JSON wrapper around the
+ * prompt), its App Mode inputs become the dynamic inputs. Throws an `Error`
+ * whose message explains what is wrong with the workflow.
  */
 export function resolveComfyWorkflow(
   source: ComfyWorkflowSource
 ): ComfyResolvedSchema {
   if ("png_base64" in source) {
+    const texts = readPngTextChunks(Buffer.from(source.png_base64, "base64"));
     return resolveComfySchema(
-      extractComfyPromptFromPng(Buffer.from(source.png_base64, "base64"))
+      promptFromPngTexts(texts),
+      parseUiWorkflowText(texts.workflow ?? texts.Workflow)
     );
   }
   const { workflow } = source;
+  let parsed: unknown = workflow;
+  if (typeof workflow === "string") {
+    try {
+      parsed = JSON.parse(workflow);
+    } catch {
+      throw new Error("Invalid JSON.");
+    }
+  }
   return resolveComfySchema(
-    typeof workflow === "string"
-      ? parseComfyWorkflowJson(workflow)
-      : normalizeComfyPrompt(workflow)
+    normalizeComfyPrompt(parsed),
+    uiWorkflowBesidePrompt(parsed)
   );
 }

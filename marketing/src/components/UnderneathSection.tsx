@@ -1,6 +1,5 @@
 import React from "react";
 import {
-  AppWindow,
   Blocks,
   Boxes,
   Code2,
@@ -25,12 +24,6 @@ interface Route {
 }
 
 const routes: Route[] = [
-  {
-    name: "App builder",
-    href: "/apps",
-    body: "Give a workflow a screen: inputs, a Run button, the result. Hand it to a teammate who never sees the canvas.",
-    icon: AppWindow,
-  },
   {
     name: "Node catalog",
     href: "/node-based-ai",

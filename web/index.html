@@ -9,9 +9,10 @@
       }
       html,
       body {
-        /* Match doc bg under iOS dynamic toolbars; block rubber-band scroll. */
+        /* Match doc bg under iOS dynamic toolbars; block rubber-band scroll
+           and the horizontal swipe that navigates back (canvas panning). */
         background-color: var(--palette-background-default, #181a1b);
-        overscroll-behavior-y: none;
+        overscroll-behavior: none;
       }
       /* App-shell spinner: paints the instant the HTML arrives, covering the
          JS download/parse gap before React mounts. React's createRoot().render()

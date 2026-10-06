@@ -37,7 +37,10 @@ export interface ComfyDynInput {
 export interface ComfyResolvedSchema {
   /** Normalized API-format prompt to store in the node's `workflow` prop. */
   prompt: Record<string, unknown>;
-  /** Auto-exposed typed inputs (Load* media and prompt text), by handle. */
+  /**
+   * Auto-exposed typed inputs, by handle: the workflow's App Mode inputs when
+   * it has any, otherwise Load* media and prompt text.
+   */
   dynamic_inputs: Record<string, ComfyDynInput>;
   /** Auto-exposed typed outputs (Save* and Preview* nodes), by handle. */
   dynamic_outputs: Record<string, TypeMetadata>;
@@ -45,6 +48,8 @@ export interface ComfyResolvedSchema {
   dynamic_properties: Record<string, unknown>;
   /** Literal inputs the user can additionally expose as inputs. */
   available_params: ComfyParam[];
+  /** Whether `dynamic_inputs` came from the workflow's App Mode selection. */
+  app_mode_inputs: boolean;
 }
 
 export type ComfyWorkflowSource =

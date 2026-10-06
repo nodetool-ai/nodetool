@@ -28,6 +28,7 @@ jest.mock("../../trpc/client", () => ({
         setRole: { mutate: jest.fn() },
         removeCollaborator: { mutate: jest.fn() },
         accept: { mutate: jest.fn() },
+        duplicatePublic: { mutate: jest.fn() },
         myRole: { query: jest.fn() },
         sharedWithMe: { query: jest.fn() }
       }
@@ -76,6 +77,12 @@ describe("useWorkflowSharing", () => {
     it("builds an absolute /share URL", () => {
       expect(shareUrlForToken("tok123")).toBe(
         `${window.location.origin}/share/tok123`
+      );
+    });
+
+    it("sends a public link to the read-only /view page", () => {
+      expect(shareUrlForToken("tok123", "public")).toBe(
+        `${window.location.origin}/view/tok123`
       );
     });
   });

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import type { GameStepTimings } from "../game-step.js";
 import { gameInteractionActor3DComponent } from "./components/interaction-actor.js";
 import { finite, positive, id, tick, color, layerBits } from "./components/common.js";
 import { gameVector3, gameQuaternion3D, gameTransform3D } from "./components/transform.js";
@@ -215,6 +216,7 @@ export interface GameInspection3D {
 }
 
 export interface GameStepResult3D {
+  readonly timings?: GameStepTimings;
   readonly tick: number;
   readonly events: readonly GameEvent3D[];
   readonly frame: GameRenderFrame3D;

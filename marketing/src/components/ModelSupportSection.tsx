@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useRef, useState } from "react";
 import { motion } from "framer-motion";
-import { Cpu, Zap, Layers, Box, Sparkles, Cloud, Bot, ShieldCheck } from "lucide-react";
+import { Cpu, Zap, Layers, Box, Sparkles, Bot, ShieldCheck } from "lucide-react";
 import {
     OpenAILogo,
     AnthropicLogo,
@@ -19,51 +19,51 @@ interface ModelSupportSectionProps {
 }
 
 const localEngines = [
-    { title: "MLX", url: "https://github.com/ml-explore/mlx", LogoComponent: MLXLogo, icon: Cpu, color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20" },
-    { title: "Ollama", url: "https://ollama.com", LogoComponent: OllamaLogo, icon: Box, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
-    { title: "llama.cpp", url: "https://github.com/ggml-org/llama.cpp", LogoComponent: LlamaCppLogo, icon: Zap, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
-    { title: "vLLM", url: "https://github.com/vllm-project/vllm", LogoComponent: null, icon: Layers, color: "text-cyan-400", bg: "bg-cyan-500/10", border: "border-cyan-500/20" },
-    { title: "LM Studio", url: "https://lmstudio.ai", LogoComponent: null, icon: Box, color: "text-pink-400", bg: "bg-pink-500/10", border: "border-pink-500/20" },
+    { title: "MLX", url: "https://github.com/ml-explore/mlx", LogoComponent: MLXLogo, icon: Cpu },
+    { title: "Ollama", url: "https://ollama.com", LogoComponent: OllamaLogo, icon: Box },
+    { title: "llama.cpp", url: "https://github.com/ggml-org/llama.cpp", LogoComponent: LlamaCppLogo, icon: Zap },
+    { title: "vLLM", url: "https://github.com/vllm-project/vllm", LogoComponent: null, icon: Layers },
+    { title: "LM Studio", url: "https://lmstudio.ai", LogoComponent: null, icon: Box },
 ];
 
 const cloudProviders = [
-    { title: "OpenAI", url: "https://openai.com", LogoComponent: OpenAILogo, icon: null, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-    { title: "Anthropic", url: "https://anthropic.com", LogoComponent: AnthropicLogo, icon: null, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
-    { title: "Google", url: "https://ai.google.dev", LogoComponent: GeminiLogo, icon: null, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
-    { title: "xAI", url: "https://x.ai", LogoComponent: null, icon: Bot, color: "text-indigo-400", bg: "bg-indigo-500/10", border: "border-indigo-500/20" },
-    { title: "Mistral", url: "https://mistral.ai", LogoComponent: null, icon: Sparkles, color: "text-orange-400", bg: "bg-orange-500/10", border: "border-orange-500/20" },
-    { title: "Groq", url: "https://groq.com", LogoComponent: null, icon: Zap, color: "text-rose-400", bg: "bg-rose-500/10", border: "border-rose-500/20" },
-    { title: "DeepSeek", url: "https://deepseek.com", LogoComponent: null, icon: Bot, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
-    { title: "Meta AI", url: "https://dev.meta.ai", LogoComponent: null, icon: Zap, color: "text-blue-400", bg: "bg-blue-500/10", border: "border-blue-500/20" },
-    { title: "Cerebras", url: "https://cerebras.ai", LogoComponent: null, icon: Zap, color: "text-amber-400", bg: "bg-amber-500/10", border: "border-amber-500/20" },
-    { title: "GMI Cloud", url: "https://gmicloud.ai", LogoComponent: null, icon: Zap, color: "text-emerald-400", bg: "bg-emerald-500/10", border: "border-emerald-500/20" },
-    { title: "Together", url: "https://together.ai", LogoComponent: null, icon: Layers, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20" },
-    { title: "Kie.ai", url: "https://kie.ai", LogoComponent: null, icon: Sparkles, color: "text-sky-400", bg: "bg-sky-500/10", border: "border-sky-500/20" },
-    { title: "MiniMax", url: "https://www.minimaxi.com", LogoComponent: null, icon: ShieldCheck, color: "text-red-400", bg: "bg-red-500/10", border: "border-red-500/20" },
-    { title: "Replicate", url: "https://replicate.com", LogoComponent: ReplicateLogo, icon: null, color: "text-purple-400", bg: "bg-purple-500/10", border: "border-purple-500/20" },
-    { title: "Fal AI", url: "https://fal.ai", LogoComponent: null, icon: Layers, color: "text-teal-400", bg: "bg-teal-500/10", border: "border-teal-500/20" },
-    { title: "OpenRouter", url: "https://openrouter.ai", LogoComponent: OpenRouterLogo, icon: null, color: "text-violet-400", bg: "bg-violet-500/10", border: "border-violet-500/20" },
-    { title: "HuggingFace", url: "https://huggingface.co", LogoComponent: HuggingFaceLogo, icon: null, color: "text-yellow-400", bg: "bg-yellow-500/10", border: "border-yellow-500/20" },
+    { title: "OpenAI", url: "https://openai.com", LogoComponent: OpenAILogo, icon: null },
+    { title: "Anthropic", url: "https://anthropic.com", LogoComponent: AnthropicLogo, icon: null },
+    { title: "Google", url: "https://ai.google.dev", LogoComponent: GeminiLogo, icon: null },
+    { title: "xAI", url: "https://x.ai", LogoComponent: null, icon: Bot },
+    { title: "Mistral", url: "https://mistral.ai", LogoComponent: null, icon: Sparkles },
+    { title: "Groq", url: "https://groq.com", LogoComponent: null, icon: Zap },
+    { title: "DeepSeek", url: "https://deepseek.com", LogoComponent: null, icon: Bot },
+    { title: "Meta AI", url: "https://dev.meta.ai", LogoComponent: null, icon: Zap },
+    { title: "Cerebras", url: "https://cerebras.ai", LogoComponent: null, icon: Zap },
+    { title: "GMI Cloud", url: "https://gmicloud.ai", LogoComponent: null, icon: Zap },
+    { title: "Together", url: "https://together.ai", LogoComponent: null, icon: Layers },
+    { title: "Kie.ai", url: "https://kie.ai", LogoComponent: null, icon: Sparkles },
+    { title: "MiniMax", url: "https://www.minimaxi.com", LogoComponent: null, icon: ShieldCheck },
+    { title: "Replicate", url: "https://replicate.com", LogoComponent: ReplicateLogo, icon: null },
+    { title: "Fal AI", url: "https://fal.ai", LogoComponent: null, icon: Layers },
+    { title: "OpenRouter", url: "https://openrouter.ai", LogoComponent: OpenRouterLogo, icon: null },
+    { title: "HuggingFace", url: "https://huggingface.co", LogoComponent: HuggingFaceLogo, icon: null },
 ];
 
 // Perishable by design: stale names here directly undercut the
 // "swap models the day they launch" pitch — review on every release cycle.
 const frontierModels = [
-    { name: "GPT-5.6", color: "text-emerald-400" },
-    { name: "Claude Fable 5", color: "text-amber-400" },
-    { name: "Claude Opus 5", color: "text-amber-400" },
-    { name: "Claude Sonnet 5", color: "text-amber-400" },
-    { name: "Gemini 3.5 Flash", color: "text-blue-400" },
-    { name: "Gemini 3.1 Pro", color: "text-blue-400" },
-    { name: "Qwen Image", color: "text-sky-400" },
-    { name: "Veo 3.1", color: "text-blue-400" },
-    { name: "Kling 3", color: "text-cyan-400" },
-    { name: "Seedance 3", color: "text-rose-400" },
-    { name: "Hailuo 2.3", color: "text-red-400" },
-    { name: "Wan 2.5", color: "text-orange-400" },
-    { name: "FLUX", color: "text-pink-400" },
-    { name: "Whisper", color: "text-emerald-400" },
-    { name: "ElevenLabs", color: "text-violet-400" },
+    { name: "GPT-5.6" },
+    { name: "Claude Fable 5" },
+    { name: "Claude Opus 5" },
+    { name: "Claude Sonnet 5" },
+    { name: "Gemini 3.5 Flash" },
+    { name: "Gemini 3.1 Pro" },
+    { name: "Qwen Image" },
+    { name: "Veo 3.1" },
+    { name: "Kling 3" },
+    { name: "Seedance 3" },
+    { name: "Hailuo 2.3" },
+    { name: "Wan 2.5" },
+    { name: "FLUX" },
+    { name: "Whisper" },
+    { name: "ElevenLabs" },
 ];
 
 export default function ModelSupportSection({
@@ -98,21 +98,12 @@ export default function ModelSupportSection({
                 marqueesRunning ? "" : " marquees-paused"
             }`}
         >
-            {/* Background Glow */}
-            <div className="absolute top-1/2 left-0 -translate-y-1/2 w-[800px] h-[500px] bg-emerald-900/20 blur-[120px] rounded-full pointer-events-none" />
-            <div className="absolute top-1/2 right-0 -translate-y-1/2 w-[800px] h-[500px] bg-blue-900/20 blur-[120px] rounded-full pointer-events-none" />
-
             <div className="relative z-10 mx-auto max-w-7xl px-6 lg:px-8">
                 {/* Header */}
                 <div className="scroll-fade mb-12 text-center max-w-3xl mx-auto">
-                    <motion.div
-                        initial={false}
-                        whileInView={{ opacity: 1, scale: 1 }}
-                        viewport={{ once: true }}
-                        className="inline-flex items-center justify-center p-3 mb-6 rounded-2xl bg-gradient-to-br from-emerald-500/10 to-blue-500/10 border border-emerald-500/20 shadow-lg shadow-emerald-500/5"
-                    >
-                        <Zap className="w-8 h-8 text-emerald-400" />
-                    </motion.div>
+                    <p className="mb-4 text-sm font-medium text-amber-300">
+                        Models
+                    </p>
 
                     <motion.h2
                         id="model-support-title"
@@ -120,12 +111,10 @@ export default function ModelSupportSection({
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.25 }}
-                        className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6"
+                        className="text-3xl md:text-5xl font-semibold tracking-tight text-slate-100 mb-6"
                     >
                         Every model you need.{" "}
-                        <span className="text-white">
-                            On your own keys.
-                        </span>
+                        <span className="text-slate-400">On your own keys.</span>
                     </motion.h2>
 
                     <motion.p
@@ -133,7 +122,7 @@ export default function ModelSupportSection({
                         whileInView={{ opacity: 1, y: 0 }}
                         viewport={{ once: true }}
                         transition={{ duration: 0.25, delay: 0.05 }}
-                        className="text-lg text-slate-400 leading-relaxed"
+                        className="text-lg text-slate-300 leading-relaxed"
                     >
                         Route your shots through the best video, image, audio,
                         and language models, or run open weights on your own
@@ -144,10 +133,7 @@ export default function ModelSupportSection({
 
                 {/* Frontier Models Marquee */}
                 <div className="mb-10">
-                    <div className="flex items-center justify-center gap-3 mb-4">
-                        <Sparkles className="w-5 h-5 text-violet-400" />
-                        <span className="text-sm font-medium text-slate-400">Latest Models</span>
-                    </div>
+                    <p className="mb-4 text-center text-sm font-medium text-slate-400">Latest models</p>
 
                     <div className="relative overflow-hidden">
                         <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-slate-950 to-transparent z-10 pointer-events-none" />
@@ -158,7 +144,7 @@ export default function ModelSupportSection({
                                 <span
                                     key={`${model.name}-${idx}`}
                                     aria-hidden={idx >= frontierModels.length || undefined}
-                                    className={`flex-shrink-0 mx-4 text-lg font-semibold whitespace-nowrap ${model.color}`}
+                                    className={`flex-shrink-0 mx-4 text-lg font-medium whitespace-nowrap text-slate-300`}
                                 >
                                     {model.name}
                                 </span>
@@ -169,10 +155,7 @@ export default function ModelSupportSection({
 
                 {/* Cloud Providers Marquee */}
                 <div className="mb-8">
-                    <div className="flex items-center gap-3 mb-4">
-                        <Cloud className="w-5 h-5 text-blue-400" />
-                        <span className="text-sm font-medium text-slate-400">Cloud Providers</span>
-                    </div>
+                    <p className="mb-4 text-sm font-medium text-slate-400">Cloud providers</p>
 
                     <div className="relative overflow-hidden">
                         <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-slate-950 to-transparent z-10 pointer-events-none" />
@@ -187,14 +170,14 @@ export default function ModelSupportSection({
                                     href={provider.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className={`flex-shrink-0 flex items-center gap-2 mx-2 px-4 py-2 rounded-lg border ${provider.border} ${provider.bg} backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:shadow-lg`}
+                                    className={`flex-shrink-0 flex items-center gap-2 mx-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.03] transition-colors hover:border-white/25 hover:bg-white/[0.06]`}
                                 >
                                     {provider.LogoComponent ? (
-                                        <provider.LogoComponent className={provider.color} size={18} />
+                                        <provider.LogoComponent className="text-slate-300" size={18} />
                                     ) : provider.icon ? (
-                                        <provider.icon className={`w-4 h-4 ${provider.color}`} />
+                                        <provider.icon className="w-4 h-4 text-slate-400" />
                                     ) : null}
-                                    <span className="text-white text-sm font-medium whitespace-nowrap">{provider.title}</span>
+                                    <span className="text-slate-200 text-sm font-medium whitespace-nowrap">{provider.title}</span>
                                 </a>
                             ))}
                         </div>
@@ -203,10 +186,7 @@ export default function ModelSupportSection({
 
                 {/* Local Inference Marquee (reverse direction) */}
                 <div>
-                    <div className="flex items-center gap-3 mb-4">
-                        <Cpu className="w-5 h-5 text-emerald-400" />
-                        <span className="text-sm font-medium text-slate-400">Runs on Your Machine</span>
-                    </div>
+                    <p className="mb-4 text-sm font-medium text-slate-400">Runs on your machine</p>
 
                     <div className="relative overflow-hidden">
                         <div className="absolute left-0 top-0 bottom-0 w-24 bg-gradient-to-r from-slate-950 to-transparent z-10 pointer-events-none" />
@@ -221,14 +201,14 @@ export default function ModelSupportSection({
                                     href={engine.url}
                                     target="_blank"
                                     rel="noopener noreferrer"
-                                    className={`flex-shrink-0 flex items-center gap-2 mx-2 px-4 py-2 rounded-lg border ${engine.border} ${engine.bg} backdrop-blur-sm transition-all duration-300 hover:scale-105 hover:shadow-lg`}
+                                    className={`flex-shrink-0 flex items-center gap-2 mx-2 px-4 py-2 rounded-full border border-white/10 bg-white/[0.03] transition-colors hover:border-white/25 hover:bg-white/[0.06]`}
                                 >
                                     {engine.LogoComponent ? (
-                                        <engine.LogoComponent className={engine.color} size={18} />
+                                        <engine.LogoComponent className="text-slate-300" size={18} />
                                     ) : (
-                                        <engine.icon className={`w-4 h-4 ${engine.color}`} />
+                                        <engine.icon className="w-4 h-4 text-slate-400" />
                                     )}
-                                    <span className="text-white text-sm font-medium whitespace-nowrap">{engine.title}</span>
+                                    <span className="text-slate-200 text-sm font-medium whitespace-nowrap">{engine.title}</span>
                                 </a>
                             ))}
                         </div>
