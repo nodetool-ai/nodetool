@@ -19,7 +19,6 @@ import {
   relatedTemplates,
   type TemplateEntry,
 } from "@/data/templates";
-import { miniAppEntries } from "@/data/miniApps";
 import { recipeEntries, recipesUsingTemplate } from "@/data/recipes";
 
 const BASE_URL = "https://nodetool.ai";
@@ -101,11 +100,6 @@ export default async function TemplatePage({
 
   const steps = runSteps(entry);
   const related = relatedTemplates(entry, templateEntries, 9);
-  // A curated mini app binds several templates, so the link back runs through
-  // the app's workflow list rather than a shared slug.
-  const miniApp = miniAppEntries.find((a) =>
-    a.workflows.some((w) => w.slug === entry.slug),
-  );
   // The larger jobs this workflow is one step of.
   const recipes = recipesUsingTemplate(entry.slug, recipeEntries);
   const summary =
@@ -176,14 +170,6 @@ export default async function TemplatePage({
                 <Play className="h-4 w-4" />
                 How to run it
               </a>
-              {miniApp && (
-                <a
-                  href={miniApp.route}
-                  className="inline-flex items-center gap-2 rounded-full border border-sky-500/30 bg-sky-500/10 px-8 py-3.5 text-sm font-semibold text-sky-300 transition-all hover:border-sky-500/50 hover:bg-sky-500/20"
-                >
-                  Try it as a mini app
-                </a>
-              )}
             </div>
           </div>
         </section>

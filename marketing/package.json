@@ -26,7 +26,6 @@
     "seo:generate": "npm run seo:catalog && npm run seo:llms",
     "seo:check": "node scripts/generate-template-catalog.mjs --check && tsx scripts/generate-llms-txt.mjs --check && node scripts/generate-blog-entries.mjs --check",
     "gen:templates": "node scripts/generate-template-entries.mjs && node scripts/generate-template-catalog.mjs",
-    "gen:apps": "node scripts/generate-miniapp-entries.mjs",
     "gen:recipes": "tsx scripts/generate-recipes.mjs",
     "gen:storyboards": "node scripts/generate-storyboards.mjs",
     "gen:games": "node scripts/export-example-games.mjs",

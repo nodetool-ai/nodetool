@@ -109,15 +109,6 @@ export default function AppBuilderSection() {
             </div>
           ))}
         </div>
-
-        <div className="mt-10 text-center">
-          <a
-            href="/apps"
-            className="inline-flex items-center justify-center gap-2 rounded-xl border border-emerald-500/40 bg-emerald-500/10 px-6 py-3 text-sm font-semibold text-emerald-200 transition-all hover:border-emerald-400 hover:bg-emerald-500/20 focus-ring"
-          >
-            Browse the mini apps that ship with NodeTool
-          </a>
-        </div>
       </div>
     </section>
   );

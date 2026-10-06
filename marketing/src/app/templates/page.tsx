@@ -102,14 +102,7 @@ export default function TemplatesHub() {
             </p>
             <p className="mt-4 max-w-2xl text-sm leading-relaxed text-slate-500">
               Templates are editable workflow graphs: inspect the nodes,
-              change the connections, and make them your own. For a simpler
-              guided experience, browse the{" "}
-              <a
-                href="/apps"
-                className="text-sky-300 underline underline-offset-2 hover:text-sky-200"
-              >
-                runnable mini apps
-              </a>{" "}or learn how{" "}
+              change the connections, and make them your own. To learn more, read how{" "}
               <a
                 href="/node-based-ai"
                 className="text-sky-300 underline underline-offset-2 hover:text-sky-200"
