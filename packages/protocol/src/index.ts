@@ -83,3 +83,5 @@ export * from "./game-authoring.js";
 
 export * from "./workflow-document-revision.js";
 export * from "./run-readers.js";
+
+export type { GameStepTimings, GameSystemTiming } from "./game-step.js";
