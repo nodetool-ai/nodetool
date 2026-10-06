@@ -40,6 +40,12 @@ interface BodyRecord3D {
   readonly controller?: KinematicCharacterController;
 }
 
+export interface SpatialStep3D {
+  readonly contacts: Map<string, Contact3D>;
+  readonly order: ReadonlyMap<string, number>;
+  readonly observe: (entityId: string, otherId: string, sensor: boolean, normal: GameVector3, time: number) => void;
+}
+
 export class SpatialWorld3D {
   readonly rapier: Rapier;
   world: World;
@@ -221,7 +227,7 @@ export class SpatialWorld3D {
     previous.free();
   }
 
-  step(states: readonly EntityState3D[], input: GameInputFrame3D, yaw: number, intents: ReadonlyMap<string, { movement: GameVector3; jump: boolean }>, posed: ReadonlySet<string>): Contact3D[] {
+  prepareCharacters(states: readonly EntityState3D[], input: GameInputFrame3D, yaw: number, intents: ReadonlyMap<string, { movement: GameVector3; jump: boolean }>, posed: ReadonlySet<string>): SpatialStep3D {
     this.restoreReplayBoundary(states);
     const contacts = new Map<string, Contact3D>();
     const order = new Map(states.map((state, index) => [state.definition.id, index]));
@@ -325,7 +331,15 @@ export class SpatialWorld3D {
       }
       record.body.setNextKinematicTranslation(add3(state.transform.position, movement));
     }
+    return { contacts, order, observe };
+  }
+
+  stepPhysics(): void {
     this.world.step();
+  }
+
+  collectContacts(states: readonly EntityState3D[], step: SpatialStep3D): Contact3D[] {
+    const { contacts, order, observe } = step;
     for (const state of states) {
       if (!state.active) continue;
       const record = this.records.get(state.definition.id);
@@ -348,6 +362,12 @@ export class SpatialWorld3D {
       });
     }
     return [...contacts.values()].sort((a, b) => a.time - b.time || (order.get(a.entityId) ?? 0) - (order.get(b.entityId) ?? 0) || (order.get(a.otherId) ?? 0) - (order.get(b.otherId) ?? 0));
+  }
+
+  step(states: readonly EntityState3D[], input: GameInputFrame3D, yaw: number, intents: ReadonlyMap<string, { movement: GameVector3; jump: boolean }>, posed: ReadonlySet<string>): Contact3D[] {
+    const prepared = this.prepareCharacters(states, input, yaw, intents, posed);
+    this.stepPhysics();
+    return this.collectContacts(states, prepared);
   }
 
   rayQuery(origin: GameVector3, direction: GameVector3, maxDistance: number, mask: number, excludeId?: string): { entityId: string; position: GameVector3; normal: GameVector3; distance: number } | undefined {

@@ -13,3 +13,5 @@ export * from "./prepared-collider3d.js";
 
 export * from "./authoring-identity.js";
 export * from "./authoring-reconcile.js";
+
+export * from "./systems/pipeline.js";
