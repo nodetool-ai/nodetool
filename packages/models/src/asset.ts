@@ -48,6 +48,8 @@ export class Asset extends DBModel {
    * the asset leaves the file alone. Null for every managed asset.
    */
   declare external_path: AssetRow["external_path"];
+  /** The user starred this asset; the asset browser lists these as Favorites. */
+  declare favorite: AssetRow["favorite"];
   declare created_at: AssetRow["created_at"];
   declare updated_at: AssetRow["updated_at"];
 
@@ -69,6 +71,7 @@ export class Asset extends DBModel {
     this.timeline_id ??= null;
     this.project_id ??= "default";
     this.external_path ??= null;
+    this.favorite = Boolean(this.favorite);
     this.created_at ??= now;
     this.updated_at ??= now;
   }
@@ -104,6 +107,7 @@ export class Asset extends DBModel {
       sketch_document_id: this.sketch_document_id, workflow_id: this.workflow_id,
       node_id: this.node_id, job_id: this.job_id, timeline_id: this.timeline_id,
       project_id: this.project_id, external_path: this.external_path,
+      favorite: this.favorite,
       created_at: this.created_at, updated_at: this.updated_at
     };
   }
@@ -270,6 +274,8 @@ export class Asset extends DBModel {
       jobId?: string;
       timelineId?: string;
       projectId?: string;
+      /** Only starred assets, from every folder. */
+      favorite?: boolean;
       limit?: number;
       startKey?: string;
     } = {}
@@ -282,6 +288,7 @@ export class Asset extends DBModel {
       jobId,
       timelineId,
       projectId,
+      favorite,
       limit = 50,
       startKey
     } = opts;
@@ -322,6 +329,9 @@ export class Asset extends DBModel {
     }
     if (projectId) {
       conditions.push(eq(assets.project_id, projectId));
+    }
+    if (favorite) {
+      conditions.push(eq(assets.favorite, true));
     }
     if (startKey) {
       const cursor = await Asset.get<Asset>(startKey);

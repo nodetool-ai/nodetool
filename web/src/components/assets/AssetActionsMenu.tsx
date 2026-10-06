@@ -15,6 +15,9 @@ import DescriptionIcon from "@mui/icons-material/Description";
 import InsertDriveFileIcon from "@mui/icons-material/InsertDriveFile";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import FilterAltOffIcon from "@mui/icons-material/FilterAltOff";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
+import SmartToyOutlinedIcon from "@mui/icons-material/SmartToyOutlined";
 import AssetSearchInput from "./AssetSearchInput";
 import AssetActions from "./AssetActions";
 import SearchErrorBoundary from "../SearchErrorBoundary";
@@ -29,6 +32,7 @@ import {
   Popover,
   MenuItemPrimitive,
   FlexRow,
+  TruncatedText,
   Box,
   Divider,
   BORDER_RADIUS,
@@ -124,7 +128,15 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
     (next: TypeFilterKey) => setTypeFilter(next),
     [setTypeFilter]
   );
-  const { folderFiles, folderTree } = useAssets();
+  const favoritesOnly = useAssetGridStore((state) => state.favoritesOnly);
+  const setFavoritesOnly = useAssetGridStore(
+    (state) => state.setFavoritesOnly
+  );
+  const modelFilter = useAssetGridStore((state) => state.modelFilter);
+  const setModelFilter = useAssetGridStore((state) => state.setModelFilter);
+  const [modelFilterAnchor, setModelFilterAnchor] =
+    useState<HTMLElement | null>(null);
+  const { folderFiles, folderTree, modelOptions } = useAssets();
   const { handleSelectAllAssets, handleDeselectAssets } =
     useAssetSelection(folderFiles);
   const [expanded, setExpanded] = useState(false);
@@ -149,6 +161,12 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
   const typeFilterActive = typeFilter !== "all";
   const typeFilterLabel =
     TYPE_FILTERS.find((f) => f.key === typeFilter)?.label ?? "All";
+  const modelFilterLabel = modelFilter
+    ? (modelOptions.find((m) => m.id === modelFilter)?.label ?? modelFilter)
+    : "Any model";
+  // Offer the model filter only when the view holds generated assets, or a
+  // model is already picked and has to stay clearable.
+  const showModelFilter = modelOptions.length > 0 || modelFilter !== null;
 
   return (
     <Box
@@ -215,6 +233,47 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
           </FlexRow>
         </ToolbarIconButton>
 
+        {/* Filter: generating model */}
+        {showModelFilter && (
+          <ToolbarIconButton
+            tooltip="Filter by model"
+            onClick={(e) => setModelFilterAnchor(e.currentTarget)}
+            tooltipPlacement="top"
+            nodrag={false}
+            active={modelFilter !== null}
+            sx={{
+              borderRadius: BORDER_RADIUS.sm,
+              px: SPACING.micro,
+              gap: SPACING.micro,
+              fontSize: FONT_SIZE_SANS.label,
+              maxWidth: 200
+            }}
+          >
+            <FlexRow
+              align="center"
+              gap={SPACING.micro}
+              sx={{ minWidth: 0, "& .MuiSvgIcon-root": { fontSize: 18 } }}
+            >
+              <SmartToyOutlinedIcon />
+              <TruncatedText component="span" sx={{ fontSize: "inherit" }}>
+                {modelFilterLabel}
+              </TruncatedText>
+              <ArrowDropDownIcon />
+            </FlexRow>
+          </ToolbarIconButton>
+        )}
+
+        {/* Filter: starred assets from every folder */}
+        <ToolbarIconButton
+          icon={favoritesOnly ? <StarIcon /> : <StarBorderIcon />}
+          tooltip={favoritesOnly ? "Show all assets" : "Show favorites"}
+          onClick={() => setFavoritesOnly(!favoritesOnly)}
+          tooltipPlacement="top"
+          nodrag={false}
+          active={favoritesOnly}
+          aria-pressed={favoritesOnly}
+        />
+
         {/* Search, sort & resize (sidebar only; always shown in fullscreen) */}
         {!isFullscreenAssets && (
           <ToolbarIconButton
@@ -268,6 +327,37 @@ const AssetActionsMenu: React.FC<AssetActionsMenuProps> = ({
             onClick={() => {
               handleTypeFilterChange(filter.key);
               setTypeFilterAnchor(null);
+            }}
+            dense
+          />
+        ))}
+      </Popover>
+
+      <Popover
+        open={Boolean(modelFilterAnchor)}
+        anchorEl={modelFilterAnchor}
+        onClose={() => setModelFilterAnchor(null)}
+        placement="bottom-left"
+        paperSx={{ py: SPACING.micro, minWidth: 160 }}
+      >
+        <MenuItemPrimitive
+          label="Any model"
+          icon={<FilterAltOffIcon />}
+          selected={modelFilter === null}
+          onClick={() => {
+            setModelFilter(null);
+            setModelFilterAnchor(null);
+          }}
+          dense
+        />
+        {modelOptions.map((model) => (
+          <MenuItemPrimitive
+            key={model.id}
+            label={model.label}
+            selected={modelFilter === model.id}
+            onClick={() => {
+              setModelFilter(model.id);
+              setModelFilterAnchor(null);
             }}
             dense
           />

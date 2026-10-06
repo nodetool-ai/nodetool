@@ -401,6 +401,8 @@ export interface Asset {
   timeline_id?: string | null;
   /** The project the asset belongs to; `"default"` for none. */
   project_id?: string;
+  /** The user starred this asset. */
+  favorite?: boolean;
   created_at: string;
   /** URL to download/access the asset (computed by API) */
   get_url: string | null;

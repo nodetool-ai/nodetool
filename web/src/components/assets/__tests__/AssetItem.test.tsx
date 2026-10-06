@@ -11,6 +11,11 @@ jest.mock("../../../stores/SettingsStore", () => ({
   useSettingsStore: jest.fn()
 }));
 
+const mockSetAssetFavorite = jest.fn();
+jest.mock("../../../serverState/useAssetFavorite", () => ({
+  useSetAssetFavorite: () => mockSetAssetFavorite
+}));
+
 // Mock the asset actions hook to isolate UI behavior
 jest.mock("../useAssetActions", () => ({
   useAssetActions: () => ({
@@ -70,6 +75,29 @@ describe("AssetItem", () => {
       screen.getByRole("button", { name: baseImageAsset.name })
     ).toBeInTheDocument();
     // Filetype chip may be hidden depending on settings; skip asserting it
+  });
+
+  it("stars the asset from its tile without selecting it", () => {
+    const onSelect = jest.fn();
+    renderWithTheme(
+      <AssetItem asset={baseImageAsset} onSelect={onSelect} showDeleteButton={false} />
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add to favorites" }));
+    expect(mockSetAssetFavorite).toHaveBeenCalledWith(["a1"], true);
+    expect(onSelect).not.toHaveBeenCalled();
+  });
+
+  it("unstars a favorite asset", () => {
+    renderWithTheme(
+      <AssetItem
+        asset={{ ...baseImageAsset, favorite: true }}
+        showDeleteButton={false}
+      />
+    );
+    fireEvent.click(
+      screen.getByRole("button", { name: "Remove from favorites" })
+    );
+    expect(mockSetAssetFavorite).toHaveBeenCalledWith(["a1"], false);
   });
 
   it("calls onSelect on click", () => {

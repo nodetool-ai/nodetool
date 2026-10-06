@@ -190,6 +190,9 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   const setWorkflowFilter = useAssetGridStore(
     (state) => state.setWorkflowFilter
   );
+  const setFavoritesOnly = useAssetGridStore(
+    (state) => state.setFavoritesOnly
+  );
 
   // Control which folders are expanded; disable single-click expansion
   const [expandedFolderIds, setExpandedFolderIds] = useState<Set<string>>(
@@ -243,14 +246,16 @@ const FolderList: React.FC<FolderListProps> = ({ isHorizontal }) => {
   }, [selectedFolderIds, folderTree, currentUser?.id, parentMap]);
 
   const handleSelect = useCallback((folder: Asset | RootFolder) => {
-    // Clicking a folder switches to folder scope, leaving any active workflow scope.
+    // Clicking a folder switches to folder scope, leaving any active
+    // workflow scope and the Favorites view.
     setWorkflowFilter(null);
+    setFavoritesOnly(false);
     if ((folder as Asset).user_id !== undefined) {
       navigateToFolder(folder as Asset);
     } else {
       navigateToFolderId(folder.id);
     }
-  }, [navigateToFolder, navigateToFolderId, setWorkflowFilter]);
+  }, [navigateToFolder, navigateToFolderId, setWorkflowFilter, setFavoritesOnly]);
 
   const hasChildNodes = useCallback(
     (folder: FolderNode | RootFolder): folder is FolderNode & { children: FolderNode[] } => {

@@ -19,6 +19,8 @@ import CompareIcon from "@mui/icons-material/Compare";
 import TabIcon from "@mui/icons-material/Tab";
 import MovieEditIcon from "@mui/icons-material/Movie";
 import AccountTreeOutlinedIcon from "@mui/icons-material/AccountTreeOutlined";
+import StarIcon from "@mui/icons-material/Star";
+import StarBorderIcon from "@mui/icons-material/StarBorder";
 import useContextMenuStore from "../../stores/ContextMenuStore";
 import { useAssetStore } from "../../stores/AssetStore";
 import { useAssetGridStore } from "../../stores/AssetGridStore";
@@ -26,6 +28,7 @@ import { useNotificationStore } from "../../stores/NotificationStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { assetTabType } from "../workspace/assetTabType";
 import { useEditVideoAsset } from "../../hooks/useEditVideoAsset";
+import { useSetAssetFavorite } from "../../serverState/useAssetFavorite";
 import { isElectron } from "../../utils/browser";
 import { copyAssetToClipboard, isClipboardSupported } from "../../utils/clipboardUtils";
 import AssetInfoPanel from "./AssetInfoPanel";
@@ -94,6 +97,11 @@ const AssetItemContextMenu = () => {
       : null;
 
   const hasSelectedAssets = selectedAssets.length > 0 && !isFolder;
+  // Starring a mixed selection stars all of it; unstar only when every
+  // selected asset already carries the star.
+  const allFavorite =
+    hasSelectedAssets && selectedAssets.every((asset) => asset.favorite);
+  const setAssetFavorite = useSetAssetFavorite();
 
   // Images, videos, and audio can go to a workflow canvas as constant nodes.
   // A selection holding anything else offers nothing rather than a partial send.
@@ -209,6 +217,13 @@ const AssetItemContextMenu = () => {
     }
   });
 
+  const toggleFavorite = withMenuClose(() =>
+    setAssetFavorite(
+      selectedAssets.map((asset) => asset.id),
+      !allFavorite
+    )
+  );
+
   const handleEditVideo = withMenuClose(() => {
     if (singleVideo) {
       void editVideoAsset(singleVideo);
@@ -249,6 +264,18 @@ const AssetItemContextMenu = () => {
           </Text>
         </MenuItem>
         <Divider />
+        {hasSelectedAssets && (
+          <ContextMenuItem
+            onClick={toggleFavorite}
+            label={allFavorite ? "Remove from Favorites" : "Add to Favorites"}
+            IconComponent={allFavorite ? <StarBorderIcon /> : <StarIcon />}
+            tooltip={
+              allFavorite
+                ? "Unstar the selected assets"
+                : "Star the selected assets to find them under Favorites"
+            }
+          />
+        )}
         <ContextMenuItem
           onClick={openRenameDialog}
           label="Rename"
