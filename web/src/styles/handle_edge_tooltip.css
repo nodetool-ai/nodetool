@@ -2,7 +2,7 @@
 .MuiTooltip-popper {
   background: transparent;
   pointer-events: none !important;
-  z-index: 99990 !important;
+  z-index: var(--z-index-node-tooltip) !important;
   border-radius: 0;
 }
 
@@ -260,8 +260,8 @@
   height: var(--handle_height);
   background: var(--palette-warning-main);
   border: 2px solid var(--c_node_bg);
-  border-radius: 50%;
-  z-index: 1000;
+  border-radius: var(--rounded-circle);
+  z-index: var(--z-index-node-control-handle);
   left: 50%;
   transform: translateX(-50%);
 }
@@ -299,8 +299,8 @@
   /* A type-colored dot in a ring of the node's own background, centered on
      the node edge. */
   border: 2px solid var(--c_node_bg);
-  border-radius: 50%;
-  z-index: 999;
+  border-radius: var(--rounded-circle);
+  z-index: var(--z-index-node-handle);
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.25);
   opacity: 1;
 }
@@ -446,7 +446,7 @@ ul.multi-outputs li::marker {
   position: absolute;
   top: 100%;
   left: 0;
-  z-index: 999;
+  z-index: var(--z-index-node-handle);
   pointer-events: none;
   margin-top: var(--spacing-micro);
 }
@@ -464,7 +464,7 @@ ul.multi-outputs li::marker {
   position: absolute;
   pointer-events: none;
   opacity: 0;
-  z-index: 1001;
+  z-index: var(--z-index-node-handle-tooltip);
   top: 50%;
   white-space: nowrap;
   width: max-content;
