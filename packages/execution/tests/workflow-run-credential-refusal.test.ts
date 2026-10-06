@@ -111,9 +111,23 @@ class Echo extends BaseNode {
   }
 }
 
+class Imagine extends BaseNode {
+  static readonly nodeType = "test.execution.Imagine";
+  static readonly title = "Imagine";
+  static readonly description = "Needs an image model";
+
+  @prop({ type: "image_model", default: {} })
+  declare model: Record<string, unknown>;
+
+  async process(): Promise<Record<string, unknown>> {
+    return { output: "" };
+  }
+}
+
 function makeRegistry(): NodeRegistry {
   const registry = new NodeRegistry();
   registry.register(Echo);
+  registry.register(Imagine);
   return registry;
 }
 
@@ -169,5 +183,26 @@ describe("runWorkflow credential refusal", () => {
     process.env["OPENAI_API_KEY"] = "sk-env";
     const outcome = await run();
     expect(outcome.kind).toBe("payload");
+  });
+
+  it("refuses an unpicked model with 400, before any job row exists", async () => {
+    const outcome = await runWorkflow({
+      workflowId: "wf-1",
+      userId: "user-7",
+      graph: {
+        nodes: [
+          { id: "draft", type: "test.execution.Imagine", properties: {} }
+        ],
+        edges: []
+      },
+      environment: { registry: makeRegistry() },
+      resolveWorkspace: async () => null
+    });
+    expect(outcome.kind).toBe("error");
+    if (outcome.kind !== "error") return;
+    expect(outcome.status).toBe(400);
+    expect(outcome.detail).toContain('Node "draft"');
+    expect(outcome.detail).toContain("unselected");
+    expect(jobCreate).not.toHaveBeenCalled();
   });
 });

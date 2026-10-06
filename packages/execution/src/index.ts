@@ -34,11 +34,13 @@ export {
   modelSelectionErrors,
   providerConfigurationChecker,
   unconfiguredProviderErrors,
+  unsetModelErrors,
   RUNTIME_CATALOGS
 } from "./preflight.js";
 export type {
   CredentialResolver,
   ExecutionPreflightIssue,
+  NodeModelValidator,
   PreflightIssueKind,
   PreflightOptions,
   ProviderConfigurationChecker,

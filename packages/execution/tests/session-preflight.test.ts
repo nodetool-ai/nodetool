@@ -22,6 +22,7 @@ import {
   ExecutionPreflightError,
   isExecutionPreflightError,
   providerConfigurationChecker,
+  unsetModelErrors,
   type RunModelCatalogs
 } from "../src/index.js";
 
@@ -73,11 +74,33 @@ class Generate extends BaseNode {
   }
 }
 
+/** A node whose model property is typed, so leaving it empty is an unset model. */
+class Imagine extends BaseNode {
+  static readonly nodeType = "test.execution.Imagine";
+  static readonly title = "Imagine";
+  static readonly description = "Needs an image model";
+
+  @prop({ type: "image_model", default: {} })
+  declare model: Record<string, unknown>;
+
+  async process(): Promise<Record<string, unknown>> {
+    return { output: String(this.model["id"] ?? "") };
+  }
+}
+
 function registry(): NodeRegistry {
   const reg = new NodeRegistry();
   reg.register(Generate);
+  reg.register(Imagine);
   return reg;
 }
+
+const unpicked = (id: string, extra: Record<string, unknown> = {}) => ({
+  id,
+  type: "test.execution.Imagine",
+  properties: { model: {} },
+  ...extra
+});
 
 const graphSelecting = (provider: string, id = "gpt-image-2") => ({
   nodes: [
@@ -258,6 +281,23 @@ describe("ExecutionSession preflight", () => {
     expect(bridgeFactory).toHaveBeenCalledTimes(1);
   });
 
+  it("refuses an unpicked model before connecting a bridge or accepting a job", async () => {
+    const bridgeFactory = vi.fn(async () => null);
+    const onAccepted = vi.fn();
+    const error = await refusalOf({
+      graph: { nodes: [unpicked("n1")], edges: [] },
+      registry: registry(),
+      bridgeFactory,
+      persistence: { onAccepted },
+      context: contextWith({})
+    });
+    expect(error.issues.map((i) => i.kind)).toEqual(["unset_model"]);
+    expect(error.message).toContain('Node "n1" (test.execution.Imagine)');
+    expect(error.message).toContain("Pick a model");
+    expect(bridgeFactory).not.toHaveBeenCalled();
+    expect(onAccepted).not.toHaveBeenCalled();
+  });
+
   it("lets a custom-provider host declare its own registry", async () => {
     const catalogs: RunModelCatalogs = {
       listProviderIds: () => ["cassette"],
@@ -313,5 +353,32 @@ describe("ExecutionSession preflight — default secret resolver", () => {
     process.env["OPENAI_API_KEY"] = "sk-env";
     const session = await ExecutionSession.create(options());
     expect((await session.result).status).toBe("completed");
+  });
+});
+
+describe("unsetModelErrors", () => {
+  it("skips a model fed by a data edge and a bypassed node", () => {
+    const errors = unsetModelErrors(
+      {
+        nodes: [
+          { id: "src", type: "test.execution.Generate", properties: {} },
+          unpicked("fed"),
+          unpicked("skipped", { ui_properties: { bypassed: true } }),
+          unpicked("open")
+        ],
+        edges: [
+          {
+            id: "e1",
+            source: "src",
+            sourceHandle: "output",
+            target: "fed",
+            targetHandle: "model"
+          }
+        ]
+      },
+      registry()
+    );
+    expect(errors).toHaveLength(1);
+    expect(errors[0]).toContain('Node "open"');
   });
 });

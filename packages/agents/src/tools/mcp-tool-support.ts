@@ -395,7 +395,7 @@ export const RUNTIME_MODEL_CATALOGS: ModelCatalogs = {
  * registry metadata — so a creation tool can afford it on every call.
  *
  * Returns null when every selection resolves. Unselected models are checked
- * separately by {@link unsetModelSelectionError}, which needs registry
+ * separately by {@link unsetModelSelectionWarning}, which needs registry
  * metadata this walk deliberately avoids.
  */
 export async function modelSelectionError(
@@ -530,18 +530,19 @@ export function leftoverWiringHandleError(graph: unknown): Record<string, unknow
 }
 
 /**
- * Refuse a graph whose nodes leave a declared model property unselected.
+ * Name the model properties a graph leaves unselected.
+ *
+ * A workflow may be saved before its models are picked (a board that plans
+ * generations), so this is a warning on the save result, not a refusal. The
+ * run preflight (`unsetModelErrors` in `@nodetool-ai/execution`) refuses such
+ * a graph before any node executes, so nothing upstream is paid for first.
  *
  * The cheap selection walk above reads only the property bag; an agent that
- * omits `model` entirely (as the DSL does) stores nothing to find, and full
- * graph validation never runs on the create path. Without this gate such a
- * workflow saves fine and every Agent node dies on "Select a model" at run
- * time — after the upstream half of the graph executed and was paid for.
- *
- * Reuses `registry.validateNode`'s own `unset_model` finding (which skips
+ * omits `model` entirely (as the DSL does) stores nothing to find. This
+ * reuses `registry.validateNode`'s own `unset_model` finding (which skips
  * edge-connected properties) so both surfaces report one thing.
  */
-export function unsetModelSelectionError(
+export function unsetModelSelectionWarning(
   graph: unknown,
   nodeRegistry: {
     has: (type: string) => boolean;
@@ -594,16 +595,16 @@ export function unsetModelSelectionError(
         node_type: type,
         message:
           `${issue.message} Pick a model with find_model and assign its ` +
-          "`ref` before saving."
+          "`ref` before running."
       });
     }
   }
   if (issues.length === 0) return null;
   return {
-    error:
-      "The graph leaves one or more model properties unselected. Every " +
-      "model node needs a selected model at save time — nothing stamps one " +
-      "in at run time.",
+    warning:
+      "Saved, but the graph leaves one or more model properties unselected. " +
+      "A run is refused until every model node has a selected model — " +
+      "nothing stamps one in at run time.",
     issues
   };
 }

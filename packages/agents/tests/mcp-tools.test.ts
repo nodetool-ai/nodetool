@@ -403,10 +403,10 @@ describe("create_workflow", () => {
     });
   });
 
-  // A graph whose model properties are left at the default saves fine and
-  // then every Agent node dies on "Select a model" at run time — after the
-  // upstream half of the graph executed. Nothing stamps models in later.
-  describe("unset model preflight", () => {
+  // A graph whose model properties are left at the default is a draft: it
+  // saves, and the result names every unpicked model. The run preflight is
+  // what refuses it, before any node executes.
+  describe("unset model warning", () => {
     const modelRegistry = {
       has: (type: string) => type === "nodetool.agents.Agent",
       getMetadata: () => undefined,
@@ -435,17 +435,20 @@ describe("create_workflow", () => {
       edges
     });
 
-    it("refuses a workflow whose agent node has no model selected", async () => {
+    it("saves a workflow whose agent node has no model selected, with a warning", async () => {
       const result = (await checked.process(ctx, {
         name: "WF",
         graph: graphWithAgent()
-      })) as { error: string; issues: Array<{ code: string; node_id: string }> };
+      })) as {
+        id: string;
+        warning: string;
+        issues: Array<{ code: string; node_id: string }>;
+      };
 
-      expect(result.error).toContain("unselected");
+      expect(result.warning).toContain("unselected");
       expect(result.issues[0]?.code).toBe("unset_model");
       expect(result.issues[0]?.node_id).toBe("a1");
-      const [saved] = await Workflow.paginate(USER, {});
-      expect(saved).toHaveLength(0);
+      expect(await Workflow.find(USER, result.id)).not.toBeNull();
     });
 
     it("allows a model property fed by an edge", async () => {
@@ -462,6 +465,7 @@ describe("create_workflow", () => {
         ])
       })) as Record<string, unknown>;
       expect(result.id).toEqual(expect.any(String));
+      expect(result.warning).toBeUndefined();
       expect(await Workflow.find(USER, String(result.id))).not.toBeNull();
     });
 
@@ -528,12 +532,10 @@ describe("create_workflow", () => {
       const result = (await bagChecked.process(ctx, {
         name: "WF",
         graph: graphWithAgent()
-      })) as { error: string; issues: Array<{ code: string }> };
+      })) as { warning: string; issues: Array<{ code: string }> };
 
-      expect(result.error).toContain("unselected");
+      expect(result.warning).toContain("unselected");
       expect(result.issues[0]?.code).toBe("unset_model");
-      const [saved] = await Workflow.paginate(USER, {});
-      expect(saved).toHaveLength(0);
     });
   });
 
