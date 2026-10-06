@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { registerComboCallback } from "../stores/KeyPressedStore";
-import { NODE_EDITOR_SHORTCUTS } from "../config/shortcuts";
+import { ADD_NODE_HOTKEYS, NODE_EDITOR_SHORTCUTS } from "../config/shortcuts";
 import { getIsElectronDetails, isTextInputActive } from "../utils/browser";
 import { getMousePosition } from "../utils/MousePosition";
 import { useNodes, useTemporalNodes, useNodeStoreRef } from "../contexts/NodeContext";
@@ -31,6 +31,9 @@ import { useSelectionActions } from "./useSelectionActions";
 import { useNodeFocus } from "./useNodeFocus";
 import type { MenuEventData } from "../window";
 import { useSketchCanvasRefStore } from "../stores/sketch/SketchCanvasRefStore";
+import useMetadataStore from "../stores/MetadataStore";
+import { useRecentNodesStore } from "../stores/RecentNodesStore";
+import { instantiatePaletteNode } from "../utils/instantiatePaletteNode";
 
 /**
  * Registers the node editor's keyboard shortcuts with KeyPressedStore, using the
@@ -57,6 +60,10 @@ export const useNodeEditorShortcuts = (
   const selectAllNodes = useNodes((state) => state.selectAllNodes);
   const setNodes = useNodes((state) => state.setNodes);
   const toggleBypassSelected = useNodes((state) => state.toggleBypassSelected);
+  const createNode = useNodes((state) => state.createNode);
+  const addNode = useNodes((state) => state.addNode);
+  const updateNodeData = useNodes((state) => state.updateNodeData);
+  const addRecentNode = useRecentNodesStore((state) => state.addRecentNode);
 
   // Get store ref to access nodes imperatively without subscribing
   const nodeStore = useNodeStoreRef();
@@ -185,6 +192,32 @@ export const useNodeEditorShortcuts = (
       reactFlow.zoomTo(preset, { duration: 200 });
     },
     [reactFlow]
+  );
+
+  const handleAddNodeAtCursor = useCallback(
+    (nodeType: string) => {
+      const metadata = useMetadataStore.getState().getMetadata(nodeType);
+      if (!metadata) {
+        addNotification({
+          content: `Node type ${nodeType} is not available`,
+          type: "warning"
+        });
+        return;
+      }
+      const position = reactFlow.screenToFlowPosition(getMousePosition());
+      const { node, afterAdd, onAdded } = instantiatePaletteNode(
+        metadata,
+        position,
+        createNode
+      );
+      addNode(node);
+      if (afterAdd) {
+        updateNodeData(node.id, afterAdd);
+      }
+      onAdded?.(node.id);
+      addRecentNode(nodeType);
+    },
+    [reactFlow, createNode, addNode, updateNodeData, addRecentNode, addNotification]
   );
 
   const handleAlign = useCallback(() => {
@@ -536,6 +569,14 @@ export const useNodeEditorShortcuts = (
         callback: selectionActions.distributeVertical,
         active: selectedNodeCount > 1
       },
+      stackSelected: {
+        callback: selectionActions.stackSelected,
+        active: selectedNodeCount > 1
+      },
+      arrangeGrid: {
+        callback: selectionActions.arrangeGrid,
+        active: selectedNodeCount > 1
+      },
       deleteSelected: {
         callback: selectionActions.deleteSelected,
         active: selectedNodeCount > 0 || selectedEdgeCount > 0
@@ -559,6 +600,10 @@ export const useNodeEditorShortcuts = (
         active: nodeFocus.focusHistory.length > 1
       }
     };
+
+    for (const { slug, nodeType } of ADD_NODE_HOTKEYS) {
+      meta[slug] = { callback: () => handleAddNodeAtCursor(nodeType) };
+    }
 
     // Switch-to-tab (1-9)
     for (let i = 1; i <= 9; i++) {
@@ -609,7 +654,10 @@ export const useNodeEditorShortcuts = (
     selectionActions.alignBottom,
     selectionActions.distributeHorizontal,
     selectionActions.distributeVertical,
+    selectionActions.stackSelected,
+    selectionActions.arrangeGrid,
     selectionActions.deleteSelected,
+    handleAddNodeAtCursor,
     reactFlow,
     nodeFocus.focusNext,
     nodeFocus.focusPrev,

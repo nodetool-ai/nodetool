@@ -11,6 +11,8 @@ interface SelectionActionsReturn {
   alignBottom: () => void;
   distributeHorizontal: () => void;
   distributeVertical: () => void;
+  stackSelected: () => void;
+  arrangeGrid: () => void;
   deleteSelected: () => void;
   duplicateSelected: () => void;
   groupSelected: () => void;
@@ -25,6 +27,15 @@ const getNodeWidth = (node: { measured?: { width?: number } }) =>
   node.measured?.width ?? NODE_WIDTH;
 const getNodeHeight = (node: { measured?: { height?: number } }) =>
   node.measured?.height ?? 0;
+
+/** Reading order: top to bottom, then left to right, then id for ties. */
+const byReadingOrder = (
+  a: { id: string; position: { x: number; y: number } },
+  b: { id: string; position: { x: number; y: number } }
+) =>
+  a.position.y - b.position.y ||
+  a.position.x - b.position.x ||
+  a.id.localeCompare(b.id);
 
 export const useSelectionActions = (): SelectionActionsReturn => {
   // Use store ref to avoid subscribing to entire nodes/edges arrays
@@ -262,6 +273,82 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     );
   }, [getSelectedNodes, setNodes, store]);
 
+  const applyPositions = useCallback(
+    (positions: Map<string, { x: number; y: number }>) => {
+      const { nodes } = store.getState();
+      setNodes(
+        nodes.map((node) => {
+          const position = positions.get(node.id);
+          return position ? { ...node, position } : node;
+        })
+      );
+    },
+    [setNodes, store]
+  );
+
+  const stackSelected = useCallback(() => {
+    const selectedNodes = getSelectedNodes();
+    if (selectedNodes.length < 2) {
+      return;
+    }
+
+    const sorted = [...selectedNodes].sort(byReadingOrder);
+    const left = Math.min(...sorted.map((n) => n.position.x));
+    let currentY = Math.min(...sorted.map((n) => n.position.y));
+
+    const positions = new Map<string, { x: number; y: number }>();
+    sorted.forEach((node) => {
+      positions.set(node.id, { x: left, y: currentY });
+      currentY += getNodeHeight(node) + VERTICAL_SPACING;
+    });
+    applyPositions(positions);
+  }, [getSelectedNodes, applyPositions]);
+
+  const arrangeGrid = useCallback(() => {
+    const selectedNodes = getSelectedNodes();
+    if (selectedNodes.length < 2) {
+      return;
+    }
+
+    const sorted = [...selectedNodes].sort(byReadingOrder);
+    const columns = Math.ceil(Math.sqrt(sorted.length));
+    const columnWidths = new Array<number>(columns).fill(0);
+    const rows = Math.ceil(sorted.length / columns);
+    const rowHeights = new Array<number>(rows).fill(0);
+    sorted.forEach((node, index) => {
+      const column = index % columns;
+      const row = Math.floor(index / columns);
+      columnWidths[column] = Math.max(columnWidths[column], getNodeWidth(node));
+      rowHeights[row] = Math.max(rowHeights[row], getNodeHeight(node));
+    });
+
+    const left = Math.min(...sorted.map((n) => n.position.x));
+    const top = Math.min(...sorted.map((n) => n.position.y));
+    const columnX = columnWidths.map(
+      (_, column) =>
+        left +
+        columnWidths
+          .slice(0, column)
+          .reduce((sum, width) => sum + width + HORIZONTAL_SPACING, 0)
+    );
+    const rowY = rowHeights.map(
+      (_, row) =>
+        top +
+        rowHeights
+          .slice(0, row)
+          .reduce((sum, height) => sum + height + VERTICAL_SPACING, 0)
+    );
+
+    const positions = new Map<string, { x: number; y: number }>();
+    sorted.forEach((node, index) => {
+      positions.set(node.id, {
+        x: columnX[index % columns],
+        y: rowY[Math.floor(index / columns)]
+      });
+    });
+    applyPositions(positions);
+  }, [getSelectedNodes, applyPositions]);
+
   const deleteSelected = useCallback(() => {
     const selectedNodes = getSelectedNodes();
     deleteNodes(selectedNodes.map((node) => node.id));
@@ -358,6 +445,8 @@ export const useSelectionActions = (): SelectionActionsReturn => {
     alignBottom,
     distributeHorizontal,
     distributeVertical,
+    stackSelected,
+    arrangeGrid,
     deleteSelected,
     duplicateSelected,
     groupSelected,
