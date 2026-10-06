@@ -21,7 +21,7 @@ import { createAssetFile } from "../../../utils/createAssetFile";
 import { tableStyles } from "../../../styles/TableStyles";
 import OutputRenderer from "../OutputRenderer";
 import { getOutputNodeSelectionSx } from "../selectionStyles";
-import { NodeHeader } from "../NodeHeader";
+import { NodeHeader, NODE_HEADER_MIN_HEIGHT } from "../NodeHeader";
 import NodeResizeHandle from "../NodeResizeHandle";
 import { NodeInputs } from "../NodeInputs";
 import HandleColumn from "../HandleColumn";
@@ -115,7 +115,16 @@ const styles = (theme: Theme) =>
       ".node-header": {
         width: "100%",
         margin: 0,
+        marginTop: getSpacingPx(SPACING.lg),
         border: 0
+      },
+      // The input handle sits below the header row, not beside the title.
+      ".handle-column.handle-column--header": {
+        top: `calc(${NODE_HEADER_MIN_HEIGHT}px + ${getSpacingPx(SPACING.lg)} + ${getSpacingPx(SPACING.md)})`
+      },
+      // No icon: inset the title so it clears the input handle on the edge.
+      ".node-header .header-left": {
+        paddingLeft: getSpacingPx(SPACING.lg)
       },
       ".media-aspect-resize-handle .resize-grip": {
         opacity: 0,
@@ -401,9 +410,7 @@ const OutputNode: React.FC<OutputNodeProps> = (props) => {
             metadataTitle="Output"
             selected={props.selected}
             backgroundColor={"transparent"}
-            iconType={"any"}
-            iconBaseColor={theme.vars.palette.secondary.main}
-            showIcon={true}
+            showIcon={false}
             workflowId={props.data.workflow_id}
             hideLogs={true}
           />

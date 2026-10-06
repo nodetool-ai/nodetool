@@ -1,6 +1,7 @@
 import React, { memo, useCallback, useState } from "react";
 import { useReactFlow, Node } from "@xyflow/react";
 import { shallow } from "zustand/shallow";
+import { useTheme } from "@mui/material/styles";
 
 import {
   Divider,
@@ -8,6 +9,8 @@ import {
   EditorMenu,
   EditorMenuItem,
   BORDER_RADIUS,
+  CONTROL,
+  SHADOW,
   Toolbar,
   ListItemIcon,
   ListItemText
@@ -38,7 +41,15 @@ interface NodeToolbarProps {
   nodeId: string | null;
 }
 
+const BUTTON_BOX = {
+  width: CONTROL.height.sm,
+  height: CONTROL.height.sm,
+  borderRadius: CONTROL.radius
+} as const;
+const ICON_SX = { fontSize: 18 } as const;
+
 const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
+  const theme = useTheme();
   const { getNode } = useReactFlow();
   const { deleteNode, updateNodeData, selectNodesByType, toggleBypass } = useNodes(
     (state) => ({
@@ -122,7 +133,17 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
       <Toolbar
         variant="dense"
         className="node-toolbar"
-        sx={{ backgroundColor: "transparent", gap: 0.5 }}
+        disableGutters
+        sx={{
+          minHeight: 0,
+          gap: 0.5,
+          padding: 0.5,
+          backgroundColor: theme.vars.palette.grey[900],
+          border: `1px solid ${theme.vars.palette.divider}`,
+          borderRadius: BORDER_RADIUS.lg,
+          boxShadow: SHADOW(theme).md,
+          marginBottom: 2
+        }}
       >
         <ToolbarIconButton
           title={isWorkflowRunning ? "Running..." : "Run Node"}
@@ -132,32 +153,66 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           tabIndex={-1}
           disabled={isWorkflowRunning}
           size="small"
-          variant="primary"
+          sx={{
+            ...BUTTON_BOX,
+            backgroundColor: theme.vars.palette.primary.main,
+            color: theme.vars.palette.primary.contrastText,
+            "&:hover": {
+              backgroundColor: theme.vars.palette.primary.light,
+              color: theme.vars.palette.primary.contrastText
+            },
+            "&.Mui-disabled": {
+              backgroundColor: theme.vars.palette.grey[800],
+              color: theme.vars.palette.grey[500]
+            }
+          }}
         >
-          <PlayArrowIcon sx={{ fontSize: 28 }} />
+          <PlayArrowIcon sx={ICON_SX} />
         </ToolbarIconButton>
 
+        <Divider
+          orientation="vertical"
+          flexItem
+          sx={{ marginX: 0.5, marginY: 0.5 }}
+        />
+
         <ToolbarIconButton
-          title={`${isBypassed ? "Enable Node" : "Disable Node"} ${getShortcutTooltip("bypassNode", undefined, "combo")}`}
+          title={
+            <>
+              {isBypassed ? "Enable Node" : "Disable Node"}{" "}
+              {getShortcutTooltip("bypassNode", undefined, "combo")}
+            </>
+          }
+          ariaLabel={isBypassed ? "Enable Node" : "Disable Node"}
           delay={TOOLTIP_ENTER_DELAY}
           className="nodrag"
           onClick={handleToggleBypass}
           tabIndex={-1}
-          color={isBypassed ? "warning" : "default"}
+          active={isBypassed}
           size="small"
+          sx={{
+            ...BUTTON_BOX,
+            ...(isBypassed && { color: theme.vars.palette.warning.main })
+          }}
         >
-          <PowerSettingsNewIcon fontSize="small" />
+          <PowerSettingsNewIcon sx={ICON_SX} />
         </ToolbarIconButton>
 
         <ToolbarIconButton
-          title={`Duplicate ${getShortcutTooltip("duplicate", undefined, "combo")}`}
+          title={
+            <>
+              Duplicate {getShortcutTooltip("duplicate", undefined, "combo")}
+            </>
+          }
+          ariaLabel="Duplicate"
           delay={TOOLTIP_ENTER_DELAY}
           className="nodrag"
           onClick={handleDuplicateNodes}
           tabIndex={-1}
           size="small"
+          sx={BUTTON_BOX}
         >
-          <CopyAllIcon fontSize="small" />
+          <CopyAllIcon sx={ICON_SX} />
         </ToolbarIconButton>
 
         <ToolbarIconButton
@@ -166,9 +221,11 @@ const NodeToolButtons: React.FC<NodeToolbarProps> = ({ nodeId }) => {
           className="nodrag"
           onClick={handleOpenDropdown}
           tabIndex={-1}
+          active={dropdownOpen}
           size="small"
+          sx={BUTTON_BOX}
         >
-          <MoreVertIcon fontSize="small" />
+          <MoreVertIcon sx={ICON_SX} />
         </ToolbarIconButton>
       </Toolbar>
 

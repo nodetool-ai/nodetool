@@ -66,6 +66,7 @@
         "packages/transformers-js-nodes/src/**",
         "packages/transformers-js-provider/src/**",
         "packages/vectorstore/src/**",
+        "packages/whisper-cpp/src/**",
         "packages/workflow-runner/src/**"
       ],
       "rules": {
@@ -118,6 +119,7 @@
         "packages/transformers-js-nodes/src/**",
         "packages/transformers-js-provider/src/**",
         "packages/vectorstore/src/**",
+        "packages/whisper-cpp/src/**",
         "packages/workflow-runner/src/**"
       ],
       "rules": {
@@ -157,6 +159,7 @@
         "packages/text-nodes/src/**",
         "packages/together-nodes/src/**",
         "packages/transformers-js-provider/src/**",
+        "packages/whisper-cpp/src/**",
         "packages/workflow-runner/src/**"
       ],
       "rules": {
@@ -228,6 +231,7 @@
         "packages/vectorstore/src/**",
         "packages/video-nodes/src/**",
         "packages/websocket/src/**",
+        "packages/whisper-cpp/src/**",
         "packages/workflow-runner/src/**"
       ],
       "rules": {
@@ -273,6 +277,7 @@
         "packages/text-nodes/src/**",
         "packages/together-nodes/src/**",
         "packages/transformers-js-provider/src/**",
+        "packages/whisper-cpp/src/**",
         "packages/workflow-runner/src/**"
       ],
       "rules": {
@@ -314,6 +319,7 @@
         "packages/text-nodes/src/**",
         "packages/together-nodes/src/**",
         "packages/transformers-js-provider/src/**",
+        "packages/whisper-cpp/src/**",
         "packages/workflow-runner/src/**"
       ],
       "rules": {
@@ -370,6 +376,7 @@
         "packages/transformers-js-provider/src/**",
         "packages/vectorstore/src/**",
         "packages/video-nodes/src/**",
+        "packages/whisper-cpp/src/**",
         "packages/workflow-runner/src/**"
       ],
       "rules": {
@@ -407,6 +414,7 @@
         "packages/text-nodes/src/**",
         "packages/together-nodes/src/**",
         "packages/transformers-js-provider/src/**",
+        "packages/whisper-cpp/src/**",
         "packages/workflow-runner/src/**"
       ],
       "rules": {
@@ -444,6 +452,7 @@
         "packages/text-nodes/src/**",
         "packages/together-nodes/src/**",
         "packages/transformers-js-provider/src/**",
+        "packages/whisper-cpp/src/**",
         "packages/workflow-runner/src/**"
       ],
       "rules": {

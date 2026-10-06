@@ -7,6 +7,7 @@ import { gameEvent, gameInputFrame, type GameEvent, type GameInputFrame, type Ga
 import { gameEvent3D, gameInputFrame3D, type GameDocument3D, type GameEvent3D, type GameSnapshot3D } from "@nodetool-ai/protocol";
 import { createScriptedGameSession, createGameSession3D, decodePreparedGameCollider3D, hashGameSnapshot3D, validateGame, validateAnyGame } from "@nodetool-ai/game-runtime";
 import { printCommandError } from "../command-errors.js";
+import { registerGameSmokeCommand } from "./game-smoke.js";
 
 interface SimulateOptions {
   ticks: string;
@@ -222,6 +223,7 @@ function validateCliDocument(value: unknown) {
 /** Register native game validation and deterministic simulation commands. */
 export function registerGameCommands(program: Command): void {
   const game = program.command("game").description("Validate and playtest native games");
+  registerGameSmokeCommand(game);
 
   game
     .command("validate <game_file>")

@@ -321,3 +321,47 @@ motion are outside this release. A glTF model is an asset, so use
 `nodetool-3d-scene` to edit one. Existing external-engine source files can remain
 in a workspace as files; their scripts and scenes need reconstruction in the
 built-in game document to become playable.
+
+## Workstream authoring reference
+
+The sections below group authoring instructions by their implementation owner.
+
+### K: Editor stabilisation
+
+Viewport movement and keyboard nudges use world directions and store parent-local
+transforms. Reparenting preserves the world pose. Parent choices exclude the
+entity and its descendants. When selecting an ancestor and descendant together,
+move or delete the ancestor once.
+
+### W: Foundation interfaces
+
+### B: Benchmarks and verification
+
+After export, run `nodetool game smoke <directory>` to load the built player in
+Chromium and render 300 frames with scripted input. It reports browser errors,
+missing assets and stalled ticks, and exits nonzero on failure. Add `--json`
+for the machine-readable report.
+
+### R: 3D rendering
+
+### V: 2D rendering and visual effects
+
+### P: Physics
+
+### A: Audio
+
+### N: Animation
+
+### S: Scripting and gameplay
+
+### U: Input and game UI
+
+### G: Navigation and AI
+
+### E: Editor tools
+
+### C: Content and assets
+
+### D: Performance and delivery
+
+### M: Milestone games

@@ -7,6 +7,8 @@
   "scripts": {
     "studio": "remotion studio src/index.ts",
     "studio:marketing": "remotion studio src/marketing/index.tsx",
+    "studio:heroflow": "remotion studio src/heroflow/index.tsx",
+    "still:heroflow": "bash scripts/still-heroflow.sh",
     "render:marketing": "tsx scripts/render-marketing.ts",
     "render": "remotion render src/index.ts WorkflowDemo out/workflow-demo.mp4",
     "render:tutorials": "npm run render:tutorial:first && npm run render:tutorial:connect && npm run render:tutorial:list && npm run render:tutorial:ask && npm run render:tutorial:combine && npm run render:tutorial:summarize && npm run render:tutorial:describe",
@@ -75,7 +77,8 @@
     "render:tutorials:all": "tsx scripts/render-tutorials.ts",
     "still:tutorials:all": "tsx scripts/render-tutorials.ts --stills-only",
     "inspect:tutorials": "tsx scripts/render-tutorials.ts --inspect",
-    "test": "tsx --test src/__tests__/*.test.ts"
+    "test": "tsx --test src/__tests__/*.test.ts",
+    "render:heroflow": "remotion render src/heroflow/index.tsx HeroFlow out/heroflow.mp4"
   },
   "dependencies": {
     "@remotion/bundler": "^4.0.481",

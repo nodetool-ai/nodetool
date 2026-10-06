@@ -7,6 +7,8 @@ import SchemaFields from "./inspector/SchemaFields";
 import GameOverrideFields from "./GameOverrideFields";
 import { gameSchemaFields, schemaVariant } from "./inspector/schemaForm";
 
+import { parentCandidates, reparentTransform } from "./viewportGeometry";
+
 interface GameInspectorProps {
   document: GameDocument;
   activeSceneId: string;
@@ -202,8 +204,8 @@ export default function GameInspector({ document, activeSceneId, selectedIds, is
       <SchemaFields schema={ENTITY_SCHEMA.properties?.name ?? { type: "string" }} value={entity.name} path="Name"
         issuePath={[...entityPath, "name"]} issues={issues} onChange={(value) => update({ name: String(value) })} />
       <InspectorFieldRow label="Parent"><InspectorSelect grow label="Parent" value={entity.parentId ?? ""}
-        options={[{ value: "", label: "None" }, ...scene.entities.filter((entry) => entry.id !== entity.id).map((entry) => ({ value: entry.id, label: entry.name || entry.id }))]}
-        onChange={(value) => update({ parentId: value || null })} /></InspectorFieldRow>
+        options={[{ value: "", label: "None" }, ...parentCandidates(scene, entity.id).map((entry) => ({ value: entry.id, label: entry.name || entry.id }))]}
+        onChange={(value) => update({ parentId: value || null, transform2d: reparentTransform(scene, entity.id, value || undefined) })} /></InspectorFieldRow>
       {issueAt(issues, [...entityPath, "parentId"]) && <Caption color="error">{issueAt(issues, [...entityPath, "parentId"])}</Caption>}
       <SchemaFields schema={ENTITY_SCHEMA.properties?.templateOnly ?? { type: "boolean" }} value={entity.templateOnly} path="Prefab only"
         issuePath={[...entityPath, "templateOnly"]} issues={issues} onChange={(value) => update({ templateOnly: Boolean(value) })} />

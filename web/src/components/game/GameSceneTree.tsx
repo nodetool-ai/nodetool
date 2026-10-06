@@ -14,6 +14,8 @@ import type { GameDocumentOp, GameValidationIssue } from "@nodetool-ai/game-runt
 
 import { Box, CONTROL, Divider, EditorButton, EditorMenu, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, MenuItemPrimitive, SearchInput, SPACING, Text, Tooltip, TreeRow, TYPOGRAPHY } from "../ui_primitives";
 
+import { reparentTransform } from "./viewportGeometry";
+
 interface GameSceneTreeProps {
   document: GameDocument;
   activeSceneId: string;
@@ -112,7 +114,7 @@ function moveOps(scene: GameScene, entityId: string, targetId: string | null, po
   const ops: GameDocumentOp[] = [];
   if (source.parentId !== parentId || source.templateOnly !== templateOnly) {
     ops.push({ op: "update_entity", scene_id: scene.id, entity_id: entityId,
-      set: { parentId: parentId ?? null, templateOnly } });
+      set: { parentId: parentId ?? null, templateOnly, transform2d: reparentTransform(scene, entityId, parentId) } });
   }
   if (source.templateOnly !== templateOnly) for (const entity of scene.entities) {
     if (entity.id !== source.id && entity.templateOnly !== templateOnly && isDescendant(scene, source.id, entity.id)) {

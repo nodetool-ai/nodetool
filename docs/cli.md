@@ -1141,6 +1141,7 @@ nodetool game simulate game.json --ticks 120 --inputs inputs.json --assertions a
 nodetool game capture game.json --ticks 120 --inputs inputs.json --out frame.png
 nodetool game capture game.json --ticks 120 --out frame.png --backend webgpu
 nodetool game build game.json --out game-build --assets-dir game-assets
+nodetool game smoke game-build --json
 ```
 
 **Subcommands and options:**
@@ -1149,6 +1150,7 @@ nodetool game build game.json --out game-build --assets-dir game-assets
 - `game simulate <game_file>` — `--ticks <count>` (required), `--seed <integer>` (default `1`), `--inputs <file>`, `--assets-dir <directory>` (prepared 3D collider files named `<full-asset-id>.json`), `--expect-score <score>`, `--expect-win`, `--assertions <file>`, `--verify-replay`, `--json`.
 - `game capture <game_file>` — `--ticks <count>` and `--out <file>` (both required), `--seed <integer>`, `--inputs <file>`, `--scale <factor>` (default `1`), `--backend <canvas2d|webgpu|webgl2>`, `--assets-dir <directory>`, `--json`. A schema version 3 (3D) document defaults to `webgl2`. A 2D document accepts `canvas2d` (default) or `webgpu`.
 - `game build <game_file>` — `--out <directory>` (required), `--assets-dir <directory>`, `--json`.
+- `game smoke <directory>` — `--json`. Serves an exported build in headless Chromium with outside network access blocked, renders 300 scripted frames, and checks tick progress. Console errors, page errors, failed requests, and stalled ticks return a nonzero exit status. Install Chromium with `npx playwright install chromium`.
 
 Schema version 2 adds sprite `visualAnimation` tracks and scene `backgrounds`.
 Tracks use scene or spawn age in ticks and animate rotation, scale, opacity, and

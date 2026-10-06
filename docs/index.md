@@ -14,13 +14,13 @@ description: "Open-source agent-first creative workspace. Create images, video, 
   <figure class="hero-reel">
     <div class="media-frame">
       <video class="inview-video" muted loop playsinline preload="metadata"
-        poster="https://nodetool.ai/hero-sizzle-poster.webp"
-        aria-label="One brief becomes a project across the agent chat, storyboard, graph canvas, sketch, script, and timeline">
-        <source src="https://nodetool.ai/hero-sizzle.webm" type="video/webm">
-        <source src="https://nodetool.ai/hero-sizzle.mp4" type="video/mp4">
+        poster="https://nodetool.ai/hero-flow-poster.webp"
+        aria-label="One sentence becomes a beat sheet, entities, a storyboard of stills and clips, and a finished cut">
+        <source src="https://nodetool.ai/hero-flow.webm" type="video/webm">
+        <source src="https://nodetool.ai/hero-flow.mp4" type="video/mp4">
       </video>
     </div>
-    <figcaption>Direct, board, render, compare, paint, voice, and cut in one workspace. Recorded in the app.</figcaption>
+    <figcaption>One sentence to a finished short: beat sheet, entities, storyboard, clips, and the cut.</figcaption>
   </figure>
   <div class="cta-row">
     <a href="{{ '/getting-started' | relative_url }}" class="cta-button primary">Get started</a>

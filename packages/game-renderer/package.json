@@ -57,6 +57,11 @@
       "types": "./dist/node.d.ts",
       "import": "./dist/node.js"
     },
+    "./smoke": {
+      "nodetool-dev": "./src/smoke.ts",
+      "types": "./dist/smoke.d.ts",
+      "import": "./dist/smoke.js"
+    },
     "./build": {
       "nodetool-dev": "./src/build.ts",
       "types": "./dist/build.d.ts",

@@ -1599,12 +1599,15 @@ const NewProjectSurface = ({
 
   return (
     <ScrollArea fullHeight>
-      <FlexColumn align="center" sx={{ minHeight: "100%", px: SPACING.xl }}>
+      <FlexColumn
+        align="center"
+        sx={{ minHeight: "100%", px: { xs: SPACING.lg, sm: SPACING.xl } }}
+      >
         <FlexColumn
-          gap={SPACING.xxxl}
           sx={{
             width: "100%",
             maxWidth: `${COLUMN_WIDTH}px`,
+            gap: { xs: SPACING.xxl, sm: SPACING.xxxl },
             pt: SPACING.xl
           }}
         >
