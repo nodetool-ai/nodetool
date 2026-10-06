@@ -149,16 +149,20 @@ describe("native game publication safety", () => {
     expect(published.document.schemaVersion).toBe(3);
     expect(published.game.revision).not.toBe(created.game.revision);
   });
-  it("F27 does not create timestamp-named orphan draft files after publication", async () => {
+  it("F27 does not create extra draft files after publication", async () => {
     const { agent, created } = await create();
     const storage = await workspace();
+    const existingGame = await Game.findOwned(USER, created.game.id);
+    if (!existingGame) { throw new Error("Missing game"); }
+    const draftPrefix = `${existingGame.source_root}/drafts/`;
+    const beforePaths = (await storage.list(draftPrefix, { recursive: true })).map((entry) => entry.path).sort();
     const published = await agent.invoke("publish_native_game", { game_id: created.game.id, base_revision: created.game.revision }) as Reply;
     expect(published).not.toHaveProperty("error");
     expect(published.game.revision).not.toBe(created.game.revision);
     const game = await Game.findOwned(USER, created.game.id);
     if (!game) { throw new Error("Missing game"); }
-    const files = await storage.list(`${game.source_root}/drafts/`, { recursive: true });
+    const afterPaths = (await storage.list(draftPrefix, { recursive: true })).map((entry) => entry.path).sort();
     expect((await storage.list(game.source_root, { recursive: true })).length).toBeGreaterThan(0);
-    expect(files.every((entry) => /^[a-f0-9]{64}\.json$/.test(entry.path.split("/").at(-1) ?? ""))).toBe(true);
+    expect(afterPaths).toEqual(beforePaths);
   });
 });
