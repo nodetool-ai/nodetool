@@ -50,8 +50,8 @@ interface ComfyWorkflowLoaderProps {
 /**
  * Loads a ComfyUI workflow into the Run ComfyUI Workflow node: paste API-format
  * JSON or drop a `.json`/`.png` exported by ComfyUI. Derives typed inputs
- * (Load nodes) and outputs (Save nodes), and lets the user expose additional
- * scalar params as typed inputs.
+ * (the App Mode inputs, else Load nodes and prompt text) and outputs (Save
+ * nodes), and lets the user expose additional scalar params as typed inputs.
  */
 export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
   ({ nodeId, data }) => {
@@ -209,7 +209,8 @@ export const ComfyWorkflowLoader: React.FC<ComfyWorkflowLoaderProps> = memo(
       const nIn = Object.keys(schema.dynamic_inputs).length;
       const nOut = Object.keys(schema.dynamic_outputs).length;
       const nNodes = Object.keys(schema.prompt).length;
-      return `${nNodes} nodes · ${nIn} typed input${nIn === 1 ? "" : "s"} · ${nOut} output${nOut === 1 ? "" : "s"}`;
+      const inputSource = schema.app_mode_inputs ? " from App Mode" : "";
+      return `${nNodes} nodes · ${nIn} typed input${nIn === 1 ? "" : "s"}${inputSource} · ${nOut} output${nOut === 1 ? "" : "s"}`;
     }, [schema]);
 
     return (

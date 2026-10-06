@@ -34,7 +34,8 @@ describe("resolveComfyWorkflow", () => {
         "9:image": { type: "image", type_args: [], optional: false }
       },
       dynamic_properties: {},
-      available_params: []
+      available_params: [],
+      app_mode_inputs: false
     };
     mockRestFetch.mockResolvedValue(jsonResponse(200, schema));
 
