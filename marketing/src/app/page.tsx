@@ -17,6 +17,8 @@ import ContactSection from "../components/ContactSection";
 import ComparisonSection from "../components/ComparisonSection";
 import EditionsCompareSection from "../components/EditionsCompareSection";
 import RecipeShowcase from "../components/RecipeShowcase";
+import AdLibraryOverview from "../components/AdLibraryOverview";
+import StoryboardExamplesSection from "../components/StoryboardExamplesSection";
 import UnderneathSection from "../components/UnderneathSection";
 import AppsSection from "../components/AppsSection";
 import WaysInSection from "../components/WaysInSection";
@@ -224,6 +226,12 @@ export default function Home() {
         {/* Proof, after the product is understood: guided recipes with editable
             steps and example media */}
         <RecipeShowcase compact />
+
+        {/* Social ad concepts, each a rendered NodeTool timeline */}
+        <AdLibraryOverview compact />
+
+        {/* The example storyboards that ship with the app, shot by shot */}
+        <StoryboardExamplesSection />
 
         {/* Model breadth on your own keys, under the agent story rather than in
             front of it */}
