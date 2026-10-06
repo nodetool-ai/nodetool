@@ -7,6 +7,7 @@
 import ReactDOM from "react-dom/client";
 
 import "@xyflow/react/dist/style.css";
+import "../styles/vars.css";
 import "../styles/base.css";
 import "../styles/nodes.css";
 import "../styles/properties.css";

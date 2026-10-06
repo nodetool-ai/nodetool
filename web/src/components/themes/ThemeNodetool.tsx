@@ -144,7 +144,11 @@ const ThemeNodetool = createTheme({
           "--rounded-dialog": theme.rounded.dialog,
           "--rounded-node": theme.rounded.node,
           "--rounded-buttonSmall": theme.rounded.buttonSmall,
-          "--rounded-buttonLarge": theme.rounded.buttonLarge
+          "--rounded-buttonLarge": theme.rounded.buttonLarge,
+          "--z-index-node-handle": theme.zIndex.mobileStepper - 1,
+          "--z-index-node-control-handle": theme.zIndex.mobileStepper,
+          "--z-index-node-handle-tooltip": theme.zIndex.mobileStepper + 1,
+          "--z-index-node-tooltip": theme.zIndex.popover2
         }
       })
     },

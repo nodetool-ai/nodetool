@@ -621,6 +621,15 @@ Use via `theme.zIndex.*` when you need to co-ordinate with MUI framework compone
 
 Arbitrary integers (`9999` in new component code, `1000`, `2`, `5`) outside of `Z_INDEX.*` or `theme.zIndex.*`.
 
+Plain node handle styles use CSS variables from the theme, exposed by `MuiCssBaseline`:
+
+| CSS variable | Theme value |
+|---|---|
+| `--z-index-node-handle` | `theme.zIndex.mobileStepper - 1` |
+| `--z-index-node-control-handle` | `theme.zIndex.mobileStepper` |
+| `--z-index-node-handle-tooltip` | `theme.zIndex.mobileStepper + 1` |
+| `--z-index-node-tooltip` | `theme.zIndex.popover2` |
+
 ### Enforcement (z-index is fully linted at `error`)
 
 Zero violations — locked in at **`error`**. `design-tokens/zindex-tokens` flags any object-literal `zIndex` whose value is a positive number (or numeric string); `0` (normal flow) and negative values are allowed, as are values built from `Z_INDEX.*` / `theme.zIndex.*`. A few surfaces sit above the shared scale and have no matching tier (e.g. a full-screen compositor modal, the node-info panel); these use a documented module-level constant that preserves the exact stacking value — the rule accepts the named reference, and the constant name records intent. The `.css` surface is not linted (z-index rarely appears in the plain `.css` files); the check is TSX-only.
@@ -646,6 +655,10 @@ boxShadow: SHADOW(theme).lg
 | `SHADOW(theme).xl` | `0 16px 64px` @ 45% | Modals and full-screen overlays |
 | `SHADOW(theme).panelLeft` | `4px 0 8px` @ 5% | Left panel's right edge |
 | `SHADOW(theme).panelRight` | `-4px 0 8px` @ 5% | Right panel's left edge |
+
+Plain CSS uses `var(--shadow-sm)`, defined in [vars.css](../web/src/styles/vars.css)
+to mirror `SHADOW(theme).sm`. Node handle geometry variables in the same file retain the
+existing tooltip widths, offsets and handle hit regions.
 
 ### Forbidden
 
