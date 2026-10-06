@@ -1,167 +1,18 @@
+import { INSTANCE_FLOATS, SHADER, appendBatch, writeInstance } from "./webgpu/sprites.js";
+import { LIGHT_SHADER, gameLightingUniforms } from "./webgpu/lighting.js";
+import { PRESENT_SHADER, encodeGameEffects } from "./webgpu/effects.js";
+import { HUD_SHADER, paintWebGPUHud } from "./webgpu/hud.js";
+import type { TextureEntry, Batch, Blend } from "./webgpu/types.js";
+import { WebGPURenderPipeline } from "./webgpu/pipeline.js";
 import type { GameRenderFrame } from "@nodetool-ai/protocol";
-import { colorBrightnessContrastV1, colorCubeLutV1, createDefaultRegistry, createExecutor, createGPUContextFromDevice, createLabeledTexture, createRecipeRunner, filtersGlowV1, LabeledTexture } from "@nodetool-ai/gpu/pool";
-import * as d from "typegpu/data";
+import { createDefaultRegistry, createExecutor, createGPUContextFromDevice, createLabeledTexture, createRecipeRunner, LabeledTexture } from "@nodetool-ai/gpu/pool";
 import { AssetCache, imageHeight, imageWidth, type GameImage } from "./canvas2d.js";
-import { paintHud, parseTint, projectedCamera, visibleItems } from "./frame.js";
+import { parseTint, projectedCamera, visibleItems } from "./frame.js";
 import type { GameHudEffectOrder, GameRenderer, GameRendererCapabilities, GameRendererEffect, GameRendererStats } from "./index.js";
-
-const INSTANCE_FLOATS = 14;
-const SHADER = `
-struct Camera { center: vec2f, viewport: vec2f, zoom: f32, padding0: f32, padding1: f32, padding2: f32 };
-override linearizeInput: bool = false;
-fn srgbToLinear(rgb: vec3f) -> vec3f {
-  return select(rgb / 12.92, pow((rgb + 0.055) / 1.055, vec3f(2.4)), rgb > vec3f(0.04045));
-}
-fn linearToSrgb(rgb: vec3f) -> vec3f {
-  return select(rgb * 12.92, 1.055 * pow(rgb, vec3f(1.0 / 2.4)) - 0.055, rgb > vec3f(0.0031308));
-}
-@group(0) @binding(0) var<uniform> camera: Camera;
-@group(0) @binding(1) var atlasSampler: sampler;
-@group(0) @binding(2) var atlas: texture_2d<f32>;
-@group(1) @binding(0) var lightSampler: sampler;
-@group(1) @binding(1) var lightTexture: texture_2d<f32>;
-
-struct VertexInput {
-  @builtin(vertex_index) corner: u32,
-  @location(0) center: vec2f,
-  @location(1) size: vec2f,
-  @location(2) uv: vec4f,
-  @location(3) color: vec4f,
-  @location(4) rotation: f32,
-  @location(5) unlit: f32,
-};
-struct VertexOutput {
-  @builtin(position) position: vec4f,
-  @location(0) uv: vec2f,
-  @location(1) color: vec4f,
-  @location(3) @interpolate(flat) unlit: f32,
-  @location(4) lightUv: vec2f,
-};
-@vertex fn vertexMain(input: VertexInput) -> VertexOutput {
-  let corners = array<vec2f, 6>(
-    vec2f(-0.5, 0.5), vec2f(-0.5, -0.5), vec2f(0.5, 0.5),
-    vec2f(0.5, 0.5), vec2f(-0.5, -0.5), vec2f(0.5, -0.5));
-  let local = corners[input.corner] * input.size;
-  let sine = sin(input.rotation);
-  let cosine = cos(input.rotation);
-  let rotated = vec2f(local.x * cosine - local.y * sine, local.x * sine + local.y * cosine);
-  let world = input.center + rotated;
-  let clip = (world - camera.center) * camera.zoom * 2.0 / camera.viewport;
-  var output: VertexOutput;
-  output.position = vec4f(clip, 0.0, 1.0);
-  let uvCorner = corners[input.corner] + vec2f(0.5, 0.5);
-  output.uv = input.uv.xy + vec2f(uvCorner.x, 1.0 - uvCorner.y) * input.uv.zw;
-  output.color = input.color;
-  output.unlit = input.unlit;
-  output.lightUv = clip * vec2f(0.5, -0.5) + vec2f(0.5, 0.5);
-  return output;
-}
-@fragment fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
-  let sampled = textureSample(atlas, atlasSampler, input.uv) * input.color;
-  var straight = select(sampled.rgb, srgbToLinear(sampled.rgb), linearizeInput);
-  if (input.unlit < 0.5) {
-    let irradiance = textureSampleLevel(lightTexture, lightSampler, input.lightUv, 0.0).rgb;
-    let lit = clamp(srgbToLinear(sampled.rgb) * irradiance, vec3f(0.0), vec3f(1.0));
-    straight = select(linearToSrgb(lit), lit, linearizeInput);
-  }
-  return vec4f(straight * sampled.a, sampled.a);
-}`;
-
-const LIGHT_SHADER = `
-struct Camera { center: vec2f, viewport: vec2f, zoom: f32, padding0: f32, padding1: f32, padding2: f32 };
-struct PointLight { position: vec2f, radius: f32, intensity: f32, color: vec4f, falloff: f32, pad0: f32, pad1: f32, pad2: f32 };
-struct Lighting { ambient: vec4f, info: vec4f, points: array<PointLight, 32> };
-fn srgbToLinear(rgb: vec3f) -> vec3f {
-  return select(rgb / 12.92, pow((rgb + 0.055) / 1.055, vec3f(2.4)), rgb > vec3f(0.04045));
-}
-@group(0) @binding(0) var<uniform> camera: Camera;
-@group(0) @binding(1) var<uniform> lighting: Lighting;
-struct VertexOutput { @builtin(position) position: vec4f, @location(0) uv: vec2f };
-@vertex fn vertexMain(@builtin(vertex_index) index: u32) -> VertexOutput {
-  let positions = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
-  var output: VertexOutput;
-  output.position = vec4f(positions[index], 0.0, 1.0);
-  output.uv = positions[index] * vec2f(0.5, -0.5) + vec2f(0.5, 0.5);
-  return output;
-}
-@fragment fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
-  let world = camera.center + (input.uv - vec2f(0.5, 0.5)) * camera.viewport / camera.zoom * vec2f(1.0, -1.0);
-  var irradiance = srgbToLinear(lighting.ambient.rgb) * lighting.ambient.a;
-  for (var i = 0u; i < 32u; i += 1u) {
-    if (i >= u32(lighting.info.x)) { break; }
-    let point = lighting.points[i];
-    let distance = length(world - point.position);
-    if (distance < point.radius) {
-      irradiance += srgbToLinear(point.color.rgb) * point.intensity * pow(1.0 - distance / point.radius, point.falloff);
-    }
-  }
-  return vec4f(irradiance, 1.0);
-}`;
-
-const PRESENT_SHADER = `
-override decodeInput: bool = false;
-override encodeOutput: bool = true;
-override cropScaleX: f32 = 1.0;
-override cropScaleY: f32 = 1.0;
-override cropOffsetX: f32 = 0.0;
-override cropOffsetY: f32 = 0.0;
-@group(0) @binding(0) var sourceSampler: sampler;
-@group(0) @binding(1) var sourceTexture: texture_2d<f32>;
-struct VertexOutput { @builtin(position) position: vec4f, @location(0) uv: vec2f };
-@vertex fn vertexMain(@builtin(vertex_index) index: u32) -> VertexOutput {
-  let positions = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
-  var output: VertexOutput;
-  output.position = vec4f(positions[index], 0.0, 1.0);
-  output.uv = positions[index] * vec2f(0.5, -0.5) + vec2f(0.5, 0.5);
-  return output;
-}
-@fragment fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
-  let uv = input.uv * vec2f(cropScaleX, cropScaleY) + vec2f(cropOffsetX, cropOffsetY);
-  let premul = textureSample(sourceTexture, sourceSampler, uv);
-  let straight = premul.rgb / max(premul.a, 1.0 / 255.0);
-  let linear = select(straight / 12.92, pow((straight + 0.055) / 1.055, vec3f(2.4)),
-    straight > vec3f(0.04045));
-  let encoded = select(straight * 12.92, 1.055 * pow(straight, vec3f(1.0 / 2.4)) - 0.055,
-    straight > vec3f(0.0031308));
-  var converted = select(straight, linear, decodeInput);
-  converted = select(converted, encoded, encodeOutput);
-  return vec4f(clamp(converted, vec3f(0.0), vec3f(1.0)) * premul.a, premul.a);
-}`;
-
-const HUD_SHADER = `
-@group(0) @binding(0) var sourceSampler: sampler;
-@group(0) @binding(1) var sourceTexture: texture_2d<f32>;
-struct VertexOutput { @builtin(position) position: vec4f, @location(0) uv: vec2f };
-@vertex fn vertexMain(@builtin(vertex_index) index: u32) -> VertexOutput {
-  let positions = array<vec2f, 3>(vec2f(-1.0, -1.0), vec2f(3.0, -1.0), vec2f(-1.0, 3.0));
-  var output: VertexOutput;
-  output.position = vec4f(positions[index], 0.0, 1.0);
-  output.uv = positions[index] * vec2f(0.5, -0.5) + vec2f(0.5, 0.5);
-  return output;
-}
-@fragment fn fragmentMain(input: VertexOutput) -> @location(0) vec4f {
-  let color = textureSample(sourceTexture, sourceSampler, input.uv);
-  return vec4f(color.rgb * color.a, color.a);
-}`;
-
-interface TextureEntry {
-  readonly texture: GPUTexture;
-  readonly bindGroup: GPUBindGroup;
-  readonly width: number;
-  readonly height: number;
-}
-
-type Blend = "normal" | "additive";
-
-interface Batch {
-  readonly texture: TextureEntry;
-  readonly blend: Blend;
-  readonly first: number;
-  count: number;
-}
 
 /** Draws ordered sprites as consecutive texture batches on a private WebGPU device. */
 export class WebGPUGameRenderer implements GameRenderer {
+  private readonly renderPipeline = new WebGPURenderPipeline();
   readonly backend = "webgpu";
   private readonly pipeline: GPURenderPipeline;
   private readonly effectSpritePipeline: GPURenderPipeline;
@@ -580,17 +431,17 @@ export class WebGPUGameRenderer implements GameRenderer {
       const v = (rect.y + insetY) / texture.height;
       const du = (rect.width - 2 * insetX) / texture.width;
       const dv = (rect.height - 2 * insetY) / texture.height;
-      this.writeInstance(instances, index, item.x, item.y, item.width, item.height,
+      writeInstance(instances, index, item.x, item.y, item.width, item.height,
         item.flipX ? u + du : u, item.flipY ? v + dv : v, item.flipX ? -du : du, item.flipY ? -dv : dv,
         tint[0], tint[1], tint[2], item.opacity, item.rotation, item.unlit ? 1 : 0);
-      this.appendBatch(batches, texture, item.blend, index);
+      appendBatch(batches, texture, item.blend, index);
     }
     if (hudTexture) {
       const scale = frame.camera.zoom;
       const projected = projectedCamera(frame, interpolation);
-      this.writeInstance(instances, items.length, projected.x, projected.y,
+      writeInstance(instances, items.length, projected.x, projected.y,
         frame.width / scale, frame.height / scale, 0, 0, 1, 1, 1, 1, 1, 1, 0, 1);
-      this.appendBatch(batches, hudTexture, "normal", items.length);
+      appendBatch(batches, hudTexture, "normal", items.length);
     }
     const projected = projectedCamera(frame, interpolation);
     const camera = new Float32Array([projected.x, projected.y,
@@ -598,18 +449,8 @@ export class WebGPUGameRenderer implements GameRenderer {
       frame.height * (this.canvas.height + overscanPixels * 2) / Math.max(1, this.canvas.height),
       frame.camera.zoom, 0, 0, 0]);
     this.device.queue.writeBuffer(this.cameraBuffer, 0, camera);
-    const lighting = new Float32Array(392);
     const sceneLighting = frame.lighting;
-    if (sceneLighting) {
-      const ambient = parseTint(sceneLighting.ambient.color);
-      lighting.set([ambient[0], ambient[1], ambient[2], sceneLighting.ambient.intensity,
-        sceneLighting.points.length, 1], 0);
-      for (const [index, point] of sceneLighting.points.entries()) {
-        const color = parseTint(point.color);
-        lighting.set([point.x, point.y, point.radius, point.intensity,
-          color[0], color[1], color[2], 0, point.falloff], 8 + index * 12);
-      }
-    }
+    const lighting = gameLightingUniforms(frame);
     this.device.queue.writeBuffer(this.lightingBuffer, 0, lighting);
     if (count > 0 && this.instanceBuffer) {
       this.device.queue.writeBuffer(this.instanceBuffer, 0, instances);
@@ -624,104 +465,93 @@ export class WebGPUGameRenderer implements GameRenderer {
       this.lightTarget.destroy();
       this.lightTarget = undefined;
     }
-    if (sceneLighting) {
-      const target = this.ensureLightTarget(this.canvas.width + (hasEffects ? overscanPixels * 2 : 0),
-        this.canvas.height + (hasEffects ? overscanPixels * 2 : 0));
-      const lightGroup = this.device.createBindGroup({ layout: this.lightLayout, entries: [
-        { binding: 0, resource: { buffer: this.cameraBuffer } },
-        { binding: 1, resource: { buffer: this.lightingBuffer } },
-      ] });
-      const lightPass = encoder.beginRenderPass({ colorAttachments: [{ view: target.createView(),
-        loadOp: "clear", storeOp: "store", clearValue: { r: 0, g: 0, b: 0, a: 1 } }] });
-      lightPass.setPipeline(this.lightPipeline);
-      lightPass.setBindGroup(0, lightGroup);
-      lightPass.draw(3);
-      lightPass.end();
-      target.markWritten();
-    }
-    const lightSampleGroup = this.device.createBindGroup({ layout: this.lightSampleLayout, entries: [
-      { binding: 0, resource: this.sampler },
-      { binding: 1, resource: (this.lightTarget?.texture ?? this.lightFallback).createView() },
-    ] });
-    const pass = encoder.beginRenderPass({ colorAttachments: [{
-      view: hasEffects ? this.sourceTarget!.createView() : this.context.getCurrentTexture().createView(),
-      loadOp: "clear",
-      storeOp: "store",
-      clearValue: { r: 0, g: 0, b: 0, a: 0 },
-    }] });
-    if (this.instanceBuffer) {
-      pass.setVertexBuffer(0, this.instanceBuffer);
-      pass.setBindGroup(1, lightSampleGroup);
-      let blend: Blend | undefined;
-      for (const batch of batches) {
-        if (hudAfterEffects && batch.first >= items.length) {
-          continue;
+    await this.renderPipeline.render({
+      lighting: () => {
+        if (sceneLighting) {
+          const target = this.ensureLightTarget(this.canvas.width + (hasEffects ? overscanPixels * 2 : 0),
+            this.canvas.height + (hasEffects ? overscanPixels * 2 : 0));
+          const lightGroup = this.device.createBindGroup({ layout: this.lightLayout, entries: [
+            { binding: 0, resource: { buffer: this.cameraBuffer } },
+            { binding: 1, resource: { buffer: this.lightingBuffer } },
+          ] });
+          const lightPass = encoder.beginRenderPass({ colorAttachments: [{ view: target.createView(),
+            loadOp: "clear", storeOp: "store", clearValue: { r: 0, g: 0, b: 0, a: 1 } }] });
+          lightPass.setPipeline(this.lightPipeline);
+          lightPass.setBindGroup(0, lightGroup);
+          lightPass.draw(3);
+          lightPass.end();
+          target.markWritten();
         }
-        if (batch.blend !== blend) {
-          blend = batch.blend;
-          pass.setPipeline(blend === "additive"
-            ? hasEffects ? this.effectAdditivePipeline : this.additivePipeline
-            : hasEffects ? this.effectSpritePipeline : this.pipeline);
-        }
-        pass.setBindGroup(0, batch.texture.bindGroup);
-        pass.draw(6, batch.count, 0, batch.first);
+      },
+      sprites: () => {
+        const lightSampleGroup = this.device.createBindGroup({ layout: this.lightSampleLayout, entries: [
+          { binding: 0, resource: this.sampler },
+          { binding: 1, resource: (this.lightTarget?.texture ?? this.lightFallback).createView() },
+        ] });
+        const pass = encoder.beginRenderPass({ colorAttachments: [{
+          view: hasEffects ? this.sourceTarget!.createView() : this.context.getCurrentTexture().createView(),
+          loadOp: "clear",
+          storeOp: "store",
+          clearValue: { r: 0, g: 0, b: 0, a: 0 },
+        }] });
+        if (this.instanceBuffer) {
+          pass.setVertexBuffer(0, this.instanceBuffer);
+          pass.setBindGroup(1, lightSampleGroup);
+          let blend: Blend | undefined;
+          for (const batch of batches) {
+            if (hudAfterEffects && batch.first >= items.length) {
+              continue;
+            }
+            if (batch.blend !== blend) {
+              blend = batch.blend;
+              pass.setPipeline(blend === "additive"
+                ? hasEffects ? this.effectAdditivePipeline : this.additivePipeline
+                : hasEffects ? this.effectSpritePipeline : this.pipeline);
+            }
+            pass.setBindGroup(0, batch.texture.bindGroup);
+            pass.draw(6, batch.count, 0, batch.first);
       }
     }
     pass.end();
-    if (hasEffects) {
-      let source = this.sourceTarget!;
-      let output = this.effectTarget!;
-      source.markWritten();
-      this.effectContext.uniformRing.beginSubmission();
-      for (const effect of this.effects) {
-        if (effect.kind === "brightnessContrast") {
-          this.effectExecutor.encode({ ctx: this.effectContext, module: colorBrightnessContrastV1,
-            encoder, inputs: { source }, output,
-            params: { brightness: effect.brightness, contrast: effect.contrast },
-            dispatch: { kind: "fragment" } });
-        } else if (effect.kind === "bloom") {
-          this.effectRecipeRunner.encode({ ctx: this.effectContext, module: filtersGlowV1,
-            registry: this.effectRegistry, executor: this.effectExecutor, encoder, inputs: { source }, output,
-            params: { threshold: effect.threshold, softness: effect.softness,
-              radius: effect.radius, intensity: effect.intensity } });
-        } else {
-          const srgbSource = this.srgbTarget!;
-          const srgbOutput = this.lutTarget!;
-          const lut = await this.getLutTexture(effect.assetId, effect.size);
-          this.convertColor(encoder, source, srgbSource, this.toSrgbPipeline);
-          this.effectExecutor.encode({ ctx: this.effectContext, module: colorCubeLutV1,
-            encoder, inputs: { source: srgbSource, lut }, output: srgbOutput,
-            params: { size: effect.size, intensity: effect.intensity,
-              domainMin: d.vec4f(...effect.domainMin, 0), domainMax: d.vec4f(...effect.domainMax, 0) },
-            dispatch: { kind: "fragment" } });
-          this.convertColor(encoder, srgbOutput, output, this.toLinearPipeline);
+      },
+      effects: async () => {
+        if (hasEffects) {
+          let source = this.sourceTarget!;
+          const output = this.effectTarget!;
+          source = await encodeGameEffects({ effects: this.effects, source, output, encoder,
+            effectContext: this.effectContext, effectExecutor: this.effectExecutor,
+            effectRecipeRunner: this.effectRecipeRunner, effectRegistry: this.effectRegistry,
+            srgbTarget: this.srgbTarget, lutTarget: this.lutTarget, toSrgbPipeline: this.toSrgbPipeline,
+            toLinearPipeline: this.toLinearPipeline, getLutTexture: (id, size) => this.getLutTexture(id, size),
+            convertColor: (command, input, target, pipeline) => this.convertColor(command, input, target, pipeline) });
+          const presentGroup = this.device.createBindGroup({ layout: this.presentLayout, entries: [
+            { binding: 0, resource: this.sampler }, { binding: 1, resource: source.createView() },
+          ] });
+          const presentPass = encoder.beginRenderPass({ colorAttachments: [{
+            view: this.context.getCurrentTexture().createView(), loadOp: "clear", storeOp: "store",
+            clearValue: { r: 0, g: 0, b: 0, a: 0 },
+          }] });
+          presentPass.setPipeline(this.presentPipeline);
+          presentPass.setBindGroup(0, presentGroup);
+          presentPass.draw(3);
+          presentPass.end();
         }
-        [source, output] = [output, source];
+      },
+      hud: () => {
+          if (hudAfterEffects && hudTexture) {
+            const hudGroup = this.device.createBindGroup({ layout: this.presentLayout, entries: [
+              { binding: 0, resource: this.sampler }, { binding: 1, resource: hudTexture.texture.createView() },
+            ] });
+            const hudPass = encoder.beginRenderPass({ colorAttachments: [{
+              view: this.context.getCurrentTexture().createView(), loadOp: "load", storeOp: "store",
+            }] });
+            hudPass.setPipeline(this.hudPipeline);
+            hudPass.setBindGroup(0, hudGroup);
+            hudPass.draw(3);
+            hudPass.end();
       }
-      const presentGroup = this.device.createBindGroup({ layout: this.presentLayout, entries: [
-        { binding: 0, resource: this.sampler }, { binding: 1, resource: source.createView() },
-      ] });
-      const presentPass = encoder.beginRenderPass({ colorAttachments: [{
-        view: this.context.getCurrentTexture().createView(), loadOp: "clear", storeOp: "store",
-        clearValue: { r: 0, g: 0, b: 0, a: 0 },
-      }] });
-      presentPass.setPipeline(this.presentPipeline);
-      presentPass.setBindGroup(0, presentGroup);
-      presentPass.draw(3);
-      presentPass.end();
-      if (hudAfterEffects && hudTexture) {
-        const hudGroup = this.device.createBindGroup({ layout: this.presentLayout, entries: [
-          { binding: 0, resource: this.sampler }, { binding: 1, resource: hudTexture.texture.createView() },
-        ] });
-        const hudPass = encoder.beginRenderPass({ colorAttachments: [{
-          view: this.context.getCurrentTexture().createView(), loadOp: "load", storeOp: "store",
-        }] });
-        hudPass.setPipeline(this.hudPipeline);
-        hudPass.setBindGroup(0, hudGroup);
-        hudPass.draw(3);
-        hudPass.end();
       }
-    }
+    });
     this.device.queue.submit([encoder.finish()]);
     const textureBytes = [...this.textures.values(), ...this.placeholders.values(), this.fallback,
       ...(this.hudTexture ? [this.hudTexture] : [])].reduce((sum, entry) => sum + entry.width * entry.height * 4, 0);
@@ -747,33 +577,13 @@ export class WebGPUGameRenderer implements GameRenderer {
     const key = JSON.stringify([this.canvas.width, this.canvas.height, frame.hud]);
     if (key !== this.hudKey) {
       const canvas = this.hudCanvas ?? document.createElement("canvas");
-      canvas.width = this.canvas.width;
-      canvas.height = this.canvas.height;
-      const context = canvas.getContext("2d");
-      if (!context) {
-        throw new Error("HUD canvas is unavailable");
-      }
-      context.clearRect(0, 0, canvas.width, canvas.height);
-      paintHud(context, frame.hud, 1, frame.gameId);
+      paintWebGPUHud(canvas, this.canvas.width, this.canvas.height, frame);
       this.hudTexture?.texture.destroy();
       this.hudTexture = this.upload(canvas);
       this.hudCanvas = canvas;
       this.hudKey = key;
     }
     return this.hudTexture;
-  }
-
-  private appendBatch(batches: Batch[], texture: TextureEntry, blend: Blend, index: number): void {
-    const last = batches[batches.length - 1];
-    if (last?.texture === texture && last.blend === blend) {
-      last.count++;
-    } else {
-      batches.push({ texture, blend, first: index, count: 1 });
-    }
-  }
-
-  private writeInstance(target: Float32Array, index: number, ...values: number[]): void {
-    target.set(values, index * INSTANCE_FLOATS);
   }
 
   private ensureInstanceCapacity(count: number): void {

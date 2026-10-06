@@ -512,4 +512,77 @@ describe("useSelectionActions", () => {
       expect(mockToggleBypass).toHaveBeenCalledTimes(1);
     });
   });
+
+  describe("stackSelected and arrangeGrid", () => {
+    const node = (id: string, x: number, y: number, width = 100, height = 50) => ({
+      id,
+      position: { x, y },
+      selected: true,
+      measured: { width, height }
+    });
+
+    const arrange = (
+      testNodes: PositionedNode[],
+      action: "stackSelected" | "arrangeGrid"
+    ) => {
+      asMock(useNodes).mockImplementation(
+        selectorOver({
+          setNodes: mockSetNodes,
+          setEdges: mockSetEdges,
+          getSelectedNodes: () => testNodes
+        })
+      );
+      asMock(useNodeStoreRef).mockReturnValue({
+        getState: () => ({ nodes: testNodes, edges: [] })
+      });
+      const { result } = renderHook(() => useSelectionActions());
+      result.current[action]();
+      return Object.fromEntries(
+        mockSetNodes.mock.calls[0][0].map((n) => [n.id, n.position])
+      );
+    };
+
+    it("stacks nodes in one column in reading order", () => {
+      const positions = arrange(
+        [node("b", 300, 100, 100, 80), node("a", 50, 10, 100, 60), node("c", 0, 200)],
+        "stackSelected"
+      );
+      expect(positions).toEqual({
+        a: { x: 0, y: 10 },
+        b: { x: 0, y: 90 },
+        c: { x: 0, y: 190 }
+      });
+    });
+
+    it("arranges nodes in a near-square grid sized by the largest cells", () => {
+      const positions = arrange(
+        [
+          node("1", 0, 0, 200, 100),
+          node("2", 500, 0),
+          node("3", 0, 400),
+          node("4", 500, 400, 100, 150),
+          node("5", 900, 900)
+        ],
+        "arrangeGrid"
+      );
+      // 5 nodes -> 3 columns. Column widths 200, 100, 100; row heights 100, 150.
+      expect(positions).toEqual({
+        "1": { x: 0, y: 0 },
+        "2": { x: 240, y: 0 },
+        "3": { x: 380, y: 0 },
+        "4": { x: 0, y: 120 },
+        "5": { x: 240, y: 120 }
+      });
+    });
+
+    it("does nothing with fewer than 2 nodes", () => {
+      asMock(useNodes).mockImplementation(
+        selectorOver({ getSelectedNodes: () => [node("1", 0, 0)] })
+      );
+      const { result } = renderHook(() => useSelectionActions());
+      result.current.stackSelected();
+      result.current.arrangeGrid();
+      expect(mockSetNodes).not.toHaveBeenCalled();
+    });
+  });
 });

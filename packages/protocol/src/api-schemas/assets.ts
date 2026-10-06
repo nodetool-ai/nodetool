@@ -34,6 +34,8 @@ export const assetResponse = z.object({
   timeline_id: z.string().nullable().optional(),
   /** The project the asset belongs to; `"default"` for none. */
   project_id: z.string().optional(),
+  /** The user starred this asset. */
+  favorite: z.boolean().optional(),
   /**
    * Present only on an asset that references a local file in place: true when
    * that file is missing or has changed since import or relink. An offline
@@ -66,6 +68,8 @@ export const listInput = z.object({
   node_id: z.string().optional(),
   job_id: z.string().optional(),
   timeline_id: z.string().optional(),
+  /** Only starred assets, from every folder. */
+  favorite: z.boolean().optional(),
   page_size: z.number().int().min(1).max(10000).default(10000)
 });
 export type ListInput = z.infer<typeof listInput>;
@@ -226,6 +230,7 @@ export const updateInput = z.object({
   expected_metadata: z.record(z.string(), z.unknown()).nullable().optional(),
   sketch_document_id: z.string().nullable().optional(),
   timeline_id: z.string().nullable().optional(),
+  favorite: z.boolean().optional(),
   size: z.number().optional(),
   data: z.string().nullable().optional(),
   data_encoding: z.enum(["base64", "utf-8"]).nullable().optional()

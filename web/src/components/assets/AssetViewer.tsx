@@ -35,6 +35,7 @@ import CheckIcon from "@mui/icons-material/Check";
 import CompareIcon from "@mui/icons-material/Compare";
 import EditIcon from "@mui/icons-material/Edit";
 import InfoOutlinedIcon from "@mui/icons-material/InfoOutlined";
+import AccountTreeIcon from "@mui/icons-material/AccountTree";
 import AssetItem from "./AssetItem";
 import AssetInfoPanel from "../context_menus/AssetInfoPanel";
 import { ImageComparer } from "../widgets";
@@ -52,6 +53,7 @@ import { useAssetDownload } from "../../hooks/assets/useAssetDownload";
 import { useAssetNavigation } from "../../hooks/assets/useAssetNavigation";
 import { useAssetDisplay } from "../../hooks/assets/useAssetDisplay";
 import { useEditVideoAsset } from "../../hooks/useEditVideoAsset";
+import { useOpenAssetWorkflow } from "../../hooks/useOpenAssetWorkflow";
 import { useNavigate } from "react-router-dom";
 import { isEditableModel3DAsset } from "../model_editor/isEditableModel3D";
 import { assetTabType } from "../workspace/assetTabType";
@@ -519,6 +521,14 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
     }
   }, [currentAsset, isAudio, openTab, navigate, handleClose, projectId]);
 
+  const { openWorkflow } = useOpenAssetWorkflow();
+  const handleOpenWorkflow = useCallback(() => {
+    if (currentAsset?.workflow_id) {
+      openWorkflow(currentAsset);
+      handleClose();
+    }
+  }, [currentAsset, openWorkflow, handleClose]);
+
   const handleOpenVideoEditor = useCallback(() => {
     if (currentAsset && isVideo) {
       void editVideoAsset(currentAsset);
@@ -875,7 +885,10 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
 
         {showInfo && currentAsset && !compareMode && (
           <div className="info-panel-overlay">
-            <AssetInfoPanel asset={currentAsset} />
+            <AssetInfoPanel
+              asset={currentAsset}
+              onOpenWorkflow={handleClose}
+            />
           </div>
         )}
 
@@ -936,6 +949,16 @@ const AssetViewer: React.FC<AssetViewerProps> = (props) => {
               }
               onClick={handleOpenVideoEditor}
               className="button edit"
+              nodrag={false}
+              sx={viewerActionButtonSx}
+            />
+          )}
+          {currentAsset?.workflow_id && !compareMode && inLibrary && (
+            <ToolbarIconButton
+              icon={<AccountTreeIcon />}
+              tooltip="Open the workflow that made this"
+              onClick={handleOpenWorkflow}
+              className="button open-workflow"
               nodrag={false}
               sx={viewerActionButtonSx}
             />

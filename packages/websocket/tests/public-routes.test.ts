@@ -7,6 +7,7 @@ import { describe, it, expect } from "vitest";
 import {
   isPublicAppDeploymentRequest,
   isPublicOAuthRequest,
+  isPublicSharedWorkflowRequest,
   isPublicWorkflowMetadataRequest,
   isPublicAuthExemptRoute
 } from "../src/lib/public-routes.js";
@@ -172,5 +173,29 @@ describe("isPublicAppDeploymentRequest", () => {
     expect(isPublicAuthExemptRoute("/api/apps/tok3n/session", "POST")).toBe(
       true
     );
+  });
+});
+
+describe("isPublicSharedWorkflowRequest", () => {
+  it("exempts reading a workflow through its public share token", () => {
+    expect(
+      isPublicSharedWorkflowRequest("/api/shared-workflows/tok3n", "GET")
+    ).toBe(true);
+    expect(
+      isPublicAuthExemptRoute("/api/shared-workflows/tok3n", "GET")
+    ).toBe(true);
+  });
+
+  it("exempts nothing deeper, empty, or mutating", () => {
+    for (const [path, method] of [
+      ["/api/shared-workflows/", "GET"],
+      ["/api/shared-workflows", "GET"],
+      ["/api/shared-workflows/tok3n/graph", "GET"],
+      ["/api/shared-workflows/tok3n", "POST"],
+      ["/api/shared-workflows/tok3n", "DELETE"]
+    ] as const) {
+      expect(isPublicSharedWorkflowRequest(path, method)).toBe(false);
+      expect(isPublicAuthExemptRoute(path, method)).toBe(false);
+    }
   });
 });

@@ -30,7 +30,7 @@ export const MAX_ITERATIONS_LIMIT = 1000;
 /** Clamp the `max_iterations` property to [1, MAX_ITERATIONS_LIMIT]. */
 export function resolveMaxIterations(raw: unknown): number {
   const n = Math.floor(Number(raw ?? DEFAULT_MAX_ITERATIONS));
-  if (!Number.isFinite(n)) return DEFAULT_MAX_ITERATIONS;
+  if (Number.isNaN(n)) return DEFAULT_MAX_ITERATIONS;
   return Math.min(MAX_ITERATIONS_LIMIT, Math.max(1, n));
 }
 

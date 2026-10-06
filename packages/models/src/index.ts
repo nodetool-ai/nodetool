@@ -155,7 +155,7 @@ export {
   isCollaboratorRole,
   type CollaboratorRole
 } from "./workflow-collaborator.js";
-export { WorkflowShare } from "./workflow-share.js";
+export { WorkflowShare, type ShareRole } from "./workflow-share.js";
 
 export { Asset } from "./asset.js";
 export type { AssetRow, AssetInsert } from "./asset.js";

@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { graph } from "./workflows.js";
 
 // ── Full job response ────────────────────────────────────────────
 // Mirrors `toJobResponse` in the legacy http-api.ts handler. `cost` is
@@ -63,6 +64,23 @@ export const getInput = z.object({
   id: z.string().min(1)
 });
 export type GetInput = z.infer<typeof getInput>;
+
+// ── snapshot ─────────────────────────────────────────────────────
+// The graph and input params a run executed with, in the editor's saved-graph
+// shape, so an asset the run made can reopen the workflow as it was then.
+// `graph` is null when the job row holds no graph (older or headless runs).
+export const snapshotInput = getInput;
+export type SnapshotInput = z.infer<typeof snapshotInput>;
+
+export const snapshotOutput = z.object({
+  id: z.string(),
+  workflow_id: z.string(),
+  name: z.string().nullable(),
+  started_at: z.string().nullable(),
+  graph: graph.nullable(),
+  params: z.record(z.string(), z.unknown()).nullable()
+});
+export type SnapshotOutput = z.infer<typeof snapshotOutput>;
 
 // ── delete (DELETE /api/jobs/:id) ────────────────────────────────
 // Legacy returned 204 No Content; we return an ack to satisfy tRPC's

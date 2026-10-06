@@ -205,7 +205,8 @@ content_expired INTEGER NOT NULL DEFAULT 0)`,
 ];
 
 const JOB_TRACE_MARKER_DDL = "ALTER TABLE nodetool_jobs ADD COLUMN has_run_trace INTEGER NOT NULL DEFAULT 0";
-export const POST_BASELINE_TABLE_DDL: readonly string[] = [...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL];
+const ASSET_FAVORITE_DDL = "ALTER TABLE nodetool_assets ADD COLUMN favorite INTEGER NOT NULL DEFAULT 0";
+export const POST_BASELINE_TABLE_DDL: readonly string[] = [...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL, ASSET_FAVORITE_DDL];
 
 export const migrations: MigrationDef[] = [
   // ── 001: Create workflows ──────────────────────────────────────────
@@ -4102,6 +4103,24 @@ export const migrations: MigrationDef[] = [
       if (await db.columnExists("nodetool_jobs", "has_run_trace")) {
         await db.execute("ALTER TABLE nodetool_jobs DROP COLUMN has_run_trace");
       }
+    }
+  },
+
+  // ── Favorite assets ─────────────────────────────────────────────────
+  // A star the user sets on an asset; the browser's Favorites view lists them.
+  {
+    version: "20261006_000000",
+    name: "add_asset_favorite",
+    createsTables: [],
+    modifiesTables: ["nodetool_assets"],
+    async up(db) {
+      if (!(await db.tableExists("nodetool_assets"))) return;
+      if (!(await db.columnExists("nodetool_assets", "favorite"))) {
+        await db.execute(ASSET_FAVORITE_DDL);
+      }
+    },
+    async down() {
+      // The column stays: dropping one is unsafe across dialects and versions.
     }
   }
 ];

@@ -91,6 +91,7 @@ These paths skip session auth. They are still covered by the per-IP rate limiter
 - `/api/webhooks/*`, `/api/kie/webhook*`, `POST /api/providers/fal/webhook/:token`, and `POST /api/providers/atlascloud/webhook`. These verify their own secret or signature.
 - `/api/integrations/*`. Each handler requires `NODETOOL_INTEGRATION_TOKEN`.
 - `GET /api/apps/:token` and `POST /api/apps/:token/session`, the deployed mini app routes (production only).
+- `GET /api/shared-workflows/:token`, the read behind a workflow's public share link.
 - The MCP OAuth surface: `/.well-known/oauth-protected-resource*`, `/.well-known/oauth-authorization-server*`, `/oauth/authorize`, `/oauth/token`, `/oauth/register`, and `/oauth/revoke`.
 - Static web app files, when the server serves the bundled UI. Paths under `/api`, `/ws`, `/v1`, `/trpc`, and `/mcp` still require auth.
 

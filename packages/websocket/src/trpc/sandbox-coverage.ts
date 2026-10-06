@@ -434,6 +434,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
   "jobs.cancel": { capability: "cancel_job" },
   "jobs.get": { capability: "get_job" },
   "jobs.list": { capability: "list_jobs" },
+  "jobs.snapshot": {
+    gap: "Editor-shaped graph and params of a past run, for reopening it in the editor. No sandbox capability returns a job's graph yet."
+  },
   "jobs.triggerStart": {
     withheld:
       "Arming a trigger schedules execution that outlives the run " +
@@ -1226,6 +1229,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "exposed, and it is classified `external` so the gate asks; " +
       "handing access to a *particular* account is a step further and " +
       "stays with the user."
+  },
+  "workflows.sharing.duplicatePublic": {
+    withheld:
+      "Copies a workflow from a link someone else published into the " +
+      "caller's workflows. The token is a credential the user was handed, " +
+      "and redeeming it is the user's decision, not a run's."
   },
   "workflows.sharing.get": {
     withheld:

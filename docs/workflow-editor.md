@@ -221,8 +221,19 @@ Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups keep relate
 | `A` | Align selected nodes |
 | `Shift + A` | Align and distribute evenly |
 | `Shift + ←/→/↑/↓` | Align left, right, top, or bottom edges |
-| `Shift + H` / `Shift + V` | Align centers horizontally or vertically |
+| `Shift + H` / `Shift + E` | Align centers horizontally or vertically |
 | `Shift + D` | Distribute horizontally |
+| `V` | Stack selected nodes in one column |
+| `G` | Arrange selected nodes in a grid |
+
+### Adding Nodes from the Keyboard
+
+| Shortcut | Node added at the cursor |
+|----------|--------------------------|
+| `Shift + P` | Prompt |
+| `Shift + G` | Text to Image |
+| `Shift + V` | Text to Video |
+| `Shift + L` | Agent |
 
 ---
 
@@ -382,8 +393,10 @@ The color picker appears when selecting colors in properties:
 | `C` | Collapse or expand selected nodes |
 | `Shift + C` / `Shift + I` / `Shift + O` | Select connected / input / output nodes |
 | `Shift + ←/→/↑/↓` | Align left, right, top, bottom |
-| `Shift + H` / `Shift + V` | Align centers horizontally / vertically |
+| `Shift + H` / `Shift + E` | Align centers horizontally / vertically |
 | `Shift + D` | Distribute horizontally |
+| `V` / `G` | Stack / grid-arrange selected nodes |
+| `Shift + P` / `G` / `V` / `L` | Add Prompt / Text to Image / Text to Video / Agent node at the cursor |
 | `A` | Align selected nodes |
 | `Shift + A` | Align and distribute |
 | `Arrow keys` | Nudge selected nodes |

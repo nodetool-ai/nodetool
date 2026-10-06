@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { readAssetGenerationMetadata } from "@nodetool-ai/protocol";
 import { useAssetStore } from "../stores/AssetStore";
 import { Asset } from "../stores/ApiTypes";
 import { useSettingsStore } from "../stores/SettingsStore";
@@ -23,6 +24,27 @@ type FilterOptions = {
   contentType?: string | null;
   sizeFilter?: string;
   typeFilter?: string;
+  modelFilter?: string | null;
+};
+
+/** A model that produced at least one asset in the current view. */
+export type AssetModelOption = {
+  /** Model id, as stamped in the asset's generation metadata. */
+  id: string;
+  /** Display name when the generator recorded one, else the id. */
+  label: string;
+};
+
+/** The model that generated an asset, from its generation metadata. */
+const assetModel = (asset: Asset): AssetModelOption | null => {
+  const generation = readAssetGenerationMetadata(asset.metadata).generation;
+  if (!generation?.model) {
+    return null;
+  }
+  return {
+    id: generation.model,
+    label: generation.model_name ?? generation.model
+  };
 };
 
 type AssetUpdate = {
@@ -65,6 +87,8 @@ export const useAssets = () => {
   const sizeFilter = useAssetGridStore((state) => state.sizeFilter);
   const typeFilter = useAssetGridStore((state) => state.typeFilter);
   const workflowFilter = useAssetGridStore((state) => state.workflowFilter);
+  const favoritesOnly = useAssetGridStore((state) => state.favoritesOnly);
+  const modelFilter = useAssetGridStore((state) => state.modelFilter);
   const gridScopeProjectId = useAssetGridStore(
     (state) => state.scopeProjectId
   );
@@ -75,6 +99,16 @@ export const useAssets = () => {
   );
   const addNotification = useNotificationStore(
     (state) => state.addNotification
+  );
+  // A workflow scope or the Favorites view lists across folders.
+  const isFilteredScope = Boolean(workflowFilter) || favoritesOnly;
+  const filteredScopeKey = useMemo(
+    () => ({
+      workflow_id: workflowFilter ?? undefined,
+      favorite: favoritesOnly || undefined,
+      project_id: activeProjectId
+    }),
+    [workflowFilter, favoritesOnly, activeProjectId]
   );
 
   if (currentUser === null) {
@@ -107,43 +141,34 @@ export const useAssets = () => {
       { parent_id: currentFolderId, project_id: activeProjectId }
     ],
     queryFn: fetchAssets,
-    enabled: projectScopeReady && !!currentFolderId && !workflowFilter,
+    enabled: projectScopeReady && !!currentFolderId && !isFilteredScope,
     staleTime: 30_000
   });
 
-  // Fetch assets filtered by workflow_id when workflowFilter is active
-  const fetchWorkflowAssets = useCallback(async () => {
-    const data = await trpcClient.assets.list.query({
-      workflow_id: workflowFilter!,
-      project_id: activeProjectId
-    });
+  // Fetch across folders when a workflow scope or the Favorites view is active
+  const fetchFilteredAssets = useCallback(async () => {
+    const data = await trpcClient.assets.list.query(filteredScopeKey);
     return {
       ...data,
       assets: normalizeAssetList(data.assets)
     };
-  }, [workflowFilter, activeProjectId]);
+  }, [filteredScopeKey]);
 
   const {
-    data: workflowFilteredAssets,
-    error: workflowFilterError,
-    isLoading: isLoadingWorkflowAssets
+    data: filteredScopeAssets,
+    error: filteredScopeError,
+    isLoading: isLoadingFilteredScope
   } = useQuery({
-    queryKey: [
-      "assets",
-      { workflow_id: workflowFilter, project_id: activeProjectId }
-    ],
-    queryFn: fetchWorkflowAssets,
-    enabled: projectScopeReady && !!workflowFilter,
+    queryKey: ["assets", filteredScopeKey],
+    queryFn: fetchFilteredAssets,
+    enabled: projectScopeReady && isFilteredScope,
     staleTime: 30000
   });
 
   const refetchAssets = useCallback(() => {
-    if (workflowFilter) {
+    if (isFilteredScope) {
       return queryClient.invalidateQueries({
-        queryKey: [
-          "assets",
-          { workflow_id: workflowFilter, project_id: activeProjectId }
-        ]
+        queryKey: ["assets", filteredScopeKey]
       });
     }
     return queryClient.invalidateQueries({
@@ -152,7 +177,13 @@ export const useAssets = () => {
         { parent_id: currentFolderId, project_id: activeProjectId }
       ]
     });
-  }, [queryClient, currentFolderId, workflowFilter, activeProjectId]);
+  }, [
+    queryClient,
+    currentFolderId,
+    isFilteredScope,
+    filteredScopeKey,
+    activeProjectId
+  ]);
 
   const fetchAllFolders = useCallback(async () => {
     return await loadFolderTree(settings.assetsOrder, activeProjectId);
@@ -179,9 +210,8 @@ export const useAssets = () => {
   }, [refetchAssets, refetchFolders]);
 
   const processedAssets = useMemo(() => {
-    // When workflow filter is active, use workflow-filtered assets
-    const sourceAssets = workflowFilter
-      ? (workflowFilteredAssets?.assets as Asset[] | undefined)
+    const sourceAssets = isFilteredScope
+      ? (filteredScopeAssets?.assets as Asset[] | undefined)
       : currentFolderAssets?.assets;
 
     if (!sourceAssets) {return [];}
@@ -211,7 +241,7 @@ export const useAssets = () => {
         );
       }
     });
-  }, [currentFolderAssets, workflowFilteredAssets, workflowFilter, settings.assetsOrder]);
+  }, [currentFolderAssets, filteredScopeAssets, isFilteredScope, settings.assetsOrder]);
 
   const filterAssets = useCallback(
     (assetsToFilter: Asset[], options: FilterOptions) => {
@@ -248,7 +278,13 @@ export const useAssets = () => {
           categoryMatch = category === options.typeFilter;
         }
 
-        return nameMatch && typeMatch && sizeMatch && categoryMatch;
+        const modelMatch = options.modelFilter
+          ? assetModel(asset)?.id === options.modelFilter
+          : true;
+
+        return (
+          nameMatch && typeMatch && sizeMatch && categoryMatch && modelMatch
+        );
       });
     },
     []
@@ -258,9 +294,29 @@ export const useAssets = () => {
       searchTerm: assetSearchTerm || "",
       contentType: null,
       sizeFilter: sizeFilter,
-      typeFilter: typeFilter
+      typeFilter: typeFilter,
+      modelFilter: modelFilter
     });
-  }, [filterAssets, processedAssets, assetSearchTerm, sizeFilter, typeFilter]);
+  }, [
+    filterAssets,
+    processedAssets,
+    assetSearchTerm,
+    sizeFilter,
+    typeFilter,
+    modelFilter
+  ]);
+
+  // The models behind the assets in view, for the model filter menu.
+  const modelOptions = useMemo(() => {
+    const byId = new Map<string, AssetModelOption>();
+    for (const asset of processedAssets) {
+      const model = assetModel(asset);
+      if (model && !byId.has(model.id)) {
+        byId.set(model.id, model);
+      }
+    }
+    return [...byId.values()].sort((a, b) => a.label.localeCompare(b.label));
+  }, [processedAssets]);
 
   // AssetStore.{createFolder,delete,update} already invalidates the
   // ["assets", { parent_id }] queries it touches; these mutations only need
@@ -272,16 +328,11 @@ export const useAssets = () => {
         { parent_id: currentFolderId, project_id: activeProjectId }
       ]
     });
-    if (workflowFilter) {
-      queryClient.invalidateQueries({
-        queryKey: [
-          "assets",
-          { workflow_id: workflowFilter, project_id: activeProjectId }
-        ]
-      });
+    if (isFilteredScope) {
+      queryClient.invalidateQueries({ queryKey: ["assets", filteredScopeKey] });
     }
     queryClient.invalidateQueries({ queryKey: ["folderTree"] });
-  }, [queryClient, currentFolderId, workflowFilter, activeProjectId]);
+  }, [queryClient, currentFolderId, isFilteredScope, filteredScopeKey, activeProjectId]);
 
   const notifyMutationError = useCallback(
     (content: string) => (err: Error) => {
@@ -365,11 +416,11 @@ export const useAssets = () => {
     ]
   );
 
-  const isLoading = workflowFilter
-    ? isLoadingWorkflowAssets
+  const isLoading = isFilteredScope
+    ? isLoadingFilteredScope
     : (isLoadingCurrentFolder || isLoadingFolderTree);
-  const error = workflowFilter
-    ? workflowFilterError
+  const error = isFilteredScope
+    ? filteredScopeError
     : (currentFolderError || folderTreeError);
 
   const fetchAssetsRecursive = useCallback(
@@ -389,6 +440,7 @@ export const useAssets = () => {
     folderFilesFiltered, // Filtered assets based on search term and content type
     folderAssets: currentFolderAssets, // Raw data returned from the API for the current folder, including both files and folders
     folderTree, // Tree structure of all folders in the system
+    modelOptions, // models that generated the assets in view
     projectId: activeProjectId,
     currentFolderId, // ID of the currently selected folder
     isLoading, // if assets are currently being loaded
