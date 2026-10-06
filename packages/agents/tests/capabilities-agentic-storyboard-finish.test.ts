@@ -1849,14 +1849,22 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
     "prevents a late finishing commit when the normal JS script deadline expires through %s",
     async (surface) => {
       const { board, context } = await fixture();
-      let completedProvider: () => void = () => undefined;
-      const completion = new Promise<void>((resolve) => {
-        completedProvider = resolve;
+      let markProviderStarted: () => void = () => undefined;
+      const providerStarted = new Promise<void>((resolve) => {
+        markProviderStarted = resolve;
+      });
+      let releaseProvider: () => void = () => undefined;
+      const providerRelease = new Promise<void>((resolve) => {
+        releaseProvider = resolve;
+      });
+      let markCapabilityCompleted: () => void = () => undefined;
+      const capabilityCompleted = new Promise<void>((resolve) => {
+        markCapabilityCompleted = resolve;
       });
       const provider = new FinishingProvider([
         async () => {
-          await new Promise((resolve) => setTimeout(resolve, 3000));
-          completedProvider();
+          markProviderStarted();
+          await providerRelease;
           return [call("submit_finished_cut")];
         },
         done,
@@ -1865,27 +1873,49 @@ describe("finish_storyboard whole-cut agentic finishing", () => {
       ]);
       context.setProviderResolver(async () => provider);
       context.set(PERMISSION_GATE_CONTEXT_KEY, UNGATED);
-      const result = await runCodeBody(context, {
-        code:
-          surface === "import"
-            ? `import { finish_storyboard } from "${sandboxCapabilitySpecifier("storyboards")}"; return await finish_storyboard(inputs);`
-            : "return await nodetool.storyboards.finish(inputs);",
-        inputs: {
-          storyboardId: board.id,
-          expectedStoryboardRevision: board.revision,
-          strategy: "agentic",
-          model: { provider: "fake", id: "vision" }
-        },
-        secrets: [],
-        timeoutSeconds: 2,
-        withToolbelt: true
+      const original = finishStoryboard.impl;
+      let invocationSignal: AbortSignal | undefined;
+      const spy = vi.spyOn(finishStoryboard, "impl").mockImplementation(async (run, params) => {
+        invocationSignal = run.signal;
+        try {
+          return await original(run, params);
+        } finally {
+          markCapabilityCompleted();
+        }
       });
-      expect(provider.requests.length).toBeGreaterThan(0);
-      expect(result.ok).toBe(false);
-      await completion;
-      await new Promise((resolve) => setTimeout(resolve, 600));
-      expect((await Storyboard.findById(board.id))?.timeline_id).toBeFalsy();
-      expect(context.signal.aborted).toBe(false);
+      vi.useFakeTimers({ toFake: ["Date", "setTimeout", "clearTimeout"] });
+      try {
+        const invocation = runCodeBody(context, {
+          code:
+            surface === "import"
+              ? `import { finish_storyboard } from "${sandboxCapabilitySpecifier("storyboards")}"; return await finish_storyboard(inputs);`
+              : "return await nodetool.storyboards.finish(inputs);",
+          inputs: {
+            storyboardId: board.id,
+            expectedStoryboardRevision: board.revision,
+            strategy: "agentic",
+            model: { provider: "fake", id: "vision" }
+          },
+          secrets: [],
+          timeoutSeconds: 2,
+          withToolbelt: true
+        });
+        await providerStarted;
+        expect(provider.requests.length).toBeGreaterThan(0);
+        expect(invocationSignal?.aborted).toBe(false);
+        await vi.advanceTimersByTimeAsync(2000);
+        const result = await invocation;
+        expect(result.ok).toBe(false);
+        expect(invocationSignal?.aborted).toBe(true);
+        releaseProvider();
+        await capabilityCompleted;
+        expect((await Storyboard.findById(board.id))?.timeline_id).toBeFalsy();
+        expect(context.signal.aborted).toBe(false);
+      } finally {
+        releaseProvider();
+        spy.mockRestore();
+        vi.useRealTimers();
+      }
     },
     12000
   );
