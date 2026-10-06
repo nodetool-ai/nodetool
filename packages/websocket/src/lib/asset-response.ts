@@ -82,7 +82,8 @@ export async function toAssetResponse(asset: Asset): Promise<AssetResponse> {
     node_id: asset.node_id ?? null,
     job_id: asset.job_id ?? null,
     timeline_id: asset.timeline_id ?? null,
-    project_id: asset.project_id
+    project_id: asset.project_id,
+    favorite: asset.favorite
   };
   // Only assets that reference a file in place carry the flag.
   if (asset.external_path) {
