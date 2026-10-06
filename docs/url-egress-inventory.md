@@ -166,6 +166,12 @@ at 24 hours.
   provider uses native fetch, following the llama.cpp server provider's policy.
   Requests carry audio and transcription options without provider credentials.
 
+- `packages/integration-nodes/src/nodes/stable-diffusion-cpp.ts` — the graph
+  author selects a running `sd-server`, normally localhost or the LAN. Requests
+  send no credentials and reject redirects. Job polling and cancellation stay
+  on the configured server, ignoring response-provided URLs. The cloud profile
+  excludes `lib.stable_diffusion_cpp.GenerateImage` by default.
+
 - `packages/runtime/src/comfy-executor.ts` — a ComfyUI server, normally
   localhost or the LAN, so screening private addresses would refuse the ordinary
   case. The address is the node's `endpoint` property, so the graph author picks

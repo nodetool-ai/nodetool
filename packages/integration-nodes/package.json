@@ -21,7 +21,8 @@
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
     "@nodetool-ai/runtime": "*",
-    "js-yaml": "^4.3.2"
+    "js-yaml": "^4.3.2",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@nodetool-ai/core-nodes": "*",

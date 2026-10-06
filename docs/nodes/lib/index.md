@@ -3,7 +3,7 @@ layout: page
 title: "lib Nodes"
 ---
 
-This namespace contains 69 node(s).
+Browse the lib nodes by sub-namespace.
 
 ## Sub-namespaces
 
@@ -15,6 +15,7 @@ This namespace contains 69 node(s).
 - **[image](image/)** - 37 node(s)
 - **[pdf](pdf/)** - 7 node(s)
 - **[sqlite](sqlite/)** - 1 node(s)
+- **[stable_diffusion_cpp](stable_diffusion_cpp/)** - 1 node(s)
 - **[svg](svg/)** - 2 node(s)
 - **[video](video/)** - 1 node(s)
 

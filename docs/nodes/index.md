@@ -47,6 +47,7 @@ Reference documentation for NodeTool nodes, grouped by namespace.
 - **[lib.image.warp](lib/image/warp/)** - 8 node(s)
 - **[lib.pdf](lib/pdf/)** - 7 node(s)
 - **[lib.sqlite](lib/sqlite/)** - 1 node(s)
+- **[lib.stable_diffusion_cpp](lib/stable_diffusion_cpp/)** - 1 node(s)
 - **[lib.svg](lib/svg/)** - 2 node(s)
 - **[lib.video.download](lib/video/download/)** - 1 node(s)
 
