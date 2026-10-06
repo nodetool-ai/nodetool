@@ -512,6 +512,13 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
             updateInput
           )) as Workflow;
         } catch (err) {
+          // The row was deleted outside the editor (REST, MCP). Name the gone
+          // document instead of surfacing a bare "not found".
+          if (!neverPersisted && isWorkflowNotFoundError(err)) {
+            throw new Error(
+              `Workflow "${workflow.name}" was deleted and can no longer be saved`
+            );
+          }
           throw createErrorMessage(err, "Failed to save workflow");
         }
 
@@ -843,6 +850,16 @@ export const createWorkflowManagerStore = (queryClient: QueryClient) => {
         try {
           freshWorkflow = await fetchWorkflowById(workflowId);
         } catch (err) {
+          // Deleted outside the editor: drop a clean tab so it cannot stay
+          // focused. A dirty draft stays open and its save reports the delete.
+          if (
+            isWorkflowNotFoundError(err) &&
+            !get().unsavedWorkflowIds[workflowId] &&
+            !storeBefore.getState().workflowIsDirty
+          ) {
+            get().removeWorkflow(workflowId);
+            return;
+          }
           console.warn(
             `[WorkflowManager] Failed to refresh workflow ${workflowId}`,
             err
