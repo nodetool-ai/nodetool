@@ -13,13 +13,14 @@ const mockAudioInstances: Array<{
   pause: jest.Mock;
   resume: jest.Mock;
   sync: jest.Mock;
+  reset: jest.Mock;
   preload: jest.Mock;
   dispose: jest.Mock;
 }> = [];
 
 jest.mock("@nodetool-ai/game-renderer/audio", () => ({
   GameAudioPlayer: jest.fn().mockImplementation(() => {
-    const audio = { pause: jest.fn(), resume: jest.fn(), sync: jest.fn(), preload: jest.fn(), dispose: jest.fn() };
+    const audio = { reset: jest.fn(), pause: jest.fn(), resume: jest.fn(), sync: jest.fn(), updateAssets: jest.fn(), preload: jest.fn(), dispose: jest.fn() };
     mockAudioInstances.push(audio);
     return audio;
   })
@@ -59,20 +60,20 @@ describe("game editor audio", () => {
     const view = render(<GameHarness gameDocument={initial} />);
     await waitFor(() => expect(mockRenderers).toHaveLength(1));
     act(() => view.getByRole("button", { name: "Play" }).click());
-    await waitFor(() => expect(mockRenderers).toHaveLength(2));
-    const renderer = mockRenderers[1];
+    await waitFor(() => expect(mockRenderers).toHaveLength(1));
+    const renderer = mockRenderers[0];
     const changed = { ...initial, assets: { ...initial.assets, proof: { ...initial.assets.proof, assetId: replacementId } } };
     view.rerender(<GameHarness gameDocument={changed} />);
     await renderer.assets("proof");
     expect(resolveMediaUri).toHaveBeenLastCalledWith(`asset://${retained ? assetId : replacementId}`);
-    expect(mockRenderers).toHaveLength(2);
+    expect(mockRenderers).toHaveLength(1);
     if (retained) expect(renderer.invalidateAsset).not.toHaveBeenCalled();
     else expect(renderer.invalidateAsset).toHaveBeenCalledWith("proof");
     act(() => view.getByRole("button", { name: "Stop" }).click());
-    await waitFor(() => expect(mockRenderers).toHaveLength(3));
+    await waitFor(() => expect(mockRenderers).toHaveLength(1));
     act(() => view.getByRole("button", { name: "Play" }).click());
-    await waitFor(() => expect(mockRenderers).toHaveLength(4));
-    await mockRenderers[3].assets("proof");
+    await waitFor(() => expect(mockRenderers).toHaveLength(1));
+    await mockRenderers[0].assets("proof");
     expect(resolveMediaUri).toHaveBeenLastCalledWith(`asset://${replacementId}`);
     view.unmount();
   });
@@ -80,10 +81,10 @@ describe("game editor audio", () => {
   it("keeps scene music paused in edit mode and starts it on Play", async () => {
     const view = render(<GameHarness />);
     await waitFor(() => expect(mockAudioInstances.length).toBeGreaterThan(0));
-    await waitFor(() => expect(mockAudioInstances[0].sync).toHaveBeenCalled());
+    await waitFor(() => expect(mockAudioInstances[0].reset).toHaveBeenCalled());
     expect(mockAudioInstances[0].pause).toHaveBeenCalled();
     expect(mockAudioInstances[0].pause.mock.invocationCallOrder[0]).toBeLessThan(
-      mockAudioInstances[0].sync.mock.invocationCallOrder[0]
+      mockAudioInstances[0].reset.mock.invocationCallOrder[0]
     );
     expect(mockAudioInstances[0].resume).not.toHaveBeenCalled();
 
@@ -92,9 +93,9 @@ describe("game editor audio", () => {
 
     const playInstanceCount = mockAudioInstances.length;
     act(() => { view.getByRole("button", { name: "Stop" }).click(); });
-    await waitFor(() => expect(mockAudioInstances.length).toBeGreaterThan(playInstanceCount));
+    expect(mockAudioInstances.length).toBe(playInstanceCount);
     await waitFor(() => expect(mockAudioInstances.at(-1)?.pause).toHaveBeenCalled());
-    expect(mockAudioInstances.at(-1)?.resume).not.toHaveBeenCalled();
+    expect(mockAudioInstances.at(-1)?.pause).toHaveBeenCalled();
     view.unmount();
   });
 });
@@ -129,4 +130,18 @@ it("resolves shipped package assets directly when playing an example", async () 
   expect(fontResolver).toBeDefined();
   await fontResolver?.(packageUri);
   expect(resolveMediaUri).toHaveBeenLastCalledWith(packageUri);
+});
+
+it("keeps the renderer and audio player through ten document edits", async () => {
+  mockRenderers.length = 0;
+  mockAudioInstances.length = 0;
+  const view = render(<GameHarness />);
+  await waitFor(() => expect(mockRenderers).toHaveLength(1));
+  for (let index = 0; index < 10; index++) {
+    view.rerender(<GameHarness gameDocument={{ ...document, revision: `edit-${index}` }} />);
+    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 120)); });
+  }
+  expect(mockRenderers).toHaveLength(1);
+  expect(mockAudioInstances).toHaveLength(1);
+  view.unmount();
 });
