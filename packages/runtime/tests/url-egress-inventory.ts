@@ -555,6 +555,18 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
 
   // ---------------------------------------------------------- browser-side only
   {
+    file: "packages/runtime/src/providers/dreamina-provider.ts",
+    owner: "Dreamina browser generation and media downloads",
+    inputSource: "provider-response",
+    schemes: ["https"],
+    authScope: "the browser tab's Dreamina cookies; none on result downloads",
+    redirects: "runtime-follows",
+    dnsRebinding: "deployment-egress",
+    policy: "browser",
+    guardedBy: ["fetchExternalMedia"],
+    note: "API and upload fetches execute in the user's Dreamina tab. Server-side result downloads delegate to fetchExternalMedia, which checks each redirect hop."
+  },
+  {
     file: "packages/game-renderer/src/standalone-player.ts",
     owner: "standalone game player assets",
     inputSource: "fixed",
