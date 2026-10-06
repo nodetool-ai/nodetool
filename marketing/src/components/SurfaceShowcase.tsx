@@ -1,13 +1,14 @@
 "use client";
 /**
- * The six editing surfaces, one tab each, over a six-second loop of the real
- * editor. The loops are rendered by the demo harness from product casts
- * (demo/src/hero/SurfaceLoop.tsx), so what a tab shows is what the app does.
+ * The seven editing surfaces, one tab each, over a six-second loop of one
+ * action in that editor, all on the same "Under the Bed" project. The loops
+ * are rendered by the demo harness from look-alike product surfaces
+ * (demo/src/heroflow/editors/).
  *
  * Each tab is deep-linkable as `#surface-<id>`.
  *
- * Every loop opens on an empty editor and fills up over its six seconds, so
- * frame 0 is all but black. That rules out `<video poster>`, which a browser
+ * A loop's first frame is not its finished state, so the poster is the
+ * last one. That rules out `<video poster>`, which a browser
  * only shows until playback first starts: once `currentTime` has moved, a
  * video that then stops paints its own frame instead. Leaving a tab rewinds it
  * to 0, so on any browser that refuses to restart the loop (Dia, Low Power
@@ -38,6 +39,7 @@ import {
   Pause,
   Play,
   Box as BoxIcon,
+  Workflow,
   type LucideIcon,
 } from "lucide-react";
 import { usePrefersReducedMotion } from "../lib/useGridParallax";
@@ -101,6 +103,14 @@ const SURFACES: Surface[] = [
     body: "Place the player, the enemies, and the level, then press Play without leaving the editor. Ask the agent for a new rule or a darker level, and export the result as a web player.",
     asset: "surface-game",
   },
+  {
+    id: "nodes",
+    label: "Nodes",
+    icon: Workflow,
+    headline: "The node editor underneath",
+    body: "Every editor above sits on a graph you can open. Wire typed ports, press Run, and read the output at every step, from the prompt to the clip on the timeline.",
+    asset: "surface-nodes",
+  },
 ];
 
 interface SurfaceShowcaseProps {
@@ -111,7 +121,7 @@ interface SurfaceShowcaseProps {
 
 export default function SurfaceShowcase({
   surfaceIds,
-  heading = "Six editors. One project.",
+  heading = "Seven editors. One project.",
   intro =
     "Everything the agent made opens in an editor, and the agent works each one with the same tools you click.",
 }: SurfaceShowcaseProps) {

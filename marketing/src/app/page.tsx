@@ -213,7 +213,7 @@ export default function Home() {
         </section>
 
         {/* What the reader controls once the agent has built something: the
-            six editors, each over a loop of the real thing (#surface-<id>) */}
+            seven editors, each over a loop of the real thing (#surface-<id>) */}
         <SurfaceShowcase />
 
         <TimelineShowcase />
