@@ -22,3 +22,13 @@ export function request() {
 export function createRequire() {
   throw new Error("Browser stub: node:module.createRequire not supported");
 }
+
+/** `node:zlib`. Only the Dreamina provider's upload checksum uses it. */
+export function crc32() {
+  throw new Error("Browser stub: node:zlib.crc32 not supported");
+}
+
+/** `node:http`. `chrome-launcher`'s port probe, reachable only from the headless 3D driver. */
+export function createServer() {
+  throw new Error("Browser stub: node:http.createServer not supported");
+}
