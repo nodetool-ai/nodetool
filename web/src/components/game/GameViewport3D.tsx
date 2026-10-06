@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { Box3, GridHelper, Matrix4, Object3D, PerspectiveCamera, Quaternion, Vector3 } from "three";
+import { useTheme } from "@mui/material/styles";
+import { BoxHelper, Box3, GridHelper, Matrix4, Object3D, PerspectiveCamera, Quaternion, Vector3 } from "three";
 import { OrbitControls } from "three/addons/controls/OrbitControls.js";
 import { FlyControls } from "three/addons/controls/FlyControls.js";
 import { TransformControls } from "three/addons/controls/TransformControls.js";
@@ -33,6 +34,7 @@ interface GameViewport3DProps {
   readonly document: GameDocument3D;
   readonly host: GamePlaySession3D;
   readonly selectedId?: string;
+  readonly highlightedIds?: readonly string[];
   readonly sceneId: string;
   readonly onSelect?: (id: string) => void;
   readonly onOps?: (ops: GameDocumentOp3D[]) => void;
@@ -53,7 +55,8 @@ function transform(matrixValue: Matrix4): GameTransform3D {
     scale: { x: scale.x, y: scale.y, z: scale.z } };
 }
 
-export default function GameViewport3D({ document, host, selectedId, sceneId, onSelect, onOps, playerOnly = false }: GameViewport3DProps) {
+export default function GameViewport3D({ document, host, selectedId, highlightedIds = [], sceneId, onSelect, onOps, playerOnly = false }: GameViewport3DProps) {
+  const theme = useTheme();
   const [mode, setMode] = useState<TransformMode>("translate");
   const [snap, setSnap] = useState(true);
   const [flyMode, setFlyMode] = useState(false);
@@ -221,6 +224,18 @@ export default function GameViewport3D({ document, host, selectedId, sceneId, on
   }, [document, host.frame, host.backend, host.playDocument, host.rendererRef, overlays, playerOnly]);
 
   useEffect(() => {
+    const renderer = host.rendererRef.current;
+    if (!renderer || host.playDocument || playerOnly) { return; }
+    const helpers = highlightedIds.flatMap((id) => {
+      const object = renderer.getEntityObject(id);
+      return object ? [new BoxHelper(object, theme.palette.primary.main)] : [];
+    });
+    if (helpers.length > 0) { renderer.getScene().add(...helpers); }
+    if (host.frame) { void renderer.render(host.frame, 1).catch(() => undefined); }
+    return () => { for (const helper of helpers) { helper.removeFromParent(); helper.dispose(); } };
+  }, [highlightedIds, host.backend, host.frame, host.playDocument, host.rendererRef, playerOnly, theme.palette.primary.main]);
+
+  useEffect(() => {
     const canvas = host.canvasRef.current;
     if (!canvas || !host.playDocument) { return; }
     const lockChange = (): void => { if (window.document.pointerLockElement !== canvas) { host.inputRef.current.release(); } };
@@ -263,7 +278,7 @@ export default function GameViewport3D({ document, host, selectedId, sceneId, on
       </>}
     </GamePanelHeader>}
     <Box sx={{ position: "relative", flex: 1, minHeight: 0, minWidth: 0, bgcolor: "common.black" }}>
-      <Box component="canvas" ref={host.canvasRef} tabIndex={0} aria-label="3D game viewport"
+      <Box component="canvas" ref={host.canvasRef} data-game-undo-scope tabIndex={0} aria-label="3D game viewport"
         onKeyDown={(event) => {
           if (host.playDocument) {
             host.inputRef.current.keyDown(event.code);
