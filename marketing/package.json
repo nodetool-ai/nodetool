@@ -65,8 +65,7 @@
     "zustand": "^5.0.3"
   },
   "devDependencies": {
-    "axe-core": "^4.11.4",
-    "@opennextjs/cloudflare": "^1.19.4",
+    "@opennextjs/cloudflare": "^1.20.8",
     "@playwright/test": "^1.49.0",
     "@types/lodash": "^4.17.15",
     "@types/node": "^20",
@@ -76,6 +75,7 @@
     "@types/three": "^0.185.4",
     "@typescript/native": "npm:typescript@7.0.2",
     "autoprefixer": "^10.0.1",
+    "axe-core": "^4.11.4",
     "eslint": "^8",
     "eslint-config-next": "^15.5.15",
     "postcss": "^8",
