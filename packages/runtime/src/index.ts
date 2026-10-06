@@ -2,6 +2,8 @@
  * @nodetool-ai/runtime – Public API
  */
 
+export { sniffAudioMime } from "./providers/audio-mime.js";
+
 export {
   ProcessingContext,
   ACTIVE_MODEL_CONTEXT_KEY,

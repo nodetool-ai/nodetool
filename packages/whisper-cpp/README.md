@@ -11,6 +11,8 @@ The providers are excluded from the cloud profile.
   cache scan. `WHISPER_CPP_GPU_BACKEND` accepts `auto`, `metal`, `cuda`,
   `vulkan`, or `cpu`. Restart after changing the backend because the binding
   caches the first native variant loaded.
+- `whisper_cpp_server` posts to `/inference` on `WHISPER_CPP_SERVER_URL` and
+  serves the model id `default`.
 - Enable the `whisper-cpp` node pack for `whisper_cpp.LiveTranscription`.
   Supply mono PCM16 audio as base64 chunks. `content_metadata.sample_rate`
   defaults to 16000. A `done: true` chunk ends the stream. Install
@@ -22,5 +24,7 @@ in centiseconds. The provider returns ASR timestamps in seconds.
 
 Run tests with `npm run test --workspace=packages/whisper-cpp`.
 Set `WHISPER_CPP_TEST_MODEL` to a real model path to enable the native test.
+Set `WHISPER_CPP_TEST_SERVER_URL` to test a running whisper-server serving an
+English-capable model.
 The speech fixture is the public-domain JFK inaugural-address excerpt from
 [whisper.cpp samples](https://github.com/ggml-org/whisper.cpp/blob/master/samples/jfk.wav).

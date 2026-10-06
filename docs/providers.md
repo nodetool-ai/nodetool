@@ -205,6 +205,10 @@ directory, and `WHISPER_CPP_GPU_BACKEND` selects `auto`, `metal`, `cuda`,
 `whisper_cpp.LiveTranscription` transcribes streaming PCM16 audio, with Silero
 VAD or fixed windows when no VAD model is installed. Local only.
 
+whisper.cpp server (`whisper_cpp_server`) posts audio to a user-run
+`whisper-server` at `WHISPER_CPP_SERVER_URL`. Its model id is `default`.
+It requires no native package. Local only.
+
 ## Transformers.js
 
 Transformers.js (provider id `transformers_js`) runs small ONNX models in-process: chat, TTS, ASR, and embeddings. Models download from the Hugging Face Hub on first use into `<data-dir>/transformers-js-cache`, or the directory in `TRANSFORMERS_JS_CACHE_DIR`. Tool calling is off. No key. Local only. The matching workflow nodes are the `transformers.*` nodes in [HuggingFace Integration](huggingface.md#transformersjs-nodes-local-onnx).
