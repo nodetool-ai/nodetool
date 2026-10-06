@@ -605,6 +605,46 @@ describe("native game revisions", () => {
     } finally { spy.mockRestore(); }
   });
 
+  it("preserves the publication conflict when losing-revision cleanup fails", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Losing publication" });
+    const [row] = await Workspace.listByProject(USER_ID, PROJECT_ID);
+    const workspace = row && workspaceFromRow(row);
+    if (!workspace) { throw new Error("Workspace missing"); }
+    const attemptedPaths: string[] = [];
+    const originalDelete = workspace.delete;
+    const readDraft = Game.readDraft;
+    let injectEdit = true;
+    const readDraftSpy = vi.spyOn(Game, "readDraft").mockImplementation(async (...args) => {
+      const captured = await readDraft.apply(Game, args);
+      if (injectEdit && captured) {
+        injectEdit = false;
+        await caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: captured.game.draft_updated_at,
+          ops: [{ op: "update_scene", scene_id: created.document.entrySceneId, set: { name: "Winning draft" } }] });
+      }
+      return captured;
+    });
+    const deleteSpy = vi.spyOn(Object.getPrototypeOf(workspace), "delete").mockImplementation(async (...args: Parameters<typeof workspace.delete>) => {
+      if (args[0].includes("/revisions/")) {
+        attemptedPaths.push(args[0]);
+        throw new Error("Losing-revision cleanup failure");
+      }
+      return originalDelete.apply(workspace, args);
+    });
+    try {
+      await expect(caller.games.publish({ id: created.game.id, baseRevision: created.game.revision }))
+        .rejects.toMatchObject({ code: "CONFLICT", message: "Game was modified concurrently" });
+      expect(attemptedPaths).toHaveLength(1);
+      expect(attemptedPaths[0]).toMatch(/\/revisions\/[a-f0-9]{32}\/game\.json$/);
+      expect(attemptedPaths[0]).not.toContain(created.game.revision);
+      expect((await caller.games.get({ id: created.game.id })).game.revision).toBe(created.game.revision);
+      expect((await caller.games.getDraft({ id: created.game.id })).document.scenes[0]?.name).toBe("Winning draft");
+    } finally {
+      readDraftSpy.mockRestore();
+      deleteSpy.mockRestore();
+    }
+  });
+
   it("F26 returns INVALID_INPUT for invalid restored documents and rejected draft operations", async () => {
     const caller = createCaller(makeCtx(USER_ID));
     const created = await caller.games.create({ projectId: PROJECT_ID, name: "Validation errors" });

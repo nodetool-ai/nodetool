@@ -233,7 +233,11 @@ async function publishDocument(userId: string, game: Game, baseRevision: string,
   await writeRevision(workspace, game, document);
   const updated = await Game.publish(userId, game.id, baseRevision, revision, draft.game.draft_updated_at, workspace, message);
   if (!updated) {
-    await workspace.delete(sourcePath(game, revision));
+    try {
+      await workspace.delete(sourcePath(game, revision));
+    } catch (error) {
+      log.error("Losing game publication revision cleanup failed", { gameId: game.id, revision, error: String(error) });
+    }
     throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game was modified concurrently");
   }
   try {
