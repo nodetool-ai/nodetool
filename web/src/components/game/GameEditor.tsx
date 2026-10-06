@@ -365,7 +365,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const activeScript = scriptKey && document?.scenes.find((scene) => scene.id === scriptKey.sceneId)
     ?.entities.find((entity) => entity.id === scriptKey.entityId);
   const scriptBehavior = activeScript?.behaviors[scriptKey?.index ?? -1];
-  const validationIssues = documentValidation?.issues ?? [];
+  const validationIssues = document ? validateGame(document).issues : [];
   const runtimeEntity = runtimeEntities?.find((entity) => entity.id === selectedIds[0]) ?? null;
 
   if (isPending || (data && !document)) return <LoadingSpinner text="Loading game" />;
