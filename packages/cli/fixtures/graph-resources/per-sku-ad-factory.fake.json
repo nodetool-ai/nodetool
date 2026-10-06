@@ -232,7 +232,12 @@
         "data": {
           "max_shots": 4,
           "concurrency": 1,
-          "only_stale": true
+          "only_stale": true,
+          "image_model": {
+            "type": "image_model",
+            "provider": "fake",
+            "id": "fake-image"
+          }
         },
         "ui_properties": {
           "position": {
@@ -254,7 +259,12 @@
           "max_shots": 4,
           "concurrency": 1,
           "only_stale": true,
-          "require_keyframe": true
+          "require_keyframe": true,
+          "video_model": {
+            "type": "video_model",
+            "provider": "fake",
+            "id": "fake-video"
+          }
         },
         "ui_properties": {
           "position": {
