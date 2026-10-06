@@ -25,14 +25,14 @@ exit "$native_game_journey_status"
 ```
 
 The environment overrides reach the seeded backend and Chromium through the
-existing [journey setup](../../web/tests/globalSetup.ts). `DEBUG=pw:browser`
+existing [journey setup](https://github.com/nodetool-ai/nodetool/blob/81288ab79aa0ff90391ad1618108e80eb793b8f7/web/tests/globalSetup.ts). `DEBUG=pw:browser`
 captures browser-process diagnostics that the journey's normal error filter
 can omit.
 
 ## Observed result
 
 The command exited with status `0` and reported `1 passed (26.3s)`. The
-[journey](../../web/tests/journeys/native-game-editor.spec.ts) reached Play,
+[journey](https://github.com/nodetool-ai/nodetool/blob/81288ab79aa0ff90391ad1618108e80eb793b8f7/web/tests/journeys/native-game-editor.spec.ts) reached Play,
 observed advancing ticks, clicked Stop, verified the saved document, undid the
 change, and published a revision. The seeded backend became ready before the
 journey and stopped during normal teardown.
@@ -54,9 +54,9 @@ not required inputs to the reproduction.
 ## Interpretation and limits
 
 The observed GPU initialization errors did not prevent Stop or the remaining
-journey actions. [Stop](../../web/src/components/game/useGamePlaySession.ts)
+journey actions. [Stop](https://github.com/nodetool-ai/nodetool/blob/72d5b2462278b3ea85e3a7ba7d1b49400ec171b8/web/src/components/game/useGamePlaySession.ts)
 resets client play state. It does not call a backend Stop endpoint. The
-[browser renderer](../../packages/game-renderer/src/browser.ts) can fall back
+[browser renderer](https://github.com/nodetool-ai/nodetool/blob/81288ab79aa0ff90391ad1618108e80eb793b8f7/packages/game-renderer/src/browser.ts) can fall back
 to Canvas2D when a WebGPU adapter is unavailable. This source behavior is
 consistent with the passing result, but this run did not instrument the chosen
 renderer backend.
