@@ -328,6 +328,11 @@ The sections below group authoring instructions by their implementation owner.
 
 ### K: Editor stabilisation
 
+Viewport movement and keyboard nudges use world directions and store parent-local
+transforms. Reparenting preserves the world pose. Parent choices exclude the
+entity and its descendants. When selecting an ancestor and descendant together,
+move or delete the ancestor once.
+
 ### W: Foundation interfaces
 
 ### B: Benchmarks and verification
