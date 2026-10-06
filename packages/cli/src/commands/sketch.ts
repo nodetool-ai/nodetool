@@ -18,6 +18,7 @@ import type { Command } from "commander";
 import type { SketchDebugReport } from "@nodetool-ai/execution/sketch-debug";
 import type { ImageDocumentRecord } from "../sketch-debug/target.js";
 import { printCommandError } from "../command-errors.js";
+import { printDebugSummary } from "./debug-summary-output.js";
 import { renderSketchValidation } from "./sketch-validation-output.js";
 import { registerSketchVersionsCommands } from "./sketch-versions.js";
 
@@ -135,7 +136,11 @@ export function registerSketchCommands(program: Command): void {
         if (opts.json) {
           console.log(JSON.stringify(report, null, 2));
         } else {
-          printSketchSummary(report, bundleDir);
+          printDebugSummary(report, bundleDir, {
+            label: "sketch",
+            meta: `${report.meta.layerCount} layer(s), ${report.meta.bindingCount} binding(s), ${report.meta.width}x${report.meta.height}`,
+            file: "sketch.json"
+          });
         }
         process.exit(report.verdict.ok ? 0 : 1);
       } catch (e) {
@@ -145,32 +150,4 @@ export function registerSketchCommands(program: Command): void {
     });
 
   registerSketchVersionsCommands(sketch);
-}
-
-function printSketchSummary(
-  report: SketchDebugReport,
-  bundleDir: string
-): void {
-  const mark = report.verdict.ok ? "✅" : "❌";
-  console.log(`\n${mark} ${report.verdict.headline}`);
-  console.log(
-    `  sketch:  ${report.meta.layerCount} layer(s), ${report.meta.bindingCount} binding(s), ${report.meta.width}x${report.meta.height}`
-  );
-  const failed = report.interactions.filter((i) => !i.ok).length;
-  if (report.interactions.length > 0) {
-    console.log(
-      `  session: ${report.interactions.length} step(s), ${failed} failed`
-    );
-  }
-  if (report.verdict.issues.length > 0) {
-    console.log("\nIssues:");
-    for (const issue of report.verdict.issues) console.log(`  - ${issue}`);
-  }
-  if (report.verdict.warnings && report.verdict.warnings.length > 0) {
-    console.log("\nWarnings:");
-    for (const warning of report.verdict.warnings)
-      console.log(`  - ${warning}`);
-  }
-  console.log(`\nDebug bundle: ${bundleDir}`);
-  console.log("  report.md / report.json · sketch.json");
 }
