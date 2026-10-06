@@ -60,6 +60,12 @@ export function resolveBuiltinPackEnabled(
 
 export const BUILTIN_NODE_PACKS: readonly BuiltinNodePack[] = [
   {
+    id: "whisper-cpp",
+    name: "whisper.cpp",
+    description: "Transcribe streaming audio locally with whisper.cpp.",
+    namespaces: ["whisper_cpp"]
+  },
+  {
     id: "base",
     name: "Base Nodes",
     description:

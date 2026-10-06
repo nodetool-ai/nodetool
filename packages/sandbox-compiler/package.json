@@ -25,6 +25,7 @@
     "esbuild": "^0.28.1"
   },
   "devDependencies": {
+    "@nodetool-ai/whisper-cpp": "*",
     "@nodetool-ai/agents": "*",
     "@types/node": "^22.0.0",
     "chrono-node": "^2.10.1",

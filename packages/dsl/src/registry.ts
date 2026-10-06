@@ -30,6 +30,12 @@ async function loadBuiltinRegistry(): Promise<NodeRegistry> {
   const { registerBaseNodes } = await import("@nodetool-ai/base-nodes");
   registerBaseNodes(builtinRegistry);
   try {
+    const { registerWhisperCppNodes } = await import("@nodetool-ai/whisper-cpp");
+    registerWhisperCppNodes(builtinRegistry);
+  } catch {
+    // Some environments do not have the whisper.cpp node package installed.
+  }
+  try {
     const { registerElevenLabsNodes } = await import(
       "@nodetool-ai/elevenlabs-nodes"
     );

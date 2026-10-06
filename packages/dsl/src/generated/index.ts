@@ -66,6 +66,7 @@ export * as openaiAudio from "./openai.audio.js";
 export * as openaiImage from "./openai.image.js";
 export * as openaiText from "./openai.text.js";
 export * as vector from "./vector.js";
+export * as whisper_cpp from "./whisper_cpp.js";
 export * as xaiImage from "./xai.image.js";
 export * as xaiText from "./xai.text.js";
 export * as xaiVision from "./xai.vision.js";

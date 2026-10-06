@@ -45,7 +45,8 @@
     "@nodetool-ai/together-nodes": "*",
     "@nodetool-ai/topaz-nodes": "*",
     "@nodetool-ai/transformers-js-nodes": "*",
-    "@nodetool-ai/video-nodes": "*"
+    "@nodetool-ai/video-nodes": "*",
+    "@nodetool-ai/whisper-cpp": "*"
   },
   "devDependencies": {
     "@nodetool-ai/execution": "*",

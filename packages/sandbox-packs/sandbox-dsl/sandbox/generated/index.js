@@ -65,6 +65,7 @@ import * as openaiAudio from "./openai.audio.js";
 import * as openaiImage from "./openai.image.js";
 import * as openaiText from "./openai.text.js";
 import * as vector from "./vector.js";
+import * as whisper_cpp from "./whisper_cpp.js";
 import * as xaiImage from "./xai.image.js";
 import * as xaiText from "./xai.text.js";
 import * as xaiVision from "./xai.vision.js";
@@ -132,6 +133,7 @@ export {
   variable,
   vector,
   video,
+  whisper_cpp,
   workflowsBase_node,
   workflowsSubgraph,
   workflowsWorkflow_node,
