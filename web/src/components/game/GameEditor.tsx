@@ -7,11 +7,12 @@ import { createScriptedGameSession, validateGame, type AnyGameDocumentOp as Game
 import { trpc, trpcClient } from "../../trpc/client";
 import { useChatDraftStore } from "../../stores/ChatDraftStore";
 import { useConflictStore } from "../../stores/ConflictStore";
+import { flushGameDraft, pullGameDraft, reloadRejectedGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
 import { diffAnyGameDocuments as diffGameDocuments } from "../../stores/game/diffAnyGameDocuments";
-import { acceptServerAnyGameUnit as acceptServerGameUnit, anyGameMergeAdapter as gameMergeAdapter } from "../../stores/game/anyMerge";
+import { anyGameMergeAdapter as gameMergeAdapter } from "../../stores/game/anyMerge";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorButton, EditorUiProvider, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, LoadingSpinner, MobileBottomSheet, ResizableDock, SPACING, Text, TextInput } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
@@ -102,8 +103,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   }, [assistantThreadId]);
 
   useEffect(() => {
-    const pull = async () => {
-      await savingPromiseRef.current?.catch(() => undefined);
+    const pull = (): Promise<void> => pullGameDraft(savingPromiseRef, async () => {
       const server = await trpcClient.games.getDraft.query({ id: refId });
       const store = getGameDraftStore(refId);
       const state = store.getState();
@@ -118,16 +118,13 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
           onAccept: (unitId) => {
             const conflict = merged.conflicts.find((entry) => entry.unit.id === unitId);
             if (!conflict) return;
-            const current = store.getState().document;
-            if (!current) return;
-            const accepted = acceptServerGameUnit(current, server.document, conflict.unit.kind, unitId);
-            store.getState().applyMerged(accepted, server.document, server.game.draftUpdatedAt);
+            store.getState().acceptConflict(server.document, conflict.unit.kind, unitId);
           },
           onDiscard: () => undefined
         });
       }
       loadedTokenRef.current = server.game.draftUpdatedAt;
-    };
+    });
     return registerDocumentSync("game", refId, {
       localRevision: () => getGameDraftStore(refId).getState().baseUpdatedAt,
       isDirty: () => getGameDraftStore(refId).getState().pendingOps.length > 0,
@@ -137,11 +134,6 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   }, [refId, setError]);
 
   const flushDraft = useCallback(async (): Promise<void> => {
-    if (savingPromiseRef.current) {
-      await savingPromiseRef.current;
-      if (getGameDraftStore(refId).getState().pendingOps.length > 0) return flushDraft();
-      return;
-    }
     const save = async () => {
       const store = getGameDraftStore(refId);
       let retries = 0;
@@ -167,19 +159,17 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
               useConflictStore.getState().addConflicts(`game:${refId}`, merged.conflicts, {
                 onAccept: (unitId) => {
                   const conflict = merged.conflicts.find((entry) => entry.unit.id === unitId);
-                  const current = store.getState().document;
-                  if (conflict && current) store.getState().applyMerged(
-                    acceptServerGameUnit(current, server.document, conflict.unit.kind, unitId),
-                    server.document, server.game.draftUpdatedAt);
+                  if (conflict) { store.getState().acceptConflict(server.document, conflict.unit.kind, unitId); }
                 },
                 onDiscard: () => undefined
               });
               if (merged.conflicts.length > 0) throw new Error("Resolve draft conflicts before saving");
               if (++retries <= 3) continue;
+            } else {
+              reloadRejectedGameDraft(refId, state.baseUpdatedAt, server.document, server.game.draftUpdatedAt, cause);
             }
           } catch (recoveryError) {
             if (recoveryError instanceof Error && recoveryError.message === "Resolve draft conflicts before saving") {
-              store.getState().failSave(recoveryError.message);
               throw recoveryError;
             }
           }
@@ -189,15 +179,14 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
         }
       }
     };
-    savingPromiseRef.current = save();
-    try { await savingPromiseRef.current; } finally { savingPromiseRef.current = null; }
+    await flushGameDraft(savingPromiseRef, save);
   }, [refId]);
 
   useEffect(() => {
-    if (saveStatus !== "unsaved") return;
+    if (saveStatus !== "unsaved" || conflicts.items.length > 0) return;
     const timer = window.setTimeout(() => { void flushDraft().catch(() => undefined); }, 500);
     return () => window.clearTimeout(timer);
-  }, [flushDraft, saveStatus, document]);
+  }, [flushDraft, saveStatus, document, conflicts.items.length]);
 
   const onOps = useCallback((ops: GameDocumentOp[]) => {
     getGameDraftStore(refId).getState().apply(ops);
