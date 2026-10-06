@@ -265,12 +265,6 @@ Press `Space` to open, then:
 - **Move**: Drag the menu header to reposition it, and drag its edges to resize it
 - **Close**: `Esc`, `Space` on an empty search box, or click outside
 
-### Quick Add
-
-`Ctrl/⌘ + Shift + A` skips the browsing and goes straight to a search box. Type a node name, press Enter, and it lands on the canvas.
-
-![Quick add node](assets/screenshots/editor-quick-add-node.png)
-
 ### Find in Workflow
 
 `Ctrl/⌘ + F` searches the workflow you already have: node names, types, and property values. Matches highlight on the canvas and the view pans to the one you pick.
@@ -385,7 +379,6 @@ The color picker appears when selecting colors in properties:
 | `Ctrl/⌘ + 1-9` | Switch to tab 1-9 |
 | `Ctrl + PageUp` / `PageDown` | Previous / next tab |
 | `Ctrl/⌘ + F` | Find in workflow |
-| `Ctrl/⌘ + Shift + A` | Quick add node |
 | `Ctrl/⌘ + I` | Node info panel |
 | `Ctrl/⌘ + /` | Show keyboard shortcuts |
 | `Ctrl/⌘ + ,` | Open Settings |

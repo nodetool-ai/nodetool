@@ -58,7 +58,7 @@ spending on video, then assemble the clips on a timeline. Trim the cut, add
 narration, and export an MP4. Revise one shot without regenerating the film.
 The [film quick start](docs/getting-started.md) walks through each step.
 
-Six editors share one project, so a piece never leaves the studio to be
+Seven editors share one project, so a piece never leaves the studio to be
 finished, and an agent drives every one of them through the actions you have.
 
 ### Storyboard
@@ -135,7 +135,7 @@ a standalone web player that runs without NodeTool.
 
 ## The node editor
 
-![NodeTool workflow canvas](marketing/public/screen_workflow.webp)
+![NodeTool node editor](marketing/public/surface-nodes-poster.webp)
 
 Every project is a graph you can open. Drag nodes in, connect typed ports, and
 read the live output at each step. Double-click the canvas to search for a
