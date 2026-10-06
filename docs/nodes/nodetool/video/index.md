@@ -3,7 +3,7 @@ layout: page
 title: "nodetool.video Nodes"
 ---
 
-This namespace contains 31 node(s).
+This namespace contains 32 node(s).
 
 ## Available Nodes
 
@@ -14,6 +14,7 @@ This namespace contains 31 node(s).
 - **[Color Balance](colorbalance.md)** - Adjust the color balance of a video.
 - **[Concatenate Video](concatenatevideo.md)** - Concatenate multiple video files into a single video, including audio when av...
 - **[Denoise](denoise.md)** - Apply noise reduction to a video.
+- **[Ease Curve](easecurve.md)** - Retime a video along an easing curve so playback speeds up or slows down smo...
 - **[Extract Audio](extractaudio.md)** - Separate and extract audio track from a video file.
 - **[Extract Video Frame](extractvideoframe.md)** - Extract a single frame from a video at a specific time position.
 - **[For Each Frame](foreachframe.md)** - Extract frames from a video file with ffmpeg.

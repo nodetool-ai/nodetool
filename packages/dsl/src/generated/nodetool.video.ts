@@ -243,6 +243,25 @@ export function setSpeed(inputs: SetSpeedInputs, options?: NodeOptions): NodeWit
   return createNode("nodetool.video.SetSpeed", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"video"}, defaultOutput: "output" });
 }
 
+// Ease Curve — nodetool.video.EaseCurve
+export type EaseCurveInputs = {
+  video?: Connectable<VideoRef>;
+  easing?: Connectable<"linear" | "easeIn" | "easeOut" | "easeInOut" | "easeInQuint" | "easeOutQuint" | "easeInOutQuint" | "easeInExpo" | "easeOutExpo" | "easeInOutExpo" | "easeInCirc" | "easeOutCirc" | "easeInOutCirc" | "custom">;
+  duration?: Connectable<number>;
+  x1?: Connectable<number>;
+  y1?: Connectable<number>;
+  x2?: Connectable<number>;
+  y2?: Connectable<number>;
+};
+
+export interface EaseCurveOutputs {
+  output: VideoRef;
+}
+
+export function easeCurve(inputs: EaseCurveInputs, options?: NodeOptions): NodeWithOutputs<EaseCurveOutputs, "output"> {
+  return createNode("nodetool.video.EaseCurve", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"video"}, defaultOutput: "output" });
+}
+
 // Overlay — nodetool.video.Overlay
 export type OverlayInputs = {
   main_video?: Connectable<VideoRef>;
