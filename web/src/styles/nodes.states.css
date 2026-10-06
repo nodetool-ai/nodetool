@@ -1,4 +1,4 @@
-/* NODE STATE STYLES (selection, hover, loading, bypassed) */
+/* NODE STATE STYLES (selection, hover, loading, bypassed, not run) */
 
 /* --------------------------------------------- */
 /* Selection and highlighting                     */
@@ -70,6 +70,13 @@
 .react-flow__edge.from-bypassed path {
   stroke-dasharray: 5, 5;
   opacity: 0.5;
+}
+
+/* Untaken If/Switch branch in the focused run: these nodes did not run.
+   A selection's branch-dimmed fade still wins over this one. */
+.react-flow .react-flow__node.not-run:not(.branch-dimmed),
+.react-flow .react-flow__edge.not-run:not(.branch-dimmed) {
+  opacity: 0.4;
 }
 
 /* --------------------------------------------- */
