@@ -297,13 +297,13 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const save = (): void => {
     const session = sessionRef.current;
     if (!session) { return; }
-    try { localStorage.setItem(`nodetool.game.save.${refId}`, JSON.stringify(session.snapshot())); }
+    try { localStorage.setItem(`nodetool.game.save.${refId}`, JSON.stringify(session.snapshot())); setError(null); }
     catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
   };
   const load = async (): Promise<void> => {
-    const raw = localStorage.getItem(`nodetool.game.save.${refId}`);
-    if (!raw) { return; }
     try {
+      const raw = localStorage.getItem(`nodetool.game.save.${refId}`);
+      if (!raw) { return; }
       const snapshot = gameSnapshot3D.parse(JSON.parse(raw));
       const generation = generationRef.current;
       const restored = await createGameSession3D(sessionDocument, 1, snapshot, sessionOptionsRef.current);
