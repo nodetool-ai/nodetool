@@ -443,6 +443,9 @@ jobs:
           output_path: ${{ env.DIST_DIR }}/signed-app
           malware_block: true
           environment_name: PROD
+          # CodeSignTool reads the whole file into the heap. The action's 1024M
+          # default fails with "Java heap space" on the installer.
+          jvm_max_memory: 4096M
 
       - name: Move signed app exe back to unpacked directory
         if: matrix.os == 'windows-2022' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
@@ -505,6 +508,9 @@ jobs:
           output_path: ${{ env.DIST_DIR }}/signed-installer
           malware_block: true
           environment_name: PROD
+          # CodeSignTool reads the whole file into the heap. The action's 1024M
+          # default fails with "Java heap space" on the installer.
+          jvm_max_memory: 4096M
 
       - name: Move signed installer back to dist directory
         if: matrix.os == 'windows-2022' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
