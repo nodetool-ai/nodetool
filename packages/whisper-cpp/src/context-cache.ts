@@ -20,11 +20,16 @@ export class ContextCache {
     private readonly maxModels = 2,
     private readonly idleMs = 10 * 60 * 1000
   ) {
+    const sweep = async (): Promise<void> => {
+      try {
+        await this.evictIdle();
+      } catch (error) {
+        log.warn("Context eviction failed: %s", String(error));
+      }
+    };
     this.timer = setInterval(
       () => {
-        void this.evictIdle().catch((error: unknown) =>
-          log.warn("Context eviction failed: %s", String(error))
-        );
+        void sweep();
       },
       Math.min(idleMs, 60000)
     );
