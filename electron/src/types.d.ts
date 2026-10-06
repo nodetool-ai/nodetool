@@ -1043,6 +1043,7 @@ export type RuntimePackageId =
   | "tensorflow-js"
   | "node-llama-cpp"
   | "whisper-cpp"
+  | "playwright"
   | "claude-agent-sdk";
 
 export interface RuntimePackageStatus {

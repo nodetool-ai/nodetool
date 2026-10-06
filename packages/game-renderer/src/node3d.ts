@@ -3,7 +3,7 @@ import { readFile } from "node:fs/promises";
 import { fileURLToPath } from "node:url";
 import { build } from "esbuild";
 import type { GameCaptureBrowser, GameCaptureChromium } from "./renderer3d/capture-driver-types.js";
-import { resolvePackageAssetPath } from "@nodetool-ai/config";
+import { importOptionalModule, resolvePackageAssetPath } from "@nodetool-ai/config";
 import { gameRenderFrame3D, type GameRenderFrame3D } from "@nodetool-ai/protocol";
 import type { GameModelSource3D } from "./renderer3d/index.js";
 import type { GameCapturePageInput3D, GameCapturePageReport3D } from "./renderer3d/capture-page.js";
@@ -92,10 +92,10 @@ export async function captureGameFrame3D(value: GameRenderFrame3D, options: Capt
         assets[logicalId] = stagedAsset;
       }
       controller.signal.throwIfAborted();
-      const browserPackage = "playwright";
       // The installed SDK bridge is checked against this interface in playwright-contract.ts.
+      // The desktop app installs Playwright through the Package Manager, so it can live in the optional-node root.
       let playwright: { readonly chromium: GameCaptureChromium };
-      try { playwright = await import(browserPackage) as unknown as { readonly chromium: GameCaptureChromium }; }
+      try { playwright = await importOptionalModule<{ readonly chromium: GameCaptureChromium }>("playwright", { commonJs: true }); }
       catch (error) { throw new GameRendererUnavailableError3D("3D capture requires the locally installed Playwright browser runtime", ["playwright"], { cause: error }); }
       const launchOptions: Parameters<GameCaptureChromium["launch"]>[0] = { headless: true, chromiumSandbox: true, args: ["--use-angle=swiftshader", "--enable-unsafe-swiftshader"] };
       if (options.executablePath) { launchOptions.executablePath = options.executablePath; }
