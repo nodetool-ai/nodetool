@@ -552,10 +552,15 @@ export type TerminalOutputsOutput = z.infer<typeof terminalOutputsOutput>;
 // ── sharing ──────────────────────────────────────────────────────────────────
 // Private sharing: the owner mints role-scoped share links; any authenticated
 // user who redeems one becomes a collaborator ("viewer" opens and runs,
-// "editor" also modifies). See packages/models workflow-collaborator/share.
+// "editor" also modifies). A "public" link grants nothing: anyone holding it
+// can read the workflow, and a signed-in user can copy it into their own
+// workflows. See packages/models workflow-collaborator/share.
 
 export const collaboratorRoleSchema = z.enum(["viewer", "editor"]);
 export type CollaboratorRoleValue = z.infer<typeof collaboratorRoleSchema>;
+
+export const shareRoleSchema = z.enum(["viewer", "editor", "public"]);
+export type ShareRoleValue = z.infer<typeof shareRoleSchema>;
 
 export const collaboratorItem = z.object({
   workflow_id: z.string(),
@@ -570,7 +575,7 @@ export const shareItem = z.object({
   id: z.string(),
   workflow_id: z.string(),
   token: z.string(),
-  role: collaboratorRoleSchema,
+  role: shareRoleSchema,
   created_at: z.string().nullable().optional(),
   revoked_at: z.string().nullable().optional()
 });
@@ -587,7 +592,7 @@ export type SharingGetOutput = z.infer<typeof sharingGetOutput>;
 
 export const sharingCreateLinkInput = z.object({
   id: z.string().min(1),
-  role: collaboratorRoleSchema
+  role: shareRoleSchema
 });
 export type SharingCreateLinkInput = z.infer<typeof sharingCreateLinkInput>;
 
@@ -623,6 +628,18 @@ export const sharingAcceptOutput = z.object({
   role: collaboratorRoleSchema
 });
 export type SharingAcceptOutput = z.infer<typeof sharingAcceptOutput>;
+
+export const sharingPublicTokenInput = z.object({ token: z.string().min(1) });
+export type SharingPublicTokenInput = z.infer<typeof sharingPublicTokenInput>;
+
+/** What a public link shows: the graph and its label, nothing about the owner. */
+export const publicSharedWorkflow = workflowResponse.pick({
+  name: true,
+  description: true,
+  tags: true,
+  graph: true
+});
+export type PublicSharedWorkflow = z.infer<typeof publicSharedWorkflow>;
 
 export const myRoleInput = z.object({ id: z.string().min(1) });
 export type MyRoleInput = z.infer<typeof myRoleInput>;

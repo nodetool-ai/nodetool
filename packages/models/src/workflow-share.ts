@@ -2,9 +2,14 @@
  * WorkflowShare model – share links for a workflow.
  *
  * A share is a random, revocable token minted by the workflow owner with a
- * role attached. Any authenticated user who redeems the token becomes a
- * collaborator with that role (see WorkflowCollaborator). Revoking a share
- * stops new redemptions; it does not remove collaborators who already joined.
+ * role attached. Any authenticated user who redeems a `viewer` or `editor`
+ * token becomes a collaborator with that role (see WorkflowCollaborator).
+ * Revoking a share stops new redemptions; it does not remove collaborators
+ * who already joined.
+ *
+ * A `public` token is never redeemed into a grant. Anyone holding it, signed
+ * in or not, can read the workflow, and a signed-in user can copy it into
+ * their own workflows. Revoking it stops both.
  */
 
 import { randomBytes } from "node:crypto";
@@ -14,13 +19,15 @@ import { getPortableDb } from "./db.js";
 import { workflowShares } from "./schema/workflow-sharing.js";
 import type { CollaboratorRole } from "./workflow-collaborator.js";
 
+export type ShareRole = CollaboratorRole | "public";
+
 export class WorkflowShare extends DBModel {
   static override table = workflowShares;
 
   declare id: string;
   declare workflow_id: string;
   declare token: string;
-  declare role: CollaboratorRole;
+  declare role: ShareRole;
   declare created_by: string;
   declare created_at: string;
   declare revoked_at: string | null;
@@ -57,7 +64,7 @@ export class WorkflowShare extends DBModel {
   /** Active (non-revoked) share with the given role, if one exists. */
   static async findActive(
     workflowId: string,
-    role: CollaboratorRole
+    role: ShareRole
   ): Promise<WorkflowShare | null> {
     const db = getPortableDb();
     const [row] = await db
@@ -90,7 +97,7 @@ export class WorkflowShare extends DBModel {
    */
   static async ensure(opts: {
     workflowId: string;
-    role: CollaboratorRole;
+    role: ShareRole;
     createdBy: string;
   }): Promise<WorkflowShare> {
     const active = await WorkflowShare.findActive(opts.workflowId, opts.role);

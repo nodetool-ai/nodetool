@@ -1230,6 +1230,12 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "handing access to a *particular* account is a step further and " +
       "stays with the user."
   },
+  "workflows.sharing.duplicatePublic": {
+    withheld:
+      "Copies a workflow from a link someone else published into the " +
+      "caller's workflows. The token is a credential the user was handed, " +
+      "and redeeming it is the user's decision, not a run's."
+  },
   "workflows.sharing.get": {
     withheld:
       "Sharing grants named people and link holders access to a " +
