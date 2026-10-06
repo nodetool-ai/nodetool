@@ -13,7 +13,7 @@ import type { Entity, EntityKind } from "@nodetool-ai/protocol";
 
 import { useEntities } from "../../serverState/useEntities";
 import ImageRefPreview from "../node/ImageRefPreview";
-import { filterEntitiesForMention } from "../node_types/editing/promptComposer/useAssetMentionSearch";
+import { filterEntities } from "./filterEntities";
 import { ENTITY_KIND_ICON, getEntityKindChipSx } from "./entityKind";
 import {
   AutoGrid,
@@ -53,19 +53,6 @@ export interface EntityPickerProps {
   height?: number | string;
   autoFocus?: boolean;
 }
-
-/** Filter by kind, then rank by the query as the `@` picker does. */
-export const filterEntities = (
-  entities: readonly Entity[],
-  kind: KindFilter,
-  query: string
-): Entity[] =>
-  filterEntitiesForMention(
-    kind === "all"
-      ? [...entities]
-      : entities.filter((entity) => entity.kind === kind),
-    query
-  );
 
 const EntityPickCard: React.FC<{
   entity: Entity;
