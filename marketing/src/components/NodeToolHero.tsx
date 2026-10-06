@@ -64,13 +64,13 @@ export default function NodeToolHero() {
         />
         <div className="rounded-2xl border border-white/10 bg-slate-950/60 p-2 shadow-2xl shadow-black/70">
           <HeroDemoPlayer
-            mediaBase="/hero-sizzle"
-            alt="NodeTool: one brief becomes a project across the agent chat, storyboard, graph canvas, sketch, script and timeline"
+            mediaBase="/hero-flow"
+            alt="NodeTool: one sentence becomes a beat sheet, entities, a storyboard of stills and clips, and a finished cut"
           />
         </div>
         <p className="mt-4 text-center text-sm text-slate-400">
-          Direct, board, render, compare, paint, voice, cut: one workspace,
-          recorded in the app.
+          One sentence to a finished short: beat sheet, entities, storyboard,
+          clips, and the cut.
         </p>
       </div>
 

@@ -339,6 +339,11 @@ that would cross the byte limit instead of splitting its undo operations.
 
 ### B: Benchmarks and verification
 
+After export, run `nodetool game smoke <directory>` to load the built player in
+Chromium and render 300 frames with scripted input. It reports browser errors,
+missing assets and stalled ticks, and exits nonzero on failure. Add `--json`
+for the machine-readable report.
+
 ### R: 3D rendering
 
 ### V: 2D rendering and visual effects
