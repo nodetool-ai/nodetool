@@ -54,8 +54,9 @@ export default function GameScriptPane({ dimension = "2d", entityId, entityName,
         <Text>Script: {entityName || entityId} · {behaviorIndex}</Text>
         <EditorButton onClick={onClose}>Close</EditorButton>
       </FlexRow>
-      {conflict && <FlexRow gap={SPACING.sm} align="center"><Caption color="error">The draft script changed while this pane was open.</Caption>
-        <EditorButton onClick={() => { sourceRef.current = behavior.source; setSource(behavior.source); setConflict(false); }}>Use draft version</EditorButton></FlexRow>}
+      {conflict && <FlexRow gap={SPACING.sm} align="center"><Caption color="error" role="alert">The draft script changed. Your edits are not being saved until you choose a version.</Caption>
+        <EditorButton onClick={() => { sourceRef.current = behavior.source; setSource(behavior.source); setConflict(false); }}>Use draft version</EditorButton>
+        <EditorButton onClick={() => { setConflict(false); onChange(sourceRef.current); }}>Keep my version</EditorButton></FlexRow>}
       {error && <FlexRow gap={SPACING.sm} align="center"><Caption color="error" role="alert">Tick {error.tick}: {error.message}</Caption>
         {onReplay && error.tick > 0 && <EditorButton onClick={onReplay}>Replay to tick {error.tick - 1}</EditorButton>}
         {onAskAssistant && <EditorButton onClick={onAskAssistant}>Ask the assistant</EditorButton>}</FlexRow>}
@@ -64,7 +65,7 @@ export default function GameScriptPane({ dimension = "2d", entityId, entityName,
           const next = value ?? "";
           sourceRef.current = next;
           setSource(next);
-          if (!conflict) onChange(next);
+          if (!conflict) { onChange(next); }
         }}
           onMount={() => {
             void import("monaco-editor/esm/vs/language/typescript/monaco.contribution.js").then((module) => {

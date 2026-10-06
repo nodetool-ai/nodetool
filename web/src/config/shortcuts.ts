@@ -756,8 +756,10 @@ export const NODE_EDITOR_SHORTCUTS: Shortcut[] = [
     slug: "showKeyboardShortcuts",
     keyCombo: ["Control", "/"],
     keyComboMac: ["Meta", "/"],
+    // "?" arrives as key "?" with Shift held on US-style layouts.
+    altKeyCombos: [["Shift", "?"]],
     category: "editor",
-    description: "Open keyboard shortcuts panel",
+    description: "Open keyboard shortcuts panel (also ?)",
     registerCombo: true
   },
 
