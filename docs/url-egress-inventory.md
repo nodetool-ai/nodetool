@@ -216,7 +216,7 @@ and bundled `./assets/` paths),
 `packages/game-renderer/src/standalone-player3d.ts` (fixed relative `game.json`
 and `manifest.json`, then digest-named `./assets/` paths validated against the
 closed export manifest),
-`packages/game-renderer/src/audio.ts` and
+`packages/game-renderer/src/audio/player.ts` and
 `packages/game-renderer/src/browser-fonts.ts` (asset URLs resolved by the web
 app, or bundled `./assets/` paths in a standalone export),
 `packages/image-nodes/src/nodes/image-io.ts` (behind `!IS_NODE`),
