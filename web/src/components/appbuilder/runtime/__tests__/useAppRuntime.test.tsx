@@ -9,7 +9,12 @@ import { act, renderHook, waitFor } from "@testing-library/react";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import type { ApplicationDocument } from "@nodetool-ai/app-runtime";
 
-import type { Workflow } from "../../../../stores/ApiTypes";
+import type { Workflow, NodeMetadata } from "../../../../stores/ApiTypes";
+
+// These tests exercise reducer/transport semantics independently of persistence.
+jest.mock("../useAppInstance", () => ({
+  useAppInstance: () => ({ enabled: false, visitor: false, account: "1", instance: undefined, attach: () => undefined, flush: async () => undefined, serverFold: (apply: () => void) => apply(), refresh: async () => undefined, loading: false })
+}));
 
 const fetchWorkflow = jest.fn();
 
@@ -36,7 +41,8 @@ jest.mock("../../../../lib/websocket/GlobalWebSocketManager", () => ({
 }));
 
 jest.mock("../../../../lib/workflow/browserWorkflowRunner", () => ({
-  runBrowserGraphJob: jest.fn(async () => undefined)
+  runBrowserGraphJob: jest.fn(async () => ({ success: true, outputs: {} })),
+  browserSupportsSync: () => true
 }));
 
 const cancelJob = jest.fn(async (_input: { id: string }) => ({ ok: true }));
@@ -81,6 +87,8 @@ jest.mock("../../../jsScript/runJsScript", () => ({
 
 import { getWorkflowRunnerStore } from "../../../../stores/WorkflowRunner";
 import { useAppRuntime } from "../useAppRuntime";
+import { runBrowserGraphJob } from "../../../../lib/workflow/browserWorkflowRunner";
+import useMetadataStore from "../../../../stores/MetadataStore";
 import {
   appInstanceId,
   disposeAppRuntimeStore,
@@ -182,6 +190,31 @@ const renderRuntime = (
   renderHook(() => useAppRuntime(workflow, false, { document, application }), {
     wrapper
   });
+
+it("gives repeated reactive browser invocations distinct identities", async () => {
+  const workflow = { ...workflowA, graph: { ...workflowA.graph!, edges: [
+    { id: "edge", source: "in1", sourceHandle: "output", target: "out1", targetHandle: "value" }
+  ] } };
+  const metadata = jest.spyOn(useMetadataStore.getState(), "getMetadata").mockImplementation(() => stub<NodeMetadata>({ effect: "pure" }));
+  const { result } = renderRuntime(workflow, doc({ operations: [
+    { id: "main", name: "Run", workflowId: "wf-a", inputs: {}, outputs: {}, policy: "replace" }
+  ] }));
+  await waitFor(() => expect(result.current.ioFor("main").inputs).toHaveLength(1));
+  const trigger = () => act(() => result.current.dispatch({ kind: "run", operationId: "main", from: "op:main/in:in1" }));
+  trigger();
+  await waitFor(() => expect(runnerState("wf-a").run).toHaveBeenCalledTimes(1));
+  const first = runnerState("wf-a").run.mock.results[0].value;
+  deliver({ type: "job_update", job_id: await first, status: "completed" });
+  jest.mocked(runBrowserGraphJob).mockClear();
+  trigger();
+  await waitFor(() => expect(runBrowserGraphJob).toHaveBeenCalledTimes(1));
+  await act(async () => { await Promise.resolve(); });
+  trigger();
+  await waitFor(() => expect(runBrowserGraphJob).toHaveBeenCalledTimes(2));
+  const ids = jest.mocked(runBrowserGraphJob).mock.calls.map(([options]) => options.jobId);
+  expect(new Set(ids).size).toBe(2);
+  metadata.mockRestore();
+});
 
 /** Deliver a streaming message the way the websocket manager would. */
 const deliver = (message: Record<string, unknown>) =>
@@ -355,6 +388,7 @@ describe("useAppRuntime — run policy", () => {
     await act(async () => {
       result.current.dispatch({ kind: "run", operationId: "main" });
     });
+    await waitFor(() => expect(runnerState("wf-a").run).toHaveBeenCalled());
     const first = await runnerState("wf-a").run.mock.results[0].value;
     runnerState("wf-a").job_id = first;
 
@@ -374,6 +408,7 @@ describe("useAppRuntime — run policy", () => {
     await act(async () => {
       result.current.dispatch({ kind: "run", operationId: "main" });
     });
+    await waitFor(() => expect(runnerState("wf-a").run).toHaveBeenCalled());
     const first = await runnerState("wf-a").run.mock.results[0].value;
 
     act(() => {
@@ -402,6 +437,7 @@ describe("useAppRuntime — run policy", () => {
       });
       result.current.dispatch({ kind: "run", operationId: "main" });
     });
+    await waitFor(() => expect(runnerState("wf-a").run).toHaveBeenCalled());
     const first = await runnerState("wf-a").run.mock.results[0].value;
 
     act(() => {
@@ -784,6 +820,7 @@ describe("useAppRuntime — queued runs", () => {
     await act(async () => {
       result.current.dispatch({ kind: "run", operationId: "main" });
     });
+    await waitFor(() => expect(runnerState("wf-a").run).toHaveBeenCalled());
     const first = await runnerState("wf-a").run.mock.results[0].value;
 
     act(() => {
@@ -874,7 +911,7 @@ describe("useAppRuntime — script operations", () => {
       await result.current.dispatch({ kind: "run", operationId: "main" });
     });
     expect(getScript).not.toHaveBeenCalled();
-    expect(bundledRunner).toHaveBeenCalledWith("script-1", { a: 3 }, undefined, 1, expect.any(Function));
+    expect(bundledRunner).toHaveBeenCalledWith("script-1", { a: 3 }, undefined, 1, expect.any(Function), undefined);
     expect(runJsScript).not.toHaveBeenCalled();
     await waitFor(() => expect(result.current.store.getState().variables.total).toBe(4));
   });

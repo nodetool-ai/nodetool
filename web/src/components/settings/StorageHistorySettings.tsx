@@ -171,6 +171,18 @@ export default function StorageHistorySettings() {
       </div>
       <div className="settings-item">
         <NumberSetting
+          label="Keep app run inputs and outputs (days)"
+          description="After this many days, inputs, outputs, and document snapshots expire. Status, timing, and cost remain until the completed run record expires."
+          value={policy.runTraceRetentionDays ?? 30}
+          onCommit={(value) => updatePolicy({ runTraceRetentionDays: value })}
+          min={1}
+          max={3650}
+          fallback={30}
+          disabled={disabled}
+        />
+      </div>
+      <div className="settings-item">
+        <NumberSetting
           label="Keep generation details (days)"
           description="After this many days, prompts, parameters, and logs are cleared from generation records. The billing record — model, provider, tokens, cost, and date — is kept."
           value={policy.predictionRetentionDays ?? 400}

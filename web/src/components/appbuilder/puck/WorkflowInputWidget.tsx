@@ -7,12 +7,10 @@
  * model selects.
  *
  * Providers: the property components need a theme and TanStack Query (both app
- * globals). AudioProperty additionally resolves its node via NodeContext, so
- * the surface mounting this widget must provide the workflow's node store
- * (PuckAppEditor and the mini-app pages do); without one the audio kind
- * degrades to a hint instead of crashing.
+ * globals). They read the graph's node store when one is mounted and work
+ * without it, so a running app needs no graph editor around it.
  */
-import React, { useContext, useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 
 import {
   Box,
@@ -36,7 +34,6 @@ import type {
   HuggingFaceModelValueInput,
   MusicModelValue
 } from "../../../stores/ApiTypes";
-import { NodeContext } from "../../../contexts/NodeContext";
 import { AppEvent } from "../types";
 import {
   useAppRuntimeContext,
@@ -174,7 +171,6 @@ export const WorkflowInputControl: React.FC<{
   value: unknown;
   onValue: (value: unknown) => void;
 }> = ({ input, value, onValue }) => {
-  const nodeStore = useContext(NodeContext);
   const property = useMemo(() => createPropertyForInput(input), [input]);
   const Component = useMemo(
     () =>
@@ -242,12 +238,6 @@ export const WorkflowInputControl: React.FC<{
         />
         <ModelSelect input={input} value={resolved} onChange={handleChange} />
       </FlexColumn>
-    );
-  }
-
-  if (input.kind === "audio" && !nodeStore) {
-    return (
-      <Placeholder text={`Audio input "${input.name}" needs the workflow's node store — open the app from the app builder or mini-app page.`} />
     );
   }
 

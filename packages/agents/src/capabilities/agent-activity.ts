@@ -10,7 +10,10 @@
  * forwards them.
  */
 
+import { randomUUID } from "node:crypto";
 import type { ProcessingContext, ProviderStreamItem } from "@nodetool-ai/runtime";
+import { trace } from "@opentelemetry/api";
+import { getRunTraceScope, withRunTrace, recordTraceEvent, getProviderStreamTrace, stringifyTraceContent } from "@nodetool-ai/runtime";
 import { isChunk, isToolCall } from "@nodetool-ai/runtime";
 import { capabilitySpec } from "./registry.js";
 import { isString } from "../utils/type-guards.js";
@@ -53,8 +56,24 @@ export function agentActivityReporter(
   context: ProcessingContext,
   nodeId: string
 ): AgentActivityReporter {
+  const createdScope = context.runTraceContext ?? getRunTraceScope();
+  const createdSpan = trace.getActiveSpan();
+  const activityId = randomUUID();
   return {
     event(item) {
+      const attribution = getProviderStreamTrace(item);
+      const scope = attribution?.scope ?? createdScope;
+      if (scope) {
+        const attributes: Record<string, unknown> = {
+          "node.id": nodeId, "agent.activity_id": activityId, "log.source": "agent", "log.level": "info"
+        };
+        if (isChunk(item) && !item.thinking && item.content_type !== "audio") { attributes["log.message"] = item.content; }
+        if (isToolCall(item)) {
+          attributes["tool.name"] = item.name;
+          attributes["tool.call_id"] = item.id;
+        }
+        withRunTrace(scope, () => recordTraceEvent("agent.activity", attributes, attribution?.span ?? createdSpan));
+      }
       if (isToolCall(item)) {
         context.emit({
           type: "tool_call_update",
@@ -78,6 +97,14 @@ export function agentActivityReporter(
       }
     },
     toolResult(call, result, isError) {
+      const scope = context.runTraceContext ?? getRunTraceScope() ?? createdScope;
+      if (scope) {
+        withRunTrace(scope, () => recordTraceEvent("tool.result", {
+          "node.id": nodeId, "agent.activity_id": activityId, "tool.name": call.name, "tool.call_id": call.id,
+          "log.source": "agent", "log.level": isError ? "error" : "info",
+          "tool.result": stringifyTraceContent(result).slice(0, RESULT_SUMMARY_CHARS)
+        }, trace.getActiveSpan() ?? createdSpan));
+      }
       context.emit({
         type: "tool_result_update",
         node_id: nodeId,

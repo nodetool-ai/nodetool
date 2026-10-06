@@ -12,8 +12,9 @@
  * back to logging the NodeTool-level request args.
  */
 
-import { createLogger, type Logger } from "@nodetool-ai/config";
+import { createLogger, redactTraceText, safeProcessEnv, type Logger } from "@nodetool-ai/config";
 import { isNumber, isObjectLike, isString } from "@nodetool-ai/protocol";
+import { getRunTraceScope, recordTraceEvent } from "../run-trace-context.js";
 
 const log = createLogger("nodetool.runtime.provider.request");
 
@@ -99,7 +100,7 @@ export function sanitizeForLog(
   function walk(v: unknown, depth: number): LogSafeValue {
     if (v === null || v === undefined) return v;
     const t = typeof v;
-    if (t === "string") return truncateString(v as string, o.maxStringLength);
+    if (typeof v === "string") { return truncateString(redactTraceText(v, getRunTraceScope()?.secretValues), o.maxStringLength); }
     // SAFETY: `t` is `typeof v`, so this arm has proved v is a number/boolean.
     if (t === "number" || t === "boolean") return v as number | boolean;
     if (t === "bigint") return `${(v as bigint).toString()}n`;
@@ -185,13 +186,22 @@ export function logProviderRequestFailure(
   if (isAbortError(params.error)) return;
 
   const hasWire = params.request !== undefined && params.request !== null;
+  const scope = getRunTraceScope();
+  const includeContent = safeProcessEnv()["NODETOOL_TRACE_INCLUDE_CONTENT"] === "1" && scope?.origin !== "public" && !scope?.policy.contentSuppressed;
+  recordTraceEvent("log", {
+    "log.level": "error", "log.source": "nodetool.runtime.provider.request",
+    "log.message": "Provider request failed", "log.arguments": { provider: params.provider, model: params.model, error: errorMessage(params.error), request: hasWire ? params.request : params.nodetoolArgs }
+  });
   const entry: Record<string, unknown> = {
-    provider: params.provider,
-    model: params.model,
+    provider: redactTraceText(params.provider, scope?.secretValues),
+    model: redactTraceText(params.model, scope?.secretValues),
     requestSource: hasWire ? "wire" : "nodetool-args",
-    error: errorMessage(params.error),
-    request: sanitizeForLog(hasWire ? params.request : params.nodetoolArgs)
+    error_type: params.error instanceof Error ? params.error.name : "ProviderError"
   };
+  if (includeContent) {
+    entry["error"] = redactTraceText(errorMessage(params.error), scope?.secretValues);
+    entry["request"] = sanitizeForLog(hasWire ? params.request : params.nodetoolArgs);
+  }
   const status = httpStatus(params.error);
   if (status !== undefined) entry.status = status;
 

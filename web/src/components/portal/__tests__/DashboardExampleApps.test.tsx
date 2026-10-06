@@ -182,14 +182,15 @@ it("opens a used app on its own, without the catalog header", async () => {
 });
 
 it("installs the opened app from its toolbar", async () => {
+  const app = APPS[1];
   listExampleApps.mockResolvedValue(APPS);
-  installExampleApp.mockResolvedValue({ id: "app-2", name: "SKU Factory" });
+  installExampleApp.mockResolvedValue({ id: "app-2", name: app.name });
   const user = userEvent.setup();
   renderApps();
-  await user.click(await screen.findByRole("button", { name: /sku factory/i }));
+  await user.click(await screen.findByRole("button", { name: new RegExp(app.name, "i") }));
   await user.click(screen.getByRole("button", { name: "Install app" }));
 
   await waitFor(() =>
-    expect(installExampleApp).toHaveBeenCalledWith("sku-factory", "proj-1")
+    expect(installExampleApp).toHaveBeenCalledWith(app.slug, "proj-1")
   );
 });

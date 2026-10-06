@@ -1135,7 +1135,7 @@ export class ForEachFrameNode extends VideoTransformNode {
           "-y",
           "-i", inputFile.path,
           "-vf", vfFilter,
-          "-vsync", "vfr",
+          "-fps_mode", "vfr",
           ...frameLimit,
           path.join(outputDir, "frame_%d.png")
         ],

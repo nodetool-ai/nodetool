@@ -1,3 +1,4 @@
+import { withRegisteredRunTrace, settleRegisteredRunTrace } from "./service/run-trace-lifecycle.js";
 /** Canonical lifecycle for top-level Node/server workflow runs. */
 import { randomUUID } from "node:crypto";
 import { createLogger } from "@nodetool-ai/config";
@@ -12,6 +13,7 @@ import {
 import {
   PERMISSION_GATE_CONTEXT_KEY,
   ProcessingContext,
+  inAppRunCostAccount,
   connectPythonBridgeForGraph,
   headlessGate
 } from "@nodetool-ai/runtime";
@@ -83,6 +85,7 @@ export class ExecutionSession {
     const detachLedger = init.recordCosts
       ? attachRunCostLedger(init.context, {
           userId: init.userId,
+          appRunContext: init.context.appRunContext ?? undefined,
           workflowId: init.workflowId,
           projectId: init.projectId ?? null,
           documentId: init.documentId ?? null,
@@ -125,16 +128,18 @@ export class ExecutionSession {
     }
 
     this.resultPromise = Promise.resolve()
-      .then(() => init.runner.run(runRequest, init.graph))
+      .then(() => withRegisteredRunTrace(init.context, "workflow.run", () => inAppRunCostAccount(init.context.appRunCostAccount, () => init.runner.run(runRequest, init.graph))))
       .then(
-        (result) => {
+        async (result) => {
+          await settleRegisteredRunTrace(init.context, result.status === "cancelled" ? "cancelled" : result.status === "failed" ? "failed" : "completed", result.error);
           void init.lifecycle?.jobEnd({
             ...boundary,
             reason: this.endReason(result.status)
           });
           return result;
         },
-        (err: unknown) => {
+        async (err: unknown) => {
+          await settleRegisteredRunTrace(init.context, "failed", err instanceof Error ? err.message : String(err));
           // `run()` documents that it never rejects, but the boundary must
           // close even if that ever stops being true — an abandoned run is
           // exactly the leak `job.end` exists to prevent.
@@ -150,6 +155,7 @@ export class ExecutionSession {
         try {
           init.closeBridge();
         } finally {
+          await detachLedger?.settled();
           detachLedger?.();
           this.stream?.close();
           await cleanupWorkspace(init.context, this.jobId);
@@ -259,6 +265,7 @@ export class ExecutionSession {
         await assertPreflight(normalized, {
           catalogs: options.catalogs,
           providerConfiguration,
+          ...(registry && { registry }),
           resolveSecret: (key) => context.getSecret(key)
         });
       }

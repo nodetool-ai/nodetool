@@ -134,6 +134,7 @@ async function measureImage(
 
 export const useSketchAgentBridge = (documentId: string | null): void => {
   const instance = useSketchInstance();
+  const { session } = instance;
   const { start: startDirectGen } = useDirectGenJob();
 
   const handler = useMemo<SketchAgentHandler>(() => {
@@ -269,7 +270,10 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
             useCase.defaultVariations;
           editor
             .getState()
-            .resizeCanvas(useCase.defaultSize.width, useCase.defaultSize.height);
+            .resizeCanvas(
+              useCase.defaultSize.width,
+              useCase.defaultSize.height
+            );
         }
         editor.getState().setSetup(next);
         return editor.getState().document.setup ?? {};
@@ -926,10 +930,27 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
 
   useEffect(() => {
     if (!documentId) return;
-    setSketchAgentHandler(documentId, handler);
+    let installed = false;
+    const register = (): void => {
+      if (session.getState().hydratedDocumentId === documentId) {
+        if (!installed) {
+          setSketchAgentHandler(documentId, handler);
+          installed = true;
+        }
+      } else if (installed) {
+        if (
+          hasSketchAgentHandler(documentId) &&
+          getSketchAgentHandler(documentId) === handler
+        ) {
+          setSketchAgentHandler(documentId, null);
+        }
+        installed = false;
+      }
+    };
+    register();
+    const unsubscribe = session.subscribe(register);
     return () => {
-      // Only clear if we're still the handler registered for this id — a
-      // remounted editor for the same document may have already replaced us.
+      unsubscribe();
       if (
         hasSketchAgentHandler(documentId) &&
         getSketchAgentHandler(documentId) === handler
@@ -937,5 +958,5 @@ export const useSketchAgentBridge = (documentId: string | null): void => {
         setSketchAgentHandler(documentId, null);
       }
     };
-  }, [documentId, handler]);
+  }, [documentId, handler, session]);
 };

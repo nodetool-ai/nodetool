@@ -479,7 +479,9 @@ describe("validateGraph", () => {
       },
       registry
     );
-    expect(report.issues.some((i) => i.code === "fan_in")).toBe(true);
+    expect(report.issues.find((i) => i.code === "fan_in")?.message).toContain(
+      "`value` on nodetool.constant.List"
+    );
   });
 
   it("does not count control edges towards fan-in", () => {

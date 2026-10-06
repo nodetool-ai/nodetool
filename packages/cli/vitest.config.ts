@@ -73,6 +73,9 @@ function nodetoolStubPlugin(): Plugin {
 
 // Tests that need real workspace packages run without the stub plugin.
 const realPackageTests = [
+  "tests/runs-integration.test.ts",
+  "tests/app-debug-harness.test.ts",
+  "tests/app-debug-target.test.ts",
   "tests/typed-dsl.test.ts",
   "tests/game-command.test.ts",
   "tests/game-command3d.test.ts",

@@ -1,3 +1,7 @@
+import {
+  appRunGenerationMetadata,
+  attachLegacyAppRunGeneration
+} from "./app-run-generation.js";
 /**
  * The generation tracker — the follower that owns a generation's ledger row
  * from `running` to its terminal state.
@@ -15,7 +19,11 @@
  */
 
 import { createLogger } from "@nodetool-ai/config";
-import { MAX_RECONCILE_ATTEMPTS, Prediction } from "@nodetool-ai/models";
+import {
+  MAX_RECONCILE_ATTEMPTS,
+  Prediction,
+  reconcileAppRunCost
+} from "@nodetool-ai/models";
 import type {
   GenerationReceipt,
   Prediction as PredictionMessage
@@ -38,6 +46,7 @@ const log = createLogger("nodetool.execution.generation-tracker");
 interface GenerationRowMetadata {
   delivery?: GenerationDelivery;
   capability?: string | null;
+  app_run_finalized?: boolean;
   price_source?: "provider" | "model-catalog" | "provider-billing";
   price_breakdown?: string;
   price_assumptions?: string[];
@@ -52,6 +61,7 @@ interface GenerationRowMetadata {
 interface GenerationRowUpdate {
   status: string;
   completed_at: string;
+  reconciled_at?: string;
   error: string | null;
   duration: number | null;
   provider_request_id: string | null;
@@ -146,7 +156,7 @@ async function openRow(
     // message follower must never turn a webhook/recovery row back into a
     // provider-call-shaped update or overwrite its metadata.
     const existing = await Prediction.find(msg.id);
-    if (existing?.lifecycle_owner === "durable") return;
+    if (existing) return;
     await Prediction.create<Prediction>({
       id: msg.id,
       user_id: options.userId,
@@ -167,7 +177,10 @@ async function openRow(
       cost: null,
       parameters: msg.params ?? null,
       started_at: new Date().toISOString(),
-      metadata: { capability: msg.capability ?? null }
+      metadata: {
+        capability: msg.capability ?? null,
+        ...appRunGenerationMetadata(options.appRunContext)
+      }
     });
   } catch (err) {
     unrecorded.add(msg.id);
@@ -178,6 +191,61 @@ async function openRow(
       error: err instanceof Error ? err.message : String(err)
     });
   }
+}
+
+/** Accepted app generations finish independently of a script's message listener. */
+export async function finalizeAcceptedAppRunGeneration(
+  msg: PredictionMessage,
+  options: RunCostLedgerOptions
+): Promise<void> {
+  const identity = options.appRunContext;
+  if (
+    !identity ||
+    !isUnitBilledCapability(msg.capability) ||
+    !["completed", "failed", "cancelled"].includes(msg.status)
+  ) {
+    return;
+  }
+  const row = await Prediction.find(msg.id);
+  if (
+    !row ||
+    row.user_id !== identity.userId ||
+    row.metadata?.app_run_id !== identity.appRunId ||
+    row.lifecycle_owner === "durable"
+  ) {
+    return;
+  }
+  if (row.metadata?.app_run_finalized === true) {
+    await reconcileFinalizedAppRunReceipt(row, msg);
+    return;
+  }
+  await finishRow(row, msg, options, receiptCost(msg.receipt), true);
+}
+
+async function reconcileFinalizedAppRunReceipt(
+  row: Prediction,
+  msg: PredictionMessage
+): Promise<void> {
+  const stated = receiptCost(msg.receipt);
+  if (row.reconciled_at !== null || !stated) {
+    return;
+  }
+  await row.update({
+    cost: stated.amount,
+    currency: stated.currency ?? "USD",
+    billing_unit: stated.billing_unit ?? null,
+    quantity: stated.quantity ?? null,
+    unit_price: stated.unit_price ?? null,
+    provider_request_id:
+      msg.receipt?.provider_request_id ?? row.provider_request_id,
+    reconciled_at: new Date().toISOString(),
+    metadata: {
+      ...row.metadata,
+      price_source: "provider",
+      unpriced_reason: null
+    }
+  });
+  await refreshAppRunCost(row);
 }
 
 async function closeRow(
@@ -207,7 +275,25 @@ async function closeRow(
     await finishRow(opened, msg, options, stated);
     return;
   }
-  if (row.lifecycle_owner === "durable") return;
+  if (row.lifecycle_owner === "durable") {
+    if (typeof row.metadata?.app_run_id === "string") {
+      if (stated) {
+        await Prediction.patchReconciliation(row.id, {
+          cost: stated.amount,
+          currency: stated.currency ?? "USD",
+          reconciled_at: new Date().toISOString()
+        });
+        await refreshAppRunCost(row);
+      } else if (row.provider_request_id) {
+        void reconcileRow(row, options.resolveSecret).catch(() => undefined);
+      }
+    }
+    return;
+  }
+  if (row.metadata?.app_run_finalized === true) {
+    await reconcileFinalizedAppRunReceipt(row, msg);
+    return;
+  }
   await finishRow(row, msg, options, stated);
 }
 
@@ -215,11 +301,15 @@ async function finishRow(
   row: Prediction,
   msg: PredictionMessage,
   options: RunCostLedgerOptions,
-  stated: NonNullable<GenerationReceipt["cost"]> | null
+  stated: NonNullable<GenerationReceipt["cost"]> | null,
+  appRunFinalized = false
 ): Promise<void> {
   const now = new Date().toISOString();
   const metadata = rowMetadata(row);
   metadata.capability = msg.capability ?? null;
+  if (appRunFinalized) {
+    metadata.app_run_finalized = true;
+  }
   if (
     typeof msg.data === "object" &&
     msg.data !== null &&
@@ -245,6 +335,7 @@ async function finishRow(
   if (stated) {
     // The provider's own number wins over the catalog estimate.
     update.cost = stated.amount;
+    update.reconciled_at = now;
     update.currency = stated.currency ?? "USD";
     update.billing_unit = stated.billing_unit ?? null;
     update.quantity = stated.quantity ?? null;
@@ -282,6 +373,8 @@ async function finishRow(
 
   try {
     await row.update({ ...update });
+    await attachLegacyAppRunGeneration(row);
+    await refreshAppRunCost(row);
   } catch (err) {
     log.warn("Generation outcome not recorded", {
       generation_id: msg.id,
@@ -338,6 +431,7 @@ export async function linkGenerationAssets(
       if (row.lifecycle_owner === "durable") continue;
       const merged = [...new Set([...(row.asset_ids ?? []), ...assetIds])];
       await row.update({ asset_ids: merged });
+      await attachLegacyAppRunGeneration(row);
     } catch (err) {
       log.warn("Generation asset link not recorded", {
         generation_id: id,
@@ -450,6 +544,7 @@ export async function reconcileRow(
       },
       row.reconcile_attempts
     );
+    await refreshAppRunCost(row);
     return { before, after: actual.cost, reconciled: true };
   } catch (err) {
     const reason = err instanceof Error ? err.message : String(err);
@@ -573,4 +668,11 @@ export async function sweepInterruptedGenerations(
 export function resetGenerationTrackerState(): void {
   unrecorded.clear();
   unlinkedByNode.clear();
+}
+
+async function refreshAppRunCost(row: Prediction): Promise<void> {
+  const runId = row.metadata?.app_run_id;
+  if (typeof runId === "string") {
+    await reconcileAppRunCost(row.user_id, runId);
+  }
 }

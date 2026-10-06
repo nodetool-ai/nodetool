@@ -1,6 +1,10 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import {
+  QueryClient,
+  QueryClientProvider,
+  useQuery
+} from "@tanstack/react-query";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import RemoteSettingsMenuComponent from "../RemoteSettingsMenu";
@@ -361,6 +365,63 @@ describe("RemoteSettingsMenu", () => {
           expect.anything()
         );
       });
+    });
+
+    it("refetches warm model lists when only a provider URL setting is saved", async () => {
+      mockRemoteSettingsStore.fetchSettings.mockResolvedValue([
+        {
+          package_name: "nodetool",
+          env_var: "LLAMA_CPP_URL",
+          group: "LlamaCpp",
+          description: "Base URL for the llama.cpp server",
+          is_secret: false,
+          value: "http://127.0.0.1:9999",
+          enum: null
+        }
+      ]);
+      mockRemoteSettingsStore.updateSettings.mockResolvedValue(undefined);
+      // The picker's model query: fresh for five minutes, no focus refetch.
+      const fetchModels = jest
+        .fn<Promise<string[]>, []>()
+        .mockResolvedValueOnce([])
+        .mockResolvedValue(["qwen3-8b"]);
+      const ModelProbe = () => {
+        const { data } = useQuery({
+          queryKey: ["language-models", "llama_cpp"],
+          queryFn: fetchModels,
+          staleTime: 5 * 60 * 1000,
+          refetchOnWindowFocus: false
+        });
+        return <output aria-label="models">{(data ?? []).join(",")}</output>;
+      };
+      const user = userEvent.setup();
+
+      render(
+        <>
+          <ModelProbe />
+          <RemoteSettingsMenuComponent />
+        </>,
+        { wrapper }
+      );
+      await waitFor(() => expect(fetchModels).toHaveBeenCalledTimes(1));
+
+      const input = await screen.findByDisplayValue("http://127.0.0.1:9999");
+      await user.clear(input);
+      await user.type(input, "http://127.0.0.1:8080");
+      await user.click(
+        await screen.findByRole("button", { name: /SAVE SETTINGS/i })
+      );
+
+      await waitFor(() => {
+        expect(mockRemoteSettingsStore.updateSettings).toHaveBeenCalledWith(
+          { LLAMA_CPP_URL: "http://127.0.0.1:8080" },
+          {}
+        );
+      });
+      expect(await screen.findByLabelText("models")).toHaveTextContent(
+        "qwen3-8b"
+      );
+      expect(fetchModels).toHaveBeenCalledTimes(2);
     });
 
     it("hides the save bar until there are unsaved edits", async () => {

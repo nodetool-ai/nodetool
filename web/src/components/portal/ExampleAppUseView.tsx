@@ -39,13 +39,13 @@ export default function ExampleAppUseView({ slug }: ExampleAppUseViewProps) {
     retry: false
   });
   const scriptRunner = useCallback<typeof runJsScript>(
-    async (key, inputs, inputStreams, _version, onLine) => {
+    async (key, inputs, inputStreams, _version, onLine, appRun) => {
       const response = await restFetch(
         `/api/applications/examples/${encodeURIComponent(slug)}/scripts/${encodeURIComponent(key)}/run`,
         {
           method: "POST",
           headers: scriptRunHeaders(onLine),
-          body: JSON.stringify({ inputs, input_streams: inputStreams })
+          body: JSON.stringify({ inputs, input_streams: inputStreams, ...appRun })
         }
       );
       if (!response.ok) {

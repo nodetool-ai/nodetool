@@ -59,6 +59,7 @@ import {
   applicationInvocations
 } from "./schema/application-budgets.js";
 import { applicationDeployments } from "./schema/application-deployments.js";
+import { appInstances } from "./schema/app-instances.js";
 import { applications, applicationVersions } from "./schema/applications.js";
 import { assets } from "./schema/assets.js";
 import { creditLedger, userSubscriptions } from "./schema/credits.js";
@@ -95,6 +96,7 @@ import { triggerInputs } from "./schema/trigger-inputs.js";
 import { triggerRegistrations } from "./schema/trigger-registrations.js";
 import { userEvents } from "./schema/user-events.js";
 import { errorTraces } from "./schema/error-traces.js";
+import { exportRunTraceTable, eraseRunTraceTable } from "./run-trace.js";
 import { bugReports } from "./schema/bug-reports.js";
 import {
   workflowCollaborators,
@@ -381,6 +383,7 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
   ),
 
   // Applications: children first, the app itself last.
+  directStep("app_instances",appInstances,appInstances.user_id),
   indirectStep(
     "application_budgets",
     applicationBudgets,
@@ -471,6 +474,8 @@ export const ERASURE_STEPS: readonly ErasureStep[] = [
 
   // Content the person authored.
   directStep("nodetool_assets", assets, assets.user_id),
+  { table: "nodetool_run_spans", async run(ctx) { return deleted("nodetool_run_spans", "delete", await eraseRunTraceTable(ctx.userId, "spans")); } },
+  { table: "nodetool_run_traces", async run(ctx) { return deleted("nodetool_run_traces", "delete", await eraseRunTraceTable(ctx.userId, "traces")); } },
   directStep("nodetool_messages", messages, messages.user_id),
   directStep("nodetool_threads", threads, threads.user_id),
   directStep("nodetool_memories", memories, memories.user_id),
@@ -766,6 +771,9 @@ function indirectExport(
  * the subject's own id only.
  */
 export const EXPORT_HANDLERS: Readonly<Record<string, ExportHandler>> = {
+  nodetool_run_spans: (ctx) => exportRunTraceTable(ctx.userId, "spans", ctx.limit),
+  nodetool_run_traces: (ctx) => exportRunTraceTable(ctx.userId, "traces", ctx.limit),
+  app_instances:directExport(appInstances,appInstances.user_id),
   access_tokens: directExport(accessTokens, accessTokens.user_id),
   application_budgets: indirectExport(
     applicationBudgets,

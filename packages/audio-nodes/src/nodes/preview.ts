@@ -14,6 +14,7 @@ import { isCallable as isFunction } from "@nodetool-ai/node-sdk";
 
 export class PreviewNode extends BaseNode {
   static readonly nodeType = "nodetool.workflows.base_node.Preview";
+  static readonly effect = "read";
   static readonly title = "Preview";
   static readonly description = "Preview values inside the workflow graph";
   static readonly inlineFields = [];

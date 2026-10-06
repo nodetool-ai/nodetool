@@ -11,110 +11,80 @@
  * stays addressable by id. The handler is cleared on unmount.
  */
 
-import { DEFAULT_TIMELINE_INSTRUMENT } from "../../stores/timeline/instrumentPresets";
-import { applyTimelineTrackOp, type TimelineTrackOp } from "@nodetool-ai/timeline/ops";
-import { useEffect, useMemo } from "react";
-import {
-  createTimeOrderedUuid,
-  DEFAULT_MODEL3D_CLIP_DURATION_MS,
-  DEFAULT_MODEL3D_CLIP_NAME,
-  makeClip,
-  isMediaTrackStale,
-  mediaTrackCanDriveReframe,
-  model3dStyleWithPatch,
-  presetIdForInstrument,
-  resolveTempo,
-  shapeStyleWithDefaults,
-  staggerClipAnimations,
-  textStyleWithDefaults,
-  trackTypeForMediaType,
-  validateNotes
-} from "@nodetool-ai/timeline";
+import { isShortResourceId } from "@nodetool-ai/protocol";
 import type {
   ClipAnimation,
-  ClipMatte,
   ClipModel3DStylePatch,
   MidiInstrument,
   QuantizeOptions,
+  TimelineBeat,
   TimelineClip,
   TimelineMarker,
-  TimelineTempo,
-  TimelineBeat,
   TimelineSetup,
+  TimelineTempo,
   TimelineTrack
 } from "@nodetool-ai/timeline";
-import { isShortResourceId } from "@nodetool-ai/protocol";
 import {
-  buildEffect,
-  buildMask,
-  buildTimeRemap,
-  buildTransition
-} from "@nodetool-ai/protocol/api-schemas/timeline-tool-params.js";
+  createTimeOrderedUuid,
+  presetIdForInstrument,
+  resolveTempo
+} from "@nodetool-ai/timeline";
+import {
+  applyTimelineOp,
+  type TimelineOp,
+  type TimelineOpAsset,
+  type TimelineOpContext,
+  type TimelineOpResult,
+  type TimelineOpState
+} from "@nodetool-ai/timeline/ops";
 import { parseSvgPath } from "@nodetool-ai/timeline/scene";
-import { buildClipAnimation } from "./buildClipAnimation";
-import { applyBeatPlan, planBeats } from "./usePlanBeats";
-import { generateFromBeats } from "./useGenerateFromBeats";
+import { useEffect, useMemo } from "react";
 import { videoFormatById } from "../../components/setup/video/formats";
+import { DEFAULT_TIMELINE_INSTRUMENT } from "../../stores/timeline/instrumentPresets";
+import { generateFromBeats } from "./useGenerateFromBeats";
+import { planBeats } from "./usePlanBeats";
 
-import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
-import { useTimelineUIStoreApi } from "../../stores/timeline/TimelineUIStore";
-import { useTimelinePlaybackStoreApi } from "../../stores/timeline/TimelinePlaybackStore";
-import {
-  getRememberedModel,
-  getRememberedModelForTask,
-  type ModelKind
-} from "../../stores/lastModelStore";
-import { useAssetStore } from "../../stores/AssetStore";
-import {
-  assetMediaType,
-  assetToClip,
-  isCompatibleWithTrack
-} from "../../components/timeline/dnd/assetToClipAdapter";
-import { getAssetUrl } from "../../utils/assetHelpers";
-import { useModel3DBake } from "./useModel3DBake";
-import { useTimelineDirectGenJob } from "./useTimelineDirectGenJob";
+import { renderRasterClipFrames } from "../../components/timeline/preview/rasterClipFrames";
 import {
   getTimelineAgentHandler,
   hasTimelineAgentHandler,
   setTimelineAgentHandler,
-  type TimelineAgentHandler,
-  type TimelineAnimationNode,
-  type TimelineClipNode,
-  type TimelineClipFrameNode,
-  type TimelineMarkerNode,
-  type MidiNoteInput,
   type TimelineAddMediaClipOptions,
   type TimelineAddMidiClipOptions,
-  type TimelineAddTextClipOptions,
   type TimelineAddShapeClipOptions,
+  type TimelineAddTextClipOptions,
+  type TimelineAgentHandler,
+  type TimelineAnimationNode,
+  type TimelineClipFrameNode,
+  type TimelineClipNode,
   type TimelineGenerateKind,
+  type TimelineMarkerNode,
   type TimelineSnapshot,
   type TimelineTrackNode
 } from "../../components/timeline/timelineAgentBridge";
 import { extractVideoFrames } from "../../components/timeline/Tracks/clipThumbnails";
-import { renderRasterClipFrames } from "../../components/timeline/preview/rasterClipFrames";
-import { persistFormatAdaptations } from "./useCreateFormatAdaptation";
+import { useAssetStore } from "../../stores/AssetStore";
+import {
+  getRememberedModel,
+  modelKindForBinding,
+  useLastModelStore,
+  getRememberedModelForTask,
+  type ModelKind
+} from "../../stores/lastModelStore";
+import { useTimelinePlaybackStoreApi } from "../../stores/timeline/TimelinePlaybackStore";
+import { useTimelineStoreApi } from "../../stores/timeline/TimelineStore";
+import { useTimelineUIStoreApi } from "../../stores/timeline/TimelineUIStore";
 import { trpcClient } from "../../trpc/client";
+import { getAssetUrl } from "../../utils/assetHelpers";
+import { persistAdaptedTimeline } from "./useCreateFormatAdaptation";
+import { useModel3DBake } from "./useModel3DBake";
+import { useTimelineDirectGenJob } from "./useTimelineDirectGenJob";
 
 const KIND_TO_MODEL_KIND = {
   "text-to-video": "video",
   "text-to-image": "image",
   "text-to-audio": "audio"
 } satisfies Record<TimelineGenerateKind, ModelKind>;
-
-const KIND_TO_MEDIA_TYPE = {
-  "text-to-video": "video",
-  "text-to-image": "image",
-  "text-to-audio": "audio"
-} satisfies Record<
-  TimelineGenerateKind,
-  "image" | "video" | "audio" | "overlay"
->;
-
-/** Velocity a note gets when the agent names none — mirrors
- *  `DEFAULT_MIDI_VELOCITY` in `@nodetool-ai/timeline`, which `createMidiNote`
- *  applies when the store mints the note. */
-const DEFAULT_AGENT_NOTE_VELOCITY = 100;
 
 const DEFAULT_FRAME_COUNT = 3;
 const MAX_FRAME_COUNT = 8;
@@ -129,7 +99,9 @@ function sampleClipTimelineTimes(clip: TimelineClip, count: number): number[] {
   const n = clampNumber(Math.round(count), 1, MAX_FRAME_COUNT);
   const start = clip.startMs;
   const end = Math.max(start, start + clip.durationMs - 1);
-  if (n === 1 || end <= start) return [start];
+  if (n === 1 || end <= start) {
+    return [start];
+  }
   return Array.from({ length: n }, (_, i) =>
     Math.round(start + (i / (n - 1)) * (end - start))
   );
@@ -253,8 +225,12 @@ function toMarkerNode(marker: TimelineMarker): TimelineMarkerNode {
     timeMs: marker.timeMs,
     label: marker.label
   };
-  if (marker.color !== undefined) node.color = marker.color;
-  if (marker.note !== undefined) node.note = marker.note;
+  if (marker.color !== undefined) {
+    node.color = marker.color;
+  }
+  if (marker.note !== undefined) {
+    node.note = marker.note;
+  }
   return node;
 }
 
@@ -280,7 +256,10 @@ function toTrackNode(
   };
 }
 
-export const useTimelineAgentBridge = (sequenceId: string | null): void => {
+export const useTimelineAgentBridge = (
+  sequenceId: string | null,
+  opContextOverrides?: Partial<TimelineOpContext>
+): void => {
   const doc = useTimelineStoreApi();
   const ui = useTimelineUIStoreApi();
   const playback = useTimelinePlaybackStoreApi();
@@ -288,35 +267,172 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
   const { bakeClip } = useModel3DBake();
 
   const handler = useMemo<TimelineAgentHandler>(() => {
-    const editTrack = (op: TimelineTrackOp): void => {
-      const store = doc.getState();
-      const outcome = applyTimelineTrackOp(
-        {
-          tempo: store.tempo,
-          fps: store.fps,
-          width: store.width,
-          height: store.height,
-          tracks: store.tracks,
-          clips: store.clips,
-          markers: store.markers,
-          mediaTracks: store.mediaTracks,
-          playheadMs: playback.getState().currentTimeMs,
-          selectedClipIds: [...ui.getState().selectedClipIds]
-        },
-        op,
-        {
-          newId: createTimeOrderedUuid,
-          defaultMidiInstrument: DEFAULT_TIMELINE_INSTRUMENT
+    const stateOf = (): TimelineOpState => {
+      const state = doc.getState();
+      return {
+        fps: state.fps,
+        width: state.width,
+        height: state.height,
+        tracks: state.tracks,
+        trackFolders: state.trackFolders,
+        clips: state.clips,
+        markers: state.markers,
+        mediaTracks: state.mediaTracks,
+        tempo: state.tempo,
+        setup: state.setup,
+        transcript: state.transcript,
+        scriptEnabled: state.scriptEnabled,
+        camera2d: state.camera2d,
+        storyboardMaterializations: state.storyboardMaterializations,
+        playheadMs: Math.round(playback.getState().getTimeMs()),
+        selectedClipIds: [...ui.getState().selectedClipIds]
+      };
+    };
+    let pending: Promise<unknown> = Promise.resolve();
+    const editOp = (op: TimelineOp): Promise<TimelineOpResult> => {
+      const task = pending.then(async () => {
+        const assets = new Map<string, TimelineOpAsset | null>();
+        const ids = new Map<string, string[]>();
+        let positions = new Map<string, number>();
+        const context: TimelineOpContext = {
+          newId: (kind) => {
+            const index = positions.get(kind) ?? 0;
+            positions.set(kind, index + 1);
+            const minted = ids.get(kind) ?? [];
+            minted[index] ??= createTimeOrderedUuid();
+            ids.set(kind, minted);
+            return minted[index];
+          },
+          defaultMidiInstrument: DEFAULT_TIMELINE_INSTRUMENT,
+          followLinks: doc.getState().linkedSelection,
+          parseSvgPath,
+          allowUnknownMediaDuration: true,
+          resolveAsset: async (ref) => {
+            if (assets.has(ref)) {
+              return assets.get(ref) ?? null;
+            }
+            const id = ref
+              .replace(/^asset:\/\//, "")
+              .replace(/\.[A-Za-z0-9]{1,8}$/, "");
+            const asset = await useAssetStore.getState().get(id);
+            const resolved = asset
+              ? {
+                  id: asset.id,
+                  name: asset.name,
+                  contentType: asset.content_type ?? "",
+                  durationMs:
+                    asset.duration == null ? undefined : asset.duration * 1000,
+                  thumbnailAssetId:
+                    Array.isArray(asset.metadata?.thumbnails) &&
+                    typeof asset.metadata.thumbnails[0] === "string"
+                      ? asset.metadata.thumbnails[0]
+                      : undefined
+                }
+              : null;
+            assets.set(ref, resolved);
+            return resolved;
+          },
+          ...opContextOverrides
+        };
+        if (
+          op.op === "retarget_format" &&
+          !opContextOverrides?.retargetFormat
+        ) {
+          if (!sequenceId) {
+            throw new Error("No timeline sequence is open.");
+          }
+          const source = await trpcClient.timeline.get.query({
+            id: sequenceId
+          });
+          context.sequence = {
+            id: source.id,
+            name: source.name,
+            projectId: source.projectId
+          };
+          context.retargetFormat = async (sequence) => ({
+            sequenceId: await persistAdaptedTimeline(sequence, source.id),
+            name: sequence.name
+          });
         }
-      );
-      if (outcome.error) throw new Error(outcome.error);
-      store.applyAgentEdit(
-        { ...outcome.state, mediaTracks: outcome.state.mediaTracks ?? [] },
-        { preserveTiming: true }
-      );
-      if (outcome.state.selectedClipIds.length !== ui.getState().selectedClipIds.size) {
-        ui.getState().setSelection(outcome.state.selectedClipIds);
+        let before = doc.getState();
+        let outcome = await applyTimelineOp(stateOf(), op, context);
+        while (doc.getState() !== before && op.op !== "retarget_format") {
+          before = doc.getState();
+          positions = new Map();
+          outcome = await applyTimelineOp(stateOf(), op, context);
+        }
+        if (outcome.error) {
+          throw new Error(outcome.error);
+        }
+        if (
+          op.op !== "get_state" &&
+          op.op !== "list_animation_presets" &&
+          op.op !== "list_tracks" &&
+          op.op !== "list_takes" &&
+          op.op !== "retarget_format" &&
+          op.op !== "select_clip" &&
+          op.op !== "seek"
+        ) {
+          doc.getState().applyAgentEdit(
+            {
+              ...outcome.state,
+              mediaTracks: outcome.state.mediaTracks ?? []
+            },
+            { preserveTiming: true }
+          );
+          ui.getState().setSelection(outcome.state.selectedClipIds);
+          if (
+            (op.op === "set_clip_binding" || op.op === "generate_clip") &&
+            op.provider &&
+            op.model
+          ) {
+            const clip = outcome.state.clips.find(
+              (clip) => clip.id === resultClipId(outcome.result)
+            );
+            const kind = modelKindForBinding(clip?.bindingKind);
+            if (kind) {
+              useLastModelStore.getState().remember(kind, {
+                provider: op.provider,
+                model: op.model,
+                voice: op.voice ?? clip?.voice
+              });
+            }
+          }
+        }
+        if (op.op === "select_clip") {
+          ui.getState().setSelection(outcome.state.selectedClipIds);
+        }
+        if (op.op === "seek") {
+          playback.getState().seek(outcome.state.playheadMs);
+        }
+        return outcome.result;
+      });
+      pending = task.catch(() => undefined);
+      return task;
+    };
+    const resultClipId = (result: TimelineOpResult): string => {
+      const clip = result.clip;
+      if (
+        !clip ||
+        typeof clip !== "object" ||
+        !("id" in clip) ||
+        typeof clip.id !== "string"
+      ) {
+        throw new Error("Timeline edit returned no clip.");
       }
+      return clip.id;
+    };
+    const resultMarkerId = (result: TimelineOpResult): string => {
+      const marker = result.marker;
+      if (
+        !marker ||
+        typeof marker !== "object" ||
+        !("id" in marker) ||
+        typeof marker.id !== "string"
+      ) {
+        throw new Error("Timeline edit returned no marker.");
+      }
+      return marker.id;
     };
 
     const trackNodes = (): TimelineTrackNode[] => {
@@ -325,7 +441,9 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       for (const clip of store.clips) {
         clipCount.set(clip.trackId, (clipCount.get(clip.trackId) ?? 0) + 1);
       }
-      return store.tracks.map((track) => toTrackNode(track, clipCount.get(track.id) ?? 0));
+      return store.tracks.map((track) =>
+        toTrackNode(track, clipCount.get(track.id) ?? 0)
+      );
     };
 
     const trackMap = (): Map<string, TimelineTrack> =>
@@ -342,14 +460,20 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           );
         }
         const clip = clips.find((c) => c.id === selected[0]);
-        if (!clip) throw new Error("Selected clip no longer exists.");
+        if (!clip) {
+          throw new Error("Selected clip no longer exists.");
+        }
         return clip;
       }
       const byId = clips.find((c) => c.id === target);
-      if (byId) return byId;
+      if (byId) {
+        return byId;
+      }
       if (isShortResourceId(target)) {
         const prefixMatches = clips.filter((c) => c.id.startsWith(target));
-        if (prefixMatches.length === 1) return prefixMatches[0];
+        if (prefixMatches.length === 1) {
+          return prefixMatches[0];
+        }
         if (prefixMatches.length > 1) {
           throw new Error(
             `Short clip id "${target}" matches more than one clip; use the full id or name.`
@@ -358,7 +482,9 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       }
       const lower = target.toLowerCase();
       const byName = clips.find((c) => c.name.toLowerCase() === lower);
-      if (byName) return byName;
+      if (byName) {
+        return byName;
+      }
       throw new Error(`Clip not found on the timeline: ${target}`);
     };
 
@@ -373,8 +499,12 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       noun: string
     ): T | undefined => {
       const exact = items.find((item) => item.id === target);
-      if (exact) return exact;
-      if (!isShortResourceId(target)) return undefined;
+      if (exact) {
+        return exact;
+      }
+      if (!isShortResourceId(target)) {
+        return undefined;
+      }
       const matches = items.filter((item) => item.id.startsWith(target));
       if (matches.length > 1) {
         throw new Error(
@@ -388,10 +518,14 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
     const requireMarker = (target: string): TimelineMarker => {
       const { markers } = doc.getState();
       const byId = findByIdOrShortId(markers, target, "marker");
-      if (byId) return byId;
+      if (byId) {
+        return byId;
+      }
       const lower = target.toLowerCase();
       const byLabel = markers.find((m) => m.label.toLowerCase() === lower);
-      if (byLabel) return byLabel;
+      if (byLabel) {
+        return byLabel;
+      }
       const known = markers
         .map((m) => `${m.id} ("${m.label}") at ${m.timeMs}ms`)
         .join(", ");
@@ -425,7 +559,9 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
     const requireBeat = (target: string): TimelineBeat => {
       const beats = doc.getState().setup?.beats ?? [];
       const byId = beats.find((beat) => beat.id === target);
-      if (byId) return byId;
+      if (byId) {
+        return byId;
+      }
       const position = Number.parseInt(target, 10);
       const byPosition = beats[position - 1];
       if (Number.isFinite(position) && byPosition) {
@@ -442,7 +578,9 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
     const requireTrack = (target: string): TimelineTrack => {
       const { tracks } = doc.getState();
       const byId = tracks.find((t) => t.id === target);
-      if (byId) return byId;
+      if (byId) {
+        return byId;
+      }
       if (isShortResourceId(target)) {
         const matches = tracks.filter((track) => track.id.startsWith(target));
         if (matches.length === 1) {
@@ -456,7 +594,9 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       }
       const lower = target.toLowerCase();
       const byName = tracks.find((t) => t.name.toLowerCase() === lower);
-      if (byName) return byName;
+      if (byName) {
+        return byName;
+      }
       throw new Error(`Track not found on the timeline: ${target}`);
     };
 
@@ -465,57 +605,14 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
 
     const reReadClip = (id: string): TimelineClip => {
       const clip = doc.getState().clips.find((c) => c.id === id);
-      if (!clip) throw new Error(`Clip ${id} disappeared after the edit.`);
-      return clip;
-    };
-
-    /**
-     * The notes, with every problem reported at once. `validateNotes` reads a
-     * complete note, so ids and velocities are filled in first — the agent
-     * sends neither and would otherwise be told its own defaults are wrong.
-     */
-    const requireValidNotes = (notes: MidiNoteInput[]): MidiNoteInput[] => {
-      const complete = notes.map((note, index) => ({
-        id: note.id ?? `pending-${index}`,
-        velocity: note.velocity ?? DEFAULT_AGENT_NOTE_VELOCITY,
-        pitch: note.pitch,
-        startTick: note.startTick,
-        durationTick: note.durationTick
-      }));
-      const problems = validateNotes(complete);
-      if (problems.length > 0) {
-        throw new Error(
-          `These notes cannot be stored: ${problems
-            .map((p) =>
-              p.index !== undefined
-                ? `note ${p.index}: ${p.message}`
-                : p.message
-            )
-            .join(" ")}`
-        );
-      }
-      return notes;
-    };
-
-    /** The clip `target` names, refusing anything that carries no notes. */
-    const requireMidiClip = (target: string): TimelineClip => {
-      const clip = requireClip(target);
-      if (clip.mediaType !== "midi") {
-        throw new Error(
-          `"${clip.name}" is a ${clip.mediaType} clip; only a midi clip carries notes.`
-        );
+      if (!clip) {
+        throw new Error(`Clip ${id} disappeared after the edit.`);
       }
       return clip;
     };
-
-    /** End of the last clip on a track, or 0 when the track is empty. */
-    const trackEndMs = (trackId: string): number =>
-      doc
-        .getState()
-        .clips.filter((c) => c.trackId === trackId)
-        .reduce((end, c) => Math.max(end, c.startMs + c.durationMs), 0);
 
     const handlerImpl: TimelineAgentHandler = {
+      applyOp: editOp,
       getSnapshot(): TimelineSnapshot {
         const state = doc.getState();
         const tracks = state.tracks;
@@ -552,104 +649,75 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       },
 
       async retargetFormat(options) {
-        if (!sequenceId) {
-          throw new Error("No timeline sequence is open.");
-        }
-        const source = await trpcClient.timeline.get.query({ id: sequenceId });
-        const ids = await persistFormatAdaptations(source, doc.getState(), {
-          aspectRatios: [options.aspectRatio],
+        const result = await editOp({
+          op: "retarget_format",
+          aspect_ratio: options.aspectRatio,
           strategy: options.strategy,
-          safeMargin: options.safeMargin ?? 0.1,
-          trackIdByClipId: options.trackIds
+          safe_margin: options.safeMargin ?? 0.1,
+          track_ids: options.trackIds
         });
-        const createdId = ids[0];
-        if (!createdId) throw new Error("Could not create format adaptation.");
-        return {
-          sequenceId: createdId,
-          name: `${source.name} — ${options.aspectRatio}`.substring(0, 200)
-        };
-      },
-
-      setReframeSubject(target, trackId, options) {
-        const clip = requireClip(target);
-        const track = doc
-          .getState()
-          .mediaTracks.find(
-            (candidate) =>
-              candidate.id === trackId && candidate.clipId === clip.id
-          );
-        if (!track) {
-          throw new Error(
-            `Track ${trackId} does not belong to clip ${clip.id}.`
-          );
-        }
         if (
-          !mediaTrackCanDriveReframe(track) ||
-          isMediaTrackStale(track, clip)
+          typeof result.sequenceId !== "string" ||
+          typeof result.name !== "string"
         ) {
-          throw new Error(
-            `Track ${trackId} has no current ready analysis for clip ${clip.id}.`
-          );
+          throw new Error("Could not create format adaptation.");
         }
-        doc
-          .getState()
-          .setClipReframeSubject(clip.id, "track", track.id, options);
-        return clipNode(reReadClip(clip.id));
+        return { sequenceId: result.sequenceId, name: result.name };
       },
 
-      addReframeKeyframe(target, keyframe) {
-        const clip = requireClip(target);
-        doc
-          .getState()
-          .addClipReframeKeyframe(
-            clip.id,
-            keyframe.sourceMs,
-            keyframe.x,
-            keyframe.y,
-            keyframe.zoom
-          );
-        return clipNode(reReadClip(clip.id));
+      async setReframeSubject(target, trackId, options) {
+        await editOp({
+          op: "set_reframe_subject",
+          clip_id: target,
+          track_id: trackId,
+          safe_margin: options?.safeMargin,
+          smoothing: options?.smoothing
+        });
+        return clipNode(requireClip(target));
       },
 
-      clearReframe(target) {
-        const clip = requireClip(target);
-        doc.getState().clearClipReframe(clip.id);
-        return clipNode(reReadClip(clip.id));
+      async addReframeKeyframe(target, keyframe) {
+        await editOp({
+          op: "add_reframe_keyframe",
+          clip_id: target,
+          source_ms: keyframe.sourceMs,
+          x: keyframe.x,
+          y: keyframe.y,
+          zoom: keyframe.zoom
+        });
+        return clipNode(requireClip(target));
       },
 
-      addTrack(type, name) {
-        editTrack({
+      async clearReframe(target) {
+        await editOp({ op: "clear_reframe", clip_id: target });
+        return clipNode(requireClip(target));
+      },
+
+      async addTrack(type, name) {
+        await editOp({
           op: "add_track",
           type,
           name: name ?? `${type} ${doc.getState().tracks.length + 1}`
         });
         const track = doc.getState().tracks.at(-1);
-        if (!track) throw new Error("Track was not added.");
+        if (!track) {
+          throw new Error("Track was not added.");
+        }
         return toTrackNode(track, 0);
       },
 
-      moveTrack(target, destination) {
-        editTrack({
-          op: "move_track",
-          target: requireTrack(target).id,
-          ...destination,
-          before: destination.before
-            ? requireTrack(destination.before).id
-            : undefined,
-          after: destination.after
-            ? requireTrack(destination.after).id
-            : undefined
-        });
+      async moveTrack(target, destination) {
+        await editOp({ op: "move_track", target, ...destination });
         return trackNodes();
       },
 
-      deleteTrack(target, deleteClips) {
+      async deleteTrack(target, deleteClips) {
         const track = requireTrack(target);
         const removed = doc
           .getState()
           .clips.filter((clip) => clip.trackId === track.id);
         const deleted = toTrackNode(track, removed.length);
-        editTrack({ op: "delete_track", target: track.id, deleteClips });
+        await editOp({ op: "delete_track", target, deleteClips });
         return {
           deleted,
           deletedClipIds: removed.map((clip) => clip.id),
@@ -659,30 +727,6 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
 
       async generateClip(opts) {
         const kind = opts.kind;
-        const store = doc.getState();
-
-        // Resolve the target track for the media kind. Resolve a passed
-        // id/name to the real track id — keeping the raw string would forward
-        // a track *name* into addDirectGenClip/trackEndMs and orphan the clip.
-        let trackId: string;
-        if (opts.trackId) {
-          trackId = requireTrack(opts.trackId).id;
-        } else if (kind === "text-to-audio") {
-          trackId = store.getOrCreateAudioTrack();
-        } else {
-          const video = store.tracks.find((t) => t.type === "video");
-          if (video) {
-            trackId = video.id;
-          } else {
-            store.addTrack("video");
-            const tracks = doc.getState().tracks;
-            trackId = tracks[tracks.length - 1].id;
-          }
-        }
-
-        // Clamp start to >= 0 so an agent-supplied negative can't create a
-        // clip with invalid timing.
-        const startMs = Math.max(0, opts.startMs ?? trackEndMs(trackId));
 
         // Resolve provider/model: explicit args, else the last-used model.
         const remembered = getRememberedModel(KIND_TO_MODEL_KIND[kind]);
@@ -693,29 +737,15 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
             ? (opts.voice ?? remembered?.voice)
             : opts.voice;
 
-        const clipId = doc.getState().addDirectGenClip({
-          trackId,
-          startMs,
-          // Clamp to a positive duration; addDirectGenClip only falls back to
-          // its default when durationMs is undefined, so a negative/zero from
-          // an agent would otherwise create an invalid clip.
-          durationMs:
-            opts.durationMs === undefined
-              ? undefined
-              : Math.max(1, opts.durationMs),
-          mediaType: KIND_TO_MEDIA_TYPE[kind],
-          bindingKind: kind,
-          prompt: opts.prompt,
+        const created = await editOp({
+          op: "generate_clip",
+          ...opts,
           provider,
           model,
           voice,
-          width: opts.width,
-          height: opts.height,
-          aspectRatio: opts.aspectRatio,
-          resolution: opts.resolution
+          autoGenerate: false
         });
-
-        ui.getState().selectClip(clipId);
+        const clipId = resultClipId(created);
 
         const canGenerate =
           !!provider &&
@@ -765,10 +795,7 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         // A clip's remembered/generic video model may only support
         // text-to-video. An edit needs one known video-to-video pair, so never
         // combine partial values from different defaults.
-        const remembered = getRememberedModelForTask(
-          "video",
-          "video_to_video"
-        );
+        const remembered = getRememberedModelForTask("video", "video_to_video");
         const provider = opts.provider ?? remembered?.provider;
         const model = opts.model ?? remembered?.model;
         if (!provider || !model) {
@@ -821,197 +848,46 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           );
         }
         const error = doc.getState().applyTake(clip.id, takeId);
-        if (error) throw new Error(error);
+        if (error) {
+          throw new Error(error);
+        }
         return clipNode(reReadClip(clip.id));
       },
 
       async addMediaClip(opts: TimelineAddMediaClipOptions) {
-        const assetId = opts.asset.startsWith("asset://")
-          ? opts.asset
-              .slice("asset://".length)
-              .replace(/\.[A-Za-z0-9]{1,8}$/, "")
-          : opts.asset;
-        const asset = await useAssetStore.getState().get(assetId);
-        if (!asset) {
-          throw new Error(`No asset found for "${opts.asset}".`);
-        }
-        const mediaType = assetMediaType(asset.content_type);
-        if (!mediaType) {
-          throw new Error(
-            `Asset "${asset.name}" is ${asset.content_type ?? "of unknown type"}, which cannot go on a timeline.`
-          );
-        }
-        const store = doc.getState();
-        let trackId: string;
-        if (opts.trackId) {
-          const track = requireTrack(opts.trackId);
-          if (!isCompatibleWithTrack(mediaType, track.type)) {
-            throw new Error(
-              `A ${mediaType} clip cannot go on "${track.name}", which is a ${track.type} track.`
-            );
-          }
-          trackId = track.id;
-        } else {
-          // 3D is picture, so it lands on the lanes a title lands on.
-          const wanted =
-            mediaType === "model3d"
-              ? "video"
-              : trackTypeForMediaType(mediaType);
-          const existing = store.tracks.find((track) => track.type === wanted);
-          if (existing) {
-            trackId = existing.id;
-          } else {
-            store.addTrack(wanted);
-            const created = doc.getState().tracks.at(-1);
-            if (!created) {
-              throw new Error(`Could not create a ${wanted} track.`);
-            }
-            trackId = created.id;
-          }
-        }
-        // Appending after the track's last clip is what lays several assets
-        // end to end, one call each.
-        const base = assetToClip(
-          asset,
-          trackId,
-          Math.max(0, opts.startMs ?? trackEndMs(trackId))
-        );
-        const clip: TimelineClip = { ...base };
-        if (opts.durationMs !== undefined) {
-          clip.durationMs = Math.max(1, opts.durationMs);
-        }
-        if (opts.name) clip.name = opts.name;
-        doc.getState().addClip(clip);
-        ui.getState().selectClip(clip.id);
-        return clipNode(reReadClip(clip.id));
+        const result = await editOp({ op: "add_media_clip", ...opts });
+        return clipNode(reReadClip(resultClipId(result)));
       },
 
-      addTextClip(opts: TimelineAddTextClipOptions) {
-        const store = doc.getState();
-        let trackId: string;
-        if (opts.trackId) {
-          const track = requireTrack(opts.trackId);
-          if (track.type !== "video" && track.type !== "overlay") {
-            throw new Error(
-              `Text clips require a video or overlay track; "${track.name}" is ${track.type}.`
-            );
-          }
-          trackId = track.id;
-        } else {
-          const overlay = store.tracks.find(
-            (track) => track.type === "overlay"
-          );
-          if (overlay) {
-            trackId = overlay.id;
-          } else {
-            store.addTrack("overlay", "Text");
-            const created = doc.getState().tracks.at(-1);
-            if (!created) {
-              throw new Error("Could not create an overlay track for text.");
-            }
-            trackId = created.id;
-          }
-        }
-        const textStyle = textStyleWithDefaults(opts.text, opts.style);
-        const clip = makeClip({
-          trackId,
+      async addTextClip(opts: TimelineAddTextClipOptions) {
+        const result = await editOp({
+          op: "add_text_clip",
+          ...opts,
           name: opts.text.trim().slice(0, 40) || "Text",
-          startMs: Math.max(0, opts.startMs ?? trackEndMs(trackId)),
-          durationMs: Math.max(1, opts.durationMs ?? 3000),
-          mediaType: "text",
-          sourceType: "imported",
-          status: "generated",
-          textStyle
+          startMs:
+            opts.startMs === undefined ? undefined : Math.max(0, opts.startMs),
+          durationMs: Math.max(1, opts.durationMs ?? 3000)
         });
-        if (opts.opacity !== undefined) clip.opacity = opts.opacity;
-        store.addClip(clip);
-        ui.getState().selectClip(clip.id);
-        return clipNode(reReadClip(clip.id));
+        return clipNode(reReadClip(resultClipId(result)));
       },
 
-      addShapeClip(opts: TimelineAddShapeClipOptions) {
-        const store = doc.getState();
-        const overlay = opts.trackId
-          ? requireTrack(opts.trackId)
-          : store.tracks.find((track) => track.type === "overlay");
-        if (overlay && overlay.type !== "video" && overlay.type !== "overlay") {
-          throw new Error(
-            `Shape clips require a video or overlay track; "${overlay.name}" is ${overlay.type}.`
-          );
-        }
-        if (!overlay) {
-          store.addTrack("overlay", "Shapes");
-        }
-        const track = overlay ?? doc.getState().tracks.at(-1);
-        if (!track) {
-          throw new Error("Could not create an overlay track for a shape.");
-        }
-        const shapeStyle = shapeStyleWithDefaults(opts.shape);
-        const clip = makeClip({
-          trackId: track.id,
-          name: opts.shape.kind,
-          startMs: Math.max(0, opts.startMs ?? trackEndMs(track.id)),
-          durationMs: Math.max(1, opts.durationMs ?? 3000),
-          mediaType: "shape",
-          sourceType: "imported",
-          status: "generated",
-          shapeStyle
+      async addShapeClip(opts: TimelineAddShapeClipOptions) {
+        const result = await editOp({
+          op: "add_shape_clip",
+          ...opts,
+          name: opts.shape.kind
         });
-        if (opts.opacity !== undefined) clip.opacity = opts.opacity;
-        store.addClip(clip);
-        ui.getState().selectClip(clip.id);
-        return clipNode(reReadClip(clip.id));
+        return clipNode(reReadClip(resultClipId(result)));
       },
 
-      addModel3DClip(opts) {
-        const store = doc.getState();
-        // 3D is picture (D1): it lands where a title or a shape lands.
-        const named = opts.trackId ? requireTrack(opts.trackId) : undefined;
-        if (named && named.type !== "video" && named.type !== "overlay") {
-          throw new Error(
-            `3D clips require a video or overlay track; "${named.name}" is ${named.type}.`
-          );
-        }
-        let track = named ?? store.tracks.find((t) => t.type === "overlay");
-        if (!track) {
-          store.addTrack("overlay", "3D");
-          track = doc.getState().tracks.at(-1);
-        }
-        if (!track) {
-          throw new Error("Could not create an overlay track for a 3D model.");
-        }
-        const clip = makeClip({
-          trackId: track.id,
-          name: DEFAULT_MODEL3D_CLIP_NAME,
-          startMs: Math.max(0, opts.startMs ?? trackEndMs(track.id)),
-          durationMs: Math.max(
-            1,
-            opts.durationMs ?? DEFAULT_MODEL3D_CLIP_DURATION_MS
-          ),
-          mediaType: "model3d",
-          sourceType: "imported",
-          status: "generated",
-          currentAssetId: opts.assetId,
-          model3dStyle: model3dStyleWithPatch(undefined, opts.style)
-        });
-        store.addClip(clip);
-        ui.getState().selectClip(clip.id);
-        return clipNode(reReadClip(clip.id));
+      async addModel3DClip(opts) {
+        const result = await editOp({ op: "add_model3d_clip", ...opts });
+        return clipNode(reReadClip(resultClipId(result)));
       },
 
-      setModel3DStyle(target, patch: ClipModel3DStylePatch) {
-        const clip = requireClip(target);
-        if (clip.mediaType !== "model3d") {
-          throw new Error(
-            `Clip "${clip.name}" is a ${clip.mediaType} clip, not a 3D clip — ` +
-              "model3dStyle names a camera, an animation and lighting for a " +
-              "glTF, and nothing else reads it."
-          );
-        }
-        doc.getState().patchClip(clip.id, {
-          model3dStyle: model3dStyleWithPatch(clip.model3dStyle, patch)
-        });
-        return clipNode(reReadClip(clip.id));
+      async setModel3DStyle(target, patch: ClipModel3DStylePatch) {
+        await editOp({ op: "set_model3d_style", target, patch: { ...patch } });
+        return clipNode(requireClip(target));
       },
 
       async bakeModel3DClip(target) {
@@ -1023,222 +899,79 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         return clipNode(reReadClip(clip.id));
       },
 
-      splitClip(target, atMs) {
-        const clip = requireClip(target);
-        const at = atMs ?? Math.round(playback.getState().getTimeMs());
-        if (at <= clip.startMs || at >= clip.startMs + clip.durationMs) {
-          throw new Error(
-            `Split time ${at}ms is outside clip "${clip.name}" (${clip.startMs}–${
-              clip.startMs + clip.durationMs
-            }ms).`
-          );
+      async splitClip(target, atMs) {
+        const result = await editOp({ op: "split_clip", target, atMs });
+        if (!Array.isArray(result.clips)) {
+          throw new Error("Split returned no clips.");
         }
-        const before = new Set(doc.getState().clips.map((c) => c.id));
-        doc.getState().splitClipAtTime(clip.id, at);
-        const map = trackMap();
-        return doc
-          .getState()
-          .clips.filter((c) => !before.has(c.id))
-          .map((c) => toClipNode(c, map));
+        return result.clips.map((clip) =>
+          clipNode(reReadClip(resultClipId({ clip })))
+        );
       },
 
-      trimClip(target, patch) {
-        const clip = requireClip(target);
-        // Through the store, not `patchClip`: trimming a group pulls its
-        // children inside the new window, and a raw duration write would leave
-        // them hanging outside it.
-        if (patch.durationMs !== undefined) {
-          const durationMs = Math.max(1, patch.durationMs);
-          doc.getState().trimClipEnd(clip.id, durationMs - clip.durationMs);
-        }
-        // Source in/out points are a clip's own trim window; a group has none.
-        const next: Partial<TimelineClip> = {};
-        if (patch.inPointMs !== undefined) next.inPointMs = patch.inPointMs;
-        if (patch.outPointMs !== undefined) next.outPointMs = patch.outPointMs;
-        if (Object.keys(next).length > 0) {
-          doc.getState().patchClip(clip.id, next);
-        }
-        return clipNode(reReadClip(clip.id));
+      async trimClip(target, patch) {
+        await editOp({ op: "trim_clip", target, ...patch });
+        return clipNode(requireClip(target));
       },
 
-      moveClip(target, patch) {
-        const clip = requireClip(target);
-        // Through the store, not `patchClip`: a group carries what it holds, so
-        // the store shifts its children by the same delta. Writing `startMs`
-        // straight onto the clip left them behind.
-        const toTrackId =
-          patch.trackId !== undefined
-            ? requireTrack(patch.trackId).id
-            : undefined;
-        const deltaMs =
-          patch.startMs === undefined
-            ? 0
-            : Math.max(0, patch.startMs) - clip.startMs;
-        doc
-          .getState()
-          .moveClip(clip.id, deltaMs, toTrackId, undefined, undefined, true);
-        return clipNode(reReadClip(clip.id));
+      async moveClip(target, patch) {
+        await editOp({ op: "move_clip", target, ...patch });
+        return clipNode(requireClip(target));
       },
 
-      deleteClip(target) {
-        const clip = requireClip(target);
-        const node = clipNode(clip);
-        doc.getState().deleteClip(clip.id);
-        ui.getState().removeFromSelection(clip.id);
+      async deleteClip(target) {
+        const node = clipNode(requireClip(target));
+        await editOp({ op: "delete_clip", target });
         return node;
       },
 
       async duplicateClip(target, gapMs) {
-        const clip = requireClip(target);
-        const newId = await doc.getState().duplicateClip(clip.id, gapMs ?? 0);
-        return clipNode(reReadClip(newId));
+        const result = await editOp({ op: "duplicate_clip", target, gapMs });
+        return clipNode(reReadClip(resultClipId(result)));
       },
 
-      setClipParams(target, patch) {
-        const clip = requireClip(target);
-        const next: Partial<TimelineClip> = {};
-        if (patch.name !== undefined) next.name = patch.name;
-        if (patch.opacity !== undefined) next.opacity = patch.opacity;
-        if (patch.speedMultiplier !== undefined) {
-          next.speedMultiplier = patch.speedMultiplier;
-        }
-        if (patch.volumeDb !== undefined) next.volumeDb = patch.volumeDb;
-        if (patch.fadeInMs !== undefined) next.fadeInMs = patch.fadeInMs;
-        if (patch.fadeOutMs !== undefined) next.fadeOutMs = patch.fadeOutMs;
-        if (patch.blendMode !== undefined) {
-          next.blendMode = patch.blendMode as TimelineClip["blendMode"];
-        }
-        if (patch.borderRadius !== undefined) {
-          next.borderRadius = patch.borderRadius;
-        }
-        if (patch.hidden !== undefined) next.hidden = patch.hidden;
-        if (patch.muted !== undefined) next.muted = patch.muted;
-        if (patch.locked !== undefined) next.locked = patch.locked;
-        if (patch.textStyle !== undefined) {
-          // A patch over the clip's own style, so changing one field does not
-          // mean re-sending (and overwriting) the whole bag.
-          next.textStyle = textStyleWithDefaults(
-            patch.textStyle.text ?? clip.textStyle?.text ?? clip.name,
-            { ...clip.textStyle, ...patch.textStyle }
-          );
-        }
-        if (patch.shapeStyle !== undefined) {
-          next.shapeStyle = shapeStyleWithDefaults(patch.shapeStyle);
-        }
-        if (patch.captionStyle !== undefined) {
-          // The style rides on the clip's caption, so a clip with no words to
-          // draw has nowhere to put it.
-          if (!clip.caption) {
-            throw new Error(`Clip "${clip.name}" carries no caption to style.`);
-          }
-          next.caption = { ...clip.caption, style: patch.captionStyle };
-        }
-        doc.getState().patchClip(clip.id, next);
-        return clipNode(reReadClip(clip.id));
+      async setClipParams(target, patch) {
+        const result = await editOp({
+          op: "set_clip_params",
+          target,
+          patch: { ...patch }
+        });
+        return clipNode(reReadClip(resultClipId(result)));
       },
 
       async setClipBinding(target, patch) {
+        await editOp({
+          op: "set_clip_binding",
+          target,
+          ...patch,
+          regenerate: false
+        });
         const clip = requireClip(target);
-        if (clip.sourceType !== "generated") {
+        if (patch.regenerate && (await startDirectGen(clip.id)) === null) {
           throw new Error(
-            `Clip "${clip.name}" is imported and has no generation binding.`
+            `The binding on "${clip.name}" was updated, but regeneration did not start. Check its status and model, then try again.`
           );
         }
-        // aspectRatio / resolution aren't part of patchClipBinding's fields.
-        const direct: Partial<TimelineClip> = {};
-        if (patch.aspectRatio !== undefined)
-          direct.aspectRatio = patch.aspectRatio;
-        if (patch.resolution !== undefined)
-          direct.resolution = patch.resolution;
-        if (Object.keys(direct).length > 0) {
-          doc.getState().patchClip(clip.id, direct);
-        }
-        // Only forward defined fields — patchClipBinding spreads the patch, so
-        // an undefined value would wipe the clip's existing prompt/model/etc.
-        const binding: Partial<
-          Pick<
-            TimelineClip,
-            | "prompt"
-            | "negativePrompt"
-            | "provider"
-            | "model"
-            | "voice"
-            | "width"
-            | "height"
-            | "strength"
-            | "numInferenceSteps"
-          >
-        > = {};
-        if (patch.prompt !== undefined) binding.prompt = patch.prompt;
-        if (patch.negativePrompt !== undefined) {
-          binding.negativePrompt = patch.negativePrompt;
-        }
-        if (patch.provider !== undefined) binding.provider = patch.provider;
-        if (patch.model !== undefined) binding.model = patch.model;
-        if (patch.voice !== undefined) binding.voice = patch.voice;
-        if (patch.width !== undefined) binding.width = patch.width;
-        if (patch.height !== undefined) binding.height = patch.height;
-        if (patch.strength !== undefined) binding.strength = patch.strength;
-        if (patch.numInferenceSteps !== undefined) {
-          binding.numInferenceSteps = patch.numInferenceSteps;
-        }
-        doc.getState().patchClipBinding(clip.id, binding);
-        if (patch.regenerate) {
-          const requestId = await startDirectGen(clip.id);
-          if (requestId === null) {
-            // The binding is saved, but no render was queued. Returning the
-            // clip as if regeneration had begun told the agent it succeeded.
-            throw new Error(
-              `The binding on "${clip.name}" was updated, but regeneration did not start. The clip may already be generating, or it lacks a provider, model or prompt. Check its status and try again.`
-            );
-          }
-        }
         return clipNode(reReadClip(clip.id));
       },
 
-      setClipAnimations(target, animations, mode) {
-        const clip = requireClip(target);
-        if (
-          clip.mediaType !== "text" &&
-          animations.some((a) => a.stagger !== undefined)
-        ) {
-          throw new Error(
-            `Stagger applies only to text clips; "${clip.name}" is a ${clip.mediaType} clip. Omit stagger or target a text clip.`
-          );
-        }
-        const built = animations.map(buildClipAnimation);
-        const next =
-          mode === "add" ? [...(clip.animations ?? []), ...built] : built;
-        doc.getState().setClipAnimations(clip.id, next);
-        return clipNode(reReadClip(clip.id));
+      async setClipAnimations(target, animations, mode) {
+        await editOp({ op: "animate_clip", target, animations, mode });
+        return clipNode(requireClip(target));
       },
 
-      clearClipAnimations(target, role) {
-        const clip = requireClip(target);
-        const current = clip.animations ?? [];
-        const next = role ? current.filter((a) => a.role !== role) : [];
-        doc.getState().setClipAnimations(clip.id, next);
-        return clipNode(reReadClip(clip.id));
+      async clearClipAnimations(target, role) {
+        await editOp({ op: "clear_animations", target, role });
+        return clipNode(requireClip(target));
       },
 
-      staggerAnimations(clipIds, offsetMs) {
-        const selected = clipIds.map(requireClip);
-        const ids = selected.map((clip) => clip.id);
-        if (new Set(ids).size !== ids.length) {
-          throw new Error("clip_ids must contain distinct clip IDs.");
-        }
-        const clips = doc.getState().clips;
-        for (const clip of selected) {
-          if (!clip.animations?.length) throw new Error(`Clip "${clip.name}" has no animations to stagger.`);
-        }
-        const staggered = staggerClipAnimations(clips, ids, offsetMs);
-        const byId = new Map(staggered.map((clip) => [clip.id, clip]));
-        for (const id of ids) {
-          const clip = byId.get(id)!;
-          doc.getState().setClipAnimations(id, clip.animations ?? []);
-        }
-        const savedById = new Map(doc.getState().clips.map((clip) => [clip.id, clip]));
-        return ids.map((id) => clipNode(savedById.get(id)!));
+      async staggerAnimations(clipIds, offsetMs) {
+        await editOp({
+          op: "stagger_animations",
+          clip_ids: clipIds,
+          offset_ms: offsetMs
+        });
+        return clipIds.map((id) => clipNode(requireClip(id)));
       },
 
       async getClipFrames(target, opts) {
@@ -1269,7 +1002,12 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
             width,
             state.width,
             state.height,
-            { clips: state.clips, mediaTracks: state.mediaTracks, tempo: state.tempo, camera2d: state.camera2d }
+            {
+              clips: state.clips,
+              mediaTracks: state.mediaTracks,
+              tempo: state.tempo,
+              camera2d: state.camera2d
+            }
           );
           return {
             clip: clipNode(clip),
@@ -1320,121 +1058,49 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         return { clip: clipNode(clip), frames: frameNodes };
       },
 
-      addGroup({ name, startMs, durationMs, trackId, children }) {
-        // Resolve every child before anything is written: a half-applied group
-        // leaves the user with an empty group and no idea which of their clips
-        // moved.
-        const targets = (children ?? []).map((ref) => requireClip(ref));
-        const store = doc.getState();
-        const existing = trackId
-          ? requireTrack(trackId)
-          : store.tracks.find((track) => track.type === "overlay");
-        if (!existing) store.addTrack("overlay", "Groups");
-        const track = existing ?? doc.getState().tracks.at(-1);
-        if (!track) {
-          throw new Error("Could not create an overlay track for the group.");
-        }
-        const group = makeClip({
-          trackId: track.id,
+      async addGroup({ name, startMs, durationMs, trackId, children }) {
+        const result = await editOp({
+          op: "add_group",
           name,
           startMs,
           durationMs,
-          mediaType: "group",
-          sourceType: "imported",
-          status: "generated"
+          trackId,
+          children
         });
-        doc.getState().addClip(group);
-        for (const child of targets) {
-          doc.getState().patchClip(child.id, { parentId: group.id });
-        }
-        ui.getState().selectClip(group.id);
         return {
-          clip: clipNode(reReadClip(group.id)),
-          children: targets.map((c) => c.id)
+          clip: clipNode(reReadClip(resultClipId(result))),
+          children: result.children as string[]
         };
       },
 
-      setParent(target, parentId) {
-        const clip = requireClip(target);
-        if (parentId === null) {
-          doc.getState().patchClip(clip.id, { parentId: undefined });
-          return clipNode(reReadClip(clip.id));
-        }
-        const parent = requireClip(parentId);
-        if (parent.mediaType !== "group") {
-          throw new Error(
-            `Clip "${parent.name}" is a ${parent.mediaType} clip, not a group — parent to a clip created with ui_timeline_add_group.`
-          );
-        }
-        // A cycle renders unparented and warns, so refusing it here is the
-        // only place it can still be fixed.
-        const { clips } = doc.getState();
-        let cursor: TimelineClip | undefined = parent;
-        while (cursor) {
-          if (cursor.id === clip.id) {
-            throw new Error(
-              `Clip "${parent.name}" is inside "${clip.name}" — parenting them would make a cycle.`
-            );
-          }
-          const next: string | undefined = cursor.parentId;
-          cursor = next ? clips.find((c) => c.id === next) : undefined;
-        }
-        doc.getState().patchClip(clip.id, { parentId: parent.id });
-        return clipNode(reReadClip(clip.id));
+      async setParent(target, parentId) {
+        await editOp({ op: "set_parent", target, parentId });
+        return clipNode(requireClip(target));
       },
 
-      setTransition(target, transition) {
-        const clip = requireClip(target);
-        doc.getState().patchClip(clip.id, {
-          transitionIn: transition ? buildTransition(transition) : undefined
-        });
-        return clipNode(reReadClip(clip.id));
+      async setTransition(target, transition) {
+        await editOp({ op: "set_transition", target, transition });
+        return clipNode(requireClip(target));
       },
 
-      setMask(target, mask) {
-        const clip = requireClip(target);
-        doc.getState().patchClip(clip.id, {
-          mask: mask ? buildMask(mask, parseSvgPath) : undefined
-        });
-        return clipNode(reReadClip(clip.id));
+      async setMask(target, mask) {
+        await editOp({ op: "set_mask", target, mask });
+        return clipNode(requireClip(target));
       },
 
-      setMatte(target, matte) {
-        const clip = requireClip(target);
-        if (matte === null) {
-          doc.getState().patchClip(clip.id, { matte: undefined });
-          return clipNode(reReadClip(clip.id));
-        }
-        const source = requireClip(matte.source);
-        if (source.id === clip.id) {
-          throw new Error(
-            `Clip "${clip.name}" cannot be its own matte source — name another clip.`
-          );
-        }
-        const next: ClipMatte = {
-          sourceClipId: source.id,
-          mode: matte.mode
-        };
-        if (matte.invert !== undefined) next.invert = matte.invert;
-        doc.getState().patchClip(clip.id, { matte: next });
-        return clipNode(reReadClip(clip.id));
+      async setMatte(target, matte) {
+        await editOp({ op: "set_matte", target, matte });
+        return clipNode(requireClip(target));
       },
 
-      setTimeRemap(target, timeRemap) {
-        const clip = requireClip(target);
-        doc.getState().patchClip(clip.id, {
-          timeRemap: timeRemap ? buildTimeRemap(timeRemap) : undefined
-        });
-        return clipNode(reReadClip(clip.id));
+      async setTimeRemap(target, timeRemap) {
+        await editOp({ op: "set_time_remap", target, timeRemap });
+        return clipNode(requireClip(target));
       },
 
-      setEffects(target, effects) {
-        const clip = requireClip(target);
-        const chain = effects.map(buildEffect);
-        doc.getState().patchClip(clip.id, {
-          effects: chain.length > 0 ? chain : undefined
-        });
-        return clipNode(reReadClip(clip.id));
+      async setEffects(target, effects) {
+        await editOp({ op: "set_effects", target, effects });
+        return clipNode(requireClip(target));
       },
 
       selectClip(target) {
@@ -1452,109 +1118,96 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         return Math.round(playback.getState().getTimeMs());
       },
 
-      addMarker(opts) {
-        if (opts.timeMs < 0) {
-          throw new Error(
-            `A marker cannot sit before zero; got ${opts.timeMs}ms.`
-          );
+      async addMarker(opts) {
+        const result = await editOp({ op: "add_marker", ...opts });
+        const marker = doc
+          .getState()
+          .markers.find((marker) => marker.id === resultMarkerId(result));
+        if (!marker) {
+          throw new Error("Marker was not added.");
         }
-        return toMarkerNode(doc.getState().addMarker(opts));
-      },
-
-      deleteMarker(target) {
-        const marker = requireMarker(target);
-        doc.getState().deleteMarker(marker.id);
         return toMarkerNode(marker);
       },
 
-      addMidiClip(opts: TimelineAddMidiClipOptions) {
-        const store = doc.getState();
-        let trackId: string;
-        if (opts.trackId) {
-          const track = requireTrack(opts.trackId);
-          if (track.type !== "midi") {
-            throw new Error(
-              `Midi clips require a midi track; "${track.name}" is ${track.type}.`
-            );
-          }
-          trackId = track.id;
-        } else {
-          const existing = store.tracks.find((t) => t.type === "midi");
-          if (existing) {
-            trackId = existing.id;
-          } else {
-            store.addTrack("midi", "MIDI");
-            const created = doc.getState().tracks.at(-1);
-            if (!created) {
-              throw new Error("Could not create a midi track.");
-            }
-            trackId = created.id;
-          }
-        }
-        const notes = requireValidNotes(opts.notes ?? []);
-        const clipId = doc.getState().addMidiClip({
-          trackId,
-          startMs: Math.max(0, opts.startMs ?? trackEndMs(trackId)),
-          durationMs: Math.max(1, opts.durationMs),
+      async deleteMarker(target) {
+        const marker = requireMarker(target);
+        await editOp({ op: "delete_marker", target });
+        return toMarkerNode(marker);
+      },
+
+      async addMidiClip(opts: TimelineAddMidiClipOptions) {
+        const result = await editOp({
+          op: "add_midi_clip",
+          track: opts.trackId,
+          start_ms: opts.startMs,
+          duration_ms: opts.durationMs,
           name: opts.name,
-          notes
+          notes: opts.notes?.map((note) => ({
+            id: note.id,
+            pitch: note.pitch,
+            start_tick: note.startTick,
+            duration_tick: note.durationTick,
+            velocity: note.velocity
+          }))
         });
-        ui.getState().selectClip(clipId);
-        return clipNode(reReadClip(clipId));
+        return clipNode(reReadClip(resultClipId(result)));
       },
 
-      setNotes(target, notes) {
-        const clip = requireMidiClip(target);
-        doc.getState().setClipNotes(clip.id, requireValidNotes(notes));
-        return clipNode(reReadClip(clip.id));
+      async setNotes(target, notes) {
+        await editOp({
+          op: "set_notes",
+          clip: target,
+          notes: notes.map((note) => ({
+            id: note.id,
+            pitch: note.pitch,
+            start_tick: note.startTick,
+            duration_tick: note.durationTick,
+            velocity: note.velocity
+          }))
+        });
+        return clipNode(requireClip(target));
       },
 
-      setTempo(tempo: TimelineTempo) {
-        doc.getState().setTempo(tempo);
-        // The clips that moved are the point of the call, so the caller gets
-        // the whole document back rather than having to re-read it.
+      async setTempo(tempo: TimelineTempo) {
+        await editOp({
+          op: "set_tempo",
+          bpm: tempo.bpm,
+          beats_per_bar: tempo.timeSignature.beatsPerBar,
+          beat_unit: tempo.timeSignature.beatUnit,
+          offset_ms: tempo.offsetMs
+        });
         return handlerImpl.getSnapshot();
       },
 
-      transposeClip(target, semitones: number) {
-        const clip = requireMidiClip(target);
-        doc.getState().transposeClip(clip.id, semitones);
-        return clipNode(reReadClip(clip.id));
+      async transposeClip(target, semitones: number) {
+        await editOp({ op: "transpose_clip", clip: target, semitones });
+        return clipNode(requireClip(target));
       },
 
-      quantizeClip(target, options: QuantizeOptions) {
-        const clip = requireMidiClip(target);
-        doc.getState().quantizeClip(clip.id, options);
-        return clipNode(reReadClip(clip.id));
+      async quantizeClip(target, options: QuantizeOptions) {
+        await editOp({ op: "quantize_notes", clip: target, ...options });
+        return clipNode(requireClip(target));
       },
 
-      scaleClipVelocity(target, factor: number) {
-        const clip = requireMidiClip(target);
-        doc.getState().scaleClipVelocity(clip.id, factor);
-        return clipNode(reReadClip(clip.id));
+      async scaleClipVelocity(target, factor: number) {
+        await editOp({ op: "scale_velocity", clip: target, factor });
+        return clipNode(requireClip(target));
       },
 
-      setTrackInstrument(target, instrument: MidiInstrument) {
+      async setTrackInstrument(target, instrument: MidiInstrument) {
+        await editOp({ op: "set_track_instrument", track: target, instrument });
         const track = requireTrack(target);
-        if (track.type !== "midi") {
-          throw new Error(
-            `"${track.name}" is a ${track.type} track; only a midi track has an instrument.`
-          );
-        }
-        doc.getState().setTrackInstrument(track.id, instrument);
-        const next = doc.getState().tracks.find((t) => t.id === track.id);
-        if (!next)
-          throw new Error(`Track ${track.id} disappeared after the edit.`);
         return toTrackNode(
-          next,
-          doc.getState().clips.filter((c) => c.trackId === next.id).length
+          track,
+          doc.getState().clips.filter((clip) => clip.trackId === track.id)
+            .length
         );
       },
 
       // ── Guided video flow (PRD § 8.6) ───────────────────────────────────
 
-      setSetup(patch) {
-        doc.getState().setSetup(patch);
+      async setSetup(patch) {
+        await editOp({ op: "set_setup", ...patch });
         return requireSetup();
       },
 
@@ -1562,17 +1215,12 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         const setup = requireSetup();
         // The written form takes the plan verbatim; the drafted form asks the
         // Director. Both write text and nothing else (D4, criterion 3).
-        if (opts.beats && opts.beats.length > 0) {
-          const beats: TimelineBeat[] = opts.beats.map((beat) => ({
-            id: createTimeOrderedUuid(),
-            prompt: beat.prompt,
-            duration_ms: Math.max(1, Math.round(beat.durationMs)),
-            transition: beat.transition,
-            voiceover: beat.voiceover,
-            music: beat.music
-          }));
-          applyBeatPlan(doc, beats);
-          return beats;
+        if (opts.beats?.length) {
+          await editOp({
+            op: "plan_beats",
+            beats: opts.beats.map((beat) => ({ ...beat }))
+          });
+          return doc.getState().setup?.beats ?? [];
         }
         const format = videoFormatById(setup.format);
         if (!format) {
@@ -1585,36 +1233,27 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
           format,
           previous: opts.replan ? setup.beats : undefined
         });
-        applyBeatPlan(doc, beats);
-        return beats;
-      },
-
-      updateBeat(target, patch) {
-        const beat = requireBeat(target);
-        doc.getState().updateBeat(beat.id, {
-          prompt: patch.prompt,
-          duration_ms:
-            patch.durationMs === undefined
-              ? undefined
-              : Math.max(1, Math.round(patch.durationMs)),
-          transition: patch.transition,
-          voiceover: patch.voiceover,
-          music: patch.music
+        await editOp({
+          op: "plan_beats",
+          beats: beats.map((beat) => ({
+            prompt: beat.prompt,
+            durationMs: beat.duration_ms,
+            transition: beat.transition,
+            voiceover: beat.voiceover,
+            music: beat.music
+          }))
         });
-        const updated = (doc.getState().setup?.beats ?? []).find(
-          (candidate) => candidate.id === beat.id
-        );
-        if (!updated) {
-          throw new Error(`Beat ${beat.id} is no longer in the plan.`);
-        }
-        return updated;
+        return doc.getState().setup?.beats ?? [];
       },
 
-      removeBeat(target) {
-        // Resolved before it is dropped, so the answer names what went and an
-        // unresolvable target says so rather than reporting a silent success.
+      async updateBeat(target, patch) {
+        await editOp({ op: "update_beat", beat: target, ...patch });
+        return requireBeat(target);
+      },
+
+      async removeBeat(target) {
         const beat = requireBeat(target);
-        doc.getState().removeBeat(beat.id);
+        await editOp({ op: "remove_beat", beat: target });
         return beat;
       },
 
@@ -1623,14 +1262,42 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
       }
     };
     return handlerImpl;
-  }, [doc, ui, playback, startDirectGen, startEdit, bakeClip, sequenceId]);
+  }, [
+    doc,
+    ui,
+    playback,
+    startDirectGen,
+    startEdit,
+    bakeClip,
+    sequenceId,
+    opContextOverrides
+  ]);
 
   useEffect(() => {
-    if (!sequenceId) return;
-    setTimelineAgentHandler(sequenceId, handler);
+    if (!sequenceId) {
+      return;
+    }
+    let installed = false;
+    const register = (): void => {
+      if (doc.getState().sequenceId === sequenceId) {
+        if (!installed) {
+          setTimelineAgentHandler(sequenceId, handler);
+          installed = true;
+        }
+      } else if (installed) {
+        if (
+          hasTimelineAgentHandler(sequenceId) &&
+          getTimelineAgentHandler(sequenceId) === handler
+        ) {
+          setTimelineAgentHandler(sequenceId, null);
+        }
+        installed = false;
+      }
+    };
+    register();
+    const unsubscribe = doc.subscribe(register);
     return () => {
-      // Only clear if we're still the handler registered for this id — a
-      // remount may have already replaced us.
+      unsubscribe();
       if (
         hasTimelineAgentHandler(sequenceId) &&
         getTimelineAgentHandler(sequenceId) === handler
@@ -1638,5 +1305,5 @@ export const useTimelineAgentBridge = (sequenceId: string | null): void => {
         setTimelineAgentHandler(sequenceId, null);
       }
     };
-  }, [sequenceId, handler]);
+  }, [sequenceId, handler, doc]);
 };

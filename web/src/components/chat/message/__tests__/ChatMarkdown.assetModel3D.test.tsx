@@ -175,5 +175,3 @@ describe("ChatMarkdown 3D model assets", () => {
     expectPreviewWithEditorLink(container);
   });
 });
-
-

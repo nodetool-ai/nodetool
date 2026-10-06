@@ -97,6 +97,10 @@ export const buildRunJobData = (opts: {
   application?: { id: string; version?: number };
   /** The app operation this run implements, so the ledger row carries it. */
   operationId?: string;
+  appRunId?: string;
+  instanceId?: string;
+  invocationId?: string;
+  traceparent?: string;
 }): RunJobRequest & { settings?: Record<string, unknown>; job_id: string; concurrent?: boolean; graph: WorkflowGraph } => {
   const activeNodes: Node<NodeData>[] = [];
   const excludedNodeIds = new Set<string>();
@@ -111,7 +115,7 @@ export const buildRunJobData = (opts: {
     (edge) =>
       !excludedNodeIds.has(edge.source) && !excludedNodeIds.has(edge.target)
   );
-  return {
+  const request: ReturnType<typeof buildRunJobData> = {
     type: "run_job_request",
     api_url: BASE_URL,
     user_id: opts.userId,
@@ -134,6 +138,12 @@ export const buildRunJobData = (opts: {
     application_version: opts.application?.version ?? null,
     operation_id: opts.operationId ?? null
   };
+  if (opts.appRunId) {
+    request.app_run_id = opts.appRunId;
+    request.instance_id = opts.instanceId;
+  }
+  if (opts.traceparent) { request.traceparent = opts.traceparent; }
+  return request;
 };
 
 /** Extra, rarely-set run options. An object so the arity stops growing. */
@@ -146,6 +156,10 @@ export interface RunOptions {
    * alongside `application`.
    */
   operationId?: string;
+  appRunId?: string;
+  instanceId?: string;
+  invocationId?: string;
+  traceparent?: string;
 }
 
 export type WorkflowRunner = {
@@ -421,7 +435,7 @@ export const createWorkflowRunnerStore = (
         currentState !== "connecting" &&
         (!currentJobId || (!wsConnected && !get().isBrowserRun));
 
-      const jobId = crypto.randomUUID();
+      const jobId = options?.invocationId ?? crypto.randomUUID();
       const queueRun = busy && !stuck;
       const stillOwnsStartup = () => {
         const runner = get();
@@ -538,7 +552,10 @@ export const createWorkflowRunnerStore = (
         userId: user,
         concurrent,
         application: options?.application,
-        operationId: options?.operationId
+        operationId: options?.operationId,
+        appRunId: options?.appRunId,
+        instanceId: options?.instanceId,
+        traceparent: options?.traceparent
       });
 
       if (queueRun) {
@@ -576,9 +593,9 @@ export const createWorkflowRunnerStore = (
       // to a server run. Explicitly resource-limited (subprocess) runs stay on
       // the server.
       let runsInBrowser = false;
-      if (resource_limits) {
+      if (resource_limits || options?.appRunId) {
         console.info(
-          `WorkflowRunner[${workflowId}]: ↪ server run (resource limits requested)`
+          `WorkflowRunner[${workflowId}]: ↪ server run (authoritative execution requested)`
         );
       } else {
         try {
@@ -792,14 +809,37 @@ export const createWorkflowRunnerStore = (
 
 const runnerStores = new Map<string, WorkflowRunnerStore>();
 
+/** App scopes share a workflow transport but only their own job may change their runner. */
+export function applyScopedRunnerJobUpdate(
+  store: WorkflowRunnerStore,
+  update: { job_id: string; status: string; queue_position?: number | null }
+): void {
+  const runner = store.getState();
+  if (runner.job_id !== update.job_id) { return; }
+  let state: WorkflowRunner["state"];
+  switch (update.status) {
+    case "queued":
+    case "running": state = "running"; break;
+    case "completed": state = "idle"; break;
+    case "failed":
+    case "timed_out": state = "error"; break;
+    case "cancelled": state = "cancelled"; break;
+    default: return;
+  }
+  if (runner.state === "cancelled" && state === "running") { return; }
+  store.setState({ state, queuePosition: update.status === "queued" ? update.queue_position ?? null : null, statusMessage: null });
+}
+
 export const getWorkflowRunnerStore = (
-  workflowId: string
+  workflowId: string,
+  instanceScope?: string
 ): WorkflowRunnerStore => {
-  let store = runnerStores.get(workflowId);
+  const key = instanceScope ? `${workflowId}:${instanceScope}` : workflowId;
+  let store = runnerStores.get(key);
 
   if (!store) {
     store = createWorkflowRunnerStore(workflowId);
-    runnerStores.set(workflowId, store);
+    runnerStores.set(key, store);
   }
 
   return store;

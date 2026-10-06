@@ -21,6 +21,7 @@
  */
 
 import { z } from "zod";
+import { storedRunTraceUpdateSchema } from "./run-trace.js";
 
 // ---------------------------------------------------------------------------
 // Command envelope
@@ -100,6 +101,9 @@ export const runJobDataSchema = z
       .optional(),
     settings: z.record(z.string(), z.unknown()).optional(),
     application_id: z.string().nullable().optional(),
+    app_run_id: z.string().optional(),
+    traceparent: z.string().optional(),
+    instance_id: z.string().optional(),
     application_version: z.number().nullable().optional(),
     operation_id: z.string().nullable().optional()
   })
@@ -589,6 +593,11 @@ export const documentOpOutSchema = z
   })
   .passthrough();
 
+export const runTraceMessageOutSchema = storedRunTraceUpdateSchema.extend({
+  type: z.literal("run_trace"),
+  resnapshot_required: z.boolean().optional()
+});
+
 export const resourceChangeMessageOutSchema = z
   .object({
     type: z.literal("resource_change"),
@@ -693,6 +702,7 @@ export const outboundControlMessageSchemas = {
   rpc_response: rpcResponseMessageOutSchema,
   system_stats: systemStatsMessageOutSchema,
   resource_change: resourceChangeMessageOutSchema,
+  run_trace: runTraceMessageOutSchema,
   renderer_registered: rendererRegisteredMessageOutSchema,
   renderer_tool_call: rendererToolCallMessageOutSchema,
   chat_resumed: chatResumedMessageOutSchema,

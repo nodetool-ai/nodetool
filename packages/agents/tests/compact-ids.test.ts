@@ -20,6 +20,18 @@ const FULL = "0192a7f3c4e5b6d7a8f9e0c1b2d3e4f5";
 const SHORT = FULL.slice(0, 12);
 
 describe("compactResourceIds", () => {
+  it("preserves OpenTelemetry trace and span identities", () => {
+    const span = "a1b2c3d4e5f6a7b8";
+    expect(compactResourceIds({
+      id: FULL, trace_id: FULL, root_span_id: span,
+      first_failed_span_id: span, parent_span_id: span,
+      nested: { trace_ids: [FULL], span_id: span }
+    })).toEqual({
+      id: SHORT, trace_id: FULL, root_span_id: span,
+      first_failed_span_id: span, parent_span_id: span,
+      nested: { trace_ids: [FULL], span_id: span }
+    });
+  });
   it("shortens ids in id-named fields, nested and in lists", () => {
     const out = compactResourceIds({
       id: FULL,

@@ -314,6 +314,8 @@ export const settingsRouter = router({
             key,
             value: String(value ?? "")
           });
+          clearSecretCache(ctx.userId, key);
+          clearProviderCache();
         }
       }
 

@@ -34,11 +34,13 @@ export {
   modelSelectionErrors,
   providerConfigurationChecker,
   unconfiguredProviderErrors,
+  unsetModelErrors,
   RUNTIME_CATALOGS
 } from "./preflight.js";
 export type {
   CredentialResolver,
   ExecutionPreflightIssue,
+  NodeModelValidator,
   PreflightIssueKind,
   PreflightOptions,
   ProviderConfigurationChecker,
@@ -134,3 +136,15 @@ export type {
   AppSimulationDeps
 } from "./app-debug/simulate.js";
 export type * from "./app-debug/types.js";
+
+export { ensureRunTraceTelemetry, subscribeRunTraceUpdates } from "./run-trace-store.js";
+export type { RunTraceUpdateListener } from "./run-trace-store.js";
+export {
+  registerContextRunTrace, registerAppRunTrace, registerWorkflowRunTrace,
+  registerChatRunTrace, withRegisteredRunTrace, settleRegisteredRunTrace,
+  associateTraceMessage, openAppRunTrace
+} from "./service/run-trace-lifecycle.js";
+export type { RegisterTraceInput } from "./service/run-trace-lifecycle.js";
+export { listRuns, getRun, getRunTrace, getRunLogs, awaitRun, readRunUpdates, findRunForSource, RunsError } from "./runs.js";
+export { ingestBrowserRunSpans } from "./browser-run-spans.js";
+export { startBrowserAppRun, getBrowserAppRunRoot, finishBrowserAppRunTrace } from "./browser-app-run.js";

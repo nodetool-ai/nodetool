@@ -39,6 +39,7 @@ export interface FrontendToolState {
   addWorkflow: (workflow: Workflow) => void;
   removeWorkflow: (workflowId: string) => void;
   getNodeStore: (workflowId: string) => NodeStore | undefined;
+  whenWorkflowReady?: (workflowId: string, signal: AbortSignal) => Promise<boolean>;
   updateWorkflow: (workflow: Workflow) => void;
   saveWorkflow: (workflow: Workflow) => Promise<void>;
   getCurrentWorkflow: () => Workflow | undefined;
@@ -49,7 +50,6 @@ export interface FrontendToolState {
   searchTemplates: (query: string) => Promise<WorkflowList>;
   copy: (originalWorkflow: Workflow) => Promise<Workflow>;
   getOpenWorkflowIds?: () => string[];
-  openWorkflow?: (workflowId: string) => Promise<void>;
   runWorkflow?: (
     workflowId: string,
     params?: Record<string, unknown>,

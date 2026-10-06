@@ -1019,6 +1019,7 @@ type StringInputNodeOutputs = {
 
 export class StringInputNode extends BaseNode {
   static readonly nodeType = "nodetool.input.StringInput";
+  static readonly effect = "pure";
   static readonly retrySafe = true;
   static readonly title = "String Input";
   static readonly description =

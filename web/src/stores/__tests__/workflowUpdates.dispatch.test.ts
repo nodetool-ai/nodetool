@@ -136,12 +136,9 @@ describe("handleUpdate message dispatch", () => {
     ).toBeUndefined();
   });
 
-  it("traces step_result and todo_update while a run is recording", () => {
-    useTraceStore.getState().startRun(new Date().toISOString(), {
-      workflowId: workflow.id,
-      workflowName: workflow.name,
-      jobId: "job-1"
-    });
+  it("keeps the selected durable run unchanged by step and todo messages", () => {
+    useTraceStore.getState().openInspection({ runId: "a".repeat(32), spanId: "b".repeat(16) });
+    const before = useTraceStore.getState();
 
     dispatch({
       type: "step_result",
@@ -156,10 +153,7 @@ describe("handleUpdate message dispatch", () => {
       job_id: "job-1"
     });
 
-    const events = useTraceStore.getState().events;
-    expect(events.map((e) => e.type)).toEqual(["step_result", "todo_update"]);
-    expect(events[0].summary).toBe("Step Gather (task result)");
-    expect(events[1].summary).toBe("Todos 1/2");
+    expect(useTraceStore.getState()).toBe(before);
   });
 
   it("ignores a message type it has no branch for", () => {

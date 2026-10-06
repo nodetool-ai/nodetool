@@ -1,12 +1,13 @@
 import {
   buildRunJobData,
   createWorkflowRunnerStore,
+  getWorkflowRunnerStore,
   deriveJobTitle
 } from "../WorkflowRunner";
 import { stub } from "../../test-utils/doubles";
 import useMetadataStore from "../MetadataStore";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
-import { reportBrowserEligibility } from "../../lib/workflow/browserWorkflowRunner";
+import { reportBrowserEligibility, runBrowserGraphJob } from "../../lib/workflow/browserWorkflowRunner";
 import type { WorkflowAttributes } from "../ApiTypes";
 
 jest.mock("../../contexts/EditorInsertionContext", () => ({
@@ -148,6 +149,16 @@ describe("WorkflowRunner", () => {
 
     expect(request.graph.nodes.map((entry) => entry.id)).toEqual(["A", "C"]);
     expect(request.graph.edges).toEqual([]);
+  });
+
+  it("keeps the app run identity on the workflow transport boundary", () => {
+    const request = buildRunJobData({
+      jobId: "reserved-invocation", jobName: "App operation", params: {},
+      workflow: testWorkflow, nodes: [], edges: [], authToken: "token", userId: "user",
+      appRunId: "full-run-id", instanceId: "full-instance-id", operationId: "main",
+      traceparent: `00-${"a".repeat(32)}-${"b".repeat(16)}-01`
+    });
+    expect(request).toMatchObject({ job_id: "reserved-invocation", app_run_id: "full-run-id", instance_id: "full-instance-id", operation_id: "main", traceparent: `00-${"a".repeat(32)}-${"b".repeat(16)}-01` });
   });
 
   describe("initial state", () => {
@@ -628,4 +639,54 @@ describe("WorkflowRunner", () => {
       );
     });
   });
+});
+
+describe("authoritative app-run workflow transport", () => {
+  it("keeps an app run on the server even with warmed browser eligibility and forwards its traceparent", async () => {
+    const store = createWorkflowRunnerStore("app-workflow");
+    const workflow = stub<WorkflowAttributes>({ id: "app-workflow", name: "App flow", settings: {} });
+    const nodes = [stub<Parameters<typeof buildRunJobData>[0]["nodes"][number]>({
+      id: "n1", type: "browser.Const", position: { x: 0, y: 0 },
+      data: { workflow_id: workflow.id, properties: {}, dynamic_properties: {}, selectable: true }
+    })];
+    const traceparent = `00-${"a".repeat(32)}-${"b".repeat(16)}-01`;
+    jest.clearAllMocks();
+    jest.mocked(reportBrowserEligibility).mockResolvedValueOnce({
+      eligible: true, runnerAvailable: true, total: 1,
+      browserNodeTypes: ["browser.Const"], serverNodeTypes: []
+    });
+    try {
+      await store.getState().run({}, workflow, nodes, [], undefined, undefined, true, undefined, {
+        appRunId: "c".repeat(32), instanceId: "d".repeat(32), operationId: "main",
+        invocationId: "e".repeat(32), traceparent
+      });
+      expect(reportBrowserEligibility).not.toHaveBeenCalled();
+      expect(runBrowserGraphJob).not.toHaveBeenCalled();
+      expect(globalWebSocketManager.ensureConnection).toHaveBeenCalled();
+      expect(globalWebSocketManager.send).toHaveBeenCalledWith(expect.objectContaining({
+        type: "run_job",
+        data: expect.objectContaining({
+          app_run_id: "c".repeat(32), instance_id: "d".repeat(32),
+          job_id: "e".repeat(32), operation_id: "main", traceparent, concurrent: true
+        })
+      }));
+      expect(store.getState().isBrowserRun).toBe(false);
+    } finally {
+      store.getState().cleanup();
+    }
+  });
+});
+
+it("isolates same-workflow app instances and cancels only the selected job", async () => {
+  const first = getWorkflowRunnerStore("shared-app-workflow", "instance-a:main");
+  const second = getWorkflowRunnerStore("shared-app-workflow", "instance-b:main");
+  expect(first).not.toBe(second);
+  expect(getWorkflowRunnerStore("shared-app-workflow", "instance-a:main")).toBe(first);
+  first.setState({ job_id: "job-a", state: "running" });
+  second.setState({ job_id: "job-b", state: "running" });
+  await first.getState().cancel();
+  expect(first.getState().state).toBe("cancelled");
+  expect(second.getState().state).toBe("running");
+  expect(second.getState().job_id).toBe("job-b");
+  expect(globalWebSocketManager.send).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ job_id: "job-a" }) }));
 });

@@ -1,4 +1,5 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
+import { comfyDynamicSlots } from "./comfy-schema.js";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   cloudTransport,
@@ -31,6 +32,7 @@ export class ComfyCloudWorkflowNode extends BaseNode {
     "Run a ComfyUI workflow on Comfy Cloud via the Comfy API v2.\n    comfy, comfyui, cloud, workflow, image, diffusion\n\n    Use cases:\n    - Run a ComfyUI workflow without hosting a GPU\n    - Generate images or video from an exported API-format workflow\n    - Embed Comfy Cloud generation inside a NodeTool workflow";
   static readonly supportsDynamicInputs = true;
   static readonly supportsDynamicOutputs = true;
+  static readonly resolveDynamicSlots = comfyDynamicSlots;
   static readonly autoSaveAsset = true;
   static readonly requiredSettings = ["COMFY_API_KEY"];
   static readonly metadataOutputTypes = {

@@ -17,8 +17,10 @@ checked out at `/home/claude/nodetool-deploy` on that host.
 ## Release chain
 
 A push to `main` starts the Docker image build and User Journeys independently.
-The **Deploy to Docker** workflow waits for both to succeed for that exact commit
-and rejects a commit superseded on `main`. It retains the historical filename
+The **Deploy to Docker** workflow runs when either completes and deploys only
+when both have succeeded for that exact commit. It does not wait: the second
+workflow to finish triggers the release. It rejects a commit superseded on
+`main`. It retains the historical filename
 [fly-deploy.yml](https://github.com/nodetool-ai/nodetool/blob/main/.github/workflows/fly-deploy.yml), but does not invoke Fly or
 use its credentials. Manual dispatch follows the same gates and uses the
 dispatch commit, never a mutable image tag.
@@ -80,3 +82,13 @@ The [deployment setup guide](https://github.com/nodetool-ai/nodetool-deploy/blob
 covers DNS, trigger-dispatch handover, pool sizing, and affinity checks.
 The retained [Fly guide](fly-production-deploy.md) covers legacy rollback
 operations, not the active GitHub release destination.
+
+## Run history retention
+
+The production image sets `NODETOOL_STORAGE_AUTO_CLEANUP=1`. The server sweeps
+run trace owners on startup and on its maintenance timer, using each account's
+retention settings. Run content expires under `runTraceRetentionDays` and
+finished records under `terminalJobRetentionDays`. Keep automatic cleanup
+enabled on the hosted service to meet the [privacy policy](https://nodetool.ai/privacy).
+Self-hosted operators can override the image setting when configuring their
+container. Local desktop installs keep the existing manual cleanup default.

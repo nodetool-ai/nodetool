@@ -41,7 +41,22 @@ const registry = {
   getClass: () => undefined,
   resolveMetadata: () => undefined,
   getMetadata: () => undefined,
-  listMetadata: () => []
+  listMetadata: () => [],
+  // Mirrors `NodeRegistry.validateNode` for a model property left empty.
+  validateNode: (descriptor: { properties?: Record<string, unknown> }) => {
+    const model = descriptor.properties?.["model"] as
+      | Record<string, unknown>
+      | undefined;
+    return model && !model["id"] && !model["provider"]
+      ? [
+          {
+            code: "unset_model",
+            property: "model",
+            message: 'Property "model" requires a image_model to be selected'
+          }
+        ]
+      : [];
+  }
 } as unknown as NodeRegistry;
 
 const PROVIDER_ID = "run_preflight_test_provider";
@@ -124,10 +139,20 @@ describe("handleWorkflowRun model preflight", () => {
     expect(res.status).toBe(200);
   });
 
-  // An unselected model is the editor's own complaint, not a reason to refuse
-  // a run that may never reach the node.
-  it("lets an unselected model through", async () => {
+  // A workflow may be saved with a model not picked yet. The run is what
+  // refuses it, before the job row exists, instead of at the node.
+  it("refuses an unselected model, before the job exists", async () => {
     const workflow = await workflowWith({ type: "image_model" });
-    expect((await run(workflow.id)).status).toBe(200);
+
+    const res = await run(workflow.id);
+    expect(res.status).toBe(400);
+    const { detail } = (await res.json()) as { detail: string };
+    expect(detail).toContain('Node "gen"');
+
+    const [jobs] = await Job.paginate("user-1", {
+      workflowId: workflow.id,
+      limit: 10
+    });
+    expect(jobs).toHaveLength(0);
   });
 });

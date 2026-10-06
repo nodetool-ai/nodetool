@@ -5,6 +5,7 @@ import type {
   Platform
 } from "@nodetool-ai/protocol";
 import { supportsPlatform } from "@nodetool-ai/protocol";
+import { mergeDerivedSlots } from "@nodetool-ai/kernel";
 import type { NodeExecutor, ResolvedNodeType } from "@nodetool-ai/kernel";
 import type { NodeClass } from "./base-node.js";
 import { hasStreamingOutput } from "./base-node.js";
@@ -533,8 +534,19 @@ export function hydrateGraphNodeFlags(
     const cls = registry.getClass(node.type);
     // Fall back to loaded metadata only for class-less (Python) nodes.
     const meta = cls ? undefined : registry.resolveMetadata(node.type);
+    const derivedSlots = cls?.resolveDynamicSlots?.(node);
+    const dynamicInputs = mergeDerivedSlots(
+      derivedSlots?.dynamic_inputs,
+      node.dynamic_inputs
+    );
+    const dynamicOutputs = mergeDerivedSlots(
+      derivedSlots?.dynamic_outputs,
+      node.dynamic_outputs
+    );
     return {
       ...node,
+      ...(dynamicInputs && { dynamic_inputs: dynamicInputs }),
+      ...(dynamicOutputs && { dynamic_outputs: dynamicOutputs }),
       // `??`, not `||`: a registered class always carries explicit booleans
       // (BaseNode defaults them to false), so the registry corrects a stale
       // saved `true` when a node type migrates away from streaming/control.
@@ -637,6 +649,7 @@ export function createGraphNodeTypeResolver(
       // keeps `Graph.loadFromDict` on exactly today's path.
       const cls = registry.getClass(nodeType);
       const resolveStreamingInput = cls?.resolveStreamingInput;
+      const resolveDynamicSlots = cls?.resolveDynamicSlots;
 
       const propertyTypes = propertyTypesForMetadata(metadata);
       const propertyMeta = Object.fromEntries(
@@ -677,6 +690,9 @@ export function createGraphNodeTypeResolver(
           resolveInstanceFlags: (node: {
             properties?: Record<string, unknown>;
           }) => ({ is_streaming_input: resolveStreamingInput(node) })
+        }),
+        ...(resolveDynamicSlots && {
+          resolveInstanceSlots: resolveDynamicSlots
         }),
         descriptorDefaults: {
           name: metadata.title,

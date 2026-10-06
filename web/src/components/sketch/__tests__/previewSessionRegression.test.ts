@@ -10,65 +10,16 @@
  */
 
 import { createPreviewSession, type PreviewSession } from "../tools/previewSession";
-import { stub } from "../../../test-utils/doubles";
 import { IDENTITY_AFFINE, makeAffineTransform } from "../types";
 import type { ToolContext } from "../tools/types";
+import { makeToolContext } from "./_toolContextFixture";
 
 const I = () => ({ ...IDENTITY_AFFINE });
 const T = (x: number, y: number, scaleX = 1, scaleY = 1) =>
   makeAffineTransform({ x, y, scaleX, scaleY });
 
 function makeMockCtx(): ToolContext {
-  return stub<ToolContext>({
-    doc: {
-      canvas: { width: 100, height: 100 },
-      activeLayerId: "layer-1",
-      layers: [],
-      toolSettings: {} as ToolContext["doc"]["toolSettings"]
-    },
-    activeTool: "move",
-    zoom: 1,
-    pan: { x: 0, y: 0 },
-    mirrorX: false,
-    mirrorY: false,
-    symmetryMode: "none",
-    symmetryRays: 2,
-    selection: null,
-    displayCanvasRef: { current: null },
-    overlayCanvasRef: { current: null },
-    gizmoCanvasRef: { current: null },
-    cursorCanvasRef: { current: null },
-    containerRef: { current: null },
-    layerCanvasesRef: { current: new Map() },
-    mousePositionRef: { current: { x: 0, y: 0 } },
-    activeStrokeRef: { current: null },
-    getOrCreateLayerCanvas: jest.fn(),
-    redraw: jest.fn(),
-    redrawDirty: jest.fn(),
-    requestRedraw: jest.fn(),
-    requestDirtyRedraw: jest.fn(),
-    clearOverlay: jest.fn(),
-    drawSelectionOverlay: jest.fn(),
-    drawOverlayShape: jest.fn(),
-    drawOverlayGradient: jest.fn(),
-    drawOverlayCrop: jest.fn(),
-    drawOverlaySelection: jest.fn(),
-    drawOverlayLassoPreview: jest.fn(),
-    drawCursor: jest.fn(),
-    clearGizmo: jest.fn(),
-    drawGizmo: jest.fn(),
-    onZoomChange: jest.fn(),
-    onPanChange: jest.fn(),
-    onStrokeStart: jest.fn(),
-    onStrokeEnd: jest.fn(),
-    onLayerTransformChange: jest.fn(),
-    screenToCanvas: jest.fn(),
-    shiftHeldRef: { current: false },
-    altHeldRef: { current: false },
-    withMirror: jest.fn(),
-    setLayerTransformPreview: jest.fn(),
-    clearLayerTransformPreview: jest.fn()
-  });
+  return makeToolContext({ activeTool: "move" });
 }
 
 describe("previewSession — cancel/supersede/stale-session regression", () => {

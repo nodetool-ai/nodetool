@@ -79,6 +79,10 @@ function websocketTest(name) {
  */
 export const PATH_CHECKS = [
   {
+    path: /^(?:scripts\/__tests__\/browser-tracing-stub\.test\.mjs|web\/vite-node-stubs\/tracing-stub\.js)$/,
+    steps: [{ label: "browser tracing shim", command: "node", args: ["scripts/run-vitest.mjs", "run", "--config", "vitest.config.ts", "scripts/__tests__/browser-tracing-stub.test.mjs"] }]
+  },
+  {
     path: /^scripts\/(example-timelines\/|render-example-timeline\.mjs$)/,
     steps: [VALIDATE_EXAMPLES, websocketTest("example-timelines")]
   },
@@ -299,7 +303,7 @@ function readJson(path) {
   return JSON.parse(readFileSync(path, "utf8"));
 }
 
-function readPackages(extraWorkspacePaths) {
+export function readPackages(extraWorkspacePaths) {
   // Workspaces come from the root package.json, not a scan of packages/ —
   // reliability/harness is a workspace too.
   const rootPkg = readJson(join(repoRoot, "package.json"));

@@ -77,6 +77,9 @@ const StringProperty = ({
     [theme]
   );
 
+  // Dynamic inputs on the canvas (Concat, prompt variables) stack several
+  // rows; start each at one line and grow with the text.
+  const compactRows = isDynamicProperty === true && isInspector !== true;
   const codeLanguage = getCodeNodeLanguage(nodeType);
   const stringValue = isString(value) ? value : "";
 
@@ -124,6 +127,7 @@ const StringProperty = ({
           name={property.name}
           description={property.description}
           id={id}
+          isDynamicProperty={isDynamicProperty}
         />
         <ConnectedBadge />
       </div>
@@ -180,8 +184,8 @@ const StringProperty = ({
             }}
             tabIndex={tabIndex}
             multiline
-            minRows={3}
-            maxRows={3}
+            minRows={compactRows ? 1 : 3}
+            maxRows={compactRows ? 4 : 3}
             autoFocus={false}
           />
         </div>

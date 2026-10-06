@@ -2,6 +2,7 @@ import { describe, it, expect, beforeEach, afterEach } from "vitest";
 import { setMasterKey } from "@nodetool-ai/security";
 import { initTestDb } from "../src/db.js";
 import { Secret } from "../src/secret.js";
+import { Setting } from "../src/setting.js";
 import {
   getSecret,
   getSecretRequired,
@@ -50,6 +51,34 @@ describe("secret-helper", () => {
         value: "db-value"
       });
       expect(await getSecret("DB_KEY", "user-1")).toBe("db-value");
+    });
+
+    it("reads a non-secret setting saved by the Settings UI (LLAMA_CPP_URL)", async () => {
+      await Setting.upsert({
+        userId: "user-1",
+        key: "LLAMA_CPP_URL",
+        value: "http://127.0.0.1:8080"
+      });
+      expect(await getSecret("LLAMA_CPP_URL", "user-1")).toBe(
+        "http://127.0.0.1:8080"
+      );
+    });
+
+    it("setting takes precedence over env var; secret over setting", async () => {
+      process.env.TEST_ENV_SECRET = "from-env";
+      await Setting.upsert({
+        userId: "user-1",
+        key: "TEST_ENV_SECRET",
+        value: "from-setting"
+      });
+      expect(await getSecret("TEST_ENV_SECRET", "user-1")).toBe("from-setting");
+      clearAllSecretCache();
+      await Secret.upsert({
+        userId: "user-1",
+        key: "TEST_ENV_SECRET",
+        value: "from-secret"
+      });
+      expect(await getSecret("TEST_ENV_SECRET", "user-1")).toBe("from-secret");
     });
 
     it("DB row takes precedence over env var", async () => {

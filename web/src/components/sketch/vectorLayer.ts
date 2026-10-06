@@ -104,3 +104,49 @@ export function createVectorLayer(name: string, source: string): Layer {
     )
   };
 }
+
+const SVG_NAMESPACE_ATTRIBUTE = ' xmlns="http://www.w3.org/2000/svg"';
+
+/**
+ * Indent an SVG document one element per line for reading and editing.
+ * Elements holding text (`<text>`, `<title>`) stay on one line so their
+ * whitespace is unchanged. Returns the input when it does not parse.
+ */
+export function formatSvgSource(source: string): string {
+  const parsed = new DOMParser().parseFromString(source, "image/svg+xml");
+  if (
+    parsed.querySelector("parsererror") ||
+    parsed.documentElement.localName !== "svg"
+  ) {
+    return source;
+  }
+  const serializer = new XMLSerializer();
+  const serialize = (node: Node, isRoot: boolean): string => {
+    const markup = serializer.serializeToString(node);
+    // A detached child restates its namespace; the root already declares it.
+    return isRoot ? markup : markup.replace(SVG_NAMESPACE_ATTRIBUTE, "");
+  };
+  const lines: string[] = [];
+  const visit = (element: Element, depth: number): void => {
+    const indent = "  ".repeat(depth);
+    const children = Array.from(element.childNodes).filter(
+      (child) =>
+        child.nodeType !== Node.TEXT_NODE || child.textContent?.trim() !== ""
+    );
+    if (
+      children.length === 0 ||
+      !children.every((child) => child.nodeType === Node.ELEMENT_NODE)
+    ) {
+      lines.push(indent + serialize(element, depth === 0));
+      return;
+    }
+    const open = serialize(element.cloneNode(false), depth === 0);
+    lines.push(indent + open.replace(/\s*\/>$/, ">"));
+    for (const child of children) {
+      visit(child as Element, depth + 1);
+    }
+    lines.push(`${indent}</${element.tagName}>`);
+  };
+  visit(parsed.documentElement, 0);
+  return lines.join("\n");
+}

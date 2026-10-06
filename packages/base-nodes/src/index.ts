@@ -1,4 +1,5 @@
 import type { NodeClass, NodeRegistry } from "@nodetool-ai/node-sdk";
+import { getNodeMetadata } from "@nodetool-ai/node-sdk";
 
 export {
   IfNode,
@@ -420,6 +421,10 @@ export {
   resolveKieDynamicSchema
 } from "@nodetool-ai/integration-nodes/nodes/kie-dynamic";
 export {
+  resolveComfyWorkflow,
+  type ComfyResolvedSchema
+} from "@nodetool-ai/integration-nodes/nodes/comfy-schema";
+export {
   CollectionNode,
   CountNode,
   GetDocumentsNode,
@@ -589,6 +594,7 @@ export function registerBaseNodes(registry: NodeRegistry): void {
     if (nodeClass.nodeType === "nodetool.workflows.base_node.Preview") {
       registry.register(nodeClass, {
         metadata: {
+          ...getNodeMetadata(nodeClass),
           title: "Preview",
           description: "Preview values inside the workflow graph",
           namespace: "nodetool.workflows.base_node",

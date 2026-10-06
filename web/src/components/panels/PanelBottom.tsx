@@ -8,6 +8,10 @@ import {
   TYPOGRAPHY,
   Tooltip,
   FlexColumn,
+  CONTROL,
+  SHADOW,
+  Z_INDEX,
+  reducedMotion,
   MOTION,
   BORDER_RADIUS,
   SPACING,
@@ -24,7 +28,6 @@ import { memo, useCallback, useEffect, useMemo, useState } from "react";
 import { useLocation } from "react-router-dom";
 import isEqual from "../../utils/isEqual";
 import TracePanel from "./TracePanel";
-import LogPanel from "./LogPanel";
 import QueuePanel from "./jobs/QueuePanel";
 import WorkersPanel from "../workers/WorkersPanel";
 import WorkerStatusIndicator from "../workers/WorkerStatusIndicator";
@@ -42,6 +45,7 @@ import { useSystemStatsStore } from "../../stores/systemStatsHandler";
 import { globalWebSocketManager } from "../../lib/websocket/GlobalWebSocketManager";
 import { BASE_URL } from "../../stores/BASE_URL";
 import type { NodeStoreState } from "../../stores/NodeStore";
+import PanelErrorBoundary from "../common/PanelErrorBoundary";
 
 // icons
 import TimelineIcon from "@mui/icons-material/Timeline";
@@ -50,7 +54,7 @@ import HistoryIcon from "@mui/icons-material/History";
 import PlaylistPlayIcon from "@mui/icons-material/PlaylistPlay";
 import MemoryIcon from "@mui/icons-material/Memory";
 
-const HEADER_HEIGHT = 32;
+const HEADER_HEIGHT = CONTROL.height.md;
 
 // Worker label derived from BASE_URL. Empty = local dev (Vite proxy → :7777).
 const workerLabel = (() => {
@@ -133,32 +137,33 @@ const styles = (theme: Theme) =>
     bottom: "0",
     left: "0",
     right: "0",
-    zIndex: theme.zIndex.appBar,
+    zIndex: Z_INDEX.sticky,
     ".panel-container": {
       flexShrink: 0,
       position: "relative",
       backgroundColor: theme.vars.palette.background.default
     },
     ".panel-resize-button": {
-      height: "6px",
+      height: getSpacingPx(SPACING.sm),
       width: "100%",
       position: "absolute",
-      zIndex: theme.zIndex.drawer,
-      top: "-3px",
+      zIndex: Z_INDEX.overlay,
+      top: getSpacingPx(-SPACING.xs),
       left: "0",
       backgroundColor: "transparent",
       border: 0,
       borderRadius: 0,
       cursor: "ns-resize",
       transition: MOTION.all,
+      ...reducedMotion({ transition: MOTION.none }),
       "&::before": {
         content: '""',
         position: "absolute",
         top: "50%",
         left: "50%",
         transform: "translate(-50%, -50%)",
-        width: "40px",
-        height: "4px",
+        width: getSpacingPx(SPACING.xxxl),
+        height: getSpacingPx(SPACING.xs),
         borderRadius: BORDER_RADIUS.xs,
         backgroundColor: theme.vars.palette.grey[600],
         opacity: 0.5,
@@ -166,7 +171,7 @@ const styles = (theme: Theme) =>
       },
       "&:hover": {
         backgroundColor: theme.vars.palette.primary.main,
-        boxShadow: `0 0 8px ${theme.vars.palette.primary.main}40`,
+        boxShadow: SHADOW(theme).sm,
         transform: "scaleY(1.5)",
         "&::before": {
           opacity: 1,
@@ -175,7 +180,7 @@ const styles = (theme: Theme) =>
       },
       "&:active": {
         backgroundColor: theme.vars.palette.primary.main,
-        boxShadow: `0 0 12px ${theme.vars.palette.primary.main}60`,
+        boxShadow: SHADOW(theme).md,
         transform: "scaleY(2)",
         "&::before": {
           opacity: 1,
@@ -215,12 +220,12 @@ const styles = (theme: Theme) =>
       },
 
       "& .status-dot": {
-        width: "6px",
-        height: "6px",
+        width: getSpacingPx(SPACING.sm),
+        height: getSpacingPx(SPACING.sm),
         borderRadius: BORDER_RADIUS.circle,
         backgroundColor: theme.vars.palette.success.main,
         flexShrink: 0,
-        boxShadow: `0 0 6px ${theme.vars.palette.success.main}99`,
+        boxShadow: SHADOW(theme).sm,
         "&.disconnected": {
           backgroundColor: theme.vars.palette.text.disabled,
           boxShadow: "none"
@@ -261,6 +266,7 @@ const styles = (theme: Theme) =>
         border: "none",
         whiteSpace: "nowrap",
         transition: `${MOTION.background}, color ${MOTION.fast}`,
+        ...reducedMotion({ transition: MOTION.none }),
         "& svg": {
           fontSize: "var(--fontSizeNormal)",
           color: theme.vars.palette.text.disabled
@@ -290,7 +296,7 @@ const styles = (theme: Theme) =>
       "& .tab-count": {
         color: theme.vars.palette.text.disabled,
         fontVariantNumeric: "tabular-nums",
-        fontSize: "var(--fontSizeSmaller)"
+        ...TYPOGRAPHY.sans.caption
       },
 
       "& .meta-cluster": {
@@ -406,7 +412,7 @@ export const PanelBodyContent = memo(function PanelBodyContent({
 
   switch (activeView) {
     case "logs":
-      return <LogPanel />;
+      return <PanelErrorBoundary panelName="Run logs"><TracePanel view="logs" /></PanelErrorBoundary>;
     case "queue":
       return (
         <FlexColumn
@@ -438,7 +444,7 @@ export const PanelBodyContent = memo(function PanelBodyContent({
         />
       );
     case "trace":
-      return <TracePanel />;
+      return <PanelErrorBoundary panelName="Run trace"><TracePanel /></PanelErrorBoundary>;
     default:
       return null;
   }
@@ -510,6 +516,7 @@ const PanelBottom: React.FC = () => {
         PaperProps={{
           ref: panelRef,
           className: `panel panel-bottom ${isDragging ? "dragging" : ""}`,
+          sx: { ...reducedMotion({ transition: MOTION.none }), transition: `height ${MOTION.normal}` },
           style: {
             height: `${openHeight}px`,
             left: 0,
@@ -518,10 +525,9 @@ const PanelBottom: React.FC = () => {
             borderTop: `1px solid ${theme.vars.palette.divider}`,
             backgroundColor: theme.vars.palette.background.default,
             boxShadow: isVisible
-              ? `0 -4px 10px ${theme.vars.palette.c_scrim_soft}`
+              ? SHADOW(theme).panelLeft
               : "none",
-            overflow: "hidden",
-            transition: `height ${MOTION.normal}`
+            overflow: "hidden"
           }
         }}
         variant="persistent"

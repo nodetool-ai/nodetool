@@ -1,3 +1,4 @@
+import { registerWorkflowRunTrace } from "./run-trace-lifecycle.js";
 /**
  * Running a saved workflow, as a service every host can call in-process.
  *
@@ -33,6 +34,7 @@ import type { RawGraphInput } from "../types.js";
 import {
   collectPreflightIssues,
   formatPreflightDetail,
+  unsetModelErrors,
   type RunModelCatalogs
 } from "../preflight.js";
 import { collectExecutionSummary } from "../debug/collector.js";
@@ -577,6 +579,18 @@ export async function runWorkflow(
     : options.environment;
 
   const registry = environment.registry;
+  // The cheap preflight above ran before the registry existed. Unpicked models
+  // need its metadata, and are refused here, still before the job row.
+  const unsetModels = unsetModelErrors(runnableGraph, registry);
+  if (unsetModels.length > 0) {
+    return {
+      kind: "error",
+      status: 400,
+      detail: formatPreflightDetail(
+        unsetModels.map((message) => ({ kind: "unset_model", message }))
+      )
+    };
+  }
   const hasPythonNode = runnableGraph.nodes.some((node) => {
     const nodeType = isString(node.type) ? node.type : "";
     return (
@@ -655,6 +669,7 @@ export async function runWorkflow(
       durableFalGenerations: true
     });
     environment.configureContext?.(executionContext);
+    await registerWorkflowRunTrace(executionContext, { jobId: job.id, workflowId: workflowId || null, inlineGraph: Boolean(options.graph) });
     executionContext.addMessageListener(
       createJobProgressRecorder({
         write: async (progress) => {

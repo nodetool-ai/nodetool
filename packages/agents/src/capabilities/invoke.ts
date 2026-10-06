@@ -6,6 +6,8 @@ import type {
   RunBudget,
   ProviderTool
 } from "@nodetool-ai/runtime";
+import { SpanStatusCode } from "@opentelemetry/api";
+import { getTracer, getRunTraceScope, suppressRunTraceContent, stringifyTraceContent } from "@nodetool-ai/runtime";
 import { budgetFromContext } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { VectorCollection } from "@nodetool-ai/vectorstore";
@@ -15,7 +17,7 @@ import {
   type PermissionCategory
 } from "../tools/tool-permissions.js";
 import { validateCapabilityArgs, withSnakeCaseAliases } from "./args.js";
-import { capabilitySpec, capabilityForName } from "./registry.js";
+import { capabilitySpec, capabilityForName, capabilityModuleOf } from "./registry.js";
 import type {
   AvailableSecretsResolver,
   CapabilityExport,
@@ -193,6 +195,44 @@ async function offTheClock<T>(
  * round trip.
  */
 export async function invokeCapability(
+  run: CapabilityRun,
+  entry: CapabilityExport,
+  rawArgs: Record<string, unknown>
+): Promise<unknown> {
+  const moduleName = capabilityModuleOf(entry.spec.name);
+  if (moduleName === "email" || moduleName === "google" || moduleName === "browser") {
+    suppressRunTraceContent();
+  }
+  const tracer = getTracer();
+  if (!tracer) {
+    return invokeCapabilityImpl(run, entry, rawArgs);
+  }
+  return tracer.startActiveSpan("capability.call", async (span) => {
+    span.setAttribute("capability.name", entry.spec.name);
+    span.setAttribute("tool.argument_names", Object.keys(rawArgs));
+    const scope = getRunTraceScope();
+    if (scope && scope.origin !== "public" && !scope.policy.contentSuppressed) {
+      span.setAttribute("tool.arguments", stringifyTraceContent(rawArgs));
+    }
+    try {
+      const result = await invokeCapabilityImpl(run, entry, rawArgs);
+      const failed = result !== null && typeof result === "object" && "error" in result;
+      span.setStatus({ code: failed ? SpanStatusCode.ERROR : SpanStatusCode.OK });
+      if (scope && scope.origin !== "public" && !scope.policy.contentSuppressed) {
+        span.setAttribute("tool.result", stringifyTraceContent(result));
+      }
+      return result;
+    } catch (error) {
+      span.setStatus({ code: SpanStatusCode.ERROR });
+      span.recordException(error instanceof Error ? error : new Error(String(error)));
+      throw error;
+    } finally {
+      span.end();
+    }
+  });
+}
+
+async function invokeCapabilityImpl(
   run: CapabilityRun,
   entry: CapabilityExport,
   rawArgs: Record<string, unknown>

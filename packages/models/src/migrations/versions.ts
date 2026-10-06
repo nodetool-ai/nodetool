@@ -7,6 +7,7 @@
  */
 
 import { randomUUID } from "node:crypto";
+import { RUN_TRACES_DDL, applyRunTraceRls } from "./run-traces.js";
 
 import {
   liftLegacyAppDoc,
@@ -164,10 +165,47 @@ const BUG_REPORTS_DDL: readonly string[] = [
  * in-memory test database is built synchronously from the baseline and would
  * otherwise lack these tables. Real databases get them from the migrations.
  */
-export const POST_BASELINE_TABLE_DDL: readonly string[] = [
-  ...ERROR_TRACES_DDL,
-  ...BUG_REPORTS_DDL
+const APP_INSTANCES_DDL: readonly string[] = [
+  `CREATE TABLE IF NOT EXISTS app_instances (
+    id TEXT PRIMARY KEY NOT NULL, user_id TEXT NOT NULL,
+    application_id TEXT REFERENCES applications(id) ON DELETE CASCADE,
+    source_id TEXT NOT NULL, name TEXT NOT NULL, version INTEGER,
+    snapshot TEXT NOT NULL, variables TEXT NOT NULL,
+    revision INTEGER NOT NULL DEFAULT 0, is_default INTEGER NOT NULL DEFAULT 0,
+    created_at TEXT NOT NULL, updated_at TEXT NOT NULL
+  )`,
+  "CREATE INDEX IF NOT EXISTS idx_app_instance_owner_source ON app_instances(user_id,source_id)",
+  "CREATE INDEX IF NOT EXISTS idx_app_instance_application ON app_instances(application_id)",
+  "CREATE UNIQUE INDEX IF NOT EXISTS idx_app_instance_default ON app_instances(user_id,source_id) WHERE is_default = 1"
 ];
+const APP_RUN_INDEX_DDL: readonly string[] = [
+  "CREATE INDEX IF NOT EXISTS idx_application_invocation_app ON application_invocations(application_id)",
+  "CREATE INDEX IF NOT EXISTS idx_application_invocation_created ON application_invocations(created_at)",
+  "CREATE INDEX IF NOT EXISTS idx_application_invocation_invocation ON application_invocations(invocation_id)",
+  "CREATE UNIQUE INDEX IF NOT EXISTS idx_application_invocation_app_invocation ON application_invocations(application_id,invocation_id)",
+  "CREATE INDEX IF NOT EXISTS idx_app_run_instance_created ON application_invocations(instance_id,created_at)",
+  "CREATE UNIQUE INDEX IF NOT EXISTS idx_app_run_idempotency ON application_invocations(user_id,instance_id,operation_id,invocation_id)"
+];
+const APP_RUN_SQLITE_DDL: readonly string[] = [
+  `CREATE TABLE application_invocations__runs (id TEXT PRIMARY KEY NOT NULL, application_id TEXT REFERENCES applications(id) ON DELETE CASCADE,
+user_id TEXT, version INTEGER, invocation_id TEXT NOT NULL, operation_id TEXT NOT NULL DEFAULT '',
+estimated_usd REAL NOT NULL DEFAULT 0, actual_usd REAL, status TEXT NOT NULL DEFAULT 'running',
+created_at TEXT NOT NULL, settled_at TEXT,instance_id TEXT REFERENCES app_instances(id) ON DELETE CASCADE, origin TEXT, execution_started_at TEXT, known_llm_usd REAL, runner_instance TEXT,
+snapshot TEXT, inputs TEXT, outputs TEXT, documents TEXT, instance_revision INTEGER,
+trace_id TEXT, root_span_id TEXT, error TEXT, state_conflict INTEGER NOT NULL DEFAULT 0,
+content_expired INTEGER NOT NULL DEFAULT 0)`,
+  `INSERT INTO application_invocations__runs
+    (id,application_id,user_id,version,invocation_id,operation_id,estimated_usd,actual_usd,status,created_at,settled_at)
+    SELECT id,application_id,user_id,version,invocation_id,operation_id,estimated_usd,actual_usd,status,created_at,settled_at FROM application_invocations`,
+  "DROP TABLE application_invocations",
+  "ALTER TABLE application_invocations__runs RENAME TO application_invocations",
+  ...APP_RUN_INDEX_DDL,
+  `CREATE TRIGGER app_run_delete_attachments AFTER DELETE ON application_invocations
+    BEGIN DELETE FROM nodetool_generation_attachments WHERE target_type = 'app_run' AND target_id = OLD.id; END`
+];
+
+const JOB_TRACE_MARKER_DDL = "ALTER TABLE nodetool_jobs ADD COLUMN has_run_trace INTEGER NOT NULL DEFAULT 0";
+export const POST_BASELINE_TABLE_DDL: readonly string[] = [...ERROR_TRACES_DDL,...BUG_REPORTS_DDL,...APP_INSTANCES_DDL,...APP_RUN_SQLITE_DDL,...RUN_TRACES_DDL, JOB_TRACE_MARKER_DDL];
 
 export const migrations: MigrationDef[] = [
   // ── 001: Create workflows ──────────────────────────────────────────
@@ -3952,6 +3990,118 @@ export const migrations: MigrationDef[] = [
       await db.execute("DROP INDEX IF EXISTS idx_bug_report_user_created");
       await db.execute("DROP INDEX IF EXISTS idx_bug_report_created");
       await db.execute("DROP TABLE IF EXISTS nodetool_bug_reports");
+    }
+  },
+  {
+    version: "20261004_000001", name: "app_instances_and_durable_runs",
+    createsTables: ["app_instances"], modifiesTables: ["application_invocations"],
+    async up(db) {
+      for (const statement of APP_INSTANCES_DDL) await db.execute(statement);
+      if (await db.columnExists("application_invocations", "instance_id")) {
+        return;
+      }
+      if (db.dbType === "sqlite") {
+        for (const statement of APP_RUN_SQLITE_DDL) await db.execute(statement);
+        return;
+      }
+      await db.execute("ALTER TABLE application_invocations ALTER COLUMN application_id DROP NOT NULL");
+      await db.execute("ALTER TABLE application_invocations ADD COLUMN instance_id TEXT REFERENCES app_instances(id) ON DELETE CASCADE");
+      await db.execute("ALTER TABLE application_invocations ADD COLUMN origin TEXT");
+      await db.execute("ALTER TABLE application_invocations ADD COLUMN execution_started_at TEXT");
+      await db.execute("ALTER TABLE application_invocations ADD COLUMN known_llm_usd REAL");
+      await db.execute("ALTER TABLE application_invocations ADD COLUMN runner_instance TEXT");
+      await db.execute("ALTER TABLE application_invocations ADD COLUMN snapshot TEXT");
+      await db.execute("ALTER TABLE application_invocations ADD COLUMN inputs TEXT");
+      await db.execute("ALTER TABLE application_invocations ADD COLUMN outputs TEXT");
+      await db.execute("ALTER TABLE application_invocations ADD COLUMN documents TEXT");
+      await db.execute("ALTER TABLE application_invocations ADD COLUMN instance_revision INTEGER");
+      await db.execute("ALTER TABLE application_invocations ADD COLUMN trace_id TEXT");
+      await db.execute("ALTER TABLE application_invocations ADD COLUMN root_span_id TEXT");
+      await db.execute("ALTER TABLE application_invocations ADD COLUMN error TEXT");
+      await db.execute("ALTER TABLE application_invocations ADD COLUMN state_conflict INTEGER NOT NULL DEFAULT 0");
+      await db.execute("ALTER TABLE application_invocations ADD COLUMN content_expired INTEGER NOT NULL DEFAULT 0");
+      for (const statement of APP_RUN_INDEX_DDL) await db.execute(statement);
+      await db.execute(`CREATE OR REPLACE FUNCTION delete_app_run_attachments() RETURNS trigger AS $$
+        BEGIN DELETE FROM nodetool_generation_attachments WHERE target_type = 'app_run' AND target_id = OLD.id; RETURN OLD; END;
+        $$ LANGUAGE plpgsql`);
+      await db.execute("CREATE TRIGGER app_run_delete_attachments AFTER DELETE ON application_invocations FOR EACH ROW EXECUTE FUNCTION delete_app_run_attachments()");
+      await db.execute("ALTER TABLE app_instances ENABLE ROW LEVEL SECURITY");
+      await db.execute("ALTER TABLE application_invocations ENABLE ROW LEVEL SECURITY");
+      await db.execute(`DO $$ BEGIN
+        IF to_regprocedure('auth.uid()') IS NOT NULL THEN
+          EXECUTE 'CREATE POLICY app_instances_owner_read ON app_instances FOR SELECT TO authenticated USING (user_id = (SELECT auth.uid())::text)';
+          EXECUTE 'CREATE POLICY app_runs_owner_read ON application_invocations FOR SELECT TO authenticated USING (user_id = (SELECT auth.uid())::text)';
+        END IF;
+      END $$`);
+    },
+    async down(db) {
+      if (await db.tableExists("application_invocations")) {
+        if (await db.tableExists("nodetool_generation_attachments")) {
+          await db.execute(`DELETE FROM nodetool_generation_attachments
+            WHERE target_type = 'app_run'
+              AND target_id IN (SELECT id FROM application_invocations)`);
+        }
+        if (db.dbType === "sqlite") {
+          await db.execute("DROP TRIGGER IF EXISTS app_run_delete_attachments");
+          if (await db.columnExists("application_invocations", "instance_id")) {
+            const legacy = SQLITE_CHILD_TABLES.application_invocations;
+            await db.execute(`CREATE TABLE application_invocations__legacy (${legacy.definition})`);
+            const columns = legacy.columns.join(",");
+            await db.execute(`INSERT INTO application_invocations__legacy (${columns})
+              SELECT ${columns} FROM application_invocations WHERE application_id IS NOT NULL`);
+            await db.execute("DROP TABLE application_invocations");
+            await db.execute("ALTER TABLE application_invocations__legacy RENAME TO application_invocations");
+            for (const statement of legacy.indexes) {
+              await db.execute(statement);
+            }
+            await db.execute(APP_RUN_INDEX_DDL[3]);
+          }
+        } else {
+          await db.execute("DROP TRIGGER IF EXISTS app_run_delete_attachments ON application_invocations");
+          await db.execute("DROP POLICY IF EXISTS app_runs_owner_read ON application_invocations");
+          await db.execute("ALTER TABLE application_invocations DISABLE ROW LEVEL SECURITY");
+          await db.execute("DELETE FROM application_invocations WHERE application_id IS NULL");
+          await db.execute("DROP INDEX IF EXISTS idx_app_run_instance_created");
+          await db.execute("DROP INDEX IF EXISTS idx_app_run_idempotency");
+          for (const column of [
+            "instance_id", "origin", "execution_started_at", "known_llm_usd", "runner_instance",
+            "snapshot", "inputs", "outputs", "documents", "instance_revision", "trace_id",
+            "root_span_id", "error", "state_conflict", "content_expired"
+          ]) {
+            await db.execute(`ALTER TABLE application_invocations DROP COLUMN IF EXISTS ${column}`);
+          }
+          await db.execute("ALTER TABLE application_invocations ALTER COLUMN application_id SET NOT NULL");
+        }
+      }
+      if (db.dbType === "postgres") {
+        await db.execute("DROP FUNCTION IF EXISTS delete_app_run_attachments()");
+      }
+      await db.execute("DROP TABLE IF EXISTS app_instances");
+    }
+  },
+  {
+    version: "20261004_000002", name: "registered_run_trace_store",
+    createsTables: ["nodetool_run_traces", "nodetool_run_spans"], modifiesTables: [],
+    async up(db) {
+      for (const statement of RUN_TRACES_DDL) { await db.execute(statement); }
+      await applyRunTraceRls(db);
+    },
+    async down(db) {
+      await db.execute("DROP TABLE IF EXISTS nodetool_run_spans");
+      await db.execute("DROP TABLE IF EXISTS nodetool_run_traces");
+    }
+  },
+  {
+    version: "20261004_000003", name: "job_trace_provenance",
+    createsTables: [], modifiesTables: ["nodetool_jobs"],
+    async up(db) {
+      if (!await db.columnExists("nodetool_jobs", "has_run_trace")) { await db.execute(JOB_TRACE_MARKER_DDL); }
+      await db.execute("UPDATE nodetool_jobs SET has_run_trace = 1 WHERE EXISTS (SELECT 1 FROM nodetool_run_traces t WHERE t.kind = 'workflow' AND t.source_id = nodetool_jobs.id AND t.user_id = nodetool_jobs.user_id)");
+    },
+    async down(db) {
+      if (await db.columnExists("nodetool_jobs", "has_run_trace")) {
+        await db.execute("ALTER TABLE nodetool_jobs DROP COLUMN has_run_trace");
+      }
     }
   }
 ];

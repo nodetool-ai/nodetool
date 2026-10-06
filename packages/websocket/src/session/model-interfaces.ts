@@ -2,6 +2,7 @@ import { Asset, getSecret, Message, Setting } from "@nodetool-ai/models";
 import {
   ProcessingContext as RuntimeProcessingContext,
   type ProcessingContextModelInterfaces,
+  type AppRunContext,
   type Workspace
 } from "@nodetool-ai/runtime";
 import { encryptFernet, getMasterKey } from "@nodetool-ai/security";
@@ -110,6 +111,7 @@ export function createRuntimeContext(opts: {
   projectId?: string | null;
   threadId?: string | null;
   userId: string;
+  appRunContext?: AppRunContext;
   /**
    * The run's workspace — a local folder or a prefix in the deployment's
    * object storage, resolved by `workspaceResolver`. Null when the host wired
@@ -147,6 +149,7 @@ export function createRuntimeContext(opts: {
     generationLifecycle: createFalGenerationLifecycleHooks({
       userId: opts.userId,
       jobId: opts.jobId,
+      appRunContext: opts.appRunContext,
       projectId: opts.projectId ?? null,
       publicUrl: process.env["NODETOOL_PUBLIC_URL"] ?? null,
       encryptCallbackToken: (token, userId) =>

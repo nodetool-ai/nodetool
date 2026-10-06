@@ -48,6 +48,179 @@ describe("tabId", () => {
   });
 });
 
+describe("application instance navigation", () => {
+  it("rejects invalid persisted instance navigation fields", async () => {
+    localStorage.setItem(
+      "workspace-tabs-storage",
+      JSON.stringify({
+        version: 3,
+        state: {
+          tabs: [
+            {
+              ...tab("application", "app", "view"),
+              instanceId: 7,
+              selectedRunId: { id: "run" }
+            }
+          ],
+          activeTabId: tabId("application", "app"),
+          projectSessions: {}
+        }
+      })
+    );
+    await useWorkspaceTabsStore.persist.rehydrate();
+    expect(useWorkspaceTabsStore.getState().tabs[0]).not.toHaveProperty(
+      "instanceId"
+    );
+    expect(useWorkspaceTabsStore.getState().tabs[0]).not.toHaveProperty(
+      "selectedRunId"
+    );
+  });
+  it("opens one application editor from either instance while preserving both working tabs", () => {
+    const store = useWorkspaceTabsStore.getState();
+    const a = store.openTab({
+      type: "application",
+      ref: "app",
+      instanceId: "instance-a"
+    });
+    const b = store.openTab({
+      type: "application",
+      ref: "app",
+      instanceId: "instance-b"
+    });
+    store.toggleMode(a);
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBe(
+      tabId("application", "app")
+    );
+    store.setMode(b, "edit");
+    expect(useWorkspaceTabsStore.getState().tabs).toHaveLength(3);
+    expect(
+      useWorkspaceTabsStore.getState().tabs.find((tab) => tab.id === a)?.mode
+    ).toBe("view");
+    expect(
+      useWorkspaceTabsStore.getState().tabs.find((tab) => tab.id === b)?.mode
+    ).toBe("view");
+    expect(
+      useWorkspaceTabsStore
+        .getState()
+        .tabs.find((tab) => tab.id === tabId("application", "app"))?.mode
+    ).toBe("edit");
+    store.setMode(tabId("application", "app"), "view");
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBe(a);
+    expect(
+      useWorkspaceTabsStore
+        .getState()
+        .tabs.find((tab) => tab.id === tabId("application", "app"))?.mode
+    ).toBe("edit");
+  });
+  it("keeps two instances distinct while focusing an already-open instance", () => {
+    const store = useWorkspaceTabsStore.getState();
+    const a = store.openTab({
+      type: "application",
+      ref: "app",
+      instanceId: "instance-a",
+      title: "A"
+    });
+    const b = store.openTab({
+      type: "application",
+      ref: "app",
+      instanceId: "instance-b",
+      title: "B"
+    });
+    expect(a).not.toBe(b);
+    expect(
+      store.openTab({
+        type: "application",
+        ref: "app",
+        instanceId: "instance-a"
+      })
+    ).toBe(a);
+    expect(useWorkspaceTabsStore.getState().tabs).toHaveLength(2);
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBe(a);
+    store.setTitle("app", "application", "Renamed A", "instance-a");
+    expect(
+      useWorkspaceTabsStore.getState().tabs.find((tab) => tab.id === b)?.title
+    ).toBe("B");
+    store.closeTab(a);
+    expect(useWorkspaceTabsStore.getState().tabs.map((tab) => tab.id)).toEqual([
+      b
+    ]);
+  });
+
+  it("restores both instances and exact historical selection across reload and app-only project refresh", async () => {
+    const store = useWorkspaceTabsStore.getState();
+    const a = store.openTab({
+      type: "application",
+      ref: "app",
+      instanceId: "instance-a",
+      projectId: "project",
+      title: "A"
+    });
+    const b = store.openTab({
+      type: "application",
+      ref: "app",
+      instanceId: "instance-b",
+      projectId: "project",
+      title: "B"
+    });
+    store.setApplicationRunSelection(a, "historical-run");
+    const saved = localStorage.getItem("workspace-tabs-storage");
+    reset();
+    localStorage.setItem("workspace-tabs-storage", saved!);
+    await useWorkspaceTabsStore.persist.rehydrate();
+    useWorkspaceTabsStore.getState().openProject({
+      id: "project",
+      name: "Project",
+      documents: [{ type: "application", ref: "app", title: "App" }]
+    });
+    expect(useWorkspaceTabsStore.getState().tabs.map((tab) => tab.id)).toEqual([
+      a,
+      b
+    ]);
+    expect(
+      useWorkspaceTabsStore.getState().tabs.find((tab) => tab.id === a)
+        ?.selectedRunId
+    ).toBe("historical-run");
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBe(b);
+    useWorkspaceTabsStore.getState().setApplicationRunSelection(a, null);
+    expect(
+      useWorkspaceTabsStore.getState().tabs.find((tab) => tab.id === a)
+    ).not.toHaveProperty("selectedRunId");
+  });
+
+  it("resolves a legacy working tab once while retaining a separate editor", () => {
+    const store = useWorkspaceTabsStore.getState();
+    const legacy = store.openTab({
+      type: "application",
+      ref: "app",
+      mode: "view",
+      projectId: "project"
+    });
+    store.setApplicationRunSelection(legacy, "old-run");
+    const resolved = store.resolveApplicationInstance("app", "instance-a", "A");
+    expect(useWorkspaceTabsStore.getState().activeTabId).toBe(resolved);
+    expect(
+      useWorkspaceTabsStore.getState().projectSessions.project.tabIds
+    ).toEqual([resolved]);
+    expect(
+      useWorkspaceTabsStore.getState().projectSessions.project.activeTabId
+    ).toBe(resolved);
+    const editor = store.openTab({
+      type: "application",
+      ref: "app",
+      mode: "edit"
+    });
+    store.resolveApplicationInstance("app", "instance-a");
+    expect(
+      useWorkspaceTabsStore.getState().tabs.find((tab) => tab.id === editor)
+        ?.mode
+    ).toBe("edit");
+    expect(
+      useWorkspaceTabsStore.getState().tabs.find((tab) => tab.id === resolved)
+        ?.selectedRunId
+    ).toBe("old-run");
+  });
+});
+
 describe("nextActiveAfterClose", () => {
   const tabs = [tab("workflow", "a"), tab("image", "b"), tab("text", "c")];
 
@@ -304,6 +477,25 @@ describe("creationProjectId", () => {
     expect(create()).toBe("proj-1");
     useWorkspaceTabsStore.getState().setActiveProjectId(null);
     expect(create()).toBe(LOOSE_PROJECT_ID);
+  });
+
+  it("keeps a loose document's tab in scope when its project is the loose bucket", () => {
+    // Opening a document reads its project from the server, where the loose
+    // bucket is spelled "default". A tab stores that bucket as no project, so
+    // an active "default" would hide the tab it just opened.
+    const store = useWorkspaceTabsStore.getState();
+    store.setActiveProjectId(LOOSE_PROJECT_ID);
+    const id = store.openTab({
+      type: "workflow",
+      ref: "wf-loose",
+      mode: "edit",
+      projectId: LOOSE_PROJECT_ID
+    });
+
+    const state = useWorkspaceTabsStore.getState();
+    expect(state.activeProjectId).toBeNull();
+    const opened = state.tabs.find((t) => t.id === id);
+    expect(opened && isTabInScope(opened, state.activeProjectId)).toBe(true);
   });
 
   it("clears a project tab when switching to Personal with no Personal tab", () => {
@@ -916,14 +1108,12 @@ describe("foreground opening", () => {
         Boolean(active && isTabInScope(active, state.activeProjectId))
       );
     });
-    useWorkspaceTabsStore
-      .getState()
-      .openForegroundTab({
-        type: "chat",
-        ref: "cold",
-        projectId: "b",
-        title: "Conversation"
-      });
+    useWorkspaceTabsStore.getState().openForegroundTab({
+      type: "chat",
+      ref: "cold",
+      projectId: "b",
+      title: "Conversation"
+    });
     unsubscribe();
     expect(useWorkspaceTabsStore.getState()).toMatchObject({
       activeProjectId: "b",
@@ -933,13 +1123,11 @@ describe("foreground opening", () => {
   });
   it("opens an explicitly loose document in visible scope", () => {
     useWorkspaceTabsStore.setState({ activeProjectId: "a" });
-    useWorkspaceTabsStore
-      .getState()
-      .openForegroundTab({
-        type: "workflow",
-        ref: "unsaved",
-        projectId: LOOSE_PROJECT_ID
-      });
+    useWorkspaceTabsStore.getState().openForegroundTab({
+      type: "workflow",
+      ref: "unsaved",
+      projectId: LOOSE_PROJECT_ID
+    });
     const state = useWorkspaceTabsStore.getState();
     expect(state.activeProjectId).toBeNull();
     expect(state.tabs[0].projectId).toBeUndefined();
@@ -959,15 +1147,24 @@ it("foreground opening an existing tab switches to its resolved owner", () => {
 });
 
 describe("use mode defaults", () => {
-  it.each(["application", "game", "timeline"] as const)("opens and reopens %s in view mode", (type) => {
-    useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null });
-    const store = useWorkspaceTabsStore.getState();
-    const id = store.openTab({ type, ref: "document-1" });
-    expect(useWorkspaceTabsStore.getState().getActiveTab()?.mode).toBe("view");
-    store.setMode(id, "edit");
-    store.openTab({ type, ref: "document-1" });
-    expect(useWorkspaceTabsStore.getState().getActiveTab()?.mode).toBe("view");
-    store.openTab({ type, ref: "document-1", mode: "edit" });
-    expect(useWorkspaceTabsStore.getState().getActiveTab()?.mode).toBe("edit");
-  });
+  it.each(["application", "game", "timeline"] as const)(
+    "opens and reopens %s in view mode",
+    (type) => {
+      useWorkspaceTabsStore.setState({ tabs: [], activeTabId: null });
+      const store = useWorkspaceTabsStore.getState();
+      const id = store.openTab({ type, ref: "document-1" });
+      expect(useWorkspaceTabsStore.getState().getActiveTab()?.mode).toBe(
+        "view"
+      );
+      store.setMode(id, "edit");
+      store.openTab({ type, ref: "document-1" });
+      expect(useWorkspaceTabsStore.getState().getActiveTab()?.mode).toBe(
+        "view"
+      );
+      store.openTab({ type, ref: "document-1", mode: "edit" });
+      expect(useWorkspaceTabsStore.getState().getActiveTab()?.mode).toBe(
+        "edit"
+      );
+    }
+  );
 });

@@ -82,6 +82,7 @@ export interface AppServerRunInput {
   graph: DebugGraph;
   workflowId: string | null;
   params: Record<string, unknown>;
+  nodePropertyOverrides?: Record<string, Record<string, unknown>>;
   timeoutMs?: number;
 }
 
@@ -94,7 +95,8 @@ export interface AppServerRunOutcome {
 export interface AppSimulationDeps {
   /** Load a workflow by DB id — an operation may name one the target lacks. */
   loadFromDb: (
-    id: string
+    id: string,
+    version?: number
   ) => Promise<{ graph: DebugGraph; app_doc?: unknown } | null>;
   /** Execute one operation's workflow. */
   runOnServer: (input: AppServerRunInput) => Promise<AppServerRunOutcome>;
@@ -109,6 +111,9 @@ export interface AppSimulationDeps {
    * body, with the same consequence.
    */
   runScript?: JsScriptOperationRunner;
+  /** A host records one operation around the same execution the simulator grades. */
+  runWorkflowOperation?: (operationId: string, input: AppServerRunInput) => Promise<AppServerRunOutcome & { app_run_id: string }>;
+  runScriptOperation?: (operationId: string, params: Record<string, unknown>, input: Parameters<JsScriptOperationRunner>[0]) => Promise<{ result: Awaited<ReturnType<JsScriptOperationRunner>>; app_run_id: string }>;
   /** Progress/log sink. */
   onLog?: (line: string) => void;
   /**
@@ -246,6 +251,21 @@ export function withNodePropertyOverlays(
   inputs: Record<string, InputSlot>,
   operationId: string
 ): DebugGraph {
+  const byNode = nodePropertyOverlays(inputs, operationId);
+  if (Object.keys(byNode).length === 0) return graph;
+  return {
+    nodes: graph.nodes.map((node) => {
+      const overlay = isString(node.id) ? byNode[node.id] : undefined;
+      if (!overlay) return node;
+      const stored = node.properties ?? node.data;
+      const properties = isObjectLike(stored) ? stored as Record<string, unknown> : {};
+      return { ...node, properties: { ...properties, ...overlay } };
+    }),
+    edges: graph.edges
+  };
+}
+
+function nodePropertyOverlays(inputs: Record<string, InputSlot>, operationId: string): Record<string, Record<string, unknown>> {
   const byNode = new Map<string, Record<string, unknown>>();
   for (const [key, slot] of Object.entries(inputs)) {
     if (slot.value === undefined) continue;
@@ -256,20 +276,7 @@ export function withNodePropertyOverlays(
     if (existing) existing[parsed.property] = slot.value;
     else byNode.set(parsed.nodeId, { [parsed.property]: slot.value });
   }
-  if (byNode.size === 0) return graph;
-  return {
-    nodes: graph.nodes.map((node) => {
-      const overlay =
-        isString(node.id) ? byNode.get(node.id) : undefined;
-      if (!overlay) return node;
-      const properties =
-        isObjectLike(node.properties)
-          ? (node.properties as Record<string, unknown>)
-          : {};
-      return { ...node, properties: { ...properties, ...overlay } };
-    }),
-    edges: graph.edges
-  };
+  return Object.fromEntries(byNode);
 }
 
 /**
@@ -575,7 +582,7 @@ async function resolveOperationScript(
   script: { name: string; document: JsScriptDocument } | null;
   unavailable: string | null;
 }> {
-  const bundled = carried?.get(target.scriptId);
+  const bundled = carried?.get(`${target.scriptId}@${target.scriptVersion}`) ?? carried?.get(target.scriptId);
   if (bundled) return { script: bundled, unavailable: null };
   if (!loadScript) {
     return {
@@ -614,13 +621,14 @@ async function resolveOperationGraph(
   loadFromDb: AppSimulationDeps["loadFromDb"]
 ): Promise<{ graph: DebugGraph | null; unavailable: string | null }> {
   const target = operation.workflowId;
-  const carried = host.graphs.get(target);
+  const version = operation.workflowVersion ?? (operation.target?.kind === "workflow" ? operation.target.workflowVersion : undefined);
+  const carried = host.graphs.get(`${target}@${version ?? "latest"}`) ?? host.graphs.get(target);
   if (carried) return { graph: carried, unavailable: null };
-  if (!target || target === "self" || target === host.workflowId) {
+  if (!target || target === "self" || (version === undefined && target === host.workflowId && host.graphs.size === 0)) {
     return { graph: host.graph, unavailable: null };
   }
   try {
-    const workflow = await loadFromDb(target);
+    const workflow = await loadFromDb(target, version);
     if (!workflow?.graph) {
       return {
         graph: null,
@@ -677,7 +685,11 @@ export async function simulateApp(
           resolved.scripts,
           deps.loadScript
         );
-        if (script) scriptByOperation.set(binding.id, script);
+        if (script) {
+          scriptByOperation.set(binding.id, script);
+          resolved.scripts ??= new Map();
+          resolved.scripts.set(`${target.scriptId}@${target.scriptVersion}`, script);
+        }
         context.operations.push(
           operationSpec(
             binding,
@@ -701,7 +713,10 @@ export async function simulateApp(
       );
       const operationIO: AppIO | null =
         graph === resolved.graph ? io : graph ? extractAppIO(graph) : null;
-      if (graph) graphByOperation.set(binding.id, graph);
+      if (graph) {
+        graphByOperation.set(binding.id, graph);
+        resolved.graphs.set(`${target.workflowId}@${target.workflowVersion ?? "latest"}`, graph);
+      }
       context.operations.push(operationSpec(binding, operationIO, unavailable));
     }
     // The first declared operation, exactly as the web runtime picks it
@@ -777,12 +792,16 @@ export async function simulateApp(
           operationId
         ),
         workflowId,
-        params
+        params,
+        nodePropertyOverrides: nodePropertyOverlays(runtime.state.inputs, operationId)
       };
       if (timeoutMs != null) {
         runInput.timeoutMs = timeoutMs;
       }
-      const outcome = await deps.runOnServer(runInput);
+      const outcome = deps.runWorkflowOperation
+        ? await deps.runWorkflowOperation(operationId, runInput)
+        : await deps.runOnServer(runInput);
+      if ("app_run_id" in outcome && isString(outcome.app_run_id)) { outcome.report.app_run_id = outcome.app_run_id; }
       // The slot is claimed only once the run settles, so a run the harness
       // timed out on never takes an index from the one that follows it.
       const runIndex = runs.length;
@@ -836,7 +855,10 @@ export async function simulateApp(
       if (timeoutMs != null) {
         scriptInput.timeoutMs = timeoutMs;
       }
-      const result = await deps.runScript!(scriptInput);
+      const recorded = deps.runScriptOperation
+        ? await deps.runScriptOperation(operationId, inputs, scriptInput)
+        : null;
+      const result = recorded?.result ?? await deps.runScript!(scriptInput);
       const messages = jsScriptRunMessages(result);
       const runIndex = runs.length;
       // SAFETY: `jsScriptRunMessages` builds the same per-emit and final
@@ -846,9 +868,9 @@ export async function simulateApp(
         runIndex,
         messages as ProcessingMessage[]
       );
-      runs.push(
-        scriptRunReport(result, Date.now() - started, script.name, messagesFile)
-      );
+      const scriptReport = scriptRunReport(result, Date.now() - started, script.name, messagesFile);
+      if (recorded) { scriptReport.app_run_id = recorded.app_run_id; }
+      runs.push(scriptReport);
       log(`Run ${runIndex + 1}: ${result.ok ? "completed" : "failed"}`);
       return { messages, runIndex };
     };

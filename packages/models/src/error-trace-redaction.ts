@@ -25,6 +25,7 @@
  */
 
 import { createHash } from "node:crypto";
+import { redactPrivateKeys } from "@nodetool-ai/config";
 
 export const MAX_ERROR_MESSAGE_LENGTH = 2000;
 export const MAX_ERROR_STACK_LENGTH = 8000;
@@ -55,6 +56,9 @@ export type ErrorTraceSeverity = (typeof ERROR_TRACE_SEVERITIES)[number];
  */
 export const ERROR_TRACE_CONTEXT_KEYS = [
   "job_id",
+  "trace_id",
+  "app_run_id",
+  "span_id",
   "workflow_id",
   "node_id",
   "node_type",
@@ -98,10 +102,6 @@ const SECRET_NAME =
   "[A-Za-z0-9_.-]{0,40}(?:api[_-]?key|apikey|access[_-]?key|token(?!s\\b)|secret|password|passwd|pwd|signature|credential|authorization|cookie|session[_-]?id|private[_-]?key)[A-Za-z0-9_.-]{0,40}";
 
 const RULES: readonly Rule[] = [
-  [
-    /-----BEGIN [A-Z ]*PRIVATE KEY-----[\s\S]*?-----END [A-Z ]*PRIVATE KEY-----/g,
-    "[REDACTED:private-key]"
-  ],
   // Credentials in a URL's userinfo.
   [/\b([a-z][a-z0-9+.-]{0,30}:\/\/)[^\s/@:]+:[^\s/@]+@/gi, "$1[REDACTED]@"],
   [
@@ -185,6 +185,7 @@ export function redactErrorText(
   for (const secret of options.secretValues ?? collectSecretValues()) {
     if (out.includes(secret)) out = out.split(secret).join("[REDACTED:secret]");
   }
+  out = redactPrivateKeys(out);
   for (const [pattern, replacement] of RULES) {
     // `replace` with a string or a function; the cast only picks the overload.
     out = out.replace(pattern, replacement as string);

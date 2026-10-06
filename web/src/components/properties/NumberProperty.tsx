@@ -2,8 +2,11 @@ import { useCallback } from "react";
 import NumberInput from "../inputs/NumberInput";
 import { PropertyProps } from "../node/PropertyInput";
 import { useInputMinMax } from "../../hooks/useInputMinMax";
-import { useTemporalNodes } from "../../contexts/NodeContext";
+import { useOptionalTemporalNodes } from "../../contexts/NodeContext";
 import { isNumber } from "../../utils/typePredicates";
+
+/** Outside the graph editor there is no undo history to pause. */
+const NO_OP = (): void => undefined;
 
 interface NumberPropertyProps extends PropertyProps<number> {
   inputType: "int" | "float";
@@ -27,8 +30,11 @@ const NumberProperty = ({ inputType, ...props }: NumberPropertyProps) => {
 
   const isValid = inputType === "int" ? Number.isInteger : isNumber;
   const value = isValid(propValue) ? propValue : 0;
-  const pauseHistory = useTemporalNodes((state) => state.pause);
-  const resumeHistory = useTemporalNodes((state) => state.resume);
+  const pauseHistory = useOptionalTemporalNodes((state) => state.pause, NO_OP);
+  const resumeHistory = useOptionalTemporalNodes(
+    (state) => state.resume,
+    NO_OP
+  );
 
   const { min, max } = useInputMinMax({
     nodeType: props.nodeType,

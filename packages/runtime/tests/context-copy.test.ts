@@ -34,6 +34,10 @@ class ImageProvider extends BaseProvider {
 const SHARED = new Set([
   "workspace",
   "_generationLifecycle",
+  "_appRunDocuments",
+  "appRunCostAccount",
+  "runTraceContext",
+  "_resolvedSecrets",
   "cache",
   "storage",
   "assetStorage",
@@ -60,6 +64,7 @@ const COPIED = new Set([
   "assetOutputMode",
   "persistOutputAssets",
   "authToken",
+  "appRunContext",
   "_retainMessageQueue",
   "_totalCost",
   "_variables",
@@ -78,7 +83,6 @@ const FRESH = new Set([
   "_memory",
   "_channels",
   "_channelWriters",
-  "_resolvedSecrets",
   "_providerPromises",
   "_providerCost",
   "_normalizedOutputAssets",
@@ -168,6 +172,21 @@ describe("ProcessingContext.copy", () => {
       workflowId: "workflow",
       threadId: "thread",
       userId: "user",
+      appRunContext: {
+        userId: "user",
+        instanceId: "i".repeat(32),
+        appRunId: "a".repeat(32),
+        traceId: "b".repeat(32),
+        origin: "ui"
+      },
+      runTraceContext: {
+        userId: "user",
+        runId: "a".repeat(32),
+        traceId: "b".repeat(32),
+        origin: "ui",
+        secretValues: new Set(["run-secret"]),
+        policy: { contentSuppressed: false }
+      },
       projectId: "project",
       authToken: "token",
       assetOutputMode: "raw",

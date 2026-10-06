@@ -475,7 +475,10 @@ function formatUiContext(uiContext?: UiContext | null): string {
   const focused = uiContext.focused;
   const open = uiContext.open ?? [];
   const source = uiContext.source;
-  if (!focused && open.length === 0 && !source) return "";
+  const run = uiContext.run;
+  const runId = typeof run?.run_id === "string" && /^[0-9a-f]{12}(?:[0-9a-f]{20})?$/.test(run.run_id) ? run.run_id : null;
+  const spanId = typeof run?.span_id === "string" && /^[0-9a-f]{16}$/.test(run.span_id) ? run.span_id : null;
+  if (!focused && open.length === 0 && !source && !runId) return "";
 
   const describe = (ref: UiDocumentRef): string => {
     const label = UI_SURFACE_LABELS[ref.type] ?? ref.type;
@@ -486,6 +489,10 @@ function formatUiContext(uiContext?: UiContext | null): string {
   };
 
   const lines: string[] = ["\n\n## What the user is looking at\n"];
+  if (runId) {
+    lines.push(`The user asked to inspect run ${runId}${spanId ? `, span ${spanId}` : ""}.`);
+    lines.push(`Start with nodetool.runs.get("${runId}") inside execute_code. Its readers check ownership. Read the summary first, then inspect ${spanId ? `span ${spanId}` : "the spans it names"} with nodetool.runs.trace or nodetool.runs.logs. Do not infer a transcript from this reference.`);
+  }
   if (source) {
     lines.push(
       `The user sent this message from the ${CHAT_SOURCE_LABELS[source] ?? source}.`
@@ -519,7 +526,7 @@ function formatUiContext(uiContext?: UiContext | null): string {
       "Every `ui_*` tool requires the id of the document it should act on; pass one of the ids above. These tools act on documents the user has open, so prefer the focused document unless the user points at another one."
     );
     lines.push(
-      "A document that is not in that list can be opened: call `ui_open_document` with its type and id (from `list_timelines`, `list_sketches`, `list_storyboards`, `list_scripts`, or a resource link). It opens the document as a tab and returns once its `ui_*` tools work, so never tell the user a document cannot be edited because it is not open."
+      "For an open timeline, storyboard, script or sketch with editing `ui_*` tools available, use those tools to edit the live draft and retain undo history. For a closed document or a view-only surface, use `edit_timeline`, `edit_storyboard`, `edit_script` or `edit_sketch` to edit the saved document. Use `ui_open_document` with its type and id when you need to show it to the user."
     );
   }
 
@@ -537,10 +544,11 @@ function formatUiContext(uiContext?: UiContext | null): string {
     );
   }
 
-  const hasGame = focused?.type === "game" || open.some((ref) => ref.type === "game");
+  const hasGame =
+    focused?.type === "game" || open.some((ref) => ref.type === "game");
   if (hasGame) {
     lines.push(
-      "For a native game, call `get_native_game` with `view: \"outline\"` first. Edit the draft with `edit_native_game` and capture the result with `capture_native_game_frame` before reporting a visual change as done. Leave publishing to the user unless they ask for it."
+      'For a native game, call `get_native_game` with `view: "outline"` first. Edit the draft with `edit_native_game` and capture the result with `capture_native_game_frame` before reporting a visual change as done. Leave publishing to the user unless they ask for it.'
     );
   }
 

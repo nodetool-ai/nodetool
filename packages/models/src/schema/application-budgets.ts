@@ -8,6 +8,9 @@ import {
   uniqueIndex
 } from "drizzle-orm/sqlite-core";
 
+import type { AppRunSnapshot } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
+import { jsonText } from "./helpers.js";
+import { appInstances } from "./app-instances.js";
 import { applications } from "./applications.js";
 
 /**
@@ -43,7 +46,6 @@ export const applicationInvocations = sqliteTable(
   {
     id: text("id").primaryKey(),
     application_id: text("application_id")
-      .notNull()
       .references(() => applications.id, { onDelete: "cascade" }),
     /** Owner of the app at run time, copied from the parent. */
     user_id: text("user_id"),
@@ -56,9 +58,24 @@ export const applicationInvocations = sqliteTable(
     actual_usd: real("actual_usd"),
     status: text("status").notNull().default("running"),
     created_at: text("created_at").notNull(),
-    settled_at: text("settled_at")
+    settled_at: text("settled_at"),
+    instance_id: text("instance_id").references(()=>appInstances.id,{onDelete:"cascade"}),
+    origin: text("origin"),
+    execution_started_at:text("execution_started_at"),
+    known_llm_usd:real("known_llm_usd"),
+    runner_instance:text("runner_instance"),
+    snapshot: jsonText<AppRunSnapshot>()("snapshot"),
+    inputs: jsonText<Record<string,unknown>>()("inputs"),
+    outputs: jsonText<Record<string,unknown>>()("outputs"),
+    documents: jsonText<Array<{kind:string;id:string}>>() ("documents"),
+    instance_revision: integer("instance_revision"),
+    trace_id: text("trace_id"), root_span_id: text("root_span_id"), error: text("error"),
+    state_conflict: integer("state_conflict").notNull().default(0),
+    content_expired: integer("content_expired").notNull().default(0)
   },
   (table) => [
+    index("idx_app_run_instance_created").on(table.instance_id,table.created_at),
+    uniqueIndex("idx_app_run_idempotency").on(table.user_id,table.instance_id,table.operation_id,table.invocation_id),
     index("idx_application_invocation_app").on(table.application_id),
     index("idx_application_invocation_created").on(table.created_at),
     index("idx_application_invocation_invocation").on(table.invocation_id),

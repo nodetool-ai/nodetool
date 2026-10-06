@@ -30,6 +30,12 @@
     "vitest": "^5.0.1"
   },
   "exports": {
+    "./run-trace": {
+      "nodetool-dev": "./src/run-trace.ts",
+      "types": "./dist/run-trace.d.ts",
+      "import": "./dist/run-trace.js",
+      "default": "./dist/run-trace.js"
+    },
     ".": {
       "nodetool-dev": "./src/index.ts",
       "types": "./dist/index.d.ts",

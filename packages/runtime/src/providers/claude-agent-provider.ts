@@ -1,3 +1,5 @@
+import { getTracer } from "../telemetry.js";
+import { tracedProviderLoop, tracedToolCall, beginProviderRound, providerRoundContext, traceContentAllowed, messageTraceContent, traceTextContent } from "./loop-tracing.js";
 /**
  * ClaudeAgentProvider — Claude reached through the official
  * `@anthropic-ai/claude-agent-sdk` instead of an API key.
@@ -344,6 +346,10 @@ export class ClaudeAgentProvider extends BaseProvider {
       skills?: ProviderSkill[];
     }
   ): AsyncGenerator<ProviderStreamItem> {
+    return yield* tracedProviderLoop(this.provider, args.model, () => this.generateSdkLoop(args));
+  }
+
+  private async *generateSdkLoop(args: Parameters<ClaudeAgentProvider["generateLoop"]>[0]): AsyncGenerator<ProviderStreamItem> {
     // The SDK owns the loop, so honoring the budget is this override's job:
     // reserve before the first turn, and again after every assistant turn that
     // requested tools — that is the point where the SDK will make another call.
@@ -377,6 +383,7 @@ export class ClaudeAgentProvider extends BaseProvider {
         replaced: [...replaced]
       });
     }
+    beginProviderRound(this.provider, args.model);
     const executeTool = args.executeTool;
     // A tool dispatches either through its own `execute` or the harness
     // `executeTool`; build the MCP server when at least one route exists.
@@ -410,13 +417,9 @@ export class ClaudeAgentProvider extends BaseProvider {
             // so a clock alone would hand them one id.
             const toolCallId = `call_${name}_${crypto.randomUUID()}`;
             const result = t.execute
-              ? await t.execute(toolArgs, toolCallId)
+              ? await tracedToolCall({ id: toolCallId, name, args: toolArgs }, () => { const execute = t.execute; if (!execute) { throw new Error("Tool dispatch was removed"); } return execute(toolArgs, toolCallId); })
               : executeTool
-                ? await executeTool({
-                    id: toolCallId,
-                    name,
-                    args: toolArgs
-                  })
+                ? await tracedToolCall({ id: toolCallId, name, args: toolArgs }, () => executeTool({ id: toolCallId, name, args: toolArgs }))
                 : `Tool "${name}" is not available`;
             // A terminal tool ends the SDK loop after its result is delivered.
             if (t.terminal) abortController.abort();
@@ -810,6 +813,22 @@ export class ClaudeAgentProvider extends BaseProvider {
       resume: Boolean(plan.resume)
     });
 
+    const tracer = getTracer();
+    const startLlm = () => {
+      const span = tracer?.startSpan(`llm.stream ${this.provider}/${args.model}`, {}, providerRoundContext());
+      span?.setAttributes({ "llm.provider": this.provider, "llm.model": args.model, "llm.request.stream": true });
+      if (traceContentAllowed()) { span?.setAttribute("llm.request.messages", messageTraceContent(args.messages)); }
+      return span;
+    };
+    let llmSpan = startLlm();
+    let llmResponse = "";
+    let observedTurn = false;
+    const closeLlm = () => {
+      if (traceContentAllowed()) { llmSpan?.setAttribute("llm.response.content", llmResponse); }
+      llmSpan?.end();
+      llmSpan = undefined;
+      llmResponse = "";
+    };
     let resolvedModel = args.model;
     // When partial deltas stream, we render from them and skip the final
     // assistant message to avoid duplication; if a build omits partials we fall
@@ -865,12 +884,18 @@ export class ClaudeAgentProvider extends BaseProvider {
         }
 
         if (msg.type === "stream_event") {
+          if (msg.event.type === "message_start") {
+            if (observedTurn) { closeLlm(); beginProviderRound(this.provider, args.model); llmSpan = startLlm(); }
+            observedTurn = true;
+          }
+          if (msg.event.type === "message_stop") { closeLlm(); }
           const captured = capturedModelFromPartial(msg);
           if (captured) resolvedModel = captured;
           const delta = partialDelta(msg);
           if (delta?.text != null) {
             streamedFromPartials = true;
             plan.emitted.content = true;
+            if (traceContentAllowed()) { llmResponse = traceTextContent(llmResponse + delta.text); }
             yield { type: "chunk", content: delta.text, done: false };
           } else if (delta?.thinking != null) {
             streamedFromPartials = true;
@@ -892,6 +917,7 @@ export class ClaudeAgentProvider extends BaseProvider {
           // final content blocks — kept strictly separate, never merged.
           if (!streamedFromPartials) {
             for (const block of finalBlocks(msg)) {
+              if (!block.thinking && traceContentAllowed()) { llmResponse = traceTextContent(llmResponse + block.content); }
               plan.emitted.content = true;
               yield block.thinking
                 ? {
@@ -980,6 +1006,7 @@ export class ClaudeAgentProvider extends BaseProvider {
       if (args.signal?.aborted) return;
       throw err instanceof Error ? err : new Error(String(err));
     } finally {
+      closeLlm();
       // Terminate the SDK query on every exit path. On normal completion the
       // query has already finished and this is a no-op; on an early `break`
       // (consumer cancelled) or a throw it is the only thing that stops the

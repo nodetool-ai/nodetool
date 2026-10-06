@@ -6,16 +6,30 @@ import {
   useState,
   type MouseEvent
 } from "react";
+import { useMutation } from "@tanstack/react-query";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
 import CloseIcon from "@mui/icons-material/Close";
-import type { AppDocument } from "../appbuilder/appData";
+import {
+  parseApplicationDocument,
+  type AppDocument
+} from "../appbuilder/appData";
 
+import {
+  defaultAppInstance,
+  type ServerAppInstance
+} from "../appbuilder/runtime/appInstanceApi";
+import {
+  loadPersistedVariables,
+  clearPersistedVariables
+} from "../appbuilder/runtime/variablePersistence";
 import ApplicationGovernancePanel from "../applications/ApplicationGovernancePanel";
 import ApplicationAppBuilder from "../appbuilder/ApplicationAppBuilder";
 import ApplicationRunView from "../appbuilder/ApplicationRunView";
 import AppBuilderAgentPanel from "../appbuilder/AppBuilderAgentPanel";
 import LinkedWorkflowsMenu from "./LinkedWorkflowsMenu";
 import { useApplication } from "../../hooks/useApplications";
+import { trpcClient } from "../../trpc/client";
+import ReportBugButton from "../support/ReportBugButton";
 import {
   tabId,
   useWorkspaceTabsStore,
@@ -24,6 +38,7 @@ import {
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import {
   Box,
+  AlertBanner,
   Caption,
   CircularActionButton,
   EmptyState,
@@ -40,6 +55,8 @@ import {
 
 interface ApplicationSurfaceProps {
   refId: string;
+  instanceId?: string;
+  selectedRunId?: string;
   mode?: WorkspaceTabMode;
 }
 
@@ -82,6 +99,8 @@ const overlayPanelSx = {
  */
 const ApplicationSurface = ({
   refId,
+  instanceId,
+  selectedRunId,
   mode = "view"
 }: ApplicationSurfaceProps) => {
   const {
@@ -153,26 +172,123 @@ const ApplicationSurface = ({
   // Background tabs stay mounted, so the linked graphs only load once this
   // app is the focused tab.
   const isActiveTab = useWorkspaceTabsStore(
-    (state) => state.activeTabId === tabId("application", refId)
+    (state) => state.activeTabId === tabId("application", refId, instanceId)
   );
   const setTabTitle = useWorkspaceTabsStore((state) => state.setTitle);
+  const tabs = useWorkspaceTabsStore((state) => state.tabs);
+  const openTab = useWorkspaceTabsStore((state) => state.openTab);
+  const openWorkingInstance = useMutation({
+    mutationFn: async () => {
+      if (!application) {
+        throw new Error("The app is still loading.");
+      }
+      const release = await trpcClient.applications.releasedDocument.query({
+        id: application.id
+      });
+      const document = parseApplicationDocument(
+        release?.document ?? application.document
+      );
+      if (!document) {
+        throw new Error("The app definition could not be loaded.");
+      }
+      const instance = await defaultAppInstance({
+        application_id: application.id,
+        source_id: `application:${application.id}`,
+        version: release?.version,
+        snapshot: { document, workflow_graphs: {}, script_documents: {} },
+        variables: loadPersistedVariables(
+          `application:${application.id}`,
+          document.variables
+        )
+      });
+      clearPersistedVariables(`application:${application.id}`);
+      return instance;
+    },
+    onSuccess: (instance) => {
+      openTab({
+        type: "application",
+        ref: refId,
+        instanceId: instance.id,
+        title: instance.name,
+        projectId: application?.projectId,
+        mode: "view"
+      });
+    },
+    retry: false
+  });
 
+  const [previewDocument, setPreviewDocument] = useState<AppDocument>();
+  const resolveInstance = useWorkspaceTabsStore(
+    (state) => state.resolveApplicationInstance
+  );
+  const selectRun = useWorkspaceTabsStore(
+    (state) => state.setApplicationRunSelection
+  );
+  const onInstanceReady = useCallback(
+    (instance: ServerAppInstance) => {
+      if (mode === "view") {
+        resolveInstance(refId, instance.id, instance.name);
+      }
+    },
+    [mode, refId, resolveInstance]
+  );
+  const onSelectRun = useCallback(
+    (id: string | null) => {
+      selectRun(tabId("application", refId, instanceId), id);
+    },
+    [refId, instanceId, selectRun]
+  );
   const handleViewChange = useCallback(
     (_event: MouseEvent<HTMLElement>, next: ApplicationView | null) => {
       if (!next) return;
+      if (next === "run" && mode === "edit") {
+        const existing = tabs.find(
+          (tab) =>
+            tab.type === "application" && tab.ref === refId && tab.instanceId
+        );
+        if (existing) {
+          openTab({
+            type: "application",
+            ref: refId,
+            instanceId: existing.instanceId,
+            title: existing.title,
+            projectId: existing.projectId,
+            mode: "view"
+          });
+        } else if (!openWorkingInstance.isPending) {
+          openWorkingInstance.mutate();
+        }
+        return;
+      }
+      if (next === "preview") {
+        const frozen = parseApplicationDocument(
+          draftDocument ?? application?.document
+        );
+        if (frozen) {
+          setPreviewDocument(structuredClone(frozen));
+        }
+      }
       setView(next);
       const mountedView = next === "preview" ? "run" : next;
       setOpened((views) =>
         views.includes(mountedView) ? views : [...views, mountedView]
       );
     },
-    []
+    [
+      draftDocument,
+      application?.document,
+      mode,
+      tabs,
+      refId,
+      openTab,
+      openWorkingInstance
+    ]
   );
 
   useEffect(() => {
-    if (!application) return;
+    if (!application || instanceId) return;
     setTabTitle(refId, "application", application.name || "Untitled app");
-  }, [application, refId, setTabTitle]);
+  }, [application, refId, instanceId, setTabTitle]);
 
   if (isLoading) {
     return <LoadingSpinner size="large" text="Loading app" />;
@@ -249,6 +365,18 @@ const ApplicationSurface = ({
             </FlexRow>
           </FlexRow>
         )}
+        {openWorkingInstance.error && (
+          <AlertBanner severity="error">
+            {openWorkingInstance.error.message}
+            <ReportBugButton
+              context={{
+                source: "operation-failure",
+                summary: "Could not open app instance",
+                errorText: openWorkingInstance.error.message
+              }}
+            />
+          </AlertBanner>
+        )}
         <Box sx={{ flex: 1, minHeight: 0, position: "relative" }}>
           {opened.includes("design") && (
             <Box
@@ -265,7 +393,7 @@ const ApplicationSurface = ({
               />
             </Box>
           )}
-          {opened.includes("run") && (
+          {opened.includes("run") && (mode !== "edit" || previewDocument) && (
             <Box
               data-testid="application-run-layer"
               aria-hidden={!isRunView}
@@ -274,8 +402,14 @@ const ApplicationSurface = ({
             >
               <ApplicationRunView
                 applicationId={application.id}
-                previewDraft={view === "preview"}
-                draftDocument={draftDocument}
+                instanceId={instanceId}
+                selectedRunId={selectedRunId}
+                onSelectRun={onSelectRun}
+                onInstanceReady={
+                  view === "preview" ? undefined : onInstanceReady
+                }
+                previewDraft={mode === "edit" || view === "preview"}
+                draftDocument={previewDocument}
               />
             </Box>
           )}

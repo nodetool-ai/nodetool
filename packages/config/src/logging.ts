@@ -33,6 +33,19 @@ export interface LoggingOptions {
   level?: LogLevel;
 }
 
+export interface LogEntry {
+  readonly level: LogLevel;
+  readonly source: string;
+  readonly message: string;
+  readonly args: readonly unknown[];
+}
+export type LogHook = (entry: LogEntry) => { message: string; args: readonly unknown[] };
+let logHook: LogHook | null = null;
+let invokingHook = false;
+
+/** Install the runtime hook without making configuration depend on telemetry. */
+export function setLogHook(hook: LogHook | null): void { logHook = hook; }
+
 const VALID_LEVELS: LogLevel[] = ["debug", "info", "warn", "error"];
 const LEVEL_NUM = {
   debug: 0,
@@ -187,6 +200,17 @@ function write(
   args: unknown[]
 ): void {
   if (LEVEL_NUM[level] < LEVEL_NUM[currentLevel]) return;
+  if (logHook && !invokingHook) {
+    invokingHook = true;
+    try {
+      const output = logHook({ level, source: name, message: msg, args });
+      msg = output.message;
+      args = [...output.args];
+    } catch {
+      msg = "Log recording failed";
+      args = [];
+    } finally { invokingHook = false; }
+  }
   const lc = LEVEL_COLOR[level];
   const ts = `${C.dim}${timestamp()}${C.reset}`;
   const lv = `${lc}${level.toUpperCase().padEnd(5)}${C.reset}`;

@@ -32,6 +32,7 @@ export const jobs = pgTable(
     // single-machine deployment; see packages/websocket/src/lib/instance-id.ts.
     runner_instance: text("runner_instance"),
     metadata_json: jsonText<Record<string, unknown>>()("metadata_json"),
+    has_run_trace: integer("has_run_trace").notNull().default(0),
     created_at: text("created_at").notNull(),
     updated_at: text("updated_at").notNull()
   },

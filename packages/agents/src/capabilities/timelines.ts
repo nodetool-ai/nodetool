@@ -37,7 +37,7 @@ import type {
   TimelineBridgeFinalState,
   TimelineFormatRetargeter,
   TimelineModel3DBaker
-} from "../evals/surfaces/timeline.js";
+} from "./timeline-bridge.js";
 import type { BakeCustomAnimationParams } from "../custom-animation-bake.js";
 import type { IsolateSubjectInput } from "./timeline-isolate-subject.js";
 import type { SavedOutput } from "../tools/asset-persist.js";
@@ -851,7 +851,7 @@ export async function applyOps(
     return applyTrackOps(sequence, document, ops);
   }
   const { createTimelineToolBridge } =
-    await import("../evals/surfaces/timeline.js");
+    await import("./timeline-bridge.js");
   let operationIndex = 0;
   const init: Parameters<typeof createTimelineToolBridge>[0] = {
     sequenceId: sequence.id,

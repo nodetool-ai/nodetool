@@ -22,8 +22,11 @@ describe('State', () => {
   });
 
   describe('mainWindow management', () => {
-    it('should return null initially', () => {
-      expect(getMainWindow()).toBeNull();
+    it('should return null before a fresh module receives a window', async () => {
+      await jest.isolateModulesAsync(async () => {
+        const freshState = await import('../state');
+        expect(freshState.getMainWindow()).toBeNull();
+      });
     });
 
     it('should set and get main window', () => {

@@ -939,3 +939,25 @@ export function migrateGraphNodeTypes<T extends MigratableGraph>(graph: T): T {
 
   return { ...graph, nodes, edges } as T;
 }
+
+/**
+ * Nodes whose dynamic inputs come from a provider schema only. A connection
+ * dropped on one must not create a manual dynamic input, and an agent tool must
+ * not declare an undeclared handle on one: the next schema load would not know
+ * about it. Replicate and Comfy are deliberately absent because their loaders
+ * merge existing dynamic properties back in, so a hand-made input survives.
+ * `fal.DynamicFal` and `kie.DynamicKie` are older ids still present in saved
+ * workflows.
+ */
+const SCHEMA_ONLY_DYNAMIC_INPUT_NODE_TYPES: ReadonlySet<string> = new Set([
+  "fal.dynamic.FalDynamic",
+  "fal.DynamicFal",
+  "kie.dynamic_schema.KieAI",
+  "kie.DynamicKie"
+]);
+
+export function isDynamicSchemaNodeType(
+  nodeType: string | null | undefined
+): boolean {
+  return nodeType != null && SCHEMA_ONLY_DYNAMIC_INPUT_NODE_TYPES.has(nodeType);
+}

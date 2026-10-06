@@ -4,6 +4,11 @@ const workflowFind = vi.fn();
 const workspaceFind = vi.fn();
 const ensureDefault = vi.fn();
 
+// This fixture exercises workspace resolution with synthetic database rows.
+vi.mock("@nodetool-ai/execution/service", () =>
+  import("../../execution/src/service/workflow-workspace.js")
+);
+
 vi.mock("@nodetool-ai/models", () => ({
   Workflow: { find: (u: string, id: string) => workflowFind(u, id) },
   Workspace: {

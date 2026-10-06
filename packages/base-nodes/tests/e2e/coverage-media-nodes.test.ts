@@ -1,5 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { promises as fs } from "node:fs";
+import { execFile } from "node:child_process";
+import { promisify } from "node:util";
 import os from "node:os";
 import path from "node:path";
 import {
@@ -1532,21 +1534,15 @@ describe("video nodes — full coverage", () => {
     expect(output.uri).toMatch(/vid_\d{8}\.mp4/);
   });
 
-  it("ForEachFrameNode yields no frames without ffmpeg", async () => {
-    const data = Buffer.from(new Array(4096).fill(42)).toString("base64");
+  it("ForEachFrameNode rejects invalid video instead of hiding extraction errors", async () => {
     const node = new ForEachFrameNode();
-    const frames: Array<Record<string, unknown>> = [];
-    node.assign({ video: { data } });
-    // ffmpeg is not available in test, so genProcess throws or yields nothing
-    try {
-      for await (const frame of node.genProcess()) {
-        frames.push(frame);
+    node.assign({ video: videoRef() });
+    const extraction = async (): Promise<void> => {
+      for await (const _frame of node.genProcess()) {
+        throw new Error("Invalid video unexpectedly produced a frame");
       }
-    } catch {
-      // expected: ffmpeg not available
-    }
-    // Either no frames or an error is acceptable without ffmpeg
-    expect(frames.length).toBeGreaterThanOrEqual(0);
+    };
+    await expect(extraction()).rejects.toThrow("Invalid data found when processing input");
   });
 
   it("ForEachFrameNode process returns empty", async () => {
@@ -1609,27 +1605,92 @@ describe("video nodes — full coverage", () => {
     expect(Array.from(outData)).toEqual([1, 2, 3, 4, 5]);
   });
 
-  it("VideoTransformNode subclasses pass through video", async () => {
-    const ref = videoRef();
-    for (const NodeClass of [
-      ResizeVideoNode,
-      RotateVideoNode,
-      SetSpeedVideoNode,
-      ColorBalanceVideoNode,
-      DenoiseVideoNode,
-      StabilizeVideoNode,
-      SharpnessVideoNode,
-      BlurVideoNode,
-      SaturationVideoNode,
-      AddSubtitlesVideoNode,
-      ChromaKeyVideoNode
-    ]) {
-      const _n = new NodeClass();
-      _n.assign({ video: ref });
-      const result = await _n.process();
-      expect((result.output as { data: string }).data.length).toBeGreaterThan(
-        0
+  it.each([
+    ResizeVideoNode,
+    RotateVideoNode,
+    SetSpeedVideoNode,
+    ColorBalanceVideoNode,
+    DenoiseVideoNode,
+    StabilizeVideoNode,
+    SharpnessVideoNode,
+    BlurVideoNode,
+    SaturationVideoNode,
+    AddSubtitlesVideoNode,
+    ChromaKeyVideoNode
+  ].map((NodeClass) => [NodeClass.name, NodeClass] as const))(
+    "%s rejects invalid video rather than returning unchanged bytes",
+    async (_name, NodeClass) => {
+      const node = new NodeClass();
+      node.assign({
+        video: videoRef(),
+        chunks: [{ text: "subtitle", start: 0, end: 1 }]
+      });
+      await expect(node.process()).rejects.toThrow(
+        "Invalid data found when processing input"
       );
+    }
+  );
+
+  it("AddSubtitlesVideoNode preserves exact bytes when no subtitles are requested", async () => {
+    const ref = videoRef();
+    const node = new AddSubtitlesVideoNode();
+    node.assign({ video: ref, chunks: [] });
+    expect((await node.process()).output).toMatchObject({
+      type: "video",
+      data: ref.data
+    });
+  });
+
+  it("ResizeVideoNode resizes real video and ForEachFrameNode extracts its selected frames", async () => {
+    const dir = await fs.mkdtemp(path.join(os.tmpdir(), "video-transform-test-"));
+    try {
+      const inputPath = path.join(dir, "input.mp4");
+      await promisify(execFile)("ffmpeg", [
+        "-y", "-f", "lavfi", "-i", "color=c=red:s=32x24:r=4:d=1",
+        "-c:v", "mpeg4", inputPath
+      ]);
+      const resize = new ResizeVideoNode();
+      resize.assign({
+        video: videoRef((await fs.readFile(inputPath)).toString("base64")),
+        width: 16,
+        height: 12
+      });
+      const result = await resize.process();
+      const info = new GetVideoInfoNode();
+      info.assign({ video: result.output });
+      expect(await info.process()).toMatchObject({
+        width: 16,
+        height: 12,
+        frame_count: 4
+      });
+
+      const extract = new ForEachFrameNode();
+      extract.assign({ video: result.output, start: 1, end: 2 });
+      const frames = [];
+      for await (const frame of extract.genProcess()) {
+        frames.push(frame);
+      }
+      expect(frames.map(({ index, fps }) => ({ index, fps }))).toEqual([
+        { index: 1, fps: 4 },
+        { index: 2, fps: 4 }
+      ]);
+      const sharp = (await import("sharp")).default;
+      for (const { frame } of frames) {
+        expect(frame.type).toBe("image");
+        const { data, info } = await sharp(Buffer.from(frame.data, "base64"))
+          .removeAlpha()
+          .raw()
+          .toBuffer({ resolveWithObject: true });
+        expect({ width: info.width, height: info.height }).toEqual({
+          width: 16,
+          height: 12
+        });
+        expect(data[0]).toBeGreaterThan(240);
+        expect(data[1]).toBeLessThan(10);
+        expect(data[2]).toBeLessThan(10);
+      }
+    } finally {
+      await fs.rm(dir, { recursive: true, force: true });
     }
   });
 

@@ -76,7 +76,7 @@ export {
   headlessGate,
   headlessDenialReason
 } from "./tools/tool-permissions.js";
-export { gateLegacyTools, capabilityRunForLegacyTool } from "./capabilities/legacy-tools.js";
+export { gateLegacyTools, capabilityRunForLegacyTool, capabilityRunForTools } from "./capabilities/legacy-tools.js";
 export { gateFromContext } from "./capabilities/gate-from-context.js";
 export {
   agentActivityReporter,
@@ -392,7 +392,7 @@ export {
   sandboxToolBridgeGlobals,
   NODETOOL_PRELUDE
 } from "./sandbox-toolbelt.js";
-export type { ToolSignatureSource } from "./codeact/tool-api.js";
+export type { ToolBridgeOptions, ToolSignatureSource } from "./codeact/tool-api.js";
 export { compactResourceIds, compactAssetUris } from "./codeact/compact-ids.js";
 export { createChatCodeActSession } from "./codeact/chat-codeact.js";
 export type {

@@ -120,10 +120,23 @@ the `workflow` property, the derived `dynamic_inputs`/`dynamic_outputs`, and
 default values for the exposed inputs. Values you had already edited on handles
 that still exist are preserved.
 
+The server does the parsing: the dialog sends the JSON or the PNG to
+`POST /api/comfy/resolve-workflow` and shows what comes back.
+
+### Setting the workflow without the editor
+
+A graph created over the API, by an agent, or from a file can set `workflow`
+directly and leave `dynamic_inputs` and `dynamic_outputs` empty. Before every
+run the server derives the same handles from `workflow` and merges them under
+any saved on the node, so an edge from `15:image` or into `4:text` works
+without the workflow ever being opened in the editor. When the editor opens
+such a node, it writes the derived handles onto it so they show on the canvas.
+
 ### What becomes an input or an output
 
-The parser (`web/src/utils/comfyDynamicSchema.ts`) reads the prompt and derives
-handles. Every dynamic handle is keyed **`<comfyNodeId>:<field>`**.
+The parser (`packages/integration-nodes/src/nodes/comfy-schema.ts`) reads the
+prompt and derives handles. Every dynamic handle is keyed
+**`<comfyNodeId>:<field>`**.
 
 **Typed media inputs** come from `Load*` classes. Curated classes map to a known
 field and type — `LoadImage`, `LoadImageMask`, `LoadImageOutput` (image),
@@ -140,8 +153,14 @@ back to the same name-based guess. Each output slot is keyed
 `<comfyNodeId>:<image|audio|video>` and carries a **singular** media type,
 because outputs stream one item per file.
 
+**Prompt text inputs** come from text-encoder classes, any class whose name
+contains `TextEncode` (`CLIPTextEncode`, `CLIPTextEncodeSDXL`,
+`TextEncodeQwenImageEdit`, …). Each literal string field becomes an optional
+`str` input, so a prompt from another node can be wired in. Left unconnected,
+it keeps the exported text.
+
 **Everything else literal** is offered in the loader dialog as a checkbox list
-under *Expose additional parameters as inputs* — seeds, steps, CFG, prompt text.
+under *Expose additional parameters as inputs* — seeds, steps, CFG, sizes.
 Ticking one adds an optional input handle with the value's inferred type
 (`bool`, `int`, `float`, `str`). Inputs that are ComfyUI connections
 (`[sourceNodeId, slot]`) are never offered; they're wired inside the workflow.

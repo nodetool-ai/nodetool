@@ -144,7 +144,8 @@ describe("useWidgetRuntime", () => {
         result.current.emit("click");
       });
       expect(dispatch).toHaveBeenCalledWith(
-        expect.objectContaining({ kind: "run" })
+        expect.objectContaining({ kind: "run" }),
+        { widgetId: "widget-7" }
       );
     });
 

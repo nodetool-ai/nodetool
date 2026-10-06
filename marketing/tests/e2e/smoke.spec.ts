@@ -1,5 +1,6 @@
 import { test, expect } from "@playwright/test";
 import { recipeEntries } from "../../src/data/recipes";
+import { storyboardExamples } from "../../src/data/storyboardExamples";
 
 // Static route/metadata/media coverage lives in static-seo.spec.ts and uses
 // HTTP responses. Browser work stays representative so hydration and user
@@ -127,6 +128,35 @@ test.describe("marketing smoke", () => {
     expect(
       await page.evaluate(() => document.documentElement.scrollWidth)
     ).toBeLessThanOrEqual(390);
+  });
+
+  test("homepage shows the ad library and the example storyboards", async ({
+    page
+  }) => {
+    await page.goto("/");
+
+    const ads = page.getByRole("region", {
+      name: "Find the shape of your next ad."
+    });
+    await expect(ads.locator('a[href^="/ad-library/"]')).toHaveCount(4);
+    await expect(ads.locator('a[href="/ad-library"]')).toBeVisible();
+
+    const boards = page.getByRole("region", {
+      name: "Start from a directed board."
+    });
+    await expect(boards.getByRole("article")).toHaveCount(
+      storyboardExamples.length
+    );
+    const stills = boards.locator("img");
+    await expect(stills).toHaveCount(
+      storyboardExamples.reduce((sum, board) => sum + board.shots.length, 0)
+    );
+    for (const still of await stills.all()) {
+      await still.scrollIntoViewIfNeeded();
+      await expect
+        .poll(() => still.evaluate((img: HTMLImageElement) => img.naturalWidth))
+        .toBeGreaterThan(0);
+    }
   });
 
   test("advertising showcase opens the impossible product worlds recipe", async ({

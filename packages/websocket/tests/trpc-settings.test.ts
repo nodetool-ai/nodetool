@@ -196,14 +196,14 @@ describe("settings router", () => {
       });
     });
 
-    it("does not call clearProviderCache when only plain settings change", async () => {
+    it("clears the provider cache when a plain setting changes (provider URLs)", async () => {
       (Setting.upsert as ReturnType<typeof vi.fn>).mockResolvedValue({});
 
       const caller = createCaller(makeCtx());
       await caller.settings.update({
         settings: { VLLM_BASE_URL: "http://localhost:8000" }
       });
-      expect(clearProviderCache).not.toHaveBeenCalled();
+      expect(clearProviderCache).toHaveBeenCalled();
     });
 
     it("rejects unauthenticated callers", async () => {

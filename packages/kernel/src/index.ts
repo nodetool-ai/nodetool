@@ -91,7 +91,9 @@ export {
   dynamicSlotPropertyTypes,
   dynamicSlotTypeErrorMessage,
   dynamicSlotTypeString,
-  getDynamicSlotTypeString
+  getDynamicSlotTypeString,
+  mergeDerivedSlots,
+  type DerivedDynamicSlots
 } from "./dynamic-slots.js";
 export {
   findNodeOrThrow,

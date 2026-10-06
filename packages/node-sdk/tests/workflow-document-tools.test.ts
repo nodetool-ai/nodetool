@@ -30,6 +30,16 @@ const metadataByType: Record<string, NodeMetadata> = {
   "test.Source": metadata("test.Source", {}, { output: "str" }),
   "test.Sink": metadata("test.Sink", { value: "str" }, {}),
   "test.NumberSink": metadata("test.NumberSink", { value: "float" }, {}),
+  "test.Image": metadata("test.Image", {}, { output: "image" }),
+  "test.Any": metadata("test.Any", {}, { output: "any" }),
+  "test.Concat": {
+    ...metadata("test.Concat", {}, { output: "str" }),
+    supports_dynamic_inputs: true
+  },
+  "kie.dynamic_schema.KieAI": {
+    ...metadata("kie.dynamic_schema.KieAI", {}, { output: "image" }),
+    supports_dynamic_inputs: true
+  },
   "nodetool.code.Code": {
     ...metadata("nodetool.code.Code", { code: "str" }, {}),
     properties: [
@@ -181,6 +191,79 @@ describe("applyWorkflowDocumentTool", () => {
     expect(second.graph.edges).toHaveLength(1);
     expect(second.changed).toBe(false);
     expect(second.result).toMatchObject({ note: "edge already exists" });
+  });
+
+  it("declares an undeclared input on a dynamic-input node, typed after the source", () => {
+    const graph: Graph = {
+      nodes: [
+        { id: "text", type: "test.Source", data: {} },
+        { id: "image", type: "test.Image", data: {} },
+        { id: "anything", type: "test.Any", data: {} },
+        { id: "concat", type: "test.Concat", data: {} }
+      ],
+      edges: []
+    };
+    const connect = (g: Graph, source: string, handle: string) =>
+      applyWorkflowDocumentTool(
+        g,
+        "ui_connect_nodes",
+        {
+          source_node_id: source,
+          source_handle: "output",
+          target_node_id: "concat",
+          target_handle: handle
+        },
+        options
+      );
+
+    const a = connect(graph, "text", "a");
+    const b = connect(a.graph, "image", "b");
+    const c = connect(b.graph, "anything", "c");
+
+    expect(a.result).toMatchObject({ ok: true, declared_input: "a" });
+    expect(c.graph.edges.map((edge) => edge.targetHandle)).toEqual([
+      "a",
+      "b",
+      "c"
+    ]);
+    const concat = c.graph.nodes.find((node) => node.id === "concat");
+    expect(concat?.dynamic_properties).toEqual({ a: "", b: "", c: "" });
+    // An `any` source leaves the slot an untyped legacy slot.
+    expect(concat?.dynamic_inputs).toEqual({
+      a: { type: { type: "str", type_args: [] } },
+      b: { type: { type: "image", type_args: [] } }
+    });
+
+    // Reconnecting to the now-declared slot is the idempotent duplicate path.
+    expect(connect(c.graph, "text", "a").result).toMatchObject({
+      note: "edge already exists"
+    });
+  });
+
+  it("does not declare inputs on schema-driven or fixed-port nodes", () => {
+    const graph: Graph = {
+      nodes: [
+        { id: "text", type: "test.Source", data: {} },
+        { id: "kie", type: "kie.dynamic_schema.KieAI", data: {} },
+        { id: "sink", type: "test.Sink", data: {} }
+      ],
+      edges: []
+    };
+    for (const target of ["kie", "sink"]) {
+      expect(() =>
+        applyWorkflowDocumentTool(
+          graph,
+          "ui_connect_nodes",
+          {
+            source_node_id: "text",
+            source_handle: "output",
+            target_node_id: target,
+            target_handle: "prompt_text"
+          },
+          options
+        )
+      ).toThrow("Target handle 'prompt_text' not found");
+    }
   });
 
   it("rejects incompatible handles and cycles", () => {

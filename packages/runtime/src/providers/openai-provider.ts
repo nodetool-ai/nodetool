@@ -1,3 +1,5 @@
+import { context, trace } from "@opentelemetry/api";
+import { tracedProviderLoop, tracedToolCall, beginProviderRound, providerRoundContext, tracedProviderLlm } from "./loop-tracing.js";
 import OpenAI, { toFile } from "openai";
 // `sharp` is loaded lazily at the call site. Importing it at module scope
 // pulls its native binding into anything that re-exports this provider —
@@ -1476,10 +1478,11 @@ export class OpenAIProvider extends BaseProvider {
       resolveMedia?: (messages: Message[]) => Promise<Message[]>;
     }
   ): AsyncGenerator<ProviderStreamItem> {
-    if (!this.usesResponsesApi(args.model)) {
-      yield* super.generateLoop(args);
-      return;
-    }
+    if (!this.usesResponsesApi(args.model)) { return yield* super.generateLoop(args); }
+    return yield* tracedProviderLoop(this.provider, args.model, () => this.generateResponsesLoop(args));
+  }
+
+  private async *generateResponsesLoop(args: Parameters<OpenAIProvider["generateLoop"]>[0]): AsyncGenerator<ProviderStreamItem> {
     const maxIterations = args.maxIterations ?? 25;
     const {
       executeTool,
@@ -1611,7 +1614,18 @@ export class OpenAIProvider extends BaseProvider {
     yield* streamResponsesEvents(stream, {
       model: args.model,
       buildToolCall: this.buildToolCall.bind(this),
-      onUsage: (model, usage) => this.trackUsage(model, usage),
+      onUsage: (model, usage) => {
+        const cost = this.trackUsage(model, usage);
+        const span = trace.getActiveSpan();
+        span?.setAttributes({
+          "gen_ai.usage.input_tokens": usage.inputTokens ?? 0,
+          "gen_ai.usage.output_tokens": usage.outputTokens ?? 0,
+          "gen_ai.usage.total_tokens": (usage.inputTokens ?? 0) + (usage.outputTokens ?? 0),
+        });
+        if (usage.cachedTokens !== undefined) { span?.setAttribute("gen_ai.usage.cached_input_tokens", usage.cachedTokens); }
+        if (this.unpricedReason === null) { span?.setAttribute("gen_ai.usage.cost_usd", cost); }
+        return cost;
+      },
       onResponseId
     });
   }
@@ -1683,6 +1697,7 @@ export class OpenAIProvider extends BaseProvider {
           return;
         }
       }
+      beginProviderRound(this.provider, config.args.model);
       const costBeforeTurn = config.turnBudget ? this.getTotalCost() : 0;
 
       // The reservation covers exactly one turn, so it has to be reconciled
@@ -1697,12 +1712,8 @@ export class OpenAIProvider extends BaseProvider {
           previousResponseId,
           providedToolsOnly: config.providedToolsOnly
         });
-        yield* this.collectResponsesTurn(
-          config.args,
-          request,
-          config.systemHash,
-          state
-        );
+        const llm = context.with(providerRoundContext(), () => tracedProviderLlm(this.provider, config.args.model, transcript, () => this.collectResponsesTurn(config.args, request, config.systemHash, state)));
+        yield* llm;
       } finally {
         if (config.turnBudget && reservation) {
           config.turnBudget.commit(
@@ -1746,8 +1757,8 @@ export class OpenAIProvider extends BaseProvider {
         // results and leave a dangling tool_use (rejected by the API next turn).
         try {
           const tool = toolMap.get(tc.name);
-          if (tool?.execute) return await tool.execute(tc.args ?? {}, tc.id);
-          if (config.executeTool) return await config.executeTool(tc);
+          if (tool?.execute) { const execute = tool.execute; return await tracedToolCall(tc, () => execute(tc.args ?? {}, tc.id)); }
+          if (config.executeTool) { const execute = config.executeTool; return await tracedToolCall(tc, () => execute(tc)); }
           return `Tool "${tc.name}" is not available`;
         } catch (err) {
           return `Error executing tool "${tc.name}": ${

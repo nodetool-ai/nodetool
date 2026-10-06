@@ -14,6 +14,7 @@ import {
   nextUpdatedAtAfter
 } from "./base-model.js";
 import { getPortableDb } from "./db.js";
+import { eraseRunTraceParentForModelDeletion } from "./run-trace.js";
 import { workflows } from "./schema/workflows.js";
 import { WorkflowCollaborator } from "./workflow-collaborator.js";
 import { WorkflowShare } from "./workflow-share.js";
@@ -86,6 +87,12 @@ export class Workflow extends DBModel {
   declare access: AccessLevel;
   declare created_at: string;
   declare updated_at: string;
+
+  override async delete(): Promise<void> {
+    await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: this.id });
+    await super.delete();
+    await eraseRunTraceParentForModelDeletion({ kind: "workflow", id: this.id });
+  }
 
   constructor(data: Record<string, unknown>) {
     super(data);

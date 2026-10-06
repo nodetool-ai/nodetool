@@ -1253,6 +1253,60 @@ nodetool jobs list --workflow-id workflow_abc123
 nodetool jobs get <job_id>
 ```
 
+### `nodetool runs`
+
+Inspect durable app runs, workflow jobs and chat turns. Reads the local
+database as the local account by default. `--api-url <url>` or
+`NODETOOL_API_URL` selects a server. Every query stays within the caller's account.
+Local reads apply pending SQLite migrations before opening the database.
+
+Run IDs accept their full value or an exact 12-character resource prefix.
+Ambiguous prefixes fail. Trace and span IDs always retain their full OTel
+values. `show`, `trace` and `logs` also accept a workflow job or chat message
+ID when it identifies a recorded run.
+
+| Command | Output and filters |
+|---|---|
+| `runs list` | Newest runs. `--kind app\|workflow\|chat`, `--app-id`, `--instance-id`, `--workflow-id`, `--thread-id`, `--status running\|completed\|failed\|cancelled`, `--origin ui\|agent\|cli\|debug\|public`, `--since <ISO time>`, `--until <ISO time>`, `--limit` (default 20, maximum 100), `--cursor` |
+| `runs show <id>` | Record and bounded summary: failed span and root path, provider costs, slow spans, span counts, generations, documents and content flags. `--include-content` adds capped app run inputs and outputs |
+| `runs trace <id>` | Span tree. `--depth` (default 4, maximum 64), `--focus <full span ID>`, `--name`, `--errors-only`, `--limit` (default 100, maximum 500) |
+| `runs logs <id>` | Events, oldest first. `--level`, `--source`, `--span <full span ID>`, `--since-ms`, `--until-ms`, `--limit` (default 100, maximum 500), `--cursor` |
+| `runs tail <id>` | Follow until terminal. `--cursor` (default 0), `--limit` (default 100, maximum 500), `--poll-interval <ms>` (default 250, range 10–5000), `--timeout <seconds>` |
+
+Each command accepts `--json`. Single reads return the shared runs service's
+JSON result. Lists and logs return an opaque `next_cursor` for the next page.
+Content is excluded by default. `show --include-content` adds the app record's
+capped inputs and outputs. `trace --include-content` requires `--focus`.
+`logs --include-content` and `tail --include-content` return capped owner
+content. Results report expired, absent, visitor or suppressed content and
+trace truncation or incompleteness.
+
+`tail --json` emits NDJSON, one object per line. Its frame types are
+`resnapshot`, `span`, `event`, `reconnecting`, `terminal`, `interrupted`,
+`gap` and `error`. The store retains each span's latest complete snapshot, so a
+`resnapshot` frame warns that intermediate updates may have been coalesced.
+Replace cached spans by their full snapshot. Event frames are deduplicated by
+span ID and stable event ID during the process. After a connection loss, tail
+retries from its durable cursor. Save the final `cursor` to resume in another
+process. A terminal run with all spans ended drains its remaining snapshots and
+returns immediately. If final spans are still arriving, tail waits until they
+end or until one second passes without a new cursor, with a five-second maximum
+drain. An unfinished trace produces a `gap` frame and a terminal frame with
+`trace_settled: false`. Reader limits appear on `resnapshot` frames. Deduplication
+memory is bounded by the store's span and event caps. A `dedup_limit` gap warns
+if later records exceed those bounds.
+Ctrl-C stops following, removes the signal handler and exits 130. It does not
+cancel the run. A timeout or read error exits 1. Following a failed run to its
+terminal record exits 0.
+
+```bash
+nodetool runs list --kind app --status failed --json
+nodetool runs show <run_id> --json
+nodetool runs trace <run_id> --focus <span_id> --include-content --json
+nodetool runs logs <run_id> --level error --include-content --json
+nodetool runs tail <run_id> --cursor 42 --json
+```
+
 ## Asset Management
 
 ### `nodetool assets`

@@ -2,6 +2,7 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, it, expect, vi } from "vitest";
 import { NodeRegistry } from "@nodetool-ai/node-sdk";
+import { supportsPlatform } from "@nodetool-ai/protocol";
 import { BaseProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import {
   registerBaseNodes,
@@ -72,6 +73,16 @@ describe("base node registration", () => {
     expect(registry.has("nodetool.triggers.FileWatchTrigger")).toBe(true);
     expect(registry.has("nodetool.image.TextToImage")).toBe(true);
     expect(registry.has("nodetool.video.Resize")).toBe(true);
+  });
+
+  it("preserves Preview browser eligibility alongside its custom output metadata", () => {
+    const registry = new NodeRegistry();
+    registerBaseNodes(registry);
+    const metadata = registry.getMetadata(PreviewNode.nodeType);
+    expect(metadata?.effect).toBe("read");
+    expect(supportsPlatform(metadata?.platforms, "browser")).toBe(true);
+    expect(metadata?.outputs).toEqual([{ name: "output", type: { type: "any", type_args: [] } }]);
+    expect(metadata?.inline_fields).toEqual(["value", "name"]);
   });
 });
 

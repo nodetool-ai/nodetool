@@ -27,6 +27,7 @@ export interface WebSocketMessage {
   thread_id?: string;
   workflow_id?: string;
   job_id?: string;
+  run_id?: string;
   [key: string]: unknown;
 }
 
@@ -350,6 +351,10 @@ class GlobalWebSocketManager extends EventEmitter<GlobalWebSocketEvents> {
 
     if (message.job_id) {
       routingKeys.add(message.job_id);
+    }
+
+    if (message.run_id) {
+      routingKeys.add(message.run_id);
     }
 
     if (isRpcResponse(message)) {

@@ -4,10 +4,12 @@
  * One simulation of an app document — widget spec, static wiring check,
  * interaction script, run folding, verdict — for every host that reports on an
  * app: the `nodetool app debug` harness, the agent-facing build loop, and the
- * server. Target resolution and bundle writing stay with the host; nothing here
- * reads a database or a file.
+ * server. Target resolution and bundle writing stay with the host. Durable
+ * recording wraps each executed operation in an app run.
  */
 export { simulateApp, defaultInteractions } from "./simulate.js";
+export { createAppDebugRunRecording } from "./run-recording.js";
+export type { AppDebugRecordingOptions } from "./run-recording.js";
 export type {
   AppServerRunInput,
   AppServerRunOutcome,

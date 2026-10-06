@@ -51,6 +51,13 @@ const document = (...operations: OperationBinding[]): ApplicationDocument => ({
 });
 
 describe("operation targets", () => {
+  it("preserves a workflow version carried in the explicit target", () => {
+    const parsed = parseApplicationDocument({ schemaVersion: 4, ui: createEmptyPuckData(),
+      operations: [{ id: "main", name: "Run", target: { kind: "workflow", workflowId: "wf1", workflowVersion: 7 } }]
+    });
+    expect(operationTarget(parsed!.operations[0])).toEqual({ kind: "workflow", workflowId: "wf1", workflowVersion: 7 });
+  });
+
   it("reads a v3 operation as a workflow target", () => {
     const parsed = parseApplicationDocument({
       schemaVersion: 3,

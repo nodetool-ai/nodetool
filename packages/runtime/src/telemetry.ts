@@ -27,15 +27,19 @@
  * trace-exporters.ts) so a downstream agent can ingest either one.
  */
 
-import type { Tracer } from "@opentelemetry/api";
-import { createLogger } from "@nodetool-ai/config";
+import { context, propagation, trace, type Tracer } from "@opentelemetry/api";
+import { createLogger, setLogHook } from "@nodetool-ai/config";
 import type { StdoutFormat } from "./trace-exporters.js";
+import { ContentFilteringSpanExporter, RunTraceSpanProcessor, installRunTraceLogHook } from "./run-trace-processor.js";
+import { getRunTraceScope } from "./run-trace-context.js";
+import { TRACE_SPAN_EVENT_LIMIT } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.telemetry");
 
 let _tracer: Tracer | null = null;
 let _initialized = false;
 let _sdk: { shutdown: () => Promise<void> } | null = null;
+let _processors: import("@opentelemetry/sdk-trace-base").SpanProcessor[] = [];
 
 export interface TelemetryOptions {
   /** Override the service name (defaults to OTEL_SERVICE_NAME or "nodetool"). */
@@ -62,7 +66,7 @@ export interface TelemetryOptions {
  * Initialize OpenTelemetry instrumentation.
  *
  * Idempotent: calling more than once is a no-op (returns the previous result).
- * Returns true if at least one sink is active, false if telemetry was skipped.
+ * The durable processor is always active. External sinks remain optional.
  */
 export async function initTelemetry(
   options: TelemetryOptions = {}
@@ -89,18 +93,13 @@ export async function initTelemetry(
   const traceFilePath = options.traceFile ?? process.env["NODETOOL_TRACE_FILE"];
 
   const hasOtlp = !!(traceloopKey || otlpEndpoint || otlpTracesEndpoint);
-  if (!hasOtlp && !consoleMode && !stdoutFormat && !traceFilePath) {
-    _initialized = true;
-    return false;
-  }
-
   const { NodeSDK } = await import("@opentelemetry/sdk-node");
   const { resourceFromAttributes } = await import("@opentelemetry/resources");
   const { ATTR_SERVICE_NAME } = await import(
     "@opentelemetry/semantic-conventions"
   );
   const otelApi = await import("@opentelemetry/api");
-  const { BatchSpanProcessor, SimpleSpanProcessor, ConsoleSpanExporter } =
+  const { BatchSpanProcessor, SimpleSpanProcessor, ConsoleSpanExporter, RandomIdGenerator, AlwaysOnSampler } =
     await import("@opentelemetry/sdk-trace-base");
 
   const serviceName =
@@ -109,8 +108,10 @@ export async function initTelemetry(
   const disableBatch =
     options.disableBatch ?? process.env["TRACELOOP_DISABLE_BATCH"] === "true";
 
-  const processors: unknown[] = [];
-  const destinations: string[] = [];
+  const processor = new RunTraceSpanProcessor();
+  const processors: import("@opentelemetry/sdk-trace-base").SpanProcessor[] = [processor];
+  _processors = processors;
+  const destinations: string[] = ["run-store"];
 
   if (hasOtlp) {
     const { OTLPTraceExporter } = await import(
@@ -126,19 +127,19 @@ export async function initTelemetry(
       : {};
     const exporter = new OTLPTraceExporter({ url, headers });
     const Proc = disableBatch ? SimpleSpanProcessor : BatchSpanProcessor;
-    processors.push(new Proc(exporter));
+    processors.push(new Proc(new ContentFilteringSpanExporter(exporter)));
     destinations.push(traceloopKey ? "traceloop" : `otlp:${url}`);
   }
 
   if (consoleMode) {
-    processors.push(new SimpleSpanProcessor(new ConsoleSpanExporter()));
+    processors.push(new SimpleSpanProcessor(new ContentFilteringSpanExporter(new ConsoleSpanExporter())));
     destinations.push("otel-console");
   }
 
   if (stdoutFormat) {
     const { StdoutSpanExporter } = await import("./trace-exporters.js");
     processors.push(
-      new SimpleSpanProcessor(new StdoutSpanExporter(stdoutFormat))
+      new SimpleSpanProcessor(new ContentFilteringSpanExporter(new StdoutSpanExporter(stdoutFormat)))
     );
     destinations.push(`stdout:${stdoutFormat}`);
   }
@@ -148,7 +149,7 @@ export async function initTelemetry(
     // SimpleSpanProcessor — we want the file written eagerly so a crash
     // doesn't lose recent spans, and disk I/O is cheap enough.
     processors.push(
-      new SimpleSpanProcessor(new JsonlFileSpanExporter(traceFilePath))
+      new SimpleSpanProcessor(new ContentFilteringSpanExporter(new JsonlFileSpanExporter(traceFilePath)))
     );
     destinations.push(`file:${traceFilePath}`);
   }
@@ -161,9 +162,14 @@ export async function initTelemetry(
     "@opentelemetry/instrumentation-undici"
   );
 
+  const ids = new RandomIdGenerator();
   const sdk = new NodeSDK({
     resource: resourceFromAttributes({ [ATTR_SERVICE_NAME]: serviceName }),
-    spanProcessors: processors as never,
+    autoDetectResources: false,
+    spanProcessors: processors,
+    sampler: new AlwaysOnSampler(),
+    spanLimits: { eventCountLimit: TRACE_SPAN_EVENT_LIMIT },
+    idGenerator: { generateTraceId: () => getRunTraceScope()?.traceId ?? ids.generateTraceId(), generateSpanId: () => ids.generateSpanId() },
     instrumentations: [new UndiciInstrumentation()]
   });
 
@@ -175,6 +181,7 @@ export async function initTelemetry(
   _sdk = sdk;
   _tracer = otelApi.trace.getTracer("nodetool", "0.1.0");
   _initialized = true;
+  installRunTraceLogHook();
 
   if (!options.silent) {
     log.info("OpenTelemetry initialized", {
@@ -201,6 +208,7 @@ export async function shutdownTelemetry(): Promise<void> {
   _sdk = null;
   _tracer = null;
   _initialized = false;
+  _processors = [];
   if (sdk) {
     try {
       await sdk.shutdown();
@@ -211,6 +219,12 @@ export async function shutdownTelemetry(): Promise<void> {
       );
     }
   }
+  setLogHook(null);
+}
+
+/** Wait until the durable processor has persisted every queued completed record. */
+export async function flushTelemetry(): Promise<void> {
+  await Promise.all(_processors.map((processor) => processor.forceFlush()));
 }
 
 /**
@@ -221,4 +235,9 @@ export function _resetTelemetryForTest(): void {
   _tracer = null;
   _initialized = false;
   _sdk = null;
+  _processors = [];
+  setLogHook(null);
+  trace.disable();
+  context.disable();
+  propagation.disable();
 }

@@ -351,6 +351,44 @@ export function updateBrowserJobNodeProperties(
 export async function runBrowserGraphJob(
   options: BrowserGraphJobOptions
 ): Promise<BrowserGraphJobResult> {
+  const jobId = options.jobId ?? crypto.randomUUID();
+  const recorder = options.trace;
+  const workflowSpan = recorder?.startSpan("workflow.run", {
+    "workflow.id": options.workflowId, "workflow.node_count": options.graph.nodes?.length ?? 0
+  }, options.traceParentSpanId);
+  const nodes = new Map<string, import("../browserRunTrace").BrowserSpan>();
+  const nodeTypes = new Map(options.graph.nodes.map((node) => [node.id, node.type]));
+  const unsubscribe = recorder && workflowSpan
+    ? globalWebSocketManager.subscribe(jobId, (message) => {
+      if (message.type !== "node_update" || typeof message.node_id !== "string") { return; }
+      const nodeId = message.node_id;
+      if (message.status === "running" && !nodes.has(nodeId)) {
+        nodes.set(nodeId, recorder.startSpan("node.process", {
+          "node.id": nodeId, "node.type": nodeTypes.get(nodeId) ?? "unknown"
+        }, workflowSpan.spanId));
+      } else if (message.status === "completed" || message.status === "error") {
+        nodes.get(nodeId)?.end(message.status === "error" ? new Error(typeof message.error === "string" ? message.error : "Node failed") : undefined);
+        nodes.delete(nodeId);
+      }
+    }) : undefined;
+  try {
+    const result = await executeBrowserGraphJob({ ...options, jobId });
+    const error = result.success ? undefined : new Error(result.error ?? "Browser workflow failed");
+    for (const node of nodes.values()) { node.end(error); }
+    workflowSpan?.end(error);
+    return result;
+  } catch (error) {
+    for (const node of nodes.values()) { node.end(error); }
+    workflowSpan?.end(error);
+    throw error;
+  } finally {
+    unsubscribe?.();
+  }
+}
+
+async function executeBrowserGraphJob(
+  options: BrowserGraphJobOptions
+): Promise<BrowserGraphJobResult> {
   // Sandbox modules are fetched here, before either path starts: the catalog
   // contract is synchronous, and the same verified records seed the catalog on
   // whichever side ends up running. A module that cannot be had fails the job

@@ -19,18 +19,26 @@
  */
 
 import { randomUUID } from "node:crypto";
-import { createLogger } from "@nodetool-ai/config";
+import { createLogger, getDefaultAssetsPath } from "@nodetool-ai/config";
+import { FileStorageAdapter } from "@nodetool-ai/storage";
+import { parseApplicationBundle } from "@nodetool-ai/app-runtime";
 import {
   Application,
+  AppRunError,
   Workflow,
+  WorkflowVersion,
+  getSecret,
+  resolveAppInstanceApplicationId,
   createJsScriptResolver
 } from "@nodetool-ai/models";
 import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import type { JsScriptOperationRunner } from "../app-debug/script-operation.js";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import type { StorageAdapter } from "@nodetool-ai/runtime";
+import { ProcessingContext, type StorageAdapter } from "@nodetool-ai/runtime";
 import {
   applicationTarget,
+  bundleTarget,
+  createAppDebugRunRecording,
   inlineDocumentTarget,
   simulateApp,
   summarizeAppReport
@@ -96,7 +104,8 @@ export interface AppDebugDeps {
   /** Load a workflow's graph by id, scoped to the user. */
   loadWorkflow?: (
     userId: string,
-    id: string
+    id: string,
+    version?: number
   ) => Promise<AppWorkflowRecord | null>;
   /** Load an application row by id. */
   loadApplication?: (
@@ -109,6 +118,8 @@ export interface AppDebugDeps {
    * such an operation reports as unexecutable instead of being skipped.
    */
   runScript?: JsScriptOperationRunner;
+  context?: ProcessingContext;
+  scriptRunner?: (context: ProcessingContext, input: Parameters<JsScriptOperationRunner>[0]) => ReturnType<JsScriptOperationRunner>;
   /** The store `asset://<id>` inputs in the app's workflows resolve through. */
   assetStorage?: StorageAdapter | null;
 }
@@ -129,10 +140,14 @@ async function loadUserJsScript(
 /** A workflow the user can read, in the shape the simulator wants. */
 async function loadUserWorkflow(
   userId: string,
-  id: string
+  id: string,
+  version?: number
 ): Promise<AppWorkflowRecord | null> {
   const workflow = await Workflow.find(userId, id);
-  const graph = workflow?.getGraph();
+  if (!workflow) { return null; }
+  const pinned = version === undefined ? null : await WorkflowVersion.findByVersion(workflow.id, version);
+  if (version !== undefined && (!pinned || pinned.user_id !== workflow.user_id)) { return null; }
+  const graph = pinned?.graph ?? workflow.getGraph();
   return graph ? { graph } : null;
 }
 
@@ -141,7 +156,14 @@ async function loadUserApplication(
   userId: string,
   id: string
 ): Promise<{ id: string; name: string; document: unknown } | null> {
-  const application = await Application.findById(id);
+  let fullId: string;
+  try { fullId = await resolveAppInstanceApplicationId(userId, id); }
+  catch (error) {
+    if (error instanceof AppRunError && error.code === "not_found") { return null; }
+    if (error instanceof AppRunError) { throw new AppServiceError("invalid_input", error.message); }
+    throw error;
+  }
+  const application = await Application.findById(fullId);
   if (!application || application.user_id !== userId) return null;
   return {
     id: application.id,
@@ -203,8 +225,8 @@ async function resolveTarget(
         "live draft are different apps the moment the draft changes."
     );
   }
-  const loadFromDb = (id: string): Promise<AppWorkflowRecord | null> =>
-    (deps.loadWorkflow ?? loadUserWorkflow)(userId, id);
+  const loadFromDb = (id: string, version?: number): Promise<AppWorkflowRecord | null> =>
+    (deps.loadWorkflow ?? loadUserWorkflow)(userId, id, version);
 
   if (hasId) {
     const id = body.application_id as string;
@@ -218,6 +240,8 @@ async function resolveTarget(
     return applicationTarget(id, application, loadFromDb);
   }
   if (hasDocument) {
+    const bundle = parseApplicationBundle(body.document);
+    if (bundle) { return bundleTarget(bundle, "inline"); }
     return inlineDocumentTarget(body.document, loadFromDb);
   }
   throw new AppServiceError(
@@ -240,15 +264,15 @@ export async function runApplicationDebug(
   const resolved = await resolveTarget(userId, body, deps);
   const registry = deps.registry ?? defaultRegistry;
   const timeoutMs = positive(body.timeout_ms);
+  const controller = new AbortController();
+  const context = deps.context
+    ? deps.context.copy({ jobId: debugId })
+    : new ProcessingContext({ userId, jobId: debugId,
+      secretResolver: (key) => getSecret(key, userId),
+      storage: new FileStorageAdapter(getDefaultAssetsPath()), assetStorage: deps.assetStorage ?? null });
+  context.signal = deps.context ? AbortSignal.any([deps.context.signal, controller.signal]) : controller.signal;
 
-  // Cancelling a simulation settles its session with a failed report; the runs
-  // already in flight finish in the background, since `simulateApp` takes no
-  // signal. Nothing they touch is persisted, so a finished orphan run is spend,
-  // not state.
-  let cancelled: ((payload: Record<string, unknown>) => void) | null = null;
-  const abandoned = new Promise<Record<string, unknown>>((resolve) => {
-    cancelled = resolve;
-  });
+  const runIds = new Set<string>();
 
   // The promise a session fronts must never reject: a rejected run would leave
   // the session parked forever with no report to hand back.
@@ -268,8 +292,8 @@ export async function runApplicationDebug(
         simulateOptions.timeoutMs = timeoutMs;
       }
       const simulateDeps: Parameters<typeof simulateApp>[2] = {
-        loadFromDb: (id: string) =>
-          (deps.loadWorkflow ?? loadUserWorkflow)(userId, id),
+        loadFromDb: (id: string, version?: number) =>
+          (deps.loadWorkflow ?? loadUserWorkflow)(userId, id, version),
         runOnServer: createAppServerRunner(userId, registry, {
           jobPrefix: "app-debug-run",
           assetStorage: deps.assetStorage ?? null
@@ -277,16 +301,35 @@ export async function runApplicationDebug(
         loadScript: (scriptId: string, scriptVersion: number) =>
           loadUserJsScript(userId, scriptId, scriptVersion)
       };
-      if (deps.runScript) {
-        simulateDeps.runScript = deps.runScript;
+      const scriptRunner = deps.scriptRunner;
+      const runScript = scriptRunner
+        ? (input: Parameters<JsScriptOperationRunner>[0]) => scriptRunner(context, input)
+        : deps.runScript;
+      if (runScript) {
+        simulateDeps.runScript = runScript;
       }
+      const recording = createAppDebugRunRecording({ userId, target: resolved, registry, context,
+        onRunCreated: (id) => { runIds.add(id); },
+        loadWorkflow: simulateDeps.loadFromDb, loadScript: simulateDeps.loadScript,
+        applicationId: body.application_id,
+        runWorkflow: (parent, input) => createAppServerRunner(userId, registry, { context: parent })(input),
+        runScript: (parent, input) => {
+          if (deps.scriptRunner) { return deps.scriptRunner(parent, input); }
+          if (deps.runScript) { return deps.runScript(input); }
+          throw new Error("Host does not provide script execution");
+        }
+      });
+      Object.assign(simulateDeps, recording);
       const report = await simulateApp(resolved, simulateOptions, simulateDeps);
-      return debugPayload(report, debugId);
+      report.run_ids = [...runIds];
+      const payload = debugPayload(report, debugId);
+      return controller.signal.aborted ? { ...payload, status: "failed", error: "cancelled" } : payload;
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       log.error("app debug failed outside the report", { debugId, message });
       return {
         debug_id: debugId,
+        run_ids: [...runIds],
         status: "failed",
         error: message,
         verdict: {
@@ -299,7 +342,7 @@ export async function runApplicationDebug(
     }
   })();
 
-  const done = Promise.race([simulation, abandoned]);
+  const done = simulation;
 
   const session = debugSessions.create({
     userId,
@@ -307,18 +350,9 @@ export async function runApplicationDebug(
     jobId: debugId,
     handle: new InteractiveEscalationHandle(),
     done,
-    cancel: () =>
-      cancelled?.({
-        debug_id: debugId,
-        status: "failed",
-        error: "cancelled",
-        verdict: {
-          ok: false,
-          headline: "App debug cancelled before it finished.",
-          issues: ["cancelled"],
-          warnings: []
-        }
-      })
+    cancel: () => {
+      controller.abort();
+    }
   });
 
   if (body.poll === true) return runningPayload(session, debugId);

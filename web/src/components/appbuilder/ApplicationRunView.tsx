@@ -7,7 +7,7 @@
  * nothing about what runs here until the next publish. With nothing released
  * the draft runs instead, which is what makes an unpublished app testable.
  */
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import type { Data } from "@puckeditor/core";
 
@@ -27,11 +27,16 @@ import {
   SPACING
 } from "../ui_primitives";
 import { parseApplicationDocument, type AppDocument } from "./appData";
+import type { ServerAppInstance } from "./runtime/appInstanceApi";
 import AppRuntimeView from "./AppRuntimeView";
 import ReportBugButton from "../support/ReportBugButton";
 
 interface ApplicationRunViewProps {
   applicationId: string;
+  instanceId?: string;
+  selectedRunId?: string | null;
+  onSelectRun?: (id: string | null) => void;
+  onInstanceReady?: (instance: ServerAppInstance) => void;
   /** Run the current draft for the owner without changing the released app. */
   previewDraft?: boolean;
   draftDocument?: AppDocument;
@@ -54,9 +59,15 @@ const pinnedWorkflow = (
 
 const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
   applicationId,
+  instanceId,
+  selectedRunId,
+  onSelectRun,
+  onInstanceReady,
   previewDraft = false,
   draftDocument
 }) => {
+  const [executionEpoch, setExecutionEpoch] = useState(0);
+  const hasPinnedInstance = Boolean(instanceId) && !previewDraft;
   const applicationQuery = useApplication(applicationId);
   const { data: application, isLoading } = applicationQuery;
   const releaseQuery = useReleasedApplicationDocument(applicationId);
@@ -93,6 +104,7 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
     queryFn: async () => await fetchWorkflow(hostWorkflowId),
     enabled:
       Boolean(hostWorkflowId) &&
+      !hasPinnedInstance &&
       !pinnedHost &&
       (previewDraft || (!releaseLoading && !releaseQuery.isError)),
     staleTime: 0,
@@ -104,21 +116,34 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
   // content are a whole app. With no operation bound, the runtime still wants
   // a workflow shape, so it gets an empty one that contributes no IO.
   const workflow = useMemo<Workflow | undefined>(() => {
+    if (hasPinnedInstance) {
+      return pinnedWorkflow(applicationId, application?.name ?? "", {
+        nodes: [],
+        edges: []
+      });
+    }
     if (pinnedHost ?? liveHost) return pinnedHost ?? liveHost;
     if (hostWorkflowId) return undefined;
     return pinnedWorkflow(applicationId, application?.name ?? "", {
       nodes: [],
       edges: []
     });
-  }, [applicationId, application?.name, hostWorkflowId, liveHost, pinnedHost]);
+  }, [
+    applicationId,
+    application?.name,
+    hasPinnedInstance,
+    hostWorkflowId,
+    liveHost,
+    pinnedHost
+  ]);
 
-  if (isLoading || (!previewDraft && releaseLoading)) {
+  if (isLoading || (!hasPinnedInstance && !previewDraft && releaseLoading)) {
     return <LoadingSpinner size="large" text="Loading app" />;
   }
 
   const failedQuery = applicationQuery.isError
     ? applicationQuery
-    : !previewDraft && releaseQuery.isError
+    : !hasPinnedInstance && !previewDraft && releaseQuery.isError
       ? releaseQuery
       : null;
   if (failedQuery) {
@@ -148,7 +173,7 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
     );
   }
 
-  if (!document || document.ui.content.length === 0) {
+  if (!document || (!hasPinnedInstance && document.ui.content.length === 0)) {
     return (
       <EmptyState
         variant="empty"
@@ -158,7 +183,12 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
     );
   }
 
-  if (!pinnedHost && hostWorkflowId && hostQuery.isLoading) {
+  if (
+    !hasPinnedInstance &&
+    !pinnedHost &&
+    hostWorkflowId &&
+    hostQuery.isLoading
+  ) {
     return <LoadingSpinner size="large" text="Loading workflow" />;
   }
 
@@ -187,18 +217,20 @@ const ApplicationRunView: React.FC<ApplicationRunViewProps> = ({
 
   return (
     <FlexColumn gap={0} fullWidth sx={{ height: "100%", minHeight: 0 }}>
-      {!previewDraft && release && (
-        <Caption color="secondary" sx={{ px: SPACING.lg, py: SPACING.xs }}>
-          {`Running released version ${release.version}`}
-        </Caption>
-      )}
       {previewDraft && (
         <Caption color="secondary" sx={{ px: SPACING.lg, py: SPACING.xs }}>
           Previewing current draft. This does not change the released app.
         </Caption>
       )}
       <AppRuntimeView
+        key={`${previewDraft ? "preview" : (instanceId ?? "default")}:${executionEpoch}`}
+        onAdvanced={() => setExecutionEpoch((epoch) => epoch + 1)}
+        onInstanceReady={onInstanceReady}
+        selectedRunId={selectedRunId}
+        onSelectRun={onSelectRun}
         workflow={workflow}
+        instanceId={previewDraft ? undefined : instanceId}
+        previewDraft={previewDraft}
         data={document.ui as Data}
         document={document}
         application={{

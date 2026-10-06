@@ -11,7 +11,7 @@
  *   index (query) — DocumentIndex
  */
 
-import { listDocumentIndex } from "@nodetool-ai/models";
+import { Project, listDocumentIndex } from "@nodetool-ai/models";
 import {
   documentIndex,
   documentIndexInput
@@ -24,5 +24,11 @@ export const documentsRouter = router({
   index: protectedProcedure
     .input(documentIndexInput)
     .output(documentIndex)
-    .query(({ ctx, input }) => listDocumentIndex(ctx.userId, input.projectId))
+    .query(async ({ ctx, input }) => {
+      // A document created over the API or MCP without a project lands in the
+      // loose bucket, which the navigator never asks for. Claim loose rows for
+      // Personal first, as the projects router does before its reads.
+      await Project.migrateToPersonal(ctx.userId);
+      return listDocumentIndex(ctx.userId, input.projectId);
+    })
 });

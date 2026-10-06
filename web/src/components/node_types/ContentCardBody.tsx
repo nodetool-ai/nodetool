@@ -577,6 +577,11 @@ const TextPreview: React.FC<{ value: unknown }> = ({ value }) => {
   // Same TextRenderer PreviewNode uses. `.text-preview` CSS pins
   // fontSizeSmaller so the card matches the output node preview.
   const text = extractTextValue(value);
+  // A run that produced an empty string would otherwise leave a blank band
+  // under the header that reads as broken layout.
+  if (text.trim() === "") {
+    return <CheckerDropzone message="Empty result" icon={<TextFieldsIcon />} />;
+  }
   return (
     <div
       className="text-preview nodrag nopan nowheel"

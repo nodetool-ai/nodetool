@@ -52,13 +52,13 @@
     },
     "ui_properties": {
      "position": {
-      "x": 640,
+      "x": 440,
       "y": 120
      },
      "zIndex": 0,
      "width": 280,
      "selectable": true,
-     "title": "4  Rasterise 2x"
+     "title": "2  Rasterise 2x"
     },
     "dynamic_properties": {},
     "dynamic_outputs": {}
@@ -71,13 +71,13 @@
     },
     "ui_properties": {
      "position": {
-      "x": 0,
-      "y": 340
+      "x": 760,
+      "y": 120
      },
      "zIndex": 0,
      "width": 280,
      "selectable": true,
-     "title": "5  PNG"
+     "title": "3  PNG"
     },
     "dynamic_properties": {},
     "dynamic_outputs": {}

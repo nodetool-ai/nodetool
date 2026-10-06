@@ -1,3 +1,9 @@
+import { registerChatRunTrace, registerWorkflowRunTrace, withRegisteredRunTrace, settleRegisteredRunTrace } from "@nodetool-ai/execution";
+import { getRunTraceScope, suppressRunTraceContent } from "@nodetool-ai/runtime";
+import { TRACE_RESTRICTED_CAPABILITY_MODULES } from "@nodetool-ai/protocol";
+import { trace, SpanStatusCode } from "@opentelemetry/api";
+import { settleRunTrace, registerRunTraceParent, registerRunTraceParents, threadHasTraceContentTools } from "@nodetool-ai/models";
+import { capabilityModuleOf, listCapabilitySpecs } from "@nodetool-ai/agents";
 import { createLogger } from "@nodetool-ai/config";
 import { randomUUID } from "node:crypto";
 import {
@@ -180,6 +186,27 @@ import type {
   ToolBridge,
   WebSocketClientSessionOptions
 } from "../websocket-client-session.js";
+
+function restrictedTraceToolNames(): string[] {
+  const modules = new Set<string>(TRACE_RESTRICTED_CAPABILITY_MODULES);
+  return listCapabilitySpecs().filter((spec) => modules.has(capabilityModuleOf(spec.name) ?? "")).map((spec) => spec.name);
+}
+
+function seedStoredToolProvenance(messages: readonly Message[]): void {
+  for (const message of messages) {
+    const names = message.name ? [message.name] : [];
+    if (isCompactionMessage(message)) { names.push(...(message.tools ?? [])); }
+    for (const call of message.tool_calls ?? []) {
+      if (!isRecord(call)) { continue; }
+      if (isString(call.name)) { names.push(call.name); }
+      if (isRecord(call.function) && isString(call.function.name)) { names.push(call.function.name); }
+    }
+    for (const name of names) {
+      const moduleName = capabilityModuleOf(name);
+      if (moduleName === "email" || moduleName === "google" || moduleName === "browser") { suppressRunTraceContent(); }
+    }
+  }
+}
 
 const log = createLogger("nodetool.websocket.runner");
 
@@ -797,11 +824,10 @@ export class ChatTurnHandler {
     const userId = this.session.requireUserId();
     delete data.user_id;
 
-    return Message.create<Message>({
-      thread_id: threadId,
-      user_id: userId,
-      ...data
-    });
+    const message = await Message.create<Message>({ thread_id: threadId, user_id: userId, ...data });
+    const scope = getRunTraceScope();
+    if (scope) { await registerRunTraceParent(userId, scope.runId, { kind: "message", id: message.id }); }
+    return message;
   }
 
   /**
@@ -1302,6 +1328,7 @@ export class ChatTurnHandler {
         : null,
       assetOutputMode: this.session.mode === "text" ? "data_uri" : "temp_url"
     });
+    context.runTraceContext = getRunTraceScope() ?? null;
     // This context is built here rather than copied from the turn, so the
     // turn's gate has to be put on it by hand. The node's own loops read it
     // with `gateFromContext`; a node run outside a chat turn carries none and
@@ -1450,9 +1477,36 @@ export class ChatTurnHandler {
     // Save user message to DB — matches Python's _save_message_to_db_async(data)
     const turnMessage = await this.saveMessageToDb(data);
 
+    const rootContext = createRuntimeContext({ jobId: turnMessage.id, threadId, workflowId, userId, workspace: null });
+    await registerChatRunTrace(rootContext, { messageId: turnMessage.id, threadId });
+    return withRegisteredRunTrace(rootContext, "chat.turn", async () => {
+      try {
+        if (await threadHasTraceContentTools(userId, threadId, restrictedTraceToolNames())) { suppressRunTraceContent(); }
+        await this.handlePersistedChatTurn(data, turnMessage, rootContext, requestSeq, signal);
+        await settleRegisteredRunTrace(rootContext, signal?.aborted ? "cancelled" : "completed");
+      } catch (error) {
+        await settleRegisteredRunTrace(rootContext, signal?.aborted ? "cancelled" : "failed", error instanceof Error ? error.message : String(error));
+        throw error;
+      }
+    });
+  }
+
+  private async handlePersistedChatTurn(
+    data: Record<string, unknown>,
+    turnMessage: Message,
+    rootContext: ProcessingContext,
+    requestSeq?: number,
+    signal?: AbortSignal
+  ): Promise<void> {
+    const threadId = String(data.thread_id);
+    const workflowId = isString(data.workflow_id) ? data.workflow_id : null;
+    const userId = this.session.requireUserId();
+    const providerId = String(data.provider);
+    const model = String(data.model);
     if (requestSeq !== undefined && requestSeq !== this.chatRequestSeq) return;
 
     if (!this.session.resolveProvider) {
+      await settleRegisteredRunTrace(rootContext, "failed", "No provider resolver configured");
       await this.session.send({
         type: "error",
         message: "No provider resolver configured",
@@ -1559,9 +1613,12 @@ export class ChatTurnHandler {
       toolCalls: null,
       threadId: null
     });
+    const copiedMessageIds = new Set<string>();
     const convertDbMessages = (rows: Message[]): ProviderMessage[] => {
       const out: ProviderMessage[] = [];
       for (const m of rows) {
+        copiedMessageIds.add(m.id);
+        seedStoredToolProvenance([m]);
         const pm = dbMessageToProviderMessage(m, this.session.userId);
         if (pm) out.push(pm);
       }
@@ -1585,6 +1642,7 @@ export class ChatTurnHandler {
         reverse: true,
         limit: SESSION_PROBE_WINDOW
       });
+      seedStoredToolProvenance(recent);
       const probeHasWholeThread = recent.length < SESSION_PROBE_WINDOW;
       // `recent` is newest-first. Walk to the first boundary marker: an
       // assistant carrying a session token, or a compaction record. Both claim
@@ -1634,6 +1692,7 @@ export class ChatTurnHandler {
           systemHash: probeSession.systemHash,
           checkpoint: 1
         };
+        if (probeSession.traceContentSuppressed) { priorSession.traceContentSuppressed = true; }
         // Absolute position to persist: prior prefix + the prior assistant + the
         // new turns — identical to what the full-load path would store.
         sessionCheckpointOverride =
@@ -1642,6 +1701,8 @@ export class ChatTurnHandler {
           const [rows] = await Message.paginate(threadId, { limit: 1000 });
           const full = convertDbMessages(historySinceCompaction(rows));
           full.unshift(systemChatMessage());
+          const scope = getRunTraceScope();
+          if (scope) { await registerRunTraceParents(userId, scope.runId, [...copiedMessageIds].map((id) => ({ kind: "message" as const, id }))); }
           return full;
         };
       } else if (probeHasWholeThread) {
@@ -1660,6 +1721,8 @@ export class ChatTurnHandler {
         priorSession = lastMatchingProviderSession(kept, providerId, model);
       }
     }
+
+    if (priorSession?.traceContentSuppressed) { suppressRunTraceContent(); }
 
     // Expose the read-only `run_search` fan-out primitive by default. A client
     // can opt out by sending `enable_read_only_search: false`.
@@ -1927,7 +1990,9 @@ export class ChatTurnHandler {
       workspace: chatWorkspace,
       authToken: this.deps.authToken()
     });
+    ctx.runTraceContext = rootContext.runTraceContext;
     ctx.set("chat_message_id", turnMessage.id);
+    if (ctx.runTraceContext) { await registerRunTraceParents(userId, ctx.runTraceContext.runId, [...copiedMessageIds].map((id) => ({ kind: "message" as const, id }))); }
     const detachPredictions = attachChatPredictionForwarder(
       (listener) => ctx.addMessageListener(listener),
       (msg) => this.session.sendDetached(msg),
@@ -2088,10 +2153,14 @@ export class ChatTurnHandler {
     // What to persist onto the assistant message: the provider's token, but with
     // the absolute checkpoint when the fast path sent only a delta (the
     // provider's emitted checkpoint is relative to the trimmed view).
-    const sessionForPersist = (): ProviderSession | null =>
-      sessionCheckpointOverride != null && capturedSession
-        ? { ...capturedSession, checkpoint: sessionCheckpointOverride }
-        : capturedSession;
+    const sessionForPersist = (): ProviderSession | null => {
+      if (!capturedSession) { return null; }
+      const contentSuppressed = getRunTraceScope()?.policy.contentSuppressed || priorSession?.traceContentSuppressed || capturedSession.traceContentSuppressed;
+      const persisted = { ...capturedSession };
+      if (sessionCheckpointOverride != null) { persisted.checkpoint = sessionCheckpointOverride; }
+      if (contentSuppressed) { persisted.traceContentSuppressed = true; }
+      return persisted;
+    };
 
     // Cap on tool-calling rounds before the loop stops. Generous enough to
     // build a multi-component app UI or run a long edit session in one turn —
@@ -2523,6 +2592,7 @@ export class ChatTurnHandler {
         role: "user",
         execution_event_type: COMPACTION_EVENT_TYPE,
         content: compactionMessageContent(summary),
+        tools: getRunTraceScope()?.policy.contentSuppressed ? restrictedTraceToolNames() : null,
         created_at: Number.isFinite(boundary)
           ? new Date(boundary - 1).toISOString()
           : cut.keep[0].created_at
@@ -2802,6 +2872,7 @@ export class ChatTurnHandler {
         return;
       }
       const errMsg = err instanceof Error ? err.message : String(err);
+      await settleRegisteredRunTrace(rootContext, "failed", errMsg);
       log.error("Chat processing error", { threadId, error: errMsg });
 
       let errorType = "error";
@@ -3789,6 +3860,11 @@ export class ChatTurnHandler {
     } catch (err) {
       if (cancelled()) return;
       const errMsg = err instanceof Error ? err.message : String(err);
+      const scope = getRunTraceScope();
+      if (scope) {
+        trace.getActiveSpan()?.setStatus({ code: SpanStatusCode.ERROR });
+        await settleRunTrace(userId, scope.runId, { status: "failed", error: scope.policy.contentSuppressed ? "Execution failed" : errMsg, secretValues: scope.secretValues, contentSuppressed: scope.policy.contentSuppressed });
+      }
       log.error("Media generation error", { threadId, mode, error: errMsg });
       const failure = providerFailureMessage(err, providerId, modelId);
       const failureMessage = `Generation failed: ${failure.message}`;
@@ -3892,6 +3968,9 @@ export class ChatTurnHandler {
 
       // Build chat history for params — matches Python
       const [dbMessages] = await Message.paginate(threadId, { limit: 1000 });
+      const inheritedTrace = getRunTraceScope();
+      seedStoredToolProvenance(dbMessages);
+      if (inheritedTrace) { await registerRunTraceParents(userId, inheritedTrace.runId, dbMessages.map((m) => ({ kind: "message" as const, id: m.id }))); }
       const chatHistorySerialized = dbMessages.map((m) => ({
         role: m.role,
         content: m.content,
@@ -3944,6 +4023,8 @@ export class ChatTurnHandler {
         assetOutputMode: this.session.mode === "text" ? "data_uri" : "temp_url"
       });
 
+      context.runTraceContext = getRunTraceScope() ?? null;
+
       // Expose executor/node-type resolution for sub-workflow nodes
       context.setResolveExecutor((node) => this.session.resolveExecutor(node));
       if (this.session.resolveNodeType) {
@@ -3961,6 +4042,9 @@ export class ChatTurnHandler {
             } | null>
         );
       }
+
+      await Job.create({ id: jobId, workflow_id: workflowId, user_id: userId, status: "running", params, graph });
+      await registerWorkflowRunTrace(context, { jobId, workflowId });
 
       // Create and run workflow (A5: via the ExecutionSession facade — see
       // the identical note in `startJobInner`).
@@ -4000,20 +4084,6 @@ export class ChatTurnHandler {
         }
       };
       this.deps.jobs.registerJob(jobId, active);
-
-      // Persist job to DB (best-effort)
-      try {
-        await Job.create({
-          id: jobId,
-          workflow_id: workflowId,
-          user_id: userId,
-          status: "running",
-          params,
-          graph
-        });
-      } catch (error) {
-        this.session.logError("workflow job persistence failed", error);
-      }
 
       // The run already started inside `ExecutionSession.create()` above.
       const executePromise = session.result;
@@ -4209,6 +4279,11 @@ export class ChatTurnHandler {
       log.debug("Workflow message complete", { threadId, workflowId, jobId });
     } catch (err) {
       const errMsg = err instanceof Error ? err.message : String(err);
+      const scope = getRunTraceScope();
+      if (scope) {
+        trace.getActiveSpan()?.setStatus({ code: SpanStatusCode.ERROR });
+        await settleRunTrace(userId, scope.runId, { status: "failed", error: scope.policy.contentSuppressed ? "Execution failed" : errMsg, secretValues: scope.secretValues, contentSuppressed: scope.policy.contentSuppressed });
+      }
       log.error("Workflow message error", {
         threadId,
         workflowId,

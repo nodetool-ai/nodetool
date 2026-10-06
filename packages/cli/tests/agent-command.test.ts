@@ -14,12 +14,16 @@ import { describe, it, expect, vi, beforeEach } from "vitest";
 
 vi.mock("@nodetool-ai/config", async () => {
   const stub = await import("./__stubs__/nodetool.js");
+  const { safeProcessEnv } = await import("../../config/src/node-import.js");
+  const { redactTraceText } = await import("../../config/src/trace-redaction.js");
   const noop = () => {};
   const log = { debug: noop, info: noop, warn: noop, error: noop };
   return {
     ...stub,
     createLogger: () => log,
     configureLogging: noop,
+    safeProcessEnv,
+    redactTraceText,
     getNodeBuiltinSync: () => undefined
   };
 });
@@ -326,15 +330,10 @@ describe("nodetool agent run", () => {
     });
 
     expect(code).toBe(1);
-    expect(
-      events.some(
-        (e) =>
-          (e as { type?: string }).type === "error" &&
-          String((e as { message?: string }).message).includes(
-            "provider exploded"
-          )
-      )
-    ).toBe(true);
+    expect(events).toContainEqual(expect.objectContaining({
+      type: "error",
+      message: expect.stringContaining("provider exploded")
+    }));
   });
 });
 

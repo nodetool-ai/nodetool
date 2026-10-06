@@ -28,6 +28,7 @@ import {
   createWorkspace
 } from "../src/storage-workspace.js";
 import { WorkspacePathError, type Workspace } from "../src/workspace.js";
+import { ProcessingContext } from "../src/context.js";
 
 const backends = [
   {
@@ -59,6 +60,17 @@ describe.each(backends)("Workspace over $name", ({ isLocal }) => {
   it("round-trips text", async () => {
     await workspace.write("notes.md", "hello");
     expect(await workspace.readText("notes.md")).toBe("hello");
+  });
+
+  it("preserves and explicitly replaces a child execution workspace", async () => {
+    const context = new ProcessingContext({ jobId: "parent", workspace });
+    const child = context.copy({ jobId: "child" });
+    expect(child.workspace).toBe(workspace);
+    await child.workspace?.write("child.txt", "recorded run");
+    expect(await workspace.read("child.txt")).toEqual(new TextEncoder().encode("recorded run"));
+    const replacement = new StorageWorkspace(new InMemoryStorageAdapter());
+    expect(context.copy({ workspace: replacement }).workspace).toBe(replacement);
+    expect(context.copy({ workspace: null }).workspace).toBeNull();
   });
 
   it("round-trips bytes in a subdirectory", async () => {

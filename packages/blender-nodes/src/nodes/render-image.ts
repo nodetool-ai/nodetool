@@ -74,26 +74,7 @@ export class RenderImageNode extends BlenderRenderBase {
           bytes,
           {
             op: "render_image",
-            params: {
-              camera_mode: this.camera_mode ?? "auto",
-              azimuth: Number(this.azimuth ?? 45),
-              elevation: Number(this.elevation ?? 25),
-              fov: Number(this.fov ?? 35),
-              zoom: Number(this.zoom ?? 1),
-              lighting: this.lighting ?? "studio",
-              light_intensity: Number(this.light_intensity ?? 1),
-              background_color: String(this.background_color ?? "#808080"),
-              transparent: this.transparent === true,
-              engine: this.engine ?? "eevee",
-              samples: Math.max(1, Math.round(Number(this.samples ?? 16))),
-              denoise: this.denoise !== false,
-              resolution_percentage: Math.max(
-                1,
-                Math.round(Number(this.resolution_percentage ?? 100))
-              ),
-              width: Math.max(1, Math.round(Number(this.width ?? 1024))),
-              height: Math.max(1, Math.round(Number(this.height ?? 1024)))
-            }
+            params: this.renderParams()
           },
           { image: "render.png" },
           {

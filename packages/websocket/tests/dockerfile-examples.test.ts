@@ -25,6 +25,10 @@ describe("root Dockerfile", () => {
     expect(dockerfile).toMatch(/mv\s+\S*_modules\s+\S*node_modules/);
   });
 
+  it("enables scheduled retention in the production image", () => {
+    expect(dockerfile).toMatch(/NODETOOL_STORAGE_AUTO_CLEANUP=1/);
+  });
+
   it("runs the bundled server entry", () => {
     expect(dockerfile).toMatch(/CMD\s+\["node",\s*"backend\/server\.mjs"\]/);
   });

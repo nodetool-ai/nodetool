@@ -27,11 +27,12 @@
  * is auditable even when the estimate is imperfect.
  */
 
+import { appRunGenerationMetadata } from "./app-run-generation.js";
 import { createLogger } from "@nodetool-ai/config";
 import { Prediction } from "@nodetool-ai/models";
 import { getModelUnitPrice } from "@nodetool-ai/model-pricing";
 import { extractPricingParams } from "@nodetool-ai/node-sdk";
-import { getCostReconciler } from "@nodetool-ai/runtime";
+import { getCostReconciler, type AppRunContext } from "@nodetool-ai/runtime";
 import type { ProcessingMessage, ProviderCost } from "@nodetool-ai/protocol";
 import {
   createTrackerState,
@@ -208,6 +209,7 @@ export async function recordGenerationSpend(
 
 /** A charge a node reported for itself, as it rides out on `node_update`. */
 export interface NodeCostSpend {
+  appRunContext?: AppRunContext;
   userId: string;
   cost: ProviderCost;
   nodeId: string;
@@ -244,6 +246,11 @@ export async function recordNodeProviderCost(
       project_id: spend.projectId ?? null,
       document_id: spend.documentId ?? null,
       status: "completed",
+      metadata: appRunGenerationMetadata(
+        cost.input_tokens != null || cost.output_tokens != null
+          ? undefined
+          : spend.appRunContext
+      ),
       cost: cost.amount,
       currency: cost.currency ?? cost.unit ?? null,
       billing_unit: cost.billing_unit ?? null,
@@ -304,6 +311,7 @@ async function reconcileProviderCost(
 }
 
 export interface RunCostLedgerOptions {
+  appRunContext?: AppRunContext;
   userId: string;
   workflowId: string | null;
   /**
@@ -361,10 +369,26 @@ export function attachRunCostLedger(
 ): RunCostLedgerHandle {
   const state = createTrackerState();
   const pending = new Set<Promise<void>>();
+  const generationWrites = new Map<string, Promise<void>>();
   const detach = context.addMessageListener((msg) => {
-    const write = recordFromMessage(msg, options, state)
+    const generationId = msg.type === "prediction" ? msg.id : null;
+    const previous = generationId
+      ? generationWrites.get(generationId)
+      : undefined;
+    const operation = previous
+      ? previous.then(() => recordFromMessage(msg, options, state))
+      : recordFromMessage(msg, options, state);
+    const write = operation
       .catch(() => undefined)
-      .finally(() => pending.delete(write));
+      .finally(() => {
+        pending.delete(write);
+        if (generationId && generationWrites.get(generationId) === write) {
+          generationWrites.delete(generationId);
+        }
+      });
+    if (generationId) {
+      generationWrites.set(generationId, write);
+    }
     pending.add(write);
   });
   return Object.assign(detach, {
@@ -394,6 +418,7 @@ export async function recordFromMessage(
     }
     await recordNodeProviderCost({
       userId: options.userId,
+      appRunContext: options.appRunContext,
       cost: msg.provider_cost,
       nodeId: msg.node_id,
       nodeType: msg.node_type || options.nodeType?.(msg.node_id) || "",

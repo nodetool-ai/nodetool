@@ -386,6 +386,16 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "Facts the agent retained about the person across sessions. Exactly the profile Art. 17 exists for."
   },
   {
+    table: "nodetool_run_spans", schemaExport: "runSpans", disposition: "delete",
+    reach: { kind: "direct", column: "user_id" }, exported: true,
+    justification: "Owner-scoped execution spans with separately pruned prompts, responses, tool payloads, and logs. Exported to the owner and erased with the account."
+  },
+  {
+    table: "nodetool_run_traces", schemaExport: "runTraces", disposition: "delete",
+    reach: { kind: "direct", column: "user_id" }, exported: true,
+    justification: "The owner's registered app runs, workflow jobs, and chat turns. Contains execution metadata and content availability, and is erased with the account."
+  },
+  {
     table: "nodetool_error_traces",
     schemaExport: "errorTraces",
     disposition: "delete",
@@ -535,6 +545,11 @@ export const PERSONAL_DATA_REGISTRY: readonly PersonalDataEntry[] = [
       "Revision history of those timelines. Deleted explicitly for the same reason as the other version tables: the cascade is not guaranteed on a SQLite connection."
   },
 
+  {
+    table:"app_instances",schemaExport:"appInstances",disposition:"delete",
+    reach:{kind:"direct",column:"user_id"},exported:true,
+    justification:"Owner working copies of mini apps with immutable execution snapshots and variable state. Erased with the account and exported to the owner."
+  },
   // ── Published applications ─────────────────────────────────────────
 
   {
