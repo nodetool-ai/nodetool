@@ -615,7 +615,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     note: "The browser fetches fixed relative game.json and manifest.json plus digest-named ./assets/ paths validated against the closed manifest. Its connect-src self CSP constrains browser redirects to the static origin, and no server socket opens."
   },
   {
-    file: "packages/game-renderer/src/audio.ts",
+    file: "packages/game-renderer/src/audio/player.ts",
     owner: "browser game audio assets",
     inputSource: "workflow",
     schemes: ["http", "https", "relative"],
