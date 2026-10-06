@@ -156,4 +156,14 @@ export const RUNTIME_PACKAGES = {
     // matching the platform (CPU, Vulkan, CUDA, CUDA-ext).
     approxSizeMB: process.platform === "darwin" ? 50 : 640,
   }),
+  "whisper-cpp": new NpmRuntimePackage({
+    id: "whisper-cpp",
+    name: "whisper.cpp",
+    description: "Transcribes audio inside the NodeTool backend using local GGML models. Includes CPU and available GPU builds for your platform.",
+    category: "library",
+    versionRange: "1.1.3",
+    npmPackages: ["@fugood/whisper.node@1.1.3"],
+    packageNames: ["@fugood/whisper.node"],
+    approxSizeMB: process.platform === "darwin" ? 5 : 257,
+  }),
 } satisfies Record<RuntimePackageId, RuntimePackage>;

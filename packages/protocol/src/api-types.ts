@@ -1177,6 +1177,8 @@ export const PROVIDER_IDS = {
   LMSTUDIO: "lmstudio",
   LLAMA_CPP: "llama_cpp",
   NODE_LLAMA_CPP: "node_llama_cpp",
+  WHISPER_CPP: "whisper_cpp",
+  WHISPER_CPP_SERVER: "whisper_cpp_server",
   VLLM: "vllm",
   HUGGINGFACE: "huggingface",
   TRANSFORMERS_JS: "transformers_js",

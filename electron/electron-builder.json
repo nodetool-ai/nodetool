@@ -23,6 +23,7 @@
     ],
     "asarUnpack": [
         "**/node-llama-cpp/**/*.node",
+        "**/@fugood/node-whisper-*/**/*.node",
         "**/@node-llama-cpp/**/*.node",
         "**/node-llama-cpp/llama/**"
     ],

@@ -61,6 +61,15 @@ export interface OnboardingEngine {
  */
 export const ONBOARDING_ENGINES: readonly OnboardingEngine[] = [
   {
+    id: "whisper-cpp",
+    name: "whisper.cpp",
+    tagline: "Local speech transcription",
+    formats: ["GGML"],
+    description: "Transcribe audio and live audio streams inside the NodeTool backend with local GGML models.",
+    runtimeId: "whisper-cpp",
+    docsUrl: "https://github.com/ggml-org/whisper.cpp"
+  },
+  {
     id: "ollama",
     name: "Ollama",
     tagline: "One-click local LLMs",

@@ -4,6 +4,7 @@ import { TRPCError } from "@trpc/server";
 import type { Context } from "../context.js";
 import type { PythonBridge } from "@nodetool-ai/runtime";
 import { createLogger } from "@nodetool-ai/config";
+import { discoverASRModels, discoverVadModels } from "@nodetool-ai/whisper-cpp";
 import {
   getProvider,
   getRegisteredProvider,
@@ -617,11 +618,44 @@ async function serverAllowsModel(
   return true;
 }
 
+async function withWhisperDownloadStatus<T extends UnifiedModel>(
+  models: T[],
+  userId: string
+): Promise<T[]> {
+  const modelsDir = await secretResolverFor(userId)("WHISPER_CPP_MODELS_DIR");
+  const whisperFiles = new Map(
+    (
+      await Promise.all([
+        discoverASRModels(modelsDir),
+        discoverVadModels(modelsDir)
+      ])
+    )
+      .flat()
+      .map((model) => [model.id.split(/[\\/]/).at(-1), model.id] as const)
+  );
+  return Promise.all(
+    models.map(async (model) =>
+      model.provider === "whisper_cpp" && model.repo_id && model.path
+        ? {
+            ...model,
+            id: whisperFiles.get(model.path) ?? model.id,
+            downloaded:
+              whisperFiles.has(model.path) ||
+              (await repoFileInCache(model.repo_id, model.path))
+          }
+        : model
+    )
+  );
+}
+
 async function getRecommendedModels(
   checkServers: boolean,
   userId: string
 ): Promise<UnifiedModel[]> {
-  const models = [...RECOMMENDED_MODELS];
+  const models = await withWhisperDownloadStatus(
+    [...RECOMMENDED_MODELS],
+    userId
+  );
   if (!checkServers) return models;
   const servers = await getServerAvailability(userId);
   const filtered: UnifiedModel[] = [];
@@ -815,7 +849,11 @@ function toUnifiedModel(
     provider: model.provider,
     repo_id: null,
     path: null,
-    downloaded: model.provider === "ollama" || model.provider === "llama_cpp",
+    downloaded:
+      model.provider === "ollama" ||
+      model.provider === "llama_cpp" ||
+      model.provider === "whisper_cpp" ||
+      model.provider === "whisper_cpp_server",
     tags: [model.provider],
     voices: model.voices ?? null,
     capabilities: model.capabilities ?? null,
@@ -900,7 +938,7 @@ async function resolveProviderModelExecution(
 export async function getAllModels(userId: string): Promise<UnifiedModel[]> {
   const all: UnifiedModel[] = [];
 
-  all.push(...RECOMMENDED_MODELS);
+  all.push(...(await getRecommendedModels(false, userId)));
 
   const availableIds = await getAvailableProviderIds(userId);
   const providerModelsPromises = availableIds.map(async (providerId) => {
@@ -1139,7 +1177,10 @@ function curatedForKind(kind: ModelSearchKind): UnifiedModel[] {
     kind !== "speech_to_text" &&
     kind !== "text_to_music";
   return RECOMMENDED_MODELS.filter(
-    (r) => r.modality === modality && (!taskRequired || r.task === kind)
+    (r) =>
+      r.modality === modality &&
+      r.type !== "hf.whisper_cpp_vad" &&
+      (!taskRequired || r.task === kind)
   );
 }
 
@@ -1214,9 +1255,14 @@ export const modelsRouter = router({
     .output(modelsListOutput)
     .query(() => selectRecommended("language", "embedding")),
 
-  recommendedAsr: protectedProcedure
-    .output(modelsListOutput)
-    .query(() => selectRecommended("asr")),
+  recommendedAsr: protectedProcedure.output(modelsListOutput).query(({ ctx }) =>
+    withWhisperDownloadStatus(
+      selectRecommended("asr").filter(
+        (model) => model.type !== "hf.whisper_cpp_vad"
+      ),
+      ctx.userId
+    )
+  ),
 
   recommendedTts: protectedProcedure
     .output(modelsListOutput)

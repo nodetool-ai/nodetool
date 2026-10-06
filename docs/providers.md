@@ -197,6 +197,13 @@ llama.cpp points NodeTool at a local `llama-server` instance for chat. `llama-se
 
 llama.cpp local (provider id `node_llama_cpp`) runs GGUF models inside the NodeTool backend through the `node-llama-cpp` binding, with no separate server. It serves chat and embeddings. Models are GGUF files in `NODE_LLAMA_CPP_MODELS_DIR`, which defaults to the shared llama.cpp cache. `NODE_LLAMA_CPP_GPU_BACKEND` selects `auto`, `metal`, `cuda`, `vulkan`, or `cpu`. No key. Local only.
 
+whisper.cpp (`whisper_cpp`) transcribes audio inside the backend through the
+optional `@fugood/whisper.node@1.1.3` package. Install it from Package Manager.
+GGML models use the Hugging Face hub cache. `WHISPER_CPP_MODELS_DIR` adds a
+directory, and `WHISPER_CPP_GPU_BACKEND` selects `auto`, `metal`, `cuda`,
+`vulkan`, or `cpu`. Restart the backend after changing the GPU backend.
+Local only.
+
 ## Transformers.js
 
 Transformers.js (provider id `transformers_js`) runs small ONNX models in-process: chat, TTS, ASR, and embeddings. Models download from the Hugging Face Hub on first use into `<data-dir>/transformers-js-cache`, or the directory in `TRANSFORMERS_JS_CACHE_DIR`. Tool calling is off. No key. Local only. The matching workflow nodes are the `transformers.*` nodes in [HuggingFace Integration](huggingface.md#transformersjs-nodes-local-onnx).

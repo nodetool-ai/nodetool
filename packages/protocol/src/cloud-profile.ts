@@ -233,6 +233,8 @@ export const NON_CLOUD_PROVIDER_IDS: readonly string[] = [
   "lmstudio",
   "llama_cpp",
   "node_llama_cpp",
+  "whisper_cpp",
+  "whisper_cpp_server",
   "vllm",
   "mlx",
   "transformers_js",

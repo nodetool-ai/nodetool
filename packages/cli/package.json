@@ -69,7 +69,8 @@
     "string-width": "^8.1.1",
     "wrap-ansi": "^9.0.0",
     "zod": "^4.1.13",
-    "ws": "^8.18.3"
+    "ws": "^8.18.3",
+    "@nodetool-ai/whisper-cpp": "*"
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",

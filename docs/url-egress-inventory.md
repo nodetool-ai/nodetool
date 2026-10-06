@@ -139,6 +139,12 @@ The guest bridge is `packages/agents/src/js-sandbox.ts`.
 
 ## Exemptions
 
+**Dreamina browser requests.**
+`packages/runtime/src/providers/dreamina-provider.ts` runs API and upload
+requests inside the user's logged-in Dreamina browser tab. Cookies stay in
+that tab. Server-side result downloads use `fetchExternalMedia`, which checks
+each redirect hop and sends no Dreamina credentials.
+
 **Fixed provider hosts.** The URL is a constant in this repo, at most
 with a path or query interpolated — `api.elevenlabs.io`, `fal.run`,
 `generativelanguage.googleapis.com`, the OAuth token endpoints, the codegen

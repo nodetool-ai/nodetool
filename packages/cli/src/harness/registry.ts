@@ -1895,6 +1895,7 @@ export const SURFACES: SurfaceEntry[] = [
       "packages/together-nodes/",
       "packages/topaz-nodes/",
       "packages/transformers-js-nodes/",
+      "packages/whisper-cpp/",
       "packages/video-nodes/",
       // Portable runner (graph + registry → a Request/Response handler); CI
       // groups it with the node packages for the same reason.
