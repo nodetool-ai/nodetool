@@ -35,6 +35,7 @@ import { useUpdateApplication } from "../../hooks/useApplications";
 import { TOOLBAR_WIDTH } from "../../config/constants";
 import {
   BORDER_RADIUS,
+  CONTROL,
   ContextMenu,
   InlineEditableText,
   MenuItemPrimitive,
@@ -363,12 +364,19 @@ const styles = (theme: Theme) =>
         }
       },
       "& .new-tab": {
+        justifyContent: "center",
+        minWidth: CONTROL.height.xl,
         padding: `0 ${getSpacingPx(SPACING.md)}`
       },
+      // The project name yields width to the document selector, which is
+      // the control a phone user reaches for most.
       "& .home-button": {
-        padding: `0 ${getSpacingPx(SPACING.md)}`
+        padding: `0 ${getSpacingPx(SPACING.md)}`,
+        maxWidth: "30vw"
       },
-      "& .new-tab .new-tab-label": { display: "none" },
+      "& .new-tab .new-tab-label, & .new-tab .new-tab-caret": {
+        display: "none"
+      },
       "& .mode-toggle": {
         padding: `0 ${getSpacingPx(SPACING.sm)}`
       }

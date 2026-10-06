@@ -50,7 +50,9 @@ import { throwApiError } from "../trpc/error-formatter.js";
 import { isRecord, isString } from "./wire-values.js";
 
 export const listApplicationsInput = z.object({
-  projectId: z.string().optional()
+  projectId: z.string().optional(),
+  /** Only apps with an operation that runs this workflow. */
+  workflowId: z.string().optional()
 });
 
 export const applicationIdInput = z.object({ id: z.string() });
@@ -314,12 +316,20 @@ export function scaffoldDocumentFromWorkflow(
 
 export async function listApplications(
   userId: string,
-  projectId?: string
+  projectId?: string,
+  workflowId?: string
 ): Promise<ApplicationListItem[]> {
   const apps = projectId
     ? await Application.listByProject(projectId, userId)
     : await Application.listByUser(userId);
-  return apps.map(toListItem);
+  const matching = workflowId
+    ? apps.filter((app) =>
+        app
+          .toDocument()
+          .operations.some((operation) => operation.workflowId === workflowId)
+      )
+    : apps;
+  return matching.map(toListItem);
 }
 
 export async function getApplication(

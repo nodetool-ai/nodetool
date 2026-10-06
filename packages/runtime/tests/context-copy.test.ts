@@ -1,4 +1,4 @@
-import { mkdtemp, rm } from "node:fs/promises";
+import { mkdtemp, realpath, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { describe, expect, it, vi } from "vitest";
@@ -125,7 +125,7 @@ describe("ProcessingContext.copy", () => {
         path: "notes.txt"
       });
       expect(child.workspace).toBe(workspace);
-      expect(child.workspaceDir).toBe(dir);
+      expect(child.workspaceDir).toBe(await realpath(dir));
     } finally {
       await rm(dir, { recursive: true, force: true });
     }

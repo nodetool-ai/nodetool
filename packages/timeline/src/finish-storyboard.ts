@@ -51,6 +51,15 @@ export function stampStoryboardMaterializationBaseline(clip: TimelineClip): void
   clip.storyboardMaterializationBaseline = baseline(clip);
 }
 
+const hasDegenerateScale = (clip: TimelineClip): boolean =>
+  !!clip.transform && [clip.transform.scale.x, clip.transform.scale.y].some((scale) => !Number.isFinite(scale) || scale === 0);
+
+const isInvisible = (clip: TimelineClip, track: TimelineSequence["tracks"][number] | undefined): boolean =>
+  !!clip.hidden || clip.opacity === 0 || hasDegenerateScale(clip) || clip.durationMs <= 0 || !track || track.visible === false;
+
+const hasGlobalTransforms = (document: Pick<TimelineSequence, "camera2d" | "mediaTracks">): boolean =>
+  document.camera2d != null || (document.mediaTracks != null && (!Array.isArray(document.mediaTracks) || document.mediaTracks.length > 0));
+
 /** Validate actual layers, rather than a caller's description of intended edits. */
 export function validateProducedTimeline(
   input: Pick<FinishStoryboardInput, "boardId" | "shots" | "production" | "width" | "height">,
@@ -64,11 +73,12 @@ export function validateProducedTimeline(
     layers.set(key, [...(layers.get(key) ?? []), clip]);
   }
   const tracks = new Map(document.tracks.map((track) => [track.id, track]));
+  const globalTransforms = hasGlobalTransforms(document);
   for (const shot of input.shots) {
     const protectedInputs = new Map((resolveEffectiveProductionRequirement(input.production, shot.production)?.protected_inputs ?? []).map((value) => [value.id, value]));
     const referencedProtection = new Set(activeStoryboardGraphics(shot).map((element) => element.protected_input_id));
     for (const protection of protectedInputs.values()) {
-      if (document.camera2d != null || (document.mediaTracks != null && (!Array.isArray(document.mediaTracks) || document.mediaTracks.length > 0))) {
+      if (globalTransforms) {
         issues.push({ code: "forbidden_transform", shotId: shot.id, elementId: protection.id, message: `Global camera or media tracking transforms on ${protection.id} cannot be proven faithful. Remove these transforms before production validation.` });
       }
       if (!referencedProtection.has(protection.id)) issues.push({ code: "missing_element", shotId: shot.id, elementId: protection.id, message: `Protected input ${protection.id} has no editable visible graphics element.` });
@@ -81,7 +91,8 @@ export function validateProducedTimeline(
       if (clips.length === 0) { issue("missing_element", `Missing ${shot.id}/${element.id}.`); continue; }
       if (clips.length !== 1) { issue("duplicate_element", `Duplicate ${shot.id}/${element.id}.`); continue; }
       const clip = clips[0];
-      if (clip.hidden || clip.opacity === 0 || (clip.transform && (!Number.isFinite(clip.transform.scale.x) || !Number.isFinite(clip.transform.scale.y) || clip.transform.scale.x === 0 || clip.transform.scale.y === 0)) || clip.durationMs <= 0 || !tracks.has(clip.trackId) || tracks.get(clip.trackId)?.visible === false) {
+      const track = tracks.get(clip.trackId);
+      if (isInvisible(clip, track)) {
         issue("missing_element", `${element.id} must be visible.`);
       }
       if (!intersectsCanvas(clip, input.width, input.height)) {
@@ -96,7 +107,7 @@ export function validateProducedTimeline(
       const assetId = protection?.asset_id ?? element.asset_id;
       if (protection && ["product", "logo", "source_asset"].includes(protection.kind) && (element.kind !== "asset" || clip.mediaType !== "image" || clip.currentAssetId !== protection.asset_id)) issue("protected_source", `${protection.id} requires its original separately editable image.`);
       if (protection?.kind === "exact_text" && (element.kind !== "text" || clip.mediaType !== "text" || clip.textStyle?.text !== protection.value)) issue("protected_value", `${protection.id} requires its exact editable text.`);
-      if (protection && tracks.get(clip.trackId)?.effects?.length) issue("forbidden_transform", `Track effects on ${protection.id} cannot be proven faithful.`);
+      if (protection && track?.effects?.length) issue("forbidden_transform", `Track effects on ${protection.id} cannot be proven faithful.`);
       if (element.kind === "asset" && (!assetId || clip.mediaType !== "image" || clip.currentAssetId !== assetId)) {
         issue("protected_source", `${element.id} must use original asset ${assetId ?? "(unresolved)"}.`);
       }
