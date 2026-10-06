@@ -1,9 +1,10 @@
 import { createStore, type StoreApi } from "zustand/vanilla";
 import { useStore } from "zustand";
 import type { AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
-import { applyAnyGameOps as applyGameOps, type AnyGameDocumentOp as GameDocumentOp } from "@nodetool-ai/game-runtime";
+import { applyAnyGameOps as applyGameOps, validateAnyGame, type AnyGameDocumentOp as GameDocumentOp } from "@nodetool-ai/game-runtime";
 
 import { temporal, type WithTemporal } from "../temporal";
+import { acceptServerAnyGameUnit } from "./anyMerge";
 import { diffAnyGameDocuments as diffGameDocuments } from "./diffAnyGameDocuments";
 
 export type GameSaveStatus = "saved" | "unsaved" | "saving" | "error";
@@ -19,6 +20,7 @@ interface GameDraftState {
   selectedIds: string[];
   load: (document: GameDocument, baseUpdatedAt: string) => void;
   applyMerged: (document: GameDocument, server: GameDocument, baseUpdatedAt: string) => void;
+  acceptConflict: (server: GameDocument, kind: string, unitId: string) => void;
   apply: (ops: GameDocumentOp[]) => void;
   acknowledge: (document: GameDocument, baseUpdatedAt: string, savedCount: number) => void;
   failSave: (error: string) => void;
@@ -52,13 +54,23 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
       (api as GameDraftStore).temporal.getState().resume();
     },
     applyMerged: (document, server, baseUpdatedAt) => {
-      const pendingOps = diffGameDocuments(server, document);
+      const validation = validateAnyGame(document);
+      if (!validation.valid) {
+        get().load(server, baseUpdatedAt);
+        throw new Error(validation.diagnostics.map((issue) => issue.message).join(", "));
+      }
+      const pendingOps = diffGameDocuments(server, validation.document);
       const history = (api as GameDraftStore).temporal.getState();
       history.pause();
       set({ document, savedDocument: server, baseUpdatedAt, pendingOps, savingCount: 0,
         saveStatus: pendingOps.length ? "unsaved" : "saved", error: null });
       history.clear();
       history.resume();
+    },
+    acceptConflict: (server, kind, unitId) => {
+      const current = get();
+      if (!current.document || !current.savedDocument || !current.baseUpdatedAt) { return; }
+      current.applyMerged(acceptServerAnyGameUnit(current.document, server, kind, unitId), current.savedDocument, current.baseUpdatedAt);
     },
     apply: (ops) => {
       const current = get().document;
