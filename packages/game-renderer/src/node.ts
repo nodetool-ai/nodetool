@@ -174,3 +174,6 @@ export async function captureGameFrame(frame: GameRenderFrame, options: CaptureG
     GlobalFonts.removeBatch(registered);
   }
 }
+
+export { compareGameCaptures } from "./imageDiff.js";
+export type { GameCaptureDifference } from "./imageDiff.js";

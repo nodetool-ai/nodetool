@@ -82,6 +82,7 @@ const realPackageTests = [
   "tests/game-command-smoke.test.ts",
   "tests/game-command-benchmark.test.ts",
   "tests/gameBenchmarkTiming.test.ts",
+  "tests/game-command-golden.test.ts",
   "tests/local-model-interfaces-sketch.test.ts",
   "tests/local-model-interface-parity.test.ts",
   "src/commands/__tests__/timeline-render-audio.test.ts",
