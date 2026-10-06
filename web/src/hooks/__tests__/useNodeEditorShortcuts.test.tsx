@@ -273,7 +273,11 @@ describe("useNodeEditorShortcuts", () => {
     const registration = jest
       .mocked(registerComboCallback)
       .mock.calls.find(([combo]) => combo === "p+shift");
-    registration?.[1].callback();
+    const callback = registration?.[1]?.callback;
+    if (!callback) {
+      throw new Error("Shift+P callback was not registered");
+    }
+    callback();
 
     expect(mockCreateNode).toHaveBeenCalledWith(
       { node_type: "nodetool.text.Prompt" },
