@@ -36,17 +36,13 @@ import { OutputNode } from "../node/OutputNode";
 import { CompareImagesNode } from "../node/CompareImagesNode";
 import PlaceholderNode from "../node_types/PlaceholderNode";
 import RerouteNode from "../node/RerouteNode";
-import {
-  DynamicFalSchemaNode,
-  DYNAMIC_FAL_NODE_TYPE
-} from "../node/DynamicFalSchemaNode";
+import DynamicFalSchemaNode from "../node/DynamicFalSchemaNode/DynamicFalSchemaNode";
+import { DYNAMIC_FAL_NODE_TYPE } from "../node/DynamicFalSchemaNode/FalSchemaLoader";
 import DynamicKieSchemaNode from "../node/DynamicKieSchemaNode/DynamicKieSchemaNode";
 import { DYNAMIC_KIE_NODE_TYPE } from "../node/DynamicKieSchemaNode/KieSchemaLoader";
 import DynamicComfySchemaNode from "../node/DynamicComfySchemaNode/DynamicComfySchemaNode";
-import {
-  DynamicReplicateNode,
-  DYNAMIC_REPLICATE_NODE_TYPE
-} from "../node/DynamicReplicateNode";
+import DynamicReplicateNode from "../node/DynamicReplicateNode/DynamicReplicateNode";
+import { DYNAMIC_REPLICATE_NODE_TYPE } from "../node/DynamicReplicateNode/ReplicateSchemaLoader";
 import {
   WorkflowNode,
   WORKFLOW_NODE_TYPE
