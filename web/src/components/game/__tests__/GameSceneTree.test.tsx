@@ -176,3 +176,17 @@ describe("GameSceneTree", () => {
     expect(next.scenes[0].entities.find((entity) => entity.id === "child")?.templateOnly).toBe(true);
   });
 });
+
+it("keeps a child at its world position when dropped into another parent", () => {
+  const document = fixture();
+  document.scenes[0].entities[0].transform2d.x = 5;
+  document.scenes[0].entities[1].transform2d.x = 2;
+  document.scenes[0].entities[2].transform2d.x = 10;
+  const { onOps } = renderTree(document);
+  drag(screen.getByRole("button", { name: "Child" }), screen.getByRole("button", { name: "Sibling" }), 50);
+  const ops = onOps.mock.calls[0][0];
+  const updated = applyGameOps(document, ops);
+  const child = updated.scenes[0].entities.find(entity => entity.id === "child")!;
+  expect(child.parentId).toBe("sibling");
+  expect(child.transform2d.x).toBe(-3);
+});

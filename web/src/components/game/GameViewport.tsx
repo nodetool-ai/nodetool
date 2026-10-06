@@ -5,7 +5,7 @@ import { projectedCamera } from "@nodetool-ai/game-renderer";
 
 import { Box, EditorButton, FlexRow, SPACING, Z_INDEX } from "../ui_primitives";
 import { isMac } from "../../utils/platform";
-import { hitEntityIcons, hitSprites, spriteHandle, spriteRotationAt, spriteScaleAt, worldPoint } from "./viewportGeometry";
+import { selectionDescendants, localTransform, selectionRoots, worldTransforms, hitEntityIcons, hitSprites, spriteHandle, spriteRotationAt, spriteScaleAt, worldPoint } from "./viewportGeometry";
 
 interface GameViewportProps {
   canvasRef: RefObject<HTMLCanvasElement | null>;
@@ -36,6 +36,7 @@ interface MoveDrag {
   startY: number;
   entityX: number;
   entityY: number;
+  entities: { id: string; x: number; y: number }[];
 }
 interface GizmoDrag { kind: "scale" | "rotate"; sprite: GameRenderFrame["sprites"][number] }
 interface MarqueeDrag { kind: "marquee"; startX: number; startY: number; additive: boolean }
@@ -80,6 +81,16 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
   const spaceHeldRef = useRef(false);
   const scene = document.scenes.find((item) => item.id === (sceneId ?? document.entrySceneId)) ?? document.scenes[0];
 
+  const transforms = scene ? worldTransforms(scene) : new Map<string, GameDocument["scenes"][number]["entities"][number]["transform2d"]>();
+
+  const movingEntities = (id: string): { id: string; x: number; y: number }[] => {
+    if (!scene) return [];
+    return selectionRoots(scene, selectedIds.includes(id) ? selectedIds : [id]).flatMap(entity => {
+      const transform = transforms.get(entity.id);
+      return transform ? [{ id: entity.id, x: transform.x, y: transform.y }] : [];
+    });
+  };
+
   const paintOverlay = useCallback(() => {
     const overlay = overlayRef.current;
     if (!overlay || !frame) return;
@@ -114,6 +125,7 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
         context.beginPath(); context.moveTo(0, screen); context.lineTo(width, screen); context.stroke();
       }
     }
+    const transforms = scene ? worldTransforms(scene) : new Map<string, GameDocument["scenes"][number]["entities"][number]["transform2d"]>();
     if (scene && showColliders) {
       for (const entity of scene.entities) {
         if (!entity.collider2d) continue;
@@ -121,12 +133,14 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
         const colors = [palette.info.main, palette.warning.main,
           palette.success.main, palette.error.main];
         context.strokeStyle = colors[(Number.isFinite(category) ? category : 0) % colors.length];
-        const center = project(entity.transform2d.x, entity.transform2d.y);
-        context.save(); context.translate(center.x, center.y); context.rotate(-entity.transform2d.rotation);
-        context.strokeRect(-entity.collider2d.width * entity.transform2d.scaleX * scale / 2,
-          -entity.collider2d.height * entity.transform2d.scaleY * scale / 2,
-          entity.collider2d.width * entity.transform2d.scaleX * scale,
-          entity.collider2d.height * entity.transform2d.scaleY * scale);
+        const transform = transforms.get(entity.id);
+        if (!transform) continue;
+        const center = project(transform.x, transform.y);
+        context.save(); context.translate(center.x, center.y); context.rotate(-transform.rotation);
+        context.strokeRect(-entity.collider2d.width * transform.scaleX * scale / 2,
+          -entity.collider2d.height * transform.scaleY * scale / 2,
+          entity.collider2d.width * transform.scaleX * scale,
+          entity.collider2d.height * transform.scaleY * scale);
         context.restore();
       }
     }
@@ -152,7 +166,9 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
       context.strokeStyle = palette.success.main;
       for (const entity of scene.entities) {
         if (!entity.camera2d) continue;
-        const center = project(entity.transform2d.x, entity.transform2d.y);
+        const transform = transforms.get(entity.id);
+        if (!transform) continue;
+        const center = project(transform.x, transform.y);
         context.strokeRect(center.x - entity.camera2d.width * scale / 2, center.y - entity.camera2d.height * scale / 2,
           entity.camera2d.width * scale, entity.camera2d.height * scale);
       }
@@ -161,16 +177,26 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
       const visibleSprites = new Set(frame.sprites.map((sprite) => sprite.entityId));
       for (const entity of scene.entities) {
         if (visibleSprites.has(entity.id)) continue;
-        const center = project(entity.transform2d.x, entity.transform2d.y);
+        const transform = transforms.get(entity.id);
+        if (!transform) continue;
+        const center = project(transform.x, transform.y);
         context.fillStyle = selectedIds.includes(entity.id) ? palette.warning.main : palette.text.secondary;
         context.fillRect(center.x - 4, center.y - 4, 8, 8);
       }
     }
     context.lineWidth = 2;
+    const moveDrag = dragRef.current;
+    const movedIds = scene && moveDrag?.kind === "move"
+      ? selectionDescendants(scene, moveDrag.entities.map(entity => entity.id)) : new Set<string>();
     if (showSelection) for (const sprite of frame.sprites) {
       if (!selectedIds.includes(sprite.entityId) && !highlightedIds.includes(sprite.entityId)) continue;
       context.strokeStyle = selectedIds.includes(sprite.entityId) ? palette.warning.main : palette.info.main;
-      const preview = previewRef.current?.entityId === sprite.entityId ? previewRef.current : null;
+      const drag = dragRef.current;
+      const movePreview = previewRef.current;
+      const moving = drag?.kind === "move" && movePreview?.x !== undefined && movePreview.y !== undefined && movedIds.has(sprite.entityId);
+      const preview = moving && drag?.kind === "move" && movePreview?.x !== undefined && movePreview.y !== undefined
+        ? { x: sprite.x + movePreview.x - drag.entityX, y: sprite.y + movePreview.y - drag.entityY }
+        : previewRef.current?.entityId === sprite.entityId ? previewRef.current : null;
       const current = { ...sprite, ...preview };
       const x = width / 2 + (current.x - frame.camera.x) * scale;
       const y = height / 2 - (current.y - frame.camera.y) * scale;
@@ -268,10 +294,10 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
       const selectedIconIndex = icons.findIndex((entity) => selectedIds.includes(entity.id));
       const icon = event.altKey && icons.length > 0 ? icons[(selectedIconIndex + 1) % icons.length] : icons[0];
       if (icon) {
-        onSelect(icon.id, event.shiftKey);
+        if (!selectedIds.includes(icon.id) || event.shiftKey) onSelect(icon.id, event.shiftKey);
         if (event.altKey) return;
         dragRef.current = { kind: "move", entityId: icon.id, startX: world.x, startY: world.y,
-          entityX: icon.transform2d.x, entityY: icon.transform2d.y };
+          entityX: transforms.get(icon.id)?.x ?? icon.transform2d.x, entityY: transforms.get(icon.id)?.y ?? icon.transform2d.y, entities: movingEntities(icon.id) };
       } else {
         dragRef.current = { kind: "marquee", startX: world.x, startY: world.y, additive: event.shiftKey };
         marqueeRef.current = { startX: world.x, startY: world.y, endX: world.x, endY: world.y };
@@ -279,9 +305,9 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
       canvas.setPointerCapture(event.pointerId);
       return;
     }
-    onSelect(sprite.entityId, event.shiftKey);
+    if (!selectedIds.includes(sprite.entityId) || event.shiftKey) onSelect(sprite.entityId, event.shiftKey);
     if (event.altKey) return;
-    dragRef.current = { kind: "move", entityId: sprite.entityId, startX: world.x, startY: world.y, entityX: sprite.x, entityY: sprite.y };
+    dragRef.current = { kind: "move", entityId: sprite.entityId, startX: world.x, startY: world.y, entityX: sprite.x, entityY: sprite.y, entities: movingEntities(sprite.entityId) };
     canvas.setPointerCapture(event.pointerId);
   };
 
@@ -336,12 +362,29 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
     setIsPanning(false);
     if (drag?.kind === "move" && preview?.x !== undefined && preview.y !== undefined &&
         (preview.x !== drag.entityX || preview.y !== drag.entityY)) {
-      onMove(drag.entityId, snapToGrid ? Math.round(preview.x * 4) / 4 : preview.x,
-        snapToGrid ? Math.round(preview.y * 4) / 4 : preview.y);
+      const x = snapToGrid ? Math.round(preview.x * 4) / 4 : preview.x;
+      const y = snapToGrid ? Math.round(preview.y * 4) / 4 : preview.y;
+      const entities = new Map(scene?.entities.map(entity => [entity.id, entity]) ?? []);
+      if (scene) for (const moved of drag.entities) {
+        const entity = entities.get(moved.id);
+        const transform = transforms.get(moved.id);
+        if (!entity || !transform) continue;
+        const local = localTransform(scene, entity.parentId, { ...transform,
+          x: moved.x + x - drag.entityX, y: moved.y + y - drag.entityY }, transforms);
+        onMove(moved.id, local.x, local.y);
+      }
     } else if (drag?.kind === "scale" && preview?.scaleX !== undefined && preview.scaleY !== undefined) {
-      onTransform(drag.sprite.entityId, { scaleX: preview.scaleX, scaleY: preview.scaleY });
+      const entity = scene?.entities.find(entry => entry.id === drag.sprite.entityId);
+      if (scene && entity) {
+        const local = localTransform(scene, entity.parentId, { ...drag.sprite, scaleX: preview.scaleX, scaleY: preview.scaleY });
+        onTransform(entity.id, { scaleX: local.scaleX, scaleY: local.scaleY });
+      }
     } else if (drag?.kind === "rotate" && preview?.rotation !== undefined) {
-      onTransform(drag.sprite.entityId, { rotation: preview.rotation });
+      const entity = scene?.entities.find(entry => entry.id === drag.sprite.entityId);
+      if (scene && entity) {
+        const local = localTransform(scene, entity.parentId, { ...drag.sprite, rotation: preview.rotation });
+        onTransform(entity.id, { rotation: local.rotation });
+      }
     } else if (drag?.kind === "marquee" && marquee && frame) {
       const minX = Math.min(marquee.startX, marquee.endX);
       const maxX = Math.max(marquee.startX, marquee.endX);
@@ -350,8 +393,9 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
       const ids = new Set(frame.sprites.filter((sprite) => sprite.x >= minX && sprite.x <= maxX && sprite.y >= minY && sprite.y <= maxY)
         .map((sprite) => sprite.entityId));
       for (const entity of scene?.entities ?? []) {
-        if (entity.transform2d.x >= minX && entity.transform2d.x <= maxX &&
-            entity.transform2d.y >= minY && entity.transform2d.y <= maxY) ids.add(entity.id);
+        const transform = transforms.get(entity.id);
+        if (transform && transform.x >= minX && transform.x <= maxX &&
+            transform.y >= minY && transform.y <= maxY) ids.add(entity.id);
       }
       onSelectMany([...ids], drag.additive);
     } else if (drag?.kind === "light_move" && lightPreview) {
