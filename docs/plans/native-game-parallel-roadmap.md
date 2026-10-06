@@ -10,7 +10,7 @@ after its dependencies have merged, as specified in the plan.
 | Stream | Cards | Pull requests |
 |---|---|---|
 | K | K1–K7 | |
-| W | W1–W6 | |
+| W | W1–W6 | [W6: workstream scaffolding](https://github.com/nodetool-ai/nodetool/pull/6161) |
 | B | B1–B3 | |
 | R | R1–R11 | |
 | V | V1–V8 | |
