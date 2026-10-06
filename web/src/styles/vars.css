@@ -51,6 +51,24 @@
   --c_input: var(--palette-c_input);
   --c_output: var(--palette-c_output);
 
+  /* Resting elevation mirrors SHADOW(theme).sm. */
+  --shadow-sm: 0 1px 3px rgba(var(--palette-common-blackChannel) / 0.3);
+
+  /* Node handle and tooltip geometry. */
+  --node-tooltip-max-width: 250px;
+  --node-tooltip-top-max-width: 300px;
+  --node-tooltip-doc-max-width: 200px;
+  --node-tooltip-horizontal-offset: 30px;
+  --node-tooltip-reverse-gap: 3px;
+  --node-tooltip-divider-width: 1px;
+  --node-handle-border-width: 2px;
+  --node-handle-snap-offset-x: -10px;
+  --node-handle-snap-offset-y: -5px;
+  --node-handle-core-radius: 2px;
+  --node-handle-core-feather: 2.5px;
+  --node-handle-stripe-width: 3px;
+  --node-handle-stripe-period: 5px;
+
   /* NODES */
   --handle_width: 12px;
   --handle_height: 12px;

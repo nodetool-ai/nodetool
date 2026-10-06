@@ -621,7 +621,7 @@ Use via `theme.zIndex.*` when you need to co-ordinate with MUI framework compone
 
 Arbitrary integers (`9999` in new component code, `1000`, `2`, `5`) outside of `Z_INDEX.*` or `theme.zIndex.*`.
 
-Plain node-handle styles use theme-backed CSS variables exposed by `MuiCssBaseline`:
+Plain node handle styles use CSS variables from the theme, exposed by `MuiCssBaseline`:
 
 | CSS variable | Theme value |
 |---|---|
@@ -655,6 +655,10 @@ boxShadow: SHADOW(theme).lg
 | `SHADOW(theme).xl` | `0 16px 64px` @ 45% | Modals and full-screen overlays |
 | `SHADOW(theme).panelLeft` | `4px 0 8px` @ 5% | Left panel's right edge |
 | `SHADOW(theme).panelRight` | `-4px 0 8px` @ 5% | Right panel's left edge |
+
+Plain CSS uses `var(--shadow-sm)`, defined in [vars.css](../web/src/styles/vars.css)
+to mirror `SHADOW(theme).sm`. Node handle geometry variables in the same file retain the
+existing tooltip widths, offsets and handle hit regions.
 
 ### Forbidden
 
