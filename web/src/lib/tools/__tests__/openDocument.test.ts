@@ -5,7 +5,9 @@ import { stub } from "../../../test-utils/doubles";
 import type { FrontendToolState } from "../frontendTools";
 import {
   useWorkspaceTabsStore,
-  tabId
+  isTabInScope,
+  tabId,
+  LOOSE_PROJECT_ID
 } from "../../../stores/WorkspaceTabsStore";
 import { registerAppRouter } from "../../appNavigation";
 import {
@@ -14,6 +16,7 @@ import {
   type TimelineSnapshot
 } from "../../../components/timeline/timelineAgentBridge";
 import "../builtin/openDocument";
+import "../builtin/uiActions";
 import { trpcClient } from "../../../trpc/client";
 
 jest.mock("../../../trpc/client", () => ({
@@ -253,6 +256,47 @@ describe("ui_open_document", () => {
     await jest.advanceTimersByTimeAsync(21_000);
     await rejects;
 
+    expect(useWorkspaceTabsStore.getState().tabs).toEqual([]);
+  });
+});
+
+describe("ui_open_workflow", () => {
+  it("opens a loose workflow as a tab in the visible scope", async () => {
+    // A workflow created over the API without a project is in the loose
+    // bucket. Its tab has to stay in scope, or the tool reports ok with
+    // nothing on screen.
+    jest
+      .mocked(trpcClient.workflows.get.query)
+      .mockResolvedValue({ id: "wf-open", project_id: LOOSE_PROJECT_ID } as never);
+
+    await expect(
+      FrontendToolRegistry.call(
+        "ui_open_workflow",
+        { workflow_id: "wf-open" },
+        "tc-open-wf",
+        ctx
+      )
+    ).resolves.toEqual({ ok: true, workflow_id: "wf-open" });
+
+    const state = useWorkspaceTabsStore.getState();
+    const opened = state.tabs.find((tab) => tab.ref === "wf-open");
+    expect(opened && isTabInScope(opened, state.activeProjectId)).toBe(true);
+    expect(state.activeTabId).toBe(tabId("workflow", "wf-open"));
+  });
+
+  it("fails instead of reporting ok when the editor never loads", async () => {
+    jest
+      .mocked(trpcClient.workflows.get.query)
+      .mockResolvedValue({ id: "wf-ghost", project_id: "p-1" } as never);
+
+    await expect(
+      FrontendToolRegistry.call(
+        "ui_open_workflow",
+        { workflow_id: "wf-ghost" },
+        "tc-ghost-wf",
+        ctx
+      )
+    ).rejects.toThrow('The workflow "wf-ghost" did not open');
     expect(useWorkspaceTabsStore.getState().tabs).toEqual([]);
   });
 });

@@ -68,65 +68,6 @@ function makeCtx(state: FrontendToolState) {
 }
 
 describe("uiActions", () => {
-  describe("ui_open_workflow", () => {
-    it("calls openWorkflow when available", async () => {
-      const openWorkflow = jest.fn(async () => {});
-      const state = makeMockState({ openWorkflow });
-      const ctx = makeCtx(state);
-
-      const result = await FrontendToolRegistry.call(
-        "ui_open_workflow",
-        { workflow_id: "wf-1" },
-        "call-1",
-        ctx
-      );
-
-      expect(openWorkflow).toHaveBeenCalledWith("wf-1");
-      expect(result).toEqual({ ok: true, workflow_id: "wf-1" });
-    });
-
-    it("falls back to fetchWorkflow + setCurrentWorkflowId", async () => {
-      const fetchWorkflow = jest.fn(async () => {});
-      const getWorkflow = jest.fn(() => ({ id: "wf-2" }) as Workflow);
-      const setCurrentWorkflowId = jest.fn();
-      const state = makeMockState({
-        fetchWorkflow,
-        getWorkflow,
-        setCurrentWorkflowId
-      });
-      const ctx = makeCtx(state);
-
-      const result = await FrontendToolRegistry.call(
-        "ui_open_workflow",
-        { workflow_id: "wf-2" },
-        "call-2",
-        ctx
-      );
-
-      expect(fetchWorkflow).toHaveBeenCalledWith("wf-2");
-      expect(getWorkflow).toHaveBeenCalledWith("wf-2");
-      expect(setCurrentWorkflowId).toHaveBeenCalledWith("wf-2");
-      expect(result).toEqual({ ok: true, workflow_id: "wf-2" });
-    });
-
-    it("throws when workflow not found on fallback path", async () => {
-      const state = makeMockState({
-        fetchWorkflow: jest.fn(async () => {}),
-        getWorkflow: jest.fn(() => undefined)
-      });
-      const ctx = makeCtx(state);
-
-      await expect(
-        FrontendToolRegistry.call(
-          "ui_open_workflow",
-          { workflow_id: "missing" },
-          "call-3",
-          ctx
-        )
-      ).rejects.toThrow("Workflow not found: missing");
-    });
-  });
-
   describe("ui_switch_tab", () => {
     it("calls switchTab when available", async () => {
       const switchTab = jest.fn(async () => "wf-tab-1");

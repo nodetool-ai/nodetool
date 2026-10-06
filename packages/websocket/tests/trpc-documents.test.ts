@@ -83,6 +83,26 @@ describe("documents.index", () => {
     ).toBe("character");
   });
 
+  it("lists a loose document in the Personal project", async () => {
+    // An agent or MCP create without a project lands in the loose bucket. The
+    // navigator only asks for the active project, so the read has to claim
+    // loose rows for Personal the way the projects router does.
+    await Workflow.create<Workflow>({
+      user_id: "u1",
+      project_id: "default",
+      name: "Made over MCP",
+      graph: { nodes: [], edges: [] }
+    });
+
+    const index = await createCaller(makeCtx("u1")).documents.index({
+      projectId: "personal:u1"
+    });
+
+    expect(index.documents.map((d) => [d.type, d.name])).toEqual([
+      ["workflow", "Made over MCP"]
+    ]);
+  });
+
   it("does not serve another user's documents", async () => {
     await Script.create<Script>({
       user_id: "u2",
