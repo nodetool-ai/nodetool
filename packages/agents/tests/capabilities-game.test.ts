@@ -28,6 +28,7 @@ function run(user = USER, assetStorage?: InMemoryStorageAdapter) {
 interface GameReply {
   game: { id: string; revision: string };
   document: GameDocument;
+  draft_updated_at: string;
 }
 
 describe("native game capabilities", () => {
@@ -68,12 +69,14 @@ describe("native game capabilities", () => {
     const saved = await agent.invoke("publish_native_game", {
       game_id: created.game.id,
       base_revision: created.game.revision,
+      base_updated_at: opened.draft_updated_at,
       document: changed
     }) as GameReply;
     expect(saved.document.scenes[0]?.name).toBe("Agent room");
     expect(await agent.invoke("publish_native_game", {
       game_id: created.game.id,
       base_revision: created.game.revision,
+      base_updated_at: opened.draft_updated_at,
       document: changed
     })).toMatchObject({ error: "Game was modified concurrently" });
 
@@ -154,6 +157,7 @@ describe("native game capabilities", () => {
     const published = await agent.invoke("publish_native_game", {
       game_id: created.game.id,
       base_revision: created.game.revision,
+      base_updated_at: (await agent.invoke("get_native_game", { game_id: created.game.id, view: "full" }) as GameReply).draft_updated_at,
       document
     }) as GameReply;
     const played = await agent.invoke("playtest_native_game", {
@@ -191,6 +195,7 @@ describe("native game capabilities", () => {
     const edited = await agent.invoke("publish_native_game", {
       game_id: created.game.id,
       base_revision: created.game.revision,
+      base_updated_at: (await agent.invoke("get_native_game", { game_id: created.game.id, view: "full" }) as GameReply).draft_updated_at,
       document: {
         ...created.document,
         scenes: created.document.scenes.map((scene) => ({ ...scene, name: "Edited room" }))
@@ -233,7 +238,8 @@ describe("native game capabilities", () => {
     const agent = run(USER, storage);
     const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Font room" }) as GameReply;
     const published = await agent.invoke("publish_native_game", { game_id: created.game.id,
-      base_revision: created.game.revision, document: { ...created.document, schemaVersion: 2 } }) as GameReply;
+      base_revision: created.game.revision,
+      base_updated_at: (await agent.invoke("get_native_game", { game_id: created.game.id, view: "full" }) as GameReply).draft_updated_at, document: { ...created.document, schemaVersion: 2 } }) as GameReply;
     const bytes = await readFile(new URL("../../timeline/fonts/BebasNeue-Regular.ttf", import.meta.url));
     const digest = createHash("sha256").update(bytes).digest("hex");
     const [row] = await Workspace.listByProject(USER, PROJECT);
@@ -369,6 +375,7 @@ describe("native game capabilities", () => {
     const published = await agent.invoke("publish_native_game", {
       game_id: created.game.id,
       base_revision: created.game.revision,
+      base_updated_at: (await agent.invoke("get_native_game", { game_id: created.game.id, view: "full" }) as GameReply).draft_updated_at,
       document: {
         ...created.document,
         assets: { ...created.document.assets, player: { ...player, assetId: asset.id, digest } }

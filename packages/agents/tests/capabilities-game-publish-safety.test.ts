@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { Game, ModelObserver, Project, Workspace, initTestDb } from "@nodetool-ai/models";
 import { workspaceFromRow } from "@nodetool-ai/execution/service";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { GameDocument } from "@nodetool-ai/protocol";
+import type { AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
 import { createCapabilityRun, UNGATED } from "../src/capabilities/invoke.js";
 
 const USER = "publication-safety-owner";
@@ -27,7 +27,7 @@ async function workspace() {
   if (!result) { throw new Error("Missing workspace"); }
   return result;
 }
-describe("S publication interface request for K4", () => {
+describe("native game publication safety", () => {
   beforeEach(async () => {
     initTestDb();
     directory = await mkdtemp(join(tmpdir(), "native-game-publish-safety-"));
@@ -54,8 +54,31 @@ describe("S publication interface request for K4", () => {
       base_updated_at: opened.draft_updated_at, document: opened.document })).toHaveProperty("error");
     expect((await agent.invoke("get_native_game", { game_id: created.game.id, view: "full" }) as Reply).document).toEqual(edited.document);
   });
+  it("returns the draft token captured with the document when an edit arrives during get", async () => {
+    const { agent, created, opened } = await create();
+    const readDraft = Game.readDraft;
+    let injectEdit = true;
+    vi.spyOn(Game, "readDraft").mockImplementation(async (...args) => {
+      if (injectEdit) {
+        injectEdit = false;
+        await Game.updateDraft(USER, created.game.id, opened.draft_updated_at,
+          [{ op: "update_scene", scene_id: opened.document.entrySceneId, set: { name: "Fresh read" } }], args[2]);
+      }
+      return readDraft.apply(Game, args);
+    });
+    const current = await agent.invoke("get_native_game", { game_id: created.game.id, view: "full" }) as Reply;
+    expect(current.document.scenes[0].name).toBe("Fresh read");
+    expect(current.draft_updated_at).toBe((await Game.findOwned(USER, created.game.id))?.draft_updated_at);
+    expect(current.draft_updated_at).not.toBe(opened.draft_updated_at);
+  });
   it("F6 uses the same captured current-draft document and token", async () => {
     const { agent, created, opened } = await create();
+    const storage = await workspace();
+    const game = await Game.findOwned(USER, created.game.id);
+    if (!game) { throw new Error("Missing game"); }
+    const revisionPaths = async () => (await storage.list(`${game.source_root}/revisions/`, { recursive: true }))
+      .map((entry) => entry.path).sort();
+    const revisionsBefore = await revisionPaths();
     const readDraft = Game.readDraft;
     let injectEdit = true;
     vi.spyOn(Game, "readDraft").mockImplementation(async (...args) => {
@@ -71,25 +94,67 @@ describe("S publication interface request for K4", () => {
       .toHaveProperty("error");
     expect((await agent.invoke("get_native_game", { game_id: created.game.id, view: "full" }) as Reply).document.scenes[0].name)
       .toBe("Concurrent edit");
+    expect(await revisionPaths()).toEqual(revisionsBefore);
   });
-  it("F20 reports a committed publication as successful when its mirror write fails", async () => {
+  it("returns the publication conflict when losing-revision cleanup fails", async () => {
+    const { agent, created } = await create();
+    const storage = await workspace();
+    const originalDelete = storage.delete;
+    let revisionCleanupAttempted = false;
+    vi.spyOn(Game, "publish").mockResolvedValue(null);
+    vi.spyOn(Object.getPrototypeOf(storage), "delete").mockImplementation(async (...args: Parameters<typeof storage.delete>) => {
+      if (args[0].includes("/revisions/")) {
+        revisionCleanupAttempted = true;
+        throw new Error("Losing-revision cleanup failure");
+      }
+      return originalDelete.apply(storage, args);
+    });
+    expect(await agent.invoke("publish_native_game", { game_id: created.game.id, base_revision: created.game.revision }))
+      .toHaveProperty("error", "Game was modified concurrently");
+    expect(revisionCleanupAttempted).toBe(true);
+  });
+  it("F20 publishes without writing the obsolete draft mirror", async () => {
     const { agent, created } = await create();
     const storage = await workspace();
     const originalWrite = storage.write;
+    let mirrorAttempts = 0;
     vi.spyOn(Object.getPrototypeOf(storage), "write").mockImplementation(async (...args: Parameters<typeof storage.write>) => {
-      if (args[0].endsWith("/draft.json")) { throw new Error("Post-commit storage failure"); }
+      if (args[0].endsWith("/draft.json")) {
+        mirrorAttempts += 1;
+        throw new Error("Post-commit storage failure");
+      }
       return originalWrite.apply(storage, args);
     });
     const published = await agent.invoke("publish_native_game", { game_id: created.game.id, base_revision: created.game.revision }) as Reply;
     expect(published).not.toHaveProperty("error");
+    expect(mirrorAttempts).toBe(0);
     expect(published.game.revision).not.toBe(created.game.revision);
     expect((await agent.invoke("get_native_game", { game_id: created.game.id, source: "revision", view: "full" }) as Reply).game.revision)
       .toBe(published.game.revision);
   });
+  it("reports success when revision pruning fails after publication commits", async () => {
+    const { agent, created } = await create();
+    vi.spyOn(Game, "pruneRevisionFiles").mockRejectedValue(new Error("Cleanup failure"));
+    const published = await agent.invoke("publish_native_game", { game_id: created.game.id, base_revision: created.game.revision }) as Reply;
+    expect(published).not.toHaveProperty("error");
+    expect((await Game.findOwned(USER, created.game.id))?.current_revision).toBe(published.game.revision);
+  });
+  it("publishes an explicit 3D document with its paired draft token", async () => {
+    const agent = run();
+    const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "3D room", dimension: "3d" }) as Reply;
+    const opened = await agent.invoke("get_native_game", { game_id: created.game.id, view: "full" }) as Reply;
+    const published = await agent.invoke("publish_native_game", { game_id: created.game.id, base_revision: created.game.revision,
+      document: opened.document, base_updated_at: opened.draft_updated_at }) as Reply;
+    expect(published).not.toHaveProperty("error");
+    expect(published.document.schemaVersion).toBe(3);
+    expect(published.game.revision).not.toBe(created.game.revision);
+  });
   it("F27 does not create timestamp-named orphan draft files after publication", async () => {
     const { agent, created } = await create();
     const storage = await workspace();
-    await agent.invoke("publish_native_game", { game_id: created.game.id, base_revision: created.game.revision });
+    const published = await agent.invoke("publish_native_game", { game_id: created.game.id, base_revision: created.game.revision }) as Reply;
+    expect(published).not.toHaveProperty("error");
+    expect(published.game.revision).not.toBe(created.game.revision);
     const game = await Game.findOwned(USER, created.game.id);
     if (!game) { throw new Error("Missing game"); }
     const files = await storage.list(`${game.source_root}/drafts/`, { recursive: true });
