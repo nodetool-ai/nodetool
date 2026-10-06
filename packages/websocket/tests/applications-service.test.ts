@@ -20,7 +20,8 @@ import type { CreateApplicationInput } from "@nodetool-ai/protocol/api-schemas/a
 
 import {
   createApplication,
-  deleteApplication
+  deleteApplication,
+  listApplications
 } from "../src/lib/applications-service.js";
 
 const USER = "user-1";
@@ -92,6 +93,25 @@ describe("applications service", () => {
 
     expect(again.id).toBe(first.id);
     expect(again.name).toBe("Mine");
+  });
+
+  it("lists only the apps that run a workflow when filtered by it", async () => {
+    const bound = await createApplication(
+      USER,
+      input({ id: "bound-app", name: "Bound" })
+    );
+    await createApplication(USER, {
+      id: "empty-app",
+      name: "Empty",
+      description: "",
+      projectId: "default",
+      document: createEmptyDocument("Empty")
+    });
+
+    const filtered = await listApplications(USER, undefined, "wf1");
+    expect(filtered.map((app) => app.id)).toEqual([bound.id]);
+    expect(await listApplications(USER, undefined, "other")).toEqual([]);
+    expect(await listApplications(USER)).toHaveLength(2);
   });
 
   it("refuses to scaffold over invalid Recipe protection in a workflow document", async () => {

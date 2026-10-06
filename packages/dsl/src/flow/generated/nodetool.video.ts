@@ -256,6 +256,25 @@ export function setSpeed(inputs: SetSpeedInputs): Promise<SetSpeedOutputs> {
   return callNode<SetSpeedOutputs>("nodetool.video.SetSpeed", inputs);
 }
 
+// Ease Curve — nodetool.video.EaseCurve
+export type EaseCurveInputs = {
+  video?: VideoRef;
+  easing?: "linear" | "easeIn" | "easeOut" | "easeInOut" | "easeInQuint" | "easeOutQuint" | "easeInOutQuint" | "easeInExpo" | "easeOutExpo" | "easeInOutExpo" | "easeInCirc" | "easeOutCirc" | "easeInOutCirc" | "custom";
+  duration?: number;
+  x1?: number;
+  y1?: number;
+  x2?: number;
+  y2?: number;
+};
+
+export interface EaseCurveOutputs {
+  output: VideoRef;
+}
+
+export function easeCurve(inputs: EaseCurveInputs): Promise<EaseCurveOutputs> {
+  return callNode<EaseCurveOutputs>("nodetool.video.EaseCurve", inputs);
+}
+
 // Overlay — nodetool.video.Overlay
 export type OverlayInputs = {
   main_video?: VideoRef;

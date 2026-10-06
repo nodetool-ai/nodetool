@@ -7,41 +7,37 @@ import {
   type ProviderStreamItem,
   type ProviderCapability
 } from "@nodetool-ai/runtime";
+import { z } from "zod";
 import type { AsrArgs } from "./whisper-cpp-provider.js";
 
-function parseResult(value: unknown): ASRResult {
-  if (
-    !value ||
-    typeof value !== "object" ||
-    !("text" in value) ||
-    typeof value.text !== "string"
-  ) {
+const resultSchema = z.object({ text: z.string() });
+const segmentSchema = z.object({
+  start: z.number(),
+  end: z.number(),
+  text: z.string()
+});
+
+async function readResult(response: Response): Promise<ASRResult> {
+  const value = await response.json();
+  const result = resultSchema.safeParse(value);
+  if (!result.success) {
     throw new Error("Invalid whisper-server response: expected text");
   }
   const chunks: NonNullable<ASRResult["chunks"]> = [];
-  if ("segments" in value && Array.isArray(value.segments)) {
-    for (const segment of value.segments) {
-      if (
-        !segment ||
-        typeof segment !== "object" ||
-        !("start" in segment) ||
-        !("end" in segment) ||
-        !("text" in segment) ||
-        typeof segment.start !== "number" ||
-        typeof segment.end !== "number" ||
-        typeof segment.text !== "string"
-      ) {
-        throw new Error(
-          "Invalid whisper-server response: expected segment start, end and text"
-        );
-      }
-      chunks.push({
-        timestamp: [segment.start, segment.end],
-        text: segment.text
-      });
+  const segments = Array.isArray(value.segments) ? value.segments : [];
+  for (const raw of segments) {
+    const segment = segmentSchema.safeParse(raw);
+    if (!segment.success) {
+      throw new Error(
+        "Invalid whisper-server response: expected segment start, end and text"
+      );
     }
+    chunks.push({
+      timestamp: [segment.data.start, segment.data.end],
+      text: segment.data.text
+    });
   }
-  return { text: value.text.trim(), chunks };
+  return { text: result.data.text.trim(), chunks };
 }
 export class WhisperServerProvider extends BaseProvider {
   readonly baseUrl: string;
@@ -62,7 +58,7 @@ export class WhisperServerProvider extends BaseProvider {
   static override requiredSecrets(): string[] {
     return ["WHISPER_CPP_SERVER_URL"];
   }
-  protected override declaredCapabilities() {
+  protected override declaredCapabilities(): readonly ProviderCapability[] {
     return ["automatic_speech_recognition"] as const;
   }
   override getCapabilities(): ProviderCapability[] {
@@ -121,6 +117,6 @@ export class WhisperServerProvider extends BaseProvider {
         `whisper-server inference failed (${response.status}): ${await response.text()}`
       );
     }
-    return parseResult(await response.json());
+    return readResult(response);
   }
 }

@@ -28,7 +28,7 @@
 Internal module (not re-exported from the package index) holding the exec
 helpers + `MissingBinaryError`, `videoRef`/`defaultVideoRef`, `parseFrameRate`,
 `ffprobeDuration`, `withTempFile`, `filePath`/`folderPath`, `dateName`,
-`uniqueTargetPath`, and `coerceProviderBytes`. Helpers take no node-specific
+`uniqueTargetPath`, `coerceProviderBytes`, and `atempoChain`. Helpers take no node-specific
 state so `timeline.ts` can import them too. `defaultVideoRef()` is called per
 `@prop` default so each prop gets its own object — never share one mutable
 default across props.
