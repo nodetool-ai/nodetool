@@ -1,16 +1,9 @@
-export interface AbstractNodeCache<TValue> {
-  get(key: string): Promise<TValue | undefined>;
-  set(key: string, value: TValue, ttlSeconds?: number): Promise<void>;
-  delete(key: string): Promise<void>;
-  clear(): Promise<void>;
-}
-
 interface CacheEntry<TValue> {
   value: TValue;
   expiresAt: number | null;
 }
 
-export class MemoryNodeCache<TValue> implements AbstractNodeCache<TValue> {
+export class MemoryNodeCache<TValue> {
   private _store = new Map<string, CacheEntry<TValue>>();
 
   async get(key: string): Promise<TValue | undefined> {

@@ -1,5 +1,5 @@
 /**
- * Tests for T-ST-6/T-ST-7: AbstractNodeCache + MemoryNodeCache.
+ * Tests for T-ST-6/T-ST-7: MemoryNodeCache.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { MemoryNodeCache } from "../src/memory-node-cache.js";

@@ -14,8 +14,7 @@ multiple storage backends: local file system, in-memory (for tests), Amazon S3
 | `S3StorageAdapter` | class | Amazon S3 / S3-compatible (MinIO, etc.) |
 | `SupabaseStorageAdapter` | class | Supabase Storage buckets |
 | `createStorageAdapter` | function | Builds one of the four from a `StorageConfig` |
-| `AbstractNodeCache` | interface | Generic async TTL cache contract |
-| `MemoryNodeCache` | class | In-memory implementation of `AbstractNodeCache` |
+| `MemoryNodeCache` | class | Generic async in-memory TTL cache |
 | `MemoryUriCache` | class | Synchronous in-memory TTL cache for signed URLs |
 
 ## `StorageAdapter` interface
