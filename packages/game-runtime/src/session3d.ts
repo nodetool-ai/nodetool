@@ -59,12 +59,12 @@ function initialState3D(definition: GameEntity3D, spawnTick: number): EntityStat
   const animation = definition.animator3d;
   const clipId = animation?.initialClip ? animation.clips[animation.initialClip] : undefined;
   const state: EntityState3D = {
-    ...(definition.props === undefined ? {} : { props: structuredClone(definition.props) }),
     definition, definitionId: definition.id, ...initialGameplayState(definition, spawnTick),
     transform: structuredClone(definition.transform3d), localTransform: structuredClone(definition.transform3d),
     previousTransform: structuredClone(definition.transform3d), velocity: { ...(definition.body3d?.velocity ?? ZERO3) },
     angularVelocity: { ...(definition.body3d?.angularVelocity ?? ZERO3) }
   };
+  if (definition.props !== undefined) { state.props = structuredClone(definition.props); }
   if (definition.character3d) {
     state.controller = { grounded: false, coyoteRemaining: 0, jumpBufferRemaining: 0, verticalVelocity: definition.body3d?.velocity.y ?? 0 };
   }
@@ -96,7 +96,6 @@ function restoreEntityStates3D(
       prefabId: entity.prefabId,
       instanceId: entity.instanceId,
       active: entity.active,
-      ...(entity.props === undefined ? {} : { props: structuredClone(entity.props) }),
       health: entity.health,
       transform: structuredClone(entity.transform),
       localTransform: structuredClone(entity.localTransform ?? source.transform3d),
@@ -106,6 +105,7 @@ function restoreEntityStates3D(
       animation: structuredClone(entity.animation),
       opacity: entity.opacity
     };
+    if (entity.props !== undefined) { state.props = structuredClone(entity.props); }
     if (entity.controller) state.controller = { ...entity.controller, grounded: entity.grounded };
     return state;
   });

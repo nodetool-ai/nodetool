@@ -66,7 +66,6 @@ function initialState(entity: GameEntity, world: WorldTransform, spawnTick = 0):
   const patrol = entity.behaviors.find((behavior) => behavior.kind === "patrol");
   const state: EntityState = {
     definition: entity,
-    ...(entity.props === undefined ? {} : { props: structuredClone(entity.props) }),
     ...initialGameplayState(entity, spawnTick),
     x: world.x,
     y: world.y,
@@ -78,6 +77,7 @@ function initialState(entity: GameEntity, world: WorldTransform, spawnTick = 0):
     velocityX: entity.body2d?.velocity.x ?? 0,
     velocityY: entity.body2d?.velocity.y ?? 0
   };
+  if (entity.props !== undefined) { state.props = structuredClone(entity.props); }
   if (patrol?.kind === "patrol") {
     state.patrolOrigin = patrol.axis === "x" ? state.x : state.y;
     state.patrolDirection = 1;
