@@ -384,5 +384,47 @@ describe("useOAuthConnection", () => {
         })
       );
     });
+
+    it("waits for a fresh token when signing in over an expired one", async () => {
+      jest.useFakeTimers();
+      const expired = { id: "cred-1", received_at: "2026-01-01T00:00:00Z" };
+      const fresh = { id: "cred-1", received_at: "2026-10-07T00:00:00Z" };
+      let signedIn = false;
+      mockRestFetch.mockImplementation(async (input) => {
+        const url = String(input);
+        if (url.endsWith("/tokens"))
+          return jsonResponse({ tokens: [signedIn ? fresh : expired] });
+        if (url.endsWith("/start"))
+          return jsonResponse({ auth_url: "https://example.com/auth" });
+        return jsonResponse({});
+      });
+      const onConnected = jest.fn();
+
+      const { result } = renderHook(
+        () => useOAuthConnection("openai", { onConnected }),
+        { wrapper: createWrapper() }
+      );
+      await waitFor(() => expect(result.current.isConnected).toBe(true));
+
+      await act(async () => {
+        await result.current.connect();
+      });
+      await act(async () => {
+        jest.advanceTimersByTime(2000);
+      });
+      // The expired token is still stored: the login has not finished.
+      expect(result.current.isConnecting).toBe(true);
+      expect(onConnected).not.toHaveBeenCalled();
+
+      signedIn = true;
+      for (let i = 0; i < 5 && result.current.isConnecting; i += 1) {
+        await act(async () => {
+          jest.advanceTimersByTime(2000);
+        });
+      }
+
+      expect(result.current.isConnecting).toBe(false);
+      expect(onConnected).toHaveBeenCalledTimes(1);
+    });
   });
 });

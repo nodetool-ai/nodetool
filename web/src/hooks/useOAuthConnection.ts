@@ -121,13 +121,23 @@ export interface OAuthConnection {
   cancelManual: () => void;
 }
 
+interface OAuthConnectionOptions {
+  /** Called once a login started by `connect` stores a fresh token. */
+  onConnected?: () => void;
+}
+
+/** Serialized token metadata, so a sign-in over an expired token is visible. */
+const tokensFingerprint = (data: TokensResponse | undefined): string | null =>
+  data?.tokens && data.tokens.length > 0 ? JSON.stringify(data.tokens) : null;
+
 /**
  * OAuth connection state for a provider, extracted from the settings menus so
  * it can drive the provider cards. Pass `null` to keep the hook inert (no
  * request, never connected) — lets a card call it unconditionally.
  */
 export const useOAuthConnection = (
-  provider: OAuthProvider | null
+  provider: OAuthProvider | null,
+  options?: OAuthConnectionOptions
 ): OAuthConnection => {
   const queryClient = useQueryClient();
   const addNotification = useNotificationStore((state) => state.addNotification);
@@ -136,6 +146,11 @@ export const useOAuthConnection = (
     null
   );
   const [isSubmittingManual, setIsSubmittingManual] = useState(false);
+  // The stored tokens when `connect` began. An expired token still counts as
+  // connected, so a sign-in finishes when the tokens change, not when any
+  // token exists.
+  const [baseline, setBaseline] = useState<string | null>(null);
+  const onConnected = options?.onConnected;
 
   const config = provider ? PROVIDER_CONFIG[provider] : null;
   const tokenQueryKey = useMemo(() => ["oauth-token", provider], [provider]);
@@ -151,8 +166,8 @@ export const useOAuthConnection = (
     },
     enabled: provider !== null,
     refetchInterval: (query) => {
-      const current = query.state.data;
-      if (isConnecting && !(current?.tokens && current.tokens.length > 0)) {
+      const current = tokensFingerprint(query.state.data);
+      if (isConnecting && (current === null || current === baseline)) {
         return 2000;
       }
       return false;
@@ -161,13 +176,14 @@ export const useOAuthConnection = (
   });
 
   const isConnected = !!(data?.tokens && data.tokens.length > 0);
+  const hasFreshToken = isConnected && tokensFingerprint(data) !== baseline;
 
   // Resolve the connecting state once the token lands (or the poll errors).
   useEffect(() => {
     if (!isConnecting || !config) {
       return;
     }
-    if (isConnected) {
+    if (hasFreshToken) {
       setIsConnecting(false);
       setManualPrompt(null);
       void queryClient.invalidateQueries({ queryKey: ["providers"] });
@@ -176,6 +192,7 @@ export const useOAuthConnection = (
         type: "success",
         alert: true
       });
+      onConnected?.();
     } else if (isError) {
       setIsConnecting(false);
       addNotification({
@@ -184,12 +201,23 @@ export const useOAuthConnection = (
         alert: true
       });
     }
-  }, [isConnecting, isConnected, isError, addNotification, config, queryClient]);
+  }, [
+    isConnecting,
+    hasFreshToken,
+    isError,
+    addNotification,
+    config,
+    queryClient,
+    onConnected
+  ]);
 
   const connect = useCallback(async () => {
     if (!provider || !config) {
       return;
     }
+    setBaseline(
+      tokensFingerprint(queryClient.getQueryData<TokensResponse>(tokenQueryKey))
+    );
     setIsConnecting(true);
 
     // The auth URL only exists after a round-trip to /start, but a window
@@ -244,7 +272,7 @@ export const useOAuthConnection = (
         alert: true
       });
     }
-  }, [provider, config, addNotification]);
+  }, [provider, config, addNotification, queryClient, tokenQueryKey]);
 
   const submitManualCode = useCallback(
     async (input: string) => {

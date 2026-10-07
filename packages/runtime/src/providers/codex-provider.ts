@@ -68,6 +68,15 @@ function codexClientVersion(): string {
   );
 }
 
+/**
+ * A failed Codex request. The status rides on the error so the provider layer
+ * classifies a 401 as an expired sign-in, which its message alone does not
+ * reveal: the status sits mid-sentence, where the parser does not look.
+ */
+function codexHttpError(message: string, status: number): Error {
+  return Object.assign(new Error(message), { status });
+}
+
 /** A function call accumulated across Responses streaming events. */
 interface PendingCall {
   callId: string;
@@ -241,8 +250,9 @@ export class CodexProvider extends OpenAIProvider {
     });
     if (!res.ok || !res.body) {
       const detail = await res.text().catch(() => "");
-      throw new Error(
-        `Codex image request failed (${res.status}): ${detail.slice(0, 300)}`
+      throw codexHttpError(
+        `Codex image request failed (${res.status}): ${detail.slice(0, 300)}`,
+        res.status
       );
     }
 
@@ -433,8 +443,9 @@ export class CodexProvider extends OpenAIProvider {
         status: res.status,
         detail: detail.slice(0, 500)
       });
-      throw new Error(
-        `Codex request failed (${res.status}): ${detail.slice(0, 300)}`
+      throw codexHttpError(
+        `Codex request failed (${res.status}): ${detail.slice(0, 300)}`,
+        res.status
       );
     }
 
