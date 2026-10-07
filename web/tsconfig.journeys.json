@@ -6,6 +6,7 @@
   },
   "include": [
     "tests/journeys/**/*",
+    "tests/agentic-qa/**/*",
     "tests/smoke/pageLoadHelpers.ts",
     "tests/globalSetup.ts",
     "playwright.journeys.config.ts",

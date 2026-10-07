@@ -105,6 +105,7 @@
     "test:journeys": "playwright test -c playwright.journeys.config.ts",
     "test:journeys:headed": "playwright test -c playwright.journeys.config.ts --headed",
     "test:journeys:ui": "playwright test -c playwright.journeys.config.ts --ui",
+    "test:agentic-qa": "tsx --test tests/agentic-qa/originGuard.test.ts",
     "typecheck:journeys": "node ../scripts/run-tsc.mjs --noEmit -p tsconfig.journeys.json",
     "typecheck:smoke": "node ../scripts/run-tsc.mjs --noEmit -p tsconfig.smoke.json",
     "typecheck:playwright": "node ../scripts/run-tsc.mjs --noEmit -p tsconfig.playwright.json",
