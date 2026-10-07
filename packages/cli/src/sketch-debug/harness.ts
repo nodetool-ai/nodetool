@@ -20,6 +20,7 @@ import type {
   SketchValidation
 } from "@nodetool-ai/execution/sketch-debug";
 import type { SketchInteractionStep } from "./interactions.js";
+import { runInteractionSteps } from "../interaction-script.js";
 import {
   resolveSketchTarget,
   type ResolvedSketchTarget,
@@ -270,41 +271,9 @@ export async function runSketchDebug(
       bridgeInit.height = resolved.document.canvas.height;
     }
     const bridge = createBridge(bridgeInit);
-    const byName = new Map(bridge.tools.map((t) => [t.name, t]));
-
-    for (const step of steps) {
-      const tool = byName.get(step.tool);
-      if (!tool) {
-        const known = [...byName.keys()].sort().join(", ");
-        interactions.push({
-          tool: step.tool,
-          input: step.input,
-          ok: false,
-          error: `No sketch tool named "${step.tool}". Available: ${known}.`
-        });
-        deps.onLog?.(`✗ ${step.tool}: unknown tool`);
-        continue;
-      }
-      try {
-        const result = await tool.execute(step.input);
-        interactions.push({
-          tool: step.tool,
-          input: step.input,
-          ok: true,
-          result
-        });
-        deps.onLog?.(`✓ ${step.tool}`);
-      } catch (e) {
-        const error = e instanceof Error ? e.message : String(e);
-        interactions.push({
-          tool: step.tool,
-          input: step.input,
-          ok: false,
-          error
-        });
-        deps.onLog?.(`✗ ${step.tool}: ${error}`);
-      }
-    }
+    interactions.push(
+      ...(await runInteractionSteps(steps, bridge.tools, "sketch", deps.onLog))
+    );
     snapshot = bridge.finalState();
   }
 
