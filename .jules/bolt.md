@@ -13,3 +13,6 @@
 ## 2024-11-20 - Concurrent sequential promises
 **Learning:** `await` calls executed sequentially in `for...of` loops cause massive time overhead when bounded by I/O (e.g., querying external AI model providers).
 **Action:** Always replace independent, sequential `await` calls in a `for` loop with `Promise.all` inside `.map` to execute them concurrently.
+## 2024-11-20 - O(N) filtering and mapping optimization
+**Learning:** Using array `.filter(...).map(...)` inside render paths or hot loops creates multiple intermediate array allocations which can hurt garbage collection and overall performance.
+**Action:** Replace `array.filter(...).map(...)` chains with a single manual `for` loop that iterates the array once and conditionally processes or pushes items into the target data structure (like a `Set` or `Map`).

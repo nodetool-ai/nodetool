@@ -49,10 +49,14 @@ function restoreEntry(
     return;
   }
 
-  const vectorIds = new Set(entry.layerStructure.filter((layer) => layer.type === "vector").map((layer) => layer.id));
-  const boundsByLayerId = new Map(
-    entry.layerStructure.map((layer) => [layer.id, layer.contentBounds])
-  );
+  const vectorIds = new Set<string>();
+  const boundsByLayerId = new Map();
+  for (const layer of entry.layerStructure) {
+    if (layer.type === "vector") {
+      vectorIds.add(layer.id);
+    }
+    boundsByLayerId.set(layer.id, layer.contentBounds);
+  }
 
   if (entry.restoreMode === "structure-only") {
     for (const [layerId, data] of Object.entries(entry.layerSnapshots)) {

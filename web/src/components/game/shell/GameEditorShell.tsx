@@ -29,7 +29,12 @@ interface GameEditorShellProps {
 
 export default function GameEditorShell({ dimension, toolbar, status, panels, registry = gamePanelRegistry,
   notices, mobile, dialogs, bottomSx, onKeyDown }: GameEditorShellProps): ReactNode {
-  const views = new Map(panels.filter((view) => view.visible !== false).map((view) => [view.id, view]));
+  const views = new Map<string, GamePanelView>();
+  for (const view of panels) {
+    if (view.visible !== false) {
+      views.set(view.id, view);
+    }
+  }
   const entries = registry.panels(dimension).flatMap((entry) => {
     const view = views.get(entry.id);
     return view ? [{ ...view, region: entry.defaultRegion }] : [];
