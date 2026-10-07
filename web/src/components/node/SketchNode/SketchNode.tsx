@@ -22,7 +22,7 @@ import React, {
   useEffect
 } from "react";
 import { Handle, NodeProps, Position } from "@xyflow/react";
-import { Box, CheckerDropzone, Text, MOTION, SPACING, SHADOW, BORDER_RADIUS, getSpacingPx, Z_INDEX } from "../../ui_primitives";
+import { Box, CheckerDropzone, MOTION, SPACING, SHADOW, BORDER_RADIUS, getSpacingPx, Z_INDEX } from "../../ui_primitives";
 import { useNavigate } from "react-router-dom";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
