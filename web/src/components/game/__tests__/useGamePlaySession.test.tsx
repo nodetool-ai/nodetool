@@ -1,3 +1,5 @@
+import { Profiler } from "react";
+import type { GameRenderFrame } from "@nodetool-ai/protocol";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
@@ -6,7 +8,7 @@ import { gameAuthoring, gameAssetBinding, type GameDocument } from "@nodetool-ai
 import { loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { resolveMediaUri } from "../../../utils/resolveMediaUri";
 
-const mockRenderers: Array<{ assets: (slot: string) => Promise<HTMLImageElement | null>; invalidateAsset: jest.Mock }> = [];
+const mockRenderers: Array<{ assets: (slot: string) => Promise<HTMLImageElement | null>; invalidateAsset: jest.Mock; render: jest.Mock }> = [];
 
 jest.mock("../../../utils/resolveMediaUri", () => ({ resolveMediaUri: jest.fn(async () => null) }));
 
@@ -31,7 +33,7 @@ jest.mock("@nodetool-ai/game-renderer/browser", () => ({
   loadBrowserGameFonts: jest.fn(async () => ({ diagnostics: [], dispose: jest.fn() })),
   createGameRenderer: jest.fn(async ({ canvas, assets }: { canvas: HTMLCanvasElement; assets: (slot: string) => Promise<HTMLImageElement | null> }) => {
     const renderer = { canvas, assets, invalidateAsset: jest.fn(), backend: "canvas2d", capabilities: { gpuEffects: false },
-      resize: jest.fn(), render: jest.fn(async () => {}), setEffects: jest.fn(), dispose: jest.fn() };
+      resize: jest.fn(), render: jest.fn(async (_frame: GameRenderFrame) => {}), setEffects: jest.fn(), dispose: jest.fn() };
     mockRenderers.push(renderer);
     return renderer;
   })
@@ -43,7 +45,7 @@ const multiSceneDocument = { ...document, scenes: [...document.scenes,
 
 function GameHarness({ gameDocument = document }: { gameDocument?: GameDocument }) {
   const session = useGamePlaySession({ refId: "audio-edit-mode", active: true, document: gameDocument });
-  return <><canvas ref={session.canvasRef} /><button onClick={session.beginPlay}>Play</button><button onClick={session.stop}>Stop</button></>;
+  return <><canvas ref={session.canvasRef} /><button onClick={session.beginPlay}>Play</button><button onClick={session.stop}>Stop</button><output data-testid="backend">{session.backend}</output><output data-testid="tick">{session.playState.tick}</output></>;
 }
 
 function ExplicitFailureReplayHarness() {
@@ -165,16 +167,78 @@ it("resolves shipped package assets directly when playing an example", async () 
   expect(resolveMediaUri).toHaveBeenLastCalledWith(packageUri);
 });
 
-it("keeps the renderer and audio player through ten document edits", async () => {
+it("completes ten distinct preview edits without losing renderer readiness", async () => {
   mockRenderers.length = 0;
   mockAudioInstances.length = 0;
-  const view = render(<GameHarness />);
-  await waitFor(() => expect(mockRenderers).toHaveLength(1));
-  for (let index = 0; index < 10; index++) {
-    view.rerender(<GameHarness gameDocument={{ ...document, revision: `edit-${index}` }} />);
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 120)); });
+  const backends: string[] = [];
+  const onRender = (): void => { backends.push(screen.getByTestId("backend").textContent ?? ""); };
+  const view = render(<Profiler id="preview" onRender={onRender}><GameHarness /></Profiler>);
+  await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("Canvas 2D"));
+  const renderer = mockRenderers[0];
+  backends.length = 0;
+  for (let index = 1; index <= 10; index++) {
+    const x = index / 10;
+    const edited = { ...document, scenes: document.scenes.map((scene) => ({ ...scene,
+      entities: scene.entities.map((entity) => entity.id === "player"
+        ? { ...entity, transform2d: { ...entity.transform2d, x } } : entity) })) };
+    renderer.render.mockClear();
+    view.rerender(<Profiler id="preview" onRender={onRender}><GameHarness gameDocument={edited} /></Profiler>);
+    await waitFor(() => expect(renderer.render.mock.calls.some(([frame]: [GameRenderFrame]) =>
+      frame.sprites.some((sprite) => sprite.entityId === "player" && sprite.x === x))).toBe(true));
+    expect(mockRenderers).toEqual([renderer]);
+    expect(mockAudioInstances).toHaveLength(1);
+    expect(backends.length).toBeGreaterThan(0);
+    expect(backends.every((backend) => backend === "Canvas 2D")).toBe(true);
   }
-  expect(mockRenderers).toHaveLength(1);
-  expect(mockAudioInstances).toHaveLength(1);
+  console.info("K2 preview readiness", JSON.stringify({ dimension: "2d", editCount: 10, backends }));
   view.unmount();
+});
+
+it("publishes Play updates only at crossed HUD tick boundaries", async () => {
+  const user = userEvent.setup();
+  mockRenderers.length = 0;
+  const callbacks = new Map<number, FrameRequestCallback>();
+  let nextRequest = 0;
+  const request = jest.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+    const id = ++nextRequest; callbacks.set(id, callback); return id;
+  });
+  const cancel = jest.spyOn(window, "cancelAnimationFrame").mockImplementation((id) => { callbacks.delete(id); });
+  const commits: string[] = [];
+  const view = render(<Profiler id="hook-cadence" onRender={() => {
+    commits.push(screen.getByTestId("tick").textContent ?? "");
+  }}><GameHarness /></Profiler>);
+  try {
+    await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("Canvas 2D"));
+    const renderer = mockRenderers[0];
+    renderer.render.mockClear();
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    await waitFor(() => expect(renderer.render).toHaveBeenCalled());
+    let now = 0;
+    const advance = async (): Promise<void> => {
+      const pending = [...callbacks.values()]; callbacks.clear();
+      await act(async () => { for (const callback of pending) { callback(now); } });
+      now += 1000 / 120;
+    };
+    await advance();
+    commits.length = 0;
+    renderer.render.mockClear();
+    let previousTick = 0;
+    for (let callback = 0; callback < 130 && previousTick < 60; callback++) {
+      const before = commits.length;
+      await advance();
+      const frame: GameRenderFrame | undefined = renderer.render.mock.calls.at(-1)?.[0];
+      const tick = frame?.tick ?? previousTick;
+      expect(tick - previousTick).toBeLessThanOrEqual(1);
+      const boundary = Math.floor(tick / 6) - Math.floor(previousTick / 6);
+      expect(commits.length - before).toBe(boundary);
+      if (boundary) { expect(screen.getByTestId("tick").textContent).toBe(String(tick)); }
+      previousTick = tick;
+    }
+    expect(previousTick).toBe(60);
+    expect(renderer.render.mock.calls.length).toBeGreaterThanOrEqual(60);
+    expect(commits).toEqual(Array.from({ length: 10 }, (_, index) => String((index + 1) * 6)));
+    console.info("K2 hook cadence", JSON.stringify({ dimension: "2d", ticks: previousTick, clockAdvanceMs: now, renderCalls: renderer.render.mock.calls.length, commits }));
+  } finally {
+    view.unmount(); request.mockRestore(); cancel.mockRestore();
+  }
 });

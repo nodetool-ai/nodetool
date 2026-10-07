@@ -5,6 +5,8 @@ import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { test, expect, waitForAppReady } from "./fixtures";
 
+import { observeNativeGameReadiness, settleNativeGameEdit, finishNativeGameReadiness } from "./helpers/nativeGameReadiness";
+
 const PROJECT_ID = "proj-scrapheart";
 
 function modelFixture(): Buffer {
@@ -106,6 +108,23 @@ test("edits, undoes, installs a model, plays and publishes the same 3D draft", a
       const draft = (await client.games.getDraft.query({ id: created.game.id })).document;
       return draft.schemaVersion === 3 ? draft.scenes[0].entities.at(-1)?.transform3d.position.x : null;
     }).toBe(4);
+    await expect(page.getByRole("button", { name: "Play", exact: true })).toBeEnabled();
+    await observeNativeGameReadiness(page);
+    for (let edit = 1; edit <= 10; edit++) {
+      const x = 4 + edit / 10;
+      await positionX.fill(String(x));
+      await positionX.press("Enter");
+      await expect.poll(async () => {
+        const draft = (await client.games.getDraft.query({ id: created.game.id })).document;
+        return draft.schemaVersion === 3 ? draft.scenes[0].entities.at(-1)?.transform3d.position.x : null;
+      }).toBe(x);
+      await settleNativeGameEdit(page);
+    }
+    const readiness = await finishNativeGameReadiness(page);
+    await test.info().attach("editor-readiness-3d", { body: JSON.stringify(readiness, null, 2), contentType: "application/json" });
+    expect(readiness.observations.filter((entry) => entry.kind === "edit-settled")).toHaveLength(10);
+    expect(readiness.observations.length).toBeGreaterThan(10);
+    expect(readiness.failures).toEqual([]);
     const beforePlay = (await client.games.getDraft.query({ id: created.game.id })).document;
     expect(beforePlay.assets.journey_model.assetId).not.toBe(source.id);
     await expect(page.getByRole("alert")).toHaveCount(0);
