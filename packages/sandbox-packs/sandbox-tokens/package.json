@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-tokens",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "LLM token counting inside the NodeTool sandbox, from js-tiktoken running on the host",
   "license": "MIT",
   "nodetool": {

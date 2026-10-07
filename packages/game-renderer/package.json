@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/game-renderer",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Native 2D and 3D rendering, capture and web export",
   "type": "module",
   "engines": {

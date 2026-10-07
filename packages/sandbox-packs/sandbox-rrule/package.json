@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-rrule",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Recurrence rules (iCalendar RRULE) inside the NodeTool sandbox",
   "license": "MIT",
   "dependencies": {
