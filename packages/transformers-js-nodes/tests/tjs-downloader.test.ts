@@ -19,6 +19,12 @@ describe("tjsTypeToPipelineTask", () => {
     expect(tjsTypeToPipelineTask("")).toBeNull();
   });
 
+  it("downloads a reranker through the text-classification loader", () => {
+    expect(tjsTypeToPipelineTask("tjs.text_ranking")).toBe(
+      "text-classification"
+    );
+  });
+
   it("returns null for the bare prefix with no task", () => {
     expect(tjsTypeToPipelineTask("tjs.")).toBeNull();
   });

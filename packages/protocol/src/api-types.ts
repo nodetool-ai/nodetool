@@ -1384,6 +1384,8 @@ export interface ModelArtifactRef {
   path?: string | null;
   /** The files the adapter loads, when it needs only part of the repository. */
   allow_patterns?: string[] | null;
+  /** The model type the download service fetches the artifact with, e.g. `tjs.feature_extraction`. */
+  model_type?: string | null;
 }
 
 export interface ModelAdapterInfo {
@@ -1411,6 +1413,13 @@ export interface ASRModel {
   name: string;
   provider: Provider;
   path?: string | null;
+}
+
+export interface RerankModel {
+  type: string;
+  id: string;
+  name: string;
+  provider: Provider;
 }
 
 export interface MusicModel {

@@ -496,7 +496,8 @@ export const PROVIDER_MODEL_TYPES: ReadonlySet<string> = new Set([
   "embedding_model",
   "tts_model",
   "asr_model",
-  "video_model"
+  "video_model",
+  "rerank_model"
 ]);
 
 /**

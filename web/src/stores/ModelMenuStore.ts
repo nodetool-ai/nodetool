@@ -7,6 +7,7 @@ import type {
   EmbeddingModel,
   TTSModel,
   ASRModel,
+  RerankModel,
   MusicModel,
   AudioToAudioModel,
   VideoModel
@@ -283,6 +284,7 @@ export const useLanguageModelMenuStore = createModelMenuStore<LanguageModel>();
 export const useImageModelMenuStore = createModelMenuStore<ImageModel>();
 export const useTTSModelMenuStore = createModelMenuStore<TTSModel>();
 export const useASRModelMenuStore = createModelMenuStore<ASRModel>();
+export const useRerankModelMenuStore = createModelMenuStore<RerankModel>();
 export const useMusicModelMenuStore = createModelMenuStore<MusicModel>();
 export const useAudioToAudioModelMenuStore =
   createModelMenuStore<AudioToAudioModel>();

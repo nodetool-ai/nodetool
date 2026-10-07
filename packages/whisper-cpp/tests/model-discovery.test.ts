@@ -8,6 +8,12 @@ import {
   writeFile
 } from "node:fs/promises";
 import { tmpdir } from "node:os";
+
+const home = vi.hoisted(() => ({ dir: "" }));
+vi.mock("node:os", async (importOriginal) => {
+  const os = await importOriginal<typeof import("node:os")>();
+  return { ...os, homedir: () => home.dir || os.homedir() };
+});
 import path from "node:path";
 import {
   discoverASRModels,
@@ -53,6 +59,19 @@ it("discovers symlinked ASR and VAD models separately and accepts picker ids unc
   await expect(resolveModelPath(path.join(dir, "blob"))).rejects.toThrow(
     "Unknown whisper.cpp model"
   );
+});
+it("resolves a home-relative id that older saved state holds", async () => {
+  home.dir = dir;
+  const snapshot = path.join(dir, "models--ggerganov--whisper.cpp/snapshots/one");
+  await mkdir(snapshot, { recursive: true });
+  await writeFile(path.join(snapshot, "ggml-small.bin"), "model");
+  try {
+    expect(
+      await resolveModelPath("~/models--ggerganov--whisper.cpp/snapshots/one/ggml-small.bin")
+    ).toBe(path.join(snapshot, "ggml-small.bin"));
+  } finally {
+    home.dir = "";
+  }
 });
 it("adds the configured directory and retains the newest snapshot per filename", async () => {
   const first = path.join(

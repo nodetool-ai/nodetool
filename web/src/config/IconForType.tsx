@@ -56,6 +56,7 @@ const iconMap: Record<string, React.FC<React.SVGProps<SVGSVGElement>>> = {
   dict,
   enum: _enum,
   embedding_model: tensor,
+  rerank_model: tensor,
   file,
   float,
   font: documentIcon,

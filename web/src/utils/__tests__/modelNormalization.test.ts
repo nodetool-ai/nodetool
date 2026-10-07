@@ -5,6 +5,7 @@ import {
   executionForDisplay,
   executionLabelsByProvider,
   modelDownloadTarget,
+  modelLabelFromId,
   type ModelSelectorModel
 } from "../modelNormalization";
 import type { LanguageModel } from "../../stores/ApiTypes";
@@ -412,8 +413,28 @@ describe("modelNormalization", () => {
         repoId: "suno/bark",
         path: null,
         allowPatterns: ["*.bin", "*.json", "*.txt"],
-        ignorePatterns: null
+        ignorePatterns: null,
+        modelType: null
       });
+    });
+
+    it("downloads with the artifact's model type when it names one", () => {
+      const whisper = bark({
+        type: "asr_model",
+        id: "Xenova/whisper-base",
+        provider: "transformers_js",
+        adapter: {
+          state: "installed",
+          artifact_ref: {
+            source: "huggingface",
+            repo_id: "Xenova/whisper-base",
+            model_type: "tjs.automatic_speech_recognition"
+          }
+        }
+      });
+      expect(modelDownloadTarget(whisper)?.modelType).toBe(
+        "tjs.automatic_speech_recognition"
+      );
     });
 
     it("offers nothing for a model that is ready", () => {
@@ -426,6 +447,22 @@ describe("modelNormalization", () => {
 
     it("offers nothing when the model names no repository", () => {
       expect(modelDownloadTarget(bark({ adapter: null }))).toBeNull();
+    });
+  });
+
+  describe("modelLabelFromId", () => {
+    it("shows a whisper.cpp file path as its model name", () => {
+      expect(
+        modelLabelFromId(
+          "~/.cache/huggingface/hub/models--ggerganov--whisper.cpp/snapshots/80da/ggml-small.bin"
+        )
+      ).toBe("small");
+      expect(modelLabelFromId("C:\\models\\ggml-base.en.bin")).toBe("base.en");
+    });
+
+    it("keeps an id that is not a path", () => {
+      expect(modelLabelFromId("whisper-1")).toBe("whisper-1");
+      expect(modelLabelFromId("Xenova/whisper-base")).toBe("Xenova/whisper-base");
     });
   });
 });

@@ -262,17 +262,18 @@ export const DownloadProgress: React.FC<{
         ? `${percent.toFixed(0)}%`
         : "…";
 
-    const formatBytes = (bytes: number) => {
-      if (!bytes || bytes < 0) {return "-";}
-      const units = ["B", "KB", "MB", "GB", "TB"] as const;
-      let value = bytes;
-      let unitIndex = 0;
-      while (value >= 1024 && unitIndex < units.length - 1) {
-        value /= 1024;
-        unitIndex += 1;
-      }
-      return `${value.toFixed(unitIndex === 0 ? 0 : 2)} ${units[unitIndex]}`;
+    // Whole megabytes keep the line short: "89 / 465 MB".
+    const compactBytes = (bytes: number) => {
+      const mb = bytes / 1024 / 1024;
+      return mb >= 1024 ? `${(mb / 1024).toFixed(1)} GB` : `${Math.round(mb)} MB`;
     };
+    const done = compactBytes(downloadedBytes);
+    const total = compactBytes(totalBytes);
+    const [doneValue, doneUnit] = done.split(" ");
+    const sizeLabel =
+      totalBytes > 0 && isActive
+        ? `${doneUnit === total.split(" ")[1] ? doneValue : done} / ${total}`
+        : null;
 
     return (
       <Tooltip
@@ -280,25 +281,36 @@ export const DownloadProgress: React.FC<{
           download.message ? ` — ${download.message}` : ""
         }`}
       >
-        <FlexRow component="span" align="center" gap={0.5} sx={{ ml: 0.5 }}>
-          <ProgressBar
-            value={download.status === "completed" ? 100 : percent}
-            showValue={false}
-            barHeight={4}
-            sx={{ width: 56, minWidth: 56 }}
-          />
-          <FlexRow component="span" align="center" gap={0.5}>
-            <Caption sx={{ lineHeight: 1 }}>
-              {label}
-            </Caption>
-            {totalBytes > 0 && (
-              <Caption
-                sx={{ lineHeight: 1, opacity: 0.8 }}
-              >
-                {formatBytes(downloadedBytes)} / {formatBytes(totalBytes)}
+        <FlexRow
+          component="span"
+          align="center"
+          gap={1}
+          sx={{ flexShrink: 0, whiteSpace: "nowrap" }}
+        >
+          <FlexColumn component="span" gap={0.5} sx={{ width: 120 }}>
+            <FlexRow component="span" align="center" justify="space-between">
+              <Caption sx={{ lineHeight: 1, fontVariantNumeric: "tabular-nums" }}>
+                {label}
               </Caption>
-            )}
-          </FlexRow>
+              {sizeLabel && (
+                <Caption
+                  sx={{
+                    lineHeight: 1,
+                    color: "text.secondary",
+                    fontVariantNumeric: "tabular-nums"
+                  }}
+                >
+                  {sizeLabel}
+                </Caption>
+              )}
+            </FlexRow>
+            <ProgressBar
+              value={download.status === "completed" ? 100 : percent}
+              showValue={false}
+              barHeight={4}
+              sx={{ width: "100%" }}
+            />
+          </FlexColumn>
           {canCancel && (
             <CloseButton
               onClick={handleCancelAndDismiss}

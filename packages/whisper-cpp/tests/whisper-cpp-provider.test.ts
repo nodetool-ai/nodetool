@@ -172,3 +172,13 @@ it("reports the install message without failing discovery and retries imports", 
   ).rejects.toThrow("Install it from the Package Manager");
   expect(mocks.load).toHaveBeenCalledTimes(3);
 });
+it("names the runtime package to install when the binding is missing", async () => {
+  mocks.load.mockRejectedValue(new Error("not installed"));
+  const { missingRuntimePackageOf } = await import("@nodetool-ai/protocol");
+  const { WhisperCppProvider } = await import("../src/whisper-cpp-provider.js");
+  const provider = new WhisperCppProvider({ WHISPER_CPP_MODELS_DIR: dir });
+  const error = await provider
+    .automaticSpeechRecognition({ audio: new Uint8Array([1]), model: "" })
+    .catch((err: unknown) => err);
+  expect(missingRuntimePackageOf(error)).toBe("whisper-cpp");
+});

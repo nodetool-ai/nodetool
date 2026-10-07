@@ -32,6 +32,7 @@ export {
 export {
   AutomaticSpeechRecognitionNode,
   EmbeddingTextNode,
+  RerankNode,
   SaveTextFileNode,
   SaveTextNode,
   LoadTextFolderNode,
@@ -214,6 +215,7 @@ export {
   PainterNode,
   UpscaleImageNode,
   RemoveBackgroundNode,
+  EstimateDepthNode,
   RelightImageNode,
   VectorizeImageNode,
   SegmentImageNode,

@@ -6,6 +6,7 @@ import { trpc } from "../../lib/trpc";
 import { useQuery } from "@tanstack/react-query";
 import ModelSelectButton from "./shared/ModelSelectButton";
 import useModelSelectMenu from "./shared/useModelSelectMenu";
+import { modelLabelFromId } from "../../utils/modelNormalization";
 interface ASRModelSelection {
   type: "asr_model";
   id: string;
@@ -49,7 +50,11 @@ const ASRModelSelect: React.FC<ASRModelSelectProps> = ({
       <ModelSelectButton
         ref={buttonRef}
         active={!!value}
-        label={currentSelectedModelDetails?.name || value || "Select Model"}
+        label={
+          currentSelectedModelDetails?.name ||
+          (value ? modelLabelFromId(value) : "Select Model")
+        }
+        secondaryLabel={currentSelectedModelDetails?.provider ?? provider}
         subLabel="Select ASR Model"
         onClick={handleClick}
       />

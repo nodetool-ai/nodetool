@@ -7,6 +7,7 @@ import {
   AssetList,
   AssetRef,
   ASRModel,
+  RerankModel,
   AudioRef,
   CalendarEvent,
   Chunk,
@@ -99,6 +100,7 @@ import {
 export type { AssetList };
 export type { AssetRef };
 export type { ASRModel };
+export type { RerankModel };
 export type { AudioRef };
 export type { CalendarEvent };
 export type { CollectionCreate };

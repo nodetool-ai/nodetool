@@ -35,8 +35,10 @@ import {
 } from "@nodetool-ai/protocol";
 import { getSecret, Setting } from "@nodetool-ai/models";
 import type { WebSocketChatClient } from "./websocket-client.js";
+import { registerTransformersJsProvider } from "@nodetool-ai/transformers-js-provider";
 import { registerWhisperCppProviders } from "@nodetool-ai/whisper-cpp";
 
+registerTransformersJsProvider();
 registerWhisperCppProviders();
 
 /**

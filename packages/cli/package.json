@@ -51,6 +51,7 @@
     "@nodetool-ai/storage": "*",
     "@nodetool-ai/telegram": "*",
     "@nodetool-ai/transformers-js-nodes": "*",
+    "@nodetool-ai/transformers-js-provider": "*",
     "@nodetool-ai/vectorstore": "*",
     "@nodetool-ai/video-nodes": "*",
     "@nodetool-ai/websocket": "*",

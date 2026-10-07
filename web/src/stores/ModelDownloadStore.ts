@@ -304,7 +304,10 @@ export const useModelDownloadStore = create<ModelDownloadStore>((set, get) => ({
               // `["tjs-recommended", modelType]` — invalidate both so newly
               // cached repos flip from "Download" to "Downloaded" immediately.
               "tjs-models",
-              "tjs-recommended"
+              "tjs-recommended",
+              // The whisper.cpp entries take the local file path as their id
+              // once downloaded.
+              "recommended-task-models"
             ] as const;
             for (const key of MODEL_CACHE_KEYS) {
               queryClient?.invalidateQueries({ queryKey: [key] });

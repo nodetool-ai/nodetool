@@ -309,7 +309,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
       if (!target) return;
       startDownload(
         target.repoId,
-        model.type ?? "",
+        target.modelType ?? model.type ?? "",
         target.path,
         target.allowPatterns,
         target.ignorePatterns,
@@ -336,7 +336,9 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
     return recommendedModels
       .filter((m) => isHfModel(m) || m.type === "llama_model")
       .filter(
-        (m) => !selectableIds.has((m.repo_id || m.id || "").toLowerCase())
+        (m) =>
+          !selectableIds.has((m.repo_id || m.id || "").toLowerCase()) &&
+          !selectableIds.has(m.id.toLowerCase())
       )
       .filter((m) => {
         if (!q) return true;

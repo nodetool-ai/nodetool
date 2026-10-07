@@ -4,20 +4,30 @@ import type {
   ASRResult,
   EmbeddingModel,
   EncodedAudioResult,
+  EstimateDepthParams,
+  ImageModel,
   LanguageModel,
   Message,
   ProviderCapability,
   ProviderStreamItem,
+  RemoveBackgroundParams,
+  RerankModel,
+  RerankParams,
+  RerankResult,
   TTSModel
 } from "@nodetool-ai/runtime";
 import { generateMessage, generateMessages } from "./chat.js";
 import { textToSpeechEncoded } from "./tts.js";
 import { automaticSpeechRecognition } from "./asr.js";
 import { generateEmbedding } from "./embeddings.js";
+import { estimateDepth, removeBackground } from "./image-ops.js";
+import { rerank } from "./rerank.js";
 import {
   discoverASRModels,
   discoverEmbeddingModels,
+  discoverImageModels,
   discoverLanguageModels,
+  discoverRerankModels,
   discoverTTSModels
 } from "./model-discovery.js";
 
@@ -34,7 +44,10 @@ export class TransformersJsProvider extends BaseProvider {
     return [
       "text_to_speech",
       "automatic_speech_recognition",
-      "generate_embedding"
+      "generate_embedding",
+      "remove_background",
+      "estimate_depth",
+      "rerank"
     ];
   }
 
@@ -58,6 +71,14 @@ export class TransformersJsProvider extends BaseProvider {
 
   override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
     return discoverEmbeddingModels();
+  }
+
+  override async getAvailableImageModels(): Promise<ImageModel[]> {
+    return discoverImageModels();
+  }
+
+  override async getAvailableRerankModels(): Promise<RerankModel[]> {
+    return discoverRerankModels();
   }
 
   // ── Chat ──────────────────────────────────────────────────────────
@@ -107,5 +128,28 @@ export class TransformersJsProvider extends BaseProvider {
     dimensions?: number;
   }): Promise<number[][]> {
     return generateEmbedding(args);
+  }
+
+  // ── Image ─────────────────────────────────────────────────────────
+
+  override async removeBackground(
+    image: Uint8Array,
+    params: RemoveBackgroundParams
+  ): Promise<Uint8Array> {
+    return removeBackground({ image, model: params.model.id });
+  }
+
+  override async estimateDepth(
+    image: Uint8Array,
+    params: EstimateDepthParams
+  ): Promise<Uint8Array> {
+    params.signal?.throwIfAborted();
+    return estimateDepth({ image, model: params.model.id });
+  }
+
+  // ── Reranking ─────────────────────────────────────────────────────
+
+  override async rerank(params: RerankParams): Promise<RerankResult[]> {
+    return rerank(params);
   }
 }

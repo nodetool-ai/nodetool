@@ -5,6 +5,7 @@ import { trpc } from "../../lib/trpc";
 import {
   useProviders,
   useProvidersByCapability,
+  useImageModelProviders,
   useLanguageModelProviders,
   useTTSProviders
 } from "../useProviders";
@@ -160,6 +161,29 @@ describe("useProviders", () => {
 
       expect(result.current.providers).toHaveLength(1);
       expect(result.current.providers[0].provider).toBe("openai");
+    });
+
+    it("useImageModelProviders keeps a provider that only edits images", async () => {
+      mockQuery.mockResolvedValueOnce([
+        ...mockProviders,
+        {
+          provider: "transformers_js",
+          capabilities: ["remove_background", "estimate_depth", "rerank"]
+        }
+      ] as never);
+
+      const { result } = renderHook(() => useImageModelProviders(), {
+        wrapper: createWrapper(),
+      });
+
+      await waitFor(() => {
+        expect(result.current.isLoading).toBe(false);
+      });
+
+      expect(result.current.providers.map((p) => p.provider)).toEqual([
+        "openai",
+        "transformers_js"
+      ]);
     });
   });
 });

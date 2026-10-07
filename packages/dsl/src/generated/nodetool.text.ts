@@ -35,6 +35,24 @@ export function embedding(inputs: EmbeddingInputs, options?: NodeOptions): NodeW
   return createNode("nodetool.text.Embedding", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"list"}, defaultOutput: "output" });
 }
 
+// Rerank — nodetool.text.Rerank
+export type RerankInputs = {
+  model?: Connectable<unknown>;
+  query?: Connectable<string>;
+  documents?: Connectable<string[]>;
+  top_k?: Connectable<number>;
+};
+
+export interface RerankOutputs {
+  documents: string[];
+  scores: number[];
+  indices: number[];
+}
+
+export function rerank(inputs: RerankInputs, options?: NodeOptions): NodeWithOutputs<RerankOutputs> {
+  return createNode("nodetool.text.Rerank", inputs, { id: options?.id, outputNames: ["documents", "scores", "indices"], outputTypes: {"documents":"list[str]","scores":"list[float]","indices":"list[int]"} });
+}
+
 // Save Text File — nodetool.text.SaveTextFile
 export type SaveTextFileInputs = {
   text?: Connectable<string>;

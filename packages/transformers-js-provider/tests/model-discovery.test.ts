@@ -20,6 +20,13 @@ vi.mock("@nodetool-ai/transformers-js-nodes", async () => {
         ],
         "tjs.feature_extraction": [
           { repo_id: "Xenova/all-MiniLM-L6-v2" }
+        ],
+        "tjs.background_removal": [{ repo_id: "briaai/RMBG-1.4" }],
+        "tjs.depth_estimation": [
+          { repo_id: "onnx-community/depth-anything-v2-small" }
+        ],
+        "tjs.text_ranking": [
+          { repo_id: "mixedbread-ai/mxbai-rerank-xsmall-v1" }
         ]
       };
       return M[type] ?? [];
@@ -34,7 +41,9 @@ vi.mock("@nodetool-ai/transformers-js-nodes", async () => {
 import {
   discoverASRModels,
   discoverEmbeddingModels,
+  discoverImageModels,
   discoverLanguageModels,
+  discoverRerankModels,
   discoverTTSModels
 } from "../src/model-discovery.js";
 
@@ -69,6 +78,39 @@ describe("model-discovery", () => {
 
     const embed = await discoverEmbeddingModels();
     expect(embed.map((m) => m.id)).toContain("Xenova/all-MiniLM-L6-v2");
+  });
+
+  it("tags each image model with the capability it serves", async () => {
+    const models = await discoverImageModels();
+    expect(
+      models.map((m) => [m.id, m.supportedTasks, m.adapter?.artifactRef?.modelType])
+    ).toEqual([
+      ["briaai/RMBG-1.4", ["remove_background"], "tjs.background_removal"],
+      [
+        "onnx-community/depth-anything-v2-small",
+        ["estimate_depth"],
+        "tjs.depth_estimation"
+      ]
+    ]);
+  });
+
+  it("lists reranking models with their download type", async () => {
+    const [model] = await discoverRerankModels();
+    expect(model.id).toBe("mixedbread-ai/mxbai-rerank-xsmall-v1");
+    expect(model.adapter?.artifactRef?.modelType).toBe("tjs.text_ranking");
+  });
+
+  it("names the repository and download type each model loads", async () => {
+    const [asr] = await discoverASRModels();
+    expect(asr.adapter?.artifactRef).toEqual({
+      source: "huggingface",
+      repoId: "onnx-community/whisper-large-v3-turbo",
+      modelType: "tjs.automatic_speech_recognition"
+    });
+    const [embed] = await discoverEmbeddingModels();
+    expect(embed.adapter?.artifactRef?.modelType).toBe(
+      "tjs.feature_extraction"
+    );
   });
 
   it("does not duplicate when a repo is both recommended and cached", async () => {

@@ -17,6 +17,9 @@ export function tjsTypeToPipelineTask(modelType: string): string | null {
   if (!modelType.startsWith("tjs.")) return null;
   const rest = modelType.slice(4);
   if (!rest) return null;
+  // Transformers.js has no ranking pipeline. A cross-encoder loads the same
+  // files as a text classifier.
+  if (rest === "text_ranking") return "text-classification";
   return rest.replace(/_/g, "-");
 }
 
