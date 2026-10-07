@@ -102,8 +102,21 @@ export function hasGameScripts(document: GameDocument): boolean {
   return document.scenes.some((scene) => scene.entities.some((entity) => entity.behaviors.some((behavior) => behavior.kind === "script")));
 }
 
-function evaluate(context: QuickJSContext, code: string): unknown {
-  const evaluation = context.evalCode(code, "game-script.js", { type: "global" });
+function evaluate(context: QuickJSContext, code: string, argument?: string): unknown {
+  let evaluation = context.evalCode(code, "game-script.js", { type: "global" });
+  if (!evaluation.error && argument !== undefined) {
+    const functionHandle = evaluation.value;
+    try {
+      const argumentHandle = context.newString(argument);
+      try {
+        evaluation = context.callFunction(functionHandle, context.undefined, argumentHandle);
+      } finally {
+        argumentHandle.dispose();
+      }
+    } finally {
+      functionHandle.dispose();
+    }
+  }
   if (evaluation.error) {
     const error = context.dump(evaluation.error) as { message?: string };
     evaluation.error.dispose();
@@ -225,6 +238,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         const batchBudget = `batch 50 ms at tick ${input.tick}`;
         assertBeforeDeadline(batchDeadline, batchBudget);
         let nextRngState = rngState;
+        let serializedInput: string | undefined;
         let serializedResultsBytes = 0;
         let commandCount = 0;
         const byEntity: Record<string, { durationMs: number; calls: number }> = Object.create(null);
@@ -250,13 +264,14 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
               throw new Error("Source must be a function expression");
             }
             checkCallDeadline();
-            const data = JSON.stringify({ call, input, rngState: nextRngState });
+            serializedInput ??= JSON.stringify(input);
+            const data = `{"call":${JSON.stringify(call)},"input":${serializedInput},"rngState":${nextRngState}}`;
             checkCallDeadline();
-            const output = evaluate(context, `(() => {
-              const data = JSON.parse(${JSON.stringify(data)});
+            const output = evaluate(context, `((dataJson) => {
+              const data = JSON.parse(dataJson);
               const value = __gameScript(${payloadExpression});
               return JSON.stringify({ value, rngState: __gameRandom.state });
-            })()`);
+            })`, data);
             if (typeof output !== "string") {
               throw new Error("Output is not JSON");
             }
