@@ -37,7 +37,9 @@ interface GameViewport3DProps {
   readonly highlightedIds?: readonly string[];
   readonly sceneId: string;
   readonly onSelect?: (id: string) => void;
-  readonly onOps?: (ops: GameDocumentOp3D[]) => void;
+  readonly onOps?: (ops: GameDocumentOp3D[], gestureId?: number) => void;
+  readonly onGestureStart?: () => number;
+  readonly onGestureEnd?: (gestureId: number) => void;
   readonly playerOnly?: boolean;
 }
 
@@ -55,7 +57,7 @@ function transform(matrixValue: Matrix4): GameTransform3D {
     scale: { x: scale.x, y: scale.y, z: scale.z } };
 }
 
-export default function GameViewport3D({ document, host, selectedId, highlightedIds = [], sceneId, onSelect, onOps, playerOnly = false }: GameViewport3DProps) {
+export default function GameViewport3D({ document, host, selectedId, highlightedIds = [], sceneId, onSelect, onOps, onGestureStart, onGestureEnd, playerOnly = false }: GameViewport3DProps) {
   const theme = useTheme();
   const [mode, setMode] = useState<TransformMode>("translate");
   const [snap, setSnap] = useState(true);
@@ -65,8 +67,8 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
   const controlsRef = useRef<{ orbit: OrbitControls; gizmo: TransformControls; camera: PerspectiveCamera; target: Object3D } | null>(null);
   const selectedRef = useRef(selectedId);
   selectedRef.current = selectedId;
-  const currentRef = useRef({ document, frame: host.frame, onOps, sceneId });
-  currentRef.current = { document, frame: host.frame, onOps, sceneId };
+  const currentRef = useRef({ document, frame: host.frame, onOps, sceneId, onGestureStart, onGestureEnd });
+  currentRef.current = { document, frame: host.frame, onOps, sceneId, onGestureStart, onGestureEnd };
 
   useEffect(() => {
     const renderer = host.rendererRef.current;
@@ -87,7 +89,14 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
     const target = new Object3D();
     renderer.getScene().add(target);
     controlsRef.current = { orbit, gizmo, camera, target };
+    let gestureId: number | undefined;
+    const endGesture = (): void => {
+      const id = gestureId;
+      gestureId = undefined;
+      if (id !== undefined) { currentRef.current.onGestureEnd?.(id); }
+    };
     let dragging = false;
+    let dragStartMatrix: Matrix4 | null = null;
     let pending: GameTransform3D | null = null;
     let preview: GameRenderFrame3D | null = null;
     const render = (): void => {
@@ -101,6 +110,7 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
       render();
     };
     const objectChange = (): void => {
+      if (!dragging) { return; }
       const id = selectedRef.current;
       const object = gizmo.object;
       const current = currentRef.current;
@@ -134,16 +144,37 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
       }) };
       render();
     };
+    const cancelGesture = (): void => {
+      pending = null;
+      preview = null;
+      dragging = false;
+      if (dragStartMatrix) {
+        dragStartMatrix.decompose(target.position, target.quaternion, target.scale);
+        target.updateMatrixWorld(true);
+        dragStartMatrix = null;
+      }
+      endGesture();
+      gizmo.dragging = false;
+      render();
+      orbit.enabled = !flyMode;
+      if (fly) { fly.enabled = window.document.hasFocus() && window.document.activeElement === canvas; }
+    };
     const draggingChange = (event: { value: unknown }): void => {
+      const wasDragging = dragging;
       dragging = event.value === true;
       orbit.enabled = !dragging && !flyMode;
       if (fly) { fly.enabled = !dragging; }
-      if (!dragging && pending && selectedRef.current) {
-        currentRef.current.onOps?.([{ op: "update_entity", scene_id: currentRef.current.sceneId,
-          entity_id: selectedRef.current, set: { transform3d: pending } }]);
-        pending = null;
-        preview = null;
+      if (dragging) {
+        if (!wasDragging) { target.updateMatrix(); dragStartMatrix = target.matrix.clone(); }
+        gestureId ??= currentRef.current.onGestureStart?.();
+        return;
       }
+      try {
+        if (pending && selectedRef.current) {
+          currentRef.current.onOps?.([{ op: "update_entity", scene_id: currentRef.current.sceneId,
+            entity_id: selectedRef.current, set: { transform3d: pending } }], gestureId);
+        }
+      } finally { pending = null; preview = null; dragStartMatrix = null; endGesture(); }
     };
     const pointerDown = { x: 0, y: 0 };
     const down = (event: PointerEvent): void => { pointerDown.x = event.clientX; pointerDown.y = event.clientY; };
@@ -178,8 +209,13 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
     gizmo.addEventListener("dragging-changed", draggingChange);
     canvas.addEventListener("pointerdown", down);
     canvas.addEventListener("pointerup", up);
+    canvas.addEventListener("pointercancel", cancelGesture);
+    canvas.addEventListener("lostpointercapture", cancelGesture);
+    canvas.addEventListener("blur", cancelGesture);
+    window.addEventListener("blur", cancelGesture);
     render();
     return () => {
+      cancelGesture();
       cancelAnimationFrame(request);
       blurFly();
       canvas.removeEventListener("focus", focusFly);
@@ -189,6 +225,10 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
       gizmo.removeEventListener("dragging-changed", draggingChange);
       canvas.removeEventListener("pointerdown", down);
       canvas.removeEventListener("pointerup", up);
+      canvas.removeEventListener("pointercancel", cancelGesture);
+      canvas.removeEventListener("lostpointercapture", cancelGesture);
+      canvas.removeEventListener("blur", cancelGesture);
+      window.removeEventListener("blur", cancelGesture);
       renderer.getScene().remove(grid, gizmo.getHelper(), target);
       grid.geometry.dispose();
       if (Array.isArray(grid.material)) { grid.material.forEach((material) => material.dispose()); } else { grid.material.dispose(); }

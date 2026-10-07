@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { gameEntity3D, type GameDocument3D } from "@nodetool-ai/protocol";
-import { applyAnyGameOps, applyGameOps3D, instantiateGamePrefab3D } from "../src/document-ops3d.js";
+import { anyGameDocumentOp, applyAnyGameOps, applyGameOps3D, instantiateGamePrefab3D } from "../src/document-ops3d.js";
 import { GameOpError } from "../src/document-ops.js";
 import { createTopDownRoomGame } from "../src/sample.js";
 import { blockout } from "./fixtures-game3d.js";
@@ -14,6 +14,78 @@ function withPrefab() {
   ] };
   return game;
 }
+
+describe("scene music JSON operations", () => {
+  function withMusic(): GameDocument3D {
+    const document = blockout();
+    document.assets.music = { mediaKind: "audio", assetId: "0123456789abcdef0123456789abcdef",
+      digest: "music-fixture", required: true };
+    document.scenes[0].music = { assetId: "music", volume: 0.5, fadeInTicks: 0, fadeOutTicks: 0 };
+    return document;
+  }
+  function applyWire(document: GameDocument3D, operations: unknown[]): GameDocument3D {
+    const ops = JSON.parse(JSON.stringify(operations)).map((op: unknown) => anyGameDocumentOp.parse(op));
+    const result = applyAnyGameOps(document, ops);
+    if (result.schemaVersion !== 3) { throw new Error("Expected 3D document"); }
+    return result;
+  }
+  it("removes, restores and removes music through the public JSON operation union", () => {
+    const before = withMusic();
+    const target = { op: "update_scene" as const, scene_id: before.scenes[0].id };
+    const after = structuredClone(before);
+    delete after.scenes[0].music;
+    expect(applyWire(before, [{ ...target, set: { music: null } }])).toEqual(after);
+    expect(applyWire(after, [{ ...target, set: { music: before.scenes[0].music } }])).toEqual(before);
+    expect(applyWire(before, [{ ...target, set: { music: null } }])).toEqual(after);
+    expect(applyWire(after, [{ ...target, set: { music: null } }])).toEqual(after);
+  });
+  it("keeps omitted music and rejects an invalid later patch atomically", () => {
+    const before = withMusic();
+    const snapshot = structuredClone(before);
+    const target = { op: "update_scene" as const, scene_id: before.scenes[0].id };
+    const renamed = applyWire(before, [{ ...target, set: { name: "Renamed" } }]);
+    expect(renamed.scenes[0].music).toEqual(before.scenes[0].music);
+    expect(applyWire(before, [{ ...target, set: { music: { assetId: "music" } } }]).scenes[0].music)
+      .toEqual({ assetId: "music", volume: 1, fadeInTicks: 0, fadeOutTicks: 0 });
+    expect(() => applyAnyGameOps(before, [{ ...target, set: { name: "First edit" } },
+      { ...target, set: { music: { assetId: "music", volume: -1 } } }]))
+      .toThrow(GameOpError);
+    expect(before).toEqual(snapshot);
+    expect(() => applyWire(before, [{ ...target, set: { name: "First edit" } },
+      { ...target, set: { music: { ...before.scenes[0].music, assetId: "missing" } } }])).toThrow(GameOpError);
+    expect(before).toEqual(snapshot);
+  });
+});
+
+describe("dimension-specific removal defaults at the public operation boundary", () => {
+  it("preserves omitted children while retaining 2D default removal and explicit reparenting", () => {
+    const before = applyAnyGameOps(createTopDownRoomGame("union-removal-2d"), [
+      { op: "add_entity", scene_id: "room", entity: { id: "parent" } },
+      { op: "add_entity", scene_id: "room", entity: { id: "child", parentId: "parent" } }
+    ]);
+    const op = { op: "remove_entity", scene_id: "room", entity_id: "parent" };
+    const implicit = anyGameDocumentOp.parse(JSON.parse(JSON.stringify(op)));
+    expect(implicit).toEqual(op);
+    const removed = applyAnyGameOps(before, [implicit]);
+    expect(removed.scenes[0].entities.some((entity) => entity.id === "child")).toBe(false);
+    const explicit = anyGameDocumentOp.parse({ ...op, children: "remove" });
+    expect(applyAnyGameOps(before, [explicit])).toEqual(removed);
+    const reparented = applyAnyGameOps(before, [anyGameDocumentOp.parse({ ...op, children: "reparent" })]);
+    expect(reparented.scenes[0].entities.find((entity) => entity.id === "child")).toMatchObject({ id: "child" });
+    expect(reparented.scenes[0].entities.find((entity) => entity.id === "child")?.parentId).toBeUndefined();
+  });
+  it("does not introduce 2D children options into 3D and still rejects explicit unsupported options", () => {
+    const source = blockout();
+    const before = applyGameOps3D(source, [{ op: "add_entity", scene_id: source.entrySceneId, entity: { id: "removable" } }]);
+    const entity = before.scenes[0].entities.find((entry) => entry.id === "removable");
+    if (!entity) { throw new Error("Removable entity missing"); }
+    const op = { op: "remove_entity", scene_id: before.entrySceneId, entity_id: entity.id };
+    const removed = applyAnyGameOps(before, [anyGameDocumentOp.parse(JSON.parse(JSON.stringify(op)))]);
+    expect(removed.scenes[0].entities.some((entry) => entry.id === entity.id)).toBe(false);
+    expect(() => applyAnyGameOps(before, [anyGameDocumentOp.parse({ ...op, children: "remove" })])).toThrow(GameOpError);
+    expect(anyGameDocumentOp.safeParse({ ...op, children: "invalid" }).success).toBe(false);
+  });
+});
 function applyWithLinearScanBudget(document: GameDocument3D, op: Parameters<typeof applyGameOps3D>[1][number]): GameDocument3D {
   const originalSome = Array.prototype.some;
   let predicateCalls = 0;

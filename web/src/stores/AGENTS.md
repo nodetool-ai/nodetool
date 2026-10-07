@@ -13,6 +13,8 @@ Also see: **[Zustand Best Practices](./ZUSTAND_BEST_PRACTICES.md)**
 - Define actions within the store alongside state.
 - Use `persist` middleware for settings that should survive page refreshes.
 - Use the in-repo `temporal` middleware (`stores/temporal.ts`) for stores that need undo/redo.
+  Native game drafts use labelled operation commands in [GameDraftStore](game/GameDraftStore.ts)
+  so undo history remains separate from the submitted save queue.
 - Keep state updates immutable. Use Immer middleware for complex nested updates.
 
 ## Patterns

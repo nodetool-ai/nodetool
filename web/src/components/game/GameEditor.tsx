@@ -151,7 +151,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       while (store.getState().pendingOps.length > 0) {
         const state = store.getState();
         if (!state.baseUpdatedAt) return;
-        const ops = [...state.pendingOps];
+        const ops = state.captureSaveOps();
         state.setSaving(ops.length);
         try {
           const result = await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops });
@@ -247,18 +247,46 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     }
   };
 
-  const moveEntity = (id: string, x: number, y: number) => {
+  const beginGesture = (): number => getGameDraftStore(refId).getState().beginGesture();
+  const endGesture = (id: number): void => getGameDraftStore(refId).getState().endGesture(id);
+  const moveEntity = (id: string, x: number, y: number, gestureId?: number): void => {
     const scene = document?.scenes.find((entry) => entry.entities.some((entity) => entity.id === id));
-    if (scene) onOps([{ op: "update_entity", entity_id: id, scene_id: scene.id, set: { transform2d: { x, y } } }]);
+    const entity = scene?.entities.find((entry) => entry.id === id);
+    if (!scene || !entity) { return; }
+    getGameDraftStore(refId).getState().apply([{ op: "update_entity", entity_id: id, scene_id: scene.id, set: { transform2d: { x, y } } }],
+      { label: selectedIds.length > 1 ? "Move Selection" : `Move ${entity.name || entity.id}`, mergeKey: "move-selection", gestureId });
   };
 
-  const transformEntity = (id: string, set: { scaleX?: number; scaleY?: number; rotation?: number }) => {
-    const scene = document?.scenes.find((entry) => entry.entities.some((entity) => entity.id === id));
-    if (scene) onOps([{ op: "update_entity", entity_id: id, scene_id: scene.id, set: { transform2d: set } }]);
+  const moveEntities = (moves: readonly { id: string; x: number; y: number }[], gestureId?: number): void => {
+    const targets = new Map<string, { sceneId: string; name: string }>();
+    for (const scene of document?.scenes ?? []) {
+      for (const entity of scene.entities) {
+        if (!targets.has(entity.id)) { targets.set(entity.id, { sceneId: scene.id, name: entity.name || entity.id }); }
+      }
+    }
+    const ops: GameDocumentOp[] = [];
+    for (const move of moves) {
+      const target = targets.get(move.id);
+      if (target) { ops.push({ op: "update_entity", entity_id: move.id, scene_id: target.sceneId, set: { transform2d: { x: move.x, y: move.y } } }); }
+    }
+    if (!ops.length) { return; }
+    const first = targets.get(moves[0].id);
+    getGameDraftStore(refId).getState().apply(ops, { label: selectedIds.length > 1 ? "Move Selection" : `Move ${first?.name ?? moves[0].id}`,
+      mergeKey: "move-selection", gestureId });
   };
 
-  const transformLight = (sceneId: string, index: number, set: { x?: number; y?: number; radius?: number }) => {
-    onOps([{ op: "update_light", scene_id: sceneId, index, set }]);
+  const transformEntity = (id: string, set: { scaleX?: number; scaleY?: number; rotation?: number }, gestureId?: number): void => {
+    const scene = document?.scenes.find((entry) => entry.entities.some((entity) => entity.id === id));
+    const entity = scene?.entities.find((entry) => entry.id === id);
+    if (!scene || !entity) { return; }
+    const action = set.rotation === undefined ? "Scale" : "Rotate";
+    getGameDraftStore(refId).getState().apply([{ op: "update_entity", entity_id: id, scene_id: scene.id, set: { transform2d: set } }],
+      { label: `${action} ${entity.name || entity.id}`, mergeKey: "transform-selection", gestureId });
+  };
+
+  const transformLight = (sceneId: string, index: number, set: { x?: number; y?: number; radius?: number }, gestureId?: number): void => {
+    getGameDraftStore(refId).getState().apply([{ op: "update_light", scene_id: sceneId, index, set }],
+      { label: set.radius === undefined ? "Move Light" : "Resize Light", mergeKey: "transform-light", gestureId });
   };
 
   const onEditorKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
@@ -410,7 +438,8 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
             playing={Boolean(playDocument)} paused={Boolean(playDocument && !playing)} active={active} selectedIds={selectedIds} highlightedIds={highlightedIds}
             onSelect={selectEntity}
             onSelectMany={(ids, additive) => getGameDraftStore(refId).getState().selectMany(ids, additive)}
-            onMove={moveEntity} onTransform={transformEntity} onLight={transformLight}
+            onMove={moveEntity} onMoves={moveEntities} onTransform={transformEntity} onLight={transformLight}
+            onGestureStart={beginGesture} onGestureEnd={endGesture}
             onCamera={onCamera}
             onViewportAspect={onViewportAspect}
             onKeyDown={onViewportKeyDown}

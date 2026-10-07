@@ -1,5 +1,5 @@
 import { type ComponentProps } from "react";
-import { render, screen } from "@testing-library/react";
+import { act, render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
@@ -11,6 +11,8 @@ import type GameViewport from "../viewport2d/GameViewport";
 import type GameInspector from "../panels/inspector/GameInspector";
 import type GameScriptPane from "../panels/scripts/GameScriptPane";
 import type { ScriptFailure } from "../useGamePlaySession";
+
+let mockViewportProps: ComponentProps<typeof GameViewport> | undefined;
 
 const mockDocument = createTopDownRoomGame("controller-replay");
 const mockFailure: ScriptFailure = { message: "Game script [\"room\",\"player\",0] failed", entityId: "player", tick: 12 };
@@ -48,7 +50,10 @@ jest.mock("../useGamePlaySession", () => ({
 jest.mock("../panels/scripts/useGameScriptDiagnostics", () => ({
   useGameScriptDiagnostics: () => ({ run: jest.fn(), running: false, summary: "Diagnostic completed", error: mockDiagnosticFailure, byEntity: [] })
 }), { virtual: true });
-jest.mock("../viewport2d/GameViewport", () => ({ __esModule: true, default: ({ onKeyDown }: ComponentProps<typeof GameViewport>) => <canvas aria-label="Editor viewport" role="button" tabIndex={0} onKeyDown={onKeyDown} /> }));
+jest.mock("../viewport2d/GameViewport", () => ({ __esModule: true, default: (props: ComponentProps<typeof GameViewport>) => {
+  mockViewportProps = props;
+  return <canvas aria-label="Editor viewport" role="button" tabIndex={0} onKeyDown={props.onKeyDown} />;
+} }));
 jest.mock("../panels/inspector/GameInspector", () => ({
   __esModule: true, default: ({ onEditScript }: ComponentProps<typeof GameInspector>) => <button
     onClick={() => onEditScript(mockDocument.entrySceneId, "player", 0)}>Edit player script</button>
@@ -66,6 +71,7 @@ jest.mock("../panels/scripts/GameScriptPane", () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  mockViewportProps = undefined;
   mockPlayDocument = mockDocument;
   mockHostFailure = null;
   mockDiagnosticFailure = null;
@@ -126,14 +132,14 @@ it("keeps inspector-button undo and delete outside the editor keyboard scope", a
   const store = getGameDraftStore(mockDocument.id);
   store.getState().select("player");
   store.getState().apply([{ op: "update_entity", scene_id: mockDocument.entrySceneId, entity_id: "player", set: { transform2d: { x: 1 } } }]);
-  const history = store.temporal.getState().pastStates.length;
+  const history = store.getState().commandHistory.past.length;
   expect(history).toBeGreaterThan(0);
   render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
   await user.click(screen.getByRole("button", { name: "Edit player script" }));
   await user.keyboard("{Control>}z{/Control}{Delete}");
   const player = document2D(store).scenes[0].entities.find((entity) => entity.id === "player");
   expect(player?.transform2d.x).toBe(1);
-  expect(store.temporal.getState().pastStates).toHaveLength(history);
+  expect(store.getState().commandHistory.past).toHaveLength(history);
   expect(store.getState().pendingOps).toHaveLength(1);
 });
 
@@ -142,3 +148,83 @@ function document2D(store: ReturnType<typeof getGameDraftStore>) {
   if (!document || document.schemaVersion === 3) { throw new Error("Expected 2D fixture document"); }
   return document;
 }
+
+
+it("records selected-root viewport moves as one labelled command with exact undo and redo", () => {
+  mockPlayDocument = null;
+  render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
+  const store = getGameDraftStore(mockDocument.id);
+  const first = mockDocument.scenes[0].entities.find((entity) => entity.id === "player");
+  const second = mockDocument.scenes[0].entities.find((entity) => entity.id !== "player" && !entity.parentId);
+  if (!first || !second) { throw new Error("Two fixture roots required"); }
+  act(() => {
+    if (!mockViewportProps) { throw new Error("Viewport not mounted"); }
+    mockViewportProps.onSelect(first.id, false);
+    mockViewportProps.onSelect(second.id, true);
+  });
+  const before = structuredClone(document2D(store));
+  const viewport = mockViewportProps;
+  if (!viewport?.onGestureStart || !viewport.onGestureEnd) { throw new Error("Gesture callbacks missing"); }
+  act(() => {
+    const gestureId = viewport.onGestureStart?.();
+    if (gestureId === undefined) { throw new Error("Gesture ID missing"); }
+    viewport.onMove(first.id, first.transform2d.x + 1, first.transform2d.y, gestureId);
+    viewport.onMove(second.id, second.transform2d.x + 1, second.transform2d.y, gestureId);
+    viewport.onMove(first.id, first.transform2d.x + 2, first.transform2d.y, gestureId);
+    viewport.onMove(second.id, second.transform2d.x + 2, second.transform2d.y, gestureId);
+    viewport.onGestureEnd?.(gestureId);
+  });
+  const after = structuredClone(document2D(store));
+  expect(after.scenes[0].entities.find((entity) => entity.id === first.id)?.transform2d).toMatchObject({ x: first.transform2d.x + 2, y: first.transform2d.y });
+  expect(after.scenes[0].entities.find((entity) => entity.id === second.id)?.transform2d).toMatchObject({ x: second.transform2d.x + 2, y: second.transform2d.y });
+  expect(after).not.toEqual(before);
+  expect(store.getState().commandHistory.past).toHaveLength(1);
+  expect(store.getState().commandHistory.past[0].label).toBe("Move Selection");
+  act(() => store.getState().undo());
+  expect(document2D(store)).toEqual(before);
+  expect(store.getState().commandHistory.future).toHaveLength(1);
+  act(() => store.getState().redo());
+  expect(document2D(store)).toEqual(after);
+  expect(store.getState().commandHistory.past).toHaveLength(1);
+});
+
+
+it("batch release: records selected-root viewport moves as one labelled command with exact undo and redo", () => {
+  mockPlayDocument = null;
+  render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
+  const store = getGameDraftStore(mockDocument.id);
+  const first = mockDocument.scenes[0].entities.find((entity) => entity.id === "player");
+  const second = mockDocument.scenes[0].entities.find((entity) => entity.id !== "player" && !entity.parentId);
+  if (!first || !second) { throw new Error("Two fixture roots required"); }
+  const applySpy = jest.spyOn(store.getState(), "apply");
+  act(() => {
+    if (!mockViewportProps) { throw new Error("Viewport not mounted"); }
+    mockViewportProps.onSelect(first.id, false);
+    mockViewportProps.onSelect(second.id, true);
+  });
+  const before = structuredClone(document2D(store));
+  const viewport = mockViewportProps;
+  if (!viewport?.onGestureStart || !viewport.onGestureEnd) { throw new Error("Gesture callbacks missing"); }
+  act(() => {
+    const gestureId = viewport.onGestureStart?.();
+    if (gestureId === undefined) { throw new Error("Gesture ID missing"); }
+    if (!viewport.onMoves) { throw new Error("Batch move callback missing"); }
+    viewport.onMoves([{ id: first.id, x: first.transform2d.x + 2, y: first.transform2d.y },
+      { id: second.id, x: second.transform2d.x + 2, y: second.transform2d.y }], gestureId);
+    viewport.onGestureEnd?.(gestureId);
+  });
+  expect(applySpy).toHaveBeenCalledTimes(1);
+  applySpy.mockRestore();
+  const after = structuredClone(document2D(store));
+  expect(after.scenes[0].entities.find((entity) => entity.id === first.id)?.transform2d).toMatchObject({ x: first.transform2d.x + 2, y: first.transform2d.y });
+  expect(after.scenes[0].entities.find((entity) => entity.id === second.id)?.transform2d).toMatchObject({ x: second.transform2d.x + 2, y: second.transform2d.y });
+  expect(after).not.toEqual(before);
+  expect(store.getState().commandHistory.past).toHaveLength(1);
+  expect(store.getState().commandHistory.past[0].label).toBe("Move Selection");
+  act(() => store.getState().undo());
+  expect(document2D(store)).toEqual(before);
+  expect(store.getState().commandHistory.future).toHaveLength(1);
+  act(() => store.getState().redo());
+  expect(document2D(store)).toEqual(after);
+  expect(store.getState().commandHistory.past).toHaveLength(1);
+});

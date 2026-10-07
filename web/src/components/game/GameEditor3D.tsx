@@ -45,8 +45,8 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const selectedIds = useGameDraft(refId, (state) => state.selectedIds);
   const saveStatus = useGameDraft(refId, (state) => state.saveStatus);
   const draftError = useGameDraft(refId, (state) => state.error);
-  const canUndo = useStore(getGameDraftStore(refId).temporal, (state) => state.pastStates.length > 0);
-  const canRedo = useStore(getGameDraftStore(refId).temporal, (state) => state.futureStates.length > 0);
+  const canUndo = useStore(getGameDraftStore(refId), (state) => state.canUndo);
+  const canRedo = useStore(getGameDraftStore(refId), (state) => state.canRedo);
   const [sceneId, setSceneId] = useState(document.entrySceneId);
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(true);
@@ -75,7 +75,21 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const { data: revisions } = trpc.games.revisions.useQuery({ id: refId }, { staleTime: 15_000 });
   const { data: changeEntries } = trpc.games.draftChanges.useQuery({ id: refId });
   const savingRef = useRef<Promise<void> | null>(null);
-  const onOps = useCallback((ops: AnyGameDocumentOp[]): void => { getGameDraftStore(refId).getState().apply(ops); }, [refId]);
+  const onOps = useCallback((ops: AnyGameDocumentOp[], label?: string): void => {
+    getGameDraftStore(refId).getState().apply(ops, label === undefined ? undefined : { label });
+  }, [refId]);
+  const onViewportOps = useCallback((ops: AnyGameDocumentOp[], gestureId?: number): void => {
+    const set = ops.find((op) => op.op === "update_entity")?.set;
+    const transform = set && "transform3d" in set ? set.transform3d : undefined;
+    const rotated = transform?.rotation?.some((value, index) => value !== selected?.transform3d.rotation[index]);
+    const scaled = transform?.scale && (transform.scale.x !== selected?.transform3d.scale.x
+      || transform.scale.y !== selected?.transform3d.scale.y || transform.scale.z !== selected?.transform3d.scale.z);
+    const action = rotated ? "Rotate" : scaled ? "Scale" : "Move";
+    getGameDraftStore(refId).getState().apply(ops,
+      { label: `${action} ${selected?.name || selected?.id || "Entity"}`, mergeKey: "transform-selection", gestureId });
+  }, [refId, selected?.id, selected?.name, selected?.transform3d]);
+  const beginGesture = (): number => getGameDraftStore(refId).getState().beginGesture();
+  const endGesture = (id: number): void => getGameDraftStore(refId).getState().endGesture(id);
   const select = useCallback((id: string): void => { getGameDraftStore(refId).getState().select(id); }, [refId]);
 
   const pullFromServer = useCallback(async (): Promise<void> => {
@@ -109,7 +123,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
       while (store.getState().pendingOps.length > 0) {
         const state = store.getState();
         if (!state.baseUpdatedAt) { return; }
-        const ops = [...state.pendingOps];
+        const ops = state.captureSaveOps();
         state.setSaving(ops.length);
         try {
           const result = await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops });
@@ -289,7 +303,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
           <GameRevisions revisions={revisions ?? []} busy={restoring || saveStatus === "saving"} onRestore={restoreRevision} />
         </CollapsibleSection> },
       { id: "viewport", keyboardScope: true, node: <>
-        <GameViewport3D document={document} host={host} selectedId={selected?.id} highlightedIds={highlightedIds} sceneId={activeSceneId} onSelect={select} onOps={onOps} />
+        <GameViewport3D document={document} host={host} selectedId={selected?.id} highlightedIds={highlightedIds} sceneId={activeSceneId} onSelect={select} onOps={onViewportOps} onGestureStart={beginGesture} onGestureEnd={endGesture} />
       </> },
       { id: "scripts", visible: Boolean(scriptKey && activeScript && behavior?.kind === "script"),
         node: scriptKey && activeScript && behavior?.kind === "script" ? <GameScriptPane
@@ -305,7 +319,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
         dock: { storageKey: "inspector3d", storagePrefix: "nodetool.gameEditor.", side: "right", defaultWidth: 360, minWidth: 300, maxWidth: 560, ariaLabel: "Resize 3D inspector" }, node: <>
         <GamePanelHeader title="Inspector" icon={<TuneOutlinedIcon sx={{ fontSize: FONT_SIZE_SANS.body }} />} />
         <FlexColumn sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
-          <GameInspector3D document={document} sceneId={activeSceneId} entityId={selected?.id} onOps={onOps} onScript={(index) => { if (selected) { setScriptKey({ sceneId: activeSceneId, entityId: selected.id, index }); } }} />
+          <GameInspector3D document={document} sceneId={activeSceneId} entityId={selected?.id} onOps={onOps} onOperationError={(message) => getGameDraftStore(refId).getState().reportOperationError(message)} onScript={(index) => { if (selected) { setScriptKey({ sceneId: activeSceneId, entityId: selected.id, index }); } }} />
           {host.playDocument && !host.playing && <CollapsibleSection title="Runtime state" compact sx={{ px: SPACING.md }}><Caption>{JSON.stringify(host.inspection?.entities.find((entity) => entity.id === selected?.id))}</Caption></CollapsibleSection>}
         </FlexColumn>
       </> },

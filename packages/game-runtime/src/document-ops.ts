@@ -38,7 +38,7 @@ const entitySet = preservingPatch(gameEntity.partial().extend({
   parentId: id.nullable().optional()
 }));
 const sceneSet = preservingPatch(z.strictObject({ name: gameScene.shape.name.optional(), music: gameScene.shape.music.nullable().optional(),
-  gravity: gameScene.shape.gravity.nullable().optional() }));
+  gravity: gameScene.shape.gravity.nullable().optional(), backgrounds: z.tuple([]).nullable().optional() }));
 const light = gameScene.shape.lighting.unwrap().shape.points.element;
 const lightSet = preservingPatch(light.partial());
 const backgroundSet = preservingPatch(gameBackgroundLayer.partial());
@@ -70,8 +70,8 @@ export const gameDocumentOp = z.discriminatedUnion("op", [
   z.strictObject({ op: z.literal("update_background"), scene_id: id, id, set: backgroundSet }),
   z.strictObject({ op: z.literal("remove_background"), scene_id: id, id }),
   z.strictObject({ op: z.literal("move_background"), scene_id: id, id, to_index: index }),
-  z.strictObject({ op: z.literal("set_effects"), effects: z.array(gameRenderEffect).max(8), hud_effect_order: gameDocument.shape.hudEffectOrder.nullable().optional() }),
-  z.strictObject({ op: z.literal("set_game"), pixels_per_unit: gameDocument.shape.pixelsPerUnit.optional(), input_actions: gameDocument.shape.inputActions.optional(), entry_scene_id: id.optional(), collision_layers: gameDocument.shape.collisionLayers.optional() }),
+  z.strictObject({ op: z.literal("set_effects"), effects: z.array(gameRenderEffect).max(8).nullable(), hud_effect_order: gameDocument.shape.hudEffectOrder.nullable().optional() }),
+  z.strictObject({ op: z.literal("set_game"), pixels_per_unit: gameDocument.shape.pixelsPerUnit.optional(), input_actions: gameDocument.shape.inputActions.optional(), entry_scene_id: id.optional(), collision_layers: gameDocument.shape.collisionLayers.nullable().optional() }),
   z.strictObject({ op: z.literal("bind_asset"), slot: id, binding: gameAssetBinding }),
   z.strictObject({ op: z.literal("unbind_asset"), slot: id })
 ]);
@@ -310,8 +310,12 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
       }
       case "update_scene": {
         const { scene, sceneIndex } = findScene(draft, op.scene_id, opIndex);
-        const next = gameScene.safeParse({ ...scene, ...op.set, music: op.set.music === null ? undefined : op.set.music ?? scene.music,
-          gravity: op.set.gravity === null ? undefined : op.set.gravity ?? scene.gravity });
+        const { backgrounds, ...set } = op.set;
+        const candidate = { ...scene, ...set, music: op.set.music === null ? undefined : op.set.music ?? scene.music,
+          gravity: op.set.gravity === null ? undefined : op.set.gravity ?? scene.gravity };
+        if (backgrounds === null) { delete candidate.backgrounds; }
+        else if (backgrounds !== undefined) { candidate.backgrounds = []; }
+        const next = gameScene.safeParse(candidate);
         if (!next.success) { fail(opIndex, ["set", ...pathOf(next.error.issues[0].path)], next.error.issues[0].message); }
         draft.scenes[sceneIndex] = next.data;
         break;
@@ -389,7 +393,8 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
         break;
       }
       case "set_effects": {
-        draft.renderEffects = op.effects;
+        if (op.effects === null) { delete draft.renderEffects; }
+        else { draft.renderEffects = op.effects; }
         if (op.hud_effect_order === null) { delete draft.hudEffectOrder; }
         else if (op.hud_effect_order) { draft.hudEffectOrder = op.hud_effect_order; }
         break;
@@ -398,7 +403,8 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
         if (op.pixels_per_unit !== undefined) { draft.pixelsPerUnit = op.pixels_per_unit; }
         if (op.input_actions !== undefined) { draft.inputActions = op.input_actions; }
         if (op.entry_scene_id !== undefined) { draft.entrySceneId = op.entry_scene_id; }
-        if (op.collision_layers !== undefined) { draft.collisionLayers = op.collision_layers; }
+        if (op.collision_layers === null) { delete draft.collisionLayers; }
+        else if (op.collision_layers !== undefined) { draft.collisionLayers = op.collision_layers; }
         break;
       }
       case "bind_asset": draft.assets[op.slot] = op.binding; break;
