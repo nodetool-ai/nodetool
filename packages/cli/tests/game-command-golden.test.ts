@@ -8,6 +8,7 @@ import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import type { AnyGameDocument } from "@nodetool-ai/protocol";
 import { getExampleGameBundle, listExampleGames, readExampleGameFile } from "@nodetool-ai/agents/game-examples";
 import { compareGameCaptures } from "@nodetool-ai/game-renderer/node";
+import { writeGameGoldenDiagnostics } from "./gameGoldenDiagnostics.js";
 import { registerGameCommands } from "../src/commands/game.js";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
@@ -91,6 +92,11 @@ it.each(names)("captures %s at the fixed tick within the stored pixel tolerance"
     expect(actual.length, name).toBeGreaterThan(0);
     const referencePath = join(goldenDirectory, `${name}.png`);
     if (process.env["UPDATE_NATIVE_GAME_GOLDENS"] === "1") { await writeFile(referencePath, actual); }
-    const difference = await compareGameCaptures(await readFile(referencePath), actual, channelTolerance);
+    const reference = await readFile(referencePath);
+    const difference = await compareGameCaptures(reference, actual, channelTolerance);
+    const artifactDirectory = process.env["NODETOOL_GAME_GOLDEN_ARTIFACTS"];
+    if (artifactDirectory && difference.changedFraction > changedFractionTolerance) {
+      await writeGameGoldenDiagnostics(artifactDirectory, name, reference, actual, difference, channelTolerance, report);
+    }
     expect(difference.changedFraction, `${name}: ${JSON.stringify(difference)}`).toBeLessThanOrEqual(changedFractionTolerance);
 }, 90000);
