@@ -1,9 +1,9 @@
-import { StrictMode } from "react";
+import { Profiler, StrictMode } from "react";
 import { createHash } from "node:crypto";
 import { deserialize, serialize } from "node:v8";
 import { act, render, renderHook, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import { gameAuthoring, gameDocument3D, type GameDocument3D } from "@nodetool-ai/protocol";
+import { gameAuthoring, gameDocument3D, type GameDocument3D, type GameRenderFrame3D } from "@nodetool-ai/protocol";
 import { createGameSession3D, decodePreparedGameCollider3D } from "@nodetool-ai/game-runtime";
 import { useGamePlaySession3D } from "../useGamePlaySession3D";
 import { asResolvedMediaUrl, resolveMediaUri } from "../../../utils/resolveMediaUri";
@@ -12,7 +12,7 @@ const mockRenderers: { render: jest.Mock; dispose: jest.Mock }[] = [];
 
 jest.mock("@nodetool-ai/game-renderer/browser3d", () => ({
   createGameRenderer3D: jest.fn(async () => {
-    const renderer = { render: jest.fn(async () => ({})), resize: jest.fn(), invalidateAsset: jest.fn(), dispose: jest.fn() };
+    const renderer = { render: jest.fn(async (_frame: GameRenderFrame3D) => ({})), resize: jest.fn(), invalidateAsset: jest.fn(), dispose: jest.fn() };
     mockRenderers.push(renderer);
     return renderer;
   })
@@ -161,17 +161,28 @@ it("keeps the restored committed frame when the following tick fails", async () 
   view.unmount();
 });
 
-it("keeps the renderer through ten document edits", async () => {
+it("completes ten distinct preview edits without losing renderer readiness", async () => {
   const document = fixture();
-  const view = render(<Harness document={document} />);
+  const backends: string[] = [];
+  const onRender = (): void => { backends.push(screen.getByTestId("backend").textContent ?? ""); };
+  const view = render(<Profiler id="preview3d" onRender={onRender}><Harness document={document} /></Profiler>);
   await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("WebGL2"));
   const renderer = mockRenderers[0];
-  for (let index = 0; index < 10; index++) {
-    view.rerender(<Harness document={{ ...document, revision: `edit-${index}` }} />);
-    await act(async () => { await new Promise((resolve) => setTimeout(resolve, 120)); });
+  backends.length = 0;
+  for (let index = 1; index <= 10; index++) {
+    const x = index;
+    const edited = { ...document, scenes: document.scenes.map((scene) => ({ ...scene,
+      entities: scene.entities.map((entity) => entity.id === "floor"
+        ? { ...entity, transform3d: { ...entity.transform3d, position: { ...entity.transform3d.position, x } } } : entity) })) };
+    renderer.render.mockClear();
+    view.rerender(<Profiler id="preview3d" onRender={onRender}><Harness document={edited} /></Profiler>);
+    await waitFor(() => expect(renderer.render.mock.calls.some(([frame]: [GameRenderFrame3D]) =>
+      frame.entities.some((entity) => entity.entityId === "floor" && entity.transform.position.x === x))).toBe(true));
+    expect(mockRenderers).toEqual([renderer]);
+    expect(renderer.dispose).not.toHaveBeenCalled();
+    expect(backends.length).toBeGreaterThan(0);
+    expect(backends.every((backend) => backend === "WebGL2")).toBe(true);
   }
-  expect(mockRenderers).toHaveLength(1);
-  expect(renderer.dispose).not.toHaveBeenCalled();
   view.unmount();
   await waitFor(() => expect(renderer.dispose).toHaveBeenCalledTimes(1));
 });
@@ -212,4 +223,51 @@ it("reports storage failures and clears them after a successful save (F29)", asy
   expect(screen.getByTestId("error")).toHaveTextContent("Storage access denied");
   read.mockRestore();
   view.unmount();
+});
+
+it("publishes Play updates only at crossed HUD tick boundaries", async () => {
+  mockRenderers.length = 0;
+  const callbacks = new Map<number, FrameRequestCallback>();
+  let nextRequest = 0;
+  const request = jest.spyOn(window, "requestAnimationFrame").mockImplementation((callback) => {
+    const id = ++nextRequest; callbacks.set(id, callback); return id;
+  });
+  const cancel = jest.spyOn(window, "cancelAnimationFrame").mockImplementation((id) => { callbacks.delete(id); });
+  const commits: string[] = [];
+  const view = render(<Profiler id="hook-cadence" onRender={() => {
+    commits.push(screen.getByTestId("tick").textContent ?? "");
+  }}><Harness document={fixture()} /></Profiler>);
+  try {
+    await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("WebGL2"));
+    const renderer = mockRenderers[0];
+    renderer.render.mockClear();
+    await act(async () => { screen.getByRole("button", { name: "Play" }).click(); });
+    await waitFor(() => expect(renderer.render).toHaveBeenCalled());
+    let now = 0;
+    const advance = async (): Promise<void> => {
+      const pending = [...callbacks.values()]; callbacks.clear();
+      await act(async () => { for (const callback of pending) { callback(now); } });
+      now += 1000 / 120;
+    };
+    await advance();
+    commits.length = 0;
+    renderer.render.mockClear();
+    let previousTick = 0;
+    for (let callback = 0; callback < 130 && previousTick < 60; callback++) {
+      const before = commits.length;
+      await advance();
+      const frame: GameRenderFrame3D | undefined = renderer.render.mock.calls.at(-1)?.[0];
+      const tick = frame?.tick ?? previousTick;
+      expect(tick - previousTick).toBeLessThanOrEqual(1);
+      const boundary = Math.floor(tick / 6) - Math.floor(previousTick / 6);
+      expect(commits.length - before).toBe(boundary);
+      if (boundary) { expect(screen.getByTestId("tick").textContent).toBe(String(tick)); }
+      previousTick = tick;
+    }
+    expect(previousTick).toBe(60);
+    expect(renderer.render.mock.calls.length).toBeGreaterThanOrEqual(60);
+    expect(commits).toEqual(Array.from({ length: 10 }, (_, index) => String((index + 1) * 6)));
+  } finally {
+    view.unmount(); request.mockRestore(); cancel.mockRestore();
+  }
 });
