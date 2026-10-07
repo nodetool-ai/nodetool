@@ -1,4 +1,4 @@
-import { applyGameAuthoringOperation, trackGameAuthoringEdits } from "./authoring-reconcile.js";
+import { z } from "zod";
 import {
   gameAssetBinding,
   gameBackgroundLayer,
@@ -10,7 +10,8 @@ import {
   type GameDocument,
   type GameEntity
 } from "@nodetool-ai/protocol";
-import { z } from "zod";
+import { applyGameOwnershipOperation, authoringMembershipOp, createGameOwnershipDeltaState, overrideMembershipOp, reconcileGameOwnershipDeltas } from "./ownership-ops.js";
+import { applyGameAuthoringOperation } from "./authoring-reconcile.js";
 import { validateGame, type GameValidationIssue } from "./validate.js";
 
 const id = z.string().min(1);
@@ -44,6 +45,7 @@ const backgroundSet = preservingPatch(gameBackgroundLayer.partial());
 const behaviorSet = z.record(z.string(), z.unknown());
 
 export const gameDocumentOp = z.discriminatedUnion("op", [
+  overrideMembershipOp, authoringMembershipOp,
   z.strictObject({ op: z.literal("reset_override"), ...target, path: z.array(z.string().min(1)).min(1).optional() }),
   z.strictObject({ op: z.literal("detach_entity"), ...target }),
   z.strictObject({ op: z.literal("set_document"), document: gameDocument }),
@@ -173,6 +175,7 @@ function referencesAsset(document: GameDocument, slot: string): boolean {
 /** Applies a complete ordered edit atomically. The input document is never mutated. */
 export function applyGameOps(document: GameDocument, ops: readonly GameDocumentOp[]): GameDocument {
   let draft = structuredClone(document);
+  const ownershipDeltas = createGameOwnershipDeltaState(fail);
   const entityIndexesByScene = new Map(draft.scenes.map((scene) => [scene.id, indexEntities(scene)]));
   for (const [opIndex, input] of ops.entries()) {
     const parsed = gameDocumentOp.safeParse(input);
@@ -183,6 +186,8 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
     }
     const op = parsed.data;
     switch (op.op) {
+      case "set_override_membership":
+      case "set_authoring_membership": { applyGameOwnershipOperation(draft, op, ownershipDeltas, opIndex); break; }
       case "reset_override":
       case "detach_entity": { draft = gameDocument.parse(applyGameAuthoringOperation(draft, op)); break; }
       case "set_document": {
@@ -405,7 +410,7 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
       }
     }
   }
-  draft = gameDocument.parse(trackGameAuthoringEdits(document, draft));
+  draft = gameDocument.parse(reconcileGameOwnershipDeltas(document, draft, ownershipDeltas));
   const result = validateGame(draft);
   if (!result.valid || !result.document) {
     const issues = result.issues.map((issue) => ({ opIndex: responsibleOpIndex(draft, ops, issue), path: issue.path, message: issue.message }));

@@ -47,6 +47,14 @@ Reset the manual override, detach the object, or adjust construction to resolve
 it. Behavior arrays are atomic override values. Rebuilding does not migrate live
 behavior state.
 
+Atomic edits can preserve captured manual ownership alongside field operations.
+`set_override_membership` targets one scene, entity and property path, with an
+override payload or `null` to remove membership. `set_authoring_membership`
+targets suppression or detachment, with `present` and optional occurrence
+`positions`. These operations preserve retained construction definitions and
+reject ownership that disagrees with the final fields. Positions describe the
+array after that operation and can shift when later edits insert or remove entries.
+
 Active retained-game sessions keep their accepted definition and asset bindings.
 Restart play to adopt a rebuilt draft. Runtime spawn, collection and death state
 never becomes authored content.
