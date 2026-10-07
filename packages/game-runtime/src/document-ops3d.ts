@@ -1,10 +1,11 @@
-import { applyGameAuthoringOperation, trackGameAuthoringEdits } from "./authoring-reconcile.js";
 import { z } from "zod";
 import {
   gameAssetBinding3D, gameBehavior3D, gameBody3D, gameCamera3D, gameCollider3D, gameDocument3D,
   gameEntity3D, gameLight3D, gamePrefab3D, gameScene3D, gameTransform3D, gameVector3,
   type AnyGameDocument, type GameDocument, type GameDocument3D, type GameEntity3D, type GamePrefab3D, type GameTransform3D
 } from "@nodetool-ai/protocol";
+import { applyGameOwnershipOperation, authoringMembershipOp, createGameOwnershipDeltaState, overrideMembershipOp, reconcileGameOwnershipDeltas } from "./ownership-ops.js";
+import { applyGameAuthoringOperation } from "./authoring-reconcile.js";
 import { applyGameOps, gameDocumentOp, GameOpError, type GameDocumentOp } from "./document-ops.js";
 import { validateGame3D } from "./validate3d.js";
 
@@ -33,6 +34,7 @@ const entitySet = preservingPatch(gameEntity3D.partial().extend({
   audioSource: gameEntity3D.shape.audioSource.unwrap().partial().nullable().optional()
 }));
 export const gameDocumentOp3D = z.discriminatedUnion("op", [
+  overrideMembershipOp, authoringMembershipOp,
   z.strictObject({ op: z.literal("reset_override"), ...target, path: z.array(z.string().min(1)).min(1).optional() }),
   z.strictObject({ op: z.literal("detach_entity"), ...target }),
   z.strictObject({ op: z.literal("set_document"), document: gameDocument3D }),
@@ -130,6 +132,7 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
     fail(0, ["revision"], `Stale game revision ${options.expectedRevision}`);
   }
   let draft = structuredClone(document);
+  const ownershipDeltas = createGameOwnershipDeltaState(fail);
   const findScene = (sceneId: string, opIndex: number) => {
     const scene = draft.scenes.find((candidate) => candidate.id === sceneId);
     if (!scene) { fail(opIndex, ["scene_id"], `Scene ${sceneId} does not exist`); }
@@ -150,6 +153,8 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
     }
     const op = parsed.data;
     switch (op.op) {
+      case "set_override_membership":
+      case "set_authoring_membership": { applyGameOwnershipOperation(draft, op, ownershipDeltas, opIndex); break; }
       case "reset_override":
       case "detach_entity": { draft = gameDocument3D.parse(applyGameAuthoringOperation(draft, op)); break; }
       case "set_document": draft = { ...op.document, id: document.id, revision: document.revision }; break;
@@ -264,7 +269,7 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
       }
     }
   }
-  draft = gameDocument3D.parse(trackGameAuthoringEdits(document, draft));
+  draft = gameDocument3D.parse(reconcileGameOwnershipDeltas(document, draft, ownershipDeltas));
   const result = validateGame3D(draft);
   if (!result.valid || !result.document) {
     const issue = result.diagnostics[0];

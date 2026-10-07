@@ -31,6 +31,48 @@ describe("retained game ownership boundaries", () => {
   });
   afterEach(async () => { ModelObserver.clear(); await rm(directory,{recursive:true,force:true}); });
 
+  it("returns structured operation issues for ownership positions and reconciliation failures", async () => {
+    const run = agent();
+    const created = reply.parse(await run.invoke("create_native_game", { project_id: PROJECT, name: "Ownership errors" }));
+    const program = { source: "return inputs.document;", inputs: { document: created.document }, seed: 1 };
+    const preview = z.object({ candidate: gameAuthoringCandidate }).parse(await run.invoke("preview_native_game_authoring",
+      { game_id: created.game.id, program }));
+    const saved = reply.parse(await run.invoke("apply_native_game_authoring", { game_id: created.game.id, candidate: preview.candidate }));
+    if (saved.document.schemaVersion === 3) { throw new Error("Expected 2D fixture"); }
+    const entity = saved.document.scenes[0].entities[0];
+    if (!entity) { throw new Error("Fixture entity missing"); }
+    const invalid = [
+      { op: "set_authoring_membership", scene_id: saved.document.entrySceneId, entity_id: "ghost",
+        membership: "detachment", present: true, positions: [1] },
+      { op: "set_override_membership", scene_id: saved.document.entrySceneId, entity_id: entity.id,
+        path: ["transform2d", "x"], override: { value: entity.transform2d.x + 1 } }
+    ];
+    for (const op of invalid) {
+      const result = await run.invoke("edit_native_game", { game_id: saved.game.id, ops: [
+        { op: "update_scene", scene_id: saved.document.entrySceneId, set: { name: "Rejected change" } }, op
+      ] });
+      expect(result).toMatchObject({ error: "Game edit rejected", issues: [
+        { op_index: 1, path: expect.arrayContaining(["authoring"]), message: expect.any(String) }
+      ] });
+      expect(reply.parse(await run.invoke("get_native_game", { game_id: saved.game.id, view: "full" })).document).toEqual(saved.document);
+    }
+    const updated = reply.parse(await run.invoke("edit_native_game", { game_id: saved.game.id, ops: [
+      { op: "set_authoring_membership", scene_id: saved.document.entrySceneId, entity_id: "ghost",
+        membership: "detachment", present: true, positions: [0] }
+    ] }));
+    expect(updated.document.authoring?.detached).toEqual([{ sceneId: saved.document.entrySceneId, entityId: "ghost" }]);
+    expect(reply.parse(await run.invoke("get_native_game", { game_id: saved.game.id, view: "full" })).document).toEqual(updated.document);
+    const overridden = reply.parse(await run.invoke("edit_native_game", { game_id: saved.game.id, ops: [
+      { op: "set_override_membership", scene_id: saved.document.entrySceneId, entity_id: entity.id,
+        path: ["transform2d", "x"], override: { value: entity.transform2d.x } }
+    ] }));
+    expect(overridden.document.authoring?.overrides).toContainEqual({ sceneId: saved.document.entrySceneId,
+      entityId: entity.id, path: ["transform2d", "x"], value: entity.transform2d.x });
+    expect(overridden.document.authoring?.program).toEqual(saved.document.authoring?.program);
+    expect(overridden.document.authoring?.baseline).toEqual(saved.document.authoring?.baseline);
+    expect(reply.parse(await run.invoke("get_native_game", { game_id: saved.game.id, view: "full" })).document).toEqual(overridden.document);
+  });
+
   it("requires explicit initial replacement and binds replacement policy into the reviewed candidate", async () => {
     const run = agent();
     const created = reply.parse(await run.invoke("create_native_game",{project_id:PROJECT,name:"Original"}));

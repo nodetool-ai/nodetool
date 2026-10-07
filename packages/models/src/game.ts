@@ -95,6 +95,8 @@ function summarizeOps(ops: readonly GameDocumentOp[]): string {
     remove_prefab: ["Removed prefab", "Removed prefabs"],
     instantiate_prefab: ["Instantiated prefab", "Instantiated prefabs"],
     reset_override: ["Reset override", "Reset overrides"],
+    set_override_membership: ["Changed property ownership", "Changed property ownership"],
+    set_authoring_membership: ["Changed authoring membership", "Changed authoring memberships"],
     detach_entity: ["Detached entity", "Detached entities"]
   };
   return [...counts].map(([type, count]) => {
