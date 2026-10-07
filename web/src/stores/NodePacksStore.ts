@@ -41,11 +41,6 @@ export interface InstalledPackage {
   hasUpdate?: boolean;
 }
 
-export interface PackageActionResult {
-  success: boolean;
-  message: string;
-}
-
 interface NodePacksStore extends PackageOpState, PackageConsoleSlice {
   /** True when the Electron registry IPC is reachable. */
   available: boolean;

@@ -1,11 +1,9 @@
 import {
   useInfiniteQuery,
   useMutation,
-  useQuery,
   useQueryClient,
   type InfiniteData,
   type UseInfiniteQueryResult,
-  type UseQueryResult,
   type UseMutationResult
 } from "@tanstack/react-query";
 import { useAuth } from "../stores/useAuth";
@@ -17,7 +15,6 @@ import {
   deleteAppInstance,
   duplicateAppInstance,
   listAppInstanceMetadata,
-  loadAppInstance,
   renameAppInstance,
   type AppInstanceListOptions,
   type AppInstanceMetadataPage,
@@ -63,25 +60,6 @@ export function useAppInstances(
     enabled:
       enabled && account !== "anonymous" && getAppSessionToken() === null,
     staleTime: 30_000,
-    retry: false
-  });
-}
-
-export function useManagedAppInstance(
-  id: string | null
-): UseQueryResult<ServerAppInstance, Error> {
-  const account = useInstanceAccount();
-  return useQuery({
-    queryKey: appInstanceKeys.detail(account, id),
-    queryFn: ({ signal }) => {
-      if (!id) {
-        throw new Error("Choose an instance");
-      }
-      return loadAppInstance(id, signal);
-    },
-    enabled:
-      Boolean(id) && account !== "anonymous" && getAppSessionToken() === null,
-    staleTime: 0,
     retry: false
   });
 }
