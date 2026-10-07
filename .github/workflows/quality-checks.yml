@@ -735,6 +735,15 @@ jobs:
           cp -a --update=none .turbo/test-results/. .turbo/cache/
           touch .turbo/run-start
 
+      - name: Record native game capture environment
+        if: matrix.check == 'harness-gate'
+        run: |
+          mkdir -p "${{ runner.temp }}/native-game-golden-diagnostics"
+          node --input-type=module -e 'import { chromium } from "playwright"; import { execFileSync } from "node:child_process"; console.log(JSON.stringify({ node: process.version, chromiumExecutable: chromium.executablePath(), chromiumVersion: execFileSync(chromium.executablePath(), ["--version"], { encoding: "utf8" }).trim() }));' > "${{ runner.temp }}/native-game-golden-diagnostics/environment.json"
+          cat /etc/os-release > "${{ runner.temp }}/native-game-golden-diagnostics/os-release.txt"
+          fc-match system-ui > "${{ runner.temp }}/native-game-golden-diagnostics/fonts.txt"
+          fc-match sans-serif >> "${{ runner.temp }}/native-game-golden-diagnostics/fonts.txt"
+
       - name: Run ${{ matrix.check }}
         # skip-tests drops the package + app test legs without touching the
         # static checks. The leg still spins up but does no work, so it stays
@@ -747,10 +756,19 @@ jobs:
           TURBO_SCM_BASE: ${{ inputs.base-sha }}
           TURBO_AFFECTED: ${{ inputs.base-sha != '' && '--affected' || '' }}
           CI_BASE_SHA: ${{ inputs.base-sha }}
+          NODETOOL_GAME_GOLDEN_ARTIFACTS: ${{ matrix.check == 'harness-gate' && format('{0}/native-game-golden-diagnostics', runner.temp) || '' }}
         run: |
           echo "::group::${{ matrix.check }}"
           ${{ matrix.command }}
           echo "::endgroup::"
+
+      - name: Retain native game golden diagnostics
+        if: matrix.check == 'harness-gate' && !cancelled()
+        uses: actions/upload-artifact@v7
+        with:
+          name: native-game-golden-diagnostics
+          path: ${{ runner.temp }}/native-game-golden-diagnostics
+          if-no-files-found: ignore
 
       # Collect and save even when a test failed: turbo only writes an entry
       # for a task that passed, so the archive carries the green packages

@@ -1,0 +1,20 @@
+{
+  "tick": 60,
+  "seed": 1,
+  "channelTolerance": 16,
+  "changedFractionTolerance": 0.005,
+  "fixtures": [
+    "aether",
+    "bench-2d-500",
+    "bench-3d-1000",
+    "bench-3d-64-scripted",
+    "blacksite",
+    "kindle",
+    "lumen",
+    "neon-drift"
+  ],
+  "backends": {
+    "2d": "webgpu",
+    "3d": "webgl2"
+  }
+}

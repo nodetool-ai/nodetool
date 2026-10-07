@@ -1,0 +1,11 @@
+{
+  "package": "fonts-dejavu-core",
+  "version": "2.37-8",
+  "origin": "https://archive.ubuntu.com/ubuntu/pool/main/f/fonts-dejavu/fonts-dejavu-core_2.37-8_all.deb",
+  "publishedChecksumSource": "https://packages.ubuntu.com/noble/all/fonts-dejavu-core/download",
+  "packageSha256": "40049660c194f3b8a2541fc7369efebb10e9f94bdac836a2f38fafedd10fa73a",
+  "fontSha256": "ae7b7855e115a5966d8b1b3f80f254ccc117ec86f9965e202ee2940453837280",
+  "licenseSha256": "63d3ba759d12804c5b31a9d5940d855c1820d1f5999e6b0872eb1c7ff045fbc9",
+  "family": "DejaVu Sans",
+  "postScriptName": "DejaVuSans"
+}
