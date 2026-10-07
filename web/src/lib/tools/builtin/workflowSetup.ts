@@ -17,6 +17,7 @@ import { FrontendToolRegistry } from "../frontendTools";
 import type { FrontendToolState } from "../frontendTools";
 import { resolveWorkflowId } from "./workflow";
 import { docUrl } from "./resourceLinks";
+import { resolveSnippetSteps } from "../../../utils/planSnippetSteps";
 
 /**
  * The four tools that drive the Workflow creation flow from an agent
@@ -350,7 +351,7 @@ FrontendToolRegistry.register({
     }
 
     const placement = planToPlacement(
-      plan,
+      resolveSnippetSteps(plan),
       (nodeType) => {
         const meta = metadata[nodeType];
         return meta ? planNodeShape(meta) : null;
@@ -375,6 +376,9 @@ FrontendToolRegistry.register({
       const data: Record<string, unknown> = {};
       if (node.dynamicProperties !== undefined) {
         data["dynamic_properties"] = node.dynamicProperties;
+      }
+      if (node.dynamicOutputs !== undefined) {
+        data["dynamic_outputs"] = node.dynamicOutputs;
       }
       if (node.setupStepId !== undefined) {
         data["setupStepId"] = node.setupStepId;

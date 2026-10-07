@@ -39,6 +39,17 @@ const METADATA: Record<string, unknown> = {
     properties: [{ name: "string", type: { type: "str", type_args: [] } }],
     outputs: [{ name: "output", type: { type: "str", type_args: [] } }]
   },
+  "nodetool.code.Code": {
+    node_type: "nodetool.code.Code",
+    title: "Code",
+    description: "Run JavaScript",
+    namespace: "nodetool.code",
+    inline_fields: ["code"],
+    properties: [{ name: "code", type: { type: "str", type_args: [] } }],
+    outputs: [],
+    supports_dynamic_inputs: true,
+    supports_dynamic_outputs: true
+  },
   "nodetool.output.Output": {
     node_type: "nodetool.output.Output",
     title: "Output",
@@ -383,6 +394,93 @@ describe("build_workflow_from_plan", () => {
     expect(result.graph.edges).toHaveLength(2);
     expect(result.validation.ok).toBe(true);
     expect((await reload(workflow.id))?.stage).toBe("done");
+  });
+
+  it("builds a CSV step as a Code node with its body, not as an invented type", async () => {
+    const workflow = await makeWorkflow();
+    const body = [
+      'import { parse } from "@nodetool-ai/sandbox-csv";',
+      'await output("output", await parse(inputs.input));'
+    ].join("\n");
+    await run().invoke("plan_workflow", {
+      workflow_id: workflow.id,
+      plan: {
+        ...PLAN,
+        steps: [
+          {
+            title: "Parse the CSV",
+            summary: "rows from the text",
+            node_type: "nodetool.json.ParseCSV",
+            code: body
+          }
+        ]
+      }
+    });
+    const result = (await run().invoke("build_workflow_from_plan", {
+      workflow_id: workflow.id
+    })) as {
+      issues: string[];
+      graph: {
+        nodes: {
+          id: string;
+          type: string;
+          data: Record<string, unknown>;
+          dynamic_properties: Record<string, unknown>;
+          dynamic_outputs: Record<string, unknown>;
+        }[];
+        edges: { targetHandle: string; sourceHandle: string }[];
+      };
+      validation: { ok?: boolean };
+    };
+    expect(result.issues).toEqual([]);
+    expect(result.validation.ok).toBe(true);
+    const step = result.graph.nodes.find((node) => node.id === "step_1");
+    expect(step).toMatchObject({
+      type: "nodetool.code.Code",
+      data: { code: body },
+      dynamic_properties: { input: "" },
+      dynamic_outputs: { output: { type: "any" } }
+    });
+    expect(result.graph.edges.map((edge) => edge.targetHandle)).toEqual([
+      "input",
+      "value"
+    ]);
+  });
+
+  it("assigns the chosen model to a step's model property", async () => {
+    METADATA["nodetool.agents.Agent"] = {
+      node_type: "nodetool.agents.Agent",
+      title: "Agent",
+      description: "Run a language model",
+      namespace: "nodetool.agents",
+      inline_fields: ["prompt"],
+      properties: [
+        { name: "model", type: { type: "language_model", type_args: [] } },
+        { name: "prompt", type: { type: "str", type_args: [] } }
+      ],
+      outputs: [{ name: "text", type: { type: "str", type_args: [] } }]
+    };
+    const workflow = await makeWorkflow();
+    await run().invoke("plan_workflow", {
+      workflow_id: workflow.id,
+      plan: {
+        ...PLAN,
+        steps: [
+          { title: "Write", summary: "x", node_type: "nodetool.agents.Agent", model_role: "language" }
+        ]
+      }
+    });
+    const model = { type: "language_model", provider: "ollama", id: "llama3", name: "Llama 3" };
+    const result = (await runWithLanguageProvider().invoke("build_workflow_from_plan", {
+      workflow_id: workflow.id,
+      models: { language: model }
+    })) as {
+      issues: string[];
+      graph: { nodes: { id: string; data: Record<string, unknown> }[] };
+    };
+    delete METADATA["nodetool.agents.Agent"];
+    expect(result.issues).toEqual([]);
+    expect(result.graph.nodes.find((node) => node.id === "step_1")?.data).toEqual({ model });
   });
 
   it("carries the plan step id onto the node it placed (PRD § 11.5)", async () => {

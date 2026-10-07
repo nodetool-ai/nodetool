@@ -232,6 +232,12 @@ export function getAllMcpCapabilitySpecs(
     "get_example_workflow",
     "export_workflow_digraph",
     "start_background_job",
+    // The guided Workflow flow: write the brief, plan the steps (the planner
+    // checks and repairs its own plan), edit a step, build the graph.
+    "set_workflow_setup",
+    "plan_workflow",
+    "update_workflow_plan_step",
+    "build_workflow_from_plan",
     // The render runs as a workflow, so it needs the same environment the run
     // tools do. Every other timeline capability is a built-in; this one cannot
     // be, and a belt without it leaves the model authoring cuts it can never
