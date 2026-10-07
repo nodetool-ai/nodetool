@@ -14,6 +14,7 @@ import type {
 } from "../../src/providers/types.js";
 import type { Options, SDKMessage, SDKUserMessage } from "@anthropic-ai/claude-agent-sdk";
 import { generateStructured } from "../../src/providers/structured-output.js";
+import { providerFailureDetail } from "../../src/providers/provider-error.js";
 import { ProcessingContext } from "../../src/context.js";
 import { InMemoryStorageAdapter } from "@nodetool-ai/storage";
 
@@ -399,6 +400,9 @@ describe("ClaudeAgentProvider", () => {
       type: "json_schema",
       schema
     });
+    // The SDK retries an answer that misses the schema, and each retry is a
+    // turn: one turn turned the first miss into `error_max_turns`.
+    expect(calls[0].options?.maxTurns).toBeGreaterThan(1);
     expect(result).toEqual(screenplay);
   });
 
@@ -487,6 +491,50 @@ describe("ClaudeAgentProvider", () => {
         provider.generateMessages({ messages: [userMsg("hi")], model: "haiku" })
       )
     ).rejects.toThrow(/error_during_execution.*model exploded/);
+  });
+
+  it("classifies a refused login as a credential failure", async () => {
+    const refusal = "OAuth token has expired. Please run /login";
+    const { fn } = fakeQuery([
+      sysInit("sess-auth"),
+      {
+        type: "assistant",
+        error: "authentication_failed",
+        parent_tool_use_id: null,
+        session_id: "s",
+        uuid: "u-auth",
+        message: {
+          model: "<synthetic>",
+          content: [{ type: "text", text: refusal }]
+        }
+      } as unknown as SDKMessage,
+      {
+        ...(successResult() as object),
+        is_error: true,
+        result: refusal
+      } as unknown as SDKMessage
+    ]);
+    const provider = new ClaudeAgentProvider({}, { queryFn: fn });
+    const chunks: ProviderStreamItem[] = [];
+    let failure: unknown;
+    try {
+      for await (const item of provider.generateMessagesTraced({
+        messages: [userMsg("hi")],
+        model: "haiku"
+      })) {
+        chunks.push(item);
+      }
+    } catch (err) {
+      failure = err;
+    }
+    expect(providerFailureDetail(failure)).toMatchObject({
+      code: "provider_auth",
+      provider: "claude_agent_sdk"
+    });
+    expect(String(failure)).toMatch(/sign in to Claude again/);
+    expect(chunks.some((c) => "content" in c && c.content === refusal)).toBe(
+      false
+    );
   });
 
   it("surfaces exceptions thrown by the query generator", async () => {

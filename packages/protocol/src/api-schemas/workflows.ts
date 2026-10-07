@@ -706,7 +706,19 @@ export const workflowPlanStep = z
      */
     node_type: z.string().nullable(),
     /** "language" | "image" | "video" | "audio" — the model tile row it needs. */
-    model_role: z.string().optional()
+    model_role: z.string().optional(),
+    /**
+     * The JavaScript body of a Code-node step: a data step no registry node
+     * does (parse a CSV, reshape JSON). A step that carries code is a Code step.
+     */
+    code: z.string().optional(),
+    /**
+     * The input and output handles a Code step's body uses, in wiring order,
+     * when they are not the planner's `input` and `output` — a step made from
+     * a Code-node snippet reads `inputs.text` and returns `{ output }`.
+     */
+    code_inputs: z.array(z.string()).optional(),
+    code_outputs: z.array(z.string()).optional()
   })
   .passthrough();
 export type WorkflowPlanStep = z.infer<typeof workflowPlanStep>;

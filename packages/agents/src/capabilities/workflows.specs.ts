@@ -707,6 +707,12 @@ export const BUILD_WORKFLOW_FROM_PLAN_SCHEMA: JsonSchema = {
   type: "object",
   properties: {
     workflow_id: { type: "string", description: "The workflow. You must own it." },
+    models: {
+      type: "object",
+      description:
+        'The model each role runs on, keyed by role ("language", "image", "video", "audio"), as find_model returns it on `ref`. A step whose role has no entry is built with its model unset, and the validation reports it.',
+      additionalProperties: { type: "object" }
+    },
     save: {
       type: "boolean",
       description:

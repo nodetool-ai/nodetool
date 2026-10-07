@@ -91,6 +91,7 @@ import {
   mcpBearerChallenge
 } from "./oauth/gate.js";
 import { registerPythonProviders, relayWorkerDownload } from "./models-api.js";
+import { createProviderRegistrar } from "./python-bridge-gate.js";
 import { syncCustomProviderRegistry } from "./custom-providers.js";
 import { runScheduledStorageCleanup } from "./storage-retention.js";
 import { createGenerationRecoveryWorker } from "./generation-recovery.js";
@@ -293,10 +294,7 @@ async function notifyPythonBridgeResourceChanges(
     resource: { id: "nodes", etag: String(Date.now()) }
   });
 
-  const registered = await registerPythonProviders(pythonBridge);
-  if (registered.length > 0) {
-    log.info(`Registered Python providers: ${registered.join(", ")}`);
-  }
+  const registered = await registerPythonProvidersOnce();
 
   const discoveredProviders = await pythonBridge.listProviders();
   const registeredProviders = new Set(registered);
@@ -603,6 +601,19 @@ const localBridge = createPythonBridge({
 // stable and re-emits its target's events, consumers never re-read it and
 // listeners are wired exactly once.
 const pythonBridge = new SwappableBridge(localBridge);
+/**
+ * Python-only providers (`huggingface-local`) exist only once the worker has
+ * listed them. A run that selects one must wait for this, not just for the
+ * connection: registration follows the connect, and a run that arrives in
+ * between is refused for an unknown provider.
+ */
+const registerPythonProvidersOnce = createProviderRegistrar(async () => {
+  const registered = await registerPythonProviders(pythonBridge);
+  if (registered.length > 0) {
+    log.info(`Registered Python providers: ${registered.join(", ")}`);
+  }
+  return registered;
+});
 
 let pythonBridgeReady = false;
 
@@ -1564,7 +1575,10 @@ await app.register(websocketPlugin, {
   workerManager,
   getPythonBridgeReady,
   ensurePythonBridge: async () => {
-    if (getPythonBridgeReady()) return;
+    if (getPythonBridgeReady()) {
+      await registerPythonProvidersOnce();
+      return;
+    }
     log.info(`Lazily starting Python bridge [${startupMs()}]`);
     try {
       await pythonBridge.ensureConnected();
@@ -1609,6 +1623,8 @@ await app.register(websocketPlugin, {
         );
       });
     logPythonBridgeDiagnostics("connected");
+    // The run that asked for the bridge may select a Python-only provider.
+    await registerPythonProvidersOnce();
     notifyPythonBridgeResourceChanges(app, pythonBridge).catch((err) => {
       log.warn(
         "Failed to notify Python bridge resource changes",

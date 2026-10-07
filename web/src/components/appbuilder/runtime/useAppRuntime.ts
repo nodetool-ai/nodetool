@@ -93,6 +93,7 @@ import {
 } from "./variablePersistence";
 import { AppRuntimeContextValue } from "./AppRuntimeContext";
 import { isString } from "../../../utils/typePredicates";
+import { promptForProviderAuth } from "../../../stores/providerAuthPrompt";
 
 const now = (): number => Date.now();
 
@@ -613,6 +614,10 @@ export const useAppRuntime = (
   const fold = useCallback(
     (message: MsgpackData) => {
       const transportId = "job_id" in message && typeof message.job_id === "string" ? message.job_id : undefined;
+      // A refused credential gets the dialog that fixes it, as in the editor.
+      if (message.type === "node_update" && message.error_detail) {
+        promptForProviderAuth(message.error_detail, transportId ?? message.node_id);
+      }
       if (transportId && persistence.instance && message.type === "job_update" && "status" in message && typeof message.status === "string") {
         const invocation = ownedRef.current.get(transportId);
         const entry = invocation ? operationRuntimesRef.current.get(invocation.operationId) : undefined;

@@ -95,6 +95,7 @@ import {
   workflowInstanceId
 } from "../appRuntimeStore";
 import { variableStorageKey } from "../variablePersistence";
+import useProviderSignInStore from "../../../../stores/ProviderSignInStore";
 
 interface FakeRunnerState {
   job_id: string | null;
@@ -284,6 +285,46 @@ describe("useAppRuntime — outputs into variables", () => {
     expect(result.current.store.getState().outputs["main:out1"]?.value).toBe(
       "Hello"
     );
+  });
+});
+
+describe("useAppRuntime — provider sign-in", () => {
+  it("offers the Codex sign-in when a node fails on an expired login", async () => {
+    useProviderSignInStore.getState().dismiss();
+    const document = doc({
+      operations: [
+        {
+          id: "main",
+          name: "Run",
+          workflowId: "wf-a",
+          inputs: {},
+          outputs: {},
+          policy: "replace"
+        }
+      ]
+    });
+    const { result } = renderRuntime(workflowA, document);
+    await act(async () => {
+      result.current.dispatch({ kind: "run", operationId: "main" });
+    });
+    const jobId = await runnerState("wf-a").run.mock.results[0].value;
+
+    deliver({
+      type: "node_update",
+      job_id: jobId,
+      node_id: "ag",
+      node_name: "Agent",
+      node_type: "nodetool.agents.Agent",
+      status: "error",
+      error: "Codex request failed (401)",
+      error_detail: {
+        code: "provider_auth",
+        provider: "codex",
+        secret_key: "CODEX_ACCESS_TOKEN"
+      }
+    });
+
+    expect(useProviderSignInStore.getState().provider?.label).toBe("Codex");
   });
 });
 

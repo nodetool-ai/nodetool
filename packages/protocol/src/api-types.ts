@@ -1382,6 +1382,8 @@ export interface ModelArtifactRef {
   repo_id: string;
   revision?: string | null;
   path?: string | null;
+  /** The files the adapter loads, when it needs only part of the repository. */
+  allow_patterns?: string[] | null;
 }
 
 export interface ModelAdapterInfo {

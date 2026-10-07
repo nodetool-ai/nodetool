@@ -64,6 +64,15 @@ function integer(value: string, option: string, minimum: number, maximum: number
   }
   return parsed;
 }
+function attr(attributes: Record<string, unknown>, key: string): string | undefined { const value = attributes[key]; return value === undefined || value === null || value === "" ? undefined : String(value); }
+function clip(text: string, max: number): string { const flat = text.replace(/\s+/g, " "); return flat.length > max ? `${flat.slice(0, max - 1)}…` : flat; }
+/** The most identifying attribute of a span: the node for node spans, provider/model for LLM spans. */
+function spanDetail(attributes: Record<string, unknown>): string {
+  const node = attr(attributes, "node.id"); const type = attr(attributes, "node.type");
+  if (node) { return clip(type ? `${node} (${type})` : node, 48); }
+  const provider = attr(attributes, "llm.provider"); const model = attr(attributes, "llm.model");
+  return provider || model ? clip([provider, model].filter(Boolean).join("/"), 48) : "";
+}
 function fail(error: unknown, json?: boolean): void { printCommandError(error, json); process.exitCode = 1; }
 function common(command: Command): Command {
   return command.option("--api-url <url>", "Read a server instead of the local database", process.env["NODETOOL_API_URL"])
@@ -194,7 +203,7 @@ export function registerRunsCommands(program: Command, deps: RunsCommandDependen
           name: options.name, errors_only: options.errorsOnly ?? false, limit: integer(options.limit, "--limit", 1, 500), include_content: options.includeContent ?? false });
         const result = await (await reader(options.apiUrl, deps)).trace(id, query);
         if (options.json) { asJson(result); } else {
-          printTable(result.nodes.map(({ record, depth }) => ({ span_id: record.span_id, name: `${"  ".repeat(depth)}${record.name}`, status: record.status.code, duration_ms: record.duration_ms })));
+          printTable(result.nodes.map(({ record, depth }) => ({ span_id: record.span_id, name: `${"  ".repeat(depth)}${record.name}`, status: record.status.code, duration_ms: record.duration_ms, detail: spanDetail(record.attributes) })));
           printKv({ content_state: result.content_state, truncated: result.truncated, incomplete: result.incomplete, limited: result.limited });
           if (options.includeContent) { asJson(result.nodes.map(({ record }) => record)); }
         }
@@ -212,7 +221,12 @@ export function registerRunsCommands(program: Command, deps: RunsCommandDependen
           limit: integer(options.limit, "--limit", 1, 500), cursor: options.cursor, include_content: options.includeContent ?? false });
         const result = await (await reader(options.apiUrl, deps)).logs(id, query);
         if (options.json) { asJson(result); } else {
-          printTable(result.logs.map((event) => ({ ...event, attributes: JSON.stringify(event.attributes) })), ["time_ms", "level", "source", "span_id", "name", "attributes"]);
+          if (options.includeContent) {
+            printTable(result.logs.map((event) => ({ ...event, message: clip(attr(event.attributes, "log.message") ?? "", 80), arguments: clip(attr(event.attributes, "log.arguments") ?? "", 40) })), ["time_ms", "level", "source", "span_id", "message", "arguments"]);
+          } else {
+            printTable(result.logs, ["time_ms", "level", "source", "span_id", "name"]);
+            if (result.logs.length > 0) { console.log("Messages are excluded. Pass --include-content to read them."); }
+          }
           printKv({ content_state: result.content_state, truncated: result.truncated, incomplete: result.incomplete, limited: result.limited });
           if (result.next_cursor) { console.log(`next_cursor: ${result.next_cursor}`); }
         }

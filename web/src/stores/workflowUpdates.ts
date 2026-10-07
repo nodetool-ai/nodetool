@@ -32,8 +32,10 @@ import type { WorkflowRunner, WorkflowRunnerStore } from "./WorkflowRunner";
 import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
 import useOnboardingStore from "./OnboardingStore";
-import { openProviderOnboarding } from "./ProviderOnboardingStore";
-import type { NodeErrorDetail } from "@nodetool-ai/protocol";
+import {
+  promptForProviderAuth,
+  resetProviderAuthPrompt
+} from "./providerAuthPrompt";
 import { NOTIFICATION_TIMEOUT_JOB_COMPLETED } from "../config/constants";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
@@ -241,35 +243,6 @@ globalWebSocketManager.setResumeJobIdProvider(() => {
   return null;
 });
 
-/**
- * Runs that already opened provider onboarding. A missing credential usually
- * fails every model node in the graph, and one dialog per run is the point —
- * the second one would just re-open what the user is already looking at.
- */
-const authPromptedRuns = new Set<string>();
-
-/**
- * A node died because the provider refused the credential. Send the user to
- * the screen that fixes it, pre-expanded on the key that failed, instead of
- * leaving them to read the provider's prose out of a toast.
- */
-const promptForProviderAuth = (
-  detail: NodeErrorDetail,
-  runKey: string
-): void => {
-  if (detail.code !== "provider_auth" || authPromptedRuns.has(runKey)) {
-    return;
-  }
-  authPromptedRuns.add(runKey);
-  const provider = detail.provider ?? "the provider";
-  const onboarding: Parameters<typeof openProviderOnboarding>[0] = {
-    reason: `The run stopped because ${provider} rejected the credentials. Reconnect it to continue.`
-  };
-  if (detail.secret_key) {
-    onboarding.highlightSecretKey = detail.secret_key;
-  }
-  openProviderOnboarding(onboarding);
-};
 
 // Per-(jobId, node_id) "a generation_complete landed this run" set. Gates the
 // node_update{completed} fallback so a generator (which emits N
@@ -806,7 +779,7 @@ const handleJobUpdate = (
     // so stale red outlines don't linger after the user fixes them.
     usePropertyValidationStore.getState().clearWorkflow(workflow.id);
     if (!silentJob && job.job_id && !useWorkflowRunsStore.getState().hasRun(workflow.id, job.job_id)) {
-      authPromptedRuns.delete(job.job_id);
+      resetProviderAuthPrompt(job.job_id);
       clearSawGenerationCompleteFor(job.job_id);
     }
   }

@@ -35,6 +35,13 @@ import {
 
 export const WORKFLOW_PLAN_TOOL_NAME = "workflow_plan";
 
+/** The node a plan step runs its own JavaScript on. */
+export const PLAN_CODE_NODE_TYPE = "nodetool.code.Code";
+
+/** The Code step's input and output handles, named in the planner prompt. */
+export const PLAN_CODE_INPUT = "input";
+export const PLAN_CODE_OUTPUT = "output";
+
 export const WORKFLOW_PLAN_TOOL_DESCRIPTION =
   "The steps a NodeTool workflow needs to do the task, each mapped to a node type that exists in the registry.";
 
@@ -48,9 +55,38 @@ export const WORKFLOW_PLANNER_SYSTEM_PROMPT = [
   "that turns out to be the wrong node builds a graph that runs and produces",
   "nothing, which is worse than an unnamed step.",
   "",
+  "The steps form one chain. Each step receives exactly one value: the previous",
+  "step's output (the first step receives the first input). A step never reads",
+  "from two steps back, and there are no branches or joins, so do not plan Zip",
+  "or merge steps. Inputs and outputs are declared under inputs and outputs, never",
+  "as steps. Declare one output: it receives the last step's value. When a step",
+  "needs a second workflow input, make it a Code step: every input after the",
+  `first is connected to the first Code step as inputs.input_2, inputs.input_3, …`,
+  "",
+  "A data step no candidate does — parse a CSV, reshape JSON, filter or compute",
+  `values — is a Code step: set node_type to "${PLAN_CODE_NODE_TYPE}" and write`,
+  "its JavaScript body in code. Never invent a node type for it. The body reads",
+  `the previous step's value as inputs.${PLAN_CODE_INPUT}. To pass on one value,`,
+  `call await output("${PLAN_CODE_OUTPUT}", value) once. To pass on one value per`,
+  `item — one prompt per CSV row — call await emit("${PLAN_CODE_OUTPUT}", item) inside`,
+  "the loop: the next step then runs once per item. Never call output() in a loop.",
+  "Emit exactly the value the next step takes — a prompt string for an image or",
+  "text step, not an object around it. Build a prompt from fields in the Code",
+  "step that has the fields. A Code step never calls a model: put the model call",
+  "in its own step with model_role, never in fetch() with an API key. A Code step",
+  "reads its data from its inputs (media.text(inputs.input) for a document),",
+  "never from a file path, and awaits every host call (getSecret, fetch,",
+  "workspace, media).",
+  "To parse CSV, put",
+  'import { parse } from "@nodetool-ai/sandbox-csv" at the top of the body',
+  "and call await parse(text), which returns records keyed by the header row.",
+  "",
   "Set model_role only on a step that calls a model: language, image, video or",
   "audio. Keep the plan to the steps the task actually needs.",
-  "Give each input a sample value the creator can run the workflow with."
+  "Give each text or number input a sample value the creator can run the",
+  "workflow with: the value itself — the CSV text, the notes — never a file name",
+  "or a path. Quote CSV fields that contain commas. Give a document, image, audio",
+  "or video input no sample: the creator uploads one."
 ].join("\n");
 
 /** The structured-output schema the planner asks for. */
@@ -86,10 +122,13 @@ export function buildWorkflowPlanSchema(): Record<string, unknown> {
             title: { type: "string" },
             summary: { type: "string" },
             node_type: { type: ["string", "null"] },
+            // Models write null for "no model" whatever the prompt says, and
+            // a schema that refuses it costs a validation round trip.
             model_role: {
-              type: "string",
-              enum: ["language", "image", "video", "audio"]
-            }
+              type: ["string", "null"],
+              enum: ["language", "image", "video", "audio", null]
+            },
+            code: { type: "string" }
           }
         }
       },
@@ -124,13 +163,25 @@ export function parseWorkflowPlan(
   const generateId = options.generateId ?? ((index: number) => `step-${index + 1}`);
   const steps = Array.isArray(data["steps"]) ? data["steps"] : [];
   const withIds = steps.map((step, index) => {
-    const base = isRecord(step) ? step : {};
+    const raw = isRecord(step) ? step : {};
+    // A null optional field means "absent": drop it before the schema reads it.
+    const base = Object.fromEntries(
+      Object.entries(raw).filter(
+        ([key, value]) => value !== null || key === "node_type"
+      )
+    );
+    // A step that carries a body runs it, whatever type the planner named.
+    const hasCode = isString(base["code"]) && base["code"].trim().length > 0;
     return {
       ...base,
       id: isString(base["id"]) && base["id"].length > 0
         ? base["id"]
         : generateId(index),
-      node_type: isString(base["node_type"]) ? base["node_type"] : null
+      node_type: hasCode
+        ? PLAN_CODE_NODE_TYPE
+        : isString(base["node_type"])
+          ? base["node_type"]
+          : null
     };
   });
   const parsed = workflowSetupPlan.safeParse({ ...data, steps: withIds });
@@ -234,6 +285,8 @@ export interface PlanNodeShape {
   outputs: readonly PlanNodeHandle[];
   /** The node takes named dynamic inputs (Concat, Template, Code). */
   supportsDynamicInputs?: boolean;
+  /** The node declares its outputs per instance (Code). */
+  supportsDynamicOutputs?: boolean;
 }
 
 /** Registry lookup. Returns null for a type the registry does not have. */
@@ -247,8 +300,17 @@ export interface PlacementNode {
   properties: Record<string, unknown>;
   /** Dynamic slots to declare before an edge can land on them. */
   dynamicProperties?: Record<string, unknown>;
+  /** Dynamic outputs to declare before an edge can leave them. */
+  dynamicOutputs?: Record<string, PlanDynamicOutputType>;
   /** The plan step this node came from (PRD § 11.5). Absent on I/O nodes. */
   setupStepId?: string;
+}
+
+/** A declared dynamic output's type, in the `dynamic_outputs` wire shape. */
+export interface PlanDynamicOutputType {
+  type: string;
+  type_args: unknown[];
+  optional: boolean;
 }
 
 export interface PlacementEdge {
@@ -395,6 +457,20 @@ export function planToPlacement(
       setupStepId: step.id
     };
 
+    // A Code step's handles are the names its body uses — the planner's
+    // `input` and `output`, or the ones a snippet step lists — so the build
+    // declares exactly those rather than the generic `input_N` slots.
+    const isCodeStep = step.node_type === PLAN_CODE_NODE_TYPE;
+    const codeInputs = step.code_inputs ?? [PLAN_CODE_INPUT];
+    const codeOutputs = step.code_outputs ?? [PLAN_CODE_OUTPUT];
+    if (isCodeStep) {
+      if (isString(step.code) && step.code.trim().length > 0) {
+        node.properties["code"] = step.code;
+      } else {
+        issues.push(`${label} is a Code step with no code, so it outputs nothing.`);
+      }
+    }
+
     // The model a step calls is assigned, never wired: a chain that landed on
     // a model property would build a graph that validates and never runs.
     const role = step.model_role;
@@ -411,8 +487,11 @@ export function planToPlacement(
       }
     }
 
-    // Free handles of this node, consumed left to right.
-    const free = shape.inputs.filter((handle) => !MODEL_TYPES.has(handle.type));
+    // Free handles of this node, consumed left to right. A Code step's own
+    // properties are its body and settings, never a place for the chain.
+    const free = isCodeStep
+      ? []
+      : shape.inputs.filter((handle) => !MODEL_TYPES.has(handle.type));
     let cursor = 0;
     const takeHandle = (sourceType: string): string | null => {
       while (cursor < free.length) {
@@ -426,7 +505,11 @@ export function planToPlacement(
         // A dynamic node has no declared handle to land on; the slot has to be
         // declared before the edge, which is what the build's
         // `ui_update_node_data` call in plan order is for.
-        const slot = `${DYNAMIC_SLOT}_${Object.keys(node.dynamicProperties ?? {}).length + 1}`;
+        const count = Object.keys(node.dynamicProperties ?? {}).length;
+        const slot =
+          isCodeStep && count < codeInputs.length
+            ? codeInputs[count]
+            : `${DYNAMIC_SLOT}_${count + 1}`;
         node.dynamicProperties = { ...(node.dynamicProperties ?? {}), [slot]: "" };
         return slot;
       }
@@ -468,7 +551,21 @@ export function planToPlacement(
     }
 
     nodes.push(node);
-    const out = shape.outputs[0];
+    let out = shape.outputs[0];
+    if (
+      !out &&
+      isCodeStep &&
+      shape.supportsDynamicOutputs === true &&
+      codeOutputs.length > 0
+    ) {
+      node.dynamicOutputs = Object.fromEntries(
+        codeOutputs.map((name) => [
+          name,
+          { type: "any", type_args: [], optional: false }
+        ])
+      );
+      out = { name: codeOutputs[0], type: "any" };
+    }
     if (!out) {
       issues.push(
         `${label} maps to "${step.node_type}", which produces no output.`
@@ -534,6 +631,7 @@ export interface PlanNodeMetadataLike {
   /** Property names the node declares as its input handles. */
   input_fields?: readonly string[];
   supports_dynamic_inputs?: boolean;
+  supports_dynamic_outputs?: boolean;
 }
 
 /** Read one node's metadata into the shape {@link planToPlacement} wires from. */
@@ -559,8 +657,226 @@ export function planNodeShape(meta: PlanNodeMetadataLike): PlanNodeShape {
       name: output.name,
       type: output.type?.type ?? "any"
     })),
-    supportsDynamicInputs: meta.supports_dynamic_inputs === true
+    supportsDynamicInputs: meta.supports_dynamic_inputs === true,
+    supportsDynamicOutputs: meta.supports_dynamic_outputs === true
   };
+}
+
+// ── Plan check and repair loop ──────────────────────────────────────────────
+
+/**
+ * The general-purpose nodes every planner prompt offers, whatever the brief
+ * ranks: a brief's words rank provider-specific nodes first ("product shots"
+ * finds a Reve remix node before Text To Image), and the planner can only name
+ * what it is shown.
+ */
+export const PLAN_CORE_NODE_TYPES: readonly string[] = [
+  "nodetool.agents.Agent",
+  "nodetool.agents.Summarizer",
+  "nodetool.agents.Extractor",
+  "nodetool.image.TextToImage",
+  "nodetool.video.TextToVideo",
+  "nodetool.audio.TextToSpeech",
+  "nodetool.control.Collect",
+  PLAN_CODE_NODE_TYPE
+];
+
+/** Node types that are a workflow's own inputs and outputs, never a step. */
+const isIoNodeType = (nodeType: string): boolean =>
+  nodeType.startsWith("nodetool.input.") ||
+  nodeType.startsWith("nodetool.output.");
+
+/** Stands in for every role's model, so a check does not report models unset. */
+const ANY_MODEL: Readonly<Record<string, unknown>> = Object.fromEntries(
+  Object.keys(MODEL_HANDLE_TYPES).map((role) => [role, {}])
+);
+
+export interface CheckWorkflowPlanOptions {
+  lookup: PlanNodeLookup;
+  /**
+   * The contract check for a Code step's body — `plannedCodeStepProblems` from
+   * `@nodetool-ai/node-sdk/code-analysis`, which this package cannot import.
+   */
+  checkCode?: (
+    code: string,
+    handles: { inputs: readonly string[]; output: string }
+  ) => string[];
+}
+
+/**
+ * Everything that would make a plan build a graph that fails or produces
+ * nothing, found before a node is placed or a model is called: unknown node
+ * types, wiring the builder cannot do, and Code bodies that break the Code
+ * node's contract. Models are not checked here — the creator picks them on the
+ * setup step, after the plan.
+ */
+export function checkWorkflowPlan(
+  plan: WorkflowSetupPlan,
+  options: CheckWorkflowPlanOptions
+): string[] {
+  const placement = planToPlacement(plan, options.lookup, {
+    models: ANY_MODEL
+  });
+  const problems = [...placement.issues];
+  const nodeTypeOf = new Map(placement.nodes.map((node) => [node.id, node.type]));
+  const nodeOfStep = new Map(
+    placement.nodes
+      .filter((node) => node.setupStepId !== undefined)
+      .map((node) => [node.setupStepId, node.id])
+  );
+  const wiredInto = (nodeId: string): string[] =>
+    placement.edges
+      .filter((edge) => edge.target === nodeId)
+      .map((edge) => edge.targetHandle);
+
+  plan.steps.forEach((step, index) => {
+    const label = `step ${index + 1} ("${step.title}")`;
+    if (step.node_type !== null && isIoNodeType(step.node_type)) {
+      problems.push(
+        `${label} is the workflow input/output node "${step.node_type}"; declare it under inputs or outputs, not as a step.`
+      );
+    }
+  });
+
+  // The chain gives every step one value. A second workflow input can only
+  // be read by a Code step that names it; anywhere else it lands on whatever
+  // property is free — a document input's `name`, a prompt's system text.
+  for (const edge of placement.edges) {
+    if (!edge.source.startsWith("input_") || edge.source === "input_1") {
+      continue;
+    }
+    const targetType = nodeTypeOf.get(edge.target);
+    if (targetType === PLAN_CODE_NODE_TYPE || targetType === undefined) {
+      continue;
+    }
+    const inputIndex = Number(edge.source.slice("input_".length)) - 1;
+    const input = plan.inputs[inputIndex];
+    problems.push(
+      `input "${input?.name ?? edge.source}" lands on "${edge.targetHandle}" of ${targetType}: only a Code step can take a second input, as inputs.${edge.targetHandle}.`
+    );
+  }
+
+  if (plan.outputs.length > 1) {
+    problems.push(
+      `the plan declares ${plan.outputs.length} outputs, but every output receives the last step's one value; declare one output.`
+    );
+  }
+
+  const checkCode = options.checkCode;
+  if (checkCode) {
+    plan.steps.forEach((step, index) => {
+      if (
+        step.node_type !== PLAN_CODE_NODE_TYPE ||
+        !isString(step.code) ||
+        step.code.trim().length === 0
+      ) {
+        return;
+      }
+      const nodeId = nodeOfStep.get(step.id);
+      const handles = {
+        inputs:
+          nodeId === undefined
+            ? (step.code_inputs ?? [PLAN_CODE_INPUT])
+            : wiredInto(nodeId),
+        output: step.code_outputs?.[0] ?? PLAN_CODE_OUTPUT
+      };
+      for (const problem of checkCode(step.code, handles)) {
+        problems.push(`step ${index + 1} ("${step.title}") ${problem}.`);
+      }
+    });
+  }
+  return problems;
+}
+
+export interface PlannerMessage {
+  role: "system" | "user" | "assistant";
+  content: string;
+}
+
+export interface RefineWorkflowPlanOptions {
+  /** The system prompt and the task, as the first planner call takes them. */
+  messages: readonly PlannerMessage[];
+  /**
+   * One structured planner call. Resolves the decoded answer object, or null
+   * when the model produced none.
+   */
+  generate: (
+    messages: readonly PlannerMessage[]
+  ) => Promise<Record<string, unknown> | null>;
+  /** Applied to every parsed plan before it is checked. */
+  normalize?: (plan: WorkflowSetupPlan) => WorkflowSetupPlan;
+  check: (plan: WorkflowSetupPlan) => string[];
+  /** Planner calls in all, the first draft included. */
+  maxRounds?: number;
+}
+
+export interface RefinedWorkflowPlan {
+  /** The plan with the fewest problems, or null when no answer was a plan. */
+  plan: WorkflowSetupPlan | null;
+  /** What is still wrong with `plan`. Empty when it passed. */
+  problems: string[];
+  rounds: number;
+}
+
+export const WORKFLOW_PLAN_MAX_ROUNDS = 3;
+
+/** The plan as the model wrote it: the ids are the parser's, not the model's. */
+const planAsAnswer = (plan: WorkflowSetupPlan): string =>
+  JSON.stringify({
+    ...plan,
+    steps: plan.steps.map(({ id: _id, ...step }) => step)
+  });
+
+/**
+ * Plan, check, and send the problems back until the plan passes.
+ *
+ * A creator should review a plan that builds, not repair one after a run
+ * failed. Each round hands the model its own previous answer and the checker's
+ * findings, and asks for the whole plan again. The loop stops on the first
+ * plan with no problems, or after `maxRounds` calls with the best plan seen.
+ */
+export async function refineWorkflowPlan(
+  options: RefineWorkflowPlanOptions
+): Promise<RefinedWorkflowPlan> {
+  const maxRounds = Math.max(1, options.maxRounds ?? WORKFLOW_PLAN_MAX_ROUNDS);
+  const messages: PlannerMessage[] = [...options.messages];
+  let best: RefinedWorkflowPlan = { plan: null, problems: [], rounds: 0 };
+
+  for (let round = 1; round <= maxRounds; round += 1) {
+    const raw = await options.generate(messages);
+    const parsed = parseWorkflowPlan(raw);
+    const plan = parsed && options.normalize ? options.normalize(parsed) : parsed;
+    const problems = plan
+      ? options.check(plan)
+      : ["The answer was not a plan of {inputs, steps, outputs}."];
+    if (
+      plan &&
+      (best.plan === null || problems.length < best.problems.length)
+    ) {
+      best = { plan, problems, rounds: round };
+    }
+    best.rounds = round;
+    if (plan && problems.length === 0) {
+      return best;
+    }
+    messages.push(
+      {
+        role: "assistant",
+        content: plan ? planAsAnswer(plan) : JSON.stringify(raw ?? null)
+      },
+      {
+        role: "user",
+        content: [
+          "This plan would build a workflow that fails:",
+          ...problems.map((problem) => `- ${problem}`),
+          "",
+          "Return the whole corrected plan. Copy node types exactly from the",
+          `candidate list, or use a Code step ("${PLAN_CODE_NODE_TYPE}") with its body in code.`
+        ].join("\n")
+      }
+    );
+  }
+  return best;
 }
 
 // ── Shipped inspiration chips (PRD § 11.1) ──────────────────────────────────
@@ -611,13 +927,27 @@ export const WORKFLOW_INSPIRATION_CHIPS: readonly WorkflowInspirationChip[] = [
     id: "product-shots",
     brief: "Batch-generate product shots from a CSV",
     plan: {
-      inputs: [{ name: "rows", type: "string" }],
+      inputs: [
+        {
+          name: "rows",
+          type: "string",
+          sample: "product,setting\nceramic mug,a sunlit kitchen counter\nleather wallet,a dark walnut desk"
+        }
+      ],
       steps: [
         {
           id: "prompt",
-          title: "Compose the shot prompt",
-          summary: "Turn each row into the prompt one shot is rendered from.",
-          node_type: "nodetool.text.Template"
+          title: "Compose the shot prompts",
+          summary: "Parse the CSV and emit one shot prompt per row.",
+          node_type: PLAN_CODE_NODE_TYPE,
+          code: [
+            'import { parse } from "@nodetool-ai/sandbox-csv";',
+            "",
+            "for (const row of await parse(inputs.input)) {",
+            "  const subject = Object.values(row).filter(Boolean).join(\", \");",
+            '  await emit("output", `Studio product photo: ${subject}`);',
+            "}"
+          ].join("\n")
         },
         {
           id: "render",

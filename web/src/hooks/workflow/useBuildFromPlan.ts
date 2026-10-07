@@ -33,6 +33,7 @@ import useResultsStore from "../../stores/ResultsStore";
 import useWorkflowRunsStore from "../../stores/WorkflowRunsStore";
 import { getWorkflowRunnerStore } from "../../stores/WorkflowRunner";
 import { useWorkflowSetupWriter } from "./useWorkflowSetup";
+import { resolveSnippetSteps } from "../../utils/planSnippetSteps";
 
 export const workflowBuildStatuses = [
   "built",
@@ -375,7 +376,7 @@ export const useBuildFromPlan = (
         throwIfAborted(signal);
         const metadata = useMetadataStore.getState().metadata;
         const placement = planToPlacement(
-          input.plan,
+          resolveSnippetSteps(input.plan),
           (nodeType) => {
             const meta = metadata[nodeType];
             return meta ? planNodeShape(meta) : null;
@@ -402,6 +403,9 @@ export const useBuildFromPlan = (
           const data: Record<string, unknown> = {};
           if (node.dynamicProperties !== undefined) {
             data["dynamic_properties"] = node.dynamicProperties;
+          }
+          if (node.dynamicOutputs !== undefined) {
+            data["dynamic_outputs"] = node.dynamicOutputs;
           }
           if (node.setupStepId !== undefined) {
             data["setupStepId"] = node.setupStepId;

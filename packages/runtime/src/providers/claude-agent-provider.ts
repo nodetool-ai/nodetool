@@ -148,6 +148,13 @@ export type ClaudeCreateMcpServerFn = (opts: {
 
 /** MCP server name under which NodeTool's tools are exposed to the SDK. */
 const TOOL_SERVER_NAME = "nodetool_tools";
+/**
+ * Turns a structured-output call may take. The SDK validates the answer
+ * against the schema and, when it does not match, hands the model the errors
+ * and asks again — each retry is a turn. With one turn, the first answer that
+ * misses the schema fails the call as `error_max_turns`.
+ */
+const STRUCTURED_OUTPUT_MAX_TURNS = 3;
 const TOOL_PREFIX = `mcp__${TOOL_SERVER_NAME}__`;
 /**
  * The member expression the retired guest toolbelt was called through:
@@ -567,7 +574,8 @@ export class ClaudeAgentProvider extends BaseProvider {
     const resultSchema = resultTool?.inputSchema;
     const config: TurnConfig = {
       emitMessages: false,
-      maxTurns: args.maxTurns ?? 1,
+      maxTurns:
+        args.maxTurns ?? (resultTool ? STRUCTURED_OUTPUT_MAX_TURNS : 1),
       mcp: null,
       toolsOffered: false,
       builtinTools: []
@@ -834,6 +842,10 @@ export class ClaudeAgentProvider extends BaseProvider {
     // assistant message to avoid duplication; if a build omits partials we fall
     // back to the final message's content blocks.
     let streamedFromPartials = false;
+    // The CLI answers a refused login with a synthetic assistant message, then
+    // a "success" result flagged `is_error`. Hold its text back from the stream
+    // and fail the call with it instead.
+    let authFailure: string | null = null;
 
     // The SDK splits one API assistant turn into one frame per content block —
     // thinking, then text, then each tool_use. Emitting a message per frame
@@ -911,6 +923,13 @@ export class ClaudeAgentProvider extends BaseProvider {
         }
 
         if (msg.type === "assistant") {
+          if (msg.error === "authentication_failed") {
+            authFailure = finalBlocks(msg)
+              .filter((block) => !block.thinking)
+              .map((block) => block.content)
+              .join("");
+            continue;
+          }
           const m = msg.message;
           if (m && isNonEmptyString(m.model)) resolvedModel = m.model;
           // Fallback only: no partials arrived, so render text/thinking from the
@@ -974,6 +993,9 @@ export class ClaudeAgentProvider extends BaseProvider {
           // Bill every terminal result, not just the successful ones: an
           // errored/max-turns run still consumed (and was charged for) tokens.
           this.trackResultUsage(msg, resolvedModel);
+          if (authFailure !== null && msg.is_error) {
+            throw claudeAuthError(authFailure);
+          }
           if (msg.subtype === "success") {
             const flushed = flushPending();
             if (flushed) yield flushed;
@@ -1469,6 +1491,17 @@ function jsonPropToZod(prop: Record<string, unknown>): ZodTypeAny {
       zt = z.unknown();
   }
   return desc ? zt.describe(desc) : zt;
+}
+
+/**
+ * A refused Claude login, carrying status 401 so the provider layer classifies
+ * it as a credential failure and the UI offers to sign in again.
+ */
+function claudeAuthError(detail: string): Error {
+  const message = detail.trim() || "The Claude login was refused";
+  return Object.assign(new Error(`Claude sign-in failed (401): ${message}`), {
+    status: 401
+  });
 }
 
 /** Build a descriptive Error from a non-success `result` message. */

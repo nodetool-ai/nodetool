@@ -20,9 +20,25 @@ jest.mock("../../../../stores/ProviderOnboardingStore", () => ({
     openProviderOnboarding(...args)
 }));
 
+const str = { type: "str", type_args: [] };
 const metadata = {
-  "nodetool.text.Template": { node_type: "nodetool.text.Template" },
-  "nodetool.text.Concat": { node_type: "nodetool.text.Concat" }
+  "nodetool.text.Template": {
+    node_type: "nodetool.text.Template",
+    properties: [{ name: "string", type: str }],
+    outputs: [{ name: "output", type: str }]
+  },
+  "nodetool.text.Concat": {
+    node_type: "nodetool.text.Concat",
+    properties: [{ name: "a", type: str }],
+    outputs: [{ name: "output", type: str }]
+  },
+  "nodetool.code.Code": {
+    node_type: "nodetool.code.Code",
+    properties: [{ name: "code", type: str }],
+    outputs: [],
+    supports_dynamic_inputs: true,
+    supports_dynamic_outputs: true
+  }
 };
 jest.mock("../../../../stores/MetadataStore", () => ({
   __esModule: true,
@@ -133,7 +149,7 @@ describe("WorkflowReviewStep", () => {
     expect(
       screen.queryByRole("combobox", { name: "Node type for step 1" })
     ).toBeNull();
-    await userEvent.click(screen.getByRole("button", { name: "Change" }));
+    await userEvent.click(screen.getByRole("button", { name: /^Change node/ }));
     const search = screen.getByRole("combobox", {
       name: "Node type for step 1"
     });
@@ -261,6 +277,34 @@ describe("WorkflowReviewStep", () => {
         Node.DOCUMENT_POSITION_PRECEDING
     ).toBeTruthy();
     expect(screen.getByLabelText("text (string)")).toHaveAttribute("readonly");
+  });
+
+  it("warns, before anything runs, about a Code step that would fail", () => {
+    renderStep({
+      ...PLAN,
+      steps: [
+        {
+          id: "s1",
+          title: "Prompts",
+          summary: "one per row",
+          node_type: "nodetool.code.Code",
+          code: 'for (const row of inputs.input) { await output("output", row); }'
+        }
+      ]
+    });
+    expect(
+      screen.getByText("This plan would fail when it runs")
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/output\(\) can be set only once per run/)
+    ).toBeInTheDocument();
+  });
+
+  it("shows no run-time warning for a plan that builds", () => {
+    renderStep(PLAN);
+    expect(
+      screen.queryByText("This plan would fail when it runs")
+    ).not.toBeInTheDocument();
   });
 
   it("runs the planner again from Re-plan", async () => {
