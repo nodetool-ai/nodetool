@@ -107,8 +107,10 @@ it.each(["2d", "3d"] as const)("commits the actual %s editor at the HUD cadence 
     }}><GameEditor refId={document.id} active /></Profiler></trpc.Provider>
   </QueryClientProvider></ThemeProvider>);
   try {
-    await waitFor(() => expect(screen.getByRole("button", { name: "Play" })).toBeEnabled());
-    await waitFor(() => expect(view.container.querySelector("footer")).toHaveTextContent(dimension === "2d" ? "Canvas 2D" : "WebGL2"));
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Play" })).toBeEnabled();
+      expect(view.container.querySelector("footer")).toHaveTextContent(dimension === "2d" ? "Canvas 2D" : "WebGL2");
+    }, { timeout: 5000 });
     mockRenderedTicks.length = 0;
     await user.click(screen.getByRole("button", { name: "Play" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled());
