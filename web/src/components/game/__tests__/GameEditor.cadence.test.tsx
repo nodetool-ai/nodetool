@@ -3,7 +3,7 @@ import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { createTRPCClient } from "@trpc/client";
+import { createTRPCClient, TRPCClientError } from "@trpc/client";
 import { observable } from "@trpc/server/observable";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import type { GameRenderFrame, GameRenderFrame3D } from "@nodetool-ai/protocol";
@@ -89,7 +89,7 @@ it.each(["2d", "3d"] as const)("commits the actual %s editor at the HUD cadence 
   const client = createTRPCClient<AppRouter>({ links: [() => ({ op }) => observable((observer) => {
     if (op.path === "games.getDraft") { observer.next({ result: { data: draft } }); }
     else if (op.path === "games.revisions" || op.path === "games.draftChanges") { observer.next({ result: { data: [] } }); }
-    else { observer.error(new Error(`Unexpected measured editor request: ${op.path}`)); return; }
+    else { observer.error(TRPCClientError.from<AppRouter>(new Error(`Unexpected measured editor request: ${op.path}`))); return; }
     observer.complete();
   })] });
   const queries = new QueryClient({ defaultOptions: { queries: { retry: false, refetchOnWindowFocus: false } } });
