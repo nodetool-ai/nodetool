@@ -1271,8 +1271,8 @@ ID when it identifies a recorded run.
 |---|---|
 | `runs list` | Newest runs. `--kind app\|workflow\|chat`, `--app-id`, `--instance-id`, `--workflow-id`, `--thread-id`, `--status running\|completed\|failed\|cancelled`, `--origin ui\|agent\|cli\|debug\|public`, `--since <ISO time>`, `--until <ISO time>`, `--limit` (default 20, maximum 100), `--cursor` |
 | `runs show <id>` | Record and bounded summary: failed span and root path, provider costs, slow spans, span counts, generations, documents and content flags. `--include-content` adds capped app run inputs and outputs |
-| `runs trace <id>` | Span tree. `--depth` (default 4, maximum 64), `--focus <full span ID>`, `--name`, `--errors-only`, `--limit` (default 100, maximum 500) |
-| `runs logs <id>` | Events, oldest first. `--level`, `--source`, `--span <full span ID>`, `--since-ms`, `--until-ms`, `--limit` (default 100, maximum 500), `--cursor` |
+| `runs trace <id>` | Span tree. The table has a `detail` column: `<node id> (<node type>)` on node spans, `<provider>/<model>` on LLM spans. `--depth` (default 4, maximum 64), `--focus <full span ID>`, `--name`, `--errors-only`, `--limit` (default 100, maximum 500) |
+| `runs logs <id>` | Events, oldest first. With `--include-content` the table adds `message` and `arguments` columns. Without it, the table ends with a hint that messages are excluded. `--level`, `--source`, `--span <full span ID>`, `--since-ms`, `--until-ms`, `--limit` (default 100, maximum 500), `--cursor` |
 | `runs tail <id>` | Follow until terminal. `--cursor` (default 0), `--limit` (default 100, maximum 500), `--poll-interval <ms>` (default 250, range 10–5000), `--timeout <seconds>` |
 
 Each command accepts `--json`. Single reads return the shared runs service's

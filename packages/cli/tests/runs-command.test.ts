@@ -82,6 +82,44 @@ describe("runs CLI options and output", () => {
     expect(readers.logs).toHaveBeenCalledWith("1", run.id, { level: "warn", source: "script", span_id: "d".repeat(16), since_ms: 2, until_ms: 5, cursor: "old", limit: 8, include_content: true, newest: false });
     expect(output).toHaveLength(1); expect(JSON.parse(output[0]!)).toEqual({ logs: [], next_cursor: "next" });
   });
+  it("names the node on each trace table row and keeps the JSON shape", async () => {
+    const span = (span_id: string, name: string, attributes: Record<string, unknown>) => ({ depth: 0, record: { trace_id: run.trace_id, span_id, parent_span_id: null, name, kind: "INTERNAL",
+      start_time_ms: 1, end_time_ms: 5, duration_ms: 4, status: { code: "OK" }, attributes, resource: {}, events: [] } });
+    const result = { nodes: [span("1".repeat(16), "node.process", { "node.id": "tts", "node.type": "nodetool.audio.TextToSpeech" }),
+      span("2".repeat(16), "llm.call", { "llm.provider": "openai", "llm.model": "gpt-5" }), span("3".repeat(16), "workflow.run", {}),
+      span("4".repeat(16), "node.process", { "node.id": "n".repeat(80), "node.type": "t" })], limited: false };
+    readers.trace.mockResolvedValue(result);
+    await invoke(["trace", run.id]);
+    expect(output[0]).toContain("detail");
+    expect(output.find((line) => line.includes("1".repeat(16)))).toContain("tts (nodetool.audio.TextToSpeech)");
+    expect(output.find((line) => line.includes("2".repeat(16)))).toContain("openai/gpt-5");
+    expect(output.find((line) => line.includes("3".repeat(16)))!.split("│")[4]!.trim()).toBe("");
+    expect(output.find((line) => line.includes("4".repeat(16)))).toContain("…");
+    output.length = 0;
+    await invoke(["trace", run.id, "--json"]);
+    expect(JSON.parse(output[0]!)).toEqual(result);
+  });
+  it("shows log messages as columns with content and hints at --include-content without it", async () => {
+    const log = { id: "x:0", span_id: "1".repeat(16), span_name: "workflow.run", time_ms: 7, name: "log", level: "error", source: "kernel", attributes: {} };
+    readers.logs.mockResolvedValue({ logs: [log], next_cursor: null, content_state: "excluded", truncated: false, incomplete: false, limited: false });
+    await invoke(["logs", run.id]);
+    expect(output.join("\n")).not.toContain("message");
+    expect(output.join("\n")).toContain("Messages are excluded. Pass --include-content to read them.");
+    output.length = 0;
+    readers.logs.mockResolvedValue({ logs: [], next_cursor: null, content_state: "excluded", truncated: false, incomplete: false, limited: false });
+    await invoke(["logs", run.id]);
+    expect(output.join("\n")).not.toContain("Messages are excluded");
+    output.length = 0;
+    const withContent = { ...log, attributes: { "log.message": "boom\nline two", "log.arguments": JSON.stringify([{ code: 1 }]) } };
+    readers.logs.mockResolvedValue({ logs: [withContent], next_cursor: null, content_state: "available", truncated: false, incomplete: false, limited: false });
+    await invoke(["logs", run.id, "--include-content"]);
+    const text = output.join("\n");
+    expect(text).toContain("message"); expect(text).toContain("arguments"); expect(text).toContain("boom line two"); expect(text).toContain('[{"code":1}]');
+    expect(text).not.toContain("Messages are excluded"); expect(text).not.toContain("log.message");
+    output.length = 0;
+    await invoke(["logs", run.id, "--include-content", "--json"]);
+    expect(JSON.parse(output[0]!).logs[0].attributes["log.message"]).toBe("boom\nline two");
+  });
   it.each(["3junk", "0", "101", "-2"])("refuses an invalid list limit %s before querying or opening the database", async (limit) => {
     await invoke(["list", "--limit", limit, "--json"]);
     expect(process.exitCode).toBe(1); expect(readers.list).not.toHaveBeenCalled(); expect(readers.ensureDb).not.toHaveBeenCalled();
