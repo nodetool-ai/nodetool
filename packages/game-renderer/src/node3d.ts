@@ -22,6 +22,7 @@ export interface CaptureGameFrame3DOptions {
   readonly stateHash?: string;
   readonly camera?: GameRenderFrame3D["camera"];
   readonly boundsOverlay?: boolean;
+  readonly benchmarkFrames?: number;
   readonly timeoutMs?: number;
   readonly executablePath?: string;
 }
@@ -57,6 +58,7 @@ export async function captureGameFrame3D(value: GameRenderFrame3D, options: Capt
   const width = options.width ?? Math.round(frame.presentation.hudWidth);
   const height = options.height ?? Math.round(width / frame.presentation.aspectRatio);
   if (!Number.isInteger(width) || !Number.isInteger(height) || width < 1 || height < 1 || width > 4096 || height > 4096) { throw new Error("3D capture dimensions must be integers between 1 and 4096"); }
+  if (options.benchmarkFrames !== undefined && (!Number.isInteger(options.benchmarkFrames) || options.benchmarkFrames < 1 || options.benchmarkFrames > 10_000)) { throw new Error("Benchmark frames must be an integer between 1 and 10000"); }
   const timeoutMs = options.timeoutMs ?? 30_000;
   if (!Number.isFinite(timeoutMs) || timeoutMs < 1 || timeoutMs > 120_000) { throw new Error("3D capture timeout must be between 1 and 120000 milliseconds"); }
   const controller = new AbortController();
@@ -115,6 +117,7 @@ export async function captureGameFrame3D(value: GameRenderFrame3D, options: Capt
       await page.goto("http://127.0.0.1/");
       const input: { -readonly [Key in keyof GameCapturePageInput3D]: GameCapturePageInput3D[Key] } = { frame, interpolation: options.interpolation ?? 1, width, height, assets };
       if (options.camera) { input.camera = options.camera; }
+      if (options.benchmarkFrames) { input.benchmarkFrames = options.benchmarkFrames; }
       if (options.boundsOverlay) { input.boundsOverlay = true; }
       const report = await page.evaluate(async (request) => window.captureNativeGame3D(request), input);
       const png = await page.locator("canvas").screenshot({ type: "png" });

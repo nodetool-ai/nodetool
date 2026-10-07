@@ -373,6 +373,19 @@ or snapshots. The channel is empty after restoring a session.
 
 ### B: Benchmarks and verification
 
+Run `nodetool game bench <file> --json` to measure simulation tick and script
+latency percentiles. Use `--ticks` and `--warmup` for measured and warmup tick
+counts. The report separates heap delta from sampled JavaScript
+allocation bytes. `perSystemMs` reports each runtime system's measured latency
+percentiles. Warmup and allocation-profiler ticks are excluded from these stage
+samples. Benchmark sessions enable timing instrumentation, which adds clock
+calls and timing records. Default gameplay sessions keep it disabled.
+
+For browser rendering, run the game-renderer workspace's `benchmark:effects`
+script with `--game <3d-file> --assets-dir <directory>`. It renders 600 frames
+through the capture path and reports GPU-completed frame latency, draw calls,
+triangles and the browser version.
+
 After export, run `nodetool game smoke <directory>` to load the built player in
 Chromium and render 300 frames with scripted input. It reports browser errors,
 missing assets and stalled ticks, and exits nonzero on failure. Add `--json`
