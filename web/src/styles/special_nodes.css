@@ -46,13 +46,6 @@
 .react-flow.zoomed-out .react-flow__node-nodetool\.workflows\.base_node\.Group {
   background-color: var(--palette-grey-900);
 }
-.react-flow.zoomed-out
-  .react-flow__node-nodetool\.workflows\.base_node\.Group
-  .node-header
-  input {
-  font-size: 3em;
-  height: 1em;
-}
 
 .react-flow__node-nodetool\.workflows\.base_node\.Comment.selected {
   border: 0;

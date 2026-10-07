@@ -35,18 +35,29 @@ interface ViewportStatusIndicatorProps {
 const ZOOM_PRESETS = [0.25, 0.5, 0.75, 1, 1.5, 2] as const;
 type ZoomPreset = (typeof ZOOM_PRESETS)[number];
 
+const findZoomPreset = (zoom: number): ZoomPreset | null =>
+  ZOOM_PRESETS.find((preset) => Math.abs(preset - zoom) < 0.01) ?? null;
+
+/**
+ * The zoom readout is the only part of the indicator that changes on every
+ * zoom step, so it holds the per-step store subscription on its own.
+ */
+const ZoomPercentage = memo(function ZoomPercentage() {
+  const zoomPercentage = useStore((s) => Math.round(s.transform[2] * 100));
+  return <>{zoomPercentage}%</>;
+});
+
 const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
   visible = true,
   showPortLabels = false,
   onTogglePortLabels
 }) => {
   const theme = useTheme();
-  const zoom = useStore((s) => s.transform[2]);
-  const { zoomTo, fitView, getNodes } = useReactFlow();
+  const currentPreset = useStore((s) => findZoomPreset(s.transform[2]));
+  const { zoomTo, fitView, getNodes, getZoom } = useReactFlow();
   const [zoomMenuAnchor, setZoomMenuAnchor] = useState<HTMLElement | null>(
     null
   );
-  const zoomPercentage = useMemo(() => Math.round(zoom * 100), [zoom]);
 
   const handleFitView = useCallback(() => {
     fitView({ padding: 0.2, duration: 200 });
@@ -62,12 +73,12 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
   }, [fitView, getNodes]);
 
   const handleZoomIn = useCallback(() => {
-    zoomTo(Math.min(zoom * 1.2, 5), { duration: 100 });
-  }, [zoomTo, zoom]);
+    zoomTo(Math.min(getZoom() * 1.2, 5), { duration: 100 });
+  }, [zoomTo, getZoom]);
 
   const handleZoomOut = useCallback(() => {
-    zoomTo(Math.max(zoom / 1.2, 0.1), { duration: 100 });
-  }, [zoomTo, zoom]);
+    zoomTo(Math.max(getZoom() / 1.2, 0.1), { duration: 100 });
+  }, [zoomTo, getZoom]);
 
   const handlePresetZoom = useCallback(
     (presetZoom: ZoomPreset) => {
@@ -96,17 +107,6 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
     setZoomMenuAnchor(null);
   }, []);
 
-  const isZoomPreset = useCallback(
-    (value: number): value is ZoomPreset =>
-      ZOOM_PRESETS.some((preset) => Math.abs(preset - value) < 0.01),
-    []
-  );
-
-  const currentPreset = useMemo(
-    () => (isZoomPreset(zoom) ? zoom : null),
-    [zoom, isZoomPreset]
-  );
-
   const zoomButtonSx = useMemo(
     () => ({
       padding: getSpacingPx(SPACING.micro),
@@ -127,7 +127,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
       fontFamily: "JetBrains Mono, monospace",
       fontSize: "var(--fontSizeSmall)",
       fontWeight: 500,
-      color: currentPreset
+      color: currentPreset !== null
         ? theme.palette.primary.main
         : theme.vars.palette.text.secondary,
       minWidth: "48px",
@@ -189,7 +189,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
           title={
             <Box>
               <Box>{getShortcutTooltip("resetZoom")}</Box>
-              <Box sx={{ mt: 0.5, fontSize: "var(--fontSizeSmaller)", opacity: 0.8 }}>
+              <Box sx={{ mt: SPACING.micro, fontSize: "var(--fontSizeSmaller)", opacity: 0.8 }}>
                 Click for zoom presets
               </Box>
             </Box>
@@ -201,7 +201,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
             onClick={handleOpenZoomMenu}
             sx={zoomLabelSx}
           >
-            {zoomPercentage}%
+            <ZoomPercentage />
           </Text>
         </Tooltip>
 
@@ -271,7 +271,7 @@ const ViewportStatusIndicator: React.FC<ViewportStatusIndicatorProps> = ({
               key={preset}
               onClick={handlePresetClick}
               data-preset={preset.toString()}
-              selected={Math.abs(zoom - preset) < 0.01}
+              selected={preset === currentPreset}
               sx={{
                 py: SPACING.micro,
                 px: SPACING.md,

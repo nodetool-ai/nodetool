@@ -136,6 +136,75 @@ const measureInteractionToPaint = async (page: Page): Promise<number> => {
   return samples[Math.ceil(samples.length * 0.95) - 1] ?? 0;
 };
 
+/**
+ * Wheel-zooms past the zoomed-out threshold and back, one step per frame.
+ * Returns the p95 frame time and the distinct node heights seen on the way:
+ * zoomed-out styling must not resize nodes, or every node and edge is
+ * re-measured mid-gesture.
+ */
+const measureZoom = async (
+  page: Page
+): Promise<{ frameP95Ms: number; nodeHeights: number[]; sawZoomedOut: boolean }> => {
+  const point = await findBlankPanePoint(page);
+  await page.mouse.move(point.x, point.y);
+  await page.evaluate(() => {
+    const state = { frames: [] as number[], running: true };
+    let last = performance.now();
+    const tick = (now: number) => {
+      state.frames.push(now - last);
+      last = now;
+      if (state.running) {
+        requestAnimationFrame(tick);
+      }
+    };
+    requestAnimationFrame(tick);
+    Object.assign(window, { __editorScaleZoom: state });
+  });
+
+  const nodeHeights = new Set<number>();
+  let sawZoomedOut = false;
+  const steps = [...Array(25).fill(100), ...Array(25).fill(-100)];
+  for (const deltaY of steps) {
+    await page.mouse.wheel(0, deltaY);
+    const sample = await page.evaluate(
+      () =>
+        new Promise<{ height: number; zoomedOut: boolean }>((resolve) =>
+          requestAnimationFrame(() =>
+            resolve({
+              height:
+                document.querySelector<HTMLElement>('[data-id="scale-2"]')
+                  ?.offsetHeight ?? 0,
+              zoomedOut: Boolean(
+                document.querySelector(".react-flow.zoomed-out")
+              )
+            })
+          )
+        )
+    );
+    nodeHeights.add(sample.height);
+    sawZoomedOut ||= sample.zoomedOut;
+  }
+
+  const frames = await page.evaluate(() => {
+    const state = (
+      window as Window & {
+        __editorScaleZoom?: { frames: number[]; running: boolean };
+      }
+    ).__editorScaleZoom;
+    if (!state) {
+      throw new Error("zoom benchmark state is unavailable");
+    }
+    state.running = false;
+    return state.frames.slice(1);
+  });
+  frames.sort((left, right) => left - right);
+  return {
+    frameP95Ms: frames[Math.ceil(frames.length * 0.95) - 1] ?? 0,
+    nodeHeights: [...nodeHeights],
+    sawZoomedOut
+  };
+};
+
 const measureRepeatedUpdates = async (page: Page): Promise<number> => {
   const stringInputNode = page.locator('[data-id="scale-2"]');
   await stringInputNode.click({ force: true });
@@ -302,6 +371,7 @@ for (const nodeCount of GRAPH_SIZES) {
     const loadToRenderMs = Date.now() - loadStart;
 
     const interactionToPaintMs = await measureInteractionToPaint(page);
+    const zoom = await measureZoom(page);
     const repeatedUpdatesMs = await measureRepeatedUpdates(page);
     await page.keyboard.press("Control+s");
     await expect
@@ -325,6 +395,7 @@ for (const nodeCount of GRAPH_SIZES) {
         streamingNodeCount: Math.ceil(Math.max(0, nodeCount - 18) / 20),
         loadToRenderMs,
         interactionToPaintMs: Number(interactionToPaintMs.toFixed(2)),
+        zoomFrameP95Ms: Number(zoom.frameP95Ms.toFixed(2)),
         repeatedUpdatesMs: Number(repeatedUpdatesMs.toFixed(2)),
         executionUpdatesMs: Number(executionUpdates.elapsedMs.toFixed(2)),
         executionMutationCount: executionUpdates.mutationCount,
@@ -334,6 +405,9 @@ for (const nodeCount of GRAPH_SIZES) {
 
     expect(loadToRenderMs).toBeLessThan(LOAD_BUDGET_MS[nodeCount]);
     expect(interactionToPaintMs).toBeLessThan(250);
+    expect(zoom.sawZoomedOut).toBe(true);
+    expect(zoom.nodeHeights).toHaveLength(1);
+    expect(zoom.frameP95Ms).toBeLessThan(100);
     expect(repeatedUpdatesMs).toBeLessThan(2_000);
     expect(executionUpdates.mutationCount).toBeGreaterThan(0);
     expect(executionUpdates.elapsedMs).toBeLessThan(30_000);
