@@ -30,7 +30,7 @@ const ownershipFacts: MarketingFact[] = [
       "Use supported language and image models through Ollama, MLX, llama.cpp, vLLM, or LM Studio. Local capability depends on the model and your hardware.",
   },
   {
-    term: "Remote providers",
+    term: "Online AI providers",
     description:
       "Connect your own provider accounts when a hosted model fits the job. Those requests need a network connection and are handled under the provider's terms.",
   },
@@ -96,9 +96,9 @@ export default function StudioPage() {
               A brief becomes a project you can reopen.
             </h2>
             <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-300">
-              The agent can draft the board and assemble a cut. The result is
-              still a NodeTool project, so the next change can happen in an
-              editor or through another agent action.
+              The agent can draft the storyboard and edit the clips into a
+              video. The result is a NodeTool project, so you can make the next
+              change yourself in an editor or ask the agent to make it.
             </p>
           </header>
           <div className="mx-auto max-w-5xl">
@@ -139,7 +139,7 @@ export default function StudioPage() {
           </div>
           <div className="lg:col-span-5">
             <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">
-              Local-first, with a clear boundary
+              Runs on your computer
             </p>
             <h2
               id="studio-ownership-title"
@@ -148,8 +148,8 @@ export default function StudioPage() {
               Your files. Your models. Your keys.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-300">
-              Studio keeps the project on your machine. Network use depends on
-              the models and services you choose for each run.
+              Studio keeps the project on your computer. It only goes online
+              when you use an online AI provider or service.
             </p>
             <div className="mt-8">
               <MarketingFacts items={ownershipFacts} />
@@ -177,8 +177,8 @@ export default function StudioPage() {
               Start with the setup you have.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-300">
-              Local inference is a choice, not an eligibility requirement for
-              the desktop edition.
+              You do not need a powerful computer. Running AI models on your own
+              machine is optional.
             </p>
           </header>
           <div className="lg:col-span-7">
@@ -205,7 +205,7 @@ export default function StudioPage() {
       <MarketingClosingAction
         headingId="studio-closing-title"
         title="Start your next project in Studio."
-        body="Download the production edition for macOS, Windows, or Linux. The app and source are available under AGPL-3.0."
+        body="Download the free desktop app for macOS, Windows, or Linux. The app and its source code are open under AGPL-3.0."
         primaryAction={<StudioPrimaryAction />}
         secondaryAction={{ href: "/cloud", label: "Try Cloud (alpha)" }}
       />

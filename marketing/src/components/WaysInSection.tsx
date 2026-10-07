@@ -19,7 +19,7 @@ const entries = [
     intent: "Desktop app",
     name: "Studio",
     href: "/studio",
-    body: "Runs on your computer. Local projects and supported local models can remain available without a network connection.",
+    body: "Runs on your computer. Projects and supported local AI models keep working without an internet connection.",
     icon: Monitor,
     accent: "text-amber-300",
     chip: "border-amber-500/30 bg-amber-500/10",
@@ -28,7 +28,7 @@ const entries = [
     intent: "In your browser",
     name: "Cloud (alpha)",
     href: "/cloud",
-    body: "Runs in your browser with nothing to install. Use it for evaluation and lightweight access while it is in alpha.",
+    body: "Runs in your web browser with nothing to install. It is an early test version, so use it to try NodeTool.",
     icon: Cloud,
     accent: "text-blue-300",
     chip: "border-blue-500/30 bg-blue-500/10",
@@ -37,7 +37,7 @@ const entries = [
     intent: "For developers",
     name: "Developers",
     href: "/developers",
-    body: "Bring your own code onto the canvas through the SDK, the CLI, or an MCP server.",
+    body: "Call NodeTool from your own code, scripts, or coding agent through the SDK, the command line, or an MCP server.",
     icon: Code2,
     accent: "text-violet-300",
     chip: "border-violet-500/30 bg-violet-500/10",
@@ -46,7 +46,7 @@ const entries = [
     intent: "Produce campaigns",
     name: "Marketing",
     href: "/marketing",
-    body: "Turn a brief into a production workflow you run again for every product, market, and variant.",
+    body: "Turn one campaign brief into a workflow that makes ads for every product, market, and format.",
     icon: Megaphone,
     accent: "text-emerald-300",
     chip: "border-emerald-500/30 bg-emerald-500/10",
@@ -64,17 +64,17 @@ export default function WaysInSection() {
         <header className="scroll-fade mb-12 max-w-3xl">
           <div className="mb-3 flex items-center gap-3 text-xs font-semibold uppercase tracking-[0.18em] text-blue-300/80">
             <span className="h-px w-8 bg-blue-300/60" />
-            One workspace, several doors
+            Where to start
           </div>
           <h2
             id="ways-in-title"
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            Choose the setup that fits your workflow.
+            Pick how you want to use NodeTool.
           </h2>
           <p className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
-            Studio is the production path. Cloud is the browser preview for
-            evaluation while it is in alpha.
+            Download the desktop app, try it in your browser, connect it to
+            your own code, or start with an advertising workflow.
           </p>
         </header>
 

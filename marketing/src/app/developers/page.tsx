@@ -357,8 +357,9 @@ export default function DevelopersPage() {
               Connected in about a minute.
             </h2>
             <p className={leadClass}>
-              NodeTool runs as a local MCP server. You do not need the desktop
-              app, a GPU, or an account with us.
+              NodeTool runs on your computer as an MCP server, the standard way
+              coding agents connect to outside tools. You do not need the
+              desktop app, a GPU, or an account with us.
             </p>
           </header>
           <div className="min-w-0 lg:col-span-7">

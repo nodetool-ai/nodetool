@@ -31,11 +31,12 @@ export default function StoryboardExamplesSection() {
               id="storyboard-examples-title"
               className="mt-4 text-3xl font-semibold tracking-tight text-slate-100 md:text-5xl"
             >
-              Start from a directed board.
+              Start from a finished storyboard.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-slate-300">
-              Each board ships with NodeTool. Every shot has its action, lens,
-              camera move, duration, and a rendered still, ready to animate.
+              These storyboards come with NodeTool. Each shot lists what
+              happens, the lens, the camera movement, and the length, with a
+              generated still image ready to turn into video.
             </p>
           </div>
           <div className="flex shrink-0 flex-wrap items-center gap-3">

@@ -25,7 +25,7 @@ const hostedFacts: MarketingFact[] = [
       "Cloud uses hosted storage. Check the current alpha terms before using sensitive or regulated material.",
   },
   {
-    term: "Provider execution",
+    term: "AI providers",
     description:
       "Remote image, video, audio, and language models run through the provider accounts you connect. Provider charges remain separate from NodeTool.",
   },
@@ -65,10 +65,10 @@ export default function CloudPage() {
       <MarketingHero
         eyebrow={EDITIONS.cloud.eyebrow}
         title="The NodeTool workspace. In your browser."
-        body="Try NodeTool without installing it. Work with agents and editors in the same creative workspace, with hosted storage and your own provider accounts. Cloud is an alpha preview for evaluation and lightweight access."
+        body="Try NodeTool without installing anything. Cloud runs the same AI agent and editors in your web browser and stores your projects online. Connect your own AI provider accounts to generate media. Cloud is in alpha, an early test version, so use it to try NodeTool rather than for important work."
         primaryAction={<CloudPrimaryAction placement="hero" />}
         secondaryAction={{ href: "/studio", label: "Download Studio" }}
-        trustLine="Alpha preview · Internet connection required · Remote providers only"
+        trustLine="Alpha preview · Internet connection required · Online AI providers only"
         recommendation="For paid production work, use Studio."
         headingId="cloud-hero-title"
         media={
@@ -78,7 +78,7 @@ export default function CloudPage() {
             width={1920}
             height={1080}
             priority
-            caption="The storyboard remains an editable project surface. This capture shows the product interface, not a claim about a specific hosted run."
+            caption="The storyboard editor. Every generated shot in it stays editable."
           />
         }
       />
@@ -100,10 +100,10 @@ export default function CloudPage() {
               See what stays editable.
             </h2>
             <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-300">
-              The agent changes the same storyboard, workflow, and timeline you
-              can open yourself. The recorded demonstration below shows that
-              project structure. Alpha availability for each model or action
-              depends on the current hosted deployment.
+              The agent changes the same storyboard, workflow, and timeline that
+              you can open yourself. The recording below shows a project built
+              this way. During the alpha, some models and actions may not be
+              available in Cloud yet.
             </p>
           </header>
           <div className="mx-auto max-w-5xl">
@@ -134,8 +134,9 @@ export default function CloudPage() {
               Know what runs where.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-300">
-              Cloud removes the desktop install. It does not turn local models
-              into hosted ones or include provider generation charges.
+              Cloud saves you the install. It cannot run AI models on your own
+              computer, and AI providers bill you separately for what you
+              generate.
             </p>
           </header>
           <div className="lg:col-span-7">
@@ -182,7 +183,7 @@ export default function CloudPage() {
       <MarketingClosingAction
         headingId="cloud-closing-title"
         title="Try the workspace without installing it."
-        body="Use Cloud for evaluation and lightweight access while it is in alpha. Download Studio for production work."
+        body="Use Cloud to try NodeTool while it is in alpha. Download Studio for real projects."
         primaryAction={<CloudPrimaryAction placement="closing" />}
         secondaryAction={{ href: "/studio", label: "Download Studio" }}
       />

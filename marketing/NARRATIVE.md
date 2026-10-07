@@ -11,7 +11,8 @@ same change. The page is edited more often than this file, so when in doubt
 the page is the newer of the two. Bring the doc up to it, then fix the page.
 
 The homepage, README, and docs share the primary tagline and intro in
-`BRAND.md`. Film production is a showcase of the broader workspace.
+`BRAND.md`. The homepage hero paragraph restates the intro in plain words:
+what NodeTool makes, what the agent does, and what the reader keeps. Film production is a showcase of the broader workspace.
 
 ## The register
 

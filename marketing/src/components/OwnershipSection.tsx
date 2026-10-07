@@ -6,23 +6,23 @@ import { Shield, FolderOpen, Globe, Lock } from "lucide-react";
 
 const features = [
   {
-    title: "Bring your own keys",
-    body: "Connect to OpenAI, Anthropic, Gemini, FAL, KIE, Replicate, and the video specialists. Keys stay on your disk in Studio, encrypted in Cloud.",
+    title: "Use your own AI accounts",
+    body: "Connect your accounts with OpenAI, Anthropic, Google Gemini, fal.ai, Kie.ai, Replicate, and other providers by adding an API key. Studio keeps the keys on your computer. Cloud stores them encrypted.",
     icon: Lock,
   },
   {
-    title: "No markups",
+    title: "No markup",
     body: "If an image costs $0.03 at the provider, you pay $0.03 to the provider. No credit packs. NodeTool takes no cut.",
     icon: Shield,
   },
   {
     title: "Open source, end to end",
-    body: "Studio and Cloud are built from the same AGPL-3.0 source, with no paywalled features. Read it, fork it, or host it yourself.",
+    body: "Studio and Cloud are built from the same AGPL-3.0 source, with no paywalled features. Read the code, change it, or run it on your own server.",
     icon: Globe,
   },
   {
-    title: "A project file that opens anywhere",
-    body: "The board, the script with its takes, and the multi-track cut are ordinary files on your disk. Export a .nodetool bundle and open it anywhere.",
+    title: "Projects you keep as files",
+    body: "The storyboard, the script and its recordings, and the edited video are ordinary files on your disk. Export them as one .nodetool file to move the project to another computer.",
     icon: FolderOpen,
   },
 ];
@@ -47,8 +47,8 @@ export default function OwnershipSection({
             transition={{ duration: 0.25 }}
             className="text-4xl md:text-5xl font-bold tracking-tight text-white mb-6"
           >
-            Local. Open. Yours. <br />
-            <span className="text-slate-300">No middlemen, no markups.</span>
+            Your accounts. Your files. <br />
+            <span className="text-slate-300">No middleman, no markup.</span>
           </motion.h2>
           <motion.p
             initial={false}
@@ -57,8 +57,8 @@ export default function OwnershipSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="text-lg text-slate-400 leading-relaxed"
           >
-            Bring your own keys and switch providers in one click. You own the
-            project file, the workflow, and the final cut.
+            NodeTool does not resell AI models. You connect your own provider
+            accounts and pay them directly. Your projects stay files you own.
           </motion.p>
         </div>
 

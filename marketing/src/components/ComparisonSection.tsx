@@ -34,22 +34,22 @@ const comparisonRows: ComparisonRow[] = [
   },
   {
     label: "What you pay",
-    nodetool: "Provider list prices, on your own keys",
-    closed: "Their credits",
+    nodetool: "The provider's own price, through your own account",
+    closed: "Credits you buy from them, at prices they set",
   },
   {
     label: "What you keep",
-    nodetool: "The board, the takes, and the multi-track cut as an editable project",
+    nodetool: "The storyboard, every generated clip, and the edited video, as a project you can reopen",
     closed: "An exported video. The project stays in their app.",
   },
   {
     label: "Source",
-    nodetool: "Open, AGPL-3.0",
+    nodetool: "Open source, AGPL-3.0",
     closed: "Closed",
   },
   {
     label: "Where it runs",
-    nodetool: "Desktop app and browser, self-host any time",
+    nodetool: "Desktop app, browser, or your own server",
     closed: "Their servers only",
   },
 ];
@@ -77,7 +77,7 @@ export default function ComparisonSection({
             transition={{ duration: 0.25 }}
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            What changes when the studio is open.
+            How NodeTool differs from hosted AI apps.
           </motion.h2>
           <motion.p
             initial={false}
@@ -86,9 +86,9 @@ export default function ComparisonSection({
             transition={{ duration: 0.25, delay: 0.05 }}
             className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl"
           >
-            A hosted platform makes the film and keeps the model list, the
-            billing, and the project. Here is the same table with the studio
-            open.
+            Most AI video apps run only on their own servers. They choose which
+            models you get, charge you in their own credits, and keep your
+            project inside their app. NodeTool leaves those choices with you.
           </motion.p>
         </header>
 
@@ -98,7 +98,7 @@ export default function ComparisonSection({
             id="comparison-table-title"
             className="text-xl md:text-2xl font-semibold tracking-tight text-white"
           >
-            An open studio and a hosted platform, row by row
+            NodeTool and hosted AI apps, row by row
           </h3>
           <div
             className="mt-6 overflow-x-auto rounded-2xl border border-slate-800/80"
@@ -108,8 +108,7 @@ export default function ComparisonSection({
           >
             <table className="w-full min-w-[36rem] border-collapse text-left">
               <caption className="sr-only">
-                NodeTool, an open studio, compared with a hosted AI video
-                platform
+                NodeTool compared with a hosted AI video app
               </caption>
               <thead>
                 <tr className="bg-slate-900/60 text-sm">
@@ -120,7 +119,7 @@ export default function ComparisonSection({
                     NodeTool
                   </th>
                   <th scope="col" className="px-5 py-4 font-semibold text-slate-200">
-                    Hosted platforms
+                    Hosted AI apps
                   </th>
                 </tr>
               </thead>
@@ -200,15 +199,15 @@ export default function ComparisonSection({
                 Pick the model. Pick the price.
               </h3>
               <p className="text-slate-300 leading-relaxed mb-4 text-[1.025rem]">
-                Take Seedance, one of today&apos;s best video models. FAL,
-                Replicate, and KIE each sell it at a different price, and
-                NodeTool lets you pick the cheapest. When the next Veo or Kling
-                arrives, you switch in one click.
+                Seedance is one of today&apos;s best video models. fal.ai,
+                Replicate, and Kie.ai each sell access to it at a different
+                price, and NodeTool lets you pick the cheapest. When a better
+                model arrives, you switch to it in one click.
               </p>
               <p className="text-slate-400 leading-relaxed text-[1.025rem]">
-                That is what holding the keys buys you: the best model at the
-                best price each week, and nothing to lose if a tool gets bought,
-                repriced, or shut down.
+                Because the accounts are yours, you can use the best model at the
+                best price each week. You lose nothing if a provider is bought,
+                changes its prices, or shuts down.
               </p>
             </div>
           </div>

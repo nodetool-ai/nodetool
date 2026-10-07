@@ -43,14 +43,15 @@ export default function StudioHero({
             id={headingId}
             className="mt-6 text-balance text-4xl font-bold leading-[1.05] tracking-tight text-slate-50 sm:text-6xl lg:text-7xl"
           >
-            Make the work.{" "}
-            <span className="text-sky-200">Keep the project.</span>
+            Make media with an AI agent.{" "}
+            <span className="text-sky-200">Keep every project.</span>
           </h1>
 
           <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-slate-300 sm:text-xl">
-            Create images, video, audio, and text with agents that work in
-            NodeTool&apos;s editors. Revise the storyboard, script, layers, and
-            timeline yourself, and keep the project for the next job.
+            Studio is the free NodeTool desktop app. An AI agent creates images,
+            video, audio, and text inside NodeTool&apos;s editors. Then you
+            change the storyboard, script, drawing, or video edit yourself, and
+            the project stays on your computer for next time.
           </p>
 
           <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row">
@@ -83,8 +84,8 @@ export default function StudioHero({
             />
           </div>
           <p className="mt-4 text-center text-sm text-slate-400">
-            Direct, board, render, compare, paint, voice, cut: recorded in the
-            desktop app.
+            Recorded in the desktop app: the agent plans a storyboard, generates
+            and compares shots, paints, records voices, and edits the video.
           </p>
         </div>
 
@@ -95,11 +96,11 @@ export default function StudioHero({
           </li>
           <li className="flex items-center justify-center gap-2 rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-3">
             <Cpu className="h-4 w-4 shrink-0 text-fuchsia-400" aria-hidden />
-            Local models via Ollama and MLX
+            AI models on your own computer, through Ollama and MLX
           </li>
           <li className="flex items-center justify-center gap-2 rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-3">
             <KeyRound className="h-4 w-4 shrink-0 text-blue-400" aria-hidden />
-            Your own provider keys
+            Your own AI provider accounts
           </li>
         </ul>
       </div>

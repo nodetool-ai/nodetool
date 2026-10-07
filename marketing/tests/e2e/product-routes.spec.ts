@@ -3,7 +3,7 @@ import { expect, test } from "@playwright/test";
 const routes = [
   {
     path: "/studio",
-    heading: "Make the work. Keep the project.",
+    heading: "Make media with an AI agent. Keep every project.",
     primary: /Download Studio/,
   },
   {

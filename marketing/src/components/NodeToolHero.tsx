@@ -27,9 +27,10 @@ export default function NodeToolHero() {
         </h1>
 
         <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-slate-300 sm:text-xl">
-          Create images, video, audio, and text with agents that work alongside
-          you. Describe what you want, let the agent build it, then take over
-          whenever you like.
+          NodeTool is a free app for making media with AI. Tell the built-in
+          agent what you want. It writes the script, plans the shots, generates
+          them with the AI models you choose, and edits them together. You get
+          a project you can open and change, not just a finished file.
         </p>
 
         <div className="mt-8 flex w-full flex-col items-center justify-center gap-3 sm:w-auto sm:flex-row">
@@ -69,23 +70,24 @@ export default function NodeToolHero() {
           />
         </div>
         <p className="mt-4 text-center text-sm text-slate-400">
-          One sentence to a finished short: beat sheet, entities, storyboard,
-          clips, and the cut.
+          One sentence becomes a short film. The agent outlines the story,
+          designs the characters, draws a storyboard, generates the clips, and
+          edits them together.
         </p>
       </div>
 
       <ul className="mx-auto mt-10 grid max-w-5xl grid-cols-1 gap-3 text-sm font-medium text-slate-300 sm:grid-cols-3">
         <li className="flex items-center justify-center gap-2 rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-3">
           <Layers className="h-4 w-4 shrink-0 text-fuchsia-400" aria-hidden />
-          Script, storyboard, sketch, timeline, 3D, games
+          Editors for scripts, storyboards, drawing, video, 3D, and games
         </li>
         <li className="flex items-center justify-center gap-2 rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-3">
           <KeyRound className="h-4 w-4 shrink-0 text-emerald-400" aria-hidden />
-          Your own keys, provider list prices
+          Your own AI provider accounts, with no markup
         </li>
         <li className="flex items-center justify-center gap-2 rounded-xl border border-slate-800/80 bg-slate-900/40 px-4 py-3">
           <Code2 className="h-4 w-4 shrink-0 text-blue-400" aria-hidden />
-          Open source, you own the files
+          Open source, and your projects are files you keep
         </li>
       </ul>
     </div>

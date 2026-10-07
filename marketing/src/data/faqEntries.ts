@@ -88,7 +88,7 @@ const seeds: FaqSeed[] = [
     slug: "what-is-nodetool",
     question: "What is NodeTool?",
     answerMd:
-      "NodeTool is an open-source agent-first creative workspace. Create and edit images, video, audio, and text with agents that work alongside you. Describe what you want, let the agent build it, then take over whenever you like. You get an editable project, not just a finished file: your workflows, assets, and edits stay together. Use supported local models or connect cloud providers with your own keys.",
+      "NodeTool is an open-source app for making images, video, audio, and text with AI. You describe what you want, and a built-in AI agent does the work: it writes, generates, and edits inside NodeTool's editors. Then you can change any part yourself. You get an editable project, not just a finished file, so your steps, media, and edits stay together. Run supported AI models on your own computer, or connect online AI providers such as OpenAI, Google, and fal.ai with your own accounts.",
     category: "general",
     relatedRoute: "/",
     surfaces: ["landing", "agents", "comparison"],
@@ -133,7 +133,7 @@ const seeds: FaqSeed[] = [
     slug: "studio-or-cloud",
     question: "Studio or Cloud — which should I use?",
     answerMd:
-      "Use Studio for production work. It is the desktop edition for macOS, Windows, and Linux, and it can use hosted providers without a local GPU or run supported local models on suitable hardware. Cloud is the browser edition for evaluation and lightweight access while it is in alpha. Current import and export coverage can change during the alpha, so verify the project path you need before relying on a cross-edition handoff.",
+      "Use Studio for real projects. It is the desktop app for macOS, Windows, and Linux. It works with online AI providers without a graphics card, and it can run supported AI models on your own computer if the hardware is strong enough. Cloud runs in your web browser and is in alpha, an early test version, so use it to try NodeTool. Moving projects between Cloud and Studio may not cover everything during the alpha, so check that the move you need works before you rely on it.",
     category: "editions",
     relatedRoute: "/cloud",
     surfaces: ["cloud", "pricing", "studio"],
@@ -234,7 +234,7 @@ const seeds: FaqSeed[] = [
     slug: "what-does-agent-first-mean",
     question: "What does it mean that NodeTool is agent-first?",
     answerMd:
-      "The node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, game editor, and app builder expose operations that agents can call as tools. The agent can change the workflow or project on the same surfaces you use, and the execution record shows tool calls, results, errors, and interventions. The toolbelt is also exposed over **MCP** for compatible external agents.",
+      "It means the AI agent works in the same editors you do. The node canvas, sketch pad, storyboard, video timeline, script editor, 3D scene, game editor, and app builder each give the agent the actions you have, so it can change your project the way you would. A log records every action the agent took, its result, and any error. Coding agents outside NodeTool, such as Claude Code, can use the same actions through **MCP**, the standard way AI agents connect to outside tools.",
     category: "general",
     relatedRoute: "/agents",
     surfaces: ["landing", "agents"],

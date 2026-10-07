@@ -60,7 +60,7 @@ const SURFACES: Surface[] = [
     label: "Storyboard",
     icon: Clapperboard,
     headline: "Visual storyboards",
-    body: "Board the film shot by shot. Generate cheap stills to lock the look, then animate only the shots you approved.",
+    body: "Plan the film one shot at a time. Generate quick still images to settle the look, then turn only the shots you approve into video.",
     asset: "surface-storyboard",
   },
   {
@@ -68,7 +68,7 @@ const SURFACES: Surface[] = [
     label: "Script & voice",
     icon: FileText,
     headline: "Scripting & casting",
-    body: "Draft the dialogue, cast a voice per character, and audition alternate readings. Change the words and the take flags itself stale, so you see what still needs voicing.",
+    body: "Write the dialogue, pick an AI voice for each character, and compare different readings of a line. Edit a line and its recording is marked out of date, so you can see what needs recording again.",
     asset: "surface-script",
   },
   {
@@ -76,7 +76,7 @@ const SURFACES: Surface[] = [
     label: "Timeline",
     icon: Film,
     headline: "Multi-track timeline",
-    body: "Arrange, trim, and layer generated video and audio across tracks, down to the frame and the stem. The agent edits the same document when you ask it to tighten the opening.",
+    body: "Arrange, trim, and layer video and audio clips on separate tracks, down to a single frame. Ask the agent to tighten the opening and it edits the same timeline.",
     asset: "surface-timeline",
   },
   {
@@ -84,15 +84,15 @@ const SURFACES: Surface[] = [
     label: "Sketch",
     icon: Brush,
     headline: "Layered drawing canvas",
-    body: "Sketch, paint, and blend hand-drawn elements with generated layers. Bind a layer to a prompt and regenerate that layer alone.",
+    body: "Sketch, paint, and blend your own drawing with AI-generated layers. Give a layer a text description, and the AI redraws that layer without touching the others.",
     asset: "surface-sketch",
   },
   {
     id: "3d",
     label: "3D",
     icon: BoxIcon,
-    headline: "3D set blocking",
-    body: "Block out a set with simple shapes and lights, by hand or by asking the agent. Render it from any angle as a reference for the shot.",
+    headline: "3D scene layout",
+    body: "Lay out a scene with simple 3D shapes and lights, by hand or by asking the agent. Render it from any angle and use the image as a guide for a shot.",
     asset: "surface-3d",
   },
   {
@@ -100,7 +100,7 @@ const SURFACES: Surface[] = [
     label: "Game",
     icon: Gamepad2,
     headline: "Playable 2D and 3D games",
-    body: "Place the player, the enemies, and the level, then press Play without leaving the editor. Ask the agent for a new rule or a darker level, and export the result as a web player.",
+    body: "Place the player, the enemies, and the level, then press Play without leaving the editor. Ask the agent for a new rule or a darker level, and export the game to run in any web browser.",
     asset: "surface-game",
   },
   {
@@ -108,7 +108,7 @@ const SURFACES: Surface[] = [
     label: "Nodes",
     icon: Workflow,
     headline: "The node editor underneath",
-    body: "Every editor above sits on a graph you can open. Wire typed ports, press Run, and read the output at every step, from the prompt to the clip on the timeline.",
+    body: "Underneath, every project is a chain of connected steps called a node graph. Connect the steps, press Run, and check the result of each one, from the first text prompt to the finished clip.",
     asset: "surface-nodes",
   },
 ];
@@ -123,7 +123,7 @@ export default function SurfaceShowcase({
   surfaceIds,
   heading = "Seven editors. One project.",
   intro =
-    "Everything the agent made opens in an editor, and the agent works each one with the same tools you click.",
+    "Whatever the agent makes, you can open and change by hand. Each part of a project has its own editor, and the agent works in the same editors you do.",
 }: SurfaceShowcaseProps) {
   const surfaces = useMemo(
     () =>

@@ -124,13 +124,13 @@ test.describe("marketing smoke", () => {
     await page.goto("/");
 
     const ads = page.getByRole("region", {
-      name: "Find the shape of your next ad."
+      name: "Ideas for your next social media ad."
     });
     await expect(ads.locator('a[href^="/ad-library/"]')).toHaveCount(4);
     await expect(ads.locator('a[href="/ad-library"]')).toBeVisible();
 
     const boards = page.getByRole("region", {
-      name: "Start from a directed board."
+      name: "Start from a finished storyboard."
     });
     await expect(boards.getByRole("article")).toHaveCount(
       storyboardExamples.length

@@ -68,11 +68,12 @@ function CompactOverview() {
               id="ad-library-title"
               className="mt-4 text-3xl font-semibold tracking-tight text-slate-100 md:text-5xl"
             >
-              Find the shape of your next ad.
+              Ideas for your next social media ad.
             </h2>
             <p className="mt-5 text-lg leading-relaxed text-slate-300">
-              {adRecipes.length} motion concepts, each timed beat by beat and
-              rendered as a NodeTool timeline.
+              {adRecipes.length} short animated ad concepts. Each one shows what
+              appears on screen, second by second, and was made as an editable
+              NodeTool project.
             </p>
           </div>
           <a
