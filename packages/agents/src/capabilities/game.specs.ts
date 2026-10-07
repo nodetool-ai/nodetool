@@ -34,7 +34,7 @@ export const gameSpecs: readonly CapabilitySpec[] = [
   },
   {
     name: "publish_native_game",
-    description: "Publish the current draft when the user asks. An explicit document requires its paired base_updated_at token from get_native_game. Returns a conflict on stale revisions or drafts.",
+    description: "Publish the current draft when the user asks. For an explicit document, pass the paired draft_updated_at returned by get_native_game as base_updated_at. Returns a conflict on stale revisions or drafts.",
     inputSchema: { type: "object", properties: { game_id: id, base_revision: revision, base_updated_at: { type: "string" }, document: { type: "object" }, message: { type: "string" } }, required: ["game_id", "base_revision"] },
     category: "write",
     userMessage: () => "Saving game"
