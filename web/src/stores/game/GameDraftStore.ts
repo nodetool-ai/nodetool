@@ -3,12 +3,26 @@ import { useStore } from "zustand";
 import type { AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
 import { applyAnyGameOps as applyGameOps, validateAnyGame, type AnyGameDocumentOp as GameDocumentOp } from "@nodetool-ai/game-runtime";
 
-import { temporal, type WithTemporal } from "../temporal";
 import { acceptServerAnyGameUnit } from "./anyMerge";
 import { diffAnyGameDocuments as diffGameDocuments } from "./diffAnyGameDocuments";
+import { diffGameOwnership } from "./diffGameOwnership";
 
 export type GameSaveStatus = "saved" | "unsaved" | "saving" | "error";
-
+export interface GameCommand {
+  readonly label: string;
+  readonly ops: readonly GameDocumentOp[];
+  readonly inverseOps: readonly GameDocumentOp[];
+  readonly mergeKey?: string;
+}
+export interface GameCommandOptions {
+  readonly label: string;
+  readonly mergeKey?: string;
+  readonly gestureId?: number;
+}
+export interface GameCommandHistory {
+  readonly past: readonly GameCommand[];
+  readonly future: readonly GameCommand[];
+}
 interface GameDraftState {
   document: GameDocument | null;
   savedDocument: GameDocument | null;
@@ -18,12 +32,18 @@ interface GameDraftState {
   saveStatus: GameSaveStatus;
   error: string | null;
   selectedIds: string[];
+  commandHistory: GameCommandHistory;
+  canUndo: boolean;
+  canRedo: boolean;
   load: (document: GameDocument, baseUpdatedAt: string) => void;
   applyMerged: (document: GameDocument, server: GameDocument, baseUpdatedAt: string) => void;
   acceptConflict: (server: GameDocument, kind: string, unitId: string) => void;
-  apply: (ops: GameDocumentOp[]) => void;
+  apply: (ops: GameDocumentOp[], options?: GameCommandOptions) => void;
+  beginGesture: () => number;
+  endGesture: (gestureId: number) => void;
   acknowledge: (document: GameDocument, baseUpdatedAt: string, savedCount: number) => void;
   failSave: (error: string) => void;
+  reportOperationError: (error: string) => void;
   setSaving: (count: number) => void;
   select: (id: string, additive?: boolean) => void;
   selectMany: (ids: string[], additive?: boolean) => void;
@@ -31,27 +51,63 @@ interface GameDraftState {
   redo: () => void;
 }
 
-type GameDraftStore = WithTemporal<StoreApi<GameDraftState>, Pick<GameDraftState, "document">>;
+type GameDraftStore = StoreApi<GameDraftState>;
 const stores = new Map<string, GameDraftStore>();
+const HISTORY_LIMIT = 100;
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+function same(left: unknown, right: unknown): boolean {
+  if (left === right) { return true; }
+  if (Array.isArray(left) || Array.isArray(right)) {
+    return Array.isArray(left) && Array.isArray(right) && left.length === right.length
+      && left.every((value, index) => same(value, right[index]));
+  }
+  if (!isRecord(left) || !isRecord(right)) { return false; }
+  const keys = Object.keys(left).filter((key) => left[key] !== undefined);
+  return keys.length === Object.keys(right).filter((key) => right[key] !== undefined).length
+    && keys.every((key) => Object.prototype.hasOwnProperty.call(right, key) && same(left[key], right[key]));
+}
+function historyState(past: readonly GameCommand[], future: readonly GameCommand[]) {
+  return { commandHistory: { past, future }, canUndo: past.length > 0, canRedo: future.length > 0 };
+}
+function fallbackLabel(ops: readonly GameDocumentOp[]): string {
+  const op = ops[0];
+  if (ops.length !== 1 || !op) { return "Edit Game"; }
+  if (op.op === "set_script") { return "Edit Script"; }
+  if (op.op === "update_entity") { return "Change Entity"; }
+  if (op.op === "update_scene") { return "Change Scene"; }
+  if (op.op === "add_entity") { return "Add Entity"; }
+  if (op.op === "remove_entity") { return "Remove Entity"; }
+  return "Edit Game";
+}
+function validateReplay(before: GameDocument, ops: readonly GameDocumentOp[], desired: GameDocument): void {
+  if (!same(applyGameOps(before, ops), desired)) { throw new Error("Game command operations do not reproduce the captured document"); }
+}
+function createCommand(before: GameDocument, after: GameDocument, ops: readonly GameDocumentOp[], label: string,
+  mergeKey?: string): GameCommand {
+  const inverseOps = diffGameDocuments(after, before);
+  validateReplay(before, ops, after);
+  validateReplay(after, inverseOps, before);
+  const command: GameCommand = { label, ops: structuredClone(ops), inverseOps: structuredClone(inverseOps), mergeKey };
+  return command;
+}
 
 export function getGameDraftStore(gameId: string): GameDraftStore {
   const existing = stores.get(gameId);
-  if (existing) return existing;
-  let lastScriptEdit: { key: string; time: number } | null = null;
-  const store = createStore<GameDraftState>()(temporal<GameDraftState, Pick<GameDraftState, "document">>((set, get, api) => ({
-    document: null,
-    savedDocument: null,
-    baseUpdatedAt: null,
-    pendingOps: [],
-    savingCount: 0,
-    saveStatus: "saved",
-    error: null,
-    selectedIds: [],
+  if (existing) { return existing; }
+  let gestureSequence = 0;
+  let gesture: { id: number; key?: string; before?: GameDocument; index?: number } | null = null;
+  let lastScriptEdit: { key: string; time: number; before: GameDocument; index: number } | null = null;
+  let lastScriptQueue: { key: string; before: GameDocument; start: number } | null = null;
+  function closeCoalescing(): void { gesture = null; lastScriptEdit = null; lastScriptQueue = null; }
+  const store = createStore<GameDraftState>()((set, get) => ({
+    document: null, savedDocument: null, baseUpdatedAt: null, pendingOps: [], savingCount: 0,
+    saveStatus: "saved", error: null, selectedIds: [], ...historyState([], []),
     load: (document, baseUpdatedAt) => {
-      (api as GameDraftStore).temporal.getState().pause();
-      set({ document, savedDocument: document, baseUpdatedAt, pendingOps: [], savingCount: 0, saveStatus: "saved", error: null });
-      (api as GameDraftStore).temporal.getState().clear();
-      (api as GameDraftStore).temporal.getState().resume();
+      closeCoalescing();
+      set({ document, savedDocument: document, baseUpdatedAt, pendingOps: [], savingCount: 0,
+        saveStatus: "saved", error: null, ...historyState([], []) });
     },
     applyMerged: (document, server, baseUpdatedAt) => {
       const validation = validateAnyGame(document);
@@ -60,96 +116,101 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
         throw new Error(validation.diagnostics.map((issue) => issue.message).join(", "));
       }
       const pendingOps = diffGameDocuments(server, validation.document);
-      const history = (api as GameDraftStore).temporal.getState();
-      history.pause();
-      set({ document, savedDocument: server, baseUpdatedAt, pendingOps, savingCount: 0,
-        saveStatus: pendingOps.length ? "unsaved" : "saved", error: null });
-      history.clear();
-      history.resume();
+      validateReplay(server, pendingOps, validation.document);
+      closeCoalescing();
+      set({ document: validation.document, savedDocument: server, baseUpdatedAt, pendingOps, savingCount: 0,
+        saveStatus: pendingOps.length ? "unsaved" : "saved", error: null, ...historyState([], []) });
     },
     acceptConflict: (server, kind, unitId) => {
       const current = get();
       if (!current.document || !current.savedDocument || !current.baseUpdatedAt) { return; }
       current.applyMerged(acceptServerAnyGameUnit(current.document, server, kind, unitId), current.savedDocument, current.baseUpdatedAt);
     },
-    apply: (ops) => {
-      const current = get().document;
-      if (!current || ops.length === 0) return;
+    beginGesture: () => {
+      closeCoalescing();
+      gesture = { id: ++gestureSequence };
+      return gesture.id;
+    },
+    endGesture: (id) => { if (gesture?.id === id) { closeCoalescing(); } },
+    apply: (ops, options) => {
+      const state = get(), before = state.document;
+      if (!before || ops.length === 0) { return; }
       try {
-        const document = applyGameOps(current, ops);
+        const document = applyGameOps(before, ops);
+        if (same(before, document)) { return; }
+        const changesDefinitions = ops.some((op) => op.op === "set_document");
+        const forward = changesDefinitions ? structuredClone(ops) : [...structuredClone(ops), ...diffGameOwnership(before, document, document)];
         const script = ops.length === 1 && ops[0].op === "set_script" ? ops[0] : null;
         const scriptKey = script ? `${script.scene_id ?? ""}:${script.entity_id}:${script.index}` : null;
-        const coalesce = scriptKey !== null && lastScriptEdit?.key === scriptKey && Date.now() - lastScriptEdit.time < 500;
-        const history = (api as GameDraftStore).temporal.getState();
-        if (coalesce) history.pause();
-        set((state) => {
-          const pendingOps = [...state.pendingOps];
-          const last = pendingOps[pendingOps.length - 1];
-          if (script && pendingOps.length > state.savingCount && last?.op === "set_script" && last.scene_id === script.scene_id &&
-              last.entity_id === script.entity_id && last.index === script.index) {
-            pendingOps[pendingOps.length - 1] = script;
-          } else pendingOps.push(...ops);
-          return { document, pendingOps, saveStatus: "unsaved", error: null };
-        });
-        if (coalesce) history.resume();
-        lastScriptEdit = scriptKey ? { key: scriptKey, time: Date.now() } : null;
-      } catch (cause) {
-        set({ error: cause instanceof Error ? cause.message : String(cause) });
-      }
+        const gestureMatches = gesture !== null && gesture.id === options?.gestureId && options.mergeKey !== undefined
+          && (gesture.key === undefined || gesture.key === options.mergeKey);
+        const scriptMatches = scriptKey !== null && lastScriptEdit?.key === scriptKey && Date.now() - lastScriptEdit.time < 500;
+        const coalescingBase = gestureMatches ? gesture?.before : scriptMatches ? lastScriptEdit?.before : undefined;
+        const coalescingIndex = gestureMatches ? gesture?.index : scriptMatches ? lastScriptEdit?.index : undefined;
+        const coalesce = coalescingBase !== undefined && coalescingIndex === state.commandHistory.past.length - 1;
+        const commandBefore = coalesce ? coalescingBase : before;
+        const commandOps = coalesce ? diffGameDocuments(commandBefore, document) : forward;
+        const previous = coalesce ? state.commandHistory.past.at(-1) : undefined;
+        const command = createCommand(commandBefore, document, commandOps, previous?.label ?? options?.label ?? fallbackLabel(ops), options?.mergeKey);
+        const past = (coalesce ? [...state.commandHistory.past.slice(0, -1), command] : [...state.commandHistory.past, command]).slice(-HISTORY_LIMIT);
+        const compactQueue = scriptKey !== null && lastScriptQueue?.key === scriptKey
+          && lastScriptQueue.start >= state.savingCount ? lastScriptQueue : null;
+        const queueStart = compactQueue ? compactQueue.start : state.pendingOps.length;
+        const queueBefore = compactQueue ? compactQueue.before : before;
+        const queueOps = compactQueue ? diffGameDocuments(queueBefore, document) : forward;
+        validateReplay(queueBefore, queueOps, document);
+        const pendingOps = [...state.pendingOps.slice(0, queueStart), ...structuredClone(queueOps)];
+        set({ document, pendingOps, saveStatus: "unsaved", error: null, ...historyState(past, []) });
+        if (gestureMatches && gesture) { gesture = { id: gesture.id, key: options?.mergeKey, before: commandBefore, index: past.length - 1 }; }
+        else { gesture = null; }
+        lastScriptEdit = scriptKey ? { key: scriptKey, time: Date.now(), before: commandBefore, index: past.length - 1 } : null;
+        lastScriptQueue = scriptKey ? { key: scriptKey, before: queueBefore, start: queueStart } : null;
+      } catch (cause) { set({ error: cause instanceof Error ? cause.message : String(cause) }); }
     },
     acknowledge: (document, baseUpdatedAt, savedCount) => {
+      if (lastScriptQueue) {
+        lastScriptQueue = lastScriptQueue.start >= savedCount
+          ? { ...lastScriptQueue, start: lastScriptQueue.start - savedCount } : null;
+      }
       const remaining = get().pendingOps.slice(savedCount);
-      (api as GameDraftStore).temporal.getState().pause();
       set({ savedDocument: document, baseUpdatedAt, pendingOps: remaining, savingCount: 0,
         document: remaining.length === 0 ? document : get().document,
         saveStatus: remaining.length === 0 ? "saved" : "unsaved", error: null });
-      (api as GameDraftStore).temporal.getState().resume();
     },
-    failSave: (error) => {
-      (api as GameDraftStore).temporal.getState().pause();
-      set({ saveStatus: "error", savingCount: 0, error });
-      (api as GameDraftStore).temporal.getState().resume();
-    },
-    setSaving: (count) => {
-      (api as GameDraftStore).temporal.getState().pause();
-      set({ saveStatus: "saving", savingCount: count });
-      (api as GameDraftStore).temporal.getState().resume();
-    },
+    reportOperationError: (error) => { set({ error }); },
+    failSave: (error) => { set({ saveStatus: "error", savingCount: 0, error }); },
+    setSaving: (count) => { set({ saveStatus: "saving", savingCount: count }); },
     select: (id, additive = false) => {
-      (api as GameDraftStore).temporal.getState().pause();
-      set((state) => ({ selectedIds: additive
-        ? state.selectedIds.includes(id) ? state.selectedIds.filter((entry) => entry !== id) : [...state.selectedIds, id]
-        : [id] }));
-      (api as GameDraftStore).temporal.getState().resume();
+      const selectedIds = additive
+        ? get().selectedIds.includes(id) ? get().selectedIds.filter((entry) => entry !== id) : [...get().selectedIds, id]
+        : [id];
+      if (!same(selectedIds, get().selectedIds)) { closeCoalescing(); set({ selectedIds }); }
     },
     selectMany: (ids, additive = false) => {
-      (api as GameDraftStore).temporal.getState().pause();
-      set((state) => ({ selectedIds: additive ? [...new Set([...state.selectedIds, ...ids])] : [...new Set(ids)] }));
-      (api as GameDraftStore).temporal.getState().resume();
+      const selectedIds = [...new Set(additive ? [...get().selectedIds, ...ids] : ids)];
+      if (!same(selectedIds, get().selectedIds)) { closeCoalescing(); set({ selectedIds }); }
     },
     undo: () => {
-      const before = get().document;
-      const history = (api as GameDraftStore).temporal.getState();
-      history.undo();
-      const after = get().document;
-      if (!before || !after || before === after) return;
-      const ops = diffGameDocuments(before, after);
-      history.pause();
-      set((state) => ({ pendingOps: [...state.pendingOps, ...ops], saveStatus: "unsaved" }));
-      history.resume();
+      const state = get(), command = state.commandHistory.past.at(-1);
+      if (!state.document || !command) { return; }
+      try {
+        const document = applyGameOps(state.document, command.inverseOps);
+        closeCoalescing();
+        set({ document, pendingOps: [...state.pendingOps, ...structuredClone(command.inverseOps)], saveStatus: "unsaved", error: null,
+          ...historyState(state.commandHistory.past.slice(0, -1), [...state.commandHistory.future, command]) });
+      } catch (cause) { set({ error: cause instanceof Error ? cause.message : String(cause) }); }
     },
     redo: () => {
-      const before = get().document;
-      const history = (api as GameDraftStore).temporal.getState();
-      history.redo();
-      const after = get().document;
-      if (!before || !after || before === after) return;
-      const ops = diffGameDocuments(before, after);
-      history.pause();
-      set((state) => ({ pendingOps: [...state.pendingOps, ...ops], saveStatus: "unsaved" }));
-      history.resume();
+      const state = get(), command = state.commandHistory.future.at(-1);
+      if (!state.document || !command) { return; }
+      try {
+        const document = applyGameOps(state.document, command.ops);
+        closeCoalescing();
+        set({ document, pendingOps: [...state.pendingOps, ...structuredClone(command.ops)], saveStatus: "unsaved", error: null,
+          ...historyState([...state.commandHistory.past, command].slice(-HISTORY_LIMIT), state.commandHistory.future.slice(0, -1)) });
+      } catch (cause) { set({ error: cause instanceof Error ? cause.message : String(cause) }); }
     }
-  }), { partialize: (state) => ({ document: state.document }), equality: (a, b) => a.document === b.document, limit: 100 }));
+  }));
   stores.set(gameId, store);
   return store;
 }

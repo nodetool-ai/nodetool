@@ -381,6 +381,19 @@ Controllers supply nodes keyed by registered IDs and retain document, save,
 publish, restore and session ownership. The shell routes those nodes to their
 declared regions and owns toolbar, docks, status and editor keyboard scope.
 
+Game draft history exposes labelled commands through `commandHistory.past` and
+`commandHistory.future`, with `canUndo` and `canRedo` selectors. Each command
+retains forward and inverse document operations. Viewport producers begin a
+gesture after selection changes and share its ID and merge key across selected
+roots. The whole drag becomes one command. End the gesture on release,
+cancellation, lost capture, blur or unmount. Selection, save acknowledgements and
+server loads do not create commands. Undo and redo append operations to the save
+queue while preserving any submitted prefix. Ordinary 3D edits use granular
+operations, including explicit null patches to remove scene music or collision
+layers. Internal diffs reserve document replacement for retained authoring definition
+changes. Apply those changes through the existing authoring preview/apply
+boundary.
+
 ### B: Benchmarks and verification
 
 Run `nodetool game bench <file> --json` to measure simulation tick and script

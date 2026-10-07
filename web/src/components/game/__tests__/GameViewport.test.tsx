@@ -3,6 +3,7 @@ import { createEvent, fireEvent, render, screen } from "@testing-library/react";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { gameDocument, type GameRenderFrame } from "@nodetool-ai/protocol/game.js";
 
+import { getGameDraftStore } from "../../../stores/game/GameDraftStore";
 import { isMac } from "../../../utils/platform";
 import GameViewport from "../viewport2d/GameViewport";
 
@@ -180,11 +181,14 @@ it("drags a selected parent and child once using parent-local coordinates", () =
   Object.defineProperty(HTMLCanvasElement.prototype, "getContext", { configurable: true,
     value: jest.fn(() => ({ clearRect: jest.fn(), fillRect: jest.fn() })) });
   const onMove = jest.fn();
+  const onGestureStart = jest.fn(() => 47);
+  const onGestureEnd = jest.fn();
   try {
     render(<ThemeProvider theme={theme}><GameViewport canvasRef={createRef<HTMLCanvasElement>()}
       frame={{ ...frame, sprites: [] }} document={childDocument} playing={false} paused={false} active
       selectedIds={["parent", "child", "other"]} highlightedIds={[]}
-      onSelect={jest.fn()} onSelectMany={jest.fn()} onMove={onMove} onTransform={jest.fn()}
+      onSelect={jest.fn()} onSelectMany={jest.fn()} onMove={onMove}
+      onGestureStart={onGestureStart} onGestureEnd={onGestureEnd} onTransform={jest.fn()}
       onLight={jest.fn()} onCamera={jest.fn()} onViewportAspect={jest.fn()}
       onKeyDown={jest.fn()} onKeyUp={jest.fn()} onBlur={jest.fn()} /></ThemeProvider>);
     const overlay = screen.getByRole("group", { name: "Game edit overlay" });
@@ -198,8 +202,109 @@ it("drags a selected parent and child once using parent-local coordinates", () =
     Object.defineProperties(move, { pointerId: { value: 1 }, clientX: { value: 512 }, clientY: { value: 144 } });
     fireEvent(overlay, move);
     fireEvent.pointerUp(overlay);
-    expect(onMove.mock.calls).toEqual([["parent", 6, 0], ["other", -1, 0]]);
+    expect(onMove.mock.calls).toEqual([["parent", 6, 0, 47], ["other", -1, 0, 47]]);
+    expect(onGestureStart).toHaveBeenCalledTimes(1);
+    expect(onGestureEnd).toHaveBeenCalledWith(47);
+    expect(onGestureEnd.mock.invocationCallOrder[0]).toBeGreaterThan(onMove.mock.invocationCallOrder[1]);
   } finally {
     if (originalGetContext) Object.defineProperty(HTMLCanvasElement.prototype, "getContext", originalGetContext);
+  }
+});
+
+
+it.each(["pointercancel", "lostpointercapture", "blur", "unmount"])("closes an unfinished edit gesture on %s without committing its preview", (boundary) => {
+  const originalGetContext = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, "getContext");
+  Object.defineProperty(HTMLCanvasElement.prototype, "getContext", { configurable: true,
+    value: jest.fn(() => ({ clearRect: jest.fn(), fillRect: jest.fn() })) });
+  const order: string[] = [];
+  const onMove = jest.fn();
+  const onGestureStart = jest.fn(() => { order.push("begin"); return 51; });
+  const onGestureEnd = jest.fn();
+  try {
+    const view = render(<ThemeProvider theme={theme}><GameViewport canvasRef={createRef<HTMLCanvasElement>()}
+      frame={frame} document={document} playing={false} paused={false} active selectedIds={[]} highlightedIds={[]}
+      onSelect={() => order.push("select")} onSelectMany={jest.fn()} onMove={onMove} onTransform={jest.fn()}
+      onGestureStart={onGestureStart} onGestureEnd={onGestureEnd}
+      onLight={jest.fn()} onCamera={jest.fn()} onViewportAspect={jest.fn()}
+      onKeyDown={jest.fn()} onKeyUp={jest.fn()} onBlur={jest.fn()} /></ThemeProvider>);
+    const overlay = screen.getByRole("group", { name: "Game edit overlay" });
+    overlay.setPointerCapture = jest.fn();
+    jest.spyOn(overlay, "getBoundingClientRect").mockReturnValue({ x: 0, y: 0, left: 0, top: 0,
+      right: 512, bottom: 288, width: 512, height: 288, toJSON: () => undefined });
+    const down = createEvent.pointerDown(overlay);
+    Object.defineProperties(down, { button: { value: 0 }, pointerId: { value: 1 }, clientX: { value: 256 }, clientY: { value: 144 } });
+    fireEvent(overlay, down);
+    expect(order).toEqual(["select", "begin"]);
+    const move = createEvent.pointerMove(overlay);
+    Object.defineProperties(move, { pointerId: { value: 1 }, clientX: { value: 288 }, clientY: { value: 144 } });
+    fireEvent(overlay, move);
+    if (boundary === "unmount") { view.unmount(); }
+    else if (boundary === "blur") { fireEvent.blur(window); }
+    else { fireEvent(overlay, new Event(boundary, { bubbles: true })); }
+    expect(onMove).not.toHaveBeenCalled();
+    expect(onGestureEnd).toHaveBeenCalledTimes(1);
+    expect(onGestureEnd).toHaveBeenCalledWith(51);
+    if (boundary !== "unmount") {
+      fireEvent.pointerUp(overlay);
+      view.unmount();
+      expect(onGestureEnd).toHaveBeenCalledTimes(1);
+    }
+  } finally {
+    if (originalGetContext) { Object.defineProperty(HTMLCanvasElement.prototype, "getContext", originalGetContext); }
+  }
+});
+
+it("records an actual multi-root pointer drag as one command with one undo and redo", () => {
+  const childDocument = gameDocument.parse({ ...document, scenes: [{ id: "room", name: "Room", entities: [
+    { id: "parent", transform2d: { x: 5, y: 0 } },
+    { id: "child", parentId: "parent", transform2d: { x: 2, y: 0 } },
+    { id: "other", transform2d: { x: -2, y: 0 } }
+  ] }] });
+  const originalGetContext = Object.getOwnPropertyDescriptor(HTMLCanvasElement.prototype, "getContext");
+  Object.defineProperty(HTMLCanvasElement.prototype, "getContext", { configurable: true,
+    value: jest.fn(() => ({ clearRect: jest.fn(), fillRect: jest.fn() })) });
+  const store = getGameDraftStore("viewport-store-gesture");
+  store.getState().load(childDocument, "base");
+  store.getState().selectMany(["parent", "child", "other"]);
+  const onMove = jest.fn((id: string, x: number, y: number, gestureId?: number) => {
+    store.getState().apply([{ op: "update_entity", scene_id: "room", entity_id: id, set: { transform2d: { x, y } } }],
+      { label: "Move Selection", mergeKey: "move-selection", gestureId });
+  });
+  const onGestureStart = jest.fn(() => store.getState().beginGesture());
+  const onGestureEnd = jest.fn((id: number) => store.getState().endGesture(id));
+  try {
+    render(<ThemeProvider theme={theme}><GameViewport canvasRef={createRef<HTMLCanvasElement>()}
+      frame={{ ...frame, sprites: [] }} document={childDocument} playing={false} paused={false} active
+      selectedIds={["parent", "child", "other"]} highlightedIds={[]}
+      onSelect={jest.fn()} onSelectMany={jest.fn()} onMove={onMove}
+      onGestureStart={onGestureStart} onGestureEnd={onGestureEnd} onTransform={jest.fn()}
+      onLight={jest.fn()} onCamera={jest.fn()} onViewportAspect={jest.fn()}
+      onKeyDown={jest.fn()} onKeyUp={jest.fn()} onBlur={jest.fn()} /></ThemeProvider>);
+    const overlay = screen.getByRole("group", { name: "Game edit overlay" });
+    overlay.setPointerCapture = jest.fn();
+    jest.spyOn(overlay, "getBoundingClientRect").mockReturnValue({ x: 0, y: 0, left: 0, top: 0,
+      right: 512, bottom: 288, width: 512, height: 288, toJSON: () => undefined });
+    const down = createEvent.pointerDown(overlay);
+    Object.defineProperties(down, { button: { value: 0 }, pointerId: { value: 1 }, clientX: { value: 480 }, clientY: { value: 144 } });
+    fireEvent(overlay, down);
+    const move = createEvent.pointerMove(overlay);
+    Object.defineProperties(move, { pointerId: { value: 1 }, clientX: { value: 512 }, clientY: { value: 144 } });
+    fireEvent(overlay, move);
+    fireEvent.pointerUp(overlay);
+    const gestureId = onGestureStart.mock.results[0].value;
+    expect(onMove.mock.calls).toEqual([["parent", 6, 0, gestureId], ["other", -1, 0, gestureId]]);
+    expect(onGestureStart).toHaveBeenCalledTimes(1);
+    expect(onGestureEnd).toHaveBeenCalledWith(gestureId);
+    expect(onGestureEnd.mock.invocationCallOrder[0]).toBeGreaterThan(onMove.mock.invocationCallOrder[1]);
+    expect(store.getState().error).toBeNull();
+    expect(store.getState().commandHistory.past).toHaveLength(1);
+    expect(store.getState().commandHistory.past[0].label).toBe("Move Selection");
+    const moved = structuredClone(store.getState().document);
+    store.getState().undo();
+    expect(store.getState().document).toEqual(childDocument);
+    store.getState().redo();
+    expect(store.getState().document).toEqual(moved);
+  } finally {
+    if (originalGetContext) { Object.defineProperty(HTMLCanvasElement.prototype, "getContext", originalGetContext); }
   }
 });

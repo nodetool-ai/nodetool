@@ -57,6 +57,21 @@ const makeCtx = (userId: string): Context =>
   }) as Context;
 
 describe("native game revisions", () => {
+  it("round-trips a 3D entity removal through public saveDraft without 2D operation defaults", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Wire removal", dimension: "3d" });
+    if (created.document.schemaVersion !== 3) { throw new Error("Expected 3D fixture"); }
+    const index = created.document.scenes[0].entities.findIndex((entity) => entity.id === "player-visual");
+    const entity = created.document.scenes[0].entities[index];
+    if (!entity) { throw new Error("Fixture visual missing"); }
+    const removed = await caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: created.game.draftUpdatedAt,
+      ops: [{ op: "remove_entity", scene_id: created.document.entrySceneId, entity_id: entity.id }] });
+    expect(removed.document.scenes[0].entities.some((entry) => entry.id === entity.id)).toBe(false);
+    const restored = await caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: removed.game.draftUpdatedAt,
+      ops: [{ op: "add_entity", scene_id: created.document.entrySceneId, entity, index }] });
+    expect(restored.document).toEqual(created.document);
+    expect((await caller.games.getDraft({ id: created.game.id })).document).toEqual(created.document);
+  });
   beforeEach(async () => {
     initTestDb();
     workspaceDir = await mkdtemp(join(tmpdir(), "nodetool-game-"));

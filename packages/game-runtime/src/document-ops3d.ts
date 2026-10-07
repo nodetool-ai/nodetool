@@ -48,12 +48,13 @@ export const gameDocumentOp3D = z.discriminatedUnion("op", [
   z.strictObject({ op: z.literal("remove_behavior"), ...target, index }),
   z.strictObject({ op: z.literal("set_script"), ...target, index, source: z.string(), max_commands: z.number().int().optional(), max_tick_ms: z.number().int().optional() }),
   z.strictObject({ op: z.literal("add_scene"), scene_id: id, scene: gameScene3D.partial(), index: index.optional() }),
-  z.strictObject({ op: z.literal("update_scene"), scene_id: id, set: preservingPatch(gameScene3D.omit({ id: true, entities: true }).partial()) }),
+  z.strictObject({ op: z.literal("update_scene"), scene_id: id, set: preservingPatch(gameScene3D.omit({ id: true, entities: true }).partial()
+    .extend({ music: gameScene3D.shape.music.nullable().optional() })) }),
   z.strictObject({ op: z.literal("remove_scene"), scene_id: id }),
   z.strictObject({ op: z.literal("set_prefab"), prefab_id: id, prefab: gamePrefab3D }),
   z.strictObject({ op: z.literal("remove_prefab"), prefab_id: id }),
   z.strictObject({ op: z.literal("instantiate_prefab"), scene_id: id, prefab_id: id, instance_id: id, transform: gameTransform3D.optional() }),
-  z.strictObject({ op: z.literal("set_game"), presentation: preservingPatch(gameDocument3D.shape.presentation.partial()).optional(), input_actions: gameDocument3D.shape.inputActions.optional(), input_axes: gameDocument3D.shape.inputAxes.optional(), entry_scene_id: id.optional(), collision_layers: gameDocument3D.shape.collisionLayers.optional() }),
+  z.strictObject({ op: z.literal("set_game"), presentation: preservingPatch(gameDocument3D.shape.presentation.partial()).optional(), input_actions: gameDocument3D.shape.inputActions.optional(), input_axes: gameDocument3D.shape.inputAxes.optional(), entry_scene_id: id.optional(), collision_layers: gameDocument3D.shape.collisionLayers.nullable().optional() }),
   z.strictObject({ op: z.literal("bind_asset"), slot: id, binding: gameAssetBinding3D }),
   z.strictObject({ op: z.literal("unbind_asset"), slot: id })
 ]);
@@ -234,7 +235,14 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
         insert(draft.scenes, scene.data, op.index, opIndex);
         break;
       }
-      case "update_scene": { const scene = findScene(op.scene_id, opIndex); Object.assign(scene, op.set); break; }
+      case "update_scene": {
+        const scene = findScene(op.scene_id, opIndex);
+        const { music, ...settings } = op.set;
+        Object.assign(scene, settings);
+        if (music === null) { delete scene.music; }
+        else if (music !== undefined) { scene.music = gameScene3D.shape.music.parse(music); }
+        break;
+      }
       case "remove_scene": {
         findScene(op.scene_id, opIndex);
         draft.scenes = draft.scenes.filter((scene) => scene.id !== op.scene_id);
@@ -259,7 +267,8 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
         if (op.input_actions) { draft.inputActions = op.input_actions; }
         if (op.input_axes) { draft.inputAxes = op.input_axes; }
         if (op.entry_scene_id) { draft.entrySceneId = op.entry_scene_id; }
-        if (op.collision_layers) { draft.collisionLayers = op.collision_layers; }
+        if (op.collision_layers === null) { delete draft.collisionLayers; }
+        else if (op.collision_layers !== undefined) { draft.collisionLayers = op.collision_layers; }
         break;
       }
       case "bind_asset": draft.assets[op.slot] = op.binding; break;
@@ -279,7 +288,9 @@ export function applyGameOps3D(document: GameDocument3D, values: readonly GameDo
   return result.document;
 }
 
-export const anyGameDocumentOp = z.union([gameDocumentOp, gameDocumentOp3D]);
+const sharedRemoveEntityOp = z.strictObject({ op: z.literal("remove_entity"), ...target,
+  children: z.enum(["remove", "reparent"]).optional() });
+export const anyGameDocumentOp = z.union([sharedRemoveEntityOp, gameDocumentOp, gameDocumentOp3D]);
 export type AnyGameDocumentOp = z.input<typeof anyGameDocumentOp>;
 
 export function applyAnyGameOps(document: GameDocument, ops: readonly AnyGameDocumentOp[], options?: { readonly expectedRevision?: string }): GameDocument;

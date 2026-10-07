@@ -1,11 +1,13 @@
 import type { ReactNode } from "react";
 import { Euler, Quaternion } from "three";
-import { gameDocumentOp3D, validateGame3D, type GameDocumentOp3D } from "@nodetool-ai/game-runtime";
+import { ZodError } from "zod";
+import { GameOpError, gameDocumentOp3D, trackGameAuthoringEdits, validateGame3D, type GameDocumentOp3D } from "@nodetool-ai/game-runtime";
 import { gameScene3D, gameEntity3D, type GameDocument3D } from "@nodetool-ai/protocol";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
+import { diffGameDocuments3D } from "../../../../stores/game/diffGameDocuments3D";
 import { Box, Caption, CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, FONT_SIZE_SANS, InspectorFieldRow, InspectorValueInput, SPACING, Text, ToolbarIconButton } from "../../../ui_primitives";
 import ReportBugButton from "../../../support/ReportBugButton";
 import SchemaFields from "../../inspector/SchemaFields";
@@ -17,7 +19,8 @@ interface GameInspector3DProps {
   readonly document: GameDocument3D;
   readonly sceneId: string;
   readonly entityId?: string;
-  readonly onOps: (ops: GameDocumentOp3D[]) => void;
+  readonly onOperationError: (message: string) => void;
+  readonly onOps: (ops: GameDocumentOp3D[], label?: string) => void;
   readonly onScript: (index: number) => void;
 }
 
@@ -25,13 +28,26 @@ const TRANSFORM_LABELS = { position: "Position", rotation: "Rotation", scale: "S
 const TRANSFORM_UNITS = { position: "Position in meters", rotation: "Rotation in degrees", scale: "Scale factor" } as const;
 const ENTITY_FIELDS = gameSchemaFields(gameEntity3D.omit({ id: true, transform3d: true, behaviors: true }));
 
-export default function GameInspector3D({ document, sceneId, entityId, onOps, onScript }: GameInspector3DProps) {
+export default function GameInspector3D({ document, sceneId, entityId, onOps, onOperationError, onScript }: GameInspector3DProps) {
   const scene = document.scenes.find((item) => item.id === sceneId);
   const entity = scene?.entities.find((item) => item.id === entityId);
   const validation = validateGame3D(document);
-  const apply = (set: unknown): void => {
+  const applyDocument = (next: GameDocument3D, label: string): void => {
+    let ops: GameDocumentOp3D[];
+    try {
+      const authored = trackGameAuthoringEdits(document, next);
+      if (authored.schemaVersion !== 3) { throw new Error("A 3D inspector cannot change game dimension"); }
+      ops = diffGameDocuments3D(document, authored);
+    } catch (error) {
+      if (!(error instanceof GameOpError) && !(error instanceof ZodError)) { throw error; }
+      onOperationError(error.message);
+      return;
+    }
+    onOps(ops, label);
+  };
+  const apply = (set: unknown, label?: string): void => {
     if (!entity) { return; }
-    onOps([gameDocumentOp3D.parse({ op: "update_entity", scene_id: sceneId, entity_id: entity.id, set })]);
+    onOps([gameDocumentOp3D.parse({ op: "update_entity", scene_id: sceneId, entity_id: entity.id, set })], label);
   };
   if (!entity) {
     const { id: _sceneId, entities: _entities, ...settings } = scene ?? {};
@@ -46,7 +62,7 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
       {scene && <SchemaFields componentSections schema={gameSchemaFields(gameScene3D.omit({ id: true, entities: true }))}
         value={settings} assets={document.assets} onChange={(value) => {
           const updated = gameScene3D.parse({ ...gameScene3D.omit({ id: true, entities: true }).parse(value), id: scene.id, entities: scene.entities });
-          onOps([{ op: "set_document", document: { ...document, scenes: document.scenes.map((item) => item.id === sceneId ? updated : item) } }]);
+          applyDocument({ ...document, scenes: document.scenes.map((item) => item.id === sceneId ? updated : item) }, "Change Scene Settings");
         }} />}
       {validation.diagnostics.map((issue, index) => <Caption key={`${issue.code}:${index}`} color="error" sx={{ px: SPACING.md }}>{issue.path.join(".")}: {issue.message}</Caption>)}
       {validation.diagnostics.length > 0 && <ReportBugButton context={{ source: "panel-crash", summary: "3D game validation failed",
@@ -68,8 +84,8 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
             if (kind === "rotation") {
               const updated = { ...rotation, [axis]: numeric };
               const quaternion = new Quaternion().setFromEuler(new Euler(updated.x * Math.PI / 180, updated.y * Math.PI / 180, updated.z * Math.PI / 180, "YXZ"));
-              apply({ transform3d: { rotation: [quaternion.x, quaternion.y, quaternion.z, quaternion.w] } });
-            } else { apply({ transform3d: { [kind]: { ...values, [axis]: numeric } } }); }
+              apply({ transform3d: { rotation: [quaternion.x, quaternion.y, quaternion.z, quaternion.w] } }, `Rotate ${entity.name || entity.id}`);
+            } else { apply({ transform3d: { [kind]: { ...values, [axis]: numeric } } }, `${kind === "position" ? "Move" : "Scale"} ${entity.name || entity.id}`); }
           }} />
       </FlexRow>)}
     </InspectorFieldRow>;
@@ -98,8 +114,9 @@ export default function GameInspector3D({ document, sceneId, entityId, onOps, on
       collisionLayers={document.collisionLayers} onChange={(value) => {
         const updated = gameEntity3D.parse({ ...gameEntity3D.omit({ id: true, transform3d: true, behaviors: true }).parse(value),
           id: entity.id, transform3d: entity.transform3d, behaviors: entity.behaviors });
-        onOps([{ op: "set_document", document: { ...document, scenes: document.scenes.map((item) => item.id === sceneId ?
-          { ...item, entities: item.entities.map((candidate) => candidate.id === entity.id ? updated : candidate) } : item) } }]);
+        applyDocument({ ...document, scenes: document.scenes.map((item) => item.id === sceneId ?
+          { ...item, entities: item.entities.map((candidate) => candidate.id === entity.id ? updated : candidate) } : item) },
+        updated.light3d && entity.light3d?.intensity !== updated.light3d.intensity ? "Change Light Intensity" : "Change Entity Components");
       }} />
     <CollapsibleSection title="Behaviors" compact sx={COMPONENT_SECTION_SX}>
       <FlexColumn gap={SPACING.sm} sx={{ px: SPACING.md, py: SPACING.sm }}>

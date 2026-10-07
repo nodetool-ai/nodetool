@@ -19,9 +19,11 @@ interface GameViewportProps {
   highlightedIds: readonly string[];
   onSelect: (id: string, additive: boolean) => void;
   onSelectMany: (ids: string[], additive: boolean) => void;
-  onMove: (id: string, x: number, y: number) => void;
-  onTransform: (id: string, set: { scaleX?: number; scaleY?: number; rotation?: number }) => void;
-  onLight: (sceneId: string, index: number, set: { x?: number; y?: number; radius?: number }) => void;
+  onMove: (id: string, x: number, y: number, gestureId?: number) => void;
+  onTransform: (id: string, set: { scaleX?: number; scaleY?: number; rotation?: number }, gestureId?: number) => void;
+  onLight: (sceneId: string, index: number, set: { x?: number; y?: number; radius?: number }, gestureId?: number) => void;
+  onGestureStart?: () => number;
+  onGestureEnd?: (gestureId: number) => void;
   onCamera: (camera: { x: number; y: number; zoom: number }) => void;
   onViewportAspect: (aspect: number) => void;
   onKeyDown: (event: KeyboardEvent<HTMLCanvasElement>) => void;
@@ -56,7 +58,18 @@ function point(event: { clientX: number; clientY: number }, canvas: HTMLCanvasEl
   };
 }
 
-export default function GameViewport({ canvasRef, frame, document, sceneId, playing, paused, active, selectedIds, highlightedIds, onSelect, onSelectMany, onMove, onTransform, onLight, onCamera, onViewportAspect, onKeyDown, onKeyUp, onBlur }: GameViewportProps) {
+export default function GameViewport({ canvasRef, frame, document, sceneId, playing, paused, active, selectedIds, highlightedIds, onSelect, onSelectMany, onMove, onTransform, onLight, onGestureStart, onGestureEnd, onCamera, onViewportAspect, onKeyDown, onKeyUp, onBlur }: GameViewportProps) {
+  const gestureRef = useRef<number | null>(null);
+  const gestureCallbacks = useRef({ onGestureStart, onGestureEnd });
+  gestureCallbacks.current = { onGestureStart, onGestureEnd };
+  const startGesture = () => {
+    if (gestureRef.current === null) { gestureRef.current = gestureCallbacks.current.onGestureStart?.() ?? null; }
+  };
+  const endGesture = () => {
+    const id = gestureRef.current;
+    gestureRef.current = null;
+    if (id !== null) { gestureCallbacks.current.onGestureEnd?.(id); }
+  };
   const theme = useTheme();
   const mac = isMac();
   const { mode, systemMode } = useColorScheme();
@@ -270,6 +283,7 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
         if (!kind) continue;
         dragRef.current = { kind, sceneId: scene.id, index, x: light.x, y: light.y, radius: light.radius,
           startX: world.x, startY: world.y };
+        startGesture();
         canvas.setPointerCapture(event.pointerId);
         return;
       }
@@ -281,6 +295,7 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
         const handleY = canvas.height / 2 - (handle.y - frame.camera.y) * scale;
         if (Math.hypot(handleX - pixel.x, handleY - pixel.y) <= 10) {
           dragRef.current = { kind, sprite: selected };
+          startGesture();
           canvas.setPointerCapture(event.pointerId);
           return;
         }
@@ -302,12 +317,14 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
         dragRef.current = { kind: "marquee", startX: world.x, startY: world.y, additive: event.shiftKey };
         marqueeRef.current = { startX: world.x, startY: world.y, endX: world.x, endY: world.y };
       }
+      if (dragRef.current.kind === "move") { startGesture(); }
       canvas.setPointerCapture(event.pointerId);
       return;
     }
     if (!selectedIds.includes(sprite.entityId) || event.shiftKey) onSelect(sprite.entityId, event.shiftKey);
     if (event.altKey) return;
     dragRef.current = { kind: "move", entityId: sprite.entityId, startX: world.x, startY: world.y, entityX: sprite.x, entityY: sprite.y, entities: movingEntities(sprite.entityId) };
+    startGesture();
     canvas.setPointerCapture(event.pointerId);
   };
 
@@ -360,50 +377,52 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
     lightPreviewRef.current = null;
     panRef.current = null;
     setIsPanning(false);
-    if (drag?.kind === "move" && preview?.x !== undefined && preview.y !== undefined &&
-        (preview.x !== drag.entityX || preview.y !== drag.entityY)) {
-      const x = snapToGrid ? Math.round(preview.x * 4) / 4 : preview.x;
-      const y = snapToGrid ? Math.round(preview.y * 4) / 4 : preview.y;
-      const entities = new Map(scene?.entities.map(entity => [entity.id, entity]) ?? []);
-      if (scene) for (const moved of drag.entities) {
-        const entity = entities.get(moved.id);
-        const transform = transforms.get(moved.id);
-        if (!entity || !transform) continue;
-        const local = localTransform(scene, entity.parentId, { ...transform,
-          x: moved.x + x - drag.entityX, y: moved.y + y - drag.entityY }, transforms);
-        onMove(moved.id, local.x, local.y);
+    try {
+      if (drag?.kind === "move" && preview?.x !== undefined && preview.y !== undefined &&
+          (preview.x !== drag.entityX || preview.y !== drag.entityY)) {
+        const x = snapToGrid ? Math.round(preview.x * 4) / 4 : preview.x;
+        const y = snapToGrid ? Math.round(preview.y * 4) / 4 : preview.y;
+        const entities = new Map(scene?.entities.map(entity => [entity.id, entity]) ?? []);
+        if (scene) for (const moved of drag.entities) {
+          const entity = entities.get(moved.id);
+          const transform = transforms.get(moved.id);
+          if (!entity || !transform) continue;
+          const local = localTransform(scene, entity.parentId, { ...transform,
+            x: moved.x + x - drag.entityX, y: moved.y + y - drag.entityY }, transforms);
+          onMove(moved.id, local.x, local.y, gestureRef.current ?? undefined);
+        }
+      } else if (drag?.kind === "scale" && preview?.scaleX !== undefined && preview.scaleY !== undefined) {
+        const entity = scene?.entities.find(entry => entry.id === drag.sprite.entityId);
+        if (scene && entity) {
+          const local = localTransform(scene, entity.parentId, { ...drag.sprite, scaleX: preview.scaleX, scaleY: preview.scaleY });
+          onTransform(entity.id, { scaleX: local.scaleX, scaleY: local.scaleY }, gestureRef.current ?? undefined);
+        }
+      } else if (drag?.kind === "rotate" && preview?.rotation !== undefined) {
+        const entity = scene?.entities.find(entry => entry.id === drag.sprite.entityId);
+        if (scene && entity) {
+          const local = localTransform(scene, entity.parentId, { ...drag.sprite, rotation: preview.rotation });
+          onTransform(entity.id, { rotation: local.rotation }, gestureRef.current ?? undefined);
+        }
+      } else if (drag?.kind === "marquee" && marquee && frame) {
+        const minX = Math.min(marquee.startX, marquee.endX);
+        const maxX = Math.max(marquee.startX, marquee.endX);
+        const minY = Math.min(marquee.startY, marquee.endY);
+        const maxY = Math.max(marquee.startY, marquee.endY);
+        const ids = new Set(frame.sprites.filter((sprite) => sprite.x >= minX && sprite.x <= maxX && sprite.y >= minY && sprite.y <= maxY)
+          .map((sprite) => sprite.entityId));
+        for (const entity of scene?.entities ?? []) {
+          const transform = transforms.get(entity.id);
+          if (transform && transform.x >= minX && transform.x <= maxX &&
+              transform.y >= minY && transform.y <= maxY) ids.add(entity.id);
+        }
+        onSelectMany([...ids], drag.additive);
+      } else if (drag?.kind === "light_move" && lightPreview) {
+        onLight(drag.sceneId, drag.index, { x: lightPreview.x, y: lightPreview.y }, gestureRef.current ?? undefined);
+      } else if (drag?.kind === "light_radius" && lightPreview) {
+        onLight(drag.sceneId, drag.index, { radius: lightPreview.radius }, gestureRef.current ?? undefined);
       }
-    } else if (drag?.kind === "scale" && preview?.scaleX !== undefined && preview.scaleY !== undefined) {
-      const entity = scene?.entities.find(entry => entry.id === drag.sprite.entityId);
-      if (scene && entity) {
-        const local = localTransform(scene, entity.parentId, { ...drag.sprite, scaleX: preview.scaleX, scaleY: preview.scaleY });
-        onTransform(entity.id, { scaleX: local.scaleX, scaleY: local.scaleY });
-      }
-    } else if (drag?.kind === "rotate" && preview?.rotation !== undefined) {
-      const entity = scene?.entities.find(entry => entry.id === drag.sprite.entityId);
-      if (scene && entity) {
-        const local = localTransform(scene, entity.parentId, { ...drag.sprite, rotation: preview.rotation });
-        onTransform(entity.id, { rotation: local.rotation });
-      }
-    } else if (drag?.kind === "marquee" && marquee && frame) {
-      const minX = Math.min(marquee.startX, marquee.endX);
-      const maxX = Math.max(marquee.startX, marquee.endX);
-      const minY = Math.min(marquee.startY, marquee.endY);
-      const maxY = Math.max(marquee.startY, marquee.endY);
-      const ids = new Set(frame.sprites.filter((sprite) => sprite.x >= minX && sprite.x <= maxX && sprite.y >= minY && sprite.y <= maxY)
-        .map((sprite) => sprite.entityId));
-      for (const entity of scene?.entities ?? []) {
-        const transform = transforms.get(entity.id);
-        if (transform && transform.x >= minX && transform.x <= maxX &&
-            transform.y >= minY && transform.y <= maxY) ids.add(entity.id);
-      }
-      onSelectMany([...ids], drag.additive);
-    } else if (drag?.kind === "light_move" && lightPreview) {
-      onLight(drag.sceneId, drag.index, { x: lightPreview.x, y: lightPreview.y });
-    } else if (drag?.kind === "light_radius" && lightPreview) {
-      onLight(drag.sceneId, drag.index, { radius: lightPreview.radius });
-    }
-    paintOverlay();
+      paintOverlay();
+    } finally { endGesture(); }
   };
 
   const onPointerCancel = () => {
@@ -413,8 +432,16 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
     lightPreviewRef.current = null;
     panRef.current = null;
     setIsPanning(false);
+    endGesture();
     paintOverlay();
   };
+  const cancelRef = useRef(onPointerCancel);
+  cancelRef.current = onPointerCancel;
+  useEffect(() => {
+    const cancel = () => cancelRef.current();
+    window.addEventListener("blur", cancel);
+    return () => { window.removeEventListener("blur", cancel); cancel(); };
+  }, []);
 
   return (
     <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "auto", bgcolor: "background.default" }}>
@@ -439,12 +466,12 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
             onKeyDown(event);
           }}
           onKeyUp={(event) => { if (event.code === "Space") spaceHeldRef.current = false; onKeyUp(event); }}
-          onBlur={() => { spaceHeldRef.current = false; onBlur(); }}
+          onBlur={() => { spaceHeldRef.current = false; onPointerCancel(); onBlur(); }}
           sx={{ width: "100%", height: "100%", objectFit: "contain" }} />
         {(!playing || paused) && frame && <Box component="canvas" ref={overlayRef} width={Math.round(frame.width * frame.pixelsPerUnit)} height={Math.round(frame.height * frame.pixelsPerUnit)}
           aria-label="Game edit overlay" role="group"
           onContextMenu={(event) => event.preventDefault()}
-          onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel}
+          onPointerDown={onPointerDown} onPointerMove={onPointerMove} onPointerUp={onPointerUp} onPointerCancel={onPointerCancel} onLostPointerCapture={onPointerCancel}
           onWheel={(event) => {
             if (!active) return;
             event.preventDefault();
