@@ -2690,7 +2690,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "publish_native_game",
     module: "game",
     impl: "packages/agents/src/capabilities/game.ts",
-    contract: "295553b091cd",
+    contract: "06b6dc47f711",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-game.test.ts",
