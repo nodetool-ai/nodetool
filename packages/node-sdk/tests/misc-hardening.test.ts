@@ -1,8 +1,7 @@
 // @ts-nocheck
 /**
  * Mutation-hardening for the smaller behavioural helpers:
- * class-name-to-title numeric merging, package-registry-client validation,
- * and pricing-bundle file output.
+ * class-name-to-title numeric merging and pricing-bundle file output.
  */
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { mkdtemp, readFile, rm } from "node:fs/promises";
@@ -10,7 +9,6 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 
 import { classNameToTitle } from "../src/class-name-to-title.js";
-import { fetchAvailablePackages } from "../src/package-registry-client.js";
 import {
   buildPricingBundles,
   writePricingBundles,
@@ -30,80 +28,6 @@ describe("classNameToTitle numeric merge boundaries", () => {
 
   it("returns an empty string for empty input", () => {
     expect(classNameToTitle("")).toBe("");
-  });
-});
-
-describe("fetchAvailablePackages validation", () => {
-  const originalFetch = globalThis.fetch;
-  afterEach(() => {
-    globalThis.fetch = originalFetch;
-    vi.restoreAllMocks();
-  });
-
-  const mockJson = (body: unknown) => {
-    globalThis.fetch = vi.fn(async () => new Response(JSON.stringify(body), { status: 200 })) as typeof fetch;
-  };
-
-  it("returns a top-level array of valid packages", async () => {
-    mockJson([{ name: "a", repo_id: "o/a" }]);
-    expect(await fetchAvailablePackages()).toEqual([{ name: "a", repo_id: "o/a" }]);
-  });
-
-  it("extracts packages from a { packages: [...] } wrapper", async () => {
-    mockJson({ packages: [{ name: "b", repo_id: "o/b", description: "d" }] });
-    expect(await fetchAvailablePackages()).toEqual([
-      { name: "b", repo_id: "o/b", description: "d" }
-    ]);
-  });
-
-  it("drops entries missing name or repo_id", async () => {
-    mockJson([
-      { name: "ok", repo_id: "o/ok" },
-      { name: "no-repo" },
-      { repo_id: "o/no-name" },
-      { name: 1, repo_id: "o/x" }
-    ]);
-    expect(await fetchAvailablePackages()).toEqual([{ name: "ok", repo_id: "o/ok" }]);
-  });
-
-  it("keeps an entry with a valid string description", async () => {
-    mockJson([{ name: "a", repo_id: "o/a", description: "fine" }]);
-    expect(await fetchAvailablePackages()).toEqual([
-      { name: "a", repo_id: "o/a", description: "fine" }
-    ]);
-  });
-
-  it("drops an entry whose description is the wrong type", async () => {
-    mockJson([{ name: "a", repo_id: "o/a", description: 42 }]);
-    expect(await fetchAvailablePackages()).toEqual([]);
-  });
-
-  it("drops null, scalar and array entries", async () => {
-    mockJson([null, 42, "str", [1, 2], { name: "ok", repo_id: "o/ok" }]);
-    expect(await fetchAvailablePackages()).toEqual([{ name: "ok", repo_id: "o/ok" }]);
-  });
-
-  it.each([{ nope: true }, null, 42, "string"])(
-    "returns [] for a non-array, non-packages response (%j)",
-    async (body) => {
-      const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-      mockJson(body);
-      expect(await fetchAvailablePackages()).toEqual([]);
-      errorSpy.mockRestore();
-    }
-  );
-
-  it("returns [] for a non-2xx response even with a valid array body", async () => {
-    const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    globalThis.fetch = vi.fn(
-      async () =>
-        new Response(JSON.stringify([{ name: "a", repo_id: "o/a" }]), {
-          status: 500,
-          statusText: "Server Error"
-        })
-    ) as typeof fetch;
-    expect(await fetchAvailablePackages()).toEqual([]);
-    errorSpy.mockRestore();
   });
 });
 

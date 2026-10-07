@@ -9,6 +9,7 @@ import {
 } from "@nodetool-ai/config";
 import { parseWavBytes } from "@nodetool-ai/audio-nodes";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
+import { MissingRuntimePackageError } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
 
 const execFileP = promisify(execFile);
@@ -115,12 +116,16 @@ export async function loadTransformers(): Promise<TransformersModule> {
           "@huggingface/transformers"
         );
       } catch (err) {
-        throw new Error(
+        // Forget the failure so an install takes effect without a restart.
+        cachedModule = null;
+        throw new MissingRuntimePackageError(
           "The '@huggingface/transformers' package is required to run " +
             "Transformers.js nodes. Install the \"Transformers.js\" runtime " +
             "package from the Package Manager (it bundles @huggingface/transformers " +
             "and onnxruntime). " +
-            `Original error: ${(err as Error)?.message ?? err}`
+            `Original error: ${(err as Error)?.message ?? err}`,
+          "transformers-js",
+          { cause: err }
         );
       }
 

@@ -1,4 +1,4 @@
-import { getPackageDescription, needsTorchPlatformDetection } from '../packageManager';
+import { fetchAvailablePackages, needsTorchPlatformDetection } from '../packageManager';
 import * as config from '../config';
 import * as events from '../events';
 import * as utils from '../utils';
@@ -32,40 +32,23 @@ jest.spyOn(torchruntime, 'detectTorchPlatform').mockResolvedValue({
   indexUrl: 'https://download.pytorch.org/whl/cpu',
 });
 
-describe('package descriptions', () => {
-  test('overrides nunchaku description with user-focused guidance', () => {
-    const description = getPackageDescription({
-      repo_id: 'nunchaku-tech/nunchaku',
-      description: 'Nunchaku quantization library for efficient inference',
-    });
+describe('package catalog', () => {
+  test('lists the embedded Python packs without a network call', async () => {
+    const { packages } = await fetchAvailablePackages();
+    const repoIds = packages.map((p) => p.repo_id);
 
-    expect(description).toContain('FLUX and Qwen image models');
-    expect(description).toContain('Nunchaku-optimized HuggingFace models');
-  });
-
-  test('overrides nodetool core description with clearer text', () => {
-    const description = getPackageDescription({
-      repo_id: 'nodetool-ai/nodetool-core',
-      description: 'Core system',
-    });
-
-    expect(description).toContain('Essential NodeTool core nodes');
-  });
-
-  test('keeps non-overridden registry descriptions trimmed', () => {
-    const description = getPackageDescription({
-      repo_id: 'nodetool-ai/nodetool-huggingface',
-      description: '  Existing description  ',
-    });
-
-    expect(description).toBe('Existing description');
+    expect(repoIds).toContain('nodetool-ai/nodetool-core');
+    expect(repoIds).toContain('nodetool-ai/nodetool-wan2gp');
+    expect(repoIds).not.toContain('nodetool-ai/nodetool-whispercpp');
+    expect(repoIds).not.toContain('nunchaku-tech/nunchaku');
+    expect(
+      packages.find((p) => p.repo_id === 'nodetool-ai/nodetool-core')?.description
+    ).toContain('Essential NodeTool core nodes');
   });
 
   test('known torch-dependent packages require torch platform detection', () => {
     expect(needsTorchPlatformDetection('nodetool-huggingface')).toBe(true);
     expect(needsTorchPlatformDetection('NodeTool_HuggingFace')).toBe(true);
-    expect(needsTorchPlatformDetection('nunchaku')).toBe(true);
     expect(needsTorchPlatformDetection('nodetool-core')).toBe(false);
   });
-
 });

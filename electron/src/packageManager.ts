@@ -7,7 +7,7 @@ import {
   getCondaEnvPath,
 } from "./config";
 import * as path from "path";
-import { isString } from "./typePredicates";
+import { PYTHON_NODE_PACKS, findPythonNodePack } from "@nodetool-ai/protocol/python-packs";
 
 
 /** Extract the message from an unknown catch-clause error. */
@@ -34,32 +34,6 @@ function isPipPackageArray(value: unknown): value is PipPackage[] {
         typeof item.version === "string"
     )
   );
-}
-
-/** Shape of a package entry from the nodetool registry JSON. */
-interface RegistryPackageItem {
-  name: string;
-  description?: string;
-  repo_id: string;
-  namespaces?: string[];
-  version?: string;
-  latestVersion?: string;
-  latest_version?: string;
-}
-
-const PACKAGE_DESCRIPTION_OVERRIDES: Record<string, string> = {
-  "nodetool-ai/nodetool-core":
-    "Essential NodeTool core nodes and shared runtime components. Install this package in every NodeTool environment.",
-  "nunchaku-tech/nunchaku":
-    "Accelerates FLUX and Qwen image models with Nunchaku quantization kernels. Install this only if you plan to run Nunchaku-optimized HuggingFace models.",
-};
-
-export function getPackageDescription(pkg: Pick<RegistryPackageItem, "repo_id" | "description">): string {
-  const override = PACKAGE_DESCRIPTION_OVERRIDES[pkg.repo_id.toLowerCase()];
-  if (override) {
-    return override;
-  }
-  return isString(pkg.description) ? pkg.description.trim() : "";
 }
 
 export function needsTorchPlatformDetection(packageName: string): boolean {
@@ -113,7 +87,7 @@ import {
   getTorchIndexUrl,
   saveTorchPlatform,
 } from "./torchPlatformCache";
-import { detectTorchPlatform, type TorchPlatform } from "./torchruntime";
+import { detectTorchPlatform } from "./torchruntime";
 import { fileExists } from "./utils";
 import { RUNTIME_PACKAGES } from "./runtime/packages/definitions";
 import {
@@ -132,25 +106,10 @@ import { NpmRuntimePackage } from "./runtime/packages/NpmRuntimePackage";
  * directly through the Node.js process without relying on the Python API.
  */
 
-// Nodetool wheel-based package index (PEP 503 compliant)
-const PACKAGE_INDEX_URL =
-  "https://nodetool-ai.github.io/nodetool-registry/simple/";
-// Primary PyPI simple index to resolve all other packages
+// PyPI simple index. Every Python node pack installs from here.
 const PYPI_SIMPLE_INDEX_URL = "https://pypi.org/simple";
-// Legacy JSON registry for backward compatibility
-const REGISTRY_URL =
-  "https://raw.githubusercontent.com/nodetool-ai/nodetool-registry/main/index.json";
 const METADATA_PATH = "src/nodetool/package_metadata";
-const TORCH_DEPENDENT_PACKAGES = new Set([
-  "nodetool-huggingface",
-  "nunchaku",
-]);
-/** Packages that must be installed from registry wheel URLs (PyPI has name collisions). */
-const REGISTRY_WHEEL_PACKAGES = new Set(["nunchaku"]);
-
-export function isRegistryWheelPackage(packageName: string): boolean {
-  return REGISTRY_WHEEL_PACKAGES.has(canonicalizePackageName(packageName));
-}
+const TORCH_DEPENDENT_PACKAGES = new Set(["nodetool-huggingface"]);
 
 function getAppVersion(): string {
   try {
@@ -163,46 +122,21 @@ function getAppVersion(): string {
 let nodeCache: PackageNode[] | null = null;
 
 /**
- * Fetch available packages from the registry
+ * The packages the package manager offers: the Python node packs in the
+ * embedded catalog, then the npm runtime packages.
  */
 export async function fetchAvailablePackages(): Promise<PackageListResponse> {
-  return new Promise((resolve, reject) => {
-    https.get(REGISTRY_URL, (response) => {
-      let data = "";
-
-      response.on("data", (chunk) => {
-        data += chunk;
-      });
-
-      response.on("end", () => {
-        try {
-          const registryData = JSON.parse(data) as { packages?: RegistryPackageItem[] };
-          const packages: PackageInfo[] = (registryData.packages || []).map((pkg) => ({
-            name: pkg.name,
-            description: getPackageDescription(pkg),
-            repo_id: pkg.repo_id,
-            namespaces: pkg.namespaces,
-            version:
-              pkg.version ??
-              pkg.latestVersion ??
-              pkg.latest_version ??
-              undefined,
-          }));
-          const npmPackages = getNpmAvailablePackages();
-          resolve({
-            packages: [...packages, ...npmPackages],
-            count: packages.length + npmPackages.length,
-          });
-        } catch (error) {
-          reject(new Error(`Failed to parse registry data: ${error}`));
-        }
-      });
-
-      response.on("error", (error) => {
-        reject(new Error(`Failed to fetch registry: ${error.message}`));
-      });
-    });
-  });
+  const packages: PackageInfo[] = PYTHON_NODE_PACKS.map((pack) => ({
+    name: pack.name,
+    description: pack.description,
+    repo_id: pack.repo_id,
+    namespaces: [...pack.namespaces],
+  }));
+  const npmPackages = getNpmAvailablePackages();
+  return {
+    packages: [...packages, ...npmPackages],
+    count: packages.length + npmPackages.length,
+  };
 }
 
 function getNpmAvailablePackages(): PackageInfo[] {
@@ -312,163 +246,10 @@ function compareVersions(a: string, b: string): number {
   return 0;
 }
 
-interface RegistryWheelSelectionOptions {
-  packageName: string;
-  pythonTag: string;
-  platformTag: string;
-  torchTag: string;
-  cudaTag?: string | null;
-}
-
-function torchPlatformToCudaWheelTag(platform: TorchPlatform | string): string | null {
-  const map: Record<string, string> = {
-    cu118: "cu11.8",
-    cu124: "cu12.4",
-    cu128: "cu12.8",
-    cu129: "cu13.0",
-  };
-  return map[platform] ?? null;
-}
-
-function getPlatformWheelTag(): string {
-  if (process.platform === "win32") {
-    return "win_amd64";
-  }
-  if (process.platform === "linux") {
-    return "linux_x86_64";
-  }
-  return "macosx_11_0_arm64";
-}
-
-function parseWheelUrlsFromSimpleIndex(html: string): string[] {
-  const urls: string[] = [];
-  const hrefMatches = html.matchAll(/href="([^"]+\.whl)"/gi);
-  for (const match of hrefMatches) {
-    urls.push(match[1]);
-  }
-  return urls;
-}
-
-export function selectRegistryWheelUrl(
-  wheelUrls: string[],
-  options: RegistryWheelSelectionOptions
-): string | null {
-  const { packageName, pythonTag, platformTag, torchTag, cudaTag } = options;
-  const platformSuffix = `${pythonTag}-${pythonTag}-${platformTag}`.toLowerCase();
-  const torchNeedle = torchTag.toLowerCase();
-
-  const candidates = wheelUrls.filter((url) => {
-    const filename = (url.split("/").pop() ?? "").toLowerCase();
-    if (!filename.endsWith(".whl")) {
-      return false;
-    }
-    if (!extractVersionFromFilename(filename, packageName)) {
-      return false;
-    }
-    return filename.includes(platformSuffix) && filename.includes(torchNeedle);
-  });
-
-  if (candidates.length === 0) {
-    return null;
-  }
-
-  const scored = candidates.map((url) => {
-    const filename = url.split("/").pop() ?? "";
-    const version = extractVersionFromFilename(filename, packageName)!;
-    const lower = filename.toLowerCase();
-    const cudaScore =
-      cudaTag && lower.includes(`${cudaTag}${torchTag}`.toLowerCase())
-        ? 2
-        : lower.includes(torchNeedle)
-          ? 1
-          : 0;
-    return { url, version, cudaScore };
-  });
-
-  const maxCudaScore = Math.max(...scored.map((entry) => entry.cudaScore));
-  const bestMatches = scored.filter((entry) => entry.cudaScore === maxCudaScore);
-  bestMatches.sort((a, b) => compareVersions(a.version, b.version));
-  return bestMatches[bestMatches.length - 1]?.url ?? null;
-}
-
-async function runPythonOneLiner(code: string): Promise<string | null> {
-  const pythonPath = getPythonPath();
-  return new Promise((resolve) => {
-    const proc = spawn(pythonPath, ["-c", code], {
-      env: getProcessEnv(),
-      stdio: "pipe",
-      windowsHide: true,
-    });
-
-    let stdout = "";
-    proc.stdout?.on("data", (data: Buffer) => {
-      stdout += data.toString();
-    });
-
-    proc.on("exit", (code) => {
-      if (code === 0) {
-        resolve(stdout.trim());
-      } else {
-        resolve(null);
-      }
-    });
-
-    proc.on("error", () => {
-      resolve(null);
-    });
-  });
-}
-
-async function getInstalledTorchTag(): Promise<string | null> {
-  const version = await runPythonOneLiner(
-    "import torch; v=torch.__version__.split('+')[0]; print('.'.join(v.split('.')[:2]))"
-  );
-  if (!version) {
-    return null;
-  }
-  return `torch${version}`;
-}
-
-async function getPythonWheelTag(): Promise<string | null> {
-  return runPythonOneLiner(
-    "import sys; print(f'cp{sys.version_info.major}{sys.version_info.minor}')"
-  );
-}
-
-async function resolveRegistryWheelInstallUrl(
-  packageName: string
-): Promise<string | null> {
-  const normalized = canonicalizePackageName(packageName);
-  const html = await httpsGet(`${PACKAGE_INDEX_URL}${normalized}/`);
-  const wheelUrls = parseWheelUrlsFromSimpleIndex(html);
-  const pythonTag = await getPythonWheelTag();
-  const torchTag = await getInstalledTorchTag();
-  if (!pythonTag || !torchTag) {
-    logMessage(
-      `Could not detect Python/torch tags for ${packageName} wheel selection`,
-      "warn"
-    );
-    return null;
-  }
-
-  const savedPlatform = getSavedTorchPlatform()?.platform ?? "cu128";
-  const cudaTag = torchPlatformToCudaWheelTag(savedPlatform);
-
-  return selectRegistryWheelUrl(wheelUrls, {
-    packageName,
-    pythonTag,
-    platformTag: getPlatformWheelTag(),
-    torchTag,
-    cudaTag,
-  });
-}
-
 function buildDependencyIndexArgs(): string[] {
   const args = [
     "--index-url",
     PYPI_SIMPLE_INDEX_URL,
-    "--extra-index-url",
-    PACKAGE_INDEX_URL,
     "--index-strategy",
     "unsafe-best-match",
   ];
@@ -484,16 +265,6 @@ function buildDependencyIndexArgs(): string[] {
 async function resolvePackageInstallTarget(
   packageName: string
 ): Promise<{ installSpec: string; displayVersion: string } | null> {
-  if (isRegistryWheelPackage(packageName)) {
-    const wheelUrl = await resolveRegistryWheelInstallUrl(packageName);
-    if (!wheelUrl) {
-      return null;
-    }
-    const filename = wheelUrl.split("/").pop() ?? wheelUrl;
-    const version = extractVersionFromFilename(filename, packageName) ?? "unknown";
-    return { installSpec: wheelUrl, displayVersion: version };
-  }
-
   const latestVersion = await fetchLatestVersionFromSimpleIndex(packageName);
   if (!latestVersion) {
     return null;
@@ -510,7 +281,7 @@ async function fetchLatestVersionFromSimpleIndex(
 ): Promise<string | null> {
   try {
     const normalized = canonicalizePackageName(packageName).replace(/-/g, "-");
-    const url = `${PACKAGE_INDEX_URL}${normalized}/`;
+    const url = `${PYPI_SIMPLE_INDEX_URL}/${normalized}/`;
     const html = await httpsGet(url);
 
     const candidates: string[] = [];
@@ -1070,7 +841,7 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
     if (!installTarget) {
       return {
         success: false,
-        message: `Could not find package ${packageName} in the package index`,
+        message: `Could not find package ${packageName} on PyPI`,
       };
     }
 
@@ -1090,20 +861,16 @@ export async function installPackage(repoId: string): Promise<PackageResponse> {
       installSpec,
     ];
 
-    if (isRegistryWheelPackage(packageName)) {
-      logMessage(`Installing ${packageName} from registry wheel URL: ${installSpec}`);
-    } else {
-      const torchIndexUrl = getTorchIndexUrl();
-      if (torchIndexUrl) {
-        logMessage(`Adding PyTorch index for package installation: ${torchIndexUrl}`);
-      }
+    const torchIndexUrl = getTorchIndexUrl();
+    if (torchIndexUrl) {
+      logMessage(`Adding PyTorch index for package installation: ${torchIndexUrl}`);
     }
 
     await runUvCommand(args);
 
     return {
       success: true,
-      message: `Package ${repoId} v${displayVersion} installed successfully from wheel index`,
+      message: `Package ${repoId} v${displayVersion} installed successfully from PyPI`,
     };
   } catch (error: unknown) {
     logMessage(
@@ -1177,7 +944,7 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
     if (!installTarget) {
       return {
         success: false,
-        message: `Could not find package ${packageName} in the package index`,
+        message: `Could not find package ${packageName} on PyPI`,
       };
     }
 
@@ -1201,20 +968,16 @@ export async function updatePackage(repoId: string): Promise<PackageResponse> {
       installSpec,
     ];
 
-    if (isRegistryWheelPackage(packageName)) {
-      logMessage(`Updating ${packageName} from registry wheel URL: ${installSpec}`);
-    } else {
-      const torchIndexUrl = getTorchIndexUrl();
-      if (torchIndexUrl) {
-        logMessage(`Adding PyTorch index for package update: ${torchIndexUrl}`);
-      }
+    const torchIndexUrl = getTorchIndexUrl();
+    if (torchIndexUrl) {
+      logMessage(`Adding PyTorch index for package update: ${torchIndexUrl}`);
     }
 
     await runUvCommand(args);
 
     return {
       success: true,
-      message: `Package ${repoId} updated to v${displayVersion} successfully from wheel index`,
+      message: `Package ${repoId} updated to v${displayVersion} successfully from PyPI`,
     };
   } catch (error: unknown) {
     logMessage(`Failed to update package ${repoId}: ${errorMsg(error)}`, "error");
@@ -1248,8 +1011,10 @@ export async function checkExpectedPackageVersions(): Promise<
     // Optimization: fetch all installed packages in one go using pip list
     // This avoids spawning a separate process for each package version check
     const installedPackages = await listInstalledPackagesInternal();
-    const nodetoolPackages = installedPackages.filter((pkg) =>
-      pkg.name.startsWith("nodetool-")
+    const nodetoolPackages = installedPackages.filter(
+      (pkg) =>
+        pkg.name.startsWith("nodetool-") &&
+        !findPythonNodePack(`nodetool-ai/${pkg.name}`)?.independentVersion
     );
 
     for (const pkg of nodetoolPackages) {
@@ -1320,8 +1085,6 @@ export async function installExpectedPackages(): Promise<{
         "--prerelease=allow",
         "--index-url",
         PYPI_SIMPLE_INDEX_URL,
-        "--extra-index-url",
-        PACKAGE_INDEX_URL,
         "--index-strategy",
         "unsafe-best-match",
         "--system",

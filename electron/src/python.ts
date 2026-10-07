@@ -21,7 +21,7 @@ import { MIN_NODETOOL_CORE_VERSION } from "@nodetool-ai/protocol/bridge-protocol
  * This module owns the Electron-side bootstrap of the Python toolchain:
  * - Verify the app can write to user data and log directories before installing
  * - Detect an existing conda/uv-based environment and surface clear failures
- * - Install or update the bundled Python packages from the NodeTool registry
+ * - Install or update the bundled Python packages from PyPI
  * - Provide helpers to run commands with the correct environment variables
  */
 
@@ -36,8 +36,6 @@ interface ValidationResult {
   errors: string[];
 }
 
-const PACKAGE_INDEX_URL =
-  "https://nodetool-ai.github.io/nodetool-registry/simple/";
 const PYPI_SIMPLE_INDEX_URL = "https://pypi.org/simple";
 const REQUIRED_PYTHON_PACKAGES = ["nodetool-core"] as const;
 
@@ -331,8 +329,6 @@ async function installRequiredPythonPackages(
     "--prerelease=allow",
     "--index-url",
     PYPI_SIMPLE_INDEX_URL,
-    "--extra-index-url",
-    PACKAGE_INDEX_URL,
     "--index-strategy",
     "unsafe-best-match",
     "--system",

@@ -1,10 +1,10 @@
 /**
  * usePackageManager — the data model behind the two-pane Package Manager.
  *
- * Subscribes to the four package stores (runtimes, builtin packs, registry
+ * Subscribes to the four package stores (runtimes, builtin packs, Python
  * packs, third-party packs), runs their fetch/console effects, and derives the
  * view model the UI renders: left-rail categories with counts, right-pane
- * title/subtitle/count, status-filter chips, and the filtered row list.
+ * title/subtitle/count, the status filter, and the filtered row list.
  */
 import { useEffect, useMemo } from "react";
 import { useShallow } from "zustand/react/shallow";
@@ -19,10 +19,25 @@ import useOptionalNodePacksStore from "../../stores/OptionalNodePacksStore";
 import { OPTIONAL_NODE_PACKS } from "../../config/optionalNodePacks";
 import { getRequiredKeyForBuiltinPack } from "../../utils/providerPacks";
 
-export type PMTab = "software" | "packs";
+/** The rail entries. Each one is a list in the right pane. */
+export type PMCategory = "included" | "python" | "thirdparty" | "runtimes";
+
+export const PM_CATEGORIES: readonly PMCategory[] = [
+  "included",
+  "python",
+  "thirdparty",
+  "runtimes"
+];
+
+/**
+ * One status filter for every list. "installed" also matches a package with
+ * an update, so a filter never hides a package the user has.
+ */
+export type PMFilter = "all" | "installed" | "available";
 
 /** Curated display group for each runtime id (the store has no group field). */
-const RUNTIME_GROUP: Record<string, "language" | "media" | "ai"> = {
+type RuntimeGroup = "language" | "media" | "ai";
+const RUNTIME_GROUP: Record<string, RuntimeGroup> = {
   python: "language",
   nodejs: "language",
   ffmpeg: "media",
@@ -35,31 +50,47 @@ const RUNTIME_GROUP: Record<string, "language" | "media" | "ai"> = {
   "whisper-cpp": "ai",
   playwright: "media"
 };
-const runtimeGroup = (id: string) => RUNTIME_GROUP[id] ?? "media";
+const runtimeGroup = (id: string): RuntimeGroup => RUNTIME_GROUP[id] ?? "media";
+const RUNTIME_GROUP_ORDER: RuntimeGroup[] = ["language", "media", "ai"];
+const RUNTIME_GROUP_LABEL: Record<RuntimeGroup, string> = {
+  language: "Languages",
+  media: "Media & documents",
+  ai: "AI runtimes"
+};
 
 /** Prefix marking an optional-node-pack (menu visibility) row id, to keep it
  *  distinct from builtin pack ids. */
 const OPTIONAL_PREFIX = "optional:";
 
-const TITLES: Record<string, string> = {
-  all: "All runtimes",
-  language: "Languages",
-  media: "Media & docs",
-  ai: "AI runtimes",
-  included: "Included packs",
-  python: "Registry packs",
-  thirdparty: "Third-party packs"
+const LABELS: Record<PMCategory, string> = {
+  included: "Included",
+  python: "Python packs",
+  thirdparty: "Third-party",
+  runtimes: "Software"
 };
 
-const SUBTITLES: Record<string, string> = {
-  software:
-    "Interpreters and tools NodeTool installs into your environment. Each runtime powers its own node types.",
+const TITLES: Record<PMCategory, string> = {
+  included: "Included packs",
+  python: "Python packs",
+  thirdparty: "Third-party packs",
+  runtimes: "Software"
+};
+
+const SUBTITLES: Record<PMCategory, string> = {
   included:
-    "Reveal advanced and niche node categories, and toggle local packs. Provider nodes appear automatically once you set their API key.",
+    "Packs that ship with NodeTool. Turn a pack off to hide its nodes. A pack toggle takes effect after the server restarts. Provider nodes appear when you add their API key.",
   python:
-    "Install node packs from the registry. The server restarts to load or unload nodes after a change.",
+    "Node packs from PyPI that run in the Python worker. The server restarts after you install, update or uninstall a pack.",
   thirdparty:
-    "Third-party packs run in-process as the server user. Only trust packs you know."
+    "Third-party packs run in-process as the server user. Only trust packs you know.",
+  runtimes:
+    "Interpreters and tools NodeTool installs into your environment. Each runtime powers its own node types."
+};
+
+/** Filter labels per list. Included packs are switched, not installed. */
+const FILTER_LABELS: Record<"switch" | "install", Record<PMFilter, string>> = {
+  switch: { all: "All", installed: "On", available: "Off" },
+  install: { all: "All", installed: "Installed", available: "Not installed" }
 };
 
 export interface PMCount {
@@ -70,6 +101,8 @@ export interface PMCount {
 
 export interface PMRow {
   key: string;
+  /** Heading of the group the row belongs to, for lists shown in groups. */
+  group?: string;
   name: string;
   desc: string;
   version?: string;
@@ -98,8 +131,8 @@ interface PackageManagerModel {
   title: string;
   subtitle: string;
   count: number;
-  /** Status-filter chips for the active list; `[]` when not applicable. */
-  chips: PMCount[];
+  /** Status filter options for the active list; `[]` when not applicable. */
+  filters: { id: PMFilter; label: string; count: number }[];
   rows: PMRow[];
   installLocation: string | null;
   onChangeLocation: () => void;
@@ -108,12 +141,12 @@ interface PackageManagerModel {
   error: string | null;
   console: { lines: string[]; onClear: () => void; busy: boolean } | null;
   thirdPartyCount: number;
-  /** Bulk "update everything with an upgrade" action for the registry tab;
-   *  `null` when it doesn't apply (wrong tab, or nothing to update). */
+  /** Bulk "update everything with an upgrade" action for the Python packs;
+   *  `null` when it doesn't apply (another list, or nothing to update). */
   bulkUpdate: { count: number; busy: boolean; onUpdateAll: () => void } | null;
 }
 
-/** Join the registry list with installed records by repo_id (see registry tab). */
+/** Join the catalog with installed records by repo_id. */
 function mergePython(available: PackageInfo[], installed: InstalledPackage[]) {
   const byRepo = new Map<
     string,
@@ -146,12 +179,11 @@ function mergePython(available: PackageInfo[], installed: InstalledPackage[]) {
 }
 
 export function usePackageManager(params: {
-  tab: PMTab;
-  cat: string;
+  cat: PMCategory;
   q: string;
-  filter: string;
+  filter: PMFilter;
 }): PackageManagerModel {
-  const { tab, cat, q, filter } = params;
+  const { cat, q, filter } = params;
 
   const {
     builtins,
@@ -274,8 +306,8 @@ export function usePackageManager(params: {
 
   return useMemo<PackageManagerModel>(() => {
     const query = q.trim().toLowerCase();
-    const isSoftware = tab === "software";
-    const isThirdParty = tab === "packs" && cat === "thirdparty";
+    const isSoftware = cat === "runtimes";
+    const isThirdParty = cat === "thirdparty";
 
     // The "Included" list mirrors the node menu: the always-on core pack plus
     // keyless local packs (Transformers.js, Hugging Face) keep a manual toggle;
@@ -322,95 +354,62 @@ export function usePackageManager(params: {
       });
     }
 
-    const categories: PMCount[] = isSoftware
-      ? [
-          { id: "all", label: "All runtimes", count: statuses.length },
-          {
-            id: "language",
-            label: "Languages",
-            count: statuses.filter((p) => runtimeGroup(p.id) === "language")
-              .length
-          },
-          {
-            id: "media",
-            label: "Media & docs",
-            count: statuses.filter((p) => runtimeGroup(p.id) === "media").length
-          },
-          {
-            id: "ai",
-            label: "AI runtimes",
-            count: statuses.filter((p) => runtimeGroup(p.id) === "ai").length
-          }
-        ]
-      : [
-          { id: "included", label: "Included", count: includedItems.length },
-          { id: "python", label: "Registry", count: pythonPacks.length },
-          {
-            id: "thirdparty",
-            label: "Third-party",
-            count: thirdPartyPacks.length
-          }
-        ];
+    const categoryCounts: Record<PMCategory, number> = {
+      included: includedItems.length,
+      python: pythonPacks.length,
+      thirdparty: thirdPartyPacks.length,
+      runtimes: statuses.length
+    };
+    const categories: PMCount[] = PM_CATEGORIES.map((id) => ({
+      id,
+      label: LABELS[id],
+      count: categoryCounts[id]
+    }));
 
     let rows: PMRow[] = [];
     let baseCount = 0;
-    const chips: PMCount[] = [];
+    const filters: PackageManagerModel["filters"] = [];
+    const matchesQuery = (text: string) =>
+      !query || text.toLowerCase().includes(query);
 
-    const applyChips = <T>(
+    /** Count each filter option over `list`, then keep the active option. */
+    const applyFilter = <T>(
       list: T[],
-      defs: { id: string; label: string; pred: (item: T) => boolean }[]
-    ) => {
-      const counts = new Map<string, number>();
-      for (const d of defs) {
-        counts.set(d.id, 0);
-      }
-
-      const activeDef = defs.find((d) => d.id === filter) ?? defs[0];
-      const filtered: T[] = [];
-
-      for (const item of list) {
-        let isActiveMatch = false;
-        for (const d of defs) {
-          if (d.pred(item)) {
-            counts.set(d.id, (counts.get(d.id) ?? 0) + 1);
-            if (d.id === activeDef.id) {
-              isActiveMatch = true;
-            }
-          }
+      kind: "switch" | "install",
+      isOn: (item: T) => boolean
+    ): T[] => {
+      const on = list.filter(isOn);
+      const labels = FILTER_LABELS[kind];
+      filters.push(
+        { id: "all", label: labels.all, count: list.length },
+        { id: "installed", label: labels.installed, count: on.length },
+        {
+          id: "available",
+          label: labels.available,
+          count: list.length - on.length
         }
-        if (isActiveMatch) {
-          filtered.push(item);
-        }
-      }
-
-      for (const d of defs) {
-        chips.push({ id: d.id, label: d.label, count: counts.get(d.id) ?? 0 });
-      }
-
-      return filtered;
+      );
+      if (filter === "installed") return on;
+      if (filter === "available") return list.filter((item) => !isOn(item));
+      return list;
     };
 
     if (isSoftware) {
-      const inCat =
-        cat === "all" || !cat
-          ? statuses
-          : statuses.filter((p) => runtimeGroup(p.id) === cat);
-      baseCount = inCat.length;
-      const searched = query
-        ? inCat.filter((p) =>
-            (p.name + " " + p.description).toLowerCase().includes(query)
-          )
-        : inCat;
-      const filtered = applyChips(searched, [
-        { id: "all", label: "All", pred: () => true },
-        { id: "installed", label: "Installed", pred: (p) => p.installed },
-        { id: "available", label: "Not installed", pred: (p) => !p.installed }
-      ]);
-      rows = filtered.map((rt) => {
+      baseCount = statuses.length;
+      const searched = statuses.filter((p) =>
+        matchesQuery(p.name + " " + p.description)
+      );
+      const filtered = applyFilter(searched, "install", (p) => p.installed);
+      // Show the runtimes in groups: languages, then media, then AI.
+      const ordered = RUNTIME_GROUP_ORDER.flatMap((group) =>
+        filtered.filter((p) => runtimeGroup(p.id) === group)
+      );
+      rows = ordered.map((rt) => {
         const busy = rtBusy.includes(rt.id) || rt.installing;
         const hasUpdate = rt.installed && Boolean(rt.updateAvailable);
         const row: PMRow = {
           key: rt.id,
+          group: RUNTIME_GROUP_LABEL[runtimeGroup(rt.id)],
           name: rt.name,
           desc: rt.description,
           badge: hasUpdate
@@ -441,16 +440,10 @@ export function usePackageManager(params: {
       });
     } else if (cat === "included") {
       baseCount = includedItems.length;
-      const searched = query
-        ? includedItems.filter((p) =>
-            (p.name + " " + p.description).toLowerCase().includes(query)
-          )
-        : includedItems;
-      const filtered = applyChips(searched, [
-        { id: "all", label: "All", pred: () => true },
-        { id: "enabled", label: "Enabled", pred: (p) => p.enabled },
-        { id: "disabled", label: "Disabled", pred: (p) => !p.enabled }
-      ]);
+      const searched = includedItems.filter((p) =>
+        matchesQuery(p.name + " " + p.description)
+      );
+      const filtered = applyFilter(searched, "switch", (p) => p.enabled);
       rows = filtered.map((item) => ({
         key: item.id,
         name: item.name,
@@ -465,25 +458,12 @@ export function usePackageManager(params: {
       }));
     } else if (cat === "python") {
       baseCount = pythonPacks.length;
-      const searched = query
-        ? pythonPacks.filter((p) =>
-            (p.name + " " + p.description).toLowerCase().includes(query)
-          )
-        : pythonPacks;
-      const filtered = applyChips(searched, [
-        { id: "all", label: "All", pred: () => true },
-        {
-          id: "installed",
-          label: "Installed",
-          pred: (p) => !!p.installed && !p.installed.hasUpdate
-        },
-        {
-          id: "updates",
-          label: "Updates",
-          pred: (p) => !!p.installed?.hasUpdate
-        },
-        { id: "available", label: "Available", pred: (p) => !p.installed }
-      ]);
+      const searched = pythonPacks.filter((p) =>
+        matchesQuery(p.name + " " + p.description)
+      );
+      const filtered = applyFilter(searched, "install", (p) =>
+        Boolean(p.installed)
+      );
       rows = filtered.map((pack) => {
         const inst = pack.installed;
         const hasUpdate = Boolean(inst?.hasUpdate);
@@ -552,10 +532,10 @@ export function usePackageManager(params: {
       isSoftware,
       isThirdParty,
       categories,
-      title: TITLES[cat] ?? "Packages",
-      subtitle: isSoftware ? SUBTITLES.software : (SUBTITLES[cat] ?? ""),
+      title: TITLES[cat],
+      subtitle: SUBTITLES[cat],
       count: baseCount,
-      chips: notice ? [] : chips,
+      filters: notice ? [] : filters,
       rows,
       installLocation,
       onChangeLocation: () => void selectInstallLocation(),
@@ -566,7 +546,6 @@ export function usePackageManager(params: {
       bulkUpdate
     };
   }, [
-    tab,
     cat,
     q,
     filter,

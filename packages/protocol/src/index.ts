@@ -3,6 +3,7 @@
  */
 
 export * from "./messages.js";
+export * from "./missing-runtime-package.js";
 export type { DocumentOp } from "./document-ops.js";
 export * from "./supervisor.js";
 export * from "./ws-commands.js";
@@ -38,6 +39,7 @@ export * from "./script-fill.js";
 export * from "./script-pace.js";
 export * from "./sha256.js";
 export * from "./builtin-packs.js";
+export * from "./python-packs.js";
 export * from "./triggers.js";
 export * from "./cloud-profile.js";
 export * from "./app-deployment.js";

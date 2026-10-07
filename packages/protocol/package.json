@@ -72,6 +72,12 @@
       "import": "./dist/builtin-packs.js",
       "default": "./dist/builtin-packs.js"
     },
+    "./python-packs": {
+      "nodetool-dev": "./src/python-packs.ts",
+      "types": "./dist/python-packs.d.ts",
+      "import": "./dist/python-packs.js",
+      "default": "./dist/python-packs.js"
+    },
     "./bridge-protocol": {
       "nodetool-dev": "./src/bridge-protocol.ts",
       "types": "./dist/bridge-protocol.d.ts",

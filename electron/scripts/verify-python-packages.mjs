@@ -1,8 +1,8 @@
 #!/usr/bin/env node
 /**
- * Pre-build registry verification.
+ * Pre-build PyPI verification.
  *
- * Ensures the NodeTool registry has at least one published `nodetool-core`
+ * Ensures PyPI has at least one published `nodetool-core`
  * wheel that satisfies `nodetool-core >= MIN_NODETOOL_CORE_VERSION` (read
  * from packages/protocol/src/bridge-protocol.ts). Without this, the Electron
  * installer would pin to a constraint that resolves to nothing, leaving
@@ -25,8 +25,7 @@ const BRIDGE_PROTOCOL_TS = join(
   "bridge-protocol.ts"
 );
 
-const REGISTRY_INDEX_URL =
-  "https://nodetool-ai.github.io/nodetool-registry/simple/";
+const PYPI_SIMPLE_INDEX_URL = "https://pypi.org/simple/";
 
 /**
  * Packages whose minimum published version must satisfy a constraint.
@@ -123,10 +122,10 @@ function comparePep440(a, b) {
   return aPost - bPost;
 }
 
-// ── Registry I/O ─────────────────────────────────────────────────────────
+// ── PyPI I/O ───────────────────────────────────────────────────────────
 
-async function fetchRegistryIndex(packageName) {
-  const url = `${REGISTRY_INDEX_URL}${packageName}/`;
+async function fetchSimpleIndex(packageName) {
+  const url = `${PYPI_SIMPLE_INDEX_URL}${packageName}/`;
   const response = await fetch(url, {
     headers: { Accept: "text/html, application/vnd.pypi.simple.v1+html" }
   });
@@ -134,7 +133,7 @@ async function fetchRegistryIndex(packageName) {
     return { url, status: 404, body: "" };
   }
   if (!response.ok) {
-    throw new Error(`Registry returned HTTP ${response.status} for ${url}`);
+    throw new Error(`PyPI returned HTTP ${response.status} for ${url}`);
   }
   const body = await response.text();
   return { url, status: response.status, body };
@@ -154,11 +153,11 @@ function extractWheelVersions(body, packageName) {
 
 async function verifyPackage(pkg) {
   const { name, min } = pkg;
-  const { url, status, body } = await fetchRegistryIndex(name);
+  const { url, status, body } = await fetchSimpleIndex(name);
   if (status === 404) {
     return {
       ok: false,
-      reason: `Package "${name}" not found on registry (${url}).`
+      reason: `Package "${name}" not found on PyPI (${url}).`
     };
   }
   const versions = extractWheelVersions(body, name);

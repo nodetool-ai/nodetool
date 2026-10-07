@@ -207,8 +207,6 @@ at 24 hours.
 - `packages/cli/src/nodetool-main.ts` — runs on the operator's machine against their
   own API URL, loopback by default.
 - `packages/deploy/src/admin-client.ts` — the server being deployed.
-- `packages/node-sdk/src/package-registry-client.ts` — the pack registry,
-  overridable for a self-hosted one.
 
 **Browser-side.** The socket belongs to the viewer's browser, not the server:
 `packages/game-renderer/src/standalone-player.ts` (fixed relative game document

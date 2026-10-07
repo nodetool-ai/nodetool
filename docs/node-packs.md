@@ -26,15 +26,16 @@ See the [Custom Nodes Guide](developer/custom-nodes-guide.md) for the manifest a
 
 ### Open the Package Manager
 
-Open **Tools > Package Manager** in the desktop app, or go to `/packages` in the web UI. Switch to the **Node Packs** tab. The **Software** tab manages runtimes such as Python and FFmpeg.
+Open **Tools > Package Manager** in the desktop app, or go to `/packages` in the web UI. The left rail has four lists.
 
-### Included, Registry, and Third-party
+### Included, Python packs, Third-party, and Software
 
 - **Included** lists the packs that ship with NodeTool. Switch a pack on or off, then restart the server. The base pack is always on. Provider packs that need an API key are not listed. Their nodes appear after you add the key in **Settings > Models & Providers**.
-- **Registry** lists Python node packs from the public registry. Use **Install**, **Update**, or **Uninstall**, or **Update all** when several have updates.
+- **Python packs** lists the Python node packs that NodeTool offers. They install from PyPI. Use **Install**, **Update**, or **Uninstall**, or **Update all** when several have updates.
 - **Third-party** installs npm packs. Paste a package name such as `@acme/cool-nodes` or `cool-nodes@1.2.3` and click **Install**. Restart the server to load it.
+- **Software** manages runtimes such as Python and FFmpeg, in groups for languages, media, and AI.
 
-Press `/` to focus the search box on the Included and Registry lists. It filters by name and description.
+Press `/` to focus the search box. It filters by name and description. The status filter next to it shows all packages, the installed ones, or the ones not installed. On the Included list, the options are On and Off. Installed includes packages that have an update. The search and the filter stay set when you open another list.
 
 Installing and removing run only in the desktop app. In the web UI, the lists are status-only.
 
@@ -52,7 +53,7 @@ The Third-party list shows each pack's mode, either sandbox modules only, host n
 ## Installing Packs via CLI
 
 ```bash
-# List packs in the public registry
+# List the Python packs the desktop app offers
 nodetool package list --available
 
 # Install a pack into the project's node_modules
@@ -101,7 +102,7 @@ Browse the full node library in the [Node Reference](nodes/).
 
 1. Build the pack as described in the [Custom Nodes Guide](developer/custom-nodes-guide.md).
 2. Publish it to npm or provide a Git URL.
-3. To list it in the public registry, add an entry in the [NodeTool Packs Registry](https://github.com/nodetool-ai/nodetool-registry) repository. `nodetool package list --available` reads that index.
+3. To offer a Python pack in the Package Manager, publish it to PyPI and add it to `PYTHON_NODE_PACKS` in `packages/protocol/src/python-packs.ts`. `nodetool package list --available` prints the same list.
 
 ---
 
