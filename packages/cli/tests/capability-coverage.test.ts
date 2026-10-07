@@ -75,6 +75,11 @@ describe("capability coverage table", () => {
     }
   });
 
+  it("maps publication to its draft-token safety suite", () => {
+    const entry = CAPABILITY_COVERAGE.find((candidate) => candidate.name === "publish_native_game");
+    expect(entry?.suites).toContain("packages/agents/tests/capabilities-game-publish-safety.test.ts");
+  });
+
   it("names each capability once", () => {
     const result = auditCapabilityCoverage(
       declared,

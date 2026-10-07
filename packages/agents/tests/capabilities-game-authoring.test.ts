@@ -53,13 +53,14 @@ describe("retained game ownership boundaries", () => {
     expect(saved.document.authoring).toBeDefined();
     if (saved.document.schemaVersion === 3 || !saved.document.authoring) { throw new Error("Expected retained 2D game"); }
     expect(await createNativeGame(USER,PROJECT,"Unsafe clone",saved.document)).toHaveProperty("error");
+    const token = z.object({draft_updated_at:z.string()}).parse(await run.invoke("get_native_game",{game_id:created.game.id,view:"full"})).draft_updated_at;
     const forged = structuredClone(saved.document);
     if (!forged.authoring) { throw new Error("Missing metadata"); }
     forged.authoring.program.source = "return inputs.tampered;";
-    expect(await run.invoke("publish_native_game",{game_id:created.game.id,base_revision:created.game.revision,document:forged})).toMatchObject({error:expect.stringContaining("preview and apply")});
+    expect(await run.invoke("publish_native_game",{game_id:created.game.id,base_revision:created.game.revision,base_updated_at:token,document:forged})).toMatchObject({error:expect.stringContaining("preview and apply")});
     const edited = structuredClone(saved.document);
     edited.scenes[0].entities[0].transform2d.x += 3;
-    const published = reply.parse(await run.invoke("publish_native_game",{game_id:created.game.id,base_revision:created.game.revision,document:edited}));
+    const published = reply.parse(await run.invoke("publish_native_game",{game_id:created.game.id,base_revision:created.game.revision,base_updated_at:token,document:edited}));
     expect(published.document.authoring?.overrides).toContainEqual(expect.objectContaining({entityId:edited.scenes[0].entities[0].id,path:["transform2d","x"]}));
   });
 

@@ -1,7 +1,7 @@
 import { createHash, randomUUID } from "node:crypto";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
-import { getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
+import { createLogger, getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
 import { AmbiguousGameIdError, Asset, Game, Prediction, Project, Workspace } from "@nodetool-ai/models";
 import { anyGameAssetBinding as gameAssetBinding, gameAssetBinding as legacyAssetBinding, gameAssetBinding3D, anyGameDocument as gameDocument, gameInputFrame, shortResourceId, type AnyGameDocument as GameDocument, type GameDocument as LegacyGameDocument, type GameDocument3D, type GameInputFrame, type GameRenderFrame } from "@nodetool-ai/protocol";
 import { autoplayNativeGame, MAX_GAME_ROUTE_TICKS, createScriptedGameSession, createTopDownRoomGame, createNative3DGame, decodePreparedGameCollider3D, validateAnyGame, trackGameAuthoringEdits, anyGameDocumentOp as gameDocumentOp, GameOpError, type GameAutoplayOptions } from "@nodetool-ai/game-runtime";
@@ -10,12 +10,15 @@ import { assetKeyCandidates, assetObjectKey } from "@nodetool-ai/storage";
 import type { Workspace as RunWorkspace } from "@nodetool-ai/runtime";
 import type { CapabilityExport, CapabilityModule, CapabilityRun } from "./types.js";
 import { gameOutline3D, inputFrames3D, playtestGame3D, captureFrames3D, colliderBinding3D, stageModelGameAsset3D } from "./game3d.js";
+import type { PublishNativeGameRequest } from "./GamePublishRequest.js";
 import { gameSpecs } from "./game.specs.js";
 import { persistOutput } from "../tools/asset-persist.js";
 import { getExampleGameBundle, installExampleGameAssets, listExampleGames } from "../game-examples.js";
 import { previewGameAuthoring, applyGameAuthoring } from "../game-authoring.js";
 import { gameDocumentDigest } from "../game-code-bake.js";
 import { previewGameAuthoringSpec, applyGameAuthoringSpec } from "./game.specs.js";
+
+const log = createLogger("capabilities.game");
 
 const MAX_PLAYTEST_TICKS = MAX_GAME_ROUTE_TICKS;
 const MAX_CAPTURE_FRAMES = 8;
@@ -325,15 +328,18 @@ function summary(game: Game): Record<string, string> {
   };
 }
 
-async function publish(user: string, game: Game, baseRevision: string, source: unknown, message?: string): Promise<unknown> {
+async function publish(user: string, game: Game, request: PublishNativeGameRequest): Promise<unknown> {
+  const baseRevision = request.base_revision;
   if (game.current_revision !== baseRevision) return { error: "Game was modified concurrently", current_revision: game.current_revision };
   const revision = randomUUID().replace(/-/g, "");
-  let document = validateSource(source, game.id, revision);
-  if ("error" in document) return document;
   const workspace = await workspaceOf(user, game);
   if (!workspace) return { error: "Game workspace is unavailable" };
   const draft = await Game.readDraft(user, game.id, workspace);
   if (!draft) return { error: "Game draft not found" };
+  const draftToken = request.document ? request.base_updated_at : draft.game.draft_updated_at;
+  if (draftToken !== draft.game.draft_updated_at) { return { error: "Game draft was modified concurrently" }; }
+  let document = validateSource(request.document ?? draft.document, game.id, revision);
+  if ("error" in document) return document;
   if ((document.schemaVersion === 3) !== (draft.document.schemaVersion === 3)) { return { error: "A game cannot change dimension" }; }
   if (gameDocumentDigest(document.authoring) !== gameDocumentDigest(draft.document.authoring)) {
     return { error: "Retained authoring metadata must be updated through construction preview and apply" };
@@ -342,10 +348,20 @@ async function publish(user: string, game: Game, baseRevision: string, source: u
   const checked = validateAnyGame(document);
   if (!checked.valid) { return { error: "Game publication rejected", diagnostics: checked.diagnostics }; }
   await workspace.write(revisionPath(game, revision), JSON.stringify(document), "application/json");
-  const updated = await Game.publish(user, game.id, baseRevision, revision, draft.game.draft_updated_at, workspace, message);
-  if (!updated) return { error: "Game was modified concurrently" };
-  await workspace.write(`${game.source_root}/drafts/${encodeURIComponent(updated.draft_updated_at)}.json`, JSON.stringify(document), "application/json");
-  await workspace.write(`${game.source_root}/draft.json`, JSON.stringify(document), "application/json");
+  const updated = await Game.publish(user, game.id, baseRevision, revision, draftToken, workspace, request.message);
+  if (!updated) {
+    try {
+      await workspace.delete(revisionPath(game, revision));
+    } catch (error) {
+      log.error("Losing game publication revision cleanup failed", { gameId: game.id, revision, error: String(error) });
+    }
+    return { error: "Game was modified concurrently" };
+  }
+  try {
+    await Game.pruneRevisionFiles(user, game.id, workspace);
+  } catch (error) {
+    log.error("Game publication revision cleanup failed", { gameId: game.id, error: String(error) });
+  }
   return { game: summary(updated), document };
 }
 
@@ -411,11 +427,14 @@ const get: CapabilityExport = {
     const user = userId(run);
     const id = args["game_id"];
     if (!user || typeof id !== "string") return { error: "game_id is required in a user session" };
-    const game = await ownedGame(user, id);
+    let game = await ownedGame(user, id);
     if (!game) return { error: "Game not found" };
     const workspace = await workspaceOf(user, game);
     if (!workspace) return { error: "Game workspace is unavailable" };
-    const document = await readSource(workspace, game, args["source"], args["revision"]);
+    const readsDraft = (args["source"] === undefined || args["source"] === "draft") && args["revision"] === undefined;
+    const draft = readsDraft ? await Game.readDraft(user, game.id, workspace) : null;
+    const document = readsDraft ? draft?.document : await readSource(workspace, game, args["source"], args["revision"]);
+    if (draft) { game = draft.game; }
     if (!document) return { error: "Game source not found" };
     const view = args["view"] ?? "outline";
     if (view === "full") return { game: summary(game), draft_updated_at: game.draft_updated_at, document };
@@ -439,10 +458,15 @@ const save: CapabilityExport = {
     if (!user || typeof id !== "string" || typeof base !== "string") return { error: "game_id and base_revision are required" };
     const game = await ownedGame(user, id);
     if (!game) return { error: "Game not found" };
-    const workspace = await workspaceOf(user, game);
-    if (!workspace) return { error: "Game workspace is unavailable" };
-    const document = args["document"] ?? await readSource(workspace, game, "draft", undefined);
-    return document ? publish(user, game, base, document, typeof args["message"] === "string" ? args["message"] : undefined) : { error: "Game draft not found" };
+    const request = { game_id: id, base_revision: base, message: typeof args["message"] === "string" ? args["message"] : undefined };
+    if (args["document"] !== undefined) {
+      const token = args["base_updated_at"];
+      if (typeof token !== "string" || !token) { return { error: "base_updated_at is required with an explicit document" }; }
+      const parsed = gameDocument.safeParse(args["document"]);
+      if (!parsed.success) { return { error: parsed.error.message }; }
+      return publish(user, game, { ...request, document: parsed.data, base_updated_at: token });
+    }
+    return publish(user, game, request);
   }
 };
 

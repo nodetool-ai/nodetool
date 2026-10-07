@@ -210,6 +210,9 @@ function suitesFor(name, moduleName, pool, sources, aliases) {
     `capabilities-${moduleName}.test.ts`,
     `${moduleName}-capabilities.test.ts`
   ];
+  if (moduleName === "game") {
+    owned.push("capabilities-game3d.test.ts");
+  }
   const flat = moduleName.replace(/-/g, "");
   return pool
     .filter((file) => matcher.test(sources[file]))
