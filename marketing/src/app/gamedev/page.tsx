@@ -40,7 +40,7 @@ export default function GameDevelopmentPage() {
           <section aria-labelledby="game-editor-title" className="mt-24 grid items-center gap-10 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
             <div>
               <h2 id="game-editor-title" className="max-w-sm text-3xl font-semibold tracking-tight md:text-4xl">Edit the level where you play it.</h2>
-              <p className="mt-4 max-w-md leading-relaxed text-slate-300">The game editor opens each game as a workspace tab. Select an entity in the scene tree, change it in the inspector, and press Play without leaving the tab. The same editor builds 2D and 3D games.</p>
+              <p className="mt-4 max-w-md leading-relaxed text-slate-300">The game editor opens each game in its own tab. Pick any object from the list of everything in the level, change its settings in the side panel, and press Play without leaving the tab. The same editor builds 2D and 3D games.</p>
               <a href="https://docs.nodetool.ai/game-editor" className="focus-ring mt-6 inline-flex items-center gap-1 rounded font-medium text-cyan-200 hover:text-cyan-100">Read the game editor guide<ArrowUpRight className="h-4 w-4" aria-hidden="true" /></a>
             </div>
             <div className="overflow-hidden rounded-xl border border-slate-700 bg-slate-950">
@@ -55,9 +55,9 @@ export default function GameDevelopmentPage() {
           <section aria-labelledby="game-process-title" className="mt-24 grid gap-10 border-t border-slate-700 pt-12 lg:grid-cols-[minmax(0,1fr)_minmax(0,2fr)]">
             <h2 id="game-process-title" className="max-w-sm text-3xl font-semibold tracking-tight md:text-4xl">From first idea to the next level.</h2>
             <ol className="space-y-8">
-              <li><h3 className="text-xl font-medium">Describe the game</h3><p className="mt-2 max-w-xl leading-relaxed text-slate-300">Give the agent a world, a player, and a goal. It can build scenes, wire behaviors, and prepare the assets in an editable game project.</p></li>
+              <li><h3 className="text-xl font-medium">Describe the game</h3><p className="mt-2 max-w-xl leading-relaxed text-slate-300">Give the agent a world, a player, and a goal. It builds the levels, sets up how things move and react, and prepares the art and sound in a game project you can edit.</p></li>
               <li><h3 className="text-xl font-medium">Play, change, play again</h3><p className="mt-2 max-w-xl leading-relaxed text-slate-300">Change the art, adjust a jump, move an obstacle, or ask the agent to revise the rules. Play the result in Studio as you work.</p></li>
-              <li><h3 className="text-xl font-medium">Put it in someone else’s hands</h3><p className="mt-2 max-w-xl leading-relaxed text-slate-300">Export a standalone web player with the game’s assets. Share it through your own website, with keyboard and touch controls.</p></li>
+              <li><h3 className="text-xl font-medium">Put it in someone else’s hands</h3><p className="mt-2 max-w-xl leading-relaxed text-slate-300">Export the game with its art and sound as a standalone web page. Share it on your own website. It works with a keyboard or a touch screen.</p></li>
             </ol>
           </section>
           <div className="mt-16 flex flex-wrap items-center justify-between gap-6 border-t border-slate-700 pt-10">

@@ -21,16 +21,16 @@ const rows: EditionRow[] = [
   },
   {
     label: "Intended use",
-    studio: "Production work",
-    cloud: "Evaluation and lightweight access during alpha",
+    studio: "Real projects",
+    cloud: "Trying NodeTool and light use during the alpha",
   },
   {
     label: "Local models",
-    studio: "Supported runtimes can use your hardware",
+    studio: "Run supported AI models on your own computer",
     cloud: "Not available",
   },
   {
-    label: "Remote providers",
+    label: "Online AI providers",
     studio: "Connect your own provider accounts",
     cloud: "Connect your own provider accounts",
   },
@@ -41,12 +41,12 @@ const rows: EditionRow[] = [
   },
   {
     label: "Internet requirement",
-    studio: "Only for remote providers and online services",
+    studio: "Only for online AI providers and services",
     cloud: "Required",
   },
   {
     label: "Graphics hardware",
-    studio: "Optional for hosted providers; model-dependent for local inference",
+    studio: "Not needed for online providers. Running models on your computer may need a strong graphics card",
     cloud: "No local GPU required",
   },
   {
@@ -83,7 +83,7 @@ function EditionHeader({
         </div>
         <div className="flex flex-wrap items-center gap-2">
           <span className="rounded-full border border-blue-500/40 bg-blue-500/10 px-2.5 py-1 text-xs font-semibold text-blue-200">
-            {studio ? "Recommended for production" : "Alpha"}
+            {studio ? "Recommended for real projects" : "Alpha"}
           </span>
           {highlighted && (
             <span className="rounded-full border border-slate-700 px-2.5 py-1 text-xs text-slate-300">
@@ -139,18 +139,18 @@ export default function EditionsCompareSection({
       <div className="mx-auto max-w-7xl px-6 lg:px-8">
         <header className="mb-10 max-w-3xl">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-blue-300">
-            Two editions, one recommendation
+            Desktop or browser
           </p>
           <h2
             id="editions-title"
             className="mt-3 text-3xl font-semibold tracking-tight text-white md:text-5xl"
           >
-            Studio for production. Cloud for evaluation.
+            Studio for real projects. Cloud for trying it out.
           </h2>
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-300">
-            Studio is the desktop edition and the production path. Cloud is the
-            browser edition for evaluation and lightweight access while it is
-            in alpha.
+            Studio is the desktop app and the one we recommend for real work.
+            Cloud runs in your web browser with nothing to install. It is in
+            alpha, an early test version, so use it to try NodeTool.
           </p>
         </header>
 

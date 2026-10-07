@@ -43,7 +43,7 @@ const controls = [
   {
     icon: KeyRound,
     title: "Your keys",
-    body: "Generation bills your provider accounts at their list price. NodeTool sells no credits.",
+    body: "Each generation is billed to your own provider account at its list price. NodeTool sells no credits.",
   },
   {
     icon: ScrollText,
@@ -60,7 +60,7 @@ const controls = [
 const mcpSteps = [
   {
     title: "Install",
-    body: "The command finds your agents and writes each config. It needs Node.js 22.",
+    body: "The command finds the coding agents on your computer and adds NodeTool to each one's settings. It needs Node.js 22.",
   },
   {
     title: "Restart the agent",
@@ -131,10 +131,11 @@ export default function AgentsPage() {
               Your agent builds the workflow. You keep it.
             </h1>
             <p className="mt-6 max-w-xl text-lg leading-relaxed text-slate-300">
-              Hand a brief to the built-in agent or your own coding agent. It
-              builds a NodeTool workflow, runs it on your keys, and fixes the
-              step that fails. The graph stays saved for you to change and run
-              again.
+              Tell NodeTool&apos;s built-in agent, or a coding agent such as
+              Claude Code, what you want made. It builds a workflow, a chain of
+              AI steps, runs it on your own provider accounts, and fixes any
+              step that fails. The workflow stays saved, so you can change it
+              and run it again.
             </p>
             <div className="mt-8 flex flex-col items-stretch gap-3 sm:flex-row sm:items-center">
               <AgentsPrimaryAction />
@@ -169,7 +170,7 @@ export default function AgentsPage() {
             id="agent-loop-title"
             eyebrow="The loop"
             title="Build. Run. Inspect. Repair."
-            body="A chat reply ends when the model stops. An agent in NodeTool works on a graph, so it can read what failed and fix that step."
+            body="A chat assistant answers once and stops. An agent in NodeTool works on a saved workflow, so it can see which step failed and fix that step."
           />
           <div className="mt-12 grid items-start gap-10 lg:grid-cols-12 lg:gap-12">
             <div className="lg:col-span-7">
@@ -279,9 +280,10 @@ export default function AgentsPage() {
               Bring the agent you already use.
             </h2>
             <p className="mt-4 text-lg leading-relaxed text-slate-300">
-              One command gives your coding agent NodeTool&apos;s workflows,
-              image, video, and audio generation, and your asset library.
-              Studio is optional.
+              MCP is the standard way AI agents connect to outside tools. One
+              command gives your coding agent NodeTool&apos;s workflows, image,
+              video, and audio generation, and your saved media. You do not need
+              Studio installed.
             </p>
           </header>
           <div className="min-w-0 lg:col-span-7">

@@ -113,8 +113,8 @@ export default function ModelSupportSection({
                         transition={{ duration: 0.25 }}
                         className="text-3xl md:text-5xl font-semibold tracking-tight text-slate-100 mb-6"
                     >
-                        Every model you need.{" "}
-                        <span className="text-slate-400">On your own keys.</span>
+                        Every major AI model.{" "}
+                        <span className="text-slate-400">On your own accounts.</span>
                     </motion.h2>
 
                     <motion.p
@@ -124,10 +124,10 @@ export default function ModelSupportSection({
                         transition={{ duration: 0.25, delay: 0.05 }}
                         className="text-lg text-slate-300 leading-relaxed"
                     >
-                        Route your shots through the best video, image, audio,
-                        and language models, or run open weights on your own
-                        hardware. Switch in one click. Pay each provider
-                        directly, at their published price.
+                        Use leading video, image, audio, and text models, or run
+                        free open models on your own computer. Switch models in
+                        one click. You connect your own account with each AI
+                        provider and pay it directly, at its published price.
                     </motion.p>
                 </div>
 

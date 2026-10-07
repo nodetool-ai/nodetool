@@ -149,10 +149,9 @@ export default function MarketingSegmentPage() {
                 </h1>
 
                 <p className="text-lg md:text-xl text-slate-400 mb-10 max-w-3xl mx-auto leading-relaxed">
-                  Take a product brief from the first concept to delivered
-                  ads in every format. Describe the campaign, and the agent
-                  builds a workflow you rerun for every SKU, market, and
-                  aspect ratio.
+                  Go from a product brief to finished ads in every format.
+                  Describe the campaign, and the AI agent builds a workflow you
+                  can run again for every product, market, and screen size.
                 </p>
 
                 {/* Two countable credibility chips beside the CTA
@@ -160,7 +159,7 @@ export default function MarketingSegmentPage() {
                 <div className="flex flex-wrap items-center justify-center gap-3 mb-12 text-sm">
                   <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-slate-300">
                     <Check className="h-4 w-4 text-emerald-400" />
-                    {adRecipes.length} ad formats, rendered and editable
+                    {adRecipes.length} example ads you can open and edit
                   </span>
                   <span className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.03] px-4 py-2 text-slate-300">
                     <Check className="h-4 w-4 text-emerald-400" />
@@ -187,13 +186,13 @@ export default function MarketingSegmentPage() {
                     <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-amber-500/30 bg-amber-500/10">
                       <TrendingUp className="w-4 h-4 text-amber-300" />
                     </span>
-                    One brief, every SKU and market
+                    One brief for every product and market
                   </li>
                   <li className="flex items-center gap-2.5">
                     <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-emerald-500/30 bg-emerald-500/10">
                       <Shield className="w-4 h-4 text-emerald-300" />
                     </span>
-                    Provider list prices
+                    Pay AI providers directly, with no markup
                   </li>
                   <li className="flex items-center gap-2.5">
                     <span className="flex h-9 w-9 items-center justify-center rounded-lg border border-cyan-500/30 bg-cyan-500/10">

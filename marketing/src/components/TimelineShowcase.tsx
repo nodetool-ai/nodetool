@@ -43,7 +43,7 @@ export default function TimelineShowcase() {
             Every film is a timeline you can open.
           </h2>
           <p className="mt-5 max-w-xl text-lg leading-relaxed text-slate-300">
-            Made with NodeTool. Open these examples in Studio and change the scenes, text, and motion.
+            These short films were made in NodeTool. Each one is a project, not a flat video file: open it in Studio, the desktop app, and change the scenes, text, and motion.
           </p>
         </div>
 

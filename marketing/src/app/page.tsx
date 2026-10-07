@@ -320,12 +320,12 @@ export default function Home() {
               id="closing-cta-title"
               className="text-3xl md:text-4xl font-bold tracking-tight text-white"
             >
-              Ready to call action?
+              Start making with NodeTool.
             </h2>
             <p className="mt-4 text-lg text-slate-300">
-              Download the open-source studio for macOS, Windows, and Linux.
-              Free, AGPL-3.0. Or try Cloud in your browser, in alpha, with
-              nothing to install.
+              Download Studio, the free and open-source desktop app for macOS,
+              Windows, and Linux. Or try Cloud in your browser with nothing to
+              install. Cloud is in alpha.
             </p>
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <SmartDownloadButton

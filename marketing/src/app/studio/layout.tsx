@@ -1,7 +1,7 @@
 import JsonLd from "../../components/JsonLd";
 import type { Metadata } from "next";
 
-const TITLE = "NodeTool Studio | Make the work. Keep the project.";
+const TITLE = "NodeTool Studio | Make media with an AI agent. Keep every project.";
 const DESCRIPTION =
   "The recommended production edition of NodeTool for macOS, Windows, and Linux. Create with agents, revise the editable project, and use supported local models or remote providers.";
 

@@ -20,13 +20,14 @@ export default function ProjectSection() {
             id="projects-title"
             className="text-3xl md:text-5xl font-bold tracking-tight text-white"
           >
-            Describe it. The agent builds the project.
+            Describe it. The agent builds the whole project.
           </h2>
           <p className="mt-4 max-w-2xl text-lg leading-relaxed text-slate-400">
-            Give the agent a brief. It drafts the script, boards the shots,
-            renders the takes, and cuts them on a timeline. What comes back is a
-            project you can open. Change any part of it yourself, or send the
-            agent back in with a note about the one shot you want different.
+            Tell the agent what you want to make. It writes the script, plans
+            each shot, generates the video clips, and edits them together on a
+            timeline. You get back a project, not just a video file. Change any
+            part of it yourself, or ask the agent to redo the one shot you want
+            different.
           </p>
         </header>
         <ProjectShowcase />

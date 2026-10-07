@@ -27,31 +27,31 @@ const routes: Route[] = [
   {
     name: "Node catalog",
     href: "/node-based-ai",
-    body: "Hundreds of blocks for models, data, and files, plus one for every model on Replicate, fal.ai, and Kie.",
+    body: "Hundreds of building blocks, called nodes, for AI models, data, and files, including one for every model on Replicate, fal.ai, and Kie.ai.",
     icon: Blocks,
   },
   {
     name: "Templates and recipes",
     href: "/templates",
-    body: "Shipped workflows to open, run, and change. A recipe chains several into one job.",
+    body: "Ready-made workflows that come with the app. Open one, run it, and change it. A recipe is a step-by-step guide that combines several into one job.",
     icon: LayoutTemplate,
   },
   {
     name: "Models",
     href: "/models",
-    body: "Every major provider on your keys, and open weights on your own machine through MLX, Ollama, and llama.cpp.",
+    body: "Models from every major provider on your own accounts, and free open models on your own computer through MLX, Ollama, and llama.cpp.",
     icon: Boxes,
   },
   {
     name: "Assets and local models",
     href: "/studio",
-    body: "The desktop app keeps your files, models, and keys on disk, and runs offline.",
+    body: "The desktop app keeps your files, models, and keys on your computer, and works offline with local models.",
     icon: FolderOpen,
   },
   {
     name: "Developers",
     href: "/developers",
-    body: "The SDK, the CLI, and an MCP server that Claude Code and Cursor can call.",
+    body: "Use NodeTool from code: an SDK, a command-line tool, and an MCP server that coding agents such as Claude Code and Cursor can call.",
     icon: Code2,
   },
 ];
@@ -76,9 +76,11 @@ export default function UnderneathSection() {
             Build the workflows that work for you.
           </h2>
           <p className="mt-4 text-lg text-slate-400 leading-relaxed max-w-2xl">
-            When a project comes out right, keep the process that made it.
-            Chain models, editors, and code into a node graph you can re-run on
-            new inputs, ship as an app, or drive headless from the CLI.
+            When a project comes out right, save the steps that made it as a
+            workflow. A workflow chains AI models, editors, and code so you can
+            run the same process on new inputs, such as the next product photo.
+            Share it as a simple app, or run it from the command line without
+            opening the editor.
           </p>
         </header>
 

@@ -4,7 +4,7 @@ export const EDITIONS = {
     eyebrow: "NodeTool Studio · Desktop edition",
     primaryAction: "Download Studio",
     route: "/studio",
-    recommendation: "Recommended for production work.",
+    recommendation: "Recommended for real projects.",
   },
   cloud: {
     name: "NodeTool Cloud",
@@ -13,6 +13,6 @@ export const EDITIONS = {
     primaryAction: "Try Cloud (alpha)",
     route: "/cloud",
     appUrl: "https://app.nodetool.ai",
-    recommendation: "For evaluation and lightweight access while in alpha.",
+    recommendation: "For trying NodeTool while it is in alpha.",
   },
 } as const;
