@@ -8,6 +8,7 @@ export interface GameCapturePageInput3D {
   readonly width: number;
   readonly height: number;
   readonly boundsOverlay?: boolean;
+  readonly benchmarkFrames?: number;
   readonly camera?: GameRenderFrame3D["camera"];
   readonly assets: Readonly<Record<string, { readonly base64: string; readonly digest?: string }>>;
 }
@@ -15,6 +16,7 @@ export interface GameCapturePageReport3D {
   readonly capabilities: GameRendererCapabilities3D;
   readonly stats: GameRendererStats3D;
   readonly projectedBounds: readonly GameProjectedBounds3D[];
+  readonly benchmark?: { readonly frames: number; readonly frameMs: { readonly p50: number; readonly p95: number; readonly p99: number }; readonly browser: string; readonly gpuCompletion: boolean };
 }
 declare global {
   interface Window {
@@ -52,6 +54,21 @@ window.captureNativeGame3D = async (input) => {
           helpers.push(helper);
         }
         stats = await renderer.render(input.frame, input.interpolation);
+      }
+      if (input.benchmarkFrames) {
+        const gl = canvas.getContext("webgl2");
+        for (let index = 0; index < 60; index++) { await renderer.render(input.frame, input.interpolation); gl?.finish(); }
+        const samples: number[] = [];
+        for (let index = 0; index < input.benchmarkFrames; index++) {
+          const started = performance.now();
+          stats = await renderer.render(input.frame, input.interpolation);
+          gl?.finish();
+          samples.push(performance.now() - started);
+        }
+        samples.sort((left, right) => left - right);
+        const percentile = (fraction: number): number => samples[Math.ceil(samples.length * fraction) - 1];
+        return { capabilities: renderer.capabilities, stats, projectedBounds: renderer.projectedBounds(),
+          benchmark: { frames: input.benchmarkFrames, frameMs: { p50: percentile(0.5), p95: percentile(0.95), p99: percentile(0.99) }, browser: navigator.userAgent, gpuCompletion: gl !== null } };
       }
       return { capabilities: renderer.capabilities, stats, projectedBounds: renderer.projectedBounds() };
     } finally {
