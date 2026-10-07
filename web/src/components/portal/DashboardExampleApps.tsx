@@ -2,31 +2,15 @@
 import { css } from "@emotion/react";
 import { alpha, type Theme } from "@mui/material/styles";
 import { useTheme } from "@mui/material/styles";
-import ArrowBackRoundedIcon from "@mui/icons-material/ArrowBackRounded";
-import {
-  lazy,
-  memo,
-  Suspense,
-  useCallback,
-  useEffect,
-  useRef,
-  useState
-} from "react";
-import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNotificationStore } from "../../stores/NotificationStore";
-import {
-  creationProjectId,
-  useWorkspaceTabsStore
-} from "../../stores/WorkspaceTabsStore";
+import { memo, useCallback, useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { BASE_URL } from "../../stores/BASE_URL";
 import {
-  installExampleApp,
   listExampleApps,
   type ExampleAppSummary
 } from "../../utils/exampleApps";
 import {
-  FlexColumn,
-  FlexRow,
   BORDER_RADIUS,
   EditorButton,
   EmptyState,
@@ -38,8 +22,6 @@ import {
 } from "../ui_primitives";
 import { useSectionWrap, SectionHeader } from "./dashboardChrome";
 
-const ExampleAppUseView = lazy(() => import("./ExampleAppUseView"));
-
 /** Query key for the shipped example apps, shared with any invalidation. */
 export const EXAMPLE_APPS_QUERY_KEY = ["applications", "examples"] as const;
 
@@ -48,7 +30,7 @@ const styles = (theme: Theme, compact: boolean) =>
     paddingTop: compact ? 0 : getSpacingPx(SPACING.xxl),
     ".sec-title h2": compact ? { fontSize: "var(--fontSizeNormal)" } : {},
     ".apps-lede": {
-      margin: `0 0 ${getSpacingPx(SPACING.sm)}`,
+      margin: `0 0 ${getSpacingPx(compact ? SPACING.sm : SPACING.xl)}`,
       fontSize: "var(--fontSizeSmall)",
       color: theme.vars.palette.text.secondary
     },
@@ -56,9 +38,9 @@ const styles = (theme: Theme, compact: boolean) =>
       display: "grid",
       gridTemplateColumns: compact
         ? "repeat(auto-fill, minmax(min(100%, 190px), 1fr))"
-        : "repeat(auto-fit, minmax(220px, 1fr))",
-      gap: getSpacingPx(compact ? GAP.comfortable : SPACING.md),
-      paddingBottom: getSpacingPx(SPACING.sm)
+        : "repeat(auto-fill, minmax(min(100%, 300px), 1fr))",
+      gap: getSpacingPx(compact ? GAP.comfortable : SPACING.xl),
+      paddingBottom: getSpacingPx(compact ? SPACING.sm : SPACING.xxl)
     },
     ".app-card": {
       display: "flex",
@@ -77,8 +59,7 @@ const styles = (theme: Theme, compact: boolean) =>
       "&:hover": {
         borderColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.5)`,
         background: theme.vars.palette.action.hover
-      },
-      "&.installing": { cursor: "wait", pointerEvents: "none" }
+      }
     },
     ".app-thumb": {
       position: "relative",
@@ -99,8 +80,8 @@ const styles = (theme: Theme, compact: boolean) =>
     ".app-body": {
       display: "flex",
       flexDirection: "column",
-      gap: getSpacingPx(SPACING.xs),
-      padding: getSpacingPx(SPACING.md),
+      gap: getSpacingPx(compact ? SPACING.xs : SPACING.sm),
+      padding: getSpacingPx(compact ? SPACING.md : SPACING.lg),
       ...(compact && {
         position: "absolute",
         left: 0,
@@ -130,34 +111,6 @@ const styles = (theme: Theme, compact: boolean) =>
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.text.disabled,
       ...(compact && { display: "none" })
-    },
-    ".app-focus-bar": {
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "space-between",
-      gap: getSpacingPx(SPACING.sm),
-      paddingBottom: getSpacingPx(SPACING.md)
-    },
-    // The opened app grows to its natural height so the page scrolls, rather
-    // than clipping it inside a nested scroller.
-    ".app-focus-body": {
-      minHeight: 320,
-      border: `1px solid ${theme.vars.palette.divider}`,
-      borderRadius: BORDER_RADIUS.lg,
-      overflow: "hidden",
-      marginBottom: getSpacingPx(SPACING.xl),
-      // On phones the app's own padding is the gutter: drop the frame and
-      // bleed to the screen edges so widgets keep their full width.
-      [theme.breakpoints.down("sm")]: {
-        border: "none",
-        borderRadius: 0,
-        margin: `0 -${getSpacingPx(SPACING.xl)} ${getSpacingPx(SPACING.xl)}`
-      }
-    },
-    ".app-focus-loading": {
-      display: "flex",
-      justifyContent: "center",
-      padding: `${getSpacingPx(SPACING.xl)} 0`
     },
     ".apps-loading, .apps-empty": {
       display: "flex",
@@ -190,64 +143,43 @@ const thumbSrc = (url: string | null): string | null => {
 
 interface ExampleAppCardProps {
   app: ExampleAppSummary;
-  installing: boolean;
   onUse: (app: ExampleAppSummary) => void;
-  onInstall: (app: ExampleAppSummary) => void;
 }
 
 const ExampleAppCard = memo(function ExampleAppCard({
   app,
-  installing,
-  onInstall,
   onUse
 }: ExampleAppCardProps) {
   const [thumbFailed, setThumbFailed] = useState(false);
   const src = thumbSrc(app.thumbnailUrl);
   const workflows = app.workflows.length;
   return (
-    <FlexColumn gap={SPACING.sm}>
-      <button
-        type="button"
-        className={installing ? "app-card installing" : "app-card"}
-        title={`Use ${app.name}`}
-        aria-busy={installing}
-        onClick={() => onUse(app)}
-      >
-        <span className="app-thumb" aria-hidden>
-          {installing ? (
-            <LoadingSpinner size="medium" />
-          ) : src && !thumbFailed ? (
-            <img
-              src={src}
-              alt=""
-              loading="lazy"
-              onError={() => setThumbFailed(true)}
-            />
-          ) : (
-            appGlyph
-          )}
+    <button
+      type="button"
+      className="app-card"
+      title={`Use ${app.name}`}
+      onClick={() => onUse(app)}
+    >
+      <span className="app-thumb" aria-hidden>
+        {src && !thumbFailed ? (
+          <img
+            src={src}
+            alt=""
+            loading="lazy"
+            onError={() => setThumbFailed(true)}
+          />
+        ) : (
+          appGlyph
+        )}
+      </span>
+      <span className="app-body">
+        <span className="app-name">{app.name}</span>
+        <span className="app-desc">{app.description}</span>
+        <span className="app-meta">
+          {workflows} workflow{workflows === 1 ? "" : "s"}
         </span>
-        <span className="app-body">
-          <span className="app-name">{app.name}</span>
-          <span className="app-desc">{app.description}</span>
-          <span className="app-meta">
-            {workflows} workflow{workflows === 1 ? "" : "s"}
-          </span>
-        </span>
-      </button>
-      <FlexRow gap={SPACING.sm}>
-        <EditorButton density="compact" onClick={() => onUse(app)}>
-          Use app
-        </EditorButton>
-        <EditorButton
-          density="compact"
-          disabled={installing}
-          onClick={() => onInstall(app)}
-        >
-          {installing ? "Installing…" : "Install app"}
-        </EditorButton>
-      </FlexRow>
-    </FlexColumn>
+      </span>
+    </button>
   );
 });
 
@@ -258,28 +190,25 @@ interface DashboardExampleAppsProps {
 }
 
 /**
- * The shipped example apps can run directly or be installed into a project.
+ * The shipped example apps. A card opens the app in its own tab, where the
+ * user can make an editable copy.
  */
 const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
   compact = false,
   onBrowseAll
 }) => {
-  const [usingApp, setUsingApp] = useState<ExampleAppSummary | null>(null);
-  const handleUse = useCallback(
-    (app: ExampleAppSummary) => setUsingApp(app),
-    []
-  );
-  const sectionRef = useRef<HTMLElement>(null);
-  // Cards can sit far down a long catalog; bring the opened app to the top.
-  useEffect(() => {
-    if (usingApp) sectionRef.current?.scrollIntoView?.({ block: "start" });
-  }, [usingApp]);
   const theme = useTheme();
   const sectionWrap = useSectionWrap();
-  const queryClient = useQueryClient();
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
-  const addNotification = useNotificationStore(
-    (state) => state.addNotification
+  const handleUse = useCallback(
+    (app: ExampleAppSummary) =>
+      openTab({
+        type: "example-app",
+        ref: app.slug,
+        mode: "view",
+        title: app.name
+      }),
+    [openTab]
   );
 
   const { data, isLoading, isError, refetch } = useQuery({
@@ -288,109 +217,31 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
     staleTime: Infinity
   });
 
-  const install = useMutation({
-    mutationFn: async (app: ExampleAppSummary) => {
-      const projectId = creationProjectId();
-      return {
-        projectId,
-        created: await installExampleApp(app.slug, projectId)
-      };
-    },
-    onSuccess: async ({ projectId, created }) => {
-      await queryClient.invalidateQueries({ queryKey: ["applications"] });
-      await queryClient.invalidateQueries({ queryKey: ["workflows"] });
-      openTab({
-        type: "application",
-        ref: created.id,
-        mode: "view",
-        title: created.name,
-        projectId
-      });
-      addNotification({
-        type: "success",
-        alert: true,
-        content: `Added "${created.name}" to your apps`
-      });
-    },
-    onError: (error: unknown, app) => {
-      addNotification({
-        type: "error",
-        alert: true,
-        content: `Couldn't add ${app.name}: ${error instanceof Error ? error.message : "Unknown error"}`
-      });
-    }
-  });
-
-  const handleInstall = useCallback(
-    (app: ExampleAppSummary) => {
-      if (install.isPending) return;
-      install.mutate(app);
-    },
-    [install]
-  );
-
   const apps = data ?? [];
-  const installingSlug = install.isPending ? install.variables?.slug : null;
   const countLabel = `${apps.length} app${apps.length === 1 ? "" : "s"}`;
   const visibleApps = compact ? apps.slice(0, 4) : apps;
 
   return (
     <section
-      ref={sectionRef}
       css={styles(theme, compact)}
       aria-labelledby="dashboard-example-apps-title"
     >
       <div css={compact ? css({ maxWidth: "none", padding: 0 }) : sectionWrap}>
-        {usingApp ? (
-          <div className="app-focus-bar">
+        <SectionHeader title="Start from an app" count={countLabel}>
+          {compact && onBrowseAll && apps.length > visibleApps.length && (
             <EditorButton
               variant="text"
               density="compact"
-              startIcon={<ArrowBackRoundedIcon fontSize="small" />}
-              onClick={() => setUsingApp(null)}
+              onClick={onBrowseAll}
             >
-              All apps
+              See all apps
             </EditorButton>
-            <EditorButton
-              density="compact"
-              disabled={installingSlug === usingApp.slug}
-              onClick={() => handleInstall(usingApp)}
-            >
-              {installingSlug === usingApp.slug ? "Installing…" : "Install app"}
-            </EditorButton>
-          </div>
-        ) : (
-          <>
-            <SectionHeader title="Start from an app" count={countLabel}>
-              {compact && onBrowseAll && apps.length > visibleApps.length && (
-                <EditorButton
-                  variant="text"
-                  density="compact"
-                  onClick={onBrowseAll}
-                >
-                  See all apps
-                </EditorButton>
-              )}
-            </SectionHeader>
-            <p className="apps-lede">
-              Use an app directly, or install a copy to customize its workflows.
-            </p>
-          </>
-        )}
-        {usingApp && (
-          <div className="app-focus-body">
-            <Suspense
-              fallback={
-                <div className="app-focus-loading">
-                  <LoadingSpinner text="Loading app" />
-                </div>
-              }
-            >
-              <ExampleAppUseView key={usingApp.slug} slug={usingApp.slug} />
-            </Suspense>
-          </div>
-        )}
-        {usingApp ? null : isLoading ? (
+          )}
+        </SectionHeader>
+        <p className="apps-lede">
+          Open an app to use it, or edit a copy to customize its workflows.
+        </p>
+        {isLoading ? (
           <div className="apps-loading">
             <LoadingSpinner size="medium" text="Loading apps" />
           </div>
@@ -418,8 +269,6 @@ const DashboardExampleApps: React.FC<DashboardExampleAppsProps> = ({
               <ExampleAppCard
                 key={app.slug}
                 app={app}
-                installing={installingSlug === app.slug}
-                onInstall={handleInstall}
                 onUse={handleUse}
               />
             ))}

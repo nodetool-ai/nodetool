@@ -1,11 +1,9 @@
-import { render, screen, waitFor, within } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import DashboardExampleApps from "../DashboardExampleApps";
-
-jest.mock("../ExampleAppUseView", () => ({ __esModule: true, default: ({ slug }: { slug: string }) => <div>Using {slug}</div> }));
 
 const listExampleApps = jest.fn();
 const installExampleApp = jest.fn();
@@ -106,45 +104,6 @@ describe("DashboardExampleApps", () => {
     expect(onBrowseAll).toHaveBeenCalledTimes(1);
   });
 
-  it("installs an app with its separate install action", async () => {
-    const user = userEvent.setup();
-    installExampleApp.mockResolvedValue({ id: "app-1", name: "Vary Image" });
-    renderApps();
-
-    await user.click(await screen.findAllByRole("button", { name: "Install app" }).then((buttons) => buttons[0]));
-
-    await waitFor(() => expect(openTab).toHaveBeenCalledTimes(1));
-    expect(installExampleApp).toHaveBeenCalledWith("vary-image", "proj-1");
-    expect(openTab).toHaveBeenCalledWith({
-      type: "application",
-      ref: "app-1",
-      mode: "view",
-      title: "Vary Image",
-      projectId: "proj-1"
-    });
-    expect(addNotification).toHaveBeenCalledWith(
-      expect.objectContaining({ type: "success" })
-    );
-  });
-
-  it("reports a failed install without opening anything", async () => {
-    const user = userEvent.setup();
-    installExampleApp.mockRejectedValue(new Error("No FAL key"));
-    renderApps();
-
-    await user.click(await screen.findAllByRole("button", { name: "Install app" }).then((buttons) => buttons[0]));
-
-    await waitFor(() =>
-      expect(addNotification).toHaveBeenCalledWith(
-        expect.objectContaining({
-          type: "error",
-          content: expect.stringContaining("No FAL key")
-        })
-      )
-    );
-    expect(openTab).not.toHaveBeenCalled();
-  });
-
   it("offers a retry when the list cannot load", async () => {
     listExampleApps.mockRejectedValueOnce(new Error("offline"));
     const user = userEvent.setup();
@@ -156,41 +115,17 @@ describe("DashboardExampleApps", () => {
   });
 });
 
-it("uses a shipped app without installing it", async () => {
+it("opens a used app in its own tab without installing it", async () => {
   listExampleApps.mockResolvedValue(APPS);
-  installExampleApp.mockClear();
   renderApps();
   await userEvent.click(await screen.findByRole("button", { name: /vary image/i }));
-  expect(await screen.findByText("Using vary-image")).toBeInTheDocument();
+
+  expect(openTab).toHaveBeenCalledWith({
+    type: "example-app",
+    ref: "vary-image",
+    mode: "view",
+    title: "Vary Image"
+  });
   expect(installExampleApp).not.toHaveBeenCalled();
-});
-
-it("opens a used app on its own, without the catalog header", async () => {
-  listExampleApps.mockResolvedValue(APPS);
-  const user = userEvent.setup();
-  renderApps();
-  await user.click(await screen.findByRole("button", { name: /vary image/i }));
-
-  expect(await screen.findByText("Using vary-image")).toBeInTheDocument();
-  expect(screen.queryByText("Start from an app")).not.toBeInTheDocument();
-  expect(screen.queryByText("Vary Image")).not.toBeInTheDocument();
-  expect(screen.queryByRole("button", { name: /sku factory/i })).not.toBeInTheDocument();
-
-  await user.click(screen.getByRole("button", { name: "All apps" }));
-  expect(screen.queryByText("Using vary-image")).not.toBeInTheDocument();
-  expect(await screen.findByText("Start from an app")).toBeInTheDocument();
-});
-
-it("installs the opened app from its toolbar", async () => {
-  const app = APPS[1];
-  listExampleApps.mockResolvedValue(APPS);
-  installExampleApp.mockResolvedValue({ id: "app-2", name: app.name });
-  const user = userEvent.setup();
-  renderApps();
-  await user.click(await screen.findByRole("button", { name: new RegExp(app.name, "i") }));
-  await user.click(screen.getByRole("button", { name: "Install app" }));
-
-  await waitFor(() =>
-    expect(installExampleApp).toHaveBeenCalledWith(app.slug, "proj-1")
-  );
+  expect(screen.getByText("Start from an app")).toBeInTheDocument();
 });
