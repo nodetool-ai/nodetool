@@ -1,6 +1,6 @@
 import type { ReactNode } from "react";
 
-import { Caption, CONTROL, FlexRow, SPACING } from "../ui_primitives";
+import { Caption, CONTROL, FlexRow, SPACING } from "../../ui_primitives";
 
 interface GameStatusBarProps {
   tick: number;

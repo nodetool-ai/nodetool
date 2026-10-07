@@ -5,6 +5,8 @@ import { FixedTickClock, GameInput3D } from "@nodetool-ai/game-renderer";
 import { GameAudioPlayer } from "@nodetool-ai/game-renderer/audio";
 import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
 import { GameReplayHistory } from "./gameReplayHistory";
+import type { ScriptFailure } from "./useGamePlaySession";
+import { gameSessionOptions3D, readGameAssetBytes3D } from "./viewport3d/gameSessionAssets3D";
 import { resolveMediaUri } from "../../utils/resolveMediaUri";
 
 export const EMPTY_INPUT_3D: GameInputFrame3D = { pressed: [], justPressed: [], axes: {}, look: { x: 0, y: 0 } };
@@ -31,7 +33,7 @@ export interface GamePlaySession3D {
   readonly step: (input?: GameInputFrame3D) => void;
   readonly save: () => void;
   readonly load: () => Promise<void>;
-  readonly replayBeforeError: () => Promise<void>;
+  readonly replayBeforeError: (displayedFailure?: ScriptFailure) => Promise<void>;
 }
 
 export function useGamePlaySession3D({ refId, document, active, editorSceneId }: GamePlaySession3DOptions): GamePlaySession3D {
@@ -173,34 +175,12 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     audio.updateAssets(current.assets);
     if (!playingRef.current) { audio.pause(); }
     audio.preload();
-    const readAsset = async (slot: string, signal: AbortSignal): Promise<Uint8Array | null> => {
-      const binding = sourceRef.current.assets[slot];
-      if (!binding) { return null; }
-      const key = JSON.stringify(binding);
-      const cached = assetBytesRef.current.get(key);
-      if (cached) { return cached; }
-      const url = await resolveMediaUri(binding.assetId.startsWith("package://") ? binding.assetId : `asset://${binding.assetId}`);
-      if (!url) { return null; }
-      const response = await fetch(url, { signal });
-      if (!response.ok) { throw new Error(`Game asset ${slot} failed to load`); }
-      const bytes = new Uint8Array(await response.arrayBuffer());
-      assetBytesRef.current.set(key, bytes);
-      return bytes;
-    };
+    const readAsset = (slot: string, signal: AbortSignal): Promise<Uint8Array | null> =>
+      readGameAssetBytes3D(sourceRef.current, slot, signal, assetBytesRef.current);
     const initialize = async (): Promise<void> => {
       if (!rendererRef.current) { setBackend("Initializing"); }
       setError(null);
-      const options: GameSession3DOptions = {
-        signal: controller.signal,
-        resolveCollider: async (binding) => {
-          const slot = Object.entries(current.assets).find(([, value]) => value.assetId === binding.assetId && value.mediaKind === binding.mediaKind && value.digest === binding.digest)?.[0];
-          if (!slot) { throw new Error("Collider binding is unavailable"); }
-          const bytes = await readAsset(slot, controller.signal);
-          if (!bytes) { throw new Error(`Collider ${slot} is unavailable`); }
-          const { decodePreparedGameCollider3D } = await import("@nodetool-ai/game-runtime");
-          return decodePreparedGameCollider3D(bytes, binding);
-        }
-      };
+      const options = gameSessionOptions3D(current, controller.signal, assetBytesRef.current);
       sessionOptionsRef.current = options;
       session = await createGameSession3D(current, 1, undefined, options);
       controller.signal.throwIfAborted();
@@ -321,7 +301,8 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       display(restored.frame(), 1);
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
   };
-  const replayBeforeError = async (): Promise<void> => {
+  const replayBeforeError = async (displayedFailure?: ScriptFailure): Promise<void> => {
+    if (displayedFailure && displayedFailure.tick < 1) { return; }
     try {
       const generation = generationRef.current;
       const history = historyRef.current.replay();

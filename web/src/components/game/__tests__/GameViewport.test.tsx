@@ -4,7 +4,7 @@ import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { gameDocument, type GameRenderFrame } from "@nodetool-ai/protocol/game.js";
 
 import { isMac } from "../../../utils/platform";
-import GameViewport from "../GameViewport";
+import GameViewport from "../viewport2d/GameViewport";
 
 jest.mock("../../../utils/platform", () => ({ isMac: jest.fn(() => true) }));
 

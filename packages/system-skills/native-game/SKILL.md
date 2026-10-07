@@ -373,6 +373,14 @@ saved. Read `session.takePresentationEvents()` after each tick to consume the
 latest tick's presentation events. Consuming them does not change gameplay events
 or snapshots. The channel is empty after restoring a session.
 
+Both editor controllers render through `GameEditorShell`. Register panel
+metadata with `createGamePanelRegistry().register()` or the shared
+`gamePanelRegistry.register()`, including its ID, title, icon, supported
+dimensions and default region. Registration returns an idempotent disposer.
+Controllers supply nodes keyed by registered IDs and retain document, save,
+publish, restore and session ownership. The shell routes those nodes to their
+declared regions and owns toolbar, docks, status and editor keyboard scope.
+
 ### B: Benchmarks and verification
 
 Run `nodetool game bench <file> --json` to measure simulation tick and script
@@ -410,6 +418,17 @@ for the machine-readable report.
 ### G: Navigation and AI
 
 ### E: Editor tools
+
+Both editors provide hierarchy, inspector, revisions, scripts and assistant
+panels. Opening another entity keeps an already open script anchored to its
+original entity and behavior.
+
+Use **Run 10 s** to diagnose the captured draft in an independent session. The
+report includes the first failing tick and script time by entity. Changing the
+draft cancels that diagnostic. For a script error, **Replay to tick** rewinds
+the active play session's recorded history. It does not replay the independent
+diagnostic session. Use **Ask the assistant** to pass the script context to
+the game assistant.
 
 ### C: Content and assets
 

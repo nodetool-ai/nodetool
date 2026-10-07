@@ -1,6 +1,6 @@
 import type { GameSnapshot } from "@nodetool-ai/protocol/game.js";
 
-import { Caption, FlexColumn, SPACING, Text } from "../ui_primitives";
+import { Caption, FlexColumn, SPACING, Text } from "../../../ui_primitives";
 
 interface GameRuntimeInspectorProps {
   tick: number;

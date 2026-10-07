@@ -2,8 +2,8 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { GameBehavior } from "@nodetool-ai/protocol/game.js";
 import { GAME_SCRIPT_TYPES, GAME_SCRIPT_TYPES_3D } from "@nodetool-ai/game-runtime";
 
-import { useMonacoEditor } from "../../hooks/editor/useMonacoEditor";
-import { Box, Caption, EditorButton, FlexColumn, FlexRow, LoadingSpinner, SPACING, Text } from "../ui_primitives";
+import { useMonacoEditor } from "../../../../hooks/editor/useMonacoEditor";
+import { Box, Caption, EditorButton, FlexColumn, FlexRow, LoadingSpinner, SPACING, Text } from "../../../ui_primitives";
 
 interface GameScriptPaneProps {
   dimension?: "2d" | "3d";

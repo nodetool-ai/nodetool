@@ -12,9 +12,9 @@ import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import type { GameDocument, GameEntity, GameScene } from "@nodetool-ai/protocol/game.js";
 import type { GameDocumentOp, GameValidationIssue } from "@nodetool-ai/game-runtime";
 
-import { Box, CONTROL, Divider, EditorButton, EditorMenu, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, MenuItemPrimitive, SearchInput, SPACING, Text, Tooltip, TreeRow, TYPOGRAPHY } from "../ui_primitives";
+import { Box, CONTROL, Divider, EditorButton, EditorMenu, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, MenuItemPrimitive, SearchInput, SPACING, Text, Tooltip, TreeRow, TYPOGRAPHY } from "../../../ui_primitives";
 
-import { reparentTransform } from "./viewportGeometry";
+import { reparentTransform } from "../../viewport2d/viewportGeometry";
 
 interface GameSceneTreeProps {
   document: GameDocument;
@@ -179,6 +179,7 @@ export default function GameSceneTree({ document, activeSceneId, selectedIds, is
   };
   const moveWithKeyboard = (event: KeyboardEvent<HTMLElement>, scene: GameScene, entity: GameEntity) => {
     if (!event.altKey || !["ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.key)) return;
+    event.preventDefault();
     const siblings = scene.entities.filter((item) => item.parentId === entity.parentId && item.templateOnly === entity.templateOnly);
     const index = siblings.findIndex((item) => item.id === entity.id);
     const target = event.key === "ArrowUp" ? siblings[index - 1] :
@@ -186,7 +187,6 @@ export default function GameSceneTree({ document, activeSceneId, selectedIds, is
       event.key === "ArrowRight" ? siblings[index - 1] :
       entity.parentId ? scene.entities.find((item) => item.id === entity.parentId) : undefined;
     if (!target) return;
-    event.preventDefault();
     const position: DropPosition = event.key === "ArrowRight" ? "inside" :
       event.key === "ArrowDown" || event.key === "ArrowLeft" ? "after" : "before";
     const ops = moveOps(scene, entity.id, target.id, position);

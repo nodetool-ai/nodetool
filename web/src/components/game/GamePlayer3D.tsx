@@ -1,7 +1,7 @@
 import type { GameDocument3D } from "@nodetool-ai/protocol";
 import { Caption, EditorButton, FlexColumn, FlexRow, SPACING, Text } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
-import GameViewport3D from "./GameViewport3D";
+import GameViewport3D from "./viewport3d/GameViewport3D";
 import { useGamePlaySession3D } from "./useGamePlaySession3D";
 
 interface GamePlayer3DProps { readonly gameId: string; readonly name: string; readonly document: GameDocument3D; readonly active?: boolean; }
