@@ -24,9 +24,13 @@ import {
   WORKFLOW_PLANNER_SYSTEM_PROMPT,
   WORKFLOW_PLAN_TOOL_DESCRIPTION,
   WORKFLOW_PLAN_TOOL_NAME,
+  PLAN_CORE_NODE_TYPES,
   buildWorkflowPlanSchema,
-  parseWorkflowPlan
+  checkWorkflowPlan,
+  planNodeShape,
+  refineWorkflowPlan
 } from "@nodetool-ai/protocol";
+import { plannedCodeStepProblems } from "@nodetool-ai/node-sdk/code-analysis";
 import {
   readWorkflowSetup,
   type WorkflowSetupPlan,
@@ -44,6 +48,8 @@ import type { NodeMetadata } from "../../stores/ApiTypes";
 import { computeSearchResults } from "../../utils/nodeSearch";
 import { useWorkflowSetupWriter } from "./useWorkflowSetup";
 import { workflowCategory } from "../../components/setup/workflow/categories";
+import { snippetStepAsCode } from "../../utils/planSnippetSteps";
+import { isRecord } from "../../utils/typePredicates";
 
 /** How many candidate node types the planner prompt carries. */
 const CANDIDATE_LIMIT = 48;
@@ -141,8 +147,13 @@ export const planCandidates = (
   const ranked = candidateQueries(brief, category).map((query) =>
     rankedTypes(query, metadata, PER_QUERY_LIMIT)
   );
-  const picked: NodeMetadata[] = [];
-  const seen = new Set<string>();
+  // The general-purpose nodes lead: a brief's words rank provider-specific
+  // nodes above Text To Image or Agent, and the planner names only what it sees.
+  const picked: NodeMetadata[] = PLAN_CORE_NODE_TYPES.flatMap((nodeType) => {
+    const meta = metadata[nodeType];
+    return meta ? [meta] : [];
+  });
+  const seen = new Set<string>(picked.map((meta) => meta.node_type));
   for (let index = 0; index < PER_QUERY_LIMIT; index += 1) {
     for (const results of ranked) {
       const result = results[index];
@@ -200,7 +211,8 @@ export const matchNodeType = (
  *
  * A step the planner named correctly is left alone. Any other step — unnamed,
  * or naming a type this install does not have — is matched against the registry
- * so the review step shows a node the build can actually place.
+ * so the review step shows a node the build can actually place. A step that
+ * lands on a Code-node snippet becomes a Code step carrying the snippet's body.
  */
 export const resolvePlanNodeTypes = (
   plan: WorkflowSetupPlan,
@@ -208,9 +220,11 @@ export const resolvePlanNodeTypes = (
 ): WorkflowSetupPlan => ({
   ...plan,
   steps: plan.steps.map((step) =>
-    step.node_type !== null && step.node_type in metadata
-      ? step
-      : { ...step, node_type: matchNodeType(step, metadata) }
+    snippetStepAsCode(
+      step.node_type !== null && step.node_type in metadata
+        ? step
+        : { ...step, node_type: matchNodeType(step, metadata) }
+    )
   )
 });
 
@@ -291,29 +305,60 @@ export const usePlanWorkflow = (workflowId: string): UsePlanWorkflowResult => {
         if (input.model?.id) {
           const metadata = useMetadataStore.getState().metadata;
           const candidates = planCandidates(brief, input.category, metadata);
-          const answer = await rpcRequest("generate_text", {
-            provider: input.model.provider,
-            model: input.model.id,
-            system: WORKFLOW_PLANNER_SYSTEM_PROMPT,
-            prompt: [
-              `Task: ${brief}`,
-              input.category ? `Kind of workflow: ${input.category}` : "",
-              "",
-              "Candidate node types:",
-              ...candidates
-            ]
-              .filter((line) => line !== "")
-              .join("\n"),
-            max_tokens: 4096,
-            schema: buildWorkflowPlanSchema(),
-            schema_name: WORKFLOW_PLAN_TOOL_NAME,
-            schema_description: WORKFLOW_PLAN_TOOL_DESCRIPTION
+          const model = input.model;
+          // The planner checks its own plan and repairs it before the
+          // creator sees it: a plan that would fail at the test run is sent
+          // back with the checker's findings, not handed over to be fixed.
+          const refined = await refineWorkflowPlan({
+            messages: [
+              { role: "system", content: WORKFLOW_PLANNER_SYSTEM_PROMPT },
+              {
+                role: "user",
+                content: [
+                  `Task: ${brief}`,
+                  input.category ? `Kind of workflow: ${input.category}` : "",
+                  "",
+                  "Candidate node types:",
+                  ...candidates
+                ]
+                  .filter((line) => line !== "")
+                  .join("\n")
+              }
+            ],
+            generate: async (messages) => {
+              if (!isCurrent()) {
+                throw new DOMException("The plan was abandoned.", "AbortError");
+              }
+              const answer = await rpcRequest(
+                "generate_text",
+                {
+                  provider: model.provider,
+                  model: model.id,
+                  messages,
+                  max_tokens: 4096,
+                  schema: buildWorkflowPlanSchema(),
+                  schema_name: WORKFLOW_PLAN_TOOL_NAME,
+                  schema_description: WORKFLOW_PLAN_TOOL_DESCRIPTION
+                },
+                undefined,
+                controller.signal
+              );
+              return isRecord(answer.data) ? answer.data : null;
+            },
+            // Steps the planner left unnamed, or named with a type this
+            // install does not have, are matched against the registry here —
+            // the flow's whole point is a plan the build can place.
+            normalize: (draft) => resolvePlanNodeTypes(draft, metadata),
+            check: (draft) =>
+              checkWorkflowPlan(draft, {
+                lookup: (nodeType) => {
+                  const meta = metadata[nodeType];
+                  return meta ? planNodeShape(meta) : null;
+                },
+                checkCode: plannedCodeStepProblems
+              })
           });
-          plan = answer.data ? parseWorkflowPlan(answer.data) : null;
-          // Steps the planner left unnamed, or named with a type this
-          // install does not have, are matched against the registry here —
-          // the flow's whole point is a plan the build can place.
-          plan = plan ? resolvePlanNodeTypes(plan, metadata) : null;
+          plan = refined.plan;
         }
         // No model, or an answer that was not a plan: a shipped chip falls back
         // to its pinned plan so the creator still reaches the review step.

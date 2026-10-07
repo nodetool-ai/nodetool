@@ -2,7 +2,11 @@ import { describe, expect, it } from "vitest";
 
 import { workflowSetupPlan } from "../src/api-schemas/workflows.js";
 import {
+  PLAN_CODE_NODE_TYPE,
+  checkWorkflowPlan,
   parseWorkflowPlan,
+  refineWorkflowPlan,
+  type PlannerMessage,
   planToPlacement,
   resolveWorkflowPlan,
   type PlanNodeLookup,
@@ -48,8 +52,23 @@ const SHAPES: Record<string, PlanNodeShape> = {
   "nodetool.image.Blur": {
     inputs: [{ name: "image", type: "image" }],
     outputs: [{ name: "output", type: "image" }]
+  },
+  [PLAN_CODE_NODE_TYPE]: {
+    inputs: [
+      { name: "code", type: "str" },
+      { name: "secrets", type: "list" }
+    ],
+    outputs: [],
+    supportsDynamicInputs: true,
+    supportsDynamicOutputs: true
   }
 };
+
+const CSV_BODY = [
+  'import { parse } from "@nodetool-ai/sandbox-csv";',
+  "const rows = await parse(inputs.input);",
+  'await output("output", rows);'
+].join("\n");
 
 const lookup: PlanNodeLookup = (type) => SHAPES[type] ?? null;
 
@@ -85,6 +104,41 @@ describe("parseWorkflowPlan", () => {
       outputs: []
     });
     expect(parsed?.steps.map((step) => step.node_type)).toEqual([null, null]);
+  });
+
+  it("makes a step that carries code a Code step, whatever type it named", () => {
+    const parsed = parseWorkflowPlan({
+      inputs: [],
+      steps: [
+        {
+          title: "Parse the CSV",
+          summary: "rows from text",
+          node_type: "nodetool.json.ParseCSV",
+          code: CSV_BODY
+        }
+      ],
+      outputs: []
+    });
+    expect(parsed?.steps[0].node_type).toBe(PLAN_CODE_NODE_TYPE);
+    expect(parsed?.steps[0].code).toBe(CSV_BODY);
+  });
+
+  it("reads a null model_role as no model rather than dropping the plan", () => {
+    const parsed = parseWorkflowPlan({
+      inputs: [],
+      steps: [
+        {
+          title: "Parse",
+          summary: "rows",
+          node_type: PLAN_CODE_NODE_TYPE,
+          model_role: null,
+          code: CSV_BODY
+        }
+      ],
+      outputs: []
+    });
+    expect(parsed?.steps[0].model_role).toBeUndefined();
+    expect(parsed?.steps[0].code).toBe(CSV_BODY);
   });
 
   it("returns null for an answer that is not a plan", () => {
@@ -260,6 +314,90 @@ describe("planToPlacement", () => {
     expect(placed.issues).toEqual([]);
   });
 
+  it("places a Code step with its body, its named input and its named output", () => {
+    const placed = planToPlacement(
+      plan({
+        steps: [
+          {
+            id: "s1",
+            title: "Parse the CSV",
+            summary: "rows from text",
+            node_type: PLAN_CODE_NODE_TYPE,
+            code: CSV_BODY
+          }
+        ]
+      }),
+      lookup
+    );
+    const step = placed.nodes.find((node) => node.id === "step_1");
+    expect(step?.properties).toEqual({ code: CSV_BODY });
+    expect(step?.dynamicProperties).toEqual({ input: "" });
+    expect(step?.dynamicOutputs).toEqual({
+      output: { type: "any", type_args: [], optional: false }
+    });
+    expect(placed.edges).toEqual([
+      {
+        source: "input_1",
+        sourceHandle: "output",
+        target: "step_1",
+        targetHandle: "input"
+      },
+      {
+        source: "step_1",
+        sourceHandle: "output",
+        target: "output_1",
+        targetHandle: "value"
+      }
+    ]);
+    expect(placed.issues).toEqual([]);
+  });
+
+  it("wires a Code step through the handles its body names", () => {
+    const placed = planToPlacement(
+      plan({
+        steps: [
+          {
+            id: "s1",
+            title: "Parse CSV",
+            summary: "rows from text",
+            node_type: PLAN_CODE_NODE_TYPE,
+            code: "return { rows: inputs.text };",
+            code_inputs: ["text"],
+            code_outputs: ["rows"]
+          }
+        ]
+      }),
+      lookup
+    );
+    const step = placed.nodes.find((node) => node.id === "step_1");
+    expect(step?.dynamicProperties).toEqual({ text: "" });
+    expect(Object.keys(step?.dynamicOutputs ?? {})).toEqual(["rows"]);
+    expect(placed.edges.map((edge) => [edge.sourceHandle, edge.targetHandle])).toEqual([
+      ["output", "text"],
+      ["rows", "value"]
+    ]);
+    expect(placed.issues).toEqual([]);
+  });
+
+  it("reports a Code step that carries no code", () => {
+    const placed = planToPlacement(
+      plan({
+        steps: [
+          {
+            id: "s1",
+            title: "Parse",
+            summary: "x",
+            node_type: PLAN_CODE_NODE_TYPE
+          }
+        ]
+      }),
+      lookup
+    );
+    expect(placed.issues).toEqual([
+      'step 1 ("Parse") is a Code step with no code, so it outputs nothing.'
+    ]);
+  });
+
   it("reports a step the registry does not have instead of placing it", () => {
     const placed = planToPlacement(
       plan({
@@ -338,5 +476,194 @@ describe("planToPlacement", () => {
     // 2000 chain edges plus the one that feeds the output node.
     expect(placed.edges).toHaveLength(2001);
     expect(Date.now() - started).toBeLessThan(2000);
+  });
+});
+
+describe("checkWorkflowPlan", () => {
+  it("passes a plan that builds", () => {
+    expect(checkWorkflowPlan(plan(), { lookup })).toEqual([]);
+  });
+
+  it("reports an unknown node type and does not report the models chosen later", () => {
+    const problems = checkWorkflowPlan(
+      plan({
+        steps: [
+          {
+            id: "s1",
+            title: "Write",
+            summary: "x",
+            node_type: "nodetool.llm.Generate",
+            model_role: "language"
+          },
+          { id: "s2", title: "Parse", summary: "x", node_type: "nodetool.json.ParseCSV" }
+        ]
+      }),
+      { lookup }
+    );
+    expect(problems).toEqual([
+      'step 2 ("Parse") names "nodetool.json.ParseCSV", which the registry does not have.'
+    ]);
+  });
+
+  it("reports an input node planned as a step", () => {
+    const problems = checkWorkflowPlan(
+      plan({
+        steps: [
+          { id: "s1", title: "Text in", summary: "x", node_type: "nodetool.input.StringInput" },
+          { id: "s2", title: "Trim", summary: "x", node_type: "nodetool.text.Slice" }
+        ]
+      }),
+      { lookup }
+    );
+    expect(problems).toContain(
+      'step 1 ("Text in") is the workflow input/output node "nodetool.input.StringInput"; declare it under inputs or outputs, not as a step.'
+    );
+  });
+
+  it("reports a second input that lands on a step other than Code", () => {
+    const problems = checkWorkflowPlan(
+      plan({
+        inputs: [
+          { name: "text", type: "string" },
+          { name: "suffix", type: "string" }
+        ],
+        steps: [
+          { id: "s1", title: "Join", summary: "x", node_type: "nodetool.text.Concat" }
+        ]
+      }),
+      { lookup }
+    );
+    expect(problems).toEqual([
+      'input "suffix" lands on "input_2" of nodetool.text.Concat: only a Code step can take a second input, as inputs.input_2.'
+    ]);
+  });
+
+  it("reports more outputs than the chain's one value", () => {
+    const problems = checkWorkflowPlan(
+      plan({
+        outputs: [
+          { name: "post", type: "string" },
+          { name: "excerpt", type: "string" }
+        ]
+      }),
+      { lookup }
+    );
+    expect(problems).toEqual([
+      "the plan declares 2 outputs, but every output receives the last step's one value; declare one output."
+    ]);
+  });
+
+  it("hands a Code step every input the build connects to it", () => {
+    const seen: unknown[] = [];
+    checkWorkflowPlan(
+      plan({
+        inputs: [
+          { name: "csv", type: "string" },
+          { name: "style", type: "string" }
+        ],
+        steps: [
+          { id: "s1", title: "Prompts", summary: "x", node_type: PLAN_CODE_NODE_TYPE, code: CSV_BODY }
+        ]
+      }),
+      { lookup, checkCode: (_code, handles) => { seen.push(handles); return []; } }
+    );
+    expect(seen).toEqual([{ inputs: ["input", "input_2"], output: "output" }]);
+  });
+
+  it("hands each Code body to the code check with the handles the build wires", () => {
+    const seen: unknown[] = [];
+    const problems = checkWorkflowPlan(
+      plan({
+        steps: [
+          {
+            id: "s1",
+            title: "Prompts",
+            summary: "x",
+            node_type: PLAN_CODE_NODE_TYPE,
+            code: CSV_BODY
+          }
+        ]
+      }),
+      {
+        lookup,
+        checkCode: (code, handles) => {
+          seen.push({ code, handles });
+          return ["it calls output() once per item"];
+        }
+      }
+    );
+    expect(seen).toEqual([
+      { code: CSV_BODY, handles: { inputs: ["input"], output: "output" } }
+    ]);
+    expect(problems).toEqual([
+      'step 1 ("Prompts") it calls output() once per item.'
+    ]);
+  });
+});
+
+describe("refineWorkflowPlan", () => {
+  const draft = (code: string) => ({
+    inputs: [{ name: "csv", type: "string", sample: "a\n1" }],
+    steps: [
+      { title: "Prompts", summary: "one per row", node_type: PLAN_CODE_NODE_TYPE, code }
+    ],
+    outputs: [{ name: "prompts", type: "string" }]
+  });
+  const LOOPED = 'for (const row of inputs.input) { await output("output", row); }';
+  const FIXED = 'for (const row of inputs.input) { await emit("output", row); }';
+  const check = (candidate: ReturnType<typeof workflowSetupPlan.parse>) =>
+    candidate.steps[0].code === LOOPED ? ["output() in a loop"] : [];
+  const START: PlannerMessage[] = [
+    { role: "system", content: "plan" },
+    { role: "user", content: "Task: prompts from a CSV" }
+  ];
+
+  it("sends the problems back and returns the plan that passes", async () => {
+    const calls: PlannerMessage[][] = [];
+    const answers = [draft(LOOPED), draft(FIXED)];
+    const result = await refineWorkflowPlan({
+      messages: START,
+      generate: async (messages) => {
+        calls.push([...messages]);
+        return answers[calls.length - 1];
+      },
+      check
+    });
+    expect(result.rounds).toBe(2);
+    expect(result.problems).toEqual([]);
+    expect(result.plan?.steps[0].code).toBe(FIXED);
+    const repair = calls[1];
+    expect(repair).toHaveLength(4);
+    expect(repair[2].role).toBe("assistant");
+    expect(JSON.parse(repair[2].content).steps[0].code).toBe(LOOPED);
+    expect(repair[3].content).toContain("- output() in a loop");
+  });
+
+  it("stops after the round limit with the best plan and what is still wrong", async () => {
+    let calls = 0;
+    const result = await refineWorkflowPlan({
+      messages: START,
+      generate: async () => {
+        calls += 1;
+        return draft(LOOPED);
+      },
+      check,
+      maxRounds: 2
+    });
+    expect(calls).toBe(2);
+    expect(result.plan?.steps[0].code).toBe(LOOPED);
+    expect(result.problems).toEqual(["output() in a loop"]);
+  });
+
+  it("asks again when an answer is not a plan", async () => {
+    const answers: Array<Record<string, unknown> | null> = [null, draft(FIXED)];
+    let calls = 0;
+    const result = await refineWorkflowPlan({
+      messages: START,
+      generate: async () => answers[calls++],
+      check
+    });
+    expect(calls).toBe(2);
+    expect(result.problems).toEqual([]);
   });
 });

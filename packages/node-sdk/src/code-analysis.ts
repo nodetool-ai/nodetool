@@ -928,3 +928,156 @@ export function inferredCodeOutputNames(code: string): string[] {
   }
   return [];
 }
+
+/** Hosts of model APIs a planned Code step must not call itself. */
+const MODEL_API_HOSTS = [
+  "api.openai.com",
+  "api.anthropic.com",
+  "generativelanguage.googleapis.com",
+  "openrouter.ai",
+  "api.mistral.ai",
+  "api.groq.com",
+  "api.together.xyz",
+  "api.deepseek.com"
+];
+
+/** Host calls that return a promise; a body that does not await one holds a Promise. */
+const ASYNC_HOST_GLOBALS = new Set(["getSecret", "fetch", "sleep"]);
+const ASYNC_HOST_OBJECTS = new Set(["workspace", "media"]);
+
+/** The host call a `const x = <call>` initializer makes without `await`, if any. */
+function unawaitedHostCall(init: acorn.AnyNode | null | undefined): string | null {
+  if (init?.type !== "CallExpression") return null;
+  const callee = init.callee;
+  if (callee.type === "Identifier" && ASYNC_HOST_GLOBALS.has(callee.name)) {
+    return callee.name;
+  }
+  if (
+    callee.type === "MemberExpression" &&
+    callee.object.type === "Identifier" &&
+    ASYNC_HOST_OBJECTS.has(callee.object.name) &&
+    callee.property.type === "Identifier"
+  ) {
+    return `${callee.object.name}.${callee.property.name}`;
+  }
+  return null;
+}
+
+const LOOP_TYPES = new Set([
+  "ForStatement",
+  "ForInStatement",
+  "ForOfStatement",
+  "WhileStatement",
+  "DoWhileStatement"
+]);
+
+/** A function handed to a call — `rows.forEach(row => …)` runs per item. */
+function isCallbackArgument(
+  node: acorn.AnyNode,
+  parent: acorn.AnyNode | undefined
+): boolean {
+  return (
+    (node.type === "ArrowFunctionExpression" ||
+      node.type === "FunctionExpression") &&
+    parent?.type === "CallExpression" &&
+    parent.arguments.includes(node as acorn.Expression)
+  );
+}
+
+/**
+ * What would make a Code step the workflow planner wrote fail or pass nothing
+ * on, checked before anything runs.
+ *
+ * `inputs` are the handles the build connects, `output` the handle the next
+ * step reads. Each problem is a sentence the planner can act on: the repair
+ * round sends them back verbatim.
+ */
+export function plannedCodeStepProblems(
+  code: string,
+  handles: { inputs: readonly string[]; output: string }
+): string[] {
+  const parsed = parseCodeBody(code);
+  if ("error" in parsed) {
+    return [`its code does not parse: ${parsed.error}`];
+  }
+  const problems: string[] = [];
+
+  let outputInLoop = false;
+  walk(parsed.statements, (node, ancestors) => {
+    if (outputInLoop || node.type !== "CallExpression") return;
+    if (node.callee.type !== "Identifier" || node.callee.name !== "output") {
+      return;
+    }
+    outputInLoop = ancestors.some(
+      (ancestor, index) =>
+        LOOP_TYPES.has(ancestor.type) ||
+        isCallbackArgument(ancestor, ancestors[index - 1])
+    );
+  });
+  if (outputInLoop) {
+    problems.push(
+      "it calls output() once per item, but output() can be set only once per run — " +
+        "call await emit(name, item) per item, or collect the items and call output() once after the loop"
+    );
+  }
+
+  const wired = new Set(handles.inputs);
+  const memberReads = inputsMemberReads(parsed.statements);
+  const streamReads = streamCallNames(parsed.statements);
+  const unwired = memberReads.names
+    .filter(isUserHandleName)
+    .filter((name) => !wired.has(name));
+  if (unwired.length > 0) {
+    problems.push(
+      `it reads ${unwired.map((name) => `inputs.${name}`).join(", ")}, but the only connected ` +
+        `input${handles.inputs.length === 1 ? " is" : "s are"} ${
+          handles.inputs.length > 0
+            ? handles.inputs.map((name) => `inputs.${name}`).join(", ")
+            : "none"
+        }`
+    );
+  }
+
+  // A connected input the body never names carries a value nowhere. Skipped
+  // when the body reads `inputs` as a whole or by a computed key.
+  if (!memberReads.opaque && !streamReads.nonLiteral && !streamReads.usesAny) {
+    const read = new Set([...memberReads.names, ...streamReads.names]);
+    const unread = handles.inputs.filter((name) => !read.has(name));
+    if (unread.length > 0) {
+      problems.push(
+        `${unread.map((name) => `inputs.${name}`).join(", ")} ${
+          unread.length === 1 ? "is" : "are"
+        } connected, but the body never reads ${unread.length === 1 ? "it" : "them"}`
+      );
+    }
+  }
+
+  const unawaited = new Set<string>();
+  walk(parsed.statements, (node) => {
+    if (node.type !== "VariableDeclarator") return;
+    const call = unawaitedHostCall(node.init);
+    if (call !== null) unawaited.add(call);
+  });
+  if (unawaited.size > 0) {
+    problems.push(
+      `it assigns ${[...unawaited].map((name) => `${name}()`).join(", ")} without await, so the variable holds a Promise`
+    );
+  }
+
+  const modelHost = MODEL_API_HOSTS.find((host) => code.includes(host));
+  if (modelHost !== undefined) {
+    problems.push(
+      `it calls the model API at ${modelHost} itself; put the model call in its own step with a model_role`
+    );
+  }
+
+  const outputs = inferredCodeOutputNames(code);
+  if (!outputs.includes(handles.output)) {
+    problems.push(
+      outputs.length === 0
+        ? `it never sets "${handles.output}", so the next step receives nothing`
+        : `it sets ${outputs.map((name) => `"${name}"`).join(", ")}, but the next step reads "${handles.output}"`
+    );
+  }
+  return problems;
+}

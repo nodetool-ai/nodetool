@@ -148,6 +148,13 @@ export type ClaudeCreateMcpServerFn = (opts: {
 
 /** MCP server name under which NodeTool's tools are exposed to the SDK. */
 const TOOL_SERVER_NAME = "nodetool_tools";
+/**
+ * Turns a structured-output call may take. The SDK validates the answer
+ * against the schema and, when it does not match, hands the model the errors
+ * and asks again — each retry is a turn. With one turn, the first answer that
+ * misses the schema fails the call as `error_max_turns`.
+ */
+const STRUCTURED_OUTPUT_MAX_TURNS = 3;
 const TOOL_PREFIX = `mcp__${TOOL_SERVER_NAME}__`;
 /**
  * The member expression the retired guest toolbelt was called through:
@@ -567,7 +574,8 @@ export class ClaudeAgentProvider extends BaseProvider {
     const resultSchema = resultTool?.inputSchema;
     const config: TurnConfig = {
       emitMessages: false,
-      maxTurns: args.maxTurns ?? 1,
+      maxTurns:
+        args.maxTurns ?? (resultTool ? STRUCTURED_OUTPUT_MAX_TURNS : 1),
       mcp: null,
       toolsOffered: false,
       builtinTools: []

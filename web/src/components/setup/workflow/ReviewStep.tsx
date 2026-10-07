@@ -12,7 +12,9 @@
  *   `Connect` opens provider onboarding in place.
  *
  * `Continue to setup` is the shell's primary button, and the flow disables it
- * while either marker is up (criterion 4). Nothing here places a node or spends
+ * while either marker is up (criterion 4). Above the steps, a warning lists
+ * what would still make the built workflow fail — the planner's repair rounds
+ * ran out, or an edit here broke the wiring or a Code step's body. Nothing here places a node or spends
  * anything; the one model call it can make is `Re-plan`.
  */
 
@@ -21,7 +23,12 @@ import ArrowUpwardIcon from "@mui/icons-material/ArrowUpward";
 import ArrowDownwardIcon from "@mui/icons-material/ArrowDownward";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import type { WorkflowSetupPlan } from "@nodetool-ai/protocol/api-schemas/workflows.js";
-import { resolveWorkflowPlan } from "@nodetool-ai/protocol";
+import {
+  checkWorkflowPlan,
+  planNodeShape,
+  resolveWorkflowPlan
+} from "@nodetool-ai/protocol";
+import { plannedCodeStepProblems } from "@nodetool-ai/node-sdk/code-analysis";
 import type { ResolvedWorkflowStep } from "@nodetool-ai/protocol";
 
 import {
@@ -29,14 +36,17 @@ import {
   Autocomplete,
   Box,
   Caption,
-  Chip,
+  CONTROL,
   EditorButton,
   FlexColumn,
   FlexRow,
   GAP,
+  MOTION,
   Text,
   TextInput,
-  ToolbarIconButton
+  TextLink,
+  ToolbarIconButton,
+  reducedMotion
 } from "../../ui_primitives";
 import type { AutocompleteOption } from "../../ui_primitives";
 import useMetadataStore from "../../../stores/MetadataStore";
@@ -142,6 +152,22 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
     [resolved.missingRoles, resolved.steps]
   );
 
+  // A step with no real node already carries its own marker; the run-time
+  // check only means something once every step names one.
+  const planProblems = useMemo(
+    () =>
+      blocked.unknownNodeTypes > 0
+        ? []
+        : checkWorkflowPlan(plan, {
+            lookup: (nodeType) => {
+              const meta = metadata[nodeType];
+              return meta ? planNodeShape(meta) : null;
+            },
+            checkCode: plannedCodeStepProblems
+          }),
+    [blocked.unknownNodeTypes, metadata, plan]
+  );
+
   const addStep = useCallback(() => {
     onPlanChange({
       ...plan,
@@ -224,6 +250,30 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
         </AlertBanner>
       ) : null}
 
+      {planProblems.length > 0 ? (
+        <AlertBanner
+          severity="warning"
+          title="This plan would fail when it runs"
+          action={
+            <EditorButton
+              variant="text"
+              onClick={onReplan}
+              disabled={replanPending}
+            >
+              Re-plan
+            </EditorButton>
+          }
+        >
+          <FlexColumn gap={GAP.tight}>
+            {planProblems.map((problem) => (
+              <Caption component="span" key={problem}>
+                {problem}
+              </Caption>
+            ))}
+          </FlexColumn>
+        </AlertBanner>
+      ) : null}
+
       {blocked.unknownNodeTypes > 0 ? (
         <Caption color="secondary" component="p">
           {blocked.unknownNodeTypes === 1
@@ -303,149 +353,184 @@ const StepRow: React.FC<StepRowProps> = ({
   const { step } = entry;
   const missingRole = entry.missingProvider;
   const [picking, setPicking] = useState(false);
+  const pickNodeType = (value: unknown): void => {
+    onChange(step.id, {
+      node_type: value === null ? null : (value as AutocompleteOption).value
+    });
+    setPicking(false);
+  };
   return (
-    <FlexColumn gap={GAP.normal}>
-      {/* One row for the step's head: the number, the title as the field that
-          edits it, and the actions. A heading that repeated the title above
-          the field that holds it made every step read twice. */}
-      <FlexRow gap={GAP.normal} align="center">
-        <Text size="normal" color="secondary">
+    // The number sits in a column of its own, so the title, the description
+    // and the node line all start on the same edge whatever the digit count.
+    <FlexRow gap={GAP.comfortable} align="flex-start">
+      <FlexRow
+        align="center"
+        justify="center"
+        sx={{
+          flexShrink: 0,
+          width: CONTROL.height.xs,
+          height: CONTROL.height.sm
+        }}
+      >
+        <Text
+          size="normal"
+          color="secondary"
+          sx={{ fontVariantNumeric: "tabular-nums" }}
+        >
           {`${index + 1}`}
         </Text>
-        <Box sx={{ ...EDITABLE_FIELD, flex: 1, minWidth: 0 }}>
+      </FlexRow>
+
+      <FlexColumn gap={GAP.normal} sx={{ flex: 1, minWidth: 0 }}>
+        {/* The title is the field that edits it. A heading that repeated the
+            title above the field that holds it made every step read twice. */}
+        <FlexRow gap={GAP.normal} align="center">
+          <Box
+            sx={{
+              ...EDITABLE_FIELD,
+              flex: 1,
+              minWidth: 0,
+              "& .MuiInputBase-input": { fontWeight: 500 }
+            }}
+          >
+            <TextInput
+              compact
+              label={`Step ${index + 1} title`}
+              hideLabel
+              value={step.title}
+              onChange={(event) =>
+                onChange(step.id, { title: event.target.value })
+              }
+            />
+          </Box>
+          <FlexRow gap={GAP.micro}>
+            <ToolbarIconButton
+              size="small"
+              icon={<ArrowUpwardIcon fontSize="inherit" />}
+              tooltip={index === 0 ? "" : "Move up"}
+              onClick={() => onMove(index, -1)}
+              disabled={index === 0}
+              aria-label={`Move step ${index + 1} up`}
+            />
+            <ToolbarIconButton
+              size="small"
+              icon={<ArrowDownwardIcon fontSize="inherit" />}
+              tooltip={index === stepCount - 1 ? "" : "Move down"}
+              onClick={() => onMove(index, 1)}
+              disabled={index === stepCount - 1}
+              aria-label={`Move step ${index + 1} down`}
+            />
+            <ToolbarIconButton
+              size="small"
+              icon={<DeleteOutlineIcon fontSize="inherit" />}
+              tooltip="Remove step"
+              onClick={() => onRemove(step.id)}
+              aria-label={`Remove step ${index + 1}`}
+            />
+          </FlexRow>
+        </FlexRow>
+
+        <Box sx={EDITABLE_FIELD}>
           <TextInput
-            label={`Step ${index + 1} title`}
+            compact
+            label={`Step ${index + 1} description`}
             hideLabel
-            value={step.title}
+            placeholder="What this step does"
+            value={step.summary}
+            multiline
+            minRows={2}
             onChange={(event) =>
-              onChange(step.id, { title: event.target.value })
+              onChange(step.id, { summary: event.target.value })
             }
           />
         </Box>
-        <FlexRow gap={GAP.tight}>
-          <ToolbarIconButton
-            size="small"
-            icon={<ArrowUpwardIcon fontSize="inherit" />}
-            tooltip={index === 0 ? "" : "Move up"}
-            onClick={() => onMove(index, -1)}
-            disabled={index === 0}
-            aria-label={`Move step ${index + 1} up`}
-          />
-          <ToolbarIconButton
-            size="small"
-            icon={<ArrowDownwardIcon fontSize="inherit" />}
-            tooltip={index === stepCount - 1 ? "" : "Move down"}
-            onClick={() => onMove(index, 1)}
-            disabled={index === stepCount - 1}
-            aria-label={`Move step ${index + 1} down`}
-          />
-          <ToolbarIconButton
-            size="small"
-            color="error"
-            icon={<DeleteOutlineIcon fontSize="inherit" />}
-            tooltip="Remove step"
-            onClick={() => onRemove(step.id)}
-            aria-label={`Remove step ${index + 1}`}
-          />
-        </FlexRow>
-      </FlexRow>
 
-      <Box sx={EDITABLE_FIELD}>
-        <TextInput
-          label={`Step ${index + 1} description`}
-          hideLabel
-          placeholder="What this step does"
-          value={step.summary}
-          multiline
-          onChange={(event) =>
-            onChange(step.id, { summary: event.target.value })
-          }
-        />
-      </Box>
-
-      {entry.unknownNodeType ? (
-        <AlertBanner severity="error" title="No node for this step">
-          <FlexColumn gap={GAP.normal}>
+        {entry.unknownNodeType ? (
+          <AlertBanner severity="error" title="No node for this step">
+            <FlexColumn gap={GAP.normal}>
+              <Caption component="span">
+                {step.node_type === null
+                  ? "The plan could not name a node for this step. Pick one."
+                  : `"${step.node_type}" is not a node type this install has. Pick one.`}
+              </Caption>
+              <Autocomplete
+                options={nodeTypeOptions}
+                label={`Node type for step ${index + 1}`}
+                placeholder="Search node types"
+                onChange={(_event, value) => pickNodeType(value)}
+              />
+            </FlexColumn>
+          </AlertBanner>
+        ) : (
+          <FlexColumn gap={GAP.tight}>
+            {/* The node type is its own change control: quiet at rest, so the
+                line reads as information, and a link under the pointer, on
+                keyboard focus, and while the picker it opened is showing. */}
             <Caption component="span">
-              {step.node_type === null
-                ? "The plan could not name a node for this step. Pick one."
-                : `"${step.node_type}" is not a node type this install has. Pick one.`}
+              <TextLink
+                asButton
+                aria-expanded={picking}
+                aria-label={`Change node: ${step.node_type ?? ""}`}
+                onClick={() => setPicking(!picking)}
+                sx={{
+                  color: picking ? "primary.main" : "text.disabled",
+                  textDecoration: picking ? "underline" : "none",
+                  transition: MOTION.all,
+                  ...reducedMotion({ transition: MOTION.none }),
+                  "&:hover, &:focus-visible": {
+                    color: "primary.main",
+                    textDecoration: "underline"
+                  }
+                }}
+              >
+                {step.node_type}
+              </TextLink>
             </Caption>
-            <Autocomplete
-              options={nodeTypeOptions}
-              label={`Node type for step ${index + 1}`}
-              placeholder="Search node types"
-              onChange={(_event, value) =>
-                onChange(step.id, {
-                  node_type:
-                    value === null
-                      ? null
-                      : (value as AutocompleteOption).value
-                })
-              }
-            />
+            {/* The plan names a node the registry has — but not always the one
+                the step meant, because a step the planner left unnamed is
+                matched by search. So every step's node stays changeable, not
+                only the ones with no node at all. */}
+            {picking ? (
+              <Autocomplete
+                options={nodeTypeOptions}
+                value={
+                  nodeTypeOptions.find(
+                    (option) => option.value === step.node_type
+                  ) ?? null
+                }
+                label={`Node type for step ${index + 1}`}
+                placeholder="Search node types"
+                onChange={(_event, value) => pickNodeType(value)}
+              />
+            ) : null}
           </FlexColumn>
-        </AlertBanner>
-      ) : (
-        <FlexColumn gap={GAP.tight}>
-          <FlexRow gap={GAP.tight} align="center">
-            <Caption color="secondary" component="span">
-              Builds
-            </Caption>
-            <Chip compact color="success" label={step.node_type ?? ""} />
-            <EditorButton variant="text" onClick={() => setPicking(!picking)}>
-              {picking ? "Keep it" : "Change"}
-            </EditorButton>
-          </FlexRow>
-          {/* The plan names a node the registry has — but not always the one
-              the step meant, because a step the planner left unnamed is
-              matched by search. So every step's node stays changeable, not
-              only the ones with no node at all. */}
-          {picking ? (
-            <Autocomplete
-              options={nodeTypeOptions}
-              value={
-                nodeTypeOptions.find(
-                  (option) => option.value === step.node_type
-                ) ?? null
-              }
-              label={`Node type for step ${index + 1}`}
-              placeholder="Search node types"
-              onChange={(_event, value) =>
-                onChange(step.id, {
-                  node_type:
-                    value === null ? null : (value as AutocompleteOption).value
-                })
-              }
-            />
-          ) : null}
-        </FlexColumn>
-      )}
+        )}
 
-      {missingRole !== null ? (
-        <AlertBanner
-          severity="warning"
-          title={`No ${missingRole} provider connected`}
-          action={
-            <EditorButton
-              variant="text"
-              onClick={() =>
-                openProviderOnboarding({
-                  capability: MODEL_ROLE_ONBOARDING[missingRole],
-                  reason: `Step ${index + 1} needs a ${missingRole} model.`
-                })
-              }
-            >
-              Connect
-            </EditorButton>
-          }
-        >
-          <Caption component="span">
-            {`This step runs on a ${missingRole} model. Connect a provider that offers one.`}
-          </Caption>
-        </AlertBanner>
-      ) : null}
-    </FlexColumn>
+        {missingRole !== null ? (
+          <AlertBanner
+            severity="warning"
+            title={`No ${missingRole} provider connected`}
+            action={
+              <EditorButton
+                variant="text"
+                onClick={() =>
+                  openProviderOnboarding({
+                    capability: MODEL_ROLE_ONBOARDING[missingRole],
+                    reason: `Step ${index + 1} needs a ${missingRole} model.`
+                  })
+                }
+              >
+                Connect
+              </EditorButton>
+            }
+          >
+            <Caption component="span">
+              {`This step runs on a ${missingRole} model. Connect a provider that offers one.`}
+            </Caption>
+          </AlertBanner>
+        ) : null}
+      </FlexColumn>
+    </FlexRow>
   );
 };
 

@@ -400,6 +400,9 @@ describe("ClaudeAgentProvider", () => {
       type: "json_schema",
       schema
     });
+    // The SDK retries an answer that misses the schema, and each retry is a
+    // turn: one turn turned the first miss into `error_max_turns`.
+    expect(calls[0].options?.maxTurns).toBeGreaterThan(1);
     expect(result).toEqual(screenplay);
   });
 
