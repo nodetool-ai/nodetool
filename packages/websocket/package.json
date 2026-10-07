@@ -28,7 +28,7 @@
     "@fastify/websocket": "^11.0.1",
     "@hyzyla/pdfium": "^2.1.12",
     "@modelcontextprotocol/ext-apps": "^1.7.2",
-    "@modelcontextprotocol/sdk": "^1.27.1",
+    "@modelcontextprotocol/sdk": "^1.31.0",
     "@nodetool-ai/agents": "*",
     "@nodetool-ai/app-runtime": "*",
     "@nodetool-ai/atlascloud-nodes": "*",
