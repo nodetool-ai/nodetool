@@ -103,6 +103,23 @@ describe("native game revisions", () => {
         })).rejects.toMatchObject({ code: "BAD_REQUEST", message: expect.stringContaining("Op 1: authoring") });
         expect(await caller.games.getDraft({ id: created.game.id })).toEqual(saved);
       }
+      const updated = await caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: saved.game.draftUpdatedAt,
+        ops: [{ op: "set_authoring_membership", scene_id: saved.document.entrySceneId, entity_id: "ghost",
+          membership: "detachment", present: true, positions: [0] }] });
+      expect(updated.document.authoring?.detached).toEqual([{ sceneId: saved.document.entrySceneId, entityId: "ghost" }]);
+      expect(await caller.games.getDraft({ id: created.game.id })).toEqual(updated);
+      expect(await caller.games.draftChanges({ id: created.game.id })).toContainEqual(
+        expect.objectContaining({ summary: "Changed authoring membership (1)" }));
+      const overridden = await caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: updated.game.draftUpdatedAt,
+        ops: [{ op: "set_override_membership", scene_id: saved.document.entrySceneId, entity_id: entity.id,
+          path: ["transform2d", "x"], override: { value: entity.transform2d.x } }] });
+      expect(overridden.document.authoring?.overrides).toContainEqual({ sceneId: saved.document.entrySceneId,
+        entityId: entity.id, path: ["transform2d", "x"], value: entity.transform2d.x });
+      expect(overridden.document.authoring?.program).toEqual(saved.document.authoring?.program);
+      expect(overridden.document.authoring?.baseline).toEqual(saved.document.authoring?.baseline);
+      expect(await caller.games.getDraft({ id: created.game.id })).toEqual(overridden);
+      expect(await caller.games.draftChanges({ id: created.game.id })).toContainEqual(
+        expect.objectContaining({ summary: "Changed property ownership (1)" }));
     } finally { setProcessSandboxModuleCatalog(previousCatalog); }
   });
 

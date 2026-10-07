@@ -56,6 +56,21 @@ describe("retained game ownership boundaries", () => {
       ] });
       expect(reply.parse(await run.invoke("get_native_game", { game_id: saved.game.id, view: "full" })).document).toEqual(saved.document);
     }
+    const updated = reply.parse(await run.invoke("edit_native_game", { game_id: saved.game.id, ops: [
+      { op: "set_authoring_membership", scene_id: saved.document.entrySceneId, entity_id: "ghost",
+        membership: "detachment", present: true, positions: [0] }
+    ] }));
+    expect(updated.document.authoring?.detached).toEqual([{ sceneId: saved.document.entrySceneId, entityId: "ghost" }]);
+    expect(reply.parse(await run.invoke("get_native_game", { game_id: saved.game.id, view: "full" })).document).toEqual(updated.document);
+    const overridden = reply.parse(await run.invoke("edit_native_game", { game_id: saved.game.id, ops: [
+      { op: "set_override_membership", scene_id: saved.document.entrySceneId, entity_id: entity.id,
+        path: ["transform2d", "x"], override: { value: entity.transform2d.x } }
+    ] }));
+    expect(overridden.document.authoring?.overrides).toContainEqual({ sceneId: saved.document.entrySceneId,
+      entityId: entity.id, path: ["transform2d", "x"], value: entity.transform2d.x });
+    expect(overridden.document.authoring?.program).toEqual(saved.document.authoring?.program);
+    expect(overridden.document.authoring?.baseline).toEqual(saved.document.authoring?.baseline);
+    expect(reply.parse(await run.invoke("get_native_game", { game_id: saved.game.id, view: "full" })).document).toEqual(overridden.document);
   });
 
   it("requires explicit initial replacement and binds replacement policy into the reviewed candidate", async () => {
