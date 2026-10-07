@@ -9,6 +9,7 @@ export const withAgentSpan = (_kind, _attrs, fn) => fn(null);
 export const withSpan = (_name, _attrs, fn) => fn(null);
 export const withTaskSpan = (_kind, _name, _attrs, fn) => fn(null);
 export const SpanStatusCode = { UNSET: 0, OK: 1, ERROR: 2 };
+export const markSpanError = () => {};
 
 export async function* withSpanGen(_name, _attrs, genFactory) {
   return yield* genFactory();
