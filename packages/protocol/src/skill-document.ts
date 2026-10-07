@@ -10,6 +10,7 @@
 
 const INVALID_SKILL_NAME_RE = /[^a-z0-9-]/;
 const XML_TAG_RE = /<[^>]+>/;
+const LINE_BREAK_RE = /[\n\r\u2028\u2029]/;
 const SKILL_RESERVED_TERMS = ["anthropic", "claude"];
 /**
  * `## ` heading text, or `null` for any other line.
@@ -69,6 +70,7 @@ export function isValidSkillName(name: string): boolean {
 /** A skill description is one bounded line with no markup in it. */
 export function isValidSkillDescription(description: string): boolean {
   if (!description || description.length > 1024) return false;
+  if (LINE_BREAK_RE.test(description)) return false;
   return !XML_TAG_RE.test(description);
 }
 

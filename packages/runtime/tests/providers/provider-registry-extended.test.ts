@@ -421,4 +421,25 @@ describe("provider-registry — extended coverage", () => {
     ).resolves.toBeNull();
     expect(providerTTSEncoded).toHaveBeenCalledTimes(1);
   });
+
+  it("decodes streamed PCM from a Buffer view at an odd byte offset", async () => {
+    const pool = Buffer.alloc(16);
+    const pcm = new Int16Array([1, -2, 300]);
+    pool.set(new Uint8Array(pcm.buffer), 3);
+    const chunk = pool.subarray(3, 3 + pcm.byteLength + 1);
+    const provider = new PythonProvider({
+      _id: "huggingface",
+      _capabilities: ["text_to_speech"],
+      _bridge: {
+        async *providerTTS() {
+          yield chunk;
+        }
+      }
+    } as any);
+    const samples: number[] = [];
+    for await (const out of provider.textToSpeech({ text: "hi", model: "kokoro" })) {
+      samples.push(...(out.samples ?? []));
+    }
+    expect(samples).toEqual([1, -2, 300]);
+  });
 });
