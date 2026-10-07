@@ -101,8 +101,7 @@ replays recorded graph-UI casts into polished video; pointing it at user-submitt
 - Ship **one trend-reactive template per week** as a floor: an example workflow + mini app bundle
   built around whatever effect is currently moving on TikTok/Reels/Shorts, named after the effect
   the way closed platforms name presets ("the search query is the name").
-- Each template ships with: the installable bundle, an `/apps/*` landing page (the generator in
-  `marketing/scripts/generate-miniapp-entries.mjs` already does this), a 15–30s canvas-reveal
+- Each template ships with: the installable bundle, a landing page, a 15–30s canvas-reveal
   clip rendered through the `demo/` harness, and a caption block creators can paste.
 - **Kill criteria, stated up front:** a template that produces no measurable installs or social
   pickup in 30 days is retired from the featured row. A daily cull is the discipline
