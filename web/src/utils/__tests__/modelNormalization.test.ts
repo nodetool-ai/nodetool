@@ -3,7 +3,9 @@ import {
   normalizeModelMeta,
   applyAdvancedModelFilters,
   executionForDisplay,
-  executionLabelsByProvider
+  executionLabelsByProvider,
+  modelDownloadTarget,
+  type ModelSelectorModel
 } from "../modelNormalization";
 import type { LanguageModel } from "../../stores/ApiTypes";
 
@@ -375,6 +377,55 @@ describe("modelNormalization", () => {
         families: [],
       });
       expect(result).toHaveLength(0);
+    });
+  });
+
+  describe("modelDownloadTarget", () => {
+    const needsDownload = {
+      kind: "server" as const,
+      state: "download_required" as const,
+      label: "Server" as const,
+      execution_site: "nodetool_host" as const
+    };
+    const bark = (
+      overrides: Record<string, unknown> = {}
+    ): ModelSelectorModel =>
+      ({
+        type: "tts_model",
+        id: "suno/bark",
+        name: "Bark",
+        provider: "huggingface-local",
+        execution: needsDownload,
+        adapter: {
+          state: "installed",
+          artifact_ref: {
+            source: "huggingface",
+            repo_id: "suno/bark",
+            allow_patterns: ["*.bin", "*.json", "*.txt"]
+          }
+        },
+        ...overrides
+      }) as ModelSelectorModel;
+
+    it("downloads the adapter's artifact with its file patterns", () => {
+      expect(modelDownloadTarget(bark())).toEqual({
+        repoId: "suno/bark",
+        path: null,
+        allowPatterns: ["*.bin", "*.json", "*.txt"],
+        ignorePatterns: null
+      });
+    });
+
+    it("offers nothing for a model that is ready", () => {
+      expect(
+        modelDownloadTarget(
+          bark({ execution: { ...needsDownload, state: "ready" } })
+        )
+      ).toBeNull();
+    });
+
+    it("offers nothing when the model names no repository", () => {
+      expect(modelDownloadTarget(bark({ adapter: null }))).toBeNull();
     });
   });
 });

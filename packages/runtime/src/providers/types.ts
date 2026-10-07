@@ -52,6 +52,8 @@ export interface ModelArtifactRef {
   repoId: string;
   revision?: string;
   path?: string;
+  /** The files the adapter loads, when it needs only part of the repository. */
+  allowPatterns?: string[];
 }
 
 export interface ModelAdapterInfo {

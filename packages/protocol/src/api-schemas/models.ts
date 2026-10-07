@@ -4,7 +4,8 @@ export const modelArtifactRef = z.object({
   source: z.literal("huggingface"),
   repo_id: z.string(),
   revision: z.string().nullish(),
-  path: z.string().nullish()
+  path: z.string().nullish(),
+  allow_patterns: z.array(z.string()).nullish()
 });
 
 export const modelAdapterInfo = z.object({
