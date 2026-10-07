@@ -1,0 +1,19 @@
+wiring-faults error missing_id Node of type "nodetool.output.StringOutput" has no id
+wiring-faults error slot_type_alias Dynamic input "extra" is typed "string", which is not a NodeTool type — use "str". A handle typed with an unknown name will not connect.
+wiring-faults error property Dynamic input "q" is declared as int but holds a string
+wiring-faults error fan_in Handle "value" on node "sink" receives 3 edges but its type "str" is not a list; the kernel's correlation analysis rejects this at run time. To gather several values into one list, wire each edge into a list-typed input instead: `value` on nodetool.constant.List accepts any number of edges and outputs them as one list. nodetool.control.Collect gathers the items of a single stream.
+wiring-faults error cycle Node "sum" is connected to itself by edge "e4"; self-loop edges are not supported and deadlock the run
+wiring-faults warning type_mismatch Edge "e1" connects nodetool.input.StringInput.output (str) → nodetool.text.Concat.n (int) — types may be incompatible
+wiring-faults error missing_handle Edge "e7" names no target handle on node "sink" — it cannot be routed
+wiring-faults error missing_handle Edge "e8" names no source handle on node "src" — it cannot be routed
+wiring-faults error dangling_edge Edge "e9" target node "nowhere" does not exist
+wiring-faults warning dynamic_type_mismatch Dynamic input "q" on node "mix" is declared as int but holds a string
+model-faults error property Property "model" requires a language_model to be selected — assign {type: "language_model", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim.
+model-faults error property Required property "prompt" is not set
+model-faults error property Required property "prompt" is not set
+model-faults error property Required property "prompt" is not set
+model-faults error property Property "model" requires a language_model to be selected — assign {type: "language_model", provider, id, name} (the field is `id`, not `model_id`). `find_model` answers this shape on its top-level `ref` — assign that verbatim.
+model-faults error property Required property "prompt" is not set
+model-faults error missing_provider Property "model" selects model "gpt-5" but names no provider; the runtime cannot resolve a model id on its own
+model-faults error unknown_provider Property "model" selects provider "nope", which is not registered. Known providers: anthropic, openai
+model-faults error unknown_model Property "model" selects model "gpt-nop", which provider "openai" does not offer. Did you mean: gpt-5?
