@@ -17,12 +17,17 @@
 //              mapping are displayed.
 //   sections   [ { title, op?, controls: [...], results: [...] } ]
 //   content    Optional authored widget tree, used instead of sections.
+//   steps      `true` shows one section at a time behind a Stepper. Each
+//              section then needs a unique `key`, may carry an `intro` and a
+//              `nextWhen` variable that must be filled before Next, and the
+//              app declares a `step` variable whose default is the first key.
 //
 // Control kinds: input, text, model, number, slider, select, image, video, audio,
 // switch, color, run, note. Result kinds: progress, activity, transcript, error, show, showVar,
-// heading, note.
+// heading, note, and textVar for an editable variable under the run that fills it.
 // `text`, `model`, `select` and `slider` take an input name or `{ node, prop }` to drive
-// a node property inside the graph; `default` seeds the preview value.
+// a node property inside the graph; `default` seeds the preview value. `model` also
+// takes `{ variable }`: one picker for a model that several operations read.
 // `image`, `video`, and `audio` take a variable id or `{ input }`.
 // See buildControl() in the builder for the exact props each one emits.
 
@@ -1067,31 +1072,26 @@ export const EXAMPLE_APPS = [
     name: "Dubbing Desk",
     emoji: "🌍",
     featured: false,
-    tagline: "One presenter clip, spoken in another language, checked and subtitled.",
+    tagline: "One presenter clip, spoken in another language, voiced, subtitled and lip-synced.",
     description:
-      "The Multilingual Video Dubber chain behind one surface. Transcribing writes the script into a variable the revoice and back-translation steps both read, so the words that get dubbed are the words you can see.",
+      "A presenter clip taken through four steps: transcribe it, translate the script into the language you pick, voice and subtitle the translation, then lip-sync the footage. You can edit the script and the translation before anything is voiced, so the words that get dubbed are the words you see.",
     note: "Transcription, translation, speech, and lip-sync use configured models and are billed per run.",
+    steps: true,
     workflows: {
       transcribe: "Transcribe a Clip",
-      revoice: "Localise a Script and Revoice It",
-      check: "One Tagline, Six Markets",
-      spokesperson: "AI Spokesperson",
-      subtitles: "Subtitle Text from a Recording"
-    },
-    modelOverrides: {
-      revoice: { ag: CODEX_LUNA },
-      check: { ag: CODEX_LUNA },
-      subtitles: { ag: CODEX_LUNA }
+      translate: "Translate a Script for Dubbing",
+      voice: "Narrate a Script",
+      subtitles: "Subtitle Lines from a Script",
+      spokesperson: "Lip-sync a Clip to a Voice Track"
     },
     variables: [
+      { id: "step", name: "Step", scope: "instance", type: "str", default: "clip" },
       { id: "clip", name: "The clip", scope: "instance", type: "video" },
-      {
-        id: "script",
-        name: "Script",
-        scope: "instance",
-        type: "str",
-        default: ""
-      }
+      { id: "script", name: "Script", scope: "instance", type: "str", default: "" },
+      { id: "translation", name: "Translation", scope: "instance", type: "str", default: "" },
+      { id: "narration", name: "Voice track", scope: "instance", type: "audio" },
+      // One language model translates and writes the subtitles.
+      { id: "llm", name: "Language model", scope: "instance", type: "language_model", default: CODEX_LUNA }
     ],
     operations: [
       {
@@ -1103,18 +1103,33 @@ export const EXAMPLE_APPS = [
         outputs: { transcript: { to: "variable", variableId: "script" } }
       },
       {
-        id: "revoice",
-        name: "Revoice",
-        workflow: "revoice",
+        id: "translate",
+        name: "Translate",
+        workflow: "translate",
         policy: "replace",
-        inputs: { script: { from: "variable", variableId: "script" } }
+        inputs: {
+          script: { from: "variable", variableId: "script" },
+          model: { from: "variable", variableId: "llm" }
+        },
+        outputs: { translation: { to: "variable", variableId: "translation" } }
       },
       {
-        id: "check",
-        name: "Back-translate",
-        workflow: "check",
-        policy: "parallel",
-        inputs: { tagline: { from: "variable", variableId: "script" } }
+        id: "voice",
+        name: "Voice",
+        workflow: "voice",
+        policy: "replace",
+        inputs: { script: { from: "variable", variableId: "translation" } },
+        outputs: { narration: { to: "variable", variableId: "narration" } }
+      },
+      {
+        id: "subtitles",
+        name: "Subtitles",
+        workflow: "subtitles",
+        policy: "replace",
+        inputs: {
+          script: { from: "variable", variableId: "translation" },
+          model: { from: "variable", variableId: "llm" }
+        }
       },
       {
         id: "spokesperson",
@@ -1124,77 +1139,84 @@ export const EXAMPLE_APPS = [
         timeoutMs: 900000,
         inputs: {
           presenter_clip: { from: "variable", variableId: "clip" },
-          script: { from: "variable", variableId: "script" }
+          voice_track: { from: "variable", variableId: "narration" }
         }
-      },
-      {
-        id: "subtitles",
-        name: "Subtitles",
-        workflow: "subtitles",
-        policy: "parallel",
-        inputs: { recording: { from: "variable", variableId: "clip" } }
       }
     ],
     sections: [
       {
-        title: "The footage",
+        key: "clip",
+        title: "Clip",
+        intro: "Add a clip of one person who talks to the camera. The app writes down what they say.",
+        nextWhen: "script",
         controls: [
           { video: "clip", label: "Presenter clip" },
-          { run: ["transcribe"], label: "Get the script back out" },
-          { textVar: "script", label: "The script that gets dubbed", multiline: true },
-          { run: ["revoice", "subtitles"], label: "Revoice and subtitle" }
+          { op: "transcribe", model: { node: "asr", prop: "model" }, modelKind: "asr_model", label: "Transcription model" },
+          { run: ["transcribe"], label: "Transcribe the clip", disabledWhen: "transcribe" }
         ],
         results: [
           { progress: "transcribe", label: "Transcribing…" },
-          { progress: "revoice", label: "Translating and voicing…" },
+          { error: "transcribe", label: "Transcription failed" },
+          { textVar: "script", label: "What they say", multiline: true }
+        ]
+      },
+      {
+        key: "translate",
+        title: "Translate",
+        intro: "Pick the language of the dub and a language model. The same model writes the subtitles later. Read the translation and fix it before it is voiced.",
+        nextWhen: "translation",
+        controls: [
           {
-            show: "spanish_audio",
-            op: "revoice",
-            as: "Audio",
-            label: "Localised voice track",
-            demo: AUDIO
+            select: "language",
+            op: "translate",
+            label: "Target language",
+            options: ["Spanish", "French", "German", "Italian", "Portuguese", "Dutch", "Polish", "Japanese", "Korean", "Chinese", "Hindi", "Arabic"]
           },
+          { model: { variable: "llm" }, modelKind: "language_model", label: "Language model" },
+          { run: ["translate"], label: "Translate the script", disabledWhen: "translate" }
+        ],
+        results: [
+          { progress: "translate", label: "Translating…" },
+          { error: "translate", label: "Translation failed" },
+          { textVar: "translation", label: "The dubbed script", multiline: true }
+        ]
+      },
+      {
+        key: "voice",
+        title: "Voice",
+        intro: "Speak the translation with a new voice and break it into subtitle lines. The lip-sync uses this voice track.",
+        nextWhen: "narration",
+        controls: [
+          { op: "voice", model: { node: "tts", prop: "model" }, modelKind: "tts_model", label: "Voice" },
+          { run: ["voice", "subtitles"], label: "Voice and subtitle", disabledWhen: "voice" }
+        ],
+        results: [
+          { progress: "voice", label: "Voicing…" },
+          { error: "voice", label: "Voicing failed" },
+          { showVar: "narration", as: "Audio", label: "Voice track", demo: AUDIO },
+          { progress: "subtitles", label: "Writing subtitles…" },
+          { error: "subtitles", label: "Subtitles failed" },
           {
             show: "captions",
             op: "subtitles",
             as: "Markdown",
             label: "Subtitle lines",
-            demo: "1\n00:00:00,000 --> 00:00:02,400\nOur spring release ships today."
+            demo: "1\nNuestro lanzamiento de primavera\nsale hoy."
           }
         ]
       },
       {
-        title: "Make the mouth match",
+        key: "lipsync",
+        title: "Lip-sync",
+        intro: "Redraw the mouth so the presenter speaks the voice track from the last step. Lip-sync is billed per second of footage.",
         controls: [
-          { note: "💸 Lip-sync redraws the footage and is metered per second." },
-          { run: ["spokesperson"], label: "Lip-sync the clip" }
+          { op: "spokesperson", model: { node: "sync", prop: "model" }, modelKind: "video_model", label: "Lip-sync model" },
+          { run: ["spokesperson"], label: "Lip-sync the clip", disabledWhen: "spokesperson" }
         ],
         results: [
-          { progress: "spokesperson", label: "Redriving the mouth…" },
-          {
-            show: "revoiced_clip",
-            op: "spokesperson",
-            as: "Video",
-            label: "Dubbed cut",
-            demo: VIDEO
-          }
-        ]
-      },
-      {
-        title: "Check what you shipped",
-        controls: [
-          { text: "tagline", op: "check", label: "A line to read back", multiline: true },
-          { run: ["check"], label: "Show me all six" }
-        ],
-        results: [
-          { progress: "check", label: "Localising…" },
-          {
-            show: "localised",
-            op: "check",
-            as: "Markdown",
-            label: "Six markets, back-translated",
-            demo: "**de** — Schneller als letzte Saison. _(Faster than last season.)_\n\n**fr** — Plus rapide que la saison dernière. _(Faster than last season.)_"
-          }
+          { progress: "spokesperson", label: "Redrawing the mouth…" },
+          { error: "spokesperson", label: "Lip-sync failed" },
+          { show: "revoiced_clip", op: "spokesperson", as: "Video", label: "Dubbed clip", demo: VIDEO }
         ]
       }
     ]

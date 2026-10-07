@@ -83,6 +83,7 @@ export const makeTestRuntime = (
     }),
     selectResource: jest.fn(),
     getNodeProperty: jest.fn(),
+    getNodeType: jest.fn(),
     ...overrides
   };
   const wrapper: React.FC<{ children: React.ReactNode }> = ({ children }) => (

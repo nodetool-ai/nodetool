@@ -108,6 +108,23 @@ describe("durable app instances and operation runs", () => {
       getRawDb().prepare("SELECT count(*) n FROM applications").get()
     ).toEqual({ n: 0 });
   });
+  it("keeps paths, email addresses and long ids in working state but removes credentials", async () => {
+    const modelPath = "/Users/someone/.cache/huggingface/hub/ggml-small.bin";
+    const longId = "a".repeat(60);
+    const instance = await createAppInstance({
+      userId: "u1", sourceId: "example:paths", snapshot: snapshot(),
+      variables: {
+        model: { type: "asr_model", id: modelPath },
+        email: "someone@example.com",
+        longId,
+        note: "key sk-abcdefghijklmnopqrstuvwxyz"
+      }
+    });
+    expect(instance.variables.model).toEqual({ type: "asr_model", id: modelPath });
+    expect(instance.variables.email).toBe("someone@example.com");
+    expect(instance.variables.longId).toBe(longId);
+    expect(instance.variables.note).toBe("key [REDACTED:api-key]");
+  });
   it("preserves long working-state strings while keeping run history bounded", async () => {
     const initialText = "scene ".repeat(5000);
     const updatedText = "draft ".repeat(5000);
@@ -312,6 +329,43 @@ describe("durable app instances and operation runs", () => {
         origin: "agent"
       })
     ).rejects.toThrow("not found");
+  });
+  it("lands parallel runs that write different keys and keeps the stamps private", async () => {
+    const i = await create();
+    const { run: voice } = await reserve(i.id, "voice");
+    const { run: subtitles } = await reserve(i.id, "subtitles");
+    const first = await settleAppRun("u1", subtitles.id, {
+      status: "completed",
+      outputs: { __app_outputs: { "subtitles:srt": "1 Hallo" } }
+    });
+    const second = await settleAppRun("u1", voice.id, {
+      status: "completed",
+      outputs: { __app_outputs: { "voice:out": "voice.wav" } }
+    });
+    expect([first.state_conflict, second.state_conflict]).toEqual([0, 0]);
+    const instance = await getAppInstance("u1", i.id);
+    expect(instance?.revision).toBe(2);
+    expect(instance?.variables).toEqual({
+      x: 1,
+      __app_outputs: { "subtitles:srt": "1 Hallo", "voice:out": "voice.wav" }
+    });
+    const { run: late } = await reserve(i.id, "late");
+    await updateAppInstance("u1", i.id, {
+      expectedRevision: 2,
+      variables: {
+        ...instance?.variables,
+        __app_outputs: { "subtitles:srt": "edited", "voice:out": "voice.wav" }
+      }
+    });
+    const stale = await settleAppRun("u1", late.id, {
+      status: "completed",
+      outputs: { __app_outputs: { "subtitles:srt": "1 Hallo again" } }
+    });
+    expect(stale.state_conflict).toBe(1);
+    expect((await getAppInstance("u1", i.id))?.variables.__app_outputs).toEqual({
+      "subtitles:srt": "edited",
+      "voice:out": "voice.wav"
+    });
   });
   it("uses revision CAS and preserves newer state when a delayed run finishes", async () => {
     const i = await create();

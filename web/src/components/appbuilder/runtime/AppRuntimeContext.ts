@@ -76,6 +76,8 @@ export interface AppRuntimeContextValue {
    * touched yet.
    */
   getNodeProperty: (nodeId: string, property: string) => unknown;
+  /** Type of a graph node, so a widget bound to its property can match it. */
+  getNodeType: (nodeId: string) => string | undefined;
 }
 
 export const AppRuntimeContext = createContext<AppRuntimeContextValue | null>(

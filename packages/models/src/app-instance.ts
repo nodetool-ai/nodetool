@@ -28,6 +28,7 @@ import type { NewApplicationInvocation } from "./schema/application-budgets.js";
 import { createTimeOrderedUuid } from "./base-model.js";
 import { getDatabase } from "./db.js";
 import {
+  redactCredentialText,
   redactErrorText,
   redactErrorTrace,
   type RedactionOptions
@@ -193,13 +194,19 @@ export function sanitizeAppRunContent(
   value: unknown,
   secretValues?: readonly string[]
 ): AppRunContent {
-  return sanitizeAppContent(value, secretValues, APP_RUN_CONTENT_STRING_LIMIT);
+  return sanitizeAppContent(
+    value,
+    secretValues,
+    APP_RUN_CONTENT_STRING_LIMIT,
+    redactErrorText
+  );
 }
 
 function sanitizeAppContent(
   value: unknown,
   secretValues: readonly string[] | undefined,
-  stringLimit: number | null
+  stringLimit: number | null,
+  redact: (text: string, options: { secretValues?: readonly string[] }) => string
 ): AppRunContent {
   const encoded = JSON.stringify(value, (key, item: unknown) => {
     if (
@@ -220,7 +227,7 @@ function sanitizeAppContent(
       if (/^data:|^[A-Za-z0-9+/]{1000,}={0,2}$/.test(item)) {
         return "[media omitted]";
       }
-      const redacted = redactErrorText(item, { secretValues });
+      const redacted = redact(item, { secretValues });
       return stringLimit === null ? redacted : redacted.slice(0, stringLimit);
     }
     if (
@@ -268,11 +275,98 @@ function sanitizeAppInstanceVariables(
   value: Record<string, unknown>,
   secretValues?: readonly string[]
 ): Record<string, unknown> {
-  const result = sanitizeAppContent(value, secretValues, null);
+  // Working state keeps paths, email addresses and ids. Only credentials go.
+  const result = sanitizeAppContent(
+    value,
+    secretValues,
+    null,
+    redactCredentialText
+  );
   if (!isJsonRecord(result)) {
     throw new AppRunError("invalid_input", "Instance variables must be JSON objects");
   }
   return result;
+}
+
+/**
+ * The revision that last wrote each variable, kept in the stored variables
+ * and removed from every response. A run conflicts only when a key it writes
+ * changed after it started, so parallel runs that write different keys both
+ * land.
+ */
+const KEY_REVISIONS = "__app_key_revisions";
+const NESTED_STATE_KEYS = new Set(["__app_inputs", "__app_outputs"]);
+
+/** Variable values by key, one level into the input and output maps. */
+function flatValues(variables: Record<string, unknown>): Map<string, string> {
+  const values = new Map<string, string>();
+  for (const [key, value] of Object.entries(variables)) {
+    if (key === KEY_REVISIONS) {
+      continue;
+    }
+    if (NESTED_STATE_KEYS.has(key) && isJsonRecord(value)) {
+      for (const [inner, innerValue] of Object.entries(value)) {
+        values.set(`${key}/${inner}`, JSON.stringify(innerValue));
+      }
+    } else {
+      values.set(key, JSON.stringify(value));
+    }
+  }
+  return values;
+}
+
+function keyRevisions(variables: Record<string, unknown>): Record<string, number> {
+  const stored = variables[KEY_REVISIONS];
+  const result: Record<string, number> = {};
+  if (isJsonRecord(stored)) {
+    for (const [key, value] of Object.entries(stored)) {
+      if (typeof value === "number") {
+        result[key] = value;
+      }
+    }
+  }
+  return result;
+}
+
+/** `next` with the keys that differ from `previous` stamped with `revision`. */
+function stampKeyRevisions(
+  previous: Record<string, unknown>,
+  next: Record<string, unknown>,
+  revision: number
+): Record<string, unknown> {
+  const before = flatValues(previous);
+  const after = flatValues(next);
+  const stamps = keyRevisions(previous);
+  for (const key of new Set([...before.keys(), ...after.keys()])) {
+    if (before.get(key) !== after.get(key)) {
+      stamps[key] = revision;
+    }
+  }
+  return { ...withoutKeyRevisions(next), [KEY_REVISIONS]: stamps };
+}
+
+function withoutKeyRevisions(
+  variables: Record<string, unknown>
+): Record<string, unknown> {
+  const { [KEY_REVISIONS]: _stamps, ...rest } = variables;
+  return rest;
+}
+
+/** True when a key that `outputs` writes changed after `baseline`. */
+function outputsAreStale(
+  current: Record<string, unknown>,
+  outputs: Record<string, unknown>,
+  baseline: number
+): boolean {
+  const stamps = keyRevisions(current);
+  return [...flatValues(outputs).keys()].some(
+    (key) => (stamps[key] ?? 0) > baseline
+  );
+}
+
+function toInstanceRecord(row: unknown): AppInstanceRecord {
+  const record = appInstanceResponse.parse(row);
+  return { ...record, variables: withoutKeyRevisions(record.variables) };
 }
 
 export interface CreateAppInstanceInput {
@@ -307,7 +401,7 @@ export async function createAppInstance(
     version: input.version ?? null,
     snapshot: validateAppRunSnapshot(input.snapshot),
     variables: sanitizeAppInstanceVariables(
-      input.variables ?? {},
+      withoutKeyRevisions(input.variables ?? {}),
       input.secretValues
     ),
     revision: 0,
@@ -325,7 +419,7 @@ export async function createAppInstance(
     c.dialect === "sqlite"
       ? await c.db.insert(c.schema.appInstances).values(row).returning()
       : await c.db.insert(c.schema.appInstances).values(row).returning();
-  return appInstanceResponse.parse(rows[0]);
+  return toInstanceRecord(rows[0]);
 }
 
 function scopedId(
@@ -394,7 +488,7 @@ export async function getAppInstance(
   if (rows.length > 1) {
     throw new AppRunError("conflict", "Ambiguous app instance id");
   }
-  return rows[0] ? appInstanceResponse.parse(rows[0]) : null;
+  return rows[0] ? toInstanceRecord(rows[0]) : null;
 }
 
 export async function listAppInstances(
@@ -429,7 +523,7 @@ export async function listAppInstances(
           .where(condition)
           .orderBy(desc(c.schema.appInstances.updated_at))
           .limit(Math.min(100, Math.max(1, limit)));
-  return rows.map((row) => appInstanceResponse.parse(row));
+  return rows.map((row) => toInstanceRecord(row));
 }
 
 /** Read the unique owner/source default independently of history pagination. */
@@ -463,7 +557,7 @@ export async function getDefaultAppInstance(
           .from(c.schema.appInstances)
           .where(condition)
           .limit(1);
-  return rows[0] ? appInstanceResponse.parse(rows[0]) : null;
+  return rows[0] ? toInstanceRecord(rows[0]) : null;
 }
 
 export async function ensureDefaultAppInstance(
@@ -543,10 +637,27 @@ export async function updateAppInstance(
   if (input.name !== undefined) {
     patch.name = input.name;
   }
+  const c = getDatabase();
   if (input.variables !== undefined) {
-    patch.variables = sanitizeAppInstanceVariables(
-      input.variables,
-      input.secretValues
+    const stored =
+      c.dialect === "sqlite"
+        ? await c.db
+            .select({ variables: c.schema.appInstances.variables })
+            .from(c.schema.appInstances)
+            .where(eq(c.schema.appInstances.id, existing.id))
+            .limit(1)
+        : await c.db
+            .select({ variables: c.schema.appInstances.variables })
+            .from(c.schema.appInstances)
+            .where(eq(c.schema.appInstances.id, existing.id))
+            .limit(1);
+    patch.variables = stampKeyRevisions(
+      stored[0]?.variables ?? {},
+      sanitizeAppInstanceVariables(
+        withoutKeyRevisions(input.variables),
+        input.secretValues
+      ),
+      patch.revision
     );
   }
   if (input.snapshot !== undefined) {
@@ -555,7 +666,6 @@ export async function updateAppInstance(
   if (input.version !== undefined) {
     patch.version = input.version;
   }
-  const c = getDatabase();
   const t = c.schema.appInstances;
   const condition = and(
     eq(t.id, existing.id),
@@ -577,7 +687,7 @@ export async function updateAppInstance(
   if (!rows[0]) {
     throw new AppInstanceConflictError();
   }
-  return appInstanceResponse.parse(rows[0]);
+  return toInstanceRecord(rows[0]);
 }
 
 export async function duplicateAppInstance(
@@ -1007,33 +1117,40 @@ export async function settleAppRun(
         return;
       }
       const i = c.schema.appInstances;
-      const revision = input.expectedRevision ?? run.instance_revision;
+      const baseline = input.expectedRevision ?? run.instance_revision;
       const current = tx
         .select()
         .from(i)
         .where(and(eq(i.id, run.instance_id), eq(i.user_id, userId)))
         .get();
-      const changed = tx
-        .update(i)
-        .set({
-          variables: sanitizeAppInstanceVariables(
-            mergeInstanceOutputs(current?.variables ?? {}, instanceOutputs),
-            input.secretValues
-          ),
-          revision: revision + 1,
-          updated_at: patch.settled_at
-        })
-        .where(
-          and(
-            eq(i.id, run.instance_id),
-            eq(i.user_id, userId),
-            eq(i.revision, revision),
-            run.snapshot === null ? undefined : eq(i.snapshot, run.snapshot),
-            run.version === null ? isNull(i.version) : eq(i.version, run.version)
+      const changed =
+        current &&
+        !outputsAreStale(current.variables, instanceOutputs, baseline) &&
+        tx
+          .update(i)
+          .set({
+            variables: stampKeyRevisions(
+              current.variables,
+              sanitizeAppInstanceVariables(
+                mergeInstanceOutputs(current.variables, instanceOutputs),
+                input.secretValues
+              ),
+              current.revision + 1
+            ),
+            revision: current.revision + 1,
+            updated_at: patch.settled_at
+          })
+          .where(
+            and(
+              eq(i.id, run.instance_id),
+              eq(i.user_id, userId),
+              eq(i.revision, current.revision),
+              run.snapshot === null ? undefined : eq(i.snapshot, run.snapshot),
+              run.version === null ? isNull(i.version) : eq(i.version, run.version)
+            )
           )
-        )
-        .returning({ id: i.id })
-        .get();
+          .returning({ id: i.id })
+          .get();
       if (!changed) {
         tx.update(t).set({ state_conflict: 1 }).where(eq(t.id, run.id)).run();
       }
@@ -1074,27 +1191,31 @@ export async function settleAppRun(
       ) {
         return;
       }
-      const revision = input.expectedRevision ?? run.instance_revision;
+      const baseline = input.expectedRevision ?? run.instance_revision;
       const instance = current[0];
-      if (!instance || instance.revision !== revision || instance.version !== run.version || (run.snapshot !== null && JSON.stringify(instance.snapshot) !== JSON.stringify(run.snapshot))) {
+      if (!instance || outputsAreStale(instance.variables, instanceOutputs, baseline) || instance.version !== run.version || (run.snapshot !== null && JSON.stringify(instance.snapshot) !== JSON.stringify(run.snapshot))) {
         await tx.update(t).set({ state_conflict: 1 }).where(eq(t.id, run.id));
         return;
       }
       await tx
         .update(i)
         .set({
-          variables: sanitizeAppInstanceVariables(
-            mergeInstanceOutputs(instance.variables, instanceOutputs),
-            input.secretValues
+          variables: stampKeyRevisions(
+            instance.variables,
+            sanitizeAppInstanceVariables(
+              mergeInstanceOutputs(instance.variables, instanceOutputs),
+              input.secretValues
+            ),
+            instance.revision + 1
           ),
-          revision: revision + 1,
+          revision: instance.revision + 1,
           updated_at: patch.settled_at
         })
         .where(
           and(
             eq(i.id, run.instance_id),
             eq(i.user_id, userId),
-            eq(i.revision, revision),
+            eq(i.revision, instance.revision),
             run.snapshot === null ? undefined : eq(i.snapshot, run.snapshot),
             run.version === null ? isNull(i.version) : eq(i.version, run.version)
           )

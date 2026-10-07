@@ -387,10 +387,20 @@ function buildControl(control, ctx) {
   }
 
   if (control.model !== undefined) {
-    const { binding, idParts } =
-      typeof control.model === "string"
-        ? inputTarget("model", control.model)
-        : propTarget("model", control.model);
+    let target;
+    if (typeof control.model === "string") {
+      target = inputTarget("model", control.model);
+    } else if (control.model.variable !== undefined) {
+      // One picker for an app variable that several operations read.
+      ctx.useVariable(control.model.variable);
+      target = {
+        binding: varBinding(control.model.variable),
+        idParts: ["model", control.model.variable]
+      };
+    } else {
+      target = propTarget("model", control.model);
+    }
+    const { binding, idParts } = target;
     return {
       type: "ModelSelect",
       props: {
@@ -547,6 +557,9 @@ function buildResult(result, ctx) {
     return items;
   }
 
+  // An editable variable can sit among the results, under the run that fills it.
+  if (result.textVar !== undefined) return [buildControl(result, ctx)];
+
   if (result.note !== undefined) {
     items.push({
       type: "Text",
@@ -695,6 +708,14 @@ function buildApp(app, templates) {
       const operation = operations.get(operationId);
       if (!operation || operation.kind === "script") continue;
       for (const node of operation.template.graph.nodes) {
+        // An edge feeds this model, so the graph's input picks it.
+        if (
+          operation.template.graph.edges.some(
+            (edge) => edge.target === node.id && edge.targetHandle === "model"
+          )
+        ) {
+          continue;
+        }
         const model = node.data?.model;
         if (
           !model ||
@@ -760,7 +781,37 @@ function buildApp(app, templates) {
     });
   }
 
-  for (const section of app.content ? [] : app.sections) {
+  // A stepped app shows one section at a time. The Stepper writes `var:step`,
+  // and each section is a Container that shows while the step names its key.
+  const stepped = !app.content && app.steps === true;
+  const sectionKeys = stepped ? app.sections.map((section) => section.key) : [];
+  if (stepped) {
+    if (!declaredVariables.has("step")) {
+      fail(`${app.name}: a stepped app must declare a "step" variable`);
+    }
+    for (const [index, key] of sectionKeys.entries()) {
+      if (!key || sectionKeys.indexOf(key) !== index) {
+        fail(`${app.name}: every step needs a unique section key`);
+      }
+    }
+    content.push({
+      type: "Stepper",
+      props: {
+        id: nextId(["steps"]),
+        binding: varBinding("step"),
+        steps: app.sections.map((section) => ({
+          value: section.key,
+          title: section.title
+        })),
+        allowBack: true
+      }
+    });
+  }
+  const goTo = (key) => [
+    { trigger: "click", kind: "setVariable", key: varBinding("step"), value: key }
+  ];
+
+  for (const [index, section] of (app.content ? [] : app.sections).entries()) {
     const sourceControls = [
       ...modelControlsForSection(section),
       ...(section.controls ?? [])
@@ -771,6 +822,90 @@ function buildApp(app, templates) {
     const results = (section.results ?? []).flatMap((result) =>
       buildResult(result, ctx)
     );
+    if (stepped) {
+      const previous = app.sections[index - 1];
+      const next = app.sections[index + 1];
+      if (section.nextWhen !== undefined) ctx.useVariable(section.nextWhen);
+      const back = previous && {
+        type: "Button",
+        props: {
+          id: nextId(["back", section.key]),
+          label: `Back: ${previous.title}`,
+          variant: "outlined",
+          fullWidth: false,
+          events: goTo(previous.key)
+        }
+      };
+      const forward = next && {
+        type: "Button",
+        props: {
+          id: nextId(["next", section.key]),
+          label: `Next: ${next.title}`,
+          variant: "contained",
+          color: "primary",
+          fullWidth: false,
+          align: "end",
+          events: goTo(next.key),
+          ...(section.nextWhen
+            ? {
+                disabledWhen: {
+                  binding: varBinding(section.nextWhen),
+                  op: "empty"
+                }
+              }
+            : {})
+        }
+      };
+      content.push({
+        type: "Container",
+        props: {
+          id: nextId(["step", section.key]),
+          variant: "plain",
+          visibleWhen: {
+            binding: varBinding("step"),
+            op: "eq",
+            value: section.key
+          },
+          content: [
+            {
+              type: "Heading",
+              props: {
+                id: nextId(["heading", section.key]),
+                text: section.title,
+                level: "2",
+                ...(section.intro ? { subtitle: section.intro } : {})
+              }
+            },
+            // Inputs on the left and what they produce on the right. Columns
+            // stacks into one column when the app is narrow.
+            ...(results.length > 0
+              ? [
+                  {
+                    type: "Columns",
+                    props: {
+                      id: nextId(["cols", section.key]),
+                      gap: 24,
+                      left: controls,
+                      right: results
+                    }
+                  }
+                ]
+              : controls),
+            { type: "Divider", props: { id: nextId(["divider", section.key]) } },
+            {
+              type: "Columns",
+              props: {
+                id: nextId(["nav", section.key]),
+                gap: 16,
+                left: back ? [back] : [],
+                right: forward ? [forward] : []
+              }
+            }
+          ]
+        }
+      });
+      continue;
+    }
     const left = {
       type: "Container",
       props: {
@@ -1171,6 +1306,13 @@ for (const app of selectedApps) {
   liveSlugs.add(app.slug);
   if (Array.isArray(app.debugInteractions)) {
     debugInteractions.set(app.slug, app.debugInteractions);
+  } else if (app.steps === true) {
+    // A no-run debug starts on the first step. Walking every step lets it see
+    // that each step's run button can be reached.
+    debugInteractions.set(
+      app.slug,
+      app.sections.map((section) => ({ set: { key: "step", value: section.key } }))
+    );
   }
   manifest.push({
     slug: app.slug,

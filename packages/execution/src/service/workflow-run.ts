@@ -561,6 +561,7 @@ export async function runWorkflow(
   // and name the secret.
   const preflightIssues = await collectPreflightIssues(runnableGraph, {
     catalogs: options.catalogs,
+    params,
     resolveSecret: (key) => getSecret(key, userId)
   });
   if (preflightIssues.length > 0) {

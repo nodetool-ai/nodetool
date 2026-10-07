@@ -33,6 +33,7 @@ const MEDIA_METHODS = [
   "outpaintImage",
   "upscaleImage",
   "removeBackground",
+  "estimateDepth",
   "segmentImage",
   "relightImage",
   "vectorizeImage",

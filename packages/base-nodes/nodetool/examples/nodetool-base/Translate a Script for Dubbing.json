@@ -1,0 +1,205 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-10-07T12:00:00.000Z",
+  "updated_at": "2026-10-07T12:00:00.000Z",
+  "name": "Translate a Script for Dubbing",
+  "tool_name": null,
+  "description": "A spoken script translated into the language you name, kept close to the original length so the new voice track fits the same footage.",
+  "tags": [
+    "text",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in-script",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "script",
+          "value": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend.",
+          "description": "The script to translate"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Script"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in-language",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "language",
+          "value": "Spanish",
+          "description": "The language of the dub"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2  Language"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "tpl",
+        "type": "nodetool.text.Template",
+        "data": {
+          "string": "Translate this script into {{ language }}.\n\nScript:\n{{ script }}"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Prompt"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in-model",
+        "type": "nodetool.input.LanguageModelInput",
+        "data": {
+          "name": "model",
+          "value": {
+            "type": "language_model",
+            "provider": "anthropic",
+            "id": "claude-sonnet-5",
+            "name": "Claude Sonnet 5",
+            "path": null,
+            "supported_tasks": []
+          },
+          "description": "The language model that writes the text"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Language model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ag",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null,
+            "supported_tasks": []
+          },
+          "system": "You translate scripts for dubbing. Write what a presenter would naturally say in the target language, not a literal translation. Keep each sentence close to the length of the original so the new voice fits the same timing. Return only the translated script, with no notes, no headings and none of the source text.",
+          "prompt": "",
+          "tools": [],
+          "image": [],
+          "audio": [],
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 16384,
+          "max_turns": 100
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "4  Agent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "translation"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 990,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "5  Output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in-script",
+        "sourceHandle": "output",
+        "target": "tpl",
+        "targetHandle": "script"
+      },
+      {
+        "id": "e2",
+        "source": "in-language",
+        "sourceHandle": "output",
+        "target": "tpl",
+        "targetHandle": "language"
+      },
+      {
+        "id": "e3",
+        "source": "tpl",
+        "sourceHandle": "output",
+        "target": "ag",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e4",
+        "source": "ag",
+        "sourceHandle": "text",
+        "target": "out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "in-model-ag-model",
+        "source": "in-model",
+        "sourceHandle": "output",
+        "target": "ag",
+        "targetHandle": "model"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

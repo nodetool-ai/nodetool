@@ -12,6 +12,7 @@ import {
   type ServerAppInstance
 } from "../appInstanceApi";
 import { variableStorageKey } from "../variablePersistence";
+import { AppInstanceConflictError } from "../instancePersistence";
 
 let account = "owner";
 let visitor = false;
@@ -123,9 +124,7 @@ beforeEach(() => {
     .mockImplementation(async (id, revision, variables) => {
       const found = instances.get(id);
       if (!found || found.revision !== revision) {
-        throw new Error(
-          "This instance changed in another session. Reload the app."
-        );
+        throw new AppInstanceConflictError();
       }
       const saved = { ...found, revision: revision + 1, variables };
       instances.set(id, saved);
@@ -278,5 +277,47 @@ it("persists explicit widget edits without committing optimistic server outputs"
   });
   expect(instances.get("default")?.variables.checkpoint).toBe(12);
   expect(instances.get("default")?.variables.result).toBeUndefined();
+  hook.unmount();
+});
+
+it("merges a run result the server settled between two local saves", async () => {
+  const hook = mount();
+  await waitFor(() => expect(hook.result.current.instance?.id).toBe("default"));
+  await act(async () => {
+    hook.store.getState().dispatchEvent({
+      type: "setVariable",
+      variableId: "checkpoint",
+      value: 2
+    });
+    await hook.result.current.flush();
+  });
+  // A server run settles and moves the instance on, as settleAppRun does.
+  const current = instances.get("default");
+  if (!current) throw new Error("default instance missing");
+  instances.set("default", {
+    ...current,
+    revision: current.revision + 1,
+    variables: {
+      ...current.variables,
+      result: "voiced",
+      __app_outputs: { "voice:out": "voiced" }
+    }
+  });
+  await act(async () => {
+    hook.store.getState().dispatchEvent({
+      type: "setVariable",
+      variableId: "checkpoint",
+      value: 3
+    });
+    await hook.result.current.flush();
+  });
+  expect(instances.get("default")?.variables).toMatchObject({
+    checkpoint: 3,
+    result: "voiced",
+    __app_outputs: { "voice:out": "voiced" }
+  });
+  expect(hook.store.getState().variables.result).toBe("voiced");
+  expect(hook.store.getState().outputs["voice:out"]?.value).toBe("voiced");
+  expect(hook.result.current.error).toBeUndefined();
   hook.unmount();
 });

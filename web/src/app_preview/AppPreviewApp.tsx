@@ -292,7 +292,8 @@ const AppPreviewApp: React.FC = () => {
       dispatch: () => {},
       write: () => {},
       selectResource: () => {},
-      getNodeProperty: () => undefined
+      getNodeProperty: () => undefined,
+      getNodeType: () => undefined
     };
   }, [bundle, operationIO, store, values]);
 

@@ -101,7 +101,7 @@ type Rule = readonly [RegExp, string | ((match: string, ...groups: string[]) => 
 const SECRET_NAME =
   "[A-Za-z0-9_.-]{0,40}(?:api[_-]?key|apikey|access[_-]?key|token(?!s\\b)|secret|password|passwd|pwd|signature|credential|authorization|cookie|session[_-]?id|private[_-]?key)[A-Za-z0-9_.-]{0,40}";
 
-const RULES: readonly Rule[] = [
+const CREDENTIAL_RULES: readonly Rule[] = [
   // Credentials in a URL's userinfo.
   [/\b([a-z][a-z0-9+.-]{0,30}:\/\/)[^\s/@:]+:[^\s/@]+@/gi, "$1[REDACTED]@"],
   [
@@ -127,7 +127,11 @@ const RULES: readonly Rule[] = [
   ],
   [new RegExp(`\\b(${SECRET_NAME})(\\s*=\\s*)[^\\s&"',;}]+`, "gi"), "$1$2[REDACTED]"],
   // Signed-URL and OAuth query parameters with short names.
-  [/([?&](?:sig|key|code|state|auth|x-amz-credential)=)[^&#\s"']+/gi, "$1[REDACTED]"],
+  [/([?&](?:sig|key|code|state|auth|x-amz-credential)=)[^&#\s"']+/gi, "$1[REDACTED]"]
+];
+
+/** Personal data and bulky inputs: removed from diagnostics, kept in working state. */
+const PERSONAL_RULES: readonly Rule[] = [
   [/\bdata:[a-z]+\/[a-z0-9.+-]+;base64,[A-Za-z0-9+/=]+/gi, "[REDACTED:data-url]"],
   // Bounded parts: unbounded ones backtrack quadratically on "a.a.a…".
   [
@@ -149,6 +153,8 @@ const RULES: readonly Rule[] = [
   // resource id is 32 hex characters and stays readable.
   [/\b[A-Za-z0-9_-]{48,}\b/g, "[REDACTED:blob]"]
 ];
+
+const RULES: readonly Rule[] = [...CREDENTIAL_RULES, ...PERSONAL_RULES];
 
 /** Environment names whose values are credentials. */
 const SECRET_ENV_NAME =
@@ -181,16 +187,36 @@ export function redactErrorText(
   text: string,
   options: RedactionOptions = {}
 ): string {
+  return applyRules(text, RULES, options);
+}
+
+function applyRules(
+  text: string,
+  rules: readonly Rule[],
+  options: RedactionOptions
+): string {
   let out = text;
   for (const secret of options.secretValues ?? collectSecretValues()) {
     if (out.includes(secret)) out = out.split(secret).join("[REDACTED:secret]");
   }
   out = redactPrivateKeys(out);
-  for (const [pattern, replacement] of RULES) {
+  for (const [pattern, replacement] of rules) {
     // `replace` with a string or a function; the cast only picks the overload.
     out = out.replace(pattern, replacement as string);
   }
   return out;
+}
+
+/**
+ * Remove only credentials: configured secret values, private keys and the
+ * credential shapes. Use it for a user's own working state, where a file
+ * path, an email address or a long id is data the user entered.
+ */
+export function redactCredentialText(
+  text: string,
+  options: RedactionOptions = {}
+): string {
+  return applyRules(text, CREDENTIAL_RULES, options);
 }
 
 /**
