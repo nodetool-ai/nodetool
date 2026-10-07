@@ -4,7 +4,7 @@
  */
 
 import { describe, it, expect, afterAll, beforeAll } from "vitest";
-import { mkdtemp, readFile, rm } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
 import Fastify, { type FastifyInstance } from "fastify";
@@ -24,14 +24,16 @@ let traceFile: string;
 let app: FastifyInstance;
 
 async function readRecords(
-  ready: (records: TraceRecord[]) => boolean
+  ready: (records: TraceRecord[]) => boolean,
+  file = traceFile
 ): Promise<TraceRecord[]> {
   const deadline = Date.now() + 3000;
   let records: TraceRecord[] = [];
   while (Date.now() < deadline) {
-    const text = await readFile(traceFile, "utf8").catch(() => "");
+    const text = await readFile(file, "utf8").catch(() => "");
     records = text
       .split("\n")
+      .slice(0, -1)
       .filter((line) => line.length > 0)
       .map((line) => JSON.parse(line) as TraceRecord);
     if (ready(records)) return records;
@@ -62,6 +64,37 @@ afterAll(async () => {
   await shutdownTelemetry();
   await rm(traceDir, { recursive: true, force: true });
 }, 30000);
+
+describe("trace JSONL reader", () => {
+  it("reads completed records while the writer has an unfinished trailing record", async () => {
+    const file = join(traceDir, "incomplete-tail.jsonl");
+    const completed: TraceRecord = {
+      trace_id: TRACE_ID,
+      span_id: PARENT_SPAN_ID,
+      parent_span_id: null,
+      name: "completed request",
+      kind: "SERVER",
+      start_time_ms: 1,
+      end_time_ms: 2,
+      duration_ms: 1,
+      status: { code: "UNSET" },
+      attributes: {},
+      events: [],
+      resource: {}
+    };
+    await writeFile(file, `${JSON.stringify(completed)}\n{\"name\":`, "utf8");
+
+    await expect(readRecords((records) => records.length === 1, file))
+      .resolves.toEqual([completed]);
+  });
+
+  it("rejects malformed records that have a completed newline delimiter", async () => {
+    const file = join(traceDir, "malformed-record.jsonl");
+    await writeFile(file, "{\"name\":\n", "utf8");
+
+    await expect(readRecords(() => true, file)).rejects.toBeInstanceOf(SyntaxError);
+  });
+});
 
 describe("registerHttpTracing", () => {
   it("reserves authorized ancestry for the run root while HTTP spans stay separate", async () => {
