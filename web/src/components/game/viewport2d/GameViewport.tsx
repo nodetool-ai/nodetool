@@ -3,8 +3,8 @@ import { useColorScheme, useTheme } from "@mui/material/styles";
 import type { GameDocument, GameRenderFrame } from "@nodetool-ai/protocol/game.js";
 import { projectedCamera } from "@nodetool-ai/game-renderer";
 
-import { Box, EditorButton, FlexRow, SPACING, Z_INDEX } from "../ui_primitives";
-import { isMac } from "../../utils/platform";
+import { Box, EditorButton, FlexRow, SPACING, Z_INDEX } from "../../ui_primitives";
+import { isMac } from "../../../utils/platform";
 import { selectionDescendants, localTransform, selectionRoots, worldTransforms, hitEntityIcons, hitSprites, spriteHandle, spriteRotationAt, spriteScaleAt, worldPoint } from "./viewportGeometry";
 
 interface GameViewportProps {

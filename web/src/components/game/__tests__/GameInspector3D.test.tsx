@@ -5,7 +5,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { applyGameOps3D, createNative3DGame, type GameDocumentOp3D } from "@nodetool-ai/game-runtime";
 import type { GameDocument3D } from "@nodetool-ai/protocol";
 import mockTheme from "../../../__mocks__/themeMock";
-import GameInspector3D from "../GameInspector3D";
+import GameInspector3D from "../panels/inspector/GameInspector3D";
 
 function Fixture({ onDocument, entityId = "player-visual", music = false }: {
   onDocument: (document: GameDocument3D) => void;

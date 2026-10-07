@@ -5,7 +5,7 @@ import { gameDocument, type GameDocument } from "@nodetool-ai/protocol/game.js";
 import { applyGameOps, type GameDocumentOp } from "@nodetool-ai/game-runtime";
 
 import mockTheme from "../../../__mocks__/themeMock";
-import GameSceneTree from "../GameSceneTree";
+import GameSceneTree from "../panels/hierarchy/GameSceneTree";
 
 function fixture(): GameDocument {
   return gameDocument.parse({

@@ -7,7 +7,7 @@ import { applyGameOps, type GameDocumentOp } from "@nodetool-ai/game-runtime";
 
 import mockTheme from "../../../../__mocks__/themeMock";
 import { SPACING } from "../../../ui_primitives";
-import GameInspector from "../../GameInspector";
+import GameInspector from "../../panels/inspector/GameInspector";
 
 const initial = gameDocument.parse({
   schemaVersion: 2, engineVersion: "1", id: "game", revision: "one", entrySceneId: "main", pixelsPerUnit: 16, tickRate: 60,

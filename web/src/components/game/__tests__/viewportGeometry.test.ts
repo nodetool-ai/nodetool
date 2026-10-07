@@ -2,7 +2,7 @@ import { describe, expect, it } from "@jest/globals";
 import type { GameRenderFrame } from "@nodetool-ai/protocol/game.js";
 import { applyGameOps, createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 
-import { parentCandidates, worldTransforms, localTransform, selectionRoots, reparentTransform, hitEntityIcons, hitSprite, hitSprites, spriteHandle, spriteRotationAt, spriteScaleAt, worldPoint } from "../viewportGeometry";
+import { parentCandidates, worldTransforms, localTransform, selectionRoots, reparentTransform, hitEntityIcons, hitSprite, hitSprites, spriteHandle, spriteRotationAt, spriteScaleAt, worldPoint } from "../viewport2d/viewportGeometry";
 
 function frame(zoom: number): GameRenderFrame {
   return {

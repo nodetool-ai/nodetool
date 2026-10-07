@@ -1,4 +1,5 @@
 import { act, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 import { useGamePlaySession } from "../useGamePlaySession";
 import { gameAuthoring, gameAssetBinding, type GameDocument } from "@nodetool-ai/protocol";
@@ -44,6 +45,38 @@ function GameHarness({ gameDocument = document }: { gameDocument?: GameDocument 
   const session = useGamePlaySession({ refId: "audio-edit-mode", active: true, document: gameDocument });
   return <><canvas ref={session.canvasRef} /><button onClick={session.beginPlay}>Play</button><button onClick={session.stop}>Stop</button></>;
 }
+
+function ExplicitFailureReplayHarness() {
+  const session = useGamePlaySession({ refId: "explicit-failure-replay", active: true, document });
+  return <>
+    <canvas ref={session.canvasRef} />
+    <button onClick={session.beginPlay}>{session.playing ? "Pause" : "Play"}</button>
+    <button onClick={() => session.step()}>Step</button>
+    <button onClick={() => void session.replayBeforeError({ message: "Independent diagnostic failed", entityId: "player", tick: 2 })}>Replay diagnostic error</button>
+    <output aria-label="Replay tick">{session.playState.tick}</output>
+    <output aria-label="Host failure">{session.scriptError?.message ?? "none"}</output>
+  </>;
+}
+
+it("replays active ring history for an explicit diagnostic failure while private host error remains null", async () => {
+  const user = userEvent.setup();
+  const animation = jest.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+  try {
+    render(<ExplicitFailureReplayHarness />);
+    await waitFor(() => expect(mockAudioInstances.at(-1)?.reset).toHaveBeenCalled());
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    await waitFor(() => expect(screen.getByRole("button", { name: "Pause" })).toBeInTheDocument());
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(screen.getByLabelText("Replay tick")).toHaveTextContent("2");
+    expect(screen.getByLabelText("Host failure")).toHaveTextContent("none");
+    await user.click(screen.getByRole("button", { name: "Replay diagnostic error" }));
+    await waitFor(() => expect(screen.getByLabelText("Replay tick")).toHaveTextContent("1"));
+    expect(screen.getByLabelText("Host failure")).toHaveTextContent("none");
+    expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
+  } finally { animation.mockRestore(); }
+});
 
 describe("game editor audio", () => {
   beforeEach(() => { mockAudioInstances.length = 0; mockRenderers.length = 0; jest.mocked(resolveMediaUri).mockClear(); });

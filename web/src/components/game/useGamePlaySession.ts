@@ -331,8 +331,8 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
   };
 
-  const replayBeforeError = async () => {
-    if (!playDocument || !scriptError || scriptError.tick < 1) return;
+  const replayBeforeError = async (displayedFailure: ScriptFailure | null = scriptError): Promise<void> => {
+    if (!playDocument || !displayedFailure || displayedFailure.tick < 1) return;
     setPlaying(false);
     try {
       const history = inputHistoryRef.current.replay();

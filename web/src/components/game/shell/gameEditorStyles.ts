@@ -1,4 +1,4 @@
-import { TYPOGRAPHY } from "../ui_primitives";
+import { TYPOGRAPHY } from "../../ui_primitives";
 
 /**
  * Root styles for both game editors. Inspector primitives default to mono

@@ -4,7 +4,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import { applyAnyGameOps, createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 import { gameAuthoring, type GameDocument } from "@nodetool-ai/protocol";
 import { getGameDraftStore } from "../../../stores/game/GameDraftStore";
-import GameAuthoringPreview from "../GameAuthoringPreview";
+import GameAuthoringPreview from "../panels/authoring/GameAuthoringPreview";
 import mockTheme from "../../../__mocks__/themeMock";
 
 const mockPreview = jest.fn();

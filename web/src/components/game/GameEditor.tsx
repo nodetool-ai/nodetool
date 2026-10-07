@@ -1,8 +1,8 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMediaQuery } from "@mui/material";
 import { useTheme } from "@mui/material/styles";
-import type { GameEntity } from "@nodetool-ai/protocol/game.js";
-import { createScriptedGameSession, validateGame, type AnyGameDocumentOp as GameDocumentOp, type GameSession } from "@nodetool-ai/game-runtime";
+import type { GameDocument, GameEntity } from "@nodetool-ai/protocol/game.js";
+import { createScriptedGameSession, validateGame, type AnyGameDocumentOp as GameDocumentOp } from "@nodetool-ai/game-runtime";
 
 import { trpc, trpcClient } from "../../trpc/client";
 import { useChatDraftStore } from "../../stores/ChatDraftStore";
@@ -14,29 +14,36 @@ import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStor
 import { diffAnyGameDocuments as diffGameDocuments } from "../../stores/game/diffAnyGameDocuments";
 import { anyGameMergeAdapter as gameMergeAdapter } from "../../stores/game/anyMerge";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
-import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorUiProvider, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, LoadingSpinner, MobileBottomSheet, ResizableDock, SPACING, Text, TextInput } from "../ui_primitives";
+import { Caption, CollapsibleSection, ConflictBanner, Dialog, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, LoadingSpinner, MobileBottomSheet, SPACING, Text, TextInput } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
-import GameAgentPanel from "./GameAgentPanel";
-import GameRevisions from "./GameRevisions";
+import GameAgentPanel from "./panels/agent/GameAgentPanel";
+import GameRevisions from "./panels/revisions/GameRevisions";
 import { publishGameDraft } from "./gamePublish";
-import GameChanges from "./GameChanges";
-import GameAuthoringPreview from "./GameAuthoringPreview";
-import GameInspector from "./GameInspector";
-import GameSceneTree from "./GameSceneTree";
-import GameRuntimeInspector from "./GameRuntimeInspector";
-import GameScriptPane from "./GameScriptPane";
-import GameStatusBar from "./GameStatusBar";
-import GameToolbar from "./GameToolbar";
-import { GAME_EDITOR_ROOT_SX } from "./gameEditorStyles";
-import GameViewport from "./GameViewport";
+import GameChanges from "./panels/changes/GameChanges";
+import GameAuthoringPreview from "./panels/authoring/GameAuthoringPreview";
+import GameInspector from "./panels/inspector/GameInspector";
+import GameSceneTree from "./panels/hierarchy/GameSceneTree";
+import GameRuntimeInspector from "./panels/inspector/GameRuntimeInspector";
+import GameScriptPane from "./panels/scripts/GameScriptPane";
+import GameEditorShell from "./shell/GameEditorShell";
+import { useGameScriptDiagnostics } from "./panels/scripts/useGameScriptDiagnostics";
+import type { GameDiagnosticSession } from "./panels/scripts/gameScriptDiagnostics";
+import GameViewport from "./viewport2d/GameViewport";
 import { pastedEntities } from "./gameClipboard";
 import { pressGameKey } from "./gameInputFrame";
-import { EMPTY_INPUT, scriptFailure, useGamePlaySession } from "./useGamePlaySession";
-import { localTransform, selectionRoots, worldTransforms } from "./viewportGeometry";
+import { EMPTY_INPUT, useGamePlaySession } from "./useGamePlaySession";
+import { localTransform, selectionRoots, worldTransforms } from "./viewport2d/viewportGeometry";
 
 interface GameEditorProps {
   refId: string;
   active: boolean;
+}
+
+async function openGameDiagnosticSession2D(document: GameDocument, signal: AbortSignal): Promise<GameDiagnosticSession> {
+  signal.throwIfAborted();
+  const session = await createScriptedGameSession(document, 1);
+  if (signal.aborted) { session.dispose(); signal.throwIfAborted(); }
+  return { step: () => session.step(EMPTY_INPUT), dispose: () => session.dispose() };
 }
 
 const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
@@ -55,12 +62,11 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const activeSceneId = document?.scenes.some((scene) => scene.id === editorSceneId)
     ? editorSceneId : document?.entrySceneId ?? null;
   const { canvasRef, keysRef, newlyPressedRef, playing, playDocument, playState, backend, error, setError,
-    scriptError, setScriptError, frame, onViewportAspect, onCamera, resetCamera, step, beginPlay, stop,
+    scriptError: hostScriptError, frame, onViewportAspect, onCamera, resetCamera, step, beginPlay, stop,
     save, load, replayBeforeError, runtimeEntities } = useGamePlaySession({ refId, active, document,
       editorSceneId: activeSceneId ?? undefined, name: data?.game.name });
-  const [runSummary, setRunSummary] = useState<string | null>(null);
-  const [runEntityStats, setRunEntityStats] = useState<{ entityId: string; durationMs: number; calls: number }[]>([]);
-  const [runningTenSeconds, setRunningTenSeconds] = useState(false);
+  const diagnostics = useGameScriptDiagnostics(document, openGameDiagnosticSession2D);
+  const scriptError = diagnostics.error ?? hostScriptError;
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [sceneTreeOpen, setSceneTreeOpen] = useState(true);
   const [inspectorOpen, setInspectorOpen] = useState(true);
@@ -197,41 +203,6 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     getGameDraftStore(refId).getState().apply(ops);
   }, [refId]);
 
-  const runTenSeconds = async () => {
-    if (!document) return;
-    setRunningTenSeconds(true);
-    setRunEntityStats([]);
-    let session: GameSession | null = null;
-    let completedTicks = 0;
-    try {
-      session = await createScriptedGameSession(document, 1);
-      let durationMs = 0;
-      let calls = 0;
-      const byEntity = new Map<string, { durationMs: number; calls: number }>();
-      const ticks = Math.round(document.tickRate * 10);
-      for (let tick = 0; tick < ticks; tick++) {
-        const result = session.step(EMPTY_INPUT);
-        completedTicks += 1;
-        durationMs += result.scriptStats?.durationMs ?? 0;
-        calls += result.scriptStats?.calls ?? 0;
-        for (const [entityId, stats] of Object.entries(result.scriptStats?.byEntity ?? {})) {
-          const previous = byEntity.get(entityId) ?? { durationMs: 0, calls: 0 };
-          byEntity.set(entityId, { durationMs: previous.durationMs + stats.durationMs, calls: previous.calls + stats.calls });
-        }
-        if (tick % 30 === 29) await new Promise<void>((resolve) => requestAnimationFrame(() => resolve()));
-      }
-      setRunSummary(`${ticks} ticks completed · ${calls} script calls · ${durationMs.toFixed(1)} ms total script time`);
-      setRunEntityStats([...byEntity].map(([entityId, stats]) => ({ entityId, ...stats })));
-    } catch (cause) {
-      const message = cause instanceof Error ? cause.message : String(cause);
-      setRunSummary(`First error at tick ${completedTicks + 1}: ${message}`);
-      setScriptError(scriptFailure(message, completedTicks + 1));
-    } finally {
-      session?.dispose();
-      setRunningTenSeconds(false);
-    }
-  };
-
   const askAssistant = () => {
     if (!scriptError || !scriptKey) return;
     const prompt = `Help fix this game script error. Scene: ${scriptKey.sceneId}. Entity: ${scriptKey.entityId}. Behavior index: ${scriptKey.index}. Tick: ${scriptError.tick}. Error: ${scriptError.message}`;
@@ -290,14 +261,9 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     onOps([{ op: "update_light", scene_id: sceneId, index, set }]);
   };
 
-  const onViewportKeyDown = (event: React.KeyboardEvent<HTMLCanvasElement>) => {
+  const onEditorKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     if (!active || !document) return;
-    if (playDocument) {
-      if (pressGameKey(keysRef.current, newlyPressedRef.current, event.code, event.key, playDocument.inputActions)) {
-        event.preventDefault();
-      }
-      return;
-    }
+    if (playDocument) return;
     if (event.code === "Home") {
       event.preventDefault();
       resetCamera();
@@ -366,6 +332,13 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     }
   };
 
+  const onViewportKeyDown = (event: React.KeyboardEvent<HTMLCanvasElement>): void => {
+    if (!active || !playDocument) return;
+    if (pressGameKey(keysRef.current, newlyPressedRef.current, event.code, event.key, playDocument.inputActions)) {
+      event.preventDefault();
+    }
+  };
+
   const activeScript = scriptKey && document?.scenes.find((scene) => scene.id === scriptKey.sceneId)
     ?.entities.find((entity) => entity.id === scriptKey.entityId);
   const scriptBehavior = activeScript?.behaviors[scriptKey?.index ?? -1];
@@ -377,24 +350,30 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     return <EmptyState variant="error" title="Could not load game" description={loadError?.message ?? "The game may have been deleted."} />;
   }
 
-  return (
-    <EditorUiProvider scope="inspector">
-    <FlexColumn sx={GAME_EDITOR_ROOT_SX}>
-      <GameToolbar
-        name={data.game.name} playing={playing} playSession={Boolean(playDocument)} loading={backend === "Initializing"} saving={saving}
-        saveStatus={saveStatus}
-        assistantOpen={assistantOpen} sceneTreeOpen={sceneTreeOpen} inspectorOpen={inspectorOpen}
-        playHref={`/game/${encodeURIComponent(refId)}`}
-        onPlay={beginPlay}
-        onStop={stop}
-        onStep={() => { if (playDocument) step(); }}
-        onSave={save}
-        onLoad={() => void load()}
-        onPublish={() => setPublishOpen(true)}
-        onAssistant={() => setAssistantOpen((current) => !current)}
-        onSceneTree={() => setSceneTreeOpen((current) => !current)}
-        onInspector={() => setInspectorOpen((current) => !current)}
-      />
+  return <GameEditorShell dimension="2d"
+    toolbar={{
+        name: data.game.name,
+        playing: playing,
+        playSession: Boolean(playDocument),
+        loading: backend === "Initializing",
+        saving: saving,
+        saveStatus: saveStatus,
+        assistantOpen: assistantOpen,
+        sceneTreeOpen: sceneTreeOpen,
+        inspectorOpen: inspectorOpen,
+        playHref: `/game/${encodeURIComponent(refId)}`,
+        onPlay: beginPlay,
+        onStop: stop,
+        onStep: () => { if (playDocument) step(); },
+        onSave: save,
+        onLoad: () => void load(),
+        onPublish: () => setPublishOpen(true),
+        onAssistant: () => setAssistantOpen((current) => !current),
+        onSceneTree: () => setSceneTreeOpen((current) => !current),
+        onInspector: () => setInspectorOpen((current) => !current)
+    }}
+    status={{ tick: playState.tick, score: playState.score, won: playState.won, backend }}
+    notices={<>
       {(error || draftError) && <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs, borderBottom: 1, borderColor: "divider" }}>
         <Caption color="error" role="alert">{error ?? draftError}</Caption>
         <ReportBugButton context={{ source: "panel-crash", summary: "Game editor failed", errorText: error ?? draftError ?? "" }} />
@@ -407,21 +386,25 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
           setFocusMessage({ threadId, messageId, requestId: ++focusRequestRef.current });
           setAssistantOpen(true);
         }} />
-      <FlexRow sx={{ flex: 1, minHeight: 0 }}>
-        {!isMobile && sceneTreeOpen && <ResizableDock storageKey="sceneTree" storagePrefix="nodetool.gameEditor." side="left"
-          defaultWidth={260} minWidth={220} maxWidth={480} ariaLabel="Resize scene tree">
-          <FlexColumn gap={SPACING.sm} sx={{ flex: 1, minWidth: 0, minHeight: 0, overflow: "hidden" }}>
+    </>}
+    panels={[
+      { id: "hierarchy", visible: !isMobile && sceneTreeOpen, keyboardScope: true,
+        dock: { storageKey: "sceneTree", storagePrefix: "nodetool.gameEditor.", side: "left", defaultWidth: 260, minWidth: 220, maxWidth: 480, ariaLabel: "Resize scene tree" },
+        node: <>
           <GameSceneTree document={document} selectedIds={selectedIds} activeSceneId={activeSceneId ?? document.entrySceneId}
             issues={validationIssues} scriptErrorEntityId={scriptError?.entityId}
             onSelect={selectEntity} onSelectScene={selectScene} onOps={onOps} />
+        </> },
+      { id: "revisions", visible: !isMobile && sceneTreeOpen,
+        dock: { storageKey: "sceneTree", storagePrefix: "nodetool.gameEditor.", side: "left", defaultWidth: 260, minWidth: 220, maxWidth: 480, ariaLabel: "Resize scene tree" },
+        node: <>
           <CollapsibleSection title={<Label component="span" sx={{ mb: 0 }}>Revisions</Label>} compact defaultOpen={false}
             sx={{ flexShrink: 0, maxHeight: "30%", overflowY: "auto", px: SPACING.md,
               "& > [role='button'] > svg": { fontSize: FONT_SIZE_SANS.body } }}>
           <GameRevisions revisions={revisions ?? []} busy={saving} onRestore={restoreRevision} />
           </CollapsibleSection>
-          </FlexColumn>
-        </ResizableDock>}
-        <FlexColumn gap={SPACING.sm} sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
+        </> },
+      { id: "viewport", keyboardScope: true, node: <>
           <GameViewport canvasRef={canvasRef} frame={frame} document={document}
             sceneId={playDocument ? playState.sceneId || playDocument.entrySceneId : activeSceneId ?? document.entrySceneId}
             playing={Boolean(playDocument)} paused={Boolean(playDocument && !playing)} active={active} selectedIds={selectedIds} highlightedIds={highlightedIds}
@@ -433,30 +416,34 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
             onKeyDown={onViewportKeyDown}
             onKeyUp={(event) => keysRef.current.delete(event.code)}
             onBlur={() => { keysRef.current.clear(); newlyPressedRef.current.clear(); }} />
-          {scriptKey && activeScript && scriptBehavior?.kind === "script" &&
-            <FlexColumn sx={{ height: "35%", minHeight: 0 }}>
+      </> },
+      { id: "scripts", visible: Boolean(scriptKey && activeScript && scriptBehavior?.kind === "script"),
+        node: scriptKey && activeScript && scriptBehavior?.kind === "script" ? <>
               <GameScriptPane key={`${scriptKey.sceneId}:${scriptKey.entityId}:${scriptKey.index}`} entityId={activeScript.id} entityName={activeScript.name} behaviorIndex={scriptKey.index}
                 behavior={scriptBehavior} onClose={() => setScriptKey(null)}
                 error={scriptError && (!scriptError.entityId || scriptError.entityId === activeScript.id) ? scriptError : null}
-                onReplay={playDocument ? () => void replayBeforeError() : undefined}
+                onReplay={playDocument && scriptError ? () => void replayBeforeError(scriptError) : undefined}
                 onAskAssistant={askAssistant}
-                onRunTenSeconds={() => void runTenSeconds()} runningTenSeconds={runningTenSeconds} runSummary={runSummary}
-                runEntityStats={runEntityStats}
+                onRunTenSeconds={() => void diagnostics.run()} runningTenSeconds={diagnostics.running} runSummary={diagnostics.summary}
+                runEntityStats={diagnostics.byEntity}
                 onChange={(source) => onOps([{ op: "set_script", entity_id: activeScript.id, scene_id: scriptKey.sceneId, index: scriptKey.index, source }])} />
-            </FlexColumn>}
-        </FlexColumn>
-        {!isMobile && inspectorOpen && <ResizableDock storageKey="inspector" storagePrefix="nodetool.gameEditor."
-          defaultWidth={340} minWidth={280} maxWidth={640} ariaLabel="Resize game inspector">
+        </> : null },
+      { id: "inspector", visible: !isMobile && inspectorOpen,
+        dock: { storageKey: "inspector", storagePrefix: "nodetool.gameEditor.", defaultWidth: 340, minWidth: 280, maxWidth: 640, ariaLabel: "Resize game inspector" },
+        node: <>
           {playDocument && !playing && <GameRuntimeInspector tick={playState.tick} entity={runtimeEntity} />}
           <GameInspector document={document} selectedIds={selectedIds} activeSceneId={activeSceneId ?? document.entrySceneId}
             onSceneChange={selectScene} issues={validationIssues} onOps={onOps}
             onEditScript={(sceneId, entityId, index) => setScriptKey({ sceneId, entityId, index })} />
-        </ResizableDock>}
-        {!isMobile && assistantOpen && <ResizableDock storageKey="game_assistant" ariaLabel="Resize game assistant">
+        </> },
+      { id: "assistant", visible: !isMobile && assistantOpen,
+        dock: { storageKey: "game_assistant", ariaLabel: "Resize game assistant" }, node: <>
           <GameAgentPanel gameId={refId} name={data.game.name} selectedEntityIds={selectedIds} behaviorIndex={scriptKey?.index} onThreadId={setAssistantThreadId} focusMessage={focusMessage} />
-        </ResizableDock>}
-      </FlexRow>
-      <GameStatusBar tick={playState.tick} score={playState.score} won={playState.won} backend={backend} />
+        </> }
+    ]}
+    bottomSx={{ height: "35%", minHeight: 0 }}
+    onKeyDown={onEditorKeyDown}
+    mobile={<>
       {isMobile && <>
         {playDocument && !playing && <GameRuntimeInspector tick={playState.tick} entity={runtimeEntity} />}
         <GameSceneTree document={document} selectedIds={selectedIds} activeSceneId={activeSceneId ?? document.entrySceneId}
@@ -469,6 +456,8 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
           <GameAgentPanel gameId={refId} name={data.game.name} selectedEntityIds={selectedIds} behaviorIndex={scriptKey?.index} onThreadId={setAssistantThreadId} focusMessage={focusMessage} />
         </MobileBottomSheet>
       </>}
+    </>}
+    dialogs={<>
       <Dialog open={publishOpen} onClose={() => setPublishOpen(false)} title="Publish game"
         onConfirm={() => void publish()} confirmText="Publish" isLoading={saving} showActions>
         <FlexColumn gap={SPACING.sm}>
@@ -477,9 +466,8 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
           <TextInput label="Revision message" value={publishMessage} onChange={(event) => setPublishMessage(event.target.value)} />
         </FlexColumn>
       </Dialog>
-    </FlexColumn>
-    </EditorUiProvider>
-  );
+    </>}
+  />;
 };
 
 const Editor3D = lazy(() => import("./GameEditor3D"));
