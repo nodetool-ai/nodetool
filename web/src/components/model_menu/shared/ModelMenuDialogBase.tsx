@@ -50,6 +50,7 @@ import {
 import useModelFiltersStore from "../../../stores/ModelFiltersStore";
 import {
   applyAdvancedModelFilters,
+  modelDownloadTarget,
   ModelSelectorModel
 } from "../../../utils/modelNormalization";
 import {
@@ -294,6 +295,24 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
         model.path ?? undefined,
         model.path ? undefined : (model.allow_patterns ?? undefined),
         model.path ? undefined : (model.ignore_patterns ?? undefined),
+        downloadScope
+      );
+    },
+    [startDownload, downloadScope]
+  );
+
+  // A listed model whose files are missing downloads them in place; the model
+  // list refreshes when the download completes and the row turns selectable.
+  const handleModelDownload = useCallback(
+    (model: TModel) => {
+      const target = modelDownloadTarget(model);
+      if (!target) return;
+      startDownload(
+        target.repoId,
+        model.type ?? "",
+        target.path,
+        target.allowPatterns,
+        target.ignorePatterns,
         downloadScope
       );
     },
@@ -588,6 +607,7 @@ function ModelMenuDialogBase<TModel extends ModelSelectorModel>({
           downloadModels={downloadModels}
           onDownloadSelect={handleSelectRecommended}
           onDownloadStart={handleStartDownload}
+          onModelDownload={handleModelDownload}
           modelType={modelType}
           downloadTargetLabel={downloadTargetLabel}
         />

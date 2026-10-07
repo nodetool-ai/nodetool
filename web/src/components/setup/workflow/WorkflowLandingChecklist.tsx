@@ -209,7 +209,11 @@ const ChecklistInternal: React.FC<WorkflowLandingChecklistProps> = ({
             </EditorButton>
           }
         >
-          <Caption component="span">{failure.split("\n")[0]}</Caption>
+          {/* The summary paragraph only: the repair instructions after the
+              blank line are addressed to the agent, not the creator. */}
+          <Caption component="span" sx={{ whiteSpace: "pre-line" }}>
+            {failure.split("\n\n")[0]}
+          </Caption>
         </AlertBanner>
       )}
     </FlexColumn>

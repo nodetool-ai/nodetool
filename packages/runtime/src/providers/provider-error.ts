@@ -10,7 +10,12 @@
  */
 
 import { getProviderSecretKey } from "./provider-registry.js";
-import { isNumber, isObjectLike, isString } from "@nodetool-ai/protocol";
+import {
+  PROVIDER_IDS,
+  isNumber,
+  isObjectLike,
+  isString
+} from "@nodetool-ai/protocol";
 
 /** Marks an error already annotated, so nested wrappers don't stack hints. */
 const ANNOTATED = Symbol.for("nodetool.provider.errorAnnotated");
@@ -144,6 +149,12 @@ function hintForStatus(
   const target = model ? `${provider}/${model}` : provider;
   switch (status) {
     case 401:
+      if (provider === PROVIDER_IDS.CODEX) {
+        return `${target} rejected the ChatGPT sign-in (401). The sign-in expired: sign in to Codex again in Settings → Models & Providers.`;
+      }
+      if (provider === PROVIDER_IDS.CLAUDE_AGENT_SDK) {
+        return `${target} rejected the Claude sign-in (401). The sign-in expired: sign in to Claude again in Settings → Models & Providers.`;
+      }
       return `${target} rejected the credentials (401). Add or update the API key for ${provider} in Settings → Models & Providers.`;
     case 403:
       return `${target} refused the request (403). The API key may be missing access to this model, restricted to certain referrers or IPs, or blocked in your region — check it in Settings → Models & Providers.`;

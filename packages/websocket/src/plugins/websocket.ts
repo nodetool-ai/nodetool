@@ -4,7 +4,12 @@ import { WsAdapter } from "../ws-adapter.js";
 import { WebSocketClientSession } from "../websocket-client-session.js";
 import { createGraphNodeTypeResolver, type NodeRegistry } from "@nodetool-ai/node-sdk";
 import type { PythonBridge } from "@nodetool-ai/runtime";
-import { PythonNodeExecutor, getProvider, recordRunTraceSecret } from "@nodetool-ai/runtime";
+import {
+  PythonNodeExecutor,
+  getProvider,
+  listRegisteredProviderIds,
+  recordRunTraceSecret
+} from "@nodetool-ai/runtime";
 import type { WorkerManager } from "@nodetool-ai/compute";
 import { getSecret as getStoredSecret } from "@nodetool-ai/models";
 import type { HttpApiOptions } from "../http-api.js";
@@ -13,7 +18,7 @@ import { packWebSocketMessage } from "../messagepack.js";
 import type { SdkLiveRunnerRegistry } from "../sdk/sdk-live-runner-registry.js";
 import { runTransformersJsModelDownload } from "../model-download-runtime.js";
 import type { FrontendRendererRegistry } from "../frontend-renderer-registry.js";
-import { isString } from "../lib/wire-values.js";
+import { runNeedsPythonBridge } from "../python-bridge-gate.js";
 
 const log = createLogger("nodetool.websocket.ws");
 
@@ -116,12 +121,14 @@ const websocketPlugin: FastifyPluginAsync<WebSocketPluginOptions> = async (
       // the runner it is not talking to them.
       appSession: req.appSession,
       beforeRunJob: async (graph) => {
-        if (getPythonBridgeReady()) return;
-        const hasPythonNode = graph.nodes.some((n) => {
-          const type = isString(n.type) ? n.type : "";
-          return registry.getMetadata(type) && !registry.has(type);
+        const needsBridge = runNeedsPythonBridge(graph.nodes, {
+          bridgeReady: getPythonBridgeReady(),
+          bridgeAvailable: pythonBridge.isAvailable(),
+          isPythonNodeType: (type) =>
+            !!registry.getMetadata(type) && !registry.has(type),
+          providerIds: listRegisteredProviderIds
         });
-        if (hasPythonNode) {
+        if (needsBridge) {
           await ensurePythonBridge();
         }
       },

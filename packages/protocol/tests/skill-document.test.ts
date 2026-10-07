@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 
 import {
   MAX_SANDBOX_DESCRIPTION,
+  isValidSkillDescription,
+  isValidSkillName,
   parseFrontmatter,
   parseSkillDocument,
   sanitizeSandboxDescription,
@@ -133,5 +135,41 @@ describe("sanitizeSandboxDescription", () => {
     const long = sanitizeSandboxDescription("x".repeat(500));
     expect(long.length).toBe(MAX_SANDBOX_DESCRIPTION);
     expect(long.endsWith("…")).toBe(true);
+  });
+});
+
+describe("isValidSkillName", () => {
+  it.each([
+    ["acme-geo", true],
+    ["a", true],
+    ["0-9", true],
+    ["a".repeat(64), true],
+    ["", false],
+    ["a".repeat(65), false],
+    ["Acme", false],
+    ["acme_geo", false],
+    ["acme geo", false],
+    ["café", false],
+    ["claude-helper", false],
+    ["my-anthropic-skill", false]
+  ])("%j -> %s", (name, expected) => {
+    expect(isValidSkillName(name)).toBe(expected);
+  });
+});
+
+describe("isValidSkillDescription", () => {
+  it.each([
+    ["Use when plotting.", true],
+    ["a".repeat(1024), true],
+    ["1 < 2", true],
+    ["", false],
+    ["a".repeat(1025), false],
+    ["has <b>markup</b>", false],
+    ["line one\nline two", false],
+    ["line one\r\nline two", false],
+    ["trailing newline\n", false],
+    ["line one line two", false]
+  ])("%j -> %s", (description, expected) => {
+    expect(isValidSkillDescription(description)).toBe(expected);
   });
 });

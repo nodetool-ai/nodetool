@@ -180,6 +180,37 @@ describe("provider-registry — extended coverage", () => {
     expect(calls).toEqual(["huggingface"]);
   });
 
+  it("keeps the files an adapter needs from the repository", async () => {
+    const provider = new PythonProvider({
+      _id: "huggingface-local",
+      _bridgeProviderId: "huggingface",
+      _bridge: {
+        getProviderModels: async () => [
+          {
+            id: "suno/bark",
+            name: "Bark",
+            provider: "huggingface",
+            adapter: {
+              state: "installed",
+              artifact_ref: {
+                source: "huggingface",
+                repo_id: "suno/bark",
+                allow_patterns: ["*.bin", "*.json", "*.txt"]
+              }
+            }
+          }
+        ]
+      }
+    } as any);
+
+    const [model] = await provider.getAvailableTTSModels();
+    expect(model.adapter?.artifactRef?.allowPatterns).toEqual([
+      "*.bin",
+      "*.json",
+      "*.txt"
+    ]);
+  });
+
   it("routes video generation through the Python bridge", async () => {
     const textToVideo = vi.fn(async () => new Uint8Array([1]));
     const imageToVideo = vi.fn(async () => new Uint8Array([2]));
@@ -389,5 +420,26 @@ describe("provider-registry — extended coverage", () => {
       streaming.textToSpeechEncoded({ text: "hello", model: "local-tts" })
     ).resolves.toBeNull();
     expect(providerTTSEncoded).toHaveBeenCalledTimes(1);
+  });
+
+  it("decodes streamed PCM from a Buffer view at an odd byte offset", async () => {
+    const pool = Buffer.alloc(16);
+    const pcm = new Int16Array([1, -2, 300]);
+    pool.set(new Uint8Array(pcm.buffer), 3);
+    const chunk = pool.subarray(3, 3 + pcm.byteLength + 1);
+    const provider = new PythonProvider({
+      _id: "huggingface",
+      _capabilities: ["text_to_speech"],
+      _bridge: {
+        async *providerTTS() {
+          yield chunk;
+        }
+      }
+    } as any);
+    const samples: number[] = [];
+    for await (const out of provider.textToSpeech({ text: "hi", model: "kokoro" })) {
+      samples.push(...(out.samples ?? []));
+    }
+    expect(samples).toEqual([1, -2, 300]);
   });
 });

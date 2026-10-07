@@ -185,6 +185,17 @@ export function createUsageSlot() {
   };
 }
 
+/**
+ * Mark a span failed: ERROR status with the error text (the run-store
+ * `error_summary` source) and the recorded exception. Use it when a failure
+ * is returned instead of thrown, so the span does not end OK.
+ */
+export function markSpanError(span: Span | null, err: unknown): void {
+  if (!span) return;
+  span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
+  span.recordException(err as Error);
+}
+
 /** Wrap a function in an OTel span; pass-through if telemetry is disabled. */
 export async function withSpan<T>(
   name: string,
@@ -200,8 +211,7 @@ export async function withSpan<T>(
       if (!spanEndedWithError(span)) { span.setStatus({ code: SpanStatusCode.OK }); }
       return result;
     } catch (err) {
-      span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
-      span.recordException(err as Error);
+      markSpanError(span, err);
       throw err;
     } finally {
       span.end();
@@ -243,8 +253,7 @@ export async function* withSpanGen<T, TReturn = void>(
       yield result.value;
     }
   } catch (err) {
-    span.setStatus({ code: SpanStatusCode.ERROR, message: String(err) });
-    span.recordException(err as Error);
+    markSpanError(span, err);
     throw err;
   } finally {
     if (!exhausted) {

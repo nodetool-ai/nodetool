@@ -104,7 +104,13 @@ let latestRequestedId: string | null = null;
 
 type RestorableTabType = Exclude<
   WorkspaceTabType,
-  "skill" | "page" | "project-list" | "project" | "project-new" | "guided-flow"
+  | "skill"
+  | "page"
+  | "project-list"
+  | "project"
+  | "project-new"
+  | "guided-flow"
+  | "example-app"
 >;
 
 const isRestorableType = (

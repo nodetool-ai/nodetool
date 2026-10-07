@@ -2,6 +2,8 @@ import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
 import { test, expect, waitForAppReady } from "./fixtures";
 
+import { observeNativeGameReadiness, settleNativeGameEdit, finishNativeGameReadiness } from "./helpers/nativeGameReadiness";
+
 const PROJECT_ID = "proj-scrapheart";
 
 test("reviews a game change, undoes it, and publishes the draft", async ({ page }) => {
@@ -59,6 +61,26 @@ test("reviews a game change, undoes it, and publishes the draft", async ({ page 
     localStorage.getItem("nodetool.gameEditor.sceneTree"),
     localStorage.getItem("nodetool.gameEditor.inspector")
   ])).toEqual(["276", "356"]);
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeEnabled();
+  await page.getByText("Assistant added", { exact: true }).click();
+  await observeNativeGameReadiness(page);
+  for (let edit = 1; edit <= 10; edit++) {
+    const name = `Assistant edit ${edit}`;
+    await page.getByRole("textbox", { name: "Name", exact: true }).fill(name);
+    await page.getByRole("textbox", { name: "Name", exact: true }).press("Tab");
+    await expect.poll(async () => (await client.games.getDraft.query({ id: created.game.id })).document.scenes[0]?.entities
+      .find((entity) => entity.id === "assistant-added")?.name).toBe(name);
+    await settleNativeGameEdit(page);
+  }
+  const readiness = await finishNativeGameReadiness(page);
+  await test.info().attach("editor-readiness-2d", { body: JSON.stringify(readiness, null, 2), contentType: "application/json" });
+  expect(readiness.observations.filter((entry) => entry.kind === "edit-settled")).toHaveLength(10);
+  expect(readiness.observations.length).toBeGreaterThan(10);
+  expect(readiness.failures).toEqual([]);
+  await page.getByRole("textbox", { name: "Name", exact: true }).fill("Assistant added");
+  await page.getByRole("textbox", { name: "Name", exact: true }).press("Tab");
+  await expect.poll(async () => (await client.games.getDraft.query({ id: created.game.id })).document.scenes[0]?.entities
+    .find((entity) => entity.id === "assistant-added")?.name).toBe("Assistant added");
   const beforePlay = (await client.games.getDraft.query({ id: created.game.id })).document;
   await page.getByRole("button", { name: "Play", exact: true }).click();
   await expect(page.getByRole("button", { name: "Stop", exact: true })).toBeEnabled();

@@ -1,7 +1,6 @@
 import { z } from "zod";
 import {
   appInstanceResponse,
-  appInstanceMetadataResponse,
   listInstanceMetadataResponse,
   appRunResponse
 } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
@@ -11,9 +10,7 @@ const instanceSchema = appInstanceResponse;
 
 export type ServerAppInstance = z.infer<typeof instanceSchema>;
 
-const metadataSchema = appInstanceMetadataResponse;
 const metadataListSchema = listInstanceMetadataResponse;
-export type ServerAppInstanceMetadata = z.infer<typeof metadataSchema>;
 export type AppInstanceMetadataPage = z.infer<typeof metadataListSchema>;
 export interface AppInstanceListOptions {
   application_id?: string;

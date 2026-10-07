@@ -265,7 +265,7 @@ export const CAPABILITY_COVERAGE: readonly CapabilityCoverageEntry[] = [
     name: "build_workflow_from_plan",
     module: "workflows",
     impl: "packages/agents/src/capabilities/workflows.ts",
-    contract: "3c17818521cc",
+    contract: "398e489ad3ab",
     selfcheck: "capability-suites",
     suites: [
       "packages/agents/tests/capabilities-workflow-setup.test.ts",

@@ -41,9 +41,12 @@ import {
   workflowRecord
 } from "../tools/mcp-tool-support.js";
 import {
+  PLAN_CORE_NODE_TYPES,
+  checkWorkflowPlan,
   planNodeShape,
   planToPlacement,
   parseWorkflowPlan,
+  refineWorkflowPlan,
   resolveWorkflowPlan,
   readEntityMarker,
   GAME_DESIGNER_SYSTEM_PROMPT,
@@ -1064,7 +1067,7 @@ function placementToGraph(placement: WorkflowPlacement): {
       data: node.properties,
       ui_properties: { position: node.position, setup_step_id: node.setupStepId },
       dynamic_properties: node.dynamicProperties ?? {},
-      dynamic_outputs: {}
+      dynamic_outputs: node.dynamicOutputs ?? {}
     })),
     edges: placement.edges.map((edge, index) => ({
       id: `e${index + 1}`,
@@ -1108,13 +1111,26 @@ const setWorkflowSetup: CapabilityExport = {
 
 // ── plan_workflow ───────────────────────────────────────────────────────────
 
-/** Candidate node types for the planner prompt, ranked against the brief. */
+/**
+ * Candidate node types for the planner prompt: the general-purpose nodes
+ * first, then the registry's ranking against the brief.
+ */
 function candidateLines(registry: NodeRegistry, terms: string[]): string[] {
-  const ranked = registry.searchMetadata(terms).slice(0, CANDIDATE_LIMIT);
-  return ranked.map(
-    (entry) =>
-      `- ${entry.meta.node_type}: ${entry.meta.title} — ${entry.meta.description.split("\n")[0]}`
-  );
+  const core = PLAN_CORE_NODE_TYPES.flatMap((nodeType) => {
+    const meta = registry.getMetadata(nodeType);
+    return meta ? [meta] : [];
+  });
+  const seen = new Set(core.map((meta) => meta.node_type));
+  const ranked = registry
+    .searchMetadata(terms)
+    .map((entry) => entry.meta)
+    .filter((meta) => !seen.has(meta.node_type));
+  return [...core, ...ranked]
+    .slice(0, CANDIDATE_LIMIT)
+    .map(
+      (meta) =>
+        `- ${meta.node_type}: ${meta.title} — ${meta.description.split("\n")[0]}`
+    );
 }
 
 const planWorkflow: CapabilityExport = {
@@ -1128,6 +1144,7 @@ const planWorkflow: CapabilityExport = {
     const supplied = params["plan"];
 
     let plan: WorkflowSetupPlan | null = null;
+    let planProblems: string[] = [];
     if (supplied !== undefined) {
       // A plan handed in replaces the model call outright: it is how a harness
       // case and a replay reach the builder with no provider at all.
@@ -1161,37 +1178,51 @@ const planWorkflow: CapabilityExport = {
         };
       }
       const { generateStructured } = await import("@nodetool-ai/runtime");
+      const { plannedCodeStepProblems } = await import(
+        "@nodetool-ai/node-sdk/code-analysis"
+      );
       const category = owned.setup?.category ?? "";
       const terms = brief
         .split(/\s+/)
         .filter((term: string) => term.length > 2);
       const candidates = candidateLines(registry, terms);
-      const raw = await generateStructured(
-        await run.context.getProvider(provider),
-        {
-          model,
-          maxTokens: 4096,
-          messages: [
-            { role: "system", content: WORKFLOW_PLANNER_SYSTEM_PROMPT },
-            {
-              role: "user",
-              content: [
-                `Task: ${brief}`,
-                category ? `Kind of workflow: ${category}` : "",
-                "",
-                "Candidate node types:",
-                ...candidates
-              ]
-                .filter((line) => line !== "")
-                .join("\n")
-            }
-          ],
-          toolName: WORKFLOW_PLAN_TOOL_NAME,
-          toolDescription: WORKFLOW_PLAN_TOOL_DESCRIPTION,
-          schema: buildWorkflowPlanSchema()
-        }
-      );
-      plan = parseWorkflowPlan(raw);
+      const planner = await run.context.getProvider(provider);
+      // The same check-and-repair loop the browser flow runs: a plan reaches
+      // review only after it builds, or after the round limit with its
+      // remaining problems reported.
+      const refined = await refineWorkflowPlan({
+        messages: [
+          { role: "system", content: WORKFLOW_PLANNER_SYSTEM_PROMPT },
+          {
+            role: "user",
+            content: [
+              `Task: ${brief}`,
+              category ? `Kind of workflow: ${category}` : "",
+              "",
+              "Candidate node types:",
+              ...candidates
+            ]
+              .filter((line) => line !== "")
+              .join("\n")
+          }
+        ],
+        generate: (messages) =>
+          generateStructured(planner, {
+            model,
+            maxTokens: 4096,
+            messages: [...messages],
+            toolName: WORKFLOW_PLAN_TOOL_NAME,
+            toolDescription: WORKFLOW_PLAN_TOOL_DESCRIPTION,
+            schema: buildWorkflowPlanSchema()
+          }),
+        check: (draft) =>
+          checkWorkflowPlan(draft, {
+            lookup: registryLookup(registry),
+            checkCode: plannedCodeStepProblems
+          })
+      });
+      plan = refined.plan;
+      planProblems = refined.problems;
       if (!plan) {
         return { error: "The planner did not return a plan." };
       }
@@ -1206,6 +1237,7 @@ const planWorkflow: CapabilityExport = {
       stage: "review",
       plan,
       review: reviewReport(resolved),
+      plan_problems: planProblems,
       nodes_placed: 0
     };
   }
@@ -1335,7 +1367,14 @@ const buildWorkflowFromPlan: CapabilityExport = {
       };
     }
 
-    const placement = planToPlacement(plan, registryLookup(registry));
+    const models = isObjectLike(params["models"])
+      ? (params["models"] as Record<string, unknown>)
+      : undefined;
+    const placement = planToPlacement(
+      plan,
+      registryLookup(registry),
+      models === undefined ? {} : { models }
+    );
     const graph = placementToGraph(placement);
 
     const validation = await validateBuiltGraph(run, graph);

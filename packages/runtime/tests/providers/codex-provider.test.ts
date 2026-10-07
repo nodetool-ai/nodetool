@@ -2,6 +2,7 @@ import { describe, it, expect, vi, afterEach } from "vitest";
 import { CodexProvider } from "../../src/providers/codex-provider.js";
 import { CODEX_BACKEND_BASE_URL } from "@nodetool-ai/protocol";
 import { OPENAI_FALLBACK_MODELS } from "../../src/providers/openai-provider.js";
+import { providerFailureDetail } from "../../src/providers/provider-error.js";
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -195,5 +196,36 @@ describe("CodexProvider", () => {
     const [model] = await provider.getAvailableImageModels();
     const bytes = await provider.textToImage({ model, prompt: "a dot" });
     expect(Array.from(bytes)).toEqual(Array.from(png));
+  });
+
+  it("classifies an expired sign-in as a credential failure", async () => {
+    vi.spyOn(globalThis, "fetch").mockResolvedValue(
+      new Response(
+        JSON.stringify({
+          error: {
+            message: "Provided authentication token is expired.",
+            code: "token_expired"
+          }
+        }),
+        { status: 401 }
+      )
+    );
+    const provider = new CodexProvider({ CODEX_ACCESS_TOKEN: "tok" });
+    let failure: unknown;
+    try {
+      for await (const item of provider.generateMessagesTraced({
+        messages: [{ role: "user", content: "hi" }],
+        model: "gpt-5.5"
+      })) {
+        expect(item).toBeDefined();
+      }
+    } catch (err) {
+      failure = err;
+    }
+    expect(providerFailureDetail(failure)).toMatchObject({
+      code: "provider_auth",
+      provider: "codex"
+    });
+    expect(String(failure)).toMatch(/sign in to Codex again/);
   });
 });

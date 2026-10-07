@@ -45,6 +45,7 @@ import { useSubgraphTabsStore } from "../../stores/SubgraphTabsStore";
 import { useSettingsStore } from "../../stores/SettingsStore";
 import {
   BORDER_RADIUS,
+  CloseButton,
   ConflictBanner,
   Box,
   FlexColumn,
@@ -418,6 +419,18 @@ const WorkflowEditorSurface = ({
                     zIndex: STATUS_MESSAGE_Z_INDEX + 1
                   }}
                 >
+                  <Box
+                    sx={{
+                      position: "absolute",
+                      top: SPACING.sm,
+                      right: SPACING.sm
+                    }}
+                  >
+                    <CloseButton
+                      tooltip="Dismiss"
+                      onClick={() => setLandingDismissed(true)}
+                    />
+                  </Box>
                   <WorkflowLandingChecklist
                     result={visibleLanding}
                     runMode={landingRunMode}

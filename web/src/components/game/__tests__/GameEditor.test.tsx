@@ -49,7 +49,7 @@ jest.mock("../useGamePlaySession", () => ({
 }));
 jest.mock("../panels/scripts/useGameScriptDiagnostics", () => ({
   useGameScriptDiagnostics: () => ({ run: jest.fn(), running: false, summary: "Diagnostic completed", error: mockDiagnosticFailure, byEntity: [] })
-}), { virtual: true });
+}));
 jest.mock("../viewport2d/GameViewport", () => ({ __esModule: true, default: (props: ComponentProps<typeof GameViewport>) => {
   mockViewportProps = props;
   return <canvas aria-label="Editor viewport" role="button" tabIndex={0} onKeyDown={props.onKeyDown} />;

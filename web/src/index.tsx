@@ -11,8 +11,8 @@ import "./cryptoUUIDPolyfill";
 // boot path highlights code. Every consumer — CodeBlock, CodeHighlightPlugin,
 // JSONRenderer, ToolCallRenderer — imports Prism and the grammars it needs
 // itself, and all of them are behind a lazy chunk.
-// Auto-reload when a lazy chunk 404s after a deploy (stale-asset recovery).
-import "./lib/preloadErrorReload";
+// Offer a reload when a new deploy replaced this tab's assets.
+import "./lib/staleDeployPrompt";
 
 import React, { Suspense, useCallback, useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -70,9 +70,13 @@ const SearchProviderSetupDialog = React.lazy(
 const ProviderOnboardingDialog = React.lazy(
   () => import("./components/provider_onboarding/ProviderOnboardingDialog")
 );
+const ProviderSignInDialog = React.lazy(
+  () => import("./components/provider_onboarding/ProviderSignInDialog")
+);
 import FirstRunProviderSignIn from "./components/provider_onboarding/FirstRunProviderSignIn";
 import HelpDialogHost from "./components/content/Help/HelpDialogHost";
 import BugReportDialogHost from "./components/support/BugReportDialogHost";
+import StaleDeployDialog from "./components/dialogs/StaleDeployDialog";
 import ReportBugButton from "./components/support/ReportBugButton";
 import { installConsoleCapture } from "./utils/consoleCapture";
 
@@ -792,6 +796,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                       <RunWarningDialog />
                       <SearchProviderSetupDialog />
                       <ProviderOnboardingDialog />
+                      <ProviderSignInDialog />
                       <FirstRunProviderSignIn />
                     </>
                   )}
@@ -799,6 +804,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                       someone needs to report a bug. */}
                   <BugReportDialogHost />
                   <HelpDialogHost />
+                  <StaleDeployDialog />
                 </KeyboardProvider>
               </WorkflowManagerProvider>
             </MenuProvider>

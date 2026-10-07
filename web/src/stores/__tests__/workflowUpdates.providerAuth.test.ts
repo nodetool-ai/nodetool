@@ -1,5 +1,6 @@
 import type { NodeUpdate, WorkflowAttributes } from "../ApiTypes";
 import useProviderOnboardingStore from "../ProviderOnboardingStore";
+import useProviderSignInStore from "../ProviderSignInStore";
 import { handleUpdate } from "../workflowUpdates";
 import { stub } from "../../test-utils/doubles";
 
@@ -51,6 +52,7 @@ const authDetail = {
 
 beforeEach(() => {
   useProviderOnboardingStore.getState().dismiss();
+  useProviderSignInStore.getState().dismiss();
 });
 
 describe("handleUpdate — provider auth failures", () => {
@@ -83,4 +85,26 @@ describe("handleUpdate — provider auth failures", () => {
 
     expect(useProviderOnboardingStore.getState().open).toBe(false);
   });
+
+  it.each([
+    ["codex", "openai", "Codex"],
+    ["claude_agent_sdk", "claude", "Claude"]
+  ])(
+    "offers the %s sign-in instead of the API-key onboarding",
+    (provider, oauth, label) => {
+      dispatch(
+        nodeError(`job-signin-${provider}`, {
+          code: "provider_auth",
+          provider,
+          secret_key: null
+        })
+      );
+
+      expect(useProviderSignInStore.getState().provider).toMatchObject({
+        oauth,
+        label
+      });
+      expect(useProviderOnboardingStore.getState().open).toBe(false);
+    }
+  );
 });

@@ -59,7 +59,8 @@ const modelArtifactRefSchema = z.object({
   source: z.literal("huggingface"),
   repo_id: z.string(),
   revision: z.string().nullish(),
-  path: z.string().nullish()
+  path: z.string().nullish(),
+  allow_patterns: z.array(z.string()).nullish()
 });
 
 const modelAdapterInfoSchema = z.object({
@@ -832,6 +833,7 @@ function toUnifiedModel(
         repoId: string;
         revision?: string;
         path?: string;
+        allowPatterns?: string[];
       };
     };
     supportedTasks?: string[];
@@ -870,7 +872,8 @@ function toUnifiedModel(
                 source: model.adapter.artifactRef.source,
                 repo_id: model.adapter.artifactRef.repoId,
                 revision: model.adapter.artifactRef.revision ?? null,
-                path: model.adapter.artifactRef.path ?? null
+                path: model.adapter.artifactRef.path ?? null,
+                allow_patterns: model.adapter.artifactRef.allowPatterns ?? null
               }
             : null
         }

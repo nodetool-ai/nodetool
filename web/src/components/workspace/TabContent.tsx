@@ -21,6 +21,7 @@ const ScriptSurface = React.lazy(() => import("./ScriptSurface"));
 const JsScriptSurface = React.lazy(() => import("./JsScriptSurface"));
 const SkillSurface = React.lazy(() => import("./SkillSurface"));
 const ApplicationSurface = React.lazy(() => import("./ApplicationSurface"));
+const ExampleAppSurface = React.lazy(() => import("./ExampleAppSurface"));
 const GameSurface = React.lazy(() => import("./GameSurface"));
 const ChatSurface = React.lazy(() => import("./ChatSurface"));
 const PageSurface = React.lazy(() => import("./PageSurface"));
@@ -85,6 +86,8 @@ const surfaceFor = (tab: WorkspaceTab, active: boolean) => {
       );
     case "application":
       return <ApplicationSurface refId={tab.ref} mode={tab.mode} instanceId={tab.instanceId} selectedRunId={tab.selectedRunId} />;
+    case "example-app":
+      return <ExampleAppSurface slug={tab.ref} title={tab.title} />;
     case "game":
       return <GameSurface refId={tab.ref} active={active} mode={tab.mode} />;
     case "chat":
