@@ -834,6 +834,10 @@ export class ClaudeAgentProvider extends BaseProvider {
     // assistant message to avoid duplication; if a build omits partials we fall
     // back to the final message's content blocks.
     let streamedFromPartials = false;
+    // The CLI answers a refused login with a synthetic assistant message, then
+    // a "success" result flagged `is_error`. Hold its text back from the stream
+    // and fail the call with it instead.
+    let authFailure: string | null = null;
 
     // The SDK splits one API assistant turn into one frame per content block —
     // thinking, then text, then each tool_use. Emitting a message per frame
@@ -911,6 +915,13 @@ export class ClaudeAgentProvider extends BaseProvider {
         }
 
         if (msg.type === "assistant") {
+          if (msg.error === "authentication_failed") {
+            authFailure = finalBlocks(msg)
+              .filter((block) => !block.thinking)
+              .map((block) => block.content)
+              .join("");
+            continue;
+          }
           const m = msg.message;
           if (m && isNonEmptyString(m.model)) resolvedModel = m.model;
           // Fallback only: no partials arrived, so render text/thinking from the
@@ -974,6 +985,9 @@ export class ClaudeAgentProvider extends BaseProvider {
           // Bill every terminal result, not just the successful ones: an
           // errored/max-turns run still consumed (and was charged for) tokens.
           this.trackResultUsage(msg, resolvedModel);
+          if (authFailure !== null && msg.is_error) {
+            throw claudeAuthError(authFailure);
+          }
           if (msg.subtype === "success") {
             const flushed = flushPending();
             if (flushed) yield flushed;
@@ -1469,6 +1483,17 @@ function jsonPropToZod(prop: Record<string, unknown>): ZodTypeAny {
       zt = z.unknown();
   }
   return desc ? zt.describe(desc) : zt;
+}
+
+/**
+ * A refused Claude login, carrying status 401 so the provider layer classifies
+ * it as a credential failure and the UI offers to sign in again.
+ */
+function claudeAuthError(detail: string): Error {
+  const message = detail.trim() || "The Claude login was refused";
+  return Object.assign(new Error(`Claude sign-in failed (401): ${message}`), {
+    status: 401
+  });
 }
 
 /** Build a descriptive Error from a non-success `result` message. */

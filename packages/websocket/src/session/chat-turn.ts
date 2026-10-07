@@ -210,6 +210,12 @@ function seedStoredToolProvenance(messages: readonly Message[]): void {
 
 const log = createLogger("nodetool.websocket.runner");
 
+/** Providers whose credential is an account sign-in, not an API key. */
+const SIGN_IN_PROVIDER_LABELS: Record<string, string> = {
+  [PROVIDER_IDS.CODEX]: "Codex",
+  [PROVIDER_IDS.CLAUDE_AGENT_SDK]: "Claude"
+};
+
 const GENERIC_CHAT_ERROR =
   "Something went wrong while processing your request. Please try again.";
 
@@ -358,9 +364,11 @@ function providerFailureMessage(
     };
   }
   if (detail?.code === "provider_auth") {
+    const signIn = SIGN_IN_PROVIDER_LABELS[detail.provider];
+    const remedy = signIn ? `Sign in to ${signIn} again` : "Check the API key";
     return {
       errorType: "error",
-      message: `Authentication failed: ${detail.provider} rejected the configured credentials. Check the API key in Settings → Models & Providers.`,
+      message: `Authentication failed: ${detail.provider} rejected the configured credentials. ${remedy} in Settings → Models & Providers.`,
       statusCode
     };
   }
