@@ -64,7 +64,7 @@ import {
 } from "./substitute-validator.js";
 // Span helpers via the narrow `/tracing` subpath — keeps the runtime
 // provider / python-bridge barrel out of thin (browser) bundles.
-import { withNodeSpan } from "@nodetool-ai/runtime/tracing";
+import { markSpanError, withNodeSpan } from "@nodetool-ai/runtime/tracing";
 import { NodeInbox, type MessageEnvelope } from "./inbox.js";
 import { NodeInputs, NodeOutputs } from "./io.js";
 import type { NodeAnalysis } from "./correlation-analysis.js";
@@ -381,11 +381,11 @@ export class NodeActor {
     return withNodeSpan(
       // Stryker disable next-line ObjectLiteral: OpenTelemetry span attributes are observability, not a behavioural contract
       { nodeId: this.node.id, nodeType: this.node.type },
-      () => this._runImpl()
+      (span) => this._runImpl(span)
     );
   }
 
-  private async _runImpl(): Promise<ActorResult> {
+  private async _runImpl(span: Parameters<typeof markSpanError>[0]): Promise<ActorResult> {
     let errorMessage: string | undefined;
     let errorDetail: NodeErrorDetail | undefined;
     this._executionContext?.clearProviderCost?.();
@@ -404,6 +404,8 @@ export class NodeActor {
       await this._runExecutionMode();
     } catch (err) {
       errorMessage = err instanceof Error ? err.message : String(err);
+      // The error is returned, not thrown, so `withNodeSpan` cannot see it.
+      markSpanError(span, err);
       // A credential failure carries the provider and the key that failed,
       // so the editor can send the user straight to the screen that fixes it
       // instead of asking them to parse the message.

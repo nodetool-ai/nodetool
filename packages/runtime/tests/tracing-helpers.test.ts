@@ -9,6 +9,7 @@ import {
   withAgentSpanGen,
   withWorkflowSpan,
   withNodeSpan,
+  markSpanError,
   withSpanGen,
   createUsageSlot,
   setLastUsage,
@@ -187,5 +188,25 @@ describe("usage slot capture", () => {
 
     expect(a.getUsage()?.inputTokens).toBe(1);
     expect(b.getUsage()?.inputTokens).toBe(100);
+  });
+});
+
+describe("markSpanError", () => {
+  it("sets ERROR status with the error text and records the exception", () => {
+    const calls: unknown[] = [];
+    const span = {
+      setStatus: (s: unknown) => calls.push(["status", s]),
+      recordException: (e: unknown) => calls.push(["exception", e])
+    };
+    const err = new Error("boom");
+    markSpanError(span as never, err);
+    expect(calls).toEqual([
+      ["status", { code: 2, message: "Error: boom" }],
+      ["exception", err]
+    ]);
+  });
+
+  it("ignores a null span", () => {
+    expect(() => markSpanError(null, new Error("x"))).not.toThrow();
   });
 });
