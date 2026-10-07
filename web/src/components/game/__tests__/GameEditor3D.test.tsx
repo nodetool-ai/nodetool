@@ -7,6 +7,8 @@ import { gameDocument3D, gameAuthoring } from "@nodetool-ai/protocol";
 
 import mockTheme from "../../../__mocks__/themeMock";
 import { getGameDraftStore } from "../../../stores/game/GameDraftStore";
+import { getGamePanelLayoutStore } from "../../../stores/game/useGamePanelLayoutStore";
+import useAuth from "../../../stores/useAuth";
 import GameEditor3D from "../GameEditor3D";
 import type GameViewport3D from "../viewport3d/GameViewport3D";
 import type GameHierarchy3D from "../panels/hierarchy/GameHierarchy3D";
@@ -80,6 +82,7 @@ jest.mock("../panels/scripts/GameScriptPane", () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  getGamePanelLayoutStore(useAuth.getState().user?.id ?? null).getState().selectLayout("Default");
   mockViewportProps = undefined;
   mockDocument.id = `controller3d-${++mockFixtureId}`;
   mockServer.game.id = mockDocument.id;
