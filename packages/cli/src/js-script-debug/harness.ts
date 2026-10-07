@@ -24,6 +24,7 @@ import type {
 import type { JsScriptBridgeFinalState } from "@nodetool-ai/agents";
 import type { JsScriptDocument } from "@nodetool-ai/protocol/api-schemas/js-scripts.js";
 import type { JsScriptInteractionStep } from "./interactions.js";
+import { runInteractionSteps } from "../interaction-script.js";
 import {
   resolveJsScriptTarget,
   type ResolvedJsScriptTarget,
@@ -161,11 +162,8 @@ async function loadCore(): Promise<JsScriptDebugCore> {
  */
 async function loadExecutor(): Promise<JsScriptExecutor> {
   const { runCodeBody } = await import("@nodetool-ai/agents");
-  const {
-    PERMISSION_GATE_CONTEXT_KEY,
-    ProcessingContext,
-    headlessGate
-  } = await import("@nodetool-ai/runtime");
+  const { PERMISSION_GATE_CONTEXT_KEY, ProcessingContext, headlessGate } =
+    await import("@nodetool-ai/runtime");
   const { FileStorageAdapter } = await import("@nodetool-ai/storage");
   const { getDefaultAssetsPath } = await import("@nodetool-ai/config");
   const { JS_SCRIPT_MAX_TIMEOUT_SECONDS } =
@@ -400,47 +398,20 @@ export async function runJsScriptDebug(
   if (steps.length > 0) {
     const createBridge = deps.createBridge ?? (await loadBridgeFactory());
     const bridgeInit: Parameters<typeof createBridge>[0] = {
-      document: (await asDocument(resolved.raw))
+      document: await asDocument(resolved.raw)
     };
     if (resolved.target.name) {
       bridgeInit.name = resolved.target.name;
     }
     const bridge = createBridge(bridgeInit);
-    const byName = new Map(bridge.tools.map((t) => [t.name, t]));
-
-    for (const step of steps) {
-      const tool = byName.get(step.tool);
-      if (!tool) {
-        const known = [...byName.keys()].sort().join(", ");
-        interactions.push({
-          tool: step.tool,
-          input: step.input,
-          ok: false,
-          error: `No JS script tool named "${step.tool}". Available: ${known}.`
-        });
-        deps.onLog?.(`✗ ${step.tool}: unknown tool`);
-        continue;
-      }
-      try {
-        const result = await tool.execute(step.input);
-        interactions.push({
-          tool: step.tool,
-          input: step.input,
-          ok: true,
-          result
-        });
-        deps.onLog?.(`✓ ${step.tool}`);
-      } catch (e) {
-        const error = e instanceof Error ? e.message : String(e);
-        interactions.push({
-          tool: step.tool,
-          input: step.input,
-          ok: false,
-          error
-        });
-        deps.onLog?.(`✗ ${step.tool}: ${error}`);
-      }
-    }
+    interactions.push(
+      ...(await runInteractionSteps(
+        steps,
+        bridge.tools,
+        "JS script",
+        deps.onLog
+      ))
+    );
     snapshot = bridge.finalState();
     finalDocument = bridge.document();
   }

@@ -57,9 +57,80 @@ export function createInteractionScript<
           `--interact step ${index + 1}: \`input\` must be an object.`
         );
       }
-      return { tool: normalizeToolName(step.tool), input: { ...input } } as Step;
+      return {
+        tool: normalizeToolName(step.tool),
+        input: { ...input }
+      } as Step;
     });
   }
 
   return { normalizeToolName, parseInteractionScript };
+}
+
+export interface InteractionTool {
+  name: string;
+  /**
+   * HOLDOUT (anti-slop/no-unknown-returns): a bridge tool answers in the open
+   * tool-result domain.
+   */
+  execute: (args: Record<string, unknown>) => Promise<unknown>;
+}
+
+export interface InteractionRecord {
+  tool: string;
+  input: unknown;
+  ok: boolean;
+  result?: unknown;
+  error?: string;
+}
+
+/**
+ * Replay parsed steps against a bridge's tools. A failing or unknown tool is
+ * recorded and the session continues with the next step.
+ *
+ * @param noun how the domain names its tools in the unknown-tool error,
+ *             e.g. `"sketch"` gives `No sketch tool named "…"`.
+ */
+export async function runInteractionSteps(
+  steps: readonly InteractionStep[],
+  tools: readonly InteractionTool[],
+  noun: string,
+  onLog?: (line: string) => void
+): Promise<InteractionRecord[]> {
+  const byName = new Map(tools.map((t) => [t.name, t]));
+  const interactions: InteractionRecord[] = [];
+  for (const step of steps) {
+    const tool = byName.get(step.tool);
+    if (!tool) {
+      const known = [...byName.keys()].sort().join(", ");
+      interactions.push({
+        tool: step.tool,
+        input: step.input,
+        ok: false,
+        error: `No ${noun} tool named "${step.tool}". Available: ${known}.`
+      });
+      onLog?.(`✗ ${step.tool}: unknown tool`);
+      continue;
+    }
+    try {
+      const result = await tool.execute(step.input);
+      interactions.push({
+        tool: step.tool,
+        input: step.input,
+        ok: true,
+        result
+      });
+      onLog?.(`✓ ${step.tool}`);
+    } catch (e) {
+      const error = e instanceof Error ? e.message : String(e);
+      interactions.push({
+        tool: step.tool,
+        input: step.input,
+        ok: false,
+        error
+      });
+      onLog?.(`✗ ${step.tool}: ${error}`);
+    }
+  }
+  return interactions;
 }
