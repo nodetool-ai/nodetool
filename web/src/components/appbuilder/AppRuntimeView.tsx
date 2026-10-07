@@ -36,6 +36,8 @@ import {
   Z_INDEX
 } from "../ui_primitives";
 
+const RuntimeRender = React.memo(Render);
+
 interface AppRuntimeViewProps {
   workflow: Workflow;
   data: Data;
@@ -315,7 +317,7 @@ const AppRuntimeView: React.FC<AppRuntimeViewProps> = ({
           />
         ) : null}
         {/* The parser validates Puck data while leaving widget-specific props opaque. */}
-        <Render
+        <RuntimeRender
           config={appConfig}
           data={
             runtime.document ? (runtime.document.ui as unknown as Data) : data
