@@ -58,7 +58,8 @@ const styles = (theme: Theme, isDragging: boolean) =>
       "& .panel-left-container, & .panel-left-mobile-launcher": {
         display: "none"
       },
-      "& .workspace-content": { marginLeft: "0 !important" }
+      "& .workspace-content": { marginLeft: "0 !important" },
+      "& .workspace-main": { "--workspace-content-left": "0px !important" }
     },
 
     "& .workspace-main": {
@@ -185,7 +186,12 @@ const WorkspaceShell = () => {
           build fails with "Frontend tool runtime state is not initialized". */}
         <FrontendToolRuntimeSync />
         <WorkspaceTabBar />
-        <div className="workspace-main">
+        {/* PanelBottom is viewport-fixed; it reads this offset so the left rail
+          does not cover the start of its tab strip and panel content. */}
+        <div
+          className="workspace-main"
+          style={{ "--workspace-content-left": `${contentMarginLeft}px` } as React.CSSProperties}
+        >
           <Suspense fallback={null}>
             <PanelLeft />
           </Suspense>

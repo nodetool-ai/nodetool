@@ -519,9 +519,11 @@ const PanelBottom: React.FC = () => {
           sx: { ...reducedMotion({ transition: MOTION.none }), transition: `height ${MOTION.normal}` },
           style: {
             height: `${openHeight}px`,
-            left: 0,
+            // The workspace shell publishes the left rail's width. Legacy
+            // layouts set no var and keep the panel full-width.
+            left: "var(--workspace-content-left, 0px)",
             right: 0,
-            width: "100%",
+            width: "auto",
             borderTop: `1px solid ${theme.vars.palette.divider}`,
             backgroundColor: theme.vars.palette.background.default,
             boxShadow: isVisible
