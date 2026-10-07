@@ -1,6 +1,7 @@
 import { renderHook } from "@testing-library/react";
 import { stub } from "../../test-utils/doubles";
 import { useProcessedEdges } from "../useProcessedEdges";
+import * as forwardOutputs from "../../utils/forwardOutputs";
 import { Edge, Node, Position } from "@xyflow/react";
 import { DataType } from "../../config/data_types";
 import { NodeMetadata } from "../../stores/ApiTypes";
@@ -164,6 +165,72 @@ describe("useProcessedEdges", () => {
   });
 
   describe("reroute node handling", () => {
+    it("keeps output handles distinct and invalidates resolved types after rewiring", () => {
+      const nodes = [createMockNode("source", "test.Source"),
+        createMockNode("reroute", "nodetool.control.Reroute"),
+        createMockNode("target", "test.Target")];
+      const getMetadata = (type: string): NodeMetadata | undefined =>
+        type === "test.Source" ? stub<NodeMetadata>({
+          properties: [], outputs: [
+            { name: "text", type: { type: "str" } },
+            { name: "number", type: { type: "int" } }
+          ]
+        }) : undefined;
+      const edges = [
+        createMockEdge("in", "source", "reroute", "text", "input_value"),
+        createMockEdge("out", "reroute", "target"),
+        createMockEdge("number", "source", "target", "number")
+      ];
+      const { result, rerender } = renderHook(({ graphEdges }) => useProcessedEdges({
+        nodes, edges: graphEdges, dataTypes: mockDataTypes, getMetadata
+      }), { initialProps: { graphEdges: edges } });
+      expect(result.current.processedEdges.map(edge => edge.data?.dataTypeLabel))
+        .toEqual(["String", "String", "Integer"]);
+      rerender({ graphEdges: edges.map(edge => edge.id === "in"
+        ? { ...edge, sourceHandle: "number" } : edge) });
+      expect(result.current.processedEdges.map(edge => edge.data?.dataTypeLabel))
+        .toEqual(["Integer", "Integer", "Integer"]);
+    });
+
+    it("terminates cyclic and disconnected forward paths", () => {
+      const nodes = ["a", "b", "disconnected", "target"].map(id =>
+        createMockNode(id, "nodetool.control.Reroute"));
+      const edges = [
+        createMockEdge("ab", "a", "b", "output", "input_value"),
+        createMockEdge("ba", "b", "a", "output", "input_value"),
+        createMockEdge("out", "disconnected", "target")
+      ];
+      const { result } = renderHook(() => useProcessedEdges({
+        nodes, edges, dataTypes: mockDataTypes, getMetadata: defaultGetMetadata
+      }));
+      expect(result.current.processedEdges.map(edge => edge.data?.dataTypeLabel))
+        .toEqual(["Any", "Any", "Any"]);
+    });
+
+    it.each([false, true])("resolves a long chain in linear work (reversed: %s)", (reversed) => {
+      const count = 1000;
+      const nodes = [createMockNode("0", "test.TextNode"),
+        ...Array.from({ length: count }, (_, i) =>
+          createMockNode(String(i + 1), "nodetool.control.Reroute"))];
+      const edges = Array.from({ length: count }, (_, i) =>
+        createMockEdge(String(i), String(i), String(i + 1), "output", "input_value"));
+      if (reversed) { edges.reverse(); }
+      const getMetadata = (type: string): NodeMetadata | undefined =>
+        type === "test.TextNode" ? stub<NodeMetadata>({
+          properties: [], outputs: [{ name: "output", type: { type: "str" } }]
+        }) : undefined;
+      const forward = jest.spyOn(forwardOutputs, "forwardInputHandle");
+      try {
+        const { result } = renderHook(() => useProcessedEdges({
+          nodes, edges, dataTypes: mockDataTypes, getMetadata
+        }));
+        expect(result.current.processedEdges.every(edge => edge.data?.dataTypeLabel === "String"))
+          .toBe(true);
+        expect(forward.mock.calls.length).toBeLessThanOrEqual(count * 3);
+      } finally {
+        forward.mockRestore();
+      }
+    });
     it("traces through reroute nodes to find effective source type", () => {
       const nodes = [
         createMockNode("source", "test.TextNode"),

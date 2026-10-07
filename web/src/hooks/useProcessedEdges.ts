@@ -138,6 +138,10 @@ function useStructurallyProcessedEdges({
       };
     }
 
+    // Shared upstream paths resolve once per structural pass, including when
+    // edges arrive in reverse graph order. The cache never survives rewiring.
+    const resolvedTypes = new Map<string, ReturnType<typeof typeInfoFromTypeString>>();
+
     function getEffectiveSourceType(
       startNodeId: string,
       startHandle: string | null | undefined
@@ -145,13 +149,33 @@ function useStructurallyProcessedEdges({
       let currentNode = getNode(startNodeId);
       let currentHandle = startHandle || "";
       const visited = new Set<string>();
+      const path: string[] = [];
+      let cyclic = false;
+      const remember = (resolved: ReturnType<typeof typeInfoFromTypeString>) => {
+        // Preserve the existing per-start fallback for malformed cycles.
+        if (!cyclic) {
+          for (const key of path) {
+            resolvedTypes.set(key, resolved);
+          }
+        }
+        return resolved;
+      };
 
       // Follow forward nodes (Reroute / If / Switch) back to the true source so
       // the edge adopts the upstream type instead of the declared `any`.
       while (currentNode) {
+        const key = `${currentNode.id}\u0000${currentHandle}`;
+        const cached = resolvedTypes.get(key);
+        if (cached) {
+          return remember(cached);
+        }
+        path.push(key);
         const inputHandle = forwardInputHandle(currentNode.type, currentHandle);
         if (!inputHandle) {break;}
-        if (visited.has(currentNode.id)) {break;}
+        if (visited.has(currentNode.id)) {
+          cyclic = true;
+          break;
+        }
         visited.add(currentNode.id);
 
         const incoming = incomingByTargetHandle.get(
@@ -171,11 +195,11 @@ function useStructurallyProcessedEdges({
             sourceMetadata
           );
           if (outputHandle && outputHandle.type?.type) {
-            return typeInfoFromTypeString(outputHandle.type.type);
+            return remember(typeInfoFromTypeString(outputHandle.type.type));
           }
         }
       }
-      return typeInfoFromTypeString("any");
+      return remember(typeInfoFromTypeString("any"));
     }
 
     const processedResultEdges = edges.map((edge) => {

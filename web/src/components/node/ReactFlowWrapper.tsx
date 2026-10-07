@@ -104,7 +104,10 @@ import { useSelectionEvents } from "../../hooks/handlers/useSelectionEvents";
 import { useConnectionEvents } from "../../hooks/handlers/useConnectionEvents";
 import type { NodeData } from "../../stores/NodeData";
 import type { NodeStoreState } from "../../stores/NodeStore";
-import { scheduleNodeInternalsRefresh } from "../../utils/scheduleNodeInternalsRefresh";
+import {
+  scheduleNodeInternalsRefresh,
+  withEdgeNeighborNodeIds
+} from "../../utils/scheduleNodeInternalsRefresh";
 import { edgeKey, type EdgeKey, type NodeKey } from "../../stores/nodeKey";
 import FirstWorkflowGuide from "../node_editor/FirstWorkflowGuide";
 import { Slugify } from "../../utils/TypeHandler";
@@ -165,28 +168,6 @@ import CustomEdge from "../node_editor/CustomEdge";
 import ControlEdge from "../node_editor/ControlEdge";
 import { usePlaceholderNodeTypes } from "../node_types/usePlaceholderNodeTypes";
 import { isNumber, isString } from "../../utils/typePredicates";
-
-/** React Flow edge paths use both endpoints — refresh neighbors when one node’s DOM height changes. */
-function withEdgeNeighborNodeIds(
-  nodeIds: readonly string[],
-  edgeList: Edge[]
-): string[] {
-  const result = new Set(nodeIds);
-  for (const edge of edgeList) {
-    const src = edge.source;
-    const tgt = edge.target;
-    if (!src || !tgt) {
-      continue;
-    }
-    if (result.has(src)) {
-      result.add(tgt);
-    }
-    if (result.has(tgt)) {
-      result.add(src);
-    }
-  }
-  return [...result];
-}
 
 const ReactFlowWrapper = ({
   workflowId

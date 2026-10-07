@@ -1,7 +1,32 @@
 /**
  * @jest-environment node
  */
-import { scheduleNodeInternalsRefresh } from "../scheduleNodeInternalsRefresh";
+import { scheduleNodeInternalsRefresh, withEdgeNeighborNodeIds } from "../scheduleNodeInternalsRefresh";
+
+describe("withEdgeNeighborNodeIds", () => {
+  it("refreshes only immediate neighbors regardless of edge order", () => {
+    const edges = Array.from({ length: 4999 }, (_, i) => ({
+      id: String(i), source: String(i), target: String(i + 1)
+    }));
+    for (const ordered of [edges, [...edges].reverse()]) {
+      expect(withEdgeNeighborNodeIds(["0"], ordered).sort()).toEqual(["0", "1"]);
+      expect(withEdgeNeighborNodeIds(["2500"], ordered).sort()).toEqual([
+        "2499", "2500", "2501"
+      ]);
+    }
+  });
+
+  it("deduplicates neighbors and retains isolated changed nodes", () => {
+    const edges = [
+      { id: "a", source: "a", target: "b" },
+      { id: "b", source: "b", target: "c" },
+      { id: "c", source: "c", target: "d" }
+    ];
+    expect(withEdgeNeighborNodeIds(["a", "c", "isolated"], edges).sort())
+      .toEqual(["a", "b", "c", "d", "isolated"]);
+    expect(withEdgeNeighborNodeIds([], edges)).toEqual([]);
+  });
+});
 
 describe("scheduleNodeInternalsRefresh", () => {
   let rafCallbacks: Array<() => void>;
