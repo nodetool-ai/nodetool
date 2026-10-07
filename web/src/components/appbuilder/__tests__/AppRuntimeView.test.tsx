@@ -149,7 +149,11 @@ describe("AppRuntimeView (Puck Render)", () => {
         user_id: "1",
         revision: 0,
         variables: {},
-        snapshot: { document, workflow_graphs: {}, script_documents: {} }
+        snapshot: {
+          document: { ...document, ui: { ...ui } },
+          workflow_graphs: {},
+          script_documents: {}
+        }
       });
       const client = new QueryClient();
       const view = () => (
@@ -180,13 +184,11 @@ describe("AppRuntimeView (Puck Render)", () => {
       expect(textbox.isConnected).toBe(true);
       expect(textbox).toHaveFocus();
       act(() => {
-        store()
-          .getState()
-          .dispatchEvent({
-            type: "setInput",
-            key: "main:in1",
-            value: "Runtime update"
-          });
+        store().getState().dispatchEvent({
+          type: "setInput",
+          key: "main:in1",
+          value: "Runtime update"
+        });
       });
       await waitFor(() => expect(textbox).toHaveValue("Runtime update"));
       expect(screen.getByRole("textbox")).toBe(textbox);
