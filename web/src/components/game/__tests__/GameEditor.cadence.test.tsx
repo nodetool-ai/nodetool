@@ -1,5 +1,6 @@
 import { Profiler } from "react";
 import { act, render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { createTRPCClient } from "@trpc/client";
@@ -12,6 +13,42 @@ import { getGameDraftStore } from "../../../stores/game/GameDraftStore";
 import GameEditor from "../GameEditor";
 import mockTheme from "../../../__mocks__/themeMock";
 
+jest.mock("../../../trpc/client", () => {
+  const { createTRPCReact } = jest.requireActual<typeof import("@trpc/react-query")>("@trpc/react-query");
+  return {
+    ...jest.requireActual<typeof import("../../../__mocks__/trpcClientMock")>("../../../__mocks__/trpcClientMock"),
+    trpc: createTRPCReact<AppRouter>()
+  };
+});
+
+jest.mock("three/addons/controls/OrbitControls.js", () => ({
+  OrbitControls: class {
+    target = new (jest.requireActual<typeof import("three")>("three").Vector3)();
+    enabled = true;
+    update() {}
+    addEventListener() {}
+    removeEventListener() {}
+    dispose() {}
+  }
+}));
+jest.mock("three/addons/controls/TransformControls.js", () => ({
+  TransformControls: class {
+    dragging = false;
+    private helper = new (jest.requireActual<typeof import("three")>("three").Object3D)();
+    getHelper() { return this.helper; }
+    addEventListener() {}
+    removeEventListener() {}
+    attach() {}
+    detach() {}
+    setMode() {}
+    setTranslationSnap() {}
+    setRotationSnap() {}
+    setScaleSnap() {}
+    dispose() {}
+  }
+}));
+jest.mock("three/addons/controls/FlyControls.js", () => ({ FlyControls: jest.fn() }));
+
 const mockRenderedTicks: number[] = [];
 jest.mock("@nodetool-ai/game-renderer/browser", () => ({
   loadBrowserGameFonts: jest.fn(async () => ({ diagnostics: [], dispose: jest.fn() })),
@@ -20,10 +57,13 @@ jest.mock("@nodetool-ai/game-renderer/browser", () => ({
     resize: jest.fn(), setEffects: jest.fn(), invalidateAsset: jest.fn(), dispose: jest.fn() }))
 }));
 jest.mock("@nodetool-ai/game-renderer/browser3d", () => ({
-  createGameRenderer3D: jest.fn(async () => ({
+  createGameRenderer3D: jest.fn(async () => {
+    const scene = new (jest.requireActual<typeof import("three")>("three").Scene)();
+    return { getScene: () => scene, setEditorCamera: jest.fn(), getEntityObject: jest.fn(() => null), pick: jest.fn(() => null),
     render: jest.fn(async (frame: GameRenderFrame3D) => { mockRenderedTicks.push(frame.tick); return {}; }),
-    resize: jest.fn(), invalidateAsset: jest.fn(), dispose: jest.fn() }))
-}));
+    resize: jest.fn(), invalidateAsset: jest.fn(), dispose: jest.fn() };
+  })
+}), { virtual: true });
 jest.mock("@nodetool-ai/game-renderer/audio", () => ({
   GameAudioPlayer: jest.fn().mockImplementation(() => ({ updateAssets: jest.fn(), preload: jest.fn(), sync: jest.fn(),
     resume: jest.fn(), pause: jest.fn(), reset: jest.fn(), handle: jest.fn(), dispose: jest.fn() }))
@@ -34,7 +74,16 @@ jest.mock("../../../utils/resolveMediaUri", () => ({
 }));
 
 it.each(["2d", "3d"] as const)("commits the actual %s editor at the HUD cadence during steady Play", async (dimension) => {
+  const user = userEvent.setup();
   const document = dimension === "2d" ? createTopDownRoomGame(`editor-cadence-${dimension}`) : createNative3DGame(`editor-cadence-${dimension}`);
+  if (document.schemaVersion === 3) {
+    for (const scene of document.scenes) {
+      for (const entity of scene.entities) { entity.behaviors = entity.behaviors.filter((behavior) => behavior.kind !== "script"); }
+    }
+    for (const prefab of Object.values(document.prefabs)) {
+      for (const entity of prefab.entities) { entity.behaviors = entity.behaviors.filter((behavior) => behavior.kind !== "script"); }
+    }
+  }
   const draft = { document, game: { id: document.id, name: "Cadence measurement", revision: document.revision,
     draftUpdatedAt: "loaded", projectId: "cadence-project" } };
   const client = createTRPCClient<AppRouter>({ links: [() => ({ op }) => observable((observer) => {
@@ -61,8 +110,11 @@ it.each(["2d", "3d"] as const)("commits the actual %s editor at the HUD cadence 
     await waitFor(() => expect(screen.getByRole("button", { name: "Play" })).toBeEnabled());
     await waitFor(() => expect(view.container.querySelector("footer")).toHaveTextContent(dimension === "2d" ? "Canvas 2D" : "WebGL2"));
     mockRenderedTicks.length = 0;
-    await act(async () => { screen.getByRole("button", { name: "Play" }).click(); });
+    await user.click(screen.getByRole("button", { name: "Play" }));
     await waitFor(() => expect(screen.getByRole("button", { name: "Pause" })).toBeEnabled());
+    await user.unhover(screen.getByRole("button", { name: "Pause" }));
+    await waitFor(() => expect(screen.queryByRole("tooltip")).not.toBeInTheDocument());
+    await waitFor(() => expect(view.container.querySelectorAll(".MuiTouchRipple-ripple")).toHaveLength(0));
     await waitFor(() => expect(mockRenderedTicks.length).toBeGreaterThan(0));
     let now = 0;
     const advance = async (): Promise<void> => {
@@ -90,6 +142,7 @@ it.each(["2d", "3d"] as const)("commits the actual %s editor at the HUD cadence 
     expect(mockRenderedTicks.length).toBeGreaterThanOrEqual(60);
     expect(measuredUpdates).toBe(10);
     expect(commits).toHaveLength(10);
+    console.info("K2 editor cadence", JSON.stringify({ dimension, ticks: previousTick, clockAdvanceMs: now, renderedTicks: mockRenderedTicks, commits }));
   } finally {
     view.unmount(); queries.clear(); request.mockRestore(); cancel.mockRestore(); mockRenderedTicks.length = 0;
   }

@@ -183,6 +183,7 @@ it("completes ten distinct preview edits without losing renderer readiness", asy
     expect(backends.length).toBeGreaterThan(0);
     expect(backends.every((backend) => backend === "WebGL2")).toBe(true);
   }
+  console.info("K2 preview readiness", JSON.stringify({ dimension: "3d", editCount: 10, backends }));
   view.unmount();
   await waitFor(() => expect(renderer.dispose).toHaveBeenCalledTimes(1));
 });
@@ -226,6 +227,7 @@ it("reports storage failures and clears them after a successful save (F29)", asy
 });
 
 it("publishes Play updates only at crossed HUD tick boundaries", async () => {
+  const user = userEvent.setup();
   mockRenderers.length = 0;
   const callbacks = new Map<number, FrameRequestCallback>();
   let nextRequest = 0;
@@ -241,7 +243,7 @@ it("publishes Play updates only at crossed HUD tick boundaries", async () => {
     await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("WebGL2"));
     const renderer = mockRenderers[0];
     renderer.render.mockClear();
-    await act(async () => { screen.getByRole("button", { name: "Play" }).click(); });
+    await user.click(screen.getByRole("button", { name: "Play" }));
     await waitFor(() => expect(renderer.render).toHaveBeenCalled());
     let now = 0;
     const advance = async (): Promise<void> => {
@@ -267,6 +269,7 @@ it("publishes Play updates only at crossed HUD tick boundaries", async () => {
     expect(previousTick).toBe(60);
     expect(renderer.render.mock.calls.length).toBeGreaterThanOrEqual(60);
     expect(commits).toEqual(Array.from({ length: 10 }, (_, index) => String((index + 1) * 6)));
+    console.info("K2 hook cadence", JSON.stringify({ dimension: "3d", ticks: previousTick, clockAdvanceMs: now, renderCalls: renderer.render.mock.calls.length, commits }));
   } finally {
     view.unmount(); request.mockRestore(); cancel.mockRestore();
   }
