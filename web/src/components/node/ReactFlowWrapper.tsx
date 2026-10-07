@@ -84,7 +84,7 @@ import ConnectionLine from "../node_editor/ConnectionLine";
 import EdgeGradientDefinitions from "../node_editor/EdgeGradientDefinitions";
 import ConnectableNodes from "../context_menus/ConnectableNodes";
 import useMetadataStore from "../../stores/MetadataStore";
-import { useNodes } from "../../contexts/NodeContext";
+import { useNodeStoreRef, useNodes } from "../../contexts/NodeContext";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
 import { useWorkflow } from "../../serverState/useWorkflow";
 import { workflowListQueryKey } from "../../serverState/workflowQueryKeys";
@@ -183,7 +183,6 @@ const ReactFlowWrapper = ({
     onEdgeUpdate,
     shouldFitToScreen,
     setShouldFitToScreen,
-    storedViewport,
     workflowIsDirty,
     deleteEdge,
     setEdgeSelectionState,
@@ -200,7 +199,6 @@ const ReactFlowWrapper = ({
         onEdgeUpdate: state.onEdgeUpdate,
         shouldFitToScreen: state.shouldFitToScreen,
         setShouldFitToScreen: state.setShouldFitToScreen,
-        storedViewport: state.viewport,
         workflowIsDirty: state.workflowIsDirty,
         deleteEdge: state.deleteEdge,
         setEdgeSelectionState: state.setEdgeSelectionState,
@@ -212,6 +210,11 @@ const ReactFlowWrapper = ({
       []
     )
   );
+  // React Flow reads `defaultViewport` only on mount, and the stored viewport
+  // is rewritten after every pan or zoom, so read it once instead of
+  // re-rendering the whole editor each time a gesture ends.
+  const nodeStore = useNodeStoreRef();
+  const [storedViewport] = useState(() => nodeStore.getState().viewport);
 
   const [isSelecting] = useState(false);
   const [showFirstWorkflowGuide, setShowFirstWorkflowGuide] = useState(false);

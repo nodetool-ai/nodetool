@@ -111,6 +111,9 @@ const NodeResizeHandle: React.FC<NodeResizeHandleProps> = memo(function NodeResi
         minHeight={minHeight}
         onResize={onResize}
         keepAspectRatio={keepAspectRatio}
+        // The handle box clips the control, so inverse-zoom scaling only crops
+        // a larger arrow, yet it re-renders every node's handle per zoom step.
+        autoScale={false}
       >
         <KeyboardArrowDownIcon />
       </NodeResizeControl>
