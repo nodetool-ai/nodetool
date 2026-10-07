@@ -39,6 +39,7 @@ describe("cli settings and provider helpers", () => {
       "TOGETHER_API_KEY",
       "OPENROUTER_API_KEY",
       "REQUESTY_API_KEY",
+      "OPPER_API_KEY",
       "HF_TOKEN",
       "REPLICATE_API_TOKEN",
       "KIE_API_KEY",
