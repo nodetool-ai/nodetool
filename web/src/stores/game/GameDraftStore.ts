@@ -45,6 +45,7 @@ interface GameDraftState {
   failSave: (error: string) => void;
   reportOperationError: (error: string) => void;
   setSaving: (count: number) => void;
+  captureSaveOps: () => GameDocumentOp[];
   select: (id: string, additive?: boolean) => void;
   selectMany: (ids: string[], additive?: boolean) => void;
   undo: () => void;
@@ -84,6 +85,16 @@ function fallbackLabel(ops: readonly GameDocumentOp[]): string {
 function validateReplay(before: GameDocument, ops: readonly GameDocumentOp[], desired: GameDocument): void {
   if (!same(applyGameOps(before, ops), desired)) { throw new Error("Game command operations do not reproduce the captured document"); }
 }
+function rebuildHistoryQueue(state: GameDraftState, document: GameDocument, protectedCount: number): GameDocumentOp[] {
+  if (!state.savedDocument) { throw new Error("Saved game document missing"); }
+  const prefix = state.pendingOps.slice(0, protectedCount);
+  const before = prefix.length === 0 ? state.savedDocument : applyGameOps(state.savedDocument, prefix);
+  const suffix = diffGameDocuments(before, document);
+  validateReplay(before, suffix, document);
+  const pendingOps = [...prefix, ...suffix];
+  validateReplay(state.savedDocument, pendingOps, document);
+  return pendingOps;
+}
 function createCommand(before: GameDocument, after: GameDocument, ops: readonly GameDocumentOp[], label: string,
   mergeKey?: string): GameCommand {
   const inverseOps = diffGameDocuments(after, before);
@@ -97,6 +108,7 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
   const existing = stores.get(gameId);
   if (existing) { return existing; }
   let gestureSequence = 0;
+  let retryPrefixCount = 0;
   let gesture: { id: number; key?: string; before?: GameDocument; index?: number } | null = null;
   let lastScriptEdit: { key: string; time: number; before: GameDocument; index: number } | null = null;
   let lastScriptQueue: { key: string; before: GameDocument; start: number } | null = null;
@@ -105,6 +117,7 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
     document: null, savedDocument: null, baseUpdatedAt: null, pendingOps: [], savingCount: 0,
     saveStatus: "saved", error: null, selectedIds: [], ...historyState([], []),
     load: (document, baseUpdatedAt) => {
+      retryPrefixCount = 0;
       closeCoalescing();
       set({ document, savedDocument: document, baseUpdatedAt, pendingOps: [], savingCount: 0,
         saveStatus: "saved", error: null, ...historyState([], []) });
@@ -117,6 +130,7 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
       }
       const pendingOps = diffGameDocuments(server, validation.document);
       validateReplay(server, pendingOps, validation.document);
+      retryPrefixCount = 0;
       closeCoalescing();
       set({ document: validation.document, savedDocument: server, baseUpdatedAt, pendingOps, savingCount: 0,
         saveStatus: pendingOps.length ? "unsaved" : "saved", error: null, ...historyState([], []) });
@@ -154,7 +168,7 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
         const command = createCommand(commandBefore, document, commandOps, previous?.label ?? options?.label ?? fallbackLabel(ops), options?.mergeKey);
         const past = (coalesce ? [...state.commandHistory.past.slice(0, -1), command] : [...state.commandHistory.past, command]).slice(-HISTORY_LIMIT);
         const compactQueue = scriptKey !== null && lastScriptQueue?.key === scriptKey
-          && lastScriptQueue.start >= state.savingCount ? lastScriptQueue : null;
+          && lastScriptQueue.start >= Math.max(state.savingCount, retryPrefixCount) ? lastScriptQueue : null;
         const queueStart = compactQueue ? compactQueue.start : state.pendingOps.length;
         const queueBefore = compactQueue ? compactQueue.before : before;
         const queueOps = compactQueue ? diffGameDocuments(queueBefore, document) : forward;
@@ -168,6 +182,7 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
       } catch (cause) { set({ error: cause instanceof Error ? cause.message : String(cause) }); }
     },
     acknowledge: (document, baseUpdatedAt, savedCount) => {
+      retryPrefixCount = Math.max(0, retryPrefixCount - savedCount);
       if (lastScriptQueue) {
         lastScriptQueue = lastScriptQueue.start >= savedCount
           ? { ...lastScriptQueue, start: lastScriptQueue.start - savedCount } : null;
@@ -178,7 +193,15 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
         saveStatus: remaining.length === 0 ? "saved" : "unsaved", error: null });
     },
     reportOperationError: (error) => { set({ error }); },
-    failSave: (error) => { set({ saveStatus: "error", savingCount: 0, error }); },
+    failSave: (error) => {
+      retryPrefixCount = Math.max(retryPrefixCount, get().savingCount);
+      set({ saveStatus: "error", savingCount: 0, error });
+    },
+    captureSaveOps: () => {
+      const state = get();
+      const protectedCount = Math.max(state.savingCount, retryPrefixCount);
+      return structuredClone(protectedCount > 0 ? state.pendingOps.slice(0, protectedCount) : state.pendingOps);
+    },
     setSaving: (count) => { set({ saveStatus: "saving", savingCount: count }); },
     select: (id, additive = false) => {
       const selectedIds = additive
@@ -195,8 +218,9 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
       if (!state.document || !command) { return; }
       try {
         const document = applyGameOps(state.document, command.inverseOps);
+        const pendingOps = rebuildHistoryQueue(state, document, Math.max(state.savingCount, retryPrefixCount));
         closeCoalescing();
-        set({ document, pendingOps: [...state.pendingOps, ...structuredClone(command.inverseOps)], saveStatus: "unsaved", error: null,
+        set({ document, pendingOps, saveStatus: pendingOps.length === 0 ? "saved" : "unsaved", error: null,
           ...historyState(state.commandHistory.past.slice(0, -1), [...state.commandHistory.future, command]) });
       } catch (cause) { set({ error: cause instanceof Error ? cause.message : String(cause) }); }
     },
@@ -205,8 +229,9 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
       if (!state.document || !command) { return; }
       try {
         const document = applyGameOps(state.document, command.ops);
+        const pendingOps = rebuildHistoryQueue(state, document, Math.max(state.savingCount, retryPrefixCount));
         closeCoalescing();
-        set({ document, pendingOps: [...state.pendingOps, ...structuredClone(command.ops)], saveStatus: "unsaved", error: null,
+        set({ document, pendingOps, saveStatus: pendingOps.length === 0 ? "saved" : "unsaved", error: null,
           ...historyState([...state.commandHistory.past, command].slice(-HISTORY_LIMIT), state.commandHistory.future.slice(0, -1)) });
       } catch (cause) { set({ error: cause instanceof Error ? cause.message : String(cause) }); }
     }

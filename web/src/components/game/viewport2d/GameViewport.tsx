@@ -20,6 +20,7 @@ interface GameViewportProps {
   onSelect: (id: string, additive: boolean) => void;
   onSelectMany: (ids: string[], additive: boolean) => void;
   onMove: (id: string, x: number, y: number, gestureId?: number) => void;
+  onMoves?: (moves: readonly { id: string; x: number; y: number }[], gestureId?: number) => void;
   onTransform: (id: string, set: { scaleX?: number; scaleY?: number; rotation?: number }, gestureId?: number) => void;
   onLight: (sceneId: string, index: number, set: { x?: number; y?: number; radius?: number }, gestureId?: number) => void;
   onGestureStart?: () => number;
@@ -58,7 +59,7 @@ function point(event: { clientX: number; clientY: number }, canvas: HTMLCanvasEl
   };
 }
 
-export default function GameViewport({ canvasRef, frame, document, sceneId, playing, paused, active, selectedIds, highlightedIds, onSelect, onSelectMany, onMove, onTransform, onLight, onGestureStart, onGestureEnd, onCamera, onViewportAspect, onKeyDown, onKeyUp, onBlur }: GameViewportProps) {
+export default function GameViewport({ canvasRef, frame, document, sceneId, playing, paused, active, selectedIds, highlightedIds, onSelect, onSelectMany, onMove, onMoves, onTransform, onLight, onGestureStart, onGestureEnd, onCamera, onViewportAspect, onKeyDown, onKeyUp, onBlur }: GameViewportProps) {
   const gestureRef = useRef<number | null>(null);
   const gestureCallbacks = useRef({ onGestureStart, onGestureEnd });
   gestureCallbacks.current = { onGestureStart, onGestureEnd };
@@ -383,14 +384,17 @@ export default function GameViewport({ canvasRef, frame, document, sceneId, play
         const x = snapToGrid ? Math.round(preview.x * 4) / 4 : preview.x;
         const y = snapToGrid ? Math.round(preview.y * 4) / 4 : preview.y;
         const entities = new Map(scene?.entities.map(entity => [entity.id, entity]) ?? []);
+        const moves: { id: string; x: number; y: number }[] = [];
         if (scene) for (const moved of drag.entities) {
           const entity = entities.get(moved.id);
           const transform = transforms.get(moved.id);
           if (!entity || !transform) continue;
           const local = localTransform(scene, entity.parentId, { ...transform,
             x: moved.x + x - drag.entityX, y: moved.y + y - drag.entityY }, transforms);
-          onMove(moved.id, local.x, local.y, gestureRef.current ?? undefined);
+          moves.push({ id: moved.id, x: local.x, y: local.y });
         }
+        if (moves.length && onMoves) { onMoves(moves, gestureRef.current ?? undefined); }
+        else { for (const moved of moves) { onMove(moved.id, moved.x, moved.y, gestureRef.current ?? undefined); } }
       } else if (drag?.kind === "scale" && preview?.scaleX !== undefined && preview.scaleY !== undefined) {
         const entity = scene?.entities.find(entry => entry.id === drag.sprite.entityId);
         if (scene && entity) {

@@ -151,7 +151,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       while (store.getState().pendingOps.length > 0) {
         const state = store.getState();
         if (!state.baseUpdatedAt) return;
-        const ops = [...state.pendingOps];
+        const ops = state.captureSaveOps();
         state.setSaving(ops.length);
         try {
           const result = await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops });
@@ -255,6 +255,24 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     if (!scene || !entity) { return; }
     getGameDraftStore(refId).getState().apply([{ op: "update_entity", entity_id: id, scene_id: scene.id, set: { transform2d: { x, y } } }],
       { label: selectedIds.length > 1 ? "Move Selection" : `Move ${entity.name || entity.id}`, mergeKey: "move-selection", gestureId });
+  };
+
+  const moveEntities = (moves: readonly { id: string; x: number; y: number }[], gestureId?: number): void => {
+    const targets = new Map<string, { sceneId: string; name: string }>();
+    for (const scene of document?.scenes ?? []) {
+      for (const entity of scene.entities) {
+        if (!targets.has(entity.id)) { targets.set(entity.id, { sceneId: scene.id, name: entity.name || entity.id }); }
+      }
+    }
+    const ops: GameDocumentOp[] = [];
+    for (const move of moves) {
+      const target = targets.get(move.id);
+      if (target) { ops.push({ op: "update_entity", entity_id: move.id, scene_id: target.sceneId, set: { transform2d: { x: move.x, y: move.y } } }); }
+    }
+    if (!ops.length) { return; }
+    const first = targets.get(moves[0].id);
+    getGameDraftStore(refId).getState().apply(ops, { label: selectedIds.length > 1 ? "Move Selection" : `Move ${first?.name ?? moves[0].id}`,
+      mergeKey: "move-selection", gestureId });
   };
 
   const transformEntity = (id: string, set: { scaleX?: number; scaleY?: number; rotation?: number }, gestureId?: number): void => {
@@ -420,7 +438,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
             playing={Boolean(playDocument)} paused={Boolean(playDocument && !playing)} active={active} selectedIds={selectedIds} highlightedIds={highlightedIds}
             onSelect={selectEntity}
             onSelectMany={(ids, additive) => getGameDraftStore(refId).getState().selectMany(ids, additive)}
-            onMove={moveEntity} onTransform={transformEntity} onLight={transformLight}
+            onMove={moveEntity} onMoves={moveEntities} onTransform={transformEntity} onLight={transformLight}
             onGestureStart={beginGesture} onGestureEnd={endGesture}
             onCamera={onCamera}
             onViewportAspect={onViewportAspect}

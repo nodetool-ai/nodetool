@@ -123,7 +123,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
       while (store.getState().pendingOps.length > 0) {
         const state = store.getState();
         if (!state.baseUpdatedAt) { return; }
-        const ops = [...state.pendingOps];
+        const ops = state.captureSaveOps();
         state.setSaving(ops.length);
         try {
           const result = await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops });

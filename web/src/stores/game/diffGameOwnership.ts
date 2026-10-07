@@ -119,8 +119,10 @@ export function diffGameOwnership(from: AnyGameDocument, to: AnyGameDocument, ap
   const desiredKeys = desired.overrides.map(key);
   for (const id of movedKeys(source.overrides.map(key), desiredKeys, affected)) { affected.add(id); }
   for (const id of movedKeys(current.overrides.map(key), desiredKeys, affected)) { affected.add(id); }
+  const stableOverrideOrder = same(source.overrides.map(key), desiredKeys) && same(current.overrides.map(key), desiredKeys);
   const ops: OwnershipOp[] = [];
   for (const id of affected) {
+    if (stableOverrideOrder) { continue; }
     const entry = working.get(id)?.entry ?? before.get(id)?.entry;
     if (!entry) { continue; }
     ops.push({ op: "set_override_membership", scene_id: entry.sceneId, entity_id: entry.entityId,
@@ -130,11 +132,16 @@ export function diffGameOwnership(from: AnyGameDocument, to: AnyGameDocument, ap
   desiredKeys.forEach((id, index) => { if (!affected.has(id)) { add(index); } });
   for (const [id, { entry, index }] of after) {
     if (!affected.has(id)) { continue; }
-    add(index);
     const override: { value: typeof entry.value; remove?: boolean } = { value: entry.value };
     if (entry.remove !== undefined) { override.remove = entry.remove; }
-    ops.push({ op: "set_override_membership", scene_id: entry.sceneId, entity_id: entry.entityId,
-      path: entry.path, override, index: rank(index) });
+    if (stableOverrideOrder) {
+      ops.push({ op: "set_override_membership", scene_id: entry.sceneId, entity_id: entry.entityId,
+        path: entry.path, override });
+    } else {
+      add(index);
+      ops.push({ op: "set_override_membership", scene_id: entry.sceneId, entity_id: entry.entityId,
+        path: entry.path, override, index: rank(index) });
+    }
   }
   ops.push(...flagDeltas(source.suppressions, desired.suppressions, current.suppressions, "suppression"));
   ops.push(...flagDeltas(source.detached, desired.detached, current.detached, "detachment"));

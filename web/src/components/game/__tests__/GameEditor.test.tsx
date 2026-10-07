@@ -187,3 +187,44 @@ it("records selected-root viewport moves as one labelled command with exact undo
   expect(document2D(store)).toEqual(after);
   expect(store.getState().commandHistory.past).toHaveLength(1);
 });
+
+
+it("batch release: records selected-root viewport moves as one labelled command with exact undo and redo", () => {
+  mockPlayDocument = null;
+  render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
+  const store = getGameDraftStore(mockDocument.id);
+  const first = mockDocument.scenes[0].entities.find((entity) => entity.id === "player");
+  const second = mockDocument.scenes[0].entities.find((entity) => entity.id !== "player" && !entity.parentId);
+  if (!first || !second) { throw new Error("Two fixture roots required"); }
+  const applySpy = jest.spyOn(store.getState(), "apply");
+  act(() => {
+    if (!mockViewportProps) { throw new Error("Viewport not mounted"); }
+    mockViewportProps.onSelect(first.id, false);
+    mockViewportProps.onSelect(second.id, true);
+  });
+  const before = structuredClone(document2D(store));
+  const viewport = mockViewportProps;
+  if (!viewport?.onGestureStart || !viewport.onGestureEnd) { throw new Error("Gesture callbacks missing"); }
+  act(() => {
+    const gestureId = viewport.onGestureStart?.();
+    if (gestureId === undefined) { throw new Error("Gesture ID missing"); }
+    if (!viewport.onMoves) { throw new Error("Batch move callback missing"); }
+    viewport.onMoves([{ id: first.id, x: first.transform2d.x + 2, y: first.transform2d.y },
+      { id: second.id, x: second.transform2d.x + 2, y: second.transform2d.y }], gestureId);
+    viewport.onGestureEnd?.(gestureId);
+  });
+  expect(applySpy).toHaveBeenCalledTimes(1);
+  applySpy.mockRestore();
+  const after = structuredClone(document2D(store));
+  expect(after.scenes[0].entities.find((entity) => entity.id === first.id)?.transform2d).toMatchObject({ x: first.transform2d.x + 2, y: first.transform2d.y });
+  expect(after.scenes[0].entities.find((entity) => entity.id === second.id)?.transform2d).toMatchObject({ x: second.transform2d.x + 2, y: second.transform2d.y });
+  expect(after).not.toEqual(before);
+  expect(store.getState().commandHistory.past).toHaveLength(1);
+  expect(store.getState().commandHistory.past[0].label).toBe("Move Selection");
+  act(() => store.getState().undo());
+  expect(document2D(store)).toEqual(before);
+  expect(store.getState().commandHistory.future).toHaveLength(1);
+  act(() => store.getState().redo());
+  expect(document2D(store)).toEqual(after);
+  expect(store.getState().commandHistory.past).toHaveLength(1);
+});

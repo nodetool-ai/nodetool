@@ -15,13 +15,14 @@ interface GestureControl {
   emit(type: string, value?: unknown): void;
 }
 let mockGizmo: GestureControl | undefined;
+function mockCaptureGizmo(control: GestureControl): void { mockGizmo = control; }
 
 jest.mock("three/addons/controls/TransformControls.js", () => ({
   TransformControls: class {
     object: Object3D | undefined;
     dragging = false;
     private listeners = new Map<string, (event: { value: unknown }) => void>();
-    constructor() { mockGizmo = this; }
+    constructor() { mockCaptureGizmo(this); }
     addEventListener(type: string, listener: (event: { value: unknown }) => void) { this.listeners.set(type, listener); }
     removeEventListener(type: string) { this.listeners.delete(type); }
     emit(type: string, value?: unknown) {

@@ -387,8 +387,11 @@ retains forward and inverse document operations. Viewport producers begin a
 gesture after selection changes and share its ID and merge key across selected
 roots. The whole drag becomes one command. End the gesture on release,
 cancellation, lost capture, blur or unmount. Selection, save acknowledgements and
-server loads do not create commands. Undo and redo append operations to the save
-queue while preserving any submitted prefix. Ordinary 3D edits use granular
+server loads do not create commands. Undo and redo rebuild only the unsent save
+suffix from the confirmed draft plus any protected submitted prefix. A lost save
+response keeps that prefix protected until acknowledgment or authoritative
+recovery. Controllers capture that exact prefix for retry before submitting the
+remaining suffix. Ordinary 3D edits use granular
 operations, including explicit null patches to remove scene music or collision
 layers. Internal diffs reserve document replacement for retained authoring definition
 changes. Apply those changes through the existing authoring preview/apply

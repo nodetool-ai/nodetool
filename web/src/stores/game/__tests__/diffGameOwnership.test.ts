@@ -141,3 +141,31 @@ describe.each([{ name: "2D", create: createTopDownRoomGame }, { name: "3D", crea
     expect(applyAnyGameOps(after, [renameBack, ...diffGameOwnership(after, before, inverseApplied)])).toEqual(before);
   });
 });
+
+it("keeps 350 existing override updates and their inverse within the public operation budget", () => {
+  const baseline = anyGameDocument.parse({ schemaVersion: 2, engineVersion: "1", id: "stable-override-budget",
+    revision: "1", entrySceneId: "room", pixelsPerUnit: 32, tickRate: 60, inputActions: [], assets: {},
+    scenes: [{ id: "room", name: "Many roots", entities: Array.from({ length: 350 }, (_, index) => ({ id: `root-${index}`,
+      transform2d: { x: index, y: 0 } })) }] });
+  if (baseline.schemaVersion === 3) { throw new Error("Expected 2D baseline"); }
+  const authored = { ...baseline, authoring: gameAuthoring.parse({ version: 1,
+    program: { source: "return inputs.document;", inputs: { document: baseline }, seed: 1 }, baseline,
+    detached: [{ sceneId: "room", entityId: "ghost" }, { sceneId: "room", entityId: "ghost" }] }) };
+  const seed = baseline.scenes[0].entities.map((entity) => anyGameDocumentOp.parse({ op: "update_entity",
+    scene_id: "room", entity_id: entity.id, set: { transform2d: { x: entity.transform2d.x + 1 } } }));
+  const before = applyAnyGameOps(authored, seed);
+  expect(before.schemaVersion).toBe(2);
+  expect(before.authoring?.overrides).toHaveLength(350);
+  const moves = before.scenes[0].entities.map((entity) => anyGameDocumentOp.parse({ op: "update_entity",
+    scene_id: "room", entity_id: entity.id, set: { transform2d: { x: entity.transform2d.x + 1 } } }));
+  const after = applyAnyGameOps(before, moves);
+  const wire = (ops: unknown[]) => ops.map((op) => anyGameDocumentOp.parse(JSON.parse(JSON.stringify(op))));
+  const forward = wire([...moves, ...diffGameOwnership(before, after, after)]);
+  expect(applyAnyGameOps(before, forward)).toEqual(after);
+  expect(after.authoring?.detached).toEqual(before.authoring?.detached);
+  const restoredFields = applyAnyGameOps(after, seed);
+  const inverse = wire([...seed, ...diffGameOwnership(after, before, restoredFields)]);
+  expect(applyAnyGameOps(after, inverse)).toEqual(before);
+  expect(forward.length).toBeLessThanOrEqual(1024);
+  expect(inverse.length).toBeLessThanOrEqual(1024);
+});

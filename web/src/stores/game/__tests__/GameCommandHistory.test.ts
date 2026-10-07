@@ -1,5 +1,6 @@
+import { z } from "zod";
 import { gameAuthoring, gameDocument, gameDocument3D, type AnyGameDocument } from "@nodetool-ai/protocol";
-import { anyGameDocumentOp, applyAnyGameOps, createNative3DGame, createTopDownRoomGame, type AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
+import { anyGameDocumentOp, applyAnyGameOps, createNative3DGame, createTopDownRoomGame, validateAnyGame, type AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
 import { getGameDraftStore } from "../GameDraftStore";
 
 function move(document: AnyGameDocument, entityId: string, x: number): AnyGameDocumentOp {
@@ -353,3 +354,344 @@ it("undoes deletion of an explicitly empty background container through public J
   expect(store.getState().document).toEqual(expected);
   expect(applyAnyGameOps(before, JSON.parse(JSON.stringify(store.getState().pendingOps)))).toEqual(expected);
 });
+
+// Append-only GameCommandHistory.test.ts evidence regression. Add z from zod and
+// validateAnyGame from game-runtime to existing imports. Existing gameDocument,
+// gameAuthoring, anyGameDocumentOp, applyAnyGameOps and getGameDraftStore imports suffice.
+// This is the public atomic-batch path, not viewport callback/throughput coverage.
+
+it.each([false, true])("preserves one public atomic batch and its inverse within the queue budget for 350 authored roots with heldPrefix=%s", (heldPrefix) => {
+  const roots = Array.from({ length: 350 }, (_, index) => ({ id: `root-${index}`,
+    transform2d: { x: (index % 25) * 2 - 24, y: Math.floor(index / 25) * 2 - 12 } }));
+  const baseline = gameDocument.parse({ schemaVersion: 2, engineVersion: "1", id: `atomic-many-roots-${heldPrefix}`,
+    revision: "1", entrySceneId: "room", pixelsPerUnit: 32, tickRate: 60, inputActions: [], assets: {},
+    scenes: [{ id: "room", name: "Many roots", entities: roots }] });
+  const before = gameDocument.parse({ ...baseline,
+    scenes: baseline.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => ({ ...entity,
+      transform2d: { ...entity.transform2d, x: entity.transform2d.x + 1 } })) })),
+    authoring: gameAuthoring.parse({ version: 1, program: { source: "return inputs.document;", inputs: { document: baseline }, seed: 1 },
+      baseline, overrides: baseline.scenes[0].entities.map((entity) => ({ sceneId: "room", entityId: entity.id,
+        path: ["transform2d", "x"], value: entity.transform2d.x + 1 })) }) });
+  const valid = validateAnyGame(before);
+  if (!valid.valid) { throw new Error(`Invalid authored many-root fixture: ${JSON.stringify(valid)}`); }
+  expect(before.authoring?.overrides).toHaveLength(350);
+  const store = getGameDraftStore(before.id);
+  store.getState().load(before, "base-token");
+  if (heldPrefix) { store.getState().apply([{ op: "update_scene", scene_id: "room", set: { name: "Submitted name" } }], { label: "Rename scene" }); }
+  const prefix = structuredClone(store.getState().pendingOps);
+  const prefixBytes = JSON.stringify(prefix);
+  const submitted = applyAnyGameOps(before, prefix);
+  expect(submitted.schemaVersion).toBe(2);
+  if (heldPrefix) { expect(store.getState().error).toBeNull(); expect(prefix.length).toBeGreaterThan(0); store.getState().setSaving(prefix.length); }
+  store.getState().selectMany(roots.map((entity) => entity.id));
+  const moveOps = submitted.scenes[0].entities.map((entity) => anyGameDocumentOp.parse({ op: "update_entity",
+    scene_id: "room", entity_id: entity.id, set: { transform2d: { x: entity.transform2d.x + 1, y: entity.transform2d.y } } }));
+  const expected = applyAnyGameOps(submitted, moveOps);
+  const gestureId = store.getState().beginGesture();
+  store.getState().apply(moveOps, { label: "Move Selection", mergeKey: "move-selection", gestureId });
+  store.getState().endGesture(gestureId);
+  expect(store.getState().error).toBeNull();
+  expect(store.getState().document).toEqual(expected);
+  expect(store.getState().commandHistory.past).toHaveLength(heldPrefix ? 2 : 1);
+  const command = store.getState().commandHistory.past.at(-1);
+  if (!command) { throw new Error("Atomic move command missing"); }
+  expect(command.label).toBe("Move Selection");
+  const queued = z.array(anyGameDocumentOp).parse(JSON.parse(JSON.stringify(store.getState().pendingOps)));
+  expect(JSON.stringify(queued.slice(0, prefix.length))).toBe(prefixBytes);
+  expect(applyAnyGameOps(before, queued)).toEqual(expected);
+  if (heldPrefix) {
+    store.getState().acknowledge(submitted, "acknowledged-token", prefix.length);
+    expect(applyAnyGameOps(submitted, store.getState().pendingOps)).toEqual(expected);
+  }
+  store.getState().undo();
+  expect(store.getState().document).toEqual(submitted);
+  store.getState().redo();
+  expect(store.getState().document).toEqual(expected);
+  expect(command.ops.length).toBeLessThanOrEqual(1024);
+  expect(command.inverseOps.length).toBeLessThanOrEqual(1024);
+  expect(z.array(anyGameDocumentOp).max(1024).safeParse(JSON.parse(JSON.stringify(command.ops))).success).toBe(true);
+  expect(z.array(anyGameDocumentOp).max(1024).safeParse(JSON.parse(JSON.stringify(command.inverseOps))).success).toBe(true);
+  // This mirrors the existing public saveDraft maximum, without importing backend-private source.
+  // Assert after state/replay/history controls so a RED still demonstrates the reachable producer.
+  expect(queued.length).toBeLessThanOrEqual(1024);
+  expect(z.array(anyGameDocumentOp).max(1024).safeParse(queued).success).toBe(true);
+});
+
+// Append-only GameCommandHistory.test.ts. Existing imports plus z and validateAnyGame.
+// Atomic store path only. The separate pointer regression is unchanged.
+function unsavedQueueFixture(id: string) {
+  const roots = Array.from({ length: 350 }, (_, index) => ({ id: `root-${index}`,
+    transform2d: { x: (index % 25) * 2 - 24, y: Math.floor(index / 25) * 2 - 12 } }));
+  const baseline = gameDocument.parse({ schemaVersion: 2, engineVersion: "1", id: id,
+    revision: "1", entrySceneId: "room", pixelsPerUnit: 32, tickRate: 60, inputActions: [], assets: {},
+    scenes: [{ id: "room", name: "Many roots", entities: roots }] });
+  const before = gameDocument.parse({ ...baseline,
+    scenes: baseline.scenes.map((scene) => ({ ...scene, entities: scene.entities.map((entity) => ({ ...entity,
+      transform2d: { ...entity.transform2d, x: entity.transform2d.x + 1 } })) })),
+    authoring: gameAuthoring.parse({ version: 1, program: { source: "return inputs.document;", inputs: { document: baseline }, seed: 1 },
+      baseline, overrides: baseline.scenes[0].entities.map((entity) => ({ sceneId: "room", entityId: entity.id,
+        path: ["transform2d", "x"], value: entity.transform2d.x + 1 })) }) });
+  const valid = validateAnyGame(before);
+  if (!valid.valid) { throw new Error(`Invalid authored many-root fixture: ${JSON.stringify(valid)}`); }
+  expect(before.authoring?.overrides).toHaveLength(350);
+  return before;
+}
+function unsavedQueueMove(document: ReturnType<typeof unsavedQueueFixture>) {
+  return document.scenes[0].entities.map((entity) => anyGameDocumentOp.parse({ op: "update_entity",
+    scene_id: "room", entity_id: entity.id, set: { transform2d: { x: entity.transform2d.x + 1 } } }));
+}
+function unsavedQueueWire(ops: unknown) { return z.array(anyGameDocumentOp).parse(JSON.parse(JSON.stringify(ops))); }
+
+it("rebuilds unsent atomic history to empty undo and bounded redo", () => {
+  const before = unsavedQueueFixture("unsaved-atomic-history");
+  const store = getGameDraftStore(before.id); store.getState().load(before, "base");
+  store.getState().apply(unsavedQueueMove(before), { label: "Move Selection" });
+  const moved = structuredClone(store.getState().document);
+  store.getState().undo();
+  expect(store.getState().document).toEqual(before);
+  expect(store.getState().pendingOps).toEqual([]);
+  expect(store.getState().saveStatus).toBe("saved");
+  expect(store.getState().commandHistory.future).toHaveLength(1);
+  store.getState().redo();
+  expect(store.getState().document).toEqual(moved);
+  const wire = unsavedQueueWire(store.getState().pendingOps);
+  expect(applyAnyGameOps(before, wire)).toEqual(moved);
+  expect(wire.length).toBeLessThanOrEqual(1024);
+});
+
+it("preserves a held rename prefix through history and rebases only its suffix on ACK", () => {
+  const before = unsavedQueueFixture("held-rename-history");
+  const store = getGameDraftStore(before.id); store.getState().load(before, "base");
+  store.getState().apply([{ op: "update_scene", scene_id: "room", set: { name: "Submitted name" } }]);
+  const prefix = unsavedQueueWire(store.getState().pendingOps); expect(prefix.length).toBeGreaterThan(0);
+  const prefixBytes = JSON.stringify(prefix); const submitted = applyAnyGameOps(before, prefix);
+  store.getState().setSaving(prefix.length);
+  store.getState().apply(unsavedQueueMove(before)); const moved = structuredClone(store.getState().document);
+  store.getState().undo();
+  expect(store.getState().document).toEqual(submitted);
+  expect(JSON.stringify(store.getState().pendingOps)).toBe(prefixBytes);
+  store.getState().redo();
+  expect(store.getState().document).toEqual(moved);
+  const queued = unsavedQueueWire(store.getState().pendingOps);
+  expect(JSON.stringify(queued.slice(0, prefix.length))).toBe(prefixBytes);
+  expect(applyAnyGameOps(before, queued)).toEqual(moved);
+  store.getState().acknowledge(submitted, "rename-ack", prefix.length);
+  expect(applyAnyGameOps(submitted, unsavedQueueWire(store.getState().pendingOps))).toEqual(moved);
+  expect(queued.length).toBeLessThanOrEqual(1024);
+});
+
+it("retains submitted movement bytes and cancels only the unsent inverse after ACK and redo", () => {
+  const before = unsavedQueueFixture("submitted-movement-history");
+  const store = getGameDraftStore(before.id); store.getState().load(before, "base");
+  store.getState().apply(unsavedQueueMove(before));
+  const moved = structuredClone(store.getState().document);
+  if (!moved) { throw new Error("Moved document missing"); }
+  const prefix = unsavedQueueWire(store.getState().pendingOps); const bytes = JSON.stringify(prefix);
+  store.getState().setSaving(prefix.length); store.getState().undo();
+  expect(store.getState().document).toEqual(before);
+  const queued = unsavedQueueWire(store.getState().pendingOps);
+  expect(JSON.stringify(queued.slice(0, prefix.length))).toBe(bytes);
+  const inverse = queued.slice(prefix.length); expect(inverse.length).toBeGreaterThan(0);
+  expect(applyAnyGameOps(moved, inverse)).toEqual(before);
+  store.getState().acknowledge(moved, "movement-ack", prefix.length);
+  expect(applyAnyGameOps(moved, unsavedQueueWire(store.getState().pendingOps))).toEqual(before);
+  store.getState().redo(); expect(store.getState().document).toEqual(moved);
+  expect(store.getState().pendingOps).toEqual([]);
+  expect(store.getState().saveStatus).toBe("saved");
+  expect(prefix.length).toBeLessThanOrEqual(1024); expect(inverse.length).toBeLessThanOrEqual(1024);
+});
+
+it("retains a baseline-valued authored override after net-zero edit undo and redo", () => {
+  const seeded = unsavedQueueFixture("net-zero-ownership-history");
+  const rootId = seeded.scenes[0].entities[0].id;
+  const before = applyAnyGameOps(seeded, [{ op: "reset_override", scene_id: "room", entity_id: rootId, path: ["transform2d", "x"] }]);
+  expect(before.schemaVersion).toBe(2);
+  const store = getGameDraftStore(before.id); store.getState().load(before, "base");
+  const root = before.scenes[0].entities[0];
+  const baselineX = root.transform2d.x;
+  expect(before.authoring?.overrides.some((entry) => entry.entityId === root.id && entry.path.join(".") === "transform2d.x")).toBe(false);
+  const gestureId = store.getState().beginGesture();
+  const options = { label: "Move Selection", mergeKey: "move-selection", gestureId };
+  store.getState().apply([{ op: "update_entity", scene_id: "room", entity_id: root.id, set: { transform2d: { x: baselineX + 2 } } }], options);
+  store.getState().apply([{ op: "update_entity", scene_id: "room", entity_id: root.id, set: { transform2d: { x: baselineX } } }], options);
+  store.getState().endGesture(gestureId);
+  expect(store.getState().error).toBeNull();
+  const target = structuredClone(store.getState().document);
+  expect(target?.scenes).toEqual(before.scenes);
+  expect(target?.authoring?.overrides.find((entry) => entry.entityId === root.id && entry.path.join(".") === "transform2d.x")?.value).toBe(baselineX);
+  store.getState().undo(); expect(store.getState().document).toEqual(before);
+  store.getState().redo(); expect(store.getState().document).toEqual(target);
+  const wire = unsavedQueueWire(store.getState().pendingOps);
+  expect(wire.length).toBeGreaterThan(0);
+  expect(wire.every((op) => op.op === "set_override_membership")).toBe(true);
+  expect(applyAnyGameOps(before, wire)).toEqual(target);
+  expect(store.getState().document?.authoring?.overrides.find((entry) => entry.entityId === root.id &&
+    entry.path.join(".") === "transform2d.x")?.value).toBe(baselineX);
+});
+
+// Separate failSave concern control: no new retry/capture API is assumed here.
+it("retains uncertain submitted movement and undo suffix when save failure is reported", () => {
+  const before = unsavedQueueFixture("uncertain-save-history");
+  const store = getGameDraftStore(before.id); store.getState().load(before, "base");
+  store.getState().apply(unsavedQueueMove(before));
+  expect(store.getState().error).toBeNull();
+  const moved = structuredClone(store.getState().document);
+  expect(moved).not.toEqual(before);
+  const prefix = unsavedQueueWire(store.getState().pendingOps); const bytes = JSON.stringify(prefix);
+  expect(prefix.length).toBeGreaterThan(0);
+  store.getState().setSaving(prefix.length); store.getState().undo();
+  expect(store.getState().error).toBeNull();
+  const queued = unsavedQueueWire(store.getState().pendingOps);
+  expect(queued.length).toBeGreaterThan(prefix.length);
+  if (!moved) { throw new Error("Moved document missing"); }
+  expect(applyAnyGameOps(moved, queued.slice(prefix.length))).toEqual(before);
+  store.getState().failSave("Response lost; server outcome unknown");
+  expect(store.getState().savingCount).toBe(0);
+  expect(store.getState().saveStatus).toBe("error");
+  expect(store.getState().document).toEqual(before);
+  expect(unsavedQueueWire(store.getState().pendingOps)).toEqual(queued);
+  expect(JSON.stringify(queued.slice(0, prefix.length))).toBe(bytes);
+  expect(applyAnyGameOps(before, queued)).toEqual(before);
+  // Do not assert whole retry payload fits: its bounded capture seam is still owner-designed.
+});
+
+// Append after approved unsavedQueueFixture/Move/Wire helpers in GameCommandHistory.test.ts.
+// First control uses only existing methods; second uses proposed captureSaveOps.
+it("preserves unknown submitted movement through repeated failure and later history", () => {
+  const before = unsavedQueueFixture("unknown-history-prefix");
+  const store = getGameDraftStore(before.id); store.getState().load(before, "base-token");
+  store.getState().apply(unsavedQueueMove(before));
+  expect(store.getState().error).toBeNull();
+  const moved = structuredClone(store.getState().document);
+  expect(moved).not.toEqual(before);
+  const prefix = unsavedQueueWire(store.getState().pendingOps);
+  expect(prefix.length).toBeGreaterThan(0);
+  const prefixBytes = JSON.stringify(prefix);
+  store.getState().setSaving(prefix.length); store.getState().undo();
+  expect(store.getState().document).toEqual(before);
+  store.getState().failSave("Unknown server outcome");
+  expect(store.getState().savingCount).toBe(0);
+  store.getState().failSave("Repeated report with no new capture");
+  store.getState().redo(); expect(store.getState().document).toEqual(moved);
+  expect(JSON.stringify(store.getState().pendingOps.slice(0, prefix.length))).toBe(prefixBytes);
+  store.getState().undo(); expect(store.getState().document).toEqual(before);
+  const queued = unsavedQueueWire(store.getState().pendingOps);
+  expect(JSON.stringify(queued.slice(0, prefix.length))).toBe(prefixBytes);
+  expect(queued.length).toBeGreaterThan(prefix.length);
+  if (!moved) { throw new Error("Moved document missing"); }
+  expect(applyAnyGameOps(moved, queued.slice(prefix.length))).toEqual(before);
+  expect(applyAnyGameOps(before, queued)).toEqual(before);
+  expect(store.getState().saveStatus).not.toBe("saved");
+});
+
+
+it("captures the durable failed prefix first and rebases its inverse only after confirmed ACK", () => {
+  const before = unsavedQueueFixture("unknown-history-retry-capture");
+  const store = getGameDraftStore(before.id); store.getState().load(before, "base-token");
+  store.getState().apply(unsavedQueueMove(before));
+  expect(store.getState().error).toBeNull();
+  const moved = structuredClone(store.getState().document);
+  if (!moved) { throw new Error("Moved document missing"); }
+  expect(moved).not.toEqual(before);
+  const prefix = unsavedQueueWire(store.getState().pendingOps);
+  expect(prefix.length).toBeGreaterThan(0);
+  const bytes = JSON.stringify(prefix);
+  store.getState().setSaving(prefix.length); store.getState().undo();
+  expect(store.getState().document).toEqual(before);
+  store.getState().failSave("Unknown server outcome");
+  expect(store.getState().savingCount).toBe(0);
+  store.getState().failSave("Repeated report with no new capture");
+  store.getState().redo(); expect(store.getState().document).toEqual(moved);
+  store.getState().undo(); expect(store.getState().document).toEqual(before);
+  const queuedBeforeCapture = structuredClone(store.getState().pendingOps);
+  const retry = unsavedQueueWire(store.getState().captureSaveOps());
+  expect(JSON.stringify(retry)).toBe(bytes);
+  expect(retry.length).toBeLessThanOrEqual(1024);
+  expect(store.getState().baseUpdatedAt).toBe("base-token");
+  expect(store.getState().pendingOps).toEqual(queuedBeforeCapture);
+  // A second capture cannot consume the durable prefix or mutate the queue.
+  expect(JSON.stringify(store.getState().captureSaveOps())).toBe(bytes);
+  store.getState().setSaving(retry.length);
+  store.getState().acknowledge(moved, "confirmed-token", retry.length);
+  expect(store.getState().document).toEqual(before);
+  const suffix = unsavedQueueWire(store.getState().captureSaveOps());
+  expect(suffix.length).toBeGreaterThan(0);
+  expect(suffix.length).toBeLessThanOrEqual(1024);
+  expect(applyAnyGameOps(moved, suffix)).toEqual(before);
+  expect(store.getState().baseUpdatedAt).toBe("confirmed-token");
+  store.getState().setSaving(suffix.length);
+  store.getState().acknowledge(before, "inverse-confirmed-token", suffix.length);
+  expect(store.getState().pendingOps).toEqual([]);
+  expect(store.getState().captureSaveOps()).toEqual([]);
+  expect(store.getState().saveStatus).toBe("saved");
+});
+
+// Append to GameCommandHistory.test.ts after approved unsavedQueueFixture/Move/Wire helpers.
+it.each(["load", "applyMerged"])("clears uncertain retry ownership only after authoritative %s", (reset) => {
+  const before = unsavedQueueFixture(`retry-reset-${reset}`);
+  const store = getGameDraftStore(before.id); store.getState().load(before, "old-token");
+  store.getState().apply(unsavedQueueMove(before).slice(0, 1));
+  expect(store.getState().error).toBeNull();
+  const prefix = unsavedQueueWire(store.getState().pendingOps); expect(prefix.length).toBeGreaterThan(0);
+  store.getState().setSaving(prefix.length); store.getState().failSave("Unknown outcome");
+  expect(store.getState().captureSaveOps()).toEqual(prefix);
+  const server = applyAnyGameOps(before, [{ op: "update_scene", scene_id: "room", set: { name: "Authoritative scene" } }]);
+  expect(server.schemaVersion).toBe(2);
+  const edits = unsavedQueueMove(server);
+  const target = applyAnyGameOps(server, edits);
+  if (reset === "load") {
+    store.getState().load(server, "new-token");
+    expect(store.getState().captureSaveOps()).toEqual([]);
+    store.getState().apply(edits);
+  } else { store.getState().applyMerged(target, server, "new-token"); }
+  expect(store.getState().error).toBeNull();
+  expect(store.getState().document).toEqual(target);
+  expect(store.getState().baseUpdatedAt).toBe("new-token");
+  const captured = unsavedQueueWire(store.getState().captureSaveOps());
+  expect(store.getState().pendingOps.length).toBeGreaterThan(prefix.length);
+  expect(captured.length).toBeGreaterThan(prefix.length);
+  expect(captured).toEqual(unsavedQueueWire(store.getState().pendingOps));
+  expect(captured).not.toEqual(prefix);
+  expect(captured.length).toBeLessThanOrEqual(1024);
+  expect(applyAnyGameOps(server, captured)).toEqual(target);
+});
+
+it.each([{ name: "2D", create: createTopDownRoomGame }, { name: "3D", create: createNative3DGame }])(
+  "$name protects a failed script prefix while compacting later typing and rebasing after ACK", ({ name, create }) => {
+    const baseline = create(`failed-script-prefix-${name}`);
+    const player = baseline.scenes[0].entities.find((entity) => entity.id === "player");
+    if (!player) { throw new Error("Fixture player missing"); }
+    const index = player.behaviors.length;
+    player.behaviors.push({ kind: "script", source: "() => ({ state: {}, commands: [] })", maxCommands: 16, maxTickMs: 8 });
+    const document = { ...baseline, authoring: gameAuthoring.parse({ version: 1,
+      program: { source: "return inputs.document;", inputs: { document: baseline }, seed: 1 }, baseline }) };
+    const store = getGameDraftStore(document.id); store.getState().load(document, "original-token");
+    const edit = (value: number) => store.getState().apply([{ op: "set_script", scene_id: document.entrySceneId,
+      entity_id: "player", index, source: `() => ({ state: { edit: ${value} }, commands: [] })` }]);
+    edit(1); expect(store.getState().error).toBeNull();
+    const rawPrefix = structuredClone(store.getState().pendingOps);
+    const prefix = unsavedQueueWire(rawPrefix); expect(prefix.length).toBeGreaterThan(0);
+    const bytes = JSON.stringify(rawPrefix); const submitted = structuredClone(store.getState().document);
+    if (!submitted) { throw new Error("Submitted document missing"); }
+    store.getState().setSaving(prefix.length); store.getState().failSave("Lost response");
+    expect(store.getState().savingCount).toBe(0);
+    store.getState().failSave("Repeated failure without another capture");
+    for (let value = 2; value <= 10; value++) { edit(value); }
+    expect(store.getState().error).toBeNull();
+    const finalDocument = structuredClone(store.getState().document);
+    const queued = unsavedQueueWire(store.getState().pendingOps);
+    expect(JSON.stringify(store.getState().pendingOps.slice(0, prefix.length))).toBe(bytes);
+    const suffix = queued.slice(prefix.length); expect(suffix.length).toBeGreaterThan(0);
+    expect(suffix.length).toBeLessThanOrEqual(3);
+    expect(applyAnyGameOps(document, queued)).toEqual(finalDocument);
+    expect(JSON.stringify(store.getState().captureSaveOps())).toBe(bytes);
+    expect(store.getState().baseUpdatedAt).toBe("original-token");
+    store.getState().setSaving(prefix.length); store.getState().acknowledge(submitted, "confirmed-token", prefix.length);
+    const remaining = unsavedQueueWire(store.getState().captureSaveOps());
+    expect(remaining.length).toBeGreaterThan(0); expect(remaining.length).toBeLessThanOrEqual(3);
+    expect(remaining).toEqual(unsavedQueueWire(store.getState().pendingOps));
+    expect(applyAnyGameOps(submitted, remaining)).toEqual(finalDocument);
+    const finalPlayer = finalDocument?.scenes[0].entities.find((entity) => entity.id === "player");
+    expect(finalPlayer?.behaviors[index]).toMatchObject({ kind: "script", source: "() => ({ state: { edit: 10 }, commands: [] })" });
+    expect(store.getState().baseUpdatedAt).toBe("confirmed-token");
+  });
