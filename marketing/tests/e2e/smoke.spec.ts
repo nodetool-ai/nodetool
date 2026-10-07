@@ -186,19 +186,16 @@ test.describe("marketing smoke", () => {
 
     await expect(
       page.locator("#guided-flow ol").first().locator("li span:last-child")
-    ).toHaveText(["Idea", "Story", "Entities", "Look"]);
+    ).toHaveText(["Brief", "Timing", "Reference", "Generate", "Review"]);
 
     for (const name of [
       "01 Product",
-      "02 Idea",
-      "03 Story",
-      "04 Review",
-      "05 Entities",
-      "06 Look",
-      "07 Stills",
-      "08 Motion",
-      "09 Timeline",
-      "10 Delivery"
+      "02 Brief",
+      "03 Timing",
+      "04 Reference",
+      "05 Generate",
+      "06 Review",
+      "07 Delivery"
     ]) {
       await page.getByRole("button", { name, exact: true }).click();
       const image = page.locator(
