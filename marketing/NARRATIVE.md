@@ -10,8 +10,9 @@ When page copy and this file disagree, one of them is wrong. Fix both in the
 same change. The page is edited more often than this file, so when in doubt
 the page is the newer of the two. Bring the doc up to it, then fix the page.
 
-The README, docs, and homepage metadata share the primary tagline and intro in
-`BRAND.md`. Film production is a showcase of the broader workspace.
+The homepage, README, and docs share the primary tagline and intro in
+`BRAND.md`. The homepage hero paragraph restates the intro in plain words:
+what NodeTool makes, what the agent does, and what the reader keeps. Film production is a showcase of the broader workspace.
 
 ## The register
 
@@ -40,11 +41,8 @@ Describe what you want, let the agent build it, then take over whenever you
 like.
 
 Use "agent-first" in supporting copy to explain how agents build and revise
-workflows and documents that creators can inspect and edit. Keep the homepage
-metadata category-led. The visible homepage headline is written for a reader
-with no context: what NodeTool makes, who does the work, and what the reader
-controls ("Make video, images, and audio with an AI agent. Then edit every
-part."). The eyebrow above it keeps the category. Edition and audience pages use
+workflows and documents that creators can inspect and edit. Keep the primary
+homepage headline and metadata category-led. Edition and audience pages use
 distinct headlines that answer the reason to choose that route: Studio makes
 and revises production work, Cloud evaluates the workspace without an install,
 and Agents builds reusable automation around editable artifacts.

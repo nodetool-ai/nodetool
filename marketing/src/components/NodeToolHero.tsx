@@ -10,15 +10,20 @@ export default function NodeToolHero() {
       <div className="hero-rise mx-auto flex max-w-4xl flex-col items-center text-center">
         <span className="inline-flex items-center gap-2 rounded-full border border-blue-500/30 bg-blue-500/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-blue-300">
           <span className="h-1.5 w-1.5 rounded-full bg-blue-400" />
-          Open-source creative workspace
+          Agents build. You edit.
         </span>
 
+        {/* Each phrase stays on one line so the headline never splits
+            "agent-first" at its hyphen. */}
         <h1
           id="hero-title"
           className="mt-6 text-balance text-4xl font-bold leading-[1.05] tracking-tight text-slate-50 sm:text-6xl lg:text-7xl"
         >
-          Make video, images, and audio with an AI agent.{" "}
-          <span className="text-sky-200">Then edit every part.</span>
+          <span className="whitespace-nowrap">Open-source</span>{" "}
+          <span className="whitespace-nowrap">agent-first</span>{" "}
+          <span className="text-sky-200">
+            creative workspace
+          </span>
         </h1>
 
         <p className="mt-6 max-w-2xl text-pretty text-lg leading-relaxed text-slate-300 sm:text-xl">

@@ -34,10 +34,9 @@ change.
   browser tabs, lost context and markups are symptoms of it, not the enemy.
 
 The pitch above is the general-purpose one — README, docs, conference blurb,
-app store listing. The homepage metadata uses the same tagline. The visible
-homepage hero restates it in plain words for readers who have never heard of
-NodeTool, and [marketing/NARRATIVE.md](../marketing/NARRATIVE.md) owns that
-copy and the page narrative.
+app store listing. The marketing homepage uses the same tagline, and its hero
+paragraph restates the intro in plain words for readers new to NodeTool;
+[marketing/NARRATIVE.md](../marketing/NARRATIVE.md) owns the page narrative.
 Both describe editable agent work. Persistent project context is Pillar 3.
 
 ## 2. Voice
