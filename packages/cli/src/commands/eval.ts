@@ -830,6 +830,11 @@ export const EVAL_SUITES: readonly EvalSuite[] = [
     "creative-pipeline",
     "Run the long-horizon creative eval: one commission carried through brief, ideation, sketch, storyboard, cut and review across the composed ui_sketch_*/ui_storyboard_*/ui_timeline_* surfaces",
     (mod) => mod.CREATIVE_PIPELINE_TOOL_LOOP_CASES
+  ),
+  makeToolLoopSuite(
+    "game-tools",
+    "Run the native game metadata authoring eval through public game edit operations",
+    (mod) => mod.GAME_TOOL_LOOP_CASES
   )
 ];
 

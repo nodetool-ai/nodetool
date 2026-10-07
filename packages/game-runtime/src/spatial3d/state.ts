@@ -16,6 +16,7 @@ export interface EntityState3D {
   readonly prefabId?: string;
   spawnTick: number;
   active: boolean;
+  props?: GameEntity3D["props"];
   health?: number;
   transform: GameTransform3D;
   localTransform: GameTransform3D;

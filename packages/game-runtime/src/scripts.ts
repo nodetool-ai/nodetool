@@ -16,7 +16,9 @@ export const gameScriptCommand = z.discriminatedUnion("kind", [
   z.strictObject({ kind: z.literal("spawn"), prefabId: z.string().min(1), x: finite.optional(), y: finite.optional(),
     velocityX: finite.optional(), velocityY: finite.optional() }),
   gameNonSpatialScriptCommand.options[3],
-  gameNonSpatialScriptCommand.options[4]
+  gameNonSpatialScriptCommand.options[4],
+  gameNonSpatialScriptCommand.options[5],
+  gameNonSpatialScriptCommand.options[6]
 ]);
 
 export type GameScriptCommand = z.infer<typeof gameScriptCommand>;
@@ -32,6 +34,10 @@ export interface GameScriptCall {
   readonly velocityX: number;
   readonly velocityY: number;
   readonly touching: GameScriptTouching;
+  readonly tags: readonly string[];
+  readonly props: NonNullable<GameDocument["scenes"][number]["entities"][number]["props"]>;
+  readonly rotation: number;
+  readonly active: boolean;
   readonly maxCommands: number;
   readonly maxTickMs: number;
 }
@@ -69,6 +75,10 @@ export interface GameScriptWorldEntity {
   readonly source: string;
   readonly x: number;
   readonly y: number;
+  readonly tags: readonly string[];
+  readonly props: NonNullable<GameDocument["scenes"][number]["entities"][number]["props"]>;
+  readonly rotation: number;
+  readonly active: boolean;
 }
 
 export interface GameScriptInput {
@@ -297,7 +307,8 @@ export function prepareGameScripts(document: GameDocument): Promise<GameScriptRu
     tick: data.input.tick, pressed: data.input.pressed, justPressed: data.input.justPressed,
     events: data.input.events, entity: {
       id: data.call.entityId, source: data.call.source, x: data.call.x, y: data.call.y,
-      velocityX: data.call.velocityX, velocityY: data.call.velocityY, touching: data.call.touching
+      velocityX: data.call.velocityX, velocityY: data.call.velocityY, touching: data.call.touching,
+      tags: data.call.tags, props: data.call.props, rotation: data.call.rotation, active: data.call.active
     }, world: data.input.world, state: data.call.state, random: __gameRandom
   }`);
 }

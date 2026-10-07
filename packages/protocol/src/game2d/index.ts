@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { gameEntityProps, gameEntityTags } from "../game-entity-metadata.js";
 import { gameLightingComponent } from "./components/lighting.js";
 import { gameMusicComponent } from "./components/music.js";
 import { finite, positive, vec2, frame } from "./components/common.js";
@@ -13,6 +14,8 @@ export const gameEntity = z.strictObject({
   id: z.string().min(1),
   name: z.string().default(""),
   parentId: z.string().optional(),
+  tags: gameEntityTags.optional(),
+  props: gameEntityProps.optional(),
   templateOnly: z.boolean().default(false),
   transform2d: gameTransform2D,
   ...gameEntityComponents,
@@ -136,7 +139,7 @@ export const gameSnapshot = z.object({
   hud: z.array(gameHudLabel).default([]),
   entities: z.array(z.object({ id: z.string(), sourceId: z.string().optional(), spawnTick: z.number().int().nonnegative().optional(),
     rotation: finite.optional(), scaleX: positive.optional(), scaleY: positive.optional(), tint: z.string().regex(/^#[0-9a-fA-F]{6}$/).optional(), opacity: finite.min(0).max(1).optional(), flipX: z.boolean().optional(),
-    animation: z.string().optional(), animationTick: z.number().int().nonnegative().optional(), x: finite, y: finite, previousX: finite, previousY: finite, velocityX: finite, velocityY: finite, active: z.boolean(), health: z.number().int().optional(), patrolOrigin: finite.optional(), patrolDirection: z.union([z.literal(-1), z.literal(1)]).optional() }))
+    animation: z.string().optional(), animationTick: z.number().int().nonnegative().optional(), x: finite, y: finite, previousX: finite, previousY: finite, velocityX: finite, velocityY: finite, active: z.boolean(), props: gameEntityProps.optional(), health: z.number().int().optional(), patrolOrigin: finite.optional(), patrolDirection: z.union([z.literal(-1), z.literal(1)]).optional() }))
 });
 
 export type GameSnapshot = z.infer<typeof gameSnapshot>;
@@ -169,3 +172,5 @@ export { gameBehavior, type GameBehavior } from "./components/behaviors.js";
 export { gameVisualTrack, type GameVisualTrack } from "./components/visual-animation.js";
 
 export { gameBackgroundLayer, type GameBackgroundLayer } from "./components/background.js";
+
+export { gameEntityProps, gameEntityTags } from "../game-entity-metadata.js";

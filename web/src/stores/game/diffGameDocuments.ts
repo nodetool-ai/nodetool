@@ -44,6 +44,9 @@ function entitySet(from: GameEntity, to: GameEntity): Extract<GameDocumentOp, { 
   for (const key of COMPONENTS) {
     if (from[key] !== undefined && to[key] === undefined) { set[key] = null; }
   }
+  for (const key of ["tags", "props"] as const) {
+    if (Object.hasOwn(from, key) && !Object.hasOwn(to, key)) { set[key] = null; }
+  }
   const op = gameDocumentOp.parse({ op: "update_entity", entity_id: to.id, set });
   if (op.op !== "update_entity") { throw new Error("Expected entity update operation"); }
   return op.set;

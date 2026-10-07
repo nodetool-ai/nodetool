@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { gameEntityPropertyValue, gameEntityProps, gameEntityTags } from "../game-entity-metadata.js";
 import type { GameStepTimings } from "../game-step.js";
 import { gameInteractionActor3DComponent } from "./components/interaction-actor.js";
 import { finite, positive, id, tick, color, layerBits } from "./components/common.js";
@@ -29,6 +30,7 @@ const entityComponents = {
 
 export const gameEntity3D = z.strictObject({
   id, name: z.string().default(""), parentId: id.optional(), templateOnly: z.boolean().default(false),
+  tags: gameEntityTags.optional(), props: gameEntityProps.optional(),
   ...entityComponents,
   behaviors: z.array(gameNonSpatialBehavior).max(64).default([])
 });
@@ -136,7 +138,7 @@ export type GameRenderFrame3D = z.infer<typeof gameRenderFrame3D>;
 export const gameEntityState3D = z.strictObject({
   id, sourceId: id.optional(), prefabId: id.optional(), instanceId: id.optional(), parentId: id.optional(), spawnTick: tick,
   transform: gameTransform3D, previousTransform: gameTransform3D, velocity: gameVector3, angularVelocity: gameVector3,
-  active: z.boolean(), health: z.number().int().optional(), grounded: z.boolean().default(false),
+  active: z.boolean(), props: gameEntityProps.optional(), health: z.number().int().optional(), grounded: z.boolean().default(false),
   controller: z.strictObject({ coyoteRemaining: tick, jumpBufferRemaining: tick, verticalVelocity: finite, supportId: id.optional() }).optional(),
   animation: gameAnimationState3D.optional(), localTransform: gameTransform3D.optional(), opacity: finite.min(0).max(1).optional()
 });
@@ -154,7 +156,14 @@ export const gameNonSpatialScriptCommand = z.discriminatedUnion("kind", [
     size: positive.max(256).optional(), color: color.optional(), align: z.enum(["left", "center", "right"]).optional(), fontId: id.optional() }),
   z.strictObject({ kind: z.literal("emit"), event: id.max(128) }),
   z.strictObject({ kind: z.literal("despawn"), entityId: id }),
-  z.strictObject({ kind: z.literal("sceneTransition"), sceneId: id })
+  z.strictObject({ kind: z.literal("sceneTransition"), sceneId: id }),
+  z.strictObject({ kind: z.literal("setProp"), key: z.string().min(1).max(128), value: gameEntityPropertyValue }).superRefine((command, context) => {
+    const parsed = gameEntityProps.safeParse({ [command.key]: command.value });
+    if (!parsed.success) {
+      context.addIssue({ code: "custom", message: "Invalid entity property value" });
+    }
+  }),
+  z.strictObject({ kind: z.literal("removeProp"), key: z.string().min(1).max(128).refine((key) => !["__proto__", "constructor", "prototype"].includes(key)) })
 ]);
 
 export type GameNonSpatialScriptCommand = z.infer<typeof gameNonSpatialScriptCommand>;

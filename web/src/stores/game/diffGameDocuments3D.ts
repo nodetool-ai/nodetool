@@ -67,6 +67,9 @@ export function diffGameDocuments3D(from: GameDocument3D, to: GameDocument3D): G
           ops.push({ op: "update_entity", scene_id: scene.id, entity_id: entity.id, set: { [component]: null } });
         }
       }
+      for (const key of ["tags", "props"] as const) {
+        if (Object.hasOwn(before, key) && !Object.hasOwn(entity, key)) { set[key] = null; }
+      }
       ops.push(gameDocumentOp3D.parse({ op: "update_entity", scene_id: scene.id, entity_id: entity.id, set }));
     }
     const desiredIds = new Set(scene.entities.map((entity) => entity.id));

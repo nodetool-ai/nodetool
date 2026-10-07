@@ -24,6 +24,8 @@ function preservingPatch<Schema extends z.ZodType>(schema: Schema) {
   });
 }
 const entitySet = preservingPatch(gameEntity.partial().extend({
+  tags: gameEntity.shape.tags.unwrap().nullable().optional(),
+  props: gameEntity.shape.props.unwrap().nullable().optional(),
   id: z.never().optional(),
   transform2d: gameEntity.shape.transform2d.partial().optional(),
   sprite: gameEntity.shape.sprite.unwrap().partial().nullable().optional(),
@@ -212,6 +214,10 @@ export function applyGameOps(document: GameDocument, ops: readonly GameDocumentO
         const { scene, entity, entityIndex } = findEntity(draft, entityIndexesByScene, op.entity_id, op.scene_id, opIndex);
         const merged = deepMerge(entity, op.set);
         if (!isRecord(merged)) { fail(opIndex, ["set"], "Entity update must be an object"); }
+        for (const key of ["tags", "props"] as const) {
+          if (op.set[key] === null) { delete merged[key]; }
+          else if (op.set[key] !== undefined) { merged[key] = structuredClone(op.set[key]); }
+        }
         for (const key of ["sprite", "tilemap", "camera2d", "body2d", "collider2d", "animator", "visualAnimation", "audioSource", "light2d", "parentId"] as const) {
           if (merged[key] === null) { delete merged[key]; }
         }

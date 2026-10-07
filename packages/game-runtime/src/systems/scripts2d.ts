@@ -1,7 +1,15 @@
+import { gameEntityProps } from "@nodetool-ai/protocol";
+import { evaluateVisual } from "../visual-animation.js";
 import { gravityScaleOf, touchingOf } from "./collision2d.js";
+import type { EntityState } from "./state2d.js";
 import type { GameSystemContext2D } from "./context2d.js";
 import { applyGameplayCommand, queueGameplayBehavior } from "../gameplay/lifecycle.js";
 import { scriptSourceKey } from "../scripts.js";
+function scriptMetadata(state: EntityState, tick: number) {
+  return { tags: [...(state.definition.tags ?? [])], props: structuredClone(state.props ?? {}), active: state.active,
+    rotation: state.visual?.rotation ?? evaluateVisual(state.definition, tick - state.spawnTick, state.rotation, state.scaleX, state.scaleY).rotation };
+}
+
 export function stepScripts2D(context: GameSystemContext2D): void {
   for (const state of context.states) {
     state.previousX = state.x;
@@ -43,6 +51,7 @@ export function stepScripts2D(context: GameSystemContext2D): void {
           velocityX: state.velocityX,
           velocityY: state.velocityY,
           touching: touchingOf(context, state),
+          ...scriptMetadata(state, context.tick),
           maxCommands: behavior.maxCommands,
           maxTickMs: behavior.maxTickMs
         });
@@ -54,7 +63,8 @@ export function stepScripts2D(context: GameSystemContext2D): void {
   if (context.scriptRunner && context.scriptCalls.length > 0) {
     const world = context.states
       .filter((state) => state.active && (state.definition.collider2d || state.definition.camera2d))
-      .map((state) => ({ id: state.definition.id, source: state.sourceId ?? state.definition.id, x: state.x, y: state.y }));
+      .map((state) => ({ id: state.definition.id, source: state.sourceId ?? state.definition.id, x: state.x, y: state.y,
+        ...scriptMetadata(state, context.tick) }));
     const batch = context.scriptRunner.run(
       context.scriptCalls,
       { tick: context.tick, pressed: [...context.pressed], justPressed: context.input.justPressed, events: context.previousEvents, world },
@@ -89,7 +99,13 @@ export function stepScripts2D(context: GameSystemContext2D): void {
         throw new Error(`Game script entity ${item.entityId} disappeared`);
       }
       for (const command of item.commands) {
-        if (command.kind === "setVelocity") {
+        if (command.kind === "setProp") {
+          state.props = gameEntityProps.parse({ ...state.props, [command.key]: command.value });
+        } else if (command.kind === "removeProp") {
+          const props = { ...state.props };
+          delete props[command.key];
+          state.props = props;
+        } else if (command.kind === "setVelocity") {
           state.velocityX = command.x;
           state.velocityY = command.y;
         } else if (command.kind === "setPosition") {

@@ -1,6 +1,14 @@
+import { gameEntityProps } from "@nodetool-ai/protocol";
+import type { EntityState3D } from "../spatial3d/state.js";
 import type { GameSystemContext3D } from "./context3d.js";
 import { applyGameplayCommand, queueGameplayBehavior } from "../gameplay/lifecycle.js";
+import type { GameScriptCall3D } from "../scripts3d.js";
 import { scriptSourceKey } from "../scripts.js";
+function scriptMetadata(state: EntityState3D): Pick<GameScriptCall3D, "tags" | "props" | "active" | "rotation"> {
+  return { tags: [...(state.definition.tags ?? [])], props: structuredClone(state.props ?? {}), active: state.active,
+    rotation: [...state.transform.rotation] };
+}
+
 export function stepScripts3D(context: GameSystemContext3D): void {
   for (const state of context.states) {
     if (!state.active) {
@@ -24,6 +32,7 @@ export function stepScripts3D(context: GameSystemContext3D): void {
           position: { ...state.transform.position },
           velocity: { ...state.velocity },
           grounded: state.controller?.grounded ?? false,
+          ...scriptMetadata(state),
           maxCommands: behavior.maxCommands,
           maxTickMs: behavior.maxTickMs
         });
@@ -46,7 +55,8 @@ export function stepScripts3D(context: GameSystemContext3D): void {
             source: state.sourceId ?? state.definition.id,
             position: { ...state.transform.position },
             velocity: { ...state.velocity },
-            grounded: state.controller?.grounded ?? false
+            grounded: state.controller?.grounded ?? false,
+            ...scriptMetadata(state)
           }))
       },
       context.rngState
@@ -61,6 +71,15 @@ export function stepScripts3D(context: GameSystemContext3D): void {
       }
       for (const command of result.commands) {
         switch (command.kind) {
+          case "setProp":
+            state.props = gameEntityProps.parse({ ...state.props, [command.key]: command.value });
+            break;
+          case "removeProp": {
+            const props = { ...state.props };
+            delete props[command.key];
+            state.props = props;
+            break;
+          }
           case "characterIntent":
             if (!state.definition.character3d) {
               throw new Error(`Character intent requires a character (${result.entityId})`);

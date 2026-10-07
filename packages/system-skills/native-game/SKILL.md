@@ -177,6 +177,25 @@ Reset or restore a snapshot from before the failure.
 Serve it over static HTTP. Models, colliders, fonts, audio and pinned runtime
 files are included. The first 3D release targets desktop web and Electron.
 
+## Entity tags and properties
+
+Both dimensions support optional `tags` and `props` on an entity. Use
+`update_entity` with `set: {tags: ["hero"], props: {health: 10}}`. Each field
+replaces its complete value. A top-level `null` removes the stored field.
+Nested `null` is JSON data. Tags are unique, with at most 64 strings of
+1–128 characters. Properties hold finite JSON, with at most 64 top-level keys,
+16 levels of nesting and 64 KiB of UTF-8 JSON. Keys contain 1–128 characters.
+`__proto__`, `constructor` and `prototype` are rejected at every nesting level.
+
+Scripts read `entity.tags`, `entity.props`, `entity.active` and
+`entity.rotation`, and the same fields on existing `world` entries. Rotation
+is radians in 2D and the committed world quaternion `[x, y, z, w]` in 3D.
+Use `setProp {key, value}` and `removeProp {key}` to change the caller's
+runtime properties. Setting `null` keeps that key. Removal deletes it.
+Runtime properties survive snapshot restore and remain independent of the
+authored document and other prefab instances. Mutating an input object does
+not change runtime state.
+
 ## 2D scripts and visuals
 
 A `script` behavior is a function expression. It receives `{tick, pressed,
