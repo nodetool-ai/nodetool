@@ -3,7 +3,7 @@ import { render, screen, within, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
-import GameRevisions from "../GameRevisions";
+import GameRevisions from "../panels/revisions/GameRevisions";
 
 it("F25 requires confirmation before restoring a revision or clearing draft undo history", async () => {
   const user = userEvent.setup();

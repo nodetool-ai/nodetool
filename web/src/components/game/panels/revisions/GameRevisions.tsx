@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Caption, Dialog, EditorButton, FlexRow, SPACING, Text } from "../ui_primitives";
+import { Caption, Dialog, EditorButton, FlexRow, SPACING, Text } from "../../../ui_primitives";
 
 interface GameRevision {
   readonly revision: string;

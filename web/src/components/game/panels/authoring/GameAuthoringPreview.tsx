@@ -2,12 +2,12 @@ import { useEffect, useState } from "react";
 import { gameAuthoring, type AnyGameDocument } from "@nodetool-ai/protocol";
 import { applyAnyGameOps, type GameAuthoringConflict } from "@nodetool-ai/game-runtime";
 
-import { trpc, trpcClient, type RouterOutputs } from "../../trpc/client";
-import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
-import { rebaseGameAuthoringEdits } from "../../stores/game/authoringMerge";
-import { Caption, CollapsibleSection, Dialog, EditorButton, FlexColumn, FlexRow, SPACING, TextInput } from "../ui_primitives";
-import SchemaFields from "./inspector/SchemaFields";
-import type { FieldSchema } from "./inspector/schemaForm";
+import { trpc, trpcClient, type RouterOutputs } from "../../../../trpc/client";
+import { getGameDraftStore, useGameDraft } from "../../../../stores/game/GameDraftStore";
+import { rebaseGameAuthoringEdits } from "../../../../stores/game/authoringMerge";
+import { Caption, CollapsibleSection, Dialog, EditorButton, FlexColumn, FlexRow, SPACING, TextInput } from "../../../ui_primitives";
+import SchemaFields from "../../inspector/SchemaFields";
+import type { FieldSchema } from "../../inspector/schemaForm";
 
 function constructionInputs(text: string): ReturnType<typeof gameAuthoring.shape.program.shape.inputs.parse> | null {
   try { return gameAuthoring.shape.program.shape.inputs.parse(JSON.parse(text)); }

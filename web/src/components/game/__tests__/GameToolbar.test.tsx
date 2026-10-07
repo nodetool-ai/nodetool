@@ -1,7 +1,7 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
-import GameToolbar from "../GameToolbar";
+import GameToolbar from "../shell/GameToolbar";
 
 const props = {
   name: "Neon Drift", playing: false, playSession: false, loading: false, saving: false,

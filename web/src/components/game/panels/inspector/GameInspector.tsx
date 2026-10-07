@@ -2,12 +2,12 @@ import { useState, type ComponentProps } from "react";
 import { gameAssetBinding, gameBehavior, gameDocument, gameEntity, gameRenderEffect, gameScene, type GameDocument, type GameEntity, type GameRenderEffect } from "@nodetool-ai/protocol/game.js";
 import { validateGame, type GameDocumentOp, type GameValidationIssue } from "@nodetool-ai/game-runtime";
 
-import { Caption, CollapsibleSection, Divider, EditorButton, FlexColumn, FlexRow, InspectorFieldRow, InspectorSelect, Label, SPACING, TabGroup, Text, TextInput, TYPOGRAPHY } from "../ui_primitives";
-import SchemaFields from "./inspector/SchemaFields";
-import GameOverrideFields from "./GameOverrideFields";
-import { gameSchemaFields, schemaVariant } from "./inspector/schemaForm";
+import { Caption, CollapsibleSection, Divider, EditorButton, FlexColumn, FlexRow, InspectorFieldRow, InspectorSelect, Label, SPACING, TabGroup, Text, TextInput, TYPOGRAPHY } from "../../../ui_primitives";
+import SchemaFields from "../../inspector/SchemaFields";
+import GameOverrideFields from "../../GameOverrideFields";
+import { gameSchemaFields, schemaVariant } from "../../inspector/schemaForm";
 
-import { parentCandidates, reparentTransform } from "./viewportGeometry";
+import { parentCandidates, reparentTransform } from "../../viewport2d/viewportGeometry";
 
 interface GameInspectorProps {
   document: GameDocument;

@@ -2,13 +2,13 @@ import { useMemo, useState } from "react";
 import type { AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
 import { applyAnyGameOps as applyGameOps, type AnyGameDocumentOp as GameDocumentOp } from "@nodetool-ai/game-runtime";
 
-import { trpc, trpcClient } from "../../trpc/client";
-import { mergeByUnits } from "../../stores/documentMerge";
-import { useConflictStore } from "../../stores/ConflictStore";
-import { diffAnyGameDocuments as diffGameDocuments } from "../../stores/game/diffAnyGameDocuments";
-import { getGameDraftStore } from "../../stores/game/GameDraftStore";
-import { acceptServerAnyGameUnit as acceptServerGameUnit, anyGameMergeAdapter as gameMergeAdapter } from "../../stores/game/anyMerge";
-import { Caption, EditorButton, FlexColumn, FlexRow, SPACING, Text } from "../ui_primitives";
+import { trpc, trpcClient } from "../../../../trpc/client";
+import { mergeByUnits } from "../../../../stores/documentMerge";
+import { useConflictStore } from "../../../../stores/ConflictStore";
+import { diffAnyGameDocuments as diffGameDocuments } from "../../../../stores/game/diffAnyGameDocuments";
+import { getGameDraftStore } from "../../../../stores/game/GameDraftStore";
+import { acceptServerAnyGameUnit as acceptServerGameUnit, anyGameMergeAdapter as gameMergeAdapter } from "../../../../stores/game/anyMerge";
+import { Caption, EditorButton, FlexColumn, FlexRow, SPACING, Text } from "../../../ui_primitives";
 
 interface GameChangesProps {
   gameId: string;

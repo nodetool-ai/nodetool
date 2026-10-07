@@ -10,8 +10,8 @@ import CropSquareIcon from "@mui/icons-material/CropSquare";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import type { GameDocument3D, GameEntity3D, GameScene3D } from "@nodetool-ai/protocol";
 
-import { Box, Caption, FlexColumn, FONT_SIZE_SANS, InspectorSelect, SPACING, Text, ToolbarIconButton, TreeRow } from "../ui_primitives";
-import GamePanelHeader from "./GamePanelHeader";
+import { Box, Caption, FlexColumn, FONT_SIZE_SANS, InspectorSelect, SPACING, Text, ToolbarIconButton, TreeRow } from "../../../ui_primitives";
+import GamePanelHeader from "../../GamePanelHeader";
 
 interface GameHierarchy3DProps {
   readonly document: GameDocument3D;

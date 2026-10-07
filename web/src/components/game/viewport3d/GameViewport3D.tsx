@@ -15,11 +15,11 @@ import OpenInFullIcon from "@mui/icons-material/OpenInFull";
 import OpenWithIcon from "@mui/icons-material/OpenWith";
 import SportsEsportsOutlinedIcon from "@mui/icons-material/SportsEsportsOutlined";
 import ThreeSixtyIcon from "@mui/icons-material/ThreeSixty";
-import { BORDER_RADIUS, Box, Caption, FlexColumn, FlexRow, FONT_SIZE_SANS, SPACING, ToolbarIconButton } from "../ui_primitives";
-import { syncGameTransformTarget3D } from "./gameTransformTarget3D";
-import GamePanelHeader from "./GamePanelHeader";
+import { BORDER_RADIUS, Box, Caption, Divider, FlexColumn, FlexRow, FONT_SIZE_SANS, SPACING, ToolbarIconButton } from "../../ui_primitives";
+import { syncGameTransformTarget3D } from "../gameTransformTarget3D";
+import GamePanelHeader from "../GamePanelHeader";
 import { createGameViewportOverlays3D, disposeGameViewportOverlays3D } from "./gameViewportOverlays3D";
-import type { GamePlaySession3D } from "./useGamePlaySession3D";
+import type { GamePlaySession3D } from "../useGamePlaySession3D";
 
 type TransformMode = "translate" | "rotate" | "scale";
 
@@ -270,7 +270,7 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
           {TOOLS.map((tool) => <ToolbarIconButton key={tool.mode} icon={tool.icon} tooltip={tool.label} shortcut={[tool.key]}
             aria-pressed={mode === tool.mode} active={mode === tool.mode} onClick={() => setMode(tool.mode)} />)}
         </FlexRow>
-        <Box sx={{ width: "1px", alignSelf: "stretch", my: SPACING.sm, mx: SPACING.xs, bgcolor: "divider" }} />
+        <Divider orientation="vertical" flexItem sx={{ my: SPACING.sm, mx: SPACING.xs }} />
         <ToolbarIconButton icon={<GridOnIcon fontSize="small" />} tooltip="Snap" aria-pressed={snap} active={snap} onClick={() => setSnap((value) => !value)} />
         <ToolbarIconButton icon={<LayersOutlinedIcon fontSize="small" />} tooltip="Overlays" aria-pressed={overlays} active={overlays} onClick={() => setOverlays((value) => !value)} />
         <ToolbarIconButton icon={<FlightOutlinedIcon fontSize="small" />} tooltip="Fly camera" aria-pressed={flyMode} active={flyMode} onClick={() => setFlyMode((value) => !value)} />

@@ -1,8 +1,8 @@
 import { memo, useCallback, useMemo } from "react";
 import type { UiContext, UiDocumentRef } from "@nodetool-ai/protocol";
 
-import AssistantChatPanel from "../chat/assistant/AssistantChatPanel";
-import { gameAssistantPrompt } from "./gameAssistantPrompt";
+import AssistantChatPanel from "../../../chat/assistant/AssistantChatPanel";
+import { gameAssistantPrompt } from "../../gameAssistantPrompt";
 
 interface GameAgentPanelProps {
   gameId: string;

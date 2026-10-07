@@ -1,6 +1,6 @@
 import { fireEvent, render, screen } from "@testing-library/react";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
-import GameScriptPane from "../GameScriptPane";
+import GameScriptPane from "../panels/scripts/GameScriptPane";
 
 jest.mock("@nodetool-ai/game-runtime", () => ({ GAME_SCRIPT_TYPES: "", GAME_SCRIPT_TYPES_3D: "" }));
 jest.mock("../../../hooks/editor/useMonacoEditor", () => ({

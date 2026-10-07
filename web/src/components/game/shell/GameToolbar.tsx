@@ -12,7 +12,7 @@ import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import UndoIcon from "@mui/icons-material/Undo";
 import VideogameAssetOutlinedIcon from "@mui/icons-material/VideogameAssetOutlined";
 
-import { BORDER_RADIUS, Box, Caption, CONTROL, EditorButton, FlexRow, SPACING, Text, ToolbarIconButton } from "../ui_primitives";
+import { BORDER_RADIUS, Box, Caption, CONTROL, EditorButton, FlexRow, SPACING, Text, ToolbarIconButton } from "../../ui_primitives";
 
 interface GameToolbarProps {
   name: string;

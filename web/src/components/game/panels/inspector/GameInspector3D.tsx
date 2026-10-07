@@ -6,12 +6,12 @@ import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import PublicOutlinedIcon from "@mui/icons-material/PublicOutlined";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
-import { Box, Caption, CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, FONT_SIZE_SANS, InspectorFieldRow, InspectorValueInput, SPACING, Text, ToolbarIconButton } from "../ui_primitives";
-import ReportBugButton from "../support/ReportBugButton";
-import SchemaFields from "./inspector/SchemaFields";
-import { COMPONENT_SECTION_SX } from "./inspector/componentSection";
-import GameOverrideFields from "./GameOverrideFields";
-import { gameSchemaFields } from "./inspector/schemaForm";
+import { Box, Caption, CollapsibleSection, CONTROL, EditorButton, FlexColumn, FlexRow, FONT_SIZE_SANS, InspectorFieldRow, InspectorValueInput, SPACING, Text, ToolbarIconButton } from "../../../ui_primitives";
+import ReportBugButton from "../../../support/ReportBugButton";
+import SchemaFields from "../../inspector/SchemaFields";
+import { COMPONENT_SECTION_SX } from "../../inspector/componentSection";
+import GameOverrideFields from "../../GameOverrideFields";
+import { gameSchemaFields } from "../../inspector/schemaForm";
 
 interface GameInspector3DProps {
   readonly document: GameDocument3D;
