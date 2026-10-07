@@ -8,12 +8,14 @@ import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import type { AnyGameDocument } from "@nodetool-ai/protocol";
 import { getExampleGameBundle, listExampleGames, readExampleGameFile } from "@nodetool-ai/agents/game-examples";
 import { compareGameCaptures } from "@nodetool-ai/game-renderer/node";
+import { assertGameGoldenFont, withGameGoldenFontEnvironment } from "./gameGoldenFonts.js";
 import { writeGameGoldenDiagnostics } from "./gameGoldenDiagnostics.js";
 import { registerGameCommands } from "../src/commands/game.js";
 
 const root = fileURLToPath(new URL("../../../", import.meta.url));
 const examples = { examplesDir: join(root, "packages/base-nodes/nodetool/examples/workflows") };
 const goldenDirectory = join(root, "packages/cli/tests/fixtures/native-game-goldens");
+const goldenFontconfig = join(root, "packages/cli/tests/fixtures/game-golden-fonts.conf");
 const benchDirectory = join(root, "packages/game-runtime/bench");
 const benchmarkNames = ["bench-2d-500", "bench-3d-1000", "bench-3d-64-scripted"];
 const tick = 60;
@@ -28,6 +30,12 @@ let originalExitCode: typeof process.exitCode;
 beforeAll(async () => {
   directory = await mkdtemp(join(tmpdir(), "native-game-goldens-"));
   originalExitCode = process.exitCode;
+  const fontEvidence = await assertGameGoldenFont(goldenFontconfig, join(directory, "font-cache"));
+  const artifacts = process.env["NODETOOL_GAME_GOLDEN_ARTIFACTS"];
+  if (artifacts) {
+    await mkdir(artifacts, { recursive: true });
+    await writeFile(join(artifacts, "effective-font.json"), JSON.stringify(fontEvidence, null, 2));
+  }
   if (process.env["UPDATE_NATIVE_GAME_GOLDENS"] === "1") {
     await mkdir(goldenDirectory, { recursive: true });
     await writeFile(join(goldenDirectory, "manifest.json"), `${JSON.stringify(metadata, null, 2)}\n`);
@@ -58,6 +66,40 @@ async function stageExample(slug: string): Promise<{ path: string; assetsDir: st
   return { path, assetsDir, document };
 }
 
+it("verifies the actual Chromium font used for generic HUD text", async () => {
+  const evidence = await assertGameGoldenFont(goldenFontconfig, join(directory, "font-cache"));
+  expect(evidence.fonts.length).toBeGreaterThan(0);
+  expect(evidence.fonts.every((font) => font.familyName === "Liberation Sans" && font.postScriptName === "LiberationSans")).toBe(true);
+});
+
+it("rejects a different effective browser font before capturing goldens", async () => {
+  const invalid = join(directory, "invalid-fonts.conf");
+  const source = await readFile(goldenFontconfig, "utf8");
+  await writeFile(invalid, source.replace('<dir prefix="relative">game-golden-fonts</dir>', `<dir>${join(root, "packages/cli/tests/fixtures/game-golden-fonts")}</dir>`).replaceAll("<string>Liberation Sans</string></edit>", "<string>DejaVu Sans</string></edit>"));
+  await expect(assertGameGoldenFont(invalid, join(directory, "font-cache"))).rejects.toThrow(/Golden captures require Liberation Sans.*"familyName":"DejaVu Sans".*"postScriptName":"DejaVuSans"/);
+});
+
+it("restores absent and existing font environment after a thrown capture", async () => {
+  const originalFontconfig = process.env["FONTCONFIG_FILE"];
+  const originalCache = process.env["XDG_CACHE_HOME"];
+  try {
+    for (const previous of [undefined, "previous-font-environment"]) {
+      if (previous === undefined) { delete process.env["FONTCONFIG_FILE"]; delete process.env["XDG_CACHE_HOME"]; }
+      else { process.env["FONTCONFIG_FILE"] = previous; process.env["XDG_CACHE_HOME"] = previous; }
+      await expect(withGameGoldenFontEnvironment(goldenFontconfig, join(directory, "font-cache"), async () => {
+        expect(process.env["FONTCONFIG_FILE"]).toBe(goldenFontconfig);
+        expect(process.env["XDG_CACHE_HOME"]).toBe(join(directory, "font-cache"));
+        throw new Error("capture failed deliberately");
+      })).rejects.toThrow("capture failed deliberately");
+      expect(process.env["FONTCONFIG_FILE"]).toBe(previous);
+      expect(process.env["XDG_CACHE_HOME"]).toBe(previous);
+    }
+  } finally {
+    if (originalFontconfig === undefined) { delete process.env["FONTCONFIG_FILE"]; } else { process.env["FONTCONFIG_FILE"] = originalFontconfig; }
+    if (originalCache === undefined) { delete process.env["XDG_CACHE_HOME"]; } else { process.env["XDG_CACHE_HOME"] = originalCache; }
+  }
+});
+
 it("captures every shipped example and benchmark at a fixed tick within the stored pixel tolerance", async () => {
   expect(cards.length).toBeGreaterThan(0);
   const shippedFiles = (await readdir(join(root, "packages/base-nodes/nodetool/examples/games")))
@@ -80,12 +122,16 @@ it.each(names)("captures %s at the fixed tick within the stored pixel tolerance"
     let report = "";
     const stdout = vi.spyOn(process.stdout, "write").mockImplementation((chunk) => { report += String(chunk); return true; });
     try {
-      process.exitCode = undefined;
-      const program = new Command();
-      registerGameCommands(program);
-      await program.parseAsync(["node", "nodetool", "game", "capture", staged.path, "--ticks", String(tick),
-        "--seed", "1", "--backend", backend, "--assets-dir", staged.assetsDir, "--out", output, "--json"]);
-    } finally { stdout.mockRestore(); }
+      await withGameGoldenFontEnvironment(goldenFontconfig, join(directory, "font-cache"), async () => {
+        process.exitCode = undefined;
+        const program = new Command();
+        registerGameCommands(program);
+        await program.parseAsync(["node", "nodetool", "game", "capture", staged.path, "--ticks", String(tick),
+          "--seed", "1", "--backend", backend, "--assets-dir", staged.assetsDir, "--out", output, "--json"]);
+      });
+    } finally {
+      stdout.mockRestore();
+    }
     expect(process.exitCode, `${name}: ${report}`).not.toBe(1);
     expect(JSON.parse(report).tick, name).toBe(tick);
     const actual = await readFile(output);
