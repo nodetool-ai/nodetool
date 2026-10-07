@@ -123,3 +123,26 @@ it("keeps unscoped inspector controls outside editor shortcut routing", async ()
   await user.keyboard("{Control>}z{/Control}{Delete}");
   expect(onKeyDown).not.toHaveBeenCalled();
 });
+
+it.each([
+  ["2d", "left"], ["3d", "left"], ["2d", "viewport"], ["3d", "viewport"]
+] as const)("keeps %s adjacent controls unscoped in the %s region", async (dimension, region) => {
+  const user = userEvent.setup();
+  const registry = createGamePanelRegistry();
+  for (const id of ["hierarchy", "revisions"]) {
+    registry.register({ id, title: id, icon: null, dimensions: [dimension], defaultRegion: region });
+  }
+  const onKeyDown = jest.fn();
+  const dock = region === "left" ? { storageKey: "shared-left", defaultWidth: 250, minWidth: 150, maxWidth: 400 } : undefined;
+  render(<ThemeProvider theme={mockTheme}><GameEditorShell dimension={dimension} registry={registry}
+    toolbar={toolbar} status={status} onKeyDown={onKeyDown} panels={[
+      { id: "hierarchy", dock, keyboardScope: true, node: <button>Hierarchy selection</button> },
+      { id: "revisions", dock, node: <button>Restore to draft</button> }
+    ]} /></ThemeProvider>);
+  await user.click(screen.getByRole("button", { name: "Restore to draft" }));
+  await user.keyboard("{Control>}z{/Control}{Delete}");
+  expect(onKeyDown).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: "Hierarchy selection" }));
+  await user.keyboard("{Delete}");
+  expect(onKeyDown).toHaveBeenCalledTimes(1);
+});

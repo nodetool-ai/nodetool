@@ -1,6 +1,6 @@
 import { Fragment, type ComponentProps, type KeyboardEvent, type ReactNode } from "react";
 
-import { EditorUiProvider, FlexColumn, FlexRow, ResizableDock, SPACING } from "../../ui_primitives";
+import { Box, EditorUiProvider, FlexColumn, FlexRow, ResizableDock, SPACING } from "../../ui_primitives";
 import GameToolbar from "./GameToolbar";
 import GameStatusBar from "./GameStatusBar";
 import { isEditableElement } from "../../../utils/browser";
@@ -43,9 +43,10 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, re
       else { groups.set(key, { dock: view.dock, panels: [view] }); }
     }
     return [...groups].map(([key, group]) => {
-      const nodes = group.panels.map((view) => <Fragment key={view.id}>{view.node}</Fragment>);
+      const nodes = group.panels.map((view) => <Box key={view.id}
+        data-game-undo-scope={view.keyboardScope || undefined} sx={{ display: "contents" }}>{view.node}</Box>);
       return group.dock ? <ResizableDock key={key} {...group.dock}>
-        <FlexColumn data-game-undo-scope={group.panels.some((view) => view.keyboardScope) || undefined}
+        <FlexColumn
           gap={region === "left" && dimension === "2d" ? SPACING.sm : undefined}
           sx={{ flex: 1, minHeight: 0, minWidth: 0, overflow: "hidden" }}>{nodes}</FlexColumn>
       </ResizableDock> : <Fragment key={key}>{nodes}</Fragment>;
@@ -65,7 +66,6 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, re
       <FlexRow component="section" role="region" aria-label="Game left panels" sx={{ minHeight: 0, flexShrink: 0 }}>{renderRegion("left")}</FlexRow>
       <FlexColumn gap={dimension === "2d" ? SPACING.sm : undefined} sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>
         <FlexColumn component="section" role="region" aria-label="Game viewport panels"
-          data-game-undo-scope={entries.some((entry) => entry.region === "viewport" && entry.keyboardScope) || undefined}
           sx={{ flex: 1, minHeight: 0, minWidth: 0 }}>{renderRegion("viewport")}</FlexColumn>
         {bottom && <FlexColumn component="section" role="region" aria-label="Game bottom panels" sx={bottomSx}>{renderRegion("bottom")}</FlexColumn>}
       </FlexColumn>
