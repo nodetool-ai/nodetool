@@ -2,8 +2,8 @@ import { createHash, randomUUID } from "node:crypto";
 import { join } from "node:path";
 import { z } from "zod";
 import sharp from "sharp";
-import { getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
-import { AmbiguousGameIdError, Asset, Game, Project, Workspace } from "@nodetool-ai/models";
+import { createLogger, getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
+import { AmbiguousGameIdError, InvalidGameDocumentError, Asset, Game, Project, Workspace } from "@nodetool-ai/models";
 import { exampleGameSummary, anyGameAssetBinding, gameAssetBinding, gameAssetBinding3D, gamePreparedCollider3D, gameModelImportSettings3D, parseGameDocument, anyGameDocument as gameDocument, installExampleGameInput, type AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame, createNative3DGame, anyGameDocumentOp as gameDocumentOp, GameOpError, decodePreparedGameCollider3D, trackGameAuthoringEdits, validateAnyGame } from "@nodetool-ai/game-runtime";
 import { normalizeGameModel3D, prepareGameModelBinding3D } from "@nodetool-ai/game-renderer/preparation3d";
@@ -20,6 +20,8 @@ import { router } from "../index.js";
 import { protectedProcedure } from "../middleware.js";
 import { throwApiError } from "../error-formatter.js";
 import { boundedGameDraftHistory, MAX_GAME_DRAFT_OPS } from "./gameDraftHistory.js";
+
+const log = createLogger("nodetool.games");
 
 const idInput = z.object({ id: z.string() });
 const gameInfo = z.object({
@@ -197,7 +199,7 @@ async function writeRevision(workspace: RunWorkspace, game: Game, document: Game
 }
 
 async function publishDocument(userId: string, game: Game, baseRevision: string, value?: unknown, message?: string,
-  restoreAuthoring = false): Promise<{ game: z.infer<typeof gameInfo>; document: GameDocument }> {
+  restoreAuthoring = false, expectedDraftUpdatedAt?: string, expectedDigest?: string): Promise<{ game: z.infer<typeof gameInfo>; document: GameDocument }> {
   if (baseRevision !== game.current_revision) {
     throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game was modified concurrently");
   }
@@ -206,8 +208,19 @@ async function publishDocument(userId: string, game: Game, baseRevision: string,
   if (!draft) {
     throwApiError(ApiErrorCode.NOT_FOUND, "Game draft not found");
   }
+  if ((value !== undefined || restoreAuthoring) && !expectedDraftUpdatedAt) {
+    throwApiError(ApiErrorCode.INVALID_INPUT, "A draft token is required for publish and restore");
+  }
+  if (expectedDraftUpdatedAt !== undefined && expectedDraftUpdatedAt !== draft.game.draft_updated_at) {
+    throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently");
+  }
+  const candidate = validatedDocument(value ?? draft.document, game.id, draft.game.current_revision);
+  const digest = createHash("sha256").update(JSON.stringify(candidate)).digest("hex");
+  if (expectedDigest !== undefined && digest !== expectedDigest) {
+    throwApiError(ApiErrorCode.ALREADY_EXISTS, "The validated game document changed before publish");
+  }
   const revision = newRevision();
-  let document = validatedDocument(value ?? draft.document, game.id, revision);
+  let document = { ...candidate, revision };
   if (!restoreAuthoring && value !== undefined && JSON.stringify(document.authoring) !== JSON.stringify(draft.document.authoring)) {
     throwApiError(ApiErrorCode.INVALID_INPUT, "Retained construction must be changed through preview and apply");
   }
@@ -220,13 +233,22 @@ async function publishDocument(userId: string, game: Game, baseRevision: string,
   await writeRevision(workspace, game, document);
   const updated = await Game.publish(userId, game.id, baseRevision, revision, draft.game.draft_updated_at, workspace, message);
   if (!updated) {
-    await workspace.delete(sourcePath(game, revision));
+    try {
+      await workspace.delete(sourcePath(game, revision));
+    } catch (error) {
+      log.error("Losing game publication revision cleanup failed", { gameId: game.id, revision, error: String(error) });
+    }
     throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game was modified concurrently");
   }
-  if (draft.game.draft_version_id) {
-    await workspace.delete(`${game.source_root}/drafts/${draft.game.draft_version_id}.json`);
+  try {
+    if (draft.game.draft_version_id) {
+      await workspace.delete(`${game.source_root}/drafts/${draft.game.draft_version_id}.json`);
+    }
+    await workspace.write(`${game.source_root}/draft.json`, JSON.stringify(document), "application/json");
+    await Game.pruneRevisionFiles(userId, game.id, workspace);
+  } catch (error) {
+    log.error("Game post-publish cleanup failed", { gameId: game.id, error: String(error) });
   }
-  await workspace.write(`${game.source_root}/draft.json`, JSON.stringify(document), "application/json");
   return { game: info(updated), document };
 }
 
@@ -362,6 +384,7 @@ export const gamesRouter = router({
         if (error instanceof GameOpError) {
           throwApiError(ApiErrorCode.INVALID_INPUT, `Op ${error.opIndex}: ${error.path}: ${error.message}`);
         }
+        if (error instanceof InvalidGameDocumentError) { throwApiError(ApiErrorCode.INVALID_INPUT, error.message); }
         throw error;
       }
     }),
@@ -434,20 +457,20 @@ export const gamesRouter = router({
     }),
 
   publish: protectedProcedure
-    .input(idInput.extend({ baseRevision: z.string(), document: gameDocument.optional(), message: z.string().trim().max(500).optional() }))
+    .input(idInput.extend({ baseRevision: z.string(), baseUpdatedAt: z.string().optional(), expectedDigest: z.string().regex(/^[a-f0-9]{64}$/).optional(), document: gameDocument.optional(), message: z.string().trim().max(500).optional() }))
     .output(gameWithDocument)
     .mutation(async ({ ctx, input }) =>
-      publishDocument(ctx.userId, await ownedGame(ctx.userId, input.id), input.baseRevision, input.document, input.message)
+      publishDocument(ctx.userId, await ownedGame(ctx.userId, input.id), input.baseRevision, input.document, input.message, false, input.baseUpdatedAt, input.expectedDigest)
     ),
 
   restore: protectedProcedure
-    .input(idInput.extend({ baseRevision: z.string(), revision: z.string() }))
+    .input(idInput.extend({ baseRevision: z.string(), baseUpdatedAt: z.string(), revision: z.string() }))
     .output(gameWithDocument)
     .mutation(async ({ ctx, input }) => {
       const game = await ownedGame(ctx.userId, input.id);
       const workspace = await gameWorkspace(ctx.userId, game);
       const oldDocument = await readRevision(workspace, game, input.revision);
-      return publishDocument(ctx.userId, game, input.baseRevision, oldDocument, undefined, true);
+      return publishDocument(ctx.userId, game, input.baseRevision, oldDocument, undefined, true, input.baseUpdatedAt);
     }),
 
   restoreDraft: protectedProcedure
@@ -456,10 +479,17 @@ export const gamesRouter = router({
     .mutation(async ({ ctx, input }) => {
       const game = await ownedGame(ctx.userId, input.id);
       const workspace = await gameWorkspace(ctx.userId, game);
-      const document = await readRevision(workspace, game, input.revision);
-      const restored = await Game.replaceDraft(ctx.userId, game.id, input.baseUpdatedAt, document, workspace);
-      if (!restored) throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently");
-      return { game: info(restored.game), document: restored.document };
+      try {
+        const document = await readRevision(workspace, game, input.revision);
+        const restored = await Game.replaceDraft(ctx.userId, game.id, input.baseUpdatedAt, document, workspace);
+        if (!restored) throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently");
+        return { game: info(restored.game), document: restored.document };
+      } catch (error) {
+        if (error instanceof InvalidGameDocumentError || error instanceof z.ZodError) {
+          throwApiError(ApiErrorCode.INVALID_INPUT, error.message);
+        }
+        throw error;
+      }
     }),
 
   installAsset: protectedProcedure

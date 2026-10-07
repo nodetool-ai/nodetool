@@ -130,7 +130,7 @@ describe("native game revisions", () => {
   it("installs a staged TrueType font into a version two game", async () => {
     const caller = createCaller(makeCtx(USER_ID));
     const created = await caller.games.create({ projectId: PROJECT_ID, name: "Font room" });
-    const published = await caller.games.publish({ id: created.game.id, baseRevision: created.game.revision,
+    const published = await caller.games.publish({ id: created.game.id, baseRevision: created.game.revision, baseUpdatedAt: created.game.draftUpdatedAt,
       document: { ...created.document, schemaVersion: 2 } });
     const [row] = await Workspace.listByProject(USER_ID, PROJECT_ID);
     if (!row) throw new Error("Project workspace missing");
@@ -139,7 +139,7 @@ describe("native game revisions", () => {
     const bytes = await readFile(new URL("../../timeline/fonts/BebasNeue-Regular.ttf", import.meta.url));
     const digest = createHash("sha256").update(bytes).digest("hex");
     await workspace.write(`games/${created.game.id}/assets/${digest}.ttf`, bytes, "font/ttf");
-    const installed = await caller.games.installCandidate({ id: created.game.id, baseRevision: published.game.revision,
+    const installed = await caller.games.installCandidate({ id: created.game.id, baseRevision: published.game.revision, baseUpdatedAt: published.game.draftUpdatedAt,
       slot: "display", binding: { assetId: "font-candidate", digest, mediaKind: "font", fontFormat: "ttf",
         width: 1, height: 1, pivot: { x: 0.5, y: 0.5 }, sampling: "nearest", required: true } });
     expect(installed.document.assets.display).toMatchObject({ digest, mediaKind: "font", fontFormat: "ttf" });
@@ -168,7 +168,7 @@ describe("native game revisions", () => {
     };
     const published = await caller.games.publish({
       id: created.game.id,
-      baseRevision: created.game.revision,
+      baseRevision: created.game.revision, baseUpdatedAt: created.game.draftUpdatedAt,
       document: edited
     });
     expect(published.game.revision).not.toBe(created.game.revision);
@@ -179,13 +179,13 @@ describe("native game revisions", () => {
 
     await expect(caller.games.publish({
       id: created.game.id,
-      baseRevision: created.game.revision,
+      baseRevision: created.game.revision, baseUpdatedAt: created.game.draftUpdatedAt,
       document: edited
     })).rejects.toMatchObject({ code: "CONFLICT" });
 
     const restored = await caller.games.restore({
       id: created.game.id,
-      baseRevision: published.game.revision,
+      baseRevision: published.game.revision, baseUpdatedAt: published.game.draftUpdatedAt,
       revision: created.game.revision
     });
     expect(restored.game.revision).not.toBe(created.game.revision);
@@ -340,7 +340,7 @@ describe("native game revisions", () => {
     };
     const published = await caller.games.publish({
       id: created.game.id,
-      baseRevision: created.game.revision,
+      baseRevision: created.game.revision, baseUpdatedAt: created.game.draftUpdatedAt,
       document: edited
     });
     const [row] = await Workspace.listByProject(USER_ID, PROJECT_ID);
@@ -360,7 +360,7 @@ describe("native game revisions", () => {
     };
     const installed = await caller.games.installCandidate({
       id: created.game.id,
-      baseRevision: published.game.revision,
+      baseRevision: published.game.revision, baseUpdatedAt: published.game.draftUpdatedAt,
       baseUpdatedAt: published.game.draftUpdatedAt,
       slot: "player",
       binding
@@ -371,7 +371,7 @@ describe("native game revisions", () => {
 
     await expect(caller.games.installCandidate({
       id: created.game.id,
-      baseRevision: published.game.revision,
+      baseRevision: published.game.revision, baseUpdatedAt: published.game.draftUpdatedAt,
       baseUpdatedAt: published.game.draftUpdatedAt,
       slot: "player",
       binding
@@ -427,7 +427,7 @@ describe("native game revisions", () => {
       ops: [{ op: "update_entity", entity_id: "player", set: { name: "Stale" } }] })).rejects.toMatchObject({ code: "CONFLICT" });
     const published = await caller.games.publish({ id: created.game.id, baseRevision: created.game.revision });
     expect(published.document.schemaVersion).toBe(3);
-    const restored = await caller.games.restore({ id: created.game.id, baseRevision: published.game.revision, revision: created.game.revision });
+    const restored = await caller.games.restore({ id: created.game.id, baseRevision: published.game.revision, baseUpdatedAt: published.game.draftUpdatedAt, revision: created.game.revision });
     if (restored.document.schemaVersion !== 3) { throw new Error("Expected a 3D revision"); }
     expect(restored.document.scenes[0].entities.find((entity) => entity.id === "player")?.transform3d.position.x).toBe(0);
     await expect(createCaller(makeCtx("other-user")).games.get({ id: created.game.id.slice(0, 12) })).rejects.toMatchObject({ code: "NOT_FOUND" });
@@ -573,6 +573,121 @@ describe("native game revisions", () => {
     const badDigest = createHash("sha256").update(malformed).digest("hex");
     await workspace.write(`games/${created.game.id}/assets/${badDigest}.json`, malformed, "application/json");
     await expect(caller.games.installCandidate({ id: created.game.id, slot: "invalid", binding: { ...binding, digest: badDigest } })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+  });
+
+  it("F6 requires a draft token before explicit publish or restore can discard unpublished edits", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Protected draft" });
+    const saved = await caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: created.game.draftUpdatedAt,
+      ops: [{ op: "update_scene", scene_id: created.document.entrySceneId, set: { name: "Unpublished edit" } }] });
+    await expect(caller.games.publish({ id: created.game.id, baseRevision: created.game.revision,
+      document: created.document })).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(Reflect.apply(caller.games.restore, undefined, [{ id: created.game.id, baseRevision: created.game.revision,
+      revision: created.game.revision }])).rejects.toMatchObject({ code: "BAD_REQUEST" });
+    expect(await caller.games.getDraft({ id: created.game.id })).toEqual(saved);
+  });
+
+  it("F20 reports a successful publish when its post-commit mirror write fails", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Committed release" });
+    const [row] = await Workspace.listByProject(USER_ID, PROJECT_ID);
+    const workspace = row && workspaceFromRow(row);
+    if (!workspace) { throw new Error("Workspace missing"); }
+    const originalWrite = workspace.write;
+    const spy = vi.spyOn(Object.getPrototypeOf(workspace), "write").mockImplementation(async (...args: Parameters<typeof workspace.write>) => {
+      if (args[0].endsWith("/draft.json")) { throw new Error("Storage unavailable after commit"); }
+      return originalWrite.apply(workspace, args);
+    });
+    try {
+      const published = await caller.games.publish({ id: created.game.id, baseRevision: created.game.revision });
+      expect(published.game.revision).not.toBe(created.game.revision);
+      expect((await caller.games.get({ id: created.game.id })).game.revision).toBe(published.game.revision);
+    } finally { spy.mockRestore(); }
+  });
+
+  it("preserves the publication conflict when losing-revision cleanup fails", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Losing publication" });
+    const [row] = await Workspace.listByProject(USER_ID, PROJECT_ID);
+    const workspace = row && workspaceFromRow(row);
+    if (!workspace) { throw new Error("Workspace missing"); }
+    const attemptedPaths: string[] = [];
+    const originalDelete = workspace.delete;
+    const readDraft = Game.readDraft;
+    let injectEdit = true;
+    const readDraftSpy = vi.spyOn(Game, "readDraft").mockImplementation(async (...args) => {
+      const captured = await readDraft.apply(Game, args);
+      if (injectEdit && captured) {
+        injectEdit = false;
+        await caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: captured.game.draft_updated_at,
+          ops: [{ op: "update_scene", scene_id: created.document.entrySceneId, set: { name: "Winning draft" } }] });
+      }
+      return captured;
+    });
+    const deleteSpy = vi.spyOn(Object.getPrototypeOf(workspace), "delete").mockImplementation(async (...args: Parameters<typeof workspace.delete>) => {
+      if (args[0].includes("/revisions/")) {
+        attemptedPaths.push(args[0]);
+        throw new Error("Losing-revision cleanup failure");
+      }
+      return originalDelete.apply(workspace, args);
+    });
+    try {
+      await expect(caller.games.publish({ id: created.game.id, baseRevision: created.game.revision }))
+        .rejects.toMatchObject({ code: "CONFLICT", message: "Game was modified concurrently" });
+      expect(attemptedPaths).toHaveLength(1);
+      expect(attemptedPaths[0]).toMatch(/\/revisions\/[a-f0-9]{32}\/game\.json$/);
+      expect(attemptedPaths[0]).not.toContain(created.game.revision);
+      expect((await caller.games.get({ id: created.game.id })).game.revision).toBe(created.game.revision);
+      expect((await caller.games.getDraft({ id: created.game.id })).document.scenes[0]?.name).toBe("Winning draft");
+    } finally {
+      readDraftSpy.mockRestore();
+      deleteSpy.mockRestore();
+    }
+  });
+
+  it("F26 returns INVALID_INPUT for invalid restored documents and rejected draft operations", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Validation errors" });
+    const [row] = await Workspace.listByProject(USER_ID, PROJECT_ID);
+    const workspace = row && workspaceFromRow(row);
+    if (!workspace) { throw new Error("Workspace missing"); }
+    await workspace.write(`games/${created.game.id}/revisions/${created.game.revision}/game.json`,
+      JSON.stringify({ ...created.document, entrySceneId: "missing" }), "application/json");
+    await expect(caller.games.restoreDraft({ id: created.game.id, baseUpdatedAt: created.game.draftUpdatedAt,
+      revision: created.game.revision })).rejects.toMatchObject({ code: "BAD_REQUEST", cause: { apiCode: "INVALID_INPUT" } });
+    await workspace.write(`games/${created.game.id}/revisions/${created.game.revision}/game.json`, JSON.stringify(created.document), "application/json");
+    await expect(caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: created.game.draftUpdatedAt,
+      ops: [{ op: "update_scene", scene_id: "missing", set: { name: "Invalid" } }] })).rejects.toMatchObject({ code: "BAD_REQUEST", cause: { apiCode: "INVALID_INPUT" } });
+  });
+
+  it("F27 bounds stored revision files while retaining the live revision", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Revision retention" });
+    const [row] = await Workspace.listByProject(USER_ID, PROJECT_ID);
+    const workspace = row && workspaceFromRow(row);
+    if (!workspace) { throw new Error("Workspace missing"); }
+    for (let index = 0; index < 104; index++) {
+      const revision = index.toString(16).padStart(32, "0");
+      await workspace.write(`games/${created.game.id}/revisions/${revision}/game.json`,
+        JSON.stringify({ ...created.document, revision }), "application/json");
+    }
+    const published = await caller.games.publish({ id: created.game.id, baseRevision: created.game.revision });
+    const revisions = await caller.games.revisions({ id: created.game.id });
+    expect(revisions).toHaveLength(100);
+    expect(revisions.some((entry) => entry.revision === published.game.revision && entry.current)).toBe(true);
+    expect((await caller.games.get({ id: created.game.id })).document.revision).toBe(published.game.revision);
+  });
+
+  it("F19 rejects publishing unseen draft changes after a document was validated", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Validated release" });
+    const digest = createHash("sha256").update(JSON.stringify(created.document)).digest("hex");
+    const saved = await caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: created.game.draftUpdatedAt,
+      ops: [{ op: "update_scene", scene_id: created.document.entrySceneId, set: { name: "Unseen agent edit" } }] });
+    await expect(caller.games.publish({ id: created.game.id, baseRevision: created.game.revision,
+      expectedDigest: digest })).rejects.toMatchObject({ code: "CONFLICT" });
+    expect((await caller.games.get({ id: created.game.id })).game.revision).toBe(created.game.revision);
+    expect(await caller.games.getDraft({ id: created.game.id })).toEqual(saved);
   });
 
 });

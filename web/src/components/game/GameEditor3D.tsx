@@ -15,6 +15,7 @@ import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
 import { Caption, CollapsibleSection, ConflictBanner, Dialog, EditorButton, EditorUiProvider, EmptyState, FlexColumn, FlexRow, FONT_SIZE_SANS, Label, LoadingSpinner, ResizableDock, SPACING, Text, TextInput } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./GameAgentPanel";
+import { publishGameDraft } from "./gamePublish";
 import GameChanges from "./GameChanges";
 import GameAuthoringPreview from "./GameAuthoringPreview";
 import GameHierarchy3D from "./GameHierarchy3D";
@@ -29,9 +30,9 @@ import GameViewport3D from "./GameViewport3D";
 import { useGamePlaySession3D } from "./useGamePlaySession3D";
 
 interface GameEditor3DProps { readonly refId: string; readonly active: boolean; }
-interface GameEditor3DContentProps extends GameEditor3DProps { readonly document: GameDocument3D; readonly name: string; readonly revision: string; readonly projectId: string; }
+interface GameEditor3DContentProps extends GameEditor3DProps { readonly document: GameDocument3D; readonly name: string; readonly projectId: string; }
 
-function GameEditor3DContent({ refId, active, document, name, revision, projectId }: GameEditor3DContentProps) {
+function GameEditor3DContent({ refId, active, document, name, projectId }: GameEditor3DContentProps) {
   const selectedIds = useGameDraft(refId, (state) => state.selectedIds);
   const saveStatus = useGameDraft(refId, (state) => state.saveStatus);
   const draftError = useGameDraft(refId, (state) => state.error);
@@ -41,6 +42,8 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
   const [assistantOpen, setAssistantOpen] = useState(false);
   const [inspectorOpen, setInspectorOpen] = useState(true);
   const [treeOpen, setTreeOpen] = useState(true);
+  const publishFlight = useRef<Promise<void> | null>(null);
+  const [publishing, setPublishing] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
   const [publishMessage, setPublishMessage] = useState("");
   const [scriptIndex, setScriptIndex] = useState<number | null>(null);
@@ -55,6 +58,7 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
   const host = useGamePlaySession3D({ refId, document, active, editorSceneId: activeSceneId });
   const conflicts = useDocumentConflicts("game", refId);
   const queries = trpc.useUtils();
+  const { data: changeEntries } = trpc.games.draftChanges.useQuery({ id: refId });
   const savingRef = useRef<Promise<void> | null>(null);
   const onOps = useCallback((ops: AnyGameDocumentOp[]): void => { getGameDraftStore(refId).getState().apply(ops); }, [refId]);
   const select = useCallback((id: string): void => { getGameDraftStore(refId).getState().select(id); }, [refId]);
@@ -141,14 +145,20 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
     select(id);
   };
   const publish = async (): Promise<void> => {
+    setPublishing(true);
     try {
-      await flush();
-      await trpcClient.games.publish.mutate({ id: refId, baseRevision: revision, message: publishMessage });
+      await publishGameDraft({ id: refId, document, flight: publishFlight, message: publishMessage.trim(),
+        flush, getDraft: () => getGameDraftStore(refId).getState(),
+        fetchRevision: async () => (await trpcClient.games.get.query({ id: refId })).game.revision,
+        publish: (request) => trpcClient.games.publish.mutate(request) });
       await queries.games.getDraft.invalidate({ id: refId });
+      await queries.games.draftChanges.invalidate({ id: refId });
+      await queries.games.revisions.invalidate({ id: refId });
       setPublishOpen(false);
       setPublishMessage("");
       setOperationError(null);
     } catch (cause) { setOperationError(cause instanceof Error ? cause.message : String(cause)); }
+    finally { setPublishing(false); }
   };
   const installModel = async (): Promise<void> => {
     try {
@@ -167,7 +177,7 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
   const notice = host.error || draftError || operationError || restart;
   return <EditorUiProvider scope="inspector"><FlexColumn sx={GAME_EDITOR_ROOT_SX}>
     <GameToolbar name={name} playing={host.playing} playSession={Boolean(host.playDocument)} loading={host.backend === "Initializing"}
-      saving={saveStatus === "saving"} saveStatus={saveStatus} assistantOpen={assistantOpen} sceneTreeOpen={treeOpen} inspectorOpen={inspectorOpen}
+      saving={publishing || saveStatus === "saving"} saveStatus={saveStatus} assistantOpen={assistantOpen} sceneTreeOpen={treeOpen} inspectorOpen={inspectorOpen}
       playHref={`/game/${encodeURIComponent(refId)}`} canUndo={canUndo} canRedo={canRedo}
       onUndo={() => getGameDraftStore(refId).getState().undo()} onRedo={() => getGameDraftStore(refId).getState().redo()}
       onPlay={host.beginPlay} onStop={host.stop} onStep={() => host.step()}
@@ -224,10 +234,13 @@ function GameEditor3DContent({ refId, active, document, name, revision, projectI
     </FlexRow>
     <GameStatusBar tick={host.inspection?.tick ?? 0} score={host.inspection?.score ?? 0} won={host.inspection?.won ?? false} backend={host.backend}
       hint={selected ? `Selected: ${selected.name || selected.id}` : `${scene?.entities.length ?? 0} entities in ${scene?.name ?? "scene"}`} />
-    <Dialog open={publishOpen} onClose={() => setPublishOpen(false)} title="Publish 3D game">
+    <Dialog open={publishOpen} onClose={() => setPublishOpen(false)} title="Publish 3D game"
+      onConfirm={() => void publish()} confirmText="Publish" isLoading={publishing} showActions>
       <FlexColumn gap={SPACING.sm}><Text>Create an immutable revision from the current draft.</Text>
         <TextInput label="Revision message" value={publishMessage} onChange={(event) => setPublishMessage(event.target.value)} />
-        <EditorButton onClick={() => void publish()}>Publish</EditorButton></FlexColumn>
+        <Text>Changes since the last revision</Text>
+        {changeEntries?.length ? changeEntries.map((entry) => <Caption key={entry.id}>{entry.summary}</Caption>) : <Caption>No saved changes</Caption>}
+      </FlexColumn>
     </Dialog>
   </FlexColumn></EditorUiProvider>;
 }
@@ -249,5 +262,5 @@ export default function GameEditor3D({ refId, active }: GameEditor3DProps) {
       <ReportBugButton context={{ source: "panel-crash", summary: "3D game could not load", errorText: message, nodeDetail: `Game: ${refId}` }} />
     </FlexColumn>;
   }
-  return <GameEditor3DContent refId={refId} active={active} document={document} name={data.game.name} revision={data.game.revision} projectId={data.game.projectId} />;
+  return <GameEditor3DContent refId={refId} active={active} document={document} name={data.game.name} projectId={data.game.projectId} />;
 }
