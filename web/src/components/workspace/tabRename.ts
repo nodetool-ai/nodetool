@@ -19,6 +19,7 @@ const RENAME_STRATEGIES = {
   audio: null,
   "workspace-file": null,
   game: null,
+  "example-app": null,
   page: null,
   "project-list": null,
   "guided-flow": null,

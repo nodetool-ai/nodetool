@@ -33,6 +33,8 @@ export type WorkspaceTabType =
   | "text"
   // Mini apps. `ref` is an application id (trpc.applications.*).
   | "application"
+  // A shipped example app, run without installing it. `ref` is its slug.
+  | "example-app"
   // Native games. `ref` is a games row id (trpc.games.*).
   | "game"
   // Chat conversations. `ref` is a chat thread id (GlobalChatStore).
@@ -89,6 +91,7 @@ export const isGlobalWorkspaceTab = (tab: WorkspaceTab): boolean =>
   tab.type === "page" ||
   tab.type === "project-list" ||
   tab.type === "project-new" ||
+  tab.type === "example-app" ||
   tab.type === "skill";
 
 /**
