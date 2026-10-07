@@ -265,10 +265,10 @@ export const recipeGuides = {
       "Chase a swimmer into a pool hidden in a giant cup, then return to human scale as she drinks from it.",
     audience: "Brand teams and creative studios",
     guide: {
-      entry: "Storyboard",
-      stages: ["Idea", "Story", "Entities", "Look"],
+      entry: "Dreamina",
+      stages: ["Brief", "Timing", "Reference", "Generate", "Review"],
       introduction:
-        "Plan the product world in Storyboard, lock the cup and swimmer as entities, then direct the finished 15-second take in Dreamina.",
+        "Write the product world as a timed brief, pin the cup photo as the identity reference, then direct the 15-second take in Dreamina.",
       inputs: [
         "One clear product photo with the full silhouette visible",
         "Dreamina video access with reference-image support",
@@ -285,7 +285,7 @@ export const recipeGuides = {
           stage: "Product",
           title: "Choose the details that must survive",
           description:
-            "Start with an unobstructed product photo. Record the silhouette, colour, lid, opening, and finish before adding the impossible setting.",
+            "Start with an unobstructed product photo. Note the silhouette, colour, lid, opening, and finish before adding the impossible setting.",
           action: "Choose the product reference",
           image: impossible(
             "01-product",
@@ -294,13 +294,13 @@ export const recipeGuides = {
           )
         },
         {
-          id: "idea",
-          phase: "Guided setup",
-          stage: "Idea",
+          id: "brief",
+          phase: "Prepare",
+          stage: "Brief",
           title: "Give the product an impossible setting",
           description:
-            "Create a project and choose Storyboard. Describe the desert approach, the pool inside the giant cup, the woman's jump, and the closing drink as one short commercial.",
-          action: "Continue",
+            "Describe the desert approach, the pool inside the giant cup, the jump, and the closing drink. Name the light, water, and fabric so both scales match.",
+          action: "Write the brief",
           image: impossible(
             "02-prompt",
             "A monumental olive travel cup standing among sunlit desert dunes.",
@@ -308,41 +308,27 @@ export const recipeGuides = {
           )
         },
         {
-          id: "story",
-          phase: "Guided setup",
-          stage: "Story",
+          id: "timing",
+          phase: "Prepare",
+          stage: "Timing",
           title: "Time the reveal, jump, and drink",
           description:
-            "Choose Commercial and plan the approach, reveal, jump, splash transition, and closing drink. Keep the whole sequence within the 15-second target.",
-          action: "Review the story",
+            "Split the 15 seconds into timed beats: approach, reveal, jump, splash cut, and drink. Give each beat one action.",
+          action: "Add the timecodes",
           image: impossible(
             "03-story",
             "Five frames show the desert approach, lid pool, running jump, underwater splash, and final drink.",
-            "Five frames describe the complete 15-second arc."
+            "Five beats describe the complete 15-second arc."
           )
         },
         {
-          id: "review",
-          phase: "Guided setup",
-          stage: "Review",
-          title: "Make every scale change readable",
+          id: "identity",
+          phase: "Generate",
+          stage: "Reference",
+          title: "Give the photo one job",
           description:
-            "Keep the cup monumental through the splash, then use that splash as the cut to human scale. Do not let the product resize inside a shot.",
-          action: "Check the transition",
-          image: impossible(
-            "04-review",
-            "Five review frames show the giant cup, pool reveal, airborne woman, water transition, and final drink.",
-            "The review strip makes the scale change and final payoff visible."
-          )
-        },
-        {
-          id: "entities",
-          phase: "Guided setup",
-          stage: "Entities",
-          title: "Give each reference one job",
-          description:
-            "Create a product entity from the cup photo and a character entity for the swimmer. Reuse both through the jump and the closing drink before sending the direction to Dreamina.",
-          action: "Choose the entities",
+            "Attach the cup photo as an identity reference only. State what must not change, and let the prompt carry the setting and the woman.",
+          action: "Attach the reference",
           image: impossible(
             "05-reference",
             "The clean olive cup reference beside the woman holding the generated cup at the pool.",
@@ -350,41 +336,13 @@ export const recipeGuides = {
           )
         },
         {
-          id: "look",
-          phase: "Guided setup",
-          stage: "Look",
-          title: "Keep the impossible world photographic",
-          description:
-            "Choose 9:16, warm hard sunlight, crisp shadows, turquoise water, pale stone, and realistic fabric. Keep the palette consistent across both scales.",
-          action: "Generate the storyboard",
-          image: impossible(
-            "06-look",
-            "A sunlit turquoise pool recessed into the charcoal lid of the giant cup.",
-            "Warm sand, charcoal, olive, cream, and turquoise define the finished look."
-          )
-        },
-        {
-          id: "stills",
-          phase: "Storyboard",
-          stage: "Stills",
-          title: "Check three frames before judging motion",
-          description:
-            "Compare the approach, pool reveal, and final drink. Check the cup silhouette, lid colour, wardrobe, light direction, and clear product read.",
-          action: "Review the key frames",
-          image: impossible(
-            "07-frames",
-            "Three tall frames show the giant desert cup, the lid pool, and the woman drinking from the cup.",
-            "The three anchor frames cover setup, reveal, and payoff."
-          )
-        },
-        {
-          id: "motion",
-          phase: "Finish",
-          stage: "Motion",
+          id: "generate",
+          phase: "Generate",
+          stage: "Generate",
           title: "Direct the camera around the action",
           description:
-            "Use a low desert chase, steep climb, rim reveal, lateral run, midair orbit, and underwater follow. Give each move a subject and destination.",
-          action: "Generate the full take",
+            "Describe a low chase, a climb, a rim reveal, and a midair orbit. Give each move a subject and a destination, then generate the full take.",
+          action: "Generate the video",
           image: impossible(
             "08-motion",
             "The woman is airborne above the turquoise pool during the generated camera orbit.",
@@ -392,22 +350,22 @@ export const recipeGuides = {
           )
         },
         {
-          id: "edit",
-          phase: "Finish",
-          stage: "Timeline",
-          title: "Inspect the returned rhythm",
+          id: "review",
+          phase: "Review",
+          stage: "Review",
+          title: "Check each beat in order",
           description:
-            "Check the approach, reveal, jump, splash, and drink in order. If a beat is unclear, revise that time range before changing the whole direction.",
+            "Confirm the cup stays monumental through the splash, then returns to human scale. If one beat fails, revise that time range only.",
           action: "Review the five beats",
           image: impossible(
             "09-timeline",
             "Five sequential frames lay out the full video from desert approach to the closing drink.",
-            "The frame strip is the edit map for the flattened Dreamina render."
+            "The frame strip maps the whole take for review."
           )
         },
         {
           id: "delivery",
-          phase: "Finish",
+          phase: "Review",
           stage: "Delivery",
           title: "End on the product action",
           description:
