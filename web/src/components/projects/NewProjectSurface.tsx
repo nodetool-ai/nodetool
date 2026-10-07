@@ -72,6 +72,7 @@ import { useTextareaSkillMention } from "../chat/composer/useTextareaSkillMentio
 import { assetToUri } from "../node_types/editing/promptComposer/promptTokens";
 import { assetIdFromLocator, assetIdOf } from "../../utils/mediaRef";
 import { useEntities } from "../../serverState/useEntities";
+import EntityPickerDialog from "../entities/EntityPickerDialog";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import useGlobalChatStore from "../../stores/GlobalChatStore";
 import {
@@ -391,7 +392,7 @@ const NewProjectSurface = ({
   // The starter row folds past `VISIBLE_STARTERS` until asked to show the rest.
   const [showAllStarters, setShowAllStarters] = useState(false);
   const [entityIds, setEntityIds] = useState<string[]>([]);
-  const [entityAnchor, setEntityAnchor] = useState<HTMLElement | null>(null);
+  const [entityPickerOpen, setEntityPickerOpen] = useState(false);
   const [submenu, setSubmenu] = useState<SubmenuAnchor | null>(null);
   const [starting, setStarting] = useState(false);
   // The card that was clicked, while its documents are being made. Set, and
@@ -1738,7 +1739,7 @@ const NewProjectSurface = ({
                   color="inherit"
                   density="normal"
                   startIcon={<PeopleAltOutlinedIcon />}
-                  onClick={(event) => setEntityAnchor(event.currentTarget)}
+                  onClick={() => setEntityPickerOpen(true)}
                   sx={composerToolSx}
                 >
                   {selectedEntities.length === 0
@@ -2026,33 +2027,15 @@ const NewProjectSurface = ({
         </FlexColumn>
       </FlexColumn>
 
-      <Popover
-        open={entityAnchor !== null}
-        anchorEl={entityAnchor}
-        onClose={() => setEntityAnchor(null)}
-        placement="bottom-left"
-        maxWidth={320}
-        maxHeight="50vh"
-      >
-        <FlexColumn sx={{ width: 300, py: SPACING.micro }}>
-          {(entities ?? []).length === 0 ? (
-            <Caption color="secondary" sx={{ px: SPACING.md, py: SPACING.sm }}>
-              The entity library is empty.
-            </Caption>
-          ) : (
-            (entities ?? []).map((entity) => (
-              <MenuItemPrimitive
-                key={entity.id}
-                label={entity.name}
-                secondary={entity.kind}
-                compact
-                selected={entityIds.includes(entity.id)}
-                onClick={() => toggleEntity(entity)}
-              />
-            ))
-          )}
-        </FlexColumn>
-      </Popover>
+      <EntityPickerDialog
+        open={entityPickerOpen}
+        onClose={() => setEntityPickerOpen(false)}
+        onSelect={toggleEntity}
+        title="Entities for this project"
+        multiple
+        selectedIds={entityIds}
+        entities={entities}
+      />
 
       <LanguageModelMenuDialog
         open={modelAnchor !== null}

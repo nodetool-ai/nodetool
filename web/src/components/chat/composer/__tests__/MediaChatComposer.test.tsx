@@ -44,6 +44,34 @@ jest.mock(
   })
 );
 
+// The attach dialog has its own suite. Here it is a pair of buttons that make
+// the picks the composer has to turn into prompt text.
+jest.mock("../ComposerAttachDialog", () => ({
+  ComposerAttachDialog: ({
+    open,
+    onSelectEntity,
+    onSelectDocument
+  }: {
+    open: boolean;
+    onSelectEntity: (entity: { id: string }) => void;
+    onSelectDocument: (document: { name: string; uri: string }) => void;
+  }) =>
+    open ? (
+      <div role="dialog" aria-label="Add to message">
+        <button onClick={() => onSelectEntity({ id: "ent1" })}>
+          Pick entity
+        </button>
+        <button
+          onClick={() =>
+            onSelectDocument({ name: "Hero [v2]", uri: "sketch://sk1" })
+          }
+        >
+          Pick document
+        </button>
+      </div>
+    ) : null
+}));
+
 // The pickers own a model list, a search index and a packs query of their own.
 // This suite is about the composer opening the right one, so each is a marker.
 jest.mock("../../../model_menu/LanguageModelMenuDialog", () => ({
@@ -177,12 +205,40 @@ describe("MediaChatComposer", () => {
   it("renders the attach, mode, model and permission chips in chat mode", () => {
     const { container } = renderComposer(jest.fn());
 
-    expect(screen.getByRole("button", { name: "Attach files" })).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Add to message" })
+    ).toBeVisible();
     expect(screen.getByRole("button", { name: "Chat" })).toBeVisible();
     expect(screen.getByRole("button", { name: "GPT-4" })).toBeVisible();
     expect(
       container.querySelector(".permission-selector-trigger")
     ).toBeInTheDocument();
+  });
+
+  it("opens the attach dialog from the plus button", async () => {
+    const user = userEvent.setup();
+    renderComposer(jest.fn());
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    await user.click(screen.getByRole("button", { name: "Add to message" }));
+    expect(
+      screen.getByRole("dialog", { name: "Add to message" })
+    ).toBeInTheDocument();
+  });
+
+  it("writes picked entities and documents into the prompt at the caret", async () => {
+    const user = userEvent.setup();
+    renderComposer(jest.fn());
+
+    await user.click(promptBox());
+    await user.keyboard("use");
+    await user.click(screen.getByRole("button", { name: "Add to message" }));
+    await user.click(screen.getByRole("button", { name: "Pick entity" }));
+    expect(promptBox().value).toBe("use entity://ent1 ");
+
+    await user.click(screen.getByRole("button", { name: "Add to message" }));
+    await user.click(screen.getByRole("button", { name: "Pick document" }));
+    expect(promptBox().value).toBe("use entity://ent1 [Hero v2](sketch://sk1) ");
   });
 
   it("sends the typed prompt on Enter and clears the box", async () => {

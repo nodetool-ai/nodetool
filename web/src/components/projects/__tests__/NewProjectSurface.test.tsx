@@ -654,7 +654,12 @@ describe("NewProjectSurface", () => {
     );
     await userEvent.click(screen.getByRole("button", { name: "Entities · none" }));
     await userEvent.click(screen.getByText("Aurora lamp"));
-    await userEvent.keyboard("{Escape}");
+    await userEvent.click(screen.getByRole("button", { name: "Done" }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: /^Entities for this project/ })
+      ).not.toBeInTheDocument()
+    );
     await userEvent.click(screen.getByRole("button", { name: "Send to chat" }));
 
     await waitFor(() => expect(createNewThread).toHaveBeenCalledWith(
@@ -1430,8 +1435,13 @@ describe("NewProjectSurface", () => {
     await user.click(
       screen.getByRole("button", { name: /^Entities · none/ })
     );
-    await user.click(screen.getByRole("menuitem", { name: /Aurora lamp/ }));
-    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "Aurora lamp" }));
+    await user.click(screen.getByRole("button", { name: "Done" }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: /^Entities for this project/ })
+      ).not.toBeInTheDocument()
+    );
 
     await user.click(
       screen.getByRole("button", {
@@ -1453,8 +1463,13 @@ describe("NewProjectSurface", () => {
     const user = userEvent.setup();
     renderSurface();
     await user.click(screen.getByRole("button", { name: /^Entities · none/ }));
-    await user.click(screen.getByRole("menuitem", { name: /Aurora lamp/ }));
-    await user.keyboard("{Escape}");
+    await user.click(screen.getByRole("button", { name: "Aurora lamp" }));
+    await user.click(screen.getByRole("button", { name: "Done" }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: /^Entities for this project/ })
+      ).not.toBeInTheDocument()
+    );
 
     await user.click(
       screen.getByRole("button", {
