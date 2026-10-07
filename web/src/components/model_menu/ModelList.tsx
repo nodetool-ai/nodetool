@@ -23,13 +23,17 @@ import DownloadIcon from "@mui/icons-material/Download";
 import FavoriteStar from "./FavoriteStar";
 import DefaultModelPin from "./DefaultModelPin";
 import RecommendedDownloadRow from "./shared/RecommendedDownloadRow";
+import ModelRowDownload from "./shared/ModelRowDownload";
 import useModelPreferencesStore from "../../stores/ModelPreferencesStore";
 import { ModelSelectorModel } from "../../stores/ModelMenuStore";
 import type { UnifiedModel } from "../../stores/ApiTypes";
 
 import { useModelAvailability } from "../../hooks/useModelAvailability";
 import { openSettingsTab } from "../workspace/openPageTab";
-import { executionForDisplay } from "../../utils/modelNormalization";
+import {
+  executionForDisplay,
+  modelDownloadTarget
+} from "../../utils/modelNormalization";
 
 import type { Theme } from "@mui/material/styles";
 
@@ -164,6 +168,8 @@ interface ModelListProps<TModel extends ModelSelectorModel> {
   onDownloadSelect?: (m: UnifiedModel) => void;
   /** Start downloading a recommended model. */
   onDownloadStart?: (m: UnifiedModel) => void;
+  /** Download the files of a listed model that needs them before it runs. */
+  onModelDownload?: (m: TModel) => void;
   /**
    * Modality key (e.g. "language_model") this picker sets defaults for. When
    * provided, each row shows a "pin as default" toggle next to the favorite
@@ -186,6 +192,7 @@ function ModelList<TModel extends ModelSelectorModel>({
   downloadModels = [],
   onDownloadSelect,
   onDownloadStart,
+  onModelDownload,
   modelType,
   downloadTargetLabel
 }: ModelListProps<TModel>) {
@@ -290,9 +297,11 @@ function ModelList<TModel extends ModelSelectorModel>({
       const fav = isFavorite(m.provider || "", m.id || "");
       const { available, providerEnabled, hasKey } = getAvailability(m);
       const execution = executionForDisplay(m);
+      const downloadTarget = onModelDownload ? modelDownloadTarget(m) : null;
       const isActive = index === activeIndex;
-      const tooltipTitle =
-        execution.state !== "ready"
+      const tooltipTitle = downloadTarget
+        ? ""
+        : execution.state !== "ready"
           ? (execution.reason ?? "This model is not ready to use.")
           : !providerEnabled && !hasKey
             ? "Enable provider and add API key in Settings to use this model"
@@ -340,6 +349,13 @@ function ModelList<TModel extends ModelSelectorModel>({
                         primaryColor={theme.vars.palette.primary.main}
                       />
                     </span>
+                    {downloadTarget ? (
+                      <ModelRowDownload
+                        target={downloadTarget}
+                        onDownload={() => onModelDownload?.(m)}
+                        targetLabel={downloadTargetLabel}
+                      />
+                    ) : (
                     <Tooltip
                       title={execution.reason ?? execution.label}
                       placement="top"
@@ -364,6 +380,7 @@ function ModelList<TModel extends ModelSelectorModel>({
                         {execution.label}
                       </span>
                     </Tooltip>
+                    )}
                   </FlexRow>
                 }
                 secondary={
@@ -391,7 +408,9 @@ function ModelList<TModel extends ModelSelectorModel>({
       secondaryTextStyle,
       searchTerm,
       theme.vars.palette.primary.main,
-      modelType
+      modelType,
+      onModelDownload,
+      downloadTargetLabel
     ]
   );
 

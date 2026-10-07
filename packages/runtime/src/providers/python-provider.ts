@@ -62,7 +62,10 @@ function parseModelAdapter(value: unknown): ModelAdapterInfo | undefined {
         revision: isString(rawArtifact.revision)
           ? rawArtifact.revision
           : undefined,
-        path: isString(rawArtifact.path) ? rawArtifact.path : undefined
+        path: isString(rawArtifact.path) ? rawArtifact.path : undefined,
+        allowPatterns: Array.isArray(rawArtifact.allow_patterns)
+          ? rawArtifact.allow_patterns.filter(isString)
+          : undefined
       }
     : undefined;
 

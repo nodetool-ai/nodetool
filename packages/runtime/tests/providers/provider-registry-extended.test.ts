@@ -180,6 +180,37 @@ describe("provider-registry — extended coverage", () => {
     expect(calls).toEqual(["huggingface"]);
   });
 
+  it("keeps the files an adapter needs from the repository", async () => {
+    const provider = new PythonProvider({
+      _id: "huggingface-local",
+      _bridgeProviderId: "huggingface",
+      _bridge: {
+        getProviderModels: async () => [
+          {
+            id: "suno/bark",
+            name: "Bark",
+            provider: "huggingface",
+            adapter: {
+              state: "installed",
+              artifact_ref: {
+                source: "huggingface",
+                repo_id: "suno/bark",
+                allow_patterns: ["*.bin", "*.json", "*.txt"]
+              }
+            }
+          }
+        ]
+      }
+    } as any);
+
+    const [model] = await provider.getAvailableTTSModels();
+    expect(model.adapter?.artifactRef?.allowPatterns).toEqual([
+      "*.bin",
+      "*.json",
+      "*.txt"
+    ]);
+  });
+
   it("routes video generation through the Python bridge", async () => {
     const textToVideo = vi.fn(async () => new Uint8Array([1]));
     const imageToVideo = vi.fn(async () => new Uint8Array([2]));
