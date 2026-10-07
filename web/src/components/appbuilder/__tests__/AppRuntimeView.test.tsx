@@ -95,6 +95,137 @@ beforeEach(() => {
 });
 
 describe("AppRuntimeView (Puck Render)", () => {
+  it.each([false, true])(
+    "preserves input focus across instance saves with nested slot %s",
+    async (nested) => {
+      const user = userEvent.setup();
+      const inputWorkflow = stub<Workflow>({
+        ...workflow,
+        graph: {
+          nodes: [
+            {
+              id: "in1",
+              type: "nodetool.input.StringInput",
+              data: { name: "prompt", value: "hello journey" }
+            }
+          ],
+          edges: []
+        }
+      });
+      const input = {
+        type: "WorkflowInput",
+        props: { id: "prompt-widget", binding: "op:main/in:in1" }
+      };
+      const ui: Data = {
+        root: { props: {} },
+        content: nested
+          ? [
+              {
+                type: "Container",
+                props: { id: "container", variant: "plain", content: [input] }
+              }
+            ]
+          : [input],
+        zones: {}
+      };
+      const document: ApplicationDocument = {
+        schemaVersion: 3,
+        ui,
+        operations: [
+          {
+            id: "main",
+            name: "Echo",
+            workflowId: workflow.id,
+            inputs: {},
+            outputs: {},
+            policy: "replace"
+          }
+        ],
+        resources: [],
+        variables: []
+      };
+      mockLoadedInstance = stub<ServerAppInstance>({
+        id: "loaded-instance",
+        user_id: "1",
+        revision: 0,
+        variables: {},
+        snapshot: {
+          document: { ...document, ui: { ...ui } },
+          workflow_graphs: {},
+          script_documents: {}
+        }
+      });
+      const client = new QueryClient();
+      const view = () => (
+        <QueryClientProvider client={client}>
+          <ThemeProvider theme={mockTheme}>
+            <AppRuntimeView
+              workflow={inputWorkflow}
+              data={ui}
+              document={document}
+              previewDraft
+            />
+          </ThemeProvider>
+        </QueryClientProvider>
+      );
+      const rendered = render(view());
+      const textbox = await screen.findByRole("textbox");
+      await user.click(textbox);
+      expect(textbox).toHaveFocus();
+
+      mockLoadedInstance = {
+        ...mockLoadedInstance,
+        revision: 1,
+        variables: { __app_inputs: { "main:in1": "hello journey" } }
+      };
+      rendered.rerender(view());
+
+      expect(screen.getByRole("textbox")).toBe(textbox);
+      expect(textbox.isConnected).toBe(true);
+      expect(textbox).toHaveFocus();
+      act(() => {
+        store().getState().dispatchEvent({
+          type: "setInput",
+          key: "main:in1",
+          value: "Runtime update"
+        });
+      });
+      await waitFor(() => expect(textbox).toHaveValue("Runtime update"));
+      expect(screen.getByRole("textbox")).toBe(textbox);
+      await user.clear(textbox);
+      await user.type(textbox, "first preview edit");
+      expect(textbox).toHaveValue("first preview edit");
+      expect(store().getState().inputs["main:in1"]?.value).toBe(
+        "first preview edit"
+      );
+
+      mockLoadedInstance = {
+        ...mockLoadedInstance,
+        snapshot: {
+          ...mockLoadedInstance.snapshot,
+          document: {
+            ...document,
+            ui: {
+              ...ui,
+              content: [
+                ...ui.content,
+                {
+                  type: "Heading",
+                  props: {
+                    id: "new-heading",
+                    text: "New definition",
+                    level: "1"
+                  }
+                }
+              ]
+            }
+          }
+        }
+      };
+      rendered.rerender(view());
+      expect(await screen.findByText("New definition")).toBeInTheDocument();
+    }
+  );
   it("keeps working values visible when a loaded instance has a save conflict", async () => {
     mockLoadedInstance = stub<ServerAppInstance>({
       id: "loaded-instance",
