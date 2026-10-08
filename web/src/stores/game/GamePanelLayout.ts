@@ -124,7 +124,28 @@ export function registerMissingGamePanels(layout: GamePanelLayout, panels: reado
   return result === layout ? layout : gamePanelLayoutSchema.parse(result);
 }
 
+function sameIds(a: readonly string[], b: readonly string[]): boolean {
+  return a.length === b.length && a.every((id, index) => id === b[index]);
+}
+
+/** Compares every persisted field, so callers can keep the current object when an action changes nothing. */
+export function sameGamePanelLayout(a: GamePanelLayout, b: GamePanelLayout): boolean {
+  return a === b || (a.version === b.version && sameIds(a.hidden, b.hidden)
+    && a.sizes.left === b.sizes.left && a.sizes.right === b.sizes.right && a.sizes.bottom === b.sizes.bottom
+    && GAME_PANEL_REGIONS.every((region) => a.regions[region].length === b.regions[region].length
+      && a.regions[region].every((entry, index) => {
+        const other = b.regions[region][index];
+        return entry.id === other.id && entry.activePanelId === other.activePanelId && sameIds(entry.panels, other.panels);
+      })));
+}
+
+/** Returns `layout` itself when the action changes nothing, so stores skip renders and persistence writes. */
 export function transitionGamePanelLayout(layout: GamePanelLayout, action: GamePanelLayoutAction): GamePanelLayout {
+  const next = applyGamePanelLayoutAction(layout, action);
+  return sameGamePanelLayout(layout, next) ? layout : next;
+}
+
+function applyGamePanelLayoutAction(layout: GamePanelLayout, action: GamePanelLayoutAction): GamePanelLayout {
   if (action.type === "preset") { return presetWithExtensions(layout, action.name); }
   if (action.type === "resize") {
     return gamePanelLayoutSchema.parse({ ...layout, sizes: { ...layout.sizes, [action.region]: action.size } });

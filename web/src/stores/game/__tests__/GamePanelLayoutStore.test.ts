@@ -113,3 +113,87 @@ it("rejects invalid, duplicate renamed and overflow names atomically", () => {
   expect(() => store.getState().saveLayout("Overflow")).toThrow();
   expect(store.getState().customLayouts).toBe(full);
 });
+
+it("keeps state identity and skips persistence and notification for no-op actions", () => {
+  const { storage } = memoryStorage();
+  const writes = jest.fn();
+  const counted: GameLayoutStorage = { ...storage, setItem: (key, value) => { writes(key); storage.setItem(key, value); } };
+  const store = createGamePanelLayoutStore({ anonymous: true }, counted);
+  store.getState().saveLayout("Mine");
+  const before = store.getState();
+  writes.mockClear();
+  const listener = jest.fn();
+  const unsubscribe = store.subscribe(listener);
+  try {
+    store.getState().dispatch({ type: "activate", panelId: "hierarchy" });
+    store.getState().dispatch({ type: "reveal", panelId: "inspector" });
+    store.getState().dispatch({ type: "hide", panelId: "assistant" });
+    store.getState().dispatch({ type: "resize", region: "bottom", size: before.layout.sizes.bottom });
+    store.getState().dispatch({ type: "move", panelId: "hierarchy", region: "left", groupId: "left-main", index: 0 });
+    store.getState().dispatch({ type: "preset", name: "Default" });
+    store.getState().selectLayout("Default");
+    store.getState().selectLayout("Mine");
+    store.getState().saveLayout("Mine");
+    store.getState().renameLayout("Mine", "Mine");
+    store.getState().deleteLayout("Missing");
+    store.getState().registerPanels([{ id: "viewport", title: "Viewport", icon: null, dimensions: ["2d"], defaultRegion: "viewport" }]);
+    expect(store.getState()).toBe(before);
+    expect(store.getState().layout).toBe(before.layout);
+    expect(store.getState().customLayouts).toBe(before.customLayouts);
+    expect(listener).not.toHaveBeenCalled();
+    expect(writes).not.toHaveBeenCalled();
+    store.getState().dispatch({ type: "activate", panelId: "revisions" });
+    expect(listener).toHaveBeenCalledTimes(1);
+    expect(writes).toHaveBeenCalledTimes(1);
+  } finally { unsubscribe(); }
+});
+
+it("keeps valid persisted layouts when one saved entry is invalid", () => {
+  const { storage, data } = memoryStorage();
+  const source = createGamePanelLayoutStore({ userId: "partial" }, storage);
+  source.getState().dispatch({ type: "resize", region: "left", size: 410 });
+  source.getState().saveLayout("Kept");
+  const saved = JSON.parse(data.get("nodetool.game-layout.v1:user:partial") ?? "null");
+  const kept = saved.state.customLayouts[0];
+  saved.state.customLayouts = [
+    kept,
+    { name: "Hidden viewport", layout: { ...kept.layout, hidden: ["viewport"] } },
+    { name: "Default", layout: kept.layout },
+    { name: "Kept", layout: kept.layout },
+    { name: "Unknown panel", layout: { ...kept.layout, regions: { ...kept.layout.regions,
+      bottom: [{ id: "bottom-main", panels: ["scripts", "retired-extension"], activePanelId: "retired-extension" }] } } },
+    "not a layout"
+  ];
+  data.set("nodetool.game-layout.v1:user:partial", JSON.stringify(saved));
+  const reloaded = createGamePanelLayoutStore({ userId: "partial" }, storage);
+  expect(reloaded.getState().layout.sizes.left).toBe(410);
+  expect(reloaded.getState().customLayouts.map((entry) => entry.name)).toEqual(["Kept", "Unknown panel"]);
+  reloaded.getState().selectLayout("Unknown panel");
+  expect(reloaded.getState().layout.regions.bottom[0].panels).toEqual(["scripts", "retired-extension"]);
+});
+
+it("falls back to the default current layout while retaining valid saved copies", () => {
+  const { storage, data } = memoryStorage();
+  const source = createGamePanelLayoutStore({ userId: "current-invalid" }, storage);
+  source.getState().dispatch({ type: "resize", region: "right", size: 480 });
+  source.getState().saveLayout("Wide right");
+  const saved = JSON.parse(data.get("nodetool.game-layout.v1:user:current-invalid") ?? "null");
+  saved.state.layout = { ...saved.state.layout, regions: { ...saved.state.layout.regions, viewport: [] } };
+  data.set("nodetool.game-layout.v1:user:current-invalid", JSON.stringify(saved));
+  const reloaded = createGamePanelLayoutStore({ userId: "current-invalid" }, storage);
+  expect(reloaded.getState().layout.regions.viewport[0].panels).toEqual(["viewport"]);
+  expect(reloaded.getState().layout.sizes.right).toBe(340);
+  reloaded.getState().selectLayout("Wide right");
+  expect(reloaded.getState().layout.sizes.right).toBe(480);
+});
+
+it("reports saved-layout validation failures as readable messages", () => {
+  const { storage } = memoryStorage();
+  const store = createGamePanelLayoutStore({ anonymous: true }, storage);
+  expect(() => store.getState().saveLayout(" ")).toThrow(/^Enter a layout name$/);
+  expect(() => store.getState().saveLayout("x".repeat(81))).toThrow(/^Layout names are limited to 80 characters$/);
+  expect(() => store.getState().saveLayout("Wide")).toThrow(/^Built-in layouts cannot be replaced$/);
+  for (let index = 0; index < 32; index++) { store.getState().saveLayout(`Copy ${index}`); }
+  expect(() => store.getState().saveLayout("Overflow")).toThrow(/^At most 32 layouts can be saved$/);
+  expect(() => store.getState().renameLayout("Copy 0", "Copy 1")).toThrow(/^Saved layout name is already used$/);
+});

@@ -3,7 +3,7 @@ import { createJSONStorage, persist } from "zustand/middleware";
 import { z } from "zod";
 
 import {
-  createGamePanelLayout, gamePanelLayoutSchema, GAME_LAYOUT_PRESETS, registerMissingGamePanels,
+  createGamePanelLayout, gamePanelLayoutSchema, GAME_LAYOUT_PRESETS, registerMissingGamePanels, sameGamePanelLayout,
   transitionGamePanelLayout, type GamePanelLayout, type GamePanelLayoutAction
 } from "./GamePanelLayout";
 import type { GamePanelRegistration } from "../../components/game/shell/panelRegistry";
@@ -14,17 +14,31 @@ export interface GameLayoutStorage {
   readonly removeItem: (key: string) => void;
 }
 
-const layoutName = z.string().trim().min(1).max(80).refine((name) => !GAME_LAYOUT_PRESETS.some((preset) => preset === name), {
-  message: "Built-in layouts cannot be replaced"
-});
-const persistedLayouts = z.object({
-  layout: gamePanelLayoutSchema,
-  customLayouts: z.array(z.object({ name: layoutName, layout: gamePanelLayoutSchema }).strict()).max(32)
-}).strict().superRefine((value, context) => {
-  if (new Set(value.customLayouts.map((entry) => entry.name)).size !== value.customLayouts.length) {
-    context.addIssue({ code: "custom", message: "Duplicate saved layout name" });
+const MAX_SAVED_LAYOUTS = 32;
+const layoutName = z.string().trim().min(1, "Enter a layout name").max(80, "Layout names are limited to 80 characters")
+  .refine((name) => !GAME_LAYOUT_PRESETS.some((preset) => preset === name), { message: "Built-in layouts cannot be replaced" });
+const savedLayout = z.object({ name: layoutName, layout: gamePanelLayoutSchema }).strict();
+type SavedLayout = z.infer<typeof savedLayout>;
+
+/** Throws the first issue's message, which the layout menu shows to the user. */
+function parseOrThrow<T>(schema: z.ZodType<T>, value: unknown): T {
+  const parsed = schema.safeParse(value);
+  if (!parsed.success) { throw new Error(parsed.error.issues[0]?.message ?? "Invalid game layout"); }
+  return parsed.data;
+}
+
+/** Keeps each valid, uniquely named saved layout so one bad entry does not discard the others. */
+function hydrateSavedLayouts(value: unknown): SavedLayout[] {
+  if (!Array.isArray(value)) { return []; }
+  const result: SavedLayout[] = [];
+  for (const entry of value) {
+    const parsed = savedLayout.safeParse(entry);
+    if (!parsed.success || result.some((saved) => saved.name === parsed.data.name)) { continue; }
+    result.push(parsed.data);
+    if (result.length === MAX_SAVED_LAYOUTS) { break; }
   }
-});
+  return result;
+}
 
 export interface GamePanelLayoutState {
   readonly layout: GamePanelLayout;
@@ -57,7 +71,11 @@ export function createGamePanelLayoutStore(scope: { readonly userId: string } | 
   return createStore<GamePanelLayoutState>()(persist((set, get) => ({
     layout: createGamePanelLayout(),
     customLayouts: [],
-    dispatch(action) { set({ layout: transitionGamePanelLayout(get().layout, action) }); },
+    dispatch(action) {
+      const current = get().layout;
+      const next = transitionGamePanelLayout(current, action);
+      if (next !== current) { set({ layout: next }); }
+    },
     registerPanels(panels) {
       const current = get().layout;
       const next = registerMissingGamePanels(current, panels);
@@ -67,38 +85,48 @@ export function createGamePanelLayoutStore(scope: { readonly userId: string } | 
       const shown = ids.some((id) => !get().layout.hidden.includes(id));
       let next = get().layout;
       for (const panelId of ids) { next = transitionGamePanelLayout(next, { type: shown ? "hide" : "reveal", panelId }); }
-      set({ layout: next });
+      if (next !== get().layout) { set({ layout: next }); }
     },
     saveLayout(name) {
-      const validName = layoutName.parse(name);
+      const validName = parseOrThrow(layoutName, name);
       const current = get();
-      const customLayouts = [...current.customLayouts.filter((entry) => entry.name !== validName), { name: validName, layout: current.layout }];
-      const validated = persistedLayouts.parse({ layout: current.layout, customLayouts });
-      set({ customLayouts: validated.customLayouts });
+      const existing = current.customLayouts.find((entry) => entry.name === validName);
+      if (existing && sameGamePanelLayout(existing.layout, current.layout)) { return; }
+      if (!existing && current.customLayouts.length >= MAX_SAVED_LAYOUTS) {
+        throw new Error(`At most ${MAX_SAVED_LAYOUTS} layouts can be saved`);
+      }
+      set({ customLayouts: [...current.customLayouts.filter((entry) => entry.name !== validName),
+        { name: validName, layout: parseOrThrow(gamePanelLayoutSchema, current.layout) }] });
     },
     selectLayout(name) {
       const preset = GAME_LAYOUT_PRESETS.find((entry) => entry === name);
       if (preset) { get().dispatch({ type: "preset", name: preset }); return; }
       const saved = get().customLayouts.find((entry) => entry.name === name);
       if (!saved) { throw new Error(`Saved layout ${name} does not exist`); }
-      set({ layout: gamePanelLayoutSchema.parse(saved.layout) });
+      if (!sameGamePanelLayout(saved.layout, get().layout)) { set({ layout: parseOrThrow(gamePanelLayoutSchema, saved.layout) }); }
     },
     renameLayout(from, to) {
-      const validName = layoutName.parse(to);
+      const validName = parseOrThrow(layoutName, to);
       const current = get();
       if (!current.customLayouts.some((entry) => entry.name === from)) { throw new Error(`Saved layout ${from} does not exist`); }
-      if (current.customLayouts.some((entry) => entry.name === validName && entry.name !== from)) { throw new Error("Saved layout name is already used"); }
+      if (validName === from) { return; }
+      if (current.customLayouts.some((entry) => entry.name === validName)) { throw new Error("Saved layout name is already used"); }
       set({ customLayouts: current.customLayouts.map((entry) => entry.name === from ? { ...entry, name: validName } : entry) });
     },
-    deleteLayout(name) { set({ customLayouts: get().customLayouts.filter((entry) => entry.name !== name) }); }
+    deleteLayout(name) {
+      const current = get().customLayouts;
+      if (current.some((entry) => entry.name === name)) { set({ customLayouts: current.filter((entry) => entry.name !== name) }); }
+    }
   }), {
     name: `nodetool.game-layout.v1:${namespace}`,
     version: 1,
     storage: createJSONStorage(() => guardedStorage),
     partialize: (state) => ({ layout: state.layout, customLayouts: state.customLayouts }),
     merge(persisted, current) {
-      const parsed = persistedLayouts.safeParse(persisted);
-      return parsed.success ? { ...current, ...parsed.data } : current;
+      if (typeof persisted !== "object" || persisted === null) { return current; }
+      const record = persisted as { readonly layout?: unknown; readonly customLayouts?: unknown };
+      const layout = gamePanelLayoutSchema.safeParse(record.layout);
+      return { ...current, layout: layout.success ? layout.data : current.layout, customLayouts: hydrateSavedLayouts(record.customLayouts) };
     }
   }));
 }

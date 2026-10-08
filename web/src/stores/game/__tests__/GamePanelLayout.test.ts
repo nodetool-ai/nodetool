@@ -129,3 +129,33 @@ it("rejects preset capacity overflow without altering the previous valid layout"
   expect(before.regions.left).toHaveLength(128);
   expect(gamePanelLayoutSchema.safeParse(before).success).toBe(true);
 });
+
+it("returns the same layout object for every no-op transition", () => {
+  const initial = createGamePanelLayout();
+  const noOps = [
+    { type: "activate", panelId: "hierarchy" },
+    { type: "reveal", panelId: "inspector" },
+    { type: "hide", panelId: "assistant" },
+    { type: "resize", region: "left", size: initial.sizes.left },
+    { type: "move", panelId: "hierarchy", region: "left", groupId: "left-main", index: 0 },
+    { type: "preset", name: "Default" }
+  ] as const;
+  for (const action of noOps) {
+    expect(transitionGamePanelLayout(initial, action)).toBe(initial);
+  }
+  const wide = transitionGamePanelLayout(initial, { type: "preset", name: "Wide" });
+  expect(wide).not.toBe(initial);
+  expect(transitionGamePanelLayout(wide, { type: "preset", name: "Wide" })).toBe(wide);
+  expect(initial).toEqual(createGamePanelLayout());
+});
+
+it("still returns a new layout when a transition changes state", () => {
+  const initial = createGamePanelLayout();
+  const activated = transitionGamePanelLayout(initial, { type: "activate", panelId: "revisions" });
+  expect(activated).not.toBe(initial);
+  expect(activated.regions.left[0].activePanelId).toBe("revisions");
+  const revealed = transitionGamePanelLayout(initial, { type: "reveal", panelId: "assistant" });
+  expect(revealed.hidden).not.toContain("assistant");
+  expect(revealed.regions.right[0].activePanelId).toBe("assistant");
+  expect(transitionGamePanelLayout(initial, { type: "resize", region: "left", size: 300 }).sizes.left).toBe(300);
+});
