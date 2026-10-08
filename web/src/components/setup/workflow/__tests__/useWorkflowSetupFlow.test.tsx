@@ -258,7 +258,7 @@ describe("useWorkflowSetupFlow", () => {
       { stage: "category", brief: "A report", category: "content-pipeline" }
     );
     renderFlow();
-    const summary = await screen.findByRole("region", {
+    const summary = await screen.findByRole("group", {
       name: "Before you generate"
     });
     expect(summary).toHaveAttribute(

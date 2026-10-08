@@ -76,6 +76,7 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
   const setup = useWorkflowSetupDocument(workflowId);
   const brief = setup?.brief ?? "";
   const importInput = useRef<HTMLInputElement>(null);
+  const briefField = useRef<HTMLElement | null>(null);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -165,6 +166,7 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
           placeholder="Summarize a PDF and email it"
           helperText="Only describe the task here. Add files, connect services and set destinations during setup or in the built workflow before running it."
           onChange={handleChange}
+          inputRef={briefField}
         />
 
         {importError ? (
@@ -177,6 +179,7 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
           examples={WORKFLOW_INSPIRATION_CHIPS.map((chip) => chip.brief)}
           brief={brief}
           onSelect={onBriefChange}
+          briefRef={briefField}
         />
       </FlexColumn>
 

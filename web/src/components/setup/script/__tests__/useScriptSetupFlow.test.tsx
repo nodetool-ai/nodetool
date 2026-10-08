@@ -201,7 +201,7 @@ describe("useScriptSetupFlow", () => {
     seedWrittenScript();
     useScriptStore.getState().setSetup(SCRIPT_ID, { stage: "format" });
     renderFlow();
-    const summary = await screen.findByRole("region", {
+    const summary = await screen.findByRole("group", {
       name: "Before you generate"
     });
     expect(
@@ -293,7 +293,7 @@ describe("useScriptSetupFlow", () => {
 
     // No model call is offered, and none is made.
     expect(
-      screen.queryByRole("region", { name: "Before you generate" })
+      screen.queryByRole("group", { name: "Before you generate" })
     ).not.toBeInTheDocument();
     await user.click(
       screen.getByRole("button", { name: "Continue to review" })
@@ -336,7 +336,7 @@ describe("useScriptSetupFlow", () => {
       screen.getByRole("button", { name: "Write the script" })
     ).toBeEnabled();
     expect(
-      screen.getByRole("region", { name: "Before you generate" })
+      screen.getByRole("group", { name: "Before you generate" })
     ).toHaveTextContent("No model call");
   });
 

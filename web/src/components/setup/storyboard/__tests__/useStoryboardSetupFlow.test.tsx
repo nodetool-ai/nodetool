@@ -259,7 +259,7 @@ describe("useStoryboardSetupFlow", () => {
     useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "genre" });
     renderFlow();
 
-    const summary = await screen.findByRole("region", {
+    const summary = await screen.findByRole("group", {
       name: "Before you generate"
     });
     expect(summary).toHaveTextContent(/\$.*30–60s/);

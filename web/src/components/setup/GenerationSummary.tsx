@@ -5,7 +5,8 @@ import {
   FlexRow,
   GAP,
   Label,
-  Text
+  Text,
+  Tooltip
 } from "../ui_primitives";
 import { generationEstimate, type GenerationModel } from "./generationEstimate";
 
@@ -32,8 +33,9 @@ export interface GenerationEstimateLineProps extends GenerationSummaryProps {
 
 /**
  * The run's estimate as one line for the setup footer: model, cost, wait.
- * What the run produces and the token assumptions stay one hover away, so the
- * footer holds the numbers and nothing else.
+ * What the run produces and the token assumptions sit in a tooltip, so the
+ * footer holds the numbers and nothing else. The line takes focus and opens on
+ * a tap, so the details reach keyboard and touch as well as a mouse.
  */
 export function GenerationEstimateLine({
   result,
@@ -64,16 +66,24 @@ export function GenerationEstimateLine({
       ? ` About ${estimate.inputTokens.toLocaleString()} input and 1,000–${maxOutputTokens.toLocaleString()} output tokens. Actual usage may cost more.`
       : "";
   return (
-    <Text
-      size="small"
-      color="secondary"
-      role="region"
-      aria-label="Before you generate"
+    <Tooltip
       title={`${result}.${assumptions}`}
-      sx={{ whiteSpace: "nowrap" }}
+      describeChild
+      enterTouchDelay={0}
+      leaveTouchDelay={6000}
     >
-      {parts.join(" · ")}
-    </Text>
+      <Text
+        size="small"
+        color="secondary"
+        component="span"
+        role="group"
+        aria-label="Before you generate"
+        tabIndex={0}
+        sx={{ whiteSpace: "nowrap", cursor: "help" }}
+      >
+        {parts.join(" · ")}
+      </Text>
+    </Tooltip>
   );
 }
 
