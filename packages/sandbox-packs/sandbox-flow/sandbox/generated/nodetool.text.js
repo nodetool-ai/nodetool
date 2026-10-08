@@ -6,6 +6,9 @@ function automaticSpeechRecognition(inputs) {
 function embedding(inputs) {
   return callNode("nodetool.text.Embedding", inputs);
 }
+function rerank(inputs) {
+  return callNode("nodetool.text.Rerank", inputs);
+}
 function saveTextFile(inputs) {
   return callNode("nodetool.text.SaveTextFile", inputs);
 }
@@ -58,6 +61,7 @@ export {
   loadTextAssets,
   loadTextFolder,
   prompt,
+  rerank,
   saveText,
   saveTextFile,
   template

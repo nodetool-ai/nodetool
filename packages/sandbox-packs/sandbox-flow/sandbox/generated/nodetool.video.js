@@ -54,6 +54,9 @@ function rotate(inputs) {
 function setSpeed(inputs) {
   return callNode("nodetool.video.SetSpeed", inputs);
 }
+function easeCurve(inputs) {
+  return callNode("nodetool.video.EaseCurve", inputs);
+}
 function overlay(inputs) {
   return callNode("nodetool.video.Overlay", inputs);
 }
@@ -113,6 +116,7 @@ export {
   colorBalance,
   concat,
   denoise,
+  easeCurve,
   extractAudio,
   extractFrame,
   forEachFrame,
