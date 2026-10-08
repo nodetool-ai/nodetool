@@ -82,6 +82,15 @@ describe("video FormatStep", () => {
     ).toBe(true);
   });
 
+  it("adds the template's lanes in the template's order", async () => {
+    renderStep();
+    await userEvent.click(screen.getByRole("radio", { name: /15s ad/ }));
+    const format = VIDEO_FORMATS.find((entry) => entry.id === "ad-15");
+    expect(
+      useTimelineStore.getState().tracks.map((track) => track.name)
+    ).toEqual(format?.tracks.map((track) => track.name));
+  });
+
   it("moves the checked card when another is picked", async () => {
     renderStep();
     await userEvent.click(

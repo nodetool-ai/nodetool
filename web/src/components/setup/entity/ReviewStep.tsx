@@ -4,9 +4,11 @@ import {
   BORDER_RADIUS,
   Caption,
   Chip,
+  EmptyState,
   FlexColumn,
   FlexRow,
   GAP,
+  LoadingSpinner,
   ResponsiveImage,
   Text
 } from "../../ui_primitives";
@@ -72,3 +74,26 @@ export const ReviewStep = ({
 );
 
 export default ReviewStep;
+
+interface ReviewFallbackProps {
+  readonly loading: boolean;
+}
+
+/**
+ * What the review shows when there is nothing to review yet: the library is
+ * still loading, or the reference is missing or already used by another
+ * entity. The footer names what to do about it.
+ */
+export const ReviewFallback = ({ loading }: ReviewFallbackProps) =>
+  loading ? (
+    <FlexRow gap={GAP.normal} align="center">
+      <LoadingSpinner inline size="small" />
+      <Text color="secondary">Loading your entity library…</Text>
+    </FlexRow>
+  ) : (
+    <EmptyState
+      variant="empty"
+      title="No reference image yet"
+      description="Go back to the reference step and choose or generate one."
+    />
+  );

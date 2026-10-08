@@ -1,6 +1,6 @@
 import { redactTraceText } from "@nodetool-ai/config";
 import { TRACE_CONTENT_BYTE_LIMIT, TRACE_STRING_LIMIT } from "@nodetool-ai/protocol";
-import { getRunTraceScope, markTraceContentTruncated } from "./run-trace-context.js";
+import { getRunTraceScope, markTraceContentTruncated } from "./run-trace-scope.js";
 
 const MEDIA_TYPES = new Set(["image", "audio", "video", "model3d"]);
 const NO_SECRETS: ReadonlySet<string> = new Set();

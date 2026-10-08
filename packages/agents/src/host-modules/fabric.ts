@@ -91,7 +91,11 @@ async function loadFabric(where: string): Promise<FabricLike> {
   ).catch(() => undefined);
   const mod =
     node ??
-    (await importOptionalLibrary<Record<string, unknown>>(where, "fabric"));
+    (await importOptionalLibrary<Record<string, unknown>>(
+      where,
+      "fabric",
+      "fabric"
+    ));
   return unwrapLibrary<FabricLike>(
     mod,
     where,

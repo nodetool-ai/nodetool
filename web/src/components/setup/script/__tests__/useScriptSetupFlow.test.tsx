@@ -15,14 +15,19 @@ jest.mock("../../../../hooks/useResolvedMediaUri");
 // advances depends on its result, so the suite drives it directly. What it
 // writes is pinned by `useWriteScript.test.tsx`.
 const write = jest.fn(async () => true);
+// `error` is state in the real hook and reaches the flow a render after
+// `write` resolves. `errorRef` is set before it resolves. The mock keeps the
+// two apart so a test can model that order.
 let writeError: string | null = null;
+const writeErrorRef: { current: string | null } = { current: null };
 jest.mock("../../../../hooks/script/useWriteScript", () => ({
   useWriteScript: () => ({
     write,
     writing: false,
     get error() {
       return writeError;
-    }
+    },
+    errorRef: writeErrorRef
   })
 }));
 
@@ -132,6 +137,7 @@ beforeEach(() => {
   write.mockReset();
   write.mockResolvedValue(true);
   writeError = null;
+  writeErrorRef.current = null;
   voiceAll.mockClear();
   useScriptStore.setState({ scripts: {}, history: {} } as never);
   useScriptStore.getState().ensureScript(SCRIPT_ID);
@@ -195,7 +201,7 @@ describe("useScriptSetupFlow", () => {
     seedWrittenScript();
     useScriptStore.getState().setSetup(SCRIPT_ID, { stage: "format" });
     renderFlow();
-    const summary = await screen.findByRole("region", {
+    const summary = await screen.findByRole("group", {
       name: "Before you generate"
     });
     expect(
@@ -247,8 +253,12 @@ describe("useScriptSetupFlow", () => {
     const user = userEvent.setup();
     seedWrittenScript();
     useScriptStore.getState().setSetup(SCRIPT_ID, { stage: "format" });
-    write.mockResolvedValue(false);
-    writeError = "No provider is connected.";
+    // The reason exists only on the ref when `write` resolves: the state
+    // copy has not rendered yet, so the flow must not read it (F5).
+    write.mockImplementation(async () => {
+      writeErrorRef.current = "No provider is connected.";
+      return false;
+    });
     renderFlow();
 
     await user.click(screen.getByRole("button", { name: "Rewrite" }));
@@ -257,6 +267,7 @@ describe("useScriptSetupFlow", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "No provider is connected."
     );
+    expect(screen.queryByText(/did not return a script/)).toBeNull();
   });
 
   it("writes `done` and voices every line on the last step", async () => {
@@ -282,7 +293,7 @@ describe("useScriptSetupFlow", () => {
 
     // No model call is offered, and none is made.
     expect(
-      screen.queryByRole("region", { name: "Before you generate" })
+      screen.queryByRole("group", { name: "Before you generate" })
     ).not.toBeInTheDocument();
     await user.click(
       screen.getByRole("button", { name: "Continue to review" })
@@ -325,7 +336,7 @@ describe("useScriptSetupFlow", () => {
       screen.getByRole("button", { name: "Write the script" })
     ).toBeEnabled();
     expect(
-      screen.getByRole("region", { name: "Before you generate" })
+      screen.getByRole("group", { name: "Before you generate" })
     ).toHaveTextContent("No model call");
   });
 
@@ -369,6 +380,56 @@ describe("useScriptSetupFlow", () => {
     const run = readVoicingRun(setupOf());
     expect(run?.status).toBe("queued");
     expect(run?.total).toBe(1);
+  });
+
+  it("shows a refused Rewrite on the review (F6)", () => {
+    seedWrittenScript();
+    useScriptStore.getState().setSetup(SCRIPT_ID, { stage: "review" });
+    writeError = "The writer timed out.";
+    renderFlow();
+
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The writer timed out."
+    );
+  });
+
+  it("holds voicing while a line with words has no speaker (F7)", () => {
+    seedWrittenScript();
+    useScriptStore.getState().addLine(SCRIPT_ID);
+    const [, added] = useScriptStore.getState().scripts[SCRIPT_ID].sections[0]
+      .lines;
+    useScriptStore
+      .getState()
+      .patchLine(SCRIPT_ID, added.id, { text: "And it turns." });
+    useScriptStore.getState().setSetup(SCRIPT_ID, { stage: "review" });
+    const { unmount } = renderFlow();
+
+    expect(
+      screen.getByRole("button", { name: "Continue to voices" })
+    ).toBeDisabled();
+    expect(
+      screen.getByText(/Pick a speaker for 1 line\. A line with no speaker/)
+    ).toBeInTheDocument();
+    unmount();
+
+    useScriptStore.getState().setSetup(SCRIPT_ID, { stage: "voices" });
+    renderFlow();
+    expect(
+      screen.getByRole("button", { name: "Voice your script" })
+    ).toBeDisabled();
+  });
+
+  it("keeps the script current when only the pace changes (O4)", () => {
+    seedWrittenScript();
+    markWritten();
+    useScriptStore
+      .getState()
+      .setSetup(SCRIPT_ID, { stage: "format", pace: "fast" });
+    renderFlow();
+
+    expect(
+      screen.getByRole("button", { name: "Continue to review" })
+    ).toBeEnabled();
   });
 
   it("holds the last step until every speaker has a voice", () => {

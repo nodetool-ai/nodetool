@@ -151,3 +151,64 @@ describe("StructuredOutputGeneratorNode.max_tokens", () => {
     expect(seen).toBe(321);
   });
 });
+
+describe("StructuredOutputGeneratorNode answer parsing", () => {
+  const run = async (content: unknown) => {
+    const context = {
+      getProvider: async () => ({ provider: "test", cost: 0 }),
+      setProviderCost: () => undefined,
+      runProviderPrediction: async () => ({ role: "assistant", content })
+    };
+    const n = new (StructuredOutputGeneratorNode as any)();
+    n.assign({ instructions: "make one", model: { provider: "test", id: "m1" } });
+    n._dynamic_outputs = { narration: "str", music_prompt: "str" };
+    return n.process(context as any);
+  };
+  const answer = '```json\n{"narration": "Night falls.", "music_prompt": "low strings"}\n```';
+
+  it("reads the fenced object out of content parts", async () => {
+    expect(await run([{ type: "text", text: answer }])).toEqual({
+      narration: "Night falls.",
+      music_prompt: "low strings"
+    });
+  });
+
+  it("reads the fenced object out of a string answer", async () => {
+    expect(await run(answer)).toEqual({
+      narration: "Night falls.",
+      music_prompt: "low strings"
+    });
+  });
+
+  it("fails when the answer holds no object", async () => {
+    await expect(run("I cannot help with that.")).rejects.toThrow(
+      "did not return a JSON object"
+    );
+  });
+});
+
+describe("StructuredOutputGeneratorNode prompt", () => {
+  it("sends the output schema the system prompt refers to", async () => {
+    let sent = "";
+    const context = {
+      getProvider: async () => ({ provider: "test", cost: 0 }),
+      setProviderCost: () => undefined,
+      async runProviderPrediction({
+        params
+      }: {
+        params: { messages: Array<{ role: string; content: unknown }> };
+      }) {
+        const user = params.messages.find((m) => m.role === "user");
+        sent = JSON.stringify(user?.content);
+        return { content: '{"narration":"x"}' };
+      }
+    };
+    const n = new (StructuredOutputGeneratorNode as any)();
+    n.assign({ instructions: "make one", model: { provider: "test", id: "m1" } });
+    n._dynamic_outputs = { narration: "str" };
+    await n.process(context as any);
+    expect(sent).toContain("<JSON_SCHEMA>");
+    expect(sent).toContain("narration");
+    expect(sent).toContain("<INSTRUCTIONS>");
+  });
+});

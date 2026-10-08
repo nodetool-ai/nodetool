@@ -43,7 +43,10 @@ export interface SetupStep<Stage extends string> {
   label: string;
   /** Primary button label. It names the outcome: "Generate your storyboard". */
   primaryLabel: string;
-  /** The step body. */
+  /**
+   * The step body. The shell disables its fieldset while the step is pending,
+   * and `readOnly` is true then too.
+   */
   render: (context?: SetupStepRenderContext) => ReactNode;
   /** False disables the primary button — nothing chosen yet. */
   canAdvance?: boolean;
@@ -66,6 +69,10 @@ export interface SetupStep<Stage extends string> {
   /**
    * Cancels the operation represented by `pending`. The shell moves to its
    * terminal canceled state immediately, even if this cleanup is asynchronous.
+   * Without it, Cancel is offered only while the shell awaits `onAdvance`,
+   * since that is the one run the shell can abort. After canceling a run the
+   * shell did not start, the primary button returns to the step instead of
+   * retrying, unless the step reports `canceled` itself.
    */
   onCancel?: () => void | Promise<void>;
   /**

@@ -530,6 +530,62 @@ describe("ShotEditPanel keyboard", () => {
   });
 });
 
+describe("ShotEditPanel in a background tab", () => {
+  it("ignores Esc and Cmd/Ctrl+S while its tab is inert", async () => {
+    seed([baseShot()]);
+    const { container } = renderPanel();
+    container.setAttribute("inert", "");
+
+    await userEvent.keyboard("{Escape}");
+    await userEvent.keyboard("{Control>}s{/Control}");
+
+    expect(onClose).not.toHaveBeenCalled();
+  });
+});
+
+describe("ShotEditPanel render guards", () => {
+  const openOverflow = async () => {
+    await userEvent.click(
+      screen.getByRole("button", { name: "More shot actions" })
+    );
+  };
+
+  it("does not offer a clip render for a keyframe shot with no still", async () => {
+    seed([baseShot()]);
+    renderPanel();
+
+    await openOverflow();
+
+    expect(
+      await screen.findByRole("menuitem", { name: /Render clip/ })
+    ).toHaveAttribute("aria-disabled", "true");
+    expect(
+      screen.getByText("Render a still first, or set render mode to Direct")
+    ).toBeInTheDocument();
+  });
+
+  it("does not offer moving the last shot in a scene later", async () => {
+    seed([baseShot()]);
+    renderPanel();
+
+    await openOverflow();
+
+    expect(
+      await screen.findByRole("menuitem", { name: "Move later in scene" })
+    ).toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("disables Regenerate while the shot is rendering", () => {
+    seed([baseShot()]);
+    useStoryboardStore
+      .getState()
+      .setShotStatus(BOARD, "shot-1", "keyframe_generating");
+    renderPanel();
+
+    expect(screen.getByRole("button", { name: "Regenerate" })).toBeDisabled();
+  });
+});
+
 describe("ShotEditPanel on a linked board (PRD D9)", () => {
   const linked = () =>
     seed(

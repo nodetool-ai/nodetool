@@ -6,6 +6,9 @@ function automaticSpeechRecognition(inputs, options) {
 function embedding(inputs, options) {
   return createNode("nodetool.text.Embedding", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "list" }, defaultOutput: "output" });
 }
+function rerank(inputs, options) {
+  return createNode("nodetool.text.Rerank", inputs, { id: options?.id, outputNames: ["documents", "scores", "indices"], outputTypes: { "documents": "list[str]", "scores": "list[float]", "indices": "list[int]" } });
+}
 function saveTextFile(inputs, options) {
   return createNode("nodetool.text.SaveTextFile", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "text" }, defaultOutput: "output" });
 }
@@ -46,6 +49,7 @@ export {
   loadTextAssets,
   loadTextFolder,
   prompt,
+  rerank,
   saveText,
   saveTextFile,
   template

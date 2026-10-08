@@ -976,6 +976,8 @@ export interface Node {
   dynamic_properties?: Record<string, unknown>;
   dynamic_inputs?: Record<string, DynamicSlotMetadata>;
   dynamic_outputs?: Record<string, PropertyTypeMetadata>;
+  /** How each dynamic output emits; see `NodeDescriptor.dynamic_output_correlation`. */
+  dynamic_output_correlation?: Record<string, OutputCorrelation>;
   [key: string]: unknown;
 }
 

@@ -35,29 +35,10 @@ import {
 } from "./error-trace-redaction.js";
 import { reserveInvocation, type Reservation } from "./application-budget.js";
 
+import { AppRunError, AppInstanceConflictError } from "./app-run-errors.js";
+
+export { AppRunError, AppInstanceConflictError } from "./app-run-errors.js";
 export type { AppInstanceRecord, AppRunRecord, AppRunSnapshot };
-export class AppRunError extends Error {
-  constructor(
-    readonly code:
-      | "not_found"
-      | "conflict"
-      | "invalid_input"
-      | "budget_exceeded",
-    message: string
-  ) {
-    super(message);
-    this.name = "AppRunError";
-  }
-}
-export class AppInstanceConflictError extends AppRunError {
-  constructor() {
-    super(
-      "conflict",
-      "App instance revision changed. Reload before writing state."
-    );
-    this.name = "AppInstanceConflictError";
-  }
-}
 export const APP_RUN_CONTENT_STRING_LIMIT = 20_000;
 export const APP_RUN_CONTENT_BYTE_LIMIT = 1_000_000;
 export const APP_SNAPSHOT_STRING_LIMIT = 250_000;

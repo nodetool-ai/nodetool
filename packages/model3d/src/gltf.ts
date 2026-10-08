@@ -189,8 +189,40 @@ const isGlb = (bytes: Uint8Array): boolean =>
     true
   ) === GLB_MAGIC;
 
+/** Parse glTF JSON text and check it is a glTF 2.0 document. */
+function parseGltfJson(text: string): GltfJson {
+  let json: unknown;
+  try {
+    json = JSON.parse(text);
+  } catch (error) {
+    throw new Model3DParseError(
+      `Not a glTF document: ${error instanceof Error ? error.message : String(error)}`
+    );
+  }
+  if (!json || typeof json !== "object" || Array.isArray(json)) {
+    throw new Model3DParseError("glTF JSON must be an object.");
+  }
+  const doc = json as GltfJson;
+  if (!doc.asset || typeof doc.asset.version !== "string") {
+    throw new Model3DParseError(
+      "glTF JSON has no `asset.version` — this is not a glTF 2.0 document."
+    );
+  }
+  return doc;
+}
+
 function parseGlbBytes(bytes: Uint8Array): Model3DFile {
   const view = new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const version = view.getUint32(4, true);
+  if (version !== 2) {
+    throw new Model3DParseError(`GLB container version is ${version}; NodeTool reads version 2.`);
+  }
+  const declared = view.getUint32(8, true);
+  if (declared !== bytes.length) {
+    throw new Model3DParseError(
+      `GLB header declares ${declared} bytes, but the file has ${bytes.length}. The file is truncated or corrupt.`
+    );
+  }
   let offset = 12;
   let json: GltfJson | null = null;
   let bin: Uint8Array | null = null;
@@ -198,9 +230,14 @@ function parseGlbBytes(bytes: Uint8Array): Model3DFile {
     const length = view.getUint32(offset, true);
     const type = view.getUint32(offset + 4, true);
     offset += 8;
+    if (offset + length > bytes.length) {
+      throw new Model3DParseError(
+        `A GLB chunk declares ${length} bytes but only ${bytes.length - offset} remain.`
+      );
+    }
     const chunk = bytes.slice(offset, offset + length);
     if (type === CHUNK_JSON) {
-      json = JSON.parse(textDecoder.decode(chunk)) as GltfJson;
+      json = parseGltfJson(textDecoder.decode(chunk));
     } else if (type === CHUNK_BIN) {
       bin = chunk;
     }
@@ -217,24 +254,7 @@ export function parseModel3D(bytes: Uint8Array): Model3DFile {
   if (isGlb(bytes)) {
     return parseGlbBytes(bytes);
   }
-  let json: unknown;
-  try {
-    json = JSON.parse(textDecoder.decode(bytes));
-  } catch (error) {
-    throw new Model3DParseError(
-      `Not a glTF document: ${error instanceof Error ? error.message : String(error)}`
-    );
-  }
-  if (!json || typeof json !== "object" || Array.isArray(json)) {
-    throw new Model3DParseError("glTF JSON must be an object.");
-  }
-  const doc = json as GltfJson;
-  if (!doc.asset || typeof doc.asset.version !== "string") {
-    throw new Model3DParseError(
-      "glTF JSON has no `asset.version` — this is not a glTF 2.0 document."
-    );
-  }
-  return { json: doc, bin: null, format: "gltf" };
+  return { json: parseGltfJson(textDecoder.decode(bytes)), bin: null, format: "gltf" };
 }
 
 function buildGlb(json: GltfJson, bin: Uint8Array | null): Uint8Array {

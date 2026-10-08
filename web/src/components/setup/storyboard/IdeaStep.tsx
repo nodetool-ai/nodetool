@@ -87,6 +87,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   const shotlist = useShotlistImport(boardId);
   const scriptInput = useRef<HTMLInputElement>(null);
   const shotlistInput = useRef<HTMLInputElement>(null);
+  const briefField = useRef<HTMLElement | null>(null);
   const source = useImportSource(boardId);
   const locked = source?.preserveWords === true;
 
@@ -241,6 +242,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           hideLabel
           placeholder="One sentence is enough, or paste a full script."
           onChange={handleChange}
+          inputRef={briefField}
           slotProps={{ input: { readOnly: locked } }}
           helperText={
             locked
@@ -264,6 +266,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           examples={inspirations}
           brief={brief}
           onSelect={(value) => setSetup(boardId, { brief: value })}
+          briefRef={briefField}
         />
       </FlexColumn>
 

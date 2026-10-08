@@ -125,7 +125,7 @@ function spacedMeasure(
   spacingPx: number
 ): (text: string) => number {
   if (spacingPx === 0) return measure;
-  return (text) => measure(text) + spacingPx * segmentGraphemes(text).length;
+  return (text) => measure(text) + spacingPx * graphemeCount(text);
 }
 
 /** The px the text wraps within, from `maxWidthFrac` of the canvas. */
@@ -216,6 +216,19 @@ export function segmentGraphemes(text: string): string[] {
     return out;
   }
   return Array.from(text);
+}
+
+/** Printable ASCII, where every character is its own grapheme cluster. */
+const PRINTABLE_ASCII = /^[\x20-\x7e]*$/;
+
+/**
+ * `segmentGraphemes(text).length` without building the array, and without
+ * the segmenter for printable ASCII. Layout measures every word on every
+ * re-layout, and a segmenter pass per word was most of that cost.
+ */
+export function graphemeCount(text: string): number {
+  if (PRINTABLE_ASCII.test(text)) return text.length;
+  return graphemeSegmenter ? Array.from(graphemeSegmenter.segment(text)).length : Array.from(text).length;
 }
 
 /**

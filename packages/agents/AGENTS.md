@@ -342,9 +342,13 @@ loaded. The dispatcher binding is deleted before the user IIFE starts; a module
 that grabs it during linking gains nothing beyond the run's declared surface.
 
 `registry.ts` loads each implementation lazily, and each implementation imports
-its library lazily inside itself — so nothing sits in an entry graph, esbuild
-still inlines them into the packaged `server.mjs`, and Vite resolves the browser
-builds for the in-browser runner, where the "host" is the page. Results go out
+its library lazily inside itself, so nothing sits in an entry graph. Small
+libraries are inlined into the packaged `server.mjs`. The large ones (PDF,
+Office, OCR, TensorFlow.js, Fabric) load through `importOptionalLibrary`
+(`host-modules/limits.ts`) with a runtime package id. The desktop app installs
+them on first use, and the dispatcher reports a missing one on
+`RunSandboxResult.missingRuntimePackage`, which the Code node rethrows so the
+editor offers the install. Results go out
 as plain data with bytes tagged at any depth (`toGuestBytesDeep`,
 `sandbox-bytes.ts`), and errors as tagged objects — the marshaling rule every
 bridge follows.
@@ -651,17 +655,21 @@ arrives at *call* time, not at construction time, which is what lets one
 process-level registry serve every host. Design:
 [docs/tool-class-retirement-design.md](../../docs/tool-class-retirement-design.md).
 
-`registry.ts` is one table, `CAPABILITY_MODULES`, with one entry per namespace
-carrying both halves: a **lazy** `loader` — one `import()`, so no
-implementation sits in an entry graph — and an **eager** `specs` list. Every
-module has a data-only sibling (`workflows.specs.ts`, `media.specs.ts`, …)
-holding wire name, description, JSON schema, category and message template, and
-importing no implementation, so `capabilitySpec(name)` and
-`listCapabilitySpecs()` answer synchronously. That is what lets a belt be
-assembled synchronously from the registry. `capabilityForName(name)` returns
-an eager spec and a lazy implementation. Chat and MCP catalogs use specs,
-with provider declarations built by `capabilityProviderTool(spec)`. Dependencies
-belong to the host's `CapabilityRun`.
+[`metadata.ts`](src/capabilities/metadata.ts) owns the eager
+`CAPABILITY_SPECS` table and synchronous spec lookups. Each namespace imports
+its data-only sibling (`workflows.specs.ts`, `media.specs.ts`, …), which holds
+wire names, descriptions, schemas, categories and message templates without
+loading implementations. Use `capabilitySpec(name)` and `listCapabilitySpecs()`
+from this module when only metadata is needed.
+
+[`registry.ts`](src/capabilities/registry.ts) owns the lazy
+`CAPABILITY_MODULES` loaders and their process-level cache. Each entry refers
+to its namespace in `CAPABILITY_SPECS`. TypeScript checks the loader keys
+against the metadata keys. The registry reexports the metadata lookup APIs.
+`capabilityForName(name)` returns the shared eager spec and a lazy
+implementation. Chat and MCP catalogs use specs, with provider declarations
+built by `capabilityProviderTool(spec)`. Dependencies belong to the host
+`CapabilityRun`.
 
 `toolFromLazyCapability(spec, run)`, `toolForCapabilityName(name, run)`, and
 `toolFromCapability(spec, impl, run)` remain compatibility adapters for
@@ -690,18 +698,18 @@ a run may act on the rows its own user owns, and may not touch credentials,
 billing, other tenants, host control, the transcript of its own behaviour, or
 anything that grants a third party access.
 
-`DECLARED_CAPABILITY_MODULES` is the module list a reviewer reads, derived from
-`CAPABILITY_MODULES` — a declared module with no loader, or a loader nobody
-declared, cannot occur, because both come from the same entry. Three drift
-walks keep the rest honest. `capabilityModuleDrift()` reports an export with no
-name, description, schema, category or implementation
-(`capabilityModuleIssues`), a spec object a module rebuilt instead of importing
-from its `.specs.ts` sibling (`eagerSpecDrift`), and one name owned by two
-modules; `tests/capabilities-registry.test.ts` also pins a
-checked-in `name → category` snapshot, so a reclassification is a one-line diff.
-`tests/capabilities-coverage.test.ts` walks the other way: everything
-`getBuiltinTools()` and `getAllMcpTools({})` assemble must resolve through
-`findCapability`, or sit in that file's pinned exception list with a reason.
+`DECLARED_CAPABILITY_MODULES` is derived from `CAPABILITY_MODULES`. The
+TypeScript key check requires a loader for every metadata namespace and
+rejects undeclared loader keys. `capabilityModuleDrift()` reports an export
+missing its name, description, schema, category or implementation
+(`capabilityModuleIssues`), a spec object rebuilt instead of imported from
+its `.specs.ts` sibling (`eagerSpecDrift`), and one name owned by multiple
+modules. [`tests/capabilities-registry.test.ts`](tests/capabilities-registry.test.ts)
+also pins a checked-in `name → category` snapshot.
+[`tests/capabilities-coverage.test.ts`](tests/capabilities-coverage.test.ts)
+requires everything `getBuiltinTools()` and `getAllMcpTools({})` assemble
+to resolve through `findCapability`, or appear in its exception list with a
+reason.
 
 [`invoke.ts`](src/capabilities/invoke.ts) holds the permission and validation
 sequence. Chat, MCP, sandbox imports, and headless evals invoke their owned

@@ -12,6 +12,7 @@ export type EditableGeometryType =
   | "SphereGeometry"
   | "PlaneGeometry"
   | "CylinderGeometry"
+  | "ConeGeometry"
   | "TorusGeometry";
 
 interface GeometryParamSpec {
@@ -59,6 +60,14 @@ export const GEOMETRY_PARAM_SPECS = {
       min: 0,
       step: 0.1
     },
+    { key: "height", label: "Height", kind: "float", min: 0.001, step: 0.1 },
+    { key: "radialSegments", label: "Radial Segs", kind: "int", min: 3 },
+    { key: "heightSegments", label: "Height Segs", kind: "int", min: 1 },
+    { key: "thetaStart", label: "Theta Start", kind: "angle" },
+    { key: "thetaLength", label: "Theta Len", kind: "angle" }
+  ],
+  ConeGeometry: [
+    { key: "radius", label: "Radius", kind: "float", min: 0.001, step: 0.1 },
     { key: "height", label: "Height", kind: "float", min: 0.001, step: 0.1 },
     { key: "radialSegments", label: "Radial Segs", kind: "int", min: 3 },
     { key: "heightSegments", label: "Height Segs", kind: "int", min: 1 },
@@ -161,6 +170,16 @@ export const buildGeometry = (
       return new THREE.CylinderGeometry(
         num(params, "radiusTop", 1),
         num(params, "radiusBottom", 1),
+        num(params, "height", 1),
+        num(params, "radialSegments", 32),
+        num(params, "heightSegments", 1),
+        params.openEnded === true,
+        num(params, "thetaStart", 0),
+        num(params, "thetaLength", TAU)
+      );
+    case "ConeGeometry":
+      return new THREE.ConeGeometry(
+        num(params, "radius", 1),
         num(params, "height", 1),
         num(params, "radialSegments", 32),
         num(params, "heightSegments", 1),

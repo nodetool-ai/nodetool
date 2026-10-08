@@ -84,12 +84,22 @@ const OpenMenu = ({ anchorEl, open, onClose }: OpenMenuProps) => {
         {view === "root" && (
           <>
             <MenuSectionLabel>Guided flows</MenuSectionLabel>
+            {/* The item being started says so, as the New Project cards do,
+                so the disabled menu does not read as a dead click. */}
             {starters.map((starter) => (
               <MenuItemPrimitive
                 key={starter.id}
                 label={starter.title}
-                icon={starter.icon}
-                secondary={starter.description}
+                icon={
+                  starting === starter.id ? (
+                    <LoadingSpinner size="small" />
+                  ) : (
+                    starter.icon
+                  )
+                }
+                secondary={
+                  starting === starter.id ? "Creating…" : starter.description
+                }
                 onClick={() => void starter.start()}
                 disabled={busy}
               />

@@ -20,7 +20,7 @@ import {
   applicationInvocations
 } from "./schema/application-budgets.js";
 import type { AppRunSnapshot } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
-import { AppInstanceConflictError } from "./app-instance.js";
+import { AppInstanceConflictError } from "./app-run-errors.js";
 import { appInstances } from "./schema/app-instances.js";
 import { applications } from "./schema/applications.js";
 

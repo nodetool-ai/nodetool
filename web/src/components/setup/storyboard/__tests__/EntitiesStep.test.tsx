@@ -332,7 +332,9 @@ it("finds entities in the screenplay and creates a selected reference", async ()
       model: "image-1",
       aspect_ratio: "1:1",
       variations: 1
-    })
+    }),
+    undefined,
+    undefined
   );
   expect(useStoryboardStore.getState().getBoard(BOARD_ID)?.entityIds).toEqual([
     "station",
@@ -396,7 +398,9 @@ it("draws a reference with the text-to-image variant of an editing-only still mo
       expect.objectContaining({
         provider: "atlascloud",
         model: "black-forest-labs/flux-2-flex/text-to-image"
-      })
+      }),
+      undefined,
+      undefined
     )
   );
   expect(useStoryboardStore.getState().getBoard(BOARD_ID)?.imageModel?.id).toBe(
@@ -519,7 +523,9 @@ it("creates suggested references in parallel with a generating mark on each acti
   expect(screen.queryAllByTestId("thinking-mark")).toHaveLength(0);
 });
 
-it("does not change the storyboard after the step is left", async () => {
+// F9: the entity is saved and paid for, so it joins the board even when the
+// step unmounted before the render landed.
+it("attaches an entity that lands after the step is left", async () => {
   let finishImage: (value: { asset_ids: string[] }) => void = () => {};
   rpcRequest
     .mockResolvedValueOnce({
@@ -550,6 +556,64 @@ it("does not change the storyboard after the step is left", async () => {
   finishImage({ asset_ids: ["lantern-asset"] });
 
   await waitFor(() => expect(updateAsset).toHaveBeenCalled());
+  await waitFor(() =>
+    expect(useStoryboardStore.getState().getBoard(BOARD_ID)?.entityIds).toEqual(
+      ["lantern-asset"]
+    )
+  );
+});
+
+// F9: each creation is reported to the flow, which can abort it.
+it("reports a creation to the flow and drops it once aborted", async () => {
+  let controller = new AbortController();
+  const done = jest.fn();
+  const onCreationStart = jest.fn(() => ({ signal: controller.signal, done }));
+  rpcRequest
+    .mockResolvedValueOnce({
+      data: {
+        entities: [
+          {
+            name: "The Lantern",
+            kind: "prop",
+            descriptor: "A dented brass railway lantern",
+            reference_prompt: "A dented brass railway lantern"
+          }
+        ]
+      }
+    })
+    .mockImplementationOnce(
+      (_command: string, _data: unknown, _timeout: unknown, signal?: AbortSignal) =>
+        new Promise((_resolve, reject) => {
+          signal?.addEventListener("abort", () =>
+            reject(new DOMException("The request was aborted.", "AbortError"))
+          );
+        })
+    );
+  const user = userEvent.setup();
+  const queryClient = new QueryClient({
+    defaultOptions: { queries: { retry: false } }
+  });
+  render(
+    <QueryClientProvider client={queryClient}>
+      <ThemeProvider theme={mockTheme}>
+        <MediaGalleryProvider>
+          <EntitiesStep boardId={BOARD_ID} onCreationStart={onCreationStart} />
+        </MediaGalleryProvider>
+      </ThemeProvider>
+    </QueryClientProvider>
+  );
+
+  await user.click(screen.getByRole("button", { name: "Find entities" }));
+  await user.click(
+    await screen.findByRole("button", { name: "Create The Lantern" })
+  );
+  expect(onCreationStart).toHaveBeenCalledTimes(1);
+  controller.abort();
+  controller = new AbortController();
+
+  await waitFor(() => expect(done).toHaveBeenCalledTimes(1));
+  expect(updateAsset).not.toHaveBeenCalled();
+  expect(screen.queryByRole("alert")).toBeNull();
   expect(useStoryboardStore.getState().getBoard(BOARD_ID)?.entityIds).toEqual(
     []
   );

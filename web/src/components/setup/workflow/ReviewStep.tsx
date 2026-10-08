@@ -45,6 +45,7 @@ import {
   Text,
   TextInput,
   TextLink,
+  ThinkingIndicator,
   ToolbarIconButton,
   reducedMotion
 } from "../../ui_primitives";
@@ -67,6 +68,11 @@ export interface WorkflowReviewStepProps {
   onPlanChange: (plan: WorkflowSetupPlan) => void;
   onReplan: () => void;
   replanPending?: boolean;
+  /**
+   * Stops a running `Re-plan`. The plan on screen stays, and so does
+   * `Continue to setup`.
+   */
+  onCancelReplan?: () => void;
   /** True when a configured provider covers this model role. */
   providerConfigured: (role: string) => boolean;
   /** The reason the last plan run was refused, if it was. */
@@ -78,6 +84,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
   onPlanChange,
   onReplan,
   replanPending = false,
+  onCancelReplan,
   providerConfigured,
   error = null
 }) => {
@@ -243,6 +250,17 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
           Review this plan, then choose models before building.
         </Text>
       </FlexColumn>
+
+      {replanPending ? (
+        <FlexRow gap={GAP.normal} align="center" wrap>
+          <ThinkingIndicator label="Re-planning the steps" announce />
+          {onCancelReplan ? (
+            <EditorButton variant="text" onClick={onCancelReplan}>
+              Stop re-planning
+            </EditorButton>
+          ) : null}
+        </FlexRow>
+      ) : null}
 
       {error ? (
         <AlertBanner severity="error" role="alert">

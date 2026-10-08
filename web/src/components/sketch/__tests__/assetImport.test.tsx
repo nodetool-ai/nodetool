@@ -69,7 +69,7 @@ describe("asset import", () => {
       });
     });
 
-    expect(pushHistory).toHaveBeenCalledWith("import asset");
+    expect(pushHistory).toHaveBeenCalledWith("import asset", undefined, { timing: "before" });
     expect(setDocument).toHaveBeenCalledWith(
       expect.objectContaining({
         activeLayerId: expect.any(String),

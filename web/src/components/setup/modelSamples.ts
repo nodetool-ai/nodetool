@@ -38,7 +38,12 @@ export const modelSampleUrl = (
 ): string =>
   `${MODEL_SAMPLE_BASE_URL}/${encodeURIComponent(modelId)}.${SAMPLE_EXTENSION[kind]}`;
 
-/** `kind:id` → whether its sample loaded. Module-level: one probe per session. */
+/**
+ * `kind:id` → whether its sample loaded. Module-level, so a loaded sample is
+ * probed once per session. A failed probe is dropped once it settles: a
+ * dropped connection should not hide a sample until reload, so the next tile
+ * that asks probes again.
+ */
 const probed = new Map<string, Promise<boolean>>();
 
 /** Answers whether this model's sample can be rendered. */
@@ -113,7 +118,12 @@ const probe = (modelId: string, kind: ModelSampleKind): Promise<boolean> => {
   if (existing) {
     return existing;
   }
-  const pending = probeSample(modelId, kind);
+  const pending = probeSample(modelId, kind).then((loaded) => {
+    if (!loaded && probed.get(key) === pending) {
+      probed.delete(key);
+    }
+    return loaded;
+  });
   probed.set(key, pending);
   return pending;
 };
@@ -127,7 +137,12 @@ export function useModelSamples(
   kind: ModelSampleKind
 ): Record<string, string> {
   const key = [...modelIds].sort().join(",");
-  const [available, setAvailable] = useState<Record<string, string>>({});
+  // The kind the URLs were found for. A video step's clips are not an image
+  // step's stills, so a change of kind starts from nothing.
+  const [available, setAvailable] = useState<{
+    kind: ModelSampleKind;
+    urls: Record<string, string>;
+  }>({ kind, urls: {} });
 
   useEffect(() => {
     let cancelled = false;
@@ -135,11 +150,12 @@ export function useModelSamples(
     for (const id of ids) {
       void probe(id, kind).then((loaded) => {
         if (loaded && !cancelled) {
-          setAvailable((current) =>
-            current[id]
+          setAvailable((current) => {
+            const urls = current.kind === kind ? current.urls : {};
+            return urls[id]
               ? current
-              : { ...current, [id]: modelSampleUrl(id, kind) }
-          );
+              : { kind, urls: { ...urls, [id]: modelSampleUrl(id, kind) } };
+          });
         }
       });
     }
@@ -148,5 +164,7 @@ export function useModelSamples(
     };
   }, [key, kind]);
 
-  return available;
+  return available.kind === kind ? available.urls : NO_SAMPLES;
 }
+
+const NO_SAMPLES: Record<string, string> = {};

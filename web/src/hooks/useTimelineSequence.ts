@@ -50,6 +50,16 @@ export const useCreateTimeline = () => {
   });
 };
 
+/** Delete a sequence. The list refreshes whether or not the delete lands. */
+export const useDeleteTimeline = () => {
+  const utils = trpc.useUtils();
+  return trpc.timeline.delete.useMutation({
+    onSettled: () => {
+      void utils.timeline.list.invalidate();
+    }
+  });
+};
+
 /**
  * Write a sequence the caller just PATCHed into the detail cache.
  *

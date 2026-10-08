@@ -352,6 +352,7 @@ export class WebGPUCompositor implements TimelineCompositor {
       transform: layer.transform,
       parentMatrix: layer.parentMatrix,
       precomposeGroupId: layer.precomposeGroupId,
+      sourceWindow: layer.sourceWindow,
       borderRadius: layer.borderRadius,
       crop: layer.crop,
       mask: layer.mask,

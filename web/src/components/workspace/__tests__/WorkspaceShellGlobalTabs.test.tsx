@@ -93,7 +93,7 @@ jest.mock("../../panels/PanelBottom", () => ({
 }));
 jest.mock("../../node_editor/Alert", () => ({
   __esModule: true,
-  default: () => null
+  default: () => <div>Notification popups</div>
 }));
 
 import WorkspaceShell from "../WorkspaceShell";
@@ -119,6 +119,17 @@ describe("WorkspaceShell global tabs", () => {
       expect(container.querySelector(".workspace-empty")).toBeNull();
     }
   );
+
+  it("mounts notification popups on a tab that is not a workflow editor", async () => {
+    const tab = globalTab("project-list", "projects", "Projects");
+    workspaceTabsState.tabs = [tab];
+    workspaceTabsState.activeTabId = tab.id;
+    workspaceTabsState.activeProjectId = "project-1";
+
+    render(<WorkspaceShell />);
+
+    expect(await screen.findByText("Notification popups")).toBeInTheDocument();
+  });
 
   it("still shows the empty state when the active project has no tabs", async () => {
     workspaceTabsState.tabs = [];

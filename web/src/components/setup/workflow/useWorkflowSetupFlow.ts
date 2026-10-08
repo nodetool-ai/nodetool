@@ -18,7 +18,8 @@
 import { createElement, useCallback, useMemo, useState } from "react";
 import {
   resolveWorkflowPlan,
-  WORKFLOW_INSPIRATION_CHIPS
+  WORKFLOW_INSPIRATION_CHIPS,
+  WORKFLOW_PLAN_MAX_ROUNDS
 } from "@nodetool-ai/protocol";
 import type {
   WorkflowSetupPlan,
@@ -29,6 +30,7 @@ import type {
 import useMetadataStore from "../../../stores/MetadataStore";
 import type { Workflow } from "../../../stores/ApiTypes";
 import {
+  reportSetupSaveError,
   useWorkflowSetupDocument,
   useWorkflowSetupStage,
   useWorkflowSetupWriter
@@ -56,6 +58,9 @@ import { WorkflowSetupStep } from "./SetupStep";
 import type { ModelRoleAvailability, ModelRoleChoices } from "./SetupStep";
 
 const FLOW_LABELS = { title: "Workflow" } as const;
+
+/** One planner call's output allowance. */
+const PLANNER_MAX_OUTPUT_TOKENS = 4096;
 
 /** An empty plan, so the review step renders before a planner ever ran. */
 const EMPTY_PLAN: WorkflowSetupPlan = { inputs: [], steps: [], outputs: [] };
@@ -106,12 +111,21 @@ export const useWorkflowSetupFlow = ({
 }: WorkflowSetupFlowOptions): WorkflowSetupFlowResult => {
   const stage = useWorkflowSetupStage(workflowId);
   const setup = useWorkflowSetupDocument(workflowId);
-  const { setSetup } = useWorkflowSetupWriter(workflowId);
+  const { setSetup: saveSetup, editSetup } = useWorkflowSetupWriter(workflowId);
+  // A choice or a stage change saves at once. Nobody awaits these, so a
+  // refused save is reported instead of rejecting into the void.
+  const setSetup = useCallback(
+    (patch: Parameters<typeof saveSetup>[0]) => {
+      saveSetup(patch).catch(reportSetupSaveError);
+    },
+    [saveSetup]
+  );
   const metadata = useMetadataStore((state) => state.metadata);
   const {
     planWorkflow,
     cancelPlanning,
     planning,
+    planningPhase,
     planningStatus,
     error: planError
   } = usePlanWorkflow(workflowId);
@@ -148,20 +162,20 @@ export const useWorkflowSetupFlow = ({
 
   const onPlannerModelChange = useCallback(
     (model: { provider: string; id: string }) => {
-      void setSetup({ planner_model: model });
+      setSetup({ planner_model: model });
     },
     [setSetup]
   );
 
   const onStageChange = useCallback(
     (next: WorkflowSetupStage) => {
-      void setSetup({ stage: next });
+      setSetup({ stage: next });
     },
     [setSetup]
   );
 
   const finish = useCallback(() => {
-    void setSetup({ stage: "done" });
+    setSetup({ stage: "done" });
     onFinish?.(null);
   }, [onFinish, setSetup]);
 
@@ -179,7 +193,7 @@ export const useWorkflowSetupFlow = ({
           return;
         }
         if (landedIn === workflowId) {
-          void setSetup({ stage: "done" });
+          setSetup({ stage: "done" });
         }
         onFinish?.(null);
       } catch (cause) {
@@ -221,7 +235,7 @@ export const useWorkflowSetupFlow = ({
 
   const onRoleModelChange = useCallback(
     (role: string, tileId: string) => {
-      void setSetup({ [ROLE_MODELS_KEY]: { ...roleModels, [role]: tileId } });
+      setSetup({ [ROLE_MODELS_KEY]: { ...roleModels, [role]: tileId } });
     },
     [roleModels, setSetup]
   );
@@ -269,17 +283,23 @@ export const useWorkflowSetupFlow = ({
         stage: "idea",
         label: "Idea",
         primaryLabel: "Continue",
+        // The copy cannot be stopped once asked for, so it is not the shell's
+        // pending operation: that would offer a Cancel that hides the picker
+        // and leaves only a Retry the open picker keeps disabled. The picker
+        // shows the copy, and "Back to your idea" stays in reach.
         canAdvance: !browsingExamples && brief.trim().length > 0,
-        blockedReason: browsingExamples
-          ? "Pick an example, or go back to your idea"
-          : "Describe the task",
-        pending: pickingExampleId !== null,
-        pendingLabel: "Copying the example",
+        blockedReason:
+          pickingExampleId !== null
+            ? "Copying the example"
+            : browsingExamples
+              ? "Pick an example, or go back to your idea"
+              : "Describe the task",
         render: () =>
           createElement(WorkflowIdeaStep, {
             workflowId,
+            // Typing saves after a pause rather than on every keystroke.
             onBriefChange: (next: string) => {
-              void setSetup({ brief: next });
+              editSetup({ brief: next });
             },
             browsingExamples,
             onBrowseExamples: (browsing: boolean) => {
@@ -316,21 +336,25 @@ export const useWorkflowSetupFlow = ({
         blockedReason: !category
           ? "Pick a workflow category"
           : "Pick a planner model, or use a shipped example",
+        // The planner checks its own draft and may call the model again to
+        // repair it, so the estimate covers every round's output (F10).
         generation: planIsCurrent
           ? undefined
           : {
-              result: "Draft a plan of inputs, processing steps and outputs",
+              result: `Draft a plan of inputs, processing steps and outputs, then check it (up to ${WORKFLOW_PLAN_MAX_ROUNDS} planner calls)`,
               next: "Review the proposed nodes and required models next. Build places the nodes later; this click does not run the workflow.",
               model: plannerModel,
               brief,
-              maxOutputTokens: 4096,
+              maxOutputTokens:
+                PLANNER_MAX_OUTPUT_TOKENS * WORKFLOW_PLAN_MAX_ROUNDS,
               noModelCall: !plannerModel?.id && hasPinnedPlan
             },
         primaryDetail: planIsCurrent
           ? "Your plan is unchanged — this keeps it."
           : undefined,
         pending: planning,
-        pendingLabel: "Planning the steps",
+        pendingLabel:
+          planningPhase === "checking" ? "Checking the plan" : "Planning the steps",
         footerControls: (context) =>
           createElement(PlannerModelFooterField, {
             plannerModel,
@@ -344,7 +368,7 @@ export const useWorkflowSetupFlow = ({
             // Re-selecting the card the creator is already on used to reset a
             // run mode they had chosen on the next step (F15).
             onSelect: (id: string) => {
-              void setSetup(
+              setSetup(
                 id === category
                   ? { category: id }
                   : { category: id, run_mode: defaultRunModeFor(id) }
@@ -360,6 +384,9 @@ export const useWorkflowSetupFlow = ({
           // The reason comes back from the call, not from `planError` — that
           // state is a render behind, so reading it here reported every
           // refusal, a provider 429 included, as a missing plan.
+          // A refusal, or an answer set aside because the brief or category
+          // changed meanwhile, keeps the creator here with the reason. The
+          // shell must not advance to a review with no plan on it (F2).
           const refusal = await planWorkflow({
             brief,
             category,
@@ -379,52 +406,44 @@ export const useWorkflowSetupFlow = ({
         // Criterion 4 and D23, plus the content gate: a step with no title, or
         // an output with no name, builds a node nobody can read afterwards, so
         // the review does not hand an empty field on to the build (F20).
+        // `Re-plan` runs outside the shell's primary button, so the button is
+        // held while it runs: the creator cannot continue to setup while the
+        // plan they are reading is being replaced (F2). It is not the shell's
+        // pending operation either. Canceling one there replaced the plan with
+        // a canceled screen whose Retry re-planned, so the plan the creator
+        // kept was out of reach (F6). The review stops its own re-plan and
+        // keeps the plan on screen.
         canAdvance:
-          review.canContinue && plan.steps.length > 0 && planContentIsComplete,
-        blockedReason:
-          plan.steps.length === 0
+          !planning &&
+          review.canContinue &&
+          plan.steps.length > 0 &&
+          planContentIsComplete,
+        blockedReason: planning
+          ? planningPhase === "checking"
+            ? "Checking the plan"
+            : "Re-planning the steps"
+          : plan.steps.length === 0
             ? "Add a plan step"
             : !planContentIsComplete
               ? "Give every step and output a name"
               : rolesLoading
                 ? "Reading the models your providers offer"
                 : "Resolve the missing nodes or model providers above",
-        // `Re-plan` runs outside the shell's primary button, so the shell has
-        // to read its wait: the creator cannot continue to setup while the
-        // plan they are reading is being replaced (F2).
-        pending: planning,
-        pendingLabel: "Re-planning the steps",
         render: () =>
           createElement(WorkflowReviewStep, {
             plan,
+            // Typed step titles and summaries save after a pause (F1).
             onPlanChange: (next: WorkflowSetupPlan) => {
-              void setSetup({ plan: next });
+              editSetup({ plan: next });
             },
             onReplan: () => {
               void planWorkflow({ brief, category, model: plannerModel });
             },
             replanPending: planning,
+            onCancelReplan: cancelPlanning,
             providerConfigured,
             error: planError
-          }),
-        onAdvance: async () => {
-          if (planningStatus !== "canceled") {
-            return;
-          }
-          const refusal = await planWorkflow({
-            brief,
-            category,
-            model: plannerModel
-          });
-          if (refusal) {
-            throw new Error(refusal);
-          }
-          // Re-planning returns to this review. It must not skip straight to
-          // Build with the previous plan while the new plan is arriving.
-          return false;
-        },
-        onCancel: cancelPlanning,
-        canceled: planningStatus === "canceled"
+          })
       },
       {
         stage: "setup",
@@ -443,10 +462,10 @@ export const useWorkflowSetupFlow = ({
             roles: roleChoices,
             runMode,
             onRunModeChange: (mode: WorkflowSetupRunMode) => {
-              void setSetup({ run_mode: mode });
+              setSetup({ run_mode: mode });
             },
             onSampleChange: (inputName: string, value: string) => {
-              void setSetup({
+              editSetup({
                 plan: {
                   ...plan,
                   inputs: plan.inputs.map((input) =>
@@ -494,6 +513,7 @@ export const useWorkflowSetupFlow = ({
       category,
       cancelPlanning,
       chosenModel,
+      editSetup,
       finish,
       handleImport,
       importError,
@@ -506,6 +526,7 @@ export const useWorkflowSetupFlow = ({
       planWorkflow,
       plannerModel,
       planning,
+      planningPhase,
       planningStatus,
       providerConfigured,
       review.canContinue,

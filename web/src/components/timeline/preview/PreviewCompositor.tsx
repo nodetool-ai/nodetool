@@ -86,12 +86,15 @@ import {
 } from "@nodetool-ai/timeline/render";
 import type {
   ActiveLayer,
-  AnimatedLayerProps
+  AnimatedLayerProps,
+  FrameSourceWindow,
+  RasterWindow
 } from "@nodetool-ai/timeline/render";
 import {
   buildCompositeLayers,
   buildCompositeAdjustments,
   buildCompositePrecomposites,
+  rasterWindowMargin,
   type ResolvedCompositeSource
 } from "./compositeLayers";
 import { matteOnlyLayers } from "./matteOverlay";
@@ -568,6 +571,9 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const blurCanvasRef = useRef<HTMLCanvasElement>(null);
   const compositorRef = useRef<TimelineCompositor | null>(null);
+  // Text and shapes rasterize only where they draw, placed through
+  // `sourceWindow`. The WebGPU compositor reads windows; Canvas 2D does not.
+  const windowedRastersRef = useRef(false);
   const captionRasterizerRef = useRef<CaptionRasterizer>(
     new CaptionRasterizer()
   );
@@ -684,13 +690,14 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
     canvas.addEventListener("contextlost", onContextLost);
 
     createCompositor(canvas, onFailure)
-      .then(({ compositor, init }) => {
+      .then(({ compositor, backend, init }) => {
         if (cancelled) {
           compositor.dispose();
           return;
         }
         if (init.ok) {
           compositorRef.current = compositor;
+          windowedRastersRef.current = backend === "webgpu";
           setGpuReady(true);
         } else {
           setGpuFailed(true);
@@ -1564,6 +1571,12 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
    * pooled `<video>`, a decoded `<img>`, a rasterized bitmap.
    */
   const framePrecompositesRef = useRef(precomposites);
+  const frameAdjustmentsRef = useRef<{
+    atMs: number;
+    tracks: readonly unknown[];
+    clips: readonly TimelineClip[];
+    adjustments: ReturnType<typeof computeActiveLayersWithHorizon>["adjustments"];
+  } | null>(null);
   const buildLayers = useCallback(
     (atMs: number, frameTimeMs = atMs, sampleIndex = 0, sampleCount = 1): CompositeLayer[] => {
       const bitmapFrame = new BitmapFrameScope();
@@ -1589,6 +1602,12 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
       framePrecompositesRef.current = recomputed
         ? buildCompositePrecomposites(recomputed.precomposites)
         : precomposites;
+      // Adjustments are resolved at the frame time, not a layer's shutter
+      // time, so this resolve already holds the ones `buildAdjustments` asks
+      // for next: handing them over saves resolving the scene twice a frame.
+      frameAdjustmentsRef.current = recomputed
+        ? { atMs, tracks, clips: previewClips, adjustments: recomputed.adjustments }
+        : null;
       const layers =
         recomputed === null
           ? sceneLayers
@@ -1628,9 +1647,12 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             sequenceWidth,
             sequenceHeight,
             stagger,
-            bitmapFrame
+            bitmapFrame,
+            windowedRastersRef.current ? rasterWindowMargin(layer, anim) : undefined
           );
-          return bitmap ? { source: bitmap } : null;
+          return bitmap
+            ? { source: bitmap, window: frameWindow(textRasterizerRef.current.windowOf(bitmap)) }
+            : null;
         }
         if (layer.kind === "shape") {
           // The animated style carries a driven trim range; without it a trim
@@ -1641,9 +1663,12 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
             shapeStyle,
             sequenceWidth,
             sequenceHeight,
-            bitmapFrame
+            bitmapFrame,
+            windowedRastersRef.current ? rasterWindowMargin(layer, anim) : undefined
           );
-          return bitmap ? { source: bitmap } : null;
+          return bitmap
+            ? { source: bitmap, window: frameWindow(shapeRasterizerRef.current.windowOf(bitmap)) }
+            : null;
         }
 
         if (layer.kind === "model3d") {
@@ -1686,6 +1711,9 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
         if (!el || el.videoWidth === 0) return null;
         return { source: el };
       };
+
+      const frameWindow = (window: RasterWindow | undefined): FrameSourceWindow | undefined =>
+        window && { x: window.x, y: window.y, frameWidth: sequenceWidth, frameHeight: sequenceHeight };
 
       const compositeLayers = buildCompositeLayers(layers, {
         atMs,
@@ -1859,17 +1887,22 @@ const PreviewSurface = memo((props: PreviewSurfaceProps) => {
   hasAnimatedAdjustmentsRef.current = hasAnimatedAdjustments;
   const adjustmentsRef = useRef(adjustments);
   adjustmentsRef.current = adjustments;
-  const buildAdjustments = (atMs: number) => hasAnimatedAdjustments
-    ? buildCompositeAdjustments(computeActiveLayersWithHorizon(tracks, previewClips, atMs, {
-        maxVideoLayers: HOT_POOL_SIZE,
-        canvas: sceneCanvas,
-        animationCache: animCacheRef.current,
-        model3dBakeHash,
-        mediaTracks,
-        camera2d,
-        tempo
-      }).adjustments)
-    : adjustments;
+  const buildAdjustments = (atMs: number) => {
+    if (!hasAnimatedAdjustments) return adjustments;
+    const resolved = frameAdjustmentsRef.current;
+    if (resolved && resolved.atMs === atMs && resolved.tracks === tracks && resolved.clips === previewClips) {
+      return buildCompositeAdjustments(resolved.adjustments);
+    }
+    return buildCompositeAdjustments(computeActiveLayersWithHorizon(tracks, previewClips, atMs, {
+      maxVideoLayers: HOT_POOL_SIZE,
+      canvas: sceneCanvas,
+      animationCache: animCacheRef.current,
+      model3dBakeHash,
+      mediaTracks,
+      camera2d,
+      tempo
+    }).adjustments);
+  };
   const buildAdjustmentsRef = useRef(buildAdjustments);
   buildAdjustmentsRef.current = buildAdjustments;
 

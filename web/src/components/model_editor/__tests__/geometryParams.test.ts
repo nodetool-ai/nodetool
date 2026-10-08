@@ -94,6 +94,7 @@ describe("buildGeometry", () => {
       SphereGeometry: new THREE.SphereGeometry(0.5, 32, 16),
       PlaneGeometry: new THREE.PlaneGeometry(2, 2),
       CylinderGeometry: new THREE.CylinderGeometry(0.5, 0.5, 1, 32),
+      ConeGeometry: new THREE.ConeGeometry(0.5, 1, 32),
       TorusGeometry: new THREE.TorusGeometry(0.5, 0.2, 16, 64)
     } satisfies Record<EditableGeometryType, THREE.BufferGeometry>;
     for (const [type, geo] of Object.entries(samples) as [

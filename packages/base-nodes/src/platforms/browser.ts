@@ -11,6 +11,7 @@
 import type { NodeClass } from "@nodetool-ai/node-sdk";
 
 import {
+  APP_NODES,
   COMPARE_NODES,
   CONSTANT_NODES,
   CONTROL_NODES,
@@ -25,6 +26,7 @@ import {
 import { CodeNode } from "@nodetool-ai/code-nodes";
 
 export {
+  APP_NODES,
   COMPARE_NODES,
   CONSTANT_NODES,
   CONTROL_NODES,
@@ -42,6 +44,7 @@ export {
  * register them en masse without enumerating the named exports above.
  */
 export const ALL_BROWSER_NODES: readonly NodeClass[] = [
+  ...APP_NODES,
   ...COMPARE_NODES,
   ...CONSTANT_NODES,
   ...CONTROL_NODES,

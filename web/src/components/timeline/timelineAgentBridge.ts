@@ -741,7 +741,7 @@ function resolveOpenSequenceId(sequenceId: string): string {
     return sequenceId;
   }
   const matches = [...handlers.keys()].filter((id) =>
-    id.startsWith(sequenceId)
+    id.startsWith(sequenceId) // key-boundary-ok: deliberate exact 12-hex prefix, with a unique open-handler match.
   );
   if (matches.length > 1) {
     throw new Error(

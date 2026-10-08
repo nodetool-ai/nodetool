@@ -2,11 +2,16 @@
  * Leg selection for the quality gate. A leg left off here never runs in CI,
  * so each rule is pinned against a synthetic package graph.
  */
-import { describe, expect, it } from "vitest";
+import { resolve } from "node:path";
+import { fileURLToPath } from "node:url";
+
+import { describe, expect, it, vi } from "vitest";
 
 import { computeAffected } from "../../packages/cli/src/affected/affected.ts";
 import { buildCiPlan, fullCiPlan } from "../ci-plan.mjs";
 import { MOBILE_DEPS } from "../test-affected.mjs";
+
+const REPO_ROOT = fileURLToPath(new URL("../..", import.meta.url));
 
 const PACKAGES = [
   { name: "@nodetool-ai/protocol", dir: "packages/protocol", internalDeps: [] },
@@ -142,5 +147,74 @@ describe("buildCiPlan", () => {
   it("selects nothing for documentation outside every workspace", () => {
     const p = plan(["docs/index.md", "AGENTS.md"]);
     expect(Object.values(p).filter((v) => v === true || v === "full" || v === "related")).toEqual([]);
+  });
+});
+
+describe("ci-plan run", () => {
+  it.each([
+    {
+      name: "runs both full app suites for a global change with a supplied base",
+      files: ["scripts/graph-resource-fixtures.mjs"],
+      expectedArgs: [
+        ["test", "--workspace=electron"],
+        ["--prefix", "mobile", "test"]
+      ]
+    },
+    {
+      name: "runs only related electron tests for an electron-only change",
+      files: ["electron/src/main.ts"],
+      expectedArgs: [
+        [
+          "test", "--workspace=electron", "--", "--findRelatedTests",
+          resolve(REPO_ROOT, "electron/src/main.ts"), "--passWithNoTests"
+        ]
+      ]
+    },
+    {
+      name: "runs only related mobile tests for a mobile-only change",
+      files: ["mobile/src/App.tsx"],
+      expectedArgs: [
+        [
+          "--prefix", "mobile", "test", "--", "--findRelatedTests",
+          resolve(REPO_ROOT, "mobile/src/App.tsx"), "--passWithNoTests"
+        ]
+      ]
+    },
+    {
+      name: "skips both apps for a web-only change",
+      files: ["web/src/components/Foo.tsx"],
+      expectedArgs: []
+    }
+  ])("$name", async ({ files, expectedArgs }) => {
+    const originalArgv = process.argv;
+    const base = "515bd2803fd393127783ba356c6c69b4c956febe";
+    const execFileSync = vi.fn((_command, args) =>
+      args[0] === "diff" ? `${files.join("\n")}\n` : ""
+    );
+    const spawnSync = vi.fn(() => ({ status: 0 }));
+    const exit = vi.spyOn(process, "exit").mockImplementation(() => {});
+    vi.spyOn(console, "log").mockImplementation(() => {});
+    vi.doMock("node:child_process", () => ({ execFileSync, spawnSync }));
+    vi.resetModules();
+    process.argv = [
+      process.execPath,
+      fileURLToPath(new URL("../ci-plan.mjs", import.meta.url)),
+      "run", "electron", "mobile", "--base", base
+    ];
+    try {
+      await import("../ci-plan.mjs");
+      expect(execFileSync).toHaveBeenCalledWith(
+        "git", ["diff", "--name-only", "--no-renames", base, "HEAD"], expect.any(Object)
+      );
+      expect(spawnSync.mock.calls.map(([command, args]) => [command, args])).toEqual(
+        expectedArgs.map((args) => ["npm", args])
+      );
+      expect(exit).toHaveBeenCalledWith(0);
+    } finally {
+      process.argv = originalArgv;
+      vi.doUnmock("node:child_process");
+      vi.restoreAllMocks();
+      vi.resetModules();
+    }
   });
 });
