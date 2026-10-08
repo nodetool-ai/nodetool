@@ -402,13 +402,22 @@ More creative patterns — directed films, entity-consistent batches, script-dri
   <li><a href="{{ '/getting-started' | relative_url }}#2-say-what-you-want">Ask the agent for a storyboard, render it, and export the film.</a></li>
 </ol>
 
-## Explore
+## Find what you need
 
-- **New here:** [Getting Started]({{ '/getting-started' | relative_url }}) · [Key Concepts]({{ '/key-concepts' | relative_url }}) · [UI]({{ '/user-interface' | relative_url }})
-- **Working with the agent:** [Chat]({{ '/global-chat' | relative_url }}) · [Chat & Agents]({{ '/global-chat-agents' | relative_url }}) · [Agent Memory]({{ '/agent-memory' | relative_url }})
-- **Building:** [Cookbook]({{ '/cookbook' | relative_url }}) · [Examples]({{ '/workflows/' | relative_url }}) · [Mini Apps]({{ '/mini-apps' | relative_url }})
-- **Self-hosting:** [Deployment]({{ '/deployment' | relative_url }}) · [Configuration]({{ '/configuration' | relative_url }}) · [API]({{ '/api-reference' | relative_url }})
-- **Extending:** [Developer Guide]({{ '/developer/' | relative_url }}) · [Custom Nodes]({{ '/developer/node-reference' | relative_url }}) · [CLI]({{ '/cli' | relative_url }})
+<div class="card-grid">
+  <a class="doc-card" href="{{ '/getting-started' | relative_url }}"><strong>Get started</strong><span>Install NodeTool, connect a model, and make a first short film with the agent.</span></a>
+  <a class="doc-card" href="{{ '/key-concepts' | relative_url }}"><strong>Core concepts</strong><span>Agents, nodes, workflows, assets, and how they fit together.</span></a>
+  <a class="doc-card" href="{{ '/workflow-editor' | relative_url }}"><strong>Workflow editor</strong><span>Build, run, and debug node graphs on the canvas.</span></a>
+  <a class="doc-card" href="{{ '/creative-agent' | relative_url }}"><strong>Creative editors</strong><span>Storyboards, timelines, sketches, 3D, games, and audio.</span></a>
+  <a class="doc-card" href="{{ '/global-chat-agents' | relative_url }}"><strong>Chat and agents</strong><span>Chat, skills, memory, and the MCP server.</span></a>
+  <a class="doc-card" href="{{ '/models-and-providers' | relative_url }}"><strong>Models and providers</strong><span>Local and cloud models, API keys, and costs.</span></a>
+  <a class="doc-card" href="{{ '/nodes/' | relative_url }}"><strong>Node reference</strong><span>Every node, grouped by what it works with.</span></a>
+  <a class="doc-card" href="{{ '/cookbook' | relative_url }}"><strong>Cookbook</strong><span>Worked patterns you can copy into your own projects.</span></a>
+  <a class="doc-card" href="{{ '/mini-apps' | relative_url }}"><strong>Mini apps</strong><span>Turn a workflow into a small app other people can run.</span></a>
+  <a class="doc-card" href="{{ '/deployment' | relative_url }}"><strong>Self-hosting</strong><span>Run NodeTool on your own server with Docker.</span></a>
+  <a class="doc-card" href="{{ '/developer/' | relative_url }}"><strong>Developers</strong><span>Custom nodes, the TypeScript DSL, and the APIs.</span></a>
+  <a class="doc-card" href="{{ '/troubleshooting' | relative_url }}"><strong>Help</strong><span>Error messages, fixes, FAQ, and keyboard shortcuts.</span></a>
+</div>
 
 <section class="home-section">
   <h2>Open source</h2>

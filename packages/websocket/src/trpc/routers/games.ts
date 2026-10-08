@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import sharp from "sharp";
 import { createLogger, getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
-import { AmbiguousGameIdError, InvalidGameDocumentError, Asset, Game, Project, Workspace } from "@nodetool-ai/models";
+import { AmbiguousGameIdError, InvalidGameDocumentError, MissingGameDraftSourceError, Asset, Game, Project, Workspace } from "@nodetool-ai/models";
 import { exampleGameSummary, anyGameAssetBinding, gameAssetBinding, gameAssetBinding3D, gamePreparedCollider3D, gameModelImportSettings3D, parseGameDocument, anyGameDocument as gameDocument, installExampleGameInput, type AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame, createNative3DGame, anyGameDocumentOp as gameDocumentOp, GameOpError, decodePreparedGameCollider3D, trackGameAuthoringEdits, validateAnyGame } from "@nodetool-ai/game-runtime";
 import { normalizeGameModel3D, prepareGameModelBinding3D } from "@nodetool-ai/game-renderer/preparation3d";
@@ -22,6 +22,14 @@ import { throwApiError } from "../error-formatter.js";
 import { boundedGameDraftHistory, MAX_GAME_DRAFT_OPS } from "./gameDraftHistory.js";
 
 const log = createLogger("nodetool.games");
+
+const gameProcedure = protectedProcedure.use(async ({ next }) => {
+  const result = await next();
+  if (!result.ok && result.error.cause instanceof MissingGameDraftSourceError) {
+    throwApiError(ApiErrorCode.SERVICE_UNAVAILABLE, result.error.cause.message, "PRECONDITION_FAILED");
+  }
+  return result;
+});
 
 const idInput = z.object({ id: z.string() });
 const gameInfo = z.object({
@@ -72,6 +80,9 @@ function authoringRun(userId: string) {
 
 function checkAuthoringResult(result: unknown): void {
   if (result !== null && typeof result === "object" && "error" in result && typeof result.error === "string") {
+    if ("code" in result && result.code === "game_draft_source_unavailable") {
+      throwApiError(ApiErrorCode.SERVICE_UNAVAILABLE, result.error, "PRECONDITION_FAILED");
+    }
     const code = /stale|concurrent|changed since/i.test(result.error)
       ? ApiErrorCode.ALREADY_EXISTS : ApiErrorCode.INVALID_INPUT;
     throwApiError(code, result.error);
@@ -295,7 +306,7 @@ async function createGame(
 }
 
 export const gamesRouter = router({
-  list: protectedProcedure
+  list: gameProcedure
     .input(z.object({ projectId: z.string() }))
     .output(z.array(gameInfo))
     .query(async ({ ctx, input }) => {
@@ -305,7 +316,7 @@ export const gamesRouter = router({
       return (await Game.listByProject(ctx.userId, input.projectId)).map(info);
     }),
 
-  create: protectedProcedure
+  create: gameProcedure
     .input(z.object({ projectId: z.string(), name: z.string().min(1).max(200), dimension: z.enum(["2d", "3d"]).optional(), document: gameDocument.optional() }))
     .output(gameWithDocument)
     .mutation(({ ctx, input }) => {
@@ -315,11 +326,11 @@ export const gamesRouter = router({
       return createGame(ctx.userId, input.projectId, input.name, input.document, input.dimension);
     }),
 
-  examples: protectedProcedure
+  examples: gameProcedure
     .output(z.array(exampleGameSummary))
     .query(({ ctx }) => listExampleGames(ctx.apiOptions)),
 
-  example: protectedProcedure
+  example: gameProcedure
     .input(z.object({ slug: z.string().min(1) }))
     .output(z.object({ name: z.string(), document: gameDocument }))
     .query(({ ctx, input }) => {
@@ -330,7 +341,7 @@ export const gamesRouter = router({
       return { name: bundle.name, document: bundle.document };
     }),
 
-  installExample: protectedProcedure
+  installExample: gameProcedure
     .input(installExampleGameInput)
     .output(gameWithDocument)
     .mutation(async ({ ctx, input }) => {
@@ -349,7 +360,7 @@ export const gamesRouter = router({
       }
     }),
 
-  get: protectedProcedure
+  get: gameProcedure
     .input(idInput.extend({ revision: z.string().optional() }))
     .output(gameWithDocument)
     .query(async ({ ctx, input }) => {
@@ -358,7 +369,7 @@ export const gamesRouter = router({
       return { game: info(game), document: await readRevision(workspace, game, input.revision ?? game.current_revision) };
     }),
 
-  getDraft: protectedProcedure
+  getDraft: gameProcedure
     .input(idInput)
     .output(gameWithDocument)
     .query(async ({ ctx, input }) => {
@@ -368,7 +379,7 @@ export const gamesRouter = router({
       return { game: info(draft.game), document: draft.document };
     }),
 
-  saveDraft: protectedProcedure
+  saveDraft: gameProcedure
     .input(idInput.extend({ baseUpdatedAt: z.string(), ops: z.array(gameDocumentOp).min(1).max(MAX_GAME_DRAFT_OPS) }))
     .output(gameWithDocument)
     .mutation(async ({ ctx, input }) => {
@@ -389,7 +400,7 @@ export const gamesRouter = router({
       }
     }),
 
-  previewAuthoring: protectedProcedure
+  previewAuthoring: gameProcedure
     .input(idInput.extend({ program: gameAuthoringProgram.optional() }).strict())
     .output(authoringPreview)
     .mutation(async ({ ctx, input }) => {
@@ -401,7 +412,7 @@ export const gamesRouter = router({
       return authoringPreview.parse(result);
     }),
 
-  applyAuthoring: protectedProcedure
+  applyAuthoring: gameProcedure
     .input(idInput.extend({ candidate: gameAuthoringCandidate }).strict())
     .output(gameWithDocument)
     .mutation(async ({ ctx, input }) => {
@@ -415,7 +426,7 @@ export const gamesRouter = router({
       return { game: info(draft.game), document: draft.document };
     }),
 
-  draftChanges: protectedProcedure
+  draftChanges: gameProcedure
     .input(idInput)
     .output(z.array(z.object({
       id: z.string(), actor: z.enum(["agent", "user"]), threadId: z.string().nullable(),
@@ -428,7 +439,7 @@ export const gamesRouter = router({
       return boundedGameDraftHistory((await Game.listDraftChanges(ctx.userId, game.id)).map(({ gameId: _gameId, ...change }) => change));
     }),
 
-  draftBeforeChange: protectedProcedure
+  draftBeforeChange: gameProcedure
     .input(idInput.extend({ changeId: z.string() }))
     .output(gameDocument)
     .query(async ({ ctx, input }) => {
@@ -440,7 +451,7 @@ export const gamesRouter = router({
       return document;
     }),
 
-  revisions: protectedProcedure
+  revisions: gameProcedure
     .input(idInput)
     .output(z.array(gameRevisionInfo))
     .query(async ({ ctx, input }) => {
@@ -456,14 +467,14 @@ export const gamesRouter = router({
       return revisions.sort((a, b) => b.modifiedAt - a.modifiedAt);
     }),
 
-  publish: protectedProcedure
+  publish: gameProcedure
     .input(idInput.extend({ baseRevision: z.string(), baseUpdatedAt: z.string().optional(), expectedDigest: z.string().regex(/^[a-f0-9]{64}$/).optional(), document: gameDocument.optional(), message: z.string().trim().max(500).optional() }))
     .output(gameWithDocument)
     .mutation(async ({ ctx, input }) =>
       publishDocument(ctx.userId, await ownedGame(ctx.userId, input.id), input.baseRevision, input.document, input.message, false, input.baseUpdatedAt, input.expectedDigest)
     ),
 
-  restore: protectedProcedure
+  restore: gameProcedure
     .input(idInput.extend({ baseRevision: z.string(), baseUpdatedAt: z.string(), revision: z.string() }))
     .output(gameWithDocument)
     .mutation(async ({ ctx, input }) => {
@@ -473,7 +484,7 @@ export const gamesRouter = router({
       return publishDocument(ctx.userId, game, input.baseRevision, oldDocument, undefined, true, input.baseUpdatedAt);
     }),
 
-  restoreDraft: protectedProcedure
+  restoreDraft: gameProcedure
     .input(idInput.extend({ baseUpdatedAt: z.string(), revision: z.string() }))
     .output(gameWithDocument)
     .mutation(async ({ ctx, input }) => {
@@ -492,7 +503,7 @@ export const gamesRouter = router({
       }
     }),
 
-  installAsset: protectedProcedure
+  installAsset: gameProcedure
     .input(idInput.extend({ baseRevision: z.string().optional(), baseUpdatedAt: z.string().optional(), slot: z.string().min(1),
       assetId: z.string(), expectedDigest: z.string().optional(), importSettings: gameModelImportSettings3D.partial().optional(),
       dependencyAssetIds: z.record(z.string(), z.string()).refine((value) => Object.keys(value).length <= 320, "Too many model dependencies").optional() }))
@@ -557,7 +568,7 @@ export const gamesRouter = router({
       return { game: info(saved.game), document: saved.document };
     }),
 
-  installCandidate: protectedProcedure
+  installCandidate: gameProcedure
     .input(idInput.extend({
       baseRevision: z.string().optional(),
       baseUpdatedAt: z.string().optional(),
