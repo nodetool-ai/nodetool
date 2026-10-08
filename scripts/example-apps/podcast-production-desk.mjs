@@ -1,5 +1,6 @@
 export const PODCAST_PRODUCTION_DESK_APP = {
   slug: "podcast-production-desk",
+  steps: true,
   name: "Podcast Production Desk",
   emoji: "🎙️",
   featured: true,

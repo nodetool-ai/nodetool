@@ -149,25 +149,52 @@ const useBinding = (props: WidgetCommon, mode: WidgetBindingMode) =>
 const asItems = (value: unknown): unknown[] =>
   Array.isArray(value) ? value : value == null ? [] : [value];
 
-const MediaPlaceholder: React.FC<{ height: number; text: string }> = ({
-  height,
-  text
-}) => (
-  <FlexColumn
-    align="center"
-    justify="center"
-    fullWidth
-    sx={{
-      height,
-      border: "1px dashed",
-      borderColor: "divider",
-      borderRadius: BORDER_RADIUS.md,
-      color: "text.secondary"
-    }}
-  >
-    <Caption color="secondary">{text}</Caption>
-  </FlexColumn>
-);
+/** Height of an empty media slot in a running app, before anything was made. */
+const IDLE_PLACEHOLDER_PX = 96;
+
+const placeholderPulse = keyframes`
+  0%, 100% { opacity: 0.55; }
+  50% { opacity: 1; }
+`;
+
+/**
+ * An empty media slot. The builder canvas keeps the author's full height so the
+ * layout can be judged. A running app shows a short dashed strip until the
+ * operation that fills it starts, then the full-height frame pulses so the
+ * page does not jump when the result lands.
+ */
+const MediaPlaceholder: React.FC<{
+  height: number;
+  text: string;
+  designMode?: boolean;
+  producing?: boolean;
+}> = ({ height, text, designMode, producing }) => {
+  const full = designMode || producing;
+  return (
+    <FlexColumn
+      align="center"
+      justify="center"
+      fullWidth
+      role={producing ? "status" : undefined}
+      sx={{
+        height: full ? height : Math.min(height, IDLE_PLACEHOLDER_PX),
+        border: "1px dashed",
+        borderColor: "divider",
+        borderRadius: BORDER_RADIUS.md,
+        bgcolor: producing ? "action.hover" : "transparent",
+        color: "text.secondary",
+        transition: `height ${MOTION.normal}, ${MOTION.background}`,
+        ...(producing && {
+          borderStyle: "solid",
+          animation: `${placeholderPulse} ${MOTION.pulse} infinite`,
+          ...reducedMotion({ animation: "none" })
+        })
+      }}
+    >
+      <Caption color="secondary">{producing ? "Generating…" : text}</Caption>
+    </FlexColumn>
+  );
+};
 
 const MediaDownloadButton: React.FC<{
   src: string;
@@ -427,7 +454,7 @@ export const ImageWidget: React.FC<
     width?: number;
   }
 > = (props) => {
-  const { value } = useBinding(props, "read");
+  const { value, designMode, producing } = useBinding(props, "read");
   const aspectRatio = props.aspectRatio || undefined;
   const width = isNumber(props.width) && props.width > 0 ? props.width : undefined;
   const sources = React.useMemo(
@@ -443,6 +470,8 @@ export const ImageWidget: React.FC<
       <MediaPlaceholder
         height={height}
         text={props.placeholder ?? "No image"}
+        designMode={designMode}
+        producing={producing}
       />
     );
   }
@@ -496,7 +525,7 @@ export const AudioWidget: React.FC<
     filename?: string;
   }
 > = (props) => {
-  const { value } = useBinding(props, "read");
+  const { value, designMode, producing } = useBinding(props, "read");
   const sources = React.useMemo(
     () =>
       asItems(value)
@@ -509,6 +538,8 @@ export const AudioWidget: React.FC<
       <MediaPlaceholder
         height={56}
         text={props.placeholder ?? "No audio yet"}
+        designMode={designMode}
+        producing={producing}
       />
     );
   }
@@ -539,7 +570,7 @@ export const VideoWidget: React.FC<
     filename?: string;
   }
 > = (props) => {
-  const { value } = useBinding(props, "read");
+  const { value, designMode, producing } = useBinding(props, "read");
   const sources = React.useMemo(
     () =>
       asItems(value)
@@ -553,6 +584,8 @@ export const VideoWidget: React.FC<
       <MediaPlaceholder
         height={height}
         text={props.placeholder ?? "No video yet"}
+        designMode={designMode}
+        producing={producing}
       />
     );
   }
@@ -1358,6 +1391,52 @@ export interface StepperStep {
   completed?: boolean;
 }
 
+/** Marker diameter, and the connector's thickness between two markers. */
+const STEP_MARKER_PX = SPACING_PX.xxl;
+const STEP_CONNECTOR_PX = SPACING_PX.micro;
+/** Width one titled step needs, which decides when the rail drops titles. */
+const STEP_MIN_WIDTH_PX = 150;
+
+type StepState = "done" | "current" | "upcoming";
+
+const StepMarker: React.FC<{ state: StepState; index: number }> = ({
+  state,
+  index
+}) => (
+  <Box
+    aria-hidden
+    sx={{
+      width: STEP_MARKER_PX,
+      height: STEP_MARKER_PX,
+      flexShrink: 0,
+      display: "grid",
+      placeItems: "center",
+      borderRadius: BORDER_RADIUS.circle,
+      border: "1px solid",
+      borderColor: state === "upcoming" ? "divider" : "primary.main",
+      bgcolor: state === "current" ? "primary.main" : "transparent",
+      color:
+        state === "current"
+          ? "primary.contrastText"
+          : state === "done"
+            ? "primary.main"
+            : "text.secondary",
+      fontSize: "var(--fontSizeSmall)",
+      fontWeight: 600,
+      lineHeight: 1,
+      transition: `${MOTION.background}, ${MOTION.border}`
+    }}
+  >
+    {state === "done" ? "✓" : index + 1}
+  </Box>
+);
+
+/**
+ * A numbered progress rail: done steps carry a check and a filled connector,
+ * the current step a solid marker. Every reachable step is a button, so the
+ * rail is also the way back to an earlier step. When the titles would not fit
+ * on one line, only the current step keeps its title.
+ */
 export const StepperWidget: React.FC<
   WidgetCommon & {
     label?: string;
@@ -1368,53 +1447,126 @@ export const StepperWidget: React.FC<
 > = (props) => {
   const { value, setValue, emit } = useBinding(props, "write");
   const steps = props.steps ?? [];
-  const found = steps.findIndex((step) => step.value === str(value));
-  const current = found;
+  const current = steps.findIndex((step) => step.value === str(value));
   const firstStep = steps[0]?.value;
   React.useEffect(() => {
     if (value == null && firstStep !== undefined && !props.disabled) setValue(firstStep);
   }, [props.disabled, setValue, firstStep, value]);
+  const blocked = (index: number): boolean =>
+    Boolean(
+      props.disabled ||
+        steps[index]?.disabled ||
+        (index < current && props.allowBack === false)
+    );
   const choose = (index: number) => {
     const step = steps[index];
-    if (
-      props.disabled ||
-      !step ||
-      step.disabled ||
-      (index < current && props.allowBack === false)
-    )
-      return;
+    if (!step || blocked(index) || index === current) return;
     setValue(step.value);
     emit("change");
   };
+  const currentStep = steps[current];
   return (
-    <FlexColumn gap={SPACING.sm} fullWidth>
+    <FlexColumn
+      component="nav"
+      aria-label={props.label || "Steps"}
+      gap={SPACING.sm}
+      fullWidth
+      sx={{ containerType: "inline-size" }}
+    >
       {props.label ? <Label>{props.label}</Label> : null}
-      <FlexRow gap={SPACING.sm} fullWidth align="center" sx={{ flexWrap: "wrap" }}>
-        {steps.map((step, index) => (
-          <React.Fragment key={step.value}>
-            {index > 0 ? (
-              <Box aria-hidden sx={{ width: getSpacingPx(SPACING.lg), height: "1px", bgcolor: "divider" }} />
-            ) : null}
-            <EditorButton
-              variant={index === current ? "contained" : "outlined"}
-              size="small"
-              disabled={
-                props.disabled ||
-                step.disabled ||
-                (index < current && props.allowBack === false)
-              }
-              aria-current={index === current ? "step" : undefined}
-              onClick={() => choose(index)}
-            >
-              {/* A step before the current one is done unless the author says otherwise. */}
-              {(step.completed ?? index < current) ? "✓ " : ""}
-              {step.title || step.value}
-            </EditorButton>
-          </React.Fragment>
-        ))}
-      </FlexRow>
-      {steps[current]?.description ? (
-        <Caption color="secondary">{steps[current].description}</Caption>
+      <Box
+        component="ol"
+        sx={{
+          display: "flex",
+          alignItems: "center",
+          gap: `${SPACING_PX.sm}px`,
+          listStyle: "none",
+          m: 0,
+          p: 0,
+          width: "100%"
+        }}
+      >
+        {steps.map((step, index) => {
+          // A step before the current one is done unless the author says otherwise.
+          const state: StepState =
+            index === current
+              ? "current"
+              : (step.completed ?? index < current)
+                ? "done"
+                : "upcoming";
+          const title = step.title || step.value;
+          return (
+            <React.Fragment key={step.value}>
+              {index > 0 ? (
+                <Box
+                  component="li"
+                  aria-hidden
+                  sx={{
+                    flex: "1 1 0",
+                    minWidth: SPACING_PX.lg,
+                    height: STEP_CONNECTOR_PX,
+                    borderRadius: BORDER_RADIUS.pill,
+                    bgcolor: index <= current ? "primary.main" : "divider",
+                    transition: MOTION.background
+                  }}
+                />
+              ) : null}
+              <Box component="li" sx={{ flex: "0 0 auto", minWidth: 0 }}>
+                <Box
+                  component="button"
+                  type="button"
+                  disabled={blocked(index)}
+                  aria-current={index === current ? "step" : undefined}
+                  aria-label={`Step ${index + 1} of ${steps.length}: ${title}${state === "done" ? ", done" : ""}`}
+                  onClick={() => choose(index)}
+                  sx={{
+                    display: "flex",
+                    alignItems: "center",
+                    gap: `${SPACING_PX.sm}px`,
+                    p: SPACING.xs,
+                    m: 0,
+                    border: 0,
+                    borderRadius: BORDER_RADIUS.pill,
+                    bgcolor: "transparent",
+                    color: state === "upcoming" ? "text.secondary" : "text.primary",
+                    font: "inherit",
+                    cursor: index === current ? "default" : "pointer",
+                    transition: MOTION.background,
+                    "&:hover:not(:disabled)": {
+                      bgcolor: index === current ? "transparent" : "action.hover"
+                    },
+                    "&:focus-visible": {
+                      outline: "2px solid",
+                      outlineColor: "primary.main",
+                      outlineOffset: 2
+                    },
+                    "&:disabled": { cursor: "default", opacity: index === current ? 1 : 0.5 },
+                    // When the titles would not fit on one line, only the
+                    // current step keeps its title.
+                    [`@container (max-width: ${steps.length * STEP_MIN_WIDTH_PX}px)`]: {
+                      "& .step-title": { display: index === current ? "inline" : "none" }
+                    }
+                  }}
+                >
+                  <StepMarker state={state} index={index} />
+                  <Text
+                    component="span"
+                    className="step-title"
+                    size="small"
+                    weight={index === current ? 600 : 500}
+                    color="inherit"
+                    sx={{ whiteSpace: "nowrap" }}
+                  >
+                    {title}
+                  </Text>
+                </Box>
+              </Box>
+            </React.Fragment>
+          );
+        })}
+      </Box>
+      {currentStep?.description ? (
+        <Caption color="secondary">{currentStep.description}</Caption>
       ) : null}
     </FlexColumn>
   );

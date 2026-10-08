@@ -19,35 +19,65 @@
           "props": {
             "id": "title",
             "text": "🎞️ AI Video Post House",
-            "level": "1"
-          }
-        },
-        {
-          "type": "Text",
-          "props": {
-            "id": "tagline",
-            "text": "One clip becomes a new look, a short cut, and an AI voiced performance."
+            "level": "1",
+            "subtitle": "One clip becomes a new look, a short cut, and an AI voiced performance."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "The AI restyle and revoice use configured models and incur provider charges. Grading, trimming, and frame extraction run locally. Each result starts from the uploaded source; upload a result to make another pass."
+            "text": "The AI restyle and revoice use configured models and incur provider charges. Grading, trimming, and frame extraction run locally. Each result starts from the uploaded source; upload a result to make another pass.",
+            "tone": "hint"
           }
         },
         {
-          "type": "Columns",
+          "type": "Stepper",
           "props": {
-            "id": "cols-source-and-quick-cuts",
-            "gap": 24,
-            "left": [
+            "id": "steps",
+            "binding": "var:step",
+            "steps": [
               {
-                "type": "Container",
+                "value": "source-and-quick-cuts",
+                "title": "Source and quick cuts"
+              },
+              {
+                "value": "ai-picture-treatment",
+                "title": "AI picture treatment"
+              },
+              {
+                "value": "ai-voiced-performance",
+                "title": "AI voiced performance"
+              }
+            ],
+            "allowBack": true
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-source-and-quick-cuts",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "source-and-quick-cuts"
+            },
+            "content": [
+              {
+                "type": "Heading",
                 "props": {
-                  "id": "panel-source-and-quick-cuts",
-                  "title": "Source and quick cuts",
-                  "content": [
+                  "id": "heading-source-and-quick-cuts",
+                  "text": "Source and quick cuts",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-source-and-quick-cuts",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "VideoInput",
                       "props": {
@@ -171,17 +201,8 @@
                         }
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-source-and-quick-cuts-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -302,22 +323,70 @@
                     }
                   ]
                 }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-source-and-quick-cuts"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-source-and-quick-cuts",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-source-and-quick-cuts",
+                        "label": "Next: AI picture treatment",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "ai-picture-treatment"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
               }
             ]
           }
         },
         {
-          "type": "Columns",
+          "type": "Container",
           "props": {
-            "id": "cols-ai-picture-treatment",
-            "gap": 24,
-            "left": [
+            "id": "step-ai-picture-treatment",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "ai-picture-treatment"
+            },
+            "content": [
               {
-                "type": "Container",
+                "type": "Heading",
                 "props": {
-                  "id": "panel-ai-picture-treatment",
-                  "title": "AI picture treatment",
-                  "content": [
+                  "id": "heading-ai-picture-treatment",
+                  "text": "AI picture treatment",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-ai-picture-treatment",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "Text",
                       "props": {
@@ -389,17 +458,8 @@
                         }
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-ai-picture-treatment-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -449,22 +509,88 @@
                     }
                   ]
                 }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-ai-picture-treatment"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-ai-picture-treatment",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "back-ai-picture-treatment",
+                        "label": "Back: Source and quick cuts",
+                        "variant": "outlined",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "source-and-quick-cuts"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-ai-picture-treatment",
+                        "label": "Next: AI voiced performance",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "ai-voiced-performance"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
               }
             ]
           }
         },
         {
-          "type": "Columns",
+          "type": "Container",
           "props": {
-            "id": "cols-ai-voiced-performance",
-            "gap": 24,
-            "left": [
+            "id": "step-ai-voiced-performance",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "ai-voiced-performance"
+            },
+            "content": [
               {
-                "type": "Container",
+                "type": "Heading",
                 "props": {
-                  "id": "panel-ai-voiced-performance",
-                  "title": "AI voiced performance",
-                  "content": [
+                  "id": "heading-ai-voiced-performance",
+                  "text": "AI voiced performance",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-ai-voiced-performance",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "Text",
                       "props": {
@@ -524,17 +650,8 @@
                         }
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-ai-voiced-performance-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -583,6 +700,39 @@
                       }
                     }
                   ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-ai-voiced-performance"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-ai-voiced-performance",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "back-ai-voiced-performance",
+                        "label": "Back: AI picture treatment",
+                        "variant": "outlined",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "ai-picture-treatment"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": []
                 }
               }
             ]
@@ -662,6 +812,17 @@
     ],
     "resources": [],
     "variables": [
+      {
+        "id": "step",
+        "name": "Step",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "source-and-quick-cuts",
+        "scope": "instance",
+        "persist": false
+      },
       {
         "id": "sourceClip",
         "name": "Source clip",
@@ -1032,6 +1193,7 @@
     "op:revoice/in:in-script": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend.",
     "op:revoice/out:output-clip": {
       "$demo": "video"
-    }
+    },
+    "var:step": "source-and-quick-cuts"
   }
 }

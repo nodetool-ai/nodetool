@@ -14,163 +14,204 @@
           "props": {
             "id": "title",
             "text": "📸 Photo Studio",
-            "level": "1"
-          }
-        },
-        {
-          "type": "Text",
-          "props": {
-            "id": "tagline",
-            "text": "Drag five sliders and watch the photo re-render — then run the same grade over a whole folder."
+            "level": "1",
+            "subtitle": "Drag five sliders and watch the photo re-render — then run the same grade over a whole folder."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "✨ `Enhance` runs locally. `Batch` adds a cloud grading pass and is billed per image."
+            "text": "✨ `Enhance` runs locally. `Batch` adds a cloud grading pass and is billed per image.",
+            "tone": "hint"
           }
         },
         {
-          "type": "Columns",
+          "type": "Tabs",
           "props": {
-            "id": "cols-one-photo",
-            "gap": 24,
-            "left": [
+            "id": "tabs",
+            "tab1Label": "One photo",
+            "tab1": [
               {
-                "type": "Container",
+                "type": "Columns",
                 "props": {
-                  "id": "panel-one-photo",
-                  "title": "One photo",
-                  "content": [
+                  "id": "cols-one-photo",
+                  "gap": 24,
+                  "left": [
                     {
-                      "type": "ImageInput",
+                      "type": "Container",
                       "props": {
-                        "id": "in-sourceimage",
-                        "binding": "var:sourceImage",
-                        "label": "Your photo",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "Slider",
-                      "props": {
-                        "id": "slider-enhance-denoise-node-radius",
-                        "binding": "op:enhance/prop:denoise-node#radius",
-                        "label": "Denoise",
-                        "min": 0,
-                        "max": 16,
-                        "step": 0.5,
-                        "events": [
+                        "id": "panel-one-photo",
+                        "title": "One photo",
+                        "content": [
                           {
-                            "trigger": "change",
-                            "kind": "run",
-                            "operationId": "enhance",
-                            "pace": "release",
-                            "key": "",
-                            "value": ""
+                            "type": "ImageInput",
+                            "props": {
+                              "id": "in-sourceimage",
+                              "binding": "var:sourceImage",
+                              "label": "Your photo",
+                              "events": []
+                            }
+                          },
+                          {
+                            "type": "Slider",
+                            "props": {
+                              "id": "slider-enhance-denoise-node-radius",
+                              "binding": "op:enhance/prop:denoise-node#radius",
+                              "label": "Denoise",
+                              "min": 0,
+                              "max": 16,
+                              "step": 0.5,
+                              "events": [
+                                {
+                                  "trigger": "change",
+                                  "kind": "run",
+                                  "operationId": "enhance",
+                                  "pace": "release",
+                                  "key": "",
+                                  "value": ""
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Slider",
+                            "props": {
+                              "id": "slider-enhance-tone-node-brightness",
+                              "binding": "op:enhance/prop:tone-node#brightness",
+                              "label": "Brightness",
+                              "min": -1,
+                              "max": 1,
+                              "step": 0.05,
+                              "events": [
+                                {
+                                  "trigger": "change",
+                                  "kind": "run",
+                                  "operationId": "enhance",
+                                  "pace": "release",
+                                  "key": "",
+                                  "value": ""
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Slider",
+                            "props": {
+                              "id": "slider-enhance-tone-node-contrast",
+                              "binding": "op:enhance/prop:tone-node#contrast",
+                              "label": "Contrast",
+                              "min": 0,
+                              "max": 4,
+                              "step": 0.05,
+                              "events": [
+                                {
+                                  "trigger": "change",
+                                  "kind": "run",
+                                  "operationId": "enhance",
+                                  "pace": "release",
+                                  "key": "",
+                                  "value": ""
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Slider",
+                            "props": {
+                              "id": "slider-enhance-color-node-saturation",
+                              "binding": "op:enhance/prop:color-node#saturation",
+                              "label": "Saturation",
+                              "min": 0,
+                              "max": 4,
+                              "step": 0.05,
+                              "events": [
+                                {
+                                  "trigger": "change",
+                                  "kind": "run",
+                                  "operationId": "enhance",
+                                  "pace": "release",
+                                  "key": "",
+                                  "value": ""
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Slider",
+                            "props": {
+                              "id": "slider-enhance-sharpen-node-amount",
+                              "binding": "op:enhance/prop:sharpen-node#amount",
+                              "label": "Sharpen",
+                              "min": 0,
+                              "max": 4,
+                              "step": 0.05,
+                              "events": [
+                                {
+                                  "trigger": "change",
+                                  "kind": "run",
+                                  "operationId": "enhance",
+                                  "pace": "release",
+                                  "key": "",
+                                  "value": ""
+                                }
+                              ]
+                            }
+                          },
+                          {
+                            "type": "Button",
+                            "props": {
+                              "id": "btn-enhance",
+                              "label": "Enhance my photo",
+                              "variant": "contained",
+                              "color": "primary",
+                              "events": [
+                                {
+                                  "trigger": "click",
+                                  "kind": "run",
+                                  "operationId": "enhance",
+                                  "key": "",
+                                  "value": ""
+                                }
+                              ]
+                            }
                           }
                         ]
                       }
-                    },
+                    }
+                  ],
+                  "right": [
                     {
-                      "type": "Slider",
+                      "type": "Container",
                       "props": {
-                        "id": "slider-enhance-tone-node-brightness",
-                        "binding": "op:enhance/prop:tone-node#brightness",
-                        "label": "Brightness",
-                        "min": -1,
-                        "max": 1,
-                        "step": 0.05,
-                        "events": [
+                        "id": "panel-one-photo-results",
+                        "title": "Results",
+                        "content": [
                           {
-                            "trigger": "change",
-                            "kind": "run",
-                            "operationId": "enhance",
-                            "pace": "release",
-                            "key": "",
-                            "value": ""
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "type": "Slider",
-                      "props": {
-                        "id": "slider-enhance-tone-node-contrast",
-                        "binding": "op:enhance/prop:tone-node#contrast",
-                        "label": "Contrast",
-                        "min": 0,
-                        "max": 4,
-                        "step": 0.05,
-                        "events": [
+                            "type": "Progress",
+                            "props": {
+                              "id": "progress-enhance",
+                              "binding": "op:enhance/exec#progress",
+                              "label": "Running the filter chain…"
+                            }
+                          },
                           {
-                            "trigger": "change",
-                            "kind": "run",
-                            "operationId": "enhance",
-                            "pace": "release",
-                            "key": "",
-                            "value": ""
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "type": "Slider",
-                      "props": {
-                        "id": "slider-enhance-color-node-saturation",
-                        "binding": "op:enhance/prop:color-node#saturation",
-                        "label": "Saturation",
-                        "min": 0,
-                        "max": 4,
-                        "step": 0.05,
-                        "events": [
+                            "type": "Heading",
+                            "props": {
+                              "id": "lbl-enhance-enhanced-image",
+                              "text": "Enhanced photo",
+                              "level": "3"
+                            }
+                          },
                           {
-                            "trigger": "change",
-                            "kind": "run",
-                            "operationId": "enhance",
-                            "pace": "release",
-                            "key": "",
-                            "value": ""
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "type": "Slider",
-                      "props": {
-                        "id": "slider-enhance-sharpen-node-amount",
-                        "binding": "op:enhance/prop:sharpen-node#amount",
-                        "label": "Sharpen",
-                        "min": 0,
-                        "max": 4,
-                        "step": 0.05,
-                        "events": [
-                          {
-                            "trigger": "change",
-                            "kind": "run",
-                            "operationId": "enhance",
-                            "pace": "release",
-                            "key": "",
-                            "value": ""
-                          }
-                        ]
-                      }
-                    },
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "btn-enhance",
-                        "label": "Enhance my photo",
-                        "variant": "contained",
-                        "color": "primary",
-                        "events": [
-                          {
-                            "trigger": "click",
-                            "kind": "run",
-                            "operationId": "enhance",
-                            "key": "",
-                            "value": ""
+                            "type": "Image",
+                            "props": {
+                              "id": "out-enhance-enhanced-image",
+                              "binding": "op:enhance/out:output-enhanced-image",
+                              "fit": "contain",
+                              "height": 280,
+                              "placeholder": "Your result appears here"
+                            }
                           }
                         ]
                       }
@@ -179,153 +220,119 @@
                 }
               }
             ],
-            "right": [
+            "tab2Label": "A whole set",
+            "tab2": [
               {
-                "type": "Container",
+                "type": "Columns",
                 "props": {
-                  "id": "panel-one-photo-results",
-                  "title": "Results",
-                  "content": [
+                  "id": "cols-a-whole-set",
+                  "gap": 24,
+                  "left": [
                     {
-                      "type": "Progress",
+                      "type": "Container",
                       "props": {
-                        "id": "progress-enhance",
-                        "binding": "op:enhance/exec#progress",
-                        "label": "Running the filter chain…"
-                      }
-                    },
-                    {
-                      "type": "Heading",
-                      "props": {
-                        "id": "lbl-enhance-enhanced-image",
-                        "text": "Enhanced photo",
-                        "level": "3"
-                      }
-                    },
-                    {
-                      "type": "Image",
-                      "props": {
-                        "id": "out-enhance-enhanced-image",
-                        "binding": "op:enhance/out:output-enhanced-image",
-                        "fit": "contain",
-                        "height": 280,
-                        "placeholder": "Your result appears here"
-                      }
-                    }
-                  ]
-                }
-              }
-            ]
-          }
-        },
-        {
-          "type": "Columns",
-          "props": {
-            "id": "cols-a-whole-set",
-            "gap": 24,
-            "left": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-a-whole-set",
-                  "title": "A whole set",
-                  "content": [
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-batch-3-model",
-                        "binding": "op:batch/prop:3#model",
-                        "label": "Batch model",
-                        "modelKind": "image_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "WorkflowInput",
-                      "props": {
-                        "id": "in-batch-photos",
-                        "binding": "op:batch/in:10",
-                        "label": "Your photos",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "Slider",
-                      "props": {
-                        "id": "slider-batch-brightness-adjust",
-                        "binding": "op:batch/in:11",
-                        "label": "Brightness",
-                        "min": 0.5,
-                        "max": 1.5,
-                        "step": 0.05,
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "Slider",
-                      "props": {
-                        "id": "slider-batch-color-boost",
-                        "binding": "op:batch/in:12",
-                        "label": "Color boost",
-                        "min": 0,
-                        "max": 2,
-                        "step": 0.05,
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "Button",
-                      "props": {
-                        "id": "btn-batch",
-                        "label": "Enhance my photos",
-                        "variant": "contained",
-                        "color": "primary",
-                        "events": [
+                        "id": "panel-a-whole-set",
+                        "title": "A whole set",
+                        "content": [
                           {
-                            "trigger": "click",
-                            "kind": "run",
-                            "operationId": "batch",
-                            "key": "",
-                            "value": ""
+                            "type": "WorkflowInput",
+                            "props": {
+                              "id": "in-batch-photos",
+                              "binding": "op:batch/in:10",
+                              "label": "Your photos",
+                              "events": []
+                            }
+                          },
+                          {
+                            "type": "Slider",
+                            "props": {
+                              "id": "slider-batch-brightness-adjust",
+                              "binding": "op:batch/in:11",
+                              "label": "Brightness",
+                              "min": 0.5,
+                              "max": 1.5,
+                              "step": 0.05,
+                              "events": []
+                            }
+                          },
+                          {
+                            "type": "Slider",
+                            "props": {
+                              "id": "slider-batch-color-boost",
+                              "binding": "op:batch/in:12",
+                              "label": "Color boost",
+                              "min": 0,
+                              "max": 2,
+                              "step": 0.05,
+                              "events": []
+                            }
+                          },
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-batch-3-model",
+                              "binding": "op:batch/prop:3#model",
+                              "label": "AI enhance model",
+                              "modelKind": "image_model",
+                              "events": []
+                            }
+                          },
+                          {
+                            "type": "Button",
+                            "props": {
+                              "id": "btn-batch",
+                              "label": "Enhance my photos",
+                              "variant": "contained",
+                              "color": "primary",
+                              "events": [
+                                {
+                                  "trigger": "click",
+                                  "kind": "run",
+                                  "operationId": "batch",
+                                  "key": "",
+                                  "value": ""
+                                }
+                              ]
+                            }
                           }
                         ]
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-a-whole-set-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
-                      "type": "Progress",
+                      "type": "Container",
                       "props": {
-                        "id": "progress-batch",
-                        "binding": "op:batch/exec#progress",
-                        "label": "Retouching each photo…"
-                      }
-                    },
-                    {
-                      "type": "Heading",
-                      "props": {
-                        "id": "lbl-batch-enhanced-photos",
-                        "text": "Enhanced photos",
-                        "level": "3"
-                      }
-                    },
-                    {
-                      "type": "Image",
-                      "props": {
-                        "id": "out-batch-enhanced-photos",
-                        "binding": "op:batch/out:output-enhanced-photos",
-                        "fit": "contain",
-                        "height": 280,
-                        "placeholder": "Your result appears here"
+                        "id": "panel-a-whole-set-results",
+                        "title": "Results",
+                        "content": [
+                          {
+                            "type": "Progress",
+                            "props": {
+                              "id": "progress-batch",
+                              "binding": "op:batch/exec#progress",
+                              "label": "Retouching each photo…"
+                            }
+                          },
+                          {
+                            "type": "Heading",
+                            "props": {
+                              "id": "lbl-batch-enhanced-photos",
+                              "text": "Enhanced photos",
+                              "level": "3"
+                            }
+                          },
+                          {
+                            "type": "Image",
+                            "props": {
+                              "id": "out-batch-enhanced-photos",
+                              "binding": "op:batch/out:output-enhanced-photos",
+                              "fit": "contain",
+                              "height": 280,
+                              "placeholder": "Your result appears here"
+                            }
+                          }
+                        ]
                       }
                     }
                   ]
