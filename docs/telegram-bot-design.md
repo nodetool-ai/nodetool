@@ -18,7 +18,7 @@ The bot is a **bridge process, not a second agent runtime**. It ships as `packag
 
 ## 2. Design goals
 
-- **D1. Zero new agent surface.** The bot reaches the same `UnifiedWebSocketRunner` chat path the web UI uses (`chat_message` / `resume_chat` over `/ws`). No forked loop, no second toolbelt assembly, no drift.
+- **D1. Zero new agent surface.** The bot reaches the same `WebSocketClientSession` chat path the web UI uses (`chat_message` / `resume_chat` over `/ws`). No forked loop, no second toolbelt assembly, no drift.
 - **D2. Tenant isolation is the server's, not the bot's.** Every turn runs on a token scoped to the sender's NodeTool user, so thread history, assets, memories, secrets, and the credit gate isolate per user by the server's existing rules. The bot never enforces isolation itself — it only presents the right identity.
 - **D3. The bot holds no user credentials.** One service token identifies the bot to the server; per-user access is a short-lived delegated token the server mints per connection from its own Telegram↔user mapping. A compromised bot host leaks the service token (revocable, mints nothing without the server) — not a store of user tokens.
 - **D4. One conversation, one thread, both sides.** A private chat maps to NodeTool threads owned by the linked user, so conversations are resumable from the web UI, the CLI, and Telegram alike, and survive bot restarts — the bot keeps no conversation state.
@@ -84,7 +84,7 @@ A message from an unlinked user gets one reply: what the bot is, and a `/link` p
 
 A private chat is a permanent channel, not one conversation, so the chat maps to a **sequence** of NodeTool threads: the derived id is `telegram-<chatId>-<uid8>-<n>`, where `n` starts at 1 and `/new` increments it. `<uid8>` is a short hash of the NodeTool user id: thread ids are globally unique across users, so a purely chat-derived id would let one tenant occupy an id another tenant's derivation produces (a chat can be re-linked to a different account, and chat ids are not secret) — the hash makes cross-tenant id collision structurally impossible rather than merely unlikely. The current `n` is recoverable without bot-side state: on the first turn after a restart, the bot lists the user's threads via tRPC (`threads.list`, filtered by the id prefix) and resumes the highest `n`.
 
-The server creates thread rows lazily from client-supplied ids (`ensureThreadExists` in `packages/websocket/src/unified-websocket-runner.ts`), always under the authenticated user — so the thread belongs to the linked account and appears in that user's web-UI thread list.
+The server creates thread rows lazily from client-supplied ids (`ensureThreadExists` in `packages/websocket/src/session/chat-turn.ts`), always under the authenticated user — so the thread belongs to the linked account and appears in that user's web-UI thread list.
 
 Because a private chat has one human and the server-side thread has the full history, there is **no context seeding** — claude-pipe's channel-history block exists to import a shared channel's conversation, which v1 does not have.
 
