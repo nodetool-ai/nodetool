@@ -1136,7 +1136,7 @@ export async function handleWorkflowExportBundle(
   }
   const { bytes } = await packWorkflowsBundle({
     workflows: [loaded],
-    fetchAssetBytes: resolveAssetBytesForExport
+    fetchAssetBytes: (ref) => resolveAssetBytesForExport(ref, userId)
   });
   return bundleResponse(bytes, loaded.name);
 }
@@ -1167,7 +1167,7 @@ export async function handleWorkflowsExportBundle(
   }
   const { bytes } = await packWorkflowsBundle({
     workflows,
-    fetchAssetBytes: resolveAssetBytesForExport
+    fetchAssetBytes: (ref) => resolveAssetBytesForExport(ref, userId)
   });
   const name =
     workflows.length === 1

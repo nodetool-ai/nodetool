@@ -275,6 +275,8 @@ is restored on exit. Piped input keeps its line-based interface.
 - `-m, --model <model>` — model ID.
 - `-a, --agent` — **deprecated, no-op.** Every chat session runs the unified agent loop; this flag has no effect.
 - `-u, --url <url>` — WebSocket server URL (default: uses a local provider).
+  With piped input, the command exits 1 when the server reports an error for
+  any turn.
 - `-w, --workspace <path>` — workspace directory for file operations (default: current directory).
 - `--no-read-only-search` — disable the read-only `run_search` fan-out primitive (on by default).
 - `--tools <tools>` — comma-separated tool names that narrow the belt. Without
@@ -1859,6 +1861,9 @@ nodetool mcp uninstall
 | `--http`, `--url <url>` | `install`, `config` | Write an HTTP entry. The default URL is `http://127.0.0.1:7777/mcp`. |
 | `--no-verify` | `install` | Write the config without a test start of the server. |
 | `--check` | `status` | Start each registered server and list its tools. |
+
+`mcp status --check` exits 1 when a registered server fails to start, and
+`mcp uninstall` exits 1 when a client config cannot be written.
 
 `install` starts the server once before it writes a config, so a broken
 command never reaches a client config. The stdio entry runs `nodetool mcp serve`

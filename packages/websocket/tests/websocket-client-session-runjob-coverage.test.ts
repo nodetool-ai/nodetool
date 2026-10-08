@@ -26,7 +26,6 @@ import {
   DEFAULT_RUN_JOB_EXECUTION_OPTIONS,
   WebSocketClientSession,
   resolveRunJobExecutionOptions,
-  resolveRunJobUserId,
   type WebSocketConnection,
   type WebSocketReceiveFrame
 } from "../src/websocket-client-session.js";
@@ -219,17 +218,6 @@ describe("run_job execution option defaults", () => {
     ).toEqual(DEFAULT_RUN_JOB_EXECUTION_OPTIONS);
   });
 
-  it("treats a blank request user id as absent", () => {
-    expect(resolveRunJobUserId("", "connection-user")).toBe(
-      "connection-user"
-    );
-    expect(resolveRunJobUserId("   ", "connection-user")).toBe(
-      "connection-user"
-    );
-    expect(resolveRunJobUserId("request-user", "connection-user")).toBe(
-      "request-user"
-    );
-  });
 });
 
 /** Run streamJobMessages to completion for a resolved/rejected executePromise. */
@@ -939,6 +927,22 @@ describe("WebSocketClientSession run_job — queue path", () => {
     expect(job?.status).toBe("queued");
   });
 
+  it("persists a queued run under the connection user, not the request's user_id", async () => {
+    await runner.disconnect();
+    runner = new WebSocketClientSession({ resolveExecutor });
+    await runner.connect(ws, "connection-user");
+    fillSlots(4);
+    await runner.jobs.runJob({
+      job_id: "Q_SPOOF",
+      workflow_id: "wf",
+      user_id: "victim",
+      graph
+    });
+    await new Promise((r) => setTimeout(r, 10));
+    const job = await Job.get<Job>("Q_SPOOF");
+    expect(job?.user_id).toBe("connection-user");
+  });
+
   it("queues a non-concurrent run when its workflow already has one in flight", async () => {
     asAny(runner).jobs.registerJob("live", {
       jobId: "live",
@@ -1102,6 +1106,76 @@ describe("WebSocketClientSession run_job — startJobInner branches", () => {
     expect(outputContext?.userId).toBe("connection-user");
     expect(outputContext?.persistOutputAssets).toBe(false);
     expect(await Job.get("SDK_TEMPORARY_SESSION")).toBeNull();
+    await runner.disconnect();
+  });
+
+  it("runs as the connection user even when the request names another user_id", async () => {
+    let seenUserId: string | undefined;
+    const runner = new WebSocketClientSession({
+      resolveExecutor: () => ({
+        async process(
+          inputs: Record<string, unknown>,
+          context?: ProcessingContext
+        ) {
+          seenUserId = context?.userId;
+          return { output: inputs.value ?? "x" };
+        }
+      })
+    });
+    await runner.connect(ws, "connection-user");
+    await runner.jobs.runJob({
+      job_id: "SPOOFED_USER",
+      workflow_id: "wf",
+      user_id: "victim",
+      graph
+    });
+    for (
+      let i = 0;
+      i < 100 &&
+      !decodeAll(ws).some(
+        (m) =>
+          m.type === "job_update" &&
+          m.status === "completed" &&
+          m.job_id === "SPOOFED_USER"
+      );
+      i++
+    ) {
+      await new Promise((resolve) => setTimeout(resolve, 10));
+    }
+    expect(seenUserId).toBe("connection-user");
+    expect((await Job.get<Job>("SPOOFED_USER"))?.user_id).toBe(
+      "connection-user"
+    );
+    await runner.disconnect();
+  });
+
+  it("refuses a job_id that names another user's job and leaves that row alone", async () => {
+    await Job.create({
+      id: "FOREIGN_JOB",
+      workflow_id: "their-wf",
+      user_id: "other-user",
+      status: "completed",
+      graph: { nodes: [], edges: [] }
+    });
+    const process = vi.fn(async () => ({ output: "x" }));
+    const runner = new WebSocketClientSession({
+      resolveExecutor: () => ({ process })
+    });
+    await runner.connect(ws, "connection-user");
+    await runner.jobs.runJob({
+      job_id: "FOREIGN_JOB",
+      workflow_id: "wf",
+      graph
+    });
+    await new Promise((r) => setTimeout(r, 20));
+    const row = await Job.get<Job>("FOREIGN_JOB");
+    expect(row?.user_id).toBe("other-user");
+    expect(row?.status).toBe("completed");
+    expect(process).not.toHaveBeenCalled();
+    const refused = decodeAll(ws).find(
+      (m) => m.type === "job_update" && m.job_id === "FOREIGN_JOB"
+    );
+    expect(refused?.status).toBe("failed");
     await runner.disconnect();
   });
 

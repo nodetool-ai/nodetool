@@ -187,13 +187,6 @@ export function resolveRunJobExecutionOptions(
   };
 }
 
-export function resolveRunJobUserId(
-  requestUserId: string | undefined,
-  connectionUserId: string
-): string {
-  return requestUserId?.trim() || connectionUserId;
-}
-
 export interface ActiveJob {
   jobId: string;
   workflowId: string | null;
@@ -1443,10 +1436,7 @@ export class JobExecutionManager {
           await Job.create({
             id: jobId,
             workflow_id: req.workflow_id ?? "",
-            user_id: resolveRunJobUserId(
-              req.user_id,
-              this.session.requireUserId()
-            ),
+            user_id: this.session.requireUserId(),
             status: "queued",
             name: req.job_name ?? "",
             params: req.params ?? {},
@@ -1578,10 +1568,10 @@ export class JobExecutionManager {
     req: RunJobRequest,
     releaseSlot: () => void
   ): Promise<void> {
-    const userId = resolveRunJobUserId(
-      req.user_id,
-      this.session.requireUserId()
-    );
+    // The connection's authenticated user. The request's `user_id` is
+    // client-written, so it cannot choose whose secrets, workflows, and
+    // assets the run uses.
+    const userId = this.session.requireUserId();
     const workflowId = req.workflow_id ?? null;
     const jobId = req.job_id ?? randomUUID();
     let projectId = req.project_id ?? null;
@@ -1706,6 +1696,21 @@ export class JobExecutionManager {
     if (executionOptions.persistence === "job") {
       try {
         const existing = await Job.get(jobId);
+        if (existing && existing.user_id !== userId) {
+          // The client chose this job_id. Another user's row under it must
+          // not be flipped to running or written with this run's results.
+          releaseSlot();
+          this.drainQueue();
+          this.session.sendDetached({
+            type: "job_update",
+            status: "failed",
+            job_id: jobId,
+            workflow_id: workflowId,
+            error: "Job id already in use",
+            error_code: ApiErrorCode.ALREADY_EXISTS
+          });
+          return;
+        }
         if (existing) {
           if (existing.status === "cancelled") {
             if (appRun) {
@@ -1862,12 +1867,6 @@ export class JobExecutionManager {
     // this job_id is stamped with `job_seq` and buffered, so a client that
     // drops mid-run can `reconnect_job` from a fresh connection and replay
     // the tail — including the terminal job_update.
-    //
-    // Keyed on the connection's identity, not `userId`: every lookup
-    // (`reconnect_job`, `cancel_job`, the slot counts) reads
-    // `this.session.requireUserId()`, and a run opened under an explicit differing
-    // `req.user_id` would be unreachable — no replay, and a cancel that
-    // reports the job as not found.
     const runSession = jobRunRegistry.open(
       this.session.requireUserId(),
       jobId,

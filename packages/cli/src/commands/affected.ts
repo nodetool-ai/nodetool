@@ -36,7 +36,7 @@ export function registerAffectedCommand(program: Command): void {
         );
         const { join, resolve, dirname } = await import("node:path");
         const { fileURLToPath } = await import("node:url");
-        const { execSync } = await import("node:child_process");
+        const { execFileSync } = await import("node:child_process");
 
         const here = dirname(fileURLToPath(import.meta.url));
         // dist layout: packages/cli/dist/commands → repo root is four up.
@@ -98,10 +98,15 @@ export function registerAffectedCommand(program: Command): void {
 
         let changedFiles = files;
         if (changedFiles.length === 0) {
-          const cmd = opts.base
-            ? `git diff --name-only ${opts.base}...HEAD`
-            : "git status --porcelain";
-          const out = execSync(cmd, { cwd: repoRoot, encoding: "utf8" });
+          // argv, never a shell line: `--base` is a git ref, and ref names
+          // may carry `;`, `$(…)` and backticks.
+          const args = opts.base
+            ? ["diff", "--name-only", `${opts.base}...HEAD`]
+            : ["status", "--porcelain"];
+          const out = execFileSync("git", args, {
+            cwd: repoRoot,
+            encoding: "utf8"
+          });
           changedFiles = opts.base
             ? out.split("\n").map((l) => l.trim()).filter(Boolean)
             : out

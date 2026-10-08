@@ -776,12 +776,14 @@ async function capabilityMappingViolations(
   baseRef: string,
   changedFiles: readonly string[]
 ): Promise<string[]> {
-  const { execSync } = await import("node:child_process");
+  const { execFileSync } = await import("node:child_process");
   const { readFileSync } = await import("node:fs");
   const { join } = await import("node:path");
 
-  const git = (command: string): string =>
-    execSync(command, {
+  // argv, never a shell line: `--base` is a git ref, and ref names may carry
+  // `;`, `$(…)` and backticks.
+  const git = (args: readonly string[]): string =>
+    execFileSync("git", args, {
       cwd: repoRoot,
       encoding: "utf8",
       stdio: ["ignore", "pipe", "ignore"]
@@ -789,7 +791,7 @@ async function capabilityMappingViolations(
 
   const atRef = (ref: string): string | null => {
     try {
-      return git(`git show ${ref}:${CAPABILITY_TABLE_PATH}`);
+      return git(["show", `${ref}:${CAPABILITY_TABLE_PATH}`]);
     } catch {
       // The table does not exist at that ref — every entry is new.
       return null;

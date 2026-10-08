@@ -43,7 +43,7 @@ describe("resolveAssetBytesForExport", () => {
     const asset = await makeAsset("user-1");
     await adapter.store(`user-1/${asset.id}.jpg`, bytes, "image/jpeg");
 
-    expect(await resolveAssetBytesForExport(`asset://${asset.id}.jpg`)).toEqual(
+    expect(await resolveAssetBytesForExport(`asset://${asset.id}.jpg`, "user-1")).toEqual(
       bytes
     );
   });
@@ -52,7 +52,7 @@ describe("resolveAssetBytesForExport", () => {
     const asset = await makeAsset("user-1");
     await adapter.store(`user-1/${asset.id}.jpg`, bytes, "image/jpeg");
 
-    expect(await resolveAssetBytesForExport(`asset://${asset.id}`)).toEqual(
+    expect(await resolveAssetBytesForExport(`asset://${asset.id}`, "user-1")).toEqual(
       bytes
     );
   });
@@ -61,7 +61,7 @@ describe("resolveAssetBytesForExport", () => {
     const asset = await makeAsset("user-1");
     await adapter.store(`${asset.id}.jpg`, bytes, "image/jpeg");
 
-    expect(await resolveAssetBytesForExport(`asset://${asset.id}.jpg`)).toEqual(
+    expect(await resolveAssetBytesForExport(`asset://${asset.id}.jpg`, "user-1")).toEqual(
       bytes
     );
   });
@@ -69,15 +69,45 @@ describe("resolveAssetBytesForExport", () => {
   it("reads a ref that already carries the owner prefix", async () => {
     await adapter.store("user-1/a1.jpg", bytes, "image/jpeg");
 
-    expect(await resolveAssetBytesForExport("asset://user-1/a1.jpg")).toEqual(
+    expect(await resolveAssetBytesForExport("asset://user-1/a1.jpg", "user-1")).toEqual(
       bytes
     );
+  });
+
+  it("does not read another owner's asset by id", async () => {
+    const asset = await makeAsset("user-2");
+    await adapter.store(`user-2/${asset.id}.jpg`, bytes, "image/jpeg");
+    await adapter.store(`${asset.id}.jpg`, bytes, "image/jpeg");
+
+    expect(
+      await resolveAssetBytesForExport(`asset://${asset.id}.jpg`, "user-1")
+    ).toBeNull();
+    expect(
+      await resolveAssetBytesForExport(`asset://${asset.id}.jpg`, "user-2")
+    ).toEqual(bytes);
+  });
+
+  it("does not read another owner's prefixed key or storage URL", async () => {
+    await adapter.store("user-2/a1.jpg", bytes, "image/jpeg");
+
+    expect(
+      await resolveAssetBytesForExport("asset://user-2/a1.jpg", "user-1")
+    ).toBeNull();
+    expect(
+      await resolveAssetBytesForExport("/api/storage/user-2/a1.jpg", "user-1")
+    ).toBeNull();
+    expect(
+      await resolveAssetBytesForExport(
+        "http://localhost:7777/api/storage/user-2/a1.jpg",
+        "user-1"
+      )
+    ).toBeNull();
   });
 
   it("returns null when the object is stored under no candidate key", async () => {
     const asset = await makeAsset("user-1");
     await adapter.store(`user-2/${asset.id}.jpg`, bytes, "image/jpeg");
 
-    expect(await resolveAssetBytesForExport(`asset://${asset.id}.jpg`)).toBeNull();
+    expect(await resolveAssetBytesForExport(`asset://${asset.id}.jpg`, "user-1")).toBeNull();
   });
 });

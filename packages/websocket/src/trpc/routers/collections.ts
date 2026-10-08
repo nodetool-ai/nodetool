@@ -51,17 +51,17 @@ function normalizeMetadata(
 }
 
 /**
- * Helper: resolve a workflow's name from an id. Returns `null` on any
- * lookup failure. Mirrors the REST handler's forgiving behaviour.
+ * Helper: resolve the name of a workflow the caller may read. Returns `null`
+ * on any lookup failure. A collection's `workflow` metadata is caller-written,
+ * so it can name another user's private workflow.
  */
 async function resolveWorkflowName(
+  userId: string,
   workflowId: string | undefined
 ): Promise<string | null> {
   if (!workflowId) return null;
   try {
-    const workflow = (await Workflow.get(workflowId)) as
-      | { name?: string }
-      | null;
+    const workflow = await Workflow.find(userId, workflowId);
     return workflow?.name ?? null;
   } catch {
     return null;
@@ -137,6 +137,7 @@ export const collectionsRouter = router({
           const collection = await provider.getCollection({ name: info.name });
           const count = await collection.count();
           const workflowName = await resolveWorkflowName(
+            ctx.userId,
             isString(metadata.workflow)
               ? metadata.workflow
               : undefined
