@@ -22,11 +22,11 @@
  *    the bridge can never silently drift apart.
  *
  * The dispatcher switches on the response frame `type`s modeled below,
- * including execution results, streamed output, blob transfer, progress, and
- * integration events.
+ * including execution results, streamed output, blob transfer, progress,
+ * node updates, and integration events.
  * — everything else is either a request the JS side sends (`execute`,
  * `worker.status`, `provider.*`, `models.*`, `comfy.execute`,
- * `blender.execute`, …) or silently ignored. Only the seven response types
+ * `blender.execute`, …) or silently ignored. Only the response types
  * need a schema here: `blender.execute` requests are validated, when needed,
  * against the standalone {@link blenderExecuteRequestSchema} below (the same
  * reason `comfy.execute` has no dispatcher entry — requests are outbound).
@@ -310,6 +310,28 @@ export const progressFrameSchema = z.object({
 });
 
 // ---------------------------------------------------------------------------
+// update
+// ---------------------------------------------------------------------------
+
+/**
+ * `update.data` — a message a node posted while running, other than progress:
+ * the worker's serialized `LogUpdate`, `PreviewUpdate` or `BinaryUpdate`,
+ * discriminated by its own `type` (`log_update`, `preview_update`,
+ * `binary_update`). Sent for `execute` and `execute.stream` requests.
+ */
+const updateDataSchema = z
+  .object({
+    type: z.string()
+  })
+  .passthrough();
+
+export const updateFrameSchema = z.object({
+  type: z.literal("update"),
+  request_id: requestIdSchema,
+  data: updateDataSchema
+});
+
+// ---------------------------------------------------------------------------
 // comfy.event
 // ---------------------------------------------------------------------------
 
@@ -416,6 +438,7 @@ export const bridgeFrameSchemas = {
   "blob.chunk": blobChunkFrameSchema,
   "blob.end": blobEndFrameSchema,
   progress: progressFrameSchema,
+  update: updateFrameSchema,
   "comfy.event": comfyEventFrameSchema,
   "blender.event": blenderEventFrameSchema
 } as const;
@@ -432,6 +455,7 @@ export const bridgeFrameSchema = z.discriminatedUnion("type", [
   blobChunkFrameSchema,
   blobEndFrameSchema,
   progressFrameSchema,
+  updateFrameSchema,
   comfyEventFrameSchema,
   blenderEventFrameSchema
 ]);

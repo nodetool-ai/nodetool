@@ -426,7 +426,8 @@ export class PythonProvider extends BaseProvider {
         language: args.language,
         instructions: args.instructions,
         secrets: this._secrets
-      }
+      },
+      args.signal
     )) {
       // audioBytes is a msgpack-decoded Uint8Array — generally a view into a
       // larger buffer at a non-zero byteOffset. `new Int16Array(bytes.buffer)`
@@ -449,19 +450,23 @@ export class PythonProvider extends BaseProvider {
     args: TextToSpeechParams
   ): Promise<EncodedAudioResult | null> {
     if (!this._supportsEncodedTTS) return null;
+    const { signal, ...wireParams } = args;
     const data = await this._bridge.providerTTSEncoded(
       this._pythonProviderId,
-      { ...args },
-      this._secrets
+      wireParams,
+      this._secrets,
+      signal
     );
     return { data, mimeType: sniffAudioMime(data) };
   }
 
   async textToMusic(params: TextToMusicParams): Promise<EncodedAudioResult> {
+    const { signal, ...wireParams } = params;
     const data = await this._bridge.providerTextToAudio(
       this._pythonProviderId,
-      { ...params, model: params.model.id },
-      this._secrets
+      { ...wireParams, model: params.model.id },
+      this._secrets,
+      signal
     );
     return { data, mimeType: sniffAudioMime(data) };
   }
