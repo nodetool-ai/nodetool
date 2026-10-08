@@ -152,14 +152,17 @@ describe("AudioControls", () => {
     ): Promise<string> => {
       global.URL.createObjectURL = jest.fn(() => "blob:mock-url");
       global.URL.revokeObjectURL = jest.fn();
-      global.fetch = jest.fn(() =>
-        Promise.resolve({
-          ok: true,
-          headers: { get: () => servedType },
-          blob: () =>
-            Promise.resolve(new Blob(["audio"], { type: servedType ?? "" }))
-        })
-      ) as unknown as typeof fetch;
+      const served: Pick<Response, "ok" | "blob"> & {
+        headers: Pick<Headers, "get">;
+      } = {
+        ok: true,
+        headers: { get: () => servedType },
+        blob: () =>
+          Promise.resolve(new Blob(["audio"], { type: servedType ?? "" }))
+      };
+      // SAFETY: jsdom has no Response, and AudioControls reads only
+      // headers.get and blob() from the fetch result.
+      global.fetch = jest.fn(() => Promise.resolve(served as Response));
 
       const names: string[] = [];
       jest
@@ -171,9 +174,13 @@ describe("AudioControls", () => {
       const { container } = renderWithTheme(
         <AudioControls {...defaultProps} {...props} />
       );
-      fireEvent.click(
-        container.querySelector(".download-audio-button") as HTMLElement
+      const downloadButton = container.querySelector<HTMLElement>(
+        ".download-audio-button"
       );
+      if (!downloadButton) {
+        throw new Error("download button not rendered");
+      }
+      fireEvent.click(downloadButton);
       await waitFor(() => expect(names).toHaveLength(1));
       return names[0];
     };

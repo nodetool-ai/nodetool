@@ -61,12 +61,12 @@ jest.mock("wavesurfer.js/dist/plugins/minimap", () => ({
 }));
 
 // Mock fetch for audio loading
-global.fetch = jest.fn(() =>
-  Promise.resolve({
-    ok: true,
-    blob: () => Promise.resolve(new Blob(["audio data"], { type: "audio/mp3" }))
-  })
-) as jest.Mock;
+const fetchedAudio: Pick<Response, "ok" | "blob"> = {
+  ok: true,
+  blob: () => Promise.resolve(new Blob(["audio data"], { type: "audio/mp3" }))
+};
+// SAFETY: jsdom has no Response, and AudioPlayer reads only ok and blob().
+global.fetch = jest.fn(() => Promise.resolve(fetchedAudio as Response));
 
 
 // Mock requestAnimationFrame
@@ -163,21 +163,21 @@ describe("AudioPlayer", () => {
     it("should render with custom height props", () => {
       const { container } = render(<AudioPlayer {...defaultProps} height={20} />, { wrapper: themeWrapper });
 
-      const waveform = container.querySelector("#waveform") as HTMLElement;
+      const waveform = container.querySelector<HTMLElement>("#waveform");
       expect(waveform).toBeInTheDocument();
     });
 
     it("should render with custom waveform height props", () => {
       const { container } = render(<AudioPlayer {...defaultProps} waveformHeight={25} />, { wrapper: themeWrapper });
 
-      const waveform = container.querySelector("#waveform") as HTMLElement;
+      const waveform = container.querySelector<HTMLElement>("#waveform");
       expect(waveform).toBeInTheDocument();
     });
 
     it("should render with custom minimap height props", () => {
       const { container } = render(<AudioPlayer {...defaultProps} minimapHeight={10} />, { wrapper: themeWrapper });
 
-      const minimap = container.querySelector(".minimap") as HTMLElement;
+      const minimap = container.querySelector<HTMLElement>(".minimap");
       expect(minimap).toBeInTheDocument();
     });
   });
