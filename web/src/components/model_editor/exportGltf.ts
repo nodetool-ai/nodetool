@@ -1,6 +1,50 @@
 import * as THREE from "three";
 import { GLTFExporter } from "three/examples/jsm/exporters/GLTFExporter.js";
 
+import { HIDDEN_EXTRA } from "./sceneOps";
+import { isLightTarget } from "./sceneTree";
+
+/**
+ * Set the scene up for the exporter and return the function that undoes it.
+ *
+ * - Hidden objects are written with a `nodetool_hidden` extra and made
+ *   visible for the export, because the exporter drops invisible nodes and
+ *   glTF has no visibility flag.
+ * - A light's target child is hidden for the export. The light's direction
+ *   already encodes it, and writing it as a node would add an empty child to
+ *   the light on every save.
+ */
+const prepareForExport = (root: THREE.Object3D): (() => void) => {
+  const revealed: THREE.Object3D[] = [];
+  const skipped: THREE.Object3D[] = [];
+  root.traverse((node) => {
+    if (node === root) {
+      return;
+    }
+    if (isLightTarget(node)) {
+      if (node.visible) {
+        node.visible = false;
+        skipped.push(node);
+      }
+      return;
+    }
+    if (!node.visible) {
+      node.visible = true;
+      node.userData[HIDDEN_EXTRA] = true;
+      revealed.push(node);
+    }
+  });
+  return () => {
+    for (const node of revealed) {
+      node.visible = false;
+      delete node.userData[HIDDEN_EXTRA];
+    }
+    for (const node of skipped) {
+      node.visible = true;
+    }
+  };
+};
+
 /**
  * Serialize the editor root's content to a binary glTF (.glb) Blob.
  * Used to persist edits made in the 3D model editor back to an asset.
@@ -18,7 +62,8 @@ export const exportSceneToGlb = (
   const scene = new THREE.Scene();
   scene.name = root.name;
   scene.children.push(...root.children);
-  return new Promise((resolve, reject) => {
+  const restore = prepareForExport(root);
+  return new Promise<Blob>((resolve, reject) => {
     const exporter = new GLTFExporter();
     exporter.parse(
       scene,
@@ -33,5 +78,5 @@ export const exportSceneToGlb = (
       (error) => reject(error),
       { binary: true, animations }
     );
-  });
+  }).finally(restore);
 };

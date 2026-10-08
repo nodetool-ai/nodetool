@@ -16,8 +16,11 @@ const PRIMITIVE_KINDS = [
   "plane",
   "cylinder",
   "torus",
+  "cone",
+  "empty",
   "directionalLight",
-  "pointLight"
+  "pointLight",
+  "spotLight"
 ] as const;
 
 const vec3 = z.tuple([z.number(), z.number(), z.number()]);
@@ -39,7 +42,7 @@ FrontendToolRegistry.register({
 FrontendToolRegistry.register({
   name: "ui_3d_add_object",
   description:
-    "Add a primitive object to the 3D editor scene and select it. `kind` is one of box, sphere, plane, cylinder, torus, directionalLight, pointLight. Optionally provide a name; otherwise a unique default name is assigned.",
+    "Add a primitive object to the 3D editor scene and select it. `kind` is one of box, sphere, plane, cylinder, torus, cone, empty (a group), directionalLight, pointLight, spotLight. Optionally provide a name; otherwise a unique default name is assigned.",
   parameters: z.object({
     kind: z.enum(PRIMITIVE_KINDS),
     name: z.string().optional()

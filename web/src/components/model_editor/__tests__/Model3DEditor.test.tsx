@@ -110,4 +110,85 @@ describe("Model3DEditor", () => {
       "Box"
     ]);
   });
+
+  const press = (key: string, modifiers: { ctrlKey?: boolean; shiftKey?: boolean } = {}) => {
+    if (modifiers.ctrlKey) {
+      fireEvent.keyDown(window, { key: "Control", ctrlKey: true });
+    }
+    fireEvent.keyDown(window, { key, ...modifiers });
+    fireEvent.keyUp(window, { key, ...modifiers });
+    if (modifiers.ctrlKey) {
+      fireEvent.keyUp(window, { key: "Control" });
+    }
+  };
+
+  it("undoes and redoes an agent edit from the keyboard", async () => {
+    renderEditor();
+    const handler = getModel3DToolHandler();
+
+    act(() => {
+      handler.setTransform("Box", { position: [1, 2, 3] });
+    });
+    expect(handler.listScene()[0].position).toEqual([1, 2, 3]);
+
+    act(() => press("z", { ctrlKey: true }));
+    expect(handler.listScene()[0].position).toEqual([0, 0, 0]);
+
+    act(() => press("y", { ctrlKey: true }));
+    expect(handler.listScene()[0].position).toEqual([1, 2, 3]);
+  });
+
+  it("marks unsaved changes and clears the mark after saving", async () => {
+    const { onSave, findByLabelText, queryByLabelText } = renderEditor();
+    expect(queryByLabelText("Unsaved changes")).toBeNull();
+
+    act(() => {
+      getModel3DToolHandler().addPrimitive("sphere");
+    });
+    expect(await findByLabelText("Unsaved changes")).toBeInTheDocument();
+
+    await act(async () => {
+      pressSave();
+    });
+    await waitFor(() => expect(onSave).toHaveBeenCalledTimes(1));
+    await waitFor(() => expect(queryByLabelText("Unsaved changes")).toBeNull());
+  });
+
+  it("asks before closing with unsaved changes", async () => {
+    const onClose = jest.fn();
+    const { getByRole, findByText } = renderEditor({ onClose });
+
+    act(() => {
+      getModel3DToolHandler().deleteObject("Box");
+    });
+    fireEvent.click(getByRole("button", { name: "Close editor" }));
+
+    expect(await findByText("Discard unsaved changes?")).toBeInTheDocument();
+    expect(onClose).not.toHaveBeenCalled();
+    fireEvent.click(getByRole("button", { name: "Discard and close" }));
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("closes at once when nothing changed", () => {
+    const onClose = jest.fn();
+    const { getByRole } = renderEditor({ onClose });
+
+    fireEvent.click(getByRole("button", { name: "Close editor" }));
+
+    expect(onClose).toHaveBeenCalledTimes(1);
+  });
+
+  it("duplicates the selection with its own name and undoes it", () => {
+    renderEditor();
+    const handler = getModel3DToolHandler();
+    act(() => {
+      handler.selectObject("Box");
+    });
+
+    act(() => press("d", { ctrlKey: true }));
+    expect(handler.listScene().map((n) => n.name)).toEqual(["Box", "Box 2"]);
+
+    act(() => press("z", { ctrlKey: true }));
+    expect(handler.listScene().map((n) => n.name)).toEqual(["Box"]);
+  });
 });
