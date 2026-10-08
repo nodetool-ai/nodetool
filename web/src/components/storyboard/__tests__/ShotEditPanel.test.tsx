@@ -96,6 +96,7 @@ const stub = (name: string) => ({
 jest.mock("../ShotEditViewer", () => stub("shot-edit-viewer"));
 jest.mock("../ShotTakesGallery", () => stub("takes-gallery"));
 jest.mock("../ShotScriptPanel", () => stub("script-panel"));
+jest.mock("../ShotStillModifyPanel", () => stub("still-modify"));
 
 import ShotEditPanel from "../ShotEditPanel";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
@@ -206,6 +207,28 @@ beforeEach(() => {
 
 afterEach(() => {
   useStoryboardStore.getState().removeBoard(BOARD);
+});
+
+describe("ShotEditPanel takes and still changes", () => {
+  it("switches the side column between the takes and the still changes", async () => {
+    seed([baseShot()]);
+    renderPanel();
+
+    expect(screen.getByTestId("takes-gallery")).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("tab", { name: "Change still" }));
+    expect(screen.getByTestId("still-modify")).toBeInTheDocument();
+    expect(screen.queryByTestId("takes-gallery")).not.toBeInTheDocument();
+  });
+
+  it("offers only the takes on a read-only board", () => {
+    seed([baseShot()]);
+    renderPanel({ readOnly: true });
+
+    expect(screen.getByTestId("takes-gallery")).toBeInTheDocument();
+    expect(
+      screen.queryByRole("tab", { name: "Change still" })
+    ).not.toBeInTheDocument();
+  });
 });
 
 describe("ShotEditPanel fields (criterion 14)", () => {

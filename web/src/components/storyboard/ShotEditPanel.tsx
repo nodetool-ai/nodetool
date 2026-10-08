@@ -54,6 +54,7 @@ import {
   Panel,
   ScrollArea,
   SelectField,
+  TabGroup,
   Text,
   TextInput,
   ToolbarIconButton,
@@ -64,6 +65,7 @@ import ShotGraphicsEditor from "./ShotGraphicsEditor";
 import ShotEditViewer from "./ShotEditViewer";
 import ShotEditTable from "./ShotEditTable";
 import ShotTakesGallery from "./ShotTakesGallery";
+import ShotStillModifyPanel from "./ShotStillModifyPanel";
 import ShotScriptPanel from "./ShotScriptPanel";
 import ShotCostLine from "./ShotCostLine";
 import {
@@ -203,6 +205,13 @@ const shotNumberSx = {
   flexShrink: 0
 } as const;
 
+type SideTab = "takes" | "change";
+
+const SIDE_TABS: { value: SideTab; label: string }[] = [
+  { value: "takes", label: "Takes" },
+  { value: "change", label: "Change still" }
+];
+
 const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   boardId,
   shotId,
@@ -227,6 +236,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   const panelRef = useRef<HTMLDivElement>(null);
   const imageLeaveResolver = useRef<((allowed: boolean) => void) | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [sideTab, setSideTab] = useState<SideTab>("takes");
 
   const shots = useStoryboardStore(
     (state) => state.boards[boardId]?.shots ?? EMPTY_SHOTS
@@ -682,11 +692,27 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
             onBeforeImageEditor={requestImageEditorLeave}
           />
           <ScrollArea>
-            <ShotTakesGallery
-              boardId={boardId}
-              shot={shot}
-              readOnly={readOnly}
-            />
+            <FlexColumn gap={SPACING.md}>
+              {!readOnly && (
+                <TabGroup
+                  tabs={SIDE_TABS}
+                  value={sideTab}
+                  onChange={(value) => setSideTab(value as SideTab)}
+                  size="small"
+                  fullWidth
+                  aria-label="Takes or change the still"
+                />
+              )}
+              {readOnly || sideTab === "takes" ? (
+                <ShotTakesGallery
+                  boardId={boardId}
+                  shot={shot}
+                  readOnly={readOnly}
+                />
+              ) : (
+                <ShotStillModifyPanel boardId={boardId} shot={shot} />
+              )}
+            </FlexColumn>
           </ScrollArea>
         </Box>
 
