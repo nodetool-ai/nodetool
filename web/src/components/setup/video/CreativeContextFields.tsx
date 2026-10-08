@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   creativeContext,
   type CreativeContext,
@@ -48,6 +48,19 @@ const ContextText = ({
   multiline
 }: ContextTextProps) => {
   const [draft, setDraft] = useState(value);
+  // Cmd+Enter advances the step without moving focus, so the field unmounts
+  // without a blur. Commit what was typed on the way out.
+  const pendingRef = useRef({ draft, value, onCommit });
+  pendingRef.current = { draft, value, onCommit };
+  useEffect(
+    () => () => {
+      const pending = pendingRef.current;
+      if (pending.draft !== pending.value) {
+        pending.onCommit(pending.draft);
+      }
+    },
+    []
+  );
   return (
     <TextInput
       label={label}

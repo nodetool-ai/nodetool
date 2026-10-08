@@ -278,8 +278,8 @@ describe("use-case cards", () => {
       variations: 2
     });
     expect(useSketchStore.getState().document.canvas).toMatchObject({
-      width: 683,
-      height: 1024
+      width: 1024,
+      height: 1536
     });
     // The pick is visible as a pick, not only as a document write.
     expect(screen.getByRole("radio", { name: /Key art/ })).toHaveAttribute(

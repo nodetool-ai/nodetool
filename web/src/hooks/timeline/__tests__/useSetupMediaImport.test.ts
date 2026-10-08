@@ -63,6 +63,15 @@ describe("importSetupMedia (criterion 1)", () => {
     expect(store.getState().setup?.stage).toBe("format");
   });
 
+  it("leaves the stage alone when the upload finishes after the creator moved on", async () => {
+    const store = createTimelineStore();
+    store.getState().setSetup({ stage: "review", brief: "a paper boat" });
+    const result = await importSetupMedia(store, [asset("late", "image/png")]);
+    expect(result.advanced).toBe(false);
+    expect(store.getState().setup?.stage).toBe("review");
+    expect(store.getState().clips.length).toBe(1);
+  });
+
   // F10: step 2 ends in the Director, which refuses an empty brief. Footage
   // dropped with nothing said about it stays on step 1 rather than landing on
   // a button that cannot run.

@@ -125,6 +125,32 @@ describe("useDirectScreenplay", () => {
     expect(String(request.prompt)).not.toContain("Genre:");
   });
 
+  it("leaves the board and the stage alone when the run is canceled", async () => {
+    const controller = new AbortController();
+    rpcRequest.mockImplementation(
+      (_command: string, _data: unknown, _timeout: unknown, signal: AbortSignal) =>
+        new Promise((_resolve, reject) => {
+          signal.addEventListener("abort", () =>
+            reject(new DOMException("The request was aborted.", "AbortError"))
+          );
+        })
+    );
+    const { result } = renderHook(() => useDirectScreenplay());
+
+    let applied: boolean | undefined;
+    await act(async () => {
+      const run = result.current.direct(BOARD, 2, controller.signal);
+      controller.abort();
+      applied = await run;
+    });
+
+    expect(applied).toBe(false);
+    expect(result.current.error).toBeNull();
+    const board = useStoryboardStore.getState().getBoard(BOARD);
+    expect(board?.screenplay).toBeNull();
+    expect(board?.setupStage).toBe("genre");
+  });
+
   // PRD § 7.2: the setup flow moves to the review only once a screenplay is
   // actually on the board.
   it("moves the setup stage to review on success", async () => {

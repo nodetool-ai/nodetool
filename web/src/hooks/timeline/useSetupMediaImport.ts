@@ -96,8 +96,11 @@ export async function importSetupMedia(
   }
   // The clips are on the sequence. The flow continues at the format step when
   // there is something to plan against; without a brief it stays on step 1 and
-  // asks for one, with the footage already placed.
-  const advanced = (store.getState().setup?.brief ?? "").trim().length > 0;
+  // asks for one, with the footage already placed. An upload that finishes
+  // after the creator has moved on must not pull them back to the format step.
+  const setup = store.getState().setup;
+  const advanced =
+    setup?.stage === "idea" && (setup.brief ?? "").trim().length > 0;
   if (advanced) {
     store.getState().setSetup({ stage: "format" });
   }

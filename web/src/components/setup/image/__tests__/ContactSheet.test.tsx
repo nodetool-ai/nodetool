@@ -280,7 +280,7 @@ describe("ContactSheet Pick (criterion 5)", () => {
       screen.getAllByRole("button", { name: "New node canvas" })[0]
     );
     expect(await screen.findByRole("alert")).toHaveTextContent(
-      "Could not open that destination"
+      "Could not open that canvas. Network error"
     );
     expect(
       screen.getAllByRole("button", { name: "New node canvas" })[0]

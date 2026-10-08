@@ -349,6 +349,12 @@ export function SetupFlow<Stage extends string>({
       if (event.key !== "Enter" || !(event.metaKey || event.ctrlKey)) {
         return;
       }
+      // React bubbles keys out of portals, so a dialog opened from a step
+      // (add a style, the gallery, "Change flow?") would otherwise start the
+      // step's action behind it.
+      if (!event.currentTarget.contains(event.target as Node)) {
+        return;
+      }
       if (pending || readOnly) {
         return;
       }

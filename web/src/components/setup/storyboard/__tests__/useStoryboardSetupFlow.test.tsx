@@ -378,7 +378,7 @@ describe("useStoryboardSetupFlow", () => {
     await user.click(
       screen.getByRole("button", { name: "Generate screenplay" })
     );
-    expect(direct).toHaveBeenCalledWith(BOARD_ID, 10);
+    expect(direct).toHaveBeenCalledWith(BOARD_ID, 10, expect.any(AbortSignal));
   });
 
   it("shows entities as an optional step", () => {
@@ -403,7 +403,7 @@ describe("useStoryboardSetupFlow", () => {
     await user.click(
       screen.getByRole("button", { name: "Generate screenplay" })
     );
-    expect(direct).toHaveBeenCalledWith(BOARD_ID, 6);
+    expect(direct).toHaveBeenCalledWith(BOARD_ID, 6, expect.any(AbortSignal));
     expect(stageOf()).toBe("review");
 
     // The mocked run writes no shots; the real one always does, and the review

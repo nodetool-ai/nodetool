@@ -1,4 +1,5 @@
 import React from "react";
+import ReactDOM from "react-dom";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -95,6 +96,34 @@ describe("SetupFlow", () => {
 
     await waitFor(() => expect(onAdvance).toHaveBeenCalledTimes(1));
     expect(onStageChange).toHaveBeenCalledWith("review");
+  });
+
+  it("ignores Cmd+Enter pressed inside a dialog portaled from the step", async () => {
+    const user = userEvent.setup();
+    const onAdvance = jest.fn();
+    const { onStageChange } = renderFlow({
+      stage: "genre",
+      steps: steps.map((entry) =>
+        entry.stage === "genre"
+          ? {
+              ...entry,
+              onAdvance,
+              render: () =>
+                ReactDOM.createPortal(
+                  <input aria-label="Style name" />,
+                  document.body
+                )
+            }
+          : entry
+      )
+    });
+
+    await user.click(screen.getByRole("textbox", { name: "Style name" }));
+    await user.keyboard("{Meta>}{Enter}{/Meta}");
+    await new Promise((resolve) => setTimeout(resolve, 0));
+
+    expect(onAdvance).not.toHaveBeenCalled();
+    expect(onStageChange).not.toHaveBeenCalled();
   });
 
   it("ignores Cmd+Enter while the step blocks the primary action", async () => {

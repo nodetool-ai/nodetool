@@ -176,7 +176,11 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
     async (layerId: string, destination: "entity" | "canvas" | "video") => {
       setActions((current) => ({
         ...current,
-        [layerId]: { state: "saving", message: "Opening destination…" }
+        [layerId]: {
+          state: "saving",
+          message:
+            destination === "entity" ? "Saving to entities…" : "Opening…"
+        }
       }));
       try {
         if (destination === "entity") {
@@ -194,12 +198,16 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
                 : "Opened in a new node canvas."
           }
         }));
-      } catch {
+      } catch (cause) {
+        const reason = cause instanceof Error ? ` ${cause.message}` : "";
         setActions((current) => ({
           ...current,
           [layerId]: {
             state: "failed",
-            message: "Could not open that destination. Try again."
+            message:
+              destination === "entity"
+                ? `Could not save to entities.${reason}`
+                : `Could not open that canvas.${reason}`
           }
         }));
       }

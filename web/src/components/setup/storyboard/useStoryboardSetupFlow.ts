@@ -240,7 +240,7 @@ export const useStoryboardSetupFlow = ({
    * itself, so the UI and the headless path cannot disagree about it.
    */
   const runDirector = useCallback(
-    async (requestedShots: number): Promise<boolean> => {
+    async (requestedShots: number, signal?: AbortSignal): Promise<boolean> => {
       const board = useStoryboardStore.getState().getBoard(boardId);
       keepPreviousScreenplay(boardId, boardScreenplaySnapshot(board));
       // The Director currently reads context from the screenplay envelope.
@@ -248,7 +248,7 @@ export const useStoryboardSetupFlow = ({
       if (board?.creativeContext) {
         setSetup(boardId, { creative_context: board.creativeContext });
       }
-      return direct(boardId, requestedShots);
+      return direct(boardId, requestedShots, signal);
     },
     [boardId, direct, setSetup]
   );
@@ -346,8 +346,8 @@ export const useStoryboardSetupFlow = ({
         // reads.
         onAdvance: upToDate
           ? undefined
-          : async () => {
-              const directed = await runDirector(shotCount);
+          : async (context) => {
+              const directed = await runDirector(shotCount, context?.signal);
               if (!directed) {
                 throw new Error(
                   directErrorRef.current ??

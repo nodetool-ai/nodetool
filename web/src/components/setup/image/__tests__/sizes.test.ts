@@ -1,4 +1,10 @@
-import { SIZE_PRESETS, sizePresetsForAspectRatios } from "../sizes";
+import { IMAGE_USE_CASES } from "../useCases";
+
+import {
+  SIZE_PRESETS,
+  sizePresetFor,
+  sizePresetsForAspectRatios
+} from "../sizes";
 
 describe("sizePresetsForAspectRatios", () => {
   it("offers only sizes supported by the selected model", () => {
@@ -13,5 +19,16 @@ describe("sizePresetsForAspectRatios", () => {
     expect(sizePresetsForAspectRatios(undefined)).toEqual(SIZE_PRESETS);
     expect(sizePresetsForAspectRatios(null)).toEqual(SIZE_PRESETS);
     expect(sizePresetsForAspectRatios([])).toEqual(SIZE_PRESETS);
+  });
+});
+
+describe("use case sizes", () => {
+  it("select the size tile for their own aspect ratio", () => {
+    for (const useCase of IMAGE_USE_CASES) {
+      expect(
+        sizePresetFor(useCase.defaultSize.width, useCase.defaultSize.height)
+          ?.aspectRatio
+      ).toBe(useCase.defaultAspectRatio);
+    }
   });
 });
