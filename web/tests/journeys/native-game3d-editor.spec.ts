@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
+import { createNative3DGame } from "@nodetool-ai/game-runtime";
 import { test, expect, waitForAppReady } from "./fixtures";
 
 import { observeNativeGameReadiness, settleNativeGameEdit, finishNativeGameReadiness } from "./helpers/nativeGameReadiness";
@@ -149,7 +150,13 @@ test("edits, undoes, installs a model, plays and publishes the same 3D draft", a
 test("releases native 3D pointer lock when its dock tab becomes inactive and preserves the canvas", async ({ page }) => {
   const port = Number(process.env.SCREENSHOT_WEB_PORT ?? 3000);
   const client = createTRPCClient<AppRouter>({ links: [httpBatchLink({ url: `http://localhost:${port}/trpc`, methodOverride: "POST" })] });
-  const created = await client.games.create.mutate({ projectId: PROJECT_ID, name: "Dock controller lifetime", dimension: "3d" });
+  // A script that exceeds its tick budget on a loaded runner fails the play session, and a failed session correctly
+  // releases pointer lock. Scripts are removed so this journey measures only the dock's pointer-lock lifetime.
+  const source = createNative3DGame("dock-controller-lifetime");
+  for (const scene of source.scenes) {
+    for (const entity of scene.entities) { entity.behaviors = entity.behaviors.filter((behavior) => behavior.kind !== "script"); }
+  }
+  const created = await client.games.create.mutate({ projectId: PROJECT_ID, name: "Dock controller lifetime", dimension: "3d", document: source });
   await page.addInitScript(({ id, projectId }) => {
     const tabId = `game:${id}`;
     localStorage.setItem("workspace-tabs-storage", JSON.stringify({ version: 3, state: {

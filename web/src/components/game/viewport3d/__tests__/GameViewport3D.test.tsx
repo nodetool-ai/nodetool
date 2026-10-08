@@ -192,3 +192,46 @@ it("records a real gizmo drag as one command with full undo and redo", async () 
     expect(fixture.store.getState().document).toEqual(moved);
   } finally { fixture.view.unmount(); fixture.session.dispose(); }
 });
+
+it("releases pointer lock when a running play session fails", async () => {
+  const document = createNative3DGame("viewport-failed-session");
+  for (const scene of document.scenes) {
+    for (const entity of scene.entities) { entity.behaviors = entity.behaviors.filter((behavior) => behavior.kind !== "script"); }
+  }
+  const session = await createGameSession3D(document, 1);
+  const canvasRef = createRef<HTMLCanvasElement>();
+  let locked: Element | null = null;
+  const lockDescriptor = Object.getOwnPropertyDescriptor(window.document, "pointerLockElement");
+  const exitDescriptor = Object.getOwnPropertyDescriptor(window.document, "exitPointerLock");
+  const exit = jest.fn(() => { locked = null; window.document.dispatchEvent(new Event("pointerlockchange")); });
+  // Only the pointer-lock API is adapted because JSDOM cannot acquire a browser pointer lock.
+  Object.defineProperty(window.document, "pointerLockElement", { configurable: true, get: () => locked });
+  Object.defineProperty(window.document, "exitPointerLock", { configurable: true, value: exit });
+  const input = new GameInput3D();
+  const inputRef = { current: input };
+  const host = (playing: boolean, error: string | null): GamePlaySession3D => ({
+    canvasRef, rendererRef: { current: null }, inputRef, frame: session.frame(), inspection: null,
+    backend: "webgl2", playing, playDocument: document, error, beginPlay: jest.fn(), stop: jest.fn(), step: jest.fn(),
+    save: jest.fn(), load: jest.fn().mockResolvedValue(undefined), replayBeforeError: jest.fn().mockResolvedValue(undefined)
+  });
+  const view = (playing: boolean, error: string | null) => <ThemeProvider theme={createTheme({ cssVariables: true })}>
+    <GameViewport3D document={document} host={host(playing, error)} sceneId={document.entrySceneId}
+      onOps={jest.fn()} onGestureStart={jest.fn(() => 1)} onGestureEnd={jest.fn()} />
+  </ThemeProvider>;
+  const rendered = render(view(true, null));
+  try {
+    locked = screen.getByLabelText("3D game viewport");
+    rendered.rerender(view(true, null));
+    expect(exit).not.toHaveBeenCalled();
+    rendered.rerender(view(false, "Game script [\"player\",0] for player at tick 36 failed: Game script failed: interrupted"));
+    expect(exit).toHaveBeenCalledTimes(1);
+    expect(locked).toBeNull();
+  } finally {
+    rendered.unmount();
+    session.dispose();
+    if (lockDescriptor) { Object.defineProperty(window.document, "pointerLockElement", lockDescriptor); }
+    else { Reflect.deleteProperty(window.document, "pointerLockElement"); }
+    if (exitDescriptor) { Object.defineProperty(window.document, "exitPointerLock", exitDescriptor); }
+    else { Reflect.deleteProperty(window.document, "exitPointerLock"); }
+  }
+});
