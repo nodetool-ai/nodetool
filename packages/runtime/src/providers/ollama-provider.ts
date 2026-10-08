@@ -1,6 +1,7 @@
 import type { Chunk } from "@nodetool-ai/protocol";
 import { createLogger } from "@nodetool-ai/config";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import { trimTrailingSlashes } from "./openai-compat/index.js";
 import { isNonEmptyString, isRecord, isString } from "@nodetool-ai/protocol";
 
 const log = createLogger("nodetool.runtime.providers.ollama");
@@ -177,7 +178,7 @@ export class OllamaProvider extends BaseProvider {
     if (!apiUrl || !apiUrl.trim()) {
       throw new Error("OLLAMA_API_URL is required");
     }
-    this.apiUrl = apiUrl.replace(/\/+$/, "");
+    this.apiUrl = trimTrailingSlashes(apiUrl);
     const keepAlive = process.env.OLLAMA_KEEP_ALIVE?.trim();
     this.keepAlive = keepAlive && keepAlive.length > 0 ? keepAlive : "10m";
     this.contextLength = positiveInt(
