@@ -224,3 +224,31 @@ describe("SketchLayersPanel visibility drag toggling", () => {
     expect(props.onToggleVisibility).toHaveBeenNthCalledWith(2, layers[2].id);
   });
 });
+
+describe("SketchLayersPanel add-layer actions", () => {
+  it("adds a transparent layer from the New layer button", async () => {
+    const user = userEvent.setup();
+    const { props } = renderPanel();
+
+    await user.click(screen.getByRole("button", { name: "New layer" }));
+
+    expect(props.onAddLayer).toHaveBeenCalledWith(null);
+  });
+
+  it("offers filled layers and groups from the add menu", async () => {
+    const user = userEvent.setup();
+    const { props } = renderPanel();
+    const menuButton = screen.getByRole("button", {
+      name: "More ways to add a layer"
+    });
+
+    await user.click(menuButton);
+    await user.click(screen.getByRole("menuitem", { name: "White layer" }));
+    expect(props.onAddLayer).toHaveBeenCalledWith("#ffffff");
+    expect(screen.queryByRole("menu")).not.toBeInTheDocument();
+
+    await user.click(menuButton);
+    await user.click(screen.getByRole("menuitem", { name: "Layer group" }));
+    expect(props.onAddGroup).toHaveBeenCalledTimes(1);
+  });
+});
