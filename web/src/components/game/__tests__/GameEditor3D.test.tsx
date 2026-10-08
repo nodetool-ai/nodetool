@@ -7,6 +7,8 @@ import { gameDocument3D, gameAuthoring } from "@nodetool-ai/protocol";
 
 import mockTheme from "../../../__mocks__/themeMock";
 import { getGameDraftStore } from "../../../stores/game/GameDraftStore";
+import { getGamePanelLayoutStore } from "../../../stores/game/useGamePanelLayoutStore";
+import useAuth from "../../../stores/useAuth";
 import GameEditor3D from "../GameEditor3D";
 import type GameViewport3D from "../viewport3d/GameViewport3D";
 import type GameHierarchy3D from "../panels/hierarchy/GameHierarchy3D";
@@ -92,6 +94,7 @@ jest.mock("../panels/scripts/GameScriptPane", () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  getGamePanelLayoutStore(useAuth.getState().user?.id ?? null).getState().selectLayout("Default");
   mockViewportProps = undefined;
   mockPlayDocument = null;
   mockDiagnosticFailure = null;
@@ -273,6 +276,7 @@ it("confirms restore, flushes edits and uses the acknowledged token before reset
   await user.type(screen.getByRole("textbox", { name: "Anchored script" }), " changed");
   const store = getGameDraftStore(mockDocument.id);
   expect(store.getState().commandHistory.past.length).toBeGreaterThan(0);
+  await user.click(screen.getByRole("tab", { name: /^Revisions$/ }));
   await user.click(screen.getByRole("button", { name: "Revisions" }));
   await user.click(screen.getByRole("button", { name: "Restore to draft" }));
   expect(mockRestore).not.toHaveBeenCalled();
@@ -286,19 +290,31 @@ it("confirms restore, flushes edits and uses the acknowledged token before reset
 });
 
 it("keeps inspector-button undo outside the 3D editor keyboard scope", async () => {
-  const user = userEvent.setup();
-  render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
-  await user.click(screen.getByRole("button", { name: "Select player" }));
-  await user.click(screen.getByRole("button", { name: "Edit selected script" }));
-  await user.type(screen.getByRole("textbox", { name: "Anchored script" }), " changed");
-  const store = getGameDraftStore(mockDocument.id);
-  const history = store.getState().commandHistory.past.length;
-  expect(history).toBeGreaterThan(0);
-  await user.click(screen.getByRole("button", { name: "Edit selected script" }));
-  await user.keyboard("{Control>}z{/Control}");
-  expect(store.getState().document?.scenes[0].entities.find((entity) => entity.id === "player")?.behaviors[0]).toMatchObject({ source: "original changed" });
-  expect(store.getState().commandHistory.past).toHaveLength(history);
-  expect(store.getState().pendingOps).toHaveLength(1);
+  // Debounced autosave may send the edit at any point in this real-time test. Holding every save request open keeps
+  // the unacknowledged op queued, so the final assertion measures the ignored undo rather than the test's duration.
+  const acknowledgements: Array<() => void> = [];
+  const save = mockSave.getMockImplementation();
+  mockSave.mockImplementation((request) => new Promise((resolve) => {
+    acknowledgements.push(() => resolve({ document: getGameDraftStore(request.id).getState().document, game: { draftUpdatedAt: mockSavedToken } }));
+  }));
+  try {
+    const user = userEvent.setup();
+    render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+    await user.click(screen.getByRole("button", { name: "Select player" }));
+    await user.click(screen.getByRole("button", { name: "Edit selected script" }));
+    await user.type(screen.getByRole("textbox", { name: "Anchored script" }), " changed");
+    const store = getGameDraftStore(mockDocument.id);
+    const history = store.getState().commandHistory.past.length;
+    expect(history).toBeGreaterThan(0);
+    await user.click(screen.getByRole("button", { name: "Edit selected script" }));
+    await user.keyboard("{Control>}z{/Control}");
+    expect(store.getState().document?.scenes[0].entities.find((entity) => entity.id === "player")?.behaviors[0]).toMatchObject({ source: "original changed" });
+    expect(store.getState().commandHistory.past).toHaveLength(history);
+    expect(store.getState().pendingOps).toHaveLength(1);
+  } finally {
+    if (save) { mockSave.mockImplementation(save); }
+    await act(async () => { for (const acknowledge of acknowledgements) { acknowledge(); } });
+  }
 });
 
 

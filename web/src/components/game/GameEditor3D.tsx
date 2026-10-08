@@ -7,6 +7,7 @@ import { trpc, trpcClient } from "../../trpc/client";
 import { useChatDraftStore } from "../../stores/ChatDraftStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
+import { useGamePanelLayoutStore } from "../../stores/game/useGamePanelLayoutStore";
 import { anyGameMergeAdapter } from "../../stores/game/anyMerge";
 import { captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
@@ -49,9 +50,10 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const canUndo = useStore(getGameDraftStore(refId), (state) => state.canUndo);
   const canRedo = useStore(getGameDraftStore(refId), (state) => state.canRedo);
   const [sceneId, setSceneId] = useState(document.entrySceneId);
-  const [assistantOpen, setAssistantOpen] = useState(false);
-  const [inspectorOpen, setInspectorOpen] = useState(true);
-  const [treeOpen, setTreeOpen] = useState(true);
+  const layoutStore = useGamePanelLayoutStore();
+  const assistantOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("assistant"));
+  const inspectorOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("inspector"));
+  const treeOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("hierarchy") || !state.layout.hidden.includes("revisions"));
   const publishFlight = useRef<Promise<void> | null>(null);
   const [publishing, setPublishing] = useState(false);
   const [publishOpen, setPublishOpen] = useState(false);
@@ -222,7 +224,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
     const prompt = `Help fix this game script error. Scene: ${scriptKey.sceneId}. Entity: ${scriptKey.entityId}. Behavior index: ${scriptKey.index}. Tick: ${scriptError.tick}. Error: ${scriptError.message}`;
     if (assistantThreadId) { useChatDraftStore.getState().setDraft(assistantThreadId, prompt); }
     else { pendingAssistantPromptRef.current = prompt; }
-    setAssistantOpen(true);
+    layoutStore.getState().dispatch({ type: "reveal", panelId: "assistant" });
   };
   useEffect(() => {
     if (!assistantThreadId || !pendingAssistantPromptRef.current) { return; }
@@ -248,7 +250,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const restart = useMemo(() => host.playDocument && JSON.stringify(host.playDocument) !== JSON.stringify(document),
     [host.playDocument, document]);
   const notice = host.error || draftError || operationError || restart;
-  return <GameEditorShell dimension="3d"
+  return <GameEditorShell layoutStore={layoutStore} dimension="3d"
     toolbar={{ name: name,
         playing: host.playing,
         playSession: Boolean(host.playDocument),
@@ -269,9 +271,9 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
         onSave: host.save,
         onLoad: () => void host.load(),
         onPublish: () => setPublishOpen(true),
-        onAssistant: () => setAssistantOpen((value) => !value),
-        onSceneTree: () => setTreeOpen((value) => !value),
-        onInspector: () => setInspectorOpen((value) => !value) }}
+        onAssistant: () => layoutStore.getState().togglePanels(["assistant"]),
+        onSceneTree: () => layoutStore.getState().togglePanels(["hierarchy", "revisions"]),
+        onInspector: () => layoutStore.getState().togglePanels(["inspector"]) }}
     status={{ tick: host.inspection?.tick ?? 0,
         score: host.inspection?.score ?? 0,
         won: host.inspection?.won ?? false,
@@ -288,11 +290,10 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
     <GameAuthoringPreview key={refId} gameId={refId} document={document} flush={flush} onHighlight={setHighlightedIds} />
     {conflicts.items.length > 0 && <ConflictBanner conflicts={conflicts.items} onAccept={conflicts.accept} onDiscard={conflicts.discard} />}
     <GameChanges gameId={refId} document={document} onOps={onOps} onHover={setHighlightedIds}
-      onFocusMessage={(threadId, messageId) => { setAssistantOpen(true); setFocusMessage({ threadId, messageId, requestId: Date.now() }); }} />
+      onFocusMessage={(threadId, messageId) => { layoutStore.getState().dispatch({ type: "reveal", panelId: "assistant" }); setFocusMessage({ threadId, messageId, requestId: Date.now() }); }} />
     </>}
     panels={[
-      { id: "hierarchy", visible: treeOpen, keyboardScope: true,
-        dock: { storageKey: "sceneTree3d", storagePrefix: "nodetool.gameEditor.", side: "left", defaultWidth: 260, minWidth: 220, maxWidth: 480, ariaLabel: "Resize 3D scene tree" },
+      { id: "hierarchy", keyboardScope: true,
         node: <>
 <GameHierarchy3D document={document} scene={scene} selectedIds={selectedIds} onSelect={select} onAdd={add}
           onSelectScene={(value) => { setSceneId(value); getGameDraftStore(refId).getState().selectMany([]); }}
@@ -310,8 +311,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
               <Caption>After saving model changes, prepare and install them again.</Caption>
             </FlexColumn>
           </CollapsibleSection>} />        </> },
-      { id: "revisions", visible: treeOpen,
-        dock: { storageKey: "sceneTree3d", storagePrefix: "nodetool.gameEditor.", side: "left", defaultWidth: 260, minWidth: 220, maxWidth: 480, ariaLabel: "Resize 3D scene tree" },
+      { id: "revisions",
         node: <CollapsibleSection title={<Label component="span" sx={{ mb: 0 }}>Revisions</Label>} compact defaultOpen={false}
           sx={{ flexShrink: 0, maxHeight: "30%", overflowY: "auto", px: SPACING.md }}>
           <GameRevisions revisions={revisions ?? []} busy={restoring || saveStatus === "saving"} onRestore={restoreRevision} />
@@ -328,21 +328,20 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
           onAskAssistant={askAssistant} onRunTenSeconds={() => void diagnostics.run()}
           runningTenSeconds={diagnostics.running} runSummary={diagnostics.summary} runEntityStats={diagnostics.byEntity}
           onChange={(source) => onOps([{ op: "set_script", scene_id: scriptKey.sceneId, entity_id: activeScript.id, index: scriptKey.index, source }])}
-          onClose={() => setScriptKey(null)} /> : null },
-      { id: "inspector", visible: inspectorOpen,
-        dock: { storageKey: "inspector3d", storagePrefix: "nodetool.gameEditor.", side: "right", defaultWidth: 360, minWidth: 300, maxWidth: 560, ariaLabel: "Resize 3D inspector" }, node: <>
+          onClose={() => { setScriptKey(null); layoutStore.getState().dispatch({ type: "hide", panelId: "scripts" }); }} /> : null },
+      { id: "inspector",
+        node: <>
         <GamePanelHeader title="Inspector" icon={<TuneOutlinedIcon sx={{ fontSize: FONT_SIZE_SANS.body }} />} />
         <FlexColumn sx={{ flex: 1, minHeight: 0, overflowY: "auto" }}>
-          <GameInspector3D document={document} sceneId={activeSceneId} entityId={selected?.id} onOps={onOps} onOperationError={(message) => getGameDraftStore(refId).getState().reportOperationError(message)} onScript={(index) => { if (selected) { setScriptKey({ sceneId: activeSceneId, entityId: selected.id, index }); } }} />
+          <GameInspector3D document={document} sceneId={activeSceneId} entityId={selected?.id} onOps={onOps} onOperationError={(message) => getGameDraftStore(refId).getState().reportOperationError(message)} onScript={(index) => { if (selected) { setScriptKey({ sceneId: activeSceneId, entityId: selected.id, index }); layoutStore.getState().dispatch({ type: "reveal", panelId: "scripts" }); } }} />
           {host.playDocument && !host.playing && <CollapsibleSection title="Runtime state" compact sx={{ px: SPACING.md }}><Caption>{JSON.stringify(host.inspection?.entities.find((entity) => entity.id === selected?.id))}</Caption></CollapsibleSection>}
         </FlexColumn>
       </> },
-      { id: "assistant", visible: assistantOpen,
-        dock: { storageKey: "assistant3d", storagePrefix: "nodetool.gameEditor.", side: "right", defaultWidth: 360, minWidth: 280, maxWidth: 640, ariaLabel: "Resize game assistant" }, node: <>
+      { id: "assistant",
+        node: <>
         <GameAgentPanel gameId={refId} name={name} selectedEntityIds={selectedIds} behaviorIndex={scriptKey?.index} onThreadId={setAssistantThreadId} focusMessage={focusMessage} />
       </> }
     ]}
-    bottomSx={{ height: "40%", minHeight: 0, borderTop: 1, borderColor: "divider" }}
     onKeyDown={(event) => handleGameUndo(event, Boolean(host.playDocument),
       () => getGameDraftStore(refId).getState().undo(), () => getGameDraftStore(refId).getState().redo())}
     dialogs={<>

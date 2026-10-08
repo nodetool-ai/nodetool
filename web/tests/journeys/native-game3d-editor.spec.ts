@@ -3,6 +3,7 @@ import { homedir } from "node:os";
 import { join } from "node:path";
 import { createTRPCClient, httpBatchLink } from "@trpc/client";
 import type { AppRouter } from "@nodetool-ai/websocket/trpc";
+import { createNative3DGame } from "@nodetool-ai/game-runtime";
 import { test, expect, waitForAppReady } from "./fixtures";
 
 import { observeNativeGameReadiness, settleNativeGameEdit, finishNativeGameReadiness } from "./helpers/nativeGameReadiness";
@@ -144,4 +145,63 @@ test("edits, undoes, installs a model, plays and publishes the same 3D draft", a
   } finally {
     await rm(modelDirectory, { recursive: true, force: true });
   }
+});
+
+test("releases native 3D pointer lock when its dock tab becomes inactive and preserves the canvas", async ({ page }) => {
+  const port = Number(process.env.SCREENSHOT_WEB_PORT ?? 3000);
+  const client = createTRPCClient<AppRouter>({ links: [httpBatchLink({ url: `http://localhost:${port}/trpc`, methodOverride: "POST" })] });
+  // A script that exceeds its tick budget on a loaded runner fails the play session, and a failed session correctly
+  // releases pointer lock. Scripts are removed so this journey measures only the dock's pointer-lock lifetime.
+  const source = createNative3DGame("dock-controller-lifetime");
+  for (const scene of source.scenes) {
+    for (const entity of scene.entities) { entity.behaviors = entity.behaviors.filter((behavior) => behavior.kind !== "script"); }
+  }
+  const created = await client.games.create.mutate({ projectId: PROJECT_ID, name: "Dock controller lifetime", dimension: "3d", document: source });
+  await page.addInitScript(({ id, projectId }) => {
+    const tabId = `game:${id}`;
+    localStorage.setItem("workspace-tabs-storage", JSON.stringify({ version: 3, state: {
+      tabs: [{ id: tabId, type: "game", ref: id, mode: "edit", title: "Dock controller lifetime", projectId }],
+      activeTabId: tabId, activeProjectId: projectId, personalProjectId: null,
+      projectSessions: { [projectId]: { tabIds: [tabId], activeTabId: tabId, selectedChatThreadId: null } }
+    } }));
+  }, { id: created.game.id, projectId: PROJECT_ID });
+  await page.goto("/workspace", { waitUntil: "domcontentloaded" });
+  await waitForAppReady(page);
+  const canvas = page.locator('canvas[aria-label="3D game viewport"]');
+  await expect(canvas).toBeVisible();
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeEnabled();
+  const original = await canvas.elementHandle();
+  if (!original) { throw new Error("Native 3D canvas did not mount"); }
+  const inspectorDrag = await page.getByRole("button", { name: "Drag inspector panel", exact: true }).boundingBox();
+  const viewportGroup = await page.getByRole("tab", { name: "Viewport", exact: true }).locator("..").boundingBox();
+  if (!inspectorDrag || !viewportGroup) { throw new Error("Native controller docking targets have no bounds"); }
+  await page.mouse.move(inspectorDrag.x + inspectorDrag.width / 2, inspectorDrag.y + inspectorDrag.height / 2);
+  await page.mouse.down();
+  await page.mouse.move(viewportGroup.x + viewportGroup.width / 2, viewportGroup.y + viewportGroup.height / 2, { steps: 8 });
+  await page.mouse.up();
+  const viewportTab = page.getByRole("tab", { name: "Viewport", exact: true });
+  const inspectorTab = page.getByRole("tab", { name: "Inspector", exact: true });
+  expect(await inspectorTab.evaluate((node) => node.closest("[data-game-dock-group]")?.getAttribute("data-game-dock-group")))
+    .toEqual(await viewportTab.evaluate((node) => node.closest("[data-game-dock-group]")?.getAttribute("data-game-dock-group")));
+  await viewportTab.click();
+  await page.getByRole("button", { name: "Play", exact: true }).click();
+  await expect(page.getByText(/Tick [1-9]/)).toBeVisible();
+  await canvas.click();
+  await expect.poll(() => original.evaluate((node) => document.pointerLockElement === node)).toBe(true);
+  await inspectorTab.focus();
+  expect(await original.evaluate((node) => document.pointerLockElement === node)).toBe(true);
+  await page.keyboard.press("Enter");
+  await expect(canvas).toBeHidden();
+  await expect.poll(() => page.evaluate(() => document.pointerLockElement === null)).toBe(true);
+  expect(await original.evaluate((node) => node.isConnected)).toBe(true);
+  await viewportTab.focus();
+  await page.keyboard.press("Enter");
+  await expect(canvas).toBeVisible();
+  expect(await original.evaluate((node) => node === document.querySelector('canvas[aria-label="3D game viewport"]'))).toBe(true);
+  await canvas.click();
+  await expect.poll(() => original.evaluate((node) => document.pointerLockElement === node)).toBe(true);
+  await page.getByRole("button", { name: "Stop", exact: true }).focus();
+  expect(await original.evaluate((node) => document.pointerLockElement === node)).toBe(true);
+  await page.keyboard.press("Enter");
+  await expect.poll(() => page.evaluate(() => document.pointerLockElement === null)).toBe(true);
 });
