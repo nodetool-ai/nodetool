@@ -2,11 +2,11 @@
   "schemaVersion": 3,
   "source": "https://genspend.io/api/v1/export",
   "attribution": "Prices via genspend.io",
-  "updatedAt": "2026-10-05T10:44:15.596Z",
-  "catalogGeneratedAt": "2026-10-05T10:44:14.499Z",
+  "updatedAt": "2026-10-08T10:49:05.317Z",
+  "catalogGeneratedAt": "2026-10-08T10:49:03.971Z",
   "etag": "\"363cbe11286573b29e5168540f6d2da959d39eab\"",
-  "catalogModels": 164,
-  "catalogOfferings": 560,
+  "catalogModels": 165,
+  "catalogOfferings": 563,
   "providers": [
     "atlascloud",
     "elevenlabs",
@@ -19,7 +19,7 @@
     "together",
     "xai"
   ],
-  "pricedModels": 366,
+  "pricedModels": 364,
   "prices": {
     "atlascloud:alibaba/happyhorse-1.0/reference-to-video": {
       "unit_price": 0.14,
@@ -4047,44 +4047,6 @@
       "match": "provider-id",
       "live": true,
       "source_url": "https://fal.ai/models/fal-ai/recraft/v4/text-to-image"
-    },
-    "fal_ai:fal-ai/sora-2/image-to-video": {
-      "unit_price": 0.1,
-      "billing_unit": "seconds",
-      "unit_class": "per-video-second",
-      "model_slug": "sora-2",
-      "match": "catalog",
-      "live": true,
-      "source_url": "https://fal.ai/models/fal-ai/sora-2/text-to-video",
-      "clip_seconds": {
-        "set": [
-          4,
-          8,
-          12,
-          16,
-          20
-        ],
-        "max": 20
-      }
-    },
-    "fal_ai:fal-ai/sora-2/text-to-video": {
-      "unit_price": 0.1,
-      "billing_unit": "seconds",
-      "unit_class": "per-video-second",
-      "model_slug": "sora-2",
-      "match": "variant",
-      "live": true,
-      "source_url": "https://fal.ai/models/fal-ai/sora-2/text-to-video",
-      "clip_seconds": {
-        "set": [
-          4,
-          8,
-          12,
-          16,
-          20
-        ],
-        "max": 20
-      }
     },
     "fal_ai:fal-ai/stable-diffusion-v35-large": {
       "unit_price": 0.065,
