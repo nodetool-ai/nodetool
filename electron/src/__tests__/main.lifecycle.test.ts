@@ -148,15 +148,29 @@ describe("main.ts lifecycle wiring", () => {
   });
 
   describe("before-quit handler", () => {
-    test("first invocation calls stopServer; subsequent invocations do not", async () => {
+    test("holds the quit until the backend stops, then quits once", async () => {
       const { stopServer } = require("../server");
       jest.mocked(stopServer).mockClear();
+      let finishStop: () => void = () => undefined;
+      jest
+        .mocked(stopServer)
+        .mockReturnValueOnce(new Promise<void>((resolve) => (finishStop = resolve)));
+      jest.mocked(electronMock.app.quit).mockClear();
 
-      await appHandlers["before-quit"]({ preventDefault: jest.fn() });
+      const firstEvent = { preventDefault: jest.fn() };
+      await appHandlers["before-quit"](firstEvent);
+      expect(firstEvent.preventDefault).toHaveBeenCalled();
       expect(stopServer).toHaveBeenCalledTimes(1);
+      expect(electronMock.app.quit).not.toHaveBeenCalled();
 
-      await appHandlers["before-quit"]({ preventDefault: jest.fn() });
-      // isAppQuitting flag should suppress further calls
+      finishStop();
+      await new Promise((resolve) => setImmediate(resolve));
+      expect(electronMock.app.quit).toHaveBeenCalledTimes(1);
+
+      // The re-entrant before-quit from app.quit() lets the quit proceed.
+      const secondEvent = { preventDefault: jest.fn() };
+      await appHandlers["before-quit"](secondEvent);
+      expect(secondEvent.preventDefault).not.toHaveBeenCalled();
       expect(stopServer).toHaveBeenCalledTimes(1);
     });
   });
