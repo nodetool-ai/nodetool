@@ -123,7 +123,7 @@ kept. The storyboard plans, the timeline finishes, and revisions flow forward.
 
 <img src="{{ '/assets/creative-agent/entity-library.png' | relative_url }}" alt="Entity library with a character, location, style, and prop">
 
-Characters, locations, styles, and props are named, reusable objects. Tag any
+Characters, locations, styles, and props are named, reusable objects. The [Entities](entities.md) page covers creating and editing them. Tag any
 image asset with a kind, a name, and a canonical descriptor (voice id and
 tags are optional) — the exact
 sentence pasted into every prompt that names the entity. That verbatim

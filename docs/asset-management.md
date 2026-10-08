@@ -70,7 +70,7 @@ NodeTool includes specialized viewers for common file types:
 | File Type | Viewer Features |
 |-----------|----------------|
 | **Images** | Zoom up to 16x, pan |
-| **Audio** | Waveform with zoom and minimap |
+| **Audio** | Waveform with zoom and minimap. To trim or fade, see [Audio Editor](audio-editor.md) |
 | **Video** | Browser video controls |
 | **PDF** | Previous and next page, zoom in, zoom out, reset zoom |
 | **Text** | Markdown rendering, code, CSV, and plain text |
