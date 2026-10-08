@@ -119,6 +119,7 @@ import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
 import { startImageFlow } from "../setup/image/startImageFlow";
 import {
   useCreateTimeline,
+  useDeleteTimeline,
   useSeedTimelineDetail
 } from "../../hooks/useTimelineSequence";
 import { useCreateScript } from "../../hooks/script/useScripts";
@@ -432,6 +433,7 @@ const NewProjectSurface = ({
   const summaries = useProjectSummaries();
   const createStoryboard = useCreateStoryboard();
   const createTimeline = useCreateTimeline();
+  const deleteTimeline = useDeleteTimeline();
   const seedTimelineDetail = useSeedTimelineDetail();
   const createScript = useCreateScript();
   const createWorkflow = useWorkflowManager((state) => state.create);
@@ -878,12 +880,16 @@ const NewProjectSurface = ({
       const name =
         text.length > 0 ? projectNameFromPrompt(text, null) : "New video";
       setStarting(true);
+      // The sequence made before its setup PATCH. A failure in between
+      // deletes it, so no empty timeline is left in the project (F15).
+      let unfinishedId: string | null = null;
       try {
         const references = await uploadComposerReferences(droppedFiles);
         const sequence = await createTimeline.mutateAsync({
           name,
           projectId
         });
+        unfinishedId = sequence.id;
         const entityReferenceBindings: ProductionReferenceBinding[] =
           selectedEntities.flatMap((entity) => {
             const assetId = assetIdOf(entity.reference_images?.[0]);
@@ -916,6 +922,7 @@ const NewProjectSurface = ({
             })
           })
         });
+        unfinishedId = null;
         // The create seeded the detail cache with a sequence that has no setup;
         // the flow's first render must not read that copy (see
         // `useSeedTimelineDetail`).
@@ -929,6 +936,11 @@ const NewProjectSurface = ({
           ownsProject: false
         });
       } catch (error) {
+        if (unfinishedId !== null) {
+          await deleteTimeline
+            .mutateAsync({ id: unfinishedId })
+            .catch(() => undefined);
+        }
         reportEntryFailure("video", error);
       } finally {
         setStarting(false);
@@ -937,6 +949,7 @@ const NewProjectSurface = ({
     [
       applySetupTarget,
       createTimeline,
+      deleteTimeline,
       droppedFiles,
       entityIds,
       noteUncarriedContext,

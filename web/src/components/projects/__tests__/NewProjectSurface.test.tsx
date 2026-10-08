@@ -165,9 +165,11 @@ jest.mock("../../../hooks/storyboard/useStoryboards", () => ({
 // surface becomes the flow, so the surface renders these hooks on every mount.
 const createTimeline = jest.fn(async () => ({ id: "seq-1" }));
 const seedTimelineDetail = jest.fn();
+const deleteTimeline = jest.fn(async () => undefined);
 jest.mock("../../../hooks/useTimelineSequence", () => ({
   __esModule: true,
   useCreateTimeline: () => ({ mutateAsync: createTimeline }),
+  useDeleteTimeline: () => ({ mutateAsync: deleteTimeline }),
   useSeedTimelineDetail: () => seedTimelineDetail
 }));
 const createScript = jest.fn(async () => ({ id: "script-1" }));
@@ -1157,6 +1159,25 @@ describe("NewProjectSurface", () => {
     await waitFor(() =>
       expect(seedTimelineDetail).toHaveBeenCalledWith(patchedSequence)
     );
+    expect(deleteTimeline).not.toHaveBeenCalled();
+  });
+
+  // The setup goes in as a PATCH after the create. A PATCH that fails would
+  // leave an empty timeline in the project nobody opened (F15).
+  it("deletes the new timeline when its setup cannot be written", async () => {
+    const user = userEvent.setup();
+    timelineUpdate.mockRejectedValueOnce(new Error("PATCH refused"));
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+
+    await user.click(within(cards).getByRole("button", { name: /^Video / }));
+
+    await waitFor(() =>
+      expect(deleteTimeline).toHaveBeenCalledWith({ id: "seq-1" })
+    );
+    expect(seedTimelineDetail).not.toHaveBeenCalled();
   });
 
   it.each([
