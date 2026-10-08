@@ -507,6 +507,13 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
             {rewriting ? "Rewriting screenplay…" : "Rewrite from brief"}
           </EditorButton>
         </FlexRow>
+        {/* A failed rewrite is read where it was pressed, not below a
+            screenplay that can run to dozens of shots. */}
+        {error ? (
+          <Text size="small" color="error" role="alert">
+            {error}
+          </Text>
+        ) : null}
         <Suspense
           fallback={<Caption color="secondary">Loading estimate…</Caption>}
         >
@@ -531,11 +538,6 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         </Caption>
       ) : null}
       <PlanReview sections={sections} />
-      {error ? (
-        <Text size="small" color="error" role="alert">
-          {error}
-        </Text>
-      ) : null}
     </FlexColumn>
   );
 };

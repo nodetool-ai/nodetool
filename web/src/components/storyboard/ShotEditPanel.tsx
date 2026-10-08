@@ -34,6 +34,7 @@ import ArrowBackIcon from "@mui/icons-material/ArrowBack";
 import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
 import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import { formatUsd } from "@nodetool-ai/model-pricing";
 
 import {
   Box,
@@ -63,6 +64,7 @@ import ShotTakesGallery from "./ShotTakesGallery";
 import ShotStillModifyPanel from "./ShotStillModifyPanel";
 import ShotScriptPanel from "./ShotScriptPanel";
 import ShotCostLine from "./ShotCostLine";
+import ShotPromptPreview from "./ShotPromptPreview";
 import {
   changedDraftKeys,
   conflictingDraftKeys,
@@ -292,6 +294,9 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   const boardEntityIds = useStoryboardStore(
     (state) => state.boards[boardId]?.entityIds ?? EMPTY_IDS
   );
+  const boardStyle = useStoryboardStore(
+    (state) => state.boards[boardId]?.style ?? ""
+  );
   const applyShotDraft = useStoryboardStore((state) => state.applyShotDraft);
   const nudgeShot = useStoryboardStore((state) => state.nudgeShot);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
@@ -345,6 +350,20 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         : EMPTY_IDS
     };
   }, [allEntities, boardEntityIds, shot]);
+
+  const castNames = useMemo(
+    () =>
+      boardEntities
+        .filter((entity) => appliedIds.includes(entity.id))
+        .map((entity) => entity.name || "Untitled"),
+    [boardEntities, appliedIds]
+  );
+  // The prompt preview reads the scene the draft points at, lit the way the
+  // draft says: both are saved with the shot.
+  const promptScene = useMemo((): Scene | null => {
+    const target = scenes.find((s) => s.id === draft?.sceneId) ?? null;
+    return target && draft ? { ...target, lighting: draft.lighting } : target;
+  }, [scenes, draft]);
 
   const ordered = useMemo(
     () => sceneOrder(shots, scenes).flatMap((group) => group.shots),
@@ -650,6 +669,12 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   }
 
   const generating = isShotGenerating(shot);
+  // What each render button spends, on the button: the cost line beside them
+  // sums both steps, and a click only pays for one.
+  const stepCost = (label: string): string => {
+    const cost = costEstimate.steps.find((step) => step.label === label)?.cost;
+    return cost ? ` · ~${formatUsd(cost)}` : "";
+  };
   const clipNeedsStill =
     shotRenderMode(previewShot) === "keyframe" && !shot.keyframe;
   const shotsInScene = shots.filter(
@@ -743,7 +768,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
                   generating ? "This shot is already rendering" : undefined
                 }
               >
-                Regenerate
+                {`Regenerate${stepCost("Still")}`}
               </EditorButton>
               <EditorButton
                 variant="contained"
@@ -806,6 +831,12 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
                   </FlexColumn>
                 </CollapsibleSection>
               </Card>
+              <ShotPromptPreview
+                shot={previewShot}
+                scene={promptScene}
+                style={boardStyle}
+                castNames={castNames}
+              />
               <ShotScriptPanel
                 boardId={boardId}
                 shot={shot}
@@ -857,7 +888,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
       >
         <MenuItemPrimitive
           compact
-          label={shot.clip ? "Re-render clip" : "Render clip"}
+          label={`${shot.clip ? "Re-render clip" : "Render clip"}${stepCost("Clip")}`}
           secondary={
             generating
               ? "This shot is already rendering"

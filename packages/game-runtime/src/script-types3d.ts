@@ -1,5 +1,5 @@
 import { gameQueryResult3D, gameScriptCommand3D } from "@nodetool-ai/protocol";
-import { gameScriptSchemaDeclaration } from "./script-declarations.js";
+import { gameScriptSchemaDeclaration, gameScriptWorldDeclaration } from "./script-declarations.js";
 
 export const GAME_SCRIPT_TYPES_3D = `
 type Vector3 = { x: number; y: number; z: number };
@@ -18,3 +18,8 @@ type GameScriptInput3D = {
 type GameScriptResult3D = { state: unknown; commands: GameScriptCommand3D[] };
 type GameScript3D = (input: GameScriptInput3D) => GameScriptResult3D;
 `;
+
+/** Global world queries available during a script call. */
+export const GAME_SCRIPT_WORLD_TYPES_3D = gameScriptWorldDeclaration(
+  "{ id: string; source: string; position: Vector3; velocity: Vector3; grounded: boolean }"
+);

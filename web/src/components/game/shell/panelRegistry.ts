@@ -18,19 +18,37 @@ export interface GamePanelRegistration {
 export interface GamePanelRegistry {
   readonly register: (panel: GamePanelRegistration) => () => void;
   readonly panels: (dimension: GameDimension) => readonly GamePanelRegistration[];
+  readonly subscribe: (listener: () => void) => () => void;
+  readonly getSnapshot: () => readonly GamePanelRegistration[];
 }
 
 export function createGamePanelRegistry(): GamePanelRegistry {
   const entries = new Map<string, GamePanelRegistration>();
+  const listeners = new Set<() => void>();
+  let snapshot: readonly GamePanelRegistration[] = [];
+  const publish = (): void => {
+    snapshot = Object.freeze([...entries.values()]);
+    for (const listener of listeners) { listener(); }
+  };
   return {
     register(panel) {
       if (entries.has(panel.id)) { throw new Error(`Game panel ${panel.id} is already registered`); }
-      entries.set(panel.id, panel);
+      const registration = Object.freeze({ ...panel, dimensions: Object.freeze([...panel.dimensions]) });
+      entries.set(registration.id, registration);
+      publish();
       return () => {
-        if (entries.get(panel.id) === panel) { entries.delete(panel.id); }
+        if (entries.get(registration.id) === registration) {
+          entries.delete(registration.id);
+          publish();
+        }
       };
     },
-    panels(dimension) { return [...entries.values()].filter((panel) => panel.dimensions.includes(dimension)); }
+    panels(dimension) { return snapshot.filter((panel) => panel.dimensions.includes(dimension)); },
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => { listeners.delete(listener); };
+    },
+    getSnapshot() { return snapshot; }
   };
 }
 

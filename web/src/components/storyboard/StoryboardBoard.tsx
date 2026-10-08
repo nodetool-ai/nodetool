@@ -122,6 +122,9 @@ import ScriptLinkControl from "./ScriptLinkControl";
 import ShotCard from "./ShotCard";
 import { shotWorkflowMedia } from "./shotWorkflowMedia";
 import BoardActionsMenu from "./BoardActionsMenu";
+import BoardCardSizeSlider from "./BoardCardSizeSlider";
+import StoryboardSlideshow from "./StoryboardSlideshow";
+import { useStoryboardViewStore } from "../../stores/storyboard/StoryboardViewStore";
 import ShotEditPanel from "./ShotEditPanel";
 import ShotInsertPoint, { SHOT_INSERT_POINT_CLASS } from "./ShotInsertPoint";
 import ShotInspector from "./ShotInspector";
@@ -181,18 +184,18 @@ const settingsRailSx = {
   }
 } as const;
 
-/** Let cards follow the width of their scene, including narrow split views. */
-const shotGridSx = {
-  display: "grid",
-  gridTemplateColumns: "repeat(auto-fit, minmax(min(100%, 36ch), 1fr))",
-  gap: SPACING.xl,
-  alignItems: "start"
-} as const;
-
-const sceneSx = {
-  ...shotGridSx,
-  minWidth: 0
-} as const;
+/**
+ * Let cards follow the width of their scene, including narrow split views.
+ * `cardSize` is the card's minimum width in `ch`, set by the toolbar's size
+ * slider.
+ */
+const shotGridSx = (cardSize: number) =>
+  ({
+    display: "grid",
+    gridTemplateColumns: `repeat(auto-fit, minmax(min(100%, ${cardSize}ch), 1fr))`,
+    gap: SPACING.xl,
+    alignItems: "start"
+  }) as const;
 
 /** The editor's overlay: the board's whole area, above the board. */
 const editOverlaySx = {
@@ -367,6 +370,10 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const [confirmRedirect, setConfirmRedirect] = useState(false);
   const [previewOpen, setPreviewOpen] = useState(false);
   const togglePreview = useCallback(() => setPreviewOpen((open) => !open), []);
+  const cardSize = useStoryboardViewStore((state) => state.cardSize);
+  const [slideshowOpen, setSlideshowOpen] = useState(false);
+  const openSlideshow = useCallback(() => setSlideshowOpen(true), []);
+  const closeSlideshow = useCallback(() => setSlideshowOpen(false), []);
   const [downloading, setDownloading] = useState(false);
   const [downloadFallbackError, setDownloadFallbackError] = useState<
     string | null
@@ -894,6 +901,14 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     "clip",
     clipModelForShot
   );
+  // The stills batch is half the spend: those shots need clips next. Priced
+  // with each shot's remembered clip model, so the dialog can show the whole
+  // job before the first half of it starts.
+  const followUpClipsCost = useRenderBatchCostEstimate(
+    boardId,
+    pendingStills,
+    "clip"
+  );
 
   const downloadZip = useCallback(
     async (flush: boolean) => {
@@ -982,6 +997,14 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             <BoardLineageChip boardId={boardId} />
             <Caption color="secondary">{summary}</Caption>
             <Box sx={{ flex: 1 }} />
+            {hasShots && (
+              <FlexRow align="center" gap={SPACING.md}>
+                <BoardCardSizeSlider />
+                <EditorButton variant="outlined" onClick={openSlideshow}>
+                  Slideshow
+                </EditorButton>
+              </FlexRow>
+            )}
             {!readOnly && (
               <FlexRow align="center" gap={SPACING.md} wrap>
                 <UndoRedoButtons
@@ -1216,6 +1239,12 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 )}
               </FormField>
               <RenderCostSummary estimate={stillsCost} />
+              {followUpClipsCost.pricedRequestCount > 0 &&
+                followUpClipsCost.cost > 0 && (
+                  <Caption color="secondary">
+                    {`Rendering clips for these shots afterwards adds about ${formatUsd(followUpClipsCost.cost)}, so stills and clips together come to about ${formatUsd(stillsCost.cost + followUpClipsCost.cost)}.`}
+                  </Caption>
+                )}
             </FlexColumn>
           </Dialog>
 
@@ -1345,7 +1374,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
               <Caption color="primary">
                 The director is writing your screenplay.
               </Caption>
-              <Box sx={shotGridSx}>
+              <Box sx={shotGridSx(cardSize)}>
                 {Array.from({ length: shotCount }).map((_, i) => (
                   <Card key={i} variant="outlined" padding="none">
                     <Skeleton
@@ -1391,9 +1420,14 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                   role="group"
                   aria-label={`Scene ${sceneIndex + 1}`}
                   sx={{
-                    ...sceneSx,
-                    flex: group.shots.length > 1 ? "1 1 100%" : "1 1 36ch",
-                    maxWidth: group.shots.length === 1 ? "80ch" : undefined
+                    ...shotGridSx(cardSize),
+                    minWidth: 0,
+                    flex:
+                      group.shots.length > 1 ? "1 1 100%" : `1 1 ${cardSize}ch`,
+                    maxWidth:
+                      group.shots.length === 1
+                        ? `${Math.max(80, cardSize)}ch`
+                        : undefined
                   }}
                 >
                   <SceneHeader
@@ -1465,6 +1499,15 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
                 </Caption>
               )}
             </FlexColumn>
+          )}
+
+          {slideshowOpen && (
+            <StoryboardSlideshow
+              boardId={boardId}
+              startShotId={activeShotId}
+              onClose={closeSlideshow}
+              onEditShot={readOnly ? undefined : handleEditShotFields}
+            />
           )}
 
           <BoardStyleDialog

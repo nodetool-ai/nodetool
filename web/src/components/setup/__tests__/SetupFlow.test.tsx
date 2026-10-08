@@ -1,6 +1,6 @@
 import React from "react";
 import ReactDOM from "react-dom";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -1042,6 +1042,60 @@ describe("SetupFlow", () => {
     finish();
     await waitFor(() =>
       expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled()
+    );
+  });
+
+  // The step's own "Try again" runs the step, so a failed discard must not
+  // share its error: pressing it would advance instead of retrying.
+  it("reports a failed change of flow apart from the step's own error", async () => {
+    const user = userEvent.setup();
+    const onChangeFlow = jest.fn().mockRejectedValue(new Error("offline"));
+    renderFlow({}, onChangeFlow);
+
+    await user.click(screen.getByRole("button", { name: "Change flow" }));
+    await user.click(
+      screen.getByRole("button", { name: "Discard and choose" })
+    );
+
+    await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
+    expect(
+      await screen.findByText("We couldn't discard this draft")
+    ).toBeInTheDocument();
+    expect(screen.getByText(/offline/)).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
+    expect(
+      screen.queryByRole("button", { name: "Try again" })
+    ).not.toBeInTheDocument();
+  });
+
+  // A browser drops focus to the page when the focused button is disabled for
+  // the run. A run that fails stays on the step, so focus comes back to it.
+  it("returns focus to the control that started a run that failed", async () => {
+    const user = userEvent.setup();
+    let fail: (error: Error) => void = () => undefined;
+    const onAdvance = jest.fn(
+      () =>
+        new Promise<void>((_resolve, reject) => {
+          fail = reject;
+        })
+    );
+    const failing = steps.map((entry) =>
+      entry.stage === "idea" ? { ...entry, onAdvance } : entry
+    );
+    renderFlow({ steps: failing });
+
+    const primary = screen.getByRole("button", { name: "Continue" });
+    await user.click(primary);
+    act(() => {
+      (document.activeElement as HTMLElement | null)?.blur();
+    });
+    expect(document.body).toHaveFocus();
+    await act(async () => {
+      fail(new Error("refused"));
+    });
+
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Try again" })).toHaveFocus()
     );
   });
 

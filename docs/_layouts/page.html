@@ -1,8 +1,11 @@
 ---
 layout: default
 ---
+{% include nav-position.html %}
+<div class="doc-layout">
 <article class="doc-page" data-source-path="{{ page.path }}">
   <div class="page-header">
+    {% if nav_section %}<p class="page-section-label">{{ nav_section | escape }}</p>{% endif %}
     <h1 class="page-title">{{ page.title | default: "Documentation" }}</h1>
     {% if page.description %}
     <p class="page-description">{{ page.description }}</p>
@@ -17,6 +20,23 @@ layout: default
     {{ content }}
   </div>
 
+  {% if nav_prev or nav_next %}
+  <nav class="page-pager" aria-label="Previous and next pages">
+    {% if nav_prev %}
+    <a class="page-pager-link prev" href="{{ nav_prev.url | relative_url }}" rel="prev">
+      <span class="page-pager-dir">Previous</span>
+      <span class="page-pager-title">{{ nav_prev.title | escape }}</span>
+    </a>
+    {% endif %}
+    {% if nav_next %}
+    <a class="page-pager-link next" href="{{ nav_next.url | relative_url }}" rel="next">
+      <span class="page-pager-dir">Next</span>
+      <span class="page-pager-title">{{ nav_next.title | escape }}</span>
+    </a>
+    {% endif %}
+  </nav>
+  {% endif %}
+
   <div class="page-meta">
     <a class="edit-on-github" href="https://github.com/nodetool-ai/nodetool/edit/main/docs/{{ page.path }}" target="_blank" rel="noopener" aria-label="Edit this page on GitHub">
       <svg width="14" height="14" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">
@@ -26,3 +46,9 @@ layout: default
     </a>
   </div>
 </article>
+
+<aside class="page-toc" aria-label="On this page" hidden>
+  <p class="page-toc-title">On this page</p>
+  <ul class="page-toc-list"></ul>
+</aside>
+</div>

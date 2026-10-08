@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { createLogger, getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
-import { AmbiguousGameIdError, Asset, Game, Prediction, Project, Workspace } from "@nodetool-ai/models";
+import { AmbiguousGameIdError, MissingGameDraftSourceError, Asset, Game, Prediction, Project, Workspace } from "@nodetool-ai/models";
 import { anyGameAssetBinding as gameAssetBinding, gameAssetBinding as legacyAssetBinding, gameAssetBinding3D, anyGameDocument as gameDocument, gameInputFrame, shortResourceId, type AnyGameDocument as GameDocument, type GameDocument as LegacyGameDocument, type GameDocument3D, type GameInputFrame, type GameRenderFrame } from "@nodetool-ai/protocol";
 import { autoplayNativeGame, MAX_GAME_ROUTE_TICKS, createScriptedGameSession, createTopDownRoomGame, createNative3DGame, decodePreparedGameCollider3D, validateAnyGame, trackGameAuthoringEdits, anyGameDocumentOp as gameDocumentOp, GameOpError, type GameAutoplayOptions } from "@nodetool-ai/game-runtime";
 import { workspaceFromRow } from "@nodetool-ai/execution/service";
@@ -1172,9 +1172,22 @@ const autoplay: CapabilityExport = {
   }
 };
 
+function withDraftRecovery(capability: CapabilityExport): CapabilityExport {
+  return { ...capability, impl: async (run, args) => {
+    try {
+      return await capability.impl(run, args);
+    } catch (error) {
+      if (error instanceof MissingGameDraftSourceError) {
+        return { error: error.message, code: "game_draft_source_unavailable" };
+      }
+      throw error;
+    }
+  } };
+}
+
 export const module: CapabilityModule = {
   module: "game",
   exports: [create, get, save, install, playtest, buildGame, edit, capture, generateAsset, listExamples, getExample, installExample, autoplay,
     { spec: previewGameAuthoringSpec, impl: previewGameAuthoring },
-    { spec: applyGameAuthoringSpec, impl: applyGameAuthoring }]
+    { spec: applyGameAuthoringSpec, impl: applyGameAuthoring }].map(withDraftRecovery)
 };

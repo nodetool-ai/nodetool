@@ -1,4 +1,4 @@
-import type { ReactNode } from "react";
+import { useMemo, type ReactNode } from "react";
 import { Euler, Quaternion } from "three";
 import { ZodError } from "zod";
 import { GameOpError, gameDocumentOp3D, trackGameAuthoringEdits, validateGame3D, type GameDocumentOp3D } from "@nodetool-ai/game-runtime";
@@ -31,7 +31,7 @@ const ENTITY_FIELDS = gameSchemaFields(gameEntity3D.omit({ id: true, transform3d
 export default function GameInspector3D({ document, sceneId, entityId, onOps, onOperationError, onScript }: GameInspector3DProps) {
   const scene = document.scenes.find((item) => item.id === sceneId);
   const entity = scene?.entities.find((item) => item.id === entityId);
-  const validation = validateGame3D(document);
+  const validation = useMemo(() => validateGame3D(document), [document]);
   const applyDocument = (next: GameDocument3D, label: string): void => {
     let ops: GameDocumentOp3D[];
     try {

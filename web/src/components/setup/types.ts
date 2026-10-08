@@ -76,6 +76,12 @@ export interface SetupStep<Stage extends string> {
    */
   onCancel?: () => void | Promise<void>;
   /**
+   * False hides Cancel while the shell awaits `onAdvance`: the action writes
+   * something it cannot take back, so stopping the wait would report a draft
+   * left unchanged when it was not.
+   */
+  cancelable?: boolean;
+  /**
    * Keep this operation alive when its own document stage deliberately
    * replaces the setup shell. The document owns the remaining work from that
    * point. Explicit Cancel still aborts it and runs `onCancel`.

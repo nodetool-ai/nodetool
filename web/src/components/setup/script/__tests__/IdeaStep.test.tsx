@@ -257,6 +257,49 @@ describe("script IdeaStep", () => {
     expect(panel).toHaveTextContent("kitchen.png");
   });
 
+  it("offers plain text back for editing when replacing it", async () => {
+    const user = userEvent.setup();
+    useScriptStore
+      .getState()
+      .setSetup(SCRIPT_ID, scriptSourcePatch(importedFromText("Keep these words.")));
+    renderStep();
+
+    await user.click(screen.getByRole("button", { name: "Replace these words" }));
+    expect(screen.getByRole("textbox", { name: "Your script" })).toHaveValue(
+      "Keep these words."
+    );
+  });
+
+  it("starts a screenplay's replacement empty and says its speakers are lost", async () => {
+    const user = userEvent.setup();
+    useScriptStore.getState().setSetup(
+      SCRIPT_ID,
+      scriptSourcePatch({
+        kind: "fdx",
+        preserve: "verbatim",
+        lines: [
+          { text: "Hello.", speakerName: "ALICE" },
+          { text: "Hi.", speakerName: "BOB" }
+        ],
+        speakers: ["ALICE", "BOB"],
+        attributed: true,
+        text: "Hello.\nHi.",
+        label: "Final Draft screenplay"
+      })
+    );
+    renderStep();
+
+    await user.click(screen.getByRole("button", { name: "Replace these words" }));
+    // Confirming the words as they stood used to re-import them as plain text,
+    // which dropped ALICE and BOB.
+    expect(screen.getByRole("textbox", { name: "Your script" })).toHaveValue("");
+    expect(screen.getByText(/its speakers are not kept/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Use this text" }));
+    expect(sourceNow()?.kind).toBe("fdx");
+    expect(sourceNow()?.speakers).toEqual(["ALICE", "BOB"]);
+  });
+
   it("offers the blank escape hatch", async () => {
     const user = userEvent.setup();
     const onStartBlank = renderStep();

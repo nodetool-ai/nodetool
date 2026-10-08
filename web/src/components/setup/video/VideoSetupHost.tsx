@@ -19,6 +19,7 @@ import { useTimelineAutosave } from "../../../hooks/timeline/useTimelineAutosave
 import { useTimelineAgentBridge } from "../../../hooks/timeline/useTimelineAgentBridge";
 import DocumentLoadStatus from "../../workspace/DocumentLoadStatus";
 import { SetupFlow } from "../SetupFlow";
+import { useFinishIfLoadedDone } from "../useFinishIfLoadedDone";
 import { useVideoSetupFlow } from "./useVideoSetupFlow";
 
 export interface VideoSetupHostProps {
@@ -58,6 +59,7 @@ const VideoSetupBody = ({
     () => onChangeFlow?.(brief),
     [brief, onChangeFlow]
   );
+  useFinishIfLoadedDone(loaded, config.stage, onFinish);
 
   if (query.isError) {
     return <DocumentLoadStatus state="error" label="video" />;

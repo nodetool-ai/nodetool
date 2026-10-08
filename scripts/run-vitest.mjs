@@ -10,7 +10,7 @@ export function vitestArgs(args, env = process.env) {
   if (configured && (!/^[1-9]\d*$/.test(configured) || !Number.isSafeInteger(Number(configured)))) {
     throw new Error("NODETOOL_TEST_WORKERS must be a positive integer.");
   }
-  const workers = configured ?? (!env.CI || env.CI === "false" ? "2" : null);
+  const workers = configured || (!env.CI || env.CI === "false" ? "2" : null);
   return workers ? [...args, "--maxWorkers", workers] : args;
 }
 

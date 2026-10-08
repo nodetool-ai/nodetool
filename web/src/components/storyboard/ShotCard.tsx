@@ -23,6 +23,7 @@ import type {
   VideoRef
 } from "@nodetool-ai/protocol";
 import { resolveEffectiveProductionRequirement } from "@nodetool-ai/protocol";
+import { formatUsd } from "@nodetool-ai/model-pricing";
 import AutorenewIcon from "@mui/icons-material/Autorenew";
 
 import {
@@ -59,6 +60,9 @@ import { shotWorkflowMedia } from "./shotWorkflowMedia";
 import { useStoryboardGenerationStore } from "../../stores/storyboard/StoryboardGenerationStore";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useGenerateShot } from "../../hooks/storyboard/useGenerateShot";
+import { useBoardImageModel } from "../../hooks/storyboard/useShotCostEstimate";
+import { priceRenderStep } from "../../hooks/storyboard/shotCostPricing";
+import { STILL_RESOLUTION } from "../../hooks/storyboard/renderSpec";
 import {
   useResolvedMedia,
   useResolvedMediaUri
@@ -191,6 +195,21 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
     generateRevisedClip,
     retryFailedRequest
   } = useGenerateShot();
+  // The one-click regenerate spends without a dialog, so its tooltip says how
+  // much: the same per-step price the shot editor's cost line shows.
+  const boardImageModel = useBoardImageModel(boardId);
+  const stillCost = useMemo(
+    () =>
+      priceRenderStep(
+        "Still",
+        shot.still_model ?? boardImageModel,
+        "still model",
+        STILL_RESOLUTION,
+        undefined,
+        []
+      ).cost,
+    [shot.still_model, boardImageModel]
+  );
   const duplicateShot = useStoryboardStore((state) => state.duplicateShot);
   const removeShot = useStoryboardStore((state) => state.removeShot);
   const appendShotKeyframeVersion = useStoryboardStore(
@@ -629,7 +648,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
           </EditorButton>
           <ToolbarIconButton
             icon={<AutorenewIcon sx={{ fontSize: "1em" }} />}
-            tooltip="Render a new still from this shot's fields"
+            tooltip={`Render a new still from this shot's fields${
+              stillCost ? ` · about ${formatUsd(stillCost)}` : ""
+            }`}
             ariaLabel="Regenerate still"
             onClick={handleRegenerate}
             disabled={isGenerating}

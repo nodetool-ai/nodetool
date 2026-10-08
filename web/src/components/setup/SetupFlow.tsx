@@ -105,10 +105,10 @@ export interface SetupFlowProps<Stage extends string> {
    * otherwise mean leaving the guided surface altogether.
    *
    * The shell asks before it calls this, and its question promises two things
-   * the host owes: the description already typed carries over to the flow
-   * picked next, and the draft document created for this flow is discarded
-   * rather than left behind as an empty project row. References and entities
-   * do not carry over yet, so the question does not promise them.
+   * the host owes: the description already typed, and the references and
+   * entities that came with it, carry over to the flow picked next, and the
+   * draft document created for this flow is discarded rather than left behind
+   * as an empty project row.
    */
   onChangeFlow?: () => void | Promise<void>;
 }
@@ -134,6 +134,9 @@ export function SetupFlow<Stage extends string>({
   );
   const [confirmingChange, setConfirmingChange] = useState(false);
   const [changingFlow, setChangingFlow] = useState(false);
+  // Kept apart from the step's own error, whose "Try again" runs the step: a
+  // failed discard is retried from "Change flow", not by advancing.
+  const [changeFlowError, setChangeFlowError] = useState<string | null>(null);
   const blockedReasonId = useId();
   // A phone cannot fit the controls, the estimate and the buttons on one
   // row, so the footer stacks there.
@@ -157,6 +160,11 @@ export function SetupFlow<Stage extends string>({
   const activeOperationRef = useRef<Promise<unknown> | null>(null);
   const continueAfterUnmountRef = useRef(false);
   const shortcutTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  // What had focus when a run started. The locked body and button drop it to
+  // the page, so a run that ends on the same step hands it back.
+  const returnFocusRef = useRef<{ element: HTMLElement; stage: Stage } | null>(
+    null
+  );
   if (stageRef.current !== stage) {
     stageRef.current = stage;
     revisionRef.current += 1;
@@ -227,12 +235,14 @@ export function SetupFlow<Stage extends string>({
 
   const handleChangeFlow = useCallback(async () => {
     setConfirmingChange(false);
-    setError(null);
+    setChangeFlowError(null);
     setChangingFlow(true);
     try {
       await onChangeFlow?.();
     } catch (cause) {
-      setError(cause instanceof Error ? cause.message : String(cause));
+      setChangeFlowError(
+        cause instanceof Error ? cause.message : String(cause)
+      );
     } finally {
       setChangingFlow(false);
     }
@@ -243,12 +253,30 @@ export function SetupFlow<Stage extends string>({
   const pending = canceling || (!canceled && (busy || step?.pending === true));
   // Cancel is offered only where pressing it stops something: the shell's own
   // run, which it can abort, or a step that says how to stop its run.
-  const cancelable = advancing || step?.onCancel !== undefined;
+  const cancelable =
+    (advancing && step?.cancelable !== false) || step?.onCancel !== undefined;
   // A step that reports its own `canceled` state owns what retrying means, as
   // the workflow review does by planning again.
   const backToStep =
     canceled && externalCancelStage === stage && step?.canceled !== true;
   const locked = pending || changingFlow;
+
+  useEffect(() => {
+    const saved = returnFocusRef.current;
+    if (locked || !saved) {
+      return;
+    }
+    returnFocusRef.current = null;
+    const active = document.activeElement;
+    if (
+      saved.stage !== stage ||
+      !saved.element.isConnected ||
+      (active !== null && active !== document.body)
+    ) {
+      return;
+    }
+    saved.element.focus({ preventScroll: true });
+  }, [locked, stage]);
 
   const handlePrimary = useCallback(async () => {
     if (!step || readOnly) {
@@ -259,6 +287,11 @@ export function SetupFlow<Stage extends string>({
     const controller = new AbortController();
     activeControllerRef.current = controller;
     continueAfterUnmountRef.current = step.continueAfterUnmount === true;
+    returnFocusRef.current =
+      document.activeElement instanceof HTMLElement &&
+      document.activeElement !== document.body
+        ? { element: document.activeElement, stage: step.stage }
+        : null;
     setError(null);
     setCanceledStage(null);
     setCancelingStage(null);
@@ -597,6 +630,27 @@ export function SetupFlow<Stage extends string>({
       >
         {/* A failure is reported above the step, not in place of it: the
             creator can pick something else right here, or try again. */}
+        {changeFlowError && currentIndex === 0 ? (
+          <AlertBanner
+            severity="error"
+            title="We couldn't discard this draft"
+            sx={{ marginBottom: SPACING.xl }}
+            action={
+              <ReportBugButton
+                label="Report this failure"
+                variant="outlined"
+                size="small"
+                context={{
+                  source: "manual",
+                  summary: `${labels.title} setup failed to change flow`,
+                  errorText: changeFlowError
+                }}
+              />
+            }
+          >
+            {`${changeFlowError} Press Change flow to try again.`}
+          </AlertBanner>
+        ) : null}
         {error && !canceled ? (
           <AlertBanner
             severity="error"
@@ -783,7 +837,7 @@ export function SetupFlow<Stage extends string>({
         maxWidth="xs"
       >
         <Text size="normal">
-          {`What you have typed comes with you to the flow you pick next. This ${labels.title.toLowerCase()} draft is discarded — nothing has been generated for it yet.`}
+          {`What you have typed, with its references and entities, comes with you to the flow you pick next. This ${labels.title.toLowerCase()} draft is discarded — nothing has been generated for it yet.`}
         </Text>
       </Dialog>
     </FlexColumn>

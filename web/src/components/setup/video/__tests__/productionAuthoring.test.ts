@@ -9,6 +9,7 @@ import {
   productionPatch,
   productionAuthoringBlocker,
   productionGenerationBlocker,
+  productionReviewFingerprint,
   reviewFingerprintOf
 } from "../productionAuthoring";
 
@@ -207,4 +208,31 @@ it("allows supported references and alternatives but blocks unsupported on-camer
   ).toBe(
     "On-camera speech is unavailable in this guided flow. Choose Off-camera or None."
   );
+});
+
+it("ignores the fields later steps write onto reviewed shots and beats", () => {
+  const shot = { id: "s1", action: "A lamp", production };
+  const beat = { id: "b1", text: "Open on the lamp", production };
+  const reviewed = productionReviewFingerprint({
+    inputsKey: "plan",
+    shots: [shot],
+    beats: [beat]
+  });
+
+  // Entity and style picks write `entity_ids`; Generate links each beat to
+  // its clip before the jobs start.
+  expect(
+    productionReviewFingerprint({
+      inputsKey: "plan",
+      shots: [{ ...shot, entity_ids: ["e-style"] }],
+      beats: [{ ...beat, clip_id: "clip-1" }]
+    })
+  ).toBe(reviewed);
+  expect(
+    productionReviewFingerprint({
+      inputsKey: "plan",
+      shots: [{ ...shot, action: "A lamp, switched off" }],
+      beats: [beat]
+    })
+  ).not.toBe(reviewed);
 });

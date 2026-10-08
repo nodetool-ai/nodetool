@@ -442,14 +442,24 @@ jobs:
           echo "::endgroup::"
 
       - name: Run ${{ matrix.check }}
+        env:
+          NODETOOL_CHECK_COMMAND: ${{ matrix.command }}
         run: |
           echo "::group::${{ matrix.check }}"
-          ${{ matrix.command }} || exit $?
+          bash -e -o pipefail -c "$NODETOOL_CHECK_COMMAND" || exit $?
           echo "::endgroup::"
 
       - name: Check production release workflow contracts
         if: matrix.check == 'lint'
         run: node --test .github/tests/docker-deploy.test.mjs
+
+      - name: Install Chromium for agentic QA checks
+        if: matrix.check == 'lint'
+        run: npx playwright install --with-deps chromium
+
+      - name: Check agentic QA origin restrictions
+        if: matrix.check == 'lint'
+        run: npm --prefix web run test:agentic-qa
 
   # Build the ~55 backend packages ONCE and publish their dist as an artifact.
   # The `built` legs below consume it instead of each rebuilding from scratch,
@@ -758,10 +768,11 @@ jobs:
           CI_BASE_SHA: ${{ inputs.base-sha }}
           # Keep deadline-sensitive harness fixtures isolated from parallel test files.
           NODETOOL_TEST_WORKERS: ${{ matrix.check == 'harness-gate' && '1' || '' }}
+          NODETOOL_CHECK_COMMAND: ${{ matrix.command }}
           NODETOOL_GAME_GOLDEN_ARTIFACTS: ${{ matrix.check == 'harness-gate' && format('{0}/native-game-golden-diagnostics', runner.temp) || '' }}
         run: |
           echo "::group::${{ matrix.check }}"
-          ${{ matrix.command }} || exit $?
+          bash -e -o pipefail -c "$NODETOOL_CHECK_COMMAND" || exit $?
           echo "::endgroup::"
 
       - name: Retain native game golden diagnostics

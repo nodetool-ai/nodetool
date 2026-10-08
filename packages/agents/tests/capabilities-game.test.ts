@@ -54,6 +54,27 @@ describe("native game capabilities", () => {
     ]);
   });
 
+  it("reports a missing draft source as a recoverable capability result", async () => {
+    const agent = run();
+    const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Lost draft" }) as GameReply;
+    const game = await Game.findOwned(USER, created.game.id);
+    const row = game && await Workspace.find(USER, game.workspace_id);
+    const workspace = row && workspaceFromRow(row);
+    if (!game || !workspace) { throw new Error("Game workspace missing"); }
+    const updated = await Game.updateDraft(USER, game.id, game.draft_updated_at,
+      [{ op: "update_scene", scene_id: created.document.entrySceneId, set: { name: "Unpublished" } }], workspace, { actor: "user" });
+    expect(updated?.document.scenes[0]?.name).toBe("Unpublished");
+    const saved = await Game.findOwned(USER, game.id);
+    if (!saved) { throw new Error("Saved game missing"); }
+    await workspace.delete(`${saved.source_root}/drafts/${saved.draft_version_id}.json`);
+    await workspace.delete(`${saved.source_root}/draft.json`);
+    await expect(agent.invoke("get_native_game", { game_id: game.id, view: "full" }))
+      .resolves.toMatchObject({ code: "game_draft_source_unavailable" });
+    await expect(agent.invoke("edit_native_game", { game_id: game.id, base_updated_at: saved.draft_updated_at,
+      ops: [{ op: "update_scene", scene_id: created.document.entrySceneId, set: { name: "Later edit" } }] }))
+      .resolves.toMatchObject({ code: "game_draft_source_unavailable" });
+  });
+
   it("creates, reopens, rejects stale edits, and playtests a pinned revision", async () => {
     const agent = run();
     const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Room" }) as GameReply;
