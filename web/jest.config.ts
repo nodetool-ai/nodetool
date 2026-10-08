@@ -71,6 +71,8 @@ export default {
       "<rootDir>/../packages/timeline/src/render/index.ts",
     // The GPU-free half of `/render`. The agent bridge parses mask paths with
     // it, and pulling `/render` for that would drag TypeGPU into the suite.
+    "^@nodetool-ai/timeline/testing$":
+      "<rootDir>/../packages/timeline/src/testing/index.ts",
     "^@nodetool-ai/timeline/scene$":
       "<rootDir>/../packages/timeline/src/scene.ts",
     // node-sdk ships ESM-only dist; the cost-estimate subpath is a pure module

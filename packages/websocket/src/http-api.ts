@@ -1,3 +1,4 @@
+import { getUserId } from "./lib/http-user-id.js";
 import {
   createServer,
   type IncomingMessage,
@@ -463,12 +464,7 @@ function errorResponse(status: number, detail: string): Response {
   return jsonResponse({ detail }, { status });
 }
 
-export function getUserId(request: Request, headerName: string): string {
-  return (
-    request.headers.get(headerName) ?? request.headers.get("x-user-id") ?? "1"
-  );
-}
-
+export { getUserId } from "./lib/http-user-id.js";
 /** The raw JSON body, or null when there is nothing readable to parse. */
 async function readJsonBody(request: Request): Promise<unknown> {
   const contentType = request.headers.get("content-type") ?? "";

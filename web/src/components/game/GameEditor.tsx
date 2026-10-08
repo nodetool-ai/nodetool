@@ -1,5 +1,6 @@
 import { lazy, Suspense, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useMediaQuery } from "@mui/material";
+import { useStore } from "zustand";
 import { useTheme } from "@mui/material/styles";
 import type { GameDocument, GameEntity } from "@nodetool-ai/protocol/game.js";
 import { createScriptedGameSession, validateGame, type AnyGameDocumentOp as GameDocumentOp } from "@nodetool-ai/game-runtime";
@@ -7,10 +8,11 @@ import { createScriptedGameSession, validateGame, type AnyGameDocumentOp as Game
 import { trpc, trpcClient } from "../../trpc/client";
 import { useChatDraftStore } from "../../stores/ChatDraftStore";
 import { useConflictStore } from "../../stores/ConflictStore";
-import { flushGameDraft, pullGameDraft, reloadRejectedGameDraft } from "../../stores/game/draftSave";
+import { captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
+import { useGamePanelLayoutStore } from "../../stores/game/useGamePanelLayoutStore";
 import { diffAnyGameDocuments as diffGameDocuments } from "../../stores/game/diffAnyGameDocuments";
 import { anyGameMergeAdapter as gameMergeAdapter } from "../../stores/game/anyMerge";
 import { useDocumentConflicts } from "../../hooks/useDocumentConflicts";
@@ -18,6 +20,7 @@ import { Caption, CollapsibleSection, ConflictBanner, Dialog, EmptyState, FlexCo
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./panels/agent/GameAgentPanel";
 import GameRevisions from "./panels/revisions/GameRevisions";
+import GameDraftRecovery, { isMissingDraft } from "./GameDraftRecovery";
 import { publishGameDraft } from "./gamePublish";
 import GameChanges from "./panels/changes/GameChanges";
 import GameAuthoringPreview from "./panels/authoring/GameAuthoringPreview";
@@ -67,9 +70,10 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       editorSceneId: activeSceneId ?? undefined, name: data?.game.name });
   const diagnostics = useGameScriptDiagnostics(document, openGameDiagnosticSession2D);
   const scriptError = diagnostics.error ?? hostScriptError;
-  const [assistantOpen, setAssistantOpen] = useState(false);
-  const [sceneTreeOpen, setSceneTreeOpen] = useState(true);
-  const [inspectorOpen, setInspectorOpen] = useState(true);
+  const layoutStore = useGamePanelLayoutStore();
+  const assistantOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("assistant"));
+  const sceneTreeOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("hierarchy") || !state.layout.hidden.includes("revisions"));
+  const inspectorOpen = useStore(layoutStore, (state) => !state.layout.hidden.includes("inspector"));
   const [focusMessage, setFocusMessage] = useState<{ threadId: string; messageId: string; requestId: number } | null>(null);
   const focusRequestRef = useRef(0);
   const [assistantThreadId, setAssistantThreadId] = useState<string | null>(null);
@@ -151,14 +155,22 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       while (store.getState().pendingOps.length > 0) {
         const state = store.getState();
         if (!state.baseUpdatedAt) return;
-        const ops = state.captureSaveOps();
-        state.setSaving(ops.length);
+        const batch = captureGameDraftBatch(refId);
+        if (!batch) return;
+        state.setSaving(batch.count);
         try {
-          const result = await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops });
-          store.getState().acknowledge(result.document, result.game.draftUpdatedAt, ops.length);
+          const result = "document" in batch
+            ? await trpcClient.games.saveDraftDocument.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, document: batch.document })
+            : await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops: batch.ops });
+          store.getState().acknowledge(result.document, result.game.draftUpdatedAt, batch.count);
           loadedTokenRef.current = result.game.draftUpdatedAt;
           retries = 0;
         } catch (cause) {
+          if (isMissingDraft(cause)) {
+            store.getState().failSave("Draft source unavailable. Export your local draft before restoring.");
+            await queries.games.getDraft.invalidate({ id: refId });
+            throw cause;
+          }
           try {
             const server = await trpcClient.games.getDraft.query({ id: refId });
             const latest = store.getState();
@@ -176,13 +188,15 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
               });
               if (merged.conflicts.length > 0) throw new Error("Resolve draft conflicts before saving");
               if (++retries <= 3) continue;
-            } else {
-              reloadRejectedGameDraft(refId, state.baseUpdatedAt, server.document, server.game.draftUpdatedAt, cause);
             }
           } catch (recoveryError) {
             if (recoveryError instanceof Error && recoveryError.message === "Resolve draft conflicts before saving") {
               throw recoveryError;
             }
+          }
+          if ("ops" in batch && isRejectedGameSave(cause)) {
+            store.getState().requireDocumentSave();
+            continue;
           }
           const message = cause instanceof Error ? cause.message : String(cause);
           store.getState().failSave(message);
@@ -191,7 +205,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       }
     };
     await flushGameDraft(savingPromiseRef, save);
-  }, [refId]);
+  }, [refId, queries.games.getDraft]);
 
   useEffect(() => {
     if (saveStatus !== "unsaved" || conflicts.items.length > 0) return;
@@ -208,7 +222,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
     const prompt = `Help fix this game script error. Scene: ${scriptKey.sceneId}. Entity: ${scriptKey.entityId}. Behavior index: ${scriptKey.index}. Tick: ${scriptError.tick}. Error: ${scriptError.message}`;
     if (assistantThreadId) useChatDraftStore.getState().setDraft(assistantThreadId, prompt);
     else pendingAssistantPromptRef.current = prompt;
-    setAssistantOpen(true);
+    layoutStore.getState().dispatch({ type: "reveal", panelId: "assistant" });
   };
 
   const restoreRevision = async (revision: string): Promise<void> => {
@@ -292,16 +306,17 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const onEditorKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     if (!active || !document) return;
     if (playDocument) return;
-    if (event.code === "Home") {
-      event.preventDefault();
-      resetCamera();
-      return;
-    }
     const command = event.metaKey || event.ctrlKey;
     if (command && event.code === "KeyZ") {
       event.preventDefault();
       if (event.shiftKey) getGameDraftStore(refId).getState().redo();
       else getGameDraftStore(refId).getState().undo();
+      return;
+    }
+    if (!(event.target instanceof HTMLElement) || !event.target.closest('[data-game-panel="viewport"]')) { return; }
+    if (event.code === "Home") {
+      event.preventDefault();
+      resetCamera();
       return;
     }
     if (command && event.code === "KeyC") {
@@ -373,12 +388,13 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const validationIssues = documentValidation?.issues ?? [];
   const runtimeEntity = runtimeEntities?.find((entity) => entity.id === selectedIds[0]) ?? null;
 
+  if (loadError?.data?.code === "PRECONDITION_FAILED") { return <GameDraftRecovery key={refId} refId={refId} />; }
   if (isPending || (data && !document)) return <LoadingSpinner text="Loading game" />;
   if (loadError || !data || !document) {
     return <EmptyState variant="error" title="Could not load game" description={loadError?.message ?? "The game may have been deleted."} />;
   }
 
-  return <GameEditorShell dimension="2d"
+  return <GameEditorShell layoutStore={layoutStore} dimension="2d"
     toolbar={{
         name: data.game.name,
         playing: playing,
@@ -396,9 +412,9 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
         onSave: save,
         onLoad: () => void load(),
         onPublish: () => setPublishOpen(true),
-        onAssistant: () => setAssistantOpen((current) => !current),
-        onSceneTree: () => setSceneTreeOpen((current) => !current),
-        onInspector: () => setInspectorOpen((current) => !current)
+        onAssistant: () => layoutStore.getState().togglePanels(["assistant"]),
+        onSceneTree: () => layoutStore.getState().togglePanels(["hierarchy", "revisions"]),
+        onInspector: () => layoutStore.getState().togglePanels(["inspector"])
     }}
     status={{ tick: playState.tick, score: playState.score, won: playState.won, backend }}
     notices={<>
@@ -412,19 +428,17 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       <GameChanges gameId={refId} document={document} onOps={onOps} onHover={setHighlightedIds}
         onFocusMessage={(threadId, messageId) => {
           setFocusMessage({ threadId, messageId, requestId: ++focusRequestRef.current });
-          setAssistantOpen(true);
+          layoutStore.getState().dispatch({ type: "reveal", panelId: "assistant" });
         }} />
     </>}
     panels={[
-      { id: "hierarchy", visible: !isMobile && sceneTreeOpen, keyboardScope: true,
-        dock: { storageKey: "sceneTree", storagePrefix: "nodetool.gameEditor.", side: "left", defaultWidth: 260, minWidth: 220, maxWidth: 480, ariaLabel: "Resize scene tree" },
+      { id: "hierarchy", visible: !isMobile, keyboardScope: true,
         node: <>
           <GameSceneTree document={document} selectedIds={selectedIds} activeSceneId={activeSceneId ?? document.entrySceneId}
             issues={validationIssues} scriptErrorEntityId={scriptError?.entityId}
             onSelect={selectEntity} onSelectScene={selectScene} onOps={onOps} />
         </> },
-      { id: "revisions", visible: !isMobile && sceneTreeOpen,
-        dock: { storageKey: "sceneTree", storagePrefix: "nodetool.gameEditor.", side: "left", defaultWidth: 260, minWidth: 220, maxWidth: 480, ariaLabel: "Resize scene tree" },
+      { id: "revisions", visible: !isMobile,
         node: <>
           <CollapsibleSection title={<Label component="span" sx={{ mb: 0 }}>Revisions</Label>} compact defaultOpen={false}
             sx={{ flexShrink: 0, maxHeight: "30%", overflowY: "auto", px: SPACING.md,
@@ -449,28 +463,26 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       { id: "scripts", visible: Boolean(scriptKey && activeScript && scriptBehavior?.kind === "script"),
         node: scriptKey && activeScript && scriptBehavior?.kind === "script" ? <>
               <GameScriptPane key={`${scriptKey.sceneId}:${scriptKey.entityId}:${scriptKey.index}`} entityId={activeScript.id} entityName={activeScript.name} behaviorIndex={scriptKey.index}
-                behavior={scriptBehavior} onClose={() => setScriptKey(null)}
+                behavior={scriptBehavior} onClose={() => { setScriptKey(null); layoutStore.getState().dispatch({ type: "hide", panelId: "scripts" }); }}
                 error={scriptError && (!scriptError.entityId || scriptError.entityId === activeScript.id) ? scriptError : null}
-                onReplay={playDocument && scriptError ? () => void replayBeforeError(scriptError) : undefined}
+                onReplay={playDocument && !diagnostics.error && hostScriptError ? () => void replayBeforeError(hostScriptError) : undefined}
                 onAskAssistant={askAssistant}
                 onRunTenSeconds={() => void diagnostics.run()} runningTenSeconds={diagnostics.running} runSummary={diagnostics.summary}
                 runEntityStats={diagnostics.byEntity}
                 onChange={(source) => onOps([{ op: "set_script", entity_id: activeScript.id, scene_id: scriptKey.sceneId, index: scriptKey.index, source }])} />
         </> : null },
-      { id: "inspector", visible: !isMobile && inspectorOpen,
-        dock: { storageKey: "inspector", storagePrefix: "nodetool.gameEditor.", defaultWidth: 340, minWidth: 280, maxWidth: 640, ariaLabel: "Resize game inspector" },
+      { id: "inspector", visible: !isMobile,
         node: <>
           {playDocument && !playing && <GameRuntimeInspector tick={playState.tick} entity={runtimeEntity} />}
           <GameInspector document={document} selectedIds={selectedIds} activeSceneId={activeSceneId ?? document.entrySceneId}
             onSceneChange={selectScene} issues={validationIssues} onOps={onOps}
-            onEditScript={(sceneId, entityId, index) => setScriptKey({ sceneId, entityId, index })} />
+            onEditScript={(sceneId, entityId, index) => { setScriptKey({ sceneId, entityId, index }); layoutStore.getState().dispatch({ type: "reveal", panelId: "scripts" }); }} />
         </> },
-      { id: "assistant", visible: !isMobile && assistantOpen,
-        dock: { storageKey: "game_assistant", ariaLabel: "Resize game assistant" }, node: <>
+      { id: "assistant", visible: !isMobile,
+        node: <>
           <GameAgentPanel gameId={refId} name={data.game.name} selectedEntityIds={selectedIds} behaviorIndex={scriptKey?.index} onThreadId={setAssistantThreadId} focusMessage={focusMessage} />
         </> }
     ]}
-    bottomSx={{ height: "35%", minHeight: 0 }}
     onKeyDown={onEditorKeyDown}
     mobile={<>
       {isMobile && <>
@@ -480,8 +492,8 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
           onSelect={selectEntity} onSelectScene={selectScene} onOps={onOps} />
         <GameInspector document={document} selectedIds={selectedIds} activeSceneId={activeSceneId ?? document.entrySceneId}
           onSceneChange={selectScene} issues={validationIssues} onOps={onOps}
-          onEditScript={(sceneId, entityId, index) => setScriptKey({ sceneId, entityId, index })} />
-        <MobileBottomSheet open={assistantOpen} onClose={() => setAssistantOpen(false)} title="Game assistant" ariaLabel="Game assistant panel">
+          onEditScript={(sceneId, entityId, index) => { setScriptKey({ sceneId, entityId, index }); layoutStore.getState().dispatch({ type: "reveal", panelId: "scripts" }); }} />
+        <MobileBottomSheet open={assistantOpen} onClose={() => layoutStore.getState().dispatch({ type: "hide", panelId: "assistant" })} title="Game assistant" ariaLabel="Game assistant panel">
           <GameAgentPanel gameId={refId} name={data.game.name} selectedEntityIds={selectedIds} behaviorIndex={scriptKey?.index} onThreadId={setAssistantThreadId} focusMessage={focusMessage} />
         </MobileBottomSheet>
       </>}

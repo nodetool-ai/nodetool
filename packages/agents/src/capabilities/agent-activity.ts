@@ -15,7 +15,7 @@ import type { ProcessingContext, ProviderStreamItem } from "@nodetool-ai/runtime
 import { trace } from "@opentelemetry/api";
 import { getRunTraceScope, withRunTrace, recordTraceEvent, getProviderStreamTrace, stringifyTraceContent } from "@nodetool-ai/runtime";
 import { isChunk, isToolCall } from "@nodetool-ai/runtime";
-import { capabilitySpec } from "./registry.js";
+import { capabilitySpec } from "./metadata.js";
 import { isString } from "../utils/type-guards.js";
 
 /** The longest tool result summary one message carries. */

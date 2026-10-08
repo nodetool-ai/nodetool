@@ -1,287 +1,173 @@
 ---
 layout: page
 title: "Troubleshooting Guide"
-description: "Debugging and fixing common NodeTool workflow issues."
+description: "Find a NodeTool error by its message or symptom, with the likely cause and the fix."
 ---
 
-Step-by-step troubleshooting for common NodeTool issues. For installation-specific problems (GPU drivers, CUDA, platform issues), see [Installation Troubleshooting](installation.md#if-installing-goes-wrong).
+Find your problem by the message on screen or by what is going wrong. For installation problems (GPU drivers, CUDA, platform issues), see [Installation Troubleshooting]({{ '/installation' | relative_url }}#if-installing-goes-wrong).
 
 **Jump to:**
-- [Quick Diagnostic Checklist](#quick-diagnostic-checklist) — Start here
-- [Common Issues & Solutions](#common-issues--solutions)
-  - [Workflow stuck or slow](#issue-my-workflow-is-stuck-or-very-slow)
-  - [Type mismatch errors](#issue-node-shows-error-type-mismatch)
-  - [Poor LLM results](#issue-llm-generates-poor-quality-results)
-  - [RAG returns irrelevant documents](#issue-rag-workflow-returns-irrelevant-documents)
-  - [Model download fails](#issue-model-download-fails-or-stalls)
-  - [Deployment failures](#issue-deployment-fails-or-service-wont-start)
-  - [Empty preview output](#issue-preview-node-shows-empty-or-null-output)
-- [Performance Optimization](#performance-optimization)
-- [Debugging Techniques](#debugging-techniques)
-- [Getting Help](#getting-help)
-  - [Report a Bug from inside NodeTool](#report-a-bug-from-inside-nodetool)
+- [Quick checks](#quick-checks)
+- [Errors by message](#errors-by-message)
+- [Runs and nodes](#runs-and-nodes)
+- [Models and providers](#models-and-providers)
+- [Search and documents](#search-and-documents)
+- [Deployment](#deployment)
+- [Performance](#performance)
+- [Debugging techniques](#debugging-techniques)
+- [Getting help](#getting-help)
 
 ---
 
-## Quick Diagnostic Checklist
+## Quick checks
 
-When a workflow isn't working as expected, work through this checklist systematically:
+Start here when a run fails and you do not know why.
 
-- [ ] **Check node connections** – Are all required inputs connected?
-- [ ] **Verify data types** – Do output types match input requirements?
-- [ ] **Inspect Preview nodes** – What do intermediate results show?
-- [ ] **Review error messages** – Click failed nodes to see error details
-- [ ] **Check model availability** – Are required models installed/configured?
-- [ ] **Verify file paths** – Do referenced files exist and have correct permissions?
-- [ ] **Check API keys** – Are cloud provider credentials configured in Settings?
-- [ ] **Review logs** – Check console/terminal for detailed error messages
+- **The failing node.** A failed node shows a red error box with the message, a **View logs** button, and a **Report** button. An animated ring around a node means it is still running.
+- **Provider keys.** Open **Settings → Models & Providers** and confirm the key for the provider your node uses. A provider without a key is marked "API key required" in the model menu.
+- **The Logs panel.** Press `l` in the editor to open it. It lists log lines for the open workflow, newest first, and you can filter by **Info**, **Warn**, and **Error**. The Trace panel (`Ctrl/⌘ + Shift + T`) shows per-node timing.
+- **The model.** For a local model, open **Model Manager** (logo menu, or **Tools → Model Manager** in the desktop app) and confirm the model is installed.
+- **The local server.** For Ollama or another local engine, confirm it is running. NodeTool reports "Could not reach ..." when it is not.
+- **Preview nodes.** Add a Preview node after each major step to see where the data stops.
+- **Connections and file paths.** Check that required inputs are connected, handle colors match, and referenced files exist and are readable.
 
----
-
-## Common Issues & Solutions
-
-### Issue: "My workflow is stuck or very slow"
-
-#### Symptoms
-- Progress bar doesn't move
-- No output after several minutes
-- CPU/GPU usage is low
-- Browser/app becomes unresponsive
-
-#### Diagnostic Steps
-
-1. **Check Preview nodes** – Add Preview nodes after each major step to identify where execution stalls
-2. **Review node status** – Look at the node:
-   - An animated ring around the node means it is running
-   - An error box with a **Report** button means it failed
-   - "Model is booting, taking minutes." means a hosted model is starting up
-3. **Inspect system resources** – Open Task Manager (Windows) or Activity Monitor (macOS) to check:
-   - CPU usage
-   - RAM usage
-   - GPU utilization
-   - Disk I/O
-
-#### Common Causes & Fixes
-
-**Cause 1: Model not downloaded**
-- **Fix:** Open **Model Manager** from the sidebar menu (or **Tools → Model Manager** in the desktop app) and install the required model
-- **Prevention:** Always install models before running workflows that use them
-
-**Cause 2: Large file processing**
-- **Fix:** Use batch processing or chunk data into smaller pieces
-- **Example:** Split large PDFs before indexing
-
-**Cause 3: Insufficient memory**
-- **Symptoms:** Workflow crashes or hangs at specific nodes
-- **Fix:** 
-  - Close other applications
-  - Reduce batch size
-  - Use smaller/quantized models (e.g., Q4 instead of Q8)
-  - Increase system swap/page file
-
-**Cause 4: Network timeout (cloud models)**
-- **Fix:** Check internet connection and verify API keys
-- **Alternative:** Switch to local models for offline operation
-
-**Cause 5: Infinite loop in workflow**
-- **Symptoms:** Workflow never completes, continuously processes
-- **Fix:** Review workflow logic for circular dependencies
-- **Note:** NodeTool prevents circular connections but complex conditional logic can create infinite loops
+> **Tip:** A failed node's **Report** button collects the error, node settings, and logs for a bug report. See [Report a Bug from inside NodeTool](#report-a-bug-from-inside-nodetool).
+{: .callout-tip}
 
 ---
 
-### Issue: "Node shows error: Type mismatch"
+## Errors by message
 
-#### Symptoms
-- The connection snaps back and no edge is created
-- A warning notification: "Cannot connect these types"
-- A cycle shows "Cannot create a cyclic connection" instead
-- Workflow won't run because a required input is empty
+Search this page (`Ctrl/Cmd+F`) for the text you see. Text in `<angle brackets>` varies with your workflow.
 
-#### Diagnostic Steps
-
-1. **Match handle colors** – Handle colors show each slot's type
-2. **Check node documentation** – Click node and read input/output type requirements
-3. **Use Preview nodes** – Verify what data type is actually being produced
-
-#### Common Causes & Fixes
-
-**Cause 1: Wrong data type**
-- **Example:** Connecting `List[String]` to a node expecting `String`
-- **Fix:** Add a conversion node (e.g. a `nodetool.code.Code` node that returns one item from the list)
-
-**Cause 2: Null/empty output**
-- **Example:** Previous node returned null, next node expects data
-- **Fix:** Add validation or default value nodes
-
-**Cause 3: Image format mismatch**
-- **Example:** A node outputs an image, the next expects a different media type
-- **Fix:** Add a conversion node or a `nodetool.code.Code` node that returns the shape the next node wants
-
-#### Type Conversion Quick Reference
-
-| From Type | To Type | Solution Node |
-|-----------|---------|---------------|
-| Anything | Anything else | `nodetool.code.Code` — return the shape the next node wants |
+| What you see | What it means | Fix |
+|---|---|---|
+| `Select a model` | An Agent or other LLM node has no model chosen. | Pick a model in the Inspector, or set a default in Settings → Default Models. See [Workflow Debugging]({{ '/workflow-debugging' | relative_url }}#understanding-error-messages). |
+| `<PROVIDER>_API_KEY is not configured` (for example `COHERE_API_KEY is not configured`) | The node's provider has no key. The name in the message is the key to set. | Add the key in **Settings → Models & Providers**. See [Models & Providers]({{ '/models-and-providers' | relative_url }}). |
+| `OPENAI_API_KEY is required` | The OpenAI provider has no key. | Add it in **Settings → Models & Providers**. See [Configuration]({{ '/configuration' | relative_url }}). |
+| `Missing required secret: <key>` | A node or Code body reads a secret that is not stored. | Add the secret in Settings. See [Configuration]({{ '/configuration' | relative_url }}). |
+| `Authentication failed: Invalid API key or token` | The provider returned 401 and rejected the key. | Replace the key in **Settings → Models & Providers**. |
+| `Authentication failed: <provider> rejected the configured credentials. Check the API key in Settings → Models & Providers.` | The stored credential was refused. For sign-in providers the message says to sign in again. | Update the key or sign in again in **Settings → Models & Providers**. |
+| `Rate limited: Too many requests or insufficient provider quota. Check your provider plan and try again later.` | The provider returned 429. You sent too many requests or used up your quota. | Wait and retry, or check your plan limits with the provider. |
+| `Account billing or credit limit reached for <provider>. Check your <provider> plan or billing.` | The provider returned 402. Your account is out of credit. | Top up the account with the provider. See [Costs & Credits]({{ '/costs-and-credits' | relative_url }}). |
+| `Account quota exhausted for <provider>/<model>. Check your <provider> quota or billing and try again later.` | A Gemini quota error. The account has no quota left for this model. | Check quota and billing with the provider, or choose another model. |
+| `Model <model> was not found or is unavailable on <provider>. Choose another model or check account access.` | The provider returned 404 for the model id, or your account cannot use it. | Pick another model, or check that your account has access. See [Models & Providers]({{ '/models-and-providers' | relative_url }}). |
+| `Property "<path>" selects model "<model>", which provider "<provider>" does not offer.` | Workflow validation found a model id the provider does not list. | Choose a model from the node's model menu. |
+| `Property "<path>" selects provider "<provider>", which is not registered.` | Workflow validation found a provider that is not available on this install. | Choose a registered provider from the node's model menu. |
+| `Could not reach <provider>/<model>. Check your internet connection, proxy settings, and — for local providers — that the server is running.` | A network failure before the provider answered. | Check your connection and proxy, and start the local server if the provider is local. |
+| `Could not load Ollama models` | The model menu cannot reach Ollama. | Start Ollama. In the desktop app it starts automatically, so restart the app. See [Models & Providers]({{ '/models-and-providers' | relative_url }}). |
+| `The <provider>/<model> request is too large for the model context window. Shorten the conversation or remove some attachments and try again.` | The prompt is longer than the model's context window. | Shorten the input, remove attachments, or use a model with a larger window. |
+| `Missing required workflow input "<name>"` | A workflow input has no value. | Give the input node a value, or pass the input when you run the workflow. |
+| `Cycle detected in graph; a cycle may only close on the "next" or "condition" input of a Loop node.` | The graph loops back on itself. | Remove the connection that closes the cycle, or wire it into a [Loop node]({{ '/nodes/nodetool/control/loop' | relative_url }})'s `next` or `condition` input. |
+| `Cannot connect these types` | The editor refused a connection between incompatible handle types. | Add a conversion node between the two, such as `nodetool.code.Code`. See [Type mismatch](#a-connection-wont-snap-or-an-input-is-empty). |
+| `Cannot create a cyclic connection` | The new connection would close a cycle. | Connect to a different input, or restructure the graph. |
+| `Python node "<type>" cannot execute: Python worker is not connected.` | The node needs the Python bridge and the worker is not running. | Check that Python is installed and the worker started. See [Installation]({{ '/installation' | relative_url }}). |
+| `Collection '<name>' not found` | A search or index node names a collection that does not exist. | Run the indexing workflow first, and check the name matches. See [Collections]({{ '/collections' | relative_url }}). |
+| `Model is booting, taking minutes.` | A hosted model is starting up. This is a status, not a failure. | Wait for the node to finish starting. |
+| `WebSocket connection lost. The download may still be running on the server. Click Reconnect to restore progress updates.` | The Model Manager lost its live connection during a download. | Click **Reconnect**. If progress does not return, cancel and restart the download. |
+| `Failed to save workflow: Server unreachable` | The editor cannot reach the NodeTool server. | Check that the server is running, then save again. |
 
 ---
 
-### Issue: "LLM generates poor quality results"
+## Runs and nodes
 
-#### Symptoms
-- Irrelevant responses
-- Hallucinations or factually incorrect outputs
-- Repetitive text
-- Incomplete responses
+### My workflow is stuck or very slow
 
-#### Diagnostic Steps
+Signs: the progress bar does not move, there is no output after several minutes, CPU or GPU use is low, or the app freezes.
 
-1. **Check prompt template** – Review the prompt in `Template` or `Agent` nodes
-2. **Verify model selection** – Ensure appropriate model for task
-3. **Test with different temperature** – Adjust creativity vs accuracy tradeoff
-4. **Add examples** – Provide few-shot examples in prompt
-5. **Use Preview nodes** – Inspect intermediate reasoning steps
+First look at the node. An animated ring means it is running, an error box means it failed, and "Model is booting, taking minutes." means a hosted model is starting up. Then check CPU, RAM, GPU, and disk use in Task Manager (Windows) or Activity Monitor (macOS). Add Preview nodes after each major step to find where execution stalls.
 
-#### Common Causes & Fixes
+- **Model not downloaded.** Open **Model Manager** and install the model. Install models before running workflows that use them.
+- **Large file processing.** Process in batches or split the data, for example split large PDFs before indexing.
+- **Not enough memory.** The workflow crashes or hangs at specific nodes. Close other applications, reduce batch size, use a smaller or quantized model (Q4 instead of Q8), or increase swap or the page file.
+- **Network timeout (cloud models).** Check your connection and API keys, or switch to a local model to work offline.
+- **An endless loop.** The workflow never completes and keeps processing. NodeTool blocks circular connections, but conditional logic can still loop forever. Review the workflow logic.
 
-**Cause 1: Vague or ambiguous prompt**
-- **Fix:** Be specific and explicit in instructions
-- **Bad:** "Summarize this"
-- **Good:** "Summarize this document in 3 bullet points, focusing on action items"
+### A connection won't snap, or an input is empty
 
-**Cause 2: Wrong model for task**
-- **Fix:** Match model to task:
-  - **Creative writing** → Higher parameter models (13B+)
-  - **Factual Q&A** → Models fine-tuned for chat/instruct
-  - **Code generation** → Code-specialized models
-  - **Fast prototyping** → Smaller models (7B) for iteration
+Signs: the connection snaps back and no edge is created, "Cannot connect these types" appears, "Cannot create a cyclic connection" appears for a cycle, or the workflow will not run because a required input is empty.
 
-**Cause 3: Temperature too high/low**
-- **Fix:** Adjust temperature setting:
-  - **0.0-0.3** → Deterministic, factual (Q&A, extraction)
-  - **0.5-0.7** → Balanced (general chat)
-  - **0.8-1.2** → Creative (story writing, brainstorming)
+Handle colors show each slot's type, so match them. Click a node to read its input and output types, and use Preview nodes to check what a node actually produces.
 
-**Cause 4: Context window exceeded**
-- **Symptoms:** Truncated responses, "forgot" earlier context
-- **Fix:** 
-  - Reduce input length
-  - Use RAG to retrieve relevant snippets instead of full documents
-  - Switch to model with larger context window
+- **Wrong data type.** For example, `List[String]` connected to a node that expects `String`. Add a conversion node, such as a `nodetool.code.Code` node that returns one item from the list.
+- **Null or empty output.** The previous node returned null and the next expects data. Add validation or a default value.
+- **Media type mismatch.** A node outputs an image and the next expects a different media type. Add a conversion node.
 
-**Cause 5: Missing retrieval context (RAG workflows)**
-- **Fix:** 
-  - Verify vector database is populated
-  - Increase number of retrieved documents
-  - Check hybrid search parameters
-  - Ensure embeddings are generated correctly
+Any type to any other type: use `nodetool.code.Code` and return the shape the next node wants.
+
+### Preview shows empty or null output
+
+Signs: the Preview panel is blank, shows `null` or `undefined`, and no error appears.
+
+Work backwards from the Preview to find where data is lost. Place a Preview after each node, and check warnings even when a node looks green.
+
+- **A node failed silently.** Check the Logs panel for hidden errors. For example, an API call returned 404 without showing an error.
+- **A filter removed everything.** A `FilterCode` or `FilterEqual` node removed all items. Review its conditions.
+- **A timing issue.** NodeTool runs upstream nodes first, but custom nodes can break this. Confirm upstream nodes finish before downstream ones start.
+- **A path or file does not exist.** Verify the path, prefer absolute paths, and check permissions, spelling, and case (Linux and macOS are case-sensitive).
 
 ---
 
-### Issue: "RAG workflow returns irrelevant documents"
+## Models and providers
 
-#### Symptoms
-- Retrieved documents don't match query
-- Low relevance scores
-- Answers don't address question
+### The LLM gives poor results
 
-#### Diagnostic Steps
+Signs: irrelevant answers, hallucinations, repeated text, or incomplete responses.
 
-1. **Check collection status** – Verify documents are indexed in SQLite-vec (or your configured backend)
-2. **Inspect embeddings** – Use Preview nodes to see what's being embedded
-3. **Test search directly** – Run search node separately with known queries
-4. **Review chunk size** – Check if documents are split appropriately
+Check the prompt in `Template` or `Agent` nodes, the model selection, and the temperature. Add few-shot examples, and use Preview nodes to inspect intermediate steps.
 
-#### Common Causes & Fixes
+- **Vague prompt.** Be specific. "Summarize this" is weaker than "Summarize this document in 3 bullet points, focusing on action items".
+- **Wrong model for the task.**
+  - Creative writing: larger models (13B and up).
+  - Factual Q&A: chat or instruct fine-tunes.
+  - Code: code-specialized models.
+  - Fast iteration: smaller models (7B).
+- **Temperature.**
+  - 0.0-0.3: deterministic and factual (Q&A, extraction).
+  - 0.5-0.7: balanced (general chat).
+  - 0.8-1.2: creative (stories, brainstorming).
+- **Context window exceeded.** Responses are cut off or earlier context is forgotten. Shorten the input, retrieve relevant snippets with RAG instead of passing full documents, or use a model with a larger window.
+- **Missing retrieval context (RAG).** Confirm the vector database is populated, increase the number of retrieved documents, check hybrid search parameters, and confirm embeddings are generated. See [the next section](#rag-returns-irrelevant-documents).
 
-**Cause 1: Documents not indexed**
-- **Fix:** Run an indexing workflow first to populate the collection
-- **Verify:** Check collection count, should match number of chunks
+### A model download fails or stalls
 
-**Cause 2: Poor chunking strategy**
-- **Symptoms:** Retrieved text is too short/long or cuts off mid-sentence
-- **Fix:** 
-  - Use `nodetool.code.Code` to split on a semantic boundary
-  - Adjust chunk size (typical: 500-1000 tokens)
-  - Add overlap between chunks (typical: 50-100 tokens)
+Signs: the progress bar stops, "Connection timed out" or "HTTP error" appears, the model looks partially downloaded, or "Model not found" appears after downloading.
 
-**Cause 3: Embedding model mismatch**
-- **Fix:** Use same embedding model for indexing and retrieval
-- **Example:** If you indexed with `text-embedding-ada-002`, query with the same
+Check free disk space first (models run 4-20 GB each, `df -h` on macOS and Linux). Then check that you can reach [huggingface.co](https://huggingface.co), and look at the Models panel for download status.
 
-**Cause 4: Query too vague**
-- **Fix:** Reformulate queries to be more specific
-- **Technique:** Use LLM to expand/rephrase query before search
-
-**Cause 5: Low top_k value**
-- **Fix:** Increase number of retrieved documents (try 5-10 initially)
-- **Tradeoff:** More documents = better recall but slower inference
+- **Not enough disk space.** Models are stored in `~/.cache/huggingface/` by default, and you need at least 2x the model size free. Set `HF_HOME` to a larger drive to move the cache.
+- **Network interruption.** Retry from Model Manager. Behind a proxy, set `HTTP_PROXY` and `HTTPS_PROXY`. Models of 12 GB and up can take 30+ minutes on slow connections.
+- **Hugging Face rate limiting.** Wait a few minutes and retry. For frequent downloads, add a Hugging Face token in **Settings → Models & Providers**. Create one at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens).
+- **Corrupted download.** The model appears downloaded but fails to load. Delete it in the Models panel and download again, or remove its folder from `~/.cache/huggingface/hub/`.
 
 ---
 
-### Issue: "Model download fails or stalls"
+## Search and documents
 
-#### Symptoms
-- Download progress bar stops moving
-- "Connection timed out" or "HTTP error" messages
-- Model appears partially downloaded
-- "Model not found" error even after downloading
+### RAG returns irrelevant documents
 
-#### Diagnostic Steps
+Signs: retrieved documents do not match the query, relevance scores are low, or answers miss the question.
 
-1. **Check disk space** — models can be 4–20 GB each. Run `df -h` (macOS/Linux) or check **This PC** (Windows)
-2. **Check internet connection** — try accessing [huggingface.co](https://huggingface.co) in a browser
-3. **Check download progress** — look at the Models panel for status indicators
+Check that documents are indexed in SQLite-vec (or your configured backend), use Preview nodes to see what is being embedded, run the search node alone with a known query, and review chunk size.
 
-#### Common Causes & Fixes
-
-**Cause 1: Insufficient disk space**
-- **Fix:** Free up disk space. Models are stored in `~/.cache/huggingface/` by default
-- **Check space:** You need at least 2x the model size free (for download + extraction)
-- **Move cache:** Set `HF_HOME` environment variable to a drive with more space
-
-**Cause 2: Network interruption**
-- **Fix:** Retry the download from Model Manager
-- **If behind a proxy:** Configure `HTTP_PROXY` and `HTTPS_PROXY` environment variables
-- **Slow connection:** Large models (12 GB+) may take 30+ minutes on slower connections
-
-**Cause 3: HuggingFace rate limiting**
-- **Fix:** Wait a few minutes and retry
-- **For frequent downloads:** Add a HuggingFace token in **Settings → Models & Providers** to increase rate limits
-- **Get a token:** Create one at [huggingface.co/settings/tokens](https://huggingface.co/settings/tokens)
-
-**Cause 4: Corrupted download**
-- **Symptoms:** Model appears downloaded but fails to load, or shows unexpected errors
-- **Fix:** Delete the model from the Models panel and re-download it
-- **Manual cleanup:** Remove the model folder from `~/.cache/huggingface/hub/`
+- **Documents not indexed.** Run an indexing workflow first. The collection count should match the number of chunks.
+- **Poor chunking.** Retrieved text is too short, too long, or cut mid-sentence. Split on a semantic boundary with `nodetool.code.Code`, use chunks of about 500-1000 tokens, and add 50-100 tokens of overlap.
+- **Embedding model mismatch.** Use the same embedding model to index and to query. If you indexed with `text-embedding-ada-002`, query with it too.
+- **Query too vague.** Make the query more specific, or have an LLM expand or rephrase it before the search.
+- **`top_k` too low.** Try 5-10 first. More documents improve recall but slow inference.
 
 ---
 
-### Issue: "Deployment fails or service won't start"
+## Deployment
 
-#### Symptoms
-- `nodetool deploy apply` fails with errors
-- Container exits immediately
-- Health check fails
-- 503 Service Unavailable
+### A deployment fails or the service won't start
 
-#### Diagnostic Steps
+Signs: `nodetool deploy apply` fails, the container exits immediately, the health check fails, or the service returns 503.
 
-1. **Check deployment logs** – `nodetool deploy logs <name>`
-2. **Check status** – `nodetool deploy status <name>`
-3. **Verify configuration** – Review `deployment.yaml` for typos/errors
-4. **Test locally first** – Ensure workflow runs in desktop app
-5. **Check resource limits** – Verify target has enough CPU/RAM/GPU
-6. **Verify credentials** – Ensure API keys and tokens are set
+Start with `nodetool deploy logs <name>` and `nodetool deploy status <name>`. Review `deployment.yaml` for typos, confirm the workflow runs in the desktop app first, and confirm the target has enough CPU, RAM, and GPU and that API keys and tokens are set.
 
-#### Common Causes & Fixes
-
-**Cause 1: Invalid deployment.yaml**
-- **Fix:** Run `nodetool deploy plan <name>` to see what `apply` would do, or `nodetool deploy apply <name> --dry-run`
-- **Check:** Required fields: `host`, `image.name` and `container.name` and `container.port`. The only deployment `type` is `docker`
-
-**Cause 2: Missing environment variables**
-- **Fix:** Add required vars under `container.environment`:
+- **Invalid `deployment.yaml`.** Run `nodetool deploy plan <name>` or `nodetool deploy apply <name> --dry-run` to see what `apply` would do. Required fields are `host`, `image.name`, `container.name`, and `container.port`. The only deployment `type` is `docker`.
+- **Missing environment variables.** Add them under `container.environment`:
   ```yaml
   container:
     name: nodetool
@@ -290,70 +176,17 @@ When a workflow isn't working as expected, work through this checklist systemati
       HF_HOME: "/workspace/hf-cache"
   ```
   NodeTool writes a generated `SECRETS_MASTER_KEY` there, and a `server_auth_token`, when it loads a `deployment.yaml` that lacks them.
-
-**Cause 3: Volume mount errors (self-hosted)**
-- **Symptoms:** Container logs show "Permission denied" or "No such file"
-- **Fix:** 
-  - Verify host paths exist
-  - Check permissions (user running Docker must have access)
-  - Use absolute paths
-
-**Cause 4: Docker not running (self-hosted)**
-- **Fix:** Start Docker daemon: `sudo systemctl start docker`
-
-**Cause 5: Port conflicts**
-- **Symptoms:** "Port already in use" error
-- **Fix:** 
-  - Change `container.port` in deployment.yaml
-  - Stop conflicting service: `docker ps` to find, `docker stop <id>`
-
-**Cause 6: Image not found**
-- **Fix:** Check `image.name`, `image.tag` (default `latest`) and `image.registry` (default `docker.io`) in `deployment.yaml`, and that the image exists in that registry
-- **Verify:** `docker images | grep nodetool` on the host
-
-**Cause 7: SSH access fails (remote hosts)**
-- **Symptoms:** `deploy apply` cannot reach the host
-- **Fix:** Check the `ssh` block (`user`, `key_path`, `port`) in `deployment.yaml` and test `ssh <user>@<host>` by hand
+- **Volume mount errors (self-hosted).** Container logs show "Permission denied" or "No such file". Verify host paths exist, check that the user running Docker has access, and use absolute paths.
+- **Docker not running (self-hosted).** Start the daemon with `sudo systemctl start docker`.
+- **Port conflict.** "Port already in use". Change `container.port` in `deployment.yaml`, or find the conflicting container with `docker ps` and stop it with `docker stop <id>`.
+- **Image not found.** Check `image.name`, `image.tag` (default `latest`), and `image.registry` (default `docker.io`) in `deployment.yaml`, and that the image exists in that registry. Verify with `docker images | grep nodetool` on the host.
+- **SSH access fails (remote hosts).** `deploy apply` cannot reach the host. Check the `ssh` block (`user`, `key_path`, `port`) in `deployment.yaml` and test `ssh <user>@<host>` by hand.
 
 ---
 
-### Issue: "Preview node shows empty or null output"
+## Performance
 
-#### Symptoms
-- Preview panel is blank
-- Shows "null" or "undefined"
-- No error message
-
-#### Diagnostic Steps
-
-1. **Check upstream nodes** – Work backwards to find where data is lost
-2. **Add intermediate Previews** – Place Preview after each node to narrow down issue
-3. **Review node errors** – Even if node appears green, check for warnings
-4. **Inspect connections** – Ensure correct output is connected to correct input
-
-#### Common Causes & Fixes
-
-**Cause 1: Node failed silently**
-- **Fix:** Check node logs/console for hidden errors
-- **Example:** API call returned 404 but node didn't show error
-
-**Cause 2: Conditional logic filtered out data**
-- **Fix:** Review filter conditions, adjust criteria
-- **Example:** A `FilterCode` or `FilterEqual` node removed all items
-
-**Cause 3: Async timing issue**
-- **Fix:** Ensure upstream nodes complete before downstream starts
-- **Note:** NodeTool handles this automatically, but custom nodes may have issues
-
-**Cause 4: Path/file doesn't exist**
-- **Fix:** Verify file paths, use absolute paths
-- **Check:** File permissions, spelling, case-sensitivity (Linux/macOS)
-
----
-
-## Performance Optimization
-
-### Workflow runs slowly
+### Speeding up a slow workflow
 
 **Diagnosis:** Profile with Preview nodes to identify bottlenecks
 
@@ -386,7 +219,7 @@ When a workflow isn't working as expected, work through this checklist systemati
    - Larger chunks = slower but better context
    - Typical sweet spot: 500-1000 tokens
 
-### High memory usage
+### Reducing memory use
 
 **Diagnosis:** Monitor system resources during workflow execution
 
@@ -459,11 +292,11 @@ NODETOOL_LOG_LEVEL=debug nodetool serve
 Before reaching out, try these steps — they resolve most issues:
 
 1. **Read the error message** — it often contains the solution or a clear hint
-2. **Check the [Quick Diagnostic Checklist](#quick-diagnostic-checklist)** above
-3. **Search this page** — use `Ctrl/Cmd+F` to find your error message or symptom
+2. **Run the [Quick checks](#quick-checks)** above
+3. **Search this page** — use `Ctrl/Cmd+F` to find your error message in [Errors by message](#errors-by-message)
 4. **Try a simpler workflow** — isolate the problem by testing with fewer nodes
 5. **Restart NodeTool** — clears cached state and frees memory
-6. **Check [Workflow Debugging](workflow-debugging.md)** — step-by-step debugging guide
+6. **Check [Workflow Debugging]({{ '/workflow-debugging' | relative_url }})** — step-by-step debugging guide
 
 ### Where to Get Help
 
@@ -471,7 +304,7 @@ Before reaching out, try these steps — they resolve most issues:
 |---------|----------|
 | **[Discord](https://discord.gg/WmQTWZRcYE)** | Real-time help, community tips, sharing workflows |
 | **[GitHub Issues](https://github.com/nodetool-ai/nodetool/issues)** | Bug reports, feature requests, reproducible problems |
-| **[Documentation](index.md)** | Guides, API reference, node documentation |
+| **[Documentation]({{ '/' | relative_url }})** | Guides, API reference, node documentation |
 
 ### Report a Bug from inside NodeTool
 
@@ -529,12 +362,12 @@ workflow for you. When you ask elsewhere — Discord, an issue you write by hand
 
 ---
 
-## Related Documentation
+## Related pages
 
-- [Workflow Debugging Guide](workflow-debugging.md) – Step-by-step debugging with Preview nodes and logs
-- [Installation Troubleshooting](installation.md#if-installing-goes-wrong) – Hardware, CUDA, and installation issues
-- [Getting Started](getting-started.md) – Basics of running workflows
-- [Workflow Editor](workflow-editor.md) – Using the visual editor
-- [Key Concepts](key-concepts.md) – Understanding nodes and connections
-- [Deployment Guide](deployment.md) – Production deployment troubleshooting
-- [Self-Hosted Deployment](self-hosted-deployment.md) – Self-hosted specific issues
+- [Workflow Debugging]({{ '/workflow-debugging' | relative_url }}): step-by-step debugging with Preview nodes and logs
+- [Editor Panels]({{ '/editor-panels' | relative_url }}): the Logs, Queue, and Trace panels
+- [Installation Troubleshooting]({{ '/installation' | relative_url }}#if-installing-goes-wrong): hardware, CUDA, and installation issues
+- [Models & Providers]({{ '/models-and-providers' | relative_url }}): provider keys and model choice
+- [Model Manager]({{ '/models-manager' | relative_url }}): install and remove local models
+- [Configuration]({{ '/configuration' | relative_url }}): settings, secrets, and environment variables
+- [Deployment Guide]({{ '/deployment' | relative_url }}) and [Self-Hosted Deployment]({{ '/self-hosted-deployment' | relative_url }}): deployment-specific issues

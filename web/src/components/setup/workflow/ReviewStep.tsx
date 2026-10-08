@@ -45,6 +45,7 @@ import {
   Text,
   TextInput,
   TextLink,
+  ThinkingIndicator,
   ToolbarIconButton,
   reducedMotion
 } from "../../ui_primitives";
@@ -67,6 +68,11 @@ export interface WorkflowReviewStepProps {
   onPlanChange: (plan: WorkflowSetupPlan) => void;
   onReplan: () => void;
   replanPending?: boolean;
+  /**
+   * Stops a running `Re-plan`. The plan on screen stays, and so does
+   * `Continue to setup`.
+   */
+  onCancelReplan?: () => void;
   /** True when a configured provider covers this model role. */
   providerConfigured: (role: string) => boolean;
   /** The reason the last plan run was refused, if it was. */
@@ -78,6 +84,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
   onPlanChange,
   onReplan,
   replanPending = false,
+  onCancelReplan,
   providerConfigured,
   error = null
 }) => {
@@ -217,6 +224,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
           id: `output-${index}`,
           label: `Output ${index + 1}`,
           value: output.name,
+          readOnly: replanPending,
           onChange: (value: string) =>
             onPlanChange({
               ...plan,
@@ -227,7 +235,7 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
         }))
       }
     ],
-    [onPlanChange, plan]
+    [onPlanChange, plan, replanPending]
   );
 
   return (
@@ -243,6 +251,17 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
           Review this plan, then choose models before building.
         </Text>
       </FlexColumn>
+
+      {replanPending ? (
+        <FlexRow gap={GAP.normal} align="center" wrap>
+          <ThinkingIndicator label="Re-planning the steps" announce />
+          {onCancelReplan ? (
+            <EditorButton variant="text" onClick={onCancelReplan}>
+              Stop re-planning
+            </EditorButton>
+          ) : null}
+        </FlexRow>
+      ) : null}
 
       {error ? (
         <AlertBanner severity="error" role="alert">
@@ -307,13 +326,18 @@ const ReviewStepInternal: React.FC<WorkflowReviewStepProps> = ({
               onChange={updateStep}
               onMove={moveStep}
               onRemove={removeStep}
+              readOnly={replanPending}
             />
           </Box>
         ))}
       </FlexColumn>
 
       <FlexRow gap={GAP.normal}>
-        <EditorButton variant="outlined" onClick={addStep}>
+        <EditorButton
+          variant="outlined"
+          onClick={addStep}
+          disabled={replanPending}
+        >
           Add a step
         </EditorButton>
       </FlexRow>
@@ -339,6 +363,11 @@ interface StepRowProps {
   ) => void;
   onMove: (index: number, delta: number) => void;
   onRemove: (id: string) => void;
+  /**
+   * Held while a re-plan runs. Its answer replaces the whole plan, so an edit
+   * made meanwhile would be written and then silently overwritten.
+   */
+  readOnly: boolean;
 }
 
 const StepRow: React.FC<StepRowProps> = ({
@@ -348,7 +377,8 @@ const StepRow: React.FC<StepRowProps> = ({
   nodeTypeOptions,
   onChange,
   onMove,
-  onRemove
+  onRemove,
+  readOnly
 }) => {
   const { step } = entry;
   const missingRole = entry.missingProvider;
@@ -398,6 +428,7 @@ const StepRow: React.FC<StepRowProps> = ({
               label={`Step ${index + 1} title`}
               hideLabel
               value={step.title}
+              disabled={readOnly}
               onChange={(event) =>
                 onChange(step.id, { title: event.target.value })
               }
@@ -407,24 +438,25 @@ const StepRow: React.FC<StepRowProps> = ({
             <ToolbarIconButton
               size="small"
               icon={<ArrowUpwardIcon fontSize="inherit" />}
-              tooltip={index === 0 ? "" : "Move up"}
+              tooltip={readOnly || index === 0 ? "" : "Move up"}
               onClick={() => onMove(index, -1)}
-              disabled={index === 0}
+              disabled={readOnly || index === 0}
               aria-label={`Move step ${index + 1} up`}
             />
             <ToolbarIconButton
               size="small"
               icon={<ArrowDownwardIcon fontSize="inherit" />}
-              tooltip={index === stepCount - 1 ? "" : "Move down"}
+              tooltip={readOnly || index === stepCount - 1 ? "" : "Move down"}
               onClick={() => onMove(index, 1)}
-              disabled={index === stepCount - 1}
+              disabled={readOnly || index === stepCount - 1}
               aria-label={`Move step ${index + 1} down`}
             />
             <ToolbarIconButton
               size="small"
               icon={<DeleteOutlineIcon fontSize="inherit" />}
-              tooltip="Remove step"
+              tooltip={readOnly ? "" : "Remove step"}
               onClick={() => onRemove(step.id)}
+              disabled={readOnly}
               aria-label={`Remove step ${index + 1}`}
             />
           </FlexRow>
@@ -437,6 +469,7 @@ const StepRow: React.FC<StepRowProps> = ({
             hideLabel
             placeholder="What this step does"
             value={step.summary}
+            disabled={readOnly}
             multiline
             minRows={2}
             onChange={(event) =>
@@ -457,6 +490,7 @@ const StepRow: React.FC<StepRowProps> = ({
                 options={nodeTypeOptions}
                 label={`Node type for step ${index + 1}`}
                 placeholder="Search node types"
+                disabled={readOnly}
                 onChange={(_event, value) => pickNodeType(value)}
               />
             </FlexColumn>
@@ -471,7 +505,12 @@ const StepRow: React.FC<StepRowProps> = ({
                 asButton
                 aria-expanded={picking}
                 aria-label={`Change node: ${step.node_type ?? ""}`}
-                onClick={() => setPicking(!picking)}
+                aria-disabled={readOnly || undefined}
+                onClick={() => {
+                  if (!readOnly) {
+                    setPicking(!picking);
+                  }
+                }}
                 sx={{
                   color: picking ? "primary.main" : "text.disabled",
                   textDecoration: picking ? "underline" : "none",
@@ -500,6 +539,7 @@ const StepRow: React.FC<StepRowProps> = ({
                 }
                 label={`Node type for step ${index + 1}`}
                 placeholder="Search node types"
+                disabled={readOnly}
                 onChange={(_event, value) => pickNodeType(value)}
               />
             ) : null}

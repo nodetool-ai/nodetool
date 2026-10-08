@@ -48,6 +48,7 @@ import {
   WORKFLOW_NODE_TYPE
 } from "../node/WorkflowNode";
 import SubgraphNode from "../node/SubgraphNode/SubgraphNode";
+import AppNode from "../node/AppNode/AppNode";
 import {
   GROUP_NODE_TYPE,
   COMMENT_NODE_TYPE,
@@ -55,6 +56,7 @@ import {
   REROUTE_NODE_TYPE,
   STRING_NODE_TYPE,
   SUBGRAPH_NODE_TYPE,
+  APP_NODE_TYPE,
   DYNAMIC_COMFY_NODE_TYPES
 } from "../../constants/nodeTypes";
 import {
@@ -592,6 +594,7 @@ const ReactFlowWrapper = ({
       ...comfyNodeTypes,
       [WORKFLOW_NODE_TYPE]: WorkflowNode,
       [SUBGRAPH_NODE_TYPE]: SubgraphNode,
+      [APP_NODE_TYPE]: AppNode,
       [SKETCH_NODE_TYPE]: SketchNode,
       default: PlaceholderNode
     }),

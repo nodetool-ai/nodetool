@@ -602,6 +602,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "The model menu uses these keys for display ordering. find_model " +
       "already applies the same rankings when selecting models for a run."
   },
+  "models.rerankByProvider": {
+    gap:
+      "The owner UI lists rerank models by provider. Sandbox model " +
+      "discovery does not yet expose rerank catalogs."
+  },
   "models.recommended": {
     elsewhere:
       "find_model resolves a model by capability; list_models and " +
@@ -970,6 +975,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
     gap: "Restoring a revision to the draft is an editor action; the agent has no whole-revision restore capability."
   },
   "games.saveDraft": { capability: "edit_native_game" },
+  "games.saveDraftDocument": {
+    elsewhere: "The editor saves a whole document only when its op batch is rejected or too large; edit_native_game saves agent edits as ops."
+  },
   "games.previewAuthoring": { capability: "preview_native_game_authoring" },
   "games.applyAuthoring": { capability: "apply_native_game_authoring" },
   "storyboards.create": { capability: "create_storyboard" },

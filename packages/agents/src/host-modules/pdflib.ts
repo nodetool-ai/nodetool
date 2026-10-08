@@ -7,7 +7,12 @@
  */
 
 import { toGuestBytes, type GuestBytes } from "../sandbox-bytes.js";
-import { optionsOf, requireBytes, unwrapLibrary } from "./limits.js";
+import {
+  importOptionalLibrary,
+  optionsOf,
+  requireBytes,
+  unwrapLibrary
+} from "./limits.js";
 import {
   isFunction,
   isObjectLike,
@@ -62,7 +67,11 @@ interface PdfImage {
 }
 
 async function loadPdfLib(where: string): Promise<PdfLibLike> {
-  const mod: unknown = await import("pdf-lib");
+  const mod = await importOptionalLibrary<unknown>(
+    where,
+    "pdf-lib",
+    "pdf-js"
+  );
   return unwrapLibrary<PdfLibLike>(
     mod,
     where,

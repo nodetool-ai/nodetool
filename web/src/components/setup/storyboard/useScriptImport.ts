@@ -21,6 +21,7 @@ import type { Screenplay } from "@nodetool-ai/protocol";
 
 import { restFetch } from "../../../lib/rest-fetch";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
+import { promptForMissingRuntimePackage } from "../../../stores/RuntimePackagePromptStore";
 import { setImportSource } from "../../../lib/storyboard/importSource";
 import { parseFdx } from "../../../lib/storyboard/parseFdx";
 
@@ -39,7 +40,10 @@ export const SCRIPT_MAX_BYTES = 25 * 1024 * 1024;
 const isFdx = (file: File): boolean =>
   file.name.toLowerCase().endsWith(".fdx");
 
-/** The route's `{ code, detail }` body, or a status-only fallback. */
+/**
+ * The route's `{ code, detail }` body, or a status-only fallback. A body that
+ * names a missing parser package also opens the install dialog.
+ */
 async function extractionError(response: Response): Promise<string> {
   try {
     const body: unknown = await response.json();
@@ -48,6 +52,9 @@ async function extractionError(response: Response): Promise<string> {
       body !== null &&
       typeof (body as { detail?: unknown }).detail === "string"
     ) {
+      promptForMissingRuntimePackage(
+        (body as { runtime_package?: unknown }).runtime_package
+      );
       return (body as { detail: string }).detail;
     }
   } catch {
@@ -55,6 +62,10 @@ async function extractionError(response: Response): Promise<string> {
   }
   return `This file could not be read. ${UNSUPPORTED}`;
 }
+
+/** The board's setup stage, read when a file is picked and when it lands. */
+const stageOf = (boardId: string): string | undefined =>
+  useStoryboardStore.getState().getBoard(boardId)?.setupStage;
 
 export interface ScriptImportResult {
   importing: boolean;
@@ -78,10 +89,18 @@ export function useScriptImport(boardId: string): ScriptImportResult {
         return;
       }
       const store = useStoryboardStore.getState();
+      // Reading a PDF or DOCX takes a round trip. A creator who moved on in
+      // the meantime has written the brief they meant to keep, so a file that
+      // lands on another step writes nothing.
+      const pickedAt = stageOf(boardId);
+      const movedOn = (): boolean => stageOf(boardId) !== pickedAt;
       setImporting(true);
       try {
         if (isFdx(file)) {
           const parsed = parseFdx(await file.text());
+          if (movedOn()) {
+            return;
+          }
           const screenplay: Screenplay = {
             type: "screenplay",
             id: `fdx-${boardId}`,
@@ -122,6 +141,9 @@ export function useScriptImport(boardId: string): ScriptImportResult {
             : "";
         if (text.trim() === "") {
           setError(`This file could not be read. ${UNSUPPORTED}`);
+          return;
+        }
+        if (movedOn()) {
           return;
         }
         store.setSetup(boardId, { brief: text });

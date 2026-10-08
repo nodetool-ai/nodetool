@@ -17,7 +17,14 @@
  * planner that refuses an empty one.
  */
 
-import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 
 import {
   AlertBanner,
@@ -69,18 +76,34 @@ export interface IdeaStepProps {
    */
   onStartFromScript?: () => void;
   onValidationChange?: (reason: string | undefined) => void;
+  /**
+   * Reports an upload in progress, so the flow can hold `Continue` until the
+   * dropped media is placed. A late upload otherwise lands after the stage
+   * moved and the plan is drafted without it.
+   */
+  onImportingChange?: (importing: boolean) => void;
 }
+
+/** Why the ways out of the step wait for an upload. */
+const UPLOAD_PENDING_REASON = "Wait for your files to finish uploading";
 
 const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   onStartBlank,
   onStartFromScript,
-  onValidationChange
+  onValidationChange,
+  onImportingChange
 }) => {
   const brief = useTimelineStore((state) => state.setup?.brief ?? "");
   const setSetup = useTimelineStore((state) => state.setSetup);
   const { importFiles, importing } = useSetupMediaImport();
   const [error, setError] = useState<string | null>(null);
   const [imported, setImported] = useState<SetupMediaImportResult | null>(null);
+  // Dropped files that are not media, by name. The picker cannot offer them,
+  // so only a drop fills this.
+  const [rejected, setRejected] = useState<string[]>([]);
+  // `importing` is state, so two drops in one tick both read false. The ref
+  // closes that gap.
+  const importingRef = useRef(false);
   const [dragging, setDragging] = useState(false);
   const mediaInput = useRef<HTMLInputElement>(null);
   const briefField = useRef<HTMLElement | null>(null);
@@ -101,12 +124,19 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
     [setSetup]
   );
 
+  useEffect(() => {
+    onImportingChange?.(importing);
+  }, [importing, onImportingChange]);
+  useEffect(() => () => onImportingChange?.(false), [onImportingChange]);
+
   const runImport = useCallback(
-    async (files: readonly File[]) => {
-      if (files.length === 0) {
+    async (files: readonly File[], notMedia: string[] = []) => {
+      if (files.length === 0 || importingRef.current) {
         return;
       }
+      importingRef.current = true;
       setError(null);
+      setRejected(notMedia);
       try {
         // Drop order is the cut order, so the files are uploaded and placed in
         // the order they arrived.
@@ -117,6 +147,8 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         }
       } catch (cause) {
         setError(cause instanceof Error ? cause.message : String(cause));
+      } finally {
+        importingRef.current = false;
       }
     },
     [importFiles]
@@ -149,14 +181,31 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
       }
       event.preventDefault();
       setDragging(false);
-      const media = files.filter(isMediaFile);
-      if (media.length === 0) {
-        setError("Drop video, audio or images. Nothing else goes on a track.");
+      if (importing || importingRef.current) {
+        setError("Wait for the current upload to finish, then drop again.");
         return;
       }
-      await runImport(media);
+      const media = files.filter(isMediaFile);
+      const notMedia = files
+        .filter((file) => !isMediaFile(file))
+        .map((file) => file.name);
+      if (media.length === 0) {
+        setError(
+          `No track takes ${notMedia.join(" · ")}. Drop video, audio or images.`
+        );
+        return;
+      }
+      await runImport(media, notMedia);
     },
-    [runImport]
+    [importing, runImport]
+  );
+
+  const skippedNames = useMemo(
+    () => [
+      ...rejected,
+      ...(imported?.skipped ?? []).map((asset) => asset.name)
+    ],
+    [imported, rejected]
   );
 
   // The shipped boards carry briefs that work as video setup prompts. Timeline
@@ -185,16 +234,21 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         title: "Start from a script",
         description: "Write the words first, then send them to the timeline",
         onSelect: onStartFromScript ?? (() => undefined),
-        disabled: !onStartFromScript,
-        disabledReason: onStartFromScript
-          ? undefined
-          : "Not available here. Start a script from the project screen."
+        // Leaving the flow mid-upload would drop the media still arriving.
+        disabled: !onStartFromScript || importing,
+        disabledReason: !onStartFromScript
+          ? "Not available here. Start a script from the project screen."
+          : importing
+            ? UPLOAD_PENDING_REASON
+            : undefined
       },
       {
         id: "blank",
         title: "Start with a blank timeline",
         description: "Skip the plan and cut it yourself",
-        onSelect: onStartBlank
+        onSelect: onStartBlank,
+        disabled: importing,
+        disabledReason: importing ? UPLOAD_PENDING_REASON : undefined
       }
     ],
     [importing, onStartBlank, onStartFromScript]
@@ -260,7 +314,13 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
 
         {imported ? (
           <AlertBanner
-            severity={imported.skipped.length > 0 ? "warning" : "info"}
+            severity={
+              imported.failed.length > 0
+                ? "error"
+                : skippedNames.length > 0
+                  ? "warning"
+                  : "info"
+            }
             onClose={() => setImported(null)}
           >
             <FlexColumn gap={GAP.micro}>
@@ -276,11 +336,16 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
                   {imported.placed.map((asset) => asset.name).join(" · ")}
                 </Caption>
               ) : null}
-              {imported.skipped.length > 0 ? (
+              {imported.failed.map((failure) => (
+                <Caption key={failure.name} component="span" color="error">
+                  {`${failure.name} did not upload: ${failure.reason}`}
+                </Caption>
+              ))}
+              {skippedNames.length > 0 ? (
                 <Caption component="span" color="secondary">
-                  {`No track takes ${imported.skipped
-                    .map((asset) => asset.name)
-                    .join(" · ")}. Video, audio and images only.`}
+                  {`No track takes ${skippedNames.join(
+                    " · "
+                  )}. Video, audio and images only.`}
                 </Caption>
               ) : null}
             </FlexColumn>

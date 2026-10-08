@@ -544,8 +544,16 @@ export function analyzeCorrelation(
         ? outputHandles
         : Object.keys(outputCorr);
 
+    // A dynamic output has no class-level entry: its handle exists only on
+    // this instance, so the instance may say how it emits (an App node whose
+    // inner workflow streams that output).
+    const dynamicCorr = node.dynamic_output_correlation ?? {};
+    const dynamicHandles = new Set(Object.keys(node.dynamic_outputs ?? {}));
+
     for (const handle of handlesToProcess) {
-      const corr = outputCorr[handle];
+      const corr =
+        outputCorr[handle] ??
+        (dynamicHandles.has(handle) ? dynamicCorr[handle] : undefined);
 
       // Default behavior when no correlation metadata is provided: treat as
       // `single` with `__execution__` source. This keeps the analyzer usable

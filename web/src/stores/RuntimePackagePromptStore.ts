@@ -40,6 +40,16 @@ export const promptForMissingPackage = (
   useRuntimePackagePromptStore.getState().show(detail.runtime_package);
 };
 
+/**
+ * Offer to install a package a REST response named. Outside a run there is
+ * nothing to deduplicate against: each refused request is one user action.
+ */
+export const promptForMissingRuntimePackage = (packageId: unknown): void => {
+  if (typeof packageId === "string" && packageId !== "") {
+    useRuntimePackagePromptStore.getState().show(packageId);
+  }
+};
+
 /** Forget that a run prompted, so a rerun under the same id can prompt again. */
 export const resetMissingPackagePrompt = (runKey: string): void => {
   promptedRuns.delete(runKey);

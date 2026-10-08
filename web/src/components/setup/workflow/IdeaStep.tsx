@@ -48,7 +48,7 @@ export interface WorkflowIdeaStepProps {
   pickingExampleId?: string | null;
   /** Why the last copy was refused. */
   exampleError?: string | null;
-  /** Opens the file picker for a workflow JSON or a DSL `.ts`. */
+  /** Reads a picked workflow JSON file onto this workflow. */
   onImport: (file: File) => void | Promise<void>;
   /** Leaves the flow for an empty canvas. */
   onStartBlank: () => void;
@@ -57,8 +57,11 @@ export interface WorkflowIdeaStepProps {
   onDismissImportError?: () => void;
 }
 
-/** What the import path accepts (PRD § 11.1). */
-export const WORKFLOW_IMPORT_ACCEPT = ".json,.ts";
+/**
+ * What the import path accepts (PRD § 11.1). A DSL `.ts` file is a program the
+ * browser cannot run, so the picker does not offer one only to refuse it.
+ */
+export const WORKFLOW_IMPORT_ACCEPT = ".json,application/json";
 
 const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
   workflowId,
@@ -76,6 +79,7 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
   const setup = useWorkflowSetupDocument(workflowId);
   const brief = setup?.brief ?? "";
   const importInput = useRef<HTMLInputElement>(null);
+  const briefField = useRef<HTMLElement | null>(null);
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -108,7 +112,7 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
       {
         id: "import",
         title: "Import a workflow",
-        description: "JSON, or a DSL .ts file",
+        description: "A workflow JSON file",
         onSelect: () => importInput.current?.click()
       },
       {
@@ -165,6 +169,7 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
           placeholder="Summarize a PDF and email it"
           helperText="Only describe the task here. Add files, connect services and set destinations during setup or in the built workflow before running it."
           onChange={handleChange}
+          inputRef={briefField}
         />
 
         {importError ? (
@@ -177,6 +182,7 @@ const IdeaStepInternal: React.FC<WorkflowIdeaStepProps> = ({
           examples={WORKFLOW_INSPIRATION_CHIPS.map((chip) => chip.brief)}
           brief={brief}
           onSelect={onBriefChange}
+          briefRef={briefField}
         />
       </FlexColumn>
 

@@ -10,6 +10,7 @@
  */
 
 import { createElement, useCallback, useMemo, useState } from "react";
+import { clampShotCount } from "@nodetool-ai/protocol";
 import type { TimelineSetupStage } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
@@ -156,6 +157,7 @@ export const useVideoSetupFlow = ({
   const stage = useVideoSetupStage();
   const [reviewError, setReviewError] = useState<string>();
   const [contextError, setContextError] = useState<string>();
+  const [importingMedia, setImportingMedia] = useState(false);
   const setSetup = useTimelineStore((state) => state.setSetup);
   const brief = useTimelineStore((state) => state.setup?.brief ?? "");
   const formatId = useTimelineStore((state) => state.setup?.format);
@@ -168,7 +170,12 @@ export const useVideoSetupFlow = ({
   const clips = useTimelineStore((state) => state.clips);
   const beats = useTimelineStore((state) => state.setup?.beats);
   const updateBeat = useTimelineStore((state) => state.updateBeat);
-  const { plan, cancel: cancelPlan, planning } = usePlanBeats();
+  const {
+    plan,
+    cancel: cancelPlan,
+    planning,
+    error: planError
+  } = usePlanBeats();
   // The beats are drafted by whichever model the format step picked, so the
   // estimate, the block and the run all read the one field it writes.
   const director = useDirectorModel();
@@ -288,22 +295,38 @@ export const useVideoSetupFlow = ({
       // creator's edits shape the rewrite instead of being discarded (F15).
       // Nothing else is passed: `plan` reads its own context off the sequence —
       // the composer's references and entities, and any clips the creator
-      // dropped on step 1 (F4, F10, PRD § 8.1).
-      await plan({ replan: hasPlan, signal: operation?.signal });
+      // dropped on step 1 (F4, F10, PRD § 8.1). A plan that was not written
+      // returns false, so the shell stays on this step instead of advancing
+      // to an empty review.
+      return plan({ replan: hasPlan, signal: operation?.signal });
     },
     [hasPlan, plan]
   );
 
   const replan = useCallback(() => {
     // The review's own `Re-plan` runs outside the shell's primary button, so a
-    // refusal has no button to land on; the step keeps the plan it had and the
-    // hook's error is what the creator sees next.
+    // refusal has no button to land on. The step keeps the plan it had and
+    // the review shows the hook's error.
     void runPlan().catch(() => undefined);
   }, [runPlan]);
 
   // Nothing generated is worth carrying into the paid step: an empty beat
   // renders an empty prompt, and a beat with no length renders nothing at all
   // (F20).
+  // A plan over dropped media writes one beat per placed clip, so the cost
+  // line counts what `planBeats` will ask for rather than the template's.
+  const placedClips = planContext.clips?.length ?? 0;
+  const draftBeatCount =
+    placedClips > 0
+      ? clampShotCount(placedClips)
+      : videoFormatById(formatId)?.beatCount;
+  const draftResult =
+    draftBeatCount === undefined
+      ? "Draft the beats"
+      : `Draft ${draftBeatCount} beat${draftBeatCount === 1 ? "" : "s"}${
+          placedClips > 0 ? ", one per clip" : ""
+        }`;
+
   const emptyBeats = (beats ?? []).filter(
     (beat) => beat.prompt.trim().length === 0 || !(beat.duration_ms > 0)
   ).length;
@@ -314,16 +337,21 @@ export const useVideoSetupFlow = ({
         stage: "idea",
         label: "Idea",
         primaryLabel: "Continue",
-        canAdvance: brief.trim().length > 0 && !contextError,
-        blockedReason:
-          contextError ?? "Describe the video, or bring your own media",
+        // An upload still running would land after the stage moved, and the
+        // plan would be drafted without that media, so Continue waits for it.
+        canAdvance:
+          brief.trim().length > 0 && !contextError && !importingMedia,
+        blockedReason: importingMedia
+          ? "Uploading your media"
+          : (contextError ?? "Describe the video, or bring your own media"),
         render: () =>
           createElement(IdeaStep, {
             // The blank escape hatch and the last step land in the same place:
             // stage `done` and the timeline (PRD § 8.1).
             onStartBlank: finish,
             onStartFromScript: onStartFromScript ? startFromScript : undefined,
-            onValidationChange: setContextError
+            onValidationChange: setContextError,
+            onImportingChange: setImportingMedia
           })
       },
       {
@@ -344,11 +372,13 @@ export const useVideoSetupFlow = ({
         blockedReason:
           videoFormatById(formatId) === null
             ? "Pick a video template"
-            : "Pick a model to draft the beats",
+            : director.loading
+              ? "Loading the models that can draft the beats"
+              : "Pick a model to draft the beats",
         generation: planIsCurrent
           ? undefined
           : {
-              result: `Draft ${videoFormatById(formatId)?.beatCount ?? "the"} beats`,
+              result: draftResult,
               next: hasPlan
                 ? "The brief or template changed. Your edited plan will guide the new beats."
                 : "Review the beats and timing. Media comes later in Look.",
@@ -395,6 +425,7 @@ export const useVideoSetupFlow = ({
           createElement(ReviewStep, {
             onReplan: replan,
             replanPending: planning,
+            error: planError,
             onValidationChange: setReviewError
           }),
         onAdvance: () => {
@@ -431,20 +462,24 @@ export const useVideoSetupFlow = ({
       brief,
       beats,
       cancelPlan,
+      director.loading,
       director.model,
       contextError,
+      draftResult,
       emptyBeats,
       finish,
       formatId,
       handleMusic,
       handleVoice,
       hasPlan,
+      importingMedia,
       look,
       musicOn,
       onFinish,
       onStartFromScript,
       planIsCurrent,
       planning,
+      planError,
       productionBlocker,
       reviewKey,
       reviewError,

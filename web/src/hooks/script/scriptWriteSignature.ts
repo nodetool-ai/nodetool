@@ -5,8 +5,13 @@
  * stepped back from the review to look at the format cards and pressed on paid
  * for a second script and lost the edits they had made to the first. The fix is
  * to remember the inputs each write consumed: press the button with the same
- * brief, format, length, language, pace, model and source, and there is nothing
- * to write — the script the creator is going back to is already the answer.
+ * brief, format, length, language, model and source, and there is nothing to
+ * write — the script the creator is going back to is already the answer.
+ *
+ * Pace is not one of those inputs. It is picked on the Voices step, after the
+ * words exist, and reaches the speech calls as a speed. Counting it here made
+ * a voicing choice read as a changed script, so going back offered a full
+ * rewrite that dropped the creator's edits (O4).
  *
  * The signature is a string on the document rather than a copy of the inputs,
  * because nothing needs to read the old values back, only to know whether they
@@ -33,7 +38,9 @@ export function writerSignature(
     setup?.format ?? "",
     String(setup?.length_seconds ?? ""),
     setup?.language ?? "",
-    setup?.pace ?? "",
+    // The slot pace used to fill stays empty, so a signature written before
+    // pace left it, while pace was still unset, keeps matching.
+    "",
     setup?.writer_model?.id ?? "",
     scriptSourceSignature(source) ?? ""
   ].join("");

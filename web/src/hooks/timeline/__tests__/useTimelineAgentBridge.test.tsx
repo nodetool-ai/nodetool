@@ -1,9 +1,9 @@
 import {
   FIXTURES,
+  HOST_OP_FIXTURES,
   directState,
   directContext
-} from "../../../../../packages/timeline/tests/fixtures/ops";
-import { HOST_OP_FIXTURES } from "../../../../../packages/timeline/tests/fixtures/host-ops";
+} from "@nodetool-ai/timeline/testing";
 import { applyTimelineOp } from "@nodetool-ai/timeline/ops";
 import {
   FrontendToolRegistry,

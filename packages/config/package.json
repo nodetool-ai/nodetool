@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/config",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "type": "module",
   "engines": {
     "node": ">=22.0.0"
@@ -12,6 +12,9 @@
     "test": "node ../../scripts/run-vitest.mjs run",
     "test:mutation": "stryker run",
     "lint": "node ../../scripts/run-tsc.mjs --noEmit"
+  },
+  "dependencies": {
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@stryker-mutator/core": "^9.6.1",

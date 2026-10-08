@@ -39,6 +39,7 @@ export function stepScripts3D(context: GameSystemContext3D): void {
       }
     });
   }
+  context.runner?.retain?.(new Set(context.calls.map((call) => call.stateKey)));
   if (context.runner && context.calls.length > 0) {
     const batch = context.runner.run(
       context.calls,

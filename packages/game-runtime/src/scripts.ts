@@ -1,6 +1,10 @@
-import type { QuickJSContext, QuickJSRuntime } from "quickjs-emscripten-core";
+import type { QuickJSContext, QuickJSHandle, QuickJSRuntime } from "quickjs-emscripten-core";
 import { z } from "zod";
 import { gameNonSpatialScriptCommand, type GameDocument, type GameSnapshot } from "@nodetool-ai/protocol";
+
+import { canPersistGameScript } from "./script-persistence.js";
+import { gameScriptValue, scriptHandleResult } from "./script-transport.js";
+import { ScriptWorldSnapshot, type ScriptWorldEntity } from "./script-world.js";
 
 const encoder = new TextEncoder();
 const finite = z.number().finite();
@@ -90,7 +94,8 @@ export interface GameScriptInput {
 }
 
 export interface GameScriptRunner {
-  run(calls: readonly GameScriptCall[], input: GameScriptInput, rngState: number): GameScriptBatch;
+  run(calls: readonly GameScriptCall[], input: GameScriptInput, rngState: number, world?: readonly ScriptWorldEntity[]): GameScriptBatch;
+  retain?(stateKeys: ReadonlySet<string>): void;
   dispose(): void;
 }
 
@@ -102,33 +107,13 @@ export function hasGameScripts(document: GameDocument): boolean {
   return document.scenes.some((scene) => scene.entities.some((entity) => entity.behaviors.some((behavior) => behavior.kind === "script")));
 }
 
-function evaluate(context: QuickJSContext, code: string, argument?: string): unknown {
-  let evaluation = context.evalCode(code, "game-script.js", { type: "global" });
-  if (!evaluation.error && argument !== undefined) {
-    const functionHandle = evaluation.value;
-    try {
-      const argumentHandle = context.newString(argument);
-      try {
-        evaluation = context.callFunction(functionHandle, context.undefined, argumentHandle);
-      } finally {
-        argumentHandle.dispose();
-      }
-    } finally {
-      functionHandle.dispose();
-    }
-  }
-  if (evaluation.error) {
-    const error = context.dump(evaluation.error) as { message?: string };
-    evaluation.error.dispose();
-    throw new Error(`Game script failed: ${error.message ?? "unknown error"}`);
-  }
-  const value = context.dump(evaluation.value);
-  evaluation.value.dispose();
-  return value;
+function evaluate(context: QuickJSContext, code: string): unknown {
+  const value = scriptHandleResult(context, context.evalCode(code, "game-script.js", { type: "global" }));
+  try { return context.dump(value); } finally { value.dispose(); }
 }
 
-function initializeContext(context: QuickJSContext, seed: number): void {
-  evaluate(context, `
+function initializeContext(context: QuickJSContext, seed: number, helpers: string): QuickJSHandle {
+  return scriptHandleResult(context, context.evalCode(`
     globalThis.Date = undefined;
     Object.defineProperty(globalThis, "__gameRandom", {
       value: (() => {
@@ -142,7 +127,8 @@ function initializeContext(context: QuickJSContext, seed: number): void {
       })(), writable: false, configurable: false
     });
     Object.defineProperty(Math, "random", { value: __gameRandom, writable: false, configurable: false });
-  `);
+    ${helpers}
+  `, "game-transport.js", { type: "global" }));
 }
 
 function assertBeforeDeadline(deadline: number, budget: string): void {
@@ -151,7 +137,7 @@ function assertBeforeDeadline(deadline: number, budget: string): void {
   }
 }
 
-/** Script calls use fresh contexts so only returned state and RNG survive a tick. */
+/** Only proven input-only functions may retain their context between calls. */
 export interface IsolatedScriptCall {
   readonly sourceKey: string;
   readonly stateKey: string;
@@ -164,22 +150,47 @@ export interface IsolatedScriptCall {
 
 export interface IsolatedScriptInput {
   readonly tick: number;
+  readonly world: readonly ScriptWorldEntity[];
 }
 
 export interface IsolatedScriptRunner<Call extends IsolatedScriptCall, Input extends IsolatedScriptInput, Command> {
-  run(calls: readonly Call[], input: Input, rngState: number): {
+  run(calls: readonly Call[], input: Input, rngState: number, world?: readonly ScriptWorldEntity[]): {
     readonly results: readonly { readonly entityId: string; readonly state: GameSnapshot["scriptState"][string]; readonly commands: readonly Command[] }[];
     readonly rngState: number;
     readonly stats: GameScriptStats;
   };
+  retain?(stateKeys: ReadonlySet<string>): void;
   dispose(): void;
 }
 
+interface ScriptRealm {
+  readonly sourceKey: string;
+  readonly context: QuickJSContext;
+  readonly invoke: QuickJSHandle;
+  readonly defineData: QuickJSHandle;
+  readonly queryJson: QuickJSHandle;
+  readonly worldGetter: QuickJSHandle;
+  setWorldReader(reader: (() => QuickJSHandle) | undefined): void;
+}
+
+function disposeRealm(realm: ScriptRealm): void {
+  realm.setWorldReader(undefined);
+  realm.worldGetter.dispose();
+  realm.queryJson.dispose();
+  realm.defineData.dispose();
+  realm.invoke.dispose();
+  realm.context.dispose();
+}
+
 interface ScriptDefinitions {
+  readonly entrySceneId?: string;
   readonly scenes: readonly { readonly id: string; readonly entities: readonly {
     readonly id: string; readonly behaviors: readonly { readonly kind: string; readonly source?: string }[]
   }[] }[];
 }
+
+/** Bounds the validated entry-scene realms held until the first batch, about 30 KiB each. */
+const PREPARED_REALM_LIMIT = 64;
 
 export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall, Input extends IsolatedScriptInput, Command>(
   document: ScriptDefinitions,
@@ -187,6 +198,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
   payloadExpression: string
 ): Promise<IsolatedScriptRunner<Call, Input, Command>> {
   const resultSchema = z.strictObject({ state: z.json(), commands: z.array(commandSchema) });
+  const envelopeSchema = z.object({ value: resultSchema, rngState: z.number().int().nonnegative() });
   const [{ newQuickJSWASMModuleFromVariant }, quickJsVariantModule] = await Promise.all([
     import("quickjs-emscripten-core"),
     import("@jitl/quickjs-ng-wasmfile-release-sync")
@@ -197,6 +209,69 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
   runtime.setMemoryLimit(16 * 1024 * 1024);
   runtime.setMaxStackSize(256 * 1024);
   const sources = new Map<string, string>();
+  const persistentSources = new Set<string>();
+  const realms = new Map<string, ScriptRealm>();
+  // Validated entry-scene realms, kept so the first tick does not compile every proven-safe script inside its budget.
+  const prepared = new Map<string, ScriptRealm>();
+  const releasePrepared = (): void => {
+    for (const realm of prepared.values()) { disposeRealm(realm); }
+    prepared.clear();
+  };
+  const disposeRealms = (): void => {
+    for (const realm of realms.values()) { disposeRealm(realm); }
+    realms.clear();
+    releasePrepared();
+  };
+  const retain = (keys: ReadonlySet<string>): void => {
+    for (const [key, realm] of realms) {
+      if (!keys.has(key)) { disposeRealm(realm); realms.delete(key); }
+    }
+  };
+  const createRealm = (sourceKey: string, source: string, seed: number, persistent: boolean): ScriptRealm => {
+    const context = runtime.newContext();
+    let invoke: QuickJSHandle | undefined;
+    let defineData: QuickJSHandle | undefined;
+    let queryJson: QuickJSHandle | undefined;
+    let worldGetter: QuickJSHandle | undefined;
+    let worldReader: (() => QuickJSHandle) | undefined;
+    try {
+      worldGetter = persistent ? context.newFunction("legacyWorld", () => {
+        if (!worldReader) { throw new Error("Legacy world read outside an active script call"); }
+        return worldReader();
+      }) : context.undefined.dup();
+      // Capture pristine helpers together, without introducing bindings visible to user source.
+      const helpers = initializeContext(context, seed, `[
+      ((define) => (object, key, value) => {
+        define(object, key, { value, writable: true, enumerable: true, configurable: true });
+      })(Object.defineProperty),
+      ((stringify) => (value) => {
+        const json = stringify(value);
+        if (typeof json !== "string" || json.length > 4096) { throw new Error("world query arguments exceed 4096 characters or are not JSON"); }
+        return json;
+      })(JSON.stringify),
+      ((defineProperty) => (data, getWorld, rngState) => {
+        ${persistent ? "" : "data = JSON.parse(data);"}
+        const payload = ${payloadExpression};
+        ${persistent ? `defineProperty(payload, "world", {
+          enumerable: true, configurable: true, get: getWorld,
+          set(value) { defineProperty(this, "world", { value, writable: true, enumerable: true, configurable: true }); }
+        });` : ""}
+        const value = __gameScript(payload);
+        return JSON.stringify({ value, rngState: ${persistent ? "rngState" : "__gameRandom.state"} });
+      })(Object.defineProperty)]`);
+      try {
+        defineData = context.getProp(helpers, 0);
+        queryJson = context.getProp(helpers, 1);
+        invoke = context.getProp(helpers, 2);
+      } finally { helpers.dispose(); }
+      if (evaluate(context, `globalThis.__gameScript = (${source}); typeof __gameScript`) !== "function") {
+        throw new Error(`Game script ${sourceKey} must be a function expression`);
+      }
+      return { sourceKey, context, invoke, defineData, queryJson, worldGetter, setWorldReader: (reader) => { worldReader = reader; } };
+    } catch (error) {
+      worldGetter?.dispose(); queryJson?.dispose(); defineData?.dispose(); invoke?.dispose(); context.dispose(); throw error;
+    }
+  };
   try {
     for (const scene of document.scenes) {
       for (const entity of scene.entities) {
@@ -205,113 +280,182 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             return;
           }
           const key = scriptSourceKey(scene.id, entity.id, index);
-          const context = runtime.newContext();
           try {
             const deadline = performance.now() + 100;
             runtime.setInterruptHandler(() => performance.now() >= deadline);
-            initializeContext(context, 0);
-            if (evaluate(context, `globalThis.__gameScript = (${behavior.source}); typeof __gameScript`) !== "function") {
-              throw new Error(`Game script ${key} must be a function expression`);
+            const persistent = canPersistGameScript(behavior.source);
+            const realm = createRealm(key, behavior.source, 0, persistent);
+            if (persistent) {
+              persistentSources.add(key);
             }
+            // Inactive scenes and prefab definitions are validated without retaining their realms.
+            if (persistent && scene.id === document.entrySceneId && prepared.size < PREPARED_REALM_LIMIT) { prepared.set(key, realm); }
+            else { disposeRealm(realm); }
           } catch (error) {
             throw new Error(`Game script ${key} could not be prepared: ${error instanceof Error ? error.message : String(error)}`);
-          } finally {
-            context.dispose();
           }
           sources.set(key, behavior.source);
         });
       }
     }
     return {
-      run(calls: readonly Call[], input: Input, rngState: number): ReturnType<IsolatedScriptRunner<Call, Input, Command>["run"]> {
-        if (calls.length === 0) {
-          return { results: [], rngState, stats: { durationMs: 0, commands: 0, calls: 0, byEntity: {} } };
-        }
-        const started = performance.now();
-        const batchDeadline = started + 50;
-        // This limits the logical tick payload; each isolated call gets its own JSON copy.
-        const serialized = JSON.stringify({ calls, input, rngState });
-        const inputBytes = encoder.encode(serialized).byteLength;
-        if (inputBytes > 64 * 1024) {
-          throw new Error(`Game script input exceeds 64 KiB (${inputBytes} bytes, ${calls.length} calls, tick ${input.tick})`);
-        }
-        const batchBudget = `batch 50 ms at tick ${input.tick}`;
-        assertBeforeDeadline(batchDeadline, batchBudget);
-        let nextRngState = rngState;
-        let serializedInput: string | undefined;
-        let serializedResultsBytes = 0;
-        let commandCount = 0;
-        const byEntity: Record<string, { durationMs: number; calls: number }> = Object.create(null);
-        const results: { entityId: string; state: GameSnapshot["scriptState"][string]; commands: Command[] }[] = [];
-        for (const call of calls) {
+      retain,
+      run(calls: readonly Call[], input: Input, rngState: number, world?: readonly ScriptWorldEntity[]): ReturnType<IsolatedScriptRunner<Call, Input, Command>["run"]> {
+        try {
+          retain(new Set(calls.map((call) => call.stateKey)));
+          if (calls.length === 0) {
+            return { results: [], rngState, stats: { durationMs: 0, commands: 0, calls: 0, byEntity: {} } };
+          }
+          const started = performance.now();
+          const batchDeadline = started + 50;
+          // This limits the logical tick payload; each isolated call gets its own JSON copy.
+          const serialized = JSON.stringify({ calls, input, rngState });
+          const inputBytes = encoder.encode(serialized).byteLength;
+          if (inputBytes > 64 * 1024) {
+            throw new Error(`Game script input exceeds 64 KiB (${inputBytes} bytes, ${calls.length} calls, tick ${input.tick})`);
+          }
+          const batchBudget = `batch 50 ms at tick ${input.tick}`;
           assertBeforeDeadline(batchDeadline, batchBudget);
-          const source = sources.get(call.sourceKey);
-          if (source === undefined) {
-            throw new Error(`Game script source ${call.sourceKey} is missing for ${call.entityId} at tick ${input.tick}`);
-          }
-          const callStarted = performance.now();
-          const deadline = Math.min(batchDeadline, callStarted + call.maxTickMs);
-          const checkCallDeadline = (): void => {
-            assertBeforeDeadline(batchDeadline, batchBudget);
-            assertBeforeDeadline(deadline, `call ${call.maxTickMs} ms for ${call.entityId} at tick ${input.tick}`);
+          let fullInputJson: string | undefined;
+          const inputJson = (): string => fullInputJson ??= JSON.stringify(input);
+          let persistentInputJson: string | undefined;
+          const inputJsonWithoutWorld = (): string => {
+            if (persistentInputJson === undefined) {
+              const { world: _world, ...withoutWorld } = input;
+              persistentInputJson = JSON.stringify(withoutWorld);
+            }
+            return persistentInputJson;
           };
-          runtime.setInterruptHandler(() => performance.now() >= deadline);
-          const context = runtime.newContext();
-          try {
-            initializeContext(context, nextRngState);
-            checkCallDeadline();
-            if (evaluate(context, `globalThis.__gameScript = (${source}); typeof __gameScript`) !== "function") {
-              throw new Error("Source must be a function expression");
+          let hostWorld: ScriptWorldSnapshot | undefined;
+          const getHostWorld = (): ScriptWorldSnapshot => hostWorld ??= new ScriptWorldSnapshot(world ?? input.world);
+          let legacyWorld: unknown;
+          let legacyWorldReady = false;
+          const readLegacyWorld = (): unknown => {
+            if (!legacyWorldReady) {
+              // The logical payload already captured the tick-start world. Parse it only on demand.
+              const captured: unknown = JSON.parse(serialized);
+              if (captured === null || typeof captured !== "object" || !("input" in captured)
+                || captured.input === null || typeof captured.input !== "object" || !("world" in captured.input)) {
+                throw new Error("Script input world is missing");
+              }
+              legacyWorld = captured.input.world;
+              legacyWorldReady = true;
+            }
+            return legacyWorld;
+          };
+          let nextRngState = rngState;
+          let serializedResultsBytes = 0;
+          let commandCount = 0;
+          const byEntity: Record<string, { durationMs: number; calls: number }> = Object.create(null);
+          const results: { entityId: string; state: GameSnapshot["scriptState"][string]; commands: Command[] }[] = [];
+          for (const call of calls) {
+            assertBeforeDeadline(batchDeadline, batchBudget);
+            const source = sources.get(call.sourceKey);
+            if (source === undefined) {
+              throw new Error(`Game script source ${call.sourceKey} is missing for ${call.entityId} at tick ${input.tick}`);
+            }
+            const callStarted = performance.now();
+            const deadline = Math.min(batchDeadline, callStarted + call.maxTickMs);
+            const checkCallDeadline = (): void => {
+              assertBeforeDeadline(batchDeadline, batchBudget);
+              assertBeforeDeadline(deadline, `call ${call.maxTickMs} ms for ${call.entityId} at tick ${input.tick}`);
+            };
+            runtime.setInterruptHandler(() => performance.now() >= deadline);
+            const persistent = persistentSources.has(call.sourceKey);
+            let realm = realms.get(call.stateKey);
+            let worldHandle: QuickJSHandle | undefined;
+            let worldCall: ReturnType<ScriptWorldSnapshot["install"]> | undefined;
+            try {
+              if (realm && realm.sourceKey !== call.sourceKey) {
+                disposeRealm(realm); realms.delete(call.stateKey); realm = undefined;
+              }
+              if (!realm && persistent) {
+                realm = prepared.get(call.sourceKey);
+                prepared.delete(call.sourceKey);
+              }
+              realm ??= createRealm(call.sourceKey, source, nextRngState, persistent);
+              if (persistent) { realms.set(call.stateKey, realm); }
+              const { context, invoke, defineData, worldGetter } = realm;
+              if (!persistent) { worldCall = getHostWorld().install(context, checkCallDeadline, realm.defineData, realm.queryJson); }
+              checkCallDeadline();
+              // Byte-identical to JSON.stringify({ call, input, rngState }), without re-serializing the shared input per call.
+              const data = `{"call":${JSON.stringify(call)},"input":${persistent ? inputJsonWithoutWorld() : inputJson()},"rngState":${JSON.stringify(nextRngState)}}`;
+              checkCallDeadline();
+              const normalized: unknown = persistent ? JSON.parse(data) : data;
+              let argument: QuickJSHandle | undefined;
+              let seed: QuickJSHandle | undefined;
+              let output: unknown;
+              try {
+                argument = gameScriptValue(context, normalized, defineData, persistent);
+                seed = context.newNumber(nextRngState);
+                realm.setWorldReader(() => {
+                  checkCallDeadline();
+                  worldHandle ??= gameScriptValue(context, readLegacyWorld(), defineData, true);
+                  checkCallDeadline();
+                  return worldHandle.dup();
+                });
+                const value = scriptHandleResult(context, context.callFunction(invoke, context.undefined, argument, worldGetter, seed));
+                try { output = context.dump(value); } finally { value.dispose(); }
+                worldCall?.assertWithinLimit();
+              } finally {
+                realm.setWorldReader(undefined);
+                argument?.dispose(); seed?.dispose();
+              }
+              if (typeof output !== "string") {
+                throw new Error("Output is not JSON");
+              }
+              checkCallDeadline();
+              const rawOutputBytes = encoder.encode(output).byteLength;
+              if (rawOutputBytes > 64 * 1024) {
+                throw new Error(`Output exceeds 64 KiB (${rawOutputBytes} bytes in call ${results.length + 1})`);
+              }
+              const parsed: unknown = JSON.parse(output);
+              const envelope = envelopeSchema.parse(parsed);
+              if (envelope.value.commands.length > call.maxCommands) {
+                throw new Error(`Game script command limit exceeded for ${call.entityId}`);
+              }
+              const itemBytes = encoder.encode(JSON.stringify({ entityId: call.entityId, value: envelope.value })).byteLength;
+              serializedResultsBytes += itemBytes + (results.length > 0 ? 1 : 0);
+              const outputBytes = encoder.encode(JSON.stringify({ results: [], rngState: envelope.rngState })).byteLength + serializedResultsBytes;
+              if (outputBytes > 64 * 1024) {
+                throw new Error(`Output exceeds 64 KiB (${outputBytes} bytes across ${results.length + 1} calls)`);
+              }
+              checkCallDeadline();
+              commandCount += envelope.value.commands.length;
+              nextRngState = envelope.rngState;
+              results.push({ entityId: call.entityId, state: envelope.value.state, commands: envelope.value.commands });
+            } catch (error) {
+              // A failed batch cannot retain partially evaluated realms.
+              worldHandle?.dispose(); worldHandle = undefined;
+              if (!persistent && realm) { disposeRealm(realm); realm = undefined; }
+              disposeRealms();
+              throw new Error(`Game script ${call.sourceKey} for ${call.entityId} at tick ${input.tick} failed: ${error instanceof Error ? error.message : String(error)}`);
+            } finally {
+              worldCall?.end();
+              worldHandle?.dispose();
+              if (!persistent && realm) { disposeRealm(realm); }
             }
             checkCallDeadline();
-            serializedInput ??= JSON.stringify(input);
-            const data = `{"call":${JSON.stringify(call)},"input":${serializedInput},"rngState":${nextRngState}}`;
-            checkCallDeadline();
-            const output = evaluate(context, `((dataJson) => {
-              const data = JSON.parse(dataJson);
-              const value = __gameScript(${payloadExpression});
-              return JSON.stringify({ value, rngState: __gameRandom.state });
-            })`, data);
-            if (typeof output !== "string") {
-              throw new Error("Output is not JSON");
-            }
-            checkCallDeadline();
-            const rawOutputBytes = encoder.encode(output).byteLength;
-            if (rawOutputBytes > 64 * 1024) {
-              throw new Error(`Output exceeds 64 KiB (${rawOutputBytes} bytes in call ${results.length + 1})`);
-            }
-            const parsed: unknown = JSON.parse(output);
-            const envelope = z.object({ value: resultSchema, rngState: z.number().int().nonnegative() }).parse(parsed);
-            if (envelope.value.commands.length > call.maxCommands) {
-              throw new Error(`Game script command limit exceeded for ${call.entityId}`);
-            }
-            const itemBytes = encoder.encode(JSON.stringify({ entityId: call.entityId, value: envelope.value })).byteLength;
-            serializedResultsBytes += itemBytes + (results.length > 0 ? 1 : 0);
-            const outputBytes = encoder.encode(JSON.stringify({ results: [], rngState: envelope.rngState })).byteLength + serializedResultsBytes;
-            if (outputBytes > 64 * 1024) {
-              throw new Error(`Output exceeds 64 KiB (${outputBytes} bytes across ${results.length + 1} calls)`);
-            }
-            checkCallDeadline();
-            commandCount += envelope.value.commands.length;
-            nextRngState = envelope.rngState;
-            results.push({ entityId: call.entityId, state: envelope.value.state, commands: envelope.value.commands });
-          } catch (error) {
-            throw new Error(`Game script ${call.sourceKey} for ${call.entityId} at tick ${input.tick} failed: ${error instanceof Error ? error.message : String(error)}`);
-          } finally {
-            context.dispose();
+            const previous = byEntity[call.entityId] ?? { durationMs: 0, calls: 0 };
+            byEntity[call.entityId] = { durationMs: previous.durationMs + performance.now() - callStarted, calls: previous.calls + 1 };
           }
-          checkCallDeadline();
-          const previous = byEntity[call.entityId] ?? { durationMs: 0, calls: 0 };
-          byEntity[call.entityId] = { durationMs: previous.durationMs + performance.now() - callStarted, calls: previous.calls + 1 };
+          assertBeforeDeadline(batchDeadline, batchBudget);
+          return { results, rngState: nextRngState, stats: { durationMs: performance.now() - started, commands: commandCount, calls: calls.length, byEntity } };
+        } catch (error) {
+          disposeRealms();
+          throw error;
+        } finally {
+          // Entities without a call in the first batch were not active at start. Later activations compile on demand.
+          releasePrepared();
         }
-        assertBeforeDeadline(batchDeadline, batchBudget);
-        return { results, rngState: nextRngState, stats: { durationMs: performance.now() - started, commands: commandCount, calls: calls.length, byEntity } };
       },
       dispose(): void {
+        disposeRealms();
         runtime.dispose();
       }
     };
   } catch (error) {
+    disposeRealms();
     runtime.dispose();
     throw error;
   }

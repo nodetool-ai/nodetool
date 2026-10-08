@@ -198,8 +198,16 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
   const handleRemoveClip = useCallback(
     (index: number) => {
       removeClipVersion(boardId, shot.id, index);
+      // Removing the current take promotes another one: move a linked,
+      // already-assembled timeline onto it so it stops playing the removed take.
+      const next = useStoryboardStore
+        .getState()
+        .boards[boardId]?.shots.find((s) => s.id === shot.id)?.clip;
+      if (next?.asset_id && next.asset_id !== shot.clip?.asset_id) {
+        void syncShotClipToTimeline(boardId, shot.id, next.asset_id);
+      }
     },
-    [removeClipVersion, boardId, shot.id]
+    [removeClipVersion, boardId, shot.id, shot.clip?.asset_id]
   );
 
   const handleCloseViewer = useCallback(() => setViewerMedia(null), []);

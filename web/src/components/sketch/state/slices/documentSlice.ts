@@ -11,13 +11,15 @@ import type {
   SketchDocument,
   Layer,
   BlendMode,
-  LayerTransform
+  LayerTransform,
+  SketchGuideOrientation
 } from "../../types";
 import {
   createDefaultDocument,
   normalizeSketchDocument,
   createDefaultLayer,
   createDefaultGroupLayer,
+  generateGuideId,
   generateLayerId,
   getDescendantIds,
   isLayerCompositeVisible,
@@ -157,6 +159,11 @@ export interface DocumentSlice {
    * stage, which is what a reload resumes from (D3).
    */
   setSetup: (patch: Partial<SketchSetup>) => void;
+  /** Add a ruler guide and return its id. Guides are not part of undo history. */
+  addGuide: (orientation: SketchGuideOrientation, position: number) => string;
+  moveGuide: (guideId: string, position: number) => void;
+  removeGuide: (guideId: string) => void;
+  clearGuides: () => void;
 
   // Layer actions
   addVectorLayer: (name: string, source: string) => string;
@@ -177,6 +184,15 @@ export interface DocumentSlice {
   setLayerContentBounds: (
     layerId: string,
     contentBounds: Layer["contentBounds"]
+  ) => void;
+  /**
+   * Place a generated result on a layer. A result is not an edit the creator
+   * made, so undo history, selection and tool settings stay as they are, and
+   * every history entry carries the new reference so no undo step removes it.
+   */
+  setLayerImageReference: (
+    layerId: string,
+    imageReference: Layer["imageReference"]
   ) => void;
   translateLayer: (layerId: string, dx: number, dy: number) => void;
   offsetLayerTransform: (layerId: string, dx: number, dy: number) => void;
@@ -227,7 +243,7 @@ export const createDocumentSlice: StateCreator<
 
   addVectorLayer: (name, source) => {
     const layer = createVectorLayer(name, source);
-    get().pushHistory("before import SVG");
+    get().pushHistory("import SVG", undefined, { timing: "before" });
     set((state) => ({
       document: withUpdatedDocumentTimestamp({
         ...state.document,
@@ -246,7 +262,7 @@ export const createDocumentSlice: StateCreator<
       return;
     }
     const replacement = createVectorLayer(current.name, source);
-    get().pushHistory("edit SVG");
+    get().pushHistory("edit SVG", undefined, { timing: "before" });
     set((state) => ({
       document: withUpdatedDocumentTimestamp({
         ...state.document,
@@ -262,7 +278,7 @@ export const createDocumentSlice: StateCreator<
     if (current?.type !== "vector" || current.data !== expectedSource) {
       throw new Error("The vector layer changed. Try rasterizing it again.");
     }
-    get().pushHistory("rasterize SVG");
+    get().pushHistory("rasterize SVG", undefined, { timing: "before" });
     set((state) => ({
       document: withUpdatedDocumentTimestamp({
         ...state.document,
@@ -272,6 +288,59 @@ export const createDocumentSlice: StateCreator<
       })
     }));
   },
+
+  addGuide: (orientation, position) => {
+    const id = generateGuideId();
+    set((state) => ({
+      document: {
+        ...state.document,
+        guides: [
+          ...(state.document.guides ?? []),
+          { id, orientation, position: Math.round(position) }
+        ]
+      }
+    }));
+    return id;
+  },
+
+  moveGuide: (guideId, position) =>
+    set((state) => {
+      const guides = state.document.guides ?? [];
+      const rounded = Math.round(position);
+      const target = guides.find((g) => g.id === guideId);
+      if (!target || target.position === rounded) {
+        return state;
+      }
+      return {
+        document: {
+          ...state.document,
+          guides: guides.map((g) =>
+            g.id === guideId ? { ...g, position: rounded } : g
+          )
+        }
+      };
+    }),
+
+  removeGuide: (guideId) =>
+    set((state) => {
+      const guides = state.document.guides ?? [];
+      if (!guides.some((g) => g.id === guideId)) {
+        return state;
+      }
+      return {
+        document: {
+          ...state.document,
+          guides: guides.filter((g) => g.id !== guideId)
+        }
+      };
+    }),
+
+  clearGuides: () =>
+    set((state) =>
+      (state.document.guides?.length ?? 0) === 0
+        ? state
+        : { document: { ...state.document, guides: [] } }
+    ),
 
   setSetup: (patch: Partial<SketchSetup>) =>
     set((state) => ({
@@ -520,6 +589,28 @@ export const createDocumentSlice: StateCreator<
   commitLayerTransform: (layerId: string, transform: LayerTransform) =>
     set((state) => ({
       document: setLayerTransformInDocument(state.document, layerId, transform)
+    })),
+
+  setLayerImageReference: (layerId, imageReference) =>
+    set((state) => ({
+      document: withUpdatedDocumentTimestamp({
+        ...state.document,
+        layers: state.document.layers.map((layer) =>
+          layer.id === layerId ? { ...layer, imageReference } : layer
+        )
+      }),
+      history: state.history.map((entry) =>
+        entry.layerStructure.some((snapshot) => snapshot.id === layerId)
+          ? {
+              ...entry,
+              layerStructure: entry.layerStructure.map((snapshot) =>
+                snapshot.id === layerId
+                  ? { ...snapshot, imageReference }
+                  : snapshot
+              )
+            }
+          : entry
+      )
     })),
 
   setLayerContentBounds: (

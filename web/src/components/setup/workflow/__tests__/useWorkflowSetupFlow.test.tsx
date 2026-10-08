@@ -18,10 +18,19 @@ import mockTheme from "../../../../__mocks__/themeMock";
 const planWorkflow = jest.fn(async (): Promise<string | null> => null);
 let planError: string | null = null;
 let planningStatus: "idle" | "pending" | "canceled" | "error" = "idle";
+let planning = false;
+let planningPhase: "drafting" | "checking" = "drafting";
+const cancelPlanning = jest.fn();
 jest.mock("../../../../hooks/workflow/usePlanWorkflow", () => ({
   usePlanWorkflow: () => ({
     planWorkflow,
-    planning: false,
+    cancelPlanning,
+    get planning() {
+      return planning;
+    },
+    get planningPhase() {
+      return planningPhase;
+    },
     get planningStatus() {
       return planningStatus;
     },
@@ -193,16 +202,18 @@ const startFromExample = jest.fn(
 
 const Harness = ({
   providerConfigured = () => true,
+  modelChoices = roleChoices,
   onFinish
 }: {
   providerConfigured?: (role: string) => boolean;
+  modelChoices?: (role: string) => ModelRoleAvailability;
   onFinish?: () => void;
 }) => {
   const config = useWorkflowSetupFlow({
     workflowId: "w1",
     defaultPlannerModel: { provider: "p", id: "m" },
     providerConfigured,
-    modelChoices: roleChoices,
+    modelChoices,
     chosenModel: (role: string, tileId: string | null) => {
       chosenModelCalls.push([role, tileId]);
       return { type: "language_model", id: tileId };
@@ -235,6 +246,8 @@ beforeEach(() => {
   jest.clearAllMocks();
   planError = null;
   planningStatus = "idle";
+  planning = false;
+  planningPhase = "drafting";
   chosenModelCalls.length = 0;
   startFromExample.mockResolvedValue("w1");
   settings = {};
@@ -247,7 +260,7 @@ describe("useWorkflowSetupFlow", () => {
       { stage: "category", brief: "A report", category: "content-pipeline" }
     );
     renderFlow();
-    const summary = await screen.findByRole("region", {
+    const summary = await screen.findByRole("group", {
       name: "Before you generate"
     });
     expect(summary).toHaveAttribute(
@@ -351,6 +364,34 @@ describe("useWorkflowSetupFlow", () => {
       expect(readWorkflowSetup(settings)?.stage).toBe("idea");
     });
 
+    // A copy cannot be stopped, so the shell offers no Cancel for it. One
+    // used to replace the picker with a canceled screen and a disabled Retry.
+    // Going back is held too: the copy would open over the idea when it
+    // landed.
+    it("keeps the picker in reach while an example is being copied", async () => {
+      let land: (id: string | null) => void = () => undefined;
+      startFromExample.mockReturnValueOnce(
+        new Promise((resolve) => {
+          land = resolve;
+        })
+      );
+      await openBrowser();
+      await userEvent.click(await screen.findByText("Summarize a PDF"));
+      expect(await screen.findByText("Copying the example…")).toBeInTheDocument();
+      expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+      expect(
+        screen.getByRole("button", { name: "Back to your idea" })
+      ).toBeDisabled();
+      land(null);
+      await waitFor(() =>
+        expect(screen.queryByText("Copying the example…")).toBeNull()
+      );
+      expect(
+        screen.getByRole("button", { name: "Back to your idea" })
+      ).toBeEnabled();
+      expect(screen.getByText("Summarize a PDF")).toBeInTheDocument();
+    });
+
     it("goes back to the idea with the brief intact", async () => {
       await openBrowser();
       await userEvent.click(
@@ -413,7 +454,12 @@ describe("useWorkflowSetupFlow", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent("no provider");
   });
 
-  it("retries planning after canceling from the review step", async () => {
+  // F6: canceling a Re-plan used to swap the review for a canceled screen
+  // whose Retry re-planned, so the plan the creator kept was out of reach.
+  // This replaces "retries planning after canceling from the review step",
+  // which pinned that Retry. A canceled re-plan now leaves the plan and its
+  // `Continue to setup`, and re-planning again is the Re-plan button's job.
+  it("keeps the plan and Continue to setup after a canceled re-plan", async () => {
     planningStatus = "canceled";
     settings = writeWorkflowSetup(
       {},
@@ -421,11 +467,98 @@ describe("useWorkflowSetupFlow", () => {
     );
     renderFlow();
 
-    await userEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(screen.getByRole("heading", { name: "Your plan" })).toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Retry" })).toBeNull();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Continue to setup" })
+    );
 
-    await waitFor(() => expect(planWorkflow).toHaveBeenCalledTimes(1));
-    expect(buildFromPlan).not.toHaveBeenCalled();
-    expect(readWorkflowSetup(settings)?.stage).toBe("review");
+    await waitFor(() =>
+      expect(readWorkflowSetup(settings)?.stage).toBe("setup")
+    );
+    expect(planWorkflow).not.toHaveBeenCalled();
+  });
+
+  it("stops a re-plan from the review and keeps the plan on screen", async () => {
+    planning = true;
+    settings = writeWorkflowSetup(
+      {},
+      { stage: "review", brief: "b", category: "content-pipeline", plan: PLAN }
+    );
+    renderFlow();
+
+    // The plan being replaced cannot be continued with, and the shell offers
+    // no Cancel of its own that would hide the plan.
+    expect(
+      screen.getByRole("button", { name: "Continue to setup" })
+    ).toBeDisabled();
+    expect(screen.queryByRole("button", { name: "Cancel" })).toBeNull();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Stop re-planning" })
+    );
+    expect(cancelPlanning).toHaveBeenCalledTimes(1);
+    expect(screen.getByDisplayValue("Compose")).toBeInTheDocument();
+  });
+
+  // F2: an answer set aside because the brief or category changed is a
+  // reason, not a plan, so the creator stays on the category step.
+  it("stays on the category step when the planner's answer was set aside", async () => {
+    settings = writeWorkflowSetup(
+      {},
+      { stage: "category", brief: "b", category: "content-pipeline" }
+    );
+    planWorkflow.mockResolvedValueOnce(
+      "The brief, category or step changed while the plan was being written. Plan the steps again."
+    );
+    renderFlow();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Plan the steps" })
+    );
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Plan the steps again"
+    );
+    expect(readWorkflowSetup(settings)?.stage).toBe("category");
+  });
+
+  // F10: the planner may call the model up to three times.
+  it("prices every planner round and says when the plan is being checked", () => {
+    planning = true;
+    planningPhase = "checking";
+    settings = writeWorkflowSetup(
+      {},
+      { stage: "category", brief: "b", category: "content-pipeline" }
+    );
+    renderFlow();
+    expect(screen.getByText("Checking the plan")).toBeInTheDocument();
+  });
+
+  it("names the number of planner calls in the estimate", async () => {
+    settings = writeWorkflowSetup(
+      {},
+      { stage: "category", brief: "b", category: "content-pipeline" }
+    );
+    renderFlow();
+    const summary = await screen.findByRole("group", {
+      name: "Before you generate"
+    });
+    expect(summary).toHaveAttribute(
+      "title",
+      expect.stringContaining("up to 3 planner calls")
+    );
+  });
+
+  // F1: the brief field saves after typing pauses, not once per keystroke.
+  it("does not save the workflow on every keystroke of the brief", async () => {
+    settings = writeWorkflowSetup({}, { stage: "idea", brief: "" });
+    renderFlow();
+    await userEvent.type(
+      screen.getByPlaceholderText("Summarize a PDF and email it"),
+      "abc"
+    );
+    // Each keystroke reached the document at once.
+    expect(updateWorkflow).toHaveBeenCalledTimes(3);
+    expect(saveWorkflow).not.toHaveBeenCalled();
+    await waitFor(() => expect(saveWorkflow).toHaveBeenCalledTimes(1));
   });
 
   it("keeps the picked planner model on the workflow", async () => {
@@ -620,6 +753,43 @@ describe("useWorkflowSetupFlow", () => {
     );
     await waitFor(() => expect(buildFromPlan).toHaveBeenCalledTimes(1));
     expect(chosenModelCalls).toContainEqual(["language", "p:other"]);
+  });
+
+  // The build assigns one model per role. With none to assign it would place
+  // nodes that cannot run, so Build waits and says why.
+  it.each([
+    ["loading", "Reading the models your providers offer"],
+    ["error", "Try reading the models again above"],
+    ["empty", "Connect a provider for every model above"]
+  ] as const)(
+    "holds Build while a role's models are %s",
+    (status, reason) => {
+      settings = writeWorkflowSetup(
+        {},
+        { stage: "setup", brief: "b", plan: PLAN_WITH_ROLE }
+      );
+      renderFlow({
+        modelChoices: (role) => ({
+          ...roleChoices(role),
+          tiles: [],
+          status
+        })
+      });
+      expect(
+        screen.getByRole("button", { name: "Build your workflow" })
+      ).toBeDisabled();
+      expect(screen.getByText(reason)).toBeInTheDocument();
+    }
+  );
+
+  it("offers only a workflow JSON file to import", () => {
+    settings = writeWorkflowSetup({}, { stage: "idea", brief: "b" });
+    renderFlow();
+    expect(screen.getByText("A workflow JSON file")).toBeInTheDocument();
+    expect(screen.getByLabelText("Import a workflow")).toHaveAttribute(
+      "accept",
+      ".json,application/json"
+    );
   });
 
   // F20: the review lets a step be added and edited, so it can be left holding

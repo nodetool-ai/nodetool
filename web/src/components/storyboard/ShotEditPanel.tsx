@@ -33,8 +33,10 @@ import React, {
   useRef,
   useState
 } from "react";
+import { shotRenderMode } from "@nodetool-ai/protocol";
 import type { Entity, Scene, Shot } from "@nodetool-ai/protocol";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
+import { formatUsd } from "@nodetool-ai/model-pricing";
 
 import {
   Box,
@@ -49,6 +51,7 @@ import {
   FlexColumn,
   FlexRow,
   Label,
+  MenuItemPrimitive,
   Panel,
   ScrollArea,
   SelectField,
@@ -64,11 +67,13 @@ import ShotEditTable from "./ShotEditTable";
 import ShotTakesGallery from "./ShotTakesGallery";
 import ShotScriptPanel from "./ShotScriptPanel";
 import ShotCostLine from "./ShotCostLine";
+import ShotPromptPreview from "./ShotPromptPreview";
 import {
   changedDraftKeys,
   conflictingDraftKeys,
   draftFromShot,
   isDraftDirty,
+  isDurationInvalid,
   savedShot,
   shotPatchFromChangedDraft,
   shotPatchFromDraft,
@@ -92,6 +97,10 @@ import { useEntities } from "../../serverState/useEntities";
 import { getEntityChipSx, getEntityKindDotSx } from "../entities/entityKind";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { requestDocumentFocus } from "../../stores/DocumentFocusStore";
+import { useNotificationStore } from "../../stores/NotificationStore";
+import { canTakeFocus } from "../../utils/browser";
+import { getErrorMessage } from "../../utils/errorHandling";
+import { isShotGenerating } from "./ShotStatusPill";
 
 interface ShotEditPanelProps {
   boardId: string;
@@ -162,6 +171,34 @@ const DRAFT_LABELS: Record<ShotDraftKey, string> = {
   motion: "Motion design notes"
 };
 
+/** A render that could not start: the hook records the ones it knows about. */
+const reportRenderFailure = (error: unknown): void => {
+  useNotificationStore.getState().addNotification({
+    type: "error",
+    alert: true,
+    dismissable: true,
+    content: `Render did not start. ${getErrorMessage(error, "Try again.")}`
+  });
+};
+
+/** A draft value as the conflict dialog shows it: names, not ids or objects. */
+const formatDraftValue = (
+  key: ShotDraftKey,
+  value: ShotDraft[ShotDraftKey],
+  sceneOptions: { value: string; label: string }[]
+): string => {
+  if (value === undefined || value === null || value === "") {
+    return "Not set";
+  }
+  if (key === "sceneId") {
+    return sceneOptions.find((option) => option.value === value)?.label ?? "Not set";
+  }
+  if (typeof value === "object") {
+    return "Edited graphics";
+  }
+  return String(value);
+};
+
 const shotNumberSx = {
   ...TYPOGRAPHY.mono.caption,
   color: "text.secondary",
@@ -187,6 +224,9 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
     imageEditor?: boolean;
   } | null>(null);
   const [saveConflicts, setSaveConflicts] = useState<ShotDraftKey[]>([]);
+  // The render a save conflict interrupted, run once the conflict is resolved.
+  const conflictedRender = useRef<"still" | "clip" | null>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
   const imageLeaveResolver = useRef<((allowed: boolean) => void) | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
 
@@ -204,6 +244,9 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   );
   const boardEntityIds = useStoryboardStore(
     (state) => state.boards[boardId]?.entityIds ?? EMPTY_IDS
+  );
+  const boardStyle = useStoryboardStore(
+    (state) => state.boards[boardId]?.style ?? ""
   );
   const applyShotDraft = useStoryboardStore((state) => state.applyShotDraft);
   const nudgeShot = useStoryboardStore((state) => state.nudgeShot);
@@ -261,6 +304,20 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         : EMPTY_IDS
     };
   }, [allEntities, boardEntityIds, shot]);
+
+  const castNames = useMemo(
+    () =>
+      boardEntities
+        .filter((entity) => appliedIds.includes(entity.id))
+        .map((entity) => entity.name || "Untitled"),
+    [boardEntities, appliedIds]
+  );
+  // The prompt preview reads the scene the draft points at, lit the way the
+  // draft says: both are saved with the shot.
+  const promptScene = useMemo((): Scene | null => {
+    const target = scenes.find((s) => s.id === draft?.sceneId) ?? null;
+    return target && draft ? { ...target, lighting: draft.lighting } : target;
+  }, [scenes, draft]);
 
   const ordered = useMemo(
     () => sceneOrder(shots, scenes).flatMap((group) => group.shots),
@@ -349,16 +406,31 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
     boardId
   ]);
 
+  const durationInvalid = !!draft && isDurationInvalid(draft.durationSeconds);
+
   const handleSave = useCallback(() => {
+    if (durationInvalid) {
+      return;
+    }
+    conflictedRender.current = null;
     commit();
-  }, [commit]);
+  }, [commit, durationInvalid]);
+
+  const startRender = useCallback(
+    (kind: "still" | "clip", saved: Shot) => {
+      const run = kind === "still" ? generateKeyframe : generateClip;
+      void run(boardId, saved).catch(reportRenderFailure);
+    },
+    [generateKeyframe, generateClip, boardId]
+  );
 
   const handleRegenerate = useCallback(() => {
     const saved = commit();
+    conflictedRender.current = saved ? null : "still";
     if (saved) {
-      void generateKeyframe(boardId, saved).catch(() => undefined);
+      startRender("still", saved);
     }
-  }, [commit, generateKeyframe, boardId]);
+  }, [commit, startRender]);
 
   // Reordering inside a scene: the board offers it by drag, which no keyboard
   // reaches. Crossing a scene is the slugline dropdown above.
@@ -375,10 +447,11 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   const handleRenderClip = useCallback(() => {
     setMenuAnchor(null);
     const saved = commit();
+    conflictedRender.current = saved ? null : "clip";
     if (saved) {
-      void generateClip(boardId, saved).catch(() => undefined);
+      startRender("clip", saved);
     }
-  }, [commit, generateClip, boardId]);
+  }, [commit, startRender]);
 
   const completeLeave = useCallback(
     (
@@ -454,13 +527,18 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   const resolveSaveConflicts = useCallback(
     (resolution: "mine" | "current") => {
       const saved = commit(resolution);
+      const render = conflictedRender.current;
+      conflictedRender.current = null;
+      if (saved && render) {
+        startRender(render, saved);
+      }
       if (saved && pending) {
         const target = pending;
         setPending(null);
         completeLeave(target, "saved");
       }
     },
-    [commit, pending, completeLeave]
+    [commit, pending, completeLeave, startRender]
   );
 
   const requestImageEditorLeave = useCallback((): Promise<boolean> => {
@@ -499,6 +577,15 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   // owns the still/clip toggle and the pager index (PRD § 7.5).
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
+      // Every workspace tab stays mounted: a panel in a hidden tab must not
+      // answer keys meant for the active one, nor cancel an IME composition.
+      if (
+        event.defaultPrevented ||
+        event.isComposing ||
+        !canTakeFocus(panelRef.current)
+      ) {
+        return;
+      }
       if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
         event.preventDefault();
         handleSave();
@@ -557,6 +644,19 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
     return null;
   }
 
+  const generating = isShotGenerating(shot);
+  // What each render button spends, on the button: the cost line beside them
+  // sums both steps, and a click only pays for one.
+  const stepCost = (label: string): string => {
+    const cost = costEstimate.steps.find((step) => step.label === label)?.cost;
+    return cost ? ` · ~${formatUsd(cost)}` : "";
+  };
+  const clipNeedsStill =
+    shotRenderMode(previewShot) === "keyframe" && !shot.keyframe;
+  const shotsInScene = shots.filter(
+    (s) => (s.scene_id ?? null) === (shot.scene_id ?? null)
+  ).length;
+
   const canStep = !!onShotChange;
   const canStepBack = canStep && position > 0;
   const canStepForward =
@@ -570,7 +670,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
       data-shot-id={shot.id}
       sx={{ minWidth: 0, containerType: "inline-size" }}
     >
-      <FlexColumn gap={SPACING.xl} sx={{ minWidth: 0 }}>
+      <FlexColumn ref={panelRef} gap={SPACING.xl} sx={{ minWidth: 0 }}>
         <FlexRow align="center" gap={SPACING.md} wrap>
           <Text size="big">Edit your shot</Text>
           <Box sx={shotNumberSx}>
@@ -739,6 +839,13 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
           </FlexRow>
         )}
 
+        <ShotPromptPreview
+          shot={previewShot}
+          scene={promptScene}
+          style={boardStyle}
+          castNames={castNames}
+        />
+
         <ShotScriptPanel boardId={boardId} shot={shot} readOnly={readOnly} />
 
         <Divider />
@@ -754,12 +861,18 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
                 ariaLabel="More shot actions"
                 onClick={(event) => setMenuAnchor(event.currentTarget)}
               />
-              <EditorButton onClick={handleRegenerate}>Regenerate</EditorButton>
+              <EditorButton
+                onClick={handleRegenerate}
+                disabled={generating || durationInvalid}
+                title={generating ? "This shot is already rendering" : undefined}
+              >
+                {`Regenerate${stepCost("Still")}`}
+              </EditorButton>
               <EditorButton
                 variant="contained"
                 color="primary"
                 onClick={handleSave}
-                disabled={!dirty}
+                disabled={!dirty || durationInvalid}
               >
                 Save
               </EditorButton>
@@ -773,16 +886,29 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         anchorEl={menuAnchor}
         onClose={() => setMenuAnchor(null)}
       >
-        <EditorMenuItem onClick={handleRenderClip}>
-          {shot.clip ? "Re-render clip" : "Render clip"}
-        </EditorMenuItem>
+        <MenuItemPrimitive
+          compact
+          label={`${shot.clip ? "Re-render clip" : "Render clip"}${stepCost("Clip")}`}
+          secondary={
+            generating
+              ? "This shot is already rendering"
+              : clipNeedsStill
+                ? "Render a still first, or set render mode to Direct"
+                : undefined
+          }
+          disabled={generating || clipNeedsStill}
+          onClick={handleRenderClip}
+        />
         <EditorMenuItem
           onClick={() => handleNudge("up")}
           disabled={numbering.shot <= 1}
         >
           Move earlier in scene
         </EditorMenuItem>
-        <EditorMenuItem onClick={() => handleNudge("down")}>
+        <EditorMenuItem
+          onClick={() => handleNudge("down")}
+          disabled={numbering.shot >= shotsInScene}
+        >
           Move later in scene
         </EditorMenuItem>
       </EditorMenu>
@@ -846,8 +972,8 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
               return (
                 <FlexColumn key={key} gap={SPACING.xs}>
                   <Label>{DRAFT_LABELS[key]}</Label>
-                  <Caption color="secondary">{`Your edit: ${String(draft[key] ?? "Not set")}`}</Caption>
-                  <Caption color="secondary">{`Current: ${String(current[key] ?? "Not set")}`}</Caption>
+                  <Caption color="secondary">{`Your edit: ${formatDraftValue(key, draft[key], sceneOptions)}`}</Caption>
+                  <Caption color="secondary">{`Current: ${formatDraftValue(key, current[key], sceneOptions)}`}</Caption>
                 </FlexColumn>
               );
             })}

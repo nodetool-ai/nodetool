@@ -10,6 +10,10 @@ vi.mock("@nodetool-ai/whisper-cpp", () => ({
   registerWhisperCppProviders: vi.fn()
 }));
 
+vi.mock("@nodetool-ai/transformers-js-provider", () => ({
+  registerTransformersJsProvider: vi.fn()
+}));
+
 vi.mock("@nodetool-ai/models", () => ({
   getSecret: vi.fn(async (key: string) => process.env[key] ?? null)
 }));

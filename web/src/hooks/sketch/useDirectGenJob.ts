@@ -469,22 +469,13 @@ export function useDirectGenJob(): UseDirectGenJobApi {
         );
         const canvasW = sketchState.document.canvas.width;
         const canvasH = sketchState.document.canvas.height;
-        sketchState.setDocument({
-          ...sketchState.document,
-          layers: sketchState.document.layers.map((l) =>
-            l.id === layerId
-              ? {
-                  ...l,
-                  imageReference: {
-                    uri: url,
-                    naturalWidth: currentLayer?.contentBounds.width ?? canvasW,
-                    naturalHeight:
-                      currentLayer?.contentBounds.height ?? canvasH,
-                    objectFit: "contain"
-                  }
-                }
-              : l
-          )
+        // The result lands while the creator keeps working, so it touches
+        // this layer only: undo history, selection and tool settings stay.
+        sketchState.setLayerImageReference(layerId, {
+          uri: url,
+          naturalWidth: currentLayer?.contentBounds.width ?? canvasW,
+          naturalHeight: currentLayer?.contentBounds.height ?? canvasH,
+          objectFit: "contain"
         });
       } catch (cause) {
         failLayer(layerId, {

@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/blender-nodes",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "NodeTool Blender headless nodes: render and mesh preparation over glTF",
   "type": "module",
   "engines": {

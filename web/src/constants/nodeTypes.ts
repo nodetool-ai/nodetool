@@ -18,6 +18,7 @@ export const REROUTE_NODE_TYPE = "nodetool.control.Reroute";
 export const COLLECTION_NODE_TYPE = "nodetool.control.Collection";
 export const WORKFLOW_NODE_TYPE = "nodetool.workflows.workflow_node.Workflow";
 export const SUBGRAPH_NODE_TYPE = "nodetool.workflows.subgraph.Subgraph";
+export const APP_NODE_TYPE = "nodetool.workflows.app_node.App";
 
 /**
  * Accent for everything subgraph — the node's header and the tab that opens its
@@ -25,6 +26,9 @@ export const SUBGRAPH_NODE_TYPE = "nodetool.workflows.subgraph.Subgraph";
  * never mistaken for the parent workflow's.
  */
 export const SUBGRAPH_ACCENT_COLOR = "#7C3AED";
+
+/** Accent for the App node, which runs a mini app inside a workflow. */
+export const APP_ACCENT_COLOR = "#DB2777";
 
 // --- Special editor nodes --------------------------------------------------
 export const SKETCH_NODE_TYPE = "nodetool.constant.Sketch";

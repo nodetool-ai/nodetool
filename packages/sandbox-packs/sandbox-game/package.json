@@ -1,12 +1,18 @@
 {
   "name": "@nodetool-ai/sandbox-game",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Build a complete native game document with entities, scripts and level geometry, then save the draft in one edit",
   "license": "MIT",
   "nodetool": {
     "apiVersion": 1,
     "recommended": true,
-    "sandboxModules": [{ "name": ".", "kind": "js", "file": "sandbox/index.js" }]
+    "sandboxModules": [
+      {
+        "name": ".",
+        "kind": "js",
+        "file": "sandbox/index.js"
+      }
+    ]
   },
   "repository": {
     "type": "git",
@@ -14,7 +20,17 @@
     "directory": "packages/sandbox-packs/sandbox-game"
   },
   "homepage": "https://nodetool.ai",
-  "publishConfig": { "access": "public" },
-  "files": ["SKILL.md", "sandbox"],
-  "keywords": ["nodetool", "nodetool-sandbox-pack", "sandbox", "game"]
+  "publishConfig": {
+    "access": "public"
+  },
+  "files": [
+    "SKILL.md",
+    "sandbox"
+  ],
+  "keywords": [
+    "nodetool",
+    "nodetool-sandbox-pack",
+    "sandbox",
+    "game"
+  ]
 }

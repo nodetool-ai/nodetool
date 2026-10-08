@@ -528,6 +528,7 @@ function createGameSessionWithRunner(
       },
       () => {
         failed = true;
+        scriptRunner?.retain?.(new Set());
       },
       eventSink
     );

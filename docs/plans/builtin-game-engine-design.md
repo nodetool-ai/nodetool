@@ -293,13 +293,20 @@ Start with declarative behavior built from reviewed modules: movement, patrol,
 triggers, health, collectible, spawn, and scene transitions. An agent edits data
 and tests before generating arbitrary runtime code.
 
-Authored JavaScript uses one memory-limited QuickJS runtime per game session,
-with a fresh context for each script call. The source is evaluated again in that
-context. Only returned JSON state and the seeded random generator's state persist.
-This replaces the original bulk-call preference: persistent functions can retain
-closure or global state that snapshots cannot restore. Separate contexts also
-prevent one script from changing another script's input. Measure context creation,
-source evaluation, and serialization costs before increasing instance budgets.
+Authored JavaScript uses one memory-limited QuickJS runtime per game session.
+A positive AST check permits resident functions only for input-only expressions
+that cannot retain hidden state. Other sources are evaluated in a fresh context
+for each call, preserving existing initialization and JSON parsing behavior.
+Only returned JSON state and the seeded random generator's state persist as
+simulation state. Per-call inputs and world query results are private copies.
+One immutable tick-start host snapshot serves world queries. All sources are
+validated in temporary contexts during preparation. Resident functions compile
+on the first active call and remain resident while the behavior is active. The
+resident path constructs native sandbox input values and exposes legacy
+`input.world` lazily. Compatibility calls pass a native string to the guest
+parser. Host JSON normalization and budget accounting still apply to both paths.
+Measure context creation, source evaluation, and serialization costs before
+increasing instance budgets.
 The implementation lives in `packages/game-runtime/src/scripts.ts`
 without depending on the agents package.
 

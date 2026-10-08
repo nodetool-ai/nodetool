@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/game-nodes",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "NodeTool native game asset generation and staging nodes",
   "type": "module",
   "engines": {

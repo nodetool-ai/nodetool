@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/game-runtime",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Deterministic built-in game simulation",
   "type": "module",
   "engines": {
@@ -18,7 +18,8 @@
     "@jitl/quickjs-ng-wasmfile-release-sync": "^0.31.0",
     "@nodetool-ai/protocol": "*",
     "quickjs-emscripten-core": "^0.31.0",
-    "zod": "^4.0.0"
+    "zod": "^4.0.0",
+    "acorn": "^8.16.0"
   },
   "devDependencies": {
     "typescript": "npm:@typescript/typescript6@6.0.2",

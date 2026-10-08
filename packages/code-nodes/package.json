@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/code-nodes",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "NodeTool code-execution nodes — run JavaScript in a QuickJS sandbox",
   "type": "module",
   "engines": {

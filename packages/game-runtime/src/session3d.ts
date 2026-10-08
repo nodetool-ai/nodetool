@@ -611,6 +611,7 @@ export async function createGameSession3D(
           },
           () => {
             failed = true;
+            runner?.retain?.(new Set());
           },
           options.eventSink
         );

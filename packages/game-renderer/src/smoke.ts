@@ -44,7 +44,7 @@ export async function smokeStandaloneGame(directory: string, options: GameSmokeO
       const pathname = decodeURIComponent(new URL(request.url ?? "/", "http://127.0.0.1").pathname);
       if (pathname === "/favicon.ico") { response.writeHead(204); response.end(); return; }
       const path = await realpath(join(root, pathname === "/" ? "index.html" : pathname.slice(1)));
-      if (!path.startsWith(`${root}${sep}`)) { response.writeHead(403); response.end(); return; }
+      if (!path.startsWith(`${root}${sep}`)) { response.writeHead(403); response.end(); return; } // key-boundary-ok: node:path sep anchors containment after realpath.
       const bytes = await readFile(path);
       response.setHeader("content-type", TYPES[extname(path)] ?? "application/octet-stream");
       response.end(bytes);

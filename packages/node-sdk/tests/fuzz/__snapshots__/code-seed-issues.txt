@@ -1,0 +1,45 @@
+emit error code_missing_output The code never sends to the outputs "out", "doc", so they stay empty. Call `await output("out", value)`, `await output("doc", value)` for a final value, or `emit` to stream values as they are produced.
+emit warning code_unused_input Inputs "flag", "items", "text" are never read by the code.
+stream error code_missing_output The code never sends to the outputs "n", "doc", so they stay empty. Call `await output("n", value)`, `await output("doc", value)` for a final value, or `emit` to stream values as they are produced.
+stream warning code_unused_input Inputs "a", "flag", "text" are never read by the code.
+import error code_missing_output The code never sends to the outputs "n", "out", so they stay empty. Call `await output("n", value)`, `await output("out", value)` for a final value, or `emit` to stream values as they are produced.
+import warning code_unused_input Inputs "a", "flag", "items" are never read by the code.
+branching warning code_missing_output A return path omits the outputs "doc", "n", "out", which downstream nodes read as empty. Emit every output on every return path and branch with nodetool.control.If or nodetool.control.Switch instead.
+branching warning code_undeclared_output The code returns "a", which is not declared as an output handle, so nothing downstream can read it.
+branching warning code_unused_input Inputs "a", "items", "text" are never read by the code.
+empty-ish error code_no_return The code never returns, so the outputs "n", "out", "doc" stay empty. End it with `return { n, out, doc };`.
+empty-ish warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+export-module error code_module The code uses `export` at the top level. The body runs inside an async function, which cannot contain an export declaration. Write top-level statements only — do not wrap the body in `export async function run`.
+export-module warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+node-builtin error code_module The code imports "fs", "node:path". The sandbox is QuickJS, not Node — it has no builtin modules. Use the sandbox API (fetch, workspace, crypto, media) or a sandbox pack instead.
+node-builtin warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+private-bridge error code_module The code imports "nodetool:media", which the sandbox serves only to a generated module facade. Import the pack whose facade uses it.
+private-bridge warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+dynamic-module error code_module The code uses `import()` and `require()`, which the sandbox does not support — the loader denies every dynamic resolution. Import the module with a static `import` at the top of the code.
+dynamic-module warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+return-shapes error code_return_shape A return path returns something that is not an object of outputs, so the declared outputs "n", "out", "doc" are never set. Every return must be an object carrying them.
+return-shapes warning code_missing_output A return path omits the outputs "doc", "out", which downstream nodes read as empty. Emit every output on every return path and branch with nodetool.control.If or nodetool.control.Switch instead.
+return-shapes warning code_undeclared_output The code returns "extra", which is not declared as an output handle, so nothing downstream can read it.
+return-shapes warning code_unused_input Inputs "items", "text" are never read by the code.
+fall-through warning code_no_return Execution can reach the end of the code without returning, so the outputs "n", "out", "doc" would be empty on that path.
+fall-through warning code_unused_input Inputs "a", "items", "text" are never read by the code.
+undefined-names error code_undefined_name The code reads "ghost", "missingHelper", which are neither a sandbox API nor an input of this node — the sandbox throws ReferenceError. Declare them as dynamic inputs and read them off `inputs`, or fix the name.
+undefined-names error code_undefined_input The code reads `inputs.nope`, which is not an input of this node — the value is undefined at run time. Declare it as a dynamic input, or fix the name.
+undefined-names warning code_unused_input Inputs "flag", "items" are never read by the code.
+emit-dynamic-name warning code_output_dynamic_name The code calls `emit` or `output` with a handle name that is not a string literal, so the output names cannot be checked statically. Pass a literal name to have them checked.
+emit-dynamic-name warning code_unused_input Inputs "flag", "items" are never read by the code.
+emit-undeclared-return error code_undeclared_output The code sends to "zzz", which is not an output of this node — the call throws at run time. Declare it as a dynamic output, or fix the name.
+emit-undeclared-return error code_missing_output The code never sends to the outputs "out", "doc", so they stay empty. Call `await output("out", value)`, `await output("doc", value)` for a final value, or `emit` to stream values as they are produced.
+emit-undeclared-return warning code_return_ignored The code returns a value, but return values carry no outputs — use `output(name, value)` for a final value or `emit(name, value)` to stream. `return` here only exits the body early.
+emit-undeclared-return warning code_unused_input Inputs "a", "items", "text" are never read by the code.
+stream-unknown error code_undefined_stream The code takes from "nope", which is not an input of this node — the stream never yields. Declare it as a dynamic input, or fix the name.
+stream-unknown error code_missing_output The code never sends to the outputs "n", "doc", so they stay empty. Call `await output("n", value)`, `await output("doc", value)` for a final value, or `emit` to stream values as they are produced.
+stream-unknown warning code_unused_input Inputs "a", "flag", "items", "text" are never read by the code.
+stream-dynamic-name warning code_stream_dynamic_name The code calls `stream` with a handle name that is not a string literal, so the stream names cannot be checked statically. Pass a literal name to have them checked.
+stream-unconnected warning code_unconnected_stream The code takes from "a", which no incoming edge feeds — the stream completes immediately and yields nothing. Connect an upstream node, or read the node's configured value with `inputs.a`.
+stream-unconnected warning code_unused_input Inputs "flag", "items", "text" are never read by the code.
+stream-input-read error code_stream_input_read The code reads `inputs.items`, which an incoming edge feeds — in a streaming body `inputs` carries only the node's configured values, never edge data. Use `stream("items")`.
+stream-input-read warning code_unused_input Inputs "a", "flag", "text" are never read by the code.
+stream-any warning code_unused_input Inputs "a", "flag", "text" are never read by the code.
+stream-return-contract error code_stream_return_contract The code calls `stream`, so it runs once and its return value is control flow, not outputs. Send every output through `output(name, value)` for a final value, or `emit(name, value)` to stream values as they are produced.
+stream-return-contract warning code_unused_input Inputs "a", "flag", "text" are never read by the code.

@@ -10,7 +10,7 @@
  * The flow is mounted for real at its first step, not stubbed, so the
  * assertion is which surface comes back — that is what "resumes" means.
  */
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 
@@ -155,9 +155,22 @@ const managerState = {
   getWorkflow: () => ({ id: "w1", name: "W", settings, graph: null }),
   getNodeStore: jest.fn((): typeof nodeStore | undefined => nodeStore),
   fetchWorkflow: jest.fn(async () => ({ id: "w1" })),
-  create: jest.fn(),
+  create: jest.fn(async () => ({ id: "copy-1", name: "Summarize a PDF" })),
+  delete: jest.fn(async () => {}),
   updateWorkflow: jest.fn(),
-  saveWorkflow: jest.fn(async () => {})
+  saveWorkflow: jest.fn(async () => {}),
+  // Step 1's inline examples browser reads the shipped examples.
+  loadTemplates: jest.fn(async () => ({
+    workflows: [
+      {
+        id: "summarize.json",
+        name: "Summarize a PDF",
+        description: "Read a PDF and write a summary",
+        tags: ["example"]
+      }
+    ],
+    next: null
+  }))
 };
 const mockCreateApplication = jest.fn(async () => ({
   id: "app-1",
@@ -171,17 +184,20 @@ jest.mock("../../../contexts/WorkflowManagerContext", () => ({
     selector(managerState),
   useWorkflowManagerStore: () => ({ getState: () => managerState })
 }));
+const mockTabs = {
+  closeTab: jest.fn(),
+  openTab: jest.fn(),
+  setTitle: jest.fn(),
+  tabs: [{ type: "workflow", ref: "w1", projectId: "project-1" }]
+};
 jest.mock("../../../stores/WorkspaceTabsStore", () => ({
   __esModule: true,
   creationProjectId: () => "default",
   tabId: (kind: string, ref: string) => `${kind}:${ref}`,
-  useWorkspaceTabsStore: (selector: (state: unknown) => unknown) =>
-    selector({
-      closeTab: jest.fn(),
-      openTab: jest.fn(),
-      setTitle: jest.fn(),
-      tabs: [{ type: "workflow", ref: "w1", projectId: "project-1" }]
-    })
+  useWorkspaceTabsStore: Object.assign(
+    (selector: (state: unknown) => unknown) => selector(mockTabs),
+    { getState: () => mockTabs }
+  )
 }));
 jest.mock("../../../hooks/useApplications", () => ({
   useCreateApplication: () => ({
@@ -312,6 +328,33 @@ describe("WorkflowEditorSurface workflow setup resume", () => {
       })
     );
   });
+});
+
+// The `+ New` placeholder exists only to host the flow. Picking an example
+// replaces it, so it goes rather than staying behind as "Untitled workflow",
+// and the copy is filed in the tab's project rather than the default one.
+it("files the example copy in the tab's project and deletes the placeholder", async () => {
+  seed("idea");
+  renderSurface();
+
+  await userEvent.click(
+    screen.getByRole("button", { name: /Start from an example/ })
+  );
+  await userEvent.click(await screen.findByText("Summarize a PDF"));
+
+  await waitFor(() => expect(managerState.delete).toHaveBeenCalledTimes(1));
+  expect(managerState.create).toHaveBeenCalledWith(
+    expect.objectContaining({ project_id: "project-1" }),
+    "nodetool-base",
+    "summarize"
+  );
+  expect(managerState.delete).toHaveBeenCalledWith(
+    expect.objectContaining({ id: "w1" })
+  );
+  expect(mockTabs.openTab).toHaveBeenCalledWith(
+    expect.objectContaining({ ref: "copy-1", projectId: "project-1" })
+  );
+  expect(mockTabs.closeTab).toHaveBeenCalledWith("workflow:w1");
 });
 
 it("keeps a failed workflow load visible and lets the user retry", async () => {

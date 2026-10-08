@@ -126,12 +126,12 @@ jest.mock("../../../../hooks/useModelsByProvider", () => ({
 const CLIP_MODEL = STUDIO_CLIP_MODELS[0];
 const VOICE = STUDIO_VOICES[0];
 
-const seedPlan = () =>
+const seedPlan = (voiceover = "A boat sets sail.") =>
   useTimelineStore.getState().setSetup({
     stage: "look",
     brief: "a paper boat",
     format: "ad-15",
-    beats: [{ id: "b1", prompt: "the kerb", duration_ms: 3000 }]
+    beats: [{ id: "b1", prompt: "the kerb", duration_ms: 3000, voiceover }]
   });
 
 const renderBody = (voiceOn = true) =>
@@ -278,6 +278,18 @@ describe("useLookStep — the gate before the paid button", () => {
     expect(result.current.blockedReason).toBe(
       "Pick a voice, or switch Voiceover off"
     );
+  });
+
+  it("asks for no voice when no beat has a line to read", () => {
+    seedPlan("");
+    useLastModelStore.setState({
+      byKind: { video: { provider: "nodetool", model: CLIP_MODEL.id } }
+    });
+    const { result } = renderHook(() =>
+      useLookStep({ voiceOn: true, musicOn: false })
+    );
+    expect(result.current.canAdvance).toBe(true);
+    expect(result.current.blockedReason).toBeUndefined();
   });
 
   it("releases the button once a voice the providers offer is picked (F11)", () => {
@@ -459,6 +471,15 @@ describe("LookStep body", () => {
     expect(
       screen.getByText(/Pick a voice, or switch Voiceover off/)
     ).toBeInTheDocument();
+  });
+
+  it("says there is nothing to read instead of asking for a voice", () => {
+    seedPlan("");
+    renderBody(true);
+    expect(
+      screen.getByText("No beat has a line to read. Add one in the review.")
+    ).toBeInTheDocument();
+    expect(screen.queryByText(/Pick a voice/)).toBeNull();
   });
 
   it("says what an unavailable bed means, not what is curated (F30)", () => {

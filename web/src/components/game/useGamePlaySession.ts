@@ -39,12 +39,14 @@ interface UseGamePlaySessionOptions {
 export function useGamePlaySession({ refId, active, document, editorSceneId, name }: UseGamePlaySessionOptions) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const sessionRef = useRef<GameSession | null>(null);
+  const sessionFailedRef = useRef(false);
   const rendererRef = useRef<GameRenderer | null>(null);
   const sessionGenerationRef = useRef(0);
   const keysRef = useRef(new Map<string, string>());
   const newlyPressedRef = useRef(new Set<string>());
   const inputHistoryRef = useRef(new GameReplayHistory<GameInputFrame, GameSnapshot>());
   const lastTickRef = useRef(0);
+  const lastPresentationRef = useRef<{ state: PlayState; frame: GameRenderFrame } | null>(null);
   const audioRef = useRef<GameAudioPlayer | null>(null);
   const editorCameraRef = useRef<{ x: number; y: number; zoom: number } | null>(null);
   const editorAspectRef = useRef<number | null>(null);
@@ -98,12 +100,14 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     if (!session) return;
     const state = session.snapshot();
     lastTickRef.current = state.tick;
-    setPlayState({ tick: state.tick, score: state.score, won: state.won, sceneId: state.sceneId });
+    const presentationState = { tick: state.tick, score: state.score, won: state.won, sceneId: state.sceneId };
+    setPlayState(presentationState);
     const rawFrame = session.frame();
     const current = !playDocument
       ? { ...rawFrame, camera: editorCameraRef.current ?? rawFrame.camera,
         width: editorAspectRef.current ? rawFrame.height * editorAspectRef.current : rawFrame.width }
       : rawFrame;
+    lastPresentationRef.current = { state: presentationState, frame: current };
     setFrame(current);
     void renderFrame(current, 1).catch((cause: unknown) => {
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -135,7 +139,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
 
   const step = useCallback((input: GameInputFrame = EMPTY_INPUT) => {
     const session = sessionRef.current;
-    if (!session) return;
+    if (!session || sessionFailedRef.current) return;
     if (playDocument) inputHistoryRef.current.record(input, () => session.snapshot());
     try {
       const result = session.step(input);
@@ -143,8 +147,10 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       const state = session.snapshot();
       lastTickRef.current = state.tick;
       audioRef.current?.sync(state);
+      const presentationState = { tick: state.tick, score: state.score, won: state.won, sceneId: state.sceneId };
+      lastPresentationRef.current = { state: presentationState, frame: result.frame };
       if (!playbackActiveRef.current || state.tick % 6 === 0) {
-        setPlayState({ tick: state.tick, score: state.score, won: state.won, sceneId: state.sceneId });
+        setPlayState(presentationState);
         setFrame(result.frame);
       }
       void renderFrame(result.frame, 1).catch((cause: unknown) => {
@@ -152,6 +158,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
         setPlaying(false);
       });
     } catch (cause) {
+      sessionFailedRef.current = true;
       const message = cause instanceof Error ? cause.message : String(cause);
       setError(message);
       if (message.includes("Game script")) setScriptError(scriptFailure(message, lastTickRef.current + 1));
@@ -209,6 +216,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       if (!createdSession) return;
       if (cancelled || sessionGenerationRef.current !== generation) { createdSession.dispose(); return; }
       sessionRef.current = createdSession;
+      sessionFailedRef.current = false;
       lastTickRef.current = createdSession.snapshot().tick;
       audio.reset(createdSession.snapshot());
       if (!rendererPromiseRef.current) rendererPromiseRef.current = createGameRenderer({ canvas, backend: "auto", assets: resolveAsset });
@@ -266,8 +274,15 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   useEffect(() => {
     if (!active || !playing) audioRef.current?.pause();
     else audioRef.current?.resume();
-    if (!active || !playing) { keysRef.current.clear(); newlyPressedRef.current.clear(); }
-  }, [active, playing]);
+    if (!active || !playing) {
+      keysRef.current.clear(); newlyPressedRef.current.clear();
+      const presentation = lastPresentationRef.current;
+      if (playDocument && presentation) {
+        setPlayState(presentation.state);
+        setFrame(presentation.frame);
+      }
+    }
+  }, [active, playing, playDocument]);
 
   useEffect(() => {
     if (!active || !playing || !sessionDocument) return;
@@ -287,6 +302,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
   }, [active, sessionDocument, playing, step]);
 
   const beginPlay = () => {
+    if (playDocument && sessionFailedRef.current) { return; }
     keysRef.current.clear();
     newlyPressedRef.current.clear();
     if (!document) return;
@@ -326,6 +342,7 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
       setScriptError(null);
       disposeSession();
       sessionRef.current = restored;
+      sessionFailedRef.current = false;
       audioRef.current?.reset(restored.snapshot());
       showCurrentFrame();
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }
@@ -335,11 +352,15 @@ export function useGamePlaySession({ refId, active, document, editorSceneId, nam
     if (!playDocument || !displayedFailure || displayedFailure.tick < 1) return;
     setPlaying(false);
     try {
+      const generation = ++sessionGenerationRef.current;
       const history = inputHistoryRef.current.replay();
       const replay = await createScriptedGameSession(playDocument, 1, history.snapshot);
-      for (const input of history.inputs.slice(0, -1)) replay.step(input);
+      if (sessionGenerationRef.current !== generation) { replay.dispose(); return; }
+      try { for (const input of history.inputs.slice(0, -1)) { replay.step(input); } }
+      catch (cause) { replay.dispose(); throw cause; }
       disposeSession();
       sessionRef.current = replay;
+      sessionFailedRef.current = false;
       audioRef.current?.reset(replay.snapshot());
       showCurrentFrame();
     } catch (cause) { setError(cause instanceof Error ? cause.message : String(cause)); }

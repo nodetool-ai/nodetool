@@ -13,6 +13,7 @@
 import type { FastifyError, FastifyPluginAsync } from "fastify";
 import { z } from "zod";
 import { createLogger } from "@nodetool-ai/config";
+import { missingRuntimePackageOf } from "@nodetool-ai/protocol";
 import { extractPdfText } from "@nodetool-ai/document-nodes/lib/pdf-text";
 import { extractRawText } from "@nodetool-ai/agents/host-modules/mammoth";
 import {
@@ -82,6 +83,26 @@ function failure(status: number, detail: string): Outcome {
   return { status, body: apiError(ApiErrorCode.INVALID_INPUT, detail) };
 }
 
+/**
+ * The parsers are optional packages. When one is not installed the file is
+ * not at fault, so the answer names the package for the client to install
+ * instead of calling the file unreadable.
+ */
+function missingPackage(err: unknown): Outcome | null {
+  const runtimePackage = missingRuntimePackageOf(err);
+  if (runtimePackage === null) return null;
+  return {
+    status: 503,
+    body: {
+      ...apiError(
+        ApiErrorCode.MISSING_RUNTIME_PACKAGE,
+        err instanceof Error ? err.message : String(err)
+      ),
+      runtime_package: runtimePackage
+    }
+  };
+}
+
 /** Run the extractor for `kind` and map its outcome onto § 7.6's contract. */
 async function extract(kind: DocumentKind, bytes: Buffer): Promise<Outcome> {
   if (kind === "pdf") {
@@ -89,6 +110,8 @@ async function extract(kind: DocumentKind, bytes: Buffer): Promise<Outcome> {
     try {
       result = await extractPdfText(bytes);
     } catch (err: unknown) {
+      const missing = missingPackage(err);
+      if (missing) return missing;
       log.warn("PDF extraction failed", {
         error: err instanceof Error ? err.message : String(err)
       });
@@ -109,6 +132,8 @@ async function extract(kind: DocumentKind, bytes: Buffer): Promise<Outcome> {
   try {
     text = (await extractRawText(bytes)).trim();
   } catch (err: unknown) {
+    const missing = missingPackage(err);
+    if (missing) return missing;
     log.warn("DOCX extraction failed", {
       error: err instanceof Error ? err.message : String(err)
     });

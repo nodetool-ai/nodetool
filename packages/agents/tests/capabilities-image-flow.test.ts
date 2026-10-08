@@ -111,7 +111,7 @@ describe("edit_sketch set_setup", () => {
       ops: [{ op: "set_setup", use_case: "key-art" }]
     });
     const data = await reload(sketch.id);
-    expect(data.sketch.canvas).toMatchObject({ width: 683, height: 1024 });
+    expect(data.sketch.canvas).toMatchObject({ width: 1024, height: 1536 });
     expect(data.sketch.setup?.variations).toBe(2);
   });
 

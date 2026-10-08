@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   creativeContext,
   type CreativeContext,
@@ -48,6 +48,19 @@ const ContextText = ({
   multiline
 }: ContextTextProps) => {
   const [draft, setDraft] = useState(value);
+  // Cmd+Enter advances the step without moving focus, so the field unmounts
+  // without a blur. Commit what was typed on the way out.
+  const pendingRef = useRef({ draft, value, onCommit });
+  pendingRef.current = { draft, value, onCommit };
+  useEffect(
+    () => () => {
+      const pending = pendingRef.current;
+      if (pending.draft !== pending.value) {
+        pending.onCommit(pending.draft);
+      }
+    },
+    []
+  );
   return (
     <TextInput
       label={label}
@@ -86,6 +99,16 @@ export default function CreativeContextFields({
     setInvalidFields((current) =>
       current.filter((field) => !fields.includes(field))
     );
+    // A blank field left on a board with no context says nothing. Writing it
+    // would create an empty context, which counts as production context and
+    // holds generation until the plan is reviewed again.
+    const blank = Object.values(patch).every(
+      (entry) =>
+        entry === undefined || (Array.isArray(entry) && entry.length === 0)
+    );
+    if (value === undefined && blank) {
+      return;
+    }
     onChange(parsed.data);
   };
   return (

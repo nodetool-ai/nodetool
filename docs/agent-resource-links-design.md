@@ -204,7 +204,7 @@ One helper (`web/src/lib/chat/openResource.ts`):
 ## 6. Server involvement
 
 - One additive section in `buildChatAgentSystemPrompt`
-  (`packages/websocket/src/unified-websocket-runner.ts`).
+  (`packages/websocket/src/session/chat-prompt.ts`).
 - `processToolResult` already passes string fields through — `url` survives
   as-is. Nothing to change.
 - Persistence: URIs live inside ordinary message text. Old threads render

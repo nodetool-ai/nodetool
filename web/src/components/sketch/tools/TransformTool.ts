@@ -108,6 +108,8 @@ import {
   unionOfDocumentExtents
 } from "./transform/multiLayerTransformMath";
 import { useSketchStore } from "../state/useSketchStore";
+import { DragSnapSession } from "../snapping/toolSnap";
+import type { SnapRect } from "../snapping/moveSnap";
 import { cursorForHandle } from "./transform/cursorMapping";
 import {
   IDLE,
@@ -186,6 +188,9 @@ export class TransformTool implements ToolHandler {
    * otherwise force a state transition for every pixel of cursor motion.
    */
   private hoveredHandle: TransformHandle | null = null;
+  private readonly snapping = new DragSnapSession();
+  /** Extents of the transformed targets when the drag started. */
+  private snapStartExtents: SnapRect | null = null;
 
   /**
    * In-transform undo/redo stacks. Lifecycle-scoped to "tool activation"
@@ -217,6 +222,7 @@ export class TransformTool implements ToolHandler {
   }
 
   onDeactivate(ctx: ToolContext): void {
+    this.endSnapping();
     this.session.clear(ctx);
     if (hasTargets(this.state)) {
       for (const id of this.state.targets.layerIds) {
@@ -248,6 +254,7 @@ export class TransformTool implements ToolHandler {
    * stays put.
    */
   onCancel(ctx: ToolContext): void {
+    this.endSnapping();
     if (this.session.isActive()) {
       this.session.cancel(ctx);
     }
@@ -393,6 +400,13 @@ export class TransformTool implements ToolHandler {
     };
 
     this.state = { kind: "draggingHandle", targets, gesture };
+    if (handle !== "rotate") {
+      this.snapping.begin(ctx, new Set(targets.layerIds));
+      this.snapStartExtents = computeTransformedExtents(
+        currentTransform,
+        targets.rasterBounds
+      );
+    }
 
     // Record the pre-drag transform for in-transform undo; clear redo stack.
     this.adjustments.undo.push(cloneTransform(currentTransform));
@@ -408,7 +422,7 @@ export class TransformTool implements ToolHandler {
     if (!isDragging(s)) {
       return;
     }
-    const pt = event.point;
+    let pt = event.point;
 
     // Pivot drag: reposition the pivot, don't transform the layer.
     if (s.kind === "draggingPivot") {
@@ -448,6 +462,7 @@ export class TransformTool implements ToolHandler {
       gesture.handle,
       { ctrlOrMeta, shift, alt }
     );
+    pt = this.snapGesturePoint(ctx, gesture, pt, gestureMode === "scale");
     const newTransform = this.computeGestureTransform(
       targets,
       gesture,
@@ -488,6 +503,7 @@ export class TransformTool implements ToolHandler {
   }
 
   onUp(ctx: ToolContext): void {
+    this.endSnapping();
     const s = this.state;
     if (!isDragging(s)) {
       return;
@@ -532,6 +548,57 @@ export class TransformTool implements ToolHandler {
     // Redraw the selection overlay so marching ants (if any) update to the
     // committed transform instead of staying at the pre-transform position.
     ctx.drawSelectionOverlay();
+  }
+
+  // ── Snapping ──────────────────────────────────────────────────────────────
+
+  private endSnapping(): void {
+    this.snapping.end();
+    this.snapStartExtents = null;
+  }
+
+  /**
+   * Adjust the pointer so a move lands the targets' edges or center on a
+   * snap line, and a scale handle lands the edges it drags on one. Handles
+   * snap only for an unrotated scale, not for skew, distort or perspective.
+   */
+  private snapGesturePoint(
+    ctx: ToolContext,
+    gesture: DragGestureSnapshot,
+    pt: Point,
+    isScale: boolean
+  ): Point {
+    const extents = this.snapStartExtents;
+    if (!extents) {
+      return pt;
+    }
+    const handle = gesture.handle;
+    const dx = pt.x - gesture.dragStart.x;
+    const dy = pt.y - gesture.dragStart.y;
+    if (handle === "move") {
+      const snapped = this.snapping.snapRectDelta(ctx, extents, dx, dy);
+      return { x: gesture.dragStart.x + snapped.dx, y: gesture.dragStart.y + snapped.dy };
+    }
+    const start = gesture.dragStartTransform;
+    if (!isScale || !isAffineTransform(start) || Math.abs(start.rotation) > 1e-6) {
+      return pt;
+    }
+    const movesLeft = handle === "left" || handle === "top-left" || handle === "bottom-left";
+    const movesRight = handle === "right" || handle === "top-right" || handle === "bottom-right";
+    const movesTop = handle === "top" || handle === "top-left" || handle === "top-right";
+    const movesBottom = handle === "bottom" || handle === "bottom-left" || handle === "bottom-right";
+    const edgeX = movesLeft ? extents.x : movesRight ? extents.x + extents.width : null;
+    const edgeY = movesTop ? extents.y : movesBottom ? extents.y + extents.height : null;
+    if (edgeX === null && edgeY === null) {
+      return pt;
+    }
+    const rawX = edgeX === null ? null : edgeX + dx;
+    const rawY = edgeY === null ? null : edgeY + dy;
+    const snapped = this.snapping.snapEdges(ctx, rawX, rawY);
+    return {
+      x: rawX === null || snapped.x === null ? pt.x : pt.x + (snapped.x - rawX),
+      y: rawY === null || snapped.y === null ? pt.y : pt.y + (snapped.y - rawY)
+    };
   }
 
   // ── Auto-select targeting ─────────────────────────────────────────────────

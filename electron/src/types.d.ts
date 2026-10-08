@@ -1044,7 +1044,12 @@ export type RuntimePackageId =
   | "node-llama-cpp"
   | "whisper-cpp"
   | "playwright"
-  | "claude-agent-sdk";
+  | "claude-agent-sdk"
+  | "pdf-js"
+  | "office-documents"
+  | "tesseract-ocr"
+  | "fabric"
+  | "email-imap";
 
 export interface RuntimePackageStatus {
   id: RuntimePackageId;

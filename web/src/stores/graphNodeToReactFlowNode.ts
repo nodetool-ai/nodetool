@@ -134,6 +134,12 @@ export function graphNodeToReactFlowNode(
   if (node.dynamic_inputs && Object.keys(node.dynamic_inputs).length > 0) {
     data.dynamic_inputs = normalizeDynamicSlots(node.dynamic_inputs);
   }
+  if (
+    node.dynamic_output_correlation &&
+    Object.keys(node.dynamic_output_correlation).length > 0
+  ) {
+    data.dynamic_output_correlation = node.dynamic_output_correlation;
+  }
   if (expandedHeightPxForData != null) {
     data.expandedHeightPx = expandedHeightPxForData;
   }

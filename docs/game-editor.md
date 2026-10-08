@@ -127,6 +127,12 @@ Fields that fail validation show their error beside the field. The scene tree ma
 
 **Revisions.** The scene tree dock has a collapsed **Revisions** section. It lists the 10 most recent revisions. **Restore to draft** loads one into the draft without changing the published history.
 
+If the saved draft source is unavailable, the editor offers published revisions
+for recovery. When this tab still has a local draft, **Export local draft** saves
+its document, pending edits, and undo history as JSON before restoring is enabled.
+Keep the tab open until the download finishes. Confirming **Restore to draft**
+replaces the local draft and clears its undo history.
+
 ### 3D
 
 **Scene tree.** A **Scene** selector switches scenes. The list below it is flat. A child shows an arrow, and a character or camera shows a tag. **Add box**, **Add sphere**, and **Add light** create a primitive with a static body and matching collider, or a point light.
@@ -166,9 +172,9 @@ A script is a function expression that receives the current tick, input, events,
 
 Rules that apply in both dimensions:
 
-- Each call runs in a fresh, isolated sandbox. Keep values you need later in the returned `state`. Globals and closure variables do not survive.
+- Keep values you need later in returned `state`. The engine reuses a sandbox only for expressions proven to read their input without retaining hidden state. Other sources run in a fresh context on every call. Input mutations never reach another call.
 - Commands change the world. Shared commands include `emit`, `hud`, `playAnimation`, `despawn`, `spawn`, and `sceneTransition`.
-- Query results arrive on the next tick.
+- Physics ray and shape query results arrive on the next tick. The global `world` API reads the current tick's starting state immediately.
 - Events a script receives come from the previous tick.
 - The engine runs at a fixed 60 ticks per second and seeds `random`, so a replay gives the same result.
 
@@ -176,8 +182,47 @@ Rules that apply in both dimensions:
 |---|---|---|
 | Position input | `entity.x`, `entity.y`, `touching` sides | XYZ `entity.position`, `velocity`, `grounded`, and axes and look input |
 | Movement commands | `setVelocity`, `setPosition`, `setVisual` | `characterIntent`, `setKinematicPose`, `impulse`, `setVelocity`, `teleport`, `setVisual` |
-| Spatial queries | None | Ray and shape queries, each with a `queryId` |
+| Spatial queries | `world.get` and `world.query` | `world.get` and `world.query`, plus ray and shape commands with a `queryId` |
 | Camera | The camera entity | Perspective or orthographic, fixed or follow |
+
+### Read the world during a script call
+
+`world.get(id)` returns an entity record, or `undefined` if the ID is absent.
+`world.query({ source?, tag?, near?, radius?, limit? })` returns matching IDs
+in runtime entity order. Both read one immutable tick-start snapshot of active
+entities, before movement behaviors or script commands run. Returned values are private copies.
+They do not expose changes from earlier scripts in the same tick.
+
+In 2D a record contains `id`, `source`, `x`, `y`, `velocityX`, `velocityY`,
+and `grounded`. In 3D it contains `id`, `source`, `position`, `velocity`, and
+`grounded`. Positions and velocities use `{ x, y, z }` in 3D.
+
+Pass `near: { x, y, z? }` together with a nonnegative `radius`. Distance uses
+entity centers and includes the radius boundary. Omitted `z` is zero. `source`
+matches the exact `source` field, the original entity ID rather than a 3D prefab
+asset ID. Documents currently have no
+authored tags, so every `tag` filter returns an empty array.
+
+```js
+/** @type {GameScript} */
+(input) => ({
+  state: world.query({ near: { x: input.entity.x, y: input.entity.y }, radius: 120, limit: 8 }),
+  commands: []
+})
+```
+
+`limit` defaults to 1024 and accepts integers from 0 to 1024. Each call allows
+64 combined `get` and `query` attempts. Exceeding that count fails the call
+even if the script catches the exception. Query arguments are limited to
+4096 JSON characters, `get` IDs to 1024 characters, and each response to 64 KiB. The existing script time,
+memory, input, and output budgets still apply. Queries are available during
+the function call, not while its source initializes.
+
+The legacy `input.world` array keeps its original shape and population. In 2D
+it includes active entities with a collider or camera, whereas global world
+queries include every active entity. Its mutable copy remains private to the
+call. This API is additive. The 3D input retains `contractVersion: 3`, and
+documents need no schema version change or migration.
 
 The pane footer shows the source length against the 16,384 character limit, the **maxCommands** limit, and the **maxTickMs** limit. In 2D you can change both limits from the script behavior in the inspector. The defaults are 16 commands and 8 ms. The limits are 1 to 64 commands and 1 to 50 ms.
 

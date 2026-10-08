@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-dsl",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Build a NodeTool workflow graph inside the sandbox with the generated, typed node DSL",
   "license": "MIT",
   "nodetool": {
@@ -306,6 +306,11 @@
         "name": "nodetool.video",
         "kind": "js",
         "file": "sandbox/generated/nodetool.video.js"
+      },
+      {
+        "name": "nodetool.workflows.app_node",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.workflows.app_node.js"
       },
       {
         "name": "nodetool.workflows.base_node",

@@ -278,8 +278,8 @@ describe("use-case cards", () => {
       variations: 2
     });
     expect(useSketchStore.getState().document.canvas).toMatchObject({
-      width: 683,
-      height: 1024
+      width: 1024,
+      height: 1536
     });
     // The pick is visible as a pick, not only as a document write.
     expect(screen.getByRole("radio", { name: /Key art/ })).toHaveAttribute(
@@ -577,6 +577,195 @@ describe("guided completion", () => {
       expect(useOnboardingStore.getState().completedSteps).toContain(
         "start-guided-flow"
       );
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});
+
+/** jsdom decodes no pixels, so a load is stubbed with a natural size. */
+const stubImageLoad = (): (() => void) => {
+  const original = Object.getOwnPropertyDescriptor(
+    globalThis.Image.prototype,
+    "src"
+  );
+  Object.defineProperty(globalThis.Image.prototype, "src", {
+    configurable: true,
+    set(this: HTMLImageElement) {
+      Object.defineProperty(this, "naturalWidth", { value: 800 });
+      Object.defineProperty(this, "naturalHeight", { value: 600 });
+      setTimeout(() => this.onload?.(new Event("load")));
+    }
+  });
+  globalThis.URL.createObjectURL = jest.fn(() => "blob:reference");
+  globalThis.URL.revokeObjectURL = jest.fn();
+  return () => {
+    if (original) {
+      Object.defineProperty(globalThis.Image.prototype, "src", original);
+    }
+  };
+};
+
+// F17: an upload ends the flow when it lands, so the step waits for it and
+// a canceled upload places nothing.
+describe("upload in flight", () => {
+  it("holds Continue while uploading and places nothing once canceled", async () => {
+    seed({ stage: "idea", brief: "a dripper" });
+    let finishUpload: () => void = () => {};
+    createAsset.mockImplementationOnce(
+      (file: File) =>
+        new Promise((resolve) => {
+          finishUpload = () =>
+            resolve({
+              id: "asset-upload",
+              get_url: "https://example.test/asset-upload.png",
+              name: file.name
+            });
+        })
+    );
+    const restore = stubImageLoad();
+    try {
+      renderOverlay();
+      await userEvent.upload(
+        screen.getByLabelText("Upload an image to edit"),
+        new File(["bytes"], "reference.png", { type: "image/png" })
+      );
+      await waitFor(() => expect(createAsset).toHaveBeenCalled());
+      expect(screen.getByRole("button", { name: /^Continue/ })).toBeDisabled();
+
+      await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+      await act(async () => {
+        finishUpload();
+        await Promise.resolve();
+      });
+      expect(useSketchStore.getState().document.setup?.stage).toBe("idea");
+      expect(
+        useSketchStore.getState().document.layers[0].imageReference
+      ).toBeUndefined();
+    } finally {
+      restore();
+    }
+  });
+});
+
+// F13: a batch picked after `Back to generation settings` hides the batch
+// before it, which the new sheet no longer lists.
+describe("picking from a second batch", () => {
+  it("hides every variation from the session but the pick", async () => {
+    seed({ stage: "look", brief: "a dripper", use_case: "product" });
+    const original = imageSetupFlow.useImageSetupFlow;
+    let generated: ((layerIds: readonly string[]) => void) | undefined;
+    const spy = jest
+      .spyOn(imageSetupFlow, "useImageSetupFlow")
+      .mockImplementation((options) => {
+        generated = options.onGenerated;
+        return original(options);
+      });
+    const landed = (layerId: string, assetId: string) => ({
+      layerId,
+      kind: "text-to-image" as const,
+      prompt: "a dripper",
+      provider: "prov",
+      model: "model-1",
+      width: 1024,
+      height: 1024,
+      seed: 1,
+      status: "generated" as const,
+      currentAssetId: assetId,
+      versions: []
+    });
+    try {
+      renderOverlay();
+      const first = useSketchStore.getState().addLayer("Variation 1");
+      act(() => {
+        useSketchSessionStore.setState({
+          bindings: { [first]: landed(first, "first-image") }
+        });
+        useSketchStore.getState().setSetup({ stage: "done" });
+        generated?.([first]);
+      });
+      await userEvent.click(
+        screen.getByRole("button", { name: "Back to generation settings" })
+      );
+      const second = useSketchStore.getState().addLayer("Variation 2");
+      act(() => {
+        useSketchSessionStore.setState({
+          bindings: {
+            [first]: landed(first, "first-image"),
+            [second]: landed(second, "second-image")
+          }
+        });
+        useSketchStore.getState().setSetup({ stage: "done" });
+        generated?.([second]);
+      });
+      await userEvent.click(
+        screen.getByRole("button", { name: "Sketch editor" })
+      );
+      const layers = useSketchStore.getState().document.layers;
+      expect(layers.find((layer) => layer.id === first)?.visible).toBe(false);
+      expect(layers.find((layer) => layer.id === second)?.visible).toBe(true);
+    } finally {
+      spy.mockRestore();
+    }
+  });
+});
+
+// The overlay pulls focus in from the editor underneath, but a step field that
+// already took focus on mount (the brief) keeps it.
+describe("focus on entry", () => {
+  it("leaves focus on the brief field", () => {
+    seed({ stage: "idea", brief: "a dripper" });
+    renderOverlay();
+    expect(screen.getByRole("textbox", { name: "Your image" })).toHaveFocus();
+  });
+});
+
+// F4: a "Make more" batch that lands after the creator left the sheet must
+// not bring the sheet back over the look step.
+describe("make more after leaving the sheet", () => {
+  it("keeps the look step when the late batch lands", async () => {
+    seed({ stage: "look", brief: "a dripper", use_case: "product" });
+    const original = imageSetupFlow.useImageSetupFlow;
+    let generated: ((layerIds: readonly string[]) => void) | undefined;
+    let landMore: (layerIds: string[]) => void = () => {};
+    const generateMore = jest.fn(
+      () =>
+        new Promise<string[]>((resolve) => {
+          landMore = resolve;
+        })
+    );
+    const spy = jest
+      .spyOn(imageSetupFlow, "useImageSetupFlow")
+      .mockImplementation((options) => {
+        generated = options.onGenerated;
+        const flow = original(options);
+        return { ...flow, look: { ...flow.look, generate: generateMore } };
+      });
+    try {
+      renderOverlay();
+      const first = useSketchStore.getState().addLayer("Variation 1");
+      act(() => {
+        useSketchStore.getState().setSetup({ stage: "done" });
+        generated?.([first]);
+      });
+      await userEvent.click(
+        screen.getByRole("button", { name: "Make more variations" })
+      );
+      expect(generateMore).toHaveBeenCalledTimes(1);
+      await userEvent.click(
+        screen.getByRole("button", { name: "Back to generation settings" })
+      );
+      const second = useSketchStore.getState().addLayer("Variation 2");
+      await act(async () => {
+        landMore([second]);
+        await Promise.resolve();
+      });
+      expect(
+        screen.getByRole("heading", { name: "Choose the look" })
+      ).toBeInTheDocument();
+      expect(
+        screen.queryByRole("button", { name: "Make more variations" })
+      ).not.toBeInTheDocument();
     } finally {
       spy.mockRestore();
     }

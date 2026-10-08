@@ -47,6 +47,11 @@ on a timeline.
 delete renumbers them. Duplicate names make addressing ambiguous, which
 `validate_model3d` warns about.
 
+`delete_object` keeps the file valid: an animation left with no channels is
+removed, and so is a skin that lost a joint, which leaves its mesh in the bind
+pose. `set_material_color` recolors only the named object, copying a material
+or mesh it shares with another object first.
+
 These are the `ui_3d_*` verbs with no editor open. The operations, the units and
 the addressing live in `@nodetool-ai/model3d`, shared with the browser editor, so
 a model built headlessly opens there unchanged.
@@ -60,10 +65,13 @@ it". Use `render_model3d` when an actual picture is required.
 ## What `validate_model3d` catches
 
 The glTF version, references that resolve to nothing (node, mesh, accessor,
-material, buffer), a cycle in the node hierarchy, a node carrying both a matrix
-and TRS fields, a buffer view reading past its buffer, an undeclared light, and
-an extension this build cannot honor. It warns on an empty scene, geometry with
-no light, and duplicate names.
+material, buffer, skin, camera, skin joint, animation target and sampler), a
+node with two parents, a cycle in the node hierarchy, a node carrying both a
+matrix and TRS fields, an accessor with an unknown type or reading past its
+buffer view, a buffer view reading past its buffer, an undeclared light, and an
+extension this build cannot honor. It warns on an empty scene, geometry with no
+light, and duplicate names. It only reads the document, and it handles
+hierarchies of any depth.
 
 ## On a timeline
 

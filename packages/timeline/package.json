@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/timeline",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Core timeline types and status models for the NodeTool timeline feature",
   "type": "module",
   "engines": {
@@ -47,6 +47,12 @@
       "types": "./dist/render/index.d.ts",
       "import": "./dist/render/index.js",
       "default": "./dist/render/index.js"
+    },
+    "./testing": {
+      "nodetool-dev": "./src/testing/index.ts",
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "default": "./dist/testing/index.js"
     },
     "./scene": {
       "nodetool-dev": "./src/scene.ts",

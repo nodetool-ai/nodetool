@@ -1,5 +1,6 @@
 import useRuntimePackagePromptStore, {
   promptForMissingPackage,
+  promptForMissingRuntimePackage,
   resetMissingPackagePrompt
 } from "../RuntimePackagePromptStore";
 
@@ -28,6 +29,26 @@ describe("promptForMissingPackage", () => {
 
   it("ignores other failures", () => {
     promptForMissingPackage({ code: "provider_auth", provider: "openai" }, "run-1");
+    expect(useRuntimePackagePromptStore.getState().packageId).toBeNull();
+  });
+});
+
+describe("promptForMissingRuntimePackage", () => {
+  beforeEach(() => {
+    useRuntimePackagePromptStore.setState({ packageId: null });
+  });
+
+  it("opens the install dialog for a package a response named", () => {
+    promptForMissingRuntimePackage("office-documents");
+    expect(useRuntimePackagePromptStore.getState().packageId).toBe(
+      "office-documents"
+    );
+  });
+
+  it("ignores a response that names no package", () => {
+    promptForMissingRuntimePackage(undefined);
+    promptForMissingRuntimePackage("");
+    promptForMissingRuntimePackage(42);
     expect(useRuntimePackagePromptStore.getState().packageId).toBeNull();
   });
 });

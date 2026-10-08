@@ -24,8 +24,10 @@ import type {
   PrecompositeLayer
 } from "@nodetool-ai/timeline/render";
 import {
+  rasterWindowMarginPx,
   resolveAnimatedLayerProps,
   trackZ,
+  type FrameSourceWindow,
   type AnimationCompileCache,
   type RenderCanvas,
   type RenderTrackingContext
@@ -41,6 +43,8 @@ import type {
 /** The pixels a layer draws, and how they sit on the frame. */
 export interface ResolvedCompositeSource {
   source: CompositeSource;
+  /** Set when `source` is a window of a frame-sized raster, not the whole of it. */
+  window?: FrameSourceWindow;
   /**
    * True for a raster drawn at frame resolution — a caption. It composites
    * untransformed, so the clip's transform, its group's matrix, its effects and
@@ -125,6 +129,7 @@ export function buildCompositeLayer(
   };
   if (resolved.untransformed) return built;
 
+  if (resolved.window) built.sourceWindow = resolved.window;
   built.transform = anim.transform;
   built.parentMatrix = layer.parentMatrix;
   built.borderRadius = anim.borderRadius ?? layer.borderRadius;
@@ -146,6 +151,24 @@ export function buildCompositeLayer(
     }
   }
   return built;
+}
+
+/**
+ * The margin a layer's text or shape raster may be cut to its own ink with,
+ * or undefined when the layer needs the frame-sized raster. Everything that
+ * reads the source's own bounds — a crop, a border radius, a wipe, a shape
+ * mask, a matte, a cut, a track effect, an effect placed by frame position —
+ * keeps the whole frame; a blur, glow or drop shadow is covered by the margin.
+ */
+export function rasterWindowMargin(
+  layer: ActiveLayer,
+  anim: AnimatedLayerProps
+): number | undefined {
+  if (layer.crop || layer.matte || layer.transition || layer.shapeMask) return undefined;
+  if (layer.trackEffects?.some((effect) => effect.enabled)) return undefined;
+  if ((anim.borderRadius ?? layer.borderRadius ?? 0) > 0) return undefined;
+  if (anim.mask || anim.clipMask) return undefined;
+  return rasterWindowMarginPx(anim.effects ?? layer.effects) ?? undefined;
 }
 
 /** Every drawable layer of a frame, in the scene model's order. */

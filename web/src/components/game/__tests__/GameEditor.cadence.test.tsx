@@ -1,4 +1,5 @@
 import { Profiler } from "react";
+import { MemoryRouter } from "react-router-dom";
 import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -12,6 +13,9 @@ import { trpc } from "../../../trpc/client";
 import { getGameDraftStore } from "../../../stores/game/GameDraftStore";
 import GameEditor from "../GameEditor";
 import mockTheme from "../../../__mocks__/themeMock";
+
+// Chat transport is outside the HUD cadence measurement; the actual viewport and session remain mounted.
+jest.mock("../panels/agent/GameAgentPanel", () => ({ __esModule: true, default: () => null }));
 
 jest.mock("../../../trpc/client", () => {
   const { createTRPCReact } = jest.requireActual<typeof import("@trpc/react-query")>("@trpc/react-query");
@@ -101,11 +105,11 @@ it.each(["2d", "3d"] as const)("commits the actual %s editor at the HUD cadence 
   });
   const cancel = jest.spyOn(window, "cancelAnimationFrame").mockImplementation((id) => { callbacks.delete(id); });
   const commits: string[] = [];
-  const view = render(<ThemeProvider theme={mockTheme}><QueryClientProvider client={queries}>
+  const view = render(<MemoryRouter><ThemeProvider theme={mockTheme}><QueryClientProvider client={queries}>
     <trpc.Provider client={client} queryClient={queries}><Profiler id="actual-game-editor" onRender={() => {
       commits.push(window.document.querySelector("footer")?.textContent ?? "");
     }}><GameEditor refId={document.id} active /></Profiler></trpc.Provider>
-  </QueryClientProvider></ThemeProvider>);
+  </QueryClientProvider></ThemeProvider></MemoryRouter>);
   try {
     await waitFor(() => {
       expect(screen.getByRole("button", { name: "Play" })).toBeEnabled();

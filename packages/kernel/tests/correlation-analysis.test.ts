@@ -167,6 +167,43 @@ describe("analyzeCorrelation – forward chains", () => {
   });
 });
 
+describe("analyzeCorrelation – dynamic output correlation", () => {
+  it("reads an instance's correlation for its dynamic outputs", () => {
+    const nodes: NodeDescriptor[] = [
+      node("app", "test.App", {
+        dynamic_outputs: { item: { type: "any" }, label: { type: "any" } },
+        dynamic_output_correlation: {
+          item: { kind: "chunk", source: "__execution__" }
+        }
+      })
+    ];
+    const result = analyzeCorrelation({ nodes, edges: [] });
+    expect(result.issues).toEqual([]);
+    const outputs = result.nodes.get("app")?.outputs;
+    expect(outputs?.get("item")?.repeatsPerKey).toBe(true);
+    expect(outputs?.get("label")?.repeatsPerKey).toBe(false);
+  });
+
+  it("lets the class declaration win over the instance for a declared output", () => {
+    const nodes: NodeDescriptor[] = [
+      node("n", "test.Node", {
+        outputs: { output: "any" },
+        dynamic_outputs: { output: { type: "any" } },
+        output_correlation: {
+          output: { kind: "single", source: "__execution__" }
+        },
+        dynamic_output_correlation: {
+          output: { kind: "chunk", source: "__execution__" }
+        }
+      })
+    ];
+    const result = analyzeCorrelation({ nodes, edges: [] });
+    expect(result.nodes.get("n")?.outputs.get("output")?.repeatsPerKey).toBe(
+      false
+    );
+  });
+});
+
 describe("analyzeCorrelation – diamonds and joins", () => {
   it("allows a diamond from one ForEach (same scope on both branches)", () => {
     const nodes: NodeDescriptor[] = [

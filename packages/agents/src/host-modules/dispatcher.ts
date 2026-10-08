@@ -19,8 +19,10 @@
  */
 
 import {
+  missingRuntimePackageOf,
   sandboxHostModule,
-  type ResolvedSandboxModule
+  type ResolvedSandboxModule,
+  type RuntimePackageId
 } from "@nodetool-ai/protocol";
 
 import { toGuestBytesDeep } from "../sandbox-bytes.js";
@@ -66,7 +68,15 @@ function packNameOf(specifier: string): string {
  */
 export function createSandboxHostDispatcher(
   modules: readonly ResolvedSandboxModule[],
-  options: { signal?: AbortSignal } = {}
+  options: {
+    signal?: AbortSignal;
+    /**
+     * Told when an implementation fails because its optional package is not
+     * installed. The guest receives only the message, so this is how the
+     * package id reaches the host that can offer the install.
+     */
+    onMissingRuntimePackage?: (runtimePackage: RuntimePackageId) => void;
+  } = {}
 ): SandboxHostDispatcher | undefined {
   const hostModules = modules.filter(
     (module): module is Extract<ResolvedSandboxModule, { kind: "host" }> =>
@@ -128,9 +138,19 @@ export function createSandboxHostDispatcher(
           `${runModule.specifier}: ${exportName} has no implementation in this runtime`
         );
       }
+      let result: unknown;
+      try {
+        result = await fn(...(args as unknown[]));
+      } catch (error) {
+        const runtimePackage = missingRuntimePackageOf(error);
+        if (runtimePackage !== null) {
+          options.onMissingRuntimePackage?.(runtimePackage);
+        }
+        throw error;
+      }
       // Plain data out, with bytes tagged at any depth for the guest prelude to
       // revive — the marshaling rule every bridge follows.
-      return toGuestBytesDeep(await fn(...(args as unknown[])));
+      return toGuestBytesDeep(result);
     }
   };
 }

@@ -14,6 +14,14 @@ const makeMockHandler = (): Model3DToolHandler => ({
   setVisibility: jest.fn(),
   renameObject: jest.fn(),
   setMaterialColor: jest.fn(),
+  getObject: jest.fn(),
+  duplicateObject: jest.fn(),
+  setParent: jest.fn(),
+  setMaterial: jest.fn(),
+  setLight: jest.fn(),
+  setGeometry: jest.fn(),
+  undo: jest.fn(),
+  redo: jest.fn(),
   frameScene: jest.fn(),
   captureView: jest.fn()
 });

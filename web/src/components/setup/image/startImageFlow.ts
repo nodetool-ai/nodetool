@@ -62,19 +62,28 @@ export async function startImageFlow(options: {
 
   // `sketch.create` takes no document, so the stage is written by the one
   // patch that follows it — before the tab opens, so the editor never flashes.
-  await trpcClient.sketch.update.mutate({
-    id: created.id,
-    document: {
-      ...created.document,
-      sketch: {
-        ...created.document.sketch,
-        setup: {
-          stage: "idea",
-          brief: options.brief.trim(),
-          ...context
+  // A failed patch would leave a sketch with no setup behind, and every
+  // retry another one, so the sketch goes with it.
+  try {
+    await trpcClient.sketch.update.mutate({
+      id: created.id,
+      document: {
+        ...created.document,
+        sketch: {
+          ...created.document.sketch,
+          setup: {
+            stage: "idea",
+            brief: options.brief.trim(),
+            ...context
+          }
         }
       }
-    }
-  });
+    });
+  } catch (error) {
+    await trpcClient.sketch.delete
+      .mutate({ id: created.id })
+      .catch(() => undefined);
+    throw error;
+  }
   return { documentId: created.id, name: options.name };
 }

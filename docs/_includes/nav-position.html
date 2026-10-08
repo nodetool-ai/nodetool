@@ -1,0 +1,23 @@
+{%- comment -%}
+  Finds the current page in _data/navigation.yml. Sets nav_section (the
+  sidebar group title), nav_prev and nav_next (neighbouring entries in reading
+  order, across groups). All three stay empty for pages not in the sidebar.
+{%- endcomment -%}
+{%- assign nav_key = page.url | remove: ".html" -%}
+{%- assign nav_section = nil -%}
+{%- assign nav_prev = nil -%}
+{%- assign nav_next = nil -%}
+{%- assign nav_last_item = nil -%}
+{%- assign nav_found = false -%}
+{%- for section in site.data.navigation -%}
+  {%- for item in section.pages -%}
+    {%- if nav_found -%}
+      {%- unless nav_next -%}{%- assign nav_next = item -%}{%- endunless -%}
+    {%- elsif item.url == nav_key -%}
+      {%- assign nav_found = true -%}
+      {%- assign nav_section = section.title -%}
+      {%- assign nav_prev = nav_last_item -%}
+    {%- endif -%}
+    {%- assign nav_last_item = item -%}
+  {%- endfor -%}
+{%- endfor -%}

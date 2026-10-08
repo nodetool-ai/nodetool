@@ -182,8 +182,12 @@ interface FirstTurnInput {
   prompt: string;
   /** The picked starter, or null when the prompt stands on its own. */
   starter: ProjectStarter | null;
-  /** Entity names picked from the library, injected by name downstream. */
-  entityNames: readonly string[];
+  /**
+   * Ids of the entities picked from the library. Each is written as its
+   * `entity://<id>` token, the form the chat composer's `@` picker writes,
+   * so the chat shows it as a chip and the server resolves it per turn.
+   */
+  entityIds: readonly string[];
 }
 
 /**
@@ -200,15 +204,16 @@ interface FirstTurnInput {
 export const composeFirstTurn = ({
   prompt,
   starter,
-  entityNames
+  entityIds
 }: FirstTurnInput): string => {
   const parts =
     starter && !invokesStarter(prompt, starter.name)
       ? [`/${starter.name}`]
       : [];
   parts.push(prompt.trim());
-  if (entityNames.length > 0) {
-    parts.push(`Use these entities: ${entityNames.join(", ")}.`);
+  if (entityIds.length > 0) {
+    const tokens = entityIds.map((id) => `entity://${id}`);
+    parts.push(`Use these entities: ${tokens.join(", ")}.`);
   }
   return parts.filter((part) => part.length > 0).join("\n\n");
 };

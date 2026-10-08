@@ -1,6 +1,6 @@
 import type { Game } from "@nodetool-ai/models";
 
-export const MAX_GAME_DRAFT_OPS = 1024;
+export { MAX_GAME_DRAFT_OPS } from "@nodetool-ai/game-runtime";
 export const MAX_GAME_DRAFT_HISTORY_BYTES = 1024 * 1024;
 
 type DraftChange = Omit<Awaited<ReturnType<typeof Game.listDraftChanges>>[number], "gameId">;

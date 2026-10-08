@@ -81,6 +81,9 @@ function upscale(inputs) {
 function removeBackground(inputs) {
   return callNode("nodetool.image.RemoveBackground", inputs);
 }
+function estimateDepth(inputs) {
+  return callNode("nodetool.image.EstimateDepth", inputs);
+}
 function relight(inputs) {
   return callNode("nodetool.image.Relight", inputs);
 }
@@ -97,6 +100,7 @@ export {
   channels,
   compositor,
   crop,
+  estimateDepth,
   fit,
   getMetadata,
   imageToImage,

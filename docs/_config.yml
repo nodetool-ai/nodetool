@@ -136,6 +136,70 @@ defaults:
     values: *noindex
   - scope: { path: "rfc-generation-events.md" }
     values: *noindex
+  - scope: { path: "UGC_STRATEGY.md" }
+    values: *noindex
+  - scope: { path: "blender-headless-integration-design.md" }
+    values: *noindex
+  - scope: { path: "blender-stage4-handover.md" }
+    values: *noindex
+  - scope: { path: "bug-pattern-scan.md" }
+    values: *noindex
+  - scope: { path: "canonical-model-intelligence-design.md" }
+    values: *noindex
+  - scope: { path: "code-node-emit-design.md" }
+    values: *noindex
+  - scope: { path: "code-node-input-streaming-design.md" }
+    values: *noindex
+  - scope: { path: "custom-node-library-design.md" }
+    values: *noindex
+  - scope: { path: "document-sync-plan.md" }
+    values: *noindex
+  - scope: { path: "dsl-native-flow-design.md" }
+    values: *noindex
+  - scope: { path: "failure-mode-roadmap.md" }
+    values: *noindex
+  - scope: { path: "godot-agent-owned-project-design-question.md" }
+    values: *noindex
+  - scope: { path: "js-script-document-design.md" }
+    values: *noindex
+  - scope: { path: "m1-implementation-plan.md" }
+    values: *noindex
+  - scope: { path: "m2-implementation-plan.md" }
+    values: *noindex
+  - scope: { path: "m3-implementation-plan.md" }
+    values: *noindex
+  - scope: { path: "m4-implementation-plan.md" }
+    values: *noindex
+  - scope: { path: "m5-implementation-plan.md" }
+    values: *noindex
+  - scope: { path: "m6-implementation-plan.md" }
+    values: *noindex
+  - scope: { path: "mcp-oauth-design.md" }
+    values: *noindex
+  - scope: { path: "media-generation-tracking-design.md" }
+    values: *noindex
+  - scope: { path: "native-game-effect-benchmark.md" }
+    values: *noindex
+  - scope: { path: "parameter-cost-estimation-plan.md" }
+    values: *noindex
+  - scope: { path: "production-mcp-python-flags-plan.md" }
+    values: *noindex
+  - scope: { path: "project-resource-inventory.md" }
+    values: *noindex
+  - scope: { path: "script-editor-concept.md" }
+    values: *noindex
+  - scope: { path: "telegram-bot-design.md" }
+    values: *noindex
+  - scope: { path: "telegram-bot-implementation-plan.md" }
+    values: *noindex
+  - scope: { path: "temp-storage-gc-design.md" }
+    values: *noindex
+  - scope: { path: "tool-class-retirement-design.md" }
+    values: *noindex
+  - scope: { path: "ui-primitives-overhaul.md" }
+    values: *noindex
+  - scope: { path: "websocket-runner-refactor-plan.md" }
+    values: *noindex
 
 # Plugin settings
 relative_links:
