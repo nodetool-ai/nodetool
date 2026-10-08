@@ -339,6 +339,12 @@ jest.mock("../ShotEditPanel", () => ({
 jest.mock("../ShotInspector", () => stub("shot-inspector"));
 // The real preview mounts the timeline compositor — not viable under jsdom.
 jest.mock("../StoryboardPreview", () => stub("storyboard-preview"));
+jest.mock("../StoryboardSlideshow", () => ({
+  __esModule: true,
+  default: ({ startShotId }: { startShotId?: string | null }) => (
+    <div data-testid="slideshow" data-start-shot-id={startShotId ?? ""} />
+  )
+}));
 jest.mock("../StoryboardEntitiesField", () => stub("entities"));
 
 const mockExportStoryboardZip = jest.fn(
@@ -979,6 +985,29 @@ describe("StoryboardBoard keyboard navigation", () => {
     expect(mockSelectShot).toHaveBeenLastCalledWith("board-1", "s3");
     fireEvent.keyDown(grid, { key: "Home" });
     expect(mockSelectShot).toHaveBeenLastCalledWith("board-1", "s1");
+  });
+
+  it("selects a clicked card and opens the slideshow on it", async () => {
+    activeShot = "s1";
+    renderBoard(jest.fn());
+    expect(screen.queryByTestId("slideshow")).not.toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("button", { name: "s2" }));
+    expect(mockSelectShot).toHaveBeenCalledWith("board-1", "s2");
+    expect(screen.getByTestId("slideshow")).toHaveAttribute(
+      "data-start-shot-id",
+      "s2"
+    );
+  });
+
+  it("does not open the slideshow when an arrow key moves the selection", () => {
+    activeShot = "s1";
+    renderBoard(jest.fn());
+    screen.getByRole("button", { name: "s1" }).focus();
+    fireEvent.keyDown(screen.getByRole("group", { name: "Shots" }), {
+      key: "ArrowRight"
+    });
+    expect(screen.queryByTestId("slideshow")).not.toBeInTheDocument();
   });
 
   it("clears the selection on Escape", () => {

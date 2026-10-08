@@ -371,9 +371,13 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   const [previewOpen, setPreviewOpen] = useState(false);
   const togglePreview = useCallback(() => setPreviewOpen((open) => !open), []);
   const cardSize = useStoryboardViewStore((state) => state.cardSize);
-  const [slideshowOpen, setSlideshowOpen] = useState(false);
-  const openSlideshow = useCallback(() => setSlideshowOpen(true), []);
-  const closeSlideshow = useCallback(() => setSlideshowOpen(false), []);
+  // The shot the slideshow opens on: null opens it on the selection (or the
+  // first shot); undefined keeps it closed.
+  const [slideshowStart, setSlideshowStart] = useState<
+    string | null | undefined
+  >(undefined);
+  const openSlideshow = useCallback(() => setSlideshowStart(null), []);
+  const closeSlideshow = useCallback(() => setSlideshowStart(undefined), []);
   const [downloading, setDownloading] = useState(false);
   const [downloadFallbackError, setDownloadFallbackError] = useState<
     string | null
@@ -487,15 +491,13 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
 
   const gridRef = useRef<HTMLDivElement>(null);
 
-  // Clicking the selected card deselects it (the card's aria-pressed
-  // contract); the store's selectShot stays idempotent for programmatic
-  // callers.
+  // Clicking a card selects it and presents the board from that shot.
   const handleSelectShot = useCallback(
     (shotId: string) => {
-      const next = shotId === activeShotId ? null : shotId;
-      selectShot(boardId, next);
+      selectShot(boardId, shotId);
+      setSlideshowStart(shotId);
     },
-    [selectShot, boardId, activeShotId]
+    [selectShot, boardId]
   );
   const clearSelection = useCallback(
     () => selectShot(boardId, null),
@@ -1501,10 +1503,10 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             </FlexColumn>
           )}
 
-          {slideshowOpen && (
+          {slideshowStart !== undefined && (
             <StoryboardSlideshow
               boardId={boardId}
-              startShotId={activeShotId}
+              startShotId={slideshowStart ?? activeShotId}
               onClose={closeSlideshow}
               onEditShot={readOnly ? undefined : handleEditShotFields}
             />

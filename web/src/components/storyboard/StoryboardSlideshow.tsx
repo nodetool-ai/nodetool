@@ -99,6 +99,17 @@ const mediaSx = {
   placeItems: "center"
 } as const;
 
+// The description takes the same height on every slide, so the stage above
+// it, and the picture in it, keep their size when the text length changes.
+const descriptionSx = {
+  textAlign: "center",
+  maxWidth: "80ch",
+  alignSelf: "center",
+  flexShrink: 0,
+  height: "3lh",
+  overflowY: "auto"
+} as const;
+
 const thumbSx = {
   flex: "0 0 auto",
   width: "7rem",
@@ -282,6 +293,7 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
                   locator={slide.shot.keyframe}
                   alt={`${slide.caption} still`}
                   fit="contain"
+                  sx={{ height: "100%" }}
                 />
               </Box>
             ) : (
@@ -300,11 +312,7 @@ const StoryboardSlideshowInner: React.FC<StoryboardSlideshowProps> = ({
         </FlexRow>
 
         {slide && (
-          <Text
-            size="small"
-            sx={{ textAlign: "center", maxWidth: "80ch", alignSelf: "center" }}
-            aria-live="polite"
-          >
+          <Text size="small" sx={descriptionSx} aria-live="polite">
             {slide.shot.action || "No description"}
           </Text>
         )}
