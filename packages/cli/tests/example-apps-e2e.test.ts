@@ -222,31 +222,6 @@ function sampleFor(schema: unknown, depth = 0): unknown {
 
 const isToolResult = (message: Message): boolean => message.role === "tool";
 
-const textOf = (message: Message): string =>
-  typeof message.content === "string"
-    ? message.content
-    : (message.content ?? [])
-        .map((part) => ("text" in part && typeof part.text === "string" ? part.text : ""))
-        .join("");
-
-/**
- * The text answer: a fenced object matching the schema when the prompt
- * carries one in `<JSON_SCHEMA>` tags (what Structured Output Generator
- * sends), else the provider's fixed reply.
- */
-function textAnswer(messages: Message[], fallback: string): string {
-  for (const message of messages) {
-    const match = /<JSON_SCHEMA>\s*([\s\S]*?)\s*<\/JSON_SCHEMA>/.exec(textOf(message));
-    if (!match) continue;
-    try {
-      return "```json\n" + JSON.stringify(sampleFor(JSON.parse(match[1]))) + "\n```";
-    } catch {
-      // Not a parseable schema: answer like any other prompt.
-    }
-  }
-  return fallback;
-}
-
 let report: (slug: string, interact: InteractionStep[]) => Promise<AppDebugReport>;
 
 beforeAll(async () => {
@@ -271,7 +246,8 @@ beforeAll(async () => {
    * and a run shares one instance across its nodes, so only the first
    * tool-calling node gets an answer. This one answers each conversation:
    * it calls every offered tool once, with arguments built from the tool's
-   * schema, until the conversation carries a tool result, then replies in text.
+   * schema, until the conversation carries a tool result, then answers in
+   * text the way the registry's fake does.
    */
   class ConversationFakeProvider extends FakeProvider {
     private calls(messages: Message[], tools: ProviderTool[] | undefined): ToolCall[] | null {
@@ -286,24 +262,22 @@ beforeAll(async () => {
     override async generateMessage(
       args: Parameters<InstanceType<typeof FakeProvider>["generateMessage"]>[0]
     ): Promise<Message> {
-      this.callCount++;
       const calls = this.calls(args.messages, args.tools);
-      if (calls) return { role: "assistant", content: [], toolCalls: calls };
-      const text = textAnswer(args.messages, this.textResponse);
-      return { role: "assistant", content: [{ type: "text", text }] };
+      if (!calls) return super.generateMessage(args);
+      this.callCount++;
+      return { role: "assistant", content: [], toolCalls: calls };
     }
 
     override async *generateMessages(
       args: Parameters<InstanceType<typeof FakeProvider>["generateMessages"]>[0]
     ): AsyncGenerator<ProviderStreamItem> {
-      this.callCount++;
       const calls = this.calls(args.messages, args.tools);
-      if (calls) {
-        yield* calls;
+      if (!calls) {
+        yield* super.generateMessages(args);
         return;
       }
-      const text = textAnswer(args.messages, this.textResponse);
-      yield { type: "chunk", content: text, done: true, content_type: "text" };
+      this.callCount++;
+      yield* calls;
     }
   }
 
@@ -357,7 +331,7 @@ beforeAll(async () => {
     const bundle = withDeterministicRecipe(withFakeModels(source));
     const file = join(scratch, `${slug}.app.json`);
     writeFileSync(file, JSON.stringify(bundle));
-    const provider = new ConversationFakeProvider();
+    const provider = new ConversationFakeProvider({ toolCallsPerTool: 0 });
     return runAppDebug(
       file,
       { interact: [...fillInputs(bundle), ...interact], outDir: join(scratch, "out", slug), timeoutMs: 120_000 },

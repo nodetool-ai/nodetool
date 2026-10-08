@@ -16,6 +16,7 @@
 
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
 import { BaseProvider } from "./base-provider.js";
+import { schemaAnswer } from "./fake-schema-answer.js";
 
 const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>(
   "node:crypto"
@@ -393,7 +394,11 @@ export function autoScript(opts: {
       ];
     }
     return [
-      { type: "chunk", content: opts.text ?? "Task completed.", done: true }
+      {
+        type: "chunk",
+        content: schemaAnswer(messages) ?? opts.text ?? "Task completed.",
+        done: true
+      }
     ];
   };
 }

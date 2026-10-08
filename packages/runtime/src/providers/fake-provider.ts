@@ -1,5 +1,6 @@
 import { getNodeBuiltinSync } from "@nodetool-ai/config";
 import { BaseProvider, type ProviderCapability } from "./base-provider.js";
+import { schemaAnswer } from "./fake-schema-answer.js";
 
 const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>(
   "node:crypto"
@@ -275,7 +276,7 @@ export class FakeProvider extends BaseProvider {
     if (this.toolCalls.length > 0) {
       return this.toolCalls;
     }
-    return this.textResponse;
+    return schemaAnswer(messages) ?? this.textResponse;
   }
 
   resetCallCount(): void {
