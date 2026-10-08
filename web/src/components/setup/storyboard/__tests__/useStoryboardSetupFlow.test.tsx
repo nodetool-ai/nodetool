@@ -541,4 +541,56 @@ describe("useStoryboardSetupFlow", () => {
       ).toBeEnabled()
     );
   });
+
+  // F16: `Rewrite from brief` runs outside the shell's button, so the review
+  // step's Cancel has to reach it.
+  it("cancels a rewrite from the review step", () => {
+    const { result } = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    const review = result.current.steps.find((step) => step.stage === "review");
+    const body = review?.render() as {
+      props: { onRewrite: () => void };
+    };
+    act(() => {
+      body.props.onRewrite();
+    });
+    const signal = (direct.mock.calls[0] as unknown[])[2] as
+      | AbortSignal
+      | undefined;
+    expect(signal?.aborted).toBe(false);
+    act(() => {
+      void review?.onCancel?.();
+    });
+    expect(signal?.aborted).toBe(true);
+  });
+
+  // F9: a creation started on the entities step holds the step until it
+  // lands, and the step's Cancel aborts it.
+  it("holds the entities step while an entity is created", () => {
+    const { result } = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    const entitiesStep = () =>
+      result.current.steps.find((step) => step.stage === "entities");
+    expect(entitiesStep()?.pending).toBe(false);
+    const body = entitiesStep()?.render() as {
+      props: {
+        onCreationStart: () => { signal: AbortSignal; done: () => void };
+      };
+    };
+    let creation: { signal: AbortSignal; done: () => void } | undefined;
+    act(() => {
+      creation = body.props.onCreationStart();
+    });
+    expect(entitiesStep()?.pending).toBe(true);
+    act(() => {
+      void entitiesStep()?.onCancel?.();
+    });
+    expect(creation?.signal.aborted).toBe(true);
+    act(() => {
+      creation?.done();
+    });
+    expect(entitiesStep()?.pending).toBe(false);
+  });
 });

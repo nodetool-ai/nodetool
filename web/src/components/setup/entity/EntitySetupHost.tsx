@@ -3,6 +3,7 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from "react";
 import type { Entity } from "@nodetool-ai/protocol";
@@ -20,7 +21,7 @@ import {
   type EntityDetailsValue
 } from "./DetailsStep";
 import { ReferenceStep } from "./ReferenceStep";
-import { ReviewStep } from "./ReviewStep";
+import { ReviewFallback, ReviewStep } from "./ReviewStep";
 import {
   clearEntitySetupDraft,
   readEntitySetupDraft,
@@ -97,6 +98,10 @@ const EntitySetupHost = ({
   const [assetId, setAssetId] = useState<string | null>(
     recoveredDraft?.assetId ?? initialAssetId ?? null
   );
+  // Read by the blank start after its upload, which outlives the render that
+  // started it.
+  const stageRef = useRef(stage);
+  stageRef.current = stage;
   const [pickerOpen, setPickerOpen] = useState(false);
   // The blank reference being made, while the card reads as busy.
   const [startingBlank, setStartingBlank] = useState(false);
@@ -127,23 +132,25 @@ const EntitySetupHost = ({
 
   /**
    * The blank escape hatch: a plain canvas becomes the reference image and
-   * the review step opens, with the name and descriptor filled only where
-   * the creator left them empty — everything stays editable one step back.
-   * Failures toast rather than stranding the card, which the shell would
-   * otherwise leave busy with nothing to say.
+   * the review step opens, with the name filled only where the creator left
+   * it empty. The descriptor stays as written: it seasons every prompt the
+   * entity appears in, so a filler sentence would too, and the review asks
+   * for one instead. Failures toast rather than stranding the card, which
+   * the shell would otherwise leave busy with nothing to say.
    */
   const startBlank = useCallback(async () => {
     setStartingBlank(true);
     try {
       const asset = await createAsset(await createBlankReferenceFile());
+      // The creator moved on while the canvas uploaded, so the flow stays
+      // where they are (F17).
+      if (stageRef.current !== "details") {
+        return;
+      }
       setDetails((current) => ({
         ...current,
         name:
-          current.name.trim().length > 0 ? current.name : "Untitled entity",
-        descriptor:
-          current.descriptor.trim().length > 0
-            ? current.descriptor
-            : "A reusable visual entity."
+          current.name.trim().length > 0 ? current.name : "Untitled entity"
       }));
       setAssetId(asset.id);
       setStage("review");
@@ -193,6 +200,16 @@ const EntitySetupHost = ({
     saveEntity
   ]);
 
+  const reviewBlockedReason = entitiesError
+    ? "Could not verify your entity library"
+    : entitiesLoading
+      ? "Loading your entity library"
+      : !referenceAssetId
+        ? "Go back and choose a reference image"
+        : details.name.trim().length === 0
+          ? "Go back and name the entity"
+          : "Go back and describe the traits to preserve";
+
   const steps = useMemo<SetupStep<EntitySetupStage>[]>(
     () => [
       {
@@ -206,6 +223,8 @@ const EntitySetupHost = ({
           details.name.trim().length === 0
             ? "Name the entity"
             : "Describe the traits to preserve",
+        pending: startingBlank,
+        pendingLabel: "Preparing a blank reference",
         render: () =>
           createElement(DetailsStep, {
             value: details,
@@ -244,6 +263,13 @@ const EntitySetupHost = ({
         stage: "review",
         label: "Review",
         primaryLabel: "Create entity",
+        canAdvance:
+          referenceAssetId !== null &&
+          !entitiesLoading &&
+          !entitiesError &&
+          details.name.trim().length > 0 &&
+          details.descriptor.trim().length > 0,
+        blockedReason: reviewBlockedReason,
         pending: saveEntity.isPending,
         pendingLabel: "Creating your entity",
         render: () =>
@@ -255,7 +281,7 @@ const EntitySetupHost = ({
                 descriptor: details.descriptor.trim(),
                 tags: tagsFromText(details.tags)
               })
-            : null,
+            : createElement(ReviewFallback, { loading: entitiesLoading }),
         onAdvance: save
       }
     ],
@@ -267,6 +293,7 @@ const EntitySetupHost = ({
       handlePick,
       pickerOpen,
       referenceAssetId,
+      reviewBlockedReason,
       save,
       saveEntity.isPending,
       startBlank,

@@ -11,20 +11,26 @@
  * for what it is rather than sold as time left (F23).
  *
  * It renders nothing on a sequence that never went through the flow, so the
- * editor is untouched for everyone else.
+ * editor is untouched for everyone else. The creator can dismiss it, and the
+ * dismissal is written onto the sequence's setup so it stays dismissed after a
+ * reload. Export is offered only once the timeline holds a clip.
  */
 
 import React, { memo, useCallback, useMemo } from "react";
 
 import {
   Caption,
+  CloseButton,
   EditorButton,
   FlexRow,
   GAP,
   PADDING,
   Text
 } from "../../ui_primitives";
-import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
+import {
+  useTimelineStore,
+  type TimelineStoreApi
+} from "../../../stores/timeline/TimelineStore";
 import { useRetryFailedClips } from "../../../hooks/timeline/useRetryFailedClips";
 import {
   durationBucketKey,
@@ -59,12 +65,23 @@ export function remainingMs(
   return longest;
 }
 
+/** The setup field that records a dismissed strip. */
+export const LANDING_DISMISSED = "landing_dismissed";
+
+type SetupPatch = Parameters<
+  ReturnType<TimelineStoreApi["getState"]>["setSetup"]
+>[0];
+
 const VideoLandingStripInternal: React.FC<VideoLandingStripProps> = ({
   onExport
 }) => {
   const stage = useTimelineStore((state) => state.setup?.stage);
   const clips = useTimelineStore((state) => state.clips);
   const setScriptEnabled = useTimelineStore((state) => state.setScriptEnabled);
+  const dismissed = useTimelineStore(
+    (state) => state.setup?.[LANDING_DISMISSED] === true
+  );
+  const setSetup = useTimelineStore((state) => state.setSetup);
   const samples = useDirectGenPendingStore((state) => state.durationSamples);
   const { failedClipIds, retryAll } = useRetryFailedClips();
 
@@ -88,9 +105,17 @@ const VideoLandingStripInternal: React.FC<VideoLandingStripProps> = ({
     [setScriptEnabled]
   );
   const handleRetry = useCallback(() => void retryAll(), [retryAll]);
+  // `timelineSetup` is a passthrough schema, so the field persists, but the
+  // store action's patch type lists only the fields it predates. The cast
+  // stays at this one boundary, as in `applyBeatPlan`.
+  const handleDismiss = useCallback(
+    () => setSetup({ [LANDING_DISMISSED]: true } as unknown as SetupPatch),
+    [setSetup]
+  );
 
-  // A sequence that never went through the flow gets nothing.
-  if (stage === undefined) {
+  // A sequence that never went through the flow gets nothing, and neither
+  // does one whose creator dismissed the strip.
+  if (stage === undefined || dismissed) {
     return null;
   }
 
@@ -120,14 +145,25 @@ const VideoLandingStripInternal: React.FC<VideoLandingStripProps> = ({
       {done ? (
         <>
           <Caption color="secondary">Next:</Caption>
-          <EditorButton variant="text" onClick={onExport} disabled={!onExport}>
-            Export
-          </EditorButton>
+          {clips.length > 0 ? (
+            <EditorButton
+              variant="text"
+              onClick={onExport}
+              disabled={!onExport}
+            >
+              Export
+            </EditorButton>
+          ) : null}
           <EditorButton variant="text" onClick={handleCaptions}>
             Add captions
           </EditorButton>
         </>
       ) : null}
+      <CloseButton
+        onClick={handleDismiss}
+        tooltip="Hide next steps"
+        sx={{ marginLeft: "auto" }}
+      />
     </FlexRow>
   );
 };

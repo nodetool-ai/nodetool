@@ -57,9 +57,22 @@ import {
   SETUP_WIDE_CONTENT_WIDTH
 } from "../layout";
 
+/** One entity creation, as the flow tracks it. */
+export interface EntityCreation {
+  /** Aborted when the creator cancels the step's pending work. */
+  signal: AbortSignal;
+  /** Call once the creation settles, however it ended. */
+  done: () => void;
+}
+
 interface EntitiesStepProps {
   boardId: string;
   readOnly?: boolean;
+  /**
+   * Report a creation to the flow, so the shell holds Continue and Skip until
+   * it lands and its Cancel can stop it (F9).
+   */
+  onCreationStart?: () => EntityCreation;
 }
 
 const EMPTY_ENTITY_IDS: string[] = [];
@@ -102,7 +115,8 @@ const setIdSelected = (
 
 export const EntitiesStep = ({
   boardId,
-  readOnly = false
+  readOnly = false,
+  onCreationStart
 }: EntitiesStepProps) => {
   const theme = useTheme();
   const { data: entities, isLoading } = useEntities();
@@ -243,18 +257,28 @@ export const EntitiesStep = ({
       return;
     }
     const { model } = resolved;
+    const creation = onCreationStart?.();
+    const signal = creation?.signal;
     setCreatingKeys((current) => new Set(current).add(key));
     setAssistError(null);
     try {
-      const answer = await rpcRequest("generate_media", {
-        mode: "image",
-        provider: model.provider,
-        model: model.id,
-        prompt: suggestion.referencePrompt,
-        aspect_ratio: "1:1",
-        resolution: "1K",
-        variations: 1
-      });
+      const answer = await rpcRequest(
+        "generate_media",
+        {
+          mode: "image",
+          provider: model.provider,
+          model: model.id,
+          prompt: suggestion.referencePrompt,
+          aspect_ratio: "1:1",
+          resolution: "1K",
+          variations: 1
+        },
+        undefined,
+        signal
+      );
+      if (signal?.aborted) {
+        return;
+      }
       const assetId = Array.isArray(answer.asset_ids)
         ? answer.asset_ids.find((id): id is string => typeof id === "string")
         : undefined;
@@ -272,20 +296,23 @@ export const EntitiesStep = ({
       if (!entity) {
         throw new Error("The entity could not be saved.");
       }
+      // The entity is saved and paid for, so it joins the board even when the
+      // step has unmounted: the board is a store write, not component state.
+      setBoardEntity(entity, true);
       if (!mountedRef.current) return;
       setCreatedEntities((current) => [...current, entity]);
-      setBoardEntity(entity, true);
       setSuggestions((current) =>
         current.filter(
           (candidate) => `${candidate.kind}:${candidate.name}` !== key
         )
       );
     } catch (error) {
-      if (!mountedRef.current) return;
+      if (!mountedRef.current || signal?.aborted) return;
       setAssistError(
         error instanceof Error ? error.message : "The entity could not be made."
       );
     } finally {
+      creation?.done();
       if (mountedRef.current) {
         setCreatingKeys((current) => {
           const next = new Set(current);

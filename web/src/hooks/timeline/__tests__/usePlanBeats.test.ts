@@ -9,6 +9,7 @@ import {
   applyBeatPlan,
   planBeats,
   planContextOf,
+  PLAN_INPUTS_CHANGED,
   usePlanBeats
 } from "../usePlanBeats";
 import {
@@ -296,10 +297,12 @@ describe("usePlanBeats staleness", () => {
     mockRequest.mockResolvedValue({ data: screenplay });
     const { result } = renderHook(() => usePlanBeats());
 
+    let applied = false;
     await act(async () => {
-      await result.current.plan();
+      applied = await result.current.plan();
     });
 
+    expect(applied).toBe(true);
     expect(mockStore.getState().setup?.stage).toBe("review");
     expect(mockStore.getState().setup?.beats).toHaveLength(2);
   });
@@ -332,7 +335,7 @@ describe("usePlanBeats staleness", () => {
     );
     const { result } = renderHook(() => usePlanBeats());
 
-    let planned: Promise<void> = Promise.resolve();
+    let planned: Promise<boolean> = Promise.resolve(true);
     act(() => {
       planned = result.current.plan({ replan: true });
     });
@@ -361,7 +364,7 @@ describe("usePlanBeats staleness", () => {
     const { result } = renderHook(() => usePlanBeats());
     const controller = new AbortController();
 
-    let planned: Promise<void> = Promise.resolve();
+    let planned: Promise<boolean> = Promise.resolve(true);
     act(() => {
       planned = result.current.plan({ signal: controller.signal });
     });
@@ -386,7 +389,7 @@ describe("usePlanBeats staleness", () => {
     );
     const { result } = renderHook(() => usePlanBeats());
 
-    let planned: Promise<void> = Promise.resolve();
+    let planned: Promise<boolean> = Promise.resolve(true);
     act(() => {
       planned = result.current.plan({ replan: true });
     });
@@ -411,7 +414,7 @@ describe("usePlanBeats staleness", () => {
     );
     const { result } = renderHook(() => usePlanBeats());
 
-    let planned: Promise<void> = Promise.resolve();
+    let planned: Promise<boolean> = Promise.resolve(true);
     act(() => {
       planned = result.current.plan();
     });
@@ -420,9 +423,12 @@ describe("usePlanBeats staleness", () => {
     });
     await act(async () => {
       answer({ data: screenplay });
-      await planned;
+      await expect(planned).rejects.toThrow(PLAN_INPUTS_CHANGED);
     });
 
+    // The drop is reported, so the shell stays on the format step instead of
+    // advancing to a review with no beats.
+    expect(result.current.error).toBe(PLAN_INPUTS_CHANGED);
     expect(mockStore.getState().setup?.brief).toBe("a different draft");
     expect(mockStore.getState().setup?.stage).toBe("format");
     expect(mockStore.getState().setup?.beats).toBeUndefined();
