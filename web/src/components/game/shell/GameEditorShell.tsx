@@ -48,7 +48,7 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
       onKeyDown?.(event);
     }}>
     <GameToolbar {...toolbar} />
-    <GameLayoutMenu store={layoutStore} />
+    <GameLayoutMenu store={layoutStore} panels={registrations.filter((entry) => views.some((view) => view.id === entry.id))} />
     {notices}
     <GameDockCanvas presentation={presentation} store={layoutStore} />
     <GameStatusBar {...status} />

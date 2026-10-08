@@ -3,15 +3,19 @@ import { useStore, type StoreApi } from "zustand";
 
 import { GAME_LAYOUT_PRESETS } from "../../../stores/game/GamePanelLayout";
 import type { GamePanelLayoutState } from "../../../stores/game/GamePanelLayoutStore";
+import type { GamePanelRegistration } from "./panelRegistry";
 import { Caption, EditorButton, FlexRow, SelectField, SPACING, TextInput } from "../../ui_primitives";
 import ReportBugButton from "../../support/ReportBugButton";
 
 interface GameLayoutMenuProps {
   readonly store: StoreApi<GamePanelLayoutState>;
+  readonly panels: readonly Pick<GamePanelRegistration, "id" | "title">[];
 }
 
-export function GameLayoutMenu({ store }: GameLayoutMenuProps): ReactNode {
+export function GameLayoutMenu({ store, panels }: GameLayoutMenuProps): ReactNode {
   const customLayouts = useStore(store, (state) => state.customLayouts);
+  const hidden = useStore(store, (state) => state.layout.hidden);
+  const hiddenPanels = panels.filter((panel) => hidden.includes(panel.id));
   const [selected, setSelected] = useState("Default");
   const [name, setName] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +26,9 @@ export function GameLayoutMenu({ store }: GameLayoutMenuProps): ReactNode {
     catch (cause) { setError(cause instanceof Error ? cause.message : "Unable to change saved layout"); }
   };
   return <FlexRow gap={SPACING.sm} align="center" sx={{ px: SPACING.md, py: SPACING.xs }}>
+    {hiddenPanels.length > 0 && <SelectField label="Show panel" value=""
+      options={[{ value: "", label: "Choose a panel", disabled: true }, ...hiddenPanels.map((panel) => ({ value: panel.id, label: panel.title }))]}
+      onChange={(panelId) => act(() => store.getState().dispatch({ type: "reveal", panelId }))} />}
     <SelectField label="Game layout" value={selected}
       options={[...GAME_LAYOUT_PRESETS.map((value) => ({ value, label: value })), ...customLayouts.map((entry) => ({ value: entry.name, label: entry.name }))]}
       onChange={setSelected} />

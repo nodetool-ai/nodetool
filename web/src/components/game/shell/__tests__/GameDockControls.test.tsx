@@ -16,7 +16,7 @@ function makeStore() {
 it("saves, selects, renames and deletes a named copy without replacing built-in layouts", async () => {
   const user = userEvent.setup();
   const store = makeStore();
-  render(<ThemeProvider theme={mockTheme}><GameLayoutMenu store={store} /></ThemeProvider>);
+  render(<ThemeProvider theme={mockTheme}><GameLayoutMenu store={store} panels={[]} /></ThemeProvider>);
   const name = screen.getByRole("textbox", { name: "Layout name" });
   await user.type(name, "My game layout");
   await user.click(screen.getByRole("button", { name: "Save layout" }));

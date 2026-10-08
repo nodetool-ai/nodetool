@@ -195,3 +195,43 @@ it.each(["2d", "3d"] as const)("keeps a late registered %s panel reachable when 
   expect(screen.getByRole("textbox", { name: "Extension draft" })).toBe(input);
   expect(input).toHaveValue("original changed");
 });
+
+it.each(["2d", "3d"] as const)("reveals a hidden registered %s panel through the layout controls without replacing its draft", async (dimension) => {
+  const user = userEvent.setup();
+  const registry = createGamePanelRegistry();
+  registry.register({ id: "extension", title: "Extension", icon: null, dimensions: [dimension], defaultRegion: "bottom" });
+  render(<ThemeProvider theme={mockTheme}><Shell dimension={dimension} registry={registry} toolbar={toolbar} status={status}
+    panels={[{ id: "extension", node: <input aria-label="Extension draft" defaultValue="original" /> }]} /></ThemeProvider>);
+  const input = screen.getByRole("textbox", { name: "Extension draft" });
+  await user.type(input, " changed");
+  await user.click(within(screen.getByRole("region", { name: "Game bottom panels" })).getByRole("button", { name: "Hide" }));
+  expect(screen.queryByRole("textbox", { name: "Extension draft" })).not.toBeInTheDocument();
+  await user.click(screen.getByRole("button", { name: "Apply layout" }));
+  expect(screen.queryByRole("textbox", { name: "Extension draft" })).not.toBeInTheDocument();
+  await user.click(screen.getByRole("combobox", { name: "Show panel" }));
+  await user.click(screen.getByRole("option", { name: "Extension" }));
+  expect(screen.getByRole("textbox", { name: "Extension draft" })).toBe(input);
+  expect(input).toHaveValue("original changed");
+  expect(screen.queryByRole("combobox", { name: "Show panel" })).not.toBeInTheDocument();
+});
+
+it("offers only hidden panels registered and available in the current dimension", async () => {
+  const user = userEvent.setup();
+  const registry = createGamePanelRegistry();
+  const store = createGamePanelLayoutStore({ anonymous: true }, { getItem: () => null, setItem: () => undefined, removeItem: () => undefined });
+  let removePanel = (): void => undefined;
+  for (const id of ["eligible", "unavailable", "other-dimension", "removed"]) {
+    const dispose = registry.register({ id, title: id, icon: null, dimensions: [id === "other-dimension" ? "3d" : "2d"], defaultRegion: "bottom" });
+    if (id === "removed") { removePanel = dispose; }
+  }
+  store.getState().registerPanels(registry.getSnapshot());
+  for (const panel of registry.getSnapshot()) { store.getState().dispatch({ type: "hide", panelId: panel.id }); }
+  removePanel();
+  render(<ThemeProvider theme={mockTheme}><GameEditorShell dimension="2d" registry={registry} layoutStore={store} toolbar={toolbar} status={status}
+    panels={["eligible", "unavailable", "other-dimension", "removed"].map((id) => ({ id, visible: id !== "unavailable", node: <span>{id}</span> }))} /></ThemeProvider>);
+  await user.click(screen.getByRole("combobox", { name: "Show panel" }));
+  expect(screen.getByRole("option", { name: "eligible" })).toBeInTheDocument();
+  for (const name of ["unavailable", "other-dimension", "removed"]) {
+    expect(screen.queryByRole("option", { name })).not.toBeInTheDocument();
+  }
+});
