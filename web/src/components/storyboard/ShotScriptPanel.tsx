@@ -214,7 +214,9 @@ const LinkedScriptSection: React.FC<ShotScriptPanelProps> = ({
 
       {lineIds.length > lines.length && (
         <Caption color="warning">
-          {`${lineIds.length - lines.length} linked line(s) are no longer in the script.`}
+          {lineIds.length - lines.length === 1
+            ? "1 linked line is no longer in the script."
+            : `${lineIds.length - lines.length} linked lines are no longer in the script.`}
         </Caption>
       )}
 

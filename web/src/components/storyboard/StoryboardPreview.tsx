@@ -92,7 +92,7 @@ const StoryboardPreviewInner: React.FC<StoryboardPreviewProps> = ({
       <FlexRow gap={SPACING.sm} align="center">
         <Caption color="secondary">
           {statusLine(
-            preview.sequence.clips.length,
+            preview.shotCount,
             preview.stillShotIds.length,
             preview.skippedShotIds.length
           )}

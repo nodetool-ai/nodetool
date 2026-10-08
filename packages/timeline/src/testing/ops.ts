@@ -9,13 +9,13 @@ import {
   type TimelineComposition,
   type TimelineMarker,
   type TimelineTrack
-} from "../../src/index.js";
+} from "../index.js";
 import type {
   TimelineOp,
   TimelineOpContext,
   TimelineOpIdKind,
   TimelineOpState
-} from "../../src/ops/index.js";
+} from "../ops/index.js";
 
 export const COMPOSITION: TimelineComposition = {
   id: "lower_third",

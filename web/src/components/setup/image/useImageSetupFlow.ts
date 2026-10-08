@@ -8,7 +8,7 @@
  * document with no `setup` at all opens as the editor and always has.
  */
 
-import { createElement, useCallback, useMemo, useRef } from "react";
+import { createElement, useCallback, useMemo } from "react";
 import {
   composeImagePrompt,
   type SketchSetupStage
@@ -49,7 +49,11 @@ export const useImageSetupStage = (): SketchSetupStage =>
 const FLOW_LABELS = { title: "Image" } as const;
 
 export interface ImageSetupFlowOptions {
-  /** Runs once the last step has written `done` and the batch is enqueued. */
+  /**
+   * Runs once the last step has written `done` and the batch's layers exist,
+   * before their jobs are started, so the host shows the contact sheet in the
+   * same render the stage leaves the flow (F14).
+   */
   onGenerated: (layerIds: readonly string[]) => void;
   /** Runs when an alternative finishes the flow without generating. */
   onFinish: () => void;
@@ -85,12 +89,6 @@ export const useImageSetupFlow = ({
   const upload = useUploadFirstLayer(onFinish);
   const look = useLookStep();
 
-  // The reason a refused run gives arrives as state one render after the call
-  // resolves, so the step's own closure cannot see it. Mirror it and read the
-  // mirror, so the shell puts the real message on the button.
-  const refineErrorRef = useRef<string | null>(null);
-  refineErrorRef.current = refineError;
-
   const onStageChange = useCallback(
     (next: SketchSetupStage) => setSetup({ stage: next }),
     [setSetup]
@@ -103,18 +101,18 @@ export const useImageSetupFlow = ({
 
   const refine = useCallback(
     async (context?: SetupOperationContext) => {
-      const refinedOk = await expandBrief(context?.signal);
-      if (!refinedOk) {
-        throw new Error(
-          refineErrorRef.current ?? "The model did not return a brief."
-        );
+      const outcome = await expandBrief(context?.signal);
+      if (!outcome.ok) {
+        throw new Error(outcome.error ?? "The model did not return a brief.");
       }
     },
     [expandBrief]
   );
 
+  // The review's fields are the creator's draft, so another pass polishes
+  // them rather than replacing them with a fresh expansion (O4).
   const reRefine = useCallback(() => {
-    void expandBrief();
+    void expandBrief(undefined, { keepEdits: true });
   }, [expandBrief]);
 
   // Coming back to the use case and pressing its button again must not pay for
@@ -155,6 +153,11 @@ export const useImageSetupFlow = ({
         primaryLabel: "Continue",
         canAdvance: brief.trim().length > 0,
         blockedReason: "Describe the image, or upload one to edit",
+        // An upload finishes the flow when it lands, so Continue waits for it
+        // rather than racing it to the next step (F17).
+        pending: upload.uploading,
+        pendingLabel: "Reading your file",
+        onCancel: upload.cancel,
         footerControls: (context) =>
           createElement(BriefModelFooterField, { readOnly: context.readOnly }),
         render: () =>
@@ -217,9 +220,11 @@ export const useImageSetupFlow = ({
           }),
         render: () => createElement(LookStep, { look }),
         // `generate` writes the terminal stage itself, before it enqueues
-        // anything (D3); the host then shows the contact sheet.
+        // anything (D3). The host gets the layers in that same tick: waiting
+        // for the start requests would leave a render where the stage is
+        // `done`, no batch is known, and the bare editor shows (F14).
         onAdvance: async () => {
-          onGenerated(await look.generate());
+          await look.generate(onGenerated);
         }
       }
     ],

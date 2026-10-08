@@ -21,8 +21,10 @@ jest.mock("../../../hooks/script/useScripts", () => ({
 
 const createTimeline = jest.fn(async () => ({ id: "seq-1" }));
 const seedTimelineDetail = jest.fn();
+const deleteTimeline = jest.fn(async () => undefined);
 jest.mock("../../../hooks/useTimelineSequence", () => ({
   useCreateTimeline: () => ({ mutateAsync: createTimeline }),
+  useDeleteTimeline: () => ({ mutateAsync: deleteTimeline }),
   useSeedTimelineDetail: () => seedTimelineDetail
 }));
 
@@ -161,4 +163,23 @@ it("opens the native game resource instead of a general workflow", async () => {
   expect(gameCreate).toHaveBeenCalledWith(expect.objectContaining({ projectId: "p-game", dimension: "2d", document: expect.objectContaining({ schemaVersion: 1 }) }));
   expect(managerCreate).not.toHaveBeenCalled();
   expect(openTab).toHaveBeenCalledWith(expect.objectContaining({ type: "game", ref: "game-1", projectId: "p-game" }));
+});
+
+// The setup PATCH follows the create. When it fails, the empty timeline it
+// was for is deleted rather than left in the project (F15).
+it("deletes the new timeline when its setup cannot be written", async () => {
+  timelineUpdate.mockRejectedValueOnce(new Error("PATCH refused"));
+  const { hook } = renderStarters();
+  const video = hook.result.current.starters.find(
+    (entry) => entry.id === "video"
+  )!;
+  await act(async () => {
+    await video.start();
+  });
+
+  expect(deleteTimeline).toHaveBeenCalledWith({ id: "seq-1" });
+  expect(openTab).not.toHaveBeenCalled();
+  expect(addNotification).toHaveBeenCalledWith(
+    expect.objectContaining({ type: "error" })
+  );
 });

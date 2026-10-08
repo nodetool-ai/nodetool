@@ -9,7 +9,12 @@
  */
 
 import { toGuestBytes, type GuestBytes } from "../sandbox-bytes.js";
-import { optionsOf, requireBytes, unwrapLibrary } from "./limits.js";
+import {
+  importOptionalLibrary,
+  optionsOf,
+  requireBytes,
+  unwrapLibrary
+} from "./limits.js";
 import { isFunction } from "../utils/type-guards.js";
 
 type Alignment = "LEFT" | "CENTER" | "RIGHT" | "JUSTIFY";
@@ -94,7 +99,11 @@ interface DocxLike {
 }
 
 async function loadDocx(where: string): Promise<DocxLike> {
-  const mod: unknown = await import("docx");
+  const mod = await importOptionalLibrary<unknown>(
+    where,
+    "docx",
+    "office-documents"
+  );
   return unwrapLibrary<DocxLike>(
     mod,
     where,

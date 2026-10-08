@@ -48,6 +48,7 @@ const RUNTIME_GROUP: Record<string, RuntimeGroup> = {
   "tensorflow-js": "ai",
   "node-llama-cpp": "ai",
   "whisper-cpp": "ai",
+  "tesseract-ocr": "ai",
   playwright: "media"
 };
 const runtimeGroup = (id: string): RuntimeGroup => RUNTIME_GROUP[id] ?? "media";

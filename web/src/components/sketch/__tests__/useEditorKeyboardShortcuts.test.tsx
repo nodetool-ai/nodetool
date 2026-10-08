@@ -274,3 +274,120 @@ describe("useEditorKeyboardShortcuts", () => {
     expect(useSketchStore.getState().transientMoveModifierHeld).toBe(false);
   });
 });
+
+describe("useEditorKeyboardShortcuts with a focused control", () => {
+  beforeEach(() => {
+    useSketchStore.getState().resetDocument();
+    useSketchStore.getState().setActiveTool("brush");
+    document.body.innerHTML = "";
+  });
+
+  function mountInEditor(el: HTMLElement): HTMLElement {
+    const root = document.createElement("div");
+    root.className = "sketch-editor";
+    root.appendChild(el);
+    document.body.appendChild(root);
+    el.focus();
+    return el;
+  }
+
+  it("lets a keyboard-focused button receive Enter, Space and Escape", () => {
+    const params = makeParams();
+    renderHook(() => useEditorKeyboardShortcuts(params));
+    const button = mountInEditor(document.createElement("button"));
+    const received: string[] = [];
+    button.addEventListener("keydown", (e) => received.push(e.key));
+
+    act(() => {
+      dispatchKey(button, "Enter");
+      dispatchKey(button, " ");
+      dispatchKey(button, "Escape");
+    });
+
+    expect(received).toEqual(["Enter", " ", "Escape"]);
+    expect(params.cancelActiveTool).not.toHaveBeenCalled();
+  });
+
+  it("lets a focused tab move with the arrow keys instead of nudging", () => {
+    const params = makeParams();
+    renderHook(() => useEditorKeyboardShortcuts(params));
+    const tab = document.createElement("div");
+    tab.setAttribute("role", "tab");
+    tab.tabIndex = 0;
+    mountInEditor(tab);
+    const received: string[] = [];
+    tab.addEventListener("keydown", (e) => received.push(e.key));
+
+    act(() => {
+      dispatchKey(tab, "ArrowRight");
+      dispatchKey(tab, "ArrowRight", "keyup");
+    });
+
+    expect(received).toEqual(["ArrowRight"]);
+    expect(params.handleNudgeLayer).not.toHaveBeenCalled();
+  });
+
+  it("still nudges when the arrows are pressed on a plain focused button", () => {
+    const params = makeParams();
+    renderHook(() => useEditorKeyboardShortcuts(params));
+    const button = mountInEditor(document.createElement("button"));
+
+    act(() => {
+      dispatchKey(button, "ArrowLeft");
+      dispatchKey(button, "ArrowLeft", "keyup");
+    });
+
+    expect(params.handleNudgeLayer).toHaveBeenCalledWith(-1, 0, {
+      recordHistory: true,
+      syncOutputs: false
+    });
+  });
+
+  it("leaves every key to a dialog opened over the editor", () => {
+    const params = makeParams();
+    renderHook(() => useEditorKeyboardShortcuts(params));
+    document.body.appendChild(
+      Object.assign(document.createElement("div"), { className: "sketch-editor" })
+    );
+    const dialog = document.createElement("div");
+    dialog.setAttribute("role", "dialog");
+    const field = document.createElement("div");
+    field.tabIndex = 0;
+    dialog.appendChild(field);
+    document.body.appendChild(dialog);
+    field.focus();
+    const received: string[] = [];
+    dialog.addEventListener("keydown", (e) => received.push(e.key));
+
+    act(() => {
+      dispatchKey(field, "Escape");
+      dispatchKey(field, "b");
+    });
+
+    expect(received).toEqual(["Escape", "b"]);
+    expect(params.cancelActiveTool).not.toHaveBeenCalled();
+    expect(params.setActiveTool).not.toHaveBeenCalled();
+  });
+
+  it("ends the nudge loop when the arrow is released after focus moved to a control", () => {
+    const params = makeParams();
+    renderHook(() => useEditorKeyboardShortcuts(params));
+    const surface = document.createElement("div");
+    surface.tabIndex = 0;
+    mountInEditor(surface);
+    const combobox = document.createElement("div");
+    combobox.setAttribute("role", "combobox");
+    combobox.tabIndex = 0;
+    surface.parentElement?.appendChild(combobox);
+
+    act(() => {
+      dispatchKey(surface, "ArrowDown");
+    });
+    combobox.focus();
+    act(() => {
+      dispatchKey(combobox, "ArrowDown", "keyup");
+    });
+
+    expect(params.syncSketchOutputsNow).toHaveBeenCalled();
+  });
+});

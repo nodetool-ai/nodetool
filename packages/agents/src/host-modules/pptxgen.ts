@@ -7,7 +7,12 @@
  */
 
 import { toGuestBytes, type GuestBytes } from "../sandbox-bytes.js";
-import { optionsOf, requireBytes, unwrapLibrary } from "./limits.js";
+import {
+  importOptionalLibrary,
+  optionsOf,
+  requireBytes,
+  unwrapLibrary
+} from "./limits.js";
 import {
   isFunction,
   isObjectLike,
@@ -36,7 +41,11 @@ interface PptxSlide {
 }
 
 async function loadPptxGen(where: string): Promise<PptxGenCtor> {
-  const mod: unknown = await import("pptxgenjs");
+  const mod = await importOptionalLibrary<unknown>(
+    where,
+    "pptxgenjs",
+    "office-documents"
+  );
   const ctor = unwrapLibrary<PptxGenCtor>(
     mod,
     where,

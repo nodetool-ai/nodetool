@@ -206,7 +206,7 @@ K runs first because several fixes touch files that W4 restructures.
 
 **K4. Publish and restore safety (F6, F7, F18, F19, F20, F25, F26, F27).**
 - Depends on: K1. Owns `packages/models/src/game.ts`, `games.ts` publish and restore handlers, revisions UI.
-- Do: require the draft token for restore and explicit-document publish. Make `readDraft` recover from a missing version file. Read `baseRevision` fresh at publish. Publish the validated document by digest. Wrap post-commit cleanup. Confirm before restore. Return INVALID_INPUT for validation errors. Prune orphans and old revision files.
+- Do: require the draft token for restore and explicit-document publish. Recover a missing draft version automatically only from a mirror with the same digest. Otherwise preserve its token and history, report the unavailable source, and require a confirmed revision selection to restore the draft. Read `baseRevision` fresh at publish. Publish the validated document by digest. Wrap post-commit cleanup. Confirm before restore. Return INVALID_INPUT for validation errors. Prune orphans and old revision files.
 - Accept: one test per finding.
 
 **K5. 3D editor input and parity bugs (F11, F21, F22 partial, F24, F29).**

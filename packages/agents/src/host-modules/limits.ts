@@ -8,6 +8,10 @@
  */
 
 import { importOptionalModule } from "@nodetool-ai/config";
+import {
+  missingRuntimePackageError,
+  type RuntimePackageId
+} from "@nodetool-ai/protocol";
 import { isRecord, isString } from "../utils/type-guards.js";
 
 /** Largest text payload a host module accepts, in characters. */
@@ -65,9 +69,9 @@ export function optionsOf(value: unknown): Record<string, unknown> {
  *
  * Every import below is dynamic and inside the implementation: nothing loads
  * until guest code calls one, and no library reaches a bundle's entry graph.
- * They are NOT hidden from the bundler — esbuild inlines them into the packaged
- * backend's single-file `server.mjs`, and Vite resolves the browser build for
- * the in-browser runner, where the "host" is the page.
+ * The small libraries are NOT hidden from the bundler — esbuild inlines them
+ * into the packaged backend's single-file `server.mjs`. The large ones come
+ * through {@link importOptionalLibrary} and are installed on demand.
  */
 export function unwrapLibrary<T>(
   mod: unknown,
@@ -86,22 +90,27 @@ export function unwrapLibrary<T>(
 }
 
 /**
- * Import a library that is not guaranteed to be present, and report its absence
- * the way {@link unwrapLibrary} reports a wrong shape.
+ * Import a library that is not guaranteed to be present.
  *
  * `importOptionalModule` hides the specifier from every bundler and falls back
  * to a user-managed `node_modules`, which is what the on-demand libraries need
  * — a native addon (better-sqlite3) that must not enter a browser graph, and
- * the model packages a slim server image does not ship. Its failure is a
- * resolver error naming a path, so it is restated here in the caller's terms.
+ * the document, PDF and model packages the desktop app installs only when a
+ * run first needs them. With a `runtimePackage`, absence is a
+ * `MissingRuntimePackageError` the editor turns into an install prompt;
+ * without one it is restated in the caller's terms.
  */
 export async function importOptionalLibrary<T>(
   where: string,
-  specifier: string
+  specifier: string,
+  runtimePackage?: RuntimePackageId
 ): Promise<T> {
   try {
     return await importOptionalModule<T>(specifier);
-  } catch {
+  } catch (cause) {
+    if (runtimePackage !== undefined) {
+      throw missingRuntimePackageError(specifier, runtimePackage, cause);
+    }
     throw new Error(
       `${where}: the "${specifier}" library is not available in this runtime`
     );

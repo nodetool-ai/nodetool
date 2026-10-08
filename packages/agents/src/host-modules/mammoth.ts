@@ -5,7 +5,11 @@
  * guest-module candidate. The guest gets plain text or HTML back.
  */
 
-import { requireBytes, unwrapLibrary } from "./limits.js";
+import {
+  importOptionalLibrary,
+  requireBytes,
+  unwrapLibrary
+} from "./limits.js";
 import { isFunction } from "../utils/type-guards.js";
 
 interface MammothResult {
@@ -18,7 +22,11 @@ interface MammothLike {
 }
 
 async function loadMammoth(where: string): Promise<MammothLike> {
-  const mod: unknown = await import("mammoth");
+  const mod = await importOptionalLibrary<unknown>(
+    where,
+    "mammoth",
+    "office-documents"
+  );
   return unwrapLibrary<MammothLike>(
     mod,
     where,

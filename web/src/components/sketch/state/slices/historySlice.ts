@@ -336,6 +336,23 @@ function isLiveStateAheadCached(
 }
 
 /**
+ * Whether the live document holds an edit the history has not recorded yet:
+ * the current checkpoint is the last one and was pushed before its edit ran.
+ * The History panel shows that edit as the newest row.
+ */
+export function hasUncommittedHistoryTip(state: {
+  document: SketchDocument;
+  history: HistoryEntry[];
+  historyIndex: number;
+}): boolean {
+  return (
+    state.historyIndex >= 0 &&
+    state.historyIndex === state.history.length - 1 &&
+    isLiveStateAheadCached(state.document, state.history, state.historyIndex)
+  );
+}
+
+/**
  * Trim `history` (mutated in place) to `MAX_HISTORY_SIZE`, merging the dropped
  * baseline's layer data forward so reconstruction stays correct. Returns the
  * number of entries dropped from the front (0 or 1) so callers can adjust the
@@ -443,6 +460,9 @@ export const createHistorySlice: StateCreator<
             timestamp: Date.now()
           };
         })();
+    if (options?.timing === "before") {
+      entry.timing = "before";
+    }
 
     newHistory.push(entry);
     trimHistoryInPlace(newHistory);

@@ -23,7 +23,9 @@ import {
   drawStaggeredText,
   drawText,
   staggerPhase,
-  textStyleSignature
+  textRasterWindow,
+  textStyleSignature,
+  type RasterWindow
 } from "@nodetool-ai/timeline/render";
 import {
   bundledFontsReady,
@@ -67,6 +69,21 @@ export class TextRasterizer {
     { timeKey: string; bitmap: ImageBitmap }
   >();
   private scratchSample: AnimationSample = createStaggerScratch();
+  private windows = new WeakMap<ImageBitmap, RasterWindow>();
+  private measureContext: OffscreenCanvasRenderingContext2D | null = null;
+
+  /**
+   * The window of the frame a bitmap from {@link rasterize} covers, or
+   * undefined when it covers the whole frame.
+   */
+  windowOf(bitmap: ImageBitmap): RasterWindow | undefined {
+    return this.windows.get(bitmap);
+  }
+
+  private measurer(): OffscreenCanvasRenderingContext2D | null {
+    this.measureContext ??= new OffscreenCanvas(1, 1).getContext("2d");
+    return this.measureContext;
+  }
 
   get residentBytes(): number {
     return this.ownedBytes;
@@ -125,7 +142,8 @@ export class TextRasterizer {
     width: number,
     height: number,
     stagger: TextRenderStagger | null | undefined,
-    frameScope: BitmapFrameScope
+    frameScope: BitmapFrameScope,
+    windowMarginPx?: number
   ): ImageBitmap | null {
     if (
       !style.text ||
@@ -145,7 +163,12 @@ export class TextRasterizer {
     }
     const phase = stagger ? staggerPhase(stagger) : undefined;
     const cacheable = phase !== "active" && fontsReady && familyReady;
-    const baseKey = textStyleSignature(style, width, height);
+    // Staggered words move by their own animation, so they are not bounded by
+    // the block and keep the whole frame.
+    const windowed = windowMarginPx !== undefined && !stagger;
+    const baseKey = windowed
+      ? `${textStyleSignature(style, width, height)}|win:${windowMarginPx}`
+      : textStyleSignature(style, width, height);
     let key = baseKey;
     if (stagger && cacheable) {
       key += `|stg:${compiledRefId(stagger.compiled)}:${phase}`;
@@ -158,6 +181,10 @@ export class TextRasterizer {
       }
       const hit = this.cache.get(key);
       if (hit) {
+        // Re-inserted so eviction drops the least recently drawn text, not
+        // the first one ever drawn.
+        this.cache.delete(key);
+        this.cache.set(key, hit);
         this.pin(hit, frameScope);
         return hit;
       }
@@ -170,15 +197,26 @@ export class TextRasterizer {
         return last.bitmap;
       }
     }
-    const canvas = new OffscreenCanvas(width, height);
+    let window: RasterWindow | undefined;
+    if (windowed) {
+      const measure = this.measurer();
+      const bounds = measure
+        ? textRasterWindow(measure, style, width, height, windowMarginPx)
+        : { x: 0, y: 0, width, height };
+      if (!bounds) return null;
+      window = bounds;
+    }
+    const canvas = new OffscreenCanvas(window?.width ?? width, window?.height ?? height);
     const ctx = canvas.getContext("2d");
     if (!ctx) return null;
+    if (window) ctx.translate(-window.x, -window.y);
     if (stagger) {
       drawStaggeredText(ctx, style, width, height, stagger, this.scratchSample);
     } else {
       drawText(ctx, style, width, height);
     }
     const bitmap = canvas.transferToImageBitmap();
+    if (window) this.windows.set(bitmap, window);
     if (!this.owned.has(bitmap)) {
       this.owned.add(bitmap);
       this.ownedBytes += bitmapByteSize(bitmap);

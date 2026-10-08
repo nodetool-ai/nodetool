@@ -450,6 +450,20 @@ describe("writeScript", () => {
     expect(scriptNow().setup?.stage).toBe("format");
   });
 
+  it("has the reason on errorRef by the time a refused write resolves (F5)", async () => {
+    rpcRequest.mockRejectedValue(new Error("no credit"));
+    const { result } = renderHook(() => useWriteScript());
+    // The render-time snapshot a caller's closure holds while it awaits.
+    const { errorRef } = result.current;
+
+    let reason: string | null = null;
+    await act(async () => {
+      await result.current.write(SCRIPT);
+      reason = errorRef.current;
+    });
+    expect(reason).toBe("no credit");
+  });
+
   it("refuses a script with no brief and no import", async () => {
     useScriptStore.getState().setSetup(SCRIPT, { brief: "" });
     const { result } = renderHook(() => useWriteScript());

@@ -107,7 +107,11 @@ import StartExamples from "./StartExamples";
 import CurrentProjectDocuments from "./CurrentProjectDocuments";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import { openPageTab } from "../workspace/openPageTab";
-import { OptionCardGrid, type OptionCardItem } from "../setup/OptionCardGrid";
+import {
+  OPTION_CARD_CLASS,
+  OptionCardGrid,
+  type OptionCardItem
+} from "../setup/OptionCardGrid";
 import { ENTRY_CARDS, type EntryFlowId } from "../setup/entryCards";
 import StoryboardSetupHost from "../setup/storyboard/StoryboardSetupHost";
 import VideoSetupHost from "../setup/video/VideoSetupHost";
@@ -119,6 +123,7 @@ import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
 import { startImageFlow } from "../setup/image/startImageFlow";
 import {
   useCreateTimeline,
+  useDeleteTimeline,
   useSeedTimelineDetail
 } from "../../hooks/useTimelineSequence";
 import { useCreateScript } from "../../hooks/script/useScripts";
@@ -432,6 +437,7 @@ const NewProjectSurface = ({
   const summaries = useProjectSummaries();
   const createStoryboard = useCreateStoryboard();
   const createTimeline = useCreateTimeline();
+  const deleteTimeline = useDeleteTimeline();
   const seedTimelineDetail = useSeedTimelineDetail();
   const createScript = useCreateScript();
   const createWorkflow = useWorkflowManager((state) => state.create);
@@ -676,7 +682,7 @@ const NewProjectSurface = ({
           text: composeFirstTurn({
             prompt: text,
             starter,
-            entityNames: selectedEntities.map((entity) => entity.name)
+            entityIds: selectedEntities.map((entity) => entity.id)
           })
         },
         ...getFileContents()
@@ -878,12 +884,16 @@ const NewProjectSurface = ({
       const name =
         text.length > 0 ? projectNameFromPrompt(text, null) : "New video";
       setStarting(true);
+      // The sequence made before its setup PATCH. A failure in between
+      // deletes it, so no empty timeline is left in the project (F15).
+      let unfinishedId: string | null = null;
       try {
         const references = await uploadComposerReferences(droppedFiles);
         const sequence = await createTimeline.mutateAsync({
           name,
           projectId
         });
+        unfinishedId = sequence.id;
         const entityReferenceBindings: ProductionReferenceBinding[] =
           selectedEntities.flatMap((entity) => {
             const assetId = assetIdOf(entity.reference_images?.[0]);
@@ -916,6 +926,7 @@ const NewProjectSurface = ({
             })
           })
         });
+        unfinishedId = null;
         // The create seeded the detail cache with a sequence that has no setup;
         // the flow's first render must not read that copy (see
         // `useSeedTimelineDetail`).
@@ -929,6 +940,11 @@ const NewProjectSurface = ({
           ownsProject: false
         });
       } catch (error) {
+        if (unfinishedId !== null) {
+          await deleteTimeline
+            .mutateAsync({ id: unfinishedId })
+            .catch(() => undefined);
+        }
         reportEntryFailure("video", error);
       } finally {
         setStarting(false);
@@ -937,6 +953,7 @@ const NewProjectSurface = ({
     [
       applySetupTarget,
       createTimeline,
+      deleteTimeline,
       droppedFiles,
       entityIds,
       noteUncarriedContext,
@@ -1867,16 +1884,23 @@ const NewProjectSurface = ({
             id="guided-flows"
             aria-label="Start with a guided flow"
             gap={SPACING.lg}
+            // Only the flow cards sit on black. The section's other buttons
+            // (More formats, the game dimension select, a card's expand
+            // control) keep their own surfaces.
             sx={{
-              "& button": { bgcolor: "common.black" },
-              '& button:not([aria-disabled="true"]):hover': {
+              [`& .${OPTION_CARD_CLASS}`]: { bgcolor: "common.black" },
+              [`& .${OPTION_CARD_CLASS}:not([aria-disabled="true"]):hover`]: {
                 bgcolor: "common.black",
                 borderColor: "primary.main"
               },
-              "& img": { opacity: 0.7, transition: MOTION.opacity },
-              '& button:not([aria-disabled="true"]):hover img': {
-                opacity: 0.9
-              }
+              [`& .${OPTION_CARD_CLASS} img`]: {
+                opacity: 0.7,
+                transition: MOTION.opacity
+              },
+              [`& .${OPTION_CARD_CLASS}:not([aria-disabled="true"]):hover img`]:
+                {
+                  opacity: 0.9
+                }
             }}
           >
             <FlexRow align="flex-end" gap={SPACING.md} wrap>

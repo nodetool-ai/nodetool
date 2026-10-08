@@ -66,6 +66,63 @@ export interface InverseAffine {
 
 export type CompositorFilter = "nearest" | "linear";
 
+/** A rectangle of whole pixels on a texture. */
+export interface PixelRect {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+}
+
+/**
+ * The pixels of a `canvasWidth × canvasHeight` target that a `sourceWidth ×
+ * sourceHeight` layer placed by `inv` can touch: its quad's bounding box,
+ * grown a pixel for filtering and clamped to the target. Null when the quad
+ * misses the target. Answers the whole target when the quad cannot be bounded
+ * — a perspective whose horizon crosses it.
+ */
+export function placedLayerRect(
+  inv: InverseAffine,
+  sourceWidth: number,
+  sourceHeight: number,
+  canvasWidth: number,
+  canvasHeight: number
+): PixelRect | null {
+  const whole = { x: 0, y: 0, width: canvasWidth, height: canvasHeight };
+  // `inv` maps a screen pixel (x, y, 1) to a texel by the homogeneous matrix
+  // [[a, b, tx], [c, d, ty], [p, q, r]]; its inverse places each corner.
+  const a = inv.a, b = inv.b, c = inv.tx;
+  const d = inv.c, e = inv.d, f = inv.ty;
+  const g = inv.p ?? 0, h = inv.q ?? 0, i = inv.r ?? 1;
+  const det = a * (e * i - f * h) - b * (d * i - f * g) + c * (d * h - e * g);
+  if (!Number.isFinite(det) || Math.abs(det) < 1e-12) return whole;
+  const m00 = (e * i - f * h) / det, m01 = (c * h - b * i) / det, m02 = (b * f - c * e) / det;
+  const m10 = (f * g - d * i) / det, m11 = (a * i - c * g) / det, m12 = (c * d - a * f) / det;
+  const m20 = (d * h - e * g) / det, m21 = (b * g - a * h) / det, m22 = (a * e - b * d) / det;
+  let x0 = Infinity, y0 = Infinity, x1 = -Infinity, y1 = -Infinity;
+  let sign = 0;
+  for (const [u, v] of [[0, 0], [sourceWidth, 0], [0, sourceHeight], [sourceWidth, sourceHeight]] as const) {
+    const w = m20 * u + m21 * v + m22;
+    // Corners on both sides of the eye put the horizon inside the quad, and
+    // nothing short of the whole target bounds it.
+    if (!(Math.abs(w) > 1e-12)) return whole;
+    if (sign === 0) sign = Math.sign(w);
+    else if (Math.sign(w) !== sign) return whole;
+    const x = (m00 * u + m01 * v + m02) / w;
+    const y = (m10 * u + m11 * v + m12) / w;
+    if (x < x0) x0 = x;
+    if (x > x1) x1 = x;
+    if (y < y0) y0 = y;
+    if (y > y1) y1 = y;
+  }
+  const left = Math.max(0, Math.floor(x0) - 1);
+  const top = Math.max(0, Math.floor(y0) - 1);
+  const right = Math.min(canvasWidth, Math.ceil(x1) + 1);
+  const bottom = Math.min(canvasHeight, Math.ceil(y1) + 1);
+  if (!(right > left && bottom > top)) return null;
+  return { x: left, y: top, width: right - left, height: bottom - top };
+}
+
 export interface BlendPassParams {
   /** Layer source texture. */
   source: GPUTexture;
@@ -384,6 +441,42 @@ export class WebGPULayerCompositor {
     writeTex: GPUTexture,
     params: BlendPassParams
   ): void {
+    this.encodeBlendPass(encoder, readTex, writeTex, params, null);
+  }
+
+  /**
+   * Composite one layer onto `accumTex` in place, touching only `rect`.
+   *
+   * A layer that covers a small part of the frame need not rewrite the rest:
+   * the destination pixels under `rect` are copied to `scratchTex`, and the
+   * blend reads them there and writes over `accumTex` with a scissor, leaving
+   * every other pixel as it was. Outside the layer's quad the blend shader
+   * returns the destination unchanged, so the result is the full-frame pass's
+   * whenever `rect` covers the quad. The accumulation stays in `accumTex`; no
+   * swap. Both textures must allow copies (the ping-pong pair does).
+   */
+  renderBlendPassInRect(
+    encoder: GPUCommandEncoder,
+    accumTex: GPUTexture,
+    scratchTex: GPUTexture,
+    params: BlendPassParams,
+    rect: PixelRect
+  ): void {
+    encoder.copyTextureToTexture(
+      { texture: accumTex, origin: { x: rect.x, y: rect.y } },
+      { texture: scratchTex, origin: { x: rect.x, y: rect.y } },
+      { width: rect.width, height: rect.height }
+    );
+    this.encodeBlendPass(encoder, scratchTex, accumTex, params, rect);
+  }
+
+  private encodeBlendPass(
+    encoder: GPUCommandEncoder,
+    readTex: GPUTexture,
+    writeTex: GPUTexture,
+    params: BlendPassParams,
+    rect: PixelRect | null
+  ): void {
     const { invAffine } = params;
     const borderRadius = params.borderRadius ?? 0;
     const smoothness = borderRadius > 0 ? BORDER_RADIUS_SMOOTHNESS : 0;
@@ -426,11 +519,12 @@ export class WebGPULayerCompositor {
 
     const pass = encoder.beginRenderPass({
       colorAttachments: [
-        { view: writeTex.createView(), loadOp: "clear", storeOp: "store" }
+        { view: writeTex.createView(), loadOp: rect ? "load" : "clear", storeOp: "store" }
       ]
     });
     pass.setPipeline(this.blendPipeline);
     pass.setBindGroup(0, bindGroup);
+    if (rect) pass.setScissorRect(rect.x, rect.y, rect.width, rect.height);
     pass.draw(4);
     pass.end();
   }

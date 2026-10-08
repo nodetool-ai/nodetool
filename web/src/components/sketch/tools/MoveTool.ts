@@ -4,6 +4,8 @@
  * Supports:
  *   - Ctrl+Alt click to duplicate-and-move
  *   - Alt click to auto-pick topmost non-transparent layer
+ *   - Snapping to canvas edges and center, guides and other layers
+ *     (hold Ctrl/Cmd while dragging to bypass), Shift to lock an axis
  *   - Shared PreviewSession for live compositing preview
  *   - clearLayerTransformPreview on release
  *
@@ -35,6 +37,14 @@ import {
 } from "../transform/geometry/layerGeometry";
 import { docToScreen } from "./transform/handleGeometry";
 import { drawOffCanvasIndicator } from "./gizmo";
+import { snapMoveDelta, type SnapRect, type SnapTargets } from "../snapping/moveSnap";
+import {
+  collectSnapTargets,
+  isSnapEnabled,
+  layerExtents,
+  showSnapLines,
+  snapThreshold
+} from "../snapping/toolSnap";
 import { useSketchStore } from "../state/useSketchStore";
 import { createPreviewSession, type PreviewSession } from "./previewSession";
 import { pickTopmostTransformableLayer } from "./transformTargetSet";
@@ -189,6 +199,11 @@ export class MoveTool implements ToolHandler {
     layerId: string;
     baseline: LayerTransform;
   }> = [];
+  /** Union of the moving layers' extents at drag start, for snapping. */
+  private snapRect: SnapRect | null = null;
+  private snapTargets: SnapTargets | null = null;
+  /** Snapped / constrained cursor of the latest move, reused on release. */
+  private lastCursor: Point | null = null;
 
   onActivate(ctx: ToolContext): void {
     this.refreshGizmo(ctx);
@@ -222,12 +237,46 @@ export class MoveTool implements ToolHandler {
     this.extraMoveTargets = [];
     this.moveStart = null;
     this.moveLayerStartTransform = { ...IDENTITY_AFFINE };
+    this.resetSnapState();
     ctx.clearGizmo();
+  }
+
+  private resetSnapState(): void {
+    this.snapRect = null;
+    this.snapTargets = null;
+    this.lastCursor = null;
+    showSnapLines(null);
+  }
+
+  /**
+   * Capture the moving layers' extents and the lines they can snap to. Other
+   * layers' bounds are read once here, not on every pointer move.
+   */
+  private prepareSnapping(ctx: ToolContext, movingIds: ReadonlySet<string>): void {
+    let union: SnapRect | null = null;
+    for (const id of movingIds) {
+      const r = layerExtents(ctx, id);
+      if (!r) {
+        continue;
+      }
+      if (!union) {
+        union = { ...r };
+      } else {
+        const x0 = Math.min(union.x, r.x);
+        const y0 = Math.min(union.y, r.y);
+        const x1 = Math.max(union.x + union.width, r.x + r.width);
+        const y1 = Math.max(union.y + union.height, r.y + r.height);
+        union = { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+      }
+    }
+    this.snapRect = union;
+    this.snapTargets = collectSnapTargets(ctx, movingIds);
   }
 
   private refreshGizmo(ctx: ToolContext): void {
     this.refreshGizmoWithTransform(ctx, null);
   }
+
 
   /**
    * Refresh the gizmo overlay. When `overrideTransform` is provided it is
@@ -401,6 +450,11 @@ export class MoveTool implements ToolHandler {
         });
       }
     }
+    this.resetSnapState();
+    this.prepareSnapping(
+      ctx,
+      new Set([moveTargetLayer.id, ...this.extraMoveTargets.map((e) => e.layerId)])
+    );
     return true;
   }
 
@@ -409,8 +463,46 @@ export class MoveTool implements ToolHandler {
       return;
     }
     const pt = event.point;
-    const dx = pt.x - this.moveStart.x;
-    const dy = pt.y - this.moveStart.y;
+    let dx = pt.x - this.moveStart.x;
+    let dy = pt.y - this.moveStart.y;
+    const native = event.nativeEvent;
+    // Shift locks the move to the dominant axis.
+    if (native.shiftKey) {
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        dy = 0;
+      } else {
+        dx = 0;
+      }
+    }
+    // Ctrl/Cmd held during a Move-tool drag bypasses snapping, as in
+    // Photoshop. A spring-loaded move (Ctrl held on another tool) and a
+    // Ctrl+Alt duplicate-drag hold Ctrl for another reason, so they still snap.
+    const bypassSnap =
+      (native.ctrlKey || native.metaKey) &&
+      !native.altKey &&
+      useSketchStore.getState().activeTool === "move";
+    if (isSnapEnabled() && !bypassSnap && this.snapRect && this.snapTargets) {
+      const threshold = snapThreshold(ctx.zoom);
+      const snapped = snapMoveDelta(
+        this.snapRect,
+        dx,
+        dy,
+        this.snapTargets,
+        threshold
+      );
+      // A locked axis stays locked: only the free axis may snap.
+      const lockX = native.shiftKey && dx === 0;
+      const lockY = native.shiftKey && dy === 0;
+      dx = lockX ? 0 : snapped.dx;
+      dy = lockY ? 0 : snapped.dy;
+      showSnapLines({
+        x: lockX ? null : snapped.snappedX,
+        y: lockY ? null : snapped.snappedY
+      });
+    } else {
+      showSnapLines(null);
+    }
+    this.lastCursor = { x: this.moveStart.x + dx, y: this.moveStart.y + dy };
     const previewId = this.session.state.layerId;
     // Read freshest doc from the store in case a duplicate just occurred.
     // Fall back to ctx.doc when the store document doesn't contain the target layer
@@ -460,7 +552,7 @@ export class MoveTool implements ToolHandler {
     // order (primary first, then extras), which keeps history entries
     // grouped naturally and makes the post-up gizmo refresh see the
     // freshest doc.
-    const finalCursor = event?.point ?? null;
+    const finalCursor = this.lastCursor ?? event?.point ?? null;
     const extras = this.extraMoveTargets;
     this.extraMoveTargets = [];
     if (finalCursor && this.moveStart) {
@@ -485,6 +577,7 @@ export class MoveTool implements ToolHandler {
 
     this.moveStart = null;
     this.moveLayerStartTransform = { ...IDENTITY_AFFINE };
+    this.resetSnapState();
 
     if (layerId) {
       ctx.onStrokeEnd(layerId, null, undefined, {

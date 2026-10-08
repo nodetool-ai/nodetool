@@ -131,6 +131,10 @@ const swallowClick = (event: React.MouseEvent): void => {
 };
 
 /** Footer actions read as quiet text until hovered; the media is the card. */
+/** True for a drag carrying files from outside the page. */
+const isFileDrag = (event: React.DragEvent): boolean =>
+  Array.from(event.dataTransfer?.types ?? []).includes("Files");
+
 const footerButtonSx = { minWidth: 0, px: SPACING.xs } as const;
 
 /** The render bar sits on the thumbnail's bottom edge, 3px per the design. */
@@ -347,6 +351,11 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   );
   const handleDragEnter = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
+      // Files dragged in from the desktop are not a card reorder: let the
+      // browser refuse them rather than swallow the drop.
+      if (isFileDrag(event)) {
+        return;
+      }
       event.preventDefault();
       onDragEnter?.(shot.id);
     },
@@ -355,6 +364,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   // Without preventDefault on dragover the browser refuses the drop.
   const handleDragOver = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
+      if (isFileDrag(event)) {
+        return;
+      }
       event.preventDefault();
       event.dataTransfer.dropEffect = "move";
     },
@@ -362,6 +374,9 @@ const ShotCardInner: React.FC<ShotCardProps> = ({
   );
   const handleDrop = useCallback(
     (event: React.DragEvent<HTMLDivElement>) => {
+      if (isFileDrag(event)) {
+        return;
+      }
       event.preventDefault();
       onDrop?.(shot.id);
     },

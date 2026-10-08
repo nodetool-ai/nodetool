@@ -1,5 +1,5 @@
 import { type ComponentProps } from "react";
-import { act, render, screen } from "@testing-library/react";
+import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
@@ -24,21 +24,30 @@ const mockServer = { document: mockDocument, game: { id: mockDocument.id, name: 
 const mockInvalidate = jest.fn(async () => undefined);
 const mockSave = jest.fn(async (_request: { id: string; baseUpdatedAt: string; ops: readonly unknown[] }) => mockServer);
 const mockGetDraftQuery = jest.fn(async () => mockServer);
+let mockDraftUnavailable = false;
+const mockRecoveryRevision = "b".repeat(32);
+const mockRestore = jest.fn(async (_request: { id: string; baseUpdatedAt: string; revision: string }) => mockServer);
+const mockSetDraft = jest.fn();
 
 jest.mock("../../../trpc/client", () => ({
   trpc: {
     games: {
-      getDraft: { useQuery: () => ({ data: mockServer, isPending: false }) },
-      revisions: { useQuery: () => ({ data: [] }) },
+      getDraft: { useQuery: () => mockDraftUnavailable
+        ? { data: undefined, isPending: false, error: { message: "Game draft source is unavailable", data: { code: "PRECONDITION_FAILED" } } }
+        : { data: mockServer, isPending: false } },
+      get: { useQuery: () => ({ data: mockServer, isPending: false, refetch: async () => ({ data: mockServer }) }) },
+      revisions: { useQuery: () => ({ data: [{ revision: mockRecoveryRevision, modifiedAt: 0, current: true, message: "Published room" }] }) },
       draftChanges: { useQuery: () => ({ data: [] }) }
     },
     useUtils: () => ({ games: {
-      getDraft: { invalidate: mockInvalidate }, revisions: { invalidate: mockInvalidate }, draftChanges: { invalidate: mockInvalidate }
+      getDraft: { invalidate: mockInvalidate, setData: mockSetDraft },
+      get: { setData: jest.fn() }, revisions: { invalidate: mockInvalidate }, draftChanges: { invalidate: mockInvalidate }
     } })
   },
   trpcClient: { games: {
     saveDraft: { mutate: (request: Parameters<typeof mockSave>[0]) => mockSave(request) },
-    getDraft: { query: () => mockGetDraftQuery() }
+    restoreDraft: { mutate: (request: Parameters<typeof mockRestore>[0]) => mockRestore(request) },
+    get: { query: async () => mockServer }, getDraft: { query: () => mockGetDraftQuery() }
   } }
 }));
 jest.mock("../../../hooks/useDocumentConflicts", () => ({ useDocumentConflicts: () => ({ items: [], accept: jest.fn(), discard: jest.fn() }) }));
@@ -80,6 +89,10 @@ beforeEach(() => {
   mockPlayDocument = mockDocument;
   mockHostFailure = null;
   mockDiagnosticFailure = null;
+  mockDraftUnavailable = false;
+  mockRestore.mockResolvedValue(mockServer);
+  mockInvalidate.mockResolvedValue(undefined);
+  mockSetDraft.mockImplementation(() => undefined);
   const player = mockDocument.scenes[0].entities.find((entity) => entity.id === "player");
   if (!player) { throw new Error("Controller fixture player missing"); }
   player.behaviors = [{ kind: "script", source: "function update() {}", maxCommands: 16, maxTickMs: 8 }];
@@ -118,6 +131,35 @@ it.each(["BAD_REQUEST", "INTERNAL_SERVER_ERROR", "transport"])("preserves an ove
     view.unmount();
     jest.useRealTimers();
   }
+});
+
+it("F6 restores a missing draft only after selecting and confirming a published revision", async () => {
+  mockDraftUnavailable = true;
+  getGameDraftStore(mockDocument.id).setState({ document: null });
+  const user = userEvent.setup();
+  render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
+  expect(mockRestore).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: "Restore to draft" }));
+  expect(mockRestore).not.toHaveBeenCalled();
+  await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Restore to draft" }));
+  expect(mockRestore).toHaveBeenCalledWith({ id: mockDocument.id,
+    baseUpdatedAt: mockServer.game.draftUpdatedAt, revision: mockRecoveryRevision });
+});
+
+it("F6 leaves recovery after a competing writer repairs the draft", async () => {
+  mockDraftUnavailable = true;
+  getGameDraftStore(mockDocument.id).setState({ document: null });
+  mockRestore.mockRejectedValue(new Error("Game draft was modified concurrently"));
+  mockSetDraft.mockImplementation(() => { mockDraftUnavailable = false; });
+  const user = userEvent.setup();
+  const view = render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
+  await user.click(screen.getByRole("button", { name: "Restore to draft" }));
+  await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Restore to draft" }));
+  await waitFor(() => expect(mockSetDraft).toHaveBeenCalledWith({ id: mockDocument.id }, mockServer));
+  view.rerender(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
+  expect(screen.queryByText("Draft source unavailable")).not.toBeInTheDocument();
+  expect(mockViewportProps).toBeDefined();
+  expect(mockRestore).toHaveBeenCalledTimes(1);
 });
 
 it.each(["active play", "independent diagnostic"])("replays active history for the displayed %s error", async (provenance) => {
