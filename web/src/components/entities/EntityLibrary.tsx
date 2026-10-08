@@ -30,6 +30,7 @@ import {
   LOOSE_PROJECT_ID,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
+import { useEntityLibraryStore } from "../../stores/EntityLibraryStore";
 
 const EntityLibraryInternal: React.FC = () => {
   const projectId =
@@ -37,14 +38,15 @@ const EntityLibraryInternal: React.FC = () => {
   const { data: entities, isLoading } = useEntities();
   const deleteEntity = useDeleteEntity();
 
-  const [creating, setCreating] = useState(false);
+  const creating = useEntityLibraryStore((state) => state.creating);
+  const setCreating = useEntityLibraryStore((state) => state.setCreating);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorAssetId, setEditorAssetId] = useState<string | null>(null);
   const [editingEntity, setEditingEntity] = useState<Entity | undefined>(
     undefined
   );
 
-  const handleAdd = useCallback(() => setCreating(true), []);
+  const handleAdd = useCallback(() => setCreating(true), [setCreating]);
 
   const handleEdit = useCallback((entity: Entity) => {
     setEditorAssetId(entity.id);
