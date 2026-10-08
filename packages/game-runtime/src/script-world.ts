@@ -33,9 +33,12 @@ export class ScriptWorldSnapshot {
   private byX: readonly { readonly entity: ScriptWorldEntity; readonly order: number }[] | undefined;
 
   constructor(entities: readonly ScriptWorldEntity[]) {
-    this.entities = entities.map((entity) => Object.freeze({ ...entity,
-      ...(entity.position ? { position: Object.freeze({ ...entity.position }) } : {}),
-      ...(entity.velocity ? { velocity: Object.freeze({ ...entity.velocity }) } : {}) }));
+    this.entities = entities.map((entity) => {
+      const snapshot = { ...entity };
+      if (entity.position) { snapshot.position = Object.freeze({ ...entity.position }); }
+      if (entity.velocity) { snapshot.velocity = Object.freeze({ ...entity.velocity }); }
+      return Object.freeze(snapshot);
+    });
     this.byId = new Map(this.entities.map((entity) => [entity.id, entity]));
   }
 
