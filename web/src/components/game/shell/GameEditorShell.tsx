@@ -36,7 +36,7 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, la
   const root = useRef<HTMLDivElement | null>(null);
   const registrations = useSyncExternalStore(registry.subscribe, registry.getSnapshot, registry.getSnapshot);
   const layout = useStore(layoutStore, (state) => state.layout);
-  useEffect(() => { layoutStore.getState().registerPanels(registrations); }, [layoutStore, registrations]);
+  useEffect(() => { layoutStore.getState().registerPanels(registrations); }, [layoutStore, registrations, layout]);
   const views = panels.filter((view) => view.visible !== false && registrations.some((entry) => entry.id === view.id && entry.dimensions.includes(dimension)));
   const presentation = useGameDockPresentation({ store: layoutStore, layout, registry: registrations, dimension,
     availableIds: views.map((view) => view.id), views, root });

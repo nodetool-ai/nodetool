@@ -176,3 +176,22 @@ it.each([
   await user.keyboard("{Delete}");
   expect(onKeyDown).toHaveBeenCalledTimes(1);
 });
+
+
+it.each(["2d", "3d"] as const)("keeps a late registered %s panel reachable when applying an older saved layout", async (dimension) => {
+  const user = userEvent.setup();
+  const registry = createGamePanelRegistry();
+  render(<ThemeProvider theme={mockTheme}><Shell dimension={dimension} registry={registry} toolbar={toolbar} status={status}
+    panels={[{ id: "late-extension", node: <input aria-label="Extension draft" defaultValue="original" /> }]} /></ThemeProvider>);
+  await user.type(screen.getByRole("textbox", { name: "Layout name" }), "Before extension");
+  await user.click(screen.getByRole("button", { name: "Save layout" }));
+  await act(async () => {
+    registry.register({ id: "late-extension", title: "Live extension", icon: null, dimensions: [dimension], defaultRegion: "bottom" });
+  });
+  const input = screen.getByRole("textbox", { name: "Extension draft" });
+  await user.type(input, " changed");
+  await user.click(screen.getByRole("button", { name: "Apply layout" }));
+  expect(screen.getByRole("tab", { name: "Live extension" })).toBeInTheDocument();
+  expect(screen.getByRole("textbox", { name: "Extension draft" })).toBe(input);
+  expect(input).toHaveValue("original changed");
+});
