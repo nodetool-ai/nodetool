@@ -100,11 +100,6 @@ const storedClip = (shotId: string): VideoRef | null | undefined =>
     .getState()
     .boards[BOARD]?.shots.find((shot) => shot.id === shotId)?.clip;
 
-const storedShotKeyframe = (shotId: string): ImageRef | null | undefined =>
-  useStoryboardStore
-    .getState()
-    .boards[BOARD]?.shots.find((shot) => shot.id === shotId)?.keyframe;
-
 const renderGallery = (shot: Shot, readOnly = false) =>
   render(
     <ThemeProvider theme={mockTheme}>
@@ -147,7 +142,7 @@ describe("ShotTakesGallery", () => {
 
     expect(
       screen.getAllByRole("button", {
-        name: /^(Preview still|Still \d, current still)/
+        name: /^(Use still \d as current still|Still \d, current still)/
       })
     ).toHaveLength(2);
     expect(
@@ -166,7 +161,7 @@ describe("ShotTakesGallery", () => {
     expect(screen.queryByTestId("output-renderer")).not.toBeInTheDocument();
   });
 
-  it("previews a still without selecting it, then accepts it explicitly", async () => {
+  it("makes a still current with one click on its thumbnail", async () => {
     const shot = makeShot({
       keyframe: image(2),
       keyframe_versions: [image(1), image(2)]
@@ -177,13 +172,11 @@ describe("ShotTakesGallery", () => {
     expect(
       screen.getByRole("button", { name: "Still 2, current still" })
     ).toHaveAttribute("aria-current", "true");
+    expect(
+      screen.queryByRole("button", { name: /Set still 1 as current/ })
+    ).toBeNull();
     await userEvent.click(
-      screen.getByRole("button", { name: "Preview still 1" })
-    );
-    expect(storedShotKeyframe(shot.id)).toEqual(image(2));
-
-    await userEvent.click(
-      screen.getByRole("button", { name: "Set still 1 as current still" })
+      screen.getByRole("button", { name: "Use still 1 as current still" })
     );
 
     const updated = useStoryboardStore

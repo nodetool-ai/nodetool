@@ -257,7 +257,7 @@ describe("manifest-models task inference (FAL manifest)", () => {
     }
   });
 
-  it("tags a general image generator image_to_image, and text_to_image unless it requires an image", () => {
+  it("tags a general image generator by the image inputs it declares", () => {
     const generators = images.filter(
       (m) =>
         m.supportedTasks?.includes("text_to_image") ||
@@ -265,16 +265,24 @@ describe("manifest-models task inference (FAL manifest)", () => {
     );
     expect(generators.length).toBeGreaterThan(0);
     for (const m of generators) {
-      // Direction cannot be read off a FAL id, so a generator carries
-      // image_to_image either way; mask-declaring endpoints additionally
-      // advertise inpainting (the only permitted extra).
+      // Direction cannot be read off a FAL id, so the declared inputs decide:
+      // mask-declaring endpoints additionally advertise inpainting (the only
+      // permitted extra).
       const tasks = m.supportedTasks ?? [];
-      expect(tasks).toContain("image_to_image");
       const extras = tasks.filter(
         (t) => t !== "text_to_image" && t !== "image_to_image"
       );
       expect(extras.every((t) => t === "inpainting")).toBe(true);
     }
+    // Both directions stay common…
+    expect(
+      generators.filter((m) => m.supportedTasks?.includes("image_to_image"))
+        .length
+    ).toBeGreaterThan(0);
+    // …but an endpoint with no image input is no editor.
+    expect(byId(images, "fal-ai/flux/schnell")?.supportedTasks).toEqual([
+      "text_to_image"
+    ]);
     // Some do generate from a prompt alone…
     expect(
       generators.filter((m) => m.supportedTasks?.includes("text_to_image"))

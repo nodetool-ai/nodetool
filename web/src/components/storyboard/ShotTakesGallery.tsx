@@ -249,10 +249,16 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                     aria-label={
                       isCurrent
                         ? `Still ${i + 1}, current still`
-                        : `Preview still ${i + 1}`
+                        : readOnly
+                          ? `Preview still ${i + 1}`
+                          : `Use still ${i + 1} as current still`
                     }
                     aria-current={isCurrent ? "true" : undefined}
-                    onClick={() => setViewerMedia(still)}
+                    onClick={() =>
+                      readOnly || isCurrent
+                        ? setViewerMedia(still)
+                        : handleAcceptStill(i)
+                    }
                     sx={takeThumbSx}
                   >
                     {stillThumbSrcs[i] ? (
@@ -286,14 +292,6 @@ const ShotTakesGalleryInner: React.FC<ShotTakesGalleryProps> = ({
                     sx={viewButtonSx}
                   />
                 </Box>
-                {!isCurrent && !readOnly && (
-                  <EditorButton
-                    onClick={() => handleAcceptStill(i)}
-                    aria-label={`Set still ${i + 1} as current still`}
-                  >
-                    Set as current still
-                  </EditorButton>
-                )}
               </FlexRow>
             );
           })}

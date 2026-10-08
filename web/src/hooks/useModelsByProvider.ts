@@ -230,6 +230,7 @@ export const useLanguageModelsByProvider = (options?: {
 export type ImageModelTask =
   | "text_to_image"
   | "image_to_image"
+  | "image_edit"
   | "inpainting"
   | "outpaint"
   | "upscale"

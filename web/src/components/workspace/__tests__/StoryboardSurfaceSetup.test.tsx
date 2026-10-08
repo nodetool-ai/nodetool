@@ -45,15 +45,29 @@ jest.mock("../../../components/setup/storyboard/EntitiesStep", () => ({
 jest.mock("../../storyboard/StoryboardBoard", () => ({
   __esModule: true,
   default: ({
-    reviewRequest
+    reviewRequest,
+    assistantOpen,
+    onToggleAssistant
   }: {
     reviewRequest?: { shotId: string; requestId: string } | null;
+    assistantOpen?: boolean;
+    onToggleAssistant?: () => void;
   }) => (
     <div
       data-testid="board"
       data-review-shot={reviewRequest?.shotId}
       data-review-request={reviewRequest?.requestId}
-    />
+    >
+      {onToggleAssistant && (
+        <button
+          type="button"
+          aria-pressed={assistantOpen}
+          onClick={onToggleAssistant}
+        >
+          Assistant
+        </button>
+      )}
+    </div>
   )
 }));
 jest.mock("../../storyboard/StoryboardAgentPanel", () => ({
@@ -219,6 +233,25 @@ describe("StoryboardSurface setup stages", () => {
     expect(
       screen.queryByRole("navigation", { name: "Setup steps" })
     ).toBeNull();
+  });
+
+  it("hides the assistant until the board toggles it", async () => {
+    seedBoard("done");
+    renderSurface();
+
+    const dock = screen.getByTestId("storyboard-assistant-dock");
+    expect(dock).toHaveStyle({ display: "none" });
+    const toggle = screen.getByRole("button", { name: "Assistant" });
+    expect(toggle).toHaveAttribute("aria-pressed", "false");
+
+    await userEvent.click(toggle);
+    expect(dock).toHaveStyle({ display: "flex" });
+    expect(toggle).toHaveAttribute("aria-pressed", "true");
+
+    await userEvent.click(toggle);
+    expect(dock).toHaveStyle({ display: "none" });
+    // Hidden, not unmounted: the conversation is still there.
+    expect(screen.getByTestId("agent-panel")).toBeInTheDocument();
   });
 
   it("opens the guarded shot editor target from the queue", async () => {
