@@ -127,6 +127,12 @@ Fields that fail validation show their error beside the field. The scene tree ma
 
 **Revisions.** The scene tree dock has a collapsed **Revisions** section. It lists the 10 most recent revisions. **Restore to draft** loads one into the draft without changing the published history.
 
+If the saved draft source is unavailable, the editor offers published revisions
+for recovery. When this tab still has a local draft, **Export local draft** saves
+its document, pending edits, and undo history as JSON before restoring is enabled.
+Keep the tab open until the download finishes. Confirming **Restore to draft**
+replaces the local draft and clears its undo history.
+
 ### 3D
 
 **Scene tree.** A **Scene** selector switches scenes. The list below it is flat. A child shows an arrow, and a character or camera shows a tag. **Add box**, **Add sphere**, and **Add light** create a primitive with a static body and matching collider, or a point light.

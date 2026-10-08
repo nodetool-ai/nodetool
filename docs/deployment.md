@@ -184,7 +184,7 @@ nodetool deploy logs <name> --follow
 | "Image not found" | Docker image not present | `docker pull ghcr.io/nodetool-ai/nodetool:latest` |
 | Permission denied on volumes | Container user lacks access | Fix host directory permissions |
 
-For more, see the [Troubleshooting Guide](troubleshooting.md#issue-deployment-fails-or-service-wont-start).
+For more, see the [Troubleshooting Guide](troubleshooting.md#a-deployment-fails-or-the-service-wont-start).
 
 ---
 
