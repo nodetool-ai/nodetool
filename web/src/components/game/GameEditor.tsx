@@ -7,7 +7,7 @@ import { createScriptedGameSession, validateGame, type AnyGameDocumentOp as Game
 import { trpc, trpcClient } from "../../trpc/client";
 import { useChatDraftStore } from "../../stores/ChatDraftStore";
 import { useConflictStore } from "../../stores/ConflictStore";
-import { flushGameDraft, pullGameDraft } from "../../stores/game/draftSave";
+import { captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
@@ -152,11 +152,14 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       while (store.getState().pendingOps.length > 0) {
         const state = store.getState();
         if (!state.baseUpdatedAt) return;
-        const ops = state.captureSaveOps();
-        state.setSaving(ops.length);
+        const batch = captureGameDraftBatch(refId);
+        if (!batch) return;
+        state.setSaving(batch.count);
         try {
-          const result = await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops });
-          store.getState().acknowledge(result.document, result.game.draftUpdatedAt, ops.length);
+          const result = "document" in batch
+            ? await trpcClient.games.saveDraftDocument.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, document: batch.document })
+            : await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops: batch.ops });
+          store.getState().acknowledge(result.document, result.game.draftUpdatedAt, batch.count);
           loadedTokenRef.current = result.game.draftUpdatedAt;
           retries = 0;
         } catch (cause) {
@@ -187,6 +190,10 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
             if (recoveryError instanceof Error && recoveryError.message === "Resolve draft conflicts before saving") {
               throw recoveryError;
             }
+          }
+          if ("ops" in batch && isRejectedGameSave(cause)) {
+            store.getState().requireDocumentSave();
+            continue;
           }
           const message = cause instanceof Error ? cause.message : String(cause);
           store.getState().failSave(message);
