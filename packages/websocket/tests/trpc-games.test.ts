@@ -515,6 +515,21 @@ describe("native game revisions", () => {
     }
     expect(await caller.games.revisions({ id: created.game.id })).toHaveLength(1);
   });
+  it("refuses an HDRI candidate whose bytes and dimensions no preparation verified", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Sky", dimension: "3d" });
+    const [row] = await Workspace.listByProject(USER_ID, PROJECT_ID);
+    if (!row) throw new Error("Project workspace missing");
+    const workspace = workspaceFromRow(row);
+    if (!workspace) throw new Error("Workspace storage missing");
+    const bytes = new TextEncoder().encode("#?RADIANCE\nnot an image");
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    for (const extension of ["hdr", "png"]) { await workspace.write(`games/${created.game.id}/assets/${digest}.${extension}`, bytes, "application/octet-stream"); }
+    await expect(caller.games.installCandidate({ id: created.game.id, baseRevision: created.game.revision, baseUpdatedAt: created.game.draftUpdatedAt, slot: "sky",
+      binding: { mediaKind: "hdri", assetId: "sky", digest, format: "hdr", width: 2048, height: 1024, byteLength: bytes.length, preparationVersion: "1" } }))
+      .rejects.toMatchObject({ code: "BAD_REQUEST", message: expect.stringContaining("HDRI candidates cannot be installed") });
+    expect((await caller.games.get({ id: created.game.id })).document.assets.sky).toBeUndefined();
+  });
   it("creates, edits, publishes and restores 3D revisions through short game IDs", async () => {
     const caller = createCaller(makeCtx(USER_ID));
     const created = await caller.games.create({ projectId: PROJECT_ID, name: "Exploration", dimension: "3d" });

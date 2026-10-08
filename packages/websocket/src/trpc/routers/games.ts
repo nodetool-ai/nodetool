@@ -597,6 +597,9 @@ export const gamesRouter = router({
       if (input.binding.mediaKind === "font" && !input.binding.fontFormat) {
         throwApiError(ApiErrorCode.INVALID_INPUT, "Font binding needs a TrueType or OpenType format");
       }
+      if (input.binding.mediaKind === "hdri") {
+        throwApiError(ApiErrorCode.INVALID_INPUT, "HDRI candidates cannot be installed until HDRI preparation verifies their bytes and dimensions");
+      }
       const formats = input.binding.mediaKind === "model"
         ? [["glb", "model/gltf-binary"]]
         : input.binding.mediaKind === "collider"
