@@ -12,8 +12,13 @@ import type GameViewport3D from "../viewport3d/GameViewport3D";
 import type GameHierarchy3D from "../panels/hierarchy/GameHierarchy3D";
 import type GameInspector3D from "../panels/inspector/GameInspector3D";
 import type GameScriptPane from "../panels/scripts/GameScriptPane";
+import type { ScriptFailure } from "../useGamePlaySession";
 
 let mockViewportProps: ComponentProps<typeof GameViewport3D> | undefined;
+let mockPlayDocument: ReturnType<typeof createNative3DGame> | null = null;
+let mockDiagnosticFailure: ScriptFailure | null = null;
+let mockHostError: string | null = null;
+const mockReplay = jest.fn();
 
 const mockDocument = createNative3DGame("controller3d");
 let mockFixtureId = 0;
@@ -26,6 +31,7 @@ const mockServer = { document: mockDocument, game: { id: mockDocument.id, name: 
 const mockGetDraftQuery = jest.fn(async (_request: unknown) => mockServer);
 const mockInvalidate = jest.fn(async () => undefined);
 const mockSave = jest.fn(async (request: { id: string; baseUpdatedAt: string; ops: readonly unknown[] }) => ({ document: getGameDraftStore(request.id).getState().document, game: { draftUpdatedAt: mockSavedToken } }));
+const mockSaveDocument = jest.fn(async (request: { id: string; baseUpdatedAt: string; document: unknown }) => ({ document: request.document, game: { draftUpdatedAt: mockSavedToken } }));
 const mockRestore = jest.fn(async (request: { id: string; baseUpdatedAt: string; revision: string }) => ({ document: { ...mockDocument, id: request.id }, game: { draftUpdatedAt: mockRestoredToken } }));
 
 jest.mock("../../../trpc/client", () => ({
@@ -45,6 +51,7 @@ jest.mock("../../../trpc/client", () => ({
   trpcClient: { games: {
     getDraft: { query: (request: unknown) => mockGetDraftQuery(request) },
     saveDraft: { mutate: (request: Parameters<typeof mockSave>[0]) => mockSave(request) },
+    saveDraftDocument: { mutate: (request: Parameters<typeof mockSaveDocument>[0]) => mockSaveDocument(request) },
     restoreDraft: { mutate: (request: Parameters<typeof mockRestore>[0]) => mockRestore(request) }
   } }
 }));
@@ -52,12 +59,12 @@ jest.mock("../../../hooks/useDocumentConflicts", () => ({ useDocumentConflicts: 
 jest.mock("../useGamePlaySession3D", () => ({
   EMPTY_INPUT_3D: { pressed: [], justPressed: [], axes: {}, look: { x: 0, y: 0 } },
   useGamePlaySession3D: () => ({
-    playing: false, playDocument: null, inspection: null, frame: null, backend: "Test", error: null,
-    beginPlay: jest.fn(), stop: jest.fn(), step: jest.fn(), save: jest.fn(), load: jest.fn(), replayBeforeError: jest.fn()
+    playing: false, playDocument: mockPlayDocument, inspection: { tick: 30, entities: [] }, frame: null, backend: "Test", error: mockHostError,
+    beginPlay: jest.fn(), stop: jest.fn(), step: jest.fn(), save: jest.fn(), load: jest.fn(), replayBeforeError: mockReplay
   })
 }));
 jest.mock("../panels/scripts/useGameScriptDiagnostics", () => ({
-  useGameScriptDiagnostics: () => ({ run: jest.fn(), running: false, summary: null, error: null, byEntity: [] })
+  useGameScriptDiagnostics: () => ({ run: jest.fn(), running: false, summary: null, error: mockDiagnosticFailure, byEntity: [] })
 }), { virtual: true });
 jest.mock("../viewport3d/GameViewport3D", () => ({ __esModule: true, default: (props: ComponentProps<typeof GameViewport3D>) => {
   mockViewportProps = props;
@@ -76,8 +83,9 @@ jest.mock("../panels/authoring/GameAuthoringPreview", () => ({ __esModule: true,
 jest.mock("../panels/changes/GameChanges", () => ({ __esModule: true, default: () => null }));
 jest.mock("../panels/agent/GameAgentPanel", () => ({ __esModule: true, default: () => null }));
 jest.mock("../panels/scripts/GameScriptPane", () => ({
-  __esModule: true, default: ({ entityId, behavior, onChange }: ComponentProps<typeof GameScriptPane>) => <>
+  __esModule: true, default: ({ entityId, behavior, onChange, onReplay }: ComponentProps<typeof GameScriptPane>) => <>
     <p>Editing {entityId}</p>
+    {onReplay && <button onClick={onReplay}>Replay displayed error</button>}
     <textarea aria-label="Anchored script" value={behavior.source} onChange={(event) => onChange(event.target.value)} />
   </>
 }));
@@ -85,6 +93,9 @@ jest.mock("../panels/scripts/GameScriptPane", () => ({
 beforeEach(() => {
   jest.clearAllMocks();
   mockViewportProps = undefined;
+  mockPlayDocument = null;
+  mockDiagnosticFailure = null;
+  mockHostError = null;
   mockDraftUnavailable = false;
   mockDocument.id = `controller3d-${++mockFixtureId}`;
   mockServer.game.id = mockDocument.id;
@@ -94,6 +105,118 @@ beforeEach(() => {
     entity.behaviors = [{ kind: "script", source: "original", maxCommands: 16, maxTickMs: 8 }];
   }
   getGameDraftStore(mockDocument.id).getState().load(mockDocument, mockToken);
+});
+
+it.each(["host", "diagnostic"])("offers 3D host replay only for host failures: %s", async (provenance) => {
+  const user = userEvent.setup();
+  mockPlayDocument = mockDocument;
+  mockHostError = "Game script failed";
+  if (provenance === "diagnostic") {
+    mockDiagnosticFailure = { message: "Game script diagnostic failed", entityId: "player", tick: 500 };
+  }
+  render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  await user.click(screen.getByRole("button", { name: "Select player" }));
+  await user.click(screen.getByRole("button", { name: "Edit selected script" }));
+  if (provenance === "diagnostic") {
+    expect(screen.queryByRole("button", { name: "Replay displayed error" })).not.toBeInTheDocument();
+    expect(mockReplay).not.toHaveBeenCalled();
+  } else {
+    await user.click(screen.getByRole("button", { name: "Replay displayed error" }));
+    expect(mockReplay).toHaveBeenCalledWith(expect.objectContaining({ tick: 31 }));
+  }
+});
+
+type RenameOp = { op: "update_entity"; scene_id: string; entity_id: string; set: { name: string } };
+
+function rename(name: string): RenameOp[] {
+  return [{ op: "update_entity", scene_id: mockDocument.entrySceneId, entity_id: "player", set: { name } }];
+}
+
+function largeEdit(): RenameOp[] {
+  return Array.from({ length: 1025 }, (_, index) => rename(`Player ${index}`)[0]);
+}
+
+function rejected(code: string): Error {
+  return Object.assign(new Error("Save failed"), { data: { code } });
+}
+
+it("saves a 3D batch above the op limit as one whole-document save (F2)", async () => {
+  jest.useFakeTimers();
+  const view = render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  const store = getGameDraftStore(mockDocument.id);
+  try {
+    act(() => store.getState().apply(largeEdit(), { label: "Large Command" }));
+    const local = store.getState().document;
+    await act(async () => { jest.advanceTimersByTime(500); });
+    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockSaveDocument).toHaveBeenCalledTimes(1);
+    expect(mockSaveDocument).toHaveBeenCalledWith({ id: mockDocument.id, baseUpdatedAt: mockToken, document: local });
+    expect(store.getState()).toMatchObject({ document: local, pendingOps: [], saveStatus: "saved", baseUpdatedAt: mockSavedToken });
+  } finally {
+    view.unmount();
+    jest.useRealTimers();
+  }
+});
+
+it("retries a rejected 3D op batch once as the whole document, then saves later edits as ops (F2)", async () => {
+  jest.useFakeTimers();
+  mockSave.mockRejectedValueOnce(rejected("BAD_REQUEST"));
+  const view = render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  const store = getGameDraftStore(mockDocument.id);
+  try {
+    act(() => store.getState().apply(rename("Rejected op"), { label: "Rename Player" }));
+    const local = store.getState().document;
+    await act(async () => { jest.advanceTimersByTime(500); });
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    expect(mockSaveDocument).toHaveBeenCalledTimes(1);
+    expect(mockSaveDocument).toHaveBeenCalledWith(expect.objectContaining({ document: local }));
+    expect(store.getState()).toMatchObject({ pendingOps: [], saveStatus: "saved", documentSaveRequired: false });
+    act(() => store.getState().apply(rename("Later edit"), { label: "Rename Player" }));
+    await act(async () => { jest.advanceTimersByTime(500); });
+    expect(mockSave).toHaveBeenCalledTimes(2);
+    expect(mockSave.mock.calls[1][0]).toMatchObject({ baseUpdatedAt: mockSavedToken, ops: rename("Later edit") });
+    expect(mockSaveDocument).toHaveBeenCalledTimes(1);
+  } finally {
+    view.unmount();
+    jest.useRealTimers();
+  }
+});
+
+it.each(["BAD_REQUEST", "INTERNAL_SERVER_ERROR", "transport"])("preserves a failed 3D whole-document save and saves it with the next edit after %s (F2)", async (code) => {
+  jest.useFakeTimers();
+  let rejectSave: ((error: Error) => void) | undefined;
+  mockSaveDocument.mockImplementationOnce(() => new Promise((_, reject) => { rejectSave = reject; }));
+  const view = render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  const store = getGameDraftStore(mockDocument.id);
+  try {
+    act(() => store.getState().apply(largeEdit(), { label: "Large Command" }));
+    await act(async () => { jest.advanceTimersByTime(500); });
+    expect(mockSaveDocument).toHaveBeenCalledTimes(1);
+    act(() => store.getState().apply(rename("Newer edit"), { label: "Rename Player" }));
+    const before = store.getState();
+    if (!rejectSave) { throw new Error("Save was not held"); }
+    await act(async () => { rejectSave?.(code === "transport" ? new Error("Failed to fetch") : rejected(code)); });
+    expect(mockGetDraftQuery).toHaveBeenCalledTimes(1);
+    expect(store.getState().document).toEqual(before.document);
+    expect(store.getState().pendingOps).toEqual(before.pendingOps);
+    expect(store.getState().commandHistory).toEqual(before.commandHistory);
+    expect(store.getState().saveStatus).toBe("error");
+    await act(async () => { jest.advanceTimersByTime(1000); });
+    expect(mockSaveDocument).toHaveBeenCalledTimes(1);
+    expect(mockSave).not.toHaveBeenCalled();
+    act(() => store.getState().undo());
+    expect(store.getState().document?.scenes[0].entities.find((entity) => entity.id === "player")?.name).toBe("Player 1024");
+    act(() => store.getState().apply(rename("Next edit"), { label: "Rename Player" }));
+    const local = store.getState().document;
+    await act(async () => { jest.advanceTimersByTime(500); });
+    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockSaveDocument).toHaveBeenCalledTimes(2);
+    expect(mockSaveDocument.mock.calls[1][0].document).toEqual(local);
+    expect(store.getState()).toMatchObject({ document: local, pendingOps: [], saveStatus: "saved" });
+  } finally {
+    view.unmount();
+    jest.useRealTimers();
+  }
 });
 
 it("F6 restores a missing 3D draft only after selecting and confirming a published revision", async () => {
