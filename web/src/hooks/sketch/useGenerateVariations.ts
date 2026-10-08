@@ -32,6 +32,16 @@ export interface VariationRequest {
   count: number;
 }
 
+export interface GenerateVariationsOptions {
+  /**
+   * Runs once the layers exist and before any job is started. The stage is
+   * already `done` by then, so a host that covers the editor while the flow
+   * runs keeps covering it from this call rather than from the end of the
+   * batch's start requests (F14).
+   */
+  onCreated?: (layerIds: readonly string[]) => void;
+}
+
 export interface GeneratedVariation {
   layerId: string;
   /** 1-based position in the contact sheet. */
@@ -48,6 +58,18 @@ export const variationSeeds = (count: number): number[] => {
   return Array.from({ length: count }, (_, index) => base + index);
 };
 
+const VARIATION_NAME = /^Variation (\d+)$/;
+
+/**
+ * The highest `Variation N` number already on the document, so a second batch
+ * continues the numbering instead of repeating `Variation 1` (F18).
+ */
+const lastVariationNumber = (layers: readonly { name: string }[]): number =>
+  layers.reduce((highest, layer) => {
+    const match = VARIATION_NAME.exec(layer.name);
+    return match ? Math.max(highest, Number(match[1])) : highest;
+  }, 0);
+
 export interface GenerateVariationsResult {
   /**
    * Add N generated layers and start them. Returns the layers in contact-sheet
@@ -55,7 +77,8 @@ export interface GenerateVariationsResult {
    * the batch still runs.
    */
   generateVariations: (
-    request: VariationRequest
+    request: VariationRequest,
+    options?: GenerateVariationsOptions
   ) => Promise<GeneratedVariation[]>;
 }
 
@@ -63,17 +86,21 @@ export function useGenerateVariations(): GenerateVariationsResult {
   const { start } = useDirectGenJob();
 
   const generateVariations = useCallback(
-    async (request: VariationRequest): Promise<GeneratedVariation[]> => {
+    async (
+      request: VariationRequest,
+      options?: GenerateVariationsOptions
+    ): Promise<GeneratedVariation[]> => {
       const count = Math.max(1, Math.trunc(request.count));
       const seeds = variationSeeds(count);
       const sketch = useSketchStore.getState();
       // D3: the terminal stage is persisted before anything is enqueued.
       sketch.setSetup({ stage: "done", variations: count });
+      const offset = lastVariationNumber(sketch.document.layers);
 
       const variations: GeneratedVariation[] = seeds.map((seed, index) => {
         const layerId = useSketchStore
           .getState()
-          .addLayer(`Variation ${index + 1}`);
+          .addLayer(`Variation ${offset + index + 1}`);
         useSketchSessionStore.getState().upsertBinding({
           layerId,
           kind: "text-to-image",
@@ -90,6 +117,8 @@ export function useGenerateVariations(): GenerateVariationsResult {
         });
         return { layerId, index: index + 1, seed };
       });
+
+      options?.onCreated?.(variations.map((variation) => variation.layerId));
 
       // One refusal must not stop the batch: a layer that cannot start records
       // the reason on its own binding.

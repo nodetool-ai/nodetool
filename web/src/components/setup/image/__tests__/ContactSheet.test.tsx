@@ -243,6 +243,95 @@ describe("ContactSheet Pick (criterion 5)", () => {
     ).toBe(true);
   });
 
+  // F12: a seeded provider answers the same seed with the same picture, so
+  // Regenerate asks with a new one.
+  it("regenerates with a fresh seed", async () => {
+    const layerIds = seedBatch();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ContactSheet
+          layerIds={layerIds}
+          onPick={onPick}
+          onMakeMore={onMakeMore}
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
+        />
+      </ThemeProvider>
+    );
+    const before = useSketchSessionStore.getState().bindings[layerIds[1]].seed;
+    await userEvent.click(
+      screen.getAllByRole("button", { name: "Regenerate" })[1]
+    );
+    const after = useSketchSessionStore.getState().bindings[layerIds[1]].seed;
+    expect(typeof after).toBe("number");
+    expect(after).not.toBe(before);
+    expect(start).toHaveBeenCalledWith(layerIds[1]);
+  });
+
+  // F13: a pick hides the earlier batches too, and keeps undo history.
+  it("hides earlier batches and keeps undo history on pick", async () => {
+    const layerIds = seedBatch();
+    act(() => {
+      useSketchStore.getState().pushHistory("before the flow");
+    });
+    const historyBefore = useSketchStore.getState().history.length;
+    expect(historyBefore).toBeGreaterThan(0);
+    const [earlier, ...current] = layerIds;
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ContactSheet
+          layerIds={current}
+          siblingLayerIds={[earlier]}
+          onPick={onPick}
+          onMakeMore={onMakeMore}
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
+        />
+      </ThemeProvider>
+    );
+    await userEvent.click(
+      screen.getAllByRole("button", { name: "Sketch editor" })[0]
+    );
+    const visible = useSketchStore
+      .getState()
+      .document.layers.filter((layer) => layerIds.includes(layer.id))
+      .filter((layer) => layer.visible)
+      .map((layer) => layer.id);
+    expect(visible).toEqual([current[0]]);
+    expect(useSketchStore.getState().history.length).toBeGreaterThan(
+      historyBefore
+    );
+  });
+
+  // F18: tiles carry the layer's own name, so a later batch numbered from 5
+  // reads the same in the sheet and in the layers panel.
+  it("labels tiles with their layer names", () => {
+    const layerIds = seedBatch();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ContactSheet
+          layerIds={layerIds.slice(2)}
+          onPick={onPick}
+          onMakeMore={onMakeMore}
+          onBackToSettings={onBackToSettings}
+          onOpenEditor={onOpenEditor}
+          onSaveToLibrary={onSaveToLibrary}
+          onOpenCanvas={onOpenCanvas}
+        />
+      </ThemeProvider>
+    );
+    expect(
+      screen.getByRole("group", { name: "Variation 3 preview" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("group", { name: "Variation 4 preview" })
+    ).toBeInTheDocument();
+  });
+
   it("offers the strip's follow-ups", async () => {
     const layerIds = seedBatch();
     render(
@@ -361,10 +450,16 @@ describe("a failed batch", () => {
       "0 of 4 rendered · 4 failed"
     );
 
+    const seedBefore =
+      useSketchSessionStore.getState().bindings[layerIds[1]].seed;
     await userEvent.click(
       screen.getByRole("button", { name: "Try Variation 2 again" })
     );
     expect(start).toHaveBeenCalledWith(layerIds[1]);
+    // Nothing rendered from the failed take, so its seed is kept.
+    expect(useSketchSessionStore.getState().bindings[layerIds[1]].seed).toBe(
+      seedBefore
+    );
   });
 });
 

@@ -49,7 +49,11 @@ export const useImageSetupStage = (): SketchSetupStage =>
 const FLOW_LABELS = { title: "Image" } as const;
 
 export interface ImageSetupFlowOptions {
-  /** Runs once the last step has written `done` and the batch is enqueued. */
+  /**
+   * Runs once the last step has written `done` and the batch's layers exist,
+   * before their jobs are started, so the host shows the contact sheet in the
+   * same render the stage leaves the flow (F14).
+   */
   onGenerated: (layerIds: readonly string[]) => void;
   /** Runs when an alternative finishes the flow without generating. */
   onFinish: () => void;
@@ -149,6 +153,11 @@ export const useImageSetupFlow = ({
         primaryLabel: "Continue",
         canAdvance: brief.trim().length > 0,
         blockedReason: "Describe the image, or upload one to edit",
+        // An upload finishes the flow when it lands, so Continue waits for it
+        // rather than racing it to the next step (F17).
+        pending: upload.uploading,
+        pendingLabel: "Reading your file",
+        onCancel: upload.cancel,
         footerControls: (context) =>
           createElement(BriefModelFooterField, { readOnly: context.readOnly }),
         render: () =>
@@ -211,9 +220,11 @@ export const useImageSetupFlow = ({
           }),
         render: () => createElement(LookStep, { look }),
         // `generate` writes the terminal stage itself, before it enqueues
-        // anything (D3); the host then shows the contact sheet.
+        // anything (D3). The host gets the layers in that same tick: waiting
+        // for the start requests would leave a render where the stage is
+        // `done`, no batch is known, and the bare editor shows (F14).
         onAdvance: async () => {
-          onGenerated(await look.generate());
+          await look.generate(onGenerated);
         }
       }
     ],

@@ -363,4 +363,71 @@ describe("generateVariations (criterion 4)", () => {
     expect(stagesWhenSent).toEqual(["done", "done"]);
     expect(useSketchStore.getState().document.setup?.variations).toBe(2);
   });
+
+  // F14: the host learns the layers before the start requests settle, so the
+  // contact sheet replaces the flow in the same tick the stage becomes done.
+  it("reports the layers before any job is started", async () => {
+    const pendingSends: Array<() => void> = [];
+    sendMock.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          pendingSends.push(resolve);
+        })
+    );
+    const onCreated = jest.fn();
+    const { result } = renderHook(() => useGenerateVariations());
+    let run: Promise<unknown> = Promise.resolve();
+    act(() => {
+      run = result.current.generateVariations(
+        {
+          prompt: "a dripper",
+          provider: "prov",
+          model: "model-1",
+          width: 1024,
+          height: 1024,
+          count: 2
+        },
+        { onCreated }
+      );
+    });
+    expect(onCreated).toHaveBeenCalledTimes(1);
+    expect(onCreated.mock.calls[0][0]).toHaveLength(2);
+    expect(useSketchStore.getState().document.setup?.stage).toBe("done");
+    await act(async () => {
+      sendMock.mockImplementation(async () => {});
+      while (pendingSends.length > 0) {
+        pendingSends.shift()?.();
+        await Promise.resolve();
+      }
+      await run;
+    });
+  });
+
+  // F18: a second batch continues the numbering.
+  it("numbers a second batch after the first", async () => {
+    const { result } = renderHook(() => useGenerateVariations());
+    const request = {
+      prompt: "a dripper",
+      provider: "prov",
+      model: "model-1",
+      width: 1024,
+      height: 1024,
+      count: 2
+    };
+    await act(async () => {
+      await result.current.generateVariations(request);
+      await result.current.generateVariations(request);
+    });
+    const names = useSketchStore
+      .getState()
+      .document.layers.map((layer) => layer.name)
+      .filter((name) => name.startsWith("Variation"))
+      .sort();
+    expect(names).toEqual([
+      "Variation 1",
+      "Variation 2",
+      "Variation 3",
+      "Variation 4"
+    ]);
+  });
 });
