@@ -55,6 +55,7 @@
         "__tests__/**",
         "tests/**",
         "test/**",
+        "bench/**",
         "vitest.config.*",
         "jest.config.*",
         "tsconfig*.json",

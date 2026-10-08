@@ -3,6 +3,9 @@ import type { GameSystemContext2D } from "./context2d.js";
 import { applyGameplayCommand, queueGameplayBehavior } from "../gameplay/lifecycle.js";
 import { scriptSourceKey } from "../scripts.js";
 export function stepScripts2D(context: GameSystemContext2D): void {
+  const worldAtStart = context.scriptRunner ? context.states.filter((state) => state.active)
+    .map((state) => ({ id: state.definition.id, source: state.sourceId ?? state.definition.id, x: state.x, y: state.y,
+      velocityX: state.velocityX, velocityY: state.velocityY, grounded: touchingOf(context, state).down })) : [];
   for (const state of context.states) {
     state.previousX = state.x;
     state.previousY = state.y;
@@ -51,6 +54,7 @@ export function stepScripts2D(context: GameSystemContext2D): void {
       }
     }
   }
+  context.scriptRunner?.retain?.(new Set(context.scriptCalls.map((call) => call.stateKey)));
   if (context.scriptRunner && context.scriptCalls.length > 0) {
     const world = context.states
       .filter((state) => state.active && (state.definition.collider2d || state.definition.camera2d))
@@ -58,7 +62,8 @@ export function stepScripts2D(context: GameSystemContext2D): void {
     const batch = context.scriptRunner.run(
       context.scriptCalls,
       { tick: context.tick, pressed: [...context.pressed], justPressed: context.input.justPressed, events: context.previousEvents, world },
-      context.rngState
+      context.rngState,
+      worldAtStart
     );
     const byId = new Map(context.states.map((state) => [state.definition.id, state]));
     for (const item of batch.results) {

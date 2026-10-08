@@ -31,3 +31,21 @@ function schemaType(schema: Schema | boolean): string {
 export function gameScriptSchemaDeclaration(name: string, schema: z.ZodType): string {
   return `type ${name} = ${schemaType(z.toJSONSchema(schema, { io: "input" }))};`;
 }
+
+/** Additive world declarations, separate from compatibility-pinned input types. */
+export function gameScriptWorldDeclaration(entity: string): string {
+  return `
+type GameScriptWorldEntity = ${entity};
+type GameScriptWorldQuery = {
+  readonly source?: string;
+  readonly tag?: string;
+  readonly near?: { readonly x: number; readonly y: number; readonly z?: number };
+  readonly radius?: number;
+  readonly limit?: number;
+};
+declare const world: {
+  get(id: string): GameScriptWorldEntity | undefined;
+  query(options?: GameScriptWorldQuery): string[];
+};
+`;
+}
