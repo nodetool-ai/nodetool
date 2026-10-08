@@ -191,7 +191,7 @@ K runs first because several fixes touch files that W4 restructures.
 **K1. Save path correctness (F4, F5, F8, F14).**
 - Depends on: none.
 - Owns: `web/src/stores/game/`, the save and merge sections of `GameEditor.tsx` and `GameEditor3D.tsx`, `packages/websocket/src/trpc/routers/games.ts` save handlers.
-- Do: validate the merged document before diffing into `pendingOps`. When the server rejects with an unchanged token, drop the offending ops or reload the draft instead of resending. Make the 3D `pull()` wait for the in-flight save as 2D does. Serialise concurrent `flush()` callers. Clear "error" when a later merge or save succeeds. Keep `baseUpdatedAt` at the latest server token after accepting a conflict.
+- Do: validate the merged document before diffing into `pendingOps`. When the server rejects an op batch with an unchanged token, retain the local document, pending operations and undo history, and resend once as a whole-document save (`games.saveDraftDocument`). Batches above `MAX_GAME_DRAFT_OPS` save as a whole document directly. If the whole-document save fails, report the error and stop automatic retries until another edit or explicit save action. Make the 3D `pull()` wait for the in-flight save as 2D does. Serialise concurrent `flush()` callers. Clear "error" when a later merge or save succeeds. Keep `baseUpdatedAt` at the latest server token after accepting a conflict.
 - Accept: reproduction tests for each of F4, F5, F8 and F14 in `web/src/stores/game/__tests__/` fail before and pass after. The 3D journey `web/tests/journeys/native-game3d-editor.spec.ts` passes without the model-install save conflict.
 
 **K2. Play session reuse (F15, F16, F23, F28).**
