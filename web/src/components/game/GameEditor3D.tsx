@@ -25,6 +25,7 @@ import GamePanelHeader from "./GamePanelHeader";
 import GameScriptPane from "./panels/scripts/GameScriptPane";
 import GameEditorShell from "./shell/GameEditorShell";
 import GameRevisions from "./panels/revisions/GameRevisions";
+import GameDraftRecovery from "./GameDraftRecovery";
 import { useGameScriptDiagnostics } from "./panels/scripts/useGameScriptDiagnostics";
 import type { GameDiagnosticSession } from "./panels/scripts/gameScriptDiagnostics";
 import { openGameDiagnosticSession3D } from "./viewport3d/gameSessionAssets3D";
@@ -354,6 +355,7 @@ export default function GameEditor3D({ refId, active }: GameEditor3DProps) {
     const state = store.getState();
     if (state.pendingOps.length === 0 && state.baseUpdatedAt !== data.game.draftUpdatedAt) { state.load(data.document, data.game.draftUpdatedAt); }
   }, [data, refId]);
+  if (error?.data?.code === "PRECONDITION_FAILED") { return <GameDraftRecovery refId={refId} />; }
   if (isPending || (data && !document)) { return <LoadingSpinner text="Loading 3D game" />; }
   if (error || !data || !document) {
     const message = error?.message ?? "Game source is unavailable.";

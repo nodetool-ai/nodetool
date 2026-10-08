@@ -3,7 +3,7 @@ import { join } from "node:path";
 import { z } from "zod";
 import sharp from "sharp";
 import { createLogger, getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
-import { AmbiguousGameIdError, InvalidGameDocumentError, Asset, Game, Project, Workspace } from "@nodetool-ai/models";
+import { AmbiguousGameIdError, InvalidGameDocumentError, MissingGameDraftSourceError, Asset, Game, Project, Workspace } from "@nodetool-ai/models";
 import { exampleGameSummary, anyGameAssetBinding, gameAssetBinding, gameAssetBinding3D, gamePreparedCollider3D, gameModelImportSettings3D, parseGameDocument, anyGameDocument as gameDocument, installExampleGameInput, type AnyGameDocument as GameDocument } from "@nodetool-ai/protocol";
 import { createTopDownRoomGame, createNative3DGame, anyGameDocumentOp as gameDocumentOp, GameOpError, decodePreparedGameCollider3D, trackGameAuthoringEdits, validateAnyGame } from "@nodetool-ai/game-runtime";
 import { normalizeGameModel3D, prepareGameModelBinding3D } from "@nodetool-ai/game-renderer/preparation3d";
@@ -363,9 +363,16 @@ export const gamesRouter = router({
     .output(gameWithDocument)
     .query(async ({ ctx, input }) => {
       const game = await ownedGame(ctx.userId, input.id);
-      const draft = await Game.readDraft(ctx.userId, game.id, await gameWorkspace(ctx.userId, game));
-      if (!draft) throwApiError(ApiErrorCode.NOT_FOUND, "Game draft not found");
-      return { game: info(draft.game), document: draft.document };
+      try {
+        const draft = await Game.readDraft(ctx.userId, game.id, await gameWorkspace(ctx.userId, game));
+        if (!draft) throwApiError(ApiErrorCode.NOT_FOUND, "Game draft not found");
+        return { game: info(draft.game), document: draft.document };
+      } catch (error) {
+        if (error instanceof MissingGameDraftSourceError) {
+          throwApiError(ApiErrorCode.SERVICE_UNAVAILABLE, error.message, "PRECONDITION_FAILED");
+        }
+        throw error;
+      }
     }),
 
   saveDraft: protectedProcedure

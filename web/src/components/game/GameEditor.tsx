@@ -18,6 +18,7 @@ import { Caption, CollapsibleSection, ConflictBanner, Dialog, EmptyState, FlexCo
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./panels/agent/GameAgentPanel";
 import GameRevisions from "./panels/revisions/GameRevisions";
+import GameDraftRecovery from "./GameDraftRecovery";
 import { publishGameDraft } from "./gamePublish";
 import GameChanges from "./panels/changes/GameChanges";
 import GameAuthoringPreview from "./panels/authoring/GameAuthoringPreview";
@@ -373,6 +374,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const validationIssues = documentValidation?.issues ?? [];
   const runtimeEntity = runtimeEntities?.find((entity) => entity.id === selectedIds[0]) ?? null;
 
+  if (loadError?.data?.code === "PRECONDITION_FAILED") { return <GameDraftRecovery refId={refId} />; }
   if (isPending || (data && !document)) return <LoadingSpinner text="Loading game" />;
   if (loadError || !data || !document) {
     return <EmptyState variant="error" title="Could not load game" description={loadError?.message ?? "The game may have been deleted."} />;

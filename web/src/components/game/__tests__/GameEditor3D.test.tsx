@@ -21,6 +21,7 @@ const mockToken = "2026-01-01T00:00:00.000Z";
 const mockSavedToken = "2026-01-01T00:00:00.001Z";
 const mockRestoredToken = "2026-01-01T00:00:00.002Z";
 const mockRevision = "a".repeat(32);
+let mockDraftUnavailable = false;
 const mockServer = { document: mockDocument, game: { id: mockDocument.id, name: "Controller 3D", projectId: "project", draftUpdatedAt: mockToken } };
 const mockGetDraftQuery = jest.fn(async (_request: unknown) => mockServer);
 const mockInvalidate = jest.fn(async () => undefined);
@@ -30,12 +31,15 @@ const mockRestore = jest.fn(async (request: { id: string; baseUpdatedAt: string;
 jest.mock("../../../trpc/client", () => ({
   trpc: {
     games: {
-      getDraft: { useQuery: () => ({ data: mockServer, isPending: false }) },
+      getDraft: { useQuery: () => mockDraftUnavailable
+        ? { data: undefined, isPending: false, error: { message: "Game draft source is unavailable", data: { code: "PRECONDITION_FAILED" } } }
+        : { data: mockServer, isPending: false } },
+      get: { useQuery: () => ({ data: mockServer, isPending: false }) },
       revisions: { useQuery: () => ({ data: [{ revision: mockRevision, modifiedAt: 0, current: false, message: "Earlier release" }] }) },
       draftChanges: { useQuery: () => ({ data: [] }) }
     },
     useUtils: () => ({ games: {
-      getDraft: { invalidate: mockInvalidate }, revisions: { invalidate: mockInvalidate }, draftChanges: { invalidate: mockInvalidate }
+      getDraft: { invalidate: mockInvalidate, setData: jest.fn() }, revisions: { invalidate: mockInvalidate }, draftChanges: { invalidate: mockInvalidate }
     } })
   },
   trpcClient: { games: {
@@ -81,6 +85,7 @@ jest.mock("../panels/scripts/GameScriptPane", () => ({
 beforeEach(() => {
   jest.clearAllMocks();
   mockViewportProps = undefined;
+  mockDraftUnavailable = false;
   mockDocument.id = `controller3d-${++mockFixtureId}`;
   mockServer.game.id = mockDocument.id;
   for (const id of ["player", "player-visual"]) {
@@ -89,6 +94,18 @@ beforeEach(() => {
     entity.behaviors = [{ kind: "script", source: "original", maxCommands: 16, maxTickMs: 8 }];
   }
   getGameDraftStore(mockDocument.id).getState().load(mockDocument, mockToken);
+});
+
+it("F6 restores a missing 3D draft only after selecting and confirming a published revision", async () => {
+  mockDraftUnavailable = true;
+  const user = userEvent.setup();
+  render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  expect(mockRestore).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: "Restore to draft" }));
+  expect(mockRestore).not.toHaveBeenCalled();
+  await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Restore to draft" }));
+  expect(mockRestore).toHaveBeenCalledWith({ id: mockDocument.id,
+    baseUpdatedAt: mockServer.game.draftUpdatedAt, revision: mockRevision });
 });
 
 it("keeps an opened script anchored after another entity is selected", async () => {
