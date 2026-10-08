@@ -356,8 +356,10 @@ export const HARNESSES: HarnessEntry[] = [
     capabilities: ["json", "interact", "no-db"],
     docs: "docs/harnesses.md § nodetool app debug",
     selfcheck: {
+      // Ad Maker shows one step at a time, so the check walks both steps the
+      // way a person does before it judges whether every run is reachable.
       command:
-        "npm run dev:nodetool -- app debug packages/base-nodes/nodetool/examples/apps/ad-maker.app.json --no-run",
+        "npm run dev:nodetool -- app debug packages/base-nodes/nodetool/examples/apps/ad-maker.app.json --no-run --interact '[{\"set\":{\"key\":\"step\",\"value\":\"settle-the-message\"}},{\"set\":{\"key\":\"step\",\"value\":\"direct-the-campaign-image\"}}]'",
       cost: "cheap"
     }
   },

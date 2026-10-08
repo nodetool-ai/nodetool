@@ -552,7 +552,11 @@ const PropertyDropzone = ({
           <WaveRecorder onChange={onChangeAsset} workflowId={props.workflowId} />
         )}
         {contentType.split("/")[0] === "video" && showRecorder && (
-          <VideoRecorder onChange={onChangeAsset} workflowId={props.workflowId} />
+          <VideoRecorder
+            onChange={onChangeAsset}
+            workflowId={props.workflowId}
+            hideWhenUnavailable
+          />
         )}
       </div>
     </div>

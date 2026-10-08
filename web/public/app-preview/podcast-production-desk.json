@@ -19,35 +19,61 @@
           "props": {
             "id": "title",
             "text": "🎙️ Podcast Production Desk",
-            "level": "1"
-          }
-        },
-        {
-          "type": "Text",
-          "props": {
-            "id": "tagline",
-            "text": "One recording becomes two audio treatments and a publishable content pack."
+            "level": "1",
+            "subtitle": "One recording becomes two audio treatments and a publishable content pack."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "Audio cleanup and mastering run locally. The content pack uses configured transcription, writing, and image models. Download a treatment and upload it as the source to use it in another pass."
+            "text": "Audio cleanup and mastering run locally. The content pack uses configured transcription, writing, and image models. Download a treatment and upload it as the source to use it in another pass.",
+            "tone": "hint"
           }
         },
         {
-          "type": "Columns",
+          "type": "Stepper",
           "props": {
-            "id": "cols-prepare-the-recording",
-            "gap": 24,
-            "left": [
+            "id": "steps",
+            "binding": "var:step",
+            "steps": [
               {
-                "type": "Container",
+                "value": "prepare-the-recording",
+                "title": "Prepare the recording"
+              },
+              {
+                "value": "make-the-content-pack",
+                "title": "Make the content pack"
+              }
+            ],
+            "allowBack": true
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-prepare-the-recording",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "prepare-the-recording"
+            },
+            "content": [
+              {
+                "type": "Heading",
                 "props": {
-                  "id": "panel-prepare-the-recording",
-                  "title": "Prepare the recording",
-                  "content": [
+                  "id": "heading-prepare-the-recording",
+                  "text": "Prepare the recording",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-prepare-the-recording",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "AudioInput",
                       "props": {
@@ -101,17 +127,8 @@
                         }
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-prepare-the-recording-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -190,22 +207,70 @@
                     }
                   ]
                 }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-prepare-the-recording"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-prepare-the-recording",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-prepare-the-recording",
+                        "label": "Next: Make the content pack",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "make-the-content-pack"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
               }
             ]
           }
         },
         {
-          "type": "Columns",
+          "type": "Container",
           "props": {
-            "id": "cols-make-the-content-pack",
-            "gap": 24,
-            "left": [
+            "id": "step-make-the-content-pack",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "make-the-content-pack"
+            },
+            "content": [
               {
-                "type": "Container",
+                "type": "Heading",
                 "props": {
-                  "id": "panel-make-the-content-pack",
-                  "title": "Make the content pack",
-                  "content": [
+                  "id": "heading-make-the-content-pack",
+                  "text": "Make the content pack",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-make-the-content-pack",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "Text",
                       "props": {
@@ -316,17 +381,8 @@
                         }
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-make-the-content-pack-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -425,6 +481,39 @@
                     }
                   ]
                 }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-make-the-content-pack"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-make-the-content-pack",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "back-make-the-content-pack",
+                        "label": "Back: Prepare the recording",
+                        "variant": "outlined",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "prepare-the-recording"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": []
+                }
               }
             ]
           }
@@ -476,6 +565,17 @@
     ],
     "resources": [],
     "variables": [
+      {
+        "id": "step",
+        "name": "Step",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "prepare-the-recording",
+        "scope": "instance",
+        "persist": false
+      },
       {
         "id": "sourceAudio",
         "name": "Episode recording",
@@ -766,6 +866,7 @@
     "op:publish/out:preview_posts": "1. Your first long trail starts with one good route, not a perfect pack.\n2. The gear you leave behind matters as much as what you bring.",
     "op:publish/out:preview_cards": {
       "$demo": "image"
-    }
+    },
+    "var:step": "prepare-the-recording"
   }
 }

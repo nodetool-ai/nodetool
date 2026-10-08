@@ -84,7 +84,7 @@ import {
   importWorkflowBundle,
   type BundledWorkflow
 } from "./lib/workflow-bundle.js";
-import { listExampleApps } from "./lib/example-apps.js";
+import { getExampleAppBundle, listExampleApps } from "./lib/example-apps.js";
 import {
   createWorkflow,
   deleteWorkflow,
@@ -1783,6 +1783,15 @@ export async function handleApiRequest(
       return errorResponse(405, "Method not allowed");
     }
     return jsonResponse(listExampleApps(options));
+  }
+
+  const exampleApp = pathname.match(/^\/api\/applications\/examples\/([^/]+)$/);
+  if (exampleApp) {
+    if (request.method !== "GET") {
+      return errorResponse(405, "Method not allowed");
+    }
+    const bundle = getExampleAppBundle(options, decodeURIComponent(exampleApp[1]));
+    return bundle ? jsonResponse(bundle) : errorResponse(404, "Not found");
   }
 
   if (pathname === "/api/nodes/metadata" || pathname === "/api/node/metadata") {

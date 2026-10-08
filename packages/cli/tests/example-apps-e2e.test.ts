@@ -416,19 +416,43 @@ const adRecipe = (bundle: Bundle): InteractionStep[] => {
 const runEach = (bundle: Bundle): InteractionStep[] =>
   bundle.app.operations.map((operation) => ({ run: operation.id }));
 
+interface UiNode {
+  type?: string;
+  props?: Record<string, unknown>;
+}
+
+/** Every widget in the document, in reading order, slots included. */
+const widgetsInOrder = (nodes: unknown): UiNode[] =>
+  Array.isArray(nodes)
+    ? nodes.flatMap((node: UiNode) => [
+        node,
+        ...Object.values(node.props ?? {}).flatMap((value) =>
+          Array.isArray(value) && value.some((item) => item && typeof item === "object" && "type" in item)
+            ? widgetsInOrder(value)
+            : []
+        )
+      ])
+    : [];
+
+/**
+ * A stepped app built from the spec shows one step at a time, so its run
+ * buttons are reachable only by walking forward: press each step's run buttons,
+ * then its Next button, the way a person goes through it.
+ */
+const walkSteps = (bundle: Bundle): InteractionStep[] =>
+  widgetsInOrder((bundle.app.ui as { content?: unknown }).content)
+    .filter((node) => node.type === "Button")
+    .map((node) => String(node.props?.["id"] ?? ""))
+    .filter((id) => id.startsWith("btn-") || id.startsWith("next-"))
+    .map((id) => ({ click: id }));
+
+const isStepped = (bundle: Bundle): boolean =>
+  widgetsInOrder((bundle.app.ui as { content?: unknown }).content).some(
+    (node) => node.type === "Stepper" && node.props?.["binding"] === "var:step"
+  );
+
 /** Interactions per app. An app not listed runs each operation in order. */
 const SCENARIOS: Record<string, Scenario> = {
-  "dubbing-desk": {
-    steps: () => [
-      { click: "btn-transcribe" },
-      { click: "next-clip" },
-      { click: "btn-translate" },
-      { click: "next-translate" },
-      { click: "btn-voice-subtitles" },
-      { click: "next-voice" },
-      { click: "btn-spokesperson" }
-    ]
-  },
   "product-price-drop": {
     steps: () => [{ click: "plan" }, { click: "finish" }],
     unreached: ["request-changes"]
@@ -472,7 +496,12 @@ describe("example apps run end to end with fake providers", () => {
   it.each(slugs)("%s", async (slug) => {
     const bundle = JSON.parse(readFileSync(join(APPS_DIR, `${slug}.app.json`), "utf8")) as Bundle;
     const scenario =
-      SCENARIOS[slug] ?? (slug.startsWith("ad-") && bundle.app.recipe ? AD_RECIPE : undefined);
+      SCENARIOS[slug] ??
+      (slug.startsWith("ad-") && bundle.app.recipe
+        ? AD_RECIPE
+        : isStepped(bundle)
+          ? { steps: walkSteps }
+          : undefined);
     const result = await report(slug, (scenario?.steps ?? runEach)(bundle));
     expect(problems(result, scenario?.unreached)).toEqual([]);
     expect(result.runs.length).toBeGreaterThan(0);

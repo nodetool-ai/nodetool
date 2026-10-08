@@ -14,21 +14,16 @@
           "props": {
             "id": "title",
             "text": "⚖️ Model Arena",
-            "level": "1"
-          }
-        },
-        {
-          "type": "Text",
-          "props": {
-            "id": "tagline",
-            "text": "Three models answer one brief. A fourth judges them blind."
+            "level": "1",
+            "subtitle": "Three models answer one brief. A fourth judges them blind."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "Choose one configured language model per column and one for the judge."
+            "text": "Choose one configured language model per column and one for the judge.",
+            "tone": "hint"
           }
         },
         {
