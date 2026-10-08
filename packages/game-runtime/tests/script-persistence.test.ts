@@ -31,8 +31,8 @@ describe("persistent script proof", () => {
     const document = gameDocument.parse(createTopDownRoomGame("a".repeat(32)));
     const player = document.scenes[0].entities.find((entity) => entity.id === "player")!;
     player.behaviors = [{ kind: "script", source: "input => ({ state: input.world, commands: [] })", maxTickMs: 50, maxCommands: 8 }];
-    const runner = await prepareGameScripts(document);
     const nativeFunction = vi.spyOn(QuickJSContext.prototype, "newFunction");
+    const runner = await prepareGameScripts(document);
     const key = scriptSourceKey("room", "player", 0);
     try {
       for (let tick = 0; tick < 10; tick += 1) {
@@ -54,7 +54,7 @@ describe("persistent script proof", () => {
     } finally { nativeFunction.mockRestore(); runner.dispose(); }
   });
 
-  it("validates source during preparation and retains an active instance with native values on later calls", async () => {
+  it("validates source during preparation, starts the entry instance in that realm and retains it with native values", async () => {
     const document = gameDocument.parse(createTopDownRoomGame("a".repeat(32)));
     const player = document.scenes[0].entities.find((entity) => entity.id === "player")!;
     player.behaviors = [{ kind: "script", source: "input => ({ state: (input.state || 0) + 1, commands: [] })", maxTickMs: 50, maxCommands: 8 }];
@@ -69,7 +69,7 @@ describe("persistent script proof", () => {
         x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxTickMs: 50, maxCommands: 8 };
       const input = { tick: 0, pressed: [], justPressed: [], events: [], world: [] };
       const first = runner.run([call], input, 7);
-      expect(evaluate.mock.calls.filter(([source]) => source.includes("globalThis.__gameScript ="))).toHaveLength(1);
+      expect(evaluate).not.toHaveBeenCalled();
       evaluate.mockClear(); nativeObject.mockClear();
       const second = runner.run([{ ...call, state: first.results[0].state }], { ...input, tick: 1 }, first.rngState);
       expect(second.results[0].state).toBe(2);

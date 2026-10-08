@@ -43,8 +43,8 @@ describe("script realm ownership", () => {
     { source: "input => ({ state: input.state.value, commands: [] })", valid: { value: 1 }, invalid: null },
     { source: "input => ({ state: null, commands: input.state })", valid: [], invalid: "invalid commands" }
   ])("releases every retained context after guest or output failure: $source", async ({ source, valid, invalid }) => {
-    const runner = await prepareGameScripts(fixture([safe, source]));
     const evaluate = vi.spyOn(QuickJSContext.prototype, "evalCode");
+    const runner = await prepareGameScripts(fixture([safe, source]));
     try {
       runner.run([call(0), call(1, valid)], input, 1);
       const contexts = [...new Set(evaluate.mock.contexts)];
@@ -59,20 +59,21 @@ describe("script realm ownership", () => {
   });
 
   it("releases retained and fresh contexts when the real interrupt deadline fires", async () => {
-    const runner = await prepareGameScripts(fixture([safe, "input => { while (true) {} }"]));
     const evaluate = vi.spyOn(QuickJSContext.prototype, "evalCode");
+    const runner = await prepareGameScripts(fixture([safe, "input => { while (true) {} }"]));
     try {
       runner.run([call(0)], input, 1);
       expect(() => runner.run([call(0), { ...call(1), maxTickMs: 20 }], { ...input, tick: 1 }, 1)).toThrow(/interrupt|budget/i);
       const contexts = [...new Set(evaluate.mock.contexts)];
-      expect(contexts).toHaveLength(2);
+      // The retained safe realm, the fallback script's validation realm and its interrupted call realm.
+      expect(contexts).toHaveLength(3);
       expect(contexts.every((context) => !context.alive)).toBe(true);
     } finally { runner.dispose(); evaluate.mockRestore(); }
   });
 
   it("releases retained contexts on failure before a call begins", async () => {
-    const runner = await prepareGameScripts(fixture([safe]));
     const evaluate = vi.spyOn(QuickJSContext.prototype, "evalCode");
+    const runner = await prepareGameScripts(fixture([safe]));
     try {
       runner.run([call(0)], input, 1);
       const context = evaluate.mock.contexts[0];
@@ -83,8 +84,8 @@ describe("script realm ownership", () => {
   });
 
   it("disposes only removed instances and reuses the remaining context", async () => {
-    const runner = await prepareGameScripts(fixture([safe, safe]));
     const evaluate = vi.spyOn(QuickJSContext.prototype, "evalCode");
+    const runner = await prepareGameScripts(fixture([safe, safe]));
     try {
       runner.run([call(0), call(1)], input, 1);
       const contexts = [...new Set(evaluate.mock.contexts)];
@@ -99,11 +100,27 @@ describe("script realm ownership", () => {
     } finally { runner.dispose(); evaluate.mockRestore(); }
   });
 
+  it("releases validated entry-scene realms that the first batch does not use", async () => {
+    const evaluate = vi.spyOn(QuickJSContext.prototype, "evalCode");
+    const runner = await prepareGameScripts(fixture([safe, safe]));
+    try {
+      const prepared = [...new Set(evaluate.mock.contexts)];
+      expect(prepared).toHaveLength(2);
+      expect(prepared.every((context) => context.alive)).toBe(true);
+      evaluate.mockClear();
+      runner.run([call(0)], input, 1);
+      expect(evaluate).not.toHaveBeenCalled();
+      expect(prepared.map((context) => context.alive)).toEqual([true, false]);
+      runner.run([call(0), call(1)], { ...input, tick: 1 }, 1);
+      expect(evaluate.mock.contexts.filter((context) => context !== prepared[0])).not.toHaveLength(0);
+    } finally { runner.dispose(); evaluate.mockRestore(); }
+  });
+
   it("prunes the last despawned script and skips query snapshot collision work on later ticks", async () => {
+    const evaluate = vi.spyOn(QuickJSContext.prototype, "evalCode");
     const session = await createScriptedGameSession(fixture([
       "input => ({ state: input.tick, commands: [{ kind: 'despawn', entityId: input.entity.id }] })"
     ]), 1);
-    const evaluate = vi.spyOn(QuickJSContext.prototype, "evalCode");
     const touching = vi.spyOn(collision, "touchingOf");
     try {
       session.step({ pressed: [] });
@@ -132,9 +149,9 @@ describe("script realm ownership", () => {
     const source = "input => ({ state: 1, commands: [{ kind: 'spawn', prefabId: 'missing' }] })";
     const document3D = blockout();
     document3D.scenes[0].entities[1].behaviors = [{ kind: "script", source, maxTickMs: 50, maxCommands: 8 }];
+    const evaluate = vi.spyOn(QuickJSContext.prototype, "evalCode");
     const session = dimension === "2d" ? await createScriptedGameSession(fixture([source]), 1)
       : await createGameSession3D(document3D, 1);
-    const evaluate = vi.spyOn(QuickJSContext.prototype, "evalCode");
     try {
       expect(() => session.step(gameInputFrame3D.parse({ pressed: [] }))).toThrow(/missing.*prefab/i);
       const contexts = [...new Set(evaluate.mock.contexts)];

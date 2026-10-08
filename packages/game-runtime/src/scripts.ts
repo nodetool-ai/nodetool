@@ -173,10 +173,14 @@ function disposeRealm(realm: ScriptRealm): void {
 }
 
 interface ScriptDefinitions {
+  readonly entrySceneId?: string;
   readonly scenes: readonly { readonly id: string; readonly entities: readonly {
     readonly id: string; readonly behaviors: readonly { readonly kind: string; readonly source?: string }[]
   }[] }[];
 }
+
+/** Bounds the validated entry-scene realms held until the first batch, about 30 KiB each. */
+const PREPARED_REALM_LIMIT = 64;
 
 export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall, Input extends IsolatedScriptInput, Command>(
   document: ScriptDefinitions,
@@ -184,6 +188,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
   payloadExpression: string
 ): Promise<IsolatedScriptRunner<Call, Input, Command>> {
   const resultSchema = z.strictObject({ state: z.json(), commands: z.array(commandSchema) });
+  const envelopeSchema = z.object({ value: resultSchema, rngState: z.number().int().nonnegative() });
   const [{ newQuickJSWASMModuleFromVariant }, quickJsVariantModule] = await Promise.all([
     import("quickjs-emscripten-core"),
     import("@jitl/quickjs-ng-wasmfile-release-sync")
@@ -196,9 +201,16 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
   const sources = new Map<string, string>();
   const persistentSources = new Set<string>();
   const realms = new Map<string, ScriptRealm>();
+  // Validated entry-scene realms, kept so the first tick does not compile every proven-safe script inside its budget.
+  const prepared = new Map<string, ScriptRealm>();
+  const releasePrepared = (): void => {
+    for (const realm of prepared.values()) { disposeRealm(realm); }
+    prepared.clear();
+  };
   const disposeRealms = (): void => {
     for (const realm of realms.values()) { disposeRealm(realm); }
     realms.clear();
+    releasePrepared();
   };
   const retain = (keys: ReadonlySet<string>): void => {
     for (const [key, realm] of realms) {
@@ -266,8 +278,9 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
             if (persistent) {
               persistentSources.add(key);
             }
-            // Preparation validates inactive scenes and prefab definitions without retaining their realms.
-            disposeRealm(realm);
+            // Inactive scenes and prefab definitions are validated without retaining their realms.
+            if (persistent && scene.id === document.entrySceneId && prepared.size < PREPARED_REALM_LIMIT) { prepared.set(key, realm); }
+            else { disposeRealm(realm); }
           } catch (error) {
             throw new Error(`Game script ${key} could not be prepared: ${error instanceof Error ? error.message : String(error)}`);
           }
@@ -293,6 +306,16 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           }
           const batchBudget = `batch 50 ms at tick ${input.tick}`;
           assertBeforeDeadline(batchDeadline, batchBudget);
+          let fullInputJson: string | undefined;
+          const inputJson = (): string => fullInputJson ??= JSON.stringify(input);
+          let persistentInputJson: string | undefined;
+          const inputJsonWithoutWorld = (): string => {
+            if (persistentInputJson === undefined) {
+              const { world: _world, ...withoutWorld } = input;
+              persistentInputJson = JSON.stringify(withoutWorld);
+            }
+            return persistentInputJson;
+          };
           let hostWorld: ScriptWorldSnapshot | undefined;
           const getHostWorld = (): ScriptWorldSnapshot => hostWorld ??= new ScriptWorldSnapshot(world ?? input.world);
           let legacyWorld: unknown;
@@ -336,18 +359,17 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
               if (realm && realm.sourceKey !== call.sourceKey) {
                 disposeRealm(realm); realms.delete(call.stateKey); realm = undefined;
               }
+              if (!realm && persistent) {
+                realm = prepared.get(call.sourceKey);
+                prepared.delete(call.sourceKey);
+              }
               realm ??= createRealm(call.sourceKey, source, nextRngState, persistent);
               if (persistent) { realms.set(call.stateKey, realm); }
               const { context, invoke, defineData, worldGetter } = realm;
               if (!persistent) { worldCall = getHostWorld().install(context, checkCallDeadline, realm.defineData, realm.queryJson); }
               checkCallDeadline();
-              let data: string;
-              if (persistent) {
-                const { world: _world, ...withoutWorld } = input;
-                data = JSON.stringify({ call, input: withoutWorld, rngState: nextRngState });
-              } else {
-                data = JSON.stringify({ call, input, rngState: nextRngState });
-              }
+              // Byte-identical to JSON.stringify({ call, input, rngState }), without re-serializing the shared input per call.
+              const data = `{"call":${JSON.stringify(call)},"input":${persistent ? inputJsonWithoutWorld() : inputJson()},"rngState":${JSON.stringify(nextRngState)}}`;
               checkCallDeadline();
               const normalized: unknown = persistent ? JSON.parse(data) : data;
               let argument: QuickJSHandle | undefined;
@@ -378,7 +400,7 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
                 throw new Error(`Output exceeds 64 KiB (${rawOutputBytes} bytes in call ${results.length + 1})`);
               }
               const parsed: unknown = JSON.parse(output);
-              const envelope = z.object({ value: resultSchema, rngState: z.number().int().nonnegative() }).parse(parsed);
+              const envelope = envelopeSchema.parse(parsed);
               if (envelope.value.commands.length > call.maxCommands) {
                 throw new Error(`Game script command limit exceeded for ${call.entityId}`);
               }
@@ -412,6 +434,9 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         } catch (error) {
           disposeRealms();
           throw error;
+        } finally {
+          // Entities without a call in the first batch were not active at start. Later activations compile on demand.
+          releasePrepared();
         }
       },
       dispose(): void {
