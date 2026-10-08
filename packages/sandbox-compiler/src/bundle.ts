@@ -328,6 +328,11 @@ export function optionsDigest(esbuildVersion: string): string {
     .digest("hex");
 }
 
+/** {@link optionsDigest} for the esbuild this process would bundle with. */
+export function currentOptionsDigest(): string {
+  return optionsDigest(esbuild.version);
+}
+
 function buildFailureText(error: unknown): string {
   const failure = error as Partial<BuildFailure>;
   if (Array.isArray(failure.errors) && failure.errors.length > 0) {
