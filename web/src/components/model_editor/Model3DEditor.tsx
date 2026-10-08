@@ -29,9 +29,6 @@ import AspectRatioIcon from "@mui/icons-material/AspectRatio";
 import AddIcon from "@mui/icons-material/Add";
 import DeleteOutlineIcon from "@mui/icons-material/DeleteOutline";
 import ContentCopyIcon from "@mui/icons-material/ContentCopy";
-import CenterFocusStrongIcon from "@mui/icons-material/CenterFocusStrong";
-import FitScreenIcon from "@mui/icons-material/FitScreen";
-import GridOnIcon from "@mui/icons-material/GridOn";
 import ViewInArOutlinedIcon from "@mui/icons-material/ViewInArOutlined";
 import LightbulbOutlinedIcon from "@mui/icons-material/LightbulbOutlined";
 import AutoAwesomeIcon from "@mui/icons-material/AutoAwesome";
@@ -40,15 +37,13 @@ import PublicIcon from "@mui/icons-material/Public";
 import ControlCameraIcon from "@mui/icons-material/ControlCamera";
 import StraightenIcon from "@mui/icons-material/Straighten";
 import KeyboardIcon from "@mui/icons-material/Keyboard";
-import VideocamOutlinedIcon from "@mui/icons-material/VideocamOutlined";
-import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import CircleIcon from "@mui/icons-material/Circle";
+import FileUploadOutlinedIcon from "@mui/icons-material/FileUploadOutlined";
 
 import {
   AlertBanner,
   Box,
   ConfirmDialog,
-  ContextMenu,
   Divider,
   EditorButton,
   EmptyState,
@@ -69,10 +64,18 @@ import {
   getSpacingPx
 } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
+import { deserializeDragData, DRAG_DATA_MIME } from "../../lib/dragdrop/serialization";
+import { resolveStaticMediaUri } from "../../utils/resolveMediaUri";
 import SceneOutliner, { type OutlinerAction } from "./SceneOutliner";
 import PropertiesPanel from "./PropertiesPanel";
 import Model3DChatPanel from "./Model3DChatPanel";
 import EditorStatusBar from "./EditorStatusBar";
+import AnimationBar from "./AnimationBar";
+import ViewportHud from "./ViewportHud";
+import { MenuButton } from "./MenuButton";
+import { readViewPrefs, writeViewPrefs, type ViewPrefs } from "./viewPrefs";
+import { createAnimationPreview } from "./animationPreview";
+import { importModelFile, importModelUrl, isModelFileName } from "./importModel";
 import ShortcutsDialog from "./ShortcutsDialog";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import {
@@ -130,12 +133,7 @@ import {
   type CaptureHandles,
   type ViewPreset
 } from "./ViewportHelpers";
-import {
-  setModel3DToolHandler,
-  type Model3DSceneNode,
-  type Model3DToolHandler,
-  type Model3DTransformPatch
-} from "./model3DToolBridge";
+import { useModel3DAgentTools } from "./useModel3DAgentTools";
 
 type GizmoMode = "translate" | "rotate" | "scale";
 type GizmoSpace = "world" | "local";
@@ -151,52 +149,11 @@ const SNAP = { translate: 0.25, rotateDeg: 15, scale: 0.1 } as const;
 
 // Remembers whether the assistant panel was left open across editor sessions.
 const ASSISTANT_OPEN_KEY = "model3d.assistantOpen";
-// Viewport display toggles, remembered across sessions.
-const VIEW_PREFS_KEY = "model3d.viewPrefs";
-
-interface ViewPrefs {
-  grid: boolean;
-  wireframe: boolean;
-  lightIcons: boolean;
-  snap: boolean;
-}
-
-const DEFAULT_VIEW_PREFS: ViewPrefs = {
-  grid: true,
-  wireframe: false,
-  lightIcons: true,
-  snap: false
-};
-
 const readAssistantOpen = (): boolean => {
   try {
     return localStorage.getItem(ASSISTANT_OPEN_KEY) === "true";
   } catch {
     return false;
-  }
-};
-
-const readViewPrefs = (): ViewPrefs => {
-  try {
-    const raw = localStorage.getItem(VIEW_PREFS_KEY);
-    if (!raw) {
-      return DEFAULT_VIEW_PREFS;
-    }
-    const parsed: unknown = JSON.parse(raw);
-    if (parsed && typeof parsed === "object") {
-      return { ...DEFAULT_VIEW_PREFS, ...(parsed as Partial<ViewPrefs>) };
-    }
-  } catch {
-    // Fall through to defaults on unreadable storage.
-  }
-  return DEFAULT_VIEW_PREFS;
-};
-
-const writeViewPrefs = (prefs: ViewPrefs): void => {
-  try {
-    localStorage.setItem(VIEW_PREFS_KEY, JSON.stringify(prefs));
-  } catch {
-    // Persistence is best-effort; ignore storage failures.
   }
 };
 
@@ -286,6 +243,28 @@ const styles = (theme: Theme) =>
       zIndex: Z_INDEX.dropdown,
       maxWidth: "70%"
     },
+    ".animation-bar": {
+      position: "absolute",
+      left: getSpacingPx(SPACING.md),
+      // Leave room for the axis widget in the bottom-right corner.
+      right: 160,
+      bottom: getSpacingPx(SPACING.md),
+      zIndex: Z_INDEX.raised,
+      padding: `${getSpacingPx(SPACING.micro)} ${getSpacingPx(SPACING.md)}`,
+      borderRadius: BORDER_RADIUS.md,
+      border: `1px solid ${theme.vars.palette.divider}`,
+      backgroundColor: `rgba(${theme.vars.palette.background.defaultChannel} / 0.72)`,
+      backdropFilter: "blur(8px)"
+    },
+    ".drop-hint": {
+      position: "absolute",
+      inset: getSpacingPx(SPACING.md),
+      zIndex: Z_INDEX.overlay,
+      pointerEvents: "none",
+      borderRadius: BORDER_RADIUS.lg,
+      border: `2px dashed ${theme.vars.palette.primary.main}`,
+      backgroundColor: `rgba(${theme.vars.palette.primary.mainChannel} / 0.08)`
+    },
     ".dirty-dot": {
       fontSize: "var(--fontSizeSmaller)",
       color: theme.vars.palette.warning.main
@@ -372,63 +351,6 @@ const ADD_MENU_GROUPS: { title: string; kinds: PrimitiveKind[] }[] = [
   { title: "Other", kinds: ["empty"] }
 ];
 
-const VIEW_LABELS: Record<ViewPreset, string> = {
-  front: "Front",
-  back: "Back",
-  right: "Right",
-  left: "Left",
-  top: "Top",
-  bottom: "Bottom"
-};
-
-const VIEW_ACTIONS: Record<ViewPreset, EditorAction> = {
-  front: "viewFront",
-  back: "viewBack",
-  right: "viewRight",
-  left: "viewLeft",
-  top: "viewTop",
-  bottom: "viewBottom"
-};
-
-const shortcutLabel = (action: EditorAction): string =>
-  EDITOR_SHORTCUTS.find((s) => s.action === action)?.keys.join("+") ?? "";
-
-interface MenuButtonProps {
-  label: string;
-  icon: React.ReactNode;
-  tooltip: string;
-  children: (close: () => void) => React.ReactNode;
-}
-
-/** A compact button that opens a menu below itself. */
-const MenuButton = ({ label, icon, tooltip, children }: MenuButtonProps) => {
-  const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
-  const close = useCallback(() => setPosition(null), []);
-  return (
-    <>
-      <Tooltip title={tooltip}>
-        <EditorButton
-          density="compact"
-          variant="text"
-          startIcon={icon}
-          endIcon={<ExpandMoreIcon />}
-          aria-haspopup="menu"
-          aria-expanded={position !== null}
-          onClick={(e: React.MouseEvent<HTMLElement>) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            setPosition({ x: rect.left, y: rect.bottom + 4 });
-          }}
-        >
-          {label}
-        </EditorButton>
-      </Tooltip>
-      <ContextMenu open={position !== null} position={position} onClose={close} compact minWidth={200}>
-        {children(close)}
-      </ContextMenu>
-    </>
-  );
-};
-
 interface Model3DEditorProps {
   url: string;
   name?: string;
@@ -473,7 +395,22 @@ const Model3DEditor = ({
   }
   const root = rootRef.current;
   // Clips from the loaded file, written back on save so it keeps them.
-  const animationsRef = useRef<THREE.AnimationClip[]>([]);
+  const [animationClips, setAnimationClips] = useState<THREE.AnimationClip[]>([]);
+  const preview = useMemo(
+    () => createAnimationPreview(root, animationClips),
+    [root, animationClips]
+  );
+  const [previewActive, setPreviewActive] = useState(false);
+  // Remounting the animation bar resets its controls after the editor stops
+  // the preview itself.
+  const [previewEpoch, setPreviewEpoch] = useState(0);
+  const stopPreview = useCallback(() => {
+    if (preview.isActive()) {
+      preview.stop();
+      setPreviewActive(false);
+      setPreviewEpoch((e) => e + 1);
+    }
+  }, [preview]);
 
   const historyRef = useRef<ReturnType<typeof createEditorHistory> | null>(null);
   if (historyRef.current === null) {
@@ -619,7 +556,8 @@ const Model3DEditor = ({
         removeStrayLightChildren(gltf.scene);
         restoreHiddenFlags(gltf.scene);
         replaceSceneContent(root, gltf.scene);
-        animationsRef.current = gltf.animations;
+        setAnimationClips(gltf.animations);
+        setPreviewActive(false);
         history.clear();
         setSavedRevision(history.revision());
         setSelectedUuid(null);
@@ -646,7 +584,7 @@ const Model3DEditor = ({
       // Release GPU resources for the current scene on URL change/unmount.
       history.clear();
       clearScene(root);
-      animationsRef.current = [];
+      setAnimationClips([]);
     };
   }, [url, root, bump, history, requestCamera]);
 
@@ -667,48 +605,6 @@ const Model3DEditor = ({
     }
     return root.getObjectByProperty("uuid", selectedUuid) ?? null;
   }, [root, selectedUuid, tick]);
-
-  // Find an object by uuid, then by exact name, then by case-insensitive name.
-  const findObject = useCallback(
-    (idOrName: string): THREE.Object3D | null => {
-      const byUuid = root.getObjectByProperty("uuid", idOrName);
-      if (byUuid) {
-        return byUuid;
-      }
-      const byName = root.getObjectByName(idOrName);
-      if (byName) {
-        return byName;
-      }
-      const lower = idOrName.trim().toLowerCase();
-      let match: THREE.Object3D | null = null;
-      root.traverse((child) => {
-        if (!match && child !== root && child.name.toLowerCase() === lower) {
-          match = child;
-        }
-      });
-      return match;
-    },
-    [root]
-  );
-
-  const toNode = useCallback(
-    (obj: THREE.Object3D): Model3DSceneNode => ({
-      uuid: obj.uuid,
-      name: obj.name || obj.type,
-      type: obj.type,
-      visible: obj.visible,
-      position: [obj.position.x, obj.position.y, obj.position.z],
-      rotation: [
-        THREE.MathUtils.radToDeg(obj.rotation.x),
-        THREE.MathUtils.radToDeg(obj.rotation.y),
-        THREE.MathUtils.radToDeg(obj.rotation.z)
-      ],
-      scale: [obj.scale.x, obj.scale.y, obj.scale.z],
-      parentUuid:
-        obj.parent && obj.parent !== root ? obj.parent.uuid : null
-    }),
-    [root]
-  );
 
   const takenNames = useCallback((): Set<string> => {
     const names = new Set<string>();
@@ -775,6 +671,102 @@ const Model3DEditor = ({
       return copy;
     },
     [root, takenNames, pushCommand]
+  );
+
+  // --- Import ----------------------------------------------------------------
+
+  const [importError, setImportError] = useState<string | null>(null);
+  const [isImporting, setIsImporting] = useState(false);
+  const [dropActive, setDropActive] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const placeImport = useCallback(
+    (group: THREE.Object3D) => {
+      group.name = nextAvailableName(group.name, takenNames());
+      root.add(group);
+      // Centre the model on the point the camera orbits, resting on the ground.
+      group.updateMatrixWorld(true);
+      const box = new THREE.Box3().setFromObject(group);
+      if (!box.isEmpty()) {
+        const center = box.getCenter(new THREE.Vector3());
+        const target = orbitTargetRef.current ?? new THREE.Vector3();
+        group.position.x += target.x - center.x;
+        group.position.z += target.z - center.z;
+        group.position.y -= box.min.y;
+      }
+      pushCommand(addObjectCommand(`Import ${group.name}`, group, root));
+      setSelectedUuid(group.uuid);
+      requestCamera({ kind: "focus", uuid: group.uuid });
+    },
+    [root, takenNames, pushCommand, requestCamera]
+  );
+
+  const runImport = useCallback(
+    async (load: () => Promise<THREE.Object3D>) => {
+      setIsImporting(true);
+      setImportError(null);
+      try {
+        placeImport(await load());
+      } catch (error) {
+        setImportError(error instanceof Error ? error.message : "The model could not be read.");
+      } finally {
+        setIsImporting(false);
+      }
+    },
+    [placeImport]
+  );
+
+  const handleImportFiles = useCallback(
+    (files: FileList | File[]) => {
+      const models = Array.from(files).filter((file) => isModelFileName(file.name));
+      if (models.length === 0) {
+        setImportError("Only .glb and .gltf files can be added to the scene.");
+        return;
+      }
+      for (const file of models) {
+        void runImport(() => importModelFile(file));
+      }
+    },
+    [runImport]
+  );
+
+  const acceptsDrop = (e: React.DragEvent): boolean =>
+    e.dataTransfer.types.includes("Files") || e.dataTransfer.types.includes(DRAG_DATA_MIME);
+
+  const handleDragOver = useCallback((e: React.DragEvent) => {
+    if (acceptsDrop(e)) {
+      e.preventDefault();
+      e.dataTransfer.dropEffect = "copy";
+      setDropActive(true);
+    }
+  }, []);
+
+  const handleDragLeave = useCallback((e: React.DragEvent) => {
+    if (!e.currentTarget.contains(e.relatedTarget as Node | null)) {
+      setDropActive(false);
+    }
+  }, []);
+
+  const handleDrop = useCallback(
+    (e: React.DragEvent) => {
+      e.preventDefault();
+      setDropActive(false);
+      const dragData = deserializeDragData(e.dataTransfer);
+      if (dragData?.type === "asset") {
+        const asset = dragData.payload;
+        const assetUrl = resolveStaticMediaUri(asset.get_url);
+        if (!assetUrl || !isModelFileName(asset.name)) {
+          setImportError(`${asset.name} is not a .glb or .gltf model.`);
+          return;
+        }
+        void runImport(() => importModelUrl(assetUrl, asset.name));
+        return;
+      }
+      if (e.dataTransfer.files.length > 0) {
+        handleImportFiles(e.dataTransfer.files);
+      }
+    },
+    [runImport, handleImportFiles]
   );
 
   const setVisible = useCallback(
@@ -983,8 +975,10 @@ const Model3DEditor = ({
     setIsSaving(true);
     setSaveError(null);
     const savingRevision = history.revision();
+    // Save the rest pose, not the animation frame on screen.
+    stopPreview();
     try {
-      const blob = await exportSceneToGlb(root, animationsRef.current);
+      const blob = await exportSceneToGlb(root, animationClips);
       await onSave(blob);
       setSavedRevision(savingRevision);
     } catch (error) {
@@ -996,7 +990,7 @@ const Model3DEditor = ({
       savingRef.current = false;
       setIsSaving(false);
     }
-  }, [root, onSave, history]);
+  }, [root, onSave, history, stopPreview, animationClips]);
 
   const requestClose = useCallback(() => {
     if (isDirty) {
@@ -1008,143 +1002,22 @@ const Model3DEditor = ({
 
   // --- Agent tools ---------------------------------------------------------------
 
-  // Expose scene operations to the agent tooling layer (ui_3d_* tools) while
-  // this editor is the active tab. Agent edits go through the same history as
-  // the user's, so they can be undone.
-  useEffect(() => {
-    if (!active) {
-      return;
-    }
-    const requireObject = (idOrName: string): THREE.Object3D => {
-      const obj = findObject(idOrName);
-      if (!obj) {
-        throw new Error(`Object not found in scene: ${idOrName}`);
-      }
-      return obj;
-    };
-
-    const handler: Model3DToolHandler = {
-      listScene: () => {
-        const nodes: Model3DSceneNode[] = [];
-        root.traverse((child) => {
-          if (child !== root && !isLightTarget(child)) {
-            nodes.push(toNode(child));
-          }
-        });
-        return nodes;
-      },
-      getSelected: () => {
-        const id = selectedUuidRef.current;
-        if (!id) {
-          return null;
-        }
-        const obj = root.getObjectByProperty("uuid", id);
-        return obj ? toNode(obj) : null;
-      },
-      addPrimitive: (kind, name) => toNode(addPrimitiveObject(kind, name)),
-      selectObject: (idOrName) => {
-        if (!idOrName) {
-          setSelectedUuid(null);
-          return null;
-        }
-        const obj = requireObject(idOrName);
-        setSelectedUuid(obj.uuid);
-        return toNode(obj);
-      },
-      deleteObject: (idOrName) => {
-        const obj = requireObject(idOrName);
-        if (obj === root) {
-          throw new Error("Cannot delete the scene root.");
-        }
-        const node = toNode(obj);
-        deleteObject(obj);
-        return node;
-      },
-      setTransform: (idOrName, patch: Model3DTransformPatch) => {
-        const obj = requireObject(idOrName);
-        const before = captureTransform(obj);
-        if (patch.position) {
-          obj.position.set(
-            patch.position[0],
-            patch.position[1],
-            patch.position[2]
-          );
-        }
-        if (patch.rotation) {
-          obj.rotation.set(
-            THREE.MathUtils.degToRad(patch.rotation[0]),
-            THREE.MathUtils.degToRad(patch.rotation[1]),
-            THREE.MathUtils.degToRad(patch.rotation[2])
-          );
-        }
-        if (patch.scale) {
-          obj.scale.set(patch.scale[0], patch.scale[1], patch.scale[2]);
-        }
-        obj.updateMatrixWorld();
-        pushCommand(
-          transformCommand(`Transform ${obj.name || obj.type}`, obj, before, captureTransform(obj))
-        );
-        return toNode(obj);
-      },
-      setVisibility: (idOrName, visible) => {
-        const obj = requireObject(idOrName);
-        setVisible(obj, visible);
-        return toNode(obj);
-      },
-      renameObject: (idOrName, name) => {
-        const obj = requireObject(idOrName);
-        const trimmed = name.trim();
-        if (!trimmed) {
-          throw new Error("Object name cannot be empty.");
-        }
-        renameObject(obj, trimmed);
-        return toNode(obj);
-      },
-      setMaterialColor: (idOrName, color) => {
-        const obj = requireObject(idOrName);
-        if (!(obj instanceof THREE.Mesh)) {
-          throw new Error(
-            `Object is not a mesh and has no material: ${idOrName}`
-          );
-        }
-        const materials = Array.isArray(obj.material) ? obj.material : [obj.material];
-        const colors = materials.map((material) => {
-          const colored = material as THREE.Material & { color?: THREE.Color };
-          if (!colored.color) {
-            throw new Error("Material has no color channel.");
-          }
-          return colored.color;
-        });
-        const next = new THREE.Color(color).getHex();
-        const before = colors.map((c) => c.getHex());
-        colors.forEach((c) => c.setHex(next));
-        pushCommand({
-          label: "Change color",
-          undo: () => colors.forEach((c, i) => c.setHex(before[i])),
-          redo: () => colors.forEach((c) => c.setHex(next))
-        });
-        return toNode(obj);
-      },
-      frameScene: () => {
-        requestCamera({ kind: "frameAll" });
-      },
-      captureView
-    };
-
-    return setModel3DToolHandler(handler);
-  }, [
+  useModel3DAgentTools({
     active,
     root,
-    findObject,
-    toNode,
-    addPrimitiveObject,
-    deleteObject,
+    history,
+    selectedUuidRef,
+    setSelectedUuid,
     pushCommand,
+    refresh: bump,
+    addPrimitive: addPrimitiveObject,
+    deleteObject,
+    duplicateObject,
     setVisible,
     renameObject,
     requestCamera,
     captureView
-  ]);
+  });
 
   // --- Shortcuts -------------------------------------------------------------------
 
@@ -1213,6 +1086,9 @@ const Model3DEditor = ({
   // --- Render ------------------------------------------------------------------------
 
   const statusHint = useMemo(() => {
+    if (previewActive) {
+      return "Animation preview · the gizmo is hidden · press stop to return to the rest pose and edit";
+    }
     if (isDragging) {
       return snapActive
         ? `Snapping to ${gizmoMode === "rotate" ? `${SNAP.rotateDeg}°` : gizmoMode === "scale" ? SNAP.scale : `${SNAP.translate} units`} · release Ctrl to move freely`
@@ -1223,7 +1099,7 @@ const Model3DEditor = ({
       return `${tool} (${gizmoSpace}) · drag the gizmo, hold Ctrl to snap · F focus · Ctrl+D duplicate · Del delete`;
     }
     return "Click to select · drag to orbit · right-drag to pan · scroll to zoom · press ? for shortcuts";
-  }, [isDragging, snapActive, gizmoMode, gizmoSpace, selectedObject]);
+  }, [previewActive, isDragging, snapActive, gizmoMode, gizmoSpace, selectedObject]);
 
   const palette = useMemo(
     () => ({
@@ -1348,7 +1224,7 @@ const Model3DEditor = ({
         <Divider orientation="vertical" flexItem />
         <MenuButton label="Add" icon={<AddIcon />} tooltip="Add an object at the view center">
           {(close) =>
-            ADD_MENU_GROUPS.map((group, groupIndex) =>
+            ADD_MENU_GROUPS.flatMap((group, groupIndex) =>
               group.kinds.map((kind, index) => (
                 <MenuItemPrimitive
                   key={kind}
@@ -1367,9 +1243,34 @@ const Model3DEditor = ({
                   }}
                 />
               ))
+            ).concat(
+              <MenuItemPrimitive
+                key="import"
+                label="Import model…"
+                dividerBefore
+                icon={<FileUploadOutlinedIcon fontSize="small" />}
+                onClick={() => {
+                  fileInputRef.current?.click();
+                  close();
+                }}
+              />
             )
           }
         </MenuButton>
+        <input
+          ref={fileInputRef}
+          type="file"
+          accept=".glb,.gltf,model/gltf-binary,model/gltf+json"
+          multiple
+          hidden
+          aria-label="Import model file"
+          onChange={(e) => {
+            if (e.target.files) {
+              handleImportFiles(e.target.files);
+            }
+            e.target.value = "";
+          }}
+        />
         <ToolbarIconButton
           icon={<ContentCopyIcon fontSize="small" />}
           tooltip="Duplicate"
@@ -1441,74 +1342,34 @@ const Model3DEditor = ({
           </div>
         </FlexColumn>
 
-        <div className="canvas-wrap">
+        <div
+          className={dropActive ? "canvas-wrap drop-active" : "canvas-wrap"}
+          onDragOver={interactive ? handleDragOver : undefined}
+          onDragLeave={interactive ? handleDragLeave : undefined}
+          onDrop={interactive ? handleDrop : undefined}
+        >
           {interactive && !loadError && (
-            <FlexRow className="viewport-hud">
-              <MenuButton label="View" icon={<VideocamOutlinedIcon />} tooltip="Camera views">
-                {(close) => [
-                  ...(Object.keys(VIEW_LABELS) as ViewPreset[]).map((view) => (
-                    <MenuItemPrimitive
-                      key={view}
-                      label={VIEW_LABELS[view]}
-                      shortcut={shortcutLabel(VIEW_ACTIONS[view])}
-                      onClick={() => {
-                        setView(view);
-                        close();
-                      }}
-                    />
-                  )),
-                  <MenuItemPrimitive
-                    key="frame"
-                    label="Frame all"
-                    dividerBefore
-                    shortcut={shortcutLabel("frameAll")}
-                    onClick={() => {
-                      frameAll();
-                      close();
-                    }}
-                  />
-                ]}
-              </MenuButton>
-              <ToolbarIconButton
-                icon={<FitScreenIcon fontSize="small" />}
-                tooltip="Frame all"
-          shortcut={shortcutKeys("frameAll")}
-                onClick={frameAll}
-                size="small"
-              />
-              <ToolbarIconButton
-                icon={<CenterFocusStrongIcon fontSize="small" />}
-                tooltip="Focus selection"
-          shortcut={shortcutKeys("focusSelection")}
-                onClick={focusSelection}
-                disabled={!selectedObject}
-                size="small"
-              />
-              <Divider orientation="vertical" flexItem />
-              <ToolbarIconButton
-                icon={<GridOnIcon fontSize="small" />}
-                tooltip="Grid"
-          shortcut={shortcutKeys("toggleGrid")}
-                onClick={actions.toggleGrid}
-                active={viewPrefs.grid}
-                size="small"
-              />
-              <ToolbarIconButton
-                icon={<ViewInArOutlinedIcon fontSize="small" />}
-                tooltip="Wireframe overlay"
-          shortcut={shortcutKeys("toggleWireframe")}
-                onClick={actions.toggleWireframe}
-                active={viewPrefs.wireframe}
-                size="small"
-              />
-              <ToolbarIconButton
-                icon={<LightbulbOutlinedIcon fontSize="small" />}
-                tooltip="Light icons"
-                onClick={() => togglePref("lightIcons")}
-                active={viewPrefs.lightIcons}
-                size="small"
-              />
-            </FlexRow>
+            <ViewportHud
+              className="viewport-hud"
+              prefs={viewPrefs}
+              canFocus={!!selectedObject}
+              onView={setView}
+              onFrameAll={frameAll}
+              onFocus={focusSelection}
+              onTogglePref={togglePref}
+            />
+          )}
+          {importError && (
+            <Box className="viewport-banner">
+              <AlertBanner severity="warning" compact onClose={() => setImportError(null)}>
+                Import failed: {importError}
+              </AlertBanner>
+            </Box>
+          )}
+          {dropActive && (
+            <FlexColumn className="drop-hint" align="center" justify="center">
+              <Text>Drop a .glb or .gltf model to add it to the scene</Text>
+            </FlexColumn>
           )}
           {saveError && (
             <Box className="viewport-banner">
@@ -1580,7 +1441,7 @@ const Model3DEditor = ({
                   )}
                 </>
               )}
-              {interactive && selectedObject && (
+              {interactive && selectedObject && !previewActive && (
                 <TransformControls
                   object={selectedObject}
                   mode={gizmoMode}
@@ -1612,10 +1473,20 @@ const Model3DEditor = ({
               <CaptureBridge targetRef={captureRef} />
             </Canvas>
           )}
-          {(isSaving || isLoading) && (
+          {!loadError && !isLoading && animationClips.length > 0 && (
+            <AnimationBar
+              key={previewEpoch}
+              className="animation-bar"
+              preview={preview}
+              onActiveChange={setPreviewActive}
+            />
+          )}
+          {(isSaving || isLoading || isImporting) && (
             <FlexColumn className="overlay" align="center" justify="center" gap={SPACING.md}>
               <LoadingSpinner />
-              <Text color="primary">{isSaving ? "Saving…" : "Loading model…"}</Text>
+              <Text color="primary">
+                {isSaving ? "Saving…" : isImporting ? "Importing model…" : "Loading model…"}
+              </Text>
             </FlexColumn>
           )}
         </div>

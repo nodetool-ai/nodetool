@@ -6,6 +6,9 @@ import * as THREE from "three";
  */
 export const HIDDEN_EXTRA = "nodetool_hidden";
 
+/** The stable object id `@nodetool-ai/model3d` stores in node `extras`. */
+export const OBJECT_ID_EXTRA = "nodetool_id";
+
 const cloneMaterial = (
   material: THREE.Material | THREE.Material[]
 ): THREE.Material | THREE.Material[] =>
@@ -23,6 +26,9 @@ export const cloneObjectDeep = (source: THREE.Object3D): THREE.Object3D => {
   copy.traverse((node) => copies.push(node));
   copies.forEach((node, index) => {
     const original = sources[index];
+    // The headless scene tools address objects by this id. A copy is a new
+    // object, so it must not answer to the original's id.
+    delete node.userData[OBJECT_ID_EXTRA];
     if (node instanceof THREE.Mesh && original instanceof THREE.Mesh) {
       node.geometry = original.geometry.clone();
       node.material = cloneMaterial(original.material);
@@ -119,13 +125,23 @@ export const bindTracksToUuids = (
   }
 };
 
-/** Hide objects whose saved extras say they were hidden, then drop the flag. */
+/**
+ * The key `@nodetool-ai/model3d` writes when the agent hides an object with
+ * no editor open.
+ */
+export const HEADLESS_VISIBLE_EXTRA = "visible";
+
+/** Hide objects whose saved extras say they were hidden, then drop the flags. */
 export const restoreHiddenFlags = (root: THREE.Object3D): void => {
   root.traverse((node) => {
-    if (node.userData[HIDDEN_EXTRA] === true) {
+    if (
+      node.userData[HIDDEN_EXTRA] === true ||
+      node.userData[HEADLESS_VISIBLE_EXTRA] === false
+    ) {
       node.visible = false;
     }
     delete node.userData[HIDDEN_EXTRA];
+    delete node.userData[HEADLESS_VISIBLE_EXTRA];
   });
 };
 

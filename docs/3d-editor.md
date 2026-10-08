@@ -138,6 +138,18 @@ New objects appear at the point the camera orbits around, and shapes rest on the
 
 There is no entry for cameras. A camera that comes in with an imported model shows up in the outliner.
 
+### Importing a model
+
+To add another model to the scene, choose **Import model…** at the bottom of the **Add** menu, drop a `.glb` or `.gltf` file onto the viewport, or drag a model asset from the Asset Explorer onto the viewport. The model arrives as one group named after the file, centered on the view and resting on the ground, and is selected. Its objects are listed under that group, so it moves, hides, and deletes as one. Its animations are not imported. A `.gltf` file must be self-contained, with its buffers and textures embedded. Importing can be undone like any other edit.
+
+---
+
+## Animation playback
+
+When the model has animations, a playback bar sits along the bottom of the viewport. Press play to run the clip in a loop, drag the time slider to scrub, and pick another clip from the list when there is more than one.
+
+Playback moves objects without editing them. The gizmo is hidden while the preview runs. Press stop to put every object back in the pose it had before playback, then edit as usual. Saving stops the preview first, so the saved model keeps that rest pose, not the frame on screen. The animations themselves are kept on save.
+
 ---
 
 ## Transforms and the gizmo
@@ -183,7 +195,7 @@ Lowering **Opacity** turns on transparency. Raising it back to 1 turns transpare
 
 ### Rendering
 
-**Visible**, **Cast Shadow** and **Recv Shadow** for meshes, **Frustum Cull**, and **Render Order**.
+**Visible**, **Cast Shadow** and **Receive Shadow** for meshes, **Frustum Cull**, and **Render Order**.
 
 ---
 
@@ -193,10 +205,14 @@ Click the sparkle button in the toolbar to open the **Assistant** panel. It is l
 
 While the editor is the visible tab, the agent works on the live scene, and you see each change as it happens. It can:
 
-- List the scene and read the selection
-- Add shapes, lights, and empty groups, and select, rename, show, hide, or delete objects
+- List the scene, read the selection, and read one object in full: its children, every material slot, its light settings, and its shape parameters
+- Add shapes, lights, and empty groups, and select, rename, duplicate, show, hide, or delete objects
+- Move an object under another object, or back to the scene root
 - Set position, rotation (degrees), and scale
-- Set a mesh's material color
+- Change a material's color, emissive color and strength, metalness, roughness, and opacity, for one slot or all of them
+- Change a light's color and intensity, a point or spot light's range and decay, and a spot light's cone angle and penumbra
+- Resize a shape from the **Add** menu by changing its geometry, for example a box's width or a cone's height
+- Undo and redo, including your own edits
 - Frame the scene and capture a screenshot of the viewport, which it can look at to check its own work. The screenshot shows the model only, without the grid, gizmo, or light icons
 
 Objects are addressed by id or by name, and names are matched without regard to case. Duplicate names make that ambiguous, so give objects distinct names.

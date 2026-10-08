@@ -229,7 +229,7 @@ describe("ensureObjectIds", () => {
     // carries the same nodetool_id twice.
     const json = doc([{ nodetool_id: "obj_1" }, { nodetool_id: "obj_1" }]);
     ensureObjectIds(json);
-    expect(idsOf(json)).toEqual(["obj_1", "obj_2"]);
+    expect(idsOf(json)).toEqual(["obj_1", "node-1"]);
   });
 
   it("leaves the second of a duplicate pair addressable", () => {
@@ -245,7 +245,7 @@ describe("ensureObjectIds", () => {
     expect((json.nodes ?? []).map((n) => n.name)).toEqual(["First", "Second"]);
   });
 
-  it("keeps an id a caller already holds, and mints past the ones in use", () => {
+  it("keeps an id a caller already holds, and mints the id the listing showed", () => {
     const json = doc([
       { nodetool_id: "obj_2" },
       {},
@@ -253,7 +253,7 @@ describe("ensureObjectIds", () => {
       undefined
     ]);
     ensureObjectIds(json);
-    expect(idsOf(json)).toEqual(["obj_2", "obj_1", "hero", "obj_3"]);
+    expect(idsOf(json)).toEqual(["obj_2", "node-1", "hero", "node-3"]);
   });
 
   it("mints an id wherever the document carries no usable one", () => {
@@ -264,7 +264,7 @@ describe("ensureObjectIds", () => {
       undefined
     ]);
     ensureObjectIds(json);
-    expect(idsOf(json)).toEqual(["obj_1", "obj_2", "obj_3", "obj_4"]);
+    expect(idsOf(json)).toEqual(["node-0", "node-1", "node-2", "node-3"]);
   });
 
   it("assigns distinct non-empty ids and is idempotent", () => {
@@ -283,6 +283,12 @@ describe("ensureObjectIds", () => {
     expect(new Set(first).size).toBe(first.length);
     ensureObjectIds(json);
     expect(idsOf(json)).toEqual(first);
+  });
+
+  it("mints past a listed id another node already holds", () => {
+    const json = doc([{ nodetool_id: "node-1" }, {}]);
+    ensureObjectIds(json);
+    expect(idsOf(json)).toEqual(["node-1", "obj_1"]);
   });
 
   it("does nothing to a document with no nodes", () => {

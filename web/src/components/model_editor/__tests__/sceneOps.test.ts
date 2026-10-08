@@ -22,6 +22,14 @@ describe("cloneObjectDeep", () => {
     expect((mesh.material as THREE.MeshStandardMaterial).color.getHexString()).toBe("ffffff");
   });
 
+  it("drops the headless object id from the copy", () => {
+    const mesh = new THREE.Mesh(new THREE.BoxGeometry(), new THREE.MeshStandardMaterial());
+    mesh.userData.nodetool_id = "obj_3";
+    const copy = cloneObjectDeep(mesh);
+    expect(copy.userData.nodetool_id).toBeUndefined();
+    expect(mesh.userData.nodetool_id).toBe("obj_3");
+  });
+
   it("aims a copied light at its own copied target child", () => {
     const light = createPrimitive("directionalLight") as THREE.DirectionalLight;
     const copy = cloneObjectDeep(light) as THREE.DirectionalLight;
@@ -88,6 +96,21 @@ describe("load fix-ups", () => {
 
     expect(node.visible).toBe(false);
     expect(node.userData).toEqual({});
+  });
+
+  it("hides nodes the headless scene tools saved as not visible", () => {
+    const root = new THREE.Group();
+    const hidden = new THREE.Object3D();
+    hidden.userData.visible = false;
+    const shown = new THREE.Object3D();
+    shown.userData.visible = true;
+    root.add(hidden, shown);
+
+    restoreHiddenFlags(root);
+
+    expect(hidden.visible).toBe(false);
+    expect(shown.visible).toBe(true);
+    expect(hidden.userData).toEqual({});
   });
 
   it("removes the empty target node older saves wrote under a light", () => {

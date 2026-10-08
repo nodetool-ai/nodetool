@@ -86,6 +86,10 @@ const Section = ({ title, children }: { title: string; children: ReactNode }) =>
   </CollapsibleSection>
 );
 
+// Wide enough for "Frustum Cull" and "Render Order" on one line in the
+// 300px inspector.
+const LABEL_WIDTH = "36%";
+
 interface NumberRowProps {
   label: string;
   value: number;
@@ -102,7 +106,7 @@ interface NumberRowProps {
 const NumberRow = memo(({ label, value, onCommit, step, min, max, integer }: NumberRowProps) => {
   const isSlider = min !== undefined && max !== undefined;
   return (
-    <PropertyFieldRow label={label}>
+    <PropertyFieldRow labelWidth={LABEL_WIDTH} label={label}>
       <FlexRow align="center" gap={SPACING.md} fullWidth sx={{ minWidth: 0 }}>
         {isSlider && (
           <NodeSlider
@@ -139,8 +143,8 @@ interface CheckboxRowProps {
 }
 
 const CheckboxRow = ({ label, checked, onChange }: CheckboxRowProps) => (
-  <PropertyFieldRow label={label}>
-    <Checkbox size="small" inputProps={{ "aria-label": label }} checked={checked} onChange={(_e, c) => onChange(c)} />
+  <PropertyFieldRow labelWidth={LABEL_WIDTH} label={label}>
+    <Checkbox size="small" compact inputProps={{ "aria-label": label }} checked={checked} onChange={(_e, c) => onChange(c)} />
   </PropertyFieldRow>
 );
 
@@ -159,7 +163,7 @@ interface ColorRowProps {
 }
 
 const ColorRow = ({ label, color, record, mergeKey }: ColorRowProps) => (
-  <PropertyFieldRow label={label} spacious>
+  <PropertyFieldRow labelWidth={LABEL_WIDTH} label={label} spacious>
     <ColorPicker
       showCustom
       color={`#${color.getHexString()}`}
@@ -386,7 +390,7 @@ const MATERIAL_NUMBER_FIELDS: readonly MaterialNumberSpec[] = [
 const MATERIAL_COLOR_FIELDS: readonly { key: string; label: string }[] = [
   { key: "color", label: "Base Color" },
   { key: "emissive", label: "Emissive" },
-  { key: "sheenColor", label: "Sheen Col" },
+  { key: "sheenColor", label: "Sheen Color" },
   { key: "specularColor", label: "Specular" },
   { key: "attenuationColor", label: "Atten Col" }
 ];
@@ -400,7 +404,7 @@ const MATERIAL_FLAG_FIELDS: readonly {
   { key: "transparent", label: "Transparent", recompile: true },
   { key: "wireframe", label: "Wireframe", recompile: false },
   { key: "flatShading", label: "Flat Shading", recompile: true },
-  { key: "vertexColors", label: "Vertex Cols", recompile: true },
+  { key: "vertexColors", label: "Vertex Colors", recompile: true },
   { key: "depthTest", label: "Depth Test", recompile: false },
   { key: "depthWrite", label: "Depth Write", recompile: false }
 ];
@@ -519,7 +523,7 @@ const MaterialSection = ({ material, record }: MaterialSectionProps) => {
           })
         }
       />
-      <PropertyFieldRow label="Side">
+      <PropertyFieldRow labelWidth={LABEL_WIDTH} label="Side">
         <SelectField
           className="select-field nodrag"
           hideLabel
@@ -777,7 +781,7 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
           {material && (
             <Section title="Material">
               {materials.length > 1 && (
-                <PropertyFieldRow label="Slot">
+                <PropertyFieldRow labelWidth={LABEL_WIDTH} label="Slot">
                   <SelectField
                     className="select-field nodrag"
                     hideLabel
@@ -801,7 +805,7 @@ const PropertiesPanel = ({ object, tick, record }: PropertiesPanelProps) => {
             {mesh && (
               <>
                 <CheckboxRow label="Cast Shadow" checked={mesh.castShadow} onChange={(c) => setFlag("Cast shadow", "castShadow", mesh, c)} />
-                <CheckboxRow label="Recv Shadow" checked={mesh.receiveShadow} onChange={(c) => setFlag("Receive shadow", "receiveShadow", mesh, c)} />
+                <CheckboxRow label="Receive Shadow" checked={mesh.receiveShadow} onChange={(c) => setFlag("Receive shadow", "receiveShadow", mesh, c)} />
               </>
             )}
             <CheckboxRow label="Frustum Cull" checked={object.frustumCulled} onChange={(c) => setFlag("Frustum cull", "frustumCulled", object, c)} />
