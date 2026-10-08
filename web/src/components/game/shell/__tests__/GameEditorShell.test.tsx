@@ -235,3 +235,28 @@ it("offers only hidden panels registered and available in the current dimension"
     expect(screen.queryByRole("option", { name })).not.toBeInTheDocument();
   }
 });
+
+it("marks each docked panel host with data-game-panel so 2D viewport shortcuts find the viewport", async () => {
+  const user = userEvent.setup();
+  const registry = createGamePanelRegistry();
+  registry.register({ id: "viewport", title: "Viewport", icon: null, dimensions: ["2d"], defaultRegion: "viewport" });
+  registry.register({ id: "inspector", title: "Inspector", icon: null, dimensions: ["2d"], defaultRegion: "right" });
+  const viewportShortcut = jest.fn();
+  const onKeyDown = jest.fn((event: { code: string; target: EventTarget }) => {
+    if (event.target instanceof HTMLElement && event.target.closest('[data-game-panel="viewport"]') && event.code === "Home") {
+      viewportShortcut();
+    }
+  });
+  render(<ThemeProvider theme={mockTheme}><Shell dimension="2d" registry={registry} toolbar={toolbar}
+    status={status} onKeyDown={onKeyDown} panels={[
+      { id: "viewport", keyboardScope: true, node: <button>Editor viewport</button> },
+      { id: "inspector", node: <button>Inspector action</button> }
+    ]} /></ThemeProvider>);
+  const viewport = screen.getByRole("button", { name: "Editor viewport" });
+  expect(viewport.closest("[data-game-panel]")).toHaveAttribute("data-game-panel", "viewport");
+  expect(screen.getByRole("button", { name: "Inspector action" }).closest("[data-game-panel]"))
+    .toHaveAttribute("data-game-panel", "inspector");
+  await user.click(viewport);
+  await user.keyboard("{Home}");
+  expect(viewportShortcut).toHaveBeenCalledTimes(1);
+});

@@ -24,6 +24,8 @@ export function StableGamePanelHost({ id, slot, resolveSlot, active, keyboardSco
   children }: StableGamePanelHostProps): ReactNode {
   const [container] = useState(() => {
     const element = window.document.createElement("div");
+    // Shortcut routing and focus capture find a panel through this marker, e.g. `[data-game-panel="viewport"]`.
+    element.dataset.gamePanel = id;
     element.style.width = "100%";
     element.style.height = "100%";
     return element;
@@ -36,7 +38,7 @@ export function StableGamePanelHost({ id, slot, resolveSlot, active, keyboardSco
     const focused = currentFocus instanceof HTMLElement && container.contains(currentFocus)
       ? currentFocus
       : currentFocus === window.document.body && recorded?.panelId === id && recorded.container === container ? recorded.node : null;
-    container.dataset.gamePanelHost = id;
+    container.dataset.gamePanel = id;
     container.toggleAttribute("data-game-undo-scope", Boolean(keyboardScope));
     const locked = window.document.pointerLockElement;
     if ((!active || !targetSlot) && locked && container.contains(locked)) {

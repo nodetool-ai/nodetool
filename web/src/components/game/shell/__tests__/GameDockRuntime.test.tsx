@@ -134,8 +134,8 @@ it("docks real 2D viewport and script pane without replacing session, renderer, 
     expect(screen.getByRole("textbox", { name: "Script source" })).toBe(source);
     expect(source).toHaveValue("original local draft");
     await act(async () => store.getState().dispatch({ type: "move", panelId: "scripts", region: "right", groupId: "runtime-viewport", index: 1 }));
-    expect(viewport.closest("[data-game-panel-host]")).toHaveAttribute("hidden");
-    expect(viewport.closest("[data-game-panel-host]")).toHaveProperty("inert", true);
+    expect(viewport.closest("[data-game-panel]")).toHaveAttribute("hidden");
+    expect(viewport.closest("[data-game-panel]")).toHaveProperty("inert", true);
     expect(source).toHaveValue("original local draft");
     let time = performance.now();
     for (let tick = 0; tick < 20; tick++) {

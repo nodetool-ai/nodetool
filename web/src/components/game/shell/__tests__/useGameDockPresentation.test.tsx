@@ -31,7 +31,7 @@ function Harness({ desired, commits }: {
 }) {
   const presentation = useGameDockPresentation(desired);
   return <section ref={desired.root}>
-    {presentation.views.map((view) => <div key={view.id} data-game-panel-host={view.id}>{view.node}</div>)}
+    {presentation.views.map((view) => <div key={view.id} data-game-panel={view.id}>{view.node}</div>)}
     <Observe presentation={presentation} commits={commits} />
   </section>;
 }

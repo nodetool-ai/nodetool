@@ -44,9 +44,9 @@ export function useGameDockPresentation(desired: GameDockPresentationInput): Gam
     if (transitioning) {
       if (!capturePending.current) {
         const focused = window.document.activeElement;
-        const host = focused instanceof HTMLElement ? focused.closest<HTMLElement>("[data-game-panel-host]") : null;
-        focusSnapshot.current = focused instanceof HTMLElement && host?.dataset.gamePanelHost && desired.root.current?.contains(host)
-          ? { panelId: host.dataset.gamePanelHost, container: host, node: focused } : null;
+        const host = focused instanceof HTMLElement ? focused.closest<HTMLElement>("[data-game-panel]") : null;
+        focusSnapshot.current = focused instanceof HTMLElement && host?.dataset.gamePanel && desired.root.current?.contains(host)
+          ? { panelId: host.dataset.gamePanel, container: host, node: focused } : null;
         capturePending.current = true;
       }
       setMetadata({ store: desired.store, layout: desired.layout, registry: desired.registry,

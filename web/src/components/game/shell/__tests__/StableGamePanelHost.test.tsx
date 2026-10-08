@@ -23,7 +23,7 @@ it("detaches a truly absent slot, focuses a visible fallback, and reattaches the
   const rendered = await act(async () => render(view(slot)));
   try {
     const input = screen.getByRole("textbox", { name: "Preserved script input" });
-    const host = input.closest<HTMLElement>("[data-game-panel-host]");
+    const host = input.closest<HTMLElement>("[data-game-panel]");
     if (!host) { throw new Error("Actual stable host was not attached"); }
     await user.click(input);
     await user.type(input, " edit");
