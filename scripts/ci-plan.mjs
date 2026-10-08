@@ -179,9 +179,7 @@ async function main(argv) {
       files === null ? fullPlan() : buildPlan(files, packages, computeAffected).steps;
     for (const app of apps) {
       const step =
-        files === null
-          ? steps.find((s) => s.label === app)
-          : steps.find((s) => s.label.startsWith(`${app}:`));
+        steps.find((s) => s.label === app || s.label.startsWith(`${app}:`));
       if (!step) {
         console.log(`${app}: not affected by this diff.`);
         continue;

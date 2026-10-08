@@ -1125,6 +1125,16 @@
                         }
                       ]
                     },
+                    "runtime_package": {
+                      "anyOf": [
+                        {
+                          "type": "string"
+                        },
+                        {
+                          "type": "null"
+                        }
+                      ]
+                    },
                     "secret_key": {
                       "anyOf": [
                         {
@@ -1876,6 +1886,16 @@
                   "type": "string"
                 },
                 "provider": {
+                  "anyOf": [
+                    {
+                      "type": "string"
+                    },
+                    {
+                      "type": "null"
+                    }
+                  ]
+                },
+                "runtime_package": {
                   "anyOf": [
                     {
                       "type": "string"

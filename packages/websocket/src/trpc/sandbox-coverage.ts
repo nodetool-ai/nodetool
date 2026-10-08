@@ -602,6 +602,11 @@ export const SANDBOX_API_COVERAGE: Readonly<
       "The model menu uses these keys for display ordering. find_model " +
       "already applies the same rankings when selecting models for a run."
   },
+  "models.rerankByProvider": {
+    gap:
+      "The owner UI lists rerank models by provider. Sandbox model " +
+      "discovery does not yet expose rerank catalogs."
+  },
   "models.recommended": {
     elsewhere:
       "find_model resolves a model by capability; list_models and " +

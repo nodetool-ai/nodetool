@@ -24,17 +24,10 @@ import {
 import type { AppRunRecord } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
 import { ProcessingContext, inAppRunCostAccount } from "@nodetool-ai/runtime";
 import type { NodeRegistry } from "@nodetool-ai/node-sdk";
-import {
-  debugGraphOf,
-  documentOperations,
-  extractAppIO,
-  jsScriptRunMessages,
-  scriptAppIO,
-  scriptOperationInvocation,
-  type AppServerRunInput,
-  type AppServerRunOutcome,
-  type JsScriptOperationRunner
-} from "../app-debug/index.js";
+import { debugGraphOf } from "../app-debug/graph-shape.js";
+import { documentOperations, extractAppIO } from "../app-debug/app-spec.js";
+import { jsScriptRunMessages, scriptAppIO, scriptOperationInvocation, type JsScriptOperationRunner } from "../app-debug/script-operation.js";
+import type { AppServerRunInput, AppServerRunOutcome } from "../app-debug/simulate.js";
 import { isRecord } from "../predicates.js";
 import { attachRunCostLedger } from "../cost-ledger.js";
 import { createFalGenerationLifecycleHooks } from "../generation-lifecycle.js";

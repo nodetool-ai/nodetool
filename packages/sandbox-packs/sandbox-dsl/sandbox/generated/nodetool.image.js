@@ -75,6 +75,9 @@ function upscale(inputs, options) {
 function removeBackground(inputs, options) {
   return createNode("nodetool.image.RemoveBackground", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
+function estimateDepth(inputs, options) {
+  return createNode("nodetool.image.EstimateDepth", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
+}
 function relight(inputs, options) {
   return createNode("nodetool.image.Relight", inputs, { id: options?.id, outputNames: ["output"], outputTypes: { "output": "image" }, defaultOutput: "output" });
 }
@@ -91,6 +94,7 @@ export {
   channels,
   compositor,
   crop,
+  estimateDepth,
   fit,
   getMetadata,
   imageToImage,

@@ -200,11 +200,13 @@ function launchCutSequence() {
 }
 
 async function seed() {
-  const { initDb, Asset, Storyboard, TimelineSequence } = await import(
+  const { initDb, migrateSqliteDb, Asset, Storyboard, TimelineSequence } = await import(
     "@nodetool-ai/models"
   );
   const { getDefaultDbPath } = await import("@nodetool-ai/config");
-  initDb(getDefaultDbPath());
+  const dbPath = getDefaultDbPath();
+  await migrateSqliteDb(dbPath);
+  initDb(dbPath);
 
   await new Asset(
     entityAsset(IDS.productEntity, {
