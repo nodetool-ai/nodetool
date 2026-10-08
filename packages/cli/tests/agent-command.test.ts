@@ -431,4 +431,16 @@ describe("the budget a CLI run holds", () => {
       "run deadline of 0ms reached"
     );
   });
+
+  it("refuses a --max-iterations that is not a positive integer before any model call", async () => {
+    const provider = new ScriptedProvider([textScript("never reached")]);
+
+    await expect(
+      runWithCapture(provider, {
+        objective: "list my workflows",
+        maxIterations: "ten"
+      })
+    ).rejects.toThrow(/--max-iterations must be an integer/);
+    expect(provider.callLog).toHaveLength(0);
+  });
 });

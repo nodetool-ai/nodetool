@@ -99,3 +99,23 @@ describe("asJson", () => {
     expect(logSpy.mock.calls[0]![0]).toContain('"inner": true');
   });
 });
+
+describe("readSecretValue", () => {
+  it("reads the first line of piped stdin", async () => {
+    const { Readable } = await import("node:stream");
+    const { readSecretValue } = await import("../src/commands/output.js");
+    await expect(
+      readSecretValue("Enter value: ", Readable.from(["sk-123\nignored\n"]))
+    ).resolves.toBe("sk-123");
+  });
+
+  // `secrets store` used to wait on a readline question that EOF never
+  // answers, so the process exited 0 with nothing stored.
+  it("rejects when stdin ends before any line arrives", async () => {
+    const { Readable } = await import("node:stream");
+    const { readSecretValue } = await import("../src/commands/output.js");
+    await expect(
+      readSecretValue("Enter value: ", Readable.from([]))
+    ).rejects.toThrow(/stdin ended/);
+  });
+});

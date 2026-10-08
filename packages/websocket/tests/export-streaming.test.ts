@@ -194,7 +194,7 @@ describe("timeline zip export", () => {
 describe("resolveExportSource", () => {
   it("answers an external asset's file by path", async () => {
     const video = await externalAsset();
-    expect(await resolveExportSource(`asset://${video.id}.mp4`)).toEqual({
+    expect(await resolveExportSource(`asset://${video.id}.mp4`, USER_ID)).toEqual({
       path: externalFile,
       size: EXTERNAL_BYTES.byteLength
     });
@@ -207,13 +207,13 @@ describe("resolveExportSource", () => {
       path: path.join(root, USER_ID, `${still.id}.png`),
       size: MANAGED_BYTES.byteLength
     };
-    expect(await resolveExportSource(`asset://${still.id}`)).toEqual(expected);
+    expect(await resolveExportSource(`asset://${still.id}`, USER_ID)).toEqual(expected);
     expect(
-      await resolveExportSource(`/api/storage/${USER_ID}/${still.id}.png`)
+      await resolveExportSource(`/api/storage/${USER_ID}/${still.id}.png`, USER_ID)
     ).toEqual(expected);
     expect(retrieve).not.toHaveBeenCalled();
     // The workflow bundle still gets bytes, read from the same file.
-    expect(await resolveAssetBytesForExport(`asset://${still.id}`)).toEqual(
+    expect(await resolveAssetBytesForExport(`asset://${still.id}`, USER_ID)).toEqual(
       MANAGED_BYTES
     );
   });

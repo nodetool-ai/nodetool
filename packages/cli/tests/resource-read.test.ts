@@ -184,6 +184,21 @@ describe("--json emits one row shape regardless of source", () => {
 });
 
 describe("failures are reported in the format the caller asked for", () => {
+  it("refuses a --limit that is not a positive integer before reading", async () => {
+    const { stdout, exitCode } = await run([
+      "workflows",
+      "list",
+      "--limit",
+      "ten",
+      "--json"
+    ]);
+    expect(exitCode).toBe(1);
+    expect(JSON.parse(stdout)).toEqual({
+      error: '--limit must be an integer (got "ten")'
+    });
+    expect(workflowPaginate).not.toHaveBeenCalled();
+  });
+
   it("puts a parseable error on stdout under --json and exits 1", async () => {
     jobPaginate.mockRejectedValue(new Error("database is locked"));
     const { stdout, stderr, exitCode } = await run(["jobs", "list", "--json"]);

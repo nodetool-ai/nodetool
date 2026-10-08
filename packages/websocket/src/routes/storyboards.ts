@@ -32,7 +32,10 @@ interface RouteOptions {
  * fetch at all — decode it here rather than teaching the shared resolver about
  * a form only this surface sees.
  */
-async function resolveShotMedia(ref: string): Promise<ExportSource | null> {
+async function resolveShotMedia(
+  ref: string,
+  userId: string
+): Promise<ExportSource | null> {
   if (ref.startsWith("data:")) {
     const comma = ref.indexOf(",");
     if (comma < 0) return null;
@@ -47,7 +50,7 @@ async function resolveShotMedia(ref: string): Promise<ExportSource | null> {
       return null;
     }
   }
-  return resolveExportSource(ref);
+  return resolveExportSource(ref, userId);
 }
 
 const storyboardsRoutes: FastifyPluginAsync<RouteOptions> = async (
@@ -92,7 +95,10 @@ const storyboardsRoutes: FastifyPluginAsync<RouteOptions> = async (
       // never sits in memory whole.
       const body = streamZip(async (writer) => {
         await writeStoryboardZip(
-          { board: input, fetchAssetSource: resolveShotMedia },
+          {
+            board: input,
+            fetchAssetSource: (ref) => resolveShotMedia(ref, userId)
+          },
           writer
         );
       });

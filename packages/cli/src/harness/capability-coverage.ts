@@ -324,10 +324,10 @@ export interface CapabilityMappingGateResult {
  */
 export function resolveGateBaseRef(
   ref: string,
-  runGit: (command: string) => string
+  runGit: (args: readonly string[]) => string
 ): string {
   try {
-    return runGit(`git merge-base ${ref} HEAD`).trim() || ref;
+    return runGit(["merge-base", ref, "HEAD"]).trim() || ref;
   } catch {
     return ref;
   }

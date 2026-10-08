@@ -33,6 +33,22 @@ function writeExample(
 }
 
 describe("example-workflows", () => {
+  it("does not resolve a ref that escapes the examples directory", () => {
+    const root = tempDir();
+    const examplesDir = path.join(root, "examples", "nodetool-base");
+    writeExample(examplesDir, "hello-world.json", { name: "Hello World" });
+    writeExample(root, "secret.json", { name: "secret" });
+    fs.writeFileSync(path.join(root, "secret"), "{}", "utf8");
+
+    expect(resolveExampleJsonPath(examplesDir, "../../secret")).toBeNull();
+    expect(
+      resolveExampleJsonPath(examplesDir, path.join(root, "secret"))
+    ).toBeNull();
+    expect(resolveExampleJsonPath(examplesDir, "..")).toBeNull();
+    expect(loadExampleGraph("nodetool-base", "../../secret", { examplesDir }))
+      .toBeNull();
+  });
+
   it("resolves examples by filename", () => {
     const root = tempDir();
     const examplesDir = path.join(root, "examples", "nodetool-base");

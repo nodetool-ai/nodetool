@@ -18,6 +18,7 @@ import { safeFetch } from "@nodetool-ai/runtime";
 import type { StorageAdapter } from "@nodetool-ai/storage";
 import { getAssetAdapter } from "./storage.js";
 import { localAssetPath, retrieveAssetBytes } from "./asset-paths.js";
+import { canReadStorageKey } from "./storage-access.js";
 import { isLocalFileSource, type ExportSource } from "./zip-stream.js";
 
 /**
@@ -82,9 +83,14 @@ async function keyExportSource(
  * Resolve an export ref (`asset://`, `/api/storage/`, or a remote URL) to a
  * local file or bytes. Null when it cannot be resolved; the caller reports
  * it as missing.
+ *
+ * Stored refs resolve only when `userId` may read them, under the same rule
+ * as `GET /api/storage/<key>`: a graph or board can name any id or key, and
+ * an export must not copy another owner's bytes out.
  */
 export async function resolveExportSource(
-  ref: string
+  ref: string,
+  userId: string
 ): Promise<ExportSource | null> {
   try {
     if (ref.startsWith("asset://")) {
@@ -96,15 +102,15 @@ export async function resolveExportSource(
         // `<user_id>/<id>.<ext>` on every backend written since the per-owner
         // layout. Reading the suffixed ref as a flat key skipped that prefix
         // and found nothing on S3/Supabase, where no flat object exists.
-        const asset = (await Asset.get(assetId)) as Asset | null;
+        const asset = await Asset.find(userId, assetId);
         if (asset) {
           const source = await resolveAssetExportSource(asset);
           if (source) return source;
         }
-        // No row (or no bytes under either candidate): an older graph can
-        // still name an object that only exists under the flat key.
-        return await keyExportSource(adapter, rest);
       }
+      // No bytes under the row's candidates: an older graph can still name
+      // an object that only exists under the flat key.
+      if (!(await canReadStorageKey(userId, rest))) return null;
       return await keyExportSource(adapter, rest);
     }
     if (ref.includes("/api/storage/")) {
@@ -113,6 +119,7 @@ export async function resolveExportSource(
           .slice(ref.indexOf("/api/storage/") + "/api/storage/".length)
           .split("?")[0]
       );
+      if (!(await canReadStorageKey(userId, key))) return null;
       return await keyExportSource(getAssetAdapter(), key);
     }
     if (/^https?:\/\//.test(ref)) {
@@ -128,9 +135,10 @@ export async function resolveExportSource(
 
 /** Resolve a ref to bytes in memory, for the workflow bundle's graph rewrite. */
 export async function resolveAssetBytesForExport(
-  ref: string
+  ref: string,
+  userId: string
 ): Promise<Uint8Array | null> {
-  const source = await resolveExportSource(ref);
+  const source = await resolveExportSource(ref, userId);
   if (!source || !isLocalFileSource(source)) return source;
   try {
     return new Uint8Array(await readFile(source.path));

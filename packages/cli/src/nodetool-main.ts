@@ -17,7 +17,6 @@ import { createRequire } from "node:module";
 import { fileURLToPath } from "node:url";
 import { dirname, resolve } from "node:path";
 import { spawnSync } from "node:child_process";
-import { createInterface } from "node:readline";
 import { type Intervention } from "@nodetool-ai/protocol";
 import { workflowToDsl } from "@nodetool-ai/dsl";
 import {
@@ -103,8 +102,9 @@ import {
   type ProviderModelKind
 } from "./providers.js";
 import { isString } from "./predicates.js";
-import { printTable, asJson } from "./commands/output.js";
+import { printTable, asJson, readSecretValue } from "./commands/output.js";
 import { printCommandError } from "./command-errors.js";
+import { childExitCode } from "./child-exit.js";
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = dirname(__filename);
@@ -454,7 +454,8 @@ program
       stdio: "inherit",
       env: { ...process.env }
     });
-    process.exit(result.status ?? 0);
+    if (result.error) console.error(`Could not start the server: ${result.error.message}`);
+    process.exit(childExitCode(result));
   });
 
 // ---------------------------------------------------------------------------
@@ -483,7 +484,7 @@ program
       stdio: "inherit",
       env: { ...process.env }
     });
-    process.exit(result.status ?? 1);
+    process.exit(childExitCode(result));
   });
 
 // ---------------------------------------------------------------------------
@@ -1520,18 +1521,10 @@ secrets
   .option("--description <desc>", "Optional description")
   .action(async (key, opts) => {
     await setupDb();
-    const rl = createInterface({
-      input: process.stdin,
-      output: process.stderr
-    });
-    const value = await new Promise<string>((resolve) => {
-      process.stderr.write(`Enter value for '${key}': `);
-      rl.question("", (ans) => {
-        rl.close();
-        resolve(ans);
-      });
-    });
     try {
+      // Hidden on a TTY: an echoed value stays in the terminal scrollback.
+      const value = await readSecretValue(`Enter value for '${key}': `);
+      if (!value) throw new Error(`No value given for '${key}'; nothing stored.`);
       await Secret.upsert({
         userId: opts.userId,
         key,

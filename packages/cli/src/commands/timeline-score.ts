@@ -10,6 +10,7 @@ import type { Command } from "commander";
 import type { TimelineCraftScoreResult } from "@nodetool-ai/execution/timeline-debug";
 import type { TimelineSequenceRecord } from "../timeline-debug/target.js";
 import { printCommandError } from "../command-errors.js";
+import { numericOptionParser } from "../numeric-options.js";
 import { runTimelineRender } from "./timeline-render.js";
 
 /** Evenly spaced frames a `--sheet` render samples by default. */
@@ -17,7 +18,7 @@ const SHEET_FRAME_COUNT = 12;
 
 interface TimelineScoreCliOptions {
   json?: boolean;
-  minScore?: string;
+  minScore?: number;
   sheet?: string;
 }
 
@@ -48,7 +49,8 @@ export function registerTimelineScoreCommand(
     .option("--json", "Print the full TimelineCraftScoreResult as JSON")
     .option(
       "--min-score <n>",
-      "Exit non-zero when the score is below this threshold"
+      "Exit non-zero when the score is below this threshold",
+      numericOptionParser("--min-score")
     )
     .option(
       "--sheet <out.png>",
@@ -101,7 +103,7 @@ export function registerTimelineScoreCommand(
         }
 
         const failed =
-          opts.minScore !== undefined && result.score < Number(opts.minScore);
+          opts.minScore !== undefined && result.score < opts.minScore;
         process.exit(failed ? 1 : 0);
       } catch (e) {
         printCommandError(e, opts.json);

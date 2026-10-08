@@ -810,6 +810,12 @@ export class ChatTurnHandler {
     }
     const existing = await Thread.find(userId, threadId);
     if (existing) return existing.id;
+    // `create` upserts on the primary key, so creating under an id another
+    // user's thread already holds would reassign that thread (and its
+    // history) to this caller.
+    if (await Thread.get(threadId)) {
+      throw new Error("Thread not found");
+    }
     const thread = await Thread.create({
       id: threadId,
       user_id: userId,

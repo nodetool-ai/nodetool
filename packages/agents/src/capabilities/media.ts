@@ -2257,7 +2257,14 @@ async function stageInputs(
     let bytes: Uint8Array | null = null;
     let readError: string | undefined;
     try {
-      bytes = await loadMediaRefBytes({ uri: ref.trim() }, context);
+      // `loadMediaRefBytes` reads `file://` URIs and absolute paths straight
+      // off the host disk. A filesystem-shaped ref resolves through the
+      // storage adapter alone, which keeps it inside the storage root.
+      const uri = ref.trim();
+      bytes =
+        filesystemPathForUri(uri) !== null
+          ? ((await context.storage?.retrieve(uri)) ?? null)
+          : await loadMediaRefBytes({ uri }, context);
     } catch (e) {
       // Keep why. Naming only the accepted forms is useless to a caller who
       // already passed one — an unreachable bucket, a revoked credential and a

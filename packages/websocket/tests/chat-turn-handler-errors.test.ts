@@ -8,7 +8,13 @@
  * whose `generateLoop` the test scripts.
  */
 import { describe, it, expect, beforeEach, vi } from "vitest";
-import { initTestDb, Memory, Message, Prediction } from "@nodetool-ai/models";
+import {
+  initTestDb,
+  Memory,
+  Message,
+  Prediction,
+  Thread
+} from "@nodetool-ai/models";
 import {
   annotateGroqRequestFailure,
   markContextExceeded,
@@ -927,5 +933,47 @@ describe("generation recovery on a later agent turn", () => {
     expect(
       JSON.stringify(history.map((message) => message.content))
     ).not.toContain("asset-gen-completed");
+  });
+});
+
+describe("thread ownership", () => {
+  beforeEach(() => {
+    initTestDb();
+  });
+
+  it("does not take over another user's thread named by id", async () => {
+    const victim = await Thread.create({
+      user_id: "victim",
+      project_id: "default",
+      title: "Private"
+    });
+    await Message.create({
+      thread_id: victim.id,
+      user_id: "victim",
+      role: "user",
+      content: "victim secret"
+    });
+    const seen: unknown[] = [];
+    const harness = makeChatTurnHarness({
+      session: {
+        userId: "attacker",
+        resolveProvider: async () =>
+          fakeProvider({
+            generateLoop: async function* (args: GenerateLoopArgs) {
+              seen.push(...args.messages.map((m) => m.content));
+              yield { type: "chunk", content: "ok", done: true };
+            }
+          })
+      }
+    });
+
+    await harness.handler
+      .handleChatMessage(chatTurn(victim.id))
+      .catch(() => undefined);
+
+    const row = await Thread.get<Thread>(victim.id);
+    expect(row?.user_id).toBe("victim");
+    expect(row?.title).toBe("Private");
+    expect(JSON.stringify(seen)).not.toContain("victim secret");
   });
 });

@@ -21,6 +21,23 @@ function timelineSubcommand(name: string) {
   return cmd;
 }
 
+describe("timeline score --min-score", () => {
+  // `Number("abc")` is NaN and `score < NaN` is false, so a mistyped
+  // threshold used to turn the gate into one that always passes.
+  it("rejects a threshold that is not a number before scoring anything", () => {
+    const program = new Command();
+    program.exitOverride();
+    program.configureOutput({ writeErr: () => {}, writeOut: () => {} });
+    registerTimelineCommands(program);
+    expect(() =>
+      program.parse(
+        ["timeline", "score", "missing.json", "--min-score", "seventy"],
+        { from: "user" }
+      )
+    ).toThrow(/--min-score must be a number/);
+  });
+});
+
 describe("registerTimelineCommands", () => {
   it("registers validate with its options and target argument", () => {
     const cmd = timelineSubcommand("validate");
