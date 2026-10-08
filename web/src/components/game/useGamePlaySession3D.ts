@@ -248,7 +248,14 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
 
 
   useEffect(() => {
-    if (!playing || !active) { inputRef.current.release(); audioRef.current?.pause(); return; }
+    if (!playing || !active) {
+      inputRef.current.release();
+      audioRef.current?.pause();
+      setInspection(committedRef.current);
+      setFrame(lastFrameRef.current);
+      if (lastFrameRef.current) { display(lastFrameRef.current, 1); }
+      return;
+    }
     audioRef.current?.resume();
     const clock = new FixedTickClock(sessionDocument.tickRate);
     let request = 0;

@@ -44,6 +44,7 @@ export default function GameEditorShell({ dimension, toolbar, status, panels, re
     }
     return [...groups].map(([key, group]) => {
       const nodes = group.panels.map((view) => <Box key={view.id}
+        data-game-panel={view.id}
         data-game-undo-scope={view.keyboardScope || undefined} sx={{ display: "contents" }}>{view.node}</Box>);
       return group.dock ? <ResizableDock key={key} {...group.dock}>
         <FlexColumn

@@ -81,13 +81,18 @@ beforeEach(() => {
   getGameDraftStore(mockDocument.id).getState().load(mockDocument, mockServer.game.draftUpdatedAt);
 });
 
-it.each(["active play", "independent diagnostic"])("replays active history for the displayed %s error", async (provenance) => {
+it.each(["active play", "independent diagnostic"])("offers host replay only for a host failure: %s", async (provenance) => {
   const user = userEvent.setup();
   if (provenance === "active play") { mockHostFailure = mockFailure; }
   else { mockDiagnosticFailure = mockFailure; }
   render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
   await user.click(screen.getByRole("button", { name: "Edit player script" }));
   expect(screen.getByText(mockFailure.message)).toBeInTheDocument();
+  if (provenance === "independent diagnostic") {
+    expect(screen.queryByRole("button", { name: "Replay displayed error" })).not.toBeInTheDocument();
+    expect(mockReplay).not.toHaveBeenCalled();
+    return;
+  }
   await user.click(screen.getByRole("button", { name: "Replay displayed error" }));
   expect(mockReplay).toHaveBeenCalledTimes(1);
   expect(mockReplay).toHaveBeenCalledWith(mockFailure);
@@ -124,6 +129,20 @@ it("preserves viewport Alt-arrow world nudging", async () => {
   await user.keyboard("{Alt>}{ArrowDown}{/Alt}");
   expect(document2D(store).scenes[0].entities.find((entity) => entity.id === "player")?.transform2d.y).toBe(initialY - 0.25);
   expect(store.getState().pendingOps).toHaveLength(1);
+});
+
+it("keeps hierarchy navigation keys from editing the selected entity", async () => {
+  const user = userEvent.setup();
+  mockPlayDocument = null;
+  const store = getGameDraftStore(mockDocument.id);
+  render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
+  await user.click(screen.getByRole("button", { name: "player" }));
+  const before = structuredClone(store.getState().document);
+  await user.keyboard("{ArrowDown}{Delete}{Home}{Control>}d{/Control}");
+  expect(store.getState().document).toEqual(before);
+  expect(store.getState().pendingOps).toEqual([]);
+  await user.tab();
+  expect(screen.getByRole("button", { name: "player" })).not.toHaveFocus();
 });
 
 it("keeps inspector-button undo and delete outside the editor keyboard scope", async () => {

@@ -269,6 +269,14 @@ it("publishes Play updates only at crossed HUD tick boundaries", async () => {
     expect(previousTick).toBe(60);
     expect(renderer.render.mock.calls.length).toBeGreaterThanOrEqual(60);
     expect(commits).toEqual(Array.from({ length: 10 }, (_, index) => String((index + 1) * 6)));
+    for (let callback = 0; callback < 10 && previousTick < 63; callback++) {
+      await advance();
+      previousTick = renderer.render.mock.calls.at(-1)?.[0].tick ?? previousTick;
+    }
+    expect(previousTick).toBe(63);
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    expect(screen.getByTestId("tick").textContent).toBe("63");
+    expect(screen.getByTestId("frame-tick").textContent).toBe("63");
     console.info("K2 hook cadence", JSON.stringify({ dimension: "3d", ticks: previousTick, clockAdvanceMs: now, renderCalls: renderer.render.mock.calls.length, commits }));
   } finally {
     view.unmount(); request.mockRestore(); cancel.mockRestore();
