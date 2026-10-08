@@ -46,13 +46,16 @@ function sampleForSchema(schema: unknown, depth = 0): unknown {
  * providers answer that prompt with a fenced object the schema accepts.
  */
 export function schemaAnswer(messages: Message[]): string | null {
+  const open = "<JSON_SCHEMA>";
   for (const message of messages) {
-    const match = /<JSON_SCHEMA>\s*([\s\S]*?)\s*<\/JSON_SCHEMA>/.exec(
-      messageText(message.content)
-    );
-    if (!match) continue;
+    // Sliced by index, not a regex, so a long prompt cannot backtrack.
+    const text = messageText(message.content);
+    const start = text.indexOf(open);
+    const end = start < 0 ? -1 : text.indexOf("</JSON_SCHEMA>", start);
+    if (end < 0) continue;
     try {
-      return "```json\n" + JSON.stringify(sampleForSchema(JSON.parse(match[1]))) + "\n```";
+      const schema = JSON.parse(text.slice(start + open.length, end));
+      return "```json\n" + JSON.stringify(sampleForSchema(schema)) + "\n```";
     } catch {
       return null;
     }
