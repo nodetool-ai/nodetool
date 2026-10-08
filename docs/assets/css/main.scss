@@ -2500,3 +2500,240 @@ pre:hover .copy-button,
     color: #0066cc !important;
   }
 }
+
+/* === Page chrome: section label, outline, pager ===
+   The section label and pager come from _data/navigation.yml through
+   _includes/nav-position.html. The outline is filled by theme.js. */
+.page-section-label {
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--color-accent-cyan);
+}
+
+.doc-layout {
+  display: block;
+}
+
+@media (min-width: 1280px) {
+  .content:has(.doc-layout) {
+    max-width: 1120px;
+  }
+
+  .has-page-toc .doc-layout {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 200px;
+    gap: var(--spacing-2xl);
+    align-items: start;
+  }
+}
+
+.page-toc {
+  display: none;
+}
+
+@media (min-width: 1280px) {
+  .page-toc:not([hidden]) {
+    display: block;
+    position: sticky;
+    top: calc(var(--header-height) + var(--spacing-xl));
+    max-height: calc(100vh - var(--header-height) - var(--spacing-3xl));
+    overflow-y: auto;
+    padding-left: var(--spacing-md);
+    border-left: 1px solid var(--color-border);
+  }
+}
+
+.page-toc-title {
+  margin: 0 0 var(--spacing-sm) 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+.page-toc-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.page-toc-item {
+  margin: 0 0 var(--spacing-xs) 0;
+  font-size: 0.82rem;
+  line-height: 1.4;
+}
+
+.page-toc-item.sub {
+  padding-left: var(--spacing-md);
+}
+
+.page-toc-item a {
+  color: var(--color-text-muted);
+  text-decoration: none;
+}
+
+.page-toc-item a:hover,
+.page-toc-item a.active {
+  color: var(--color-accent-cyan);
+}
+
+.page-pager {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--spacing-md);
+  margin: 0 0 var(--spacing-xl) 0;
+}
+
+.page-pager-link {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-secondary);
+  text-decoration: none;
+  transition: border-color var(--transition-fast);
+}
+
+.page-pager-link:hover {
+  border-color: var(--color-accent-cyan);
+}
+
+.page-pager-link.next {
+  grid-column: 2;
+  text-align: right;
+}
+
+.page-pager-dir {
+  font-size: 0.75rem;
+  color: var(--color-text-muted);
+}
+
+.page-pager-link.prev .page-pager-dir::before {
+  content: "← ";
+}
+
+.page-pager-link.next .page-pager-dir::after {
+  content: " →";
+}
+
+.page-pager-title {
+  font-weight: 600;
+  color: var(--color-text-primary);
+}
+
+@media (max-width: 768px) {
+  .page-pager {
+    grid-template-columns: 1fr;
+  }
+
+  .page-pager-link.next {
+    grid-column: 1;
+  }
+}
+
+/* === Callouts ===
+   Markdown usage:
+     > **Tip:** text
+     {: .callout-tip}
+   Classes: callout-note, callout-tip, callout-warning. */
+.page-content blockquote.callout-note,
+.page-content blockquote.callout-tip,
+.page-content blockquote.callout-warning {
+  font-style: normal;
+  box-shadow: none;
+  border-radius: 6px;
+  border: 1px solid var(--color-border);
+  border-left-width: 4px;
+  color: var(--color-text-secondary);
+}
+
+.page-content blockquote.callout-note {
+  border-left-color: var(--color-accent-cyan);
+  background: rgba(34, 211, 238, 0.06);
+}
+
+.page-content blockquote.callout-tip {
+  border-left-color: var(--color-accent-green);
+  background: rgba(80, 250, 123, 0.06);
+}
+
+.page-content blockquote.callout-warning {
+  border-left-color: #FFB86C;
+  background: rgba(255, 184, 108, 0.07);
+}
+
+.page-content blockquote[class^="callout-"] p:last-child {
+  margin-bottom: 0;
+}
+
+/* === Link cards ===
+   <div class="card-grid">
+     <a class="doc-card" href="..."><strong>Title</strong><span>One line.</span></a>
+   </div> */
+.card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
+  gap: var(--spacing-md);
+  margin: var(--spacing-lg) 0;
+}
+
+.doc-card {
+  display: flex;
+  flex-direction: column;
+  gap: var(--spacing-xs);
+  padding: var(--spacing-md) var(--spacing-lg);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  background: var(--color-bg-secondary);
+  text-decoration: none;
+  transition: border-color var(--transition-fast), transform var(--transition-fast);
+}
+
+.page-content a.doc-card,
+.home-page a.doc-card {
+  text-decoration: none;
+}
+
+.doc-card:hover {
+  border-color: var(--color-accent-cyan);
+  transform: translateY(-2px);
+}
+
+.doc-card strong {
+  color: var(--color-text-primary);
+  font-weight: 600;
+}
+
+.doc-card strong::after {
+  content: " →";
+  color: var(--color-accent-cyan);
+}
+
+.doc-card span {
+  color: var(--color-text-muted);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .doc-card:hover {
+    transform: none;
+  }
+}
+
+@media print {
+  .page-toc,
+  .page-pager {
+    display: none !important;
+  }
+}
+
+.page-content a.doc-card:hover,
+.page-content a.page-pager-link:hover {
+  color: inherit;
+  text-shadow: none;
+}

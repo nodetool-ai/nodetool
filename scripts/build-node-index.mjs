@@ -11,7 +11,7 @@
  * to something that isn't there, regardless of which generator produced the
  * pages.
  *
- *   - Root  docs/nodes/index.md   : every leaf namespace, grouped by top segment.
+ *   - Root  docs/nodes/index.md   : every leaf namespace, grouped by topic.
  *   - Each subdirectory index.md  : its immediate sub-namespaces + node pages.
  *
  * Labels come from the `namespace:` front matter of the contained pages (which
@@ -75,7 +75,174 @@ function dirNamespace(dir) {
   return rel || "nodes";
 }
 
-// --- Root index: every leaf namespace grouped by top segment -----------------
+// --- Root index content ------------------------------------------------------
+// Groups appear in this order. Namespaces map to a group by exact name or by
+// prefix (the longest matching key wins). Unmapped namespaces land in "Other"
+// and produce a warning, so a new namespace is never silently dropped.
+const GROUPS = [
+  { name: "Text and LLMs", description: "Work with strings, structured text, embeddings and language models." },
+  { name: "Images", description: "Generate, edit, filter and composite images." },
+  { name: "Video", description: "Generate, edit and assemble video, timelines and scripts." },
+  { name: "Audio", description: "Generate, transform, mix and transcribe audio." },
+  { name: "3D", description: "Generate and process 3D models and meshes." },
+  { name: "Data and documents", description: "Constants, inputs, outputs, files, documents, PDFs, databases and vector search." },
+  { name: "Control flow and logic", description: "Branch, loop, trigger and reuse parts of a workflow." },
+  { name: "Agents and tools", description: "Agents that plan and call tools, plus code and browser automation." },
+  { name: "Integrations and providers", description: "Nodes for hosted model providers, local model runtimes and messaging services." },
+  { name: "Games and testing", description: "Game asset helpers and nodes used to test the workflow engine." },
+];
+const OTHER = { name: "Other", description: "Namespaces not yet assigned to a group." };
+
+const NAMESPACE_GROUPS = {
+  "nodetool.text": "Text and LLMs",
+  "nodetool.generators": "Text and LLMs",
+  "mistral.text": "Text and LLMs",
+  "mistral.embeddings": "Text and LLMs",
+  "openai.text": "Text and LLMs",
+  "xai.text": "Text and LLMs",
+  "gemini.text": "Text and LLMs",
+  "transformers": "Text and LLMs",
+  "huggingface": "Text and LLMs",
+
+  "lib.image": "Images",
+  "lib.grid": "Images",
+  "lib.svg": "Images",
+  "lib.stable_diffusion_cpp": "Images",
+  "nodetool.image": "Images",
+  "nodetool.compare": "Images",
+  "nodetool.sketch": "Images",
+  "openai.image": "Images",
+  "gemini.image": "Images",
+  "xai.image": "Images",
+  "xai.vision": "Images",
+  "mistral.vision": "Images",
+  "reve": "Images",
+
+  "nodetool.video": "Video",
+  "nodetool.timeline": "Video",
+  "nodetool.script": "Video",
+  "nodetool.creative": "Video",
+  "lib.video": "Video",
+  "gemini.video": "Video",
+
+  "nodetool.audio": "Audio",
+  "lib.audio": "Audio",
+  "openai.audio": "Audio",
+  "gemini.audio": "Audio",
+  "elevenlabs": "Audio",
+  "whisper_cpp": "Audio",
+
+  "nodetool.model3d": "3D",
+
+  "nodetool.constant": "Data and documents",
+  "nodetool.input": "Data and documents",
+  "nodetool.output": "Data and documents",
+  "nodetool.data": "Data and documents",
+  "nodetool.document": "Data and documents",
+  "nodetool.variable": "Data and documents",
+  "lib.pdf": "Data and documents",
+  "lib.sqlite": "Data and documents",
+  "lib.charts": "Data and documents",
+  "vector": "Data and documents",
+
+  "nodetool.control": "Control flow and logic",
+  "nodetool.triggers": "Control flow and logic",
+  "nodetool.workflows": "Control flow and logic",
+
+  "nodetool.agents": "Agents and tools",
+  "nodetool.code": "Agents and tools",
+  "openai.agents": "Agents and tools",
+  "lib.browser": "Agents and tools",
+
+  "fal": "Integrations and providers",
+  "kie": "Integrations and providers",
+  "minimax": "Integrations and providers",
+  "lib.comfy": "Integrations and providers",
+  "messaging": "Integrations and providers",
+
+  "nodetool.game": "Games and testing",
+  "nodetool.fake": "Games and testing",
+  "nodetool.test": "Games and testing",
+};
+
+// One line per leaf namespace, written from the node titles in each directory.
+const DESCRIPTIONS = {
+  "elevenlabs": "ElevenLabs text to speech, speech to text, realtime streaming and voice selection.",
+  "fal.dynamic": "Run any FAL model by endpoint, with a schema-driven or raw request.",
+  "gemini.audio": "Gemini text to speech and transcription.",
+  "gemini.image": "Gemini image generation.",
+  "gemini.text": "Gemini embeddings and search-grounded answers.",
+  "gemini.video": "Gemini text to video and image to video.",
+  "huggingface": "Hugging Face inference tasks such as chat completion, classification, summarization and text to image.",
+  "kie.dynamic_schema": "Run Kie AI models through a schema-driven node.",
+  "lib.audio": "Audio effects such as reverb, delay, compressor, EQ filters, pitch shift and time stretch.",
+  "lib.browser": "Capture a screenshot of a web page.",
+  "lib.charts": "Render a chart from data.",
+  "lib.comfy": "Run a ComfyUI workflow, locally or on a worker.",
+  "lib.grid": "Slice an image into a grid of tiles.",
+  "lib.image.channel": "Merge and shuffle image channels.",
+  "lib.image.color": "Brightness, contrast, exposure, hue, saturation, color grading and inversion.",
+  "lib.image.draw": "Generate gradients and checkerboard patterns.",
+  "lib.image.effects": "Blend modes, color overlay, drop shadow, glow and outline.",
+  "lib.image.filter": "Gaussian blur, pixelate, threshold, unsharp mask and vignette.",
+  "lib.image.keyer": "Chroma key and luma key.",
+  "lib.image.mask": "Create, invert and apply masks.",
+  "lib.image.warp": "Affine, corner pin, displace, offset, pad and polar remap transforms.",
+  "lib.pdf": "Extract text, tables and styled text from PDFs, run OCR, and render pages as images.",
+  "lib.sqlite": "Get the path of the workflow SQLite database.",
+  "lib.stable_diffusion_cpp": "Generate images locally with stable-diffusion.cpp.",
+  "lib.svg": "Build SVG documents and convert SVG to an image.",
+  "lib.video.download": "Download a video from YouTube.",
+  "messaging.discord": "Start a workflow from a Discord bot message.",
+  "messaging.telegram": "Start a workflow from a Telegram bot message.",
+  "minimax": "MiniMax text to image, text to video, image to video, text to speech, music and voice.",
+  "mistral.embeddings": "Mistral text embeddings.",
+  "mistral.text": "Mistral chat and code completion.",
+  "mistral.vision": "Mistral image to text and OCR.",
+  "nodetool.agents": "Agent, classifier, extractor, summarizer, decision and prompt enhancement nodes.",
+  "nodetool.audio": "Load, save, trim, mix, fade, normalize and convert audio, plus text to speech and text to music.",
+  "nodetool.audio.realtime": "Process audio as a live stream of chunks, with streaming filters and audio output.",
+  "nodetool.audio.synth": "Modular synth parts such as oscillator, LFO, ADSR, gate and mixer.",
+  "nodetool.code": "Run JavaScript in the workflow sandbox.",
+  "nodetool.compare": "Compare two images.",
+  "nodetool.constant": "Fixed values of every type, including text, numbers, media, lists and model selections.",
+  "nodetool.control": "Branching, loops, filtering, fallbacks, error handling and stream operators such as zip, take and collect.",
+  "nodetool.creative": "Storyboard helpers such as director, screenplay shots, shot batches and entity application.",
+  "nodetool.data": "Iterate over data frame rows and load CSV assets.",
+  "nodetool.document": "List, load and save document files.",
+  "nodetool.fake": "Stand-in nodes that return fake output for testing.",
+  "nodetool.game": "Game assets such as sprite sheets, tilesets, sound effects and music loops.",
+  "nodetool.generators": "Generate lists, data, charts, SVG and structured output with a language model.",
+  "nodetool.image": "Load, save, resize, crop, composite and upscale images, plus text to image and image to image.",
+  "nodetool.input": "Workflow inputs of every type, filled in when the workflow runs.",
+  "nodetool.model3d": "Convert, repair, transform and render 3D models, plus text to 3D and image to 3D.",
+  "nodetool.output": "Mark a value as a workflow output.",
+  "nodetool.script": "Load voiceover scripts and convert them to subtitles, timelines and voiced audio.",
+  "nodetool.sketch": "Create, layer and render sketch documents.",
+  "nodetool.test": "Nodes that exercise the workflow engine in tests, such as streaming, error and slow nodes.",
+  "nodetool.text": "String editing, regex, JSON parsing, templates, splitting, token counting and embeddings.",
+  "nodetool.timeline": "Add clips to a timeline, render it and read its transcript.",
+  "nodetool.triggers": "Start a workflow from a file change, interval, webhook or manual run.",
+  "nodetool.variable": "Set and get workflow variables.",
+  "nodetool.video": "Load, trim, concatenate, filter and subtitle video, plus text to video, image to video and lip sync.",
+  "nodetool.workflows.app_node": "Embed a mini app in a workflow.",
+  "nodetool.workflows.base_node": "Preview a value on the canvas.",
+  "nodetool.workflows.subgraph": "Group part of a workflow into a reusable subgraph.",
+  "nodetool.workflows.workflow_node": "Run another workflow as a node.",
+  "openai.agents": "OpenAI live and realtime agents and realtime transcription.",
+  "openai.audio": "OpenAI text to speech, transcription and translation.",
+  "openai.image": "OpenAI image creation, editing and variations.",
+  "openai.text": "OpenAI embeddings, moderation and web search.",
+  "reve": "Reve image creation, editing and remixing.",
+  "transformers": "Run Transformers models locally for classification, generation, summarization, translation, detection and speech.",
+  "vector": "Create vector collections, index text, images and embeddings, and run text, image and hybrid queries.",
+  "whisper_cpp": "Live transcription with whisper.cpp.",
+  "xai.image": "xAI image generation.",
+  "xai.text": "xAI chat completion and web search.",
+  "xai.vision": "xAI image to text.",
+};
+
+// --- Root index: every leaf namespace, grouped by what you work with -----------------
 function writeRootIndex() {
   const leaves = [];
   (function walk(dir) {
@@ -90,12 +257,23 @@ function writeRootIndex() {
   })(nodesDir);
 
   const total = leaves.reduce((s, l) => s + l.count, 0);
-  const groups = new Map();
+
+  // Bucket each namespace into a group: exact match first, then longest prefix.
+  const keys = Object.keys(NAMESPACE_GROUPS).sort((a, b) => b.length - a.length);
+  const buckets = new Map(GROUPS.map((g) => [g.name, []]));
+  buckets.set(OTHER.name, []);
+  const unmapped = [];
   for (const l of leaves) {
-    const g = l.namespace.split(".")[0];
-    if (!groups.has(g)) groups.set(g, []);
-    groups.get(g).push(l);
+    const key = keys.find((k) => l.namespace === k || l.namespace.startsWith(k + "."));
+    if (key === undefined) {
+      unmapped.push(l.namespace);
+      buckets.get(OTHER.name).push(l);
+    } else {
+      buckets.get(NAMESPACE_GROUPS[key]).push(l);
+    }
   }
+  for (const ns of unmapped)
+    console.warn(`warning: namespace "${ns}" is not in NAMESPACE_GROUPS, listed under "${OTHER.name}"`);
 
   const out = [
     "---",
@@ -103,17 +281,31 @@ function writeRootIndex() {
     'title: "Node Reference"',
     "---",
     "",
-    `Complete reference documentation for all ${total} NodeTool nodes across ${leaves.length} namespaces.`,
+    "A node is one step in a NodeTool workflow. It takes inputs, does one job such as calling a model, resizing an image or branching on a condition, and passes the result to the next node. " +
+      "This reference is generated from the node registry. Each node page shows the node type, its properties with their types, descriptions and defaults, and its outputs.",
     "",
-    "## Namespaces",
+    `The reference covers ${total} nodes in ${leaves.length} namespaces, grouped below by what you work with.`,
     "",
   ];
-  for (const [g, list] of [...groups.entries()].sort((a, b) => a[0].localeCompare(b[0]))) {
-    out.push(`### ${g}`, "");
-    for (const l of list.sort((a, b) => a.namespace.localeCompare(b.namespace)))
-      out.push(`- **[${l.namespace}](${l.rel}/)** - ${l.count} node(s)`);
+  for (const g of [...GROUPS, OTHER]) {
+    const list = buckets.get(g.name);
+    if (list.length === 0) continue;
+    out.push(`## ${g.name}`, "", g.description, "");
+    out.push("| Namespace | What it does | Nodes |", "|---|---|---|");
+    for (const l of list.sort((a, b) => a.namespace.localeCompare(b.namespace))) {
+      const desc = DESCRIPTIONS[l.namespace] ?? "";
+      out.push(`| [${l.namespace}](${l.rel}/) | ${desc} | ${l.count} |`);
+    }
     out.push("");
   }
+  out.push(
+    "## Find a node",
+    "",
+    "Press `/`, `Ctrl+K` or `⌘K` to search the site by node name. " +
+      "To add your own nodes, see the [custom nodes guide](../developer/custom-nodes-guide). " +
+      "For how nodes connect into workflows, see [key concepts](../key-concepts).",
+    ""
+  );
   fs.writeFileSync(path.join(nodesDir, "index.md"), out.join("\n"));
   return { total, namespaces: leaves.length };
 }
