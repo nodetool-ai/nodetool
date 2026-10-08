@@ -8,6 +8,25 @@ import { prepareGameScripts3D } from "../src/scripts3d.js";
 import { blockout } from "./fixtures-game3d.js";
 
 describe("persistent script proof", () => {
+  it("uses two setup evaluations per fresh call while preserving initializer closure state", async () => {
+    const document = gameDocument.parse(createTopDownRoomGame("a".repeat(32)));
+    const player = document.scenes[0].entities.find((entity) => entity.id === "player")!;
+    player.behaviors = [{ kind: "script", source: "(() => { let n = 0; return input => ({ state: ++n, commands: [] }); })()", maxTickMs: 50, maxCommands: 8 }];
+    const runner = await prepareGameScripts(document);
+    const evaluate = vi.spyOn(QuickJSContext.prototype, "evalCode");
+    const key = scriptSourceKey("room", "player", 0);
+    try {
+      for (let tick = 0; tick < 3; tick += 1) {
+        evaluate.mockClear();
+        const result = runner.run([{ sourceKey: key, stateKey: key, entityId: "player", source: "player", state: null,
+          x: 0, y: 0, velocityX: 0, velocityY: 0, touching: { down: false, up: false, left: false, right: false }, maxTickMs: 50, maxCommands: 8
+        }], { tick, pressed: [], justPressed: [], events: [], world: [] }, 1);
+        expect(result.results[0].state).toBe(1);
+        expect(evaluate).toHaveBeenCalledTimes(2);
+      }
+    } finally { runner.dispose(); evaluate.mockRestore(); }
+  });
+
   it("bounds native callback registrations and releases call-owned world readers", async () => {
     const document = gameDocument.parse(createTopDownRoomGame("a".repeat(32)));
     const player = document.scenes[0].entities.find((entity) => entity.id === "player")!;

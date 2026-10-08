@@ -436,6 +436,7 @@ Targets: 60 fps at 1280×720 on a mid-range desktop GPU for `bench-3d-1000` with
 
 **S2. Tags and entity properties (G27).**
 - Do: `tags: string[]` and `props: Record<string, JSON>` on entities, both 2D and 3D. Scripts read `entity.tags`, `entity.props`, other entities' tags and props, rotation and active state. Props can be changed by script commands and are snapshot state.
+- Integrate authored tags with S1's tick-start world projections and `ScriptWorldSnapshot` in both dimensions. Cover tag filtering combined with source, radius, document ordering, and result limits. Until S2's schema and runtime integration land together, S1 tag queries intentionally return no matches.
 
 **S3. Script parameters bound to the inspector (G71).**
 - Depends on: S2, W4.

@@ -102,8 +102,8 @@ function evaluate(context: QuickJSContext, code: string): unknown {
   try { return context.dump(value); } finally { value.dispose(); }
 }
 
-function initializeContext(context: QuickJSContext, seed: number): void {
-  evaluate(context, `
+function initializeContext(context: QuickJSContext, seed: number, helpers: string): QuickJSHandle {
+  return scriptHandleResult(context, context.evalCode(`
     globalThis.Date = undefined;
     Object.defineProperty(globalThis, "__gameRandom", {
       value: (() => {
@@ -117,7 +117,8 @@ function initializeContext(context: QuickJSContext, seed: number): void {
       })(), writable: false, configurable: false
     });
     Object.defineProperty(Math, "random", { value: __gameRandom, writable: false, configurable: false });
-  `);
+    ${helpers}
+  `, "game-transport.js", { type: "global" }));
 }
 
 function assertBeforeDeadline(deadline: number, budget: string): void {
@@ -212,21 +213,21 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
     let worldGetter: QuickJSHandle | undefined;
     let worldReader: (() => QuickJSHandle) | undefined;
     try {
-      initializeContext(context, seed);
       worldGetter = persistent ? context.newFunction("legacyWorld", () => {
         if (!worldReader) { throw new Error("Legacy world read outside an active script call"); }
         return worldReader();
       }) : context.undefined.dup();
-      defineData = scriptHandleResult(context, context.evalCode(`((define) => (object, key, value) => {
+      // Capture pristine helpers together, without introducing bindings visible to user source.
+      const helpers = initializeContext(context, seed, `[
+      ((define) => (object, key, value) => {
         define(object, key, { value, writable: true, enumerable: true, configurable: true });
-      })(Object.defineProperty)`));
-      queryJson = scriptHandleResult(context, context.evalCode(`((stringify) => (value) => {
+      })(Object.defineProperty),
+      ((stringify) => (value) => {
         const json = stringify(value);
         if (typeof json !== "string" || json.length > 4096) { throw new Error("world query arguments exceed 4096 characters or are not JSON"); }
         return json;
-      })(JSON.stringify)`));
-      // Capture only the transport descriptor helper before arbitrary source runs.
-      invoke = scriptHandleResult(context, context.evalCode(`((defineProperty) => (data, getWorld, rngState) => {
+      })(JSON.stringify),
+      ((defineProperty) => (data, getWorld, rngState) => {
         ${persistent ? "" : "data = JSON.parse(data);"}
         const payload = ${payloadExpression};
         ${persistent ? `defineProperty(payload, "world", {
@@ -235,7 +236,12 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
         });` : ""}
         const value = __gameScript(payload);
         return JSON.stringify({ value, rngState: ${persistent ? "rngState" : "__gameRandom.state"} });
-      })(Object.defineProperty)`, "game-transport.js", { type: "global" }));
+      })(Object.defineProperty)]`);
+      try {
+        defineData = context.getProp(helpers, 0);
+        queryJson = context.getProp(helpers, 1);
+        invoke = context.getProp(helpers, 2);
+      } finally { helpers.dispose(); }
       if (evaluate(context, `globalThis.__gameScript = (${source}); typeof __gameScript`) !== "function") {
         throw new Error(`Game script ${sourceKey} must be a function expression`);
       }
@@ -335,8 +341,13 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
               const { context, invoke, defineData, worldGetter } = realm;
               if (!persistent) { worldCall = getHostWorld().install(context, checkCallDeadline, realm.defineData, realm.queryJson); }
               checkCallDeadline();
-              const { world: _world, ...withoutWorld } = input;
-              const data = JSON.stringify({ call, input: persistent ? withoutWorld : input, rngState: nextRngState });
+              let data: string;
+              if (persistent) {
+                const { world: _world, ...withoutWorld } = input;
+                data = JSON.stringify({ call, input: withoutWorld, rngState: nextRngState });
+              } else {
+                data = JSON.stringify({ call, input, rngState: nextRngState });
+              }
               checkCallDeadline();
               const normalized: unknown = persistent ? JSON.parse(data) : data;
               let argument: QuickJSHandle | undefined;

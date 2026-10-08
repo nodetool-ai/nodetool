@@ -3,7 +3,9 @@ import type { GameSystemContext2D } from "./context2d.js";
 import { applyGameplayCommand, queueGameplayBehavior } from "../gameplay/lifecycle.js";
 import { scriptSourceKey } from "../scripts.js";
 export function stepScripts2D(context: GameSystemContext2D): void {
-  const worldAtStart = context.scriptRunner ? context.states.filter((state) => state.active)
+  const hasActiveScripts = context.scriptRunner && context.states.some((state) => state.active
+    && state.definition.behaviors.some((behavior) => behavior.kind === "script"));
+  const worldAtStart = hasActiveScripts ? context.states.filter((state) => state.active)
     .map((state) => ({ id: state.definition.id, source: state.sourceId ?? state.definition.id, x: state.x, y: state.y,
       velocityX: state.velocityX, velocityY: state.velocityY, grounded: touchingOf(context, state).down })) : [];
   for (const state of context.states) {

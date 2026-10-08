@@ -265,6 +265,38 @@ objects and lazily copies legacy `input.world`. Both paths retain JSON
 normalization and existing budgets. These warm measurements exclude first-call
 compilation from their measured ticks.
 
+### Fresh-context follow-up
+
+The external-review follow-up combines trusted helper initialization into one
+evaluation, removes a discarded fallback input copy, and skips the full 2D
+query snapshot when no scripts are active. The unchanged canonical commands
+above each exited 0 on this candidate. Scripts-stage p99 was 11.633391 ms for
+2D 500/32, 0.051327 ms for 3D 1000/0, and 11.697422 ms for 3D 64/30.
+These are additional candidate observations against the historical baseline,
+not a newly paired before/after comparison.
+
+A separate serial probe measured one fresh-context call per batch using
+`Math.abs` and a local binding, an empty world, seed 1, 100 warmup calls, and
+1,000 measured calls. Three rounds rotated the original baseline, published
+S1 commit `ea8ca86abc`, and the follow-up candidate. All nine commands exited 0
+with the original 20 ms call and 50 ms batch limits.
+
+| Runtime | Mean batch time range across rounds, ms |
+|---|---:|
+| Original baseline | 0.623996–0.637125 |
+| Published S1 | 0.712999–0.731253 |
+| Follow-up | 0.671325–0.710250 |
+
+The follow-up reduced mean cost by 2.9–5.8% relative to published S1 in this probe.
+It remained 7.6–11.5% above the original baseline. This small empty-world workload
+therefore does not establish fallback performance parity. It also does not
+reproduce the external review microbenchmark, whose exact command was not
+available. The canonical scripted fixtures exercise the persistent path.
+
+Raw samples, commands, actual exits, load readings, and the candidate source
+manifest are preserved in
+`/home/mg/native-game-verification/s1-external-review-v1/`.
+
 ## Browser rendering measurements
 
 These runs use Chromium 148.0.7778.96 on the same machine, the WebGL2 backend,
