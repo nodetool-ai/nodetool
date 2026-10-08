@@ -126,6 +126,12 @@ interface ChatSessionCtor {
   new (options: ChatSessionOptions): NodeLlamaChatSession;
 }
 
+/** Process-wide counter for tool-call ids. */
+let toolCallSeq = 0;
+
+/** Output cap when the caller sets none. Matches Ollama's default. */
+const DEFAULT_MAX_TOKENS = 8192;
+
 let _modulePromise: Promise<{
   getLlama: NodeLlamaModule["getLlama"];
   LlamaChatSession: ChatSessionCtor;
@@ -163,6 +169,52 @@ async function loadNodeLlamaCpp(): Promise<{
     })();
   }
   return _modulePromise;
+}
+
+type GpuBackend = "auto" | "metal" | "cuda" | "vulkan" | "cpu";
+
+/**
+ * Process-wide llama runtimes (one per GPU backend) and loaded models (one per
+ * backend and model path). Provider instances are rebuilt freely (per
+ * ProcessingContext, per configured-providers refresh), so a per-instance
+ * cache reloaded a multi-GB GGUF on every run and left the old handle alive.
+ * Promises are cached, not results, so concurrent first uses share one load.
+ */
+const _llamas = new Map<string, Promise<NodeLlama>>();
+const _models = new Map<string, Promise<NodeLlamaModel>>();
+
+function cacheOnce<T>(
+  cache: Map<string, Promise<T>>,
+  key: string,
+  load: () => Promise<T>
+): Promise<T> {
+  const cached = cache.get(key);
+  if (cached) return cached;
+  const pending = load();
+  cache.set(key, pending);
+  // A failed load must not poison the cache for the next attempt.
+  pending.catch(() => {
+    if (cache.get(key) === pending) cache.delete(key);
+  });
+  return pending;
+}
+
+/**
+ * Dispose every model loaded by any {@link NodeLlamaCppProvider} and drop the
+ * cache. Call on shutdown; the next generation reloads what it needs.
+ */
+export async function disposeNodeLlamaCppModels(): Promise<void> {
+  const pending = [..._models.values()];
+  _models.clear();
+  await Promise.all(
+    pending.map(async (p) => {
+      try {
+        await (await p).dispose();
+      } catch {
+        // A load that failed or a model already disposed has nothing to free.
+      }
+    })
+  );
 }
 
 /** Platform default directory for downloaded GGUF models. Mirrors the location
@@ -289,9 +341,7 @@ export class NodeLlamaCppProvider extends BaseProvider {
   }
 
   private readonly modelsDir?: string;
-  private readonly gpuBackend?: "auto" | "metal" | "cuda" | "vulkan" | "cpu";
-  private _llama: NodeLlama | null = null;
-  private readonly _models = new Map<string, NodeLlamaModel>();
+  private readonly gpuBackend?: GpuBackend;
 
   constructor(
     secrets: {
@@ -334,8 +384,8 @@ export class NodeLlamaCppProvider extends BaseProvider {
     return this.modelsDir ?? (await getDefaultModelsDir());
   }
 
-  private async getLlama(): Promise<NodeLlama> {
-    if (!this._llama) {
+  private getLlama(): Promise<NodeLlama> {
+    return cacheOnce(_llamas, this.gpuBackend ?? "", async () => {
       const { getLlama } = await loadNodeLlamaCpp();
       const gpu: NodeLlamaOptions["gpu"] | undefined =
         this.gpuBackend === "cpu"
@@ -343,17 +393,13 @@ export class NodeLlamaCppProvider extends BaseProvider {
           : this.gpuBackend === undefined
             ? undefined
             : this.gpuBackend;
-      this._llama = await getLlama(gpu === undefined ? undefined : { gpu });
-    }
-    return this._llama;
+      return getLlama(gpu === undefined ? undefined : { gpu });
+    });
   }
 
   /** Resolve a model id (absolute path, or a GGUF filename under the models
-   * directory) to a loaded model, caching the handle for reuse. */
+   * directory) to a loaded model, shared process-wide. */
   private async getOrLoadModel(model: string): Promise<NodeLlamaModel> {
-    const cached = this._models.get(model);
-    if (cached) return cached;
-
     const path = await importNodeBuiltin<typeof import("node:path")>(
       "node:path"
     );
@@ -364,10 +410,11 @@ export class NodeLlamaCppProvider extends BaseProvider {
       ? model
       : path.join(await this.resolveModelsDir(), model);
 
-    const llama = await this.getLlama();
-    const loaded = await llama.loadModel({ modelPath });
-    this._models.set(model, loaded);
-    return loaded;
+    return cacheOnce(
+      _models,
+      `${this.gpuBackend ?? ""}\0${modelPath}`,
+      async () => (await this.getLlama()).loadModel({ modelPath })
+    );
   }
 
   /** Split a message array into a system prompt, the prior-turn history, and
@@ -377,17 +424,22 @@ export class NodeLlamaCppProvider extends BaseProvider {
    * in the model's own syntax. */
   private buildChat(messages: Message[]) {
     const systemParts: string[] = [];
-    const results = new Map<string, string>();
     for (const msg of messages) {
       if (msg.role === "system") systemParts.push(asText(msg.content));
-      else if (msg.role === "tool" && msg.toolCallId)
-        results.set(msg.toolCallId, asText(msg.content));
     }
 
     const history: ChatHistoryItem[] = [];
-    for (const msg of messages) {
+    for (const [i, msg] of messages.entries()) {
       if (msg.role === "system" || msg.role === "tool") continue;
       if (msg.role === "assistant") {
+        // Pair calls only with the tool results that follow this turn, so a
+        // call id reused in another round can't pick up that round's result.
+        const results = new Map<string, string>();
+        for (let j = i + 1; j < messages.length; j++) {
+          const next = messages[j];
+          if (next.role !== "tool") break;
+          if (next.toolCallId) results.set(next.toolCallId, asText(next.content));
+        }
         const text = asText(msg.content);
         const response: (string | ChatModelFunctionCall)[] = text ? [text] : [];
         (msg.toolCalls ?? []).forEach((tc, index) => {
@@ -472,7 +524,6 @@ export class NodeLlamaCppProvider extends BaseProvider {
   ): ChatSessionModelFunctions | undefined {
     if (tools.length === 0) return undefined;
     const functions: ChatSessionModelFunctions = {};
-    let seq = 0;
     for (const tool of tools) {
       functions[tool.name] = defineChatSessionFunction({
         description: tool.description,
@@ -481,7 +532,15 @@ export class NodeLlamaCppProvider extends BaseProvider {
           if (onToolCall) {
             return await onToolCall(tool.name, params);
           }
-          pendingCalls.push({ id: `call_${++seq}`, name: tool.name, args: params });
+          // Ids must be unique across rounds: history replay pairs each call
+          // with its result by id, so a per-call `call_1` made every earlier
+          // call replay with the latest result.
+          toolCallSeq += 1;
+          pendingCalls.push({
+            id: `call_${Date.now().toString(36)}_${toolCallSeq}`,
+            name: tool.name,
+            args: params
+          });
           stopGeneration();
           return "";
         }
@@ -503,7 +562,7 @@ export class NodeLlamaCppProvider extends BaseProvider {
     ) => Promise<string>;
     signal?: AbortSignal;
   }): AsyncGenerator<ProviderStreamItem> {
-    const { model, tools = [], maxTokens = 1024, onToolCall } = args;
+    const { model, tools = [], maxTokens = DEFAULT_MAX_TOKENS, onToolCall } = args;
     const { session, lastUserText, dispose } = await this.createSession(
       model,
       args.messages
