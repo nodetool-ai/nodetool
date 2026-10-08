@@ -115,7 +115,7 @@ it("confirms restore, flushes edits and uses the acknowledged token before reset
   await user.type(screen.getByRole("textbox", { name: "Anchored script" }), " changed");
   const store = getGameDraftStore(mockDocument.id);
   expect(store.getState().commandHistory.past.length).toBeGreaterThan(0);
-  await user.click(screen.getByRole("tab", { name: "Revisions", exact: true }));
+  await user.click(screen.getByRole("tab", { name: /^Revisions$/ }));
   await user.click(screen.getByRole("button", { name: "Revisions" }));
   await user.click(screen.getByRole("button", { name: "Restore to draft" }));
   expect(mockRestore).not.toHaveBeenCalled();

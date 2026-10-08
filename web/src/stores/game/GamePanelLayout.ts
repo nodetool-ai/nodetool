@@ -50,7 +50,9 @@ export type GamePanelLayout = z.infer<typeof gamePanelLayoutSchema>;
 export type GamePanelGroup = GamePanelLayout["regions"][GamePanelRegion][number];
 export type GamePanelLayoutAction =
   | { readonly type: "move"; readonly panelId: string; readonly region: GamePanelRegion; readonly groupId: string; readonly index: number }
-  | { readonly type: "activate" | "hide" | "reveal"; readonly panelId: string }
+  | { readonly type: "activate"; readonly panelId: string }
+  | { readonly type: "hide"; readonly panelId: string }
+  | { readonly type: "reveal"; readonly panelId: string }
   | { readonly type: "resize"; readonly region: "left" | "right" | "bottom"; readonly size: number }
   | { readonly type: "preset"; readonly name: GameLayoutPreset };
 
