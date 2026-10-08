@@ -1,78 +1,13 @@
 /** Capability-to-Tool compatibility for consumers that still require Tool[]. */
 
-import type { ProcessingContext } from "@nodetool-ai/runtime";
-import type { JsonSchema } from "@nodetool-ai/runtime";
 import { Tool } from "../tools/base-tool.js";
 
 import { capabilitySpec, loadCapabilityImpl } from "./registry.js";
 import { invokeCapability, ungatedCapabilityRun } from "./invoke.js";
 import type { CapabilityRunSource } from "./adapters.js";
-import type {
-  CapabilityExport,
-  CapabilityRun,
-  CapabilityImpl,
-  CapabilitySpec
-} from "./types.js";
-import { isFunction } from "../utils/type-guards.js";
-
-class LazyCapabilityTool extends Tool {
-  readonly name: string;
-  readonly description: string;
-  override readonly needsToolCallId: boolean;
-  private readonly entry: CapabilityExport;
-
-  constructor(
-    private readonly spec: CapabilitySpec,
-    private readonly runSource: CapabilityRunSource,
-    providedImpl?: CapabilityImpl
-  ) {
-    super();
-    this.name = spec.name;
-    this.description = spec.description;
-    this.needsToolCallId = spec.needsToolCallId === true;
-    this.entry = {
-      spec,
-      impl:
-        providedImpl ??
-        (async (run, args) => (await loadCapabilityImpl(spec.name))(run, args))
-    };
-  }
-
-  override get inputSchema(): JsonSchema {
-    return this.spec.inputSchema;
-  }
-
-  override userMessage(params: Record<string, unknown>): string {
-    const template = this.spec.userMessage?.(params);
-    if (template) return template;
-    return super.userMessage(params);
-  }
-
-  capability(): CapabilityExport {
-    return this.entry;
-  }
-
-  private readonly runs = new WeakMap<ProcessingContext, CapabilityRun>();
-
-  run(context: ProcessingContext): CapabilityRun {
-    if (!isFunction(this.runSource)) {
-      return this.runSource;
-    }
-    let run = this.runs.get(context);
-    if (!run) {
-      run = this.runSource(context);
-      this.runs.set(context, run);
-    }
-    return run;
-  }
-
-  async process(
-    context: ProcessingContext,
-    params: Record<string, unknown>
-  ): Promise<unknown> {
-    return invokeCapability(this.run(context), this.capability(), params);
-  }
-}
+import type { CapabilityImpl, CapabilitySpec } from "./types.js";
+import { LazyCapabilityTool } from "./lazy-tool-core.js";
+export { nativeCapabilityTool } from "./lazy-tool-core.js";
 
 /**
  * Expose one capability as a `Tool` from its spec alone.
@@ -88,7 +23,12 @@ export function toolFromLazyCapability(
   run: CapabilityRunSource = ungatedCapabilityRun,
   impl?: CapabilityImpl
 ): Tool {
-  return new LazyCapabilityTool(spec, run, impl);
+  return new LazyCapabilityTool(
+    spec,
+    run,
+    impl ?? (async (source, args) => (await loadCapabilityImpl(spec.name))(source, args)),
+    invokeCapability
+  );
 }
 
 /**
@@ -105,11 +45,4 @@ export function toolForCapabilityName(
     throw new Error(`no capability is registered for "${name}"`);
   }
   return toolFromLazyCapability(spec, run);
-}
-
-/** Only legacy Tool[] consumers should inspect this compatibility wrapper. */
-export function nativeCapabilityTool(
-  tool: Tool
-): LazyCapabilityTool | undefined {
-  return tool instanceof LazyCapabilityTool ? tool : undefined;
 }

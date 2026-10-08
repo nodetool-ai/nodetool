@@ -26,68 +26,14 @@ import {
   type CapabilitySpec,
   type PermissionCategory
 } from "./types.js";
+import { CAPABILITY_SPECS, capabilitySpec, capabilityModuleSpecTable, capabilityModuleOf } from "./metadata.js";
+export { capabilitySpec, capabilityModuleSpecTable, capabilityModuleOf, listCapabilitySpecs } from "./metadata.js";
 import { permissionCategoryFor } from "../tools/tool-permissions.js";
-import { agentsSpecs } from "./agents.specs.js";
-import { analysisSpecs } from "./analysis.specs.js";
-import { apifySpecs } from "./apify.specs.js";
-import { appsSpecs } from "./apps.specs.js";
-import { assetsSpecs } from "./assets.specs.js";
-import { browserSpecs } from "./browser.specs.js";
-import { codeSpecs } from "./code.specs.js";
-import { collectionsSpecs } from "./collections.specs.js";
-import { compositionsSpecs } from "./compositions.specs.js";
-import { costsSpecs } from "./costs.specs.js";
-import { documentsSpecs } from "./documents.specs.js";
-import { emailSpecs } from "./email.specs.js";
-import { exampleTimelinesSpecs } from "./example-timelines.specs.js";
-import { entitiesSpecs } from "./entities.specs.js";
-import { filesSpecs } from "./files.specs.js";
-import { flowSpecs } from "./flow.specs.js";
-import { generationsSpecs } from "./generations.specs.js";
-import { googleSpecs } from "./google.specs.js";
-import { jobsSpecs } from "./jobs.specs.js";
-import { runsSpecs } from "./runs.specs.js";
-import { errorsSpecs } from "./errors.specs.js";
-import { jsScriptsSpecs } from "./js-scripts.specs.js";
-import { mediaSpecs } from "./media.specs.js";
-import { memorySpecs } from "./memory.specs.js";
-import { model3dSpecs } from "./model3d.specs.js";
-import { gameSpecs } from "./game.specs.js";
-import { modelsSpecs } from "./models.specs.js";
-import { nodesSpecs } from "./nodes.specs.js";
-import { packsSpecs } from "./packs.specs.js";
-import { projectsSpecs } from "./projects.specs.js";
-import { scriptsSpecs } from "./scripts.specs.js";
-import { serpApiSpecs } from "./serpapi.specs.js";
-import { settingsSpecs } from "./settings.specs.js";
-import { sharedSpecs } from "./shared.specs.js";
-import { skillsSpecs } from "./skills.specs.js";
-import { sketchesSpecs } from "./sketches.specs.js";
-import { storyboardsSpecs } from "./storyboards.specs.js";
-import { threadsSpecs } from "./threads.specs.js";
-import { timelinesSpecs } from "./timelines.specs.js";
-import { uiSpecs } from "./ui.specs.js";
-import { webSpecs } from "./web.specs.js";
-import { videoProductionSpecs } from "./video-production.specs.js";
-import { workflowsSpecs } from "./workflows.specs.js";
 import { isFunction, isString } from "../utils/type-guards.js";
 
 type Loader = () => Promise<CapabilityModule>;
 
-/**
- * One entry per namespace: the lazy loader and the eager spec table, together
- * — the reviewer's declaration, the loader table, and the spec table used to
- * be three separately-maintained lists of the same 37 names, kept in sync by
- * a drift check whose only job was noticing when they were not.
- *
- * A spec file is data — the wire name, the description, the JSON schema, the
- * category, the message template — and imports nothing an implementation
- * needs, so importing all of them costs one object graph and no `import()`.
- * That is what lets a belt be assembled synchronously from `specs` while
- * `loader` stays a lazy import — {@link eagerSpecDrift} still checks that a
- * module's own exports carry the *same* spec objects as its `.specs.ts`
- * sibling, which a single table cannot guarantee by construction.
- */
+/** Lazy implementations refer to the independent eager metadata table. */
 interface CapabilityModuleEntry {
   readonly loader: Loader;
   readonly specs: readonly CapabilitySpec[];
@@ -96,177 +42,177 @@ interface CapabilityModuleEntry {
 const CAPABILITY_MODULES: Readonly<Record<string, CapabilityModuleEntry>> = {
   workflows: {
     loader: () => import("./workflows.js").then((m) => m.module),
-    specs: workflowsSpecs
+    specs: CAPABILITY_SPECS["workflows"]
   },
   models: {
     loader: () => import("./models.js").then((m) => m.module),
-    specs: modelsSpecs
+    specs: CAPABILITY_SPECS["models"]
   },
   media: {
     loader: () => import("./media.js").then((m) => m.module),
-    specs: mediaSpecs
+    specs: CAPABILITY_SPECS["media"]
   },
   collections: {
     loader: () => import("./collections.js").then((m) => m.module),
-    specs: collectionsSpecs
+    specs: CAPABILITY_SPECS["collections"]
   },
   costs: {
     loader: () => import("./costs.js").then((m) => m.module),
-    specs: costsSpecs
+    specs: CAPABILITY_SPECS["costs"]
   },
   nodes: {
     loader: () => import("./nodes.js").then((m) => m.module),
-    specs: nodesSpecs
+    specs: CAPABILITY_SPECS["nodes"]
   },
   jobs: {
     loader: () => import("./jobs.js").then((m) => m.module),
-    specs: jobsSpecs
+    specs: CAPABILITY_SPECS["jobs"]
   },
   errors: {
     loader: () => import("./errors.js").then((m) => m.module),
-    specs: errorsSpecs
+    specs: CAPABILITY_SPECS["errors"]
   },
   runs: {
     loader: () => import("./runs.js").then((m) => m.module),
-    specs: runsSpecs
+    specs: CAPABILITY_SPECS["runs"]
   },
   generations: {
     loader: () => import("./generations.js").then((m) => m.module),
-    specs: generationsSpecs
+    specs: CAPABILITY_SPECS["generations"]
   },
   assets: {
     loader: () => import("./assets.js").then((m) => m.module),
-    specs: assetsSpecs
+    specs: CAPABILITY_SPECS["assets"]
   },
   browser: {
     loader: () => import("./browser.js").then((m) => m.module),
-    specs: browserSpecs
+    specs: CAPABILITY_SPECS["browser"]
   },
   apps: {
     loader: () => import("./apps.js").then((m) => m.module),
-    specs: appsSpecs
+    specs: CAPABILITY_SPECS["apps"]
   },
   documents: {
     loader: () => import("./documents.js").then((m) => m.module),
-    specs: documentsSpecs
+    specs: CAPABILITY_SPECS["documents"]
   },
   email: {
     loader: () => import("./email.js").then((m) => m.module),
-    specs: emailSpecs
+    specs: CAPABILITY_SPECS["email"]
   },
   memory: {
     loader: () => import("./memory.js").then((m) => m.module),
-    specs: memorySpecs
+    specs: CAPABILITY_SPECS["memory"]
   },
   shared: {
     loader: () => import("./shared.js").then((m) => m.module),
-    specs: sharedSpecs
+    specs: CAPABILITY_SPECS["shared"]
   },
   web: {
     loader: () => import("./web.js").then((m) => m.module),
-    specs: webSpecs
+    specs: CAPABILITY_SPECS["web"]
   },
   "video-production": {
     loader: () => import("./video-production.js").then((m) => m.module),
-    specs: videoProductionSpecs
+    specs: CAPABILITY_SPECS["video-production"]
   },
   files: {
     loader: () => import("./files.js").then((m) => m.module),
-    specs: filesSpecs
+    specs: CAPABILITY_SPECS["files"]
   },
   agents: {
     loader: () => import("./agents.js").then((m) => m.module),
-    specs: agentsSpecs
+    specs: CAPABILITY_SPECS["agents"]
   },
   google: {
     loader: () => import("./google.js").then((m) => m.module),
-    specs: googleSpecs
+    specs: CAPABILITY_SPECS["google"]
   },
   threads: {
     loader: () => import("./threads.js").then((m) => m.module),
-    specs: threadsSpecs
+    specs: CAPABILITY_SPECS["threads"]
   },
   projects: {
     loader: () => import("./projects.js").then((m) => m.module),
-    specs: projectsSpecs
+    specs: CAPABILITY_SPECS["projects"]
   },
   "example-timelines": {
     loader: () => import("./example-timelines.js").then((m) => m.module),
-    specs: exampleTimelinesSpecs
+    specs: CAPABILITY_SPECS["example-timelines"]
   },
   timelines: {
     loader: () => import("./timelines.js").then((m) => m.module),
-    specs: timelinesSpecs
+    specs: CAPABILITY_SPECS["timelines"]
   },
   sketches: {
     loader: () => import("./sketches.js").then((m) => m.module),
-    specs: sketchesSpecs
+    specs: CAPABILITY_SPECS["sketches"]
   },
   model3d: {
     loader: () => import("./model3d.js").then((m) => m.module),
-    specs: model3dSpecs
+    specs: CAPABILITY_SPECS["model3d"]
   },
   game: {
     loader: () => import("./game.js").then((m) => m.module),
-    specs: gameSpecs
+    specs: CAPABILITY_SPECS["game"]
   },
   scripts: {
     loader: () => import("./scripts.js").then((m) => m.module),
-    specs: scriptsSpecs
+    specs: CAPABILITY_SPECS["scripts"]
   },
   storyboards: {
     loader: () => import("./storyboards.js").then((m) => m.module),
-    specs: storyboardsSpecs
+    specs: CAPABILITY_SPECS["storyboards"]
   },
   entities: {
     loader: () => import("./entities.js").then((m) => m.module),
-    specs: entitiesSpecs
+    specs: CAPABILITY_SPECS["entities"]
   },
   compositions: {
     loader: () => import("./compositions.js").then((m) => m.module),
-    specs: compositionsSpecs
+    specs: CAPABILITY_SPECS["compositions"]
   },
   code: {
     loader: () => import("./code.js").then((m) => m.module),
-    specs: codeSpecs
+    specs: CAPABILITY_SPECS["code"]
   },
   flow: {
     loader: () => import("./flow.js").then((m) => m.module),
-    specs: flowSpecs
+    specs: CAPABILITY_SPECS["flow"]
   },
   "js-scripts": {
     loader: () => import("./js-scripts.js").then((m) => m.module),
-    specs: jsScriptsSpecs
+    specs: CAPABILITY_SPECS["js-scripts"]
   },
   packs: {
     loader: () => import("./packs.js").then((m) => m.module),
-    specs: packsSpecs
+    specs: CAPABILITY_SPECS["packs"]
   },
   ui: {
     loader: () => import("./ui.js").then((m) => m.module),
-    specs: uiSpecs
+    specs: CAPABILITY_SPECS["ui"]
   },
   apify: {
     loader: () => import("./apify.js").then((m) => m.module),
-    specs: apifySpecs
+    specs: CAPABILITY_SPECS["apify"]
   },
   serpapi: {
     loader: () => import("./serpapi.js").then((m) => m.module),
-    specs: serpApiSpecs
+    specs: CAPABILITY_SPECS["serpapi"]
   },
   settings: {
     loader: () => import("./settings.js").then((m) => m.module),
-    specs: settingsSpecs
+    specs: CAPABILITY_SPECS["settings"]
   },
   skills: {
     loader: () => import("./skills.js").then((m) => m.module),
-    specs: skillsSpecs
+    specs: CAPABILITY_SPECS["skills"]
   },
   analysis: {
     loader: () => import("./analysis.js").then((m) => m.module),
-    specs: analysisSpecs
+    specs: CAPABILITY_SPECS["analysis"]
   }
-};
+} satisfies Readonly<Record<keyof typeof CAPABILITY_SPECS, CapabilityModuleEntry>>;
 
 /**
  * The namespaces this build declares, in the order {@link CAPABILITY_MODULES}
@@ -274,49 +220,6 @@ const CAPABILITY_MODULES: Readonly<Record<string, CapabilityModuleEntry>> = {
  */
 export const DECLARED_CAPABILITY_MODULES: readonly string[] =
   Object.keys(CAPABILITY_MODULES);
-
-const SPEC_BY_NAME: ReadonlyMap<string, CapabilitySpec> = new Map(
-  Object.values(CAPABILITY_MODULES).flatMap((entry) =>
-    entry.specs.map((spec) => [spec.name, spec] as const)
-  )
-);
-
-const MODULE_OF_NAME: ReadonlyMap<string, string> = new Map(
-  Object.entries(CAPABILITY_MODULES).flatMap(([moduleName, entry]) =>
-    entry.specs.map((spec) => [spec.name, moduleName] as const)
-  )
-);
-
-/**
- * The module that owns one capability, by wire name — the namespace a guest
- * imports it from. `undefined` for a name no module declares (a session tool,
- * an external MCP tool), which is how a caller tells the two apart.
- */
-export function capabilityModuleOf(name: string): string | undefined {
-  return MODULE_OF_NAME.get(name);
-}
-
-/** Every registered capability's spec, read without loading a module. */
-export function listCapabilitySpecs(): readonly CapabilitySpec[] {
-  return [...SPEC_BY_NAME.values()];
-}
-
-/** One module's specs, read without loading it. */
-export function capabilityModuleSpecTable(
-  moduleName: string
-): readonly CapabilitySpec[] {
-  return Object.hasOwn(CAPABILITY_MODULES, moduleName)
-    ? CAPABILITY_MODULES[moduleName].specs
-    : [];
-}
-
-/**
- * One capability's spec by wire name, synchronously. A miss means no module
- * declares that name — the belt builders treat it as a programming error.
- */
-export function capabilitySpec(name: string): CapabilitySpec | undefined {
-  return SPEC_BY_NAME.get(name);
-}
 
 const cache = new Map<string, Promise<CapabilityModule>>();
 
@@ -356,7 +259,7 @@ export function loadCapabilityModule(
 export async function loadCapabilityImpl(
   name: string
 ): Promise<CapabilityImpl> {
-  const moduleName = MODULE_OF_NAME.get(name);
+  const moduleName = capabilityModuleOf(name);
   if (moduleName === undefined) {
     throw new Error(`no capability is registered for "${name}"`);
   }
@@ -518,9 +421,8 @@ export function eagerSpecDrift(
  * catch — or {@link eagerSpecDrift}. Also flags one name exported by two
  * modules. Always empty in a healthy build; the drift test asserts it.
  *
- * A declared module with no loader or a loader nobody declared cannot occur:
- * both come from the same {@link CAPABILITY_MODULES} entry now, so there is
- * nothing left to compare two lists for.
+ * The loader table is checked against the metadata namespaces by TypeScript.
+ * This walk checks each loaded implementation against its eager spec objects.
  */
 export async function capabilityModuleDrift(): Promise<readonly string[]> {
   const drift: string[] = [];
