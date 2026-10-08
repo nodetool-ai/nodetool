@@ -29,6 +29,10 @@ describe("quality check matrix exit status", () => {
     expect(guard).toHaveLength(1);
     expect(guard[0]).toContain("if: matrix.check == 'lint'");
     expect(guard[0]).toContain("run: npm --prefix web run test:agentic-qa");
+    const staticJob = source.slice(source.indexOf("\n  static:"), source.indexOf("\n  build:"));
+    const install = staticJob.match(/      - name: Install Chromium for agentic QA checks\n        if: matrix.check == 'lint'\n        run: npx playwright install --with-deps chromium\n/g);
+    expect(install).toHaveLength(1);
+    expect(staticJob.indexOf(install[0])).toBeLessThan(staticJob.indexOf(guard[0]));
     expect(source).toMatch(/"check": "lint",\s*"command": "npm run lint",\s*"when": "always"/);
   });
 

@@ -453,6 +453,10 @@ jobs:
         if: matrix.check == 'lint'
         run: node --test .github/tests/docker-deploy.test.mjs
 
+      - name: Install Chromium for agentic QA checks
+        if: matrix.check == 'lint'
+        run: npx playwright install --with-deps chromium
+
       - name: Check agentic QA origin restrictions
         if: matrix.check == 'lint'
         run: npm --prefix web run test:agentic-qa
