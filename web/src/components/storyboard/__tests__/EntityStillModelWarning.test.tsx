@@ -30,3 +30,13 @@ it("does not warn when the selected provider supports image editing", () => {
   );
   expect(screen.queryByText(/only takes text/i)).not.toBeInTheDocument();
 });
+
+it("does not warn when no model is picked or the model is not listed yet", () => {
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <EntityStillModelWarning modelId={undefined} provider={undefined} />
+      <EntityStillModelWarning modelId="loading" provider="editor" />
+    </ThemeProvider>
+  );
+  expect(screen.queryByText(/only takes text/i)).not.toBeInTheDocument();
+});

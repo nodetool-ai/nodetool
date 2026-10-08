@@ -961,12 +961,32 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
 
   setEntityIds: (boardId, entityIds) =>
     set((state) =>
-      withBoard(state, boardId, (b) =>
-        b.entityIds.length === entityIds.length &&
-        b.entityIds.every((id, i) => id === entityIds[i])
-          ? null
-          : { ...b, entityIds }
-      )
+      withBoard(state, boardId, (b) => {
+        if (
+          b.entityIds.length === entityIds.length &&
+          b.entityIds.every((id, i) => id === entityIds[i])
+        ) {
+          return null;
+        }
+        // A shot's explicit list widens the cast again on load, so an entity
+        // taken off the board also leaves every shot that names it.
+        const kept = new Set(entityIds);
+        const removed = new Set(b.entityIds.filter((id) => !kept.has(id)));
+        const shots =
+          removed.size === 0
+            ? b.shots
+            : b.shots.map((shot) =>
+                shot.entity_ids?.some((id) => removed.has(id))
+                  ? {
+                      ...shot,
+                      entity_ids: shot.entity_ids.filter(
+                        (id) => !removed.has(id)
+                      )
+                    }
+                  : shot
+              );
+        return { ...b, entityIds, shots };
+      })
     ),
 
   toggleShotEntity: (boardId, shotId, entityId, currentIds) =>
@@ -1270,7 +1290,14 @@ export const useStoryboardStore = create<StoryboardStoreState>((set, get) => ({
           if (!keyframe || !target) {
             return null;
           }
-          const status = target.clip ? "rendered" : "keyframe_ready";
+          // Picking a still does not end a render in flight.
+          const status =
+            target.status === "keyframe_generating" ||
+            target.status === "clip_generating"
+              ? target.status
+              : target.clip
+                ? "rendered"
+                : "keyframe_ready";
           if (
             target.keyframe &&
             sameMediaRef(keyframe, target.keyframe) &&

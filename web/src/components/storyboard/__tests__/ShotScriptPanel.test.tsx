@@ -159,7 +159,7 @@ describe("ShotScriptPanel", () => {
     renderPanel(target);
 
     expect(
-      screen.getByText(/1 linked line\(s\) are no longer in the script/i)
+      screen.getByText(/1 linked line is no longer in the script/i)
     ).toBeInTheDocument();
   });
 });

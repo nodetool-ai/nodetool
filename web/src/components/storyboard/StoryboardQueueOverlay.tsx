@@ -431,7 +431,7 @@ const StoryboardQueueOverlay = memo(function StoryboardQueueOverlay({
 
       <FlexColumn gap={SPACING.xs} sx={{ px: SPACING.md }}>
         <Text role="status" aria-live="polite" size="small">
-          {`${counts.total} requests: ${counts.running} running, ${counts.completed} completed, ${counts.failed} failed, ${counts.awaitingReview} awaiting review, ${counts.stopped} stopped.`}
+          {`${counts.total} ${counts.total === 1 ? "request" : "requests"}: ${counts.running} running, ${counts.completed} completed, ${counts.failed} failed, ${counts.awaitingReview} awaiting review, ${counts.stopped} stopped.`}
         </Text>
         {counts.running > 0 && (
           <Caption color="secondary">
