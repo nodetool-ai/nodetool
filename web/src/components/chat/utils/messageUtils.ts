@@ -1,7 +1,9 @@
+import type { Message } from "../../../stores/ApiTypes";
 import {
   formatClockTime24,
   formatDayMonth
 } from "../../../utils/formatUtils";
+import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 interface ParsedThought {
   thoughtContent: string;
@@ -89,4 +91,28 @@ export const formatMessageTimestamp = (
   }
   const day = formatDayMonth(date);
   return day ? `${day} ${time}` : time;
+};
+
+/**
+ * Whether a message has something of its own to show besides tool calls:
+ * non-blank text or any non-text block (an image, a file). A message that only
+ * carries tool calls renders as timeline rows and gets no action row.
+ */
+export const hasVisibleContent = (message: Message): boolean => {
+  const { content } = message;
+  if (isString(content)) {
+    return content.trim().length > 0;
+  }
+  if (!Array.isArray(content)) {
+    return false;
+  }
+  return content.some((block) => {
+    if (!block || !isObjectLike(block)) {
+      return false;
+    }
+    if (block.type === "text") {
+      return isString(block.text) && block.text.trim().length > 0;
+    }
+    return true;
+  });
 };

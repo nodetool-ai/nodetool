@@ -15,7 +15,8 @@ import {
   parseThoughtContent,
   getMessageClass,
   stripContextContent,
-  formatMessageTimestamp
+  formatMessageTimestamp,
+  hasVisibleContent
 } from "../utils/messageUtils";
 import {
   parseHarmonyContent,
@@ -38,12 +39,15 @@ import {
   ShimmerText,
   Collapse,
   ToolbarIconButton,
+  TextInput,
+  EditorButton,
   SPACING
 } from "../../ui_primitives";
 import type { SvgIconComponent } from "@mui/icons-material";
 import ExpandMoreIcon from "@mui/icons-material/ExpandMore";
 import DragIndicatorIcon from "@mui/icons-material/DragIndicator";
 import EditOutlinedIcon from "@mui/icons-material/EditOutlined";
+import RefreshIcon from "@mui/icons-material/Refresh";
 import { getToolIcon } from "./toolCallIcon";
 
 import AgentExecutionView from "./AgentExecutionView";
@@ -802,6 +806,18 @@ interface MessageViewProps {
   executionMessagesById?: Map<string, Message[]>;
   /** Thread the message belongs to; keys sub-agent transcripts. */
   threadId?: string | null;
+  /** The finished reply that ends the thread keeps its action row visible. */
+  isLatestReply?: boolean;
+  /** Offered on the latest reply: answer the last user message again. */
+  onRegenerate?: () => void;
+  /**
+   * Offered on user messages: rewind the thread to this message and send it
+   * again with `text` in place of its text. Without it, Edit only copies the
+   * text into the composer.
+   */
+  onResend?: (message: Message, text: string) => void;
+  /** Sending an edit here also removes later turns, so the editor says so. */
+  editRemovesLaterTurns?: boolean;
 }
 
 export const MessageView: React.FC<MessageViewProps> = React.memo(
@@ -812,7 +828,11 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
     onInsertCode,
     toolResultsByCallId,
     executionMessagesById,
-    threadId
+    threadId,
+    isLatestReply = false,
+    onRegenerate,
+    onResend,
+    editRemovesLaterTurns = false
   }) => {
     const insertIntoEditor = useEditorInsertion();
     const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
@@ -837,12 +857,56 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
     // reads the seed and puts the text back in the box, so the user edits and
     // sends it again rather than retyping it.
     const draftThreadId = threadId ?? message.thread_id ?? currentThreadId;
+    const canEditInPlace = Boolean(onResend && message.id);
+    const [editText, setEditText] = useState<string | null>(null);
     const handleEditAndResend = useCallback(() => {
+      if (canEditInPlace) {
+        setEditText(copyText);
+        return;
+      }
       if (!draftThreadId) {
         return;
       }
       useChatDraftStore.getState().setDraft(draftThreadId, copyText);
-    }, [draftThreadId, copyText]);
+    }, [canEditInPlace, draftThreadId, copyText]);
+    const handleEditChange = useCallback(
+      (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        setEditText(event.target.value);
+      },
+      []
+    );
+    // The caret starts at the end of the text, where an edit usually goes.
+    const handleEditFocus = useCallback(
+      (event: React.FocusEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+        const end = event.target.value.length;
+        event.target.setSelectionRange(end, end);
+      },
+      []
+    );
+    const handleEditCancel = useCallback(() => setEditText(null), []);
+    const handleEditSubmit = useCallback(() => {
+      const text = editText?.trim();
+      if (!text || !onResend) {
+        return;
+      }
+      setEditText(null);
+      onResend(message, text);
+    }, [editText, onResend, message]);
+    const handleEditKeyDown = useCallback(
+      (event: React.KeyboardEvent) => {
+        if (event.nativeEvent.isComposing) {
+          return;
+        }
+        if (event.key === "Escape") {
+          event.preventDefault();
+          setEditText(null);
+        } else if (event.key === "Enter" && !event.shiftKey) {
+          event.preventDefault();
+          handleEditSubmit();
+        }
+      },
+      [handleEditSubmit]
+    );
 
     const toggleCallbackRef = useRef(onToggleThought);
     toggleCallbackRef.current = onToggleThought;
@@ -974,32 +1038,17 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
       message.role === "assistant" &&
       Array.isArray(message.tool_calls) &&
       message.tool_calls.length > 0;
-    const hasNonEmptyContent =
-      (isString(message.content) &&
-        message.content.trim().length > 0) ||
-      (Array.isArray(message.content) &&
-        message.content.some((block) => {
-          if (!block || !isObjectLike(block)) {
-            return false;
-          }
-          const contentBlock = block as MessageContent;
-          if (contentBlock.type === "text") {
-            return (
-              isString(contentBlock.text) &&
-              contentBlock.text.trim().length > 0
-            );
-          }
-          return true;
-        }));
+    const hasNonEmptyContent = hasVisibleContent(message);
 
     const canEditAndResend =
       message.role === "user" &&
       copyText.trim().length > 0 &&
-      Boolean(draftThreadId);
+      (canEditInPlace || Boolean(draftThreadId));
     const messageClass = [
       baseClass,
       hasToolCalls ? "has-tool-calls" : null,
-      hasToolCalls && !hasNonEmptyContent ? "tool-calls-only" : null
+      hasToolCalls && !hasNonEmptyContent ? "tool-calls-only" : null,
+      isLatestReply ? "latest-reply" : null
     ]
       .filter(Boolean)
       .join(" ");
@@ -1009,6 +1058,46 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
       | string;
 
     const formattedTime = formatMessageTimestamp(message.created_at);
+    if (editText !== null) {
+      return (
+        <div
+          className={`${messageClass} editing`}
+          data-focus-id={message.id ? `message-${message.id}` : undefined}
+        >
+          <FlexColumn className="message-edit" gap={SPACING.sm} fullWidth>
+            <TextInput
+              multiline
+              minRows={1}
+              maxRows={12}
+              autoFocus
+              fullWidth
+              value={editText}
+              onChange={handleEditChange}
+              onFocus={handleEditFocus}
+              onKeyDown={handleEditKeyDown}
+              inputProps={{ "aria-label": "Edit message" }}
+            />
+            <FlexRow align="center" justify="flex-end" gap={SPACING.sm}>
+              {editRemovesLaterTurns && (
+                <Caption color="muted" sx={{ mr: "auto" }}>
+                  Sending replaces everything after this message.
+                </Caption>
+              )}
+              <EditorButton variant="text" onClick={handleEditCancel}>
+                Cancel
+              </EditorButton>
+              <EditorButton
+                variant="contained"
+                onClick={handleEditSubmit}
+                disabled={editText.trim().length === 0}
+              >
+                Send
+              </EditorButton>
+            </FlexRow>
+          </FlexColumn>
+        </div>
+      );
+    }
     return (
       <div
         className={messageClass}
@@ -1055,7 +1144,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
               </>
             )}
           </div>
-          {!Array.isArray(message.tool_calls) && (
+          {hasNonEmptyContent && (
             <div className="message-actions">
               {formattedTime && (
                 <span className="message-timestamp">{formattedTime}</span>
@@ -1071,6 +1160,14 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
                   tooltip="Edit and resend"
                   ariaLabel="Edit and resend"
                   onClick={handleEditAndResend}
+                />
+              )}
+              {message.role === "assistant" && onRegenerate && (
+                <ToolbarIconButton
+                  icon={<RefreshIcon fontSize="small" />}
+                  tooltip="Regenerate"
+                  ariaLabel="Regenerate"
+                  onClick={onRegenerate}
                 />
               )}
               <CopyButton

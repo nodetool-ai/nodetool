@@ -111,6 +111,12 @@ export const createStyles = (theme: Theme) => ({
       fontWeight: 500
     },
 
+    // Editing a sent message opens the full column, so the text has room.
+    ".chat-message.user.editing": {
+      width: "100%",
+      maxWidth: "100%"
+    },
+
     // User message content gets the colored background. A soft primary tint
     // separates the user's voice from the surface — `background.paper` was
     // nearly invisible against the default background.
@@ -182,9 +188,18 @@ export const createStyles = (theme: Theme) => ({
       color: theme.vars.palette.text.disabled
     },
 
-    ".chat-message:hover .message-actions": {
-      opacity: 1,
-      pointerEvents: "auto"
+    // Hover reveals the row on older turns. The latest reply keeps it, a
+    // keyboard user reaches it by focus, and a touch screen has no hover.
+    ".chat-message:hover .message-actions, .chat-message:focus-within .message-actions, .chat-message.latest-reply .message-actions":
+      {
+        opacity: 1,
+        pointerEvents: "auto"
+      },
+    "@media (hover: none)": {
+      ".message-actions": {
+        opacity: 1,
+        pointerEvents: "auto"
+      }
     },
 
     // User message: actions on the right
@@ -461,6 +476,13 @@ export const createStyles = (theme: Theme) => ({
       overflow: "hidden",
       textOverflow: "ellipsis",
       minWidth: 0
+    },
+
+    // On a narrow column the argument gives way before the verb does:
+    // "Searched James Webb…", never "Sear… James Webb…".
+    ".tool-row-label:has(+ .tool-row-detail)": {
+      flexShrink: 0,
+      maxWidth: "60%"
     },
 
     ".tool-row-gap": {
