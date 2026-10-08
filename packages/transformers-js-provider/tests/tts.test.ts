@@ -17,6 +17,11 @@ vi.mock("@nodetool-ai/transformers-js-nodes", () => ({
       sampling_rate: 24000
     })
   })),
+  generateKokoroSpeech: (
+    tts: { generate: (text: string, opts: unknown) => unknown },
+    text: string,
+    opts: unknown
+  ) => tts.generate(text, opts),
   getPipeline: vi.fn(async () => ttsPipelineFn),
   isKokoroRepo: (id: string) => /kokoro/i.test(id),
   isSpeechT5Repo: (id: string) => /speecht5/i.test(id)
@@ -58,6 +63,21 @@ describe("textToSpeechEncoded", () => {
       model: "onnx-community/Kokoro-82M-v1.0-ONNX"
     });
     expect(generate).toHaveBeenCalledWith("hello", { voice: "af_heart" });
+  });
+
+  it("Kokoro path forwards speed", async () => {
+    const generate = vi.fn(async () => ({
+      audio: new Float32Array([0.1]),
+      sampling_rate: 24000
+    }));
+    vi.mocked(getKokoro).mockResolvedValueOnce({ generate });
+
+    await textToSpeechEncoded({
+      text: "hello",
+      model: "onnx-community/Kokoro-82M-v1.0-ONNX",
+      speed: 1.5
+    });
+    expect(generate).toHaveBeenCalledWith("hello", { voice: "af_heart", speed: 1.5 });
   });
 
   it("non-SpeechT5 pipeline path does not pass speaker_embeddings", async () => {

@@ -1,4 +1,11 @@
 import { expect, it, vi } from "vitest";
+const mocks = vi.hoisted(() => ({
+  decode: vi.fn(async () => new Float32Array(1600))
+}));
+vi.mock("@nodetool-ai/transformers-js-nodes", async (importOriginal) => ({
+  ...(await importOriginal<typeof import("@nodetool-ai/transformers-js-nodes")>()),
+  decodeAudioBytesToSamples: mocks.decode
+}));
 import { encodeWav } from "@nodetool-ai/transformers-js-nodes";
 import { WhisperServerProvider } from "../src/whisper-server-provider.js";
 
@@ -66,4 +73,24 @@ it("requires a URL", () => {
     "WHISPER_CPP_SERVER_URL is required"
   );
   vi.unstubAllEnvs();
+});
+it("converts formats whisper-server cannot decode to 16 kHz WAV", async () => {
+  let uploaded: Blob | undefined;
+  const fetchFn = vi.fn<typeof fetch>(async (_url, init) => {
+    const file = (init?.body as FormData).get("file");
+    uploaded = file instanceof Blob ? file : undefined;
+    return Response.json({ text: "ok" });
+  });
+  const provider = new WhisperServerProvider(
+    { WHISPER_CPP_SERVER_URL: "http://localhost" },
+    { fetchFn }
+  );
+  // EBML header of a WebM/Opus browser recording.
+  const webm = new Uint8Array([0x1a, 0x45, 0xdf, 0xa3, 0, 0, 0, 0, 0, 0, 0, 0]);
+  await provider.automaticSpeechRecognition({ audio: webm, model: "default" });
+  expect(mocks.decode).toHaveBeenCalledWith(webm, 16000);
+  expect(uploaded?.type).toBe("audio/wav");
+  const bytes = new Uint8Array(await uploaded!.arrayBuffer());
+  expect(Buffer.from(bytes.subarray(0, 4)).toString()).toBe("RIFF");
+  expect(new DataView(bytes.buffer).getUint32(24, true)).toBe(16000);
 });

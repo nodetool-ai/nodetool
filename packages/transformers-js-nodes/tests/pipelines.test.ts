@@ -4,8 +4,14 @@ import { QuestionAnsweringNode } from "../src/nodes/question-answering.js";
 import { TranslationNode } from "../src/nodes/translation.js";
 import { ZeroShotClassificationNode } from "../src/nodes/zero-shot-classification.js";
 import { FeatureExtractionNode } from "../src/nodes/feature-extraction.js";
+import { TextGenerationNode } from "../src/nodes/text-generation.js";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import { AutomaticSpeechRecognitionNode } from "../src/nodes/automatic-speech-recognition.js";
-import { __setTransformersModuleForTesting } from "../src/transformers-base.js";
+import {
+  __setTransformersModuleForTesting,
+  getPipeline,
+  resolveDevice
+} from "../src/transformers-base.js";
 
 type PipelineFactory = (...args: unknown[]) => unknown;
 
@@ -25,6 +31,61 @@ function stubPipeline(impl: PipelineFactory): ReturnType<typeof vi.fn> {
 describe("Transformers.js pipeline nodes", () => {
   afterEach(() => {
     __setTransformersModuleForTesting(null);
+  });
+
+  it("falls back to CPU for devices onnxruntime-node does not offer", async () => {
+    expect(resolveDevice("webgpu", "linux", "x64")).toBeUndefined();
+    expect(resolveDevice("wasm", "win32", "x64")).toBeUndefined();
+    expect(resolveDevice("cuda", "darwin", "arm64")).toBeUndefined();
+    expect(resolveDevice("cuda", "linux", "x64")).toBe("cuda");
+    expect(resolveDevice("dml", "win32", "x64")).toBe("dml");
+    expect(resolveDevice("cpu", "darwin", "arm64")).toBe("cpu");
+
+    const factory = vi.fn(async () => vi.fn());
+    __setTransformersModuleForTesting({
+      pipeline: factory as unknown as (
+        task: string,
+        model?: string,
+        options?: Record<string, unknown>
+      ) => Promise<unknown>
+    });
+    await getPipeline({ task: "text-classification", model: "m", device: "webgpu" });
+    const [, , options] = factory.mock.calls[0] as unknown as [
+      string,
+      string,
+      Record<string, unknown>
+    ];
+    expect(options).not.toHaveProperty("device");
+  });
+
+  it("text generation interrupts the model loop when the job is cancelled", async () => {
+    const controller = new AbortController();
+    const interrupt = vi.fn();
+    class FakeStopper {
+      interrupt = interrupt;
+    }
+    const pipelineFn = vi.fn(async () => {
+      controller.abort();
+      return [{ generated_text: "partial" }];
+    });
+    __setTransformersModuleForTesting({
+      pipeline: (async () => pipelineFn) as unknown as (
+        task: string,
+        model?: string,
+        options?: Record<string, unknown>
+      ) => Promise<unknown>,
+      InterruptableStoppingCriteria: FakeStopper
+    });
+    const node = new TextGenerationNode({ prompt: "Hello" });
+    await expect(
+      node.process({ signal: controller.signal } as unknown as ProcessingContext)
+    ).rejects.toThrow(/abort/i);
+    const [, opts] = pipelineFn.mock.calls[0] as unknown as [
+      string,
+      Record<string, unknown>
+    ];
+    expect(opts.stopping_criteria).toBeInstanceOf(FakeStopper);
+    expect(interrupt).toHaveBeenCalledOnce();
   });
 
   it("returns the top label for text classification", async () => {
@@ -114,8 +175,8 @@ describe("Transformers.js pipeline nodes", () => {
    * Build a tiny mono 16k WAV so the audio-decode fast path lands on a
    * Float32Array without invoking ffmpeg.
    */
-  function tinyWavRef() {
-    const samples = new Float32Array(160); // 10 ms at 16k
+  function tinyWavRef(sampleCount = 160) {
+    const samples = new Float32Array(sampleCount); // default 10 ms at 16k
     const dataSize = samples.length * 2;
     const buf = Buffer.alloc(44 + dataSize);
     buf.write("RIFF", 0);
@@ -149,6 +210,23 @@ describe("Transformers.js pipeline nodes", () => {
     ];
     expect(opts).not.toHaveProperty("language");
     expect(opts).not.toHaveProperty("task");
+  });
+
+  it("ASR chunks audio longer than Whisper's 30 s window", async () => {
+    const pipelineFn = stubPipeline(async () => ({ text: "ok" }));
+    await new AutomaticSpeechRecognitionNode({
+      audio: tinyWavRef(),
+      model: { type: "tjs.automatic_speech_recognition", repo_id: "Xenova/whisper-tiny" }
+    }).process();
+    await new AutomaticSpeechRecognitionNode({
+      audio: tinyWavRef(31 * 16000),
+      model: { type: "tjs.automatic_speech_recognition", repo_id: "Xenova/whisper-tiny" }
+    }).process();
+    const shortOpts = pipelineFn.mock.calls[0][1] as Record<string, unknown>;
+    const longOpts = pipelineFn.mock.calls[1][1] as Record<string, unknown>;
+    expect(shortOpts).not.toHaveProperty("chunk_length_s");
+    expect(longOpts.chunk_length_s).toBe(30);
+    expect(longOpts.stride_length_s).toBeGreaterThan(0);
   });
 
   it("ASR forwards language for multilingual Whisper models when set", async () => {

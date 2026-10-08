@@ -61,8 +61,13 @@ export class ContextCache {
       let entry = this.entries.get(key);
       if (!entry) {
         while (this.entries.size >= this.maxModels) {
+          // Evict the least recently used idle context. A busy context's
+          // lastUsed is from before its job started, so it would otherwise
+          // look oldest and make this admission wait for its whole job.
           const oldest = [...this.entries].sort(
-            (a, b) => a[1].lastUsed - b[1].lastUsed
+            (a, b) =>
+              Number(a[1].pending > 0) - Number(b[1].pending > 0) ||
+              a[1].lastUsed - b[1].lastUsed
           )[0];
           if (!oldest) {
             break;
