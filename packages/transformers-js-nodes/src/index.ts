@@ -70,7 +70,8 @@ export {
   isKokoroRepo,
   isSpeechT5Repo,
   splitTextForTts,
-  type KokoroVoice
+  type KokoroVoice,
+  type KokoroSpeechOptions
 } from "./tts-shared.js";
 
 export {

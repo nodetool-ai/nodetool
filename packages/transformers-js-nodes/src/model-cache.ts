@@ -10,6 +10,20 @@ const log = createLogger("transformers-js.model-cache");
  */
 const EVICTION_GRACE_MS = 30_000;
 
+/** A loaded model or pipeline that may free its native resources. */
+export interface DisposableModel {
+  dispose?: () => Promise<void> | void;
+}
+
+/** What a model call returns: a pipeline output, or a promise of one. */
+type ModelOutput = object | string | number | boolean | null | undefined;
+
+/** A callable pipeline, or a tracked method such as Kokoro's `generate`. */
+type ModelMethod = (...args: ModelOutput[]) => ModelOutput;
+
+/** A property read through the tracking proxy. */
+type ModelMember = ModelMethod | ModelOutput;
+
 interface Entry<T> {
   value: Promise<T>;
   loaded: T | undefined;
@@ -31,7 +45,7 @@ export class ModelCache<T extends object> {
 
   constructor(
     private readonly maxEntries: number,
-    private readonly dispose: (model: T) => unknown,
+    private readonly dispose: (model: T) => Promise<void> | void,
     private readonly trackedMethods: readonly string[] = [],
     private readonly now: () => number = Date.now,
     private readonly graceMs: number = EVICTION_GRACE_MS
@@ -46,12 +60,12 @@ export class ModelCache<T extends object> {
       return existing.value;
     }
     const entry: Entry<T> = {
-      value: Promise.resolve() as unknown as Promise<T>,
+      value: load(),
       loaded: undefined,
       inFlight: 0,
       lastUsed: this.now()
     };
-    entry.value = load().then((model) => {
+    entry.value = entry.value.then((model) => {
       entry.loaded = model;
       entry.lastUsed = this.now();
       return this.track(model, entry);
@@ -122,13 +136,16 @@ export class ModelCache<T extends object> {
     };
     const tracked = new Set(this.trackedMethods);
     return new Proxy(model, {
-      apply: (target, thisArg, args) =>
-        counted(() => Reflect.apply(target as (...a: unknown[]) => unknown, thisArg, args)),
-      get: (target, prop, receiver) => {
-        const value: unknown = Reflect.get(target, prop, receiver);
+      apply: (target, thisArg, args: ModelOutput[]): ModelOutput => {
+        const call = target as ModelMethod;
+        return counted(() => call.apply(thisArg, args));
+      },
+      get: (target, prop): ModelMember => {
+        const value = (target as Record<PropertyKey, ModelMember>)[prop];
         if (typeof prop === "string" && tracked.has(prop) && typeof value === "function") {
-          return (...args: unknown[]) =>
-            counted(() => Reflect.apply(value as (...a: unknown[]) => unknown, target, args));
+          const method = value as ModelMethod;
+          return (...args: ModelOutput[]): ModelOutput =>
+            counted(() => method.apply(target, args));
         }
         return value;
       }

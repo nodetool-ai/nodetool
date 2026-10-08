@@ -73,12 +73,13 @@ export class LlamaProvider extends OpenAICompatProvider {
 
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
     try {
-      const response = await this._llamaFetch(`${this.baseUrl}/v1/models`, {
-        ...(this._llamaApiKey
-          ? { headers: { Authorization: `Bearer ${this._llamaApiKey}` } }
-          : {}),
+      const init: RequestInit = {
         signal: AbortSignal.timeout(MODEL_LIST_TIMEOUT_MS)
-      });
+      };
+      if (this._llamaApiKey) {
+        init.headers = { Authorization: `Bearer ${this._llamaApiKey}` };
+      }
+      const response = await this._llamaFetch(`${this.baseUrl}/v1/models`, init);
       if (!response.ok) return [];
       // llama-server answers with `data`; some builds and proxies use `models`.
       const payload = (await response.json()) as {

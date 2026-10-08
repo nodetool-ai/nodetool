@@ -12,7 +12,7 @@ import { parseWavBytes } from "@nodetool-ai/audio-nodes";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import { MissingRuntimePackageError } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { ModelCache } from "./model-cache.js";
+import { ModelCache, type DisposableModel } from "./model-cache.js";
 
 const execFileP = promisify(execFile);
 const log = createLogger("transformers-js");
@@ -169,7 +169,7 @@ type PipelineCacheKey = string;
 const MAX_CACHED_PIPELINES = 4;
 
 const pipelineCache = new ModelCache<object>(MAX_CACHED_PIPELINES, (pipeline) =>
-  (pipeline as { dispose?: () => unknown }).dispose?.()
+  (pipeline as DisposableModel).dispose?.()
 );
 
 interface PipelineOptions {
