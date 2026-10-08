@@ -2,14 +2,22 @@
 import { css } from "@emotion/react";
 import React, { useEffect, useState, useRef, createRef, memo, useCallback } from "react";
 import type { AlertColor } from "@mui/material";
-import { AlertBanner, EditorButton, SPACING, getSpacingPx } from "../ui_primitives";
+import { useTheme, type Theme } from "@mui/material/styles";
+import {
+  AlertBanner,
+  CloseButton,
+  CopyButton,
+  EditorButton,
+  FlexRow,
+  SPACING,
+  getSpacingPx
+} from "../ui_primitives";
 import { TransitionGroup, CSSTransition } from "react-transition-group";
 
 import {
   useNotificationStore,
   Notification
 } from "../../stores/NotificationStore";
-import { CopyButton } from "../ui_primitives";
 import { NOTIFICATION_TIMEOUT_DEFAULT } from "../../config/constants";
 
 const TRANSITION_DURATION = 300;
@@ -35,11 +43,13 @@ const mapTypeToSeverity = (type: Notification["type"]): AlertColor => {
   return typeMap[type] || "info";
 };
 
-const styles = () =>
+const styles = (theme: Theme) =>
   css({
     position: "fixed",
     top: "68px",
     right: "calc(2em + 24px)",
+    margin: 0,
+    padding: 0,
     zIndex: "var(--zIndex-popover)",
     display: "flex",
     flexDirection: "column",
@@ -70,7 +80,9 @@ const styles = () =>
       }
     },
     ".MuiAlert-message": {
-      padding: `${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.xxl)} ${getSpacingPx(SPACING.micro)} 0`,
+      flex: 1,
+      minWidth: 0,
+      padding: `${getSpacingPx(SPACING.xs)} 0 ${getSpacingPx(SPACING.micro)} 0`,
       lineHeight: 1.35,
       fontSize: "var(--fontSizeSmall)",
       overflowX: "hidden",
@@ -84,13 +96,7 @@ const styles = () =>
       color: "var(--palette-grey-100)"
     },
     ".copy-button": {
-      position: "absolute",
-      opacity: 0.8,
-      top: "9px",
-      right: "26px"
-    },
-    ".copy-button.has-action": {
-      right: "108px"
+      opacity: 0.8
     },
     li: {
       listStyleType: "none",
@@ -112,6 +118,17 @@ const styles = () =>
         opacity: 0,
         transform: `translateY(${ENTER_OFFSET_Y}px)`,
         transition: `opacity ${TRANSITION_DURATION}ms ${easing.exiting}, transform ${TRANSITION_DURATION}ms ${easing.exiting}`
+      }
+    },
+    // Phones: span the viewport between equal gutters instead of hugging
+    // the text at a fixed offset from the right edge.
+    [theme.breakpoints.down("sm")]: {
+      top: "56px",
+      left: getSpacingPx(SPACING.md),
+      right: getSpacingPx(SPACING.md),
+      alignItems: "stretch",
+      li: {
+        maxWidth: "none"
       }
     }
   });
@@ -150,31 +167,37 @@ const NotificationItem = memo(function NotificationItem({
       classNames="alert"
       onExited={onExited}
     >
-      <li ref={nodeRef} style={{ position: "relative" }}>
+      <li ref={nodeRef}>
         <AlertBanner
           severity={mapTypeToSeverity(notification.type)}
-          onClose={handleClose}
           action={
-            notification.action ? (
-              <EditorButton
-                color="inherit"
-                size="small"
-                onClick={handleActionClick}
-              >
-                {notification.action.label}
-              </EditorButton>
-            ) : undefined
+            // At most one control besides dismiss: the notification's own
+            // action, or copy when it has none.
+            <FlexRow align="center" gap={SPACING.micro}>
+              {notification.action ? (
+                <EditorButton
+                  color="inherit"
+                  size="small"
+                  onClick={handleActionClick}
+                >
+                  {notification.action.label}
+                </EditorButton>
+              ) : (
+                (notification.dismissable ||
+                  notification.type === "error") && (
+                  <CopyButton
+                    value={notification.content}
+                    className="copy-button"
+                    tooltip="Copy to clipboard"
+                  />
+                )
+              )}
+              <CloseButton onClick={handleClose} />
+            </FlexRow>
           }
         >
           {notification.content}
         </AlertBanner>
-        {(notification.dismissable || notification.type === "error") && (
-          <CopyButton
-            value={notification.content}
-            className={`copy-button ${notification.action ? "has-action" : ""}`}
-            tooltip="Copy to clipboard"
-          />
-        )}
       </li>
     </CSSTransition>
   );
@@ -313,8 +336,10 @@ const Alert: React.FC = memo(() => {
     }, TRANSITION_DURATION);
   }, [removeNotification]);
 
+  const theme = useTheme();
+
   return (
-    <TransitionGroup component="ul" css={styles()} className="alert-list">
+    <TransitionGroup component="ul" css={styles(theme)} className="alert-list">
       {visibleNotifications.map((notification: Notification) => {
         if (!nodeRefs.current[notification.id]) {
           nodeRefs.current[notification.id] = createRef<HTMLLIElement>() as React.RefObject<HTMLLIElement>;
