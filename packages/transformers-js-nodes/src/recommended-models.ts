@@ -59,7 +59,10 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
     { repo_id: "onnx-community/Qwen3.5-4B-ONNX" },
     { repo_id: "onnx-community/gemma-4-E2B-it-ONNX" },
     { repo_id: "onnx-community/gemma-4-E4B-it-ONNX" },
-    { repo_id: "HuggingFaceTB/SmolLM3-3B-ONNX" }
+    { repo_id: "HuggingFaceTB/SmolLM3-3B-ONNX" },
+    { repo_id: "HuggingFaceTB/SmolLM2-1.7B-Instruct" },
+    { repo_id: "HuggingFaceTB/SmolLM2-360M-Instruct" },
+    { repo_id: "HuggingFaceTB/SmolLM2-135M-Instruct" }
   ],
 
   "tjs.fill_mask": [
@@ -69,12 +72,16 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
   ],
 
   "tjs.feature_extraction": [
-    { repo_id: "Xenova/all-MiniLM-L6-v2" },
     { repo_id: "nomic-ai/nomic-embed-text-v1.5" },
-    { repo_id: "Snowflake/snowflake-arctic-embed-m" },
-    { repo_id: "mixedbread-ai/mxbai-embed-xsmall-v1" },
-    { repo_id: "Xenova/bge-base-en-v1.5" },
-    { repo_id: "Xenova/all-mpnet-base-v2" }
+    { repo_id: "Xenova/all-MiniLM-L6-v2" },
+    { repo_id: "Xenova/bge-m3" },
+    { repo_id: "jinaai/jina-embeddings-v2-base-code" }
+  ],
+
+  // Cross-encoders: the provider scores query/document pairs with them.
+  "tjs.text_ranking": [
+    { repo_id: "mixedbread-ai/mxbai-rerank-xsmall-v1" },
+    { repo_id: "jinaai/jina-reranker-v2-base-multilingual" }
   ],
 
   "tjs.zero_shot_classification": [
@@ -94,10 +101,18 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
 
   "tjs.object_detection": [
     { repo_id: "Xenova/detr-resnet-50" },
-    { repo_id: "Xenova/detr-resnet-101" },
-    { repo_id: "Xenova/yolos-tiny" },
-    { repo_id: "Xenova/yolos-small" },
-    { repo_id: "Xenova/table-transformer-detection" }
+    { repo_id: "onnx-community/rtdetr_r50vd" }
+  ],
+
+  // RMBG-1.4 weights are licensed for non-commercial use only.
+  "tjs.background_removal": [
+    { repo_id: "briaai/RMBG-1.4" },
+    { repo_id: "onnx-community/BiRefNet_lite-ONNX" },
+    { repo_id: "onnx-community/BiRefNet-ONNX" }
+  ],
+
+  "tjs.depth_estimation": [
+    { repo_id: "onnx-community/depth-anything-v2-small" }
   ],
 
   "tjs.image_to_text": [
@@ -117,12 +132,10 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
   ],
 
   "tjs.automatic_speech_recognition": [
-    { repo_id: "onnx-community/whisper-large-v3-turbo" },
-    { repo_id: "onnx-community/moonshine-base-ONNX" },
-    { repo_id: "onnx-community/moonshine-tiny-ONNX" },
     { repo_id: "Xenova/whisper-base" },
-    { repo_id: "Xenova/whisper-tiny.en" },
-    { repo_id: "Xenova/whisper-small.en" }
+    { repo_id: "Xenova/whisper-tiny" },
+    { repo_id: "distil-whisper/distil-large-v3" },
+    { repo_id: "onnx-community/whisper-large-v3-turbo" }
   ],
 
   "tjs.audio_classification": [
@@ -133,8 +146,6 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
 
   "tjs.text_to_speech": [
     { repo_id: "onnx-community/Kokoro-82M-v1.0-ONNX" },
-    { repo_id: "Xenova/speecht5_tts" },
-    { repo_id: "Xenova/mms-tts-eng" },
     { repo_id: "Xenova/mms-tts-fra" },
     { repo_id: "Xenova/mms-tts-deu" }
   ]

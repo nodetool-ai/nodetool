@@ -564,18 +564,7 @@ export const URL_EGRESS_INVENTORY: EgressEntry[] = [
     guardedBy: [],
     note: "Talks to the server the operator is deploying, by the address they gave."
   },
-  {
-    file: "packages/node-sdk/src/package-registry-client.ts",
-    owner: "node-pack registry",
-    inputSource: "operator",
-    schemes: ["https"],
-    authScope: "none",
-    redirects: "runtime-follows",
-    dnsRebinding: "n/a",
-    policy: "private-integration",
-    guardedBy: [],
-    note: "A constant registry URL, overridable by env for a self-hosted registry."
-  },
+
 
   // ---------------------------------------------------------- browser-side only
   {

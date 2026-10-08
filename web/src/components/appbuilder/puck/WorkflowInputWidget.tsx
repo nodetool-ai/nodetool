@@ -52,6 +52,10 @@ import type {
   ImageModelTask,
   VideoModelTask
 } from "../../../hooks/useModelsByProvider";
+import {
+  IMAGE_TASK_BY_NODE_TYPE,
+  VIDEO_TASK_BY_NODE_TYPE
+} from "../../../hooks/modelTaskMatching";
 
 interface WorkflowInputWidgetProps {
   id: string;
@@ -366,6 +370,19 @@ export const ModelSelectWidget: React.FC<ModelSelectWidgetProps> = (props) => {
     events: props.events
   });
 
+  // A widget bound to a node's model property offers only the models that
+  // node can run: a LipSync node's picker lists lip-sync models.
+  const { getNodeType } = useAppRuntimeContext();
+  const boundRef = useBindingRef(props.binding, "write");
+  const boundNodeType =
+    boundRef?.kind === "nodeProperty" ? getNodeType(boundRef.nodeId) : undefined;
+  const task = useMemo<WorkflowModelTask | undefined>(() => {
+    if (props.task || !boundNodeType) return props.task;
+    if (kind === "image_model") return IMAGE_TASK_BY_NODE_TYPE[boundNodeType];
+    if (kind === "video_model") return VIDEO_TASK_BY_NODE_TYPE[boundNodeType];
+    return undefined;
+  }, [boundNodeType, kind, props.task]);
+
   const input = useMemo<WorkflowInputIO>(
     () => ({
       nodeId: props.id,
@@ -373,9 +390,9 @@ export const ModelSelectWidget: React.FC<ModelSelectWidgetProps> = (props) => {
       name: props.label || "Model",
       label: props.label || "Model",
       kind,
-      task: props.task
+      task
     }),
-    [kind, props.id, props.label, props.task]
+    [kind, props.id, props.label, task]
   );
 
   return (

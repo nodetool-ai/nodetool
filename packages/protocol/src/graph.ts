@@ -204,6 +204,13 @@ export interface NodeDescriptor {
   /** Per-output correlation metadata. */
   output_correlation?: Record<string, OutputCorrelation>;
 
+  /**
+   * Correlation for this instance's dynamic outputs, keyed by handle. Read
+   * only for a handle in `dynamic_outputs` that `output_correlation` does not
+   * cover; a missing entry defaults to `single` like any other output.
+   */
+  dynamic_output_correlation?: Record<string, OutputCorrelation>;
+
   /** Whether this node is controlled via control edges. */
   is_controlled?: boolean;
 

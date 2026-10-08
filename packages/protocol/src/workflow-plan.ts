@@ -361,7 +361,8 @@ export const MODEL_HANDLE_TYPES: Readonly<Record<string, string>> = {
 const MODEL_TYPES = new Set([
   ...Object.values(MODEL_HANDLE_TYPES),
   "asr_model",
-  "embedding_model"
+  "embedding_model",
+  "rerank_model"
 ]);
 
 const acceptsType = (target: string, source: string): boolean =>

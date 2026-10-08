@@ -1,9 +1,34 @@
 import { createInstanceState } from "@nodetool-ai/app-runtime";
 import {
+  AppInstanceConflictError,
   instanceValues,
   restoredInstanceValues,
   InstanceWriter
 } from "../instancePersistence";
+
+/** A server row with compare-and-swap saves, like PATCH /api/app-instances. */
+const serverRow = (values: Record<string, unknown>) => {
+  const row = { revision: 0, values };
+  const save = jest.fn(
+    async (expected: number, next: Record<string, unknown>) => {
+      if (expected !== row.revision) {
+        throw new AppInstanceConflictError();
+      }
+      row.values = next;
+      return ++row.revision;
+    }
+  );
+  const load = jest.fn(async () => ({
+    revision: row.revision,
+    values: row.values
+  }));
+  /** A write that did not come from this client, such as a run settle. */
+  const writeElsewhere = (next: Record<string, unknown>) => {
+    row.values = next;
+    row.revision += 1;
+  };
+  return { row, save, load, writeElsewhere };
+};
 
 describe("server instance persistence", () => {
   it("restores instance variables, input edits and produced outputs without transport ownership", () => {
@@ -79,5 +104,64 @@ describe("server instance persistence", () => {
     expect(values).toEqual({ total: 20 });
     expect(otherSave).toHaveBeenCalledWith(0, { total: 5 });
     expect(save).toHaveBeenCalledTimes(2);
+  });
+
+  it("merges a save with a run result the server wrote meanwhile", async () => {
+    const base = {
+      step: "voice",
+      __app_outputs: { "voice:out": null }
+    };
+    const server = serverRow(base);
+    const onRebase = jest.fn();
+    const writer = new InstanceWriter(0, base, server.save, {
+      load: server.load,
+      onRebase
+    });
+    // The server settles the voice run while this client still holds rev 0.
+    server.writeElsewhere({
+      step: "voice",
+      narration: { type: "audio", asset_id: "a1" },
+      __app_outputs: { "voice:out": { type: "audio", asset_id: "a1" } }
+    });
+    // The user moves to the next step. The client's copy of the outputs is
+    // stale, but the run result is the server's to keep.
+    writer.stage({ step: "lipsync", __app_outputs: { "voice:out": null } });
+
+    await writer.flush();
+
+    const merged = {
+      step: "lipsync",
+      narration: { type: "audio", asset_id: "a1" },
+      __app_outputs: { "voice:out": { type: "audio", asset_id: "a1" } }
+    };
+    expect(server.row.values).toEqual(merged);
+    expect(server.row.revision).toBe(2);
+    expect(onRebase).toHaveBeenCalledWith(merged);
+  });
+
+  it("still refuses when two sessions change the same variable", async () => {
+    const server = serverRow({ total: 1 });
+    const writer = new InstanceWriter(0, { total: 1 }, server.save, {
+      load: server.load
+    });
+    server.writeElsewhere({ total: 20 });
+    writer.stage({ total: 99 });
+
+    await expect(writer.flush()).rejects.toBeInstanceOf(
+      AppInstanceConflictError
+    );
+    expect(server.row.values).toEqual({ total: 20 });
+  });
+
+  it("rebases an idle writer onto a newer server state", () => {
+    const writer = new InstanceWriter(0, { a: 1 }, jest.fn());
+    const onRebase = jest.fn();
+    const rebased = writer.rebase(
+      { revision: 3, values: { a: 1, b: 2 } },
+      { a: 5 },
+      onRebase
+    );
+    expect(rebased).toEqual({ a: 5, b: 2 });
+    expect(onRebase).toHaveBeenCalledWith({ a: 5, b: 2 });
   });
 });

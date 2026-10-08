@@ -2,6 +2,7 @@ import { describe, it, expect } from "vitest";
 import {
   UpscaleImageNode,
   RemoveBackgroundNode,
+  EstimateDepthNode,
   RelightImageNode,
   VectorizeImageNode,
   SegmentImageNode,
@@ -68,6 +69,26 @@ describe("RemoveBackgroundNode", () => {
     const result = await n.process(context);
 
     expect(calls[0].capability).toBe("remove_background");
+    expect(calls[0].params.image).toBeInstanceOf(Uint8Array);
+    expect((result.output as any).type).toBe("image");
+  });
+});
+
+describe("EstimateDepthNode", () => {
+  it("routes to the estimate_depth capability", async () => {
+    const { context, calls } = captureContext(PNG_BYTES);
+    const n = new (EstimateDepthNode as any)();
+    n.assign({
+      image: imageRefData,
+      model: {
+        provider: "transformers_js",
+        id: "onnx-community/depth-anything-v2-small"
+      }
+    });
+    const result = await n.process(context);
+
+    expect(calls[0].capability).toBe("estimate_depth");
+    expect(calls[0].model).toBe("onnx-community/depth-anything-v2-small");
     expect(calls[0].params.image).toBeInstanceOf(Uint8Array);
     expect((result.output as any).type).toBe("image");
   });

@@ -243,6 +243,11 @@ export function isExecutionPreflightError(
 
 export interface PreflightOptions {
   catalogs?: RunModelCatalogs;
+  /**
+   * The run's params. An input node the run fills is checked with the value
+   * it receives, so a default the run replaces never refuses it.
+   */
+  params?: Record<string, unknown>;
   providerConfiguration?: ProviderConfigurationChecker;
   /** Resolves a credential the way the coming run will. */
   resolveSecret: CredentialResolver["resolveSecret"];
@@ -251,6 +256,42 @@ export interface PreflightOptions {
    * left to the kernel's own node validation.
    */
   registry?: NodeModelValidator;
+}
+
+/**
+ * `graph` with each input node's value replaced by the param the run passes
+ * for it, by the rule the kernel dispatches inputs with: a `nodetool.input.*`
+ * node takes the param under its `name`, and an undefined param keeps the
+ * default.
+ */
+export function withRunParams<G extends { nodes?: unknown; edges?: unknown }>(
+  graph: G,
+  params: Record<string, unknown> | undefined
+): G {
+  const nodes = graph.nodes;
+  if (!params || !Array.isArray(nodes)) return graph;
+  return {
+    ...graph,
+    nodes: nodes.map((node: unknown) => {
+      if (
+        !isRecord(node) ||
+        typeof node.type !== "string" ||
+        !node.type.startsWith("nodetool.input.")
+      ) {
+        return node;
+      }
+      const properties = isRecord(node.properties) ? node.properties : {};
+      const propertyName =
+        typeof properties.name === "string" ? properties.name.trim() : "";
+      const name =
+        propertyName ||
+        (typeof node.name === "string" ? node.name : String(node.id));
+      if (!Object.hasOwn(params, name) || params[name] === undefined) {
+        return node;
+      }
+      return { ...node, properties: { ...properties, value: params[name] } };
+    })
+  };
 }
 
 /**
@@ -264,6 +305,7 @@ export async function collectPreflightIssues(
   graph: { nodes?: unknown; edges?: unknown },
   options: PreflightOptions
 ): Promise<ExecutionPreflightIssue[]> {
+  graph = withRunParams(graph, options.params);
   const unset = options.registry
     ? unsetModelErrors(graph, options.registry)
     : [];

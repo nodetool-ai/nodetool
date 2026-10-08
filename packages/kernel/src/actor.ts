@@ -26,7 +26,8 @@ import type {
 import {
   EMPTY_LINEAGE,
   LOOP_NODE_TYPE,
-  TypeMetadata
+  TypeMetadata,
+  missingRuntimePackageOf
 } from "@nodetool-ai/protocol";
 
 // Stryker disable next-line StringLiteral: logger name is a diagnostic label, not a behavioural contract
@@ -410,11 +411,18 @@ export class NodeActor {
       // so the editor can send the user straight to the screen that fixes it
       // instead of asking them to parse the message.
       const failure = providerFailureDetail(err);
+      const runtimePackage = missingRuntimePackageOf(err);
       if (failure) {
         errorDetail = {
           code: failure.code,
           provider: failure.provider,
           secret_key: failure.secretKey
+        };
+      } else if (runtimePackage) {
+        // The editor offers to install the package in place.
+        errorDetail = {
+          code: "missing_runtime_package",
+          runtime_package: runtimePackage
         };
       }
       // Stryker disable next-line StringLiteral,ObjectLiteral: diagnostic log args only

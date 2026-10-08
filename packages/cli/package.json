@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/cli",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "NodeTool chat CLI — interactive AI chat with agent mode and tool support",
   "type": "module",
   "engines": {
@@ -51,6 +51,7 @@
     "@nodetool-ai/storage": "*",
     "@nodetool-ai/telegram": "*",
     "@nodetool-ai/transformers-js-nodes": "*",
+    "@nodetool-ai/transformers-js-provider": "*",
     "@nodetool-ai/vectorstore": "*",
     "@nodetool-ai/video-nodes": "*",
     "@nodetool-ai/websocket": "*",

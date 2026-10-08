@@ -264,6 +264,7 @@ export class ExecutionSession {
       if (options.preflight !== false) {
         await assertPreflight(normalized, {
           catalogs: options.catalogs,
+          params: options.params,
           providerConfiguration,
           ...(registry && { registry }),
           resolveSecret: (key) => context.getSecret(key)

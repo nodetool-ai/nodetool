@@ -70,14 +70,24 @@ const uiDocument = {
 
 const pinnedGraph = { nodes: [{ id: 'o1', type: 'x' }], edges: [] };
 
+const queryClients = new Set<QueryClient>();
+
 const wrapper = ({ children }: { children: React.ReactNode }) => {
   const queryClient = new QueryClient({
     defaultOptions: { queries: { retry: false } },
   });
+  queryClients.add(queryClient);
   return (
     <QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
   );
 };
+
+afterEach(() => {
+  for (const queryClient of queryClients) {
+    queryClient.clear();
+  }
+  queryClients.clear();
+});
 
 describe('useApplications', () => {
   beforeEach(() => {

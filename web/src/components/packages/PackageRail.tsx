@@ -1,37 +1,28 @@
 /**
  * PackageRail — the Package Manager's left navigation.
  *
- * A segmented Software / Node Packs switcher on top, then the category list for
- * the active tab (each with a live count and an active accent), and a footer
- * note. Selecting a category drives the right pane. Matches the left rail in the
- * claude.ai/design `PackageManager.dc.html` template.
+ * One list of categories, each with a live count and an active accent.
+ * Selecting a category drives the right pane.
  */
 import { memo } from "react";
 
 import {
   Box,
   FlexColumn,
-  FlexRow,
   Text,
-  ToggleGroup,
-  ToggleOption,
   BORDER_RADIUS,
   MOTION,
   SPACING
 } from "../ui_primitives";
-import type { PMTab, PMCount } from "./usePackageManager";
+import type { PMCount } from "./usePackageManager";
 
 interface PackageRailProps {
-  tab: PMTab;
-  onTab: (tab: PMTab) => void;
   categories: PMCount[];
   activeCat: string;
   onCat: (id: string) => void;
 }
 
 const PackageRail = ({
-  tab,
-  onTab,
   categories,
   activeCat,
   onCat
@@ -54,35 +45,6 @@ const PackageRail = ({
         theme.vars.palette.c_app_header ?? theme.vars.palette.background.default
     })}
   >
-    <ToggleGroup
-      value={tab}
-      exclusive
-      segmented
-      fullWidth
-      onChange={(_, value) => {
-        if (value) onTab(value as PMTab);
-      }}
-    >
-      <ToggleOption value="software">Software</ToggleOption>
-      <ToggleOption value="packs">Node Packs</ToggleOption>
-    </ToggleGroup>
-
-    <Text
-      size="small"
-      color="secondary"
-      weight={600}
-      sx={{
-        display: { xs: "none", sm: "block" },
-        textTransform: "uppercase",
-        letterSpacing: "0.09em",
-        px: SPACING.sm,
-        pt: 2,
-        pb: 0.5
-      }}
-    >
-      Browse
-    </Text>
-
     {/* Column of categories on desktop, one scrollable row on a phone. */}
     <Box
       sx={{
@@ -90,8 +52,7 @@ const PackageRail = ({
         flexDirection: { xs: "row", sm: "column" },
         gap: SPACING.xs,
         minWidth: 0,
-        overflowX: { xs: "auto", sm: "visible" },
-        pt: { xs: 1, sm: 0 }
+        overflowX: { xs: "auto", sm: "visible" }
       }}
     >
       {categories.map((c) => {
@@ -170,21 +131,6 @@ const PackageRail = ({
         );
       })}
     </Box>
-
-    <FlexRow sx={{ flex: 1 }} />
-
-    <Text
-      size="small"
-      color="secondary"
-      sx={(theme) => ({
-        display: { xs: "none", sm: "block" },
-        lineHeight: 1.5,
-        p: SPACING.sm,
-        borderTop: `1px solid ${theme.vars.palette.divider}`
-      })}
-    >
-      Changes take effect after the NodeTool server restarts.
-    </Text>
   </FlexColumn>
 );
 

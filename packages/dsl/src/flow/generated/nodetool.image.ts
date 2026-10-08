@@ -420,6 +420,20 @@ export function removeBackground(inputs: RemoveBackgroundInputs): Promise<Remove
   return callNode<RemoveBackgroundOutputs>("nodetool.image.RemoveBackground", inputs);
 }
 
+// Estimate Depth — nodetool.image.EstimateDepth
+export type EstimateDepthInputs = {
+  model?: unknown;
+  image?: ImageRef;
+};
+
+export interface EstimateDepthOutputs {
+  output: ImageRef;
+}
+
+export function estimateDepth(inputs: EstimateDepthInputs): Promise<EstimateDepthOutputs> {
+  return callNode<EstimateDepthOutputs>("nodetool.image.EstimateDepth", inputs);
+}
+
 // Relight Image — nodetool.image.Relight
 export type RelightInputs = {
   model?: unknown;

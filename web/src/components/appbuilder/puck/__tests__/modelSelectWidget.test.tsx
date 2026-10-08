@@ -57,6 +57,15 @@ jest.mock("../../../properties/ImageModelSelect", () => {
   };
 });
 
+jest.mock("../../../properties/VideoModelSelect", () => {
+  const react = jest.requireActual("react");
+  return {
+    __esModule: true,
+    default: ({ task }: { task?: string }) =>
+      react.createElement("button", { type: "button" }, `video_model:${task || "all"}`)
+  };
+});
+
 const MODEL_PROPERTY_BINDING = `op:${DEFAULT_OPERATION_ID}/prop:n5#model`;
 
 const renderWidget = (props: {
@@ -140,6 +149,27 @@ describe("ModelSelectWidget", () => {
     });
     expect(
       screen.getByRole("button", { name: "image_model:none:remove_background" })
+    ).toBeInTheDocument();
+  });
+
+  it("offers only the models the bound node can run", () => {
+    const runtime = makeTestRuntime(undefined, {
+      getNodeType: (nodeId) =>
+        nodeId === "n5" ? "nodetool.video.LipSync" : undefined
+    });
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <runtime.wrapper>
+          <ModelSelectWidget
+            id="m1"
+            binding={MODEL_PROPERTY_BINDING}
+            modelKind="video_model"
+          />
+        </runtime.wrapper>
+      </ThemeProvider>
+    );
+    expect(
+      screen.getByRole("button", { name: "video_model:lip_sync" })
     ).toBeInTheDocument();
   });
 

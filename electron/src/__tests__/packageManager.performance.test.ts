@@ -79,4 +79,30 @@ describe('Performance Optimization', () => {
     // Verify result length. 5 packages need update (0.9.0 vs 1.0.0), 1 matches (1.0.0).
     expect(result.length).toBe(5);
   });
+
+  test('checkExpectedPackageVersions skips packs with their own version line', async () => {
+    spawnMock.mockImplementation(() => {
+      const mockProcess = new EventEmitter() as any;
+      mockProcess.stdout = new EventEmitter();
+      mockProcess.stderr = new EventEmitter();
+      mockProcess.stdin = { write: jest.fn(), end: jest.fn() };
+      setTimeout(() => {
+        mockProcess.stdout.emit(
+          'data',
+          Buffer.from(
+            JSON.stringify([
+              { name: 'nodetool-core', version: '0.9.0' },
+              { name: 'nodetool-wan2gp', version: '0.1.0' }
+            ])
+          )
+        );
+        mockProcess.emit('exit', 0);
+      }, 10);
+      return mockProcess;
+    });
+
+    const result = await checkExpectedPackageVersions();
+
+    expect(result.map((p) => p.packageName)).toEqual(['nodetool-core']);
+  });
 });

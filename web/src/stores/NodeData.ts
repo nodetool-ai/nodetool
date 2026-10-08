@@ -1,3 +1,4 @@
+import type { OutputCorrelation } from "@nodetool-ai/protocol";
 import { TypeMetadata } from "./ApiTypes";
 
 /**
@@ -29,6 +30,8 @@ export type NodeData = {
   /** Typed slot declarations for dynamic inputs, keyed by slot name. */
   dynamic_inputs?: Record<string, DynamicSlotDeclaration>;
   dynamic_outputs?: Record<string, TypeMetadata>;
+  /** How each dynamic output emits; an App node marks the outputs its app streams. */
+  dynamic_output_correlation?: Record<string, OutputCorrelation>;
   /** Resolved FAL model/endpoint id (e.g. fal-ai/flux-pro) when schema is loaded */
   endpoint_id?: string;
   /** Resolved Kie.ai model id when schema is loaded */

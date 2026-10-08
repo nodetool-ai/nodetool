@@ -9,8 +9,11 @@ import {
 import type {
   ASRModel,
   EmbeddingModel,
+  ImageModel,
   LanguageModel,
+  ModelAdapterInfo,
   ProviderId,
+  RerankModel,
   TTSModel
 } from "@nodetool-ai/runtime";
 
@@ -21,6 +24,17 @@ interface DiscoveredEntry {
   cached: boolean;
   /** Path within the repo, if the recommended ref specified one. */
   path?: string | null;
+}
+
+/**
+ * The repository the model loads. The server compares it with the
+ * Transformers.js cache to decide if the picker offers a download.
+ */
+function adapterFor(repoId: string, modelType: string): ModelAdapterInfo {
+  return {
+    state: "installed",
+    artifactRef: { source: "huggingface", repoId, modelType }
+  };
 }
 
 async function unionRecommendedAndCache(
@@ -75,7 +89,8 @@ export async function discoverTTSModels(): Promise<TTSModel[]> {
     id: e.repo_id,
     name: e.repo_id,
     provider: PROVIDER_ID,
-    voices: isKokoroRepo(e.repo_id) ? [...KOKORO_VOICES] : undefined
+    voices: isKokoroRepo(e.repo_id) ? [...KOKORO_VOICES] : undefined,
+    adapter: adapterFor(e.repo_id, "tjs.text_to_speech")
   }));
 }
 
@@ -86,7 +101,8 @@ export async function discoverASRModels(): Promise<ASRModel[]> {
   return entries.map((e) => ({
     id: e.repo_id,
     name: e.repo_id,
-    provider: PROVIDER_ID
+    provider: PROVIDER_ID,
+    adapter: adapterFor(e.repo_id, "tjs.automatic_speech_recognition")
   }));
 }
 
@@ -95,6 +111,39 @@ export async function discoverEmbeddingModels(): Promise<EmbeddingModel[]> {
   return entries.map((e) => ({
     id: e.repo_id,
     name: e.repo_id,
-    provider: PROVIDER_ID
+    provider: PROVIDER_ID,
+    adapter: adapterFor(e.repo_id, "tjs.feature_extraction")
+  }));
+}
+
+/** The provider capability each image catalog type serves. */
+const IMAGE_TASKS: ReadonlyArray<readonly [string, string]> = [
+  ["tjs.background_removal", "remove_background"],
+  ["tjs.depth_estimation", "estimate_depth"]
+];
+
+export async function discoverImageModels(): Promise<ImageModel[]> {
+  const models: ImageModel[] = [];
+  for (const [modelType, task] of IMAGE_TASKS) {
+    for (const e of await unionRecommendedAndCache([modelType])) {
+      models.push({
+        id: e.repo_id,
+        name: e.repo_id,
+        provider: PROVIDER_ID,
+        supportedTasks: [task],
+        adapter: adapterFor(e.repo_id, modelType)
+      });
+    }
+  }
+  return models;
+}
+
+export async function discoverRerankModels(): Promise<RerankModel[]> {
+  const entries = await unionRecommendedAndCache(["tjs.text_ranking"]);
+  return entries.map((e) => ({
+    id: e.repo_id,
+    name: e.repo_id,
+    provider: PROVIDER_ID,
+    adapter: adapterFor(e.repo_id, "tjs.text_ranking")
   }));
 }

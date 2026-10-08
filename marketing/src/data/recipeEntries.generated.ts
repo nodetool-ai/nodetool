@@ -888,17 +888,17 @@ export const recipeEntries: RecipeEntry[] = [
     "name": "Multilingual video",
     "outcome": "Review a translation, choose a voice, and edit the delivery line by line. Finish with a new-language voiceover or a separate lip-sync pass.",
     "audience": "Teams adapting videos for another language",
-    "heroThumbnail": "/templates/ai-spokesperson.jpg",
+    "heroThumbnail": "/templates/lip-sync-a-clip-to-a-voice-track.jpg",
     "workflowCount": 5,
-    "nodeCount": 27,
+    "nodeCount": 24,
     "keys": [
       {
         "provider": "openai",
         "env": "OPENAI_API_KEY"
       },
       {
-        "provider": "replicate",
-        "env": "REPLICATE_API_TOKEN"
+        "provider": "anthropic",
+        "env": "ANTHROPIC_API_KEY"
       },
       {
         "provider": "fal_ai",
@@ -923,64 +923,65 @@ export const recipeEntries: RecipeEntry[] = [
         "alternative": null
       },
       {
-        "template": "localise-a-script-and-revoice-it",
-        "name": "Localise a Script and Revoice It",
-        "route": "/templates/localise-a-script-and-revoice-it",
-        "role": "Translate and revoice",
-        "handoff": "Choose a target language and turn the transcript into a new voice track.",
-        "thumbnail": "/templates/localise-a-script-and-revoice-it.jpg",
+        "template": "translate-a-script-for-dubbing",
+        "name": "Translate a Script for Dubbing",
+        "route": "/templates/translate-a-script-for-dubbing",
+        "role": "Translate the script",
+        "handoff": "Choose a target language. The translation stays close to the source length, and you can edit it before it is voiced.",
+        "thumbnail": null,
+        "nodeCount": 6,
+        "models": [
+          {
+            "provider": "anthropic",
+            "model": "claude-sonnet-5"
+          }
+        ],
+        "alternative": null
+      },
+      {
+        "template": "narrate-a-script",
+        "name": "Narrate a Script",
+        "route": "/templates/narrate-a-script",
+        "role": "Voice the translation",
+        "handoff": "Speak the translated script with a multilingual voice to get a new voice track.",
+        "thumbnail": "/templates/narrate-a-script.jpg",
+        "nodeCount": 3,
+        "models": [
+          {
+            "provider": "fal_ai",
+            "model": "fal-ai/elevenlabs/tts/multilingual-v2"
+          }
+        ],
+        "alternative": null
+      },
+      {
+        "template": "subtitle-lines-from-a-script",
+        "name": "Subtitle Lines from a Script",
+        "route": "/templates/subtitle-lines-from-a-script",
+        "role": "Create subtitle text",
+        "handoff": "Break the translated script into numbered subtitle lines.",
+        "thumbnail": null,
+        "nodeCount": 4,
+        "models": [
+          {
+            "provider": "anthropic",
+            "model": "claude-sonnet-5"
+          }
+        ],
+        "alternative": null
+      },
+      {
+        "template": "lip-sync-a-clip-to-a-voice-track",
+        "name": "Lip-sync a Clip to a Voice Track",
+        "route": "/templates/lip-sync-a-clip-to-a-voice-track",
+        "role": "Sync the presenter",
+        "handoff": "Add the presenter clip and the voice track from the step before. The mouth movements follow that track, so the dub says what you heard.",
+        "thumbnail": "/templates/lip-sync-a-clip-to-a-voice-track.jpg",
         "nodeCount": 7,
         "models": [
           {
-            "provider": "openai",
-            "model": "tts-1"
-          }
-        ],
-        "alternative": null
-      },
-      {
-        "template": "one-tagline-six-markets",
-        "name": "One Tagline, Six Markets",
-        "route": "/templates/one-tagline-six-markets",
-        "role": "Check your key messages",
-        "handoff": "Translate key lines into six languages, with back-translations for review.",
-        "thumbnail": "/templates/one-tagline-six-markets.jpg",
-        "nodeCount": 3,
-        "models": [],
-        "alternative": null
-      },
-      {
-        "template": "ai-spokesperson",
-        "name": "AI Spokesperson",
-        "route": "/templates/ai-spokesperson",
-        "role": "Sync the presenter",
-        "handoff": "Add the presenter clip and translated script. This step generates its own voice track and matches the mouth movements.",
-        "thumbnail": "/templates/ai-spokesperson.jpg",
-        "nodeCount": 8,
-        "models": [
-          {
-            "provider": "replicate",
-            "model": "inworld/realtime-tts-1.5-max"
-          },
-          {
             "provider": "fal_ai",
             "model": "fal-ai/sync-lipsync/v2/pro"
-          }
-        ],
-        "alternative": null
-      },
-      {
-        "template": "subtitle-text-from-a-recording",
-        "name": "Subtitle Text from a Recording",
-        "route": "/templates/subtitle-text-from-a-recording",
-        "role": "Create subtitle text",
-        "handoff": "Turn the localised audio into text split into subtitle-length lines.",
-        "thumbnail": "/templates/subtitle-text-from-a-recording.jpg",
-        "nodeCount": 5,
-        "models": [
-          {
-            "provider": "openai",
-            "model": "gpt-4o-mini-transcribe"
           }
         ],
         "alternative": null

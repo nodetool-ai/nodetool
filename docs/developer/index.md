@@ -90,6 +90,6 @@ Contribute to [NodeTool on GitHub](https://github.com/nodetool-ai/nodetool).
 
 Options:
 
-1. Publish as a separate npm package, and list it in the [registry repository](https://github.com/nodetool-ai/nodetool-registry)
+1. Publish as a separate npm package
 2. Contribute to the core node library in the repository
 3. Share workflow examples on Discord

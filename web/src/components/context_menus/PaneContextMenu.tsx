@@ -31,7 +31,8 @@ import { getShortcutTooltip } from "../../config/shortcuts";
 // components, and this menu is reachable from the app shell.
 import {
   WORKFLOW_NODE_TYPE,
-  SUBGRAPH_NODE_TYPE
+  SUBGRAPH_NODE_TYPE,
+  APP_NODE_TYPE
 } from "../../constants/nodeTypes";
 import { shallow } from "zustand/shallow";
 import {
@@ -365,6 +366,11 @@ const PaneContextMenu: React.FC = () => {
           onClick={handleCreateNode(SUBGRAPH_NODE_TYPE)}
           label="Add Subgraph"
           tooltip={"Add an inline subgraph node"}
+        />
+        <ContextMenuItem
+          onClick={handleCreateNode(APP_NODE_TYPE)}
+          label="Add App"
+          tooltip={"Run a mini app as a node"}
         />
       </ContextMenu>
       <ContextMenu

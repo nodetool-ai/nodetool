@@ -11361,6 +11361,176 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/lip-sync-a-clip-to-a-voice-track",
+    "title": "Lip-sync a Clip to a Voice Track — NodeTool AI Workflow Template",
+    "description": "Sync your presenter clip to a voice track you already have. The audio is levelled and its edges are softened first. Lip-sync is billed per second of footage.",
+    "priority": 0.6,
+    "changeFrequency": "monthly",
+    "indexable": true,
+    "slug": "lip-sync-a-clip-to-a-voice-track",
+    "name": "Lip-sync a Clip to a Voice Track",
+    "summary": "Sync your presenter clip to a voice track you already have. The audio is levelled and its edges are softened first. Lip-sync is billed per second of footage.",
+    "tags": [
+      "video",
+      "audio",
+      "example"
+    ],
+    "category": "Video",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.AudioInput",
+        "label": "Audio Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.FadeIn",
+        "label": "Fade In",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.FadeOut",
+        "label": "Fade Out",
+        "count": 1
+      },
+      {
+        "type": "nodetool.video.LipSync",
+        "label": "Lip Sync",
+        "count": 1
+      },
+      {
+        "type": "nodetool.audio.Normalize",
+        "label": "Normalize",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.VideoInput",
+        "label": "Video Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 7,
+    "thumbnail": "/templates/lip-sync-a-clip-to-a-voice-track.jpg",
+    "graph": {
+      "nodes": [
+        {
+          "id": "comment-1",
+          "type": "nodetool.workflows.base_node.Comment",
+          "title": "Comment",
+          "x": 0,
+          "y": 0,
+          "width": 560,
+          "isComment": true
+        },
+        {
+          "id": "in-clip",
+          "type": "nodetool.input.VideoInput",
+          "title": "Video Input",
+          "x": 0,
+          "y": 240,
+          "width": 280
+        },
+        {
+          "id": "in-voice",
+          "type": "nodetool.input.AudioInput",
+          "title": "Audio Input",
+          "x": 0,
+          "y": 400,
+          "width": 280
+        },
+        {
+          "id": "level",
+          "type": "nodetool.audio.Normalize",
+          "title": "Normalize",
+          "x": 380,
+          "y": 380,
+          "width": 300
+        },
+        {
+          "id": "fade-in",
+          "type": "nodetool.audio.FadeIn",
+          "title": "Fade In",
+          "x": 710,
+          "y": 380,
+          "width": 300
+        },
+        {
+          "id": "fade-out",
+          "type": "nodetool.audio.FadeOut",
+          "title": "Fade Out",
+          "x": 1040,
+          "y": 380,
+          "width": 300
+        },
+        {
+          "id": "sync",
+          "type": "nodetool.video.LipSync",
+          "title": "Lip Sync",
+          "x": 1420,
+          "y": 300,
+          "width": 280,
+          "subtitle": "fal-ai/sync-lipsync/v2/pro"
+        },
+        {
+          "id": "output-clip",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 1780,
+          "y": 320,
+          "width": 240
+        }
+      ],
+      "edges": [
+        {
+          "source": "in-clip",
+          "sourceHandle": "output",
+          "target": "sync",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "sync",
+          "sourceHandle": "output",
+          "target": "output-clip",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "in-voice",
+          "sourceHandle": "output",
+          "target": "level",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "level",
+          "sourceHandle": "output",
+          "target": "fade-in",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "fade-in",
+          "sourceHandle": "output",
+          "target": "fade-out",
+          "targetHandle": "audio",
+          "color": "any"
+        },
+        {
+          "source": "fade-out",
+          "sourceHandle": "output",
+          "target": "sync",
+          "targetHandle": "audio",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/localise-a-product-listing",
     "title": "Localise a Product Listing — NodeTool AI Workflow Template",
     "description": "Currency, units and address format are where listings actually break in a new market — more often than the prose does.",
@@ -25090,6 +25260,106 @@ export const templateEntries: TemplateEntry[] = [
     }
   },
   {
+    "route": "/templates/subtitle-lines-from-a-script",
+    "title": "Subtitle Lines from a Script — NodeTool AI Workflow Template",
+    "description": "A finished script broken into numbered subtitle captions of at most two short lines, split at natural phrase boundaries.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "subtitle-lines-from-a-script",
+    "name": "Subtitle Lines from a Script",
+    "summary": "A finished script broken into numbered subtitle captions of at most two short lines, split at natural phrase boundaries.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.LanguageModelInput",
+        "label": "Language Model Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 1
+      }
+    ],
+    "nodeCount": 4,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "in",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300,
+          "subtitle": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend."
+        },
+        {
+          "id": "in-model",
+          "type": "nodetool.input.LanguageModelInput",
+          "title": "Language Model Input",
+          "x": 0,
+          "y": 300,
+          "width": 280
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 330,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "in-model",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "model",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
     "route": "/templates/subtitle-text-from-a-recording",
     "title": "Subtitle Text from a Recording — NodeTool AI Workflow Template",
     "description": "Transcribe, then break into subtitle-length lines. The line-length rule is what separates a subtitle file from a wall of text.",
@@ -27361,6 +27631,142 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "text",
           "target": "out",
           "targetHandle": "value",
+          "color": "any"
+        }
+      ]
+    }
+  },
+  {
+    "route": "/templates/translate-a-script-for-dubbing",
+    "title": "Translate a Script for Dubbing — NodeTool AI Workflow Template",
+    "description": "A spoken script translated into the language you name, kept close to the original length so the new voice track fits the same footage.",
+    "priority": 0.3,
+    "changeFrequency": "monthly",
+    "indexable": false,
+    "slug": "translate-a-script-for-dubbing",
+    "name": "Translate a Script for Dubbing",
+    "summary": "A spoken script translated into the language you name, kept close to the original length so the new voice track fits the same footage.",
+    "tags": [
+      "text",
+      "example"
+    ],
+    "category": "Text & Data",
+    "nodeTypes": [
+      {
+        "type": "nodetool.input.StringInput",
+        "label": "String Input",
+        "count": 2
+      },
+      {
+        "type": "nodetool.agents.Agent",
+        "label": "Agent",
+        "count": 1
+      },
+      {
+        "type": "nodetool.input.LanguageModelInput",
+        "label": "Language Model Input",
+        "count": 1
+      },
+      {
+        "type": "nodetool.output.Output",
+        "label": "Output",
+        "count": 1
+      },
+      {
+        "type": "nodetool.text.Template",
+        "label": "Template",
+        "count": 1
+      }
+    ],
+    "nodeCount": 6,
+    "thumbnail": null,
+    "graph": {
+      "nodes": [
+        {
+          "id": "in-script",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 120,
+          "width": 300,
+          "subtitle": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend."
+        },
+        {
+          "id": "in-language",
+          "type": "nodetool.input.StringInput",
+          "title": "String Input",
+          "x": 0,
+          "y": 300,
+          "width": 300,
+          "subtitle": "Spanish"
+        },
+        {
+          "id": "tpl",
+          "type": "nodetool.text.Template",
+          "title": "Template",
+          "x": 330,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "in-model",
+          "type": "nodetool.input.LanguageModelInput",
+          "title": "Language Model Input",
+          "x": 330,
+          "y": 300,
+          "width": 280
+        },
+        {
+          "id": "ag",
+          "type": "nodetool.agents.Agent",
+          "title": "Agent",
+          "x": 660,
+          "y": 120,
+          "width": 300
+        },
+        {
+          "id": "out",
+          "type": "nodetool.output.Output",
+          "title": "Output",
+          "x": 990,
+          "y": 120,
+          "width": 300
+        }
+      ],
+      "edges": [
+        {
+          "source": "in-script",
+          "sourceHandle": "output",
+          "target": "tpl",
+          "targetHandle": "script",
+          "color": "any"
+        },
+        {
+          "source": "in-language",
+          "sourceHandle": "output",
+          "target": "tpl",
+          "targetHandle": "language",
+          "color": "any"
+        },
+        {
+          "source": "tpl",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "prompt",
+          "color": "any"
+        },
+        {
+          "source": "ag",
+          "sourceHandle": "text",
+          "target": "out",
+          "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "in-model",
+          "sourceHandle": "output",
+          "target": "ag",
+          "targetHandle": "model",
           "color": "any"
         }
       ]

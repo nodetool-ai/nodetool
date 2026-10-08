@@ -73,6 +73,9 @@ const ProviderOnboardingDialog = React.lazy(
 const ProviderSignInDialog = React.lazy(
   () => import("./components/provider_onboarding/ProviderSignInDialog")
 );
+const InstallRuntimePackageDialog = React.lazy(
+  () => import("./components/packages/InstallRuntimePackageDialog")
+);
 import FirstRunProviderSignIn from "./components/provider_onboarding/FirstRunProviderSignIn";
 import HelpDialogHost from "./components/content/Help/HelpDialogHost";
 import BugReportDialogHost from "./components/support/BugReportDialogHost";
@@ -797,6 +800,7 @@ const AppWrapper = ({ configReady }: { configReady: Promise<unknown> }) => {
                       <SearchProviderSetupDialog />
                       <ProviderOnboardingDialog />
                       <ProviderSignInDialog />
+                      <InstallRuntimePackageDialog />
                       <FirstRunProviderSignIn />
                     </>
                   )}

@@ -16,10 +16,14 @@ import AudioToAudioModelSelect from "./AudioToAudioModelSelect";
 import ASRModelSelect from "./ASRModelSelect";
 import VideoModelSelect from "./VideoModelSelect";
 import Model3DModelSelect from "./Model3DModelSelect";
+import RerankModelSelect from "./RerankModelSelect";
 import { useNodes } from "../../contexts/NodeContext";
 import { useIsConnectedSelector } from "../../hooks/nodes/useIsConnected";
 import { useRecommendedModelsForNode } from "../../hooks/useRecommendedModelsForNode";
-import type { ImageModelTask } from "../../hooks/useModelsByProvider";
+import {
+  IMAGE_TASK_BY_NODE_TYPE,
+  VIDEO_TASK_BY_NODE_TYPE
+} from "../../hooks/modelTaskMatching";
 import ConnectedBadge from "./ConnectedBadge";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
@@ -97,28 +101,8 @@ const ModelProperty = (props: PropertyProps) => {
   );
 
   const { imageTask, videoTask, model3dTask } = useMemo(() => {
-    const imageTaskByNode: Record<
-      string,
-      ImageModelTask | ImageModelTask[]
-    > = {
-      "nodetool.image.TextToImage": "text_to_image",
-      "nodetool.image.ImageToImage": "image_to_image",
-      "nodetool.image.Upscale": "upscale",
-      "nodetool.image.RemoveBackground": "remove_background",
-      "nodetool.image.Segment": "segment",
-      "nodetool.image.Relight": ["image_to_image", "relight"],
-      "nodetool.image.Vectorize": "vectorize"
-    };
-    const videoTaskByNode = {
-      "nodetool.video.TextToVideo": "text_to_video",
-      "nodetool.video.ImageToVideo": "image_to_video",
-      "nodetool.video.ReferenceToVideo": "reference_to_video",
-      "nodetool.video.VideoToVideo": "video_to_video",
-      "nodetool.video.LipSync": "lip_sync"
-    } as const;
-    const imageTask = imageTaskByNode[props.nodeType];
-    const videoTask =
-      videoTaskByNode[props.nodeType as keyof typeof videoTaskByNode];
+    const imageTask = IMAGE_TASK_BY_NODE_TYPE[props.nodeType];
+    const videoTask = VIDEO_TASK_BY_NODE_TYPE[props.nodeType];
     const model3dTask =
       props.nodeType === "nodetool.model3d.TextTo3D"
         ? ("text_to_3d" as const)
@@ -208,6 +192,14 @@ const ModelProperty = (props: PropertyProps) => {
           task={videoTask}
           recommendedModels={recommendedModels}
           modelPacks={modelPacks}
+        />
+      );
+    } else if (modelType === "rerank_model") {
+      return (
+        <RerankModelSelect
+          onChange={props.onChange}
+          value={props.value?.id || ""}
+          provider={props.value?.provider}
         />
       );
     } else if (modelType === "model_3d_model") {

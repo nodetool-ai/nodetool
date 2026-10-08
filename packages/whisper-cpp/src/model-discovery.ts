@@ -109,8 +109,10 @@ export async function resolveModelPath(
   id: string,
   modelsDir?: string
 ): Promise<string> {
+  // State saved before redaction stopped rewriting paths holds "~/..." ids.
+  const wanted = expand(id);
   const model = (await discoverASRModels(modelsDir)).find(
-    (entry) => entry.id === id
+    (entry) => entry.id === wanted
   );
   if (!model) {
     throw new Error(

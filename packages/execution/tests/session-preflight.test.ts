@@ -18,6 +18,7 @@ import { describe, expect, it, vi, beforeEach, afterEach } from "vitest";
 import { BaseNode, NodeRegistry, prop } from "@nodetool-ai/node-sdk";
 import { FakeProvider, ProcessingContext } from "@nodetool-ai/runtime";
 import {
+  collectPreflightIssues,
   ExecutionSession,
   ExecutionPreflightError,
   isExecutionPreflightError,
@@ -380,5 +381,70 @@ describe("unsetModelErrors", () => {
     );
     expect(errors).toHaveLength(1);
     expect(errors[0]).toContain('Node "open"');
+  });
+});
+
+describe("collectPreflightIssues with run params", () => {
+  const savedKey = process.env["ANTHROPIC_API_KEY"];
+  beforeEach(() => {
+    delete process.env["ANTHROPIC_API_KEY"];
+  });
+  afterEach(() => {
+    if (savedKey === undefined) delete process.env["ANTHROPIC_API_KEY"];
+    else process.env["ANTHROPIC_API_KEY"] = savedKey;
+  });
+
+  // A graph whose model input defaults to a provider with no stored key. A
+  // mini app passes its own model for that input on every run.
+  const graph = {
+    nodes: [
+      {
+        id: "in-model",
+        type: "nodetool.input.LanguageModelInput",
+        properties: {
+          name: "model",
+          value: {
+            type: "language_model",
+            provider: "anthropic",
+            id: "claude-sonnet-5"
+          }
+        }
+      },
+      { id: "ag", type: "test.execution.Generate", properties: { model: {} } }
+    ],
+    edges: [
+      {
+        source: "in-model",
+        sourceHandle: "output",
+        target: "ag",
+        targetHandle: "model"
+      }
+    ]
+  };
+  const catalogs: RunModelCatalogs = {
+    listProviderIds: () => ["anthropic", "openai"],
+    listModelIds: () => undefined
+  };
+  const resolveSecret = (key: string) =>
+    key === "OPENAI_API_KEY" ? "sk-configured" : null;
+
+  it("checks the model the run passes, not the input's default", async () => {
+    const issues = await collectPreflightIssues(graph, {
+      catalogs,
+      resolveSecret,
+      params: {
+        model: { type: "language_model", provider: "openai", id: "gpt-5" }
+      }
+    });
+    expect(issues).toEqual([]);
+  });
+
+  it("still checks the input's default when the run passes no value", async () => {
+    const issues = await collectPreflightIssues(graph, {
+      catalogs,
+      resolveSecret
+    });
+    expect(issues.map((issue) => issue.kind)).toEqual(["credential"]);
+    expect(issues[0]?.message).toContain("ANTHROPIC_API_KEY");
   });
 });

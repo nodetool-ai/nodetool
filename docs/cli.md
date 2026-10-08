@@ -2460,7 +2460,7 @@ nodetool package list --json
  nodetool-base │ 0.6.3-rc.41 │ Nodetool Base nodes │ 0
 ```
 
-`--available` reads the index at `NODETOOL_PACKAGE_REGISTRY_URL`. See
+`--available` prints the Python packs in `PYTHON_NODE_PACKS` (`packages/protocol/src/python-packs.ts`). See
 [Node Packs](node-packs.md) for what a pack is and how one is installed.
 
 #### `nodetool package init`

@@ -18,6 +18,7 @@ import {
 import {
   instanceValues,
   InstanceWriter,
+  mergedInstanceState,
   restoredInstanceValues
 } from "./instancePersistence";
 import {
@@ -206,6 +207,52 @@ export const useAppInstance = (
   }, []);
   const mutateRef = useRef(mutation.mutateAsync);
   mutateRef.current = mutation.mutateAsync;
+  const queryKeyRef = useRef(queryKey);
+  queryKeyRef.current = queryKey;
+
+  /** Show merged server state without saving it back as a local edit. */
+  const applyRebase = useCallback(
+    (merged: Record<string, unknown>): void => {
+      persistedRef.current = merged;
+      const store = storeRef.current;
+      if (store) {
+        serverFold(() =>
+          store.setState(mergedInstanceState(store.getState(), merged))
+        );
+      }
+    },
+    [serverFold]
+  );
+  const applyRebaseRef = useRef(applyRebase);
+  applyRebaseRef.current = applyRebase;
+
+  /** A writer for one instance that rebases onto newer server state. */
+  const createWriter = useCallback(
+    (target: ServerAppInstance): InstanceWriter =>
+      new InstanceWriter(
+        target.revision,
+        target.variables,
+        async (revision, variables) => {
+          const saved = await mutateRef.current({
+            id: target.id,
+            revision,
+            variables
+          });
+          return saved.revision;
+        },
+        {
+          load: async () => {
+            const latest = await loadAppInstance(target.id);
+            queryClient.setQueryData(queryKeyRef.current, latest);
+            return { revision: latest.revision, values: latest.variables };
+          },
+          onRebase: (merged) => applyRebaseRef.current(merged)
+        }
+      ),
+    [queryClient]
+  );
+  const createWriterRef = useRef(createWriter);
+  createWriterRef.current = createWriter;
 
   useEffect(() => {
     const store = storeRef.current;
@@ -218,18 +265,7 @@ export const useAppInstance = (
       bindingRef.current = binding;
       persistedRef.current = instance.variables;
       store.setState(restoredInstanceValues(instance.variables));
-      writerRef.current = new InstanceWriter(
-        instance.revision,
-        instance.variables,
-        async (revision, variables) => {
-          const result = await mutateRef.current({
-            id: instance.id,
-            revision,
-            variables
-          });
-          return result.revision;
-        }
-      );
+      writerRef.current = createWriterRef.current(instance);
       setSaveError(undefined);
     }
     let active = true;
@@ -340,17 +376,24 @@ export const useAppInstance = (
     if (!latest || !store || !writerRef.current) {
       return;
     }
+    const writer = writerRef.current;
     if (
-      writerRef.current.adopt(
-        latest.revision,
-        latest.variables,
-        persistedRef.current
-      )
+      writer.adopt(latest.revision, latest.variables, persistedRef.current)
     ) {
       persistedRef.current = latest.variables;
       serverFold(() =>
         store.setState(restoredInstanceValues(latest.variables))
       );
+      return;
+    }
+    // Local edits are not saved yet: keep them on top of the server state.
+    if (
+      writer.rebase(
+        { revision: latest.revision, values: latest.variables },
+        persistedRef.current
+      )
+    ) {
+      await writer.flush();
     }
   }, [enabled, refetch, serverFold]);
 
@@ -366,18 +409,7 @@ export const useAppInstance = (
         return;
       }
       persistedRef.current = latest.variables;
-      writerRef.current = new InstanceWriter(
-        latest.revision,
-        latest.variables,
-        async (revision, variables) => {
-          const saved = await mutateRef.current({
-            id: latest.id,
-            revision,
-            variables
-          });
-          return saved.revision;
-        }
-      );
+      writerRef.current = createWriterRef.current(latest);
       serverFold(() =>
         store.setState(restoredInstanceValues(latest.variables))
       );

@@ -58,6 +58,8 @@ export interface ModelDownloadTarget {
   path: string | null;
   allowPatterns: string[] | null;
   ignorePatterns: string[] | null;
+  /** The type the download service fetches with, when it differs from the picker's model type. */
+  modelType: string | null;
 }
 
 /**
@@ -86,7 +88,8 @@ export function modelDownloadTarget(
     allowPatterns: path
       ? null
       : (artifact?.allow_patterns ?? unified.allow_patterns ?? null),
-    ignorePatterns: path ? null : (unified.ignore_patterns ?? null)
+    ignorePatterns: path ? null : (unified.ignore_patterns ?? null),
+    modelType: artifact?.model_type ?? null
   };
 }
 
@@ -223,4 +226,18 @@ export function applyAdvancedModelFilters<TModel extends ModelSelectorModel>(
 
     return true;
   });
+}
+
+/**
+ * A readable label for a model the picker cannot find in its list. Local
+ * providers such as whisper.cpp use the file path as the id: show the file
+ * name without its extension and without a `ggml-` prefix ("small").
+ */
+export function modelLabelFromId(id: string): string {
+  const isPath = /^(?:[/~]|[A-Za-z]:[\\/])/.test(id);
+  if (!isPath) {
+    return id;
+  }
+  const file = id.split(/[\\/]/).filter(Boolean).at(-1) ?? id;
+  return file.replace(/\.[^.]+$/, "").replace(/^ggml-/i, "");
 }

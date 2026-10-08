@@ -24,7 +24,7 @@ import type {
 import { budgetFromContext, isChunk, isProviderStop } from "@nodetool-ai/runtime";
 import { agentActivityReporter } from "./agent-activity.js";
 import { capabilityProviderTool } from "./invoke.js";
-import { capabilitySpec } from "./registry.js";
+import { capabilitySpec } from "./metadata.js";
 import { agentsSpecs } from "./agents.specs.js";
 import type { CapabilityImpl } from "./types.js";
 import { truncateToolResult } from "../constants.js";

@@ -5,6 +5,7 @@ import {
   appRunResponse
 } from "@nodetool-ai/protocol/api-schemas/app-runs.js";
 import { restFetch } from "../../../lib/rest-fetch";
+import { AppInstanceConflictError } from "./instancePersistence";
 
 const instanceSchema = appInstanceResponse;
 
@@ -123,14 +124,15 @@ async function request(
     const detail = z
       .object({ detail: z.string().optional(), error: z.string().optional() })
       .safeParse(data);
+    if (response.status === 409) {
+      throw new AppInstanceConflictError();
+    }
     throw new Error(
-      response.status === 409
-        ? "This instance changed in another session. Reload the app before saving or running again."
-        : detail.success
-          ? (detail.data.detail ??
-            detail.data.error ??
-            `App request failed (${response.status}).`)
-          : `App request failed (${response.status}).`
+      detail.success
+        ? (detail.data.detail ??
+          detail.data.error ??
+          `App request failed (${response.status}).`)
+        : `App request failed (${response.status}).`
     );
   }
   return data;

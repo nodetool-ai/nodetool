@@ -36,6 +36,7 @@ export { AudioClassificationNode } from "./nodes/audio-classification.js";
 export { TextToSpeechNode } from "./nodes/text-to-speech.js";
 
 export {
+  bytesToRawImage,
   clearPipelineCache,
   decodeAudioBytesToSamples,
   extractRepoId,
@@ -44,7 +45,8 @@ export {
   loadTransformers,
   setTransformersJsCacheDir,
   tjsModelDefault,
-  type HfModelRef
+  type HfModelRef,
+  type RawImage
 } from "./transformers-base.js";
 
 export {

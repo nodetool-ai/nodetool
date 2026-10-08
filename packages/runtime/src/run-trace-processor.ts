@@ -3,7 +3,7 @@ import type { ReadableSpan, Span, SpanProcessor, SpanExporter } from "@opentelem
 import { resourceFromAttributes } from "@opentelemetry/resources";
 import { isTraceContentKey, splitTraceRecord, TRACE_STRING_LIMIT, TRACE_CONTENT_BYTE_LIMIT, type TraceRecord, type RunTraceRegistration, type RunTraceUpdate } from "@nodetool-ai/protocol";
 import { redactTraceText, setLogHook, safeProcessEnv, type LogEntry } from "@nodetool-ai/config";
-import { spanToRecord } from "./trace-exporters.js";
+import { spanToRecord } from "./span-record.js";
 import { bindSpanRunTraceScope, getRunTraceScope, isRunTraceSuppressed, recordTraceEvent, withoutRunTrace, type RunTraceScope } from "./run-trace-context.js";
 import { sanitizeTraceContentText, stringifyTraceContent } from "./run-trace-serialization.js";
 

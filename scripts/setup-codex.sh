@@ -143,11 +143,9 @@ if [[ "${SKIP_PYTHON:-0}" != "1" ]]; then
     fi
   done
 
-  # If no sibling checkout exists, install the core worker packages from the NodeTool registry.
+  # If no sibling checkout exists, install the core worker package from PyPI.
   if ! python -c 'import nodetool' >/dev/null 2>&1; then
-    python -m pip install \
-      --extra-index-url https://nodetool-ai.github.io/nodetool-registry/simple/ \
-      nodetool-core nodetool-base
+    python -m pip install nodetool-core
   fi
 fi
 

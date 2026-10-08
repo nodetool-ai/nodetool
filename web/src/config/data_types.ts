@@ -449,6 +449,18 @@ const NODETOOL_DATA_TYPES: DataType[] = [
     icon: "model"
   },
   {
+    value: "rerank_model",
+    label: "Rerank Model",
+    description:
+      "Reference to a reranking model that scores documents against a query.",
+    color: colour("reference"),
+    textColor: "var(--palette-action-active)",
+    name: "",
+    slug: "",
+    namespace: "",
+    icon: "model"
+  },
+  {
     value: "bytes",
     label: "Bytes",
     description:

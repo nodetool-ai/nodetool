@@ -1,0 +1,151 @@
+{
+  "id": "",
+  "access": "private",
+  "created_at": "2026-10-07T12:00:00.000Z",
+  "updated_at": "2026-10-07T12:00:00.000Z",
+  "name": "Subtitle Lines from a Script",
+  "tool_name": null,
+  "description": "A finished script broken into numbered subtitle captions of at most two short lines, split at natural phrase boundaries.",
+  "tags": [
+    "text",
+    "example"
+  ],
+  "thumbnail": null,
+  "thumbnail_url": null,
+  "graph": {
+    "nodes": [
+      {
+        "id": "in",
+        "type": "nodetool.input.StringInput",
+        "data": {
+          "name": "script",
+          "value": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend.",
+          "description": "The script to subtitle"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "1  Script"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "in-model",
+        "type": "nodetool.input.LanguageModelInput",
+        "data": {
+          "name": "model",
+          "value": {
+            "type": "language_model",
+            "provider": "anthropic",
+            "id": "claude-sonnet-5",
+            "name": "Claude Sonnet 5",
+            "path": null,
+            "supported_tasks": []
+          },
+          "description": "The language model that writes the text"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 0,
+            "y": 300
+          },
+          "zIndex": 0,
+          "width": 280,
+          "selectable": true,
+          "title": "Language model"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "ag",
+        "type": "nodetool.agents.Agent",
+        "data": {
+          "model": {
+            "type": "language_model",
+            "provider": "",
+            "id": "",
+            "name": "",
+            "path": null,
+            "supported_tasks": []
+          },
+          "system": "You prepare subtitle text from a transcript. Break into lines of at most 42 characters, at most two lines per caption, split at natural phrase boundaries. Number each caption.",
+          "prompt": "",
+          "tools": [],
+          "image": [],
+          "audio": [],
+          "history": [],
+          "thread_id": "",
+          "max_tokens": 16384,
+          "max_turns": 100
+        },
+        "ui_properties": {
+          "position": {
+            "x": 330,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "2  Agent"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      },
+      {
+        "id": "out",
+        "type": "nodetool.output.Output",
+        "data": {
+          "name": "captions"
+        },
+        "ui_properties": {
+          "position": {
+            "x": 660,
+            "y": 120
+          },
+          "zIndex": 0,
+          "width": 300,
+          "selectable": true,
+          "title": "3  Output"
+        },
+        "dynamic_properties": {},
+        "dynamic_outputs": {}
+      }
+    ],
+    "edges": [
+      {
+        "id": "e1",
+        "source": "in",
+        "sourceHandle": "output",
+        "target": "ag",
+        "targetHandle": "prompt"
+      },
+      {
+        "id": "e2",
+        "source": "ag",
+        "sourceHandle": "text",
+        "target": "out",
+        "targetHandle": "value"
+      },
+      {
+        "id": "in-model-ag-model",
+        "source": "in-model",
+        "sourceHandle": "output",
+        "target": "ag",
+        "targetHandle": "model"
+      }
+    ]
+  },
+  "input_schema": null,
+  "output_schema": null,
+  "settings": null,
+  "package_name": "nodetool-base",
+  "path": null,
+  "run_mode": null
+}

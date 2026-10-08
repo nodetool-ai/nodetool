@@ -33,9 +33,9 @@ import { Notification } from "./ApiTypes";
 import { useNotificationStore } from "./NotificationStore";
 import useOnboardingStore from "./OnboardingStore";
 import {
-  promptForProviderAuth,
-  resetProviderAuthPrompt
-} from "./providerAuthPrompt";
+  promptForErrorDetail,
+  resetErrorDetailPrompts
+} from "./errorDetailPrompt";
 import { NOTIFICATION_TIMEOUT_JOB_COMPLETED } from "../config/constants";
 import { queryClient } from "../queryClient";
 import { globalWebSocketManager } from "../lib/websocket/GlobalWebSocketManager";
@@ -779,7 +779,7 @@ const handleJobUpdate = (
     // so stale red outlines don't linger after the user fixes them.
     usePropertyValidationStore.getState().clearWorkflow(workflow.id);
     if (!silentJob && job.job_id && !useWorkflowRunsStore.getState().hasRun(workflow.id, job.job_id)) {
-      resetProviderAuthPrompt(job.job_id);
+      resetErrorDetailPrompts(job.job_id);
       clearSawGenerationCompleteFor(job.job_id);
     }
   }
@@ -936,7 +936,7 @@ const reportNodeError = (
 ): void => {
   console.error("WorkflowRunner update error", nodeError);
   if (update.error_detail) {
-    promptForProviderAuth(update.error_detail, jobId ?? workflow.id);
+    promptForErrorDetail(update.error_detail, jobId ?? workflow.id);
   }
   runner.addNotification({
     type: "error",

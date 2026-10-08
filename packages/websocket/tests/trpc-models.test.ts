@@ -137,6 +137,9 @@ function makeProvider(
     getAvailableVideoModels: () => Promise<
       { id: string; name: string; provider: string }[]
     >;
+    getAvailableRerankModels: () => Promise<
+      { id: string; name: string; provider: string }[]
+    >;
     hasToolSupport: (model: string) => Promise<boolean>;
   }> = {}
 ) {
@@ -147,6 +150,7 @@ function makeProvider(
     getAvailableASRModels: vi.fn().mockResolvedValue([]),
     getAvailableEmbeddingModels: vi.fn().mockResolvedValue([]),
     getAvailableVideoModels: vi.fn().mockResolvedValue([]),
+    getAvailableRerankModels: vi.fn().mockResolvedValue([]),
     hasToolSupport: vi.fn().mockResolvedValue(true),
     // The models router now reads capabilities via BaseProvider.getCapabilities()
     // instead of reflecting over the instance; mirror the always-present base
@@ -504,12 +508,12 @@ describe("models router", () => {
     });
 
     it("does NOT cross-list a repo that is recommended under a different type", async () => {
-      // whisper-tiny.en is recommended for tjs.automatic_speech_recognition,
+      // whisper-tiny is recommended for tjs.automatic_speech_recognition,
       // not tjs.text_classification. It must not appear when querying TC.
       (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockResolvedValue([
         {
-          repo_id: "Xenova/whisper-tiny.en",
-          dir: "/tmp/tjs-cache/Xenova/whisper-tiny.en",
+          repo_id: "Xenova/whisper-tiny",
+          dir: "/tmp/tjs-cache/Xenova/whisper-tiny",
           size_bytes: 100
         }
       ]);
@@ -518,7 +522,7 @@ describe("models router", () => {
         model_type: "tjs.text_classification"
       });
       expect(
-        result.find((m) => m.repo_id === "Xenova/whisper-tiny.en")
+        result.find((m) => m.repo_id === "Xenova/whisper-tiny")
       ).toBeUndefined();
     });
 
@@ -755,6 +759,96 @@ describe("models router", () => {
       for (const model of result) {
         expect(model.type).toBe("tts_model");
       }
+    });
+  });
+
+  // ── asrByProvider ────────────────────────────────────────────────────────
+
+  describe("asrByProvider", () => {
+    const tjsModel = (repoId: string) => ({
+      id: repoId,
+      name: repoId,
+      provider: "transformers_js",
+      adapter: {
+        state: "installed" as const,
+        artifactRef: {
+          source: "huggingface" as const,
+          repoId,
+          modelType: "tjs.automatic_speech_recognition"
+        }
+      }
+    });
+
+    it("asks to download a Transformers.js model missing from its cache", async () => {
+      (listRegisteredProviderIds as ReturnType<typeof vi.fn>).mockReturnValue([
+        "transformers_js"
+      ]);
+      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(
+        true
+      );
+      (getProvider as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeProvider({
+          getAvailableASRModels: vi
+            .fn()
+            .mockResolvedValue([
+              tjsModel("Xenova/whisper-base"),
+              tjsModel("Xenova/whisper-tiny")
+            ])
+        })
+      );
+      (scanTransformersJsCache as ReturnType<typeof vi.fn>).mockResolvedValue([
+        { repo_id: "Xenova/whisper-tiny", size_bytes: 100 }
+      ]);
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.asrByProvider({
+        provider: "transformers_js"
+      });
+      const byId = new Map(result.map((m) => [m.id, m]));
+      expect(byId.get("Xenova/whisper-base")?.execution?.state).toBe(
+        "download_required"
+      );
+      expect(
+        byId.get("Xenova/whisper-base")?.adapter?.artifact_ref?.model_type
+      ).toBe("tjs.automatic_speech_recognition");
+      expect(byId.get("Xenova/whisper-tiny")?.execution?.state).toBe("ready");
+    });
+  });
+
+  // ── rerankByProvider ─────────────────────────────────────────────────────
+
+  describe("rerankByProvider", () => {
+    it("lists reranking models and asks to download one missing from the cache", async () => {
+      (listRegisteredProviderIds as ReturnType<typeof vi.fn>).mockReturnValue([
+        "transformers_js"
+      ]);
+      (isProviderConfigured as ReturnType<typeof vi.fn>).mockResolvedValue(
+        true
+      );
+      (getProvider as ReturnType<typeof vi.fn>).mockResolvedValue(
+        makeProvider({
+          getAvailableRerankModels: vi.fn().mockResolvedValue([
+            {
+              id: "mixedbread-ai/mxbai-rerank-xsmall-v1",
+              name: "mxbai",
+              provider: "transformers_js",
+              adapter: {
+                state: "installed",
+                artifactRef: {
+                  source: "huggingface",
+                  repoId: "mixedbread-ai/mxbai-rerank-xsmall-v1",
+                  modelType: "tjs.text_ranking"
+                }
+              }
+            }
+          ])
+        })
+      );
+      const caller = createCaller(makeCtx());
+      const [model] = await caller.models.rerankByProvider({
+        provider: "transformers_js"
+      });
+      expect(model.type).toBe("rerank_model");
+      expect(model.execution?.state).toBe("download_required");
     });
   });
 

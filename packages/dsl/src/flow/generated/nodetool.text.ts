@@ -37,6 +37,24 @@ export function embedding(inputs: EmbeddingInputs): Promise<EmbeddingOutputs> {
   return callNode<EmbeddingOutputs>("nodetool.text.Embedding", inputs);
 }
 
+// Rerank — nodetool.text.Rerank
+export type RerankInputs = {
+  model?: unknown;
+  query?: string;
+  documents?: string[];
+  top_k?: number;
+};
+
+export interface RerankOutputs {
+  documents: string[];
+  scores: number[];
+  indices: number[];
+}
+
+export function rerank(inputs: RerankInputs): Promise<RerankOutputs> {
+  return callNode<RerankOutputs>("nodetool.text.Rerank", inputs);
+}
+
 // Save Text File — nodetool.text.SaveTextFile
 export type SaveTextFileInputs = {
   text?: string;

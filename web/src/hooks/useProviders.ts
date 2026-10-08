@@ -55,8 +55,40 @@ export const useLanguageModelProviders = (): UseProvidersResult => {
   return useProvidersByCapability("generate_message");
 };
 
+/**
+ * Every capability an `image_model` runs. A provider that only removes
+ * backgrounds or estimates depth still lists models for the image picker.
+ */
+const IMAGE_MODEL_CAPABILITIES = [
+  "text_to_image",
+  "image_to_image",
+  "inpainting",
+  "outpaint_image",
+  "upscale_image",
+  "remove_background",
+  "relight_image",
+  "segment_image",
+  "vectorize_image",
+  "estimate_depth"
+];
+
 export const useImageModelProviders = (): UseProvidersResult => {
-  return useProvidersByCapability("text_to_image");
+  const { providers, isLoading, isFetching, error } = useProviders();
+
+  const filteredProviders = useMemo(
+    () =>
+      providers.filter((p) =>
+        IMAGE_MODEL_CAPABILITIES.some((c) => p.capabilities.includes(c))
+      ),
+    [providers]
+  );
+
+  return {
+    providers: filteredProviders,
+    isLoading,
+    isFetching,
+    error
+  };
 };
 
 export const useTTSProviders = (): UseProvidersResult => {
@@ -81,5 +113,9 @@ export const useVideoProviders = (): UseProvidersResult => {
 
 export const useEmbeddingProviders = (): UseProvidersResult => {
   return useProvidersByCapability("generate_embedding");
+};
+
+export const useRerankProviders = (): UseProvidersResult => {
+  return useProvidersByCapability("rerank");
 };
 

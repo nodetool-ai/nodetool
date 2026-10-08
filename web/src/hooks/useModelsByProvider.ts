@@ -236,7 +236,8 @@ export type ImageModelTask =
   | "remove_background"
   | "relight"
   | "vectorize"
-  | "segment";
+  | "segment"
+  | "estimate_depth";
 
 export type VideoModelTask =
   | "text_to_video"

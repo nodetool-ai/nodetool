@@ -375,8 +375,13 @@ export type ProviderCost = z.infer<typeof providerCostSchema>;
  * matching the prose the provider layer wrote.
  */
 export const nodeErrorDetailSchema = z.object({
-  /** `provider_auth`: the provider refused the credential (401/403). */
+  /**
+   * `provider_auth`: the provider refused the credential (401/403).
+   * `missing_runtime_package`: an optional package is not installed.
+   */
   code: z.string(),
+  /** Runtime package to install, for `missing_runtime_package`. */
+  runtime_package: z.string().nullable().optional(),
   /** Provider id as the runtime knows it (e.g. `openai`). */
   provider: z.string().nullable().optional(),
   /** Secret key holding that provider's credential (e.g. `OPENAI_API_KEY`). */

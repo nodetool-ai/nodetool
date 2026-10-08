@@ -197,7 +197,7 @@ export async function bakeTimelineCode(
   }
 
   const { NODETOOL_PRELUDE } = await import("./sandbox-toolbelt.js");
-  const { listCapabilitySpecs } = await import("./capabilities/registry.js");
+  const { listCapabilitySpecs } = await import("./capabilities/metadata.js");
   // Every catalog name, not just the timeline stub's: a membership miss
   // throws "not in this toolbelt" before `callTool` runs, which would hide
   // the message naming the capability behind a confusing one.
@@ -249,7 +249,7 @@ export async function bakeTimelineCode(
   ).document as unknown as TimelineDocumentLike;
 
   if (capturedOps && capturedOps.length > 0) {
-    const { parseOps, applyOps } = await import("./capabilities/timelines.js");
+    const { parseOps, applyOps } = await import("./capabilities/timeline-operations.js");
     const { ungatedCapabilityRun } = await import("./capabilities/invoke.js");
     const { TimelineSequence } = await import("@nodetool-ai/models");
 

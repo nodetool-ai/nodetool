@@ -688,6 +688,15 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "lip-sync-a-clip-to-a-voice-track",
+        "name": "Lip-sync a Clip to a Voice Track",
+        "description": "Sync your presenter clip to a voice track you already have. The audio is levelled and its edges are softened first. Lip-sync is billed per second of footage.",
+        "tags": [
+          "video",
+          "audio"
+        ]
+      },
+      {
         "slug": "localized-explainer",
         "name": "Localized Explainer",
         "description": "One brief, one narrator and one approved b-roll board become an explainer in every language you list. WriteScript writes the words with the narrator as its cast, VoiceScript pays only for the lines whose text moved, and the board is read and never written — its stills become the picture under the voiceover.",
@@ -1659,6 +1668,14 @@ export const templateCatalog: CatalogCategory[] = [
         ]
       },
       {
+        "slug": "subtitle-lines-from-a-script",
+        "name": "Subtitle Lines from a Script",
+        "description": "A finished script broken into numbered subtitle captions of at most two short lines, split at natural phrase boundaries.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
         "slug": "take-while-the-numbers-are-small",
         "name": "Take While the Numbers Are Small",
         "description": "TakeWhile stops at the first item that fails the predicate, unlike a filter, which would keep testing the rest. That difference is the reason to reach for it: it caps work rather than selecting from it. The expression binds each item as `item`.",
@@ -1684,6 +1701,14 @@ export const templateCatalog: CatalogCategory[] = [
         "slug": "translate-marketing-copy-to-german",
         "name": "Translate Marketing Copy to German",
         "description": "Marketing copy translated for effect rather than word-for-word, with the formal/informal choice stated. That decision is the one that most often gets a translation rejected.",
+        "tags": [
+          "text"
+        ]
+      },
+      {
+        "slug": "translate-a-script-for-dubbing",
+        "name": "Translate a Script for Dubbing",
+        "description": "A spoken script translated into the language you name, kept close to the original length so the new voice track fits the same footage.",
         "tags": [
           "text"
         ]

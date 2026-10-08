@@ -8,11 +8,12 @@ NodeTool packages bundle reusable nodes, assets, and example workflows. The pack
 
 ## Manage packs in the app
 
-The **Package Manager** (**Tools > Package Manager** in the desktop app, or `/packages` in the web UI) has two tabs: **Software** for runtimes such as Python and FFmpeg, and **Node Packs**. Node Packs has three lists:
+The **Package Manager** (**Tools > Package Manager** in the desktop app, or `/packages` in the web UI) has four lists:
 
 - **Included** shows the packs that ship with NodeTool. Each has an Enabled/Disabled switch, except the core pack, which is always on. Provider packs that need an API key are not listed here. Their nodes appear once you set the matching key.
-- **Registry** lists the Python node packs in the public registry, with Install, Update, and Uninstall buttons.
+- **Python packs** lists the Python node packs that NodeTool offers, with Install, Update, and Uninstall buttons. They install from PyPI.
 - **Third-party** installs an npm package by name and lists the packs the app has installed. See [Node Packs](node-packs.md).
+- **Software** manages runtimes such as Python and FFmpeg.
 
 Installing and removing run only in the desktop app. The web UI shows status.
 
@@ -109,10 +110,10 @@ Workflows referencing `nodetool.text.Concat` or `mypack.math.AddOffset` resolve 
 
 ```bash
 nodetool package list
-nodetool package list --available    # fetch registry index
+nodetool package list --available    # Python packs the app offers
 ```
 
-Without `--available`, it lists packages whose metadata it finds under a `nodetool/package_metadata/` directory in the current workspace. With `--available`, it fetches `index.json` from the [registry repository](https://github.com/nodetool-ai/nodetool-registry) (override the URL with `NODETOOL_PACKAGE_REGISTRY_URL`) and prints name, `repo_id`, and description. Add `--json` for machine-readable output.
+Without `--available`, it lists packages whose metadata it finds under a `nodetool/package_metadata/` directory in the current workspace. With `--available`, it prints the name, `repo_id`, and description of each Python pack in `PYTHON_NODE_PACKS` (`packages/protocol/src/python-packs.ts`). Add `--json` for machine-readable output.
 
 ### Initialize a Package
 
@@ -164,7 +165,7 @@ npm run test --workspace=packages/<name>    # Vitest
 4. Add example workflows in `examples/` and assets in `assets/` if relevant.
 5. Publish to npm or provide a Git URL.
 
-To add the package to the public index, create an entry in the [registry repository](https://github.com/nodetool-ai/nodetool-registry) so `package list --available` surfaces it.
+To offer a Python pack in the Package Manager, publish it to PyPI and add it to `PYTHON_NODE_PACKS` in `packages/protocol/src/python-packs.ts`.
 
 ## Workflow Integration
 

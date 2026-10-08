@@ -33,6 +33,10 @@ import type {
   TextToSpeechParams,
   RelightImageParams,
   RemoveBackgroundParams,
+  EstimateDepthParams,
+  RerankModel,
+  RerankParams,
+  RerankResult,
   SegmentImageParams,
   ImageSegmentationMask,
   StreamingAudioChunk,
@@ -218,6 +222,7 @@ export type ProviderCapability =
   | "relight_image"
   | "segment_image"
   | "vectorize_image"
+  | "estimate_depth"
   | "text_to_video"
   | "image_to_video"
   | "reference_to_video"
@@ -233,6 +238,7 @@ export type ProviderCapability =
   | "video_to_audio"
   | "automatic_speech_recognition"
   | "generate_embedding"
+  | "rerank"
   | "text_to_3d"
   | "image_to_3d"
   | "list_generations"
@@ -858,6 +864,11 @@ export abstract class BaseProvider {
   }
 
   async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
+    return [];
+  }
+
+  /** Reranking models exposed by this provider. */
+  async getAvailableRerankModels(): Promise<RerankModel[]> {
     return [];
   }
 
@@ -1783,6 +1794,17 @@ export abstract class BaseProvider {
   }
 
   /**
+   * Estimate per-pixel depth. Returns a grayscale PNG at the input's size,
+   * where brighter pixels are nearer to the camera.
+   */
+  async estimateDepth(
+    _image: Uint8Array,
+    _params: EstimateDepthParams
+  ): Promise<Uint8Array> {
+    throw new Error(`${this.provider} does not support estimateDepth`);
+  }
+
+  /**
    * Segment an image into object masks. Returns one entry per object the model
    * found, in the model's own order; an empty array means it found nothing,
    * which is an answer rather than a failure.
@@ -1998,6 +2020,11 @@ export abstract class BaseProvider {
     throw new Error(`${this.provider} does not support generateEmbedding`);
   }
 
+  /** Score each document against the query, most relevant first. */
+  async rerank(_params: RerankParams): Promise<RerankResult[]> {
+    throw new Error(`${this.provider} does not support rerank`);
+  }
+
   /**
    * Whether `error` is this provider refusing the request because it exceeds
    * the model's context window. Default `false`: a provider whose signal has
@@ -2203,6 +2230,7 @@ const MODALITY_PROMISE_METHODS = [
   "outpaintImage",
   "upscaleImage",
   "removeBackground",
+  "estimateDepth",
   "relightImage",
   "vectorizeImage",
   "segmentImage",
@@ -2222,7 +2250,8 @@ const MODALITY_PROMISE_METHODS = [
   "lipSync",
   "textTo3D",
   "imageTo3D",
-  "generateEmbedding"
+  "generateEmbedding",
+  "rerank"
 ] as const;
 
 /** Async-generator non-chat modality methods wrapped with failure logging. */

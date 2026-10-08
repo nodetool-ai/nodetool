@@ -4,7 +4,7 @@ import { TOOL_CALL_ID_FIELD } from "../tools/subtask-fields.js";
 import { Tool } from "../tools/base-tool.js";
 import type { PermissionGateOptions } from "../tools/tool-permissions.js";
 import { capabilityFromTool } from "./adapters.js";
-import { nativeCapabilityTool } from "./lazy-tool.js";
+import { nativeCapabilityTool } from "./lazy-tool-core.js";
 import { contextSecretAvailability, createCapabilityRun } from "./invoke.js";
 import type { CapabilityRun } from "./types.js";
 

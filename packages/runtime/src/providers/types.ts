@@ -30,6 +30,8 @@ export interface ImageModel {
    */
   aspectRatios?: string[];
   resolutions?: string[];
+  /** Execution adapter facts for a model that runs in this process. */
+  adapter?: ModelAdapterInfo;
 }
 
 export interface VideoModel {
@@ -54,6 +56,8 @@ export interface ModelArtifactRef {
   path?: string;
   /** The files the adapter loads, when it needs only part of the repository. */
   allowPatterns?: string[];
+  /** The model type the download service fetches the artifact with, e.g. `tjs.feature_extraction`. */
+  modelType?: string;
 }
 
 export interface ModelAdapterInfo {
@@ -132,6 +136,8 @@ export interface ASRModel {
   id: string;
   name: string;
   provider: ProviderId;
+  /** Execution adapter facts for a model that runs in this process. */
+  adapter?: ModelAdapterInfo;
 }
 
 export interface AudioChunk {
@@ -149,6 +155,8 @@ export interface EmbeddingModel {
   name: string;
   provider: ProviderId;
   dimensions?: number;
+  /** Execution adapter facts for a model that runs in this process. */
+  adapter?: ModelAdapterInfo;
 }
 
 export interface ToolCall {
@@ -532,6 +540,36 @@ export interface OutpaintImageParams {
 /** Remove the background from an image, returning an image with alpha. */
 export interface RemoveBackgroundParams {
   model: ImageModel;
+}
+
+export interface EstimateDepthParams {
+  model: ImageModel;
+  signal?: AbortSignal;
+}
+
+/** A cross-encoder that scores how well each document answers a query. */
+export interface RerankModel {
+  id: string;
+  name: string;
+  provider: ProviderId;
+  /** Execution adapter facts for a model that runs in this process. */
+  adapter?: ModelAdapterInfo;
+}
+
+export interface RerankParams {
+  model: string;
+  query: string;
+  documents: string[];
+  /** Keep only the best this many documents. All documents when unset. */
+  topK?: number;
+  signal?: AbortSignal;
+}
+
+/** One scored document. `index` points into the input `documents`. */
+export interface RerankResult {
+  index: number;
+  /** Relevance from 0 to 1. Higher is more relevant. */
+  score: number;
 }
 
 /** A rectangle in source-image pixels. */

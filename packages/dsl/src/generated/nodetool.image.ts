@@ -412,6 +412,20 @@ export function removeBackground(inputs: RemoveBackgroundInputs, options?: NodeO
   return createNode("nodetool.image.RemoveBackground", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
 }
 
+// Estimate Depth — nodetool.image.EstimateDepth
+export type EstimateDepthInputs = {
+  model?: Connectable<unknown>;
+  image?: Connectable<ImageRef>;
+};
+
+export interface EstimateDepthOutputs {
+  output: ImageRef;
+}
+
+export function estimateDepth(inputs: EstimateDepthInputs, options?: NodeOptions): NodeWithOutputs<EstimateDepthOutputs, "output"> {
+  return createNode("nodetool.image.EstimateDepth", inputs, { id: options?.id, outputNames: ["output"], outputTypes: {"output":"image"}, defaultOutput: "output" });
+}
+
 // Relight Image — nodetool.image.Relight
 export type RelightInputs = {
   model?: Connectable<unknown>;

@@ -35,6 +35,7 @@ export {
   providerConfigurationChecker,
   unconfiguredProviderErrors,
   unsetModelErrors,
+  withRunParams,
   RUNTIME_CATALOGS
 } from "./preflight.js";
 export type {

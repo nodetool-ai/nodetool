@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/protocol",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Shared message types and protocol definitions for the NodeTool workflow runtime",
   "type": "module",
   "engines": {
@@ -71,6 +71,12 @@
       "types": "./dist/builtin-packs.d.ts",
       "import": "./dist/builtin-packs.js",
       "default": "./dist/builtin-packs.js"
+    },
+    "./python-packs": {
+      "nodetool-dev": "./src/python-packs.ts",
+      "types": "./dist/python-packs.d.ts",
+      "import": "./dist/python-packs.js",
+      "default": "./dist/python-packs.js"
     },
     "./bridge-protocol": {
       "nodetool-dev": "./src/bridge-protocol.ts",

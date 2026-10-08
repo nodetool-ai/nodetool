@@ -2,8 +2,8 @@
   "slug": "dubbing-desk",
   "name": "Dubbing Desk",
   "emoji": "🌍",
-  "description": "The Multilingual Video Dubber chain behind one surface. Transcribing writes the script into a variable the revoice and back-translation steps both read, so the words that get dubbed are the words you can see.",
-  "tagline": "One presenter clip, spoken in another language, checked and subtitled.",
+  "description": "A presenter clip taken through four steps: transcribe it, translate the script into the language you pick, voice and subtitle the translation, then lip-sync the footage. You can edit the script and the translation before anything is voiced, so the words that get dubbed are the words you see.",
+  "tagline": "One presenter clip, spoken in another language, voiced, subtitled and lip-synced.",
   "note": "Transcription, translation, speech, and lip-sync use configured models and are billed per run.",
   "featured": false,
   "image": "/app-preview/img/dubbing-desk.jpg",
@@ -26,7 +26,7 @@
           "type": "Text",
           "props": {
             "id": "tagline",
-            "text": "One presenter clip, spoken in another language, checked and subtitled."
+            "text": "One presenter clip, spoken in another language, voiced, subtitled and lip-synced."
           }
         },
         {
@@ -37,67 +37,57 @@
           }
         },
         {
-          "type": "Columns",
+          "type": "Stepper",
           "props": {
-            "id": "cols-the-footage",
-            "gap": 24,
-            "left": [
+            "id": "steps",
+            "binding": "var:step",
+            "steps": [
               {
-                "type": "Container",
+                "value": "clip",
+                "title": "Clip"
+              },
+              {
+                "value": "translate",
+                "title": "Translate"
+              },
+              {
+                "value": "voice",
+                "title": "Voice"
+              },
+              {
+                "value": "lipsync",
+                "title": "Lip-sync"
+              }
+            ],
+            "allowBack": true
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-clip",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "clip"
+            },
+            "content": [
+              {
+                "type": "Heading",
                 "props": {
-                  "id": "panel-the-footage",
-                  "title": "The footage",
-                  "content": [
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-transcribe-asr-model",
-                        "binding": "op:transcribe/prop:asr#model",
-                        "label": "Transcribe model",
-                        "modelKind": "asr_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-revoice-ag-model",
-                        "binding": "op:revoice/prop:ag#model",
-                        "label": "Revoice model",
-                        "modelKind": "language_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-revoice-tts-model",
-                        "binding": "op:revoice/prop:tts#model",
-                        "label": "Revoice model",
-                        "modelKind": "tts_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-subtitles-asr-model",
-                        "binding": "op:subtitles/prop:asr#model",
-                        "label": "Subtitles model",
-                        "modelKind": "asr_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-subtitles-ag-model",
-                        "binding": "op:subtitles/prop:ag#model",
-                        "label": "Subtitles model",
-                        "modelKind": "language_model",
-                        "events": []
-                      }
-                    },
+                  "id": "heading-clip",
+                  "text": "Clip",
+                  "level": "2",
+                  "subtitle": "Add a clip of one person who talks to the camera. The app writes down what they say."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-clip",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "VideoInput",
                       "props": {
@@ -108,10 +98,20 @@
                       }
                     },
                     {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-transcribe-asr-model",
+                        "binding": "op:transcribe/prop:asr#model",
+                        "label": "Transcription model",
+                        "modelKind": "asr_model",
+                        "events": []
+                      }
+                    },
+                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-transcribe",
-                        "label": "Get the script back out",
+                        "label": "Transcribe the clip",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
@@ -122,7 +122,35 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:transcribe/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-transcribe",
+                        "binding": "op:transcribe/exec#progress",
+                        "label": "Transcribing…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-transcribe",
+                        "binding": "op:transcribe/exec#error",
+                        "title": "Transcription failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:transcribe/exec#error",
+                          "op": "notEmpty"
+                        }
                       }
                     },
                     {
@@ -130,23 +158,306 @@
                       "props": {
                         "id": "in-script",
                         "binding": "var:script",
-                        "label": "The script that gets dubbed",
+                        "label": "What they say",
                         "multiline": true,
+                        "events": []
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-clip"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-clip",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-clip",
+                        "label": "Next: Translate",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "translate"
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "var:script",
+                          "op": "empty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-translate",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "translate"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "heading-translate",
+                  "text": "Translate",
+                  "level": "2",
+                  "subtitle": "Pick the language of the dub and a language model. The same model writes the subtitles later. Read the translation and fix it before it is voiced."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-translate",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "Select",
+                      "props": {
+                        "id": "in-translate-language",
+                        "binding": "op:translate/in:in-language",
+                        "label": "Target language",
+                        "options": [
+                          {
+                            "value": "Spanish"
+                          },
+                          {
+                            "value": "French"
+                          },
+                          {
+                            "value": "German"
+                          },
+                          {
+                            "value": "Italian"
+                          },
+                          {
+                            "value": "Portuguese"
+                          },
+                          {
+                            "value": "Dutch"
+                          },
+                          {
+                            "value": "Polish"
+                          },
+                          {
+                            "value": "Japanese"
+                          },
+                          {
+                            "value": "Korean"
+                          },
+                          {
+                            "value": "Chinese"
+                          },
+                          {
+                            "value": "Hindi"
+                          },
+                          {
+                            "value": "Arabic"
+                          }
+                        ],
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-llm",
+                        "binding": "var:llm",
+                        "label": "Language model",
+                        "modelKind": "language_model",
                         "events": []
                       }
                     },
                     {
                       "type": "Button",
                       "props": {
-                        "id": "btn-revoice-subtitles",
-                        "label": "Revoice and subtitle",
+                        "id": "btn-translate",
+                        "label": "Translate the script",
                         "variant": "contained",
                         "color": "primary",
                         "events": [
                           {
                             "trigger": "click",
                             "kind": "run",
-                            "operationId": "revoice",
+                            "operationId": "translate",
+                            "key": "",
+                            "value": ""
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:translate/exec#running",
+                          "op": "notEmpty"
+                        }
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-translate",
+                        "binding": "op:translate/exec#progress",
+                        "label": "Translating…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-translate",
+                        "binding": "op:translate/exec#error",
+                        "title": "Translation failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:translate/exec#error",
+                          "op": "notEmpty"
+                        }
+                      }
+                    },
+                    {
+                      "type": "TextInput",
+                      "props": {
+                        "id": "in-translation",
+                        "binding": "var:translation",
+                        "label": "The dubbed script",
+                        "multiline": true,
+                        "events": []
+                      }
+                    }
+                  ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-translate"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-translate",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "back-translate",
+                        "label": "Back: Clip",
+                        "variant": "outlined",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "clip"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-translate",
+                        "label": "Next: Voice",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "voice"
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "var:translation",
+                          "op": "empty"
+                        }
+                      }
+                    }
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-voice",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "voice"
+            },
+            "content": [
+              {
+                "type": "Heading",
+                "props": {
+                  "id": "heading-voice",
+                  "text": "Voice",
+                  "level": "2",
+                  "subtitle": "Speak the translation with a new voice and break it into subtitle lines. The lip-sync uses this voice track."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-voice",
+                  "gap": 24,
+                  "left": [
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-voice-tts-model",
+                        "binding": "op:voice/prop:tts#model",
+                        "label": "Voice",
+                        "modelKind": "tts_model",
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "btn-voice-subtitles",
+                        "label": "Voice and subtitle",
+                        "variant": "contained",
+                        "color": "primary",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "run",
+                            "operationId": "voice",
                             "key": "",
                             "value": ""
                           },
@@ -157,50 +468,73 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:voice/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-the-footage-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
-                        "id": "progress-transcribe",
-                        "binding": "op:transcribe/exec#progress",
-                        "label": "Transcribing…"
+                        "id": "progress-voice",
+                        "binding": "op:voice/exec#progress",
+                        "label": "Voicing…"
                       }
                     },
                     {
-                      "type": "Progress",
+                      "type": "Alert",
                       "props": {
-                        "id": "progress-revoice",
-                        "binding": "op:revoice/exec#progress",
-                        "label": "Translating and voicing…"
+                        "id": "error-voice",
+                        "binding": "op:voice/exec#error",
+                        "title": "Voicing failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:voice/exec#error",
+                          "op": "notEmpty"
+                        }
                       }
                     },
                     {
                       "type": "Heading",
                       "props": {
-                        "id": "lbl-revoice-spanish-audio",
-                        "text": "Localised voice track",
+                        "id": "lbl-narration",
+                        "text": "Voice track",
                         "level": "3"
                       }
                     },
                     {
                       "type": "Audio",
                       "props": {
-                        "id": "out-revoice-spanish-audio",
-                        "binding": "op:revoice/out:out",
+                        "id": "out-narration",
+                        "binding": "var:narration",
                         "placeholder": "Your audio appears here"
+                      }
+                    },
+                    {
+                      "type": "Progress",
+                      "props": {
+                        "id": "progress-subtitles",
+                        "binding": "op:subtitles/exec#progress",
+                        "label": "Writing subtitles…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-subtitles",
+                        "binding": "op:subtitles/exec#error",
+                        "title": "Subtitles failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:subtitles/exec#error",
+                          "op": "notEmpty"
+                        }
                       }
                     },
                     {
@@ -221,32 +555,93 @@
                     }
                   ]
                 }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-voice"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-voice",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "back-voice",
+                        "label": "Back: Translate",
+                        "variant": "outlined",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "translate"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-voice",
+                        "label": "Next: Lip-sync",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "lipsync"
+                          }
+                        ],
+                        "disabledWhen": {
+                          "binding": "var:narration",
+                          "op": "empty"
+                        }
+                      }
+                    }
+                  ]
+                }
               }
             ]
           }
         },
         {
-          "type": "Columns",
+          "type": "Container",
           "props": {
-            "id": "cols-make-the-mouth-match",
-            "gap": 24,
-            "left": [
+            "id": "step-lipsync",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "lipsync"
+            },
+            "content": [
               {
-                "type": "Container",
+                "type": "Heading",
                 "props": {
-                  "id": "panel-make-the-mouth-match",
-                  "title": "Make the mouth match",
-                  "content": [
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-spokesperson-speech-model",
-                        "binding": "op:spokesperson/prop:speech#model",
-                        "label": "Lip-sync model",
-                        "modelKind": "tts_model",
-                        "events": []
-                      }
-                    },
+                  "id": "heading-lipsync",
+                  "text": "Lip-sync",
+                  "level": "2",
+                  "subtitle": "Redraw the mouth so the presenter speaks the voice track from the last step. Lip-sync is billed per second of footage."
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-lipsync",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "ModelSelect",
                       "props": {
@@ -255,13 +650,6 @@
                         "label": "Lip-sync model",
                         "modelKind": "video_model",
                         "events": []
-                      }
-                    },
-                    {
-                      "type": "Text",
-                      "props": {
-                        "id": "note",
-                        "text": "💸 Lip-sync redraws the footage and is metered per second."
                       }
                     },
                     {
@@ -279,33 +667,42 @@
                             "key": "",
                             "value": ""
                           }
-                        ]
+                        ],
+                        "disabledWhen": {
+                          "binding": "op:spokesperson/exec#running",
+                          "op": "notEmpty"
+                        }
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-make-the-mouth-match-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
                         "id": "progress-spokesperson",
                         "binding": "op:spokesperson/exec#progress",
-                        "label": "Redriving the mouth…"
+                        "label": "Redrawing the mouth…"
+                      }
+                    },
+                    {
+                      "type": "Alert",
+                      "props": {
+                        "id": "error-spokesperson",
+                        "binding": "op:spokesperson/exec#error",
+                        "title": "Lip-sync failed",
+                        "text": "",
+                        "severity": "error",
+                        "visibleWhen": {
+                          "binding": "op:spokesperson/exec#error",
+                          "op": "notEmpty"
+                        }
                       }
                     },
                     {
                       "type": "Heading",
                       "props": {
                         "id": "lbl-spokesperson-revoiced-clip",
-                        "text": "Dubbed cut",
+                        "text": "Dubbed clip",
                         "level": "3"
                       }
                     },
@@ -320,96 +717,38 @@
                     }
                   ]
                 }
-              }
-            ]
-          }
-        },
-        {
-          "type": "Columns",
-          "props": {
-            "id": "cols-check-what-you-shipped",
-            "gap": 24,
-            "left": [
+              },
               {
-                "type": "Container",
+                "type": "Divider",
                 "props": {
-                  "id": "panel-check-what-you-shipped",
-                  "title": "Check what you shipped",
-                  "content": [
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-check-ag-model",
-                        "binding": "op:check/prop:ag#model",
-                        "label": "Back-translate model",
-                        "modelKind": "language_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "TextInput",
-                      "props": {
-                        "id": "in-check-tagline",
-                        "binding": "op:check/in:in",
-                        "label": "A line to read back",
-                        "multiline": true,
-                        "events": []
-                      }
-                    },
+                  "id": "divider-lipsync"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-lipsync",
+                  "gap": 16,
+                  "left": [
                     {
                       "type": "Button",
                       "props": {
-                        "id": "btn-check",
-                        "label": "Show me all six",
-                        "variant": "contained",
-                        "color": "primary",
+                        "id": "back-lipsync",
+                        "label": "Back: Voice",
+                        "variant": "outlined",
+                        "fullWidth": false,
                         "events": [
                           {
                             "trigger": "click",
-                            "kind": "run",
-                            "operationId": "check",
-                            "key": "",
-                            "value": ""
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "voice"
                           }
                         ]
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-check-what-you-shipped-results",
-                  "title": "Results",
-                  "content": [
-                    {
-                      "type": "Progress",
-                      "props": {
-                        "id": "progress-check",
-                        "binding": "op:check/exec#progress",
-                        "label": "Localising…"
-                      }
-                    },
-                    {
-                      "type": "Heading",
-                      "props": {
-                        "id": "lbl-check-localised",
-                        "text": "Six markets, back-translated",
-                        "level": "3"
-                      }
-                    },
-                    {
-                      "type": "Markdown",
-                      "props": {
-                        "id": "out-check-localised",
-                        "binding": "op:check/out:out",
-                        "text": ""
-                      }
-                    }
-                  ]
+                  ],
+                  "right": []
                 }
               }
             ]
@@ -438,30 +777,61 @@
         "policy": "replace"
       },
       {
-        "id": "revoice",
-        "name": "Revoice",
-        "workflowId": "revoice",
+        "id": "translate",
+        "name": "Translate",
+        "workflowId": "translate",
+        "inputs": {
+          "in-script": {
+            "from": "variable",
+            "variableId": "script"
+          },
+          "in-model": {
+            "from": "variable",
+            "variableId": "llm"
+          }
+        },
+        "outputs": {
+          "out": {
+            "to": "variable",
+            "variableId": "translation"
+          }
+        },
+        "policy": "replace"
+      },
+      {
+        "id": "voice",
+        "name": "Voice",
+        "workflowId": "voice",
         "inputs": {
           "in": {
             "from": "variable",
-            "variableId": "script"
+            "variableId": "translation"
+          }
+        },
+        "outputs": {
+          "out": {
+            "to": "variable",
+            "variableId": "narration"
+          }
+        },
+        "policy": "replace"
+      },
+      {
+        "id": "subtitles",
+        "name": "Subtitles",
+        "workflowId": "subtitles",
+        "inputs": {
+          "in": {
+            "from": "variable",
+            "variableId": "translation"
+          },
+          "in-model": {
+            "from": "variable",
+            "variableId": "llm"
           }
         },
         "outputs": {},
         "policy": "replace"
-      },
-      {
-        "id": "check",
-        "name": "Back-translate",
-        "workflowId": "check",
-        "inputs": {
-          "in": {
-            "from": "variable",
-            "variableId": "script"
-          }
-        },
-        "outputs": {},
-        "policy": "parallel"
       },
       {
         "id": "spokesperson",
@@ -472,31 +842,29 @@
             "from": "variable",
             "variableId": "clip"
           },
-          "in-script": {
+          "in-voice": {
             "from": "variable",
-            "variableId": "script"
+            "variableId": "narration"
           }
         },
         "outputs": {},
         "policy": "queue",
         "timeoutMs": 900000
-      },
-      {
-        "id": "subtitles",
-        "name": "Subtitles",
-        "workflowId": "subtitles",
-        "inputs": {
-          "in": {
-            "from": "variable",
-            "variableId": "clip"
-          }
-        },
-        "outputs": {},
-        "policy": "parallel"
       }
     ],
     "resources": [],
     "variables": [
+      {
+        "id": "step",
+        "name": "Step",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "clip",
+        "scope": "instance",
+        "persist": false
+      },
       {
         "id": "clip",
         "name": "The clip",
@@ -515,6 +883,45 @@
           "optional": true
         },
         "default": "",
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "translation",
+        "name": "Translation",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "",
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "narration",
+        "name": "Voice track",
+        "type": {
+          "type": "audio",
+          "optional": true
+        },
+        "scope": "instance",
+        "persist": false
+      },
+      {
+        "id": "llm",
+        "name": "Language model",
+        "type": {
+          "type": "language_model",
+          "optional": true
+        },
+        "default": {
+          "type": "language_model",
+          "provider": "codex",
+          "id": "gpt-5.6-luna",
+          "name": "GPT-5.6-Luna",
+          "path": null,
+          "supported_tasks": []
+        },
         "scope": "instance",
         "persist": false
       }
@@ -571,17 +978,17 @@
       }
     },
     {
-      "key": "revoice",
-      "name": "Localise a Script and Revoice It",
+      "key": "translate",
+      "name": "Translate a Script for Dubbing",
       "graph": {
         "nodes": [
           {
-            "id": "in",
+            "id": "in-script",
             "type": "nodetool.input.StringInput",
             "data": {
               "name": "script",
               "value": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend.",
-              "description": "The English script"
+              "description": "The script to translate"
             },
             "ui_properties": {
               "position": {
@@ -597,20 +1004,69 @@
             "dynamic_outputs": {}
           },
           {
-            "id": "out",
-            "type": "nodetool.output.Output",
+            "id": "in-language",
+            "type": "nodetool.input.StringInput",
             "data": {
-              "name": "spanish_audio"
+              "name": "language",
+              "value": "Spanish",
+              "description": "The language of the dub"
             },
             "ui_properties": {
               "position": {
-                "x": 1980,
+                "x": 0,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 300,
+              "selectable": true,
+              "title": "2  Language"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-model",
+            "type": "nodetool.input.LanguageModelInput",
+            "data": {
+              "name": "model",
+              "value": {
+                "type": "language_model",
+                "provider": "anthropic",
+                "id": "claude-sonnet-5",
+                "name": "Claude Sonnet 5",
+                "path": null,
+                "supported_tasks": []
+              },
+              "description": "The language model that writes the text"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 330,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "Language model"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "translation"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 990,
                 "y": 120
               },
               "zIndex": 0,
               "width": 300,
               "selectable": true,
-              "title": "4  Audio"
+              "title": "5  Output"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -620,17 +1076,66 @@
       }
     },
     {
-      "key": "check",
-      "name": "One Tagline, Six Markets",
+      "key": "voice",
+      "name": "Narrate a Script",
       "graph": {
         "nodes": [
           {
             "id": "in",
             "type": "nodetool.input.StringInput",
             "data": {
-              "name": "tagline",
-              "value": "",
-              "description": "The tagline to localise"
+              "name": "script",
+              "value": "Every frame you see here was generated from a single line of text.",
+              "description": "The words to speak"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 180
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "1  Script"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "out",
+            "type": "nodetool.output.Output",
+            "data": {
+              "name": "narration"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 760,
+                "y": 200
+              },
+              "zIndex": 0,
+              "width": 240,
+              "selectable": true,
+              "title": "3  Voice track"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          }
+        ],
+        "edges": []
+      }
+    },
+    {
+      "key": "subtitles",
+      "name": "Subtitle Lines from a Script",
+      "graph": {
+        "nodes": [
+          {
+            "id": "in",
+            "type": "nodetool.input.StringInput",
+            "data": {
+              "name": "script",
+              "value": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend.",
+              "description": "The script to subtitle"
             },
             "ui_properties": {
               "position": {
@@ -640,7 +1145,35 @@
               "zIndex": 0,
               "width": 300,
               "selectable": true,
-              "title": "1  Input"
+              "title": "1  Script"
+            },
+            "dynamic_properties": {},
+            "dynamic_outputs": {}
+          },
+          {
+            "id": "in-model",
+            "type": "nodetool.input.LanguageModelInput",
+            "data": {
+              "name": "model",
+              "value": {
+                "type": "language_model",
+                "provider": "anthropic",
+                "id": "claude-sonnet-5",
+                "name": "Claude Sonnet 5",
+                "path": null,
+                "supported_tasks": []
+              },
+              "description": "The language model that writes the text"
+            },
+            "ui_properties": {
+              "position": {
+                "x": 0,
+                "y": 300
+              },
+              "zIndex": 0,
+              "width": 280,
+              "selectable": true,
+              "title": "Language model"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -649,7 +1182,7 @@
             "id": "out",
             "type": "nodetool.output.Output",
             "data": {
-              "name": "localised"
+              "name": "captions"
             },
             "ui_properties": {
               "position": {
@@ -670,7 +1203,7 @@
     },
     {
       "key": "spokesperson",
-      "name": "AI Spokesperson",
+      "name": "Lip-sync a Clip to a Voice Track",
       "graph": {
         "nodes": [
           {
@@ -698,12 +1231,15 @@
             "dynamic_outputs": {}
           },
           {
-            "id": "in-script",
-            "type": "nodetool.input.StringInput",
+            "id": "in-voice",
+            "type": "nodetool.input.AudioInput",
             "data": {
-              "name": "script",
-              "value": "Freshly roasted coffee, brewed one cup at a time. Find your favourite blend.",
-              "description": "The new words the presenter should say"
+              "name": "voice_track",
+              "value": {
+                "type": "audio",
+                "uri": "package://nodetool-base/recipe-inputs/voice.wav"
+              },
+              "description": "The speech the presenter should say"
             },
             "ui_properties": {
               "position": {
@@ -713,7 +1249,7 @@
               "zIndex": 0,
               "width": 280,
               "selectable": true,
-              "title": "2  New script"
+              "title": "2  Voice track"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -726,62 +1262,13 @@
             },
             "ui_properties": {
               "position": {
-                "x": 2110,
+                "x": 1780,
                 "y": 320
               },
               "zIndex": 0,
               "width": 240,
               "selectable": true,
-              "title": "5  Re-voiced clip"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          }
-        ],
-        "edges": []
-      }
-    },
-    {
-      "key": "subtitles",
-      "name": "Subtitle Text from a Recording",
-      "graph": {
-        "nodes": [
-          {
-            "id": "in",
-            "type": "nodetool.input.VideoInput",
-            "data": {
-              "name": "recording",
-              "value": null,
-              "description": "The recording to work from"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 120
-              },
-              "zIndex": 0,
-              "width": 300,
-              "selectable": true,
-              "title": "1  Recording"
-            },
-            "dynamic_properties": {},
-            "dynamic_outputs": {}
-          },
-          {
-            "id": "out",
-            "type": "nodetool.output.Output",
-            "data": {
-              "name": "captions"
-            },
-            "ui_properties": {
-              "position": {
-                "x": 0,
-                "y": 330
-              },
-              "zIndex": 0,
-              "width": 300,
-              "selectable": true,
-              "title": "5  Output"
+              "title": "4  Re-voiced clip"
             },
             "dynamic_properties": {},
             "dynamic_outputs": {}
@@ -792,15 +1279,24 @@
     }
   ],
   "values": {
-    "op:revoice/out:out": {
+    "op:translate/in:in-language": "Spanish",
+    "var:narration": {
       "$demo": "audio"
     },
-    "op:subtitles/out:out": "1\n00:00:00,000 --> 00:00:02,400\nOur spring release ships today.",
+    "op:subtitles/out:out": "1\nNuestro lanzamiento de primavera\nsale hoy.",
     "op:spokesperson/out:output-clip": {
       "$demo": "video"
     },
-    "op:check/in:in": "",
-    "op:check/out:out": "**de** — Schneller als letzte Saison. _(Faster than last season.)_\n\n**fr** — Plus rapide que la saison dernière. _(Faster than last season.)_",
-    "var:script": ""
+    "var:step": "clip",
+    "var:script": "",
+    "var:translation": "",
+    "var:llm": {
+      "type": "language_model",
+      "provider": "codex",
+      "id": "gpt-5.6-luna",
+      "name": "GPT-5.6-Luna",
+      "path": null,
+      "supported_tasks": []
+    }
   }
 }

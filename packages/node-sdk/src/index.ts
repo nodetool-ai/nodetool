@@ -25,7 +25,6 @@ export * from "./workflow-document-tools.js";
 export * from "./node-type-inventory.js";
 export * from "./correlation-validation.js";
 export * from "./nodes/test-nodes.js";
-export * from "./package-registry-client.js";
 export * from "./pack-loader.js";
 export * from "./sandbox-pack-discovery.js";
 export * from "./sandbox-module-catalog.js";

@@ -227,9 +227,14 @@ const WorkspaceShell = () => {
           {showWorkflowEditChrome && (
             <Suspense fallback={null}>
               <PanelRight />
-              <Alert />
             </Suspense>
           )}
+
+          {/* Notification popups belong to every tab type, not only the
+              workflow editor. */}
+          <Suspense fallback={null}>
+            <Alert />
+          </Suspense>
         </div>
       </div>
     </WorkspaceHeaderActionsProvider>

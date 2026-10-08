@@ -1,6 +1,6 @@
 {
   "name": "@nodetool-ai/sandbox-flow",
-  "version": "0.8.1",
+  "version": "0.8.2",
   "description": "Call NodeTool nodes as typed async functions inside the sandbox, one importable module per node namespace",
   "license": "MIT",
   "nodetool": {
@@ -126,6 +126,11 @@
         "name": "lib.sqlite",
         "kind": "js",
         "file": "sandbox/generated/lib.sqlite.js"
+      },
+      {
+        "name": "lib.stable_diffusion_cpp",
+        "kind": "js",
+        "file": "sandbox/generated/lib.stable_diffusion_cpp.js"
       },
       {
         "name": "lib.svg",
@@ -303,6 +308,11 @@
         "file": "sandbox/generated/nodetool.video.js"
       },
       {
+        "name": "nodetool.workflows.app_node",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.workflows.app_node.js"
+      },
+      {
         "name": "nodetool.workflows.base_node",
         "kind": "js",
         "file": "sandbox/generated/nodetool.workflows.base_node.js"
@@ -341,6 +351,11 @@
         "name": "vector",
         "kind": "js",
         "file": "sandbox/generated/vector.js"
+      },
+      {
+        "name": "whisper_cpp",
+        "kind": "js",
+        "file": "sandbox/generated/whisper_cpp.js"
       },
       {
         "name": "xai.image",

@@ -311,6 +311,7 @@ export type ProviderCapability =
   | "relight_image"
   | "segment_image"
   | "vectorize_image"
+  | "estimate_depth"
   | "text_to_video"
   | "image_to_video"
   | "reference_to_video"
@@ -326,6 +327,7 @@ export type ProviderCapability =
   | "video_to_audio"
   | "automatic_speech_recognition"
   | "generate_embedding"
+  | "rerank"
   | "text_to_3d"
   | "image_to_3d"
   | "render_model3d"
@@ -473,6 +475,8 @@ export type ProviderPredictionResult = Awaited<
       | "referenceToVideo"
       | "upscaleImage"
       | "removeBackground"
+      | "estimateDepth"
+      | "rerank"
       | "relightImage"
       | "segmentImage"
       | "vectorizeImage"
@@ -3487,6 +3491,22 @@ export class ProcessingContext {
       case "vectorize_image":
         return provider.vectorizeImage(params.image as Uint8Array, {
           model: { id: req.model, name: req.model, provider: req.provider }
+        });
+      case "estimate_depth":
+        return provider.estimateDepth(params.image as Uint8Array, {
+          model: { id: req.model, name: req.model, provider: req.provider },
+          signal: isAbortSignal(params.signal) ? params.signal : this.signal
+        });
+      case "rerank":
+        return provider.rerank({
+          model: req.model,
+          query: isString(params.query) ? params.query : "",
+          // Every entry stays, so result indices point into the caller's list.
+          documents: Array.isArray(params.documents)
+            ? params.documents.map((doc) => (isString(doc) ? doc : String(doc)))
+            : [],
+          topK: isNumber(params.top_k) ? params.top_k : undefined,
+          signal: isAbortSignal(params.signal) ? params.signal : this.signal
         });
       case "track_object": {
         const request = objectTrackingRequestSchema.parse(params);

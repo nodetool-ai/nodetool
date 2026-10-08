@@ -60,7 +60,8 @@ const modelArtifactRefSchema = z.object({
   repo_id: z.string(),
   revision: z.string().nullish(),
   path: z.string().nullish(),
-  allow_patterns: z.array(z.string()).nullish()
+  allow_patterns: z.array(z.string()).nullish(),
+  model_type: z.string().nullish()
 });
 
 const modelAdapterInfoSchema = z.object({
@@ -834,6 +835,7 @@ function toUnifiedModel(
         revision?: string;
         path?: string;
         allowPatterns?: string[];
+        modelType?: string;
       };
     };
     supportedTasks?: string[];
@@ -873,7 +875,8 @@ function toUnifiedModel(
                 repo_id: model.adapter.artifactRef.repoId,
                 revision: model.adapter.artifactRef.revision ?? null,
                 path: model.adapter.artifactRef.path ?? null,
-                allow_patterns: model.adapter.artifactRef.allowPatterns ?? null
+                allow_patterns: model.adapter.artifactRef.allowPatterns ?? null,
+                model_type: model.adapter.artifactRef.modelType ?? null
               }
             : null
         }
@@ -931,6 +934,22 @@ async function resolveProviderModelExecution(
     cachedModels = await readCachedHfModels();
   } catch {
     // A failed cache scan means local adapters remain download-required.
+  }
+  if (
+    models.some((model) =>
+      model.adapter?.artifact_ref?.model_type?.startsWith("tjs.")
+    )
+  ) {
+    try {
+      const cached = await scanTransformersJsCache(getTransformersJsCacheDir());
+      cachedModels.push(
+        ...cached.map((c) =>
+          tjsRefToUnified({ repo_id: c.repo_id }, "tjs.cached", true, c.size_bytes)
+        )
+      );
+    } catch {
+      // Transformers.js adapters remain download-required.
+    }
   }
   return resolveModelExecutionAvailability(
     [...models, ...cachedModels],
@@ -1612,8 +1631,8 @@ export const modelsRouter = router({
   imageByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
-    .query(async ({ ctx, input }) =>
-      safeProviderCall(
+    .query(async ({ ctx, input }) => {
+      const models = await safeProviderCall(
         "imageByProvider",
         { provider: input.provider, userId: ctx.userId },
         async () => {
@@ -1626,8 +1645,34 @@ export const modelsRouter = router({
           return models.map((m) => toUnifiedModel(m, "image_model"));
         },
         []
-      )
-    ),
+      );
+      // Only a local model has files to download. Remote catalogs keep the
+      // execution state that toUnifiedModel gave them.
+      return models.some((model) => model.adapter)
+        ? resolveProviderModelExecution(models, [input.provider])
+        : models;
+    }),
+
+  rerankByProvider: protectedProcedure
+    .input(providerInput)
+    .output(modelsListOutput)
+    .query(async ({ ctx, input }) => {
+      const models = await safeProviderCall(
+        "rerankByProvider",
+        { provider: input.provider, userId: ctx.userId },
+        async () => {
+          const instance = await instantiateProvider(
+            input.provider as ProviderId,
+            ctx.userId
+          );
+          if (!instance) return [];
+          const models = await instance.getAvailableRerankModels();
+          return models.map((m) => toUnifiedModel(m, "rerank_model"));
+        },
+        []
+      );
+      return resolveProviderModelExecution(models, [input.provider]);
+    }),
 
   tts: protectedProcedure.output(modelsListOutput).query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
@@ -1774,14 +1819,14 @@ export const modelsRouter = router({
         )
       )
     );
-    return results.flat();
+    return resolveProviderModelExecution(results.flat(), availableIds);
   }),
 
   asrByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
-    .query(async ({ ctx, input }) =>
-      safeProviderCall(
+    .query(async ({ ctx, input }) => {
+      const models = await safeProviderCall(
         "asrByProvider",
         { provider: input.provider, userId: ctx.userId },
         async () => {
@@ -1794,8 +1839,9 @@ export const modelsRouter = router({
           return models.map((m) => toUnifiedModel(m, "asr_model"));
         },
         []
-      )
-    ),
+      );
+      return resolveProviderModelExecution(models, [input.provider]);
+    }),
 
   video: protectedProcedure.output(modelsListOutput).query(async ({ ctx }) => {
     const availableIds = await getAvailableProviderIds(ctx.userId);
@@ -1840,8 +1886,8 @@ export const modelsRouter = router({
   embeddingByProvider: protectedProcedure
     .input(providerInput)
     .output(modelsListOutput)
-    .query(async ({ ctx, input }) =>
-      safeProviderCall(
+    .query(async ({ ctx, input }) => {
+      const models = await safeProviderCall(
         "embeddingByProvider",
         { provider: input.provider, userId: ctx.userId },
         async () => {
@@ -1854,8 +1900,9 @@ export const modelsRouter = router({
           return models.map((m) => toUnifiedModel(m, "embedding_model"));
         },
         []
-      )
-    ),
+      );
+      return resolveProviderModelExecution(models, [input.provider]);
+    }),
 
   /**
    * Fast batch cache status check for multiple models.
