@@ -58,6 +58,9 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
   const saveEntity = useSaveEntity();
   const setSetup = useSketchStore((state) => state.setSetup);
   const surfaceRef = useRef<HTMLDivElement | null>(null);
+  // Moves on every exit from the contact sheet, so a "Make more" batch that
+  // lands after the creator left it does not bring the sheet back (F4).
+  const sheetSessionRef = useRef(0);
 
   const handleGenerated = useCallback((layerIds: readonly string[]) => {
     setBatch(layerIds);
@@ -65,7 +68,9 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
   }, []);
 
   const finish = useCallback(() => {
+    sheetSessionRef.current += 1;
     setBatch([]);
+    setMakingMore(false);
     onFinish?.();
   }, [onFinish]);
 
@@ -88,26 +93,39 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
   const makeMore = useCallback(() => {
     setMakeMoreError(null);
     setMakingMore(true);
+    const session = sheetSessionRef.current;
     void look
       .generate()
       .then((layerIds) => {
-        setBatch((current) => [...current, ...layerIds]);
+        // A late batch is still this session's, so a later pick hides it.
         setSessionLayers((current) => [...current, ...layerIds]);
+        if (session === sheetSessionRef.current) {
+          setBatch((current) => [...current, ...layerIds]);
+        }
       })
       .catch((cause: unknown) => {
+        if (session !== sheetSessionRef.current) {
+          return;
+        }
         setMakeMoreError(
           cause instanceof Error
             ? cause.message
             : "Another batch could not be started."
         );
       })
-      .finally(() => setMakingMore(false));
+      .finally(() => {
+        if (session === sheetSessionRef.current) {
+          setMakingMore(false);
+        }
+      });
   }, [look]);
 
   // Back to the look step with every variation kept: they are layers on the
   // document, and the next batch is added beside them (F7).
   const backToSettings = useCallback(() => {
+    sheetSessionRef.current += 1;
     setBatch([]);
+    setMakingMore(false);
     setMakeMoreError(null);
     setSetup({ stage: "look" });
   }, [setSetup]);
@@ -191,14 +209,19 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
       (child): child is HTMLElement =>
         child instanceof HTMLElement && child !== surface
     );
+    // A step field that took focus on mount (the brief) keeps it; only focus
+    // still outside the flow is pulled in, and only that is returned to.
+    const focusInside = surface.contains(document.activeElement);
     const returnTo =
-      document.activeElement instanceof HTMLElement
+      !focusInside && document.activeElement instanceof HTMLElement
         ? document.activeElement
         : null;
     for (const element of covered) {
       element.setAttribute("inert", "");
     }
-    surface.focus({ preventScroll: true });
+    if (!focusInside) {
+      surface.focus({ preventScroll: true });
+    }
     return () => {
       for (const element of covered) {
         element.removeAttribute("inert");

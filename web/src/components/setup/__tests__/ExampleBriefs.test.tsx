@@ -117,3 +117,33 @@ it("offers no Undo when the brief was empty", () => {
 
   expect(screen.queryByRole("button", { name: "Undo" })).toBeNull();
 });
+
+// Undo brings back what the creator wrote, however many examples were tried
+// over it.
+it("keeps the creator's own brief for Undo across a second example", () => {
+  const onSelect = jest.fn();
+  const Host = () => {
+    const [brief, setBrief] = useState("My own idea");
+    return (
+      <ExampleBriefs
+        examples={["Example A", "Example B"]}
+        brief={brief}
+        onSelect={(text) => {
+          onSelect(text);
+          setBrief(text);
+        }}
+      />
+    );
+  };
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <Host />
+    </ThemeProvider>
+  );
+
+  fireEvent.click(screen.getByRole("button", { name: "Example A" }));
+  fireEvent.click(screen.getByRole("button", { name: "Example B" }));
+  fireEvent.click(screen.getByRole("button", { name: "Undo" }));
+
+  expect(onSelect).toHaveBeenLastCalledWith("My own idea");
+});

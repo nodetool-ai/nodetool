@@ -90,9 +90,11 @@ const ScriptSurface = ({ refId, mode, active }: ScriptSurfaceProps) => {
   const setupStage = useScriptSetupStage(refId);
   const setupConfig = useScriptSetupFlow({ scriptId: refId });
 
+  // The setup flow writes the script too, so a document undo there would
+  // revert the brief or un-write the script and reset the stage.
   useDocumentUndoShortcuts({
     active,
-    enabled: !readOnly,
+    enabled: !readOnly && setupStage === "done",
     onUndo: useCallback(() => undo(refId), [undo, refId]),
     onRedo: useCallback(() => redo(refId), [redo, refId])
   });

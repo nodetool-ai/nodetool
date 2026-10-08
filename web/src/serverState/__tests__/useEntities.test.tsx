@@ -107,6 +107,35 @@ describe("useSaveEntity", () => {
       ref: asset.id
     });
   });
+
+  it("undoes a create whose project filing failed, so a retry succeeds", async () => {
+    let stored: Record<string, unknown> | null = null;
+    getQuery.mockImplementation(async () => ({ ...asset, metadata: stored }));
+    updateMutate.mockImplementation(
+      async ({ metadata }: { metadata: Record<string, unknown> }) => {
+        stored = metadata;
+        return { ...asset, metadata };
+      }
+    );
+    assignDocument.mockRejectedValueOnce(new Error("Project not found"));
+    const { result } = renderHook(() => useSaveEntity(), { wrapper });
+    const input = {
+      assetId: asset.id,
+      createOnly: true,
+      projectId: "project-a",
+      kind: "character" as const,
+      name: "Ada",
+      descriptor: "A tinkerer in a brass coat."
+    };
+
+    await expect(result.current.mutateAsync(input)).rejects.toThrow(
+      "Project not found"
+    );
+    const entity = await result.current.mutateAsync(input);
+
+    expect(entity?.name).toBe("Ada");
+    expect(entity?.project_id).toBe("project-a");
+  });
 });
 
 describe("useDeleteEntity", () => {

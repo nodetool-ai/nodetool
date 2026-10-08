@@ -185,6 +185,15 @@ export interface DocumentSlice {
     layerId: string,
     contentBounds: Layer["contentBounds"]
   ) => void;
+  /**
+   * Place a generated result on a layer. A result is not an edit the creator
+   * made, so undo history, selection and tool settings stay as they are, and
+   * every history entry carries the new reference so no undo step removes it.
+   */
+  setLayerImageReference: (
+    layerId: string,
+    imageReference: Layer["imageReference"]
+  ) => void;
   translateLayer: (layerId: string, dx: number, dy: number) => void;
   offsetLayerTransform: (layerId: string, dx: number, dy: number) => void;
   setMaskLayer: (layerId: string | null) => void;
@@ -580,6 +589,28 @@ export const createDocumentSlice: StateCreator<
   commitLayerTransform: (layerId: string, transform: LayerTransform) =>
     set((state) => ({
       document: setLayerTransformInDocument(state.document, layerId, transform)
+    })),
+
+  setLayerImageReference: (layerId, imageReference) =>
+    set((state) => ({
+      document: withUpdatedDocumentTimestamp({
+        ...state.document,
+        layers: state.document.layers.map((layer) =>
+          layer.id === layerId ? { ...layer, imageReference } : layer
+        )
+      }),
+      history: state.history.map((entry) =>
+        entry.layerStructure.some((snapshot) => snapshot.id === layerId)
+          ? {
+              ...entry,
+              layerStructure: entry.layerStructure.map((snapshot) =>
+                snapshot.id === layerId
+                  ? { ...snapshot, imageReference }
+                  : snapshot
+              )
+            }
+          : entry
+      )
     })),
 
   setLayerContentBounds: (

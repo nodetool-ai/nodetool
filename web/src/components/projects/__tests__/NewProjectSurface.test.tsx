@@ -721,6 +721,72 @@ describe("NewProjectSurface", () => {
     });
   });
 
+  // A card started mid-upload would take only the images already uploaded,
+  // and say it took them all.
+  it("holds the entry cards while reference images upload", async () => {
+    let finishUpload: (() => void) | undefined;
+    createAsset.mockImplementation(
+      () => new Promise((resolve) => {
+        finishUpload = () => resolve({
+          id: "reference-asset",
+          name: "lamp.png",
+          content_type: "image/png"
+        });
+      })
+    );
+    renderSurface();
+    await userEvent.upload(
+      screen.getByLabelText("Reference images"),
+      new File(["image bytes"], "lamp.png", { type: "image/png" })
+    );
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+
+    expect(
+      within(cards).getByRole("button", { name: /^Image / })
+    ).toHaveAttribute("aria-disabled", "true");
+    await userEvent.click(within(cards).getByRole("button", { name: /^Image / }));
+    expect(startImageFlowMock).not.toHaveBeenCalled();
+
+    finishUpload?.();
+    await waitFor(() =>
+      expect(
+        within(cards).getByRole("button", { name: /^Image / })
+      ).not.toHaveAttribute("aria-disabled", "true")
+    );
+  });
+
+  // The image flow takes three references; the rest are named, not dropped
+  // without a word.
+  it("says which reference images the image flow leaves behind", async () => {
+    let count = 0;
+    createAsset.mockImplementation(async () => {
+      count += 1;
+      return { id: `ref-${count}`, name: `ref-${count}.png`, content_type: "image/png" };
+    });
+    renderSurface();
+    await userEvent.upload(
+      screen.getByLabelText("Reference images"),
+      [1, 2, 3, 4, 5].map(
+        (n) => new File(["bytes"], `ref-${n}.png`, { type: "image/png" })
+      )
+    );
+    await screen.findByRole("button", { name: "Ref images · 5" });
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    await userEvent.click(within(cards).getByRole("button", { name: /^Image / }));
+
+    await waitFor(() =>
+      expect(addNotification).toHaveBeenCalledWith(
+        expect.objectContaining({
+          content: expect.stringContaining("2 reference images stay")
+        })
+      )
+    );
+  });
+
   it("waits for reference image uploads before chat can start", async () => {
     let finishUpload: (() => void) | undefined;
     createAsset.mockImplementation(
@@ -1333,6 +1399,40 @@ describe("NewProjectSurface", () => {
     );
   });
 
+  // The video card took the picked entity, so the script it hands off to
+  // carries it too, the way the Script card would have.
+  it("carries the video card's entities into the script it starts", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+    await user.click(screen.getByRole("button", { name: /^Entities · none/ }));
+    await user.click(screen.getByRole("button", { name: "Aurora lamp" }));
+    await user.click(screen.getByRole("button", { name: "Done" }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: /^Entities for this project/ })
+      ).not.toBeInTheDocument()
+    );
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+    await user.click(within(cards).getByRole("button", { name: /^Video / }));
+
+    await screen.findByTestId("setup-flow");
+    await user.click(
+      screen.getByRole("button", { name: "Start from a script" })
+    );
+
+    await waitFor(() =>
+      expect(createScript).toHaveBeenCalledWith(
+        expect.objectContaining({
+          document: expect.objectContaining({
+            setup: expect.objectContaining({ entity_ids: ["e1"] })
+          })
+        })
+      )
+    );
+  });
+
   // BUG: every card stayed visually live while `starting` made its handler a
   // no-op, so a second click looked accepted and did nothing.
   it("marks the chosen card busy and turns the other cards off", async () => {
@@ -1372,6 +1472,34 @@ describe("NewProjectSurface", () => {
     release({ id: "script-1" });
     expect(await screen.findByTestId("setup-flow")).toHaveTextContent(
       "script-1"
+    );
+  });
+
+  // The tab already points at the copy when the placeholder is discarded, so
+  // a failed discard has to leave the copy opening rather than a blank tab.
+  it("opens the example copy even when the placeholder cannot be removed", async () => {
+    const user = userEvent.setup();
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+
+    await user.click(within(cards).getByRole("button", { name: /^Workflow / }));
+
+    await screen.findByTestId("setup-flow");
+    managerCreateWorkflow.mockResolvedValueOnce({ id: "wf-example" });
+    workflowDelete.mockRejectedValueOnce(new Error("offline"));
+    await user.click(screen.getByRole("button", { name: "Copy the example" }));
+
+    await waitFor(() => expect(exampleCopyId).toHaveBeenCalledWith("wf-example"));
+    expect(addNotification).toHaveBeenCalledWith(
+      expect.objectContaining({
+        type: "warning",
+        content: expect.stringContaining("offline")
+      })
+    );
+    expect(openTab).toHaveBeenCalledWith(
+      expect.objectContaining({ type: "workflow", ref: "wf-example" })
     );
   });
 
@@ -1478,6 +1606,46 @@ describe("NewProjectSurface", () => {
     expect(screen.getByPlaceholderText(/30-second launch spot/)).toHaveValue(
       "A board I did not want"
     );
+  });
+
+  // The flow runs in its own tab, whose composer starts empty. Change flow
+  // refills it with the references and entities the Home composer held (O6).
+  it("brings the references and entities back with the brief", async () => {
+    createAsset.mockResolvedValue({
+      id: "reference-asset",
+      name: "lamp.png",
+      content_type: "image/png"
+    });
+    const user = userEvent.setup();
+    renderSurface();
+    await user.upload(
+      screen.getByLabelText("Reference images"),
+      new File(["image bytes"], "lamp.png", { type: "image/png" })
+    );
+    await screen.findByRole("button", { name: "Ref images · 1" });
+    await user.click(screen.getByRole("button", { name: /^Entities · none/ }));
+    await user.click(screen.getByRole("button", { name: "Aurora lamp" }));
+    await user.click(screen.getByRole("button", { name: "Done" }));
+    await waitFor(() =>
+      expect(
+        screen.queryByRole("dialog", { name: /^Entities for this project/ })
+      ).not.toBeInTheDocument()
+    );
+    await user.click(
+      screen.getByRole("button", {
+        name: /^Storyboard From a sentence to a rendered board/
+      })
+    );
+
+    await screen.findByTestId("setup-flow");
+    await user.click(screen.getByRole("button", { name: "Change flow" }));
+
+    expect(
+      await screen.findByRole("button", { name: "Ref images · 1" })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /^Entities · Aurora lamp/ })
+    ).toBeInTheDocument();
   });
 
   // The composer's own context: the board takes the picked entities, and the
