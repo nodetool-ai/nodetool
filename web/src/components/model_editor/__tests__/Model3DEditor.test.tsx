@@ -191,4 +191,47 @@ describe("Model3DEditor", () => {
     act(() => press("z", { ctrlKey: true }));
     expect(handler.listScene().map((n) => n.name)).toEqual(["Box"]);
   });
+
+  it("lets the agent parent, restyle and undo through the shared history", () => {
+    renderEditor();
+    const handler = getModel3DToolHandler();
+    act(() => {
+      handler.addPrimitive("empty", "Props");
+      handler.addPrimitive("box", "Crate");
+      handler.setParent("Crate", "Props");
+    });
+    expect(handler.getObject("Crate").parentUuid).toBe(handler.getObject("Props").uuid);
+    expect(handler.getObject("Props").children).toEqual(["Crate"]);
+
+    const roughness = handler.getObject("Crate").materials?.[0].roughness;
+    act(() => {
+      handler.setMaterial("Crate", { roughness: 0.2, color: "#ff0000" });
+    });
+    expect(handler.getObject("Crate").materials?.[0]).toMatchObject({
+      roughness: 0.2,
+      color: "#ff0000"
+    });
+
+    let result: ReturnType<typeof handler.undo> | undefined;
+    act(() => {
+      result = handler.undo();
+    });
+    expect(result?.applied).toBe("Edit material of Crate");
+    expect(handler.getObject("Crate").materials?.[0].roughness).toBe(roughness);
+
+    act(() => {
+      handler.undo();
+    });
+    expect(handler.getObject("Crate").parentUuid).toBeNull();
+  });
+
+  it("refuses to parent an object under its own child", () => {
+    renderEditor();
+    const handler = getModel3DToolHandler();
+    act(() => {
+      handler.addPrimitive("empty", "Child");
+      handler.setParent("Child", "Box");
+    });
+    expect(() => handler.setParent("Box", "Child")).toThrow("one of its children");
+  });
 });
