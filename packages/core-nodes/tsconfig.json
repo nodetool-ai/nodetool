@@ -13,6 +13,7 @@
     { "path": "../kernel" },
     { "path": "../node-sdk" },
     { "path": "../nodes-utils" },
-    { "path": "../vectorstore" }
+    { "path": "../vectorstore" },
+    { "path": "../audio-nodes" }
   ]
 }

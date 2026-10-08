@@ -12,6 +12,9 @@
     { "path": "../runtime" },
     { "path": "../node-sdk" },
     { "path": "../nodes-utils" },
-    { "path": "../kie-nodes" }
+    { "path": "../kie-nodes" },
+    { "path": "../core-nodes" },
+    { "path": "../data-nodes" },
+    { "path": "../llm-nodes" }
   ]
 }

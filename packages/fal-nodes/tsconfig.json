@@ -22,6 +22,12 @@
   "references": [
     {
       "path": "../node-sdk"
+    },
+    {
+      "path": "../config"
+    },
+    {
+      "path": "../runtime"
     }
   ]
 }

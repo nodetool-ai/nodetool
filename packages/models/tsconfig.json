@@ -22,6 +22,12 @@
     },
     {
       "path": "../security"
+    },
+    {
+      "path": "../game-runtime"
+    },
+    {
+      "path": "../timeline"
     }
   ]
 }

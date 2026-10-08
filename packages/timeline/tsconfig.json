@@ -10,5 +10,11 @@
   },
   "include": [
     "src"
+  ],
+  "references": [
+    { "path": "../gpu" },
+    { "path": "../protocol" },
+    { "path": "../config" },
+    { "path": "../runtime" }
   ]
 }

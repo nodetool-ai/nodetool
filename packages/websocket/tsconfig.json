@@ -100,6 +100,36 @@
     },
     {
       "path": "../vectorstore"
+    },
+    {
+      "path": "../atlascloud-nodes"
+    },
+    {
+      "path": "../automation-nodes"
+    },
+    {
+      "path": "../browser"
+    },
+    {
+      "path": "../chat"
+    },
+    {
+      "path": "../compute"
+    },
+    {
+      "path": "../game-renderer"
+    },
+    {
+      "path": "../huggingface-nodes"
+    },
+    {
+      "path": "../higgsfield-nodes"
+    },
+    {
+      "path": "../reve-nodes"
+    },
+    {
+      "path": "../whisper-cpp"
     }
   ]
 }
