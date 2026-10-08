@@ -36,6 +36,7 @@
         "packages/fal-codegen/src/**",
         "packages/fal-nodes/src/**",
         "packages/game-nodes/src/**",
+        "packages/game-renderer/src/**",
         "packages/gpu/src/**",
         "packages/higgsfield-nodes/src/**",
         "packages/huggingface/src/**",
