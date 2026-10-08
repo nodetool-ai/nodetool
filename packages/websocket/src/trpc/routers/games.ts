@@ -400,6 +400,22 @@ export const gamesRouter = router({
       }
     }),
 
+  saveDraftDocument: gameProcedure
+    .input(idInput.extend({ baseUpdatedAt: z.string(), document: gameDocument }))
+    .output(gameWithDocument)
+    .mutation(async ({ ctx, input }) => {
+      const game = await ownedGame(ctx.userId, input.id);
+      try {
+        const saved = await Game.saveDraftDocument(ctx.userId, game.id, input.baseUpdatedAt, input.document,
+          await gameWorkspace(ctx.userId, game));
+        if (!saved) throwApiError(ApiErrorCode.ALREADY_EXISTS, "Game draft was modified concurrently");
+        return { game: info(saved.game), document: saved.document };
+      } catch (error) {
+        if (error instanceof InvalidGameDocumentError) { throwApiError(ApiErrorCode.INVALID_INPUT, error.message); }
+        throw error;
+      }
+    }),
+
   previewAuthoring: gameProcedure
     .input(idInput.extend({ program: gameAuthoringProgram.optional() }).strict())
     .output(authoringPreview)

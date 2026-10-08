@@ -21,6 +21,7 @@ jest.mock("../../../serverState/useEntities", () => ({
 }));
 
 import { useDirectScreenplay } from "../useDirectScreenplay";
+import { boardDirectionFingerprint } from "../directionFingerprint";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 
 const BOARD = "board-direct";
@@ -250,6 +251,30 @@ describe("useDirectScreenplay", () => {
     expect(board?.shots[0].status).toBe("planned");
     expect(board?.shots[1].index).toBe(1);
     expect(result.current.error).toBeNull();
+  });
+
+  // F15: the record is what the genre step computes from the board the run
+  // left. The answer's style bible replaces the board's style, so a record
+  // read off the board before the answer landed would never match.
+  it("records the direction the genre step reads off the resulting board", async () => {
+    rpcRequest.mockResolvedValue(answer(2));
+    const { result } = renderHook(() => useDirectScreenplay());
+
+    await act(async () => {
+      await result.current.direct(BOARD, 2);
+    });
+
+    const board = useStoryboardStore.getState().getBoard(BOARD);
+    if (!board) {
+      throw new Error("Expected the board.");
+    }
+    expect(board.style).toBe("grainy 16mm");
+    // The review step's rewrite asks for the board's own length, which then
+    // is the length the genre step fingerprints.
+    expect(board.setupShotCount).toBe(2);
+    expect(board.setupDirectedFrom).toBe(
+      boardDirectionFingerprint(board, "none")
+    );
   });
 
   it("names the board's cast in the brief so shots reference them exactly", async () => {

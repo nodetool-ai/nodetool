@@ -34,10 +34,9 @@ import {
 import { rpcRequest } from "../../lib/websocket/rpcRequest";
 import type { FdxImport } from "../../lib/storyboard/parseFdx";
 import {
-  directionFingerprint,
+  boardDirectionFingerprint,
   screenplayWithCreativeContext,
-  storyboardCreativeContextOf,
-  storyboardProductionOf
+  storyboardCreativeContextOf
 } from "./directionFingerprint";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
 import { useEntities } from "../../serverState/useEntities";
@@ -178,20 +177,24 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
 
       // What this run answers, recorded on the board when it lands. The genre
       // step reads it back to decide whether its button continues to the
-      // screenplay or offers a re-direct (F15). The headless path runs through
-      // here too, so both write the same value.
-      const directedFrom = directionFingerprint({
-        brief,
-        genre,
-        shotCount,
-        modelId: model.id,
-        importKind: imported?.kind ?? "none",
-        style,
-        aspectRatio,
-        entityIds: board?.entityIds ?? [],
-        creativeContext,
-        production: storyboardProductionOf(board?.shots ?? [])
-      });
+      // screenplay or offers a re-direct (F15). It is read off the board the
+      // answer produced, with the length this run asked for as the board's
+      // length, so it is the value the step computes from the same board. The
+      // headless path runs through here too, so both write the same value.
+      const recordDirection = (): void => {
+        const store = useStoryboardStore.getState();
+        const directed = store.getBoard(boardId);
+        if (!directed) {
+          return;
+        }
+        store.setSetup(boardId, {
+          shotCount,
+          directedFrom: boardDirectionFingerprint(
+            { ...directed, setupShotCount: shotCount },
+            imported?.kind ?? "none"
+          )
+        });
+      };
 
       // The imported script is the board, not a copy kept beside it: the
       // scenes, the shots and the text the run must preserve are the ones the
@@ -235,7 +238,7 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
             creativeContext
           );
           store.setScreenplay(boardId, screenplay);
-          store.setSetup(boardId, { directedFrom });
+          recordDirection();
           setImportNotice(boardId, {
             kind: "fdx",
             correctedShotIds: verified.correctedShotIds
@@ -284,7 +287,7 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
         setUsedFallback(fell);
         const store = useStoryboardStore.getState();
         store.setScreenplay(boardId, screenplay);
-        store.setSetup(boardId, { directedFrom });
+        recordDirection();
         if (imported && !imported.preserveWords) {
           // The source text is the brief the creator is looking at, so the
           // check names the lines their own words did not reach.

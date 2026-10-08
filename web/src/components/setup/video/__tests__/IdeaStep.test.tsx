@@ -26,9 +26,10 @@ jest.mock("../../../../serverState/useEntities", () => ({
 }));
 
 const importFiles = jest.fn();
+let importing = false;
 jest.mock("../../../../hooks/timeline/useSetupMediaImport", () => ({
   __esModule: true,
-  useSetupMediaImport: () => ({ importFiles, importing: false })
+  useSetupMediaImport: () => ({ importFiles, importing })
 }));
 
 const asset = (id: string, name: string): Asset =>
@@ -46,6 +47,7 @@ const renderStep = (onStartFromScript?: () => void) =>
 
 beforeEach(() => {
   importFiles.mockReset();
+  importing = false;
   useTimelineStore.getState().reset();
   useTimelineStore.getState().setSetup({ stage: "idea", brief: "" });
 });
@@ -140,6 +142,21 @@ describe("video IdeaStep", () => {
     expect(
       screen.getByRole("button", { name: /Start from a script/ })
     ).toHaveAttribute("aria-disabled", "true");
+  });
+
+  it("holds both ways out of the step while media is uploading", async () => {
+    importing = true;
+    renderStep(jest.fn());
+    const blank = screen.getByRole("button", {
+      name: /Start with a blank timeline/
+    });
+    const script = screen.getByRole("button", { name: /Start from a script/ });
+    expect(blank).toHaveAttribute("aria-disabled", "true");
+    expect(script).toHaveAttribute("aria-disabled", "true");
+    await userEvent.hover(blank);
+    expect(
+      await screen.findByText("Wait for your files to finish uploading")
+    ).toBeInTheDocument();
   });
 
   it("names what landed and what no track takes (F10)", async () => {

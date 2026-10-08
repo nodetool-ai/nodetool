@@ -99,6 +99,16 @@ export default function CreativeContextFields({
     setInvalidFields((current) =>
       current.filter((field) => !fields.includes(field))
     );
+    // A blank field left on a board with no context says nothing. Writing it
+    // would create an empty context, which counts as production context and
+    // holds generation until the plan is reviewed again.
+    const blank = Object.values(patch).every(
+      (entry) =>
+        entry === undefined || (Array.isArray(entry) && entry.length === 0)
+    );
+    if (value === undefined && blank) {
+      return;
+    }
     onChange(parsed.data);
   };
   return (

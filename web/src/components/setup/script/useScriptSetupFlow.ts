@@ -126,6 +126,9 @@ export const useScriptSetupFlow = ({
 }: ScriptSetupFlowOptions): SetupFlowConfig<ScriptSetupStage> => {
   const stage = useScriptSetupStage(scriptId);
   const [formatError, setFormatError] = useState<string | null>(null);
+  // A file still being read lands on the script after Continue would have
+  // moved on, so the idea step holds until it is in.
+  const [importingFile, setImportingFile] = useState(false);
   const chatModel = useGlobalChatStore((state) => state.selectedModel);
   const setup = useScriptSetup(scriptId);
   const setSetup = useScriptStore((state) => state.setSetup);
@@ -235,7 +238,9 @@ export const useScriptSetupFlow = ({
         ? {
             generation: {
               result: imported
-                ? `Prepare ${imported.lines.length} existing lines, keeping your words`
+                ? hasLines
+                  ? `Prepare ${imported.lines.length} lines again from your import, replacing edits made in the review`
+                  : `Prepare ${imported.lines.length} existing lines, keeping your words`
                 : `Write a text script for about ${setup?.length_seconds ?? 60} seconds of speech`,
               next: "Review and edit the lines next. Choose voices and generate audio separately in Voices.",
               model: writerModel,
@@ -245,7 +250,14 @@ export const useScriptSetupFlow = ({
             }
           }
         : {},
-    [imported, needsWrite, setup?.brief, setup?.length_seconds, writerModel]
+    [
+      hasLines,
+      imported,
+      needsWrite,
+      setup?.brief,
+      setup?.length_seconds,
+      writerModel
+    ]
   );
 
   const steps = useMemo<SetupStep<ScriptSetupStage>[]>(
@@ -256,14 +268,19 @@ export const useScriptSetupFlow = ({
         primaryLabel: "Continue",
         // Imported words are enough on their own: they say what the script is,
         // and the brief beside them is a note for the attribution pass (F3).
-        canAdvance: (setup?.brief.trim().length ?? 0) > 0 || imported !== null,
-        blockedReason: "Describe what to write, or import your script",
+        canAdvance:
+          !importingFile &&
+          ((setup?.brief.trim().length ?? 0) > 0 || imported !== null),
+        blockedReason: importingFile
+          ? "Reading your file"
+          : "Describe what to write, or import your script",
         render: () =>
           createElement(IdeaStep, {
             scriptId,
             // The blank escape hatch and the last step land in the same place:
             // stage `done` and the editor (PRD § 9.1).
-            onStartBlank: finish
+            onStartBlank: finish,
+            onImportingChange: setImportingFile
           })
       },
       {
@@ -303,9 +320,12 @@ export const useScriptSetupFlow = ({
         // the format step with the reason on the button (PRD § 9.2). It runs
         // only when something it reads has moved: coming back to look at the
         // cards and pressing on used to pay for a second script and throw the
-        // edits made to the first away (F15).
+        // edits made to the first away (F15). Lines already on the script are
+        // handed to the writer as they stand, so review edits are rewritten
+        // rather than discarded. An import is prepared again from its words.
         onAdvance: needsWrite
-          ? (context) => runWriter(false, context?.signal)
+          ? (context) =>
+              runWriter(hasLines && imported === null, context?.signal)
           : undefined,
         onCancel: cancel
       },
@@ -387,6 +407,7 @@ export const useScriptSetupFlow = ({
       writing,
       writerModel,
       imported,
+      importingFile,
       writeEstimate,
       needsModel,
       needsWrite,

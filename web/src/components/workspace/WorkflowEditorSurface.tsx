@@ -97,6 +97,7 @@ const WorkflowEditorSurface = ({
   useBrowserPreviewsOnLoad(nodeStore, active && mode !== "view");
   const fetchWorkflow = useWorkflowManager((state) => state.fetchWorkflow);
   const createWorkflow = useWorkflowManager((state) => state.create);
+  const deleteWorkflow = useWorkflowManager((state) => state.delete);
   const closeTab = useWorkspaceTabsStore((state) => state.closeTab);
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const workflowProjectId = useWorkspaceTabsStore(
@@ -266,10 +267,19 @@ const WorkflowEditorSurface = ({
    * "Start from an example" in step 1's inline browser: the copy lands in a
    * new row (materialized server-side from the example's package), which
    * opens as its own tab while this placeholder closes. The tab's project
-   * carries over, so the copy stays in the group it was started from.
+   * carries over, so the copy stays in the group it was started from. The
+   * placeholder was made by `+ New` for this flow and holds nothing yet, so it
+   * is deleted rather than left behind as an "Untitled workflow".
    */
   const startFromExample = useCallback(
     async (example: Workflow): Promise<string | null> => {
+      const placeholder = workflow;
+      const projectId =
+        useWorkspaceTabsStore
+          .getState()
+          .tabs.find(
+            (tab) => tab.type === "workflow" && tab.ref === workflowId
+          )?.projectId ?? placeholder?.project_id;
       const tags = example.tags ?? [];
       const copy = await createWorkflow(
         {
@@ -277,16 +287,12 @@ const WorkflowEditorSurface = ({
           description: example.description,
           package_name: example.package_name,
           tags: tags.includes("example") ? tags : [...tags, "example"],
-          access: "private"
+          access: "private",
+          project_id: projectId
         },
         examplePackageName(example),
         exampleSeedRef(example)
       );
-      const projectId = useWorkspaceTabsStore
-        .getState()
-        .tabs.find(
-          (tab) => tab.type === "workflow" && tab.ref === workflowId
-        )?.projectId;
       openTab({
         type: "workflow",
         ref: copy.id,
@@ -295,9 +301,32 @@ const WorkflowEditorSurface = ({
         projectId
       });
       closeTab(tabId("workflow", workflowId));
+      if (placeholder) {
+        // The copy is open whatever happens here, so a refused delete is
+        // reported rather than turned into a failed pick.
+        try {
+          await deleteWorkflow(placeholder);
+        } catch (cause) {
+          addNotification({
+            type: "warning",
+            alert: true,
+            content: `Opened the example, but could not remove the empty workflow: ${
+              cause instanceof Error ? cause.message : String(cause)
+            }`
+          });
+        }
+      }
       return copy.id;
     },
-    [closeTab, createWorkflow, openTab, workflowId]
+    [
+      addNotification,
+      closeTab,
+      createWorkflow,
+      deleteWorkflow,
+      openTab,
+      workflow,
+      workflowId
+    ]
   );
   // Only this workflow's subgraph tabs may take over its canvas — another
   // workflow tab's open subgraph must not hijack this one.

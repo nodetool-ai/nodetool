@@ -11,6 +11,12 @@ import mockTheme from "../../../../__mocks__/themeMock";
 
 jest.mock("../../../../hooks/useResolvedMediaUri");
 
+// A PDF goes to the extraction route; the import test holds its answer.
+const restFetch = jest.fn();
+jest.mock("../../../../lib/rest-fetch", () => ({
+  restFetch: (...args: unknown[]) => restFetch(...(args as []))
+}));
+
 // The writer is the one model call in this flow, and whether the format step
 // advances depends on its result, so the suite drives it directly. What it
 // writes is pinned by `useWriteScript.test.tsx`.
@@ -134,6 +140,7 @@ const seedWrittenScript = (): void => {
 };
 
 beforeEach(() => {
+  restFetch.mockReset();
   write.mockReset();
   write.mockResolvedValue(true);
   writeError = null;
@@ -236,9 +243,11 @@ describe("useScriptSetupFlow", () => {
 
     // The lines were seeded without a record of what wrote them, so the inputs
     // read as changed and the button offers the rewrite.
+    // The lines on the script are handed to the writer as they stand, so the
+    // edits made in the review are rewritten rather than thrown away.
     await user.click(screen.getByRole("button", { name: "Rewrite" }));
     expect(write).toHaveBeenCalledWith(SCRIPT_ID, {
-      rewrite: false,
+      rewrite: true,
       signal: expect.any(AbortSignal)
     });
     expect(stageOf()).toBe("review");
@@ -247,6 +256,51 @@ describe("useScriptSetupFlow", () => {
       screen.getByRole("button", { name: "Continue to voices" })
     );
     expect(stageOf()).toBe("voices");
+  });
+
+  it("writes a first script fresh, with nothing to rewrite", async () => {
+    const user = userEvent.setup();
+    useScriptStore.getState().setSetup(SCRIPT_ID, {
+      stage: "format",
+      brief: "How tide clocks work",
+      format: "voiceover",
+      writer_model: { id: "gpt-5-mini", provider: "openai" }
+    });
+    renderFlow();
+
+    await user.click(screen.getByRole("button", { name: "Write the script" }));
+    expect(write).toHaveBeenCalledWith(SCRIPT_ID, {
+      rewrite: false,
+      signal: expect.any(AbortSignal)
+    });
+  });
+
+  it("holds Continue while a file is still being read", async () => {
+    const user = userEvent.setup();
+    let answer: (value: unknown) => void = () => undefined;
+    restFetch.mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      })
+    );
+    useScriptStore
+      .getState()
+      .setSetup(SCRIPT_ID, { stage: "idea", brief: "Tide clocks" });
+    renderFlow();
+    expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled();
+
+    await user.upload(
+      screen.getByLabelText("Upload a file") as HTMLInputElement,
+      new File(["%PDF-1.7"], "notes.pdf", { type: "application/pdf" })
+    );
+    expect(screen.getByRole("button", { name: "Continue" })).toBeDisabled();
+    expect(screen.getByText("Reading your file")).toBeInTheDocument();
+
+    answer({ ok: true, json: async () => ({ text: "One sentence." }) });
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Continue" })).toBeEnabled()
+    );
+    expect(readScriptSource(setupOf())?.text).toBe("One sentence.");
   });
 
   it("leaves the creator on format when the writer is refused", async () => {

@@ -334,6 +334,18 @@ export class Game extends DBModel {
   }
 
   /** Persist a validated rebuild only against the exact draft used for preview. */
+  /** Replace the draft with an editor's whole document when its op batch cannot be saved. */
+  static async saveDraftDocument(
+    userId: string,
+    id: string,
+    expectedUpdatedAt: string,
+    document: GameDocument,
+    workspace: GameDraftWorkspace
+  ): Promise<{ game: Game; document: GameDocument } | null> {
+    return Game.replaceDraftChecked(userId, id, expectedUpdatedAt, document, workspace,
+      { actor: "user" }, "Saved the whole draft");
+  }
+
   static async applyAuthoringCandidate(
     userId: string,
     id: string,

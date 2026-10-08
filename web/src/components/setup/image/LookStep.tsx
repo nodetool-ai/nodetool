@@ -37,7 +37,10 @@ import {
 import { useSketchStore } from "../../sketch/state/useSketchStore";
 import type { ImageModel, ImageModelValue } from "../../../stores/ApiTypes";
 import { useEntities } from "../../../serverState/useEntities";
-import { useStylePresets } from "../../../serverState/useStylePresets";
+import {
+  mergeStylePresetEntities,
+  useStylePresets
+} from "../../../serverState/useStylePresets";
 import { useImageModelsByProvider } from "../../../hooks/useModelsByProvider";
 import { useLastModelStore } from "../../../stores/lastModelStore";
 import { estimateGenerationCost } from "../../../utils/generationCostEstimate";
@@ -108,7 +111,14 @@ export function useLookStep(): LookStepControls {
   const setSetup = useSketchStore((state) => state.setSetup);
   const remembered = useLastModelStore((state) => state.byKind.image);
   const remember = useLastModelStore((state) => state.remember);
-  const { data: entities } = useEntities();
+  // The tiles are shipped presets filed under project "default", so the
+  // active project's entities alone would never find the chosen one.
+  const { data: projectEntities, isLoading: entitiesLoading } = useEntities();
+  const { data: presets, isLoading: presetsLoading } = useStylePresets();
+  const entities = useMemo(
+    () => mergeStylePresetEntities(projectEntities, presets),
+    [presets, projectEntities]
+  );
   const { generateVariations } = useGenerateVariations();
   const { models, providers, isLoading, error, refetch } =
     useImageModelsByProvider({ task: "text_to_image" });
@@ -135,15 +145,17 @@ export function useLookStep(): LookStepControls {
     [remember, setSetup]
   );
 
-  const styleDescriptor = useMemo(() => {
-    const choice = persisted.styleChoice;
-    if (choice === null || choice === NO_STYLE_ID) {
-      return "";
-    }
-    return (
-      (entities ?? []).find((entity) => entity.id === choice)?.descriptor ?? ""
-    );
-  }, [entities, persisted.styleChoice]);
+  const choice = persisted.styleChoice;
+  const styleChosen = choice !== null && choice !== NO_STYLE_ID;
+  const styleEntity = useMemo(
+    () =>
+      styleChosen ? entities.find((entity) => entity.id === choice) : undefined,
+    [choice, entities, styleChosen]
+  );
+  const styleDescriptor = styleEntity?.descriptor ?? "";
+  // A batch started before the style is read would render without it.
+  const styleLoading =
+    styleChosen && !styleEntity && (entitiesLoading || presetsLoading);
 
   const availability: ModelAvailability = isLoading
     ? "loading"
@@ -242,7 +254,9 @@ export function useLookStep(): LookStepControls {
                 ? "That model has no size supported by this guided flow"
                 : sizeUnsupported
                   ? "Pick a size supported by this image model"
-                  : "Pick an image model";
+                  : styleLoading
+                    ? "Loading the chosen style"
+                    : "Pick an image model";
 
   return {
     styleChoice: persisted.styleChoice,
@@ -255,7 +269,8 @@ export function useLookStep(): LookStepControls {
       model.length > 0 &&
       !modelMissing &&
       sizePresets.length > 0 &&
-      !sizeUnsupported,
+      !sizeUnsupported &&
+      !styleLoading,
     blockedReason,
     primaryDetail,
     availability,

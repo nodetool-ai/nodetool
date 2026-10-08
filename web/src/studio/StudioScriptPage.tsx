@@ -56,15 +56,6 @@ const StudioScriptPage = () => {
   useScriptServerSync(scriptId);
   useScriptAgentBridge(scriptId);
 
-  const undo = useScriptStore((state) => state.undo);
-  const redo = useScriptStore((state) => state.redo);
-  useDocumentUndoShortcuts({
-    active: true,
-    enabled: true,
-    onUndo: useCallback(() => undo(scriptId), [undo, scriptId]),
-    onRedo: useCallback(() => redo(scriptId), [redo, scriptId])
-  });
-
   const { assemble, assembling, error: assembleError } =
     useAssembleScriptTimeline();
 
@@ -73,6 +64,16 @@ const StudioScriptPage = () => {
   // `done` and opens as the editor (D3).
   const setupStage = useScriptSetupStage(scriptId);
   const setupConfig = useScriptSetupFlow({ scriptId });
+
+  const undo = useScriptStore((state) => state.undo);
+  const redo = useScriptStore((state) => state.redo);
+  // No document undo while the flow shows: it would revert the setup itself.
+  useDocumentUndoShortcuts({
+    active: true,
+    enabled: setupStage === "done",
+    onUndo: useCallback(() => undo(scriptId), [undo, scriptId]),
+    onRedo: useCallback(() => redo(scriptId), [redo, scriptId])
+  });
 
   const dockTabs = useMemo(
     () => [

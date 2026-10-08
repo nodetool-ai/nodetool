@@ -47,8 +47,14 @@ export function ExampleBriefs({
   const undo = replaced && replaced.applied === brief.trim() ? replaced : null;
   if (choices.length === 0 && !undo) return null;
   const apply = (text: string) => {
+    // A second example over the first keeps the creator's own text as the
+    // one Undo brings back.
     setReplaced(
-      brief.trim().length > 0 ? { previous: brief, applied: text } : null
+      undo
+        ? { previous: undo.previous, applied: text }
+        : brief.trim().length > 0
+          ? { previous: brief, applied: text }
+          : null
     );
     onSelect(text);
     briefRef?.current?.focus();

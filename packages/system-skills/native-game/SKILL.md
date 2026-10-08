@@ -189,11 +189,39 @@ start of the tick. A spawned instance has
 the id `<prefab>#<n>`, its `source` is the prefab id, and it runs the prefab's
 script with its own state.
 
-Each call evaluates its source in a fresh sandbox context. Store persistent
-values in returned `state`. Closure variables, globals, and mutations of input
-objects do not survive or reach another script. Source initialization also uses
-the seeded random generator. `maxTickMs` limits each call, subject to the total
-script budget for the tick. Source and input/output limits count UTF-8 bytes.
+Store persistent values in returned `state`. The engine keeps a function
+resident only when an AST check proves its expression can read input without
+retaining hidden state. Sources are validated during preparation in temporary
+contexts. A resident function is compiled on its first active call and reused
+while that behavior instance remains active. Other sources evaluate in a fresh context each call,
+preserving closure, global, and input-mutation isolation. The resident path
+passes native sandbox values and creates a private mutable `input.world` copy
+only when read. The compatibility path retains JSON normalization and guest
+parsing, with call data passed as a native string rather than evaluated source.
+Source initialization uses the seeded random generator. `maxTickMs` limits
+each call, subject to the total script budget for the tick. Source and
+input/output limits count UTF-8 bytes.
+
+During a function call, global `world.get(id)` returns an entity or `undefined`,
+and `world.query({source?, tag?, near?, radius?, limit?})` returns matching IDs
+in runtime entity order. Both use the same immutable tick-start snapshot,
+before movement behaviors or script commands run. Returned values are private copies.
+Queries cover every active entity. Legacy `input.world` keeps its existing
+shape and population, including only collider or camera entities in 2D.
+The 2D query record is `{id, source, x, y, velocityX, velocityY, grounded}`.
+The 3D record is `{id, source, position, velocity, grounded}`, with XYZ vectors.
+Pass `near: {x, y, z?}` and `radius` together. The radius is nonnegative and
+includes entities on its boundary, measured between centers, with omitted
+`z` treated as zero. `source` matches the record's original entity ID, not a 3D
+prefab asset ID. Documents
+have no authored tags yet, so a `tag` filter returns no matches.
+`limit` is an integer from 0 to 1024, defaulting to 1024. A call allows 64
+combined `get`/`query` attempts. Exceeding the count fails the call even if
+guest code catches it. Query arguments allow 4096 JSON characters, `get` IDs
+1024 characters, and responses
+64 KiB, within the existing time and memory budgets. These APIs are unavailable
+during source initialization. They are additive: 3D `contractVersion` stays 3,
+with no document schema bump or migration.
 
 The commands are `setVelocity`, `setPosition`, `setVisual {tint?, opacity?,
 rotation?, scaleX?, scaleY?, flipX?}`, `playAnimation {clip}`, `spawn {prefabId,

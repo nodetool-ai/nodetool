@@ -20,6 +20,8 @@ import {
   type CreativeContext,
   type ProductionRequirements
 } from "./productionContext";
+import { DEFAULT_SETUP_SHOT_COUNT } from "@nodetool-ai/protocol/api-schemas/storyboards.js";
+import type { StoryboardBoard } from "../../stores/storyboard/StoryboardStore";
 
 export interface DirectionInputs {
   brief: string;
@@ -69,6 +71,47 @@ export function directionFingerprint(input: DirectionInputs): string {
     referenceAssetIds: input.referenceAssetIds ?? [],
     creativeContext: input.creativeContext,
     production: input.production ?? []
+  });
+}
+
+/** The board fields a Director run answers. */
+export type DirectedBoard = Pick<
+  StoryboardBoard,
+  | "brief"
+  | "genre"
+  | "style"
+  | "aspectRatio"
+  | "entityIds"
+  | "creativeContext"
+  | "screenplay"
+  | "shots"
+  | "setupShotCount"
+  | "directorModel"
+>;
+
+/**
+ * The fingerprint of a board as it stands. The run records it from the board
+ * its answer produced and the genre step compares it against the live board,
+ * so both read the same fields the same way. Reading the board before the
+ * answer lands would miss what `setScreenplay` writes — the style, the aspect
+ * ratio and the cast — and the step would never offer to continue.
+ */
+export function boardDirectionFingerprint(
+  board: DirectedBoard,
+  importKind: string
+): string {
+  return directionFingerprint({
+    brief: board.brief,
+    genre: board.genre,
+    shotCount: board.setupShotCount ?? DEFAULT_SETUP_SHOT_COUNT,
+    modelId: board.directorModel?.id ?? "",
+    importKind,
+    style: board.style,
+    aspectRatio: board.aspectRatio,
+    entityIds: board.entityIds,
+    creativeContext:
+      board.creativeContext ?? storyboardCreativeContextOf(board.screenplay),
+    production: storyboardProductionOf(board.shots)
   });
 }
 
