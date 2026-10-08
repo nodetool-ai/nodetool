@@ -221,3 +221,33 @@ describe("declared props are wired into process()", () => {
     expect(result).toEqual({ documents: [], scores: [], indices: [] });
   });
 });
+
+describe("AutomaticSpeechRecognitionNode — audio refs", () => {
+  it("transcribes an uploaded asset that carries only its id", async () => {
+    const { AutomaticSpeechRecognitionNode } = await import(
+      "@nodetool-ai/text-nodes"
+    );
+    const audio = new Uint8Array([1, 2, 3]);
+    const resolved: string[] = [];
+    const sent: unknown[] = [];
+    const context = {
+      resolveAssetBytes: async (uri: string) => {
+        resolved.push(uri);
+        return { bytes: audio };
+      },
+      runProviderPrediction: async (request: { params: { audio: unknown } }) => {
+        sent.push(request.params.audio);
+        return { text: "hello" };
+      }
+    };
+    const node = new AutomaticSpeechRecognitionNode();
+    node.assign({
+      model: { type: "asr_model", provider: "fake", id: "fake-asr" },
+      audio: { type: "audio", asset_id: "a".repeat(32) }
+    });
+    const result = await node.process(context as never);
+    expect(resolved).toEqual([`asset://${"a".repeat(32)}`]);
+    expect(sent).toEqual([audio]);
+    expect(result.text).toBe("hello");
+  });
+});

@@ -14,6 +14,7 @@ const randomUUID = (): string => {
 };
 import type {
   ASRResult,
+  EncodedAudioResult,
   ImageTo3DParams,
   ImageToImageParams,
   ImageToVideoParams,
@@ -23,11 +24,14 @@ import type {
   MessageTextContent,
   ProviderStreamItem,
   ProviderTool,
+  ReferenceToVideoInputs,
+  ReferenceToVideoParams,
   RelightImageParams,
   RemoveBackgroundParams,
   StreamingAudioChunk,
   TextTo3DParams,
   TextToImageParams,
+  TextToMusicParams,
   TextToVideoParams,
   ToolCall,
   UpscaleImageParams,
@@ -56,15 +60,65 @@ const TINY_PNG = new Uint8Array([
 ]);
 
 /**
- * Minimal MP4 `ftyp` box marking the file as `isom`/`mp4`. Consumers that
- * just sniff the container (ffprobe header check, Sharp's video detector)
- * are satisfied; nothing decodes it.
+ * Two seconds of 16×16 grey H.264 video at 4 fps with a silent AAC track,
+ * made with `ffmpeg -f lavfi -i color=c=gray:s=16x16:d=2:r=4 -f lavfi -i
+ * anullsrc`. It decodes, so a fake clip flows through ffmpeg-backed nodes
+ * (concat, add audio, extract frame, timeline render) the way a provider's
+ * clip would.
  */
-const TINY_MP4 = new Uint8Array([
-  0x00, 0x00, 0x00, 0x18, 0x66, 0x74, 0x79, 0x70,
-  0x69, 0x73, 0x6f, 0x6d, 0x00, 0x00, 0x00, 0x00,
-  0x69, 0x73, 0x6f, 0x6d, 0x6d, 0x70, 0x34, 0x32
-]);
+const TINY_MP4 = Uint8Array.from(
+  atob(
+    "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" +
+    "qXRvbwAAAB1kYXRhAAAAAQAAAABMYXZmNjAuMTYuMTAwAAAACGZyZWUAAAN6bWRhdAAAArAG" +
+    "Bf//rNxF6b3m2Ui3lizYINkj7u94MjY0IC0gY29yZSAxNjQgcjMxMDggMzFlMTlmOSAtIEgu" +
+    "MjY0L01QRUctNCBBVkMgY29kZWMgLSBDb3B5bGVmdCAyMDAzLTIwMjMgLSBodHRwOi8vd3d3" +
+    "LnZpZGVvbGFuLm9yZy94MjY0Lmh0bWwgLSBvcHRpb25zOiBjYWJhYz0xIHJlZj0xNiBkZWJs" +
+    "b2NrPTE6MDowIGFuYWx5c2U9MHgzOjB4MTMzIG1lPXVtaCBzdWJtZT0xMCBwc3k9MSBwc3lf" +
+    "cmQ9MS4wMDowLjAwIG1peGVkX3JlZj0xIG1lX3JhbmdlPTI0IGNocm9tYV9tZT0xIHRyZWxs" +
+    "aXM9MiA4eDhkY3Q9MSBjcW09MCBkZWFkem9uZT0yMSwxMSBmYXN0X3Bza2lwPTEgY2hyb21h" +
+    "X3FwX29mZnNldD0tMiB0aHJlYWRzPTEgbG9va2FoZWFkX3RocmVhZHM9MSBzbGljZWRfdGhy" +
+    "ZWFkcz0wIG5yPTAgZGVjaW1hdGU9MSBpbnRlcmxhY2VkPTAgYmx1cmF5X2NvbXBhdD0wIGNv" +
+    "bnN0cmFpbmVkX2ludHJhPTAgYmZyYW1lcz04IGJfcHlyYW1pZD0yIGJfYWRhcHQ9MiBiX2Jp" +
+    "YXM9MCBkaXJlY3Q9MyB3ZWlnaHRiPTEgb3Blbl9nb3A9MCB3ZWlnaHRwPTIga2V5aW50PTEw" +
+    "MDAga2V5aW50X21pbj00IHNjZW5lY3V0PTQwIGludHJhX3JlZnJlc2g9MCByY19sb29rYWhl" +
+    "YWQ9NjAgcmM9Y3JmIG1idHJlZT0xIGNyZj01MS4wIHFjb21wPTAuNjAgcXBtaW49MCBxcG1h" +
+    "eD02OSBxcHN0ZXA9NCBpcF9yYXRpbz0xLjQwIGFxPTE6MS4wMACAAAAACmWIgQACn/0aSUEA" +
+    "AAAJQZoI7Ygh/9GA3gIATGF2YzYwLjMxLjEwMgACMEAOAAAACUGeEGcQS//sgQEYIAcBGCAH" +
+    "AAAACQGeGCaIIf/ugAEYIAcBGCAHAAAACQGeGEaIIf/ugQEYIAcBGCAHAAAACQGeGI1IIf/u" +
+    "gQEYIAcBGCAHAAAACQGeGK1IIf/ugQEYIAcBGCAHAAAACQGeGM1IIf/ugQEYIAcBGCAHARgg" +
+    "BwEYIAcBGCAHARggBw=="
+  ),
+  (char) => char.charCodeAt(0)
+);
 
 /**
  * Tiny silent 24 kHz mono WAV (10 ms of zeros). Mirrors what the streaming
@@ -398,6 +452,14 @@ export class FakeProvider extends BaseProvider {
     return new Uint8Array(TINY_MP4);
   }
 
+  override async referenceToVideo(
+    _inputs: ReferenceToVideoInputs,
+    _params: ReferenceToVideoParams
+  ): Promise<Uint8Array> {
+    this.callCount++;
+    return new Uint8Array(TINY_MP4);
+  }
+
   override async videoToVideo(
     _video: Uint8Array,
     _params: VideoToVideoParams
@@ -432,6 +494,13 @@ export class FakeProvider extends BaseProvider {
     speed?: number;
     audioFormat?: string;
   }): Promise<{ data: Uint8Array; mimeType: string } | null> {
+    this.callCount++;
+    return { data: tinyWav(), mimeType: "audio/wav" };
+  }
+
+  override async textToMusic(
+    _params: TextToMusicParams
+  ): Promise<EncodedAudioResult> {
     this.callCount++;
     return { data: tinyWav(), mimeType: "audio/wav" };
   }
