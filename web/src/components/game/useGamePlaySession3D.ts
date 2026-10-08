@@ -254,9 +254,11 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     if (!playing || !active) {
       inputRef.current.release();
       audioRef.current?.pause();
-      setInspection(committedRef.current);
-      setFrame(lastFrameRef.current);
-      if (lastFrameRef.current) { display(lastFrameRef.current, 1); }
+      if (playDocument) {
+        setInspection(committedRef.current);
+        setFrame(lastFrameRef.current);
+        if (lastFrameRef.current) { display(lastFrameRef.current, 1); }
+      }
       return;
     }
     audioRef.current?.resume();
@@ -275,7 +277,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     window.document.addEventListener("visibilitychange", release);
     window.addEventListener("blur", release);
     return () => { cancelAnimationFrame(request); window.document.removeEventListener("visibilitychange", release); window.removeEventListener("blur", release); };
-  }, [playing, active, sessionDocument, step, display]);
+  }, [playing, active, playDocument, sessionDocument, step, display]);
 
   const beginPlay = (): void => {
     if (playDocument && sessionFailedRef.current) { return; }

@@ -185,6 +185,8 @@ it("completes ten distinct preview edits without losing renderer readiness", asy
     view.rerender(<Profiler id="preview3d" onRender={onRender}><Harness document={edited} /></Profiler>);
     await waitFor(() => expect(renderer.render.mock.calls.some(([frame]: [GameRenderFrame3D]) =>
       frame.entities.some((entity) => entity.entityId === "floor" && entity.transform.position.x === x))).toBe(true));
+    expect(renderer.render.mock.calls.every(([frame]: [GameRenderFrame3D]) =>
+      frame.entities.some((entity) => entity.entityId === "floor" && entity.transform.position.x === x))).toBe(true);
     expect(mockRenderers).toEqual([renderer]);
     expect(renderer.dispose).not.toHaveBeenCalled();
     expect(backends.length).toBeGreaterThan(0);
