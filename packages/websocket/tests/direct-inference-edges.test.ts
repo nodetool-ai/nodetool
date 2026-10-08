@@ -840,6 +840,73 @@ describe("runDirectMediaGeneration", () => {
 
   });
 
+  it("hands upscale the scale and outpaint the padding, with no prompt required", async () => {
+    const sourceId = await createStoredAsset("1", "image/png", PNG_1x1);
+    let upscale: { image: Uint8Array; scale?: number | null; prompt?: string | null } | null = null;
+    let outpaint: {
+      images: Uint8Array[];
+      padding?: unknown;
+      aspectRatio?: string | null;
+      prompt?: string | null;
+    } | null = null;
+    const provider = asProvider({
+      getTotalCost: () => 0,
+      async upscaleImage(
+        image: Uint8Array,
+        params: { scale?: number | null; prompt?: string | null }
+      ) {
+        upscale = { image, scale: params.scale, prompt: params.prompt };
+        return PNG_1x1;
+      },
+      async outpaintImage(
+        images: Uint8Array[],
+        params: { padding?: unknown; aspectRatio?: string | null; prompt?: string | null }
+      ) {
+        outpaint = { images, ...params };
+        return PNG_1x1;
+      }
+    });
+    const { handler } = makeHandler(provider);
+
+    const upscaled = await handler.runDirectMediaGeneration(
+      mediaReq({ mode: "upscale", prompt: "", sourceAssetId: sourceId, scale: 4 })
+    );
+    expect(upscaled.asset_ids).toHaveLength(1);
+    expect(upscale).toMatchObject({ scale: 4, prompt: null });
+    expect(Array.from(upscale!.image)).toEqual(Array.from(PNG_1x1));
+
+    const padding = { left: 10, right: 10, top: 0, bottom: 0 };
+    const reframed = await handler.runDirectMediaGeneration(
+      mediaReq({
+        mode: "outpaint",
+        prompt: "a quiet street",
+        sourceAssetId: sourceId,
+        padding,
+        aspectRatio: "16:9"
+      })
+    );
+    expect(reframed.asset_ids).toHaveLength(1);
+    expect(outpaint).toMatchObject({
+      padding,
+      aspectRatio: "16:9",
+      prompt: "a quiet street"
+    });
+    expect(outpaint!.images).toHaveLength(1);
+  });
+
+  it("refuses an upscale with no source and an outpaint with no target", async () => {
+    const sourceId = await createStoredAsset("1", "image/png", PNG_1x1);
+    const { handler } = makeHandler(asProvider({ getTotalCost: () => 0 }));
+    await expect(
+      handler.runDirectMediaGeneration(mediaReq({ mode: "upscale", prompt: "" }))
+    ).rejects.toThrow("source_asset_id is required for upscale");
+    await expect(
+      handler.runDirectMediaGeneration(
+        mediaReq({ mode: "outpaint", prompt: "", sourceAssetId: sourceId })
+      )
+    ).rejects.toThrow("padding or aspect_ratio is required for outpaint");
+  });
+
   it("stores provider-encoded audio under its own mime, defaulting an unknown one to .flac", async () => {
     const provider = asProvider({
       getTotalCost: () => 0,
