@@ -8,7 +8,7 @@ import { useChatDraftStore } from "../../stores/ChatDraftStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
 import { anyGameMergeAdapter } from "../../stores/game/anyMerge";
-import { flushGameDraft, pullGameDraft, reloadRejectedGameDraft } from "../../stores/game/draftSave";
+import { captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { useConflictStore } from "../../stores/ConflictStore";
 import { registerDocumentSync } from "../../stores/documentSync";
@@ -25,6 +25,7 @@ import GamePanelHeader from "./GamePanelHeader";
 import GameScriptPane from "./panels/scripts/GameScriptPane";
 import GameEditorShell from "./shell/GameEditorShell";
 import GameRevisions from "./panels/revisions/GameRevisions";
+import GameDraftRecovery, { isMissingDraft } from "./GameDraftRecovery";
 import { useGameScriptDiagnostics } from "./panels/scripts/useGameScriptDiagnostics";
 import type { GameDiagnosticSession } from "./panels/scripts/gameScriptDiagnostics";
 import { openGameDiagnosticSession3D } from "./viewport3d/gameSessionAssets3D";
@@ -123,16 +124,23 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
       while (store.getState().pendingOps.length > 0) {
         const state = store.getState();
         if (!state.baseUpdatedAt) { return; }
-        const ops = state.captureSaveOps();
-        state.setSaving(ops.length);
+        const batch = captureGameDraftBatch(refId);
+        if (!batch) { return; }
+        state.setSaving(batch.count);
         try {
-          const result = await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops });
-          store.getState().acknowledge(result.document, result.game.draftUpdatedAt, ops.length);
+          const result = "document" in batch
+            ? await trpcClient.games.saveDraftDocument.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, document: batch.document })
+            : await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops: batch.ops });
+          store.getState().acknowledge(result.document, result.game.draftUpdatedAt, batch.count);
           retries = 0;
         } catch (cause) {
+          if (isMissingDraft(cause)) {
+            store.getState().failSave("Draft source unavailable. Export your local draft before restoring.");
+            await queries.games.getDraft.invalidate({ id: refId });
+            throw cause;
+          }
           try {
             const server = await trpcClient.games.getDraft.query({ id: refId });
-            reloadRejectedGameDraft(refId, state.baseUpdatedAt, server.document, server.game.draftUpdatedAt, cause);
             if (server.game.draftUpdatedAt !== state.baseUpdatedAt) {
               await pullFromServer();
               if (++retries <= 3 && (useConflictStore.getState().byKey[`game:${refId}`]?.conflicts.length ?? 0) === 0) { continue; }
@@ -141,15 +149,19 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
             store.getState().failSave(recoveryError instanceof Error ? recoveryError.message : String(recoveryError));
             throw recoveryError;
           }
+          if ("ops" in batch && isRejectedGameSave(cause)) {
+            store.getState().requireDocumentSave();
+            continue;
+          }
           const message = cause instanceof Error ? cause.message : String(cause);
-          if (store.getState().saveStatus !== "unsaved") { store.getState().failSave(message); }
+          store.getState().failSave(message);
           throw cause;
         }
       }
     };
     await flushGameDraft(savingRef, save);
     setOperationError(null);
-  }, [refId, pullFromServer]);
+  }, [refId, pullFromServer, queries.games.getDraft]);
 
   useEffect(() => registerDocumentSync("game", refId, {
     localRevision: () => getGameDraftStore(refId).getState().baseUpdatedAt,
@@ -354,6 +366,7 @@ export default function GameEditor3D({ refId, active }: GameEditor3DProps) {
     const state = store.getState();
     if (state.pendingOps.length === 0 && state.baseUpdatedAt !== data.game.draftUpdatedAt) { state.load(data.document, data.game.draftUpdatedAt); }
   }, [data, refId]);
+  if (error?.data?.code === "PRECONDITION_FAILED") { return <GameDraftRecovery key={refId} refId={refId} />; }
   if (isPending || (data && !document)) { return <LoadingSpinner text="Loading 3D game" />; }
   if (error || !data || !document) {
     const message = error?.message ?? "Game source is unavailable.";

@@ -7,7 +7,7 @@ import { createScriptedGameSession, validateGame, type AnyGameDocumentOp as Game
 import { trpc, trpcClient } from "../../trpc/client";
 import { useChatDraftStore } from "../../stores/ChatDraftStore";
 import { useConflictStore } from "../../stores/ConflictStore";
-import { flushGameDraft, pullGameDraft, reloadRejectedGameDraft } from "../../stores/game/draftSave";
+import { captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
@@ -18,6 +18,7 @@ import { Caption, CollapsibleSection, ConflictBanner, Dialog, EmptyState, FlexCo
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./panels/agent/GameAgentPanel";
 import GameRevisions from "./panels/revisions/GameRevisions";
+import GameDraftRecovery, { isMissingDraft } from "./GameDraftRecovery";
 import { publishGameDraft } from "./gamePublish";
 import GameChanges from "./panels/changes/GameChanges";
 import GameAuthoringPreview from "./panels/authoring/GameAuthoringPreview";
@@ -151,14 +152,22 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       while (store.getState().pendingOps.length > 0) {
         const state = store.getState();
         if (!state.baseUpdatedAt) return;
-        const ops = state.captureSaveOps();
-        state.setSaving(ops.length);
+        const batch = captureGameDraftBatch(refId);
+        if (!batch) return;
+        state.setSaving(batch.count);
         try {
-          const result = await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops });
-          store.getState().acknowledge(result.document, result.game.draftUpdatedAt, ops.length);
+          const result = "document" in batch
+            ? await trpcClient.games.saveDraftDocument.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, document: batch.document })
+            : await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops: batch.ops });
+          store.getState().acknowledge(result.document, result.game.draftUpdatedAt, batch.count);
           loadedTokenRef.current = result.game.draftUpdatedAt;
           retries = 0;
         } catch (cause) {
+          if (isMissingDraft(cause)) {
+            store.getState().failSave("Draft source unavailable. Export your local draft before restoring.");
+            await queries.games.getDraft.invalidate({ id: refId });
+            throw cause;
+          }
           try {
             const server = await trpcClient.games.getDraft.query({ id: refId });
             const latest = store.getState();
@@ -176,13 +185,15 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
               });
               if (merged.conflicts.length > 0) throw new Error("Resolve draft conflicts before saving");
               if (++retries <= 3) continue;
-            } else {
-              reloadRejectedGameDraft(refId, state.baseUpdatedAt, server.document, server.game.draftUpdatedAt, cause);
             }
           } catch (recoveryError) {
             if (recoveryError instanceof Error && recoveryError.message === "Resolve draft conflicts before saving") {
               throw recoveryError;
             }
+          }
+          if ("ops" in batch && isRejectedGameSave(cause)) {
+            store.getState().requireDocumentSave();
+            continue;
           }
           const message = cause instanceof Error ? cause.message : String(cause);
           store.getState().failSave(message);
@@ -191,7 +202,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       }
     };
     await flushGameDraft(savingPromiseRef, save);
-  }, [refId]);
+  }, [refId, queries.games.getDraft]);
 
   useEffect(() => {
     if (saveStatus !== "unsaved" || conflicts.items.length > 0) return;
@@ -373,6 +384,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const validationIssues = documentValidation?.issues ?? [];
   const runtimeEntity = runtimeEntities?.find((entity) => entity.id === selectedIds[0]) ?? null;
 
+  if (loadError?.data?.code === "PRECONDITION_FAILED") { return <GameDraftRecovery key={refId} refId={refId} />; }
   if (isPending || (data && !document)) return <LoadingSpinner text="Loading game" />;
   if (loadError || !data || !document) {
     return <EmptyState variant="error" title="Could not load game" description={loadError?.message ?? "The game may have been deleted."} />;

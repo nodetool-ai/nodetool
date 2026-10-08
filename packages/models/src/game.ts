@@ -112,6 +112,13 @@ export class InvalidGameDocumentError extends Error {
   }
 }
 
+export class MissingGameDraftSourceError extends Error {
+  constructor() {
+    super("Game draft source is unavailable");
+    this.name = "MissingGameDraftSourceError";
+  }
+}
+
 function parseStoredDocument(value: unknown): GameDocument {
   const result = parseGameDocument(value);
   if (!result.ok) { throw new InvalidGameDocumentError(result.diagnostics); }
@@ -230,8 +237,8 @@ export class Game extends DBModel {
     if (game.draft_version_id && versioned === null) {
       const mirror = await workspace.readText(`${game.source_root}/draft.json`);
       const matchesMirror = mirror !== null && createHash("sha256").update(mirror).digest("hex") === draftVersionInfo(game.draft_version_id)?.digest;
-      const recoveredSource = matchesMirror ? mirror : await workspace.readText(`${game.source_root}/revisions/${game.current_revision}/game.json`);
-      if (recoveredSource === null) { throw new Error("Game draft and published source are missing"); }
+      if (!matchesMirror || mirror === null) { throw new MissingGameDraftSourceError(); }
+      const recoveredSource = mirror;
       const document = parseStoredDocument(JSON.parse(recoveredSource));
       if (document.id !== game.id || document.revision !== game.current_revision) { throw new Error("Game recovery source is corrupt"); }
       const digest = createHash("sha256").update(recoveredSource).digest("hex");
@@ -307,11 +314,38 @@ export class Game extends DBModel {
     document: GameDocument,
     workspace: GameDraftWorkspace
   ): Promise<{ game: Game; document: GameDocument } | null> {
-    return Game.replaceDraftChecked(userId, id, expectedUpdatedAt, document, workspace,
-      { actor: "user" }, "Restored a revision");
+    try {
+      return await Game.replaceDraftChecked(userId, id, expectedUpdatedAt, document, workspace,
+        { actor: "user" }, "Restored a revision");
+    } catch (error) {
+      if (!(error instanceof MissingGameDraftSourceError)) { throw error; }
+      const game = await Game.findOwned(userId, id);
+      if (!game || game.draft_updated_at !== expectedUpdatedAt) { return null; }
+      const source = await workspace.readText(`${game.source_root}/revisions/${game.current_revision}/game.json`);
+      if (source === null) { throw new Error("Game published source is missing"); }
+      const published = parseStoredDocument(JSON.parse(source));
+      if (published.id !== game.id || published.revision !== game.current_revision) {
+        throw new Error("Game published source is corrupt");
+      }
+      const replacement = Game.validateReplacement(game, document, published);
+      return Game.commitReplacement(game, userId, expectedUpdatedAt, replacement, game.draft_version_id,
+        workspace, { actor: "user" }, "Restored a revision after draft source loss");
+    }
   }
 
   /** Persist a validated rebuild only against the exact draft used for preview. */
+  /** Replace the draft with an editor's whole document when its op batch cannot be saved. */
+  static async saveDraftDocument(
+    userId: string,
+    id: string,
+    expectedUpdatedAt: string,
+    document: GameDocument,
+    workspace: GameDraftWorkspace
+  ): Promise<{ game: Game; document: GameDocument } | null> {
+    return Game.replaceDraftChecked(userId, id, expectedUpdatedAt, document, workspace,
+      { actor: "user" }, "Saved the whole draft");
+  }
+
   static async applyAuthoringCandidate(
     userId: string,
     id: string,
@@ -341,15 +375,26 @@ export class Game extends DBModel {
     const beforeSource = JSON.stringify(before);
     const beforeDigest = createHash("sha256").update(beforeSource).digest("hex");
     if (expectedDigest !== undefined && beforeDigest !== expectedDigest) return null;
-    const checked = validateAnyGame({ ...document, id: game.id, revision: game.current_revision });
-    if (!checked.valid) { throw new InvalidGameDocumentError(checked.diagnostics); }
-    const replacement = checked.document;
-    if ((before.schemaVersion === 3) !== (replacement.schemaVersion === 3)) {
-      throw new InvalidGameDocumentError([{ code: "dimension_mismatch", path: ["dimension"], message: "A game cannot change dimension" }]);
-    }
-    const now = nextUpdatedAtAfter(expectedUpdatedAt);
+    const replacement = Game.validateReplacement(game, document, before);
     const beforeVersionId = game.draft_version_id || newDraftVersionId(beforeDigest, game.draft_updated_at);
     if (!game.draft_version_id) { await workspace.write(draftVersionPath(game, beforeVersionId), beforeSource, "application/json"); }
+    return Game.commitReplacement(game, userId, expectedUpdatedAt, replacement, beforeVersionId, workspace, context, summary);
+  }
+
+  private static validateReplacement(game: Game, document: GameDocument, reference: GameDocument): GameDocument {
+    const checked = validateAnyGame({ ...document, id: game.id, revision: game.current_revision });
+    if (!checked.valid) { throw new InvalidGameDocumentError(checked.diagnostics); }
+    if ((reference.schemaVersion === 3) !== (checked.document.schemaVersion === 3)) {
+      throw new InvalidGameDocumentError([{ code: "dimension_mismatch", path: ["dimension"], message: "A game cannot change dimension" }]);
+    }
+    return checked.document;
+  }
+
+  private static async commitReplacement(
+    game: Game, userId: string, expectedUpdatedAt: string, replacement: GameDocument,
+    beforeVersionId: string, workspace: GameDraftWorkspace, context: GameDraftWriteContext, summary: string
+  ): Promise<{ game: Game; document: GameDocument } | null> {
+    const now = nextUpdatedAtAfter(expectedUpdatedAt);
     const nextSource = JSON.stringify(replacement);
     const versionId = newDraftVersionId(createHash("sha256").update(nextSource).digest("hex"), game.draft_updated_at);
     const newPath = draftVersionPath(game, versionId);

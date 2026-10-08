@@ -292,6 +292,8 @@ const sharedRemoveEntityOp = z.strictObject({ op: z.literal("remove_entity"), ..
   children: z.enum(["remove", "reparent"]).optional() });
 export const anyGameDocumentOp = z.union([sharedRemoveEntityOp, gameDocumentOp, gameDocumentOp3D]);
 export type AnyGameDocumentOp = z.input<typeof anyGameDocumentOp>;
+/** The largest op batch one draft save accepts. Larger local batches save the whole document. */
+export const MAX_GAME_DRAFT_OPS = 1024;
 
 export function applyAnyGameOps(document: GameDocument, ops: readonly AnyGameDocumentOp[], options?: { readonly expectedRevision?: string }): GameDocument;
 export function applyAnyGameOps(document: GameDocument3D, ops: readonly AnyGameDocumentOp[], options?: { readonly expectedRevision?: string }): GameDocument3D;

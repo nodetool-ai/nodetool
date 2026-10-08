@@ -20,6 +20,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 ## Core Concepts
 
 - [Key Concepts]({{ site.url }}/key-concepts): Canvas, nodes, edges, workflows, agents, providers.
+- [Data Types and Connections]({{ site.url }}/data-types): Handle types and colors, which types connect, streaming, and edge states.
 - [Workflows]({{ site.url }}/workflow-editor): Building, running, and managing workflow graphs.
 - [Nodes]({{ site.url }}/nodes/): Catalog of available nodes by category.
 - [Node catalog]({{ site.url }}/nodes/catalog.json): Machine-readable node types, inputs, outputs, and documentation URLs.

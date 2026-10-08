@@ -982,6 +982,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
     gap: "Restoring a revision to the draft is an editor action; the agent has no whole-revision restore capability."
   },
   "games.saveDraft": { capability: "edit_native_game" },
+  "games.saveDraftDocument": {
+    elsewhere: "The editor saves a whole document only when its op batch is rejected or too large; edit_native_game saves agent edits as ops."
+  },
   "games.previewAuthoring": { capability: "preview_native_game_authoring" },
   "games.applyAuthoring": { capability: "apply_native_game_authoring" },
   "storyboards.create": { capability: "create_storyboard" },
