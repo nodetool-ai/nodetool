@@ -134,7 +134,7 @@ for (const dimension of ["2d", "3d"] as const) {
   await page.mouse.move(target.x + target.width / 2, target.y + target.height / 2, { steps: 8 });
   await page.mouse.up();
   await expect(input).toBeFocused();
-  expect(await original.evaluate((node) => node.isConnected && node === document.activeElement)).toBe(true);
+  expect(await original.evaluate((node) => node.isConnected && node === window.document.activeElement)).toBe(true);
   await expect(input).toHaveValue("Dock focus entity");
   await expect(page.getByRole("region", { name: "Game bottom panels" }).getByRole("textbox", { name: "Name", exact: true })).toBeVisible();
   await page.getByRole("textbox", { name: "Layout name", exact: true }).fill("Docked inspector");
