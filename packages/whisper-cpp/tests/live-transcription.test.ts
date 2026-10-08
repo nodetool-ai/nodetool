@@ -78,7 +78,10 @@ afterEach(() => vi.restoreAllMocks());
 it("cuts on silence using centisecond VAD times, resamples and stops on done", async () => {
   mocks.detect
     .mockResolvedValueOnce([{ t0: 0, t1: 100 }])
-    .mockResolvedValue([]);
+    .mockResolvedValueOnce([])
+    .mockResolvedValueOnce([])
+    // The final flush holds speech that has not ended yet.
+    .mockResolvedValueOnce([{ t0: 150, t1: 200 }]);
   const node = new LiveTranscriptionNode();
   await node.run(inputs([audio(2), audio(1, true), audio(10)]), outputs);
   expect(mocks.transcribe.mock.calls.map((call) => call[1].byteLength)).toEqual(
@@ -97,6 +100,13 @@ it("cuts on silence using centisecond VAD times, resamples and stops on done", a
     ["text", "1 2"]
   ]);
   expect(mocks.release).toHaveBeenCalledOnce();
+});
+it("drops windows in which VAD finds no speech", async () => {
+  mocks.detect.mockResolvedValue([]);
+  const node = new LiveTranscriptionNode({ max_segment_s: 1 });
+  await node.run(inputs([audio(3, true)]), outputs);
+  expect(mocks.transcribe).not.toHaveBeenCalled();
+  expect(emitted.at(-1)).toEqual(["text", ""]);
 });
 it("uses fixed windows without VAD and emits both declared outputs", async () => {
   mocks.vadModels.mockResolvedValue([]);
@@ -135,7 +145,7 @@ it("keeps consuming audio while a transcription runs", async () => {
 });
 it("passes cancellation to the transcription and releases VAD", async () => {
   const controller = new AbortController();
-  mocks.detect.mockResolvedValue([]);
+  mocks.detect.mockResolvedValue([{ t0: 0, t1: 100 }]);
   mocks.transcribe.mockImplementationOnce(
     async (_model, _audio, _options, signal: AbortSignal) => {
       controller.abort();

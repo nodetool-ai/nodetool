@@ -2,6 +2,9 @@ import { decodeAudioBytesToSamples, getPipeline } from "@nodetool-ai/transformer
 import type { ASRResult } from "@nodetool-ai/runtime";
 
 const TARGET_SAMPLE_RATE = 16000;
+/** Whisper's feature extractor keeps only the first 30 s of a single input. */
+const WHISPER_WINDOW_S = 30;
+const WHISPER_STRIDE_S = 5;
 
 interface AsrArgs {
   audio: Uint8Array;
@@ -24,6 +27,8 @@ interface AsrPipelineOptions {
   language?: string;
   temperature?: number;
   return_timestamps?: "word";
+  chunk_length_s?: number;
+  stride_length_s?: number;
 }
 
 type AsrPipelineFn = (
@@ -57,6 +62,10 @@ export async function automaticSpeechRecognition(
   if (args.language) opts.language = args.language;
   if (args.temperature != null) opts.temperature = args.temperature;
   if (args.word_timestamps) opts.return_timestamps = "word";
+  if (samples.length > WHISPER_WINDOW_S * TARGET_SAMPLE_RATE) {
+    opts.chunk_length_s = WHISPER_WINDOW_S;
+    opts.stride_length_s = WHISPER_STRIDE_S;
+  }
 
   const result = await pipeline(samples, opts);
 

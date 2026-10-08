@@ -1,6 +1,7 @@
 import {
   KOKORO_VOICES,
   encodeWav,
+  generateKokoroSpeech,
   getKokoro,
   getPipeline,
   isKokoroRepo,
@@ -66,9 +67,11 @@ export async function textToSpeechEncoded(
 
   if (isKokoroRepo(args.model)) {
     const tts = await getKokoro(args.model, undefined, undefined);
-    const result = await tts.generate(args.text, {
+    const options: { voice: KokoroVoice; speed?: number } = {
       voice: resolveKokoroVoice(args.voice)
-    });
+    };
+    if (args.speed != null) options.speed = args.speed;
+    const result = await generateKokoroSpeech(tts, args.text, options);
     samples = result.audio;
     samplingRate = result.sampling_rate ?? samplingRate;
   } else {

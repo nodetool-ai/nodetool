@@ -4,6 +4,7 @@ import { promisify } from "node:util";
 import { tmpdir } from "node:os";
 import { join as joinPath } from "node:path";
 import {
+  createLogger,
   getDefaultTransformersJsCacheDir,
   importOptionalModule
 } from "@nodetool-ai/config";
@@ -11,8 +12,10 @@ import { parseWavBytes } from "@nodetool-ai/audio-nodes";
 import { loadMediaRefBytes } from "@nodetool-ai/runtime";
 import { MissingRuntimePackageError } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
+import { ModelCache } from "./model-cache.js";
 
 const execFileP = promisify(execFile);
+const log = createLogger("transformers-js");
 
 /**
  * Shared helpers for Transformers.js nodes.
@@ -161,7 +164,13 @@ export function __setTransformersModuleForTesting(
 }
 
 type PipelineCacheKey = string;
-const pipelineCache = new Map<PipelineCacheKey, Promise<object>>();
+
+/** Loaded pipelines kept resident; idle extras are evicted and disposed. */
+const MAX_CACHED_PIPELINES = 4;
+
+const pipelineCache = new ModelCache<object>(MAX_CACHED_PIPELINES, (pipeline) =>
+  (pipeline as { dispose?: () => unknown }).dispose?.()
+);
 
 interface PipelineOptions {
   task: string;
@@ -174,16 +183,18 @@ interface PipelineOptions {
 /**
  * Build (or reuse) a Transformers.js pipeline for the given task/model.
  *
- * Pipelines are cached globally by their (task, model, dtype, device, revision)
- * tuple. Loading large models is expensive, so reusing pipelines across
- * invocations is essential for sensible performance.
+ * Pipelines are cached by their (task, model, dtype, device, revision) tuple.
+ * Loading large models is expensive, so reusing pipelines across invocations
+ * is essential for sensible performance. The cache keeps the most recently
+ * used pipelines and disposes idle ones beyond `MAX_CACHED_PIPELINES`.
  *
  * Each task has its own call signature, so the caller names the one it expects.
  */
 export async function getPipeline<TPipeline extends object>(
   options: PipelineOptions
 ): Promise<TPipeline> {
-  const { task, model, dtype, device, revision } = options;
+  const { task, model, dtype, revision } = options;
+  const device = resolveDevice(options.device);
   const key: PipelineCacheKey = JSON.stringify([
     task,
     model ?? null,
@@ -191,20 +202,14 @@ export async function getPipeline<TPipeline extends object>(
     device ?? null,
     revision ?? null
   ]);
-  let entry = pipelineCache.get(key);
-  if (!entry) {
-    entry = (async () => {
-      const transformers = await loadTransformers();
-      const pipelineOptions: Record<string, unknown> = {};
-      if (dtype) pipelineOptions.dtype = dtype;
-      if (device) pipelineOptions.device = device;
-      if (revision) pipelineOptions.revision = revision;
-      return transformers.pipeline<TPipeline>(task, model, pipelineOptions);
-    })();
-    pipelineCache.set(key, entry);
-    // Drop failed entries so a later invocation can retry.
-    entry.catch(() => pipelineCache.delete(key));
-  }
+  const entry = pipelineCache.get(key, async () => {
+    const transformers = await loadTransformers();
+    const pipelineOptions: Record<string, unknown> = {};
+    if (dtype) pipelineOptions.dtype = dtype;
+    if (device) pipelineOptions.device = device;
+    if (revision) pipelineOptions.revision = revision;
+    return transformers.pipeline<TPipeline>(task, model, pipelineOptions);
+  });
   // SAFETY: the cache key encodes task, model, dtype, device and revision, so
   // an entry can only be the pipeline built for exactly these options. The
   // `@huggingface/transformers` module ships no types for it, so `TPipeline`
@@ -230,6 +235,42 @@ export const DTYPE_VALUES = [
 ];
 
 export const DEVICE_VALUES = ["auto", "cpu", "wasm", "webgpu", "cuda", "dml"];
+
+/**
+ * The devices onnxruntime-node offers transformers.js in this process: CPU
+ * everywhere, DirectML on Windows, CUDA on Linux x64. `wasm` and `webgpu`
+ * exist only in browsers.
+ */
+function nodeSupportedDevices(
+  platform: NodeJS.Platform = process.platform,
+  arch: string = process.arch
+): string[] {
+  const devices = ["cpu"];
+  if (platform === "win32") devices.push("dml");
+  if (platform === "linux" && arch === "x64") devices.push("cuda");
+  return devices;
+}
+
+/**
+ * Map a requested device to one transformers.js can use in Node. An
+ * unsupported device (such as `webgpu`) makes the library throw
+ * "Unsupported device", so fall back to its CPU default with a warning.
+ */
+export function resolveDevice(
+  device: string | undefined,
+  platform?: NodeJS.Platform,
+  arch?: string
+): string | undefined {
+  if (!device) return undefined;
+  const supported = nodeSupportedDevices(platform, arch);
+  if (supported.includes(device)) return device;
+  log.warn(
+    'Device "%s" is not available to Transformers.js in Node (supported: %s). Using CPU.',
+    device,
+    supported.join(", ")
+  );
+  return undefined;
+}
 
 /**
  * Translate the user-facing "auto" placeholder into `undefined` so we keep

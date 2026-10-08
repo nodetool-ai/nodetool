@@ -2,11 +2,13 @@ import { describe, expect, it, vi } from "vitest";
 
 const asrPipelineFn = vi.fn();
 
+const decodeMock = vi.fn(
+  async () => new Float32Array([0, 0.1, -0.1, 0, 0, 0.1, -0.1, 0])
+);
+
 vi.mock("@nodetool-ai/transformers-js-nodes", () => ({
   // Stub the combined decode+resample helper: yields 8 mono samples at 16kHz.
-  decodeAudioBytesToSamples: vi.fn(
-    async () => new Float32Array([0, 0.1, -0.1, 0, 0, 0.1, -0.1, 0])
-  ),
+  decodeAudioBytesToSamples: (...args: unknown[]) => decodeMock(...(args as [])),
   getPipeline: vi.fn(async () => asrPipelineFn)
 }));
 
@@ -57,5 +59,24 @@ describe("automaticSpeechRecognition", () => {
     expect(result.chunks).toHaveLength(2);
     const opts = asrPipelineFn.mock.calls.at(-1)?.[1];
     expect(opts.return_timestamps).toBe("word");
+  });
+
+  it("chunks audio longer than Whisper's 30 s window", async () => {
+    asrPipelineFn.mockResolvedValue({ text: "short" });
+    await automaticSpeechRecognition({
+      audio: new Uint8Array([1, 2, 3]),
+      model: "onnx-community/whisper-base"
+    });
+    expect(asrPipelineFn.mock.calls.at(-1)?.[1]).not.toHaveProperty("chunk_length_s");
+
+    decodeMock.mockResolvedValueOnce(new Float32Array(31 * 16000));
+    asrPipelineFn.mockResolvedValue({ text: "long" });
+    await automaticSpeechRecognition({
+      audio: new Uint8Array([1, 2, 3]),
+      model: "onnx-community/whisper-base"
+    });
+    const opts = asrPipelineFn.mock.calls.at(-1)?.[1];
+    expect(opts.chunk_length_s).toBe(30);
+    expect(opts.stride_length_s).toBeGreaterThan(0);
   });
 });
