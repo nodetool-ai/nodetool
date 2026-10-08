@@ -358,6 +358,17 @@ describe("native game revisions", () => {
     await workspace.delete(`${game.source_root}/drafts/${game.draft_version_id}.json`);
     await workspace.delete(`${game.source_root}/draft.json`);
     await expect(caller.games.getDraft({ id: created.game.id })).rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    await expect(caller.games.saveDraft({ id: created.game.id, baseUpdatedAt: saved.game.draftUpdatedAt,
+      ops: [{ op: "update_scene", scene_id: created.document.entrySceneId, set: { name: "Later edit" } }] }))
+      .rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    await expect(caller.games.publish({ id: created.game.id, baseRevision: created.game.revision }))
+      .rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    await expect(caller.games.restore({ id: created.game.id, baseRevision: created.game.revision,
+      revision: created.game.revision, baseUpdatedAt: saved.game.draftUpdatedAt }))
+      .rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
+    await expect(caller.games.installAsset({ id: created.game.id, assetId: "missing-asset", slot: "player",
+      baseUpdatedAt: saved.game.draftUpdatedAt }))
+      .rejects.toMatchObject({ code: "PRECONDITION_FAILED" });
     const recovery = await caller.games.get({ id: created.game.id });
     expect(recovery.game.draftUpdatedAt).toBe(saved.game.draftUpdatedAt);
     expect(recovery.document).toEqual(created.document);

@@ -98,6 +98,7 @@ beforeEach(() => {
 
 it("F6 restores a missing draft only after selecting and confirming a published revision", async () => {
   mockDraftUnavailable = true;
+  getGameDraftStore(mockDocument.id).setState({ document: null });
   const user = userEvent.setup();
   render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
   expect(mockRestore).not.toHaveBeenCalled();
@@ -110,6 +111,7 @@ it("F6 restores a missing draft only after selecting and confirming a published 
 
 it("F6 leaves recovery after a competing writer repairs the draft", async () => {
   mockDraftUnavailable = true;
+  getGameDraftStore(mockDocument.id).setState({ document: null });
   mockRestore.mockRejectedValue(new Error("Game draft was modified concurrently"));
   mockSetDraft.mockImplementation(() => { mockDraftUnavailable = false; });
   const user = userEvent.setup();

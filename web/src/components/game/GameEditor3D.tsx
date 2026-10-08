@@ -25,7 +25,7 @@ import GamePanelHeader from "./GamePanelHeader";
 import GameScriptPane from "./panels/scripts/GameScriptPane";
 import GameEditorShell from "./shell/GameEditorShell";
 import GameRevisions from "./panels/revisions/GameRevisions";
-import GameDraftRecovery from "./GameDraftRecovery";
+import GameDraftRecovery, { isMissingDraft } from "./GameDraftRecovery";
 import { useGameScriptDiagnostics } from "./panels/scripts/useGameScriptDiagnostics";
 import type { GameDiagnosticSession } from "./panels/scripts/gameScriptDiagnostics";
 import { openGameDiagnosticSession3D } from "./viewport3d/gameSessionAssets3D";
@@ -131,6 +131,11 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
           store.getState().acknowledge(result.document, result.game.draftUpdatedAt, ops.length);
           retries = 0;
         } catch (cause) {
+          if (isMissingDraft(cause)) {
+            store.getState().failSave("Draft source unavailable. Export your local draft before restoring.");
+            await queries.games.getDraft.invalidate({ id: refId });
+            throw cause;
+          }
           try {
             const server = await trpcClient.games.getDraft.query({ id: refId });
             reloadRejectedGameDraft(refId, state.baseUpdatedAt, server.document, server.game.draftUpdatedAt, cause);
@@ -150,7 +155,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
     };
     await flushGameDraft(savingRef, save);
     setOperationError(null);
-  }, [refId, pullFromServer]);
+  }, [refId, pullFromServer, queries.games.getDraft]);
 
   useEffect(() => registerDocumentSync("game", refId, {
     localRevision: () => getGameDraftStore(refId).getState().baseUpdatedAt,
@@ -355,7 +360,7 @@ export default function GameEditor3D({ refId, active }: GameEditor3DProps) {
     const state = store.getState();
     if (state.pendingOps.length === 0 && state.baseUpdatedAt !== data.game.draftUpdatedAt) { state.load(data.document, data.game.draftUpdatedAt); }
   }, [data, refId]);
-  if (error?.data?.code === "PRECONDITION_FAILED") { return <GameDraftRecovery refId={refId} />; }
+  if (error?.data?.code === "PRECONDITION_FAILED") { return <GameDraftRecovery key={refId} refId={refId} />; }
   if (isPending || (data && !document)) { return <LoadingSpinner text="Loading 3D game" />; }
   if (error || !data || !document) {
     const message = error?.message ?? "Game source is unavailable.";
