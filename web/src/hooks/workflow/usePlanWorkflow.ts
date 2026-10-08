@@ -74,19 +74,30 @@ export interface PlanWorkflowInput {
 export interface UsePlanWorkflowResult {
   /**
    * Plan a brief and store the result. Resolves `null` when a plan was written
-   * and the reason when the call was refused. It never rejects, because the
-   * review step's `Re-plan` fires it from a click handler — and it hands the
-   * reason back rather than only setting `error`, because the flow shell reads
-   * it in the same tick and `error` is a render behind (a provider that is out
-   * of quota reported as "did not return a plan").
+   * and otherwise the reason it was not: the call was refused, or its answer
+   * was set aside because the creator canceled, left the stage, or changed the
+   * brief or category meanwhile. It never rejects, because the review step's
+   * `Re-plan` fires it from a click handler — and it hands the reason back
+   * rather than only setting `error`, because the flow shell reads it in the
+   * same tick and `error` is a render behind (a provider that is out of quota
+   * reported as "did not return a plan").
    */
   planWorkflow: (input: PlanWorkflowInput) => Promise<string | null>;
   /** Ends the active planner request without allowing its reply to commit. */
   cancelPlanning: () => void;
   planning: boolean;
+  /**
+   * `checking` while the planner repairs its own draft (rounds after the
+   * first), so the wait can say the plan is being checked.
+   */
+  planningPhase: "drafting" | "checking";
   planningStatus: "idle" | "pending" | "canceled" | "error";
   error: string | null;
 }
+
+/** Why an answer that arrived was not stored. */
+export const PLAN_SET_ASIDE_REASON =
+  "The brief, category or step changed while the plan was being written. Plan the steps again.";
 
 const nodeCatalog = (
   metadata: Record<string, NodeMetadata>
@@ -245,23 +256,38 @@ export const usePlanWorkflow = (workflowId: string): UsePlanWorkflowResult => {
   const [planningStatus, setPlanningStatus] = useState<
     "idle" | "pending" | "canceled" | "error"
   >("idle");
+  const [planningPhase, setPlanningPhase] = useState<"drafting" | "checking">(
+    "drafting"
+  );
   const [error, setError] = useState<string | null>(null);
   const { setSetup } = useWorkflowSetupWriter(workflowId);
   const store = useWorkflowManagerStore();
-  const workflowSettings = useWorkflowManager(
-    (state) => state.getWorkflow(workflowId)?.settings
+  const stage = useWorkflowManager(
+    (state) =>
+      readWorkflowSetup(state.getWorkflow(workflowId)?.settings)?.stage ?? "done"
   );
   // Which request the hook is still waiting for. A planner call outlives the
   // stage that asked for it, so a late answer must neither overwrite a plan a
   // newer request wrote nor pull a creator who has moved on back to the review
-  // (F9, the same guard `usePlanBeats` uses).
+  // (F9, the same guard `usePlanBeats` uses). Only what the plan answers
+  // invalidates it — the stage, the brief and the category. Any other write to
+  // `settings`, a save response included, leaves the request current.
   const requestRef = useRef(0);
-  const settingsRef = useRef(workflowSettings);
   const activeControllerRef = useRef<AbortController | null>(null);
-  if (settingsRef.current !== workflowSettings) {
-    settingsRef.current = workflowSettings;
-    requestRef.current += 1;
-  }
+
+  // A refusal or a cancellation belongs to the step it happened on. Carried
+  // to another step it reads as a fault of the plan on screen there.
+  const stageRef = useRef(stage);
+  useEffect(() => {
+    if (stageRef.current === stage) {
+      return;
+    }
+    stageRef.current = stage;
+    setError(null);
+    setPlanningStatus((current) =>
+      current === "error" || current === "canceled" ? "idle" : current
+    );
+  }, [stage]);
 
   useEffect(
     () => () => {
@@ -272,12 +298,19 @@ export const usePlanWorkflow = (workflowId: string): UsePlanWorkflowResult => {
     [workflowId]
   );
 
-  const readStage = useCallback(
-    (): WorkflowSetupStage =>
-      readWorkflowSetup(store.getState().getWorkflow(workflowId)?.settings)
-        ?.stage ?? "done",
-    [store, workflowId]
-  );
+  // What a plan answers, read from the document: the stage it was asked on,
+  // the brief and the category.
+  const readPlanInputs = useCallback((): string => {
+    const setup = readWorkflowSetup(
+      store.getState().getWorkflow(workflowId)?.settings
+    );
+    const current: [WorkflowSetupStage, string, string] = [
+      setup?.stage ?? "done",
+      (setup?.brief ?? "").trim(),
+      setup?.category ?? ""
+    ];
+    return JSON.stringify(current);
+  }, [store, workflowId]);
 
   const planWorkflow = useCallback(
     async (input: PlanWorkflowInput): Promise<string | null> => {
@@ -289,15 +322,20 @@ export const usePlanWorkflow = (workflowId: string): UsePlanWorkflowResult => {
         return reason;
       }
       const token = (requestRef.current += 1);
-      const originStage = readStage();
+      const originInputs = readPlanInputs();
       const controller = new AbortController();
       activeControllerRef.current = controller;
       const isCurrent = () =>
         token === requestRef.current &&
-        readStage() === originStage &&
+        readPlanInputs() === originInputs &&
         !controller.signal.aborted;
+      const setAside = () =>
+        controller.signal.aborted
+          ? "Planning was canceled."
+          : PLAN_SET_ASIDE_REASON;
       setError(null);
       setPlanning(true);
+      setPlanningPhase("drafting");
       setPlanningStatus("pending");
       try {
         const pinned = pinnedChipPlan(brief);
@@ -325,6 +363,11 @@ export const usePlanWorkflow = (workflowId: string): UsePlanWorkflowResult => {
                   .join("\n")
               }
             ],
+            onRound: (round) => {
+              if (token === requestRef.current) {
+                setPlanningPhase(round > 1 ? "checking" : "drafting");
+              }
+            },
             generate: async (messages) => {
               if (!isCurrent()) {
                 throw new DOMException("The plan was abandoned.", "AbortError");
@@ -374,7 +417,7 @@ export const usePlanWorkflow = (workflowId: string): UsePlanWorkflowResult => {
         // The plan they are looking at now stays, and the refusal of a request
         // they abandoned is not reported over what they are reading.
         if (!isCurrent()) {
-          return null;
+          return setAside();
         }
         if (!resolved) {
           const reason = input.model?.id
@@ -395,7 +438,7 @@ export const usePlanWorkflow = (workflowId: string): UsePlanWorkflowResult => {
         return null;
       } catch (cause) {
         if (!isCurrent()) {
-          return null;
+          return setAside();
         }
         // The provider's own words — a 429, a model that no longer exists, a
         // missing key. Reporting them beats a generic refusal: only these say
@@ -416,7 +459,7 @@ export const usePlanWorkflow = (workflowId: string): UsePlanWorkflowResult => {
         }
       }
     },
-    [readStage, setSetup]
+    [readPlanInputs, setSetup]
   );
 
   const cancelPlanning = useCallback(() => {
@@ -436,6 +479,7 @@ export const usePlanWorkflow = (workflowId: string): UsePlanWorkflowResult => {
     planWorkflow,
     cancelPlanning,
     planning,
+    planningPhase,
     planningStatus,
     error
   };
