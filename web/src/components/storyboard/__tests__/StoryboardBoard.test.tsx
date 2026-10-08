@@ -646,6 +646,27 @@ describe("StoryboardBoard toolbar", () => {
     ).not.toHaveAttribute("aria-current");
   });
 
+  it("does not count a shot another shot's clip covers as a clip to render", () => {
+    mockShots = [
+      {
+        ...makeShot("s1"),
+        status: "keyframe_ready",
+        keyframe: { type: "image", asset_id: "still-1" }
+      },
+      {
+        ...makeShot("s2"),
+        status: "keyframe_ready",
+        keyframe: { type: "image", asset_id: "still-2" },
+        covered_by: { shot_id: "s1", start_seconds: 2 } as Shot["covered_by"]
+      }
+    ];
+    renderBoard(jest.fn());
+
+    expect(
+      screen.getByRole("button", { name: "Render clips (1)" })
+    ).toBeInTheDocument();
+  });
+
   it("treats a URI-backed legacy keyframe as a completed still", () => {
     mockShots = [
       {
@@ -1334,6 +1355,25 @@ describe("StoryboardBoard shot editing placement", () => {
       "s2"
     );
     expect(mockSelectShot).toHaveBeenCalledWith("board-1", "s2");
+  });
+
+  it("lets another card open the editor after the edited shot is deleted", async () => {
+    mockShots = [makeShot("s1"), makeShot("s2")];
+    const view = renderBoard(jest.fn());
+
+    await editCard("s1");
+    mockShots = [makeShot("s2")];
+    view.rerender(
+      <ThemeProvider theme={mockTheme}>
+        <StoryboardBoard boardId="board-1" onDirect={jest.fn()} />
+      </ThemeProvider>
+    );
+    await editCard("s2");
+
+    expect(screen.getByTestId("shot-edit-panel")).toHaveAttribute(
+      "data-shot-id",
+      "s2"
+    );
   });
 
   it("closes the editor without touching the selection", async () => {

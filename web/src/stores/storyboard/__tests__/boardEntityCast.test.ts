@@ -84,4 +84,16 @@ describe("board cast on load", () => {
       "e_hero"
     ]);
   });
+
+  it("keeps an entity removed from the board out after a reload", () => {
+    load(["e_hero", "e_style"], [shot("s1", 0, ["e_hero", "e_style"])]);
+    useStoryboardStore.getState().setEntityIds(BOARD, ["e_style"]);
+    const board = useStoryboardStore.getState().getBoard(BOARD);
+    expect(board?.shots[0]?.entity_ids).toEqual(["e_style"]);
+
+    load(board?.entityIds ?? [], board?.shots ?? []);
+    expect(useStoryboardStore.getState().getBoard(BOARD)?.entityIds).toEqual([
+      "e_style"
+    ]);
+  });
 });

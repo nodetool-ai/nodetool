@@ -9,6 +9,7 @@ import {
 } from "../../hooks/storyboard/useStoryboards";
 import { usePanelStore } from "../../stores/PanelStore";
 import {
+  tabId,
   useWorkspaceTabsStore,
   creationProjectId
 } from "../../stores/WorkspaceTabsStore";
@@ -59,7 +60,6 @@ export const CreateStoryboardButton = memo(function CreateStoryboardButton() {
         ariaLabel="New storyboard"
         onClick={() => void handleCreate()}
         disabled={createStoryboard.isPending}
-        tabIndex={-1}
         icon={<AddIcon />}
       />
     </Tooltip>
@@ -166,14 +166,23 @@ const StoryboardListPanel = ({ projectId }: StoryboardListPanelProps) => {
       return;
     }
     const { id } = itemToDelete;
-    deleteStoryboard.mutate({ id });
-    // The script keeps its words; only its pointer at this board goes. Never
-    // blocks the delete (design §4).
-    void downgradeScriptsLinkedToBoard(id).then((scriptIds) => {
-      if (scriptIds.length > 0) {
-        void utils.scripts.list.invalidate();
+    deleteStoryboard.mutate(
+      { id },
+      {
+        // Only once the board is gone: a failed delete keeps the scripts
+        // linked, and an open tab would autosave the deleted board back.
+        onSuccess: () => {
+          useWorkspaceTabsStore.getState().closeTab(tabId("storyboard", id));
+          // The script keeps its words; only its pointer at this board goes.
+          void downgradeScriptsLinkedToBoard(id).then((scriptIds) => {
+            if (scriptIds.length > 0) {
+              void utils.scripts.list.invalidate();
+            }
+          });
+        },
+        onError: (error) => notifyMutationError("delete the storyboard", error)
       }
-    });
+    );
   }, [itemToDelete, deleteStoryboard, utils]);
 
   return (

@@ -690,6 +690,8 @@ export const useGenerateShot = (): UseGenerateShotResult => {
         (candidate) => candidate.id === record.shotId
       );
       if (!shot) {
+        // Nothing left to retry: settle the record so it stops being offered.
+        useStoryboardGenerationStore.getState().markRequestRetried(requestId);
         throw new Error("The shot for this failed render no longer exists.");
       }
       const operation = record.operation;

@@ -7,6 +7,8 @@ description: "How NodeTool runs untrusted JavaScript in a QuickJS WebAssembly gu
 
 **Navigation**: [Architecture](architecture.md) | [Chat &amp; Agents](global-chat-agents.md) | [CodeAct design](codeact-design.md) | [Sandbox packages](sandbox-package-design.md)
 
+For the saved script document editor that runs in this sandbox, see [JS Scripts](js-scripts.md).
+
 Every piece of JavaScript NodeTool did not write itself runs in one place: a
 QuickJS WebAssembly guest built by `runInSandbox`
 (`packages/agents/src/js-sandbox.ts`). A workflow's Code node, an agent's code
