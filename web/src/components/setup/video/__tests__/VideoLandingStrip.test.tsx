@@ -140,6 +140,24 @@ describe("VideoLandingStrip", () => {
     expect(renderStrip().container).toBeEmptyDOMElement();
   });
 
+  it("still offers Retry after the strip was dismissed", () => {
+    useTimelineStore
+      .getState()
+      .setSetup({ stage: "done", [LANDING_DISMISSED]: true } as never);
+    useTimelineStore
+      .getState()
+      .addClips([clip({ id: "c1", status: "failed" })]);
+    renderStrip();
+
+    expect(
+      screen.getByRole("button", { name: "Retry 1 failed" })
+    ).toBeInTheDocument();
+    expect(screen.queryByText("Next:")).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Hide next steps" })
+    ).not.toBeInTheDocument();
+  });
+
   it("holds the next steps back while anything is still rendering", () => {
     useTimelineStore.getState().setSetup({ stage: "done" });
     useTimelineStore

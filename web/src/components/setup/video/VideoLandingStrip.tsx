@@ -113,13 +113,14 @@ const VideoLandingStripInternal: React.FC<VideoLandingStripProps> = ({
     [setSetup]
   );
 
-  // A sequence that never went through the flow gets nothing, and neither
-  // does one whose creator dismissed the strip.
-  if (stage === undefined || dismissed) {
+  const done = rendering.length === 0 && failedClipIds.length === 0;
+
+  // A sequence that never went through the flow gets nothing. Dismissing
+  // hides the next steps, but a render in progress or a failed clip still
+  // shows, because Retry has no other place.
+  if (stage === undefined || (dismissed && done)) {
     return null;
   }
-
-  const done = rendering.length === 0 && failedClipIds.length === 0;
 
   return (
     <FlexRow
@@ -142,7 +143,7 @@ const VideoLandingStripInternal: React.FC<VideoLandingStripProps> = ({
           {`Retry ${failedClipIds.length} failed`}
         </EditorButton>
       ) : null}
-      {done ? (
+      {done && !dismissed ? (
         <>
           <Caption color="secondary">Next:</Caption>
           {clips.length > 0 ? (
@@ -159,11 +160,13 @@ const VideoLandingStripInternal: React.FC<VideoLandingStripProps> = ({
           </EditorButton>
         </>
       ) : null}
-      <CloseButton
-        onClick={handleDismiss}
-        tooltip="Hide next steps"
-        sx={{ marginLeft: "auto" }}
-      />
+      {dismissed ? null : (
+        <CloseButton
+          onClick={handleDismiss}
+          tooltip="Hide next steps"
+          sx={{ marginLeft: "auto" }}
+        />
+      )}
     </FlexRow>
   );
 };
