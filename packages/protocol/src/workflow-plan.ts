@@ -809,6 +809,8 @@ export interface RefineWorkflowPlanOptions {
   check: (plan: WorkflowSetupPlan) => string[];
   /** Planner calls in all, the first draft included. */
   maxRounds?: number;
+  /** Called before each planner call with its 1-based round number. */
+  onRound?: (round: number) => void;
 }
 
 export interface RefinedWorkflowPlan {
@@ -820,6 +822,11 @@ export interface RefinedWorkflowPlan {
 }
 
 export const WORKFLOW_PLAN_MAX_ROUNDS = 3;
+
+const isAbortError = (cause: unknown): boolean =>
+  typeof cause === "object" &&
+  cause !== null &&
+  (cause as { name?: unknown }).name === "AbortError";
 
 /** The plan as the model wrote it: the ids are the parser's, not the model's. */
 const planAsAnswer = (plan: WorkflowSetupPlan): string =>
@@ -835,6 +842,9 @@ const planAsAnswer = (plan: WorkflowSetupPlan): string =>
  * failed. Each round hands the model its own previous answer and the checker's
  * findings, and asks for the whole plan again. The loop stops on the first
  * plan with no problems, or after `maxRounds` calls with the best plan seen.
+ *
+ * A repair call that fails returns the best plan so far instead of losing it,
+ * unless the call was aborted. Only a failure before any plan exists rejects.
  */
 export async function refineWorkflowPlan(
   options: RefineWorkflowPlanOptions
@@ -844,7 +854,16 @@ export async function refineWorkflowPlan(
   let best: RefinedWorkflowPlan = { plan: null, problems: [], rounds: 0 };
 
   for (let round = 1; round <= maxRounds; round += 1) {
-    const raw = await options.generate(messages);
+    options.onRound?.(round);
+    let raw: Record<string, unknown> | null;
+    try {
+      raw = await options.generate(messages);
+    } catch (cause) {
+      if (best.plan === null || isAbortError(cause)) {
+        throw cause;
+      }
+      return best;
+    }
     const parsed = parseWorkflowPlan(raw);
     const plan = parsed && options.normalize ? options.normalize(parsed) : parsed;
     const problems = plan
