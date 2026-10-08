@@ -756,6 +756,8 @@ jobs:
           TURBO_SCM_BASE: ${{ inputs.base-sha }}
           TURBO_AFFECTED: ${{ inputs.base-sha != '' && '--affected' || '' }}
           CI_BASE_SHA: ${{ inputs.base-sha }}
+          # Keep deadline-sensitive harness fixtures isolated from parallel test files.
+          NODETOOL_TEST_WORKERS: ${{ matrix.check == 'harness-gate' && '1' || '' }}
           NODETOOL_GAME_GOLDEN_ARTIFACTS: ${{ matrix.check == 'harness-gate' && format('{0}/native-game-golden-diagnostics', runner.temp) || '' }}
         run: |
           echo "::group::${{ matrix.check }}"
