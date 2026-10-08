@@ -12,8 +12,27 @@ function repeatedEffects(effects: ClipEffect[] | undefined, hue: number, brightn
   }];
 }
 
-/** Visual copies are ordinary clips, so every render host decodes and draws them identically. */
+const expandedCache = new WeakMap<readonly TimelineClip[], TimelineClip[]>();
+
+/**
+ * Visual copies are ordinary clips, so every render host decodes and draws them identically.
+ *
+ * The result is cached by the identity of `clips` and must not be mutated. A
+ * document's clip array is replaced, never edited in place, so every frame of
+ * an unchanged document gets the same expanded array and the same copy
+ * objects. The scene model's layout and animation caches are keyed by those
+ * identities, and a fresh array per call missed all of them.
+ */
 export function expandTemporalClips(clips: readonly TimelineClip[]): TimelineClip[] {
+  let expanded = expandedCache.get(clips);
+  if (!expanded) {
+    expanded = expandUncached(clips);
+    expandedCache.set(clips, expanded);
+  }
+  return expanded;
+}
+
+function expandUncached(clips: readonly TimelineClip[]): TimelineClip[] {
   const result: TimelineClip[] = [];
   for (const clip of clips) {
     const instances: TimelineClip[] = [clip];

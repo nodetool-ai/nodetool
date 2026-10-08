@@ -307,7 +307,7 @@ export function useLayerActions({
     if (!layer || layer.locked) {
       return;
     }
-    pushHistory(historyLabel);
+    pushHistory(historyLabel, undefined, { timing: "before" });
     canvasRef.current.flipLayer(layerId, direction);
     syncLayerDataFromCanvas(layerId);
   }, [
@@ -337,7 +337,7 @@ export function useLayerActions({
     if (!layer || layer.locked) {
       return;
     }
-    pushHistory("rotate 180");
+    pushHistory("rotate 180", undefined, { timing: "before" });
     canvasRef.current.rotateLayer180(layerId);
     syncLayerDataFromCanvas(layerId);
   }, [
@@ -385,7 +385,7 @@ export function useLayerActions({
         return null;
       }
       const lower = layers[lowerIdx];
-      pushHistory("merge down");
+      pushHistory("merge down", undefined, { timing: "before" });
       mergeLayerDownPair(upperLayerId, lower.id);
       return lower.id;
     },
@@ -406,7 +406,7 @@ export function useLayerActions({
     }
     // Flatten is also a destructive bake flow: runtime composites all visible
     // layers into one document-space raster and the store replaces the layer stack.
-    pushHistory("flatten visible");
+    pushHistory("flatten visible", undefined, { timing: "before" });
     const flatData = canvasRef.current.flattenVisible();
     flattenVisible();
     const newState = useSketchStore.getState();
@@ -505,7 +505,7 @@ export function useLayerActions({
       return;
     }
 
-    pushHistory("merge selected");
+    pushHistory("merge selected", undefined, { timing: "before" });
 
     for (const { upperLayerId, lowerLayerId } of plan.mergePairs) {
       mergeLayerDownPair(upperLayerId, lowerLayerId);

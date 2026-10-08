@@ -54,6 +54,12 @@
       "import": "./dist/game.js",
       "default": "./dist/game.js"
     },
+    "./missing-runtime-package": {
+      "nodetool-dev": "./src/missing-runtime-package.ts",
+      "types": "./dist/missing-runtime-package.d.ts",
+      "import": "./dist/missing-runtime-package.js",
+      "default": "./dist/missing-runtime-package.js"
+    },
     "./zod-schema": {
       "nodetool-dev": "./src/zod-schema.ts",
       "types": "./dist/zod-schema.d.ts",

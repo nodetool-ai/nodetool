@@ -4,7 +4,7 @@ import { platform } from "node:os";
 /** Opt-in browser performance suites. They are excluded from functional CI. */
 export default defineConfig({
   testDir: "./tests/benchmarks",
-  testMatch: /(?:realtime-perf|chat-history-scroll|timeline-preview-perf)\.spec\.ts$/,
+  testMatch: /(?:realtime-perf|chat-history-scroll|timeline-preview-perf|timeline-large-perf)\.spec\.ts$/,
   forbidOnly: true,
   retries: 0,
   workers: 1,

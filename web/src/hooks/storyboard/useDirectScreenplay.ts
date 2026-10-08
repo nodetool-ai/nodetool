@@ -71,7 +71,11 @@ interface UseDirectScreenplayResult {
    * must not advance on failure (the setup flow's genre step) reads the
    * boolean.
    */
-  direct: (boardId: string, shotCount: number) => Promise<boolean>;
+  direct: (
+    boardId: string,
+    shotCount: number,
+    signal?: AbortSignal
+  ) => Promise<boolean>;
   directing: boolean;
   error: string | null;
   /**
@@ -126,7 +130,11 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
   const { data: allEntities } = useEntities();
 
   const direct = useCallback(
-    async (boardId: string, requestedShots: number): Promise<boolean> => {
+    async (
+      boardId: string,
+      requestedShots: number,
+      signal?: AbortSignal
+    ): Promise<boolean> => {
       const board = useStoryboardStore.getState().getBoard(boardId);
       const imported = getImportSource(boardId);
       const brief = board?.brief?.trim() ?? "";
@@ -210,7 +218,7 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
             ),
             schema_name: CAMERA_PASS_TOOL_NAME,
             schema_description: CAMERA_PASS_TOOL_DESCRIPTION
-          });
+          }, undefined, signal);
           const returned = applyCameraPass(preserved, answer.data);
           const verified = verifyImportedFdx(preserved, returned);
           const store = useStoryboardStore.getState();
@@ -253,7 +261,7 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
           schema: buildScreenplaySchema(shotCount),
           schema_name: SCREENPLAY_TOOL_NAME,
           schema_description: SCREENPLAY_TOOL_DESCRIPTION
-        });
+        }, undefined, signal);
         const parsed = result.data
           ? parseScreenplay(result.data, { shotCount, aspectRatio, genre })
           : null;
@@ -294,6 +302,11 @@ export const useDirectScreenplay = (): UseDirectScreenplayResult => {
         }
         return true;
       } catch (err) {
+        // A canceled run leaves the board as it was and says nothing: the
+        // creator asked for it to stop.
+        if (signal?.aborted) {
+          return false;
+        }
         // The provider's own words, rewritten as one sentence plus the thing
         // to try next — the raw body carries a status code, a JSON blob and a
         // billing URL, and reads as a crash under a guided step.

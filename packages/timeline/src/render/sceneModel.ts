@@ -46,10 +46,10 @@ import {
 import { resolveAnimatedStyleTracks, resolveAnimatedTextContent, resolveAnimationLinks } from "../animation/index.js";
 import { clipSourceMsAt } from "../timeRemap.js";
 import { resolveBeatAnimations } from "../animation/beat.js";
-import type { ResolvedCaption, TextRenderStagger } from "./draw.js";
-import { countTextStaggerUnits, type RenderCanvas } from "./textLayout.js";
+import { textStyleSignature, type ResolvedCaption, type TextRenderStagger } from "./draw.js";
+import { countTextStaggerUnits, type MeasureTextWidth, type RenderCanvas } from "./textLayout.js";
 import { buildTransformMatrix } from "./transform.js";
-import { resolveClipLayoutsWithDiagnostics } from "./layout.js";
+import { resolveClipLayoutsWithDiagnostics, type ClipLayoutResolution } from "./layout.js";
 import { resolveCamera2D, sampleCamera2D } from "./spatial.js";
 import { expandTemporalClips, clipSteppedTime } from "./temporal.js";
 import { resolveTransition, type ResolvedTransition } from "./transition.js";
@@ -472,6 +472,27 @@ export function resolveGroups(
       // A chain that reaches a cycle cannot say what any of its links inherit,
       // so none of them inherit anything.
       const parent = cycle ? undefined : inherited;
+      const window = {
+        startMs: Math.max(
+          current.startMs,
+          parent?.window.startMs ?? Number.NEGATIVE_INFINITY
+        ),
+        endMs: Math.min(
+          current.startMs + current.durationMs,
+          parent?.window.endMs ?? Number.POSITIVE_INFINITY
+        )
+      };
+      // Off screen, the window is all a group contributes: every child is
+      // dropped before it reads the matrix, the opacity or the surface. A
+      // document holds far more groups than one frame shows, and sampling
+      // the animations of every one on every frame was most of a resolve.
+      if (currentTimeMs < window.startMs || currentTimeMs >= window.endMs) {
+        const offscreen: ResolvedGroup = { opacity: 0, window };
+        if (cycle) offscreen.cycle = true;
+        resolved.set(current.id, offscreen);
+        inherited = offscreen;
+        continue;
+      }
       const own = groupProps(current, currentTimeMs, canvas, cache, tempo);
       const spatial = camera && !parent?.cameraApplied && own.transform?.depthPx !== undefined
         ? resolveCamera2D(own.transform ?? IDENTITY_TRANSFORM, sampleCamera2D(camera, currentTimeMs), current.effects)
@@ -489,16 +510,7 @@ export function resolveGroups(
         // applied once, to the composed surface, which is the whole point of
         // the intermediate — two overlapping children must not each be dimmed.
         opacity: precompose ? 1 : folded,
-        window: {
-          startMs: Math.max(
-            current.startMs,
-            parent?.window.startMs ?? Number.NEGATIVE_INFINITY
-          ),
-          endMs: Math.min(
-            current.startMs + current.durationMs,
-            parent?.window.endMs ?? Number.POSITIVE_INFINITY
-          )
-        }
+        window
       };
       if (spatial || parent?.cameraApplied) entry.cameraApplied = true;
       if (canvas) {
@@ -871,6 +883,190 @@ export interface ActiveLayersResult {
  * away is named in `droppedLayers` so a host can say what is missing from the
  * frame instead of showing a picture that quietly lost a layer.
  */
+const groupPatchedCache = new WeakMap<ClipLayoutResolution, { clips: readonly TimelineClip[]; patched: TimelineClip[] }>();
+
+/**
+ * The clips `resolveGroups` places groups from, with each flex-managed group
+ * carrying its resolved transform. Cached by the layout result, which is itself
+ * cached per clip array, so steady playback reuses one array.
+ */
+function groupPatchedFor(clips: TimelineClip[], resolution: ClipLayoutResolution): TimelineClip[] {
+  const hit = groupPatchedCache.get(resolution);
+  if (hit && hit.clips === clips) return hit.patched;
+  const layouts = resolution.transforms;
+  const patched = clips.map((clip) => {
+    if (clip.mediaType !== "group") return clip;
+    const resolved = layouts.get(clip.id);
+    if (!resolved) return clip;
+    if (clip.layout?.display !== "flex") return { ...clip, transform: resolved };
+    return { ...clip, transform: { ...resolved, position: { x: 0, y: 0 } } };
+  });
+  groupPatchedCache.set(resolution, { clips, patched });
+  return patched;
+}
+
+/**
+ * What the scene walk reads from a clip array that does not depend on time.
+ * Cached by the array's identity: a document's clips are replaced on every
+ * edit, never mutated in place, so one index serves every frame of an
+ * unchanged document instead of being rebuilt on each call.
+ */
+interface SceneIndex {
+  clipById: Map<string, TimelineClip>;
+  clipsByTrackId: Map<string, TimelineClip[]>;
+  matteSourceIds: Set<string>;
+  /** Animated text clips under a flex container, whose size can move layout. */
+  flexAnimatedText: TimelineClip[];
+  /** Ends of incoming transitions, a change boundary at every time. */
+  transitionEnds: number[];
+  stackOrderByClipId?: Map<string, number>;
+  /** Patched layout inputs by the animated styles they carry; see {@link layoutClipsAt}. */
+  layoutInputs: Map<string, TimelineClip[]>;
+  /** The layout's text measurer, memoized; see {@link layoutCanvasFor}. */
+  measured?: { source: MeasureTextWidth; memo: MeasureTextWidth };
+}
+
+const sceneIndexCache = new WeakMap<readonly TimelineClip[], SceneIndex>();
+
+function sceneIndex(clips: readonly TimelineClip[]): SceneIndex {
+  const cached = sceneIndexCache.get(clips);
+  if (cached) return cached;
+  const clipById = new Map(clips.map((clip) => [clip.id, clip]));
+  const clipsByTrackId = new Map<string, TimelineClip[]>();
+  for (const c of clips) {
+    const arr = clipsByTrackId.get(c.trackId);
+    if (arr) arr.push(c);
+    else clipsByTrackId.set(c.trackId, [c]);
+  }
+  const matteSourceIds = new Set<string>();
+  for (const clip of clips) {
+    const matte = clip.matte;
+    if (!matte || parseMatteMode(matte.mode) === null) continue;
+    const source = clipById.get(matte.sourceClipId);
+    // An adjustment has no pixels to read a channel out of, so it is no more a
+    // matte source than a clip that is not in the document — the layer naming
+    // it draws unmatted rather than vanishing.
+    if (!source || source.mediaType === "adjustment") continue;
+    matteSourceIds.add(matte.sourceClipId);
+  }
+  const inFlexTree = (clip: TimelineClip): boolean => {
+    let cursor = clip.parentId ? clipById.get(clip.parentId) : undefined;
+    for (let hops = 0; cursor && hops < MAX_PARENT_HOPS; hops++) {
+      if (cursor.layout?.display === "flex") return true;
+      cursor = cursor.parentId ? clipById.get(cursor.parentId) : undefined;
+    }
+    return false;
+  };
+  const flexAnimatedText = clips.filter(
+    (clip) => clip.textStyle !== undefined && (clip.animations?.length ?? 0) > 0 && inFlexTree(clip)
+  );
+  const transitionEnds: number[] = [];
+  for (const clip of clips) {
+    if ((clip.transitionIn?.durationMs ?? 0) > 0) {
+      transitionEnds.push(clip.startMs + clip.transitionIn!.durationMs);
+    }
+  }
+  const index: SceneIndex = { clipById, clipsByTrackId, matteSourceIds, flexAnimatedText, transitionEnds, layoutInputs: new Map() };
+  sceneIndexCache.set(clips, index);
+  return index;
+}
+
+/** Bottom-to-top order of every clip on its track, computed once per clip array. */
+function stackOrderOf(index: SceneIndex): Map<string, number> {
+  if (index.stackOrderByClipId) return index.stackOrderByClipId;
+  const stackOrderByClipId = new Map<string, number>();
+  for (const trackClips of index.clipsByTrackId.values()) {
+    const ordered = trackClips
+      .filter((clip) => clip.mediaType !== "adjustment")
+      .sort((a, b) => {
+        const depth = (a.transform?.depthPx ?? 0) - (b.transform?.depthPx ?? 0);
+        if (depth !== 0) return depth;
+        const aEcho = a.id.includes(":echo:") ? 0 : 1;
+        const bEcho = b.id.includes(":echo:") ? 0 : 1;
+        if (aEcho !== bEcho) return aEcho - bEcho;
+        return a.startMs - b.startMs;
+      });
+    ordered.forEach((clip, order) => stackOrderByClipId.set(clip.id, order));
+  }
+  index.stackOrderByClipId = stackOrderByClipId;
+  return stackOrderByClipId;
+}
+
+/** Distinct animated layouts kept per document before the oldest is dropped. */
+const LAYOUT_INPUT_CACHE_MAX = 64;
+
+/**
+ * The clips the layout resolver sees at `currentTimeMs`: the document's own,
+ * with an animated text style swapped in where the text sits under a flex
+ * container and so can resize its siblings. Answers `clips` itself when no
+ * such clip exists, and otherwise one array per distinct set of animated
+ * styles, so the layout cache, keyed by the array, hits whenever the styles
+ * repeat — which is every frame between two changes of the animated text.
+ */
+const MEASURED_WIDTHS_MAX = 4096;
+
+/**
+ * `canvas` with its text measurer memoized for this document. Animated text in
+ * a flex tree (a ticker counting up) changes the layout input every frame, and
+ * each re-layout measures every word of every text in every flex tree again;
+ * only the changed text measures anything new. The memo lives on the index, so
+ * it is as fresh as the layout cache, which already treats one measurer on one
+ * clips array as one answer.
+ */
+function layoutCanvasFor(index: SceneIndex, canvas: RenderCanvas): RenderCanvas {
+  const source = canvas.measureText;
+  if (!source) return canvas;
+  let measured = index.measured;
+  if (measured?.source !== source) {
+    const widths = new Map<string, number>();
+    const memo: MeasureTextWidth = (text, font) => {
+      const key = `${font}\u0000${text}`;
+      let width = widths.get(key);
+      if (width === undefined) {
+        if (widths.size >= MEASURED_WIDTHS_MAX) widths.clear();
+        width = source(text, font);
+        widths.set(key, width);
+      }
+      return width;
+    };
+    measured = index.measured = { source, memo };
+  }
+  return { ...canvas, measureText: measured.memo };
+}
+
+function layoutClipsAt(
+  clips: TimelineClip[],
+  index: SceneIndex,
+  currentTimeMs: number,
+  canvas: RenderCanvas,
+  options: ComputeActiveLayersOptions
+): TimelineClip[] {
+  if (index.flexAnimatedText.length === 0) return clips;
+  const patched = new Map<string, TimelineClip>();
+  for (const clip of index.flexAnimatedText) {
+    const animated = resolveAnimatedLayerProps(
+      { clip, transform: clip.transform, opacity: clip.opacity ?? 1 },
+      currentTimeMs,
+      canvas,
+      options.animationCache,
+      { mediaTracks: options.mediaTracks ?? [], clips, tempo: options.tempo }
+    );
+    if (animated.textStyle) patched.set(clip.id, { ...clip, textStyle: animated.textStyle });
+  }
+  if (patched.size === 0) return clips;
+  let key = "";
+  for (const [id, clip] of patched) key += `${id}\u0000${textStyleSignature(clip.textStyle!, canvas.width, canvas.height)}\u0001`;
+  const hit = index.layoutInputs.get(key);
+  if (hit) return hit;
+  const inputs = clips.map((clip) => patched.get(clip.id) ?? clip);
+  if (index.layoutInputs.size >= LAYOUT_INPUT_CACHE_MAX) {
+    const oldest = index.layoutInputs.keys().next().value;
+    if (oldest !== undefined) index.layoutInputs.delete(oldest);
+  }
+  index.layoutInputs.set(key, inputs);
+  return inputs;
+}
+
 function computeActiveLayersWithHorizonBase(
   tracks: TimelineTrack[],
   clips: TimelineClip[],
@@ -880,21 +1076,14 @@ function computeActiveLayersWithHorizonBase(
   const maxVideoLayers = options.maxVideoLayers ?? MAX_VIDEO_LAYERS;
   const transitions = resolveDocumentTransitions(clips, currentTimeMs);
 
+  const index = sceneIndex(clips);
   const layoutCanvas = options.canvas;
-  const layoutClips = layoutCanvas
-    ? clips.map((clip) => {
-        if (!clip.textStyle || !clip.animations?.length) return clip;
-        const animated = resolveAnimatedLayerProps(
-          { clip, transform: clip.transform, opacity: clip.opacity ?? 1 },
-          currentTimeMs,
-          layoutCanvas,
-          options.animationCache,
-          { mediaTracks: options.mediaTracks ?? [], clips, tempo: options.tempo }
-        );
-        return animated.textStyle ? { ...clip, textStyle: animated.textStyle } : clip;
-      })
-    : clips;
-  const layoutResolved = layoutCanvas ? resolveClipLayoutsWithDiagnostics(layoutClips, layoutCanvas) : undefined;
+  const layoutResolved = layoutCanvas
+    ? resolveClipLayoutsWithDiagnostics(
+        layoutClipsAt(clips, index, currentTimeMs, layoutCanvas, options),
+        layoutCanvasFor(index, layoutCanvas)
+      )
+    : undefined;
   const layouts = layoutResolved?.transforms ?? new Map<string, ClipTransform>();
   // Every entry in `layouts` — leaf or nested (non-root) flex container — is
   // a delta already relative to the flex root's own untranslated frame
@@ -915,14 +1104,8 @@ function computeActiveLayersWithHorizonBase(
   // only real translation this composition is meant to add. A plain group
   // inside a flex container is a leaf: flex moves the group and never lays
   // out its children, so it keeps its resolved transform, position included.
-  const groupPatchedClips = layouts.size > 0
-    ? clips.map((clip) => {
-        if (clip.mediaType !== "group") return clip;
-        const resolved = layouts.get(clip.id);
-        if (!resolved) return clip;
-        if (clip.layout?.display !== "flex") return { ...clip, transform: resolved };
-        return { ...clip, transform: { ...resolved, position: { x: 0, y: 0 } } };
-      })
+  const groupPatchedClips = layoutResolved && layouts.size > 0
+    ? groupPatchedFor(clips, layoutResolved)
     : clips;
 
   // Parents before children: a child's opacity, matrix and window all come
@@ -941,12 +1124,7 @@ function computeActiveLayersWithHorizonBase(
   const sortedTracks = [...tracks].sort((a, b) => a.index - b.index);
   const layoutSizes = layoutResolved?.sizes ?? new Map<string, { width: number; height: number }>();
   const canvasForLayout = layoutCanvas;
-  const clipsByTrackId = new Map<string, TimelineClip[]>();
-  for (const c of clips) {
-    const arr = clipsByTrackId.get(c.trackId);
-    if (arr) arr.push(c);
-    else clipsByTrackId.set(c.trackId, [c]);
-  }
+  const { clipById, clipsByTrackId, matteSourceIds } = index;
 
   const mediaLayers: ActiveLayer[] = [];
   const captionLayers: ActiveLayer[] = [];
@@ -959,18 +1137,6 @@ function computeActiveLayersWithHorizonBase(
   // `matte` are held aside as the walk reaches them and handed to the layers
   // that name them once the walk is over — the source may sit on a track below
   // the one that reads it (D6).
-  const clipById = new Map(clips.map((clip) => [clip.id, clip]));
-  const matteSourceIds = new Set<string>();
-  for (const clip of clips) {
-    const matte = clip.matte;
-    if (!matte || parseMatteMode(matte.mode) === null) continue;
-    const source = clipById.get(matte.sourceClipId);
-    // An adjustment has no pixels to read a channel out of, so it is no more a
-    // matte source than a clip that is not in the document — the layer naming
-    // it draws unmatted rather than vanishing.
-    if (!source || source.mediaType === "adjustment") continue;
-    matteSourceIds.add(matte.sourceClipId);
-  }
   const matteLayers = new Map<string, ActiveLayer>();
   const emitMedia = (layer: ActiveLayer): void => {
     layer.transform = layouts.get(layer.clipId) ?? layer.transform;
@@ -1017,11 +1183,7 @@ function computeActiveLayersWithHorizonBase(
     considerBoundary(group.window.startMs);
     considerBoundary(group.window.endMs);
   }
-  for (const clip of clips) {
-    if ((clip.transitionIn?.durationMs ?? 0) > 0) {
-      considerBoundary(clip.startMs + clip.transitionIn!.durationMs);
-    }
-  }
+  for (const end of index.transitionEnds) considerBoundary(end);
 
   for (const track of sortedTracks) {
     if (!track.visible) continue;
@@ -1359,20 +1521,7 @@ function computeActiveLayersWithHorizonBase(
     usedSurfaces
   );
   if (precomposites.length > 0) {
-    const stackOrderByClipId = new Map<string, number>();
-    for (const trackClips of clipsByTrackId.values()) {
-      const ordered = trackClips
-        .filter((clip) => clip.mediaType !== "adjustment")
-        .sort((a, b) => {
-          const depth = (a.transform?.depthPx ?? 0) - (b.transform?.depthPx ?? 0);
-          if (depth !== 0) return depth;
-          const aEcho = a.id.includes(":echo:") ? 0 : 1;
-          const bEcho = b.id.includes(":echo:") ? 0 : 1;
-          if (aEcho !== bEcho) return aEcho - bEcho;
-          return a.startMs - b.startMs;
-        });
-      ordered.forEach((clip, index) => stackOrderByClipId.set(clip.id, index));
-    }
+    const stackOrderByClipId = stackOrderOf(index);
     for (const layer of drawn) {
       layer.stackOrder = stackOrderByClipId.get(layer.clipId);
     }
@@ -2147,7 +2296,7 @@ export function hasActiveAnimation(
   // child through `parentMatrix`, so a still child of a moving group is a
   // moving layer. `clips` is how the ancestors are reached; without it only
   // the layers' own animations are seen.
-  const byId = clips ? new Map(clips.map((clip) => [clip.id, clip])) : null;
+  const byId = clips ? sceneIndex(clips).clipById : null;
   const animating = (clip: TimelineClip): boolean => {
     if (clip.animationLinks?.length) return true;
     if (clip.effects?.some((effect) => effect.enabled && (effect.type === "generator" || effect.type === "stylize" || isClipGrainEffect(effect)) && effect.animate)) return true;

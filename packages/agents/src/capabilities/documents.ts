@@ -7,7 +7,8 @@
  *
  * The PDF parser (`@llamaindex/liteparse`) is imported inside the extraction
  * helper, as it always was — loading this module costs a handful of node
- * builtins and nothing else.
+ * builtins and nothing else. It is an optional package the desktop app
+ * installs on first use ("PDF Libraries").
  *
  * Design: docs/tool-class-retirement-design.md § "PRs 4–9 — remaining
  * namespaces".
@@ -27,6 +28,7 @@ import {
   convertDocumentSpec
 } from "./documents.specs.js";
 import { isString } from "../utils/type-guards.js";
+import { importOptionalLibrary } from "../host-modules/limits.js";
 
 const execFileAsync = promisify(execFile);
 
@@ -102,7 +104,9 @@ interface PdfExtraction {
  * Returns per-page text so callers can slice by page range.
  */
 async function extractPdfPages(buffer: Buffer): Promise<PdfExtraction> {
-  const { LiteParse } = await import("@llamaindex/liteparse");
+  const { LiteParse } = await importOptionalLibrary<
+    typeof import("@llamaindex/liteparse")
+  >("documents", "@llamaindex/liteparse", "pdf-js");
   const parser = new LiteParse({ ocrEnabled: false });
   const result = await parser.parse(buffer, true);
   const pages = result.pages.map((p) => p.text);

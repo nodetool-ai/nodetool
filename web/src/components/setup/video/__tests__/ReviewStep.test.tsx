@@ -117,6 +117,18 @@ describe("video ReviewStep (criterion 4)", () => {
     ).toBe("New line");
     expect(onValidationChange).toHaveBeenLastCalledWith(undefined);
   });
+  it("shows why the last re-plan failed", () => {
+    seed(beats());
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ReviewStep onReplan={jest.fn()} error="The provider refused." />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The provider refused."
+    );
+  });
+
   it("shows the beat total against the format's length", () => {
     seed(beats());
     renderStep();

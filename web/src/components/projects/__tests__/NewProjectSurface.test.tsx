@@ -165,9 +165,11 @@ jest.mock("../../../hooks/storyboard/useStoryboards", () => ({
 // surface becomes the flow, so the surface renders these hooks on every mount.
 const createTimeline = jest.fn(async () => ({ id: "seq-1" }));
 const seedTimelineDetail = jest.fn();
+const deleteTimeline = jest.fn(async () => undefined);
 jest.mock("../../../hooks/useTimelineSequence", () => ({
   __esModule: true,
   useCreateTimeline: () => ({ mutateAsync: createTimeline }),
+  useDeleteTimeline: () => ({ mutateAsync: deleteTimeline }),
   useSeedTimelineDetail: () => seedTimelineDetail
 }));
 const createScript = jest.fn(async () => ({ id: "script-1" }));
@@ -430,6 +432,7 @@ jest.mock("../../../hooks/useWorkflowActions", () => ({
 }));
 
 import NewProjectSurface from "../NewProjectSurface";
+import { OPTION_CARD_CLASS } from "../../setup/OptionCardGrid";
 import { clearChatTurn, peekChatTurn } from "../../chat/pendingChatTurn";
 import useOnboardingStore from "../../../stores/OnboardingStore";
 import { useProviderOnboardingStore } from "../../../stores/ProviderOnboardingStore";
@@ -1141,6 +1144,36 @@ describe("NewProjectSurface", () => {
     }
   });
 
+  // The guided section paints its flow cards black. The rule used to select
+  // every button in the section, so More formats, the game dimension select
+  // and a card's expand control turned black too.
+  it("paints only the flow cards black, not the section's other buttons", () => {
+    renderSurface();
+    const section = screen.getByRole("region", {
+      name: "Start with a guided flow"
+    });
+    const card = within(
+      within(section).getByRole("group", { name: "Guided creation flows" })
+    ).getByRole("button", { name: /^Video / });
+    const more = within(section).getByRole("button", { name: /formats$/ });
+    expect(card).toHaveClass(OPTION_CARD_CLASS);
+    expect(more).not.toHaveClass(OPTION_CARD_CLASS);
+
+    // jsdom does not resolve this cascade, so read the section's own rules.
+    const sectionClass = Array.from(section.classList).find((name) =>
+      name.startsWith("css-")
+    );
+    const selectors = Array.from(document.styleSheets)
+      .flatMap((sheet) => Array.from(sheet.cssRules))
+      .map((rule) => (rule as CSSStyleRule).selectorText ?? "")
+      .filter((selector) => selector.startsWith(`.${sectionClass} `));
+    expect(selectors.length).toBeGreaterThan(0);
+    expect(selectors.some((selector) => / button/.test(selector))).toBe(false);
+    expect(
+      selectors.some((selector) => selector.includes(`.${OPTION_CARD_CLASS}`))
+    ).toBe(true);
+  });
+
   // The create seeds the `timeline.get` cache with a sequence that has no
   // setup, and the store load ignores every later copy of the same id — so the
   // PATCHed document has to replace that cache entry or the flow mounts on
@@ -1158,6 +1191,25 @@ describe("NewProjectSurface", () => {
     await waitFor(() =>
       expect(seedTimelineDetail).toHaveBeenCalledWith(patchedSequence)
     );
+    expect(deleteTimeline).not.toHaveBeenCalled();
+  });
+
+  // The setup goes in as a PATCH after the create. A PATCH that fails would
+  // leave an empty timeline in the project nobody opened (F15).
+  it("deletes the new timeline when its setup cannot be written", async () => {
+    const user = userEvent.setup();
+    timelineUpdate.mockRejectedValueOnce(new Error("PATCH refused"));
+    renderSurface();
+    const cards = screen.getByRole("group", {
+      name: "Guided creation flows"
+    });
+
+    await user.click(within(cards).getByRole("button", { name: /^Video / }));
+
+    await waitFor(() =>
+      expect(deleteTimeline).toHaveBeenCalledWith({ id: "seq-1" })
+    );
+    expect(seedTimelineDetail).not.toHaveBeenCalled();
   });
 
   it.each([

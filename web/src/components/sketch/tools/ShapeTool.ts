@@ -13,6 +13,7 @@ import type { Point, ShapeToolType, ShapeSettings } from "../types";
 import CategoryIcon from "@mui/icons-material/Category";
 import { CoordinateMapper } from "../painting";
 import { ensureLayerRasterBounds } from "../transform/geometry/ensureRasterBounds";
+import { DragSnapSession } from "../snapping/toolSnap";
 import {
   getDocumentViewportInLayerSpace,
   getCanvasRasterBounds
@@ -229,6 +230,7 @@ export class ShapeTool implements ToolHandler {
   private lastEnd: Point | null = null;
   private activeCtx: ToolContext | null = null;
   private modifierKeyListener: ((e: KeyboardEvent) => void) | null = null;
+  private readonly snapping = new DragSnapSession();
 
   private redrawPreview(): void {
     if (!this.activeCtx || !this.shapeStart || !this.lastEnd) {
@@ -275,8 +277,10 @@ export class ShapeTool implements ToolHandler {
       return false;
     }
 
-    this.shapeStart = event.point;
-    this.lastEnd = event.point;
+    this.snapping.begin(ctx);
+    const start = this.snapping.snap(ctx, event.point);
+    this.shapeStart = start;
+    this.lastEnd = start;
     this.activeCtx = ctx;
     ctx.onStrokeStart();
     ensureLayerRasterBounds(
@@ -295,8 +299,9 @@ export class ShapeTool implements ToolHandler {
     }
     ctx.shiftHeldRef.current = event.nativeEvent.shiftKey;
     ctx.altHeldRef.current = event.nativeEvent.altKey;
-    this.lastEnd = event.point;
-    ctx.drawOverlayShape(this.shapeStart, event.point);
+    const end = this.snapping.snap(ctx, event.point);
+    this.lastEnd = end;
+    ctx.drawOverlayShape(this.shapeStart, end);
   }
 
   onUp(ctx: ToolContext, event?: ToolPointerEvent): void {
@@ -305,12 +310,13 @@ export class ShapeTool implements ToolHandler {
     }
     const { doc } = ctx;
     const activeLayer = doc.layers.find((l) => l.id === doc.activeLayerId);
+    const endDoc = event ? this.snapping.snap(ctx, event.point) : this.lastEnd ?? this.shapeStart;
+    this.snapping.end();
     if (!activeLayer) {
       this.shapeStart = null;
       return;
     }
 
-    const endDoc = event?.point ?? this.shapeStart;
     if (event) {
       ctx.shiftHeldRef.current = event.nativeEvent.shiftKey;
       ctx.altHeldRef.current = event.nativeEvent.altKey;

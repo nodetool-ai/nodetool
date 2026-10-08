@@ -2517,6 +2517,11 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       },
       {
+        "type": "nodetool.video.GetVideoInfo",
+        "label": "Get Video Info",
+        "count": 1
+      },
+      {
         "type": "nodetool.output.Output",
         "label": "Output",
         "count": 1
@@ -2542,7 +2547,7 @@ export const templateEntries: TemplateEntry[] = [
         "count": 1
       }
     ],
-    "nodeCount": 10,
+    "nodeCount": 11,
     "thumbnail": null,
     "graph": {
       "nodes": [
@@ -2604,6 +2609,14 @@ export const templateEntries: TemplateEntry[] = [
           "title": "Extract Audio",
           "x": 360,
           "y": 40,
+          "width": 280
+        },
+        {
+          "id": "clip-info",
+          "type": "nodetool.video.GetVideoInfo",
+          "title": "Get Video Info",
+          "x": 360,
+          "y": 200,
           "width": 280
         },
         {
@@ -2709,6 +2722,20 @@ export const templateEntries: TemplateEntry[] = [
           "sourceHandle": "output",
           "target": "video-out",
           "targetHandle": "value",
+          "color": "any"
+        },
+        {
+          "source": "creator-clip",
+          "sourceHandle": "output",
+          "target": "clip-info",
+          "targetHandle": "video",
+          "color": "any"
+        },
+        {
+          "source": "clip-info",
+          "sourceHandle": "duration",
+          "target": "build-timeline",
+          "targetHandle": "clipSeconds",
           "color": "any"
         }
       ]

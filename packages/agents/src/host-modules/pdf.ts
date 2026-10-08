@@ -9,7 +9,11 @@
  * it is handed and leaves it detached, and that buffer belongs to the guest.
  */
 
-import { requireBytes, unwrapLibrary } from "./limits.js";
+import {
+  importOptionalLibrary,
+  requireBytes,
+  unwrapLibrary
+} from "./limits.js";
 import { isFunction } from "../utils/type-guards.js";
 
 interface PageTextResult {
@@ -30,7 +34,11 @@ interface PdfParseLike {
 }
 
 async function loadPdfParse(where: string): Promise<PdfParseLike> {
-  const mod: unknown = await import("pdf-parse");
+  const mod = await importOptionalLibrary<unknown>(
+    where,
+    "pdf-parse",
+    "pdf-js"
+  );
   return unwrapLibrary<PdfParseLike>(
     mod,
     where,

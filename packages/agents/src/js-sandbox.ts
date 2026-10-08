@@ -54,6 +54,7 @@
 import {
   SANDBOX_CAPABILITY_DISPATCH_GLOBAL,
   SANDBOX_WASM_DISPATCH_GLOBAL,
+  type RuntimePackageId,
   type SandboxModuleResolution
 } from "@nodetool-ai/protocol";
 
@@ -2759,6 +2760,12 @@ export interface RunSandboxResult {
    * the values went there instead.
    */
   emitted?: SandboxEmittedValue[];
+  /**
+   * On a failed run, the optional package a host module could not load. The
+   * guest sees only the message, so the caller rethrows with this to let the
+   * editor offer the install.
+   */
+  missingRuntimePackage?: RuntimePackageId;
 }
 
 const IDENTIFIER_RE = /^[a-zA-Z_$][a-zA-Z0-9_$]*$/;
@@ -2870,6 +2877,20 @@ function noteWorkerFallback(reason: string): void {
 export async function runInSandbox(
   options: RunSandboxOptions
 ): Promise<RunSandboxResult> {
+  let missingRuntimePackage: RuntimePackageId | undefined;
+  const result = await executeInSandbox(options, (runtimePackage) => {
+    missingRuntimePackage ??= runtimePackage;
+  });
+  // A guest that caught the failure and finished anyway did not need it.
+  return !result.success && missingRuntimePackage !== undefined
+    ? { ...result, missingRuntimePackage }
+    : result;
+}
+
+async function executeInSandbox(
+  options: RunSandboxOptions,
+  onMissingRuntimePackage: (runtimePackage: RuntimePackageId) => void
+): Promise<RunSandboxResult> {
   const {
     code,
     context,
@@ -2916,7 +2937,9 @@ export async function runInSandbox(
   const wasmOptions: Parameters<typeof createSandboxWasmDispatcher>[1] = {};
   if (wasmPool !== undefined) wasmOptions.pool = wasmPool;
   if (signal !== undefined) wasmOptions.signal = signal;
-  const hostOptions: Parameters<typeof createSandboxHostDispatcher>[1] = {};
+  const hostOptions: Parameters<typeof createSandboxHostDispatcher>[1] = {
+    onMissingRuntimePackage
+  };
   if (signal !== undefined) hostOptions.signal = signal;
   try {
     wasm = modules && !options.hermetic

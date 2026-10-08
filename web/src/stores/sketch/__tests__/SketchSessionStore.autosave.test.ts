@@ -172,6 +172,24 @@ describe("useStandaloneSketchDocument", () => {
     );
   });
 
+  it("persists the live tool settings, not the copy inside the document", async () => {
+    renderHook(() => useStandaloneSketchDocument(buildResponse(), true));
+
+    act(() => {
+      useSketchStore.getState().setBrushSettings({ size: 58 });
+      useSketchStore.setState((state) => ({ ...state, activeTool: "eraser" }));
+    });
+    act(() => {
+      jest.advanceTimersByTime(800);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+
+    const input = updateMutate.mock.calls[0][0] as {
+      document: { sketch: { toolSettings: { brush: { size: number } } } };
+    };
+    expect(input.document.sketch.toolSettings.brush.size).toBe(58);
+  });
+
   it("keeps edits dirty after a failed save so the retry persists them", async () => {
     (updateMutate as any).mockRejectedValueOnce(new Error("Network error"));
     renderHook(() => useStandaloneSketchDocument(buildResponse(), true));
@@ -926,5 +944,54 @@ describe("useStandaloneSketchDocument merge", () => {
     expect(document.layers.map((l) => l.id)).toEqual([layerA.id]);
     // The selection must name a layer that still exists.
     expect(document.activeLayerId).toBe(layerA.id);
+  });
+
+  it("does not reload over the editor when its own in-flight save echoes back", async () => {
+    const getQuery = asMock(trpcClient.sketch.get.query);
+    getQuery.mockClear();
+    const initial = buildResponse();
+    let finishSave: (value: unknown) => void = () => {};
+    (updateMutate as any).mockImplementationOnce(
+      () =>
+        new Promise((resolve) => {
+          finishSave = resolve;
+        })
+    );
+    const { rerender } = renderHook(
+      ({ response }) => useStandaloneSketchDocument(response, true),
+      { initialProps: { response: initial } }
+    );
+    useSketchSessionStore.getState().markHydrated("doc-1");
+
+    act(() => {
+      useSketchStore.setState((state) => ({ ...state, activeTool: "eraser" }));
+    });
+    act(() => {
+      jest.advanceTimersByTime(800);
+    });
+    await waitFor(() => expect(updateMutate).toHaveBeenCalledTimes(1));
+
+    // A refetch lands mid-save and the sync controller is rebuilt, so the new
+    // controller does not know the save is still running.
+    rerender({ response: { ...initial } });
+
+    // The save's own change notice arrives before its response.
+    await act(async () => {
+      handleDocumentResourceChange("imagedocument", {
+        event: "updated",
+        id: "doc-1",
+        updatedAt: "2026-01-01T00:00:01Z"
+      });
+      await Promise.resolve();
+    });
+    await act(async () => {
+      finishSave({ ...initial, updatedAt: "2026-01-01T00:00:01Z" });
+      await Promise.resolve();
+      await Promise.resolve();
+    });
+
+    expect(useSketchSessionStore.getState().hydratedDocumentId).toBe("doc-1");
+    expect(getQuery).not.toHaveBeenCalled();
+    expect(useSketchStore.getState().activeTool).toBe("eraser");
   });
 });

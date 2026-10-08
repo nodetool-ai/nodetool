@@ -19,6 +19,7 @@ import {
 } from "../src/render/draw.js";
 import {
   countTextStaggerUnits,
+  graphemeCount,
   layoutStaggerUnits,
   segmentGraphemes
 } from "../src/render/textLayout.js";
@@ -212,6 +213,12 @@ describe("grapheme segmentation", () => {
     expect(segmentGraphemes("👨‍👩‍👧‍👦")).toHaveLength(1);
     expect(segmentGraphemes("🇩🇪")).toHaveLength(1);
     expect(segmentGraphemes("a👨‍👩‍👧‍👦b")).toEqual(["a", "👨‍👩‍👧‍👦", "b"]);
+  });
+
+  it("counts the clusters segmentGraphemes returns", () => {
+    for (const text of ["", "Serein", "$1,284", "a👨‍👩‍👧‍👦b", "🇩🇪!", "cafe\u0301", "line\r\nbreak", "tab\there"]) {
+      expect(graphemeCount(text)).toBe(segmentGraphemes(text).length);
+    }
   });
 });
 

@@ -87,7 +87,7 @@ describe("expandBrief (criterion 3)", () => {
 
     const { result } = renderHook(() => useRefineBrief());
     await act(async () => {
-      expect(await result.current.expandBrief()).toBe(true);
+      expect(await result.current.expandBrief()).toEqual({ ok: true });
     });
 
     // The whole run is one language-model request.
@@ -130,7 +130,7 @@ describe("expandBrief (criterion 3)", () => {
     );
 
     const { result } = renderHook(() => useRefineBrief());
-    let expansion: Promise<boolean> = Promise.resolve(false);
+    let expansion: Promise<unknown> = Promise.resolve(null);
     act(() => {
       expansion = result.current.expandBrief();
     });
@@ -150,7 +150,7 @@ describe("expandBrief (criterion 3)", () => {
           negative: "hands"
         }
       });
-      expect(await expansion).toBe(false);
+      expect(await expansion).toEqual({ ok: false, error: null });
     });
 
     const setup = useSketchStore.getState().document.setup;
@@ -178,7 +178,7 @@ describe("expandBrief (criterion 3)", () => {
       );
       const { result } = renderHook(() => useRefineBrief());
       const controller = new AbortController();
-      let expansion = Promise.resolve(false);
+      let expansion: Promise<unknown> = Promise.resolve(null);
       act(() => {
         expansion = result.current.expandBrief(controller.signal);
         if (source === "shell") {
@@ -198,7 +198,7 @@ describe("expandBrief (criterion 3)", () => {
             negative: "hands"
           }
         });
-        expect(await expansion).toBe(false);
+        expect(await expansion).toEqual({ ok: false, error: null });
       });
       expect(useSketchStore.getState().document.setup?.stage).toBe("useCase");
       expect(useSketchStore.getState().document.setup?.refined).toBeUndefined();
@@ -210,11 +210,85 @@ describe("expandBrief (criterion 3)", () => {
   it("refuses an empty brief without calling the model", async () => {
     const { result } = renderHook(() => useRefineBrief());
     await act(async () => {
-      expect(await result.current.expandBrief()).toBe(false);
+      expect(await result.current.expandBrief()).toEqual({
+        ok: false,
+        error: "Describe the image before refining the brief."
+      });
     });
     expect(rpcRequest).not.toHaveBeenCalled();
     expect(result.current.error).toBe(
       "Describe the image before refining the brief."
+    );
+  });
+});
+
+// F5: the flow throws the failure into the shell from the same tick the call
+// resolves, before React re-renders with `error`. The outcome itself must carry
+// the reason, or the button says "The model did not return a brief."
+describe("expandBrief failure reason", () => {
+  it("resolves with the model's refusal, not only in state", async () => {
+    act(() => {
+      useSketchStore.getState().setSetup({
+        stage: "useCase",
+        brief: "a pour-over dripper",
+        use_case: "product"
+      });
+    });
+    rpcRequest.mockRejectedValueOnce(new Error("Provider quota exceeded"));
+    const { result } = renderHook(() => useRefineBrief());
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.expandBrief();
+    });
+    expect(outcome).toEqual({ ok: false, error: "Provider quota exceeded" });
+  });
+});
+
+// O4: `Re-refine` on the review polishes the fields the creator edited instead
+// of expanding the sentence from scratch over them.
+describe("expandBrief with keepEdits", () => {
+  const edited = {
+    subject: "a matte black dripper",
+    composition: "low angle",
+    lighting: "",
+    style_words: "film grain",
+    negative: "steam"
+  };
+
+  it("sends the edited fields with the request", async () => {
+    act(() => {
+      useSketchStore.getState().setSetup({
+        stage: "review",
+        brief: "a pour-over dripper",
+        use_case: "product",
+        refined: edited
+      });
+    });
+    const { result } = renderHook(() => useRefineBrief());
+    await act(async () => {
+      await result.current.expandBrief(undefined, { keepEdits: true });
+    });
+    const prompt = String(rpcRequest.mock.calls[0][1].prompt);
+    expect(prompt).toContain("Subject: a matte black dripper");
+    expect(prompt).toContain("Style words: film grain");
+    expect(prompt).toContain("Leave out: steam");
+  });
+
+  it("leaves a first expansion unchanged", async () => {
+    act(() => {
+      useSketchStore.getState().setSetup({
+        stage: "useCase",
+        brief: "a pour-over dripper",
+        use_case: "product",
+        refined: edited
+      });
+    });
+    const { result } = renderHook(() => useRefineBrief());
+    await act(async () => {
+      await result.current.expandBrief();
+    });
+    expect(String(rpcRequest.mock.calls[0][1].prompt)).not.toContain(
+      "a matte black dripper"
     );
   });
 });
@@ -288,5 +362,72 @@ describe("generateVariations (criterion 4)", () => {
 
     expect(stagesWhenSent).toEqual(["done", "done"]);
     expect(useSketchStore.getState().document.setup?.variations).toBe(2);
+  });
+
+  // F14: the host learns the layers before the start requests settle, so the
+  // contact sheet replaces the flow in the same tick the stage becomes done.
+  it("reports the layers before any job is started", async () => {
+    const pendingSends: Array<() => void> = [];
+    sendMock.mockImplementation(
+      () =>
+        new Promise<void>((resolve) => {
+          pendingSends.push(resolve);
+        })
+    );
+    const onCreated = jest.fn();
+    const { result } = renderHook(() => useGenerateVariations());
+    let run: Promise<unknown> = Promise.resolve();
+    act(() => {
+      run = result.current.generateVariations(
+        {
+          prompt: "a dripper",
+          provider: "prov",
+          model: "model-1",
+          width: 1024,
+          height: 1024,
+          count: 2
+        },
+        { onCreated }
+      );
+    });
+    expect(onCreated).toHaveBeenCalledTimes(1);
+    expect(onCreated.mock.calls[0][0]).toHaveLength(2);
+    expect(useSketchStore.getState().document.setup?.stage).toBe("done");
+    await act(async () => {
+      sendMock.mockImplementation(async () => {});
+      while (pendingSends.length > 0) {
+        pendingSends.shift()?.();
+        await Promise.resolve();
+      }
+      await run;
+    });
+  });
+
+  // F18: a second batch continues the numbering.
+  it("numbers a second batch after the first", async () => {
+    const { result } = renderHook(() => useGenerateVariations());
+    const request = {
+      prompt: "a dripper",
+      provider: "prov",
+      model: "model-1",
+      width: 1024,
+      height: 1024,
+      count: 2
+    };
+    await act(async () => {
+      await result.current.generateVariations(request);
+      await result.current.generateVariations(request);
+    });
+    const names = useSketchStore
+      .getState()
+      .document.layers.map((layer) => layer.name)
+      .filter((name) => name.startsWith("Variation"))
+      .sort();
+    expect(names).toEqual([
+      "Variation 1",
+      "Variation 2",
+      "Variation 3",
+      "Variation 4"
+    ]);
   });
 });

@@ -9,7 +9,7 @@
  * keeps the persisted document small enough to autosave.
  */
 
-import { useCallback, useState } from "react";
+import { useCallback, useRef, useState } from "react";
 
 import { useSketchStore } from "../../components/sketch/state/useSketchStore";
 import { useAssetStore } from "../../stores/AssetStore";
@@ -38,6 +38,11 @@ export interface UploadFirstLayerResult {
    * `error`.
    */
   uploadFirstLayer: (file: File) => Promise<boolean>;
+  /**
+   * Drop the upload in flight. The file may still reach the asset store, but
+   * it is not placed and the flow stays where it is.
+   */
+  cancel: () => void;
   uploading: boolean;
   error: string | null;
   clearError: () => void;
@@ -49,9 +54,18 @@ export function useUploadFirstLayer(
   const [uploading, setUploading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const clearError = useCallback(() => setError(null), []);
+  // Which upload is still wanted. Cancel and a newer upload both move it on,
+  // so a late answer places nothing.
+  const uploadRef = useRef(0);
+  const cancel = useCallback(() => {
+    uploadRef.current += 1;
+    setUploading(false);
+  }, []);
 
   const uploadFirstLayer = useCallback(
     async (file: File): Promise<boolean> => {
+      const token = (uploadRef.current += 1);
+      const originStage = useSketchStore.getState().document.setup?.stage;
       setError(null);
       setUploading(true);
       try {
@@ -59,6 +73,14 @@ export function useUploadFirstLayer(
         const asset = await useAssetStore
           .getState()
           .createAsset(file, undefined, undefined, undefined, "file");
+        // The creator canceled or left the step this upload was started
+        // from, so it must not finish the flow under them (F17).
+        if (
+          token !== uploadRef.current ||
+          useSketchStore.getState().document.setup?.stage !== originStage
+        ) {
+          return false;
+        }
         const uri = getAssetUrl(asset) ?? `asset://${asset.id}`;
         const sketch = useSketchStore.getState();
         const first = sketch.document.layers[0];
@@ -92,16 +114,20 @@ export function useUploadFirstLayer(
         onFinish?.();
         return true;
       } catch (cause) {
-        setError(cause instanceof Error ? cause.message : String(cause));
+        if (token === uploadRef.current) {
+          setError(cause instanceof Error ? cause.message : String(cause));
+        }
         return false;
       } finally {
-        setUploading(false);
+        if (token === uploadRef.current) {
+          setUploading(false);
+        }
       }
     },
     [onFinish]
   );
 
-  return { uploadFirstLayer, uploading, error, clearError };
+  return { uploadFirstLayer, cancel, uploading, error, clearError };
 }
 
 export default useUploadFirstLayer;

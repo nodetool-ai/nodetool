@@ -165,7 +165,7 @@ describe("repeat transform actions", () => {
     expect(pushHistory).toHaveBeenCalledWith(
       "repeat transform",
       expect.objectContaining({ [activeLayer.id]: expect.any(HTMLCanvasElement) }),
-      { restoreMode: "structure-only" }
+      { restoreMode: "structure-only", timing: "before" }
     );
     expect(canvasRef.current.restoreLayerCanvas).toHaveBeenCalled();
     expect(syncSketchOutputsNow).toHaveBeenCalled();

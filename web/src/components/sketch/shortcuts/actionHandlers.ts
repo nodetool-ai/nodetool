@@ -84,6 +84,9 @@ export const ACTION_HANDLERS: ActionHandlerMap = {
   "zoom-in": (_e, p) => p.handleZoomIn(),
   "zoom-out": (_e, p) => p.handleZoomOut(),
   "toggle-panels": (_e, p) => p.togglePanelsHidden(),
+  "toggle-rulers": (_e, _p) => useSketchStore.getState().toggleRulersVisible(),
+  "toggle-guides": (_e, _p) => useSketchStore.getState().toggleGuidesVisible(),
+  "toggle-snap": (_e, _p) => useSketchStore.getState().toggleSnapEnabled(),
 
   // Color
   "swap-colors": (_e, p) => p.swapColors(),

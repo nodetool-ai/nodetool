@@ -333,7 +333,7 @@ export function useCanvasGeometryActions({
     }
     const sel = useSketchStore.getState().selection;
     if (sel && selectionHasAnyPixels(sel)) {
-      pushHistory("clear selection");
+      pushHistory("clear selection", undefined, { timing: "before" });
       const layerCanvas = canvasRef.current.getLayerCanvas(activeLayerId);
       const offset = getLayerGeometry(layer, layerCanvas, {
         width: Math.max(
@@ -353,7 +353,7 @@ export function useCanvasGeometryActions({
       );
       syncPixelLayerFromCanvas(activeLayerId);
     } else {
-      pushHistory("clear layer");
+      pushHistory("clear layer", undefined, { timing: "before" });
       canvasRef.current.clearLayer(activeLayerId);
       commitPixelLayerChange(activeLayerId, null);
     }
@@ -378,7 +378,7 @@ export function useCanvasGeometryActions({
       }
       const sel = useSketchStore.getState().selection;
       if (sel && selectionHasAnyPixels(sel)) {
-        pushHistory("fill selection");
+        pushHistory("fill selection", undefined, { timing: "before" });
         const layerCanvas = canvasRef.current.getLayerCanvas(activeLayerId);
         const offset = getLayerGeometry(layer, layerCanvas, {
           width: Math.max(
@@ -398,7 +398,7 @@ export function useCanvasGeometryActions({
           color
         );
       } else {
-        pushHistory("fill layer");
+        pushHistory("fill layer", undefined, { timing: "before" });
         canvasRef.current.fillLayerWithColor(activeLayerId, color);
       }
       syncPixelLayerFromCanvas(activeLayerId);
@@ -429,7 +429,7 @@ export function useCanvasGeometryActions({
       return;
     }
 
-    pushHistory("trim layer");
+    pushHistory("trim layer", undefined, { timing: "before" });
     const trimmed = canvasRef.current.trimLayerToBounds(activeLayerId);
     if (!trimmed) {
       return;
@@ -481,7 +481,7 @@ export function useCanvasGeometryActions({
 
   /** Push a single history snapshot before a drag-resize begins. */
   const handleCanvasResizeStart = useCallback(() => {
-    pushHistory("resize canvas");
+    pushHistory("resize canvas", undefined, { timing: "before" });
   }, [pushHistory]);
 
   /** Apply new canvas dimensions during a drag-resize (no history push). */
@@ -820,7 +820,7 @@ export function useCanvasGeometryActions({
         return;
       }
 
-      pushHistory("paste");
+      pushHistory("paste", undefined, { timing: "before" });
 
       const pasteSnapshot = canvasRef.current.snapshotLayerCanvas(layerId);
       if (!pasteSnapshot) {
@@ -911,7 +911,7 @@ export function useCanvasGeometryActions({
       // run yet) and the paste silently bails.
       canvasRef.current.setLayerData(newLayerId, null);
 
-      pushHistory("paste");
+      pushHistory("paste", undefined, { timing: "before" });
 
       const snapshot = canvasRef.current.snapshotLayerCanvas(newLayerId);
       if (!snapshot) {
@@ -977,7 +977,7 @@ export function useCanvasGeometryActions({
       }
       bitmap.close();
 
-      pushHistory("drop image");
+      pushHistory("drop image", undefined, { timing: "before" });
 
       const snapshot = canvasRef.current.snapshotLayerCanvas(layerId);
       if (!snapshot) {
@@ -1025,7 +1025,7 @@ export function useCanvasGeometryActions({
           objectFit: "fill"
         };
 
-        pushHistory("import asset");
+        pushHistory("import asset", undefined, { timing: "before" });
         setDocument({
           ...document,
           layers: [...document.layers, nextLayer],
@@ -1136,7 +1136,7 @@ export function useCanvasGeometryActions({
     }
     const sel = useSketchStore.getState().selection;
     const hasSelection = sel && selectionHasAnyPixels(sel);
-    pushHistory("invert colors");
+    pushHistory("invert colors", undefined, { timing: "before" });
     canvasRef.current.invertLayerColors(hasSelection ? sel : null);
     syncPixelLayerFromCanvas(layerId);
     syncSketchOutputsNow();

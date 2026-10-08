@@ -75,7 +75,8 @@ const TRPC_CODE_BY_API_CODE = {
   [ApiErrorCode.BUDGET_EXCEEDED]: "FORBIDDEN",
   // The operator does not sell this managed model here — a refusal, not a
   // malformed request.
-  [ApiErrorCode.MODEL_NOT_AVAILABLE]: "FORBIDDEN"
+  [ApiErrorCode.MODEL_NOT_AVAILABLE]: "FORBIDDEN",
+  [ApiErrorCode.MISSING_RUNTIME_PACKAGE]: "PRECONDITION_FAILED"
 } satisfies Record<ApiErrorCode, TRPCError["code"]>;
 
 export function throwApiError(
