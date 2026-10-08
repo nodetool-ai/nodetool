@@ -394,7 +394,7 @@ export const recipeEntries: RecipeEntry[] = [
     "audience": "Founder-led brands, creators, and paid social teams",
     "heroThumbnail": "/apps/ugc-product-video.png",
     "workflowCount": 3,
-    "nodeCount": 21,
+    "nodeCount": 22,
     "keys": [
       {
         "provider": "atlascloud",
@@ -436,7 +436,7 @@ export const recipeEntries: RecipeEntry[] = [
         "role": "Finish the Reel",
         "handoff": "Choose a caption style and optional brand accent. The workflow transcribes the generated clip, adds animated captions and restrained graphic beats, then renders the exact brand and slogan over the close while preserving native audio.",
         "thumbnail": null,
-        "nodeCount": 10,
+        "nodeCount": 11,
         "models": [],
         "alternative": null
       }

@@ -21,6 +21,13 @@ describe("local runner limits", () => {
       .toEqual(["run", "--maxWorkers", "3"]);
   });
 
+  it("treats an empty worker limit as unset", () => {
+    expect(vitestArgs(["run"], { NODETOOL_TEST_WORKERS: "" }))
+      .toEqual(["run", "--maxWorkers", "2"]);
+    expect(vitestArgs(["run"], { CI: "true", NODETOOL_TEST_WORKERS: "" }))
+      .toEqual(["run"]);
+  });
+
   it("rejects invalid limits before starting a runner", () => {
     expect(() => turboArgs([], { NODETOOL_TURBO_CONCURRENCY: "0" })).toThrow();
     expect(() => vitestArgs([], { NODETOOL_TEST_WORKERS: "many" })).toThrow();
