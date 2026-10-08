@@ -60,7 +60,7 @@ const INVENTORY: Surface[] = [
   // Storyboard cards
   { surface: "storyboard cards", file: "components/storyboard/ShotCard.tsx", via: "locator" },
   { surface: "storyboard cards", file: "components/storyboard/ShotTakesGallery.tsx", via: "locator" },
-  { surface: "storyboard cards", file: "components/storyboard/StoryboardEntitiesField.tsx", via: "resolver" },
+  { surface: "storyboard cards", file: "components/storyboard/EntityTilesField.tsx", via: "locator" },
   // Sketch layers
   { surface: "sketch layers", file: "components/sketch/LayerItem.tsx", via: "locator" },
   // Script shot chips
