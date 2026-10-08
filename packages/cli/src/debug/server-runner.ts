@@ -19,6 +19,7 @@ import { FileStorageAdapter } from "@nodetool-ai/storage";
 import { summarizeInterventions } from "@nodetool-ai/execution/debug";
 import { createGraphNodeTypeResolver } from "@nodetool-ai/node-sdk";
 import { buildFullRegistry } from "../node-registry.js";
+import { checkoutPackageAssetsDir } from "../package-assets.js";
 import {
   createSupervisorHandle,
   recordSupervisorCost,
@@ -76,6 +77,13 @@ export async function runOnServer(
 ): Promise<ServerRunOutcome> {
   const { graph, workflowId, params } = input;
   const startedAt = Date.now();
+
+  // The server points in-process runs at the shipped `package://` assets the
+  // same way, so a shipped example's default inputs load here too.
+  if (!process.env["NODETOOL_PACKAGE_ASSETS_DIR"]) {
+    const packageAssets = checkoutPackageAssetsDir();
+    if (packageAssets) process.env["NODETOOL_PACKAGE_ASSETS_DIR"] = packageAssets;
+  }
 
   const registry = buildFullRegistry();
   const jobId = `debug-${Date.now()}`;
