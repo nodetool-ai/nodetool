@@ -6,7 +6,7 @@
  * throw NOT_FOUND) to avoid leaking existence.
  */
 
-import { Message } from "@nodetool-ai/models";
+import { Message, Thread } from "@nodetool-ai/models";
 import type { Message as MessageModel } from "@nodetool-ai/models";
 import { ApiErrorCode } from "../../error-codes.js";
 import { router } from "../index.js";
@@ -16,6 +16,8 @@ import { resolveContentUrls } from "../../resolve-media-urls.js";
 import {
   listInput,
   listOutput,
+  rewindInput,
+  rewindOutput,
   type MessageResponse
 } from "@nodetool-ai/protocol/api-schemas/messages.js";
 
@@ -72,5 +74,20 @@ export const messagesRouter = router({
         messages: await Promise.all(msgs.map((m) => toMessageResponse(m))),
         next: cursor || null
       };
+    }),
+
+  rewind: protectedProcedure
+    .input(rewindInput)
+    .output(rewindOutput)
+    .mutation(async ({ ctx, input }) => {
+      const thread = await Thread.find(ctx.userId, input.thread_id);
+      if (!thread) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Thread not found");
+      }
+      const deleted = await Message.rewind(input.thread_id, input.message_id);
+      if (deleted === null) {
+        throwApiError(ApiErrorCode.NOT_FOUND, "Message not found");
+      }
+      return { deleted_ids: deleted };
     })
 });

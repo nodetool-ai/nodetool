@@ -1,6 +1,6 @@
 /** @jsxImportSource @emotion/react */
 import { css } from "@emotion/react";
-import React, { useMemo } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import ReactMarkdown, { defaultUrlTransform, type Options } from "react-markdown";
 import remarkGfm from "remark-gfm";
 import rehypeRaw from "rehype-raw";
@@ -22,6 +22,12 @@ import ResourceChip from "./ResourceChip";
 import { EntityMentionChip } from "../../node_types/editing/promptComposer/EntityMentionChip";
 import { remarkEntityMentions } from "./remarkEntityMentions";
 import { remarkResourceMentions } from "./remarkResourceMentions";
+import {
+  loadMathPlugins,
+  mayContainMath,
+  normalizeMathDelimiters,
+  type MathPlugins
+} from "./mathMarkdown";
 import { isNumber, isString } from "../../../utils/typePredicates";
 import { assetIdFromLocator } from "../../../utils/mediaRef";
 import "../../../styles/markdown/github-markdown.css";
@@ -101,6 +107,16 @@ const markdownStyles = css({
     marginTop: "0px",
     maxHeight: "80vh",
     overflow: "auto"
+  },
+  // A wide equation scrolls inside its own block instead of being clipped by
+  // the column, and KaTeX's own spans must not break mid-formula.
+  ".katex-display": {
+    overflowX: "auto",
+    overflowY: "hidden"
+  },
+  ".katex": {
+    wordBreak: "normal",
+    overflowWrap: "normal"
   }
 });
 
@@ -465,6 +481,33 @@ const ChatMarkdownAssetLink: React.FC<{ href: string; label: string }> = ({
   return <ResourceChip uri={href} label={label} />;
 };
 
+/**
+ * The math plugins, once a message that may hold math asks for them. Null
+ * until they load, and for every message without math.
+ */
+const useMathPlugins = (wanted: boolean): MathPlugins | null => {
+  const [plugins, setPlugins] = useState<MathPlugins | null>(null);
+  useEffect(() => {
+    if (!wanted || plugins) {
+      return;
+    }
+    let cancelled = false;
+    loadMathPlugins()
+      .then((loaded) => {
+        if (!cancelled) {
+          setPlugins(loaded);
+        }
+      })
+      .catch((error: unknown) => {
+        console.error("Failed to load math rendering:", error);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [wanted, plugins]);
+  return wanted ? plugins : null;
+};
+
 const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
   content,
   onInsertCode
@@ -529,15 +572,30 @@ const ChatMarkdown: React.FC<ChatMarkdownProps> = React.memo(({
     [onInsertCode]
   );
 
+  const hasMath = mayContainMath(content || "");
+  const math = useMathPlugins(hasMath);
+  const remarkPlugins = useMemo(
+    () => (math ? [...(REMARK_PLUGINS ?? []), math.remark] : REMARK_PLUGINS),
+    [math]
+  );
+  const rehypePlugins = useMemo(
+    () => (math ? [...(REHYPE_PLUGINS ?? []), math.rehype] : REHYPE_PLUGINS),
+    [math]
+  );
+  const markdown = useMemo(
+    () => (math ? normalizeMathDelimiters(content || "") : content || ""),
+    [math, content]
+  );
+
   return (
     <div css={markdownStyles} className="markdown markdown-body">
       <ReactMarkdown
-        remarkPlugins={REMARK_PLUGINS}
-        rehypePlugins={REHYPE_PLUGINS}
+        remarkPlugins={remarkPlugins}
+        rehypePlugins={rehypePlugins}
         urlTransform={urlTransform}
         components={components}
       >
-        {content || ""}
+        {markdown}
       </ReactMarkdown>
     </div>
   );

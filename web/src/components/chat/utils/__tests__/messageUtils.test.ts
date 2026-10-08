@@ -3,8 +3,10 @@ import {
   stripContextContent,
   parseThoughtContent,
   getMessageClass,
-  formatMessageTimestamp
+  formatMessageTimestamp,
+  hasVisibleContent
 } from "../messageUtils";
+import type { Message } from "../../../../stores/ApiTypes";
 
 describe("stripContextContent", () => {
   it("removes editor_context block with closing tag", () => {
@@ -129,5 +131,30 @@ describe("formatMessageTimestamp", () => {
 
   it("returns null for an unparseable date", () => {
     expect(formatMessageTimestamp("not a date", now)).toBeNull();
+  });
+});
+
+describe("hasVisibleContent", () => {
+  const message = (content: unknown) =>
+    ({ role: "assistant", content }) as unknown as Message;
+
+  it("is true for non-blank text", () => {
+    expect(hasVisibleContent(message("hello"))).toBe(true);
+  });
+
+  it("is false for blank or missing content", () => {
+    expect(hasVisibleContent(message("  \n"))).toBe(false);
+    expect(hasVisibleContent(message(null))).toBe(false);
+    expect(hasVisibleContent(message([{ type: "text", text: " " }]))).toBe(
+      false
+    );
+  });
+
+  it("is true for a non-text block", () => {
+    expect(
+      hasVisibleContent(
+        message([{ type: "image_url", image: { uri: "asset://a" } }])
+      )
+    ).toBe(true);
   });
 });

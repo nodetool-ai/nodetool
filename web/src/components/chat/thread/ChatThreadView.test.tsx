@@ -51,11 +51,23 @@ jest.mock("@tanstack/react-virtual", () => ({
 
 // Mock child components to isolate ChatThreadView logic
 jest.mock("../message/MessageView", () => ({
-  MessageView: ({ message }: { message: Message }) => (
-    <div data-testid={`message-${message.id}`}>
+  MessageView: ({
+    message,
+    isLatestReply,
+    onRegenerate
+  }: {
+    message: Message;
+    isLatestReply?: boolean;
+    onRegenerate?: () => void;
+  }) => (
+    <div
+      data-testid={`message-${message.id}`}
+      data-latest-reply={isLatestReply ? "true" : undefined}
+    >
       {Array.isArray(message.content)
         ? (message.content[0] as any).text
         : message.content}
+      {onRegenerate && <button onClick={onRegenerate}>Regenerate</button>}
     </div>
   )
 }));
@@ -145,6 +157,40 @@ describe("ChatThreadView", () => {
     total: 100,
     progressMessage: null
   };
+
+  it("marks the finished reply and regenerates it from the user's message", () => {
+    const onResendFrom = jest.fn();
+    renderWithTheme(
+      <ChatThreadView {...defaultProps} onResendFrom={onResendFrom} />
+    );
+
+    expect(screen.getByTestId("message-2")).toHaveAttribute(
+      "data-latest-reply",
+      "true"
+    );
+    expect(screen.getByTestId("message-1")).not.toHaveAttribute(
+      "data-latest-reply"
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Regenerate" }));
+    expect(onResendFrom).toHaveBeenCalledWith(mockMessages[0]);
+  });
+
+  it("offers no finished reply while a turn is running", () => {
+    renderWithTheme(
+      <ChatThreadView
+        {...defaultProps}
+        status="streaming"
+        onResendFrom={jest.fn()}
+      />
+    );
+
+    expect(screen.getByTestId("message-2")).not.toHaveAttribute(
+      "data-latest-reply"
+    );
+    expect(
+      screen.queryByRole("button", { name: "Regenerate" })
+    ).not.toBeInTheDocument();
+  });
 
   it("renders messages correctly", () => {
     renderWithTheme(<ChatThreadView {...defaultProps} />);

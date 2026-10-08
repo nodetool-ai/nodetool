@@ -76,11 +76,12 @@ import { Server } from "mock-socket";
 import useGlobalChatStore from "../GlobalChatStore";
 import { trpcClient } from "../../trpc/client";
 import useAuth from "../useAuth";
+import { ApiErrorCode } from "@nodetool-ai/protocol/api-schemas";
 
 jest.mock("../../trpc/client", () => ({
   trpcClient: {
     ...jest.requireActual("../../trpc/client").trpcClient,
-    messages: { list: { query: jest.fn() } }
+    messages: { list: { query: jest.fn() }, rewind: { mutate: jest.fn() } }
   }
 }));
 import {
@@ -395,6 +396,9 @@ describe("GlobalChatStore", () => {
         command: "chat_message",
         data: {
           ...msg,
+          // The wire carries the cached turn's own id, so the stored row and
+          // the cached copy name each other (see rewindThread).
+          id: cachedMessage.id,
           workflow_id: null,
           project_id: "default",
           thread_id: threadId,
@@ -987,6 +991,51 @@ describe("GlobalChatStore", () => {
     });
   });
 
+  describe("rewindThread", () => {
+    const cached = (ids: string[]): Message[] =>
+      ids.map((id) => ({ id, role: "user", type: "message", content: id }) as Message);
+
+    it("rewinds the stored thread and drops the message and what follows", async () => {
+      jest.mocked(trpcClient.messages.rewind.mutate).mockResolvedValueOnce({
+        deleted_ids: ["b", "c"]
+      });
+      store.setState({ messageCache: { t1: cached(["a", "b", "c"]) } });
+
+      await store.getState().rewindThread("t1", "b");
+
+      expect(trpcClient.messages.rewind.mutate).toHaveBeenCalledWith({
+        thread_id: "t1",
+        message_id: "b"
+      });
+      expect(store.getState().messageCache.t1.map((m) => m.id)).toEqual(["a"]);
+    });
+
+    it("still drops a turn the server never stored", async () => {
+      jest.mocked(trpcClient.messages.rewind.mutate).mockRejectedValueOnce(
+        Object.assign(new Error("Message not found"), {
+          data: { apiCode: ApiErrorCode.NOT_FOUND }
+        })
+      );
+      store.setState({ messageCache: { t1: cached(["a", "b"]) } });
+
+      await store.getState().rewindThread("t1", "b");
+
+      expect(store.getState().messageCache.t1.map((m) => m.id)).toEqual(["a"]);
+    });
+
+    it("keeps the cache when the server refuses for another reason", async () => {
+      jest.mocked(trpcClient.messages.rewind.mutate).mockRejectedValueOnce(
+        new Error("offline")
+      );
+      store.setState({ messageCache: { t1: cached(["a", "b"]) } });
+
+      await expect(store.getState().rewindThread("t1", "b")).rejects.toThrow(
+        "offline"
+      );
+      expect(store.getState().messageCache.t1.map((m) => m.id)).toEqual(["a", "b"]);
+    });
+  });
+
   describe("Thread Management", () => {
     it("switchThread switches to existing thread", async () => {
       const thread1 = await store.getState().createNewThread();
@@ -1278,6 +1327,7 @@ describe("GlobalChatStore", () => {
         command: "chat_message",
         data: {
           ...message,
+          id: store.getState().messageCache[threadId][0].id,
           workflow_id: "test-workflow",
           project_id: "default",
           thread_id: threadId,
