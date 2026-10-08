@@ -328,6 +328,7 @@ jobs:
           npm run vite:build
           npm run prepare-backend
           npm run prepare-mcpb
+          npm run prepare-chrome-extension
           npx electron-builder --config electron-builder.json --win --x64 --dir --publish never
 
       # Boot the backend out of the packed app before anything is signed or
@@ -627,6 +628,7 @@ jobs:
           npm run vite:build
           npm run prepare-backend
           npm run prepare-mcpb
+          npm run prepare-chrome-extension
           npx electron-builder --config electron-builder.json --publish never
 
       # See the Windows step above. Only the first matching layout is booted:

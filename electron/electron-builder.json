@@ -26,7 +26,11 @@
         },
         {
             "from": "../chrome-extension/dist",
-            "to": "chrome-extension"
+            "to": "chrome-extension",
+            "filter": [
+                "**/*",
+                "!**/*.map"
+            ]
         },
         {
             "from": "backend-bundle",
