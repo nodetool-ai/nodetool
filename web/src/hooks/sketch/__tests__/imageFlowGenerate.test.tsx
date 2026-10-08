@@ -87,7 +87,7 @@ describe("expandBrief (criterion 3)", () => {
 
     const { result } = renderHook(() => useRefineBrief());
     await act(async () => {
-      expect(await result.current.expandBrief()).toBe(true);
+      expect(await result.current.expandBrief()).toEqual({ ok: true });
     });
 
     // The whole run is one language-model request.
@@ -130,7 +130,7 @@ describe("expandBrief (criterion 3)", () => {
     );
 
     const { result } = renderHook(() => useRefineBrief());
-    let expansion: Promise<boolean> = Promise.resolve(false);
+    let expansion: Promise<unknown> = Promise.resolve(null);
     act(() => {
       expansion = result.current.expandBrief();
     });
@@ -150,7 +150,7 @@ describe("expandBrief (criterion 3)", () => {
           negative: "hands"
         }
       });
-      expect(await expansion).toBe(false);
+      expect(await expansion).toEqual({ ok: false, error: null });
     });
 
     const setup = useSketchStore.getState().document.setup;
@@ -178,7 +178,7 @@ describe("expandBrief (criterion 3)", () => {
       );
       const { result } = renderHook(() => useRefineBrief());
       const controller = new AbortController();
-      let expansion = Promise.resolve(false);
+      let expansion: Promise<unknown> = Promise.resolve(null);
       act(() => {
         expansion = result.current.expandBrief(controller.signal);
         if (source === "shell") {
@@ -198,7 +198,7 @@ describe("expandBrief (criterion 3)", () => {
             negative: "hands"
           }
         });
-        expect(await expansion).toBe(false);
+        expect(await expansion).toEqual({ ok: false, error: null });
       });
       expect(useSketchStore.getState().document.setup?.stage).toBe("useCase");
       expect(useSketchStore.getState().document.setup?.refined).toBeUndefined();
@@ -210,11 +210,85 @@ describe("expandBrief (criterion 3)", () => {
   it("refuses an empty brief without calling the model", async () => {
     const { result } = renderHook(() => useRefineBrief());
     await act(async () => {
-      expect(await result.current.expandBrief()).toBe(false);
+      expect(await result.current.expandBrief()).toEqual({
+        ok: false,
+        error: "Describe the image before refining the brief."
+      });
     });
     expect(rpcRequest).not.toHaveBeenCalled();
     expect(result.current.error).toBe(
       "Describe the image before refining the brief."
+    );
+  });
+});
+
+// F5: the flow throws the failure into the shell from the same tick the call
+// resolves, before React re-renders with `error`. The outcome itself must carry
+// the reason, or the button says "The model did not return a brief."
+describe("expandBrief failure reason", () => {
+  it("resolves with the model's refusal, not only in state", async () => {
+    act(() => {
+      useSketchStore.getState().setSetup({
+        stage: "useCase",
+        brief: "a pour-over dripper",
+        use_case: "product"
+      });
+    });
+    rpcRequest.mockRejectedValueOnce(new Error("Provider quota exceeded"));
+    const { result } = renderHook(() => useRefineBrief());
+    let outcome: unknown;
+    await act(async () => {
+      outcome = await result.current.expandBrief();
+    });
+    expect(outcome).toEqual({ ok: false, error: "Provider quota exceeded" });
+  });
+});
+
+// O4: `Re-refine` on the review polishes the fields the creator edited instead
+// of expanding the sentence from scratch over them.
+describe("expandBrief with keepEdits", () => {
+  const edited = {
+    subject: "a matte black dripper",
+    composition: "low angle",
+    lighting: "",
+    style_words: "film grain",
+    negative: "steam"
+  };
+
+  it("sends the edited fields with the request", async () => {
+    act(() => {
+      useSketchStore.getState().setSetup({
+        stage: "review",
+        brief: "a pour-over dripper",
+        use_case: "product",
+        refined: edited
+      });
+    });
+    const { result } = renderHook(() => useRefineBrief());
+    await act(async () => {
+      await result.current.expandBrief(undefined, { keepEdits: true });
+    });
+    const prompt = String(rpcRequest.mock.calls[0][1].prompt);
+    expect(prompt).toContain("Subject: a matte black dripper");
+    expect(prompt).toContain("Style words: film grain");
+    expect(prompt).toContain("Leave out: steam");
+  });
+
+  it("leaves a first expansion unchanged", async () => {
+    act(() => {
+      useSketchStore.getState().setSetup({
+        stage: "useCase",
+        brief: "a pour-over dripper",
+        use_case: "product",
+        refined: edited
+      });
+    });
+    const { result } = renderHook(() => useRefineBrief());
+    await act(async () => {
+      await result.current.expandBrief();
+    });
+    expect(String(rpcRequest.mock.calls[0][1].prompt)).not.toContain(
+      "a matte black dripper"
     );
   });
 });

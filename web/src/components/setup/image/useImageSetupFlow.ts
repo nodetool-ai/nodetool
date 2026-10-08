@@ -8,7 +8,7 @@
  * document with no `setup` at all opens as the editor and always has.
  */
 
-import { createElement, useCallback, useMemo, useRef } from "react";
+import { createElement, useCallback, useMemo } from "react";
 import {
   composeImagePrompt,
   type SketchSetupStage
@@ -85,12 +85,6 @@ export const useImageSetupFlow = ({
   const upload = useUploadFirstLayer(onFinish);
   const look = useLookStep();
 
-  // The reason a refused run gives arrives as state one render after the call
-  // resolves, so the step's own closure cannot see it. Mirror it and read the
-  // mirror, so the shell puts the real message on the button.
-  const refineErrorRef = useRef<string | null>(null);
-  refineErrorRef.current = refineError;
-
   const onStageChange = useCallback(
     (next: SketchSetupStage) => setSetup({ stage: next }),
     [setSetup]
@@ -103,18 +97,18 @@ export const useImageSetupFlow = ({
 
   const refine = useCallback(
     async (context?: SetupOperationContext) => {
-      const refinedOk = await expandBrief(context?.signal);
-      if (!refinedOk) {
-        throw new Error(
-          refineErrorRef.current ?? "The model did not return a brief."
-        );
+      const outcome = await expandBrief(context?.signal);
+      if (!outcome.ok) {
+        throw new Error(outcome.error ?? "The model did not return a brief.");
       }
     },
     [expandBrief]
   );
 
+  // The review's fields are the creator's draft, so another pass polishes
+  // them rather than replacing them with a fresh expansion (O4).
   const reRefine = useCallback(() => {
-    void expandBrief();
+    void expandBrief(undefined, { keepEdits: true });
   }, [expandBrief]);
 
   // Coming back to the use case and pressing its button again must not pay for
