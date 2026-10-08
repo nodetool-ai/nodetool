@@ -23,8 +23,7 @@ on:
         default: ""
 
 permissions:
-  id-token: write
-  contents: write
+  contents: read
 
 jobs:
   check_changes:
@@ -85,9 +84,17 @@ jobs:
       - id: meta
         name: Resolve release metadata
         shell: bash
+        env:
+          INPUT_CHANNEL: ${{ github.event.inputs.channel }}
+          INPUT_VERSION: ${{ github.event.inputs.version }}
         run: |
           set -euo pipefail
-          if [[ "${GITHUB_EVENT_NAME}" == "schedule" || ( "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${{ github.event.inputs.channel }}" == "nightly" ) ]]; then
+          # A dispatched run signs and publishes, so it must build main or a tag.
+          if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${GITHUB_REF}" != "refs/heads/main" && "${GITHUB_REF}" != refs/tags/* ]]; then
+            echo "workflow_dispatch releases must run from main or a tag, not ${GITHUB_REF}." >&2
+            exit 1
+          fi
+          if [[ "${GITHUB_EVENT_NAME}" == "schedule" || ( "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && "${INPUT_CHANNEL}" == "nightly" ) ]]; then
             nightly_date="$(date -u -d "${{ github.run_started_at }}" +%Y%m%d)"
             node scripts/resolve-nightly-release.mjs \
               --date "$nightly_date" \
@@ -101,12 +108,16 @@ jobs:
             echo "update_mac_manifest=nightly-mac.yml" >> "$GITHUB_OUTPUT"
             echo "update_linux_manifest=nightly-linux.yml" >> "$GITHUB_OUTPUT"
           else
-            if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -z "${{ github.event.inputs.version }}" ]]; then
+            if [[ "${GITHUB_EVENT_NAME}" == "workflow_dispatch" && -z "${INPUT_VERSION}" ]]; then
               echo "workflow_dispatch stable releases require the version input." >&2
               exit 1
             fi
-            raw="${{ github.event.inputs.version != '' && github.event.inputs.version || github.ref_name }}"
+            raw="${INPUT_VERSION:-${GITHUB_REF_NAME}}"
             version="${raw#v}"
+            if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$ ]]; then
+              echo "'${raw}' is not a semver version (X.Y.Z[-pre][+build])." >&2
+              exit 1
+            fi
             echo "release_channel=stable" >> "$GITHUB_OUTPUT"
             echo "version=$version" >> "$GITHUB_OUTPUT"
             echo "tag=v$version" >> "$GITHUB_OUTPUT"
@@ -312,6 +323,7 @@ jobs:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
           DEBUG: electron-builder
         run: |
+          set -euo pipefail
           cd electron
           npm run vite:build
           npm run prepare-backend
@@ -436,7 +448,7 @@ jobs:
 
       - name: Sign main app exe (SSL.com eSigner)
         if: matrix.os == 'windows-2022' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
-        uses: sslcom/esigner-codesign@develop
+        uses: sslcom/esigner-codesign@cf5f6c1d38ad10f47e3ed9aca873f429b1a8d85b  # v1.3.2
         with:
           command: sign
           username: ${{ secrets.ES_USERNAME }}
@@ -501,7 +513,7 @@ jobs:
 
       - name: Sign installer exe (SSL.com eSigner)
         if: matrix.os == 'windows-2022' && env.SHOULD_SIGN == 'true' && (startsWith(github.ref, 'refs/tags/') || env.RELEASE_CHANNEL == 'nightly' || github.event.inputs.version != '')
-        uses: sslcom/esigner-codesign@develop
+        uses: sslcom/esigner-codesign@cf5f6c1d38ad10f47e3ed9aca873f429b1a8d85b  # v1.3.2
         with:
           command: sign
           username: ${{ secrets.ES_USERNAME }}
@@ -671,9 +683,11 @@ jobs:
           # If the process is still alive after the timeout it means the
           # main bundle loaded cleanly.
           fail=0
+          found=0
           shopt -s nullglob
           for app in electron/dist/mac-arm64/Nodetool.app electron/dist/mac/Nodetool.app; do
             [ -d "$app" ] || continue
+            found=$((found + 1))
             echo "::group::Smoke-launch $app"
             bin="$app/Contents/MacOS/Nodetool"
             log=$(mktemp)
@@ -692,8 +706,8 @@ jobs:
               alive=1
             done
             if [ "$alive" -eq 0 ]; then
-              wait $pid 2>/dev/null || true
-              rc=$?
+              rc=0
+              wait $pid 2>/dev/null || rc=$?
               echo "::error file=$app::App died at launch (exit $rc)"
               echo "--- launch log ---"
               tail -200 "$log" || true
@@ -706,6 +720,11 @@ jobs:
             rm -f "$log"
             echo "::endgroup::"
           done
+          if [ "$found" -eq 0 ]; then
+            echo "::error::No Nodetool.app found under electron/dist — nothing was smoke-launched."
+            find electron/dist -maxdepth 2 -type d | head -50
+            fail=1
+          fi
           if [ "$fail" -ne 0 ]; then
             echo "::error::Smoke launch failed; refusing to upload."
             exit 1
@@ -847,18 +866,19 @@ jobs:
 
   nightly-docker-tag:
     name: Retag GHCR image for nightly
-    needs: [preflight]
-    if: ${{ !failure() && !cancelled() && needs.preflight.outputs.release_channel == 'nightly' }}
+    # Waits for the desktop build so :nightly only moves when it succeeded.
+    needs: [preflight, release-build]
+    if: ${{ !failure() && !cancelled() && needs.release-build.result == 'success' && needs.preflight.outputs.release_channel == 'nightly' }}
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
     steps:
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v4
+        uses: docker/setup-buildx-action@bb05f3f5519dd87d3ba754cc423b652a5edd6d2c  # v4
 
       - name: Login to GHCR
-        uses: docker/login-action@v4
+        uses: docker/login-action@af1e73f918a031802d376d3c8bbc3fe56130a9b0  # v4
         with:
           registry: ghcr.io
           username: ${{ github.repository_owner }}
@@ -908,6 +928,8 @@ jobs:
     needs: [preflight, release-build]
     if: ${{ !failure() && !cancelled() && needs.preflight.result == 'success' && needs.release-build.result == 'success' && (github.event_name != 'workflow_dispatch' || github.event.inputs.channel == 'nightly' || github.event.inputs.version != '') }}
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - name: Checkout
         uses: actions/checkout@v7
@@ -948,6 +970,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           tag_name: ${{ needs.preflight.outputs.tag }}
+          target_commitish: ${{ needs.preflight.outputs.ref }}
           name: ${{ needs.preflight.outputs.release_name }}
           prerelease: ${{ needs.preflight.outputs.is_prerelease }}
           make_latest: ${{ needs.preflight.outputs.make_latest }}

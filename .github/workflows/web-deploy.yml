@@ -58,7 +58,7 @@ on:
     workflows: ["Deploy to Docker"]
     types: [completed]
     branches: [main]
-  # Manual deploy of the current ref, bypassing the backend-release gate —
+  # Manual deploy of main, bypassing the backend-release gate —
   # for emergencies and web-only hotfixes.
   workflow_dispatch:
 
@@ -115,10 +115,10 @@ jobs:
   deploy:
     name: Build & deploy to Cloudflare Pages
     needs: [gate]
-    # workflow_dispatch always runs (manual deploy of the current ref); on
-    # workflow_run the gate must have confirmed the backend release.
+    # workflow_dispatch always runs (manual deploy of main); on workflow_run
+    # the gate must have confirmed the backend release. Only main deploys.
     if: >
-      always() &&
+      always() && github.ref == 'refs/heads/main' &&
       (github.event_name == 'workflow_dispatch' ||
        (needs.gate.result == 'success' && needs.gate.outputs.deploy == 'true'))
     runs-on: ubuntu-latest
