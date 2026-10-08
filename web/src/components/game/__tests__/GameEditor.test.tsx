@@ -22,6 +22,8 @@ let mockHostFailure: ScriptFailure | null = null;
 let mockDiagnosticFailure: ScriptFailure | null = null;
 const mockServer = { document: mockDocument, game: { id: mockDocument.id, name: "Controller game", draftUpdatedAt: "2026-01-01T00:00:00.000Z" } };
 const mockInvalidate = jest.fn(async () => undefined);
+const mockSave = jest.fn(async (_request: { id: string; baseUpdatedAt: string; ops: readonly unknown[] }) => mockServer);
+const mockGetDraftQuery = jest.fn(async () => mockServer);
 
 jest.mock("../../../trpc/client", () => ({
   trpc: {
@@ -34,7 +36,10 @@ jest.mock("../../../trpc/client", () => ({
       getDraft: { invalidate: mockInvalidate }, revisions: { invalidate: mockInvalidate }, draftChanges: { invalidate: mockInvalidate }
     } })
   },
-  trpcClient: { games: {} }
+  trpcClient: { games: {
+    saveDraft: { mutate: (request: Parameters<typeof mockSave>[0]) => mockSave(request) },
+    getDraft: { query: () => mockGetDraftQuery() }
+  } }
 }));
 jest.mock("../../../hooks/useDocumentConflicts", () => ({ useDocumentConflicts: () => ({ items: [], accept: jest.fn(), discard: jest.fn() }) }));
 jest.mock("../useGamePlaySession", () => ({
@@ -79,6 +84,40 @@ beforeEach(() => {
   if (!player) { throw new Error("Controller fixture player missing"); }
   player.behaviors = [{ kind: "script", source: "function update() {}", maxCommands: 16, maxTickMs: 8 }];
   getGameDraftStore(mockDocument.id).getState().load(mockDocument, mockServer.game.draftUpdatedAt);
+});
+
+it.each(["BAD_REQUEST", "INTERNAL_SERVER_ERROR", "transport"])("preserves an oversized save and newer edits after %s (F2)", async (code) => {
+  jest.useFakeTimers();
+  let rejectSave: ((error: Error) => void) | undefined;
+  mockSave.mockImplementationOnce(() => new Promise((_, reject) => { rejectSave = reject; }));
+  const view = render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
+  const store = getGameDraftStore(mockDocument.id);
+  try {
+    act(() => store.getState().apply(Array.from({ length: 1025 }, (_, index) => ({
+      op: "update_entity", scene_id: mockDocument.entrySceneId, entity_id: "player", set: { name: `Player ${index}` }
+    })), { label: "Large Command" }));
+    await act(async () => { jest.advanceTimersByTime(500); });
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    expect(mockSave.mock.calls[0][0].ops).toHaveLength(1025);
+    act(() => store.getState().apply([{ op: "update_entity", scene_id: mockDocument.entrySceneId,
+      entity_id: "player", set: { name: "Newer edit" } }], { label: "Rename Player" }));
+    const before = store.getState();
+    if (!rejectSave) { throw new Error("Save was not held"); }
+    const rejection = code === "transport" ? new Error("Failed to fetch") : Object.assign(new Error("Save failed"), { data: { code } });
+    await act(async () => { rejectSave?.(rejection); });
+    expect(mockGetDraftQuery).toHaveBeenCalledTimes(1);
+    expect(store.getState().document).toEqual(before.document);
+    expect(store.getState().pendingOps).toEqual(before.pendingOps);
+    expect(store.getState().commandHistory).toEqual(before.commandHistory);
+    expect(store.getState().saveStatus).toBe("error");
+    await act(async () => { jest.advanceTimersByTime(1000); });
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    act(() => store.getState().undo());
+    expect(store.getState().document?.scenes[0].entities.find((entity) => entity.id === "player")?.name).toBe("Player 1024");
+  } finally {
+    view.unmount();
+    jest.useRealTimers();
+  }
 });
 
 it.each(["active play", "independent diagnostic"])("replays active history for the displayed %s error", async (provenance) => {

@@ -1,6 +1,3 @@
-import type { AnyGameDocument } from "@nodetool-ai/protocol";
-import { getGameDraftStore } from "./GameDraftStore";
-
 export interface DraftSaveFlight {
   current: Promise<void> | null;
 }
@@ -26,13 +23,4 @@ export async function pullGameDraft(flight: DraftSaveFlight, pull: () => Promise
     try { await flight.current; } catch { /* A failed save still permits reloading the server draft. */ }
   }
   await flushGameDraft(flight, pull);
-}
-
-
-export function reloadRejectedGameDraft(gameId: string, attemptedToken: string, document: AnyGameDocument, serverToken: string, rejection: unknown): boolean {
-  if (serverToken !== attemptedToken || !rejection || typeof rejection !== "object" || !("data" in rejection)) { return false; }
-  const data = rejection.data;
-  if (!data || typeof data !== "object" || !("code" in data) || data.code !== "BAD_REQUEST") { return false; }
-  getGameDraftStore(gameId).getState().load(document, serverToken);
-  return true;
 }

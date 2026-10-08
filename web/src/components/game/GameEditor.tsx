@@ -7,7 +7,7 @@ import { createScriptedGameSession, validateGame, type AnyGameDocumentOp as Game
 import { trpc, trpcClient } from "../../trpc/client";
 import { useChatDraftStore } from "../../stores/ChatDraftStore";
 import { useConflictStore } from "../../stores/ConflictStore";
-import { flushGameDraft, pullGameDraft, reloadRejectedGameDraft } from "../../stores/game/draftSave";
+import { flushGameDraft, pullGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
@@ -176,8 +176,6 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
               });
               if (merged.conflicts.length > 0) throw new Error("Resolve draft conflicts before saving");
               if (++retries <= 3) continue;
-            } else {
-              reloadRejectedGameDraft(refId, state.baseUpdatedAt, server.document, server.game.draftUpdatedAt, cause);
             }
           } catch (recoveryError) {
             if (recoveryError instanceof Error && recoveryError.message === "Resolve draft conflicts before saving") {

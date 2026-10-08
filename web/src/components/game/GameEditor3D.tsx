@@ -8,7 +8,7 @@ import { useChatDraftStore } from "../../stores/ChatDraftStore";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
 import { anyGameMergeAdapter } from "../../stores/game/anyMerge";
-import { flushGameDraft, pullGameDraft, reloadRejectedGameDraft } from "../../stores/game/draftSave";
+import { flushGameDraft, pullGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { useConflictStore } from "../../stores/ConflictStore";
 import { registerDocumentSync } from "../../stores/documentSync";
@@ -132,7 +132,6 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
         } catch (cause) {
           try {
             const server = await trpcClient.games.getDraft.query({ id: refId });
-            reloadRejectedGameDraft(refId, state.baseUpdatedAt, server.document, server.game.draftUpdatedAt, cause);
             if (server.game.draftUpdatedAt !== state.baseUpdatedAt) {
               await pullFromServer();
               if (++retries <= 3 && (useConflictStore.getState().byKey[`game:${refId}`]?.conflicts.length ?? 0) === 0) { continue; }
@@ -142,7 +141,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
             throw recoveryError;
           }
           const message = cause instanceof Error ? cause.message : String(cause);
-          if (store.getState().saveStatus !== "unsaved") { store.getState().failSave(message); }
+          store.getState().failSave(message);
           throw cause;
         }
       }

@@ -91,6 +91,40 @@ beforeEach(() => {
   getGameDraftStore(mockDocument.id).getState().load(mockDocument, mockToken);
 });
 
+it.each(["BAD_REQUEST", "INTERNAL_SERVER_ERROR", "transport"])("preserves an oversized save and newer edits after %s (F2)", async (code) => {
+  jest.useFakeTimers();
+  let rejectSave: ((error: Error) => void) | undefined;
+  mockSave.mockImplementationOnce(() => new Promise((_, reject) => { rejectSave = reject; }));
+  const view = render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  const store = getGameDraftStore(mockDocument.id);
+  try {
+    act(() => store.getState().apply(Array.from({ length: 1025 }, (_, index) => ({
+      op: "update_entity", scene_id: mockDocument.entrySceneId, entity_id: "player", set: { name: `Player ${index}` }
+    })), { label: "Large Command" }));
+    await act(async () => { jest.advanceTimersByTime(500); });
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    expect(mockSave.mock.calls[0][0].ops).toHaveLength(1025);
+    act(() => store.getState().apply([{ op: "update_entity", scene_id: mockDocument.entrySceneId,
+      entity_id: "player", set: { name: "Newer edit" } }], { label: "Rename Player" }));
+    const before = store.getState();
+    if (!rejectSave) { throw new Error("Save was not held"); }
+    const rejection = code === "transport" ? new Error("Failed to fetch") : Object.assign(new Error("Save failed"), { data: { code } });
+    await act(async () => { rejectSave?.(rejection); });
+    expect(mockGetDraftQuery).toHaveBeenCalledTimes(1);
+    expect(store.getState().document).toEqual(before.document);
+    expect(store.getState().pendingOps).toEqual(before.pendingOps);
+    expect(store.getState().commandHistory).toEqual(before.commandHistory);
+    expect(store.getState().saveStatus).toBe("error");
+    await act(async () => { jest.advanceTimersByTime(1000); });
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    act(() => store.getState().undo());
+    expect(store.getState().document?.scenes[0].entities.find((entity) => entity.id === "player")?.name).toBe("Player 1024");
+  } finally {
+    view.unmount();
+    jest.useRealTimers();
+  }
+});
+
 it("keeps an opened script anchored after another entity is selected", async () => {
   const user = userEvent.setup();
   render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
