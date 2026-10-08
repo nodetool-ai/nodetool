@@ -6,8 +6,11 @@ export type PrimitiveKind =
   | "plane"
   | "cylinder"
   | "torus"
+  | "cone"
+  | "empty"
   | "directionalLight"
-  | "pointLight";
+  | "pointLight"
+  | "spotLight";
 
 export const PRIMITIVE_LABELS = {
   box: "Box",
@@ -15,8 +18,11 @@ export const PRIMITIVE_LABELS = {
   plane: "Plane",
   cylinder: "Cylinder",
   torus: "Torus",
+  cone: "Cone",
+  empty: "Empty",
   directionalLight: "Directional Light",
-  pointLight: "Point Light"
+  pointLight: "Point Light",
+  spotLight: "Spot Light"
 } satisfies Record<PrimitiveKind, string>;
 
 // MeshPhysicalMaterial (extends MeshStandardMaterial) so the Properties panel
@@ -64,6 +70,13 @@ export const createPrimitive = (kind: PrimitiveKind): THREE.Object3D => {
         new THREE.TorusGeometry(0.5, 0.2, 16, 64),
         standardMaterial()
       );
+    case "cone":
+      return new THREE.Mesh(
+        new THREE.CylinderGeometry(0, 0.5, 1, 32),
+        standardMaterial()
+      );
+    case "empty":
+      return new THREE.Group();
     case "directionalLight": {
       // glTF lights shine down their node's -Z, so the target rides along as a
       // child at (0, 0, -1): the exported direction matches what the editor
@@ -78,6 +91,15 @@ export const createPrimitive = (kind: PrimitiveKind): THREE.Object3D => {
     case "pointLight": {
       const light = new THREE.PointLight(0xffffff, 1, 0, 2);
       light.position.set(0, 2, 0);
+      return light;
+    }
+    case "spotLight": {
+      // Aimed like the directional light: the target is a child down -Z.
+      const light = new THREE.SpotLight(0xffffff, 10, 0, Math.PI / 6, 0.2, 2);
+      light.position.set(0, 3, 2);
+      light.target.position.set(0, 0, -1);
+      light.add(light.target);
+      light.lookAt(0, 0, 0);
       return light;
     }
     default:
