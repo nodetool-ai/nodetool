@@ -259,7 +259,7 @@ describe("useStoryboardSetupFlow", () => {
     useStoryboardStore.getState().setSetup(BOARD_ID, { stage: "genre" });
     renderFlow();
 
-    const summary = await screen.findByRole("region", {
+    const summary = await screen.findByRole("group", {
       name: "Before you generate"
     });
     expect(summary).toHaveTextContent(/\$.*30–60s/);
@@ -378,7 +378,7 @@ describe("useStoryboardSetupFlow", () => {
     await user.click(
       screen.getByRole("button", { name: "Generate screenplay" })
     );
-    expect(direct).toHaveBeenCalledWith(BOARD_ID, 10);
+    expect(direct).toHaveBeenCalledWith(BOARD_ID, 10, expect.any(AbortSignal));
   });
 
   it("shows entities as an optional step", () => {
@@ -403,7 +403,7 @@ describe("useStoryboardSetupFlow", () => {
     await user.click(
       screen.getByRole("button", { name: "Generate screenplay" })
     );
-    expect(direct).toHaveBeenCalledWith(BOARD_ID, 6);
+    expect(direct).toHaveBeenCalledWith(BOARD_ID, 6, expect.any(AbortSignal));
     expect(stageOf()).toBe("review");
 
     // The mocked run writes no shots; the real one always does, and the review
@@ -540,5 +540,57 @@ describe("useStoryboardSetupFlow", () => {
         screen.getByRole("button", { name: "Generate screenplay" })
       ).toBeEnabled()
     );
+  });
+
+  // F16: `Rewrite from brief` runs outside the shell's button, so the review
+  // step's Cancel has to reach it.
+  it("cancels a rewrite from the review step", () => {
+    const { result } = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    const review = result.current.steps.find((step) => step.stage === "review");
+    const body = review?.render() as {
+      props: { onRewrite: () => void };
+    };
+    act(() => {
+      body.props.onRewrite();
+    });
+    const signal = (direct.mock.calls[0] as unknown[])[2] as
+      | AbortSignal
+      | undefined;
+    expect(signal?.aborted).toBe(false);
+    act(() => {
+      void review?.onCancel?.();
+    });
+    expect(signal?.aborted).toBe(true);
+  });
+
+  // F9: a creation started on the entities step holds the step until it
+  // lands, and the step's Cancel aborts it.
+  it("holds the entities step while an entity is created", () => {
+    const { result } = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    const entitiesStep = () =>
+      result.current.steps.find((step) => step.stage === "entities");
+    expect(entitiesStep()?.pending).toBe(false);
+    const body = entitiesStep()?.render() as {
+      props: {
+        onCreationStart: () => { signal: AbortSignal; done: () => void };
+      };
+    };
+    let creation: { signal: AbortSignal; done: () => void } | undefined;
+    act(() => {
+      creation = body.props.onCreationStart();
+    });
+    expect(entitiesStep()?.pending).toBe(true);
+    act(() => {
+      void entitiesStep()?.onCancel?.();
+    });
+    expect(creation?.signal.aborted).toBe(true);
+    act(() => {
+      creation?.done();
+    });
+    expect(entitiesStep()?.pending).toBe(false);
   });
 });

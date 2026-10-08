@@ -108,8 +108,8 @@ describe("ui_sketch_set_setup", () => {
     });
     expect(useSketchStore.getState().document.setup?.variations).toBe(2);
     expect(useSketchStore.getState().document.canvas).toMatchObject({
-      width: 683,
-      height: 1024
+      width: 1024,
+      height: 1536
     });
   });
 

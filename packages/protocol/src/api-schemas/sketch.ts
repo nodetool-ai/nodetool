@@ -117,6 +117,10 @@ export interface ImageUseCase {
   title: string;
   /** One line under the title on the card. */
   description: string;
+  /**
+   * The 1K tier of `defaultAspectRatio` (short edge 1024), the same pixels
+   * the look step's size tiles produce, so a picked use case selects a tile.
+   */
   defaultSize: ImageSize;
   /** Aspect id matching `defaultSize`, for the size tiles and the provider. */
   defaultAspectRatio: string;
@@ -144,7 +148,7 @@ export const IMAGE_USE_CASES: readonly ImageUseCase[] = [
     id: "portrait",
     title: "Portrait",
     description: "A person, framed head and shoulders",
-    defaultSize: { width: 819, height: 1024 },
+    defaultSize: { width: 1024, height: 1280 },
     defaultAspectRatio: "4:5",
     composition:
       "Head and shoulders, eyes on the upper third, background falling away " +
@@ -155,7 +159,7 @@ export const IMAGE_USE_CASES: readonly ImageUseCase[] = [
     id: "key-art",
     title: "Key art",
     description: "A poster frame with room for a title",
-    defaultSize: { width: 683, height: 1024 },
+    defaultSize: { width: 1024, height: 1536 },
     defaultAspectRatio: "2:3",
     composition:
       "One dominant subject, deep negative space above it for a title, and a " +
@@ -188,7 +192,7 @@ export const IMAGE_USE_CASES: readonly ImageUseCase[] = [
     id: "concept",
     title: "Concept art",
     description: "A world, painted wide",
-    defaultSize: { width: 1024, height: 683 },
+    defaultSize: { width: 1536, height: 1024 },
     defaultAspectRatio: "3:2",
     composition:
       "A wide establishing view with a foreground, a middle ground and a " +

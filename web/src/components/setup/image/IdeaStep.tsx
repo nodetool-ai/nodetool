@@ -66,6 +66,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   const setup = useSketchStore((state) => state.document.setup);
   const setSetup = useSketchStore((state) => state.setSetup);
   const fileInput = useRef<HTMLInputElement>(null);
+  const briefField = useRef<HTMLElement | null>(null);
   const { data: entities } = useEntities();
 
   // What the composer was holding when the Image card was clicked (F4). It is
@@ -152,6 +153,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           hideLabel
           placeholder="One sentence is enough."
           onChange={handleChange}
+          inputRef={briefField}
         />
 
         {upload.error ? (
@@ -217,6 +219,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
           examples={INSPIRATIONS}
           brief={brief}
           onSelect={(value) => setSetup({ brief: value })}
+          briefRef={briefField}
         />
       </FlexColumn>
 

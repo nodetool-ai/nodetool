@@ -15,11 +15,12 @@ jest.mock("../../../../hooks/storyboard/useStoryboardServerSync", () => ({
 jest.mock("../../../../hooks/storyboard/useStoryboardAgentBridge", () => ({
   useStoryboardAgentBridge: () => {}
 }));
+let mockStage = "idea";
 jest.mock("../useStoryboardSetupFlow", () => ({
   useStoryboardSetupFlow: () => ({
     labels: { title: "Storyboard" },
     steps: [],
-    stage: "idea",
+    stage: mockStage,
     onStageChange: () => {}
   })
 }));
@@ -40,6 +41,7 @@ import StoryboardSetupHost from "../StoryboardSetupHost";
 const BOARD_ID = "b1";
 
 beforeEach(() => {
+  mockStage = "idea";
   useStoryboardStore.setState({ boards: {} });
   useStoryboardStore.getState().ensureBoard(BOARD_ID);
 });
@@ -67,5 +69,15 @@ describe("StoryboardSetupHost", () => {
     render(<StoryboardSetupHost boardId={BOARD_ID} onFinish={jest.fn()} />);
 
     expect(screen.getByText("no change control")).toBeInTheDocument();
+  });
+
+  // The look step writes `done` before the stills are sent and the host
+  // opens the board after. The shell has no step for `done`, so the host
+  // covers that wait.
+  it("shows a wait, not a blank panel, once the flow is done", () => {
+    mockStage = "done";
+    render(<StoryboardSetupHost boardId={BOARD_ID} onFinish={jest.fn()} />);
+
+    expect(screen.getByText("Opening your storyboard")).toBeInTheDocument();
   });
 });

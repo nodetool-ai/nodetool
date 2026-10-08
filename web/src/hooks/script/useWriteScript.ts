@@ -30,7 +30,7 @@
  * are the same artifact.
  */
 
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState, type RefObject } from "react";
 import {
   ATTRIBUTION_SYSTEM_PROMPT,
   ATTRIBUTION_TOOL_DESCRIPTION,
@@ -130,7 +130,7 @@ export interface UseWriteScriptResult {
   /**
    * Write (or rewrite) the script. Resolves `true` when lines were applied and
    * `false` when the run was refused or the provider failed — the reason is in
-   * {@link UseWriteScriptResult.error}. It never rejects, because the review
+   * {@link UseWriteScriptResult.errorRef}. It never rejects, because the review
    * step fires it from a click handler; the setup flow reads the boolean and
    * turns a `false` into the message on its button.
    */
@@ -138,6 +138,12 @@ export interface UseWriteScriptResult {
   cancel: () => void;
   writing: boolean;
   error: string | null;
+  /**
+   * The same reason as `error`, set before `write` resolves. `error` is state
+   * and reaches a caller's closure only after the next render, so code that
+   * reads the reason right after awaiting `write` reads this instead.
+   */
+  errorRef: RefObject<string | null>;
 }
 
 /**
@@ -153,7 +159,12 @@ const nextIdPrefix = (): string =>
 
 export const useWriteScript = (): UseWriteScriptResult => {
   const [writing, setWriting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setErrorState] = useState<string | null>(null);
+  const errorRef = useRef<string | null>(null);
+  const setError = useCallback((message: string | null) => {
+    errorRef.current = message;
+    setErrorState(message);
+  }, []);
 
   const activeController = useRef<AbortController | null>(null);
   const cancel = useCallback(() => activeController.current?.abort(), []);
@@ -322,10 +333,10 @@ export const useWriteScript = (): UseWriteScriptResult => {
         }
       }
     },
-    []
+    [setError]
   );
 
-  return { write, cancel, writing, error };
+  return { write, cancel, writing, error, errorRef };
 };
 
 export default useWriteScript;

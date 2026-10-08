@@ -146,6 +146,8 @@ export interface SetupCardButtonProps extends SetupCardFrameOptions {
   tabIndex?: number;
   onKeyDown?: React.KeyboardEventHandler<HTMLButtonElement>;
   ref?: React.Ref<HTMLButtonElement>;
+  /** Lets a host style its cards without reaching every button near them. */
+  className?: string;
 }
 
 const SetupCardButtonInternal: React.FC<SetupCardButtonProps> = ({
@@ -158,7 +160,8 @@ const SetupCardButtonInternal: React.FC<SetupCardButtonProps> = ({
   role = "toggle",
   tabIndex,
   onKeyDown,
-  ref
+  ref,
+  className
 }) => {
   const theme = useTheme();
   const handleClick = useCallback(() => {
@@ -172,6 +175,7 @@ const SetupCardButtonInternal: React.FC<SetupCardButtonProps> = ({
       component="button"
       type="button"
       ref={ref}
+      className={className}
       aria-disabled={disabled || undefined}
       {...setupCardRoleProps(role, selected)}
       tabIndex={tabIndex}

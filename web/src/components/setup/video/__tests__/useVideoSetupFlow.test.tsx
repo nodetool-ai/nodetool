@@ -3,12 +3,16 @@
  * sequence without `setup` opens as it did before the flow existed.
  */
 
+import type { ReactElement } from "react";
 import { act, renderHook } from "@testing-library/react";
+import { makeClip } from "@nodetool-ai/timeline";
 
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import type { TimelineSetupStage } from "@nodetool-ai/timeline";
 import { newVideoSetupDocument, useVideoSetupFlow } from "../useVideoSetupFlow";
 import { readVideoSetupContext } from "../setupContext";
+import { rpcRequest } from "../../../../lib/websocket/rpcRequest";
+import { PLAN_INPUTS_CHANGED } from "../../../../hooks/timeline/usePlanBeats";
 
 jest.mock("../../../../lib/websocket/rpcRequest", () => ({
   rpcRequest: jest.fn(async () => ({}))
@@ -43,7 +47,7 @@ jest.mock("../../../../hooks/useModelsByProvider", () => ({
   useLanguageModelsByProvider: () => ({
     models: languageModels,
     providers: languageModels.length > 0 ? ["nodetool"] : [],
-    isLoading: false,
+    isLoading: languageModelsLoading,
     isFetching: false,
     error: null,
     refetch: async () => undefined
@@ -51,9 +55,14 @@ jest.mock("../../../../hooks/useModelsByProvider", () => ({
 }));
 
 let languageModels: { id: string; provider: string; name: string }[] = [];
+let languageModelsLoading = false;
+const mockRpc = rpcRequest as jest.Mock;
 
 beforeEach(() => {
   useTimelineStore.getState().reset();
+  languageModelsLoading = false;
+  mockRpc.mockReset();
+  mockRpc.mockImplementation(async () => ({}));
   languageModels = [
     { id: "nodetool/director", provider: "nodetool", name: "NodeTool Director" }
   ];
@@ -308,6 +317,127 @@ describe("useVideoSetupFlow (criterion 2)", () => {
       "Continue to look",
       "Generate your video"
     ]);
+  });
+});
+
+describe("useVideoSetupFlow plan outcomes", () => {
+  it("stays on the format step when the setup changed under the plan", async () => {
+    seed("format");
+    let answer: (value: Record<string, unknown>) => void = () => undefined;
+    mockRpc.mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      })
+    );
+    const { result } = renderHook(() => useVideoSetupFlow());
+
+    let advanced: Promise<unknown> = Promise.resolve();
+    act(() => {
+      advanced = Promise.resolve(result.current.steps[1].onAdvance?.());
+    });
+    act(() => useTimelineStore.getState().setSetup({ brief: "a steel hull" }));
+    await act(async () => {
+      answer({});
+      await expect(advanced).rejects.toThrow(PLAN_INPUTS_CHANGED);
+    });
+
+    expect(useTimelineStore.getState().setup?.stage).toBe("format");
+    expect(useTimelineStore.getState().setup?.beats).toBeUndefined();
+  });
+
+  it("returns false so the shell stays when the owning run is canceled", async () => {
+    seed("format");
+    let answer: (value: Record<string, unknown>) => void = () => undefined;
+    mockRpc.mockReturnValue(
+      new Promise((resolve) => {
+        answer = resolve;
+      })
+    );
+    const { result } = renderHook(() => useVideoSetupFlow());
+    const controller = new AbortController();
+
+    let advanced: Promise<unknown> = Promise.resolve();
+    act(() => {
+      advanced = Promise.resolve(
+        result.current.steps[1].onAdvance?.({ signal: controller.signal })
+      );
+    });
+    controller.abort();
+    await act(async () => {
+      answer({});
+      await expect(advanced).resolves.toBe(false);
+    });
+  });
+
+  it("shows a failed Re-plan on the review step", async () => {
+    seed("review", {
+      beats: [{ id: "b1", prompt: "the kerb", duration_ms: 3000 }]
+    });
+    mockRpc.mockRejectedValue(new Error("The provider refused the request."));
+    const { result } = renderHook(() => useVideoSetupFlow());
+    const review = () =>
+      result.current.steps[2].render() as ReactElement<{
+        onReplan: () => void;
+        error?: string | null;
+      }>;
+
+    expect(review().props.error ?? null).toBeNull();
+    await act(async () => {
+      review().props.onReplan();
+      await Promise.resolve();
+    });
+
+    expect(review().props.error).toBe("The provider refused the request.");
+    expect(useTimelineStore.getState().setup?.beats?.[0].prompt).toBe(
+      "the kerb"
+    );
+  });
+
+  it("holds Continue on the idea step while dropped media uploads", () => {
+    seed("idea");
+    const { result } = renderHook(() => useVideoSetupFlow());
+    const idea = result.current.steps[0].render() as ReactElement<{
+      onImportingChange: (importing: boolean) => void;
+    }>;
+    expect(result.current.steps[0].canAdvance).toBe(true);
+
+    act(() => idea.props.onImportingChange(true));
+    expect(result.current.steps[0].canAdvance).toBe(false);
+    expect(result.current.steps[0].blockedReason).toBe("Uploading your media");
+
+    act(() => idea.props.onImportingChange(false));
+    expect(result.current.steps[0].canAdvance).toBe(true);
+  });
+
+  it("counts one beat per dropped clip in the cost line", () => {
+    seed("format");
+    useTimelineStore.setState({
+      clips: ["kerb.mp4", "harbor.png"].map((name, index) =>
+        makeClip({
+          id: `c${index}`,
+          name,
+          startMs: index * 3000,
+          durationMs: 3000,
+          mediaType: name.endsWith(".png") ? "image" : "video",
+          sourceType: "imported"
+        })
+      )
+    });
+    const { result } = renderHook(() => useVideoSetupFlow());
+    expect(result.current.steps[1].generation?.result).toBe(
+      "Draft 2 beats, one per clip"
+    );
+  });
+
+  it("says the models are loading instead of asking for a pick", () => {
+    languageModels = [];
+    languageModelsLoading = true;
+    seed("format");
+    const { result } = renderHook(() => useVideoSetupFlow());
+    expect(result.current.steps[1].canAdvance).toBe(false);
+    expect(result.current.steps[1].blockedReason).toBe(
+      "Loading the models that can draft the beats"
+    );
   });
 });
 
