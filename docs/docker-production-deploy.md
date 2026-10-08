@@ -77,6 +77,9 @@ docker compose logs --tail 100 app-1 app-2
 For a manual rollback, review schema compatibility and run the rolling script
 on the host with a previously deployed immutable image digest. Rollbacks are
 not accepted by the restricted GitHub key, which only releases current `main`.
+Check [game draft storage compatibility](game-draft-storage.md#server-rollback)
+before choosing an image whose game reader predates the dotted draft version
+identifiers. Unchanged database schemas do not make those readers compatible.
 
 The [deployment setup guide](https://github.com/nodetool-ai/nodetool-deploy/blob/main/docs/setup.md)
 covers DNS, trigger-dispatch handover, pool sizing, and affinity checks.
