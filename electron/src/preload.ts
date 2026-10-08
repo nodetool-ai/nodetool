@@ -634,40 +634,8 @@ const api = {
         options,
       }),
 
-    /** Move a file to the OS trash */
-    trashItem: (path: string) =>
-      ipcRenderer.invoke(IpcChannels.SHELL_TRASH_ITEM, validatePath(path)),
-
     /** Play the system beep sound */
     beep: () => ipcRenderer.invoke(IpcChannels.SHELL_BEEP),
-
-    /** Create or update a Windows shortcut (Windows only) */
-    writeShortcutLink: (
-      shortcutPath: string,
-      operation?: "create" | "update" | "replace",
-      options?: {
-        target: string;
-        cwd?: string;
-        args?: string;
-        description?: string;
-        icon?: string;
-        iconIndex?: number;
-        appUserModelId?: string;
-        toastActivatorClsid?: string;
-      },
-    ) =>
-      ipcRenderer.invoke(IpcChannels.SHELL_WRITE_SHORTCUT_LINK, {
-        shortcutPath: validatePath(shortcutPath),
-        operation,
-        options,
-      }),
-
-    /** Read a Windows shortcut (Windows only) */
-    readShortcutLink: (shortcutPath: string) =>
-      ipcRenderer.invoke(
-        IpcChannels.SHELL_READ_SHORTCUT_LINK,
-        validatePath(shortcutPath),
-      ),
   },
 
   // ============================================================================
