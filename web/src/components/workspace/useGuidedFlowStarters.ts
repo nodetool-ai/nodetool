@@ -22,6 +22,7 @@ import {
   useSeedTimelineDetail
 } from "../../hooks/useTimelineSequence";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
+import { useEntityLibraryStore } from "../../stores/EntityLibraryStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
 import {
   creationProjectId,
@@ -248,10 +249,11 @@ export const useGuidedFlowStarters = (
   );
 
   // Entities have no document tab — the library is their surface — so the
-  // starter opens it, where `Add entity` runs the same guided steps.
+  // starter opens it already in the guided `Add entity` steps.
   const startEntity = useCallback(
     () =>
       runStart("entity", async () => {
+        useEntityLibraryStore.getState().setCreating(true);
         openPageTab("entities");
       }),
     [runStart]

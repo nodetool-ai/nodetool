@@ -31,6 +31,7 @@ import {
   LOOSE_PROJECT_ID,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
+import { useEntityLibraryStore } from "../../stores/EntityLibraryStore";
 
 const EntityLibraryInternal: React.FC = () => {
   const projectId =
@@ -38,7 +39,8 @@ const EntityLibraryInternal: React.FC = () => {
   const { data: entities, isLoading } = useEntities();
   const deleteEntity = useDeleteEntity();
 
-  const [creating, setCreating] = useState(false);
+  const creating = useEntityLibraryStore((state) => state.creating);
+  const setCreating = useEntityLibraryStore((state) => state.setCreating);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorAssetId, setEditorAssetId] = useState<string | null>(null);
   const [editingEntity, setEditingEntity] = useState<Entity | undefined>(
@@ -49,13 +51,13 @@ const EntityLibraryInternal: React.FC = () => {
   // into another project's library.
   const draftKey = `entity-library:${projectId}`;
 
-  const handleAdd = useCallback(() => setCreating(true), []);
+  const handleAdd = useCallback(() => setCreating(true), [setCreating]);
 
   // Leaving without creating discards the draft.
   const handleBack = useCallback(() => {
     clearEntitySetupDraft(draftKey);
     setCreating(false);
-  }, [draftKey]);
+  }, [draftKey, setCreating]);
 
   const handleEdit = useCallback((entity: Entity) => {
     setEditorAssetId(entity.id);

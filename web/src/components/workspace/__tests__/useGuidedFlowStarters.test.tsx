@@ -2,6 +2,7 @@
  * The `+ New` menu's guided starters file into the selected project directly.
  */
 import { act, renderHook, waitFor } from "@testing-library/react";
+import { useEntityLibraryStore } from "../../../stores/EntityLibraryStore";
 
 jest.mock("../../../stores/GlobalChatStore", () => ({ __esModule: true, default: { getState: () => ({ threads: {} }) } }));
 
@@ -143,7 +144,8 @@ describe("useGuidedFlowStarters", () => {
     );
   });
 
-  it("opens the entity library directly", async () => {
+  it("opens the entity library in the guided add flow", async () => {
+    useEntityLibraryStore.setState({ creating: false });
     const { hook } = renderStarters();
     const entity = hook.result.current.starters.find(
       (entry) => entry.id === "entity"
@@ -153,6 +155,7 @@ describe("useGuidedFlowStarters", () => {
     });
 
     await waitFor(() => expect(openPageTab).toHaveBeenCalledWith("entities"));
+    expect(useEntityLibraryStore.getState().creating).toBe(true);
     expect(createProject).not.toHaveBeenCalled();
   });
 });
