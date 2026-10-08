@@ -444,7 +444,7 @@ jobs:
       - name: Run ${{ matrix.check }}
         run: |
           echo "::group::${{ matrix.check }}"
-          ${{ matrix.command }}
+          ${{ matrix.command }} || exit $?
           echo "::endgroup::"
 
       - name: Check production release workflow contracts
@@ -759,7 +759,7 @@ jobs:
           NODETOOL_GAME_GOLDEN_ARTIFACTS: ${{ matrix.check == 'harness-gate' && format('{0}/native-game-golden-diagnostics', runner.temp) || '' }}
         run: |
           echo "::group::${{ matrix.check }}"
-          ${{ matrix.command }}
+          ${{ matrix.command }} || exit $?
           echo "::endgroup::"
 
       - name: Retain native game golden diagnostics
