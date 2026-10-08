@@ -1,4 +1,4 @@
-import { constants, promises as fs, realpathSync } from "fs";
+import { constants, promises as fs, realpathSync, statSync } from "fs";
 import os from "os";
 import path from "path";
 import { serverState } from "./state";
@@ -166,6 +166,56 @@ function assertSafeReadablePath(filePath: unknown): string {
 }
 
 /**
+ * Extensions the OS runs, installs, or hands to a script host when a file is
+ * opened. Opening one through `shell.openPath` executes it.
+ */
+const LAUNCHABLE_EXTENSIONS = new Set([
+  // Windows
+  ".exe", ".bat", ".cmd", ".com", ".scr", ".pif", ".cpl", ".msi", ".msc",
+  ".lnk", ".url", ".hta", ".reg", ".ps1", ".vbs", ".vbe", ".js", ".jse",
+  ".wsf", ".wsh", ".jar",
+  // macOS
+  ".app", ".command", ".tool", ".terminal", ".pkg", ".mpkg", ".workflow",
+  ".scpt", ".applescript", ".fileloc", ".webloc",
+  // Linux and Unix
+  ".sh", ".desktop", ".run", ".appimage",
+]);
+
+/**
+ * `assertSafeReadablePath` for paths handed to `shell.openPath`. A renderer
+ * that can write a file (through the backend) and then open it must not be
+ * able to launch it, so applications, scripts, installers, shortcuts, and
+ * files with an execute bit are refused.
+ */
+function assertSafeOpenablePath(filePath: unknown): string {
+  const resolved = assertSafeReadablePath(filePath);
+  const candidates = [resolved];
+  try {
+    candidates.push(realpathSync.native(resolved));
+  } catch {
+    // A missing path cannot launch anything; openPath reports the error.
+  }
+  for (const candidate of candidates) {
+    if (LAUNCHABLE_EXTENSIONS.has(path.extname(candidate).toLowerCase())) {
+      throw new Error("Opening applications or scripts is not permitted");
+    }
+  }
+  if (process.platform !== "win32") {
+    try {
+      const stat = statSync(resolved);
+      if (stat.isFile() && (stat.mode & 0o111) !== 0) {
+        throw new Error("Opening executable files is not permitted");
+      }
+    } catch (error) {
+      if (!isErrnoException(error)) {
+        throw error;
+      }
+    }
+  }
+  return resolved;
+}
+
+/**
  * True when `resolved` sits at or under a sensitive user-credential directory
  * or a disallowed absolute system prefix. Callers check both the lexical and
  * the symlink-resolved path.
@@ -202,6 +252,7 @@ function errorMessage(error: unknown): string {
 }
 
 export {
+  assertSafeOpenablePath,
   assertSafeReadablePath,
   checkPermissions,
   errorMessage,

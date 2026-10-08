@@ -516,6 +516,17 @@ describe('initializeIpcHandlers', () => {
       await openExternalHandler({}, 'https://example.com');
       expect(shellMock.openExternal).toHaveBeenCalledWith('https://example.com');
     });
+
+    it('refuses OS settings deep links from the renderer', async () => {
+      const openExternalHandler = invokeHandlerFor(Channels.PACKAGE_OPEN_EXTERNAL);
+
+      await openExternalHandler({}, 'ms-settings:privacy-microphone');
+      await openExternalHandler(
+        {},
+        'x-apple.systempreferences:com.apple.preference.security',
+      );
+      expect(shellMock.openExternal).not.toHaveBeenCalled();
+    });
   });
 
   describe('window event error handling', () => {
