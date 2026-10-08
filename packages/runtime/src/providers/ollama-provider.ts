@@ -84,6 +84,58 @@ function normalizeToolArgs(raw: unknown): Record<string, unknown> {
   return {};
 }
 
+/**
+ * Context window sent as `num_ctx` when neither `OLLAMA_CONTEXT_LENGTH` nor
+ * the model's Modelfile sets one. Ollama's own default is a few thousand
+ * tokens, which silently truncates a long chat. The model's trained length is
+ * often 128k or more, and a KV cache that large can exhaust VRAM, so the
+ * default is capped here.
+ */
+export const OLLAMA_DEFAULT_NUM_CTX = 32_768;
+
+/** Cap on the model-list probe so an unreachable remote host can't stall the model menu. */
+const MODEL_LIST_TIMEOUT_MS = 5_000;
+
+/** Process-wide counter for tool-call ids, so ids never repeat across rounds. */
+let toolCallSeq = 0;
+
+function positiveInt(value: unknown): number | null {
+  const n = typeof value === "string" ? Number(value.trim()) : value;
+  return typeof n === "number" && Number.isInteger(n) && n > 0 ? n : null;
+}
+
+/** `num_ctx` from a Modelfile `parameters` block (`num_ctx   8192`), or null. */
+function modelfileNumCtx(parameters: unknown): number | null {
+  if (!isString(parameters)) return null;
+  const match = /^\s*num_ctx\s+(\d+)\s*$/m.exec(parameters);
+  return match ? positiveInt(match[1]) : null;
+}
+
+/** The trained context length from `/api/show` `model_info` (`<arch>.context_length`). */
+function trainedContextLength(modelInfo: unknown): number | null {
+  if (!isRecord(modelInfo)) return null;
+  for (const [key, value] of Object.entries(modelInfo)) {
+    if (key.endsWith(".context_length")) return positiveInt(value);
+  }
+  return null;
+}
+
+async function errorDetail(response: Response): Promise<string> {
+  try {
+    const text = (await response.text()).trim();
+    if (!text) return "";
+    try {
+      const parsed = JSON.parse(text) as unknown;
+      if (isRecord(parsed) && isString(parsed.error)) return `: ${parsed.error}`;
+    } catch {
+      // Not JSON; report the raw body.
+    }
+    return `: ${text.slice(0, 500)}`;
+  } catch {
+    return "";
+  }
+}
+
 function asTextParts(content: MessageContent[]): string {
   return content
     .filter((part): part is MessageTextContent => part.type === "text")
@@ -113,8 +165,11 @@ export class OllamaProvider extends BaseProvider {
   readonly keepAlive: string;
   private _fetch: typeof fetch;
 
+  /** Explicit `num_ctx` from OLLAMA_CONTEXT_LENGTH, or null to derive it per model. */
+  readonly contextLength: number | null;
+
   constructor(
-    secrets: { OLLAMA_API_URL?: string },
+    secrets: { OLLAMA_API_URL?: string; OLLAMA_CONTEXT_LENGTH?: string },
     options: OllamaProviderOptions = {}
   ) {
     super("ollama");
@@ -125,6 +180,9 @@ export class OllamaProvider extends BaseProvider {
     this.apiUrl = apiUrl.replace(/\/+$/, "");
     const keepAlive = process.env.OLLAMA_KEEP_ALIVE?.trim();
     this.keepAlive = keepAlive && keepAlive.length > 0 ? keepAlive : "10m";
+    this.contextLength = positiveInt(
+      secrets.OLLAMA_CONTEXT_LENGTH ?? process.env.OLLAMA_CONTEXT_LENGTH
+    );
     this._fetch = options.fetchFn ?? globalThis.fetch.bind(globalThis);
   }
 
@@ -139,28 +197,67 @@ export class OllamaProvider extends BaseProvider {
 
   private _modelInfoCache = new Map<string, Record<string, unknown>>();
 
+  /** `/api/show` for `model`, cached on success; null when it can't be read. */
+  private async getModelInfo(
+    model: string
+  ): Promise<Record<string, unknown> | null> {
+    const cached = this._modelInfoCache.get(model);
+    if (cached) return cached;
+    try {
+      const response = await this._fetch(`${this.apiUrl}/api/show`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ model })
+      });
+      if (!response.ok) {
+        log.warn("Failed to fetch model info", {
+          model,
+          status: response.status
+        });
+        return null;
+      }
+      const info = (await response.json()) as unknown;
+      if (!isRecord(info)) return null;
+      this._modelInfoCache.set(model, info);
+      return info;
+    } catch (err) {
+      log.warn("Error fetching model info", { model, error: String(err) });
+      return null;
+    }
+  }
+
+  /**
+   * The `num_ctx` sent with every chat request: OLLAMA_CONTEXT_LENGTH when
+   * set, else the Modelfile's `num_ctx`, else the model's trained length
+   * capped at {@link OLLAMA_DEFAULT_NUM_CTX}. Sent explicitly because Ollama's
+   * server default silently drops the oldest tokens of a long prompt.
+   */
+  async resolveNumCtx(model: string): Promise<number> {
+    if (this.contextLength !== null) return this.contextLength;
+    const info = await this.getModelInfo(model);
+    const fromModelfile = modelfileNumCtx(info?.parameters);
+    if (fromModelfile !== null) return fromModelfile;
+    const trained = trainedContextLength(info?.model_info);
+    return trained !== null
+      ? Math.min(trained, OLLAMA_DEFAULT_NUM_CTX)
+      : OLLAMA_DEFAULT_NUM_CTX;
+  }
+
+  /** The window this provider runs `model` at, so compaction fires before Ollama truncates. */
+  override async getContextWindow(model: string): Promise<number | null> {
+    return this.resolveNumCtx(model);
+  }
+
   /**
    * Check if a model supports native tool calling by querying /api/show.
    * Falls back to true if capabilities can't be determined.
    */
   async hasToolSupport(model: string): Promise<boolean> {
     try {
-      let info = this._modelInfoCache.get(model);
+      const info = await this.getModelInfo(model);
       if (!info) {
-        const response = await this._fetch(`${this.apiUrl}/api/show`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ model })
-        });
-        if (!response.ok) {
-          log.warn("Failed to fetch model info, assuming tool support", {
-            model,
-            status: response.status
-          });
-          return true;
-        }
-        info = (await response.json()) as Record<string, unknown>;
-        this._modelInfoCache.set(model, info);
+        log.warn("Model info unavailable, assuming tool support", { model });
+        return true;
       }
 
       const capabilities = info.capabilities;
@@ -386,13 +483,17 @@ export class OllamaProvider extends BaseProvider {
       signal
     });
     if (!response.ok) {
-      throw new Error(`Ollama API request failed (${response.status})`);
+      throw new Error(
+        `Ollama API request failed (${response.status})${await errorDetail(response)}`
+      );
     }
     return (await response.json()) as T;
   }
 
   async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    const response = await this._fetch(`${this.apiUrl}/api/tags`);
+    const response = await this._fetch(`${this.apiUrl}/api/tags`, {
+      signal: AbortSignal.timeout(MODEL_LIST_TIMEOUT_MS)
+    });
     if (!response.ok) return [];
     const payload = (await response.json()) as {
       models?: Array<{ name?: string; model?: string }>;
@@ -443,12 +544,15 @@ export class OllamaProvider extends BaseProvider {
   private toToolCalls(toolCalls: OllamaToolCall[] | undefined): ToolCall[] {
     if (!Array.isArray(toolCalls)) return [];
     return toolCalls
-      .map((tc, idx) => {
+      .map((tc) => {
         const fn = tc.function ?? {};
         const name = isString(fn.name) ? fn.name : "";
         if (!name) return null;
+        // Ollama sends no call ids. Mint ones unique across events and rounds
+        // so tool_call/tool_result updates and persisted messages never collide.
+        toolCallSeq += 1;
         return {
-          id: `tool_${idx + 1}`,
+          id: `tool_${Date.now().toString(36)}_${toolCallSeq}`,
           name,
           args: normalizeToolArgs(fn.arguments)
         } satisfies ToolCall;
@@ -484,6 +588,7 @@ export class OllamaProvider extends BaseProvider {
     // OpenAI's is 0.0, so shift by one.
     const repeatPenaltySource = args.frequencyPenalty ?? args.presencePenalty;
     const options: Record<string, unknown> = {
+      num_ctx: await this.resolveNumCtx(args.model),
       num_predict: args.maxTokens ?? 8192
     };
     if (args.temperature != null) options.temperature = args.temperature;
@@ -670,7 +775,9 @@ export class OllamaProvider extends BaseProvider {
     });
 
     if (!response.ok || !response.body) {
-      throw new Error(`Ollama API request failed (${response.status})`);
+      throw new Error(
+        `Ollama API request failed (${response.status})${await errorDetail(response)}`
+      );
     }
 
     const decoder = new TextDecoder();
@@ -679,10 +786,17 @@ export class OllamaProvider extends BaseProvider {
     let accumulatedText = "";
 
     try {
-      while (true) {
+      let streamEnded = false;
+      while (!streamEnded) {
         const read = await reader.read();
-        if (read.done) break;
-        buffer += decoder.decode(read.value, { stream: true });
+        if (read.done) {
+          // Flush the decoder and parse an unterminated last line, which a
+          // proxy that strips the trailing newline leaves behind.
+          buffer += decoder.decode() + "\n";
+          streamEnded = true;
+        } else {
+          buffer += decoder.decode(read.value, { stream: true });
+        }
 
         while (true) {
           const idx = buffer.indexOf("\n");
@@ -694,7 +808,15 @@ export class OllamaProvider extends BaseProvider {
           const event = JSON.parse(line) as {
             message?: OllamaChatMessage;
             done?: boolean;
+            error?: unknown;
           } & OllamaUsageFields;
+          // Failures after the 200 header (runner crash, OOM) arrive as an
+          // `{"error": …}` line. Without this check the reply just stops.
+          if (event.error != null) {
+            throw new Error(
+              `Ollama API error: ${isString(event.error) ? event.error : JSON.stringify(event.error)}`
+            );
+          }
           if (event.done) this.trackOllamaUsage(args.model, event);
           const message = event.message ?? {};
 

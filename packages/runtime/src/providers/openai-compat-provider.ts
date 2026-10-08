@@ -25,6 +25,7 @@ import {
 import type {
   LanguageModel,
   Message,
+  MessageTextContent,
   ProviderId,
   ProviderStreamItem,
   ProviderTool,
@@ -181,6 +182,32 @@ export class OpenAICompatProvider extends OpenAIProvider {
     return this._compatClient;
   }
 
+  /**
+   * `max_completion_tokens` sent when the caller sets no `maxTokens`.
+   * Undefined omits the field and leaves the cap to the server.
+   */
+  protected get defaultMaxTokens(): number | undefined {
+    return 16384;
+  }
+
+  /**
+   * Flatten a system message whose content is an array of parts to its text.
+   * The inherited conversion keeps only string content and sent an empty
+   * system prompt for the array form.
+   */
+  override async convertMessage(
+    message: Message
+  ): Promise<Record<string, unknown>> {
+    if (message.role === "system" && Array.isArray(message.content)) {
+      const text = message.content
+        .filter((part): part is MessageTextContent => part.type === "text")
+        .map((part) => part.text)
+        .join("\n");
+      return super.convertMessage({ ...message, content: text });
+    }
+    return super.convertMessage(message);
+  }
+
   /** Shared request assembly for both streaming and non-streaming chat. */
   private async buildChatRequest(
     args: {
@@ -201,7 +228,7 @@ export class OpenAICompatProvider extends OpenAIProvider {
       model,
       tools = [],
       toolChoice,
-      maxTokens = 16384,
+      maxTokens = this.defaultMaxTokens,
       temperature,
       topP,
       presencePenalty,
@@ -217,9 +244,9 @@ export class OpenAICompatProvider extends OpenAIProvider {
     const request: ChatCompletionsRequest = {
       model,
       messages: openaiMessages,
-      max_completion_tokens: maxTokens,
       stream
     };
+    if (maxTokens != null) request.max_completion_tokens = maxTokens;
     if (stream) request.stream_options = { include_usage: true };
 
     if (temperature != null) request.temperature = temperature;
@@ -299,6 +326,20 @@ export class OpenAICompatProvider extends OpenAIProvider {
         if (!choice) continue;
 
         const delta = choice.delta;
+
+        // llama-server, vLLM and LM Studio move `<think>` text out of
+        // `content` into a separate field. Surface it like Ollama's
+        // `thinking`, or the UI shows nothing for the whole reasoning phase.
+        const reasoning = delta?.reasoning_content ?? delta?.reasoning;
+        if (isNonEmptyString(reasoning)) {
+          const thinkingChunk: Chunk = {
+            type: "chunk",
+            content: reasoning,
+            done: false,
+            thinking: true
+          };
+          yield thinkingChunk;
+        }
 
         if (delta?.audio?.data) {
           const audioChunk: Chunk = {

@@ -282,7 +282,7 @@ describe("OllamaProvider – generateMessage edge cases", () => {
     });
 
     expect(result.toolCalls).toEqual([
-      { id: "tool_1", name: "calc", args: { x: 1 } }
+      { id: expect.stringMatching(/^tool_/), name: "calc", args: { x: 1 } }
     ]);
   });
 

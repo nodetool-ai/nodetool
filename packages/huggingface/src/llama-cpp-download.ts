@@ -57,7 +57,11 @@ export function getLlamaCppModelFilename(
   repoId: string,
   filename: string
 ): string {
-  return `${repoId.replace("/", "_")}_${filename}`;
+  // The cache is flat: a file in a repo subdirectory (a sharded
+  // `Q4_K_M/model-00001-of-00002.gguf`) is flattened too, so it neither needs
+  // a missing subdirectory nor hides from a top-level scan.
+  const flatFile = filename.replace(/^\/+/, "").replaceAll("/", "_");
+  return `${repoId.replaceAll("/", "_")}_${flatFile}`;
 }
 
 /**
@@ -175,8 +179,9 @@ export async function downloadLlamaCppModel(
     // Not cached or etag file missing -- proceed with download
   }
 
-  // Download the file
-  const tempPath = outputPath + ".tmp";
+  // Download the file. The temp name is unique per call so two concurrent
+  // downloads of the same file never write into one another.
+  const tempPath = `${outputPath}.${process.pid}.${Math.random().toString(36).slice(2)}.tmp`;
 
   const resp = await fetch(hfUrl, {
     method: "GET",
@@ -192,6 +197,7 @@ export async function downloadLlamaCppModel(
   }
 
   let downloaded = 0;
+  let completed = false;
   const fd = await fsp.open(tempPath, "w");
   const writable = fd.createWriteStream();
 
@@ -199,12 +205,7 @@ export async function downloadLlamaCppModel(
     const reader = resp.body.getReader();
     for (;;) {
       if (cancelSignal?.aborted) {
-        reader.cancel();
-        try {
-          await fsp.unlink(tempPath);
-        } catch {
-          // ignore
-        }
+        reader.cancel().catch(() => undefined);
         throw new Error("Download cancelled");
       }
       const { done, value } = await reader.read();
@@ -218,9 +219,15 @@ export async function downloadLlamaCppModel(
       downloaded += value.length;
       progressCallback?.(value.length, totalSize);
     }
+    completed = true;
   } finally {
     await new Promise<void>((resolve) => writable.end(resolve));
-    await fd.close();
+    await fd.close().catch(() => undefined);
+    // Any failure, including an abort that rejects a pending read, must not
+    // leave a multi-GB partial file behind.
+    if (!completed) {
+      await fsp.unlink(tempPath).catch(() => undefined);
+    }
   }
 
   // Rename temp file to final location
