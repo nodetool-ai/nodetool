@@ -676,7 +676,7 @@ const NewProjectSurface = ({
           text: composeFirstTurn({
             prompt: text,
             starter,
-            entityNames: selectedEntities.map((entity) => entity.name)
+            entityIds: selectedEntities.map((entity) => entity.id)
           })
         },
         ...getFileContents()
