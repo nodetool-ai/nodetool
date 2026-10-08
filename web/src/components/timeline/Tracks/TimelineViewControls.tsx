@@ -6,6 +6,7 @@ import type { Theme } from "@mui/material/styles";
 import AddIcon from "@mui/icons-material/Add";
 import RemoveIcon from "@mui/icons-material/Remove";
 import ViewTimelineOutlinedIcon from "@mui/icons-material/ViewTimelineOutlined";
+import FitScreenIcon from "@mui/icons-material/FitScreen";
 
 import {
   DEFAULT_MS_PER_PX,
@@ -24,6 +25,7 @@ import {
   Popover,
   Slider,
   SPACING,
+  Tooltip,
   getSpacingPx
 } from "../../ui_primitives";
 
@@ -97,6 +99,9 @@ const sliderRowStyles = (theme: Theme) =>
   css({
     display: "grid",
     gridTemplateColumns: `${theme.spacing(6)} minmax(0, 1fr) ${theme.spacing(6)}`,
+    // The zoom row carries an extra "Zoom to fit" button after the stepper.
+    gridAutoFlow: "column",
+    gridAutoColumns: theme.spacing(6),
     alignItems: "center",
     gap: getSpacingPx(SPACING.sm)
   });
@@ -154,10 +159,12 @@ const sliderStyles = (theme: Theme) => ({
 
 interface TimelineViewControlsProps {
   compact: boolean;
+  /** Fits all content to the viewport (the Shift+Z handler). */
+  onZoomToFit?: () => void;
 }
 
 export const TimelineViewControls: React.FC<TimelineViewControlsProps> = memo(
-  ({ compact }) => {
+  ({ compact, onZoomToFit }) => {
     const theme = useTheme();
     const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
     const msPerPx = useTimelineUIStore((state) => state.msPerPx);
@@ -242,6 +249,18 @@ export const TimelineViewControls: React.FC<TimelineViewControlsProps> = memo(
                 >
                   <AddIcon />
                 </button>
+                {onZoomToFit && (
+                  <Tooltip title="Zoom to fit (Shift+Z)">
+                    <button
+                      type="button"
+                      css={stepButtonStyles(theme)}
+                      onClick={onZoomToFit}
+                      aria-label="Zoom to fit"
+                    >
+                      <FitScreenIcon />
+                    </button>
+                  </Tooltip>
+                )}
               </div>
             </div>
             <div css={rowStyles}>

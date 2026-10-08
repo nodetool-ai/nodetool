@@ -57,6 +57,9 @@ import React, {
 import { css } from "@emotion/react";
 import { useTheme } from "@mui/material/styles";
 import type { Theme } from "@mui/material/styles";
+import { useStore } from "zustand";
+import UndoIcon from "@mui/icons-material/Undo";
+import RedoIcon from "@mui/icons-material/Redo";
 
 import {
   useTimelineStore,
@@ -109,9 +112,13 @@ import { layoutTrackRows, TRACK_FOLDER_HEIGHT_PX, visibleTrackWindow } from "./t
 import { ToolToggle } from "../ToolToggle";
 import { TimelineShortcutsDialog } from "../TimelineShortcutsDialog";
 import {
+  Caption,
   FlexRow,
   HelpButton,
   ResizeHandle,
+  ToolbarIconButton,
+  Tooltip,
+  TYPOGRAPHY,
   FONT_SIZE_MONO,
   FONT_WEIGHT,
   BORDER_RADIUS,
@@ -146,6 +153,7 @@ import {
   keyframeValueAt
 } from "@nodetool-ai/timeline";
 import { useSettingsStore } from "../../../stores/SettingsStore";
+import { isMac } from "../../../utils/platform";
 
 const ZOOM_SENSITIVITY = 0.001;
 /** Extra gap (ms) inserted after the source clip when using Ctrl+Shift+D. */
@@ -155,6 +163,8 @@ const ZOOM_IN_FACTOR = 0.8;
 const ZOOM_OUT_FACTOR = 1.25;
 /** Padding kept on each side when Shift+Z fits content to the viewport (px). */
 const ZOOM_FIT_PADDING_PX = 64;
+/** Modifier shown in the undo/redo tooltips. */
+const modKeyLabel = isMac() ? "⌘" : "Ctrl";
 
 const containerStyles = (theme: Theme) =>
   css({
@@ -215,8 +225,7 @@ const trackCountChipStyles = (theme: Theme) =>
     borderRadius: BORDER_RADIUS.sm,
     backgroundColor: theme.vars.palette.action.hover,
     color: theme.vars.palette.text.secondary,
-    fontFamily:
-      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+    fontFamily: TYPOGRAPHY.mono.caption.fontFamily,
     fontSize: FONT_SIZE_MONO.caption,
     fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: "0"
@@ -545,6 +554,24 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     // Previous scale, so a zoom from the buttons/slider (no cursor anchor) can
     // keep the playhead pinned to the same viewport x as the lanes rescale.
     const prevMsPerPxRef = useRef(msPerPx);
+
+    // Shift+Z and the view-controls button: fit all content to the viewport.
+    const zoomToFit = useCallback(() => {
+      const el = scrollableRef.current;
+      if (!el) return;
+      const doc = docStore.getState();
+      let end = doc.durationMs || 0;
+      for (const c of doc.clips) {
+        end = Math.max(end, c.startMs + c.durationMs);
+      }
+      const viewport = el.clientWidth - ZOOM_FIT_PADDING_PX;
+      if (end > 0 && viewport > 0) {
+        // Pin the content start to the left edge as the lanes rescale,
+        // reusing the cursor-zoom anchor path (see the layout effect).
+        zoomAnchorRef.current = { timeMs: 0, cursorPx: 0 };
+        uiStoreApi.getState().setZoom(end / viewport);
+      }
+    }, [docStore, uiStoreApi]);
 
     // Zoom accumulation for the wheel listener below: a trackpad pinch
     // delivers 60–120+ Hz of wheel events, so we accumulate the compounded
@@ -1225,23 +1252,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
             e.preventDefault();
             ui.setZoom(ui.msPerPx * ZOOM_OUT_FACTOR);
             return;
-          case "zoomFit": {
+          case "zoomFit":
             e.preventDefault();
-            const el = scrollableRef.current;
-            if (!el) return;
-            let end = doc.durationMs || 0;
-            for (const c of doc.clips) {
-              end = Math.max(end, c.startMs + c.durationMs);
-            }
-            const viewport = el.clientWidth - ZOOM_FIT_PADDING_PX;
-            if (end > 0 && viewport > 0) {
-              // Pin the content start to the left edge as the lanes rescale,
-              // reusing the cursor-zoom anchor path (see the layout effect).
-              zoomAnchorRef.current = { timeMs: 0, cursorPx: 0 };
-              ui.setZoom(end / viewport);
-            }
+            zoomToFit();
             return;
-          }
 
           case "undo":
             e.preventDefault();
@@ -1349,6 +1363,7 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
       docStore,
       playbackStore,
       setActiveTool,
+      zoomToFit,
       // useTimelineHistoryBatch() returns a fresh object per render, but
       // begin/mark/end are individually stable (useCallback over a stable
       // store api) — depend on those instead of the wrapper object so this
@@ -1360,6 +1375,23 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
     ]);
 
     const expandedFxTrackId = useTimelineUIStore((s) => s.expandedFxTrackId);
+
+    // Toolbar undo/redo: the same temporal store the Ctrl+Z / Ctrl+Shift+Z
+    // shortcuts drive, read reactively so the buttons disable at either end.
+    const canUndo = useStore(docStore.temporal, (s) => s.pastStates.length > 0);
+    const canRedo = useStore(
+      docStore.temporal,
+      (s) => s.futureStates.length > 0
+    );
+    const handleUndo = useCallback(
+      () => docStore.temporal.getState().undo(),
+      [docStore]
+    );
+    const handleRedo = useCallback(
+      () => docStore.temporal.getState().redo(),
+      [docStore]
+    );
+    const hasClips = useTimelineStore((s) => s.clips.length > 0);
     // Precompute per-type index map (O(n)) to avoid O(n²) per-header lookups.
     const typedIndexMap = useMemo(() => buildTypedIndexMap(tracks), [tracks]);
 
@@ -1461,6 +1493,30 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
           data-testid="timeline-toolbar"
         >
           <ToolToggle compact={toolbarCompact} />
+          {/* The tooltip sits on a span so it still shows over a disabled
+              button, which fires no pointer events of its own. */}
+          <Tooltip title={`Undo (${modKeyLabel}+Z)`}>
+            <span>
+              <ToolbarIconButton
+                icon={<UndoIcon />}
+                ariaLabel="Undo"
+                onClick={handleUndo}
+                disabled={!canUndo}
+                data-testid="timeline-undo"
+              />
+            </span>
+          </Tooltip>
+          <Tooltip title={`Redo (${modKeyLabel}+Shift+Z)`}>
+            <span>
+              <ToolbarIconButton
+                icon={<RedoIcon />}
+                ariaLabel="Redo"
+                onClick={handleRedo}
+                disabled={!canRedo}
+                data-testid="timeline-redo"
+              />
+            </span>
+          </Tooltip>
           <div style={{ flex: "1 1 auto" }} />
           <ScriptToggleButton compact={toolbarCompact} />
           <AddTrackButton compact={toolbarCompact} />
@@ -1473,7 +1529,10 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               tooltip="Keyboard shortcuts (?)"
             />
           )}
-          <TimelineViewControls compact={toolbarCompact} />
+          <TimelineViewControls
+            compact={toolbarCompact}
+            onZoomToFit={zoomToFit}
+          />
         </FlexRow>
 
         {/* ── Sub-header: TRACKS label + ruler ────────────────────────── */}
@@ -1632,6 +1691,26 @@ export const TracksRegion: React.FC<TracksRegionProps> = memo(
               <RubberBandOverlay />
               <SnapGuideOverlay />
             </div>
+            {/* Empty-sequence guidance. pointer-events:none keeps the whole
+                lanes area a drop target for assets. */}
+            {!hasClips && (
+              <FlexRow
+                align="center"
+                justify="center"
+                padding={SPACING.xl}
+                sx={{
+                  position: "absolute",
+                  inset: 0,
+                  pointerEvents: "none",
+                  textAlign: "center"
+                }}
+                data-testid="tracks-empty-hint"
+              >
+                <Caption size="small" color="secondary">
+                  Drag media here from Assets, or add a track to start.
+                </Caption>
+              </FlexRow>
+            )}
           </div>
         </FlexRow>
 

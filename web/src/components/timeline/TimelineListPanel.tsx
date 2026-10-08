@@ -2,6 +2,8 @@ import AddIcon from "@mui/icons-material/Add";
 import MovieOutlinedIcon from "@mui/icons-material/MovieOutlined";
 import UploadFileOutlinedIcon from "@mui/icons-material/UploadFileOutlined";
 import { memo, useCallback, useRef, useState } from "react";
+import { useTheme } from "@mui/material/styles";
+import type { Theme } from "@mui/material/styles";
 import type { ChangeEvent, DragEvent } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 
@@ -29,6 +31,7 @@ import {
   Tooltip,
   BORDER_RADIUS,
   FONT_WEIGHT,
+  SHADOW,
   SPACING,
   getSpacingPx
 } from "../ui_primitives";
@@ -37,7 +40,7 @@ import { newDocumentId } from "../../lib/newDocumentId";
 // Above every tier on the shared Z_INDEX scale, so it keeps its own value.
 const DRAG_IMAGE_Z_INDEX = 9999;
 
-function createTimelineDragImage(name: string): HTMLElement {
+function createTimelineDragImage(name: string, theme: Theme): HTMLElement {
   const container = document.createElement("div");
   container.style.cssText = `
     position: absolute;
@@ -53,7 +56,7 @@ function createTimelineDragImage(name: string): HTMLElement {
     gap: ${getSpacingPx(SPACING.lg)};
     padding: ${getSpacingPx(SPACING.md)};
     box-sizing: border-box;
-    box-shadow: 0 4px 12px rgba(var(--palette-common-blackChannel) / 0.35);
+    box-shadow: ${SHADOW(theme).md};
     color: var(--palette-text-primary);
     font-family: Inter, sans-serif;
     pointer-events: none;
@@ -115,6 +118,7 @@ const TimelineListItem = memo(function TimelineListItem({
   onCommitRename,
   onCancelRename
 }: TimelineListItemProps) {
+  const theme = useTheme();
   const setActiveDrag = useDragDropStore((state) => state.setActiveDrag);
   const clearDrag = useDragDropStore((state) => state.clearDrag);
   const handleDragStart = useCallback(
@@ -129,7 +133,7 @@ const TimelineListItem = memo(function TimelineListItem({
         event.dataTransfer
       );
       event.dataTransfer.effectAllowed = "copyMove";
-      const dragImage = createTimelineDragImage(name);
+      const dragImage = createTimelineDragImage(name, theme);
       document.body.appendChild(dragImage);
       event.dataTransfer.setDragImage(dragImage, 10, 10);
       window.setTimeout(() => document.body.removeChild(dragImage), 0);
@@ -139,7 +143,7 @@ const TimelineListItem = memo(function TimelineListItem({
         metadata: { sourceId: id, sourceName: name || "Untitled video" }
       });
     },
-    [id, name, updatedAt, setActiveDrag]
+    [id, name, updatedAt, setActiveDrag, theme]
   );
   const handleDragEnd = useCallback(() => {
     clearDrag();

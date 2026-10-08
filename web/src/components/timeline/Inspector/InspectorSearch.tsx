@@ -27,7 +27,7 @@ const SECTION_CONTROLS: Readonly<Record<string, string>> = {
   Text: "font family size color align stroke spacing",
   Shape: "geometry fill stroke dash points",
   "Time remap": "speed freeze reverse playback",
-  "Smart Reframe": "crop subject focus zoom",
+  "Smart reframe": "crop subject focus zoom",
   "Audio drive": "reactive envelope frequency band strength",
   Caption: "font size color spoken bottom outline scrim"
 };

@@ -64,6 +64,8 @@ import {
   InlineEditableText,
   SPACING,
   getSpacingPx,
+  CONTROL,
+  TYPOGRAPHY,
   Z_INDEX
 } from "../../ui_primitives";
 import type { SelectOption } from "../../ui_primitives";
@@ -97,6 +99,8 @@ const MIN_TRACK_HEIGHT_PX = 48;
 const MAX_TRACK_HEIGHT_PX = 300;
 const DEFAULT_TRACK_HEIGHT_PX = SHARED_DEFAULT_TRACK_HEIGHT_PX;
 const RESIZE_HANDLE_HEIGHT_PX = 6;
+const RESIZE_KEY_STEP_PX = 8;
+const RESIZE_KEY_STEP_LARGE_PX = 32;
 
 const headerStyles = (theme: Theme, heightPx: number, compact: boolean) =>
   css({
@@ -203,9 +207,14 @@ const nameInputStyles = (theme: Theme) =>
     textOverflow: "ellipsis",
     overflow: "hidden",
     whiteSpace: "nowrap",
+    borderRadius: BORDER_RADIUS.xs,
     "&:focus": {
       cursor: "text",
       color: theme.vars.palette.text.primary
+    },
+    "&:focus-visible": {
+      outline: `2px solid ${theme.vars.palette.primary.main}`,
+      outlineOffset: 1
     }
   });
 
@@ -218,8 +227,7 @@ const indexChipStyles = (theme: Theme) =>
     alignItems: "center",
     justifyContent: "center",
     borderRadius: BORDER_RADIUS.sm,
-    fontFamily:
-      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
+    fontFamily: TYPOGRAPHY.mono.caption.fontFamily,
     fontSize: FONT_SIZE_MONO.caption,
     fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: "0.04em",
@@ -251,35 +259,56 @@ const controlsRowStyles = (compact: boolean, scrollable: boolean) =>
       : null)
   });
 
-const iconButtonStyles = (theme: Theme, active = true) =>
-  css({
-    width: 24,
-    height: 22,
-    background: "transparent",
+/**
+ * Icon-button tones. `idle` and `dim` are the resting states (dim marks an
+ * optional feature that is off, e.g. an empty effects chain). An engaged
+ * toggle — hidden, locked, muted, soloed — gets a filled background and an
+ * accent glyph so it reads as switched on, the way an NLE lights its M/S/L
+ * buttons: mute, lock and hidden in `warning`, solo in `success`.
+ */
+type IconButtonTone = "idle" | "dim" | "warning" | "success";
+
+const iconButtonStyles = (theme: Theme, tone: IconButtonTone) => {
+  const engaged = tone === "warning" || tone === "success";
+  const color = engaged
+    ? theme.vars.palette[tone].main
+    : tone === "idle"
+      ? theme.vars.palette.text.secondary
+      : theme.vars.palette.text.disabled;
+  return css({
+    width: CONTROL.height.xs,
+    height: CONTROL.height.xs,
+    background: engaged ? theme.vars.palette.action.selected : "transparent",
     border: "1px solid transparent",
     padding: 0,
     cursor: "pointer",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    color: active
-      ? theme.vars.palette.text.secondary
-      : theme.vars.palette.text.disabled,
+    color,
     borderRadius: BORDER_RADIUS.md,
     transition: `background-color ${MOTION.fast}, color ${MOTION.fast}, border-color ${MOTION.fast}`,
     "&:hover": {
-      backgroundColor: theme.vars.palette.action.hover,
-      color: theme.vars.palette.text.primary,
+      backgroundColor: engaged
+        ? theme.vars.palette.action.selected
+        : theme.vars.palette.action.hover,
+      color: engaged ? color : theme.vars.palette.text.primary,
       borderColor: theme.vars.palette.divider
     },
     "&:focus-visible": {
-      outline: "none",
-      borderColor: theme.vars.palette.primary.main
+      outline: `2px solid ${theme.vars.palette.primary.main}`,
+      outlineOffset: 2
     },
     "& svg": {
       fontSize: 14
     }
   });
+};
+
+const soloGlyphStyles = css({
+  ...TYPOGRAPHY.mono.strong,
+  lineHeight: 1
+});
 
 const resizeHandleStyles = (theme: Theme) =>
   css({
@@ -293,6 +322,10 @@ const resizeHandleStyles = (theme: Theme) =>
     "&:hover": {
       backgroundColor: theme.vars.palette.primary.main,
       opacity: 0.3
+    },
+    "&:focus-visible": {
+      outline: `2px solid ${theme.vars.palette.primary.main}`,
+      outlineOffset: -2
     }
   });
 
@@ -426,6 +459,30 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
       isResizingRef.current = false;
       history.end();
     }, [history]);
+
+    // Keyboard path for the resize separator: each arrow press is one
+    // undoable height step.
+    const handleResizeKeyDown = useCallback(
+      (e: React.KeyboardEvent<HTMLDivElement>) => {
+        if (e.key !== "ArrowUp" && e.key !== "ArrowDown") {
+          return;
+        }
+        e.preventDefault();
+        e.stopPropagation();
+        const step = e.shiftKey ? RESIZE_KEY_STEP_LARGE_PX : RESIZE_KEY_STEP_PX;
+        const next = Math.min(
+          MAX_TRACK_HEIGHT_PX,
+          Math.max(
+            MIN_TRACK_HEIGHT_PX,
+            authoredHeightPx + (e.key === "ArrowDown" ? step : -step)
+          )
+        );
+        if (next !== authoredHeightPx) {
+          setTrackHeight(track.id, next);
+        }
+      },
+      [authoredHeightPx, setTrackHeight, track.id]
+    );
 
     // Context menu: right-click anywhere on the header, or a touch hold. The
     // resize handle and the drag grip stop pointer/contextmenu propagation so a
@@ -647,11 +704,19 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
       [compact, isMidi]
     );
     const iconButtonOnCss = useMemo(
-      () => iconButtonStyles(theme, true),
+      () => iconButtonStyles(theme, "idle"),
       [theme]
     );
     const iconButtonOffCss = useMemo(
-      () => iconButtonStyles(theme, false),
+      () => iconButtonStyles(theme, "dim"),
+      [theme]
+    );
+    const iconButtonWarningCss = useMemo(
+      () => iconButtonStyles(theme, "warning"),
+      [theme]
+    );
+    const iconButtonSuccessCss = useMemo(
+      () => iconButtonStyles(theme, "success"),
       [theme]
     );
     const resizeHandleCss = useMemo(() => resizeHandleStyles(theme), [theme]);
@@ -733,7 +798,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
               <Tooltip title={track.visible ? "Hide track" : "Show track"}>
                 <button
                   type="button"
-                  css={track.visible ? iconButtonOnCss : iconButtonOffCss}
+                  css={track.visible ? iconButtonOnCss : iconButtonWarningCss}
                   onClick={() => setTrackVisible(track.id, !track.visible)}
                   aria-label={track.visible ? "Hide track" : "Show track"}
                   aria-pressed={!track.visible}
@@ -750,7 +815,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
             <Tooltip title={track.locked ? "Unlock track" : "Lock track"}>
               <button
                 type="button"
-                css={track.locked ? iconButtonOffCss : iconButtonOnCss}
+                css={track.locked ? iconButtonWarningCss : iconButtonOnCss}
                 onClick={() => setTrackLocked(track.id, !track.locked)}
                 aria-label={track.locked ? "Unlock track" : "Lock track"}
                 aria-pressed={track.locked}
@@ -764,7 +829,7 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                 <Tooltip title={track.muted ? "Unmute" : "Mute"} key="mute">
                   <button
                     type="button"
-                    css={track.muted ? iconButtonOffCss : iconButtonOnCss}
+                    css={track.muted ? iconButtonWarningCss : iconButtonOnCss}
                     onClick={() => setTrackMuted(track.id, !track.muted)}
                     aria-label={track.muted ? "Unmute" : "Mute"}
                     aria-pressed={!!track.muted}
@@ -780,20 +845,12 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
                 <Tooltip title={track.solo ? "Unsolo" : "Solo"}>
                   <button
                     type="button"
-                    css={track.solo ? iconButtonOnCss : iconButtonOffCss}
+                    css={track.solo ? iconButtonSuccessCss : iconButtonOnCss}
                     onClick={() => setTrackSolo(track.id, !track.solo)}
                     aria-label={track.solo ? "Unsolo" : "Solo"}
                     aria-pressed={!!track.solo}
                   >
-                    <span
-                      style={{
-                        fontSize: theme.fontSizeSmaller,
-                        fontWeight: 600,
-                        letterSpacing: "0.04em"
-                      }}
-                    >
-                      S
-                    </span>
+                    <span css={soloGlyphStyles}>S</span>
                   </button>
                 </Tooltip>
               </>
@@ -875,10 +932,16 @@ export const TrackHeader: React.FC<TrackHeaderProps> = memo(
             onPointerMove={handleResizePointerMove}
             onPointerUp={handleResizePointerEnd}
             onPointerCancel={handleResizePointerEnd}
+            onKeyDown={handleResizeKeyDown}
             onContextMenu={stopPointerPropagation}
             aria-label="Resize track height"
             role="separator"
             aria-orientation="horizontal"
+            aria-valuenow={Math.round(authoredHeightPx)}
+            aria-valuemin={MIN_TRACK_HEIGHT_PX}
+            aria-valuemax={MAX_TRACK_HEIGHT_PX}
+            tabIndex={0}
+            data-testid={`track-resize-${track.id}`}
           />
         </div>
         <ContextMenu

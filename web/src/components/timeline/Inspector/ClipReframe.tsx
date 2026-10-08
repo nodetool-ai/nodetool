@@ -110,7 +110,7 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
       <CollapsibleSection
         title={
           <InspectorSectionTitle
-            title="Smart Reframe"
+            title="Smart reframe"
             icon={<CenterFocusStrongOutlinedIcon />}
           />
         }
@@ -153,6 +153,7 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
             max={1}
             step={0.01}
             onChange={setFocusX}
+            origin={0.5}
           />
           <InspectorSliderRow
             label="Focus Y"
@@ -162,6 +163,7 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
             max={1}
             step={0.01}
             onChange={setFocusY}
+            origin={0.5}
           />
           <InspectorSliderRow
             label="Zoom"
@@ -171,6 +173,7 @@ const ClipReframeInternal: React.FC<ClipReframeProps> = ({ clip }) => {
             max={4}
             step={0.01}
             onChange={setZoom}
+            origin={1}
           />
           <EditorButton
             fullWidth

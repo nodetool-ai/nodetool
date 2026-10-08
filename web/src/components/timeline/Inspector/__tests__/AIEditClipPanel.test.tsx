@@ -105,7 +105,7 @@ describe("AIEditClipPanel", () => {
     ];
     for (const clip of clips) {
       const view = renderPanel(clip);
-      expect(screen.getByText("AI Edit")).toBeTruthy();
+      expect(screen.getByText("AI edit")).toBeTruthy();
       expect(screen.getByTestId("ai-edit-submit")).toHaveTextContent("Edit video");
       view.unmount();
     }

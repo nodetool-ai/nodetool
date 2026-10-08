@@ -48,6 +48,7 @@ import {
   TextInput
 } from "../../ui_primitives";
 import { InspectorSectionTitle } from "./InspectorPrimitives";
+import { usePersistedFold } from "./usePersistedFold";
 
 interface ImageToVideoPanelProps {
   clipId: string;
@@ -72,6 +73,7 @@ const formatSeconds = (ms: number): string =>
   `${Number((ms / 1000).toFixed(2))} s`;
 
 const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
+  const [open, setOpen] = usePersistedFold("image-to-video", true);
   const timeline = useTimelineStoreApi();
   const clip = useTimelineStore((state) => findClipById(state.clips, clipId));
   const selectClip = useTimelineUIStore((state) => state.selectClip);
@@ -262,11 +264,12 @@ const ImageToVideoPanel: React.FC<ImageToVideoPanelProps> = ({ clipId }) => {
     <CollapsibleSection
       title={
         <InspectorSectionTitle
-          title="Image to Video"
+          title="Image to video"
           icon={<MovieFilterOutlinedIcon />}
         />
       }
-      defaultOpen
+      open={open}
+      onToggle={setOpen}
     >
       <FlexColumn gap={SPACING.sm} sx={{ p: SPACING.md }}>
         {!assetId ? (

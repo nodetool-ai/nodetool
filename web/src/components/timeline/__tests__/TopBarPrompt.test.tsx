@@ -353,7 +353,7 @@ describe("TopBarPrompt", () => {
 
   it("preserves each mode's model and uses the video generation path after switching back", async () => {
     renderPrompt();
-    await userEvent.click(screen.getByRole("button", { name: "Select Model" }));
+    await userEvent.click(screen.getByRole("button", { name: "Select model" }));
     await userEvent.click(
       screen.getByRole("button", { name: "Pick video model" })
     );

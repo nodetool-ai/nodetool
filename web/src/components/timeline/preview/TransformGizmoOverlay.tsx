@@ -1,3 +1,4 @@
+/** @jsxImportSource @emotion/react */
 /**
  * TransformGizmoOverlay — interactive transform handles for the selected
  * timeline clip, drawn over the preview frame.
@@ -19,6 +20,7 @@
  */
 
 import React, { useRef, useState } from "react";
+import { css } from "@emotion/react";
 import type { ClipCrop, ClipTransform } from "@nodetool-ai/timeline";
 
 import {
@@ -743,7 +745,9 @@ export function TransformGizmoOverlay({
     <>
     <svg
       data-testid="timeline-transform-gizmo"
-      tabIndex={-1}
+      tabIndex={0}
+      role="group"
+      aria-label="Transform handles: arrow keys move the clip (Shift for 10 px), period resets"
       onKeyDown={onKeyDown}
       onContextMenu={onContextMenu}
       style={{
@@ -754,9 +758,17 @@ export function TransformGizmoOverlay({
         overflow: "visible",
         zIndex: PREVIEW_OVERLAY_Z.gizmo,
         pointerEvents: "none",
-        touchAction: "none",
-        outline: "none"
+        touchAction: "none"
       }}
+      // The overlay spans the whole frame, so the ring is drawn inside it, in
+      // the handles' own colour.
+      css={css({
+        outline: "none",
+        "&:focus-visible": {
+          outline: `2px solid ${GIZMO_PRIMARY_COLOR}`,
+          outlineOffset: -2
+        }
+      })}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}
       onPointerCancel={endDrag}

@@ -121,6 +121,7 @@ export const EasingField: React.FC<EasingFieldProps> = memo(
           <InspectorPillInput
             value={value ?? ""}
             placeholder="linear"
+            allowEmpty
             minWidth={140}
             onCommit={handleCommit}
             ariaLabel={ariaLabel}
