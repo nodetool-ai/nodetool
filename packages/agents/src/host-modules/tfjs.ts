@@ -81,7 +81,11 @@ function once<T>(factory: () => Promise<T>): () => Promise<T> {
 }
 
 const loadTf = once(async (): Promise<TfLike> => {
-  const tf = await importOptionalLibrary<TfLike>("tfjs", "@tensorflow/tfjs");
+  const tf = await importOptionalLibrary<TfLike>(
+    "tfjs",
+    "@tensorflow/tfjs",
+    "tensorflow-js"
+  );
   try {
     await tf.setBackend?.("cpu");
     await tf.ready?.();
@@ -95,7 +99,7 @@ const loadMobileNet = once(async (): Promise<MobileNetLike> => {
   await loadTf();
   const mod = await importOptionalLibrary<{
     load: (opts: { version: number; alpha: number }) => Promise<MobileNetLike>;
-  }>("tfjs", "@tensorflow-models/mobilenet");
+  }>("tfjs", "@tensorflow-models/mobilenet", "tensorflow-js");
   return mod.load({ version: 2, alpha: 1.0 });
 });
 
@@ -103,7 +107,7 @@ const loadCocoSsd = once(async (): Promise<CocoSsdLike> => {
   await loadTf();
   const mod = await importOptionalLibrary<{
     load: (opts: { base: string }) => Promise<CocoSsdLike>;
-  }>("tfjs", "@tensorflow-models/coco-ssd");
+  }>("tfjs", "@tensorflow-models/coco-ssd", "tensorflow-js");
   return mod.load({ base: "mobilenet_v2" });
 });
 
@@ -111,7 +115,8 @@ const loadQna = once(async (): Promise<QnaLike> => {
   await loadTf();
   const mod = await importOptionalLibrary<{ load: () => Promise<QnaLike> }>(
     "tfjs",
-    "@tensorflow-models/qna"
+    "@tensorflow-models/qna",
+    "tensorflow-js"
   );
   return mod.load();
 });

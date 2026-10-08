@@ -6,14 +6,31 @@
  * import this module instead, so they load liteparse (and its bundled pdfium)
  * without loading the nodes.
  */
+import { importOptionalModule } from "@nodetool-ai/config";
+import { missingRuntimePackageError } from "@nodetool-ai/protocol";
 import type { ParseResult } from "@llamaindex/liteparse";
+
+type LiteParseModule = typeof import("@llamaindex/liteparse");
+
+/**
+ * Load liteparse, an optional package the desktop app installs on first use
+ * ("PDF Libraries"). A missing install fails with an error the editor turns
+ * into an install prompt.
+ */
+export async function loadLiteParse(): Promise<LiteParseModule> {
+  try {
+    return await importOptionalModule<LiteParseModule>("@llamaindex/liteparse");
+  } catch (cause) {
+    throw missingRuntimePackageError("@llamaindex/liteparse", "pdf-js", cause);
+  }
+}
 
 /**
  * Parse a PDF buffer. `liteparse` is imported lazily because it pulls in
  * pdfium and pdf.js, which cost far more than this module's own load.
  */
 export async function parsePdfBuffer(buffer: Buffer): Promise<ParseResult> {
-  const { LiteParse } = await import("@llamaindex/liteparse");
+  const { LiteParse } = await loadLiteParse();
   const parser = new LiteParse({ ocrEnabled: false });
   return parser.parse(buffer, true);
 }
