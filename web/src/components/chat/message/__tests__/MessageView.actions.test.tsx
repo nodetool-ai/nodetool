@@ -256,3 +256,20 @@ describe("MessageView regenerate", () => {
     ).not.toBeInTheDocument();
   });
 });
+
+describe("MessageView inside a longer reply", () => {
+  const segment = {
+    id: "s1",
+    role: "assistant",
+    thread_id: "thread-1",
+    content: "Starting."
+  } as Message;
+
+  it("renders no action row when the reply ends later", () => {
+    renderView(segment, { hideActions: true });
+
+    expect(
+      screen.queryByRole("button", { name: "Copy to clipboard" })
+    ).not.toBeInTheDocument();
+  });
+});

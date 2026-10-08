@@ -16,7 +16,8 @@ import {
   getMessageClass,
   stripContextContent,
   formatMessageTimestamp,
-  hasVisibleContent
+  hasVisibleContent,
+  messageText
 } from "../utils/messageUtils";
 import {
   parseHarmonyContent,
@@ -818,6 +819,13 @@ interface MessageViewProps {
   onResend?: (message: Message, text: string) => void;
   /** Sending an edit here also removes later turns, so the editor says so. */
   editRemovesLaterTurns?: boolean;
+  /**
+   * An assistant message inside a longer reply: the action row belongs to the
+   * reply's last message, so this one renders none.
+   */
+  hideActions?: boolean;
+  /** What Copy copies when it is not the message's own text: the whole reply. */
+  replyCopyText?: string;
 }
 
 export const MessageView: React.FC<MessageViewProps> = React.memo(
@@ -832,26 +840,14 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
     isLatestReply = false,
     onRegenerate,
     onResend,
-    editRemovesLaterTurns = false
+    editRemovesLaterTurns = false,
+    hideActions = false,
+    replyCopyText
   }) => {
     const insertIntoEditor = useEditorInsertion();
     const currentThreadId = useGlobalChatStore((state) => state.currentThreadId);
 
-    const copyText = useMemo(() => {
-      if (isString(message.content)) {
-        return message.content;
-      }
-      if (Array.isArray(message.content)) {
-        return message.content
-          .filter(
-            (c): c is MessageTextContent =>
-              !!c && typeof c === "object" && c.type === "text"
-          )
-          .map((c) => c.text)
-          .join("\n");
-      }
-      return "";
-    }, [message.content]);
+    const copyText = useMemo(() => messageText(message), [message]);
 
     // Seeding the draft store is the whole action: the thread's composer
     // reads the seed and puts the text back in the box, so the user edits and
@@ -1144,7 +1140,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
               </>
             )}
           </div>
-          {hasNonEmptyContent && (
+          {hasNonEmptyContent && !hideActions && (
             <div className="message-actions">
               {formattedTime && (
                 <span className="message-timestamp">{formattedTime}</span>
@@ -1171,7 +1167,7 @@ export const MessageView: React.FC<MessageViewProps> = React.memo(
                 />
               )}
               <CopyButton
-                value={copyText}
+                value={replyCopyText ?? copyText}
                 buttonSize="small"
                 tooltip="Copy to clipboard"
               />

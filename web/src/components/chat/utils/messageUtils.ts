@@ -116,3 +116,62 @@ export const hasVisibleContent = (message: Message): boolean => {
     return true;
   });
 };
+
+/** The text blocks of a message joined by newlines; what Copy puts on the clipboard. */
+export const messageText = (message: Message): string => {
+  const { content } = message;
+  if (isString(content)) {
+    return content;
+  }
+  if (!Array.isArray(content)) {
+    return "";
+  }
+  return content
+    .filter(
+      (block): block is { type: "text"; text: string } =>
+        !!block &&
+        isObjectLike(block) &&
+        block.type === "text" &&
+        isString(block.text)
+    )
+    .map((block) => block.text)
+    .join("\n");
+};
+
+/**
+ * Where each assistant reply ends, mapped to the text of the whole reply.
+ *
+ * An agent reply is often several assistant messages: text, tool rows, more
+ * text. Only its last message with visible content gets an action row, and its
+ * Copy copies every text segment of the reply, as ChatGPT and Claude do. The
+ * segments before it get no action row, so they read as one answer instead of
+ * several with gaps between them.
+ */
+export const replyEnds = (messages: Message[]): Map<number, string> => {
+  const ends = new Map<number, string>();
+  let lastIndex = -1;
+  let parts: string[] = [];
+  const close = (): void => {
+    if (lastIndex >= 0) {
+      ends.set(lastIndex, parts.join("\n\n"));
+    }
+    lastIndex = -1;
+    parts = [];
+  };
+  messages.forEach((message, index) => {
+    if (message.role === "user") {
+      close();
+      return;
+    }
+    if (message.role !== "assistant" || !hasVisibleContent(message)) {
+      return;
+    }
+    lastIndex = index;
+    const text = messageText(message).trim();
+    if (text) {
+      parts.push(text);
+    }
+  });
+  close();
+  return ends;
+};
