@@ -303,16 +303,17 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const onEditorKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     if (!active || !document) return;
     if (playDocument) return;
-    if (event.code === "Home") {
-      event.preventDefault();
-      resetCamera();
-      return;
-    }
     const command = event.metaKey || event.ctrlKey;
     if (command && event.code === "KeyZ") {
       event.preventDefault();
       if (event.shiftKey) getGameDraftStore(refId).getState().redo();
       else getGameDraftStore(refId).getState().undo();
+      return;
+    }
+    if (!(event.target instanceof HTMLElement) || !event.target.closest('[data-game-panel="viewport"]')) { return; }
+    if (event.code === "Home") {
+      event.preventDefault();
+      resetCamera();
       return;
     }
     if (command && event.code === "KeyC") {
@@ -463,7 +464,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
               <GameScriptPane key={`${scriptKey.sceneId}:${scriptKey.entityId}:${scriptKey.index}`} entityId={activeScript.id} entityName={activeScript.name} behaviorIndex={scriptKey.index}
                 behavior={scriptBehavior} onClose={() => setScriptKey(null)}
                 error={scriptError && (!scriptError.entityId || scriptError.entityId === activeScript.id) ? scriptError : null}
-                onReplay={playDocument && scriptError ? () => void replayBeforeError(scriptError) : undefined}
+                onReplay={playDocument && !diagnostics.error && hostScriptError ? () => void replayBeforeError(hostScriptError) : undefined}
                 onAskAssistant={askAssistant}
                 onRunTenSeconds={() => void diagnostics.run()} runningTenSeconds={diagnostics.running} runSummary={diagnostics.summary}
                 runEntityStats={diagnostics.byEntity}
