@@ -37,9 +37,14 @@ const repoRoot = resolve(dirname(fileURLToPath(import.meta.url)), "..");
 export const GATE_FILES =
   /^\.github\/(workflows\/(test|quality-checks)\.yml|actions\/)|^scripts\/(ci-plan|test-affected)\.mjs$/;
 
-/** Inputs of the image the gate's `docker` leg builds and smoke-tests. */
+/**
+ * Inputs of the image the gate's `docker` leg builds and smoke-tests: the
+ * image's own files plus the manifests, lockfile, build configs and bundler
+ * scripts the Dockerfile copies. Package source is left out so ordinary code
+ * changes do not trigger an image build.
+ */
 export const DOCKER_FILES =
-  /^(Dockerfile|\.dockerignore|docker-compose\.yml|scripts\/docker-smoke\.mjs)$/;
+  /^(Dockerfile|\.dockerignore|docker-compose\.yml|package(-lock)?\.json|(packages|reliability)\/[^/]+\/package\.json|web\/package\.json|electron\/scripts\/rebuild-native\.mjs|tsconfig[^/]*\.json|turbo\.json|scripts\/(docker-smoke|bundle-backend|verify-backend-bundle)\.mjs)$/;
 
 /** Inputs of `npm run build:tsc6` beyond source code. */
 export const TSC6_FILES = /(^|\/)(package\.json|tsconfig[^/]*\.json)$|^package-lock\.json$|^\.nvmrc$/;
