@@ -1,4 +1,4 @@
-import { type ComponentProps } from "react";
+import { type ComponentProps, type ReactElement } from "react";
 import { act, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
@@ -24,6 +24,11 @@ let mockHostFailure: ScriptFailure | null = null;
 let mockDiagnosticFailure: ScriptFailure | null = null;
 const mockServer = { document: mockDocument, game: { id: mockDocument.id, name: "Controller game", draftUpdatedAt: "2026-01-01T00:00:00.000Z" } };
 const mockInvalidate = jest.fn(async () => undefined);
+const mockSave = jest.fn(async (_request: { id: string; baseUpdatedAt: string; ops: readonly unknown[] }) => mockServer);
+const mockGetDraftQuery = jest.fn(async () => mockServer);
+const mockSavedToken = "2026-01-01T00:00:00.001Z";
+const mockSaveDocument = jest.fn(async (request: { id: string; baseUpdatedAt: string; document: unknown }) =>
+  ({ document: request.document, game: { ...mockServer.game, draftUpdatedAt: mockSavedToken } }));
 let mockDraftUnavailable = false;
 const mockRecoveryRevision = "b".repeat(32);
 const mockRestore = jest.fn(async (_request: { id: string; baseUpdatedAt: string; revision: string }) => mockServer);
@@ -45,8 +50,10 @@ jest.mock("../../../trpc/client", () => ({
     } })
   },
   trpcClient: { games: {
+    saveDraft: { mutate: (request: Parameters<typeof mockSave>[0]) => mockSave(request) },
+    saveDraftDocument: { mutate: (request: Parameters<typeof mockSaveDocument>[0]) => mockSaveDocument(request) },
     restoreDraft: { mutate: (request: Parameters<typeof mockRestore>[0]) => mockRestore(request) },
-    get: { query: async () => mockServer }, getDraft: { query: async () => mockServer }
+    get: { query: async () => mockServer }, getDraft: { query: () => mockGetDraftQuery() }
   } }
 }));
 jest.mock("../../../hooks/useDocumentConflicts", () => ({ useDocumentConflicts: () => ({ items: [], accept: jest.fn(), discard: jest.fn() }) }));
@@ -100,6 +107,137 @@ beforeEach(() => {
   getGameDraftStore(mockDocument.id).getState().load(mockDocument, mockServer.game.draftUpdatedAt);
 });
 
+type RenameOp = { op: "update_entity"; scene_id: string; entity_id: string; set: { name: string } };
+
+function largeEdit(): RenameOp[] {
+  return Array.from({ length: 1025 }, (_, index) => ({
+    op: "update_entity", scene_id: mockDocument.entrySceneId, entity_id: "player", set: { name: `Player ${index}` }
+  }));
+}
+
+function rename(name: string): RenameOp[] {
+  return [{ op: "update_entity", scene_id: mockDocument.entrySceneId, entity_id: "player", set: { name } }];
+}
+
+function rejected(code: string): Error {
+  return Object.assign(new Error("Save failed"), { data: { code } });
+}
+
+it("saves a batch above the op limit as one whole-document save (F2)", async () => {
+  jest.useFakeTimers();
+  const view = render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
+  const store = getGameDraftStore(mockDocument.id);
+  try {
+    act(() => store.getState().apply(largeEdit(), { label: "Large Command" }));
+    const local = store.getState().document;
+    await act(async () => { jest.advanceTimersByTime(500); });
+    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockSaveDocument).toHaveBeenCalledTimes(1);
+    expect(mockSaveDocument).toHaveBeenCalledWith({ id: mockDocument.id, baseUpdatedAt: mockServer.game.draftUpdatedAt, document: local });
+    expect(store.getState()).toMatchObject({ document: local, pendingOps: [], saveStatus: "saved", baseUpdatedAt: mockSavedToken });
+  } finally {
+    view.unmount();
+    jest.useRealTimers();
+  }
+});
+
+it("retries a rejected op batch once as the whole document, then saves later edits as ops (F2)", async () => {
+  jest.useFakeTimers();
+  mockSave.mockRejectedValueOnce(rejected("BAD_REQUEST"));
+  const view = render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
+  const store = getGameDraftStore(mockDocument.id);
+  try {
+    act(() => store.getState().apply(rename("Rejected op"), { label: "Rename Player" }));
+    const local = store.getState().document;
+    await act(async () => { jest.advanceTimersByTime(500); });
+    expect(mockSave).toHaveBeenCalledTimes(1);
+    expect(mockSaveDocument).toHaveBeenCalledTimes(1);
+    expect(mockSaveDocument).toHaveBeenCalledWith(expect.objectContaining({ document: local }));
+    expect(store.getState()).toMatchObject({ pendingOps: [], saveStatus: "saved", documentSaveRequired: false });
+    act(() => store.getState().apply(rename("Later edit"), { label: "Rename Player" }));
+    await act(async () => { jest.advanceTimersByTime(500); });
+    expect(mockSave).toHaveBeenCalledTimes(2);
+    expect(mockSave.mock.calls[1][0]).toMatchObject({ baseUpdatedAt: mockSavedToken, ops: rename("Later edit") });
+    expect(mockSaveDocument).toHaveBeenCalledTimes(1);
+  } finally {
+    view.unmount();
+    jest.useRealTimers();
+  }
+});
+
+it.each(["BAD_REQUEST", "INTERNAL_SERVER_ERROR", "transport"])("preserves a failed whole-document save and saves it with the next edit after %s (F2)", async (code) => {
+  jest.useFakeTimers();
+  let rejectSave: ((error: Error) => void) | undefined;
+  mockSaveDocument.mockImplementationOnce(() => new Promise((_, reject) => { rejectSave = reject; }));
+  const view = render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
+  const store = getGameDraftStore(mockDocument.id);
+  try {
+    act(() => store.getState().apply(largeEdit(), { label: "Large Command" }));
+    await act(async () => { jest.advanceTimersByTime(500); });
+    expect(mockSaveDocument).toHaveBeenCalledTimes(1);
+    act(() => store.getState().apply(rename("Newer edit"), { label: "Rename Player" }));
+    const before = store.getState();
+    if (!rejectSave) { throw new Error("Save was not held"); }
+    await act(async () => { rejectSave?.(code === "transport" ? new Error("Failed to fetch") : rejected(code)); });
+    expect(mockGetDraftQuery).toHaveBeenCalledTimes(1);
+    expect(store.getState().document).toEqual(before.document);
+    expect(store.getState().pendingOps).toEqual(before.pendingOps);
+    expect(store.getState().commandHistory).toEqual(before.commandHistory);
+    expect(store.getState().saveStatus).toBe("error");
+    await act(async () => { jest.advanceTimersByTime(1000); });
+    expect(mockSaveDocument).toHaveBeenCalledTimes(1);
+    expect(mockSave).not.toHaveBeenCalled();
+    act(() => store.getState().undo());
+    expect(store.getState().document?.scenes[0].entities.find((entity) => entity.id === "player")?.name).toBe("Player 1024");
+    act(() => store.getState().apply(rename("Next edit"), { label: "Rename Player" }));
+    const local = store.getState().document;
+    await act(async () => { jest.advanceTimersByTime(500); });
+    expect(mockSave).not.toHaveBeenCalled();
+    expect(mockSaveDocument).toHaveBeenCalledTimes(2);
+    expect(mockSaveDocument.mock.calls[1][0].document).toEqual(local);
+    expect(store.getState()).toMatchObject({ document: local, pendingOps: [], saveStatus: "saved" });
+  } finally {
+    view.unmount();
+    jest.useRealTimers();
+  }
+});
+
+it("recovers a missing draft after a rejected save and saves the next edit as ops (F2, F6)", async () => {
+  mockSave.mockRejectedValueOnce(rejected("BAD_REQUEST"));
+  mockSaveDocument.mockRejectedValueOnce(rejected("PRECONDITION_FAILED"));
+  URL.createObjectURL = jest.fn(() => "blob:local-draft");
+  URL.revokeObjectURL = jest.fn();
+  const click = jest.spyOn(HTMLAnchorElement.prototype, "click").mockImplementation(() => undefined);
+  const user = userEvent.setup();
+  const editor = (): ReactElement => <ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>;
+  const view = render(editor());
+  const store = getGameDraftStore(mockDocument.id);
+  try {
+    act(() => store.getState().apply(rename("Rejected op"), { label: "Rename Player" }));
+    const local = store.getState();
+    await waitFor(() => expect(mockInvalidate).toHaveBeenCalledWith({ id: mockDocument.id }));
+    expect(mockSaveDocument).toHaveBeenCalledTimes(1);
+    expect(store.getState()).toMatchObject({ document: local.document, pendingOps: local.pendingOps, saveStatus: "error" });
+    mockDraftUnavailable = true;
+    view.rerender(editor());
+    await user.click(screen.getByRole("button", { name: "Export local draft" }));
+    expect(click).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole("button", { name: "Restore to draft" }));
+    await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Restore to draft" }));
+    await waitFor(() => expect(store.getState().document).toEqual(mockServer.document));
+    expect(store.getState()).toMatchObject({ pendingOps: [], documentSaveRequired: false, saveStatus: "saved" });
+    mockDraftUnavailable = false;
+    view.rerender(editor());
+    act(() => store.getState().apply(rename("After recovery"), { label: "Rename Player" }));
+    await waitFor(() => expect(mockSave).toHaveBeenCalledTimes(2));
+    expect(mockSave.mock.calls[1][0].ops).toEqual(rename("After recovery"));
+    expect(mockSaveDocument).toHaveBeenCalledTimes(1);
+  } finally {
+    view.unmount();
+    click.mockRestore();
+  }
+});
+
 it("F6 restores a missing draft only after selecting and confirming a published revision", async () => {
   mockDraftUnavailable = true;
   getGameDraftStore(mockDocument.id).setState({ document: null });
@@ -129,13 +267,18 @@ it("F6 leaves recovery after a competing writer repairs the draft", async () => 
   expect(mockRestore).toHaveBeenCalledTimes(1);
 });
 
-it.each(["active play", "independent diagnostic"])("replays active history for the displayed %s error", async (provenance) => {
+it.each(["active play", "independent diagnostic"])("offers host replay only for a host failure: %s", async (provenance) => {
   const user = userEvent.setup();
   if (provenance === "active play") { mockHostFailure = mockFailure; }
   else { mockDiagnosticFailure = mockFailure; }
   render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
   await user.click(screen.getByRole("button", { name: "Edit player script" }));
   expect(screen.getByText(mockFailure.message)).toBeInTheDocument();
+  if (provenance === "independent diagnostic") {
+    expect(screen.queryByRole("button", { name: "Replay displayed error" })).not.toBeInTheDocument();
+    expect(mockReplay).not.toHaveBeenCalled();
+    return;
+  }
   await user.click(screen.getByRole("button", { name: "Replay displayed error" }));
   expect(mockReplay).toHaveBeenCalledTimes(1);
   expect(mockReplay).toHaveBeenCalledWith(mockFailure);
@@ -172,6 +315,20 @@ it("preserves viewport Alt-arrow world nudging", async () => {
   await user.keyboard("{Alt>}{ArrowDown}{/Alt}");
   expect(document2D(store).scenes[0].entities.find((entity) => entity.id === "player")?.transform2d.y).toBe(initialY - 0.25);
   expect(store.getState().pendingOps).toHaveLength(1);
+});
+
+it("keeps hierarchy navigation keys from editing the selected entity", async () => {
+  const user = userEvent.setup();
+  mockPlayDocument = null;
+  const store = getGameDraftStore(mockDocument.id);
+  render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
+  await user.click(screen.getByRole("button", { name: "player" }));
+  const before = structuredClone(store.getState().document);
+  await user.keyboard("{ArrowDown}{Delete}{Home}{Control>}d{/Control}");
+  expect(store.getState().document).toEqual(before);
+  expect(store.getState().pendingOps).toEqual([]);
+  await user.tab();
+  expect(screen.getByRole("button", { name: "player" })).not.toHaveFocus();
 });
 
 it("keeps inspector-button undo and delete outside the editor keyboard scope", async () => {

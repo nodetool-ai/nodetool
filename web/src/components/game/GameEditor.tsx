@@ -8,7 +8,7 @@ import { createScriptedGameSession, validateGame, type AnyGameDocumentOp as Game
 import { trpc, trpcClient } from "../../trpc/client";
 import { useChatDraftStore } from "../../stores/ChatDraftStore";
 import { useConflictStore } from "../../stores/ConflictStore";
-import { flushGameDraft, pullGameDraft, reloadRejectedGameDraft } from "../../stores/game/draftSave";
+import { captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { registerDocumentSync } from "../../stores/documentSync";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
@@ -155,11 +155,14 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       while (store.getState().pendingOps.length > 0) {
         const state = store.getState();
         if (!state.baseUpdatedAt) return;
-        const ops = state.captureSaveOps();
-        state.setSaving(ops.length);
+        const batch = captureGameDraftBatch(refId);
+        if (!batch) return;
+        state.setSaving(batch.count);
         try {
-          const result = await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops });
-          store.getState().acknowledge(result.document, result.game.draftUpdatedAt, ops.length);
+          const result = "document" in batch
+            ? await trpcClient.games.saveDraftDocument.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, document: batch.document })
+            : await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops: batch.ops });
+          store.getState().acknowledge(result.document, result.game.draftUpdatedAt, batch.count);
           loadedTokenRef.current = result.game.draftUpdatedAt;
           retries = 0;
         } catch (cause) {
@@ -185,13 +188,15 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
               });
               if (merged.conflicts.length > 0) throw new Error("Resolve draft conflicts before saving");
               if (++retries <= 3) continue;
-            } else {
-              reloadRejectedGameDraft(refId, state.baseUpdatedAt, server.document, server.game.draftUpdatedAt, cause);
             }
           } catch (recoveryError) {
             if (recoveryError instanceof Error && recoveryError.message === "Resolve draft conflicts before saving") {
               throw recoveryError;
             }
+          }
+          if ("ops" in batch && isRejectedGameSave(cause)) {
+            store.getState().requireDocumentSave();
+            continue;
           }
           const message = cause instanceof Error ? cause.message : String(cause);
           store.getState().failSave(message);
@@ -301,16 +306,17 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const onEditorKeyDown = (event: React.KeyboardEvent<HTMLElement>) => {
     if (!active || !document) return;
     if (playDocument) return;
-    if (event.code === "Home") {
-      event.preventDefault();
-      resetCamera();
-      return;
-    }
     const command = event.metaKey || event.ctrlKey;
     if (command && event.code === "KeyZ") {
       event.preventDefault();
       if (event.shiftKey) getGameDraftStore(refId).getState().redo();
       else getGameDraftStore(refId).getState().undo();
+      return;
+    }
+    if (!(event.target instanceof HTMLElement) || !event.target.closest('[data-game-panel="viewport"]')) { return; }
+    if (event.code === "Home") {
+      event.preventDefault();
+      resetCamera();
       return;
     }
     if (command && event.code === "KeyC") {
@@ -459,7 +465,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
               <GameScriptPane key={`${scriptKey.sceneId}:${scriptKey.entityId}:${scriptKey.index}`} entityId={activeScript.id} entityName={activeScript.name} behaviorIndex={scriptKey.index}
                 behavior={scriptBehavior} onClose={() => { setScriptKey(null); layoutStore.getState().dispatch({ type: "hide", panelId: "scripts" }); }}
                 error={scriptError && (!scriptError.entityId || scriptError.entityId === activeScript.id) ? scriptError : null}
-                onReplay={playDocument && scriptError ? () => void replayBeforeError(scriptError) : undefined}
+                onReplay={playDocument && !diagnostics.error && hostScriptError ? () => void replayBeforeError(hostScriptError) : undefined}
                 onAskAssistant={askAssistant}
                 onRunTenSeconds={() => void diagnostics.run()} runningTenSeconds={diagnostics.running} runSummary={diagnostics.summary}
                 runEntityStats={diagnostics.byEntity}

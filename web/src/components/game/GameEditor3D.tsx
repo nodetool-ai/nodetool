@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import { useStore } from "zustand";
 import { gameEntity3D, type GameDocument3D } from "@nodetool-ai/protocol";
@@ -9,7 +9,7 @@ import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { getGameDraftStore, useGameDraft } from "../../stores/game/GameDraftStore";
 import { useGamePanelLayoutStore } from "../../stores/game/useGamePanelLayoutStore";
 import { anyGameMergeAdapter } from "../../stores/game/anyMerge";
-import { flushGameDraft, pullGameDraft, reloadRejectedGameDraft } from "../../stores/game/draftSave";
+import { captureGameDraftBatch, flushGameDraft, isRejectedGameSave, pullGameDraft } from "../../stores/game/draftSave";
 import { mergeByUnits } from "../../stores/documentMerge";
 import { useConflictStore } from "../../stores/ConflictStore";
 import { registerDocumentSync } from "../../stores/documentSync";
@@ -72,7 +72,8 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const selected = scene?.entities.find((entity) => entity.id === selectedIds[0]);
   const host = useGamePlaySession3D({ refId, document, active, editorSceneId: activeSceneId });
   const diagnostics = useGameScriptDiagnostics(document, openDiagnosticSession);
-  const scriptError = diagnostics.error ?? (host.error?.includes("Game script") ? scriptFailure(host.error, (host.inspection?.tick ?? 0) + 1) : null);
+  const hostScriptError = host.error?.includes("Game script") ? scriptFailure(host.error, (host.inspection?.tick ?? 0) + 1) : null;
+  const scriptError = diagnostics.error ?? hostScriptError;
   const conflicts = useDocumentConflicts("game", refId);
   const queries = trpc.useUtils();
   const { data: revisions } = trpc.games.revisions.useQuery({ id: refId }, { staleTime: 15_000 });
@@ -126,11 +127,14 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
       while (store.getState().pendingOps.length > 0) {
         const state = store.getState();
         if (!state.baseUpdatedAt) { return; }
-        const ops = state.captureSaveOps();
-        state.setSaving(ops.length);
+        const batch = captureGameDraftBatch(refId);
+        if (!batch) { return; }
+        state.setSaving(batch.count);
         try {
-          const result = await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops });
-          store.getState().acknowledge(result.document, result.game.draftUpdatedAt, ops.length);
+          const result = "document" in batch
+            ? await trpcClient.games.saveDraftDocument.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, document: batch.document })
+            : await trpcClient.games.saveDraft.mutate({ id: refId, baseUpdatedAt: state.baseUpdatedAt, ops: batch.ops });
+          store.getState().acknowledge(result.document, result.game.draftUpdatedAt, batch.count);
           retries = 0;
         } catch (cause) {
           if (isMissingDraft(cause)) {
@@ -140,7 +144,6 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
           }
           try {
             const server = await trpcClient.games.getDraft.query({ id: refId });
-            reloadRejectedGameDraft(refId, state.baseUpdatedAt, server.document, server.game.draftUpdatedAt, cause);
             if (server.game.draftUpdatedAt !== state.baseUpdatedAt) {
               await pullFromServer();
               if (++retries <= 3 && (useConflictStore.getState().byKey[`game:${refId}`]?.conflicts.length ?? 0) === 0) { continue; }
@@ -149,8 +152,12 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
             store.getState().failSave(recoveryError instanceof Error ? recoveryError.message : String(recoveryError));
             throw recoveryError;
           }
+          if ("ops" in batch && isRejectedGameSave(cause)) {
+            store.getState().requireDocumentSave();
+            continue;
+          }
           const message = cause instanceof Error ? cause.message : String(cause);
-          if (store.getState().saveStatus !== "unsaved") { store.getState().failSave(message); }
+          store.getState().failSave(message);
           throw cause;
         }
       }
@@ -240,7 +247,8 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
     } catch (cause) { setOperationError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setRestoring(false); }
   };
-  const restart = host.playDocument && JSON.stringify(host.playDocument) !== JSON.stringify(document);
+  const restart = useMemo(() => host.playDocument && JSON.stringify(host.playDocument) !== JSON.stringify(document),
+    [host.playDocument, document]);
   const notice = host.error || draftError || operationError || restart;
   return <GameEditorShell layoutStore={layoutStore} dimension="3d"
     toolbar={{ name: name,
@@ -316,7 +324,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
           key={`${scriptKey.sceneId}:${scriptKey.entityId}:${scriptKey.index}`} dimension="3d" entityId={activeScript.id}
           entityName={activeScript.name} behaviorIndex={scriptKey.index} behavior={behavior}
           error={scriptError && (!scriptError.entityId || scriptError.entityId === activeScript.id) ? scriptError : null}
-          onReplay={host.playDocument && scriptError ? () => void host.replayBeforeError(scriptError) : undefined}
+          onReplay={host.playDocument && !diagnostics.error && hostScriptError ? () => void host.replayBeforeError(hostScriptError) : undefined}
           onAskAssistant={askAssistant} onRunTenSeconds={() => void diagnostics.run()}
           runningTenSeconds={diagnostics.running} runSummary={diagnostics.summary} runEntityStats={diagnostics.byEntity}
           onChange={(source) => onOps([{ op: "set_script", scene_id: scriptKey.sceneId, entity_id: activeScript.id, index: scriptKey.index, source }])}

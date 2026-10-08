@@ -26,6 +26,17 @@ jest.mock("../../../serverState/useEntities", () => ({
   useEntities: () => ({ data: [] })
 }));
 
+// The confirmation prices clips at each shot's effective duration, which
+// reads the linked script. This suite mounts no query client.
+jest.mock("../../../trpc/client", () => ({
+  trpc: {
+    scripts: {
+      get: { useQuery: () => ({ data: undefined }) }
+    }
+  },
+  trpcClient: {}
+}));
+
 jest.mock("../../../hooks/storyboard/useGenerateShot", () => ({
   useGenerateShot: () => ({
     generateKeyframe: mockGenerateKeyframe,
@@ -166,6 +177,12 @@ describe("BoardStaleBanner", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Regenerate stale stills" })
     );
+    // The click asks first: the re-render spends, so it shows what it costs.
+    expect(mockGenerateKeyframe).not.toHaveBeenCalled();
+    expect(
+      screen.getByText("Regenerate 1 stale still?")
+    ).toBeInTheDocument();
+    await userEvent.click(screen.getByRole("button", { name: "Regenerate" }));
 
     expect(mockGenerateKeyframe).toHaveBeenCalledTimes(1);
     expect(mockGenerateKeyframe).toHaveBeenCalledWith(
@@ -192,11 +209,27 @@ describe("BoardStaleBanner", () => {
     await userEvent.click(
       screen.getByRole("button", { name: "Regenerate stale clips" })
     );
+    await userEvent.click(screen.getByRole("button", { name: "Regenerate" }));
     expect(mockGenerateClip).toHaveBeenCalledTimes(1);
     expect(mockGenerateClip).toHaveBeenCalledWith(
       BOARD,
       expect.objectContaining({ id: "s-stale-clip" })
     );
+    expect(mockGenerateKeyframe).not.toHaveBeenCalled();
+  });
+
+  it("spends nothing when the confirmation is cancelled", async () => {
+    addShot("s-stale-still", 0);
+    useStoryboardStore
+      .getState()
+      .setShotKeyframe(BOARD, "s-stale-still", staleKeyframe("a-1"));
+
+    renderBanner();
+    await userEvent.click(
+      screen.getByRole("button", { name: "Regenerate stale stills" })
+    );
+    await userEvent.click(screen.getByRole("button", { name: "Cancel" }));
+
     expect(mockGenerateKeyframe).not.toHaveBeenCalled();
   });
 });
