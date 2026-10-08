@@ -107,7 +107,11 @@ import StartExamples from "./StartExamples";
 import CurrentProjectDocuments from "./CurrentProjectDocuments";
 import LanguageModelMenuDialog from "../model_menu/LanguageModelMenuDialog";
 import { openPageTab } from "../workspace/openPageTab";
-import { OptionCardGrid, type OptionCardItem } from "../setup/OptionCardGrid";
+import {
+  OPTION_CARD_CLASS,
+  OptionCardGrid,
+  type OptionCardItem
+} from "../setup/OptionCardGrid";
 import { ENTRY_CARDS, type EntryFlowId } from "../setup/entryCards";
 import StoryboardSetupHost from "../setup/storyboard/StoryboardSetupHost";
 import VideoSetupHost from "../setup/video/VideoSetupHost";
@@ -1880,16 +1884,23 @@ const NewProjectSurface = ({
             id="guided-flows"
             aria-label="Start with a guided flow"
             gap={SPACING.lg}
+            // Only the flow cards sit on black. The section's other buttons
+            // (More formats, the game dimension select, a card's expand
+            // control) keep their own surfaces.
             sx={{
-              "& button": { bgcolor: "common.black" },
-              '& button:not([aria-disabled="true"]):hover': {
+              [`& .${OPTION_CARD_CLASS}`]: { bgcolor: "common.black" },
+              [`& .${OPTION_CARD_CLASS}:not([aria-disabled="true"]):hover`]: {
                 bgcolor: "common.black",
                 borderColor: "primary.main"
               },
-              "& img": { opacity: 0.7, transition: MOTION.opacity },
-              '& button:not([aria-disabled="true"]):hover img': {
-                opacity: 0.9
-              }
+              [`& .${OPTION_CARD_CLASS} img`]: {
+                opacity: 0.7,
+                transition: MOTION.opacity
+              },
+              [`& .${OPTION_CARD_CLASS}:not([aria-disabled="true"]):hover img`]:
+                {
+                  opacity: 0.9
+                }
             }}
           >
             <FlexRow align="flex-end" gap={SPACING.md} wrap>

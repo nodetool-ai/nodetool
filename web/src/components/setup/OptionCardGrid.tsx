@@ -22,6 +22,9 @@ import { SetupCardButton, useRovingRadioGroup } from "./SetupCardButton";
 import { GalleryExpandButton, MEDIA_GALLERY_HOST_CLASS } from "./MediaGallery";
 import type { SetupCardGridMode } from "./SetupCardButton";
 
+/** The class every card in the grid carries, for a host that restyles them. */
+export const OPTION_CARD_CLASS = "option-card";
+
 export interface OptionCardItem {
   id: string;
   title: string;
@@ -164,6 +167,7 @@ const OptionCardGridInternal: React.FC<OptionCardGridProps> = ({
         const card = (
           <SetupCardButton
             key={option.id}
+            className={OPTION_CARD_CLASS}
             {...(single
               ? radioProps(option)
               : { role: "navigation" as const })}
