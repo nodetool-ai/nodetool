@@ -79,6 +79,7 @@ import {
 import { ConnectedGeneratedLayerSection } from "./Inspector/ConnectedGeneratedLayerSection";
 import SketchAgentPanel from "./SketchAgentPanel";
 import { SketchRulersAndGuides } from "./guides/SketchRulersAndGuides";
+import { SketchHistoryPanel } from "./history/SketchHistoryPanel";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import { useSketchAgentBridge } from "../../hooks/sketch/useSketchAgentBridge";
 import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
@@ -331,7 +332,8 @@ function SketchEditor({
           strokes.length === 1
             ? "paint stroke"
             : `paint ${strokes.length} strokes`,
-          snapshots
+          snapshots,
+          { timing: "before" }
         );
 
         const outcomes = canvas.paintStrokes(strokes);
@@ -353,7 +355,11 @@ function SketchEditor({
           throw new Error("The canvas is not ready yet.");
         }
         canvas.drainPendingStrokeCommit();
-        pushHistory(label, { [layerId]: canvas.snapshotLayerCanvas(layerId) });
+        pushHistory(
+          label,
+          { [layerId]: canvas.snapshotLayerCanvas(layerId) },
+          { timing: "before" }
+        );
         canvas.mutateLayerPixels(layerId, mutate);
         session.canvasActions.handleStrokeEnd(
           layerId,
@@ -494,6 +500,30 @@ function SketchEditor({
           onLoadLayerAsSelection={
             session.canvasActions.handleLoadLayerAsSelection
           }
+        />
+      </CollapsibleSection>
+
+      <CollapsibleSection
+        className="sketch-editor__history-section"
+        title={<SectionTitle>History</SectionTitle>}
+        defaultOpen={false}
+        compact
+        sx={{
+          flexShrink: 0,
+          fontSize: theme.fontSizeSmall,
+          borderBottom: `1px solid ${theme.vars.palette.divider}`,
+          "& > [role='button']": {
+            padding: theme.spacing(SPACING.md, SPACING.lg),
+            "&:focus-visible": {
+              outline: `2px solid ${theme.vars.palette.primary.main}`,
+              outlineOffset: "-2px"
+            }
+          }
+        }}
+      >
+        <SketchHistoryPanel
+          onUndo={session.handleUndo}
+          onRedo={session.handleRedo}
         />
       </CollapsibleSection>
 

@@ -234,7 +234,7 @@ export const createDocumentSlice: StateCreator<
 
   addVectorLayer: (name, source) => {
     const layer = createVectorLayer(name, source);
-    get().pushHistory("before import SVG");
+    get().pushHistory("import SVG", undefined, { timing: "before" });
     set((state) => ({
       document: withUpdatedDocumentTimestamp({
         ...state.document,
@@ -253,7 +253,7 @@ export const createDocumentSlice: StateCreator<
       return;
     }
     const replacement = createVectorLayer(current.name, source);
-    get().pushHistory("edit SVG");
+    get().pushHistory("edit SVG", undefined, { timing: "before" });
     set((state) => ({
       document: withUpdatedDocumentTimestamp({
         ...state.document,
@@ -269,7 +269,7 @@ export const createDocumentSlice: StateCreator<
     if (current?.type !== "vector" || current.data !== expectedSource) {
       throw new Error("The vector layer changed. Try rasterizing it again.");
     }
-    get().pushHistory("rasterize SVG");
+    get().pushHistory("rasterize SVG", undefined, { timing: "before" });
     set((state) => ({
       document: withUpdatedDocumentTimestamp({
         ...state.document,

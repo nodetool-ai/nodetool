@@ -352,6 +352,8 @@ const persistedHistoryEntry = z.object({
   selection: z.unknown().optional(),
   restoreMode: z.enum(["full", "structure-only"]),
   action: z.string(),
+  /** Set when the checkpoint was pushed before its edit ran. */
+  timing: z.literal("before").optional(),
   timestamp: z.number()
 });
 
