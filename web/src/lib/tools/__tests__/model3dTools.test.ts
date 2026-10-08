@@ -32,6 +32,14 @@ const createMockHandler = (): jest.Mocked<Model3DToolHandler> => ({
   setVisibility: jest.fn(),
   renameObject: jest.fn(),
   setMaterialColor: jest.fn(),
+  getObject: jest.fn(),
+  duplicateObject: jest.fn(),
+  setParent: jest.fn(),
+  setMaterial: jest.fn(),
+  setLight: jest.fn(),
+  setGeometry: jest.fn(),
+  undo: jest.fn(),
+  redo: jest.fn(),
   frameScene: jest.fn(),
   captureView: jest.fn()
 });
@@ -57,7 +65,15 @@ describe("ui_3d_* tools", () => {
         "ui_3d_rename_object",
         "ui_3d_set_material_color",
         "ui_3d_frame_scene",
-        "ui_3d_capture_view"
+        "ui_3d_capture_view",
+        "ui_3d_get_object",
+        "ui_3d_duplicate_object",
+        "ui_3d_set_parent",
+        "ui_3d_set_material",
+        "ui_3d_set_light",
+        "ui_3d_set_geometry",
+        "ui_3d_undo",
+        "ui_3d_redo"
       ])
     );
   });
@@ -172,5 +188,32 @@ describe("ui_3d_* tools", () => {
       data: "QUJDMTIz",
       mimeType: "image/png"
     });
+  });
+
+  it("maps emissive_intensity onto the material patch", async () => {
+    const handler = createMockHandler();
+    setModel3DToolHandler(handler);
+
+    await FrontendToolRegistry.call(
+      "ui_3d_set_material",
+      { target: "Box", slot: 1, emissive: "#ffaa00", emissive_intensity: 2 },
+      "tc-8",
+      ctx
+    );
+
+    expect(handler.setMaterial).toHaveBeenCalledWith("Box", {
+      slot: 1,
+      emissive: "#ffaa00",
+      emissiveIntensity: 2
+    });
+  });
+
+  it("rejects a spot angle above 90 degrees before reaching the editor", async () => {
+    const handler = createMockHandler();
+    setModel3DToolHandler(handler);
+    await expect(
+      FrontendToolRegistry.call("ui_3d_set_light", { target: "Spot", angle: 120 }, "tc-9", ctx)
+    ).rejects.toThrow();
+    expect(handler.setLight).not.toHaveBeenCalled();
   });
 });

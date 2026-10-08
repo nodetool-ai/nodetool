@@ -59,6 +59,20 @@ export const briefInputSignature = (
 ): string => `${setup?.brief?.trim() ?? ""}␟${setup?.use_case ?? ""}`;
 
 /**
+ * The creator's edited fields, as a block appended to the prompt. The model is
+ * asked to keep what they wrote and only tighten it.
+ */
+const editedBriefInstruction = (current: SketchRefinedBrief): string =>
+  [
+    "The creator already edited an earlier brief. Keep their wording and decisions, fill any empty field from the sentence above, and only tighten the rest:",
+    `Subject: ${current.subject}`,
+    `Composition: ${current.composition}`,
+    `Lighting: ${current.lighting}`,
+    `Style words: ${current.style_words}`,
+    `Leave out: ${current.negative}`
+  ].join("\n");
+
+/**
  * One expansion, with no React around it. The hook and the
  * `ui_sketch_refine_brief` tool both call this, so the agent and the flow send
  * the same request and read the answer the same way (PRD § 10.6).
@@ -73,6 +87,12 @@ export async function requestRefinedBrief(
     use_case?: string;
     /** Image URIs the creator attached to the prompt (F4). */
     references?: readonly string[];
+    /**
+     * The five fields as the creator left them on the review. When present,
+     * the model polishes these instead of expanding the sentence from scratch,
+     * so `Re-refine` keeps hand edits (O4).
+     */
+    current?: SketchRefinedBrief;
   },
   model?: RefineBriefModel,
   signal?: AbortSignal
@@ -81,7 +101,10 @@ export async function requestRefinedBrief(
   if (brief.length === 0) {
     throw new Error("Describe the image before refining the brief.");
   }
-  const prompt = buildRefineBriefPrompt(brief, setup.use_case);
+  const basePrompt = buildRefineBriefPrompt(brief, setup.use_case);
+  const prompt = setup.current
+    ? `${basePrompt}\n\n${editedBriefInstruction(setup.current)}`
+    : basePrompt;
   const references = (setup.references ?? []).slice(0, MAX_IMAGE_REFERENCES);
   const request: Record<string, unknown> = {
     // A reference travels as content blocks, the shape `generate_text` reads a
@@ -127,13 +150,30 @@ export async function requestRefinedBrief(
   return refined;
 }
 
+/**
+ * How one expansion ended. `error` is null when the run was canceled or a
+ * newer one replaced it, so there is nothing to tell the creator.
+ */
+export type RefineBriefOutcome =
+  | { ok: true }
+  | { ok: false; error: string | null };
+
+export interface RefineBriefOptions {
+  /** Send the review's edited fields so the answer polishes them (O4). */
+  keepEdits?: boolean;
+}
+
 export interface RefineBriefResult {
   /**
    * Expand the document's brief and write the answer onto `setup.refined`,
-   * leaving the stage at `review`. Resolves `false` when the run was refused
-   * or the model answered with nothing usable; the reason is in `error`.
+   * leaving the stage at `review`. The outcome carries the failure reason
+   * directly, because the `error` state only reaches the caller one render
+   * later (F5).
    */
-  expandBrief: (signal?: AbortSignal) => Promise<boolean>;
+  expandBrief: (
+    signal?: AbortSignal,
+    options?: RefineBriefOptions
+  ) => Promise<RefineBriefOutcome>;
   cancel: () => void;
   refining: boolean;
   error: string | null;
@@ -166,7 +206,10 @@ export function useRefineBrief(): RefineBriefResult {
   useEffect(() => cancel, [cancel]);
 
   const expandBrief = useCallback(
-    async (signal?: AbortSignal): Promise<boolean> => {
+    async (
+      signal?: AbortSignal,
+      options?: RefineBriefOptions
+    ): Promise<RefineBriefOutcome> => {
       controllerRef.current?.abort();
       const controller = new AbortController();
       controllerRef.current = controller;
@@ -188,7 +231,8 @@ export function useRefineBrief(): RefineBriefResult {
             use_case: setup?.use_case,
             references: imageReferences(readReferences(setup)).map(
               (reference) => reference.uri
-            )
+            ),
+            current: options?.keepEdits ? setup?.refined : undefined
           },
           chosen?.id
             ? { id: chosen.id, provider: chosen.provider, name: chosen.name }
@@ -203,20 +247,21 @@ export function useRefineBrief(): RefineBriefResult {
           token !== requestRef.current ||
           useSketchStore.getState().document.setup?.stage !== originStage
         ) {
-          return false;
+          return { ok: false, error: null };
         }
         useSketchStore.getState().setSetup({
           refined,
           stage: "review",
           refined_from: briefInputSignature(setup)
         });
-        return true;
+        return { ok: true };
       } catch (cause) {
         if (controller.signal.aborted || token !== requestRef.current) {
-          return false;
+          return { ok: false, error: null };
         }
-        setError(cause instanceof Error ? cause.message : String(cause));
-        return false;
+        const message = cause instanceof Error ? cause.message : String(cause);
+        setError(message);
+        return { ok: false, error: message };
       } finally {
         signal?.removeEventListener("abort", abort);
         if (controllerRef.current === controller) {

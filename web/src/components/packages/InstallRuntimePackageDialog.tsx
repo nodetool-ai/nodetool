@@ -18,8 +18,9 @@ const MODEL_QUERY_KEYS = [
 ];
 
 /**
- * Installs the optional package a run failed on, in place. The desktop app
- * installs it; a browser session cannot, so it links to the Package Manager.
+ * Installs the optional package a run or a request failed on, in place. The
+ * desktop app installs it; a browser session cannot, so it links to the
+ * Package Manager.
  */
 const InstallRuntimePackageDialog: React.FC = () => {
   const packageId = useRuntimePackagePromptStore((s) => s.packageId);
@@ -87,8 +88,8 @@ const InstallRuntimePackageDialog: React.FC = () => {
         minWidth="440px"
       >
         <Text size="small">
-          The run needs {name}. Only the desktop app can install it. Install
-          it in the Package Manager of the machine that runs NodeTool.
+          This needs {name}. Only the desktop app can install it. Install it
+          in the Package Manager of the machine that runs NodeTool.
         </Text>
       </Dialog>
     );
@@ -107,7 +108,7 @@ const InstallRuntimePackageDialog: React.FC = () => {
         cancelText="Close"
         minWidth="440px"
       >
-        <Text size="small">Run the workflow again to use it.</Text>
+        <Text size="small">Try again to use it.</Text>
       </Dialog>
     );
   }
@@ -129,8 +130,7 @@ const InstallRuntimePackageDialog: React.FC = () => {
     >
       <FlexColumn gap={2}>
         <Text size="small">
-          The run stopped because {name} is not installed. Install it now, then
-          run the workflow again.
+          {name} is not installed. Install it now, then try again.
         </Text>
         {status?.description && (
           <Caption sx={{ opacity: 0.7 }}>{status.description}</Caption>

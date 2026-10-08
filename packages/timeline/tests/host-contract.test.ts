@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { applyTimelineOp } from "../src/ops/index.js";
-import { HOST_OP_FIXTURES } from "./fixtures/host-ops.js";
-import { directContext, directState } from "./fixtures/ops.js";
+import { HOST_OP_FIXTURES } from "../src/testing/host-ops.js";
+import { directContext, directState } from "../src/testing/ops.js";
 
 describe("timeline host edit contracts", () => {
   for (const fixture of HOST_OP_FIXTURES) {

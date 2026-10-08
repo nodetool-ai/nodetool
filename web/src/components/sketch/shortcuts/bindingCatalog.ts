@@ -51,6 +51,10 @@ export const BINDING_CATALOG: readonly BindingEntry[] = [
   { key: "=", modifiers: {}, actionId: "zoom-in", scope: "global" },
   { key: "-", modifiers: {}, actionId: "zoom-out", scope: "global" },
   { key: "Tab", modifiers: {}, actionId: "toggle-panels", scope: "global" },
+  { key: "r", modifiers: { ctrl: true }, actionId: "toggle-rulers", scope: "global" },
+  { key: ";", modifiers: { ctrl: true }, actionId: "toggle-guides", scope: "global" },
+  // Shift+; arrives as ":" (symbol keys carry Shift in e.key).
+  { key: ":", modifiers: { ctrl: true }, actionId: "toggle-snap", scope: "global" },
 
   // ── Global: Color ─────────────────────────────────────────────────────────
   { key: "x", modifiers: {}, actionId: "swap-colors", scope: "global" },

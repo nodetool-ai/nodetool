@@ -1247,8 +1247,9 @@ export const DIRECTED_CAMPAIGN_KIT_APP = {
       inputs: {
         hero: { from: "variable", variableId: "candidateHero" },
         contract: { from: "variable", variableId: "candidateContract" },
-        version: { from: "constant", value: "original" },
-        original_record: { from: "constant", value: "" }
+        // No record: the original has none yet, and the runtimes refuse a run
+        // that sends an empty value to a document input.
+        version: { from: "constant", value: "original" }
       },
       outputs: {
         hero: { to: "variable", variableId: "acceptedHero" },

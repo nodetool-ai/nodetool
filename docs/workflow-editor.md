@@ -427,6 +427,8 @@ Alt-based keyboard navigation moves focus between nodes without the mouse: `Ctrl
 - **Streaming nodes** — show progress during long-running operations (look for the streaming indicator)
 - **Parallel branches** — NodeTool automatically runs independent branches in parallel for faster execution
 
+To give someone else access to a workflow, see [Sharing Workflows](workflow-sharing.md).
+
 ---
 
 ## Next Steps

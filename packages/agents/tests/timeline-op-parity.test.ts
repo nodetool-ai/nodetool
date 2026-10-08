@@ -29,7 +29,7 @@ import {
   seedMarkers,
   seedMediaTracks,
   seedTracks
-} from "../../timeline/tests/fixtures/ops.js";
+} from "@nodetool-ai/timeline/testing";
 
 function bridgeInit(): TimelineBridgeInitialState {
   return {

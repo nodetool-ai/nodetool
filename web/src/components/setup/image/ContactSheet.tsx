@@ -40,11 +40,17 @@ import {
   directGenFailure,
   useDirectGenJob
 } from "../../../hooks/sketch/useDirectGenJob";
+import { variationSeeds } from "../../../hooks/sketch/useGenerateVariations";
 import { resolveMediaUri } from "../../../utils/resolveMediaUri";
 
 export interface ContactSheetProps {
   /** The batch, in the order it was enqueued. */
   layerIds: readonly string[];
+  /**
+   * Variation layers from earlier batches in this session. `Pick` hides them
+   * too, so only the picked one is visible. Defaults to none.
+   */
+  siblingLayerIds?: readonly string[];
   /** Runs after `Pick` has set visibility — the host closes the flow. */
   onPick: (layerId: string) => void;
   /** Enqueue another batch with the same settings. */
@@ -100,8 +106,13 @@ const UNRECORDED_REASON = "This one did not render, and gave no reason.";
 /** Where saving a variation to the library has got to. */
 type SaveState = "idle" | "saving" | "saved" | "failed";
 
+const NO_SIBLINGS: readonly string[] = [];
+
+const NAME_SEPARATOR = "\u241f";
+
 const ContactSheetInternal: React.FC<ContactSheetProps> = ({
   layerIds,
+  siblingLayerIds = NO_SIBLINGS,
   onPick,
   onMakeMore,
   makeMorePending = false,
@@ -117,31 +128,43 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
     Record<string, { state: SaveState; message: string }>
   >({});
 
-  const tiles = useMemo(
-    () =>
-      layerIds.map((layerId, index) => {
-        const binding = bindings[layerId];
-        const status = binding?.status ?? "draft";
-        const failure = status === "failed" ? directGenFailure(layerId) : null;
-        return {
-          layerId,
-          label: `Variation ${index + 1}`,
-          assetId: binding?.currentAssetId,
-          status,
-          pending: PENDING.has(status),
-          failed: status === "failed",
-          // The remedy, in the provider's own terms where it gave any: a
-          // refused prompt and a missing key are not the same problem (F7).
-          reason:
-            status !== "failed"
-              ? null
-              : failure
-                ? describeDirectGenFailure(failure)
-                : UNRECORDED_REASON
-        };
-      }),
-    [bindings, layerIds]
+  // Tiles carry their layer's name, so a tile and the layers panel agree once
+  // a later batch continues the numbering (F18). Joined into one string so
+  // the selector returns a stable value.
+  const layerNames = useSketchStore((state) =>
+    layerIds
+      .map(
+        (layerId) =>
+          state.document.layers.find((layer) => layer.id === layerId)?.name ??
+          ""
+      )
+      .join(NAME_SEPARATOR)
   );
+
+  const tiles = useMemo(() => {
+    const names = layerNames.split(NAME_SEPARATOR);
+    return layerIds.map((layerId, index) => {
+      const binding = bindings[layerId];
+      const status = binding?.status ?? "draft";
+      const failure = status === "failed" ? directGenFailure(layerId) : null;
+      return {
+        layerId,
+        label: names[index] || `Variation ${index + 1}`,
+        assetId: binding?.currentAssetId,
+        status,
+        pending: PENDING.has(status),
+        failed: status === "failed",
+        // The remedy, in the provider's own terms where it gave any: a
+        // refused prompt and a missing key are not the same problem (F7).
+        reason:
+          status !== "failed"
+            ? null
+            : failure
+              ? describeDirectGenFailure(failure)
+              : UNRECORDED_REASON
+      };
+    });
+  }, [bindings, layerIds, layerNames]);
 
   const landed = tiles.filter((tile) => tile.assetId !== undefined).length;
   const failedTiles = tiles.filter((tile) => tile.failed);
@@ -155,28 +178,55 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
   );
   const sharedReason = failed > 1 && reasons.length === 1 ? reasons[0] : null;
 
+  // Visibility changes through the store's layer action and one history
+  // entry, the way the layers panel toggles it. Replacing the document would
+  // clear undo history (F13).
   const pick = useCallback(
     (layerId: string) => {
       const sketch = useSketchStore.getState();
-      sketch.setDocument({
-        ...sketch.document,
-        layers: sketch.document.layers.map((layer) =>
-          layerIds.includes(layer.id)
-            ? { ...layer, visible: layer.id === layerId }
-            : layer
-        )
-      });
-      useSketchStore.getState().setActiveLayer(layerId);
+      const variations = new Set([...siblingLayerIds, ...layerIds]);
+      let changed = false;
+      for (const layer of sketch.document.layers) {
+        if (
+          variations.has(layer.id) &&
+          layer.visible !== (layer.id === layerId)
+        ) {
+          sketch.toggleLayerVisibility(layer.id);
+          changed = true;
+        }
+      }
+      sketch.setActiveLayer(layerId);
+      if (changed) {
+        useSketchStore.getState().pushHistory("pick variation");
+      }
       onPick(layerId);
     },
-    [layerIds, onPick]
+    [layerIds, onPick, siblingLayerIds]
+  );
+
+  // A regeneration with the seed it already had asks a seeded provider for
+  // the same picture again, so it gets a fresh one. A failed take retries
+  // with its seed, since nothing was rendered from it (F12).
+  const regenerate = useCallback(
+    (layerId: string, failed: boolean) => {
+      if (!failed) {
+        useSketchSessionStore
+          .getState()
+          .patchBinding(layerId, { seed: variationSeeds(1)[0] });
+      }
+      void start(layerId);
+    },
+    [start]
   );
 
   const sendTo = useCallback(
     async (layerId: string, destination: "entity" | "canvas" | "video") => {
       setActions((current) => ({
         ...current,
-        [layerId]: { state: "saving", message: "Opening destination…" }
+        [layerId]: {
+          state: "saving",
+          message: destination === "entity" ? "Saving to entities…" : "Opening…"
+        }
       }));
       try {
         if (destination === "entity") {
@@ -194,12 +244,16 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
                 : "Opened in a new node canvas."
           }
         }));
-      } catch {
+      } catch (cause) {
+        const reason = cause instanceof Error ? ` ${cause.message}` : "";
         setActions((current) => ({
           ...current,
           [layerId]: {
             state: "failed",
-            message: "Could not open that destination. Try again."
+            message:
+              destination === "entity"
+                ? `Could not save to entities.${reason}`
+                : `Could not open that canvas.${reason}`
           }
         }));
       }
@@ -353,7 +407,7 @@ const ContactSheetInternal: React.FC<ContactSheetProps> = ({
               <EditorButton
                 variant="text"
                 disabled={tile.pending}
-                onClick={() => void start(tile.layerId)}
+                onClick={() => regenerate(tile.layerId, tile.failed)}
               >
                 {tile.failed ? `Try ${tile.label} again` : "Regenerate"}
               </EditorButton>

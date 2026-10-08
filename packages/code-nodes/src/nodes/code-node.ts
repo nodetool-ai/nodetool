@@ -73,9 +73,22 @@ import {
 import { importHidden } from "@nodetool-ai/config";
 import {
   ALL_PLATFORMS,
+  MissingRuntimePackageError,
   SANDBOX_CAPABILITY_PACK,
   type SandboxModuleResolution
 } from "@nodetool-ai/protocol";
+
+/**
+ * The error a failed sandbox run raises. A run that failed because a host
+ * module's optional package is missing keeps that package id, so the editor
+ * offers the install instead of only showing the message.
+ */
+function sandboxRunError(result: RunSandboxResult | undefined): Error {
+  const message = result?.error ?? "Code execution failed";
+  return result?.missingRuntimePackage !== undefined
+    ? new MissingRuntimePackageError(message, result.missingRuntimePackage)
+    : new Error(message);
+}
 
 /** The bag three functions here assemble for `runInSandbox` to inject. */
 type SandboxGlobals = NonNullable<RunSandboxOptions["globals"]>;
@@ -872,7 +885,7 @@ export class CodeNode extends BaseNode {
     );
 
     if (!result.success) {
-      throw new Error(result.error ?? "Code execution failed");
+      throw sandboxRunError(result);
     }
 
     // Single-shot callers see no stream, so an emitted value would be lost.
@@ -943,7 +956,7 @@ export class CodeNode extends BaseNode {
       // end-of-stream and the body unwound on a signal it did not choose.
       if (inputs.signal.aborted) return;
       if (!result.success) {
-        throw new Error(result.error ?? "Code execution failed");
+        throw sandboxRunError(result);
       }
       // One bag, one frame: the finals of a single invocation belong together,
       // so sibling handles share lineage instead of arriving as N items.
@@ -968,7 +981,7 @@ export class CodeNode extends BaseNode {
       await this.sandboxOptions(body, envelope, context)
     );
     if (!result.success) {
-      throw new Error(result.error ?? "Code execution failed");
+      throw sandboxRunError(result);
     }
     return normalizeCodeOutput(result.result);
   }
@@ -1033,7 +1046,7 @@ export class CodeNode extends BaseNode {
       await run;
       if (failure) throw failure;
       if (!result || !result.success) {
-        throw new Error(result?.error ?? "Code execution failed");
+        throw sandboxRunError(result);
       }
       // A failed run discards finals; only a successful one posts its bag.
       const outputs = result.outputs ?? {};
@@ -1074,7 +1087,7 @@ export class CodeNode extends BaseNode {
     });
 
     if (!result.success) {
-      throw new Error(result.error ?? "Code execution failed");
+      throw sandboxRunError(result);
     }
 
     // The guest returns the array `yield_` collected. A body that replaced the

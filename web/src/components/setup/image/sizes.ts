@@ -1,5 +1,5 @@
 /**
- * The five output sizes the look step offers (PRD § 10.3).
+ * The output sizes the look step offers (PRD § 10.3).
  *
  * One tile per aspect, each with the pixel size it produces, because "portrait"
  * on its own does not tell you what you get. The pixels are the 1K tier from
@@ -26,6 +26,7 @@ const at1K = (id: string, label: string, aspectRatio: string): SizePreset => {
 export const SIZE_PRESETS: readonly SizePreset[] = [
   at1K("square", "Square", "1:1"),
   at1K("portrait", "Portrait", "4:5"),
+  at1K("poster", "Poster", "2:3"),
   at1K("landscape", "Landscape", "3:2"),
   at1K("story", "Story", "9:16"),
   at1K("banner", "Banner", "21:9")

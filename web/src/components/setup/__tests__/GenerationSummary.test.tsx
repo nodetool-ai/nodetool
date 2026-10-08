@@ -1,7 +1,10 @@
 import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
-import GenerationSummary from "../GenerationSummary";
+import GenerationSummary, {
+  GenerationEstimateLine
+} from "../GenerationSummary";
 import { generationEstimate } from "../generationEstimate";
 
 it("prices the selected provider and increases the allowance for a longer brief", () => {
@@ -76,4 +79,30 @@ it("keeps rewrite details visible without repeating the action label", () => {
   expect(screen.getByText("Unchanged shots keep their stills.")).toBeVisible();
   expect(screen.getByText("Model: unknown-model (openai)")).toBeVisible();
   expect(screen.getByText("Rough wait: 30–60s or longer")).toBeVisible();
+});
+
+// The details used to live in a `title` only, which no keyboard or touch
+// reaches. The line takes focus and opens its tooltip there (O9).
+it("opens the estimate's details from the keyboard", async () => {
+  const user = userEvent.setup();
+  render(
+    <ThemeProvider theme={mockTheme}>
+      <GenerationEstimateLine
+        result="Write a six-shot screenplay"
+        next="Review it next"
+        model={{ id: "unknown-model", provider: "openai" }}
+        brief="test"
+        maxOutputTokens={4096}
+      />
+    </ThemeProvider>
+  );
+
+  const line = screen.getByRole("group", { name: "Before you generate" });
+  expect(screen.queryByRole("region")).toBeNull();
+  await user.tab();
+  expect(line).toHaveFocus();
+
+  expect(await screen.findByRole("tooltip")).toHaveTextContent(
+    "Write a six-shot screenplay."
+  );
 });

@@ -17,9 +17,15 @@ const RAD = Math.PI / 180;
 const clamp = (value: number, min: number, max: number): number =>
   Math.min(max, Math.max(min, value));
 
-/** Quaternion `[x, y, z, w]` to Euler degrees in XYZ order. */
+/**
+ * Quaternion `[x, y, z, w]` to Euler degrees in XYZ order. The quaternion is
+ * normalized first: glTF requires unit rotations, but files from other tools
+ * do not always have them, and the extraction below is only valid for one.
+ */
 export function quaternionToEulerDegrees(q: Quat): Vec3 {
-  const [x, y, z, w] = q;
+  const length = Math.hypot(q[0], q[1], q[2], q[3]);
+  const n = length > 0 && Number.isFinite(length) ? length : 1;
+  const [x, y, z, w] = [q[0] / n, q[1] / n, q[2] / n, length > 0 ? q[3] / n : 1];
   // Rotation-matrix elements needed for the XYZ extraction.
   const m11 = 1 - 2 * (y * y + z * z);
   const m12 = 2 * (x * y - z * w);
@@ -129,6 +135,54 @@ export function decomposeMatrix(m: readonly number[]): Trs {
     ];
   }
   return { translation, rotation, scale };
+}
+
+/** A column-major 4x4 matrix from translation, unit quaternion and scale. */
+export function composeMatrix(t: Vec3, q: Quat, s: Vec3): number[] {
+  const length = Math.hypot(q[0], q[1], q[2], q[3]) || 1;
+  const [x, y, z, w] = [q[0] / length, q[1] / length, q[2] / length, q[3] / length];
+  const x2 = x + x;
+  const y2 = y + y;
+  const z2 = z + z;
+  const xx = x * x2;
+  const xy = x * y2;
+  const xz = x * z2;
+  const yy = y * y2;
+  const yz = y * z2;
+  const zz = z * z2;
+  const wx = w * x2;
+  const wy = w * y2;
+  const wz = w * z2;
+  return [
+    (1 - (yy + zz)) * s[0], (xy + wz) * s[0], (xz - wy) * s[0], 0,
+    (xy - wz) * s[1], (1 - (xx + zz)) * s[1], (yz + wx) * s[1], 0,
+    (xz + wy) * s[2], (yz - wx) * s[2], (1 - (xx + yy)) * s[2], 0,
+    t[0], t[1], t[2], 1
+  ];
+}
+
+/** `a * b` for column-major 4x4 matrices. */
+export function multiplyMatrices(a: readonly number[], b: readonly number[]): number[] {
+  const out = new Array<number>(16).fill(0);
+  for (let col = 0; col < 4; col += 1) {
+    for (let row = 0; row < 4; row += 1) {
+      let sum = 0;
+      for (let k = 0; k < 4; k += 1) {
+        sum += a[k * 4 + row] * b[col * 4 + k];
+      }
+      out[col * 4 + row] = sum;
+    }
+  }
+  return out;
+}
+
+/** Apply a column-major 4x4 matrix to a point. */
+export function transformPoint(m: readonly number[], p: Vec3): Vec3 {
+  return [
+    m[0] * p[0] + m[4] * p[1] + m[8] * p[2] + m[12],
+    m[1] * p[0] + m[5] * p[1] + m[9] * p[2] + m[13],
+    m[2] * p[0] + m[6] * p[1] + m[10] * p[2] + m[14]
+  ];
 }
 
 const srgbToLinear = (channel: number): number =>

@@ -280,6 +280,16 @@ describe("autoScript", () => {
     expect((items[0] as { content: string }).content).toBe("fallback text");
   });
 
+  it("answers a prompt carrying a JSON schema with a fenced object", () => {
+    const script = autoScript({ text: "fallback text" });
+    const schema = { type: "object", properties: { title: { type: "string" } } };
+    const items = script(
+      [{ role: "user", content: `<JSON_SCHEMA>\n${JSON.stringify(schema)}\n</JSON_SCHEMA>` }],
+      []
+    );
+    expect((items[0] as { content: string }).content).toBe('```json\n{"title":"fake"}\n```');
+  });
+
   it("uses default text when no text provided", () => {
     const script = autoScript({});
     const items = script([], []);

@@ -239,7 +239,7 @@ describe("ocr.recognize", () => {
     const { recognize } = await loadOcr();
 
     await expect(recognize(new Uint8Array([1]))).rejects.toThrow(
-      'ocr.recognize: the "tesseract.js" library is not available in this runtime'
+      'The optional "tesseract.js" package is not installed'
     );
   });
 
@@ -523,7 +523,7 @@ describe("tfjs.classify", () => {
     const { classify } = await loadTfjs();
 
     await expect(classify(fixturePng)).rejects.toThrow(
-      'tfjs: the "@tensorflow/tfjs" library is not available in this runtime'
+      'The optional "@tensorflow/tfjs" package is not installed'
     );
   });
 
@@ -532,7 +532,7 @@ describe("tfjs.classify", () => {
     const { classify } = await loadTfjs();
 
     await expect(classify(fixturePng)).rejects.toThrow(
-      'tfjs: the "@tensorflow-models/mobilenet" library is not available in this runtime'
+      'The optional "@tensorflow-models/mobilenet" package is not installed'
     );
   });
 
@@ -564,7 +564,7 @@ describe("tfjs.classify", () => {
     const { classify } = await loadTfjs();
 
     await expect(classify(fixturePng)).rejects.toThrow(
-      'tfjs: the "@tensorflow-models/mobilenet" library is not available in this runtime'
+      'The optional "@tensorflow-models/mobilenet" package is not installed'
     );
     expect(await classify(fixturePng)).toEqual([
       { className: "cat", probability: 1 }
@@ -706,7 +706,7 @@ describe("tfjs.detect", () => {
     const { detect } = await loadTfjs();
 
     await expect(detect(fixturePng)).rejects.toThrow(
-      'tfjs: the "@tensorflow-models/coco-ssd" library is not available in this runtime'
+      'The optional "@tensorflow-models/coco-ssd" package is not installed'
     );
   });
 });
@@ -778,7 +778,7 @@ describe("tfjs.answer", () => {
     const { answer } = await loadTfjs();
 
     await expect(answer("who?", "a passage")).rejects.toThrow(
-      'tfjs: the "@tensorflow-models/qna" library is not available in this runtime'
+      'The optional "@tensorflow-models/qna" package is not installed'
     );
   });
 });

@@ -7,7 +7,8 @@
  *
  * `imapflow` and `mailparser` are imported inside the connection helper and
  * the parse path rather than at module scope, so a run that never touches
- * email never loads an IMAP client.
+ * email never loads an IMAP client. Both are optional packages the desktop
+ * app installs on first use ("Email (IMAP)").
  *
  * Design: docs/tool-class-retirement-design.md § "PRs 4–9 — remaining
  * namespaces".
@@ -23,6 +24,7 @@ import {
   addLabelToEmailSpec
 } from "./email.specs.js";
 import { isString } from "../utils/type-guards.js";
+import { importOptionalLibrary } from "../host-modules/limits.js";
 
 function stripHtml(html: string): string {
   const text = html
@@ -60,7 +62,9 @@ async function createGmailConnection(
     throw new Error("GOOGLE_APP_PASSWORD is not set");
   }
 
-  const { ImapFlow: ImapFlowClient } = await import("imapflow");
+  const { ImapFlow: ImapFlowClient } = await importOptionalLibrary<
+    typeof import("imapflow")
+  >("email", "imapflow", "email-imap");
   const client = new ImapFlowClient({
     host: "imap.gmail.com",
     port: 993,
@@ -89,7 +93,9 @@ const searchEmail: CapabilityExport = {
       const lock = await client.getMailboxLock("INBOX");
 
       try {
-        const { simpleParser } = await import("mailparser");
+        const { simpleParser } = await importOptionalLibrary<
+          typeof import("mailparser")
+        >("email", "mailparser", "email-imap");
         const searchCriteria: Record<string, unknown> = {};
 
         if (params.subject) {

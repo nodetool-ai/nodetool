@@ -57,12 +57,16 @@ const FormatStepInternal: React.FC = () => {
       });
       // Lanes are added, never replaced: a creator who dropped footage in step
       // 1 keeps it, and picking a different card only adds what is missing.
+      // `tracks` is this render's list, so each added lane goes one past the
+      // last, or every lane would land at the same index in reverse order.
+      let at = tracks.length;
       for (const lane of tracksForFormat(format)) {
         const exists = tracks.some(
           (track) => track.type === lane.type && track.name === lane.name
         );
         if (!exists) {
-          insertTrack(lane.type, tracks.length, lane.name);
+          insertTrack(lane.type, at, lane.name);
+          at += 1;
         }
       }
     },

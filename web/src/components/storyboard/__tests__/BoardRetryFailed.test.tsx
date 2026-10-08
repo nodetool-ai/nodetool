@@ -149,4 +149,32 @@ describe("BoardRetryFailed", () => {
 
     expect(screen.queryByRole("button")).toBeNull();
   });
+
+  it("drops a failure the shot has since rendered past", () => {
+    const failed = job({ shotId: "s-failed-still", startedAt: 1 });
+    const later = job({
+      shotId: "s-failed-still",
+      jobId: "req-later",
+      status: "completed",
+      startedAt: 2
+    });
+    useStoryboardGenerationStore.setState({
+      requestRecords: {
+        [failed.jobId]: { ...failed, batchId: "a" },
+        [later.jobId]: { ...later, batchId: "b" }
+      }
+    });
+
+    const { container } = renderRetry();
+
+    expect(container.firstChild).toBeNull();
+  });
+
+  it("drops a failure whose shot has left the board", () => {
+    setJobs([job({ shotId: "s-deleted" })]);
+
+    const { container } = renderRetry();
+
+    expect(container.firstChild).toBeNull();
+  });
 });

@@ -28,7 +28,10 @@ import { useWorkflowManagerStore } from "../../../contexts/WorkflowManagerContex
 import {
   useWorkflowSetupDocument
 } from "../../../hooks/workflow/useWorkflowSetup";
-import { readWorkflowFile } from "../../../hooks/workflow/importWorkflowFile";
+import {
+  importWorkflowGraph,
+  readWorkflowFile
+} from "../../../hooks/workflow/importWorkflowFile";
 import {
   readWorkflowBuild,
   workflowBuildResult,
@@ -219,18 +222,11 @@ const WorkflowSetupHost: React.FC<WorkflowSetupHostProps> = ({
 
   const handleImport = useCallback(
     async (file: File) => {
-      const imported = await readWorkflowFile(file);
-      const state = store.getState();
-      const workflow = state.getWorkflow(workflowId);
-      if (!workflow) {
-        throw new Error(`Workflow ${workflowId} is not open.`);
-      }
-      const next = {
-        ...workflow,
-        graph: imported as NonNullable<typeof workflow.graph>
-      };
-      state.updateWorkflow(next);
-      await state.saveWorkflow(next);
+      await importWorkflowGraph(
+        store.getState(),
+        workflowId,
+        await readWorkflowFile(file)
+      );
     },
     [store, workflowId]
   );

@@ -267,6 +267,11 @@ function classifyError(message: string | undefined): string {
   // provided" rather than the "… is empty" the video and image nodes use.
   // Same condition — this run supplies no inputs — so same bucket.
   if (m.includes("none was provided")) return "missing-input";
+  // Fakes return a 1x1 image and 10 ms of audio, so a node that checks a
+  // generated sheet's grid or a sound's length refuses it.
+  if (m.includes("is not a multiple of cell")) return "fake-media-shape";
+  if (m.includes("invalid fill") && m.includes("is not within"))
+    return "fake-media-shape";
   return "other";
 }
 

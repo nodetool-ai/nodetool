@@ -30,6 +30,27 @@ export interface Model3DValidation {
 
 const LIGHTS_EXTENSION = "KHR_lights_punctual";
 
+/** Components per element for each accessor type. */
+const ACCESSOR_COMPONENTS: Record<string, number> = {
+  SCALAR: 1,
+  VEC2: 2,
+  VEC3: 3,
+  VEC4: 4,
+  MAT2: 4,
+  MAT3: 9,
+  MAT4: 16
+};
+
+/** Bytes per component for each glTF component type. */
+const COMPONENT_BYTES: Record<number, number> = {
+  5120: 1,
+  5121: 1,
+  5122: 2,
+  5123: 2,
+  5125: 4,
+  5126: 4
+};
+
 /** Extensions this build understands well enough to keep a document working. */
 const SUPPORTED_EXTENSIONS = new Set([LIGHTS_EXTENSION]);
 
@@ -158,26 +179,53 @@ export function validateModel3D(json: GltfJson): Model3DValidation {
     }
   });
 
-  // A cycle in `children` hangs every consumer that walks the graph.
-  const state = new Array<number>(nodes.length).fill(0);
-  const walk = (index: number): boolean => {
-    if (state[index] === 1) {
-      return true;
-    }
-    if (state[index] === 2) {
-      return false;
-    }
-    state[index] = 1;
-    for (const child of nodes[index]?.children ?? []) {
-      if (inRange(child, nodes.length) && walk(child)) {
-        return true;
+  // A node listed as the child of two nodes has no single place in the tree.
+  const parentOf = new Array<number>(nodes.length).fill(-1);
+  nodes.forEach((node, index) => {
+    for (const child of node.children ?? []) {
+      if (!inRange(child, nodes.length)) {
+        continue;
+      }
+      if (parentOf[child] >= 0 && parentOf[child] !== index) {
+        error(
+          `nodes[${child}] has more than one parent (nodes[${parentOf[child]}] and nodes[${index}]); glTF allows one.`,
+          `nodes[${child}]`
+        );
+      } else {
+        parentOf[child] = index;
       }
     }
-    state[index] = 2;
+  });
+
+  // A cycle in `children` hangs every consumer that walks the graph. The walk
+  // keeps its own stack, so a deep chain cannot overflow the call stack.
+  const state = new Array<number>(nodes.length).fill(0);
+  const findCycleFrom = (start: number): boolean => {
+    const stack: { index: number; next: number }[] = [{ index: start, next: 0 }];
+    state[start] = 1;
+    while (stack.length > 0) {
+      const frame = stack[stack.length - 1];
+      const children = nodes[frame.index]?.children ?? [];
+      if (frame.next >= children.length) {
+        state[frame.index] = 2;
+        stack.pop();
+        continue;
+      }
+      const child = children[frame.next];
+      frame.next += 1;
+      if (!inRange(child, nodes.length) || state[child] === 2) {
+        continue;
+      }
+      if (state[child] === 1) {
+        return true;
+      }
+      state[child] = 1;
+      stack.push({ index: child, next: 0 });
+    }
     return false;
   };
   for (let index = 0; index < nodes.length; index += 1) {
-    if (state[index] === 0 && walk(index)) {
+    if (state[index] === 0 && findCycleFrom(index)) {
       error(
         `The node hierarchy contains a cycle reachable from nodes[${index}].`,
         `nodes[${index}].children`
@@ -185,6 +233,47 @@ export function validateModel3D(json: GltfJson): Model3DValidation {
       break;
     }
   }
+
+  const skins = json.skins ?? [];
+  const cameras = Array.isArray(json.cameras) ? json.cameras : [];
+  nodes.forEach((node, index) => {
+    if (node.skin !== undefined && !inRange(node.skin, skins.length)) {
+      error(
+        `nodes[${index}] references skin ${node.skin}, which the document does not have.`,
+        `nodes[${index}].skin`
+      );
+    }
+    if (node.camera !== undefined && !inRange(node.camera, cameras.length)) {
+      error(
+        `nodes[${index}] references camera ${node.camera}, which the document does not have.`,
+        `nodes[${index}].camera`
+      );
+    }
+  });
+  skins.forEach((skin, index) => {
+    for (const joint of skin.joints ?? []) {
+      if (!inRange(joint, nodes.length)) {
+        error(
+          `skins[${index}] lists joint ${joint}, which the document does not have.`,
+          `skins[${index}].joints`
+        );
+      }
+    }
+  });
+
+  (json.animations ?? []).forEach((animation, index) => {
+    const samplers = Array.isArray(animation.samplers) ? animation.samplers : [];
+    (animation.channels ?? []).forEach((channel, channelIndex) => {
+      const path = `animations[${index}].channels[${channelIndex}]`;
+      const target = channel.target?.node;
+      if (target !== undefined && !inRange(target, nodes.length)) {
+        error(`${path} targets node ${target}, which the document does not have.`, path);
+      }
+      if (!inRange(channel.sampler, samplers.length)) {
+        error(`${path} uses sampler ${channel.sampler}, which the animation does not have.`, path);
+      }
+    });
+  });
 
   meshes.forEach((mesh, meshIndex) => {
     if (!Array.isArray(mesh.primitives) || mesh.primitives.length === 0) {
@@ -212,13 +301,42 @@ export function validateModel3D(json: GltfJson): Model3DValidation {
   });
 
   accessors.forEach((accessor, index) => {
-    if (
-      accessor.bufferView !== undefined &&
-      !inRange(accessor.bufferView, bufferViews.length)
-    ) {
+    const path = `accessors[${index}]`;
+    const components = ACCESSOR_COMPONENTS[accessor.type];
+    if (components === undefined) {
       error(
-        `accessors[${index}] reads bufferView ${accessor.bufferView}, which does not exist.`,
-        `accessors[${index}]`
+        `${path}.type is "${accessor.type}"; expected one of ${Object.keys(ACCESSOR_COMPONENTS).join(", ")}.`,
+        path
+      );
+    }
+    const componentBytes = COMPONENT_BYTES[accessor.componentType];
+    if (componentBytes === undefined) {
+      error(`${path}.componentType ${accessor.componentType} is not a glTF component type.`, path);
+    }
+    if (accessor.bufferView === undefined) {
+      return;
+    }
+    if (!inRange(accessor.bufferView, bufferViews.length)) {
+      error(
+        `${path} reads bufferView ${accessor.bufferView}, which does not exist.`,
+        path
+      );
+      return;
+    }
+    // Matrices of 1- and 2-byte components pad their columns; skip those
+    // rather than report a false overrun.
+    const padded = accessor.type.startsWith("MAT") && (componentBytes ?? 4) < 4;
+    if (components === undefined || componentBytes === undefined || padded || accessor.count < 1) {
+      return;
+    }
+    const view = bufferViews[accessor.bufferView];
+    const elementBytes = components * componentBytes;
+    const stride = view.byteStride ?? elementBytes;
+    const end = (accessor.byteOffset ?? 0) + stride * (accessor.count - 1) + elementBytes;
+    if (end > view.byteLength) {
+      error(
+        `${path} reads ${end} bytes, past the end of its ${view.byteLength}-byte bufferView ${accessor.bufferView}.`,
+        path
       );
     }
   });

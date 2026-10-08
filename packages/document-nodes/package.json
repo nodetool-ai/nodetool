@@ -16,7 +16,7 @@
   },
   "dependencies": {
     "@hyzyla/pdfium": "^2.1.12",
-    "@llamaindex/liteparse": "^1.5.2",
+    "@nodetool-ai/config": "*",
     "@nodetool-ai/node-sdk": "*",
     "@nodetool-ai/nodes-utils": "*",
     "@nodetool-ai/protocol": "*",
@@ -24,9 +24,18 @@
     "sharp": "^0.35.3"
   },
   "devDependencies": {
+    "@llamaindex/liteparse": "^1.5.2",
     "@types/node": "^22.0.0",
     "typescript": "npm:@typescript/typescript6@6.0.2",
     "vitest": "^5.0.1"
+  },
+  "peerDependencies": {
+    "@llamaindex/liteparse": "^1.5.2"
+  },
+  "peerDependenciesMeta": {
+    "@llamaindex/liteparse": {
+      "optional": true
+    }
   },
   "exports": {
     ".": {

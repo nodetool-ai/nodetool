@@ -82,7 +82,7 @@ describe("structure-only history runtime snapshots", () => {
     expect(pushHistory).toHaveBeenCalledWith(
       "nudge layer",
       { [activeLayerId]: snapshot },
-      { restoreMode: "structure-only" }
+      { restoreMode: "structure-only", timing: "before" }
     );
   });
 
@@ -120,7 +120,7 @@ describe("structure-only history runtime snapshots", () => {
     expect(pushHistory).toHaveBeenCalledWith(
       "move layer",
       { [activeLayerId]: snapshot },
-      { restoreMode: "structure-only" }
+      { restoreMode: "structure-only", timing: "before" }
     );
   });
 

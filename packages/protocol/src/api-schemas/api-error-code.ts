@@ -21,12 +21,20 @@ export enum ApiErrorCode {
    * `NODETOOL_CREDIT_MODELS` whitelist leaves it out. A full balance does not
    * change the answer.
    */
-  MODEL_NOT_AVAILABLE = "MODEL_NOT_AVAILABLE"
+  MODEL_NOT_AVAILABLE = "MODEL_NOT_AVAILABLE",
+  /**
+   * The request needs an optional package this install does not have. The
+   * response names it in `runtime_package` so the client can offer to install
+   * it.
+   */
+  MISSING_RUNTIME_PACKAGE = "MISSING_RUNTIME_PACKAGE"
 }
 
 export interface ApiErrorResponse {
   code: ApiErrorCode;
   detail: string;
+  /** Runtime package to install, for `MISSING_RUNTIME_PACKAGE`. */
+  runtime_package?: string;
 }
 
 export function apiError(code: ApiErrorCode, detail: string): ApiErrorResponse {

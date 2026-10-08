@@ -21,6 +21,8 @@ export interface StoryboardPreview {
   skippedShotIds: string[];
   /** Shots shown as a held keyframe still because no clip exists yet. */
   stillShotIds: string[];
+  /** Shots with picture in the cut. Audio twins are not shots. */
+  shotCount: number;
 }
 
 const DEFAULT_ASPECT_RATIO = "16:9";
@@ -61,9 +63,18 @@ export function previewSignature(board: StoryboardBoard | undefined): string {
     .sort((a, b) => a.index - b.index)
     .map(
       (s) =>
-        `${s.id}:${previewClip(s)?.asset_id ?? ""}:${s.keyframe?.asset_id ?? ""}:${
-          s.duration_seconds ?? ""
-        }`
+        // Every input the cut reads: the picture, its length, the shot whose
+        // clip covers this one, and how the shot is produced.
+        [
+          s.id,
+          previewClip(s)?.asset_id ?? "",
+          previewClip(s)?.duration ?? "",
+          s.keyframe?.asset_id ?? "",
+          s.duration_seconds ?? "",
+          JSON.stringify(s.covered_by ?? null),
+          s.production?.media_strategy ?? "",
+          s.graphics?.mode ?? ""
+        ].join(":")
     )
     .join("|");
   return `${board.id}@${board.aspectRatio}#${shots}`;
@@ -100,6 +111,11 @@ export function buildPreviewSequence(
       clips: built.clips
     }),
     skippedShotIds: built.skippedShotIds,
-    stillShotIds: built.stillShotIds
+    stillShotIds: built.stillShotIds,
+    shotCount: new Set(
+      built.clips
+        .filter((clip) => clip.mediaType !== "audio")
+        .map((clip) => clip.storyboardShotId ?? clip.id)
+    ).size
   };
 }
