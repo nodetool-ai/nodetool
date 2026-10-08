@@ -1,5 +1,6 @@
 // Rebuild the V8/NAN-locked native module(s) against the Node ABI the backend
-// runs on (system Node in dev, the bundled Node 22.x in prod — same ABI).
+// runs on (system Node in dev, the bundled Node pinned to .nvmrc in prod — the
+// same ABI when dev uses `nvm use`).
 //
 // The backend always runs on vanilla Node, NOT Electron's embedded Node, so we
 // build against Node headers (node-gyp's default dist-url), not Electron's.

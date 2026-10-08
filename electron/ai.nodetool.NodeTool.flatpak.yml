@@ -101,8 +101,8 @@ modules:
       - cp include/node/common.gypi /app/common.gypi
     sources:
       - type: archive
-        url: https://nodejs.org/dist/v22.22.1/node-v22.22.1-linux-x64.tar.xz
-        sha256: 9a6bc82f9b491279147219f6a18add1e18424dce90d41d2a5fcd69d4924ba3aa
+        url: https://nodejs.org/dist/v24.18.0/node-v24.18.0-linux-x64.tar.xz
+        sha256: 55aa7153f9d88f28d765fcdad5ae6945b5c0f98a36881703817e4c450fa76742
         strip-components: 1
         only-arches:
           - x86_64

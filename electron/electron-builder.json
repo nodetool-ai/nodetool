@@ -13,8 +13,7 @@
         "dist-electron/**/*",
         "dist-web/**/*",
         "!dist-web/**/*.map",
-        "!dist-electron/**/*.map",
-        "app-update.yml"
+        "!dist-electron/**/*.map"
     ],
     "extraResources": [
         {

@@ -143,7 +143,6 @@ const COMMON_EXTERNAL_PACKAGES = [
   "msgpackr-extract",
   "@msgpackr-extract/*",
   "bufferutil",
-  "utf-8-validate",
 
   // Large optional packages (dynamic await import())
   "@napi-rs/canvas",
