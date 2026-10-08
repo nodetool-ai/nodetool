@@ -308,6 +308,11 @@
         "file": "sandbox/generated/nodetool.video.js"
       },
       {
+        "name": "nodetool.workflows.app_node",
+        "kind": "js",
+        "file": "sandbox/generated/nodetool.workflows.app_node.js"
+      },
+      {
         "name": "nodetool.workflows.base_node",
         "kind": "js",
         "file": "sandbox/generated/nodetool.workflows.base_node.js"

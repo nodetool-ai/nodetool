@@ -399,10 +399,11 @@ pinned by tests. Update them in the same change, or CI fails:
 1. Search the package's tests for the node list it exports, such as
    `OPENAI_NODES` in `llm-nodes/tests/openai.test.ts`. Tests pin these
    lists with `toHaveLength`, so a new node changes the expected count.
-2. Run `npm run build:packages`, then regenerate both DSL copies:
+2. Run `npm run build:packages`, then regenerate every DSL copy:
    `npm run codegen:dsl` for `packages/dsl`, then `npm run build:sandbox-dsl`
-   for the sandbox guest pack. `codegen:dsl:check` and
-   `build:sandbox-dsl:check` gate each copy in CI.
+   and `npm run build:sandbox-flow` for the sandbox guest packs.
+   `codegen:dsl:check`, `build:sandbox-dsl:check` and
+   `build:sandbox-flow:check` gate each copy in CI.
 3. Run `npm run generate:node-docs`. Commit the pages for the nodes you
    changed and their namespace index. Leave regenerated pages for untouched
    nodes out of the change.
