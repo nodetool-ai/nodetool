@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   MissingRuntimePackageError,
+  missingRuntimePackageError,
   missingRuntimePackageOf
 } from "../src/missing-runtime-package.js";
 
@@ -19,5 +20,16 @@ describe("missingRuntimePackageOf", () => {
   it("answers null for any other failure", () => {
     expect(missingRuntimePackageOf(new Error("boom"))).toBeNull();
     expect(missingRuntimePackageOf("boom")).toBeNull();
+  });
+});
+
+describe("missingRuntimePackageError", () => {
+  it("names the package, the install route, and keeps the cause", () => {
+    const cause = new Error("Cannot find module 'exceljs'");
+    const error = missingRuntimePackageError("exceljs", "office-documents", cause);
+    expect(missingRuntimePackageOf(error)).toBe("office-documents");
+    expect(error.message).toContain('"exceljs"');
+    expect(error.message).toContain("Office Documents");
+    expect(error.cause).toBe(cause);
   });
 });

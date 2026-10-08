@@ -8,7 +8,12 @@
 import { promises as fs } from "node:fs";
 import os from "node:os";
 import path from "node:path";
-import { optionsOf, requireBytes, unwrapLibrary } from "./limits.js";
+import {
+  importOptionalLibrary,
+  optionsOf,
+  requireBytes,
+  unwrapLibrary
+} from "./limits.js";
 import { isFunction, isString } from "../utils/type-guards.js";
 
 /**
@@ -67,7 +72,11 @@ interface Epub2Like {
 }
 
 async function loadEpub2(where: string): Promise<Epub2Like> {
-  const mod: unknown = await import("epub2");
+  const mod = await importOptionalLibrary<unknown>(
+    where,
+    "epub2",
+    "office-documents"
+  );
   return unwrapLibrary<Epub2Like>(
     mod,
     where,

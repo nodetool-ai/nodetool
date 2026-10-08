@@ -1,3 +1,4 @@
+import { RUNTIME_PACKAGE_NAMES } from "@nodetool-ai/protocol/missing-runtime-package";
 import { RUNTIME_PACKAGES } from "../runtime/packages/definitions";
 
 describe("RUNTIME_PACKAGES", () => {
@@ -7,6 +8,13 @@ describe("RUNTIME_PACKAGES", () => {
     expect(ids).toContain("nodejs");
     expect(ids).toContain("ffmpeg");
     expect(ids).toContain("transformers-js");
+  });
+
+  it("names the same packages the backend's missing-package errors name", () => {
+    const names = Object.fromEntries(
+      Object.values(RUNTIME_PACKAGES).map((pkg) => [pkg.id, pkg.name])
+    );
+    expect(names).toEqual(RUNTIME_PACKAGE_NAMES);
   });
 
   it("every package has required fields", () => {

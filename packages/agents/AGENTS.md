@@ -342,9 +342,13 @@ loaded. The dispatcher binding is deleted before the user IIFE starts; a module
 that grabs it during linking gains nothing beyond the run's declared surface.
 
 `registry.ts` loads each implementation lazily, and each implementation imports
-its library lazily inside itself — so nothing sits in an entry graph, esbuild
-still inlines them into the packaged `server.mjs`, and Vite resolves the browser
-builds for the in-browser runner, where the "host" is the page. Results go out
+its library lazily inside itself, so nothing sits in an entry graph. Small
+libraries are inlined into the packaged `server.mjs`. The large ones (PDF,
+Office, OCR, TensorFlow.js, Fabric) load through `importOptionalLibrary`
+(`host-modules/limits.ts`) with a runtime package id. The desktop app installs
+them on first use, and the dispatcher reports a missing one on
+`RunSandboxResult.missingRuntimePackage`, which the Code node rethrows so the
+editor offers the install. Results go out
 as plain data with bytes tagged at any depth (`toGuestBytesDeep`,
 `sandbox-bytes.ts`), and errors as tagged objects — the marshaling rule every
 bridge follows.

@@ -52,6 +52,11 @@ RUN npm run build:packages
 # the deps stage). verify-backend-bundle re-checks the staged layout so a
 # staging regression fails the image build, not a deploy.
 #
+# The server profile also installs the optional runtime packages (PDF,
+# Office, OCR and IMAP libraries the desktop app installs on demand) into
+# /app/backend/optional-node; NODETOOL_OPTIONAL_NODE_MODULES below points the
+# backend's optional-module loader at it.
+#
 # The bundler stages externals as _modules/ only because electron-builder
 # globs exclude any "node_modules" dir; that constraint doesn't exist here, so
 # rename it to node_modules and let server.mjs / db-migrate.mjs resolve their
@@ -137,6 +142,9 @@ RUN echo 'deb http://deb.debian.org/debian bookworm-backports main' \
 
 # chrome-launcher (browser_* agent tools) locates the system Chromium.
 ENV CHROME_PATH=/usr/bin/chromium
+
+# Optional runtime packages the server bundle installed (see the build stage).
+ENV NODETOOL_OPTIONAL_NODE_MODULES=/app/backend/optional-node/node_modules
 
 # Python tool venv on PATH for every execute_bash call: the PDF stack the PDF
 # agent's prompt references, plus yt-dlp. The cloud profile drops the yt-dlp

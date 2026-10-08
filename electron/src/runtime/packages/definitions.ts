@@ -177,4 +177,80 @@ export const RUNTIME_PACKAGES = {
     packageNames: ["playwright"],
     approxSizeMB: 12,
   }),
+  // The libraries below back individual nodes, sandbox imports and agent
+  // tools. The backend loads each through `importOptionalModule` and raises a
+  // missing-package error the editor turns into this install.
+  "pdf-js": new NpmRuntimePackage({
+    id: "pdf-js",
+    name: "PDF Libraries",
+    description:
+      "Reads, extracts and edits PDFs: the PDF nodes, PDF script imports, and the PDF sandbox imports and agent tools.",
+    category: "library",
+    versionRange: "1.x",
+    npmPackages: [
+      "@llamaindex/liteparse@1.5.3",
+      "pdf-parse@2.4.5",
+      "pdf-lib@1.17.1",
+    ],
+    packageNames: ["@llamaindex/liteparse", "pdf-parse", "pdf-lib"],
+    approxSizeMB: 200,
+  }),
+  "office-documents": new NpmRuntimePackage({
+    id: "office-documents",
+    name: "Office Documents",
+    description:
+      "Reads and writes Excel, Word, PowerPoint and EPUB files in Code nodes, agent tools and DOCX script imports.",
+    category: "library",
+    versionRange: "*",
+    npmPackages: [
+      "exceljs@4.4.0",
+      "docx@9.7.1",
+      "mammoth@1.12.1",
+      "pptxgenjs@4.0.1",
+      "office-text-extractor@4.0.0",
+      "epub2@3.0.2",
+    ],
+    packageNames: [
+      "exceljs",
+      "docx",
+      "mammoth",
+      "pptxgenjs",
+      "office-text-extractor",
+      "epub2",
+    ],
+    approxSizeMB: 160,
+  }),
+  "tesseract-ocr": new NpmRuntimePackage({
+    id: "tesseract-ocr",
+    name: "Tesseract OCR",
+    description:
+      "Recognizes text in images for the OCR sandbox import. Language data downloads on first use.",
+    category: "library",
+    versionRange: "7.x",
+    npmPackages: ["tesseract.js@7.0.0"],
+    packageNames: ["tesseract.js"],
+    approxSizeMB: 50,
+  }),
+  fabric: new NpmRuntimePackage({
+    id: "fabric",
+    name: "Fabric.js",
+    description:
+      "Renders Fabric.js canvas scenes to images for the Fabric sandbox import.",
+    category: "library",
+    versionRange: "7.x",
+    npmPackages: ["fabric@7.4.0"],
+    packageNames: ["fabric"],
+    approxSizeMB: 45,
+  }),
+  "email-imap": new NpmRuntimePackage({
+    id: "email-imap",
+    name: "Email (IMAP)",
+    description:
+      "Searches, archives and labels Gmail messages over IMAP for the email agent tools.",
+    category: "library",
+    versionRange: "1.x",
+    npmPackages: ["imapflow@1.7.1", "mailparser@3.9.15"],
+    packageNames: ["imapflow", "mailparser"],
+    approxSizeMB: 5,
+  }),
 } satisfies Record<RuntimePackageId, RuntimePackage>;

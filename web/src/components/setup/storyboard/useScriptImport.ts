@@ -21,6 +21,7 @@ import type { Screenplay } from "@nodetool-ai/protocol";
 
 import { restFetch } from "../../../lib/rest-fetch";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
+import { promptForMissingRuntimePackage } from "../../../stores/RuntimePackagePromptStore";
 import { setImportSource } from "../../../lib/storyboard/importSource";
 import { parseFdx } from "../../../lib/storyboard/parseFdx";
 
@@ -39,7 +40,10 @@ export const SCRIPT_MAX_BYTES = 25 * 1024 * 1024;
 const isFdx = (file: File): boolean =>
   file.name.toLowerCase().endsWith(".fdx");
 
-/** The route's `{ code, detail }` body, or a status-only fallback. */
+/**
+ * The route's `{ code, detail }` body, or a status-only fallback. A body that
+ * names a missing parser package also opens the install dialog.
+ */
 async function extractionError(response: Response): Promise<string> {
   try {
     const body: unknown = await response.json();
@@ -48,6 +52,9 @@ async function extractionError(response: Response): Promise<string> {
       body !== null &&
       typeof (body as { detail?: unknown }).detail === "string"
     ) {
+      promptForMissingRuntimePackage(
+        (body as { runtime_package?: unknown }).runtime_package
+      );
       return (body as { detail: string }).detail;
     }
   } catch {
