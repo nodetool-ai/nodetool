@@ -12,6 +12,7 @@
  */
 
 import type { ToolHandler, ToolContext, ToolPointerEvent, ToolDefinition } from "./types";
+import { DragSnapSession } from "../snapping/toolSnap";
 import type { Point, Selection } from "../types";
 import SelectAllIcon from "@mui/icons-material/SelectAll";
 import {
@@ -57,6 +58,7 @@ export class SelectTool implements ToolHandler {
 
   // Modifier capture at pointer-down for combine op
   private selectionDragModifiers: ModifierSnapshot | null = null;
+  private readonly snapping = new DragSnapSession();
   private marqueeCombineAtDown: ModifierSnapshot | null = null;
   /**
    * When true, Shift was down at marquee pointer-down for add/intersect.
@@ -121,10 +123,12 @@ export class SelectTool implements ToolHandler {
   onDeactivate?(): void {
     this.cancelDeferredClear();
     this.cancelPendingMagicWand();
+    this.snapping.end();
   }
 
   onCancel(_ctx: ToolContext): void {
     this.cancelPendingMagicWand();
+    this.snapping.end();
   }
 
   onDown(ctx: ToolContext, event: ToolPointerEvent): boolean | void {
@@ -334,9 +338,14 @@ export class SelectTool implements ToolHandler {
     }
 
     // Rectangle / Ellipse marquee
-    this.selectStart = pt;
+    const isMarqueeMode = mode === "rectangle" || mode === "ellipse";
+    if (isMarqueeMode) {
+      this.snapping.begin(ctx);
+    }
+    const anchorPt = isMarqueeMode ? this.snapping.snap(ctx, pt) : pt;
+    this.selectStart = anchorPt;
     if (selectStartRef) {
-      selectStartRef.current = pt;
+      selectStartRef.current = anchorPt;
     }
     this.lassoPoints = [];
     if (lassoPointsRef) {
@@ -423,7 +432,7 @@ export class SelectTool implements ToolHandler {
         }
         const { start, end } = marqueeAdjustedDocPoints(
           this.selectStart,
-          pt,
+          this.snapping.snap(ctx, pt),
           {
             fromCenter: ctx.altHeldRef.current,
             constrainSquare: this.marqueeConstrainSquareNow(ctx)
@@ -519,9 +528,11 @@ export class SelectTool implements ToolHandler {
       );
       const selMode = doc.toolSettings.select.mode;
       const anchor = this.selectStart;
+      const snappedEnd = this.snapping.snap(ctx, pt);
+      this.snapping.end();
       const { start: mStart, end: mEnd } =
         selMode === "rectangle" || selMode === "ellipse"
-          ? marqueeAdjustedDocPoints(anchor, pt, {
+          ? marqueeAdjustedDocPoints(anchor, snappedEnd, {
               fromCenter: ctx.altHeldRef.current,
               constrainSquare: this.marqueeConstrainSquareNow(ctx)
             })

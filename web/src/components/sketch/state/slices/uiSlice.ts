@@ -5,6 +5,7 @@
 import type { StateCreator } from "zustand";
 import type { SketchStore } from "../useSketchStore";
 import { buildLayersPanelRows } from "../../types";
+import type { SnapLines } from "../../snapping/moveSnap";
 
 const ASSISTANT_OPEN_KEY = "sketch.assistantPanelOpen";
 const VIEW_PREFS_KEY = "sketch.viewPrefs";
@@ -98,6 +99,12 @@ export interface UiSlice {
   /** Snap moves to canvas edges, canvas center, guides and other layers. */
   snapEnabled: boolean;
   toggleSnapEnabled: () => void;
+  /**
+   * Document-space lines the active drag snapped to, drawn as smart guides.
+   * Transient: set by tools during a drag and cleared on release.
+   */
+  activeSnapLines: SnapLines | null;
+  setActiveSnapLines: (lines: SnapLines | null) => void;
 
   /**
    * Whether the tool-settings row of the top bar is collapsed to just its
@@ -207,6 +214,17 @@ export const createUiSlice: StateCreator<SketchStore, [], [], UiSlice> = (
       const snapEnabled = !state.snapEnabled;
       writeViewPrefs({ ...pickViewPrefs(state), snapEnabled });
       return { snapEnabled };
+    }),
+
+  activeSnapLines: null,
+  setActiveSnapLines: (lines: SnapLines | null) =>
+    set((state) => {
+      const prev = state.activeSnapLines;
+      const next = lines && (lines.x !== null || lines.y !== null) ? lines : null;
+      if (prev === next || (prev && next && prev.x === next.x && prev.y === next.y)) {
+        return state;
+      }
+      return { activeSnapLines: next };
     }),
 
   toolSettingsCollapsed: false,

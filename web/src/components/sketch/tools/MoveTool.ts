@@ -36,14 +36,15 @@ import {
   computeTransformedCorners
 } from "../transform/geometry/layerGeometry";
 import { docToScreen } from "./transform/handleGeometry";
-import { drawOffCanvasIndicator, drawSnapLines } from "./gizmo";
+import { drawOffCanvasIndicator } from "./gizmo";
+import { snapMoveDelta, type SnapRect, type SnapTargets } from "../snapping/moveSnap";
 import {
-  SNAP_THRESHOLD_SCREEN_PX,
-  buildSnapTargets,
-  snapMoveDelta,
-  type SnapRect,
-  type SnapTargets
-} from "../snapping/moveSnap";
+  collectSnapTargets,
+  isSnapEnabled,
+  layerExtents,
+  showSnapLines,
+  snapThreshold
+} from "../snapping/toolSnap";
 import { useSketchStore } from "../state/useSketchStore";
 import { createPreviewSession, type PreviewSession } from "./previewSession";
 import { pickTopmostTransformableLayer } from "./transformTargetSet";
@@ -137,21 +138,13 @@ function duplicateActiveLayerFromSelection(
   return freshDoc.layers.find((l) => l.id === newLayerId) ?? null;
 }
 
-/** Document-space lines a move snapped to, drawn as smart guides. */
-interface SnapLines {
-  x: number | null;
-  y: number | null;
-}
-
 /** Paint corner brackets for off-canvas layer extents on the gizmo canvas.
  *  Uses {@link resolveGizmoBounds} (same contract as TransformTool) and maps the
- *  transformed quad to screen space so bounds track tight content and rotation.
- *  Also paints the smart-guide lines of an active snap. */
+ *  transformed quad to screen space so bounds track tight content and rotation. */
 function paintOffCanvasGizmo(
   ctx: ToolContext,
   layerId: string,
-  transform: LayerTransform,
-  snapLines: SnapLines | null = null
+  transform: LayerTransform
 ): void {
   const layer = ctx.doc.layers.find((l) => l.id === layerId);
   if (!layer) {
@@ -170,9 +163,7 @@ function paintOffCanvasGizmo(
     extents.y < 0 ||
     extents.x + extents.width > cw ||
     extents.y + extents.height > ch;
-  const hasSnapLines =
-    snapLines !== null && (snapLines.x !== null || snapLines.y !== null);
-  if (!extendsOutside && !hasSnapLines) {
+  if (!extendsOutside) {
     ctx.clearGizmo();
     return;
   }
@@ -180,32 +171,6 @@ function paintOffCanvasGizmo(
   const docCorners = computeTransformedCorners(transform, rasterBounds);
 
   ctx.drawGizmo((gc, dpr, containerW, containerH) => {
-    if (snapLines && hasSnapLines) {
-      const origin = docToScreen(
-        snapLines.x ?? 0,
-        snapLines.y ?? 0,
-        cw,
-        ch,
-        ctx.zoom,
-        ctx.pan,
-        containerW,
-        containerH,
-        dpr
-      );
-      drawSnapLines(
-        gc,
-        {
-          x: snapLines.x === null ? null : origin.x,
-          y: snapLines.y === null ? null : origin.y
-        },
-        dpr,
-        containerW * dpr,
-        containerH * dpr
-      );
-    }
-    if (!extendsOutside) {
-      return;
-    }
     const screenCorners: [Point, Point, Point, Point] = [
       docToScreen(docCorners[0].x, docCorners[0].y, cw, ch, ctx.zoom, ctx.pan, containerW, containerH, dpr),
       docToScreen(docCorners[1].x, docCorners[1].y, cw, ch, ctx.zoom, ctx.pan, containerW, containerH, dpr),
@@ -237,7 +202,6 @@ export class MoveTool implements ToolHandler {
   /** Union of the moving layers' extents at drag start, for snapping. */
   private snapRect: SnapRect | null = null;
   private snapTargets: SnapTargets | null = null;
-  private snapLines: SnapLines | null = null;
   /** Snapped / constrained cursor of the latest move, reused on release. */
   private lastCursor: Point | null = null;
 
@@ -280,8 +244,8 @@ export class MoveTool implements ToolHandler {
   private resetSnapState(): void {
     this.snapRect = null;
     this.snapTargets = null;
-    this.snapLines = null;
     this.lastCursor = null;
+    showSnapLines(null);
   }
 
   /**
@@ -289,22 +253,9 @@ export class MoveTool implements ToolHandler {
    * layers' bounds are read once here, not on every pointer move.
    */
   private prepareSnapping(ctx: ToolContext, movingIds: ReadonlySet<string>): void {
-    const { doc } = ctx;
-    const { isolatedLayerId, guidesVisible } = useSketchStore.getState();
-    const extentsOf = (layerId: string): SnapRect | null => {
-      const layer = doc.layers.find((l) => l.id === layerId);
-      if (!layer || layer.type === "group") {
-        return null;
-      }
-      const canvas = ctx.layerCanvasesRef.current.get(layerId);
-      return computeTransformedExtents(
-        layer.transform,
-        getVisualBounds(layer, canvas, doc.canvas)
-      );
-    };
     let union: SnapRect | null = null;
     for (const id of movingIds) {
-      const r = extentsOf(id);
+      const r = layerExtents(ctx, id);
       if (!r) {
         continue;
       }
@@ -319,26 +270,7 @@ export class MoveTool implements ToolHandler {
       }
     }
     this.snapRect = union;
-    const others: SnapRect[] = [];
-    for (const layer of doc.layers) {
-      if (
-        movingIds.has(layer.id) ||
-        layer.type === "group" ||
-        layer.type === "mask" ||
-        !isLayerCompositeVisible(doc.layers, layer, isolatedLayerId)
-      ) {
-        continue;
-      }
-      const r = extentsOf(layer.id);
-      if (r) {
-        others.push(r);
-      }
-    }
-    this.snapTargets = buildSnapTargets(
-      doc.canvas,
-      guidesVisible ? (doc.guides ?? []) : [],
-      others
-    );
+    this.snapTargets = collectSnapTargets(ctx, movingIds);
   }
 
   private refreshGizmo(ctx: ToolContext): void {
@@ -364,12 +296,7 @@ export class MoveTool implements ToolHandler {
     const previewTransform = this.session.isActive()
       ? this.session.state.currentTransform
       : overrideTransform ?? activeLayer.transform;
-    paintOffCanvasGizmo(
-      ctx,
-      activeLayer.id,
-      previewTransform,
-      this.session.isActive() ? this.snapLines : null
-    );
+    paintOffCanvasGizmo(ctx, activeLayer.id, previewTransform);
   }
 
   /** Get the current preview session (for external consumers). */
@@ -547,7 +474,6 @@ export class MoveTool implements ToolHandler {
         dx = 0;
       }
     }
-    this.snapLines = null;
     // Ctrl/Cmd held during a Move-tool drag bypasses snapping, as in
     // Photoshop. A spring-loaded move (Ctrl held on another tool) and a
     // Ctrl+Alt duplicate-drag hold Ctrl for another reason, so they still snap.
@@ -555,13 +481,8 @@ export class MoveTool implements ToolHandler {
       (native.ctrlKey || native.metaKey) &&
       !native.altKey &&
       useSketchStore.getState().activeTool === "move";
-    if (
-      useSketchStore.getState().snapEnabled &&
-      !bypassSnap &&
-      this.snapRect &&
-      this.snapTargets
-    ) {
-      const threshold = SNAP_THRESHOLD_SCREEN_PX / Math.max(ctx.zoom, 1e-6);
+    if (isSnapEnabled() && !bypassSnap && this.snapRect && this.snapTargets) {
+      const threshold = snapThreshold(ctx.zoom);
       const snapped = snapMoveDelta(
         this.snapRect,
         dx,
@@ -574,10 +495,12 @@ export class MoveTool implements ToolHandler {
       const lockY = native.shiftKey && dy === 0;
       dx = lockX ? 0 : snapped.dx;
       dy = lockY ? 0 : snapped.dy;
-      this.snapLines = {
+      showSnapLines({
         x: lockX ? null : snapped.snappedX,
         y: lockY ? null : snapped.snappedY
-      };
+      });
+    } else {
+      showSnapLines(null);
     }
     this.lastCursor = { x: this.moveStart.x + dx, y: this.moveStart.y + dy };
     const previewId = this.session.state.layerId;

@@ -24,7 +24,6 @@ export {
   HANDLE_FILL_HOVERED,
   OFF_CANVAS_INDICATOR_COLOR,
   OFF_CANVAS_CORNER_ARM_CSS,
-  SNAP_LINE_COLOR,
   CROP_DIM_COLOR,
   CROP_BORDER_COLOR,
   CROP_GRID_COLOR,
@@ -37,7 +36,6 @@ export {
 export {
   // Paint primitives (MoveTool + CropTool only — TransformTool is React/SVG)
   drawOffCanvasIndicator,
-  drawSnapLines,
   drawCropOverlay,
   drawCropGizmoWithHandles
 } from "./gizmoPrimitives";
