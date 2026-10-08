@@ -38,7 +38,7 @@ import {
 } from "../../../core/chat/threadRuntime";
 import type { ActiveMediaPrediction } from "../../../core/chat/mediaPrediction";
 import { isObjectLike, isString } from "../../../utils/typePredicates";
-import { hasVisibleContent } from "../utils/messageUtils";
+import { hasVisibleContent, replyEnds } from "../utils/messageUtils";
 import { collapseToolCallOnlyMessages } from "../message/groupToolCalls";
 import type { ChatStatus } from "../types/chat.types";
 import { useChatScrollAnchor } from "./useChatScrollAnchor";
@@ -456,6 +456,11 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     return -1;
   }, [isBusy, filteredMessages, lastUserMessageIndex]);
 
+  const replyEndText = useMemo(
+    () => replyEnds(filteredMessages),
+    [filteredMessages]
+  );
+
   const lastUserMessage =
     lastUserMessageIndex >= 0 ? filteredMessages[lastUserMessageIndex] : null;
   const handleRegenerate = useMemo(
@@ -604,6 +609,13 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                       editRemovesLaterTurns={
                         virtualRow.index < lastUserMessageIndex
                       }
+                      hideActions={
+                        msg.role === "assistant" &&
+                        (!replyEndText.has(virtualRow.index) ||
+                          (isBusy &&
+                            virtualRow.index > lastUserMessageIndex))
+                      }
+                      replyCopyText={replyEndText.get(virtualRow.index)}
                     />
                   </div>
                 );

@@ -185,7 +185,14 @@ export const createStyles = (theme: Theme) => ({
       pointerEvents: "none",
       transition: MOTION.opacity,
       fontSize: theme.fontSizeSmaller,
-      color: theme.vars.palette.text.disabled
+      color: theme.vars.palette.text.disabled,
+      // A long model id gives way before the buttons push the row past the
+      // column and pan the conversation on a phone.
+      minWidth: 0,
+      maxWidth: "100%",
+      "& > *": {
+        flexShrink: 0
+      }
     },
 
     // Hover reveals the row on older turns. The latest reply keeps it, a
@@ -218,11 +225,15 @@ export const createStyles = (theme: Theme) => ({
       whiteSpace: "nowrap"
     },
 
-    ".message-model": {
+    ".message-actions > .message-model": {
       fontSize: theme.fontSizeSmaller,
       color: theme.vars.palette.text.disabled,
       whiteSpace: "nowrap",
-      fontFamily: theme.fontFamily2
+      fontFamily: theme.fontFamily2,
+      flexShrink: 1,
+      minWidth: 0,
+      overflow: "hidden",
+      textOverflow: "ellipsis"
     },
 
     ".error-message": {

@@ -54,15 +54,21 @@ jest.mock("../message/MessageView", () => ({
   MessageView: ({
     message,
     isLatestReply,
-    onRegenerate
+    onRegenerate,
+    hideActions,
+    replyCopyText
   }: {
     message: Message;
     isLatestReply?: boolean;
     onRegenerate?: () => void;
+    hideActions?: boolean;
+    replyCopyText?: string;
   }) => (
     <div
       data-testid={`message-${message.id}`}
       data-latest-reply={isLatestReply ? "true" : undefined}
+      data-hide-actions={hideActions ? "true" : undefined}
+      data-copy={replyCopyText}
     >
       {Array.isArray(message.content)
         ? (message.content[0] as any).text
@@ -190,6 +196,48 @@ describe("ChatThreadView", () => {
     expect(
       screen.queryByRole("button", { name: "Regenerate" })
     ).not.toBeInTheDocument();
+  });
+
+  it("gives a reply in several messages one action row, copying all of it", () => {
+    const messages: Message[] = [
+      ...mockMessages,
+      {
+        type: "message",
+        id: "3",
+        role: "assistant",
+        content: "And more.",
+        created_at: new Date().toISOString()
+      }
+    ];
+    const view = renderWithTheme(
+      <ChatThreadView {...defaultProps} messages={messages} />
+    );
+
+    expect(screen.getByTestId("message-2")).toHaveAttribute(
+      "data-hide-actions",
+      "true"
+    );
+    expect(screen.getByTestId("message-3")).not.toHaveAttribute(
+      "data-hide-actions"
+    );
+    expect(screen.getByTestId("message-3")).toHaveAttribute(
+      "data-copy",
+      "Hi there\n\nAnd more."
+    );
+
+    view.rerender(
+      <ThemeProvider theme={mockTheme}>
+        <ChatThreadView
+          {...defaultProps}
+          messages={messages}
+          status="streaming"
+        />
+      </ThemeProvider>
+    );
+    expect(screen.getByTestId("message-3")).toHaveAttribute(
+      "data-hide-actions",
+      "true"
+    );
   });
 
   it("renders messages correctly", () => {

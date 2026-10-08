@@ -117,6 +117,12 @@ const markdownStyles = css({
   ".katex": {
     wordBreak: "normal",
     overflowWrap: "normal"
+  },
+  // A wide table scrolls sideways in its own box. Breaking anywhere would
+  // let the cells shrink to one letter per line on a phone instead.
+  "th, td": {
+    wordBreak: "normal",
+    overflowWrap: "break-word"
   }
 });
 
