@@ -11,6 +11,7 @@ const SEEDANCE_25_MODEL = {
 
 export const UGC_PRODUCT_VIDEO_APP = {
   slug: "ugc-product-video",
+  steps: true,
   name: "UGC Product Video",
   emoji: "🤳",
   showEmoji: false,
@@ -125,7 +126,7 @@ export const UGC_PRODUCT_VIDEO_APP = {
   ],
   sections: [
     {
-      title: "1 · Settle the angle",
+      title: "Settle the angle",
       controls: [
         {
           textVar: "offer",
@@ -160,7 +161,7 @@ export const UGC_PRODUCT_VIDEO_APP = {
       ]
     },
     {
-      title: "2 · Generate the testimonial",
+      title: "Generate the testimonial",
       controls: [
         {
           note: "Image 1 anchors the creator and room. Image 2 anchors only the product. Seedance 2.5 generates voice and lip movement with the picture, then permits the cup on screen only from 4.5 to 7 seconds."
@@ -201,7 +202,7 @@ export const UGC_PRODUCT_VIDEO_APP = {
       ]
     },
     {
-      title: "3 · Finish the social cut",
+      title: "Finish the social cut",
       controls: [
         { textVar: "brand", label: "Brand" },
         { textVar: "slogan", label: "Slogan" },

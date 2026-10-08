@@ -14,6 +14,7 @@ import { makeTestRuntime, INPUT_KEY } from "../../__tests__/testRuntime";
 import type { AppRuntimeContextValue } from "../../runtime/AppRuntimeContext";
 import type { Asset } from "../../../../stores/ApiTypes";
 import { AudioRecorderWidget, CameraCaptureWidget } from "../RecorderWidgets";
+import VideoRecorder from "../../../video/VideoRecorder";
 
 // The playback primitives resolve their locator through TanStack Query; this
 // suite stands up no QueryClientProvider.
@@ -201,5 +202,26 @@ describe("CameraCaptureWidget", () => {
   it("labels itself from the widget's own label", () => {
     renderWidget(<CameraCaptureWidget id="c1" label="Say hello" />);
     expect(screen.getByText("Say hello")).toBeInTheDocument();
+  });
+});
+
+describe("VideoRecorder beside a drop zone", () => {
+  it("shows no camera control on a machine that reports no camera", () => {
+    // The mocked hook reports no video devices.
+    const { container } = render(
+      <ThemeProvider theme={mockTheme}>
+        <VideoRecorder onChange={jest.fn()} hideWhenUnavailable />
+      </ThemeProvider>
+    );
+    expect(container).toBeEmptyDOMElement();
+  });
+
+  it("keeps the camera control when it is the only way in", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <VideoRecorder onChange={jest.fn()} />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("button", { name: /start camera/i })).toBeInTheDocument();
   });
 });

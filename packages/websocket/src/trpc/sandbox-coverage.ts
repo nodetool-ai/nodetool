@@ -488,6 +488,13 @@ export const SANDBOX_API_COVERAGE: Readonly<
     elsewhere:
       "get_thread returns a thread with its messages."
   },
+  "messages.rewind": {
+    withheld:
+      "Chat history is the record of what a run was asked to do and " +
+      "what it did. A run that could rewrite or delete a conversation " +
+      "could erase the evidence of its own behaviour, so the threads " +
+      "module is read-only by design — see capabilities/threads.ts."
+  },
   "models.all": { capability: "list_models" },
   "models.asr": {
     elsewhere:

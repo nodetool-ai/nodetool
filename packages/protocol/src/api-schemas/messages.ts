@@ -92,3 +92,17 @@ export const deleteOutput = z.object({
   ok: z.literal(true)
 });
 export type DeleteOutput = z.infer<typeof deleteOutput>;
+
+// ── rewind ────────────────────────────────────────────────────────
+// Delete `message_id` and every later message in `thread_id`, so the next
+// turn continues from the history before it (Regenerate, edit a sent message).
+export const rewindInput = z.object({
+  thread_id: z.string().min(1),
+  message_id: z.string().min(1)
+});
+export type RewindInput = z.infer<typeof rewindInput>;
+
+export const rewindOutput = z.object({
+  deleted_ids: z.array(z.string())
+});
+export type RewindOutput = z.infer<typeof rewindOutput>;

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { GameBehavior } from "@nodetool-ai/protocol/game.js";
-import { GAME_SCRIPT_TYPES, GAME_SCRIPT_TYPES_3D } from "@nodetool-ai/game-runtime";
+import { GAME_SCRIPT_TYPES, GAME_SCRIPT_TYPES_3D, GAME_SCRIPT_WORLD_TYPES, GAME_SCRIPT_WORLD_TYPES_3D } from "@nodetool-ai/game-runtime";
 
 import { useMonacoEditor } from "../../../../hooks/editor/useMonacoEditor";
 import { Box, Caption, EditorButton, FlexColumn, FlexRow, LoadingSpinner, SPACING, Text } from "../../../ui_primitives";
@@ -76,7 +76,9 @@ export default function GameScriptPane({ dimension = "2d", entityId, entityName,
                 };
                 ScriptTarget: { ES2020: number };
               };
-              javascriptDefaults.addExtraLib(dimension === "3d" ? GAME_SCRIPT_TYPES_3D : GAME_SCRIPT_TYPES, "file:///native-game.d.ts");
+              javascriptDefaults.addExtraLib(dimension === "3d"
+                ? GAME_SCRIPT_TYPES_3D + GAME_SCRIPT_WORLD_TYPES_3D
+                : GAME_SCRIPT_TYPES + GAME_SCRIPT_WORLD_TYPES, "file:///native-game.d.ts");
               javascriptDefaults.setCompilerOptions({ allowJs: true, checkJs: true, noEmit: true, target: ScriptTarget.ES2020 });
             });
           }}

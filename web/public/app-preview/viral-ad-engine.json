@@ -19,65 +19,61 @@
           "props": {
             "id": "title",
             "text": "📈 Viral Ad Engine",
-            "level": "1"
-          }
-        },
-        {
-          "type": "Text",
-          "props": {
-            "id": "tagline",
-            "text": "Settle the line, fan it into a test set, then put the product in motion."
+            "level": "1",
+            "subtitle": "Settle the line, fan it into a test set, then put the product in motion."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "Writing and thumbnails use configured models. The ad loop generates video; the vertical cut runs locally."
+            "text": "Writing and thumbnails use configured models. The ad loop generates video; the vertical cut runs locally.",
+            "tone": "hint"
           }
         },
         {
-          "type": "Columns",
+          "type": "Stepper",
           "props": {
-            "id": "cols-the-line",
-            "gap": 24,
-            "left": [
+            "id": "steps",
+            "binding": "var:step",
+            "steps": [
               {
-                "type": "Container",
+                "value": "the-line",
+                "title": "The line"
+              },
+              {
+                "value": "the-footage",
+                "title": "The footage"
+              }
+            ],
+            "allowBack": true
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-the-line",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "the-line"
+            },
+            "content": [
+              {
+                "type": "Heading",
                 "props": {
-                  "id": "panel-the-line",
-                  "title": "The line",
-                  "content": [
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-hooks-hooks-model",
-                        "binding": "op:hooks/prop:hooks#model",
-                        "label": "Hooks model",
-                        "modelKind": "language_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-hooks-thumbnail-model",
-                        "binding": "op:hooks/prop:thumbnail#model",
-                        "label": "Hooks model",
-                        "modelKind": "image_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-copy-ag-model",
-                        "binding": "op:copy/prop:ag#model",
-                        "label": "Copy model",
-                        "modelKind": "language_model",
-                        "events": []
-                      }
-                    },
+                  "id": "heading-the-line",
+                  "text": "The line",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-the-line",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "TextInput",
                       "props": {
@@ -110,6 +106,46 @@
                       }
                     },
                     {
+                      "type": "Accordion",
+                      "props": {
+                        "id": "models-the-line",
+                        "title": "Models (3)",
+                        "defaultOpen": false,
+                        "content": [
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-hooks-hooks-model",
+                              "binding": "op:hooks/prop:hooks#model",
+                              "label": "Stream hooks model",
+                              "modelKind": "language_model",
+                              "events": []
+                            }
+                          },
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-hooks-thumbnail-model",
+                              "binding": "op:hooks/prop:thumbnail#model",
+                              "label": "Generate thumbnail model",
+                              "modelKind": "image_model",
+                              "events": []
+                            }
+                          },
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-copy-ag-model",
+                              "binding": "op:copy/prop:ag#model",
+                              "label": "2  Agent model",
+                              "modelKind": "language_model",
+                              "events": []
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-copy-hooks",
@@ -134,17 +170,8 @@
                         ]
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-the-line-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -213,32 +240,70 @@
                     }
                   ]
                 }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-the-line"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-the-line",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-the-line",
+                        "label": "Next: The footage",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "the-footage"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
               }
             ]
           }
         },
         {
-          "type": "Columns",
+          "type": "Container",
           "props": {
-            "id": "cols-the-footage",
-            "gap": 24,
-            "left": [
+            "id": "step-the-footage",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "the-footage"
+            },
+            "content": [
               {
-                "type": "Container",
+                "type": "Heading",
                 "props": {
-                  "id": "panel-the-footage",
-                  "title": "The footage",
-                  "content": [
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-loop-animate-model",
-                        "binding": "op:loop/prop:animate#model",
-                        "label": "Ad loop model",
-                        "modelKind": "video_model",
-                        "events": []
-                      }
-                    },
+                  "id": "heading-the-footage",
+                  "text": "The footage",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-the-footage",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "Text",
                       "props": {
@@ -262,6 +327,16 @@
                         "binding": "op:loop/in:in-motion",
                         "label": "Camera move",
                         "multiline": true,
+                        "events": []
+                      }
+                    },
+                    {
+                      "type": "ModelSelect",
+                      "props": {
+                        "id": "model-loop-animate-model",
+                        "binding": "op:loop/prop:animate#model",
+                        "label": "3  Animate model",
+                        "modelKind": "video_model",
                         "events": []
                       }
                     },
@@ -310,17 +385,8 @@
                         ]
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-the-footage-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -372,6 +438,39 @@
                       }
                     }
                   ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-the-footage"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-the-footage",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "back-the-footage",
+                        "label": "Back: The line",
+                        "variant": "outlined",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "the-line"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": []
                 }
               }
             ]
@@ -437,6 +536,17 @@
     ],
     "resources": [],
     "variables": [
+      {
+        "id": "step",
+        "name": "Step",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "the-line",
+        "scope": "instance",
+        "persist": false
+      },
       {
         "id": "offer",
         "name": "The offer",
@@ -797,6 +907,7 @@
     "op:loop/out:output-loop": {
       "$demo": "video"
     },
+    "var:step": "the-line",
     "var:offer": "Aurora Trail running shoes: a third lighter than last season, grip that holds on wet rock, launching Friday"
   }
 }

@@ -1,13 +1,18 @@
 import { createRef } from "react";
 import { act, fireEvent, render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { createTheme, ThemeProvider } from "@mui/material/styles";
 import { Object3D, PerspectiveCamera, Scene, Vector3 } from "three";
 import { createGameSession3D, createNative3DGame, type AnyGameDocumentOp } from "@nodetool-ai/game-runtime";
 import { GameInput3D } from "@nodetool-ai/game-renderer";
 import type { GameRenderer3D } from "@nodetool-ai/game-renderer/browser3d";
 import { getGameDraftStore } from "../../../../stores/game/GameDraftStore";
+import { createGamePanelLayoutStore } from "../../../../stores/game/GamePanelLayoutStore";
 import type { GamePlaySession3D } from "../../useGamePlaySession3D";
 import GameViewport3D from "../GameViewport3D";
+import mockTheme from "../../../../__mocks__/themeMock";
+import GameEditorShell from "../../shell/GameEditorShell";
+import { handleGameUndo } from "../../gameEditorShortcuts";
 
 interface GestureControl {
   object: Object3D | undefined;
@@ -51,7 +56,7 @@ jest.mock("three/addons/controls/OrbitControls.js", () => ({
 }));
 jest.mock("three/addons/controls/FlyControls.js", () => ({ FlyControls: jest.fn() }));
 
-async function mountViewport(useCommandStore = false) {
+async function mountViewport(useCommandStore = false, useShell = false) {
   const document = createNative3DGame("viewport-gesture");
   for (const scene of document.scenes) {
     for (const entity of scene.entities) { entity.behaviors = entity.behaviors.filter((behavior) => behavior.kind !== "script"); }
@@ -92,9 +97,22 @@ async function mountViewport(useCommandStore = false) {
   });
   const onGestureStart = jest.fn(() => useCommandStore ? store.getState().beginGesture() : 61);
   const onGestureEnd = jest.fn((id: number) => { if (useCommandStore) { store.getState().endGesture(id); } });
-  const view = render(<ThemeProvider theme={createTheme({ cssVariables: true })}><GameViewport3D document={document} host={host}
+  const viewport = <GameViewport3D document={document} host={host}
     selectedId="player-visual" sceneId={document.entrySceneId} onOps={onOps}
-    onGestureStart={onGestureStart} onGestureEnd={onGestureEnd} /></ThemeProvider>);
+    onGestureStart={onGestureStart} onGestureEnd={onGestureEnd} />;
+  const view = render(<ThemeProvider theme={useShell ? mockTheme : createTheme({ cssVariables: true })}>{useShell
+    ? <GameEditorShell dimension="3d"
+      toolbar={{ name: "Viewport undo", playing: false, playSession: false, loading: false, saving: false,
+        saveStatus: "saved", assistantOpen: false, sceneTreeOpen: false, inspectorOpen: false, playHref: "/game/undo",
+        onPlay: jest.fn(), onStop: jest.fn(), onStep: jest.fn(), onSave: jest.fn(), onLoad: jest.fn(),
+        onPublish: jest.fn(), onAssistant: jest.fn(), onSceneTree: jest.fn(), onInspector: jest.fn() }}
+      status={{ tick: 0, score: 0, won: false, backend: "WebGL2" }}
+      panels={[{ id: "viewport", keyboardScope: true, node: viewport }]}
+      layoutStore={createGamePanelLayoutStore({ anonymous: true },
+        { getItem: () => null, setItem: () => undefined, removeItem: () => undefined })}
+      onKeyDown={(event) => handleGameUndo(event, false,
+        () => store.getState().undo(), () => store.getState().redo())} />
+    : viewport}</ThemeProvider>);
   const controls = mockGizmo;
   if (!controls?.object) { view.unmount(); session.dispose(); throw new Error("Gizmo did not attach to the real selected target"); }
   return { view, session, controls, onOps, onGestureStart, onGestureEnd, store, document };
@@ -116,6 +134,28 @@ it("commits the real gizmo's parent-local transform before closing its gesture",
       set: { transform3d: expect.objectContaining({ position: expect.objectContaining({ x: 2 }) }) } })], 61);
     expect(onGestureEnd).toHaveBeenCalledWith(61);
     expect(onGestureEnd.mock.invocationCallOrder[0]).toBeGreaterThan(onOps.mock.invocationCallOrder[0]);
+  } finally { fixture.view.unmount(); fixture.session.dispose(); }
+});
+
+it.each(["Control", "Meta"])("undoes and redoes a viewport edit with %s while the canvas has focus", async (modifier) => {
+  const user = userEvent.setup();
+  const fixture = await mountViewport(true, true);
+  try {
+    act(() => {
+      fixture.store.getState().apply([{ op: "update_entity", scene_id: fixture.document.entrySceneId,
+        entity_id: "player-visual", set: { transform3d: { position: { x: 2, y: 3, z: 4 } } } }],
+      { label: "Move Player Visual" });
+    });
+    const moved = structuredClone(fixture.store.getState().document);
+    expect(moved).not.toEqual(fixture.document);
+    await user.click(screen.getByLabelText("3D game viewport"));
+    expect(screen.getByLabelText("3D game viewport")).toHaveFocus();
+    await user.keyboard(`{${modifier}>}z{/${modifier}}`);
+    expect(fixture.store.getState().document).toEqual(fixture.document);
+    expect(fixture.store.getState().commandHistory.past).toHaveLength(0);
+    await user.keyboard(`{${modifier}>}{Shift>}z{/Shift}{/${modifier}}`);
+    expect(fixture.store.getState().document).toEqual(moved);
+    expect(fixture.store.getState().commandHistory.past).toHaveLength(1);
   } finally { fixture.view.unmount(); fixture.session.dispose(); }
 });
 
@@ -191,4 +231,47 @@ it("records a real gizmo drag as one command with full undo and redo", async () 
     fixture.store.getState().redo();
     expect(fixture.store.getState().document).toEqual(moved);
   } finally { fixture.view.unmount(); fixture.session.dispose(); }
+});
+
+it("releases pointer lock when a running play session fails", async () => {
+  const document = createNative3DGame("viewport-failed-session");
+  for (const scene of document.scenes) {
+    for (const entity of scene.entities) { entity.behaviors = entity.behaviors.filter((behavior) => behavior.kind !== "script"); }
+  }
+  const session = await createGameSession3D(document, 1);
+  const canvasRef = createRef<HTMLCanvasElement>();
+  let locked: Element | null = null;
+  const lockDescriptor = Object.getOwnPropertyDescriptor(window.document, "pointerLockElement");
+  const exitDescriptor = Object.getOwnPropertyDescriptor(window.document, "exitPointerLock");
+  const exit = jest.fn(() => { locked = null; window.document.dispatchEvent(new Event("pointerlockchange")); });
+  // Only the pointer-lock API is adapted because JSDOM cannot acquire a browser pointer lock.
+  Object.defineProperty(window.document, "pointerLockElement", { configurable: true, get: () => locked });
+  Object.defineProperty(window.document, "exitPointerLock", { configurable: true, value: exit });
+  const input = new GameInput3D();
+  const inputRef = { current: input };
+  const host = (playing: boolean, error: string | null): GamePlaySession3D => ({
+    canvasRef, rendererRef: { current: null }, inputRef, frame: session.frame(), inspection: null,
+    backend: "webgl2", playing, playDocument: document, error, beginPlay: jest.fn(), stop: jest.fn(), step: jest.fn(),
+    save: jest.fn(), load: jest.fn().mockResolvedValue(undefined), replayBeforeError: jest.fn().mockResolvedValue(undefined)
+  });
+  const view = (playing: boolean, error: string | null) => <ThemeProvider theme={createTheme({ cssVariables: true })}>
+    <GameViewport3D document={document} host={host(playing, error)} sceneId={document.entrySceneId}
+      onOps={jest.fn()} onGestureStart={jest.fn(() => 1)} onGestureEnd={jest.fn()} />
+  </ThemeProvider>;
+  const rendered = render(view(true, null));
+  try {
+    locked = screen.getByLabelText("3D game viewport");
+    rendered.rerender(view(true, null));
+    expect(exit).not.toHaveBeenCalled();
+    rendered.rerender(view(false, "Game script [\"player\",0] for player at tick 36 failed: Game script failed: interrupted"));
+    expect(exit).toHaveBeenCalledTimes(1);
+    expect(locked).toBeNull();
+  } finally {
+    rendered.unmount();
+    session.dispose();
+    if (lockDescriptor) { Object.defineProperty(window.document, "pointerLockElement", lockDescriptor); }
+    else { Reflect.deleteProperty(window.document, "pointerLockElement"); }
+    if (exitDescriptor) { Object.defineProperty(window.document, "exitPointerLock", exitDescriptor); }
+    else { Reflect.deleteProperty(window.document, "exitPointerLock"); }
+  }
 });

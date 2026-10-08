@@ -386,12 +386,14 @@ describe("provider-registry — extended coverage", () => {
         model: "ace",
         prompt: "ambient"
       },
-      {}
+      {},
+      undefined
     );
     expect(ttsEncoded).toHaveBeenCalledWith(
       "wangp",
       { text: "hello", model: "qwen3" },
-      {}
+      {},
+      undefined
     );
   });
 

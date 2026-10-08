@@ -3,7 +3,6 @@ import path from "path";
 import { logMessage, LOG_FILE } from "./logger";
 import { getMainWindow } from "./state";
 import { createWindow, createLogViewerWindow, openSettingsInMainWindow, handleActivation } from "./window";
-import { execSync } from "child_process";
 import {
   stopServer,
   initializeBackendServer,
@@ -132,25 +131,6 @@ async function createTray(): Promise<Electron.Tray> {
   if (isWindows) {
     logMessage("Setting up Windows-specific tray events", "info");
     trayInstance.setIgnoreDoubleClickEvents(true);
-
-    try {
-      const iconPreferenceKey =
-        "HKCU\\Software\\Microsoft\\Windows\\CurrentVersion\\Explorer\\TrayNotify";
-      logMessage("Updating Windows registry for tray icon", "info");
-      execSync(
-        `reg add "${iconPreferenceKey}" /v "IconStreams" /t REG_BINARY /d "" /f`
-      );
-      execSync(
-        `reg add "${iconPreferenceKey}" /v "PastIconsStream" /t REG_BINARY /d "" /f`
-      );
-    } catch (error) {
-      if (error instanceof Error) {
-        logMessage(
-          `Failed to set tray icon preference: ${error.message}`,
-          "warn"
-        );
-      }
-    }
 
     setupWindowsTrayEvents(trayInstance);
   } else {

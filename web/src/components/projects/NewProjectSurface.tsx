@@ -121,6 +121,7 @@ import EntitySetupHost from "../setup/entity/EntitySetupHost";
 import { newVideoSetupDocument } from "../setup/video/useVideoSetupFlow";
 import { newScriptSetupDocument } from "../setup/script/useScriptSetupFlow";
 import { startImageFlow } from "../setup/image/startImageFlow";
+import { MAX_IMAGE_REFERENCES } from "../setup/image/setupContext";
 import {
   useCreateTimeline,
   useDeleteTimeline,
@@ -427,6 +428,7 @@ const NewProjectSurface = ({
     droppedFiles,
     addDroppedFiles,
     removeFile,
+    clearFiles,
     getFileContents
   } = useFileHandling();
   const { uploadFiles, isUploading } = useComposerAssetUpload(addDroppedFiles);
@@ -729,7 +731,24 @@ const NewProjectSurface = ({
   ]);
 
   // A new flow gets its own tab. Changes within that flow keep the same tab.
-  const applySetupTarget = useCallback((target: SetupTarget | null) => {
+  // Every target records what the composer held, so "Change flow" can put it
+  // back (O6). A swap within the flow keeps the record it already had: the
+  // composer of a tab opened from Home is empty while the flow runs.
+  const applySetupTarget = useCallback((next: SetupTarget | null) => {
+    const target: SetupTarget | null =
+      next && !next.carried
+        ? {
+            ...next,
+            carried: setupTargetRef.current?.carried ?? {
+              references: droppedFiles.flatMap((file) =>
+                file.assetUri
+                  ? [{ uri: file.assetUri, name: file.name, type: file.type }]
+                  : []
+              ),
+              entityIds
+            }
+          }
+        : next;
     if (flowRef) {
       setupTargetRef.current = target;
       setSetupTarget(target);
@@ -754,7 +773,15 @@ const NewProjectSurface = ({
       });
       setActiveTab(id);
     }
-  }, [flowRef, hasHomeTab, openTab, setActiveTab, setGuidedFlowTarget]);
+  }, [
+    droppedFiles,
+    entityIds,
+    flowRef,
+    hasHomeTab,
+    openTab,
+    setActiveTab,
+    setGuidedFlowTarget
+  ]);
 
   // Carry an in-progress flow from the former single-tab session storage into
   // a normal guided tab once. The draft itself already lives in its document.
@@ -789,13 +816,22 @@ const NewProjectSurface = ({
    * word.
    */
   const noteUncarriedContext = useCallback(
-    (flow: string, carries: { entities: boolean; references: boolean }) => {
+    (
+      flow: string,
+      // `references` is a count when the flow takes only so many.
+      carries: { entities: boolean; references: boolean | number }
+    ) => {
       const left: string[] = [];
-      if (!carries.references && droppedFiles.length > 0) {
+      const carried =
+        carries.references === true
+          ? droppedFiles.length
+          : carries.references === false
+            ? 0
+            : carries.references;
+      const leftOver = droppedFiles.length - carried;
+      if (leftOver > 0) {
         left.push(
-          `${droppedFiles.length} reference ${
-            droppedFiles.length === 1 ? "image" : "images"
-          }`
+          `${leftOver} reference ${leftOver === 1 ? "image" : "images"}`
         );
       }
       if (!carries.entities && selectedEntities.length > 0) {
@@ -1035,7 +1071,10 @@ const NewProjectSurface = ({
           references,
           entityIds
         });
-        noteUncarriedContext("image", { entities: true, references: true });
+        noteUncarriedContext("image", {
+          entities: true,
+          references: Math.min(references.length, MAX_IMAGE_REFERENCES)
+        });
         if (!(await showDocumentProject(projectId, name))) {
           return;
         }
@@ -1187,7 +1226,8 @@ const NewProjectSurface = ({
         );
         noteUncarriedContext("entity", {
           entities: false,
-          references: initialAssetId !== undefined
+          // The entity takes one reference image.
+          references: initialAssetId !== undefined ? 1 : 0
         });
         const target: SetupTarget = {
           kind: "entity",
@@ -1249,7 +1289,7 @@ const NewProjectSurface = ({
 
   const handleEntryCard = useCallback(
     (id: string) => {
-      if (pendingFlow !== null || starting) {
+      if (pendingFlow !== null || starting || isUploading) {
         return;
       }
       // Through the card list, so the id that reaches the starters is a known
@@ -1260,7 +1300,7 @@ const NewProjectSurface = ({
       }
       runDestinationFlow(card.id);
     },
-    [pendingFlow, runDestinationFlow, starting]
+    [isUploading, pendingFlow, runDestinationFlow, starting]
   );
 
   // The chosen card says what it is doing; the other cards are off, because a
@@ -1276,7 +1316,14 @@ const NewProjectSurface = ({
       image: ENTRY_BACKGROUNDS[card.id]
     }));
     if (pendingFlow === null) {
-      return cards;
+      // A card started now would take only the references already uploaded.
+      return isUploading
+        ? cards.map((card) => ({
+            ...card,
+            disabled: true,
+            disabledReason: "Waiting for your reference images to upload."
+          }))
+        : cards;
     }
     return cards.map((card) =>
       card.id === pendingFlow
@@ -1292,7 +1339,7 @@ const NewProjectSurface = ({
             disabledReason: "One flow is already starting."
           }
     );
-  }, [pendingFlow, showMoreFlows, gameDimension]);
+  }, [isUploading, pendingFlow, showMoreFlows, gameDimension]);
 
   /**
    * The flow's last step wrote stage `done`: hand the finished board its own
@@ -1349,9 +1396,10 @@ const NewProjectSurface = ({
    * draft is worth nothing and is deleted rather than left behind. The project
    * row the card made goes with it — but only when the card made one: a flow
    * filed into the open project leaves that project where it is. The brief
-   * the creator typed in step 1 comes back to the composer, which still holds
-   * every reference and entity it had — this surface never unmounted, it only
-   * rendered the flow instead.
+   * the creator typed in step 1 comes back to the composer. A flow opened
+   * from Home runs in its own tab, whose composer was empty, so the composer
+   * is refilled from what the target recorded when the card was clicked (O6). Step 1 offers no way to
+   * change references or entities, so that record is still what the flow holds.
    *
    * The host hands over the brief its own mounted document holds, before
    * anything is deleted. Reading it back from the server instead would race
@@ -1381,9 +1429,31 @@ const NewProjectSurface = ({
         }
       }
       setPrompt(brief);
+      const carried = target.carried;
+      if (carried) {
+        clearFiles();
+        addDroppedFiles(
+          carried.references.map((reference) => ({
+            id: "",
+            dataUri: reference.uri,
+            type: reference.type,
+            name: reference.name,
+            assetUri: reference.uri
+          }))
+        );
+        setEntityIds(carried.entityIds);
+      }
       applySetupTarget(null);
     },
-    [applySetupTarget, flowRef, openTab, personalProjectId, setActiveProjectId]
+    [
+      addDroppedFiles,
+      applySetupTarget,
+      clearFiles,
+      flowRef,
+      openTab,
+      personalProjectId,
+      setActiveProjectId
+    ]
   );
 
   /**
@@ -1431,31 +1501,57 @@ const NewProjectSurface = ({
         name: copy.name || example.name,
         ownsProject: placeholder.ownsProject
       });
-      await deleteSetupDocument(placeholder);
+      // The copy is already this tab's target, so a failed discard must not
+      // reject: the flow would stay up on a workflow with no setup and show
+      // nothing. The copy opens, and the leftover row is named instead.
+      try {
+        await deleteSetupDocument(placeholder);
+      } catch (error) {
+        addNotification({
+          type: "warning",
+          alert: true,
+          content: `The example opened, but the empty workflow "${placeholder.name}" could not be removed: ${
+            error instanceof Error ? error.message : String(error)
+          }`
+        });
+      }
       return copy.id;
     },
-    [applySetupTarget, createWorkflow]
+    [addNotification, applySetupTarget, createWorkflow]
   );
 
   /**
    * E2 § 8.1 "Start from a script": the brief goes to E3 and this tab becomes
-   * the script flow, in the project the video card already made. The sequence
-   * stays where it is — the script's `Send to timeline` is the way back.
+   * the script flow, in the project the video card already made. The draft
+   * sequence is discarded as Change flow discards it: it holds nothing yet,
+   * and the script's `Send to timeline` makes a sequence of its own.
    */
   const startScriptFromVideo = useCallback(
     async (brief: string) => {
       const target = setupTargetRef.current;
-      if (!target) {
+      if (!target || starting) {
         return;
       }
       const text = brief.trim();
       const name =
         text.length > 0 ? projectNameFromPrompt(text, null) : target.name;
+      setStarting(true);
       try {
+        // The references and entities the video card took come along, as
+        // they would had the Script card been picked from the composer.
         const script = await createScript.mutateAsync({
           name,
           projectId: target.projectId,
-          document: newScriptSetupDocument(text)
+          document: newScriptSetupDocument(text, {
+            attachments: (target.carried?.references ?? []).map(
+              ({ uri, name: fileName, type }) => ({
+                uri,
+                name: fileName,
+                contentType: type
+              })
+            ),
+            entityIds: target.carried?.entityIds ?? []
+          })
         });
         applySetupTarget({
           kind: "script",
@@ -1464,11 +1560,16 @@ const NewProjectSurface = ({
           name,
           ownsProject: target.ownsProject
         });
+        // The script is up either way; a draft that will not go only costs an
+        // empty row, so it is not worth an error.
+        await deleteSetupDocument(target).catch(() => undefined);
       } catch (error) {
         reportEntryFailure("script", error);
+      } finally {
+        setStarting(false);
       }
     },
-    [applySetupTarget, createScript, reportEntryFailure]
+    [applySetupTarget, createScript, reportEntryFailure, starting]
   );
 
   // A start that was parked on provider onboarding resumes on its own once a

@@ -6,6 +6,8 @@ import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 
 import mockTheme from "../../../__mocks__/themeMock";
 import { getGameDraftStore } from "../../../stores/game/GameDraftStore";
+import { getGamePanelLayoutStore } from "../../../stores/game/useGamePanelLayoutStore";
+import useAuth from "../../../stores/useAuth";
 import GameEditor from "../GameEditor";
 import type GameViewport from "../viewport2d/GameViewport";
 import type GameInspector from "../panels/inspector/GameInspector";
@@ -89,6 +91,8 @@ jest.mock("../panels/scripts/GameScriptPane", () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // The editor shares one persisted layout store per user, so each case starts from the same docking layout.
+  getGamePanelLayoutStore(useAuth.getState().user?.id ?? null).getState().selectLayout("Default");
   mockViewportProps = undefined;
   mockPlayDocument = mockDocument;
   mockHostFailure = null;
@@ -263,13 +267,18 @@ it("F6 leaves recovery after a competing writer repairs the draft", async () => 
   expect(mockRestore).toHaveBeenCalledTimes(1);
 });
 
-it.each(["active play", "independent diagnostic"])("replays active history for the displayed %s error", async (provenance) => {
+it.each(["active play", "independent diagnostic"])("offers host replay only for a host failure: %s", async (provenance) => {
   const user = userEvent.setup();
   if (provenance === "active play") { mockHostFailure = mockFailure; }
   else { mockDiagnosticFailure = mockFailure; }
   render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
   await user.click(screen.getByRole("button", { name: "Edit player script" }));
   expect(screen.getByText(mockFailure.message)).toBeInTheDocument();
+  if (provenance === "independent diagnostic") {
+    expect(screen.queryByRole("button", { name: "Replay displayed error" })).not.toBeInTheDocument();
+    expect(mockReplay).not.toHaveBeenCalled();
+    return;
+  }
   await user.click(screen.getByRole("button", { name: "Replay displayed error" }));
   expect(mockReplay).toHaveBeenCalledTimes(1);
   expect(mockReplay).toHaveBeenCalledWith(mockFailure);
@@ -306,6 +315,20 @@ it("preserves viewport Alt-arrow world nudging", async () => {
   await user.keyboard("{Alt>}{ArrowDown}{/Alt}");
   expect(document2D(store).scenes[0].entities.find((entity) => entity.id === "player")?.transform2d.y).toBe(initialY - 0.25);
   expect(store.getState().pendingOps).toHaveLength(1);
+});
+
+it("keeps hierarchy navigation keys from editing the selected entity", async () => {
+  const user = userEvent.setup();
+  mockPlayDocument = null;
+  const store = getGameDraftStore(mockDocument.id);
+  render(<ThemeProvider theme={mockTheme}><GameEditor refId={mockDocument.id} active /></ThemeProvider>);
+  await user.click(screen.getByRole("button", { name: "player" }));
+  const before = structuredClone(store.getState().document);
+  await user.keyboard("{ArrowDown}{Delete}{Home}{Control>}d{/Control}");
+  expect(store.getState().document).toEqual(before);
+  expect(store.getState().pendingOps).toEqual([]);
+  await user.tab();
+  expect(screen.getByRole("button", { name: "player" })).not.toHaveFocus();
 });
 
 it("keeps inspector-button undo and delete outside the editor keyboard scope", async () => {

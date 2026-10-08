@@ -38,7 +38,15 @@ import {
   type BuildFromPlanResult
 } from "../../../hooks/workflow/useBuildFromPlan";
 import type { Workflow } from "../../../stores/ApiTypes";
+import {
+  EditorButton,
+  FlexColumn,
+  GAP,
+  PADDING,
+  ThinkingIndicator
+} from "../../ui_primitives";
 import { SetupFlow } from "../SetupFlow";
+import { useFinishIfLoadedDone } from "../useFinishIfLoadedDone";
 import type { OptionCardItem } from "../OptionCardGrid";
 import { useWorkflowSetupFlow } from "./useWorkflowSetupFlow";
 import type { ModelRoleAvailability, ModelRoleStatus } from "./SetupStep";
@@ -263,6 +271,34 @@ const WorkflowSetupHost: React.FC<WorkflowSetupHostProps> = ({
     () => onChangeFlow?.(brief),
     [brief, onChangeFlow]
   );
+
+  const finishFromDocument = useCallback(
+    () => handleFinish(null),
+    [handleFinish]
+  );
+  useFinishIfLoadedDone(setup !== null, config.stage, finishFromDocument);
+
+  // The build writes `done` once the graph is placed, then validates and test
+  // runs it. The shell has no step for `done`, so this covers that wait, with
+  // the way to stop it.
+  if (config.stage === "done" && config.building) {
+    return (
+      <FlexColumn
+        align="center"
+        justify="center"
+        gap={GAP.comfortable}
+        sx={{ padding: PADDING.section }}
+      >
+        <ThinkingIndicator
+          label="Checking and test-running your workflow"
+          announce
+        />
+        <EditorButton variant="text" onClick={() => void config.cancelBuild()}>
+          Cancel
+        </EditorButton>
+      </FlexColumn>
+    );
+  }
 
   return (
     <SetupFlow

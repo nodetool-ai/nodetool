@@ -19,21 +19,16 @@
           "props": {
             "id": "title",
             "text": "🌍 Dubbing Desk",
-            "level": "1"
-          }
-        },
-        {
-          "type": "Text",
-          "props": {
-            "id": "tagline",
-            "text": "One presenter clip, spoken in another language, voiced, subtitled and lip-synced."
+            "level": "1",
+            "subtitle": "One presenter clip, spoken in another language, voiced, subtitled and lip-synced."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "Transcription, translation, speech, and lip-sync use configured models and are billed per run."
+            "text": "Transcription, translation, speech, and lip-sync use configured models and are billed per run.",
+            "tone": "hint"
           }
         },
         {

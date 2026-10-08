@@ -2,7 +2,7 @@ import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
-import { trimTrailingSlashes } from "./openai-compat/index.js";
+import { localServerRoot } from "./openai-compat/index.js";
 import { LMSTUDIO_DEFAULT_URL } from "./defaults.js";
 import type { LanguageModel } from "./types.js";
 
@@ -35,7 +35,7 @@ export class LMStudioProvider extends OpenAICompatProvider {
       secrets.LMSTUDIO_API_URL ??
       process.env["LMSTUDIO_API_URL"] ??
       LMSTUDIO_DEFAULT_URL;
-    const baseURL = trimTrailingSlashes(rawBaseURL);
+    const baseURL = localServerRoot(rawBaseURL);
     const apiKey = secrets.LMSTUDIO_API_KEY ?? "lm-studio";
     const fetchFn = options.fetchFn ?? globalThis.fetch.bind(globalThis);
 

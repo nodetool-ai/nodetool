@@ -124,10 +124,12 @@ export async function refToBytes(
   context?: AssetResolveContext
 ): Promise<Uint8Array> {
   const data = ref.data;
+  // A zero-length buffer is "no inline data": fall through to `uri`.
   if (data instanceof Uint8Array) {
-    return data;
-  }
-  if (data != null && data.length > 0) {
+    if (data.length > 0) {
+      return data;
+    }
+  } else if (data != null && data.length > 0) {
     const base64 = data.startsWith("data:")
       ? data.slice(data.indexOf(",") + 1)
       : data;

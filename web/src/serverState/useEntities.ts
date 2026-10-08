@@ -231,11 +231,26 @@ export function useSaveEntity(): UseMutationResult<
       // one path that checks the project is the caller's before filing
       // anything into it.
       if (projectId !== updated.project_id) {
-        await trpcClient.projects.assignDocument.mutate({
-          projectId,
-          type: "entity",
-          ref: input.assetId
-        });
+        try {
+          await trpcClient.projects.assignDocument.mutate({
+            projectId,
+            type: "entity",
+            ref: input.assetId
+          });
+        } catch (cause) {
+          // A create that could not be filed is undone, or its marker would
+          // make every retry refuse the image as already used.
+          if (input.createOnly) {
+            await trpcClient.assets.update
+              .mutate({
+                id: input.assetId,
+                expected_metadata: updated.metadata ?? null,
+                metadata: asset.metadata ?? {}
+              })
+              .catch(() => undefined);
+          }
+          throw cause;
+        }
         return assetToEntity({
           ...updated,
           project_id: projectId

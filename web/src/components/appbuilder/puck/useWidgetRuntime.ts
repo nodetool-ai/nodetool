@@ -56,6 +56,11 @@ export interface WidgetRuntime {
    * reports nothing but a spinner.
    */
   activity: string | undefined;
+  /**
+   * True while the operation whose output this widget reads is running, so an
+   * empty display can say a result is on its way instead of reading as idle.
+   */
+  producing: boolean;
 }
 
 interface UseWidgetRuntimeParams {
@@ -184,5 +189,18 @@ export const useWidgetRuntime = ({
     [dispatch, events, from, id, scope]
   );
 
-  return { value, setValue, emit, designMode, runnerState, progress, activity };
+  const producing = useRuntimeSelector(
+    (s) => boundRef?.kind === "output" && isOperationRunning(s, boundRef.operationId)
+  );
+
+  return {
+    value,
+    setValue,
+    emit,
+    designMode,
+    runnerState,
+    progress,
+    activity,
+    producing
+  };
 };

@@ -85,6 +85,24 @@ export interface GuidedFlowTarget {
   ownsProject: boolean;
   initialAssetId?: string;
   initialDescriptor?: string;
+  /**
+   * What the composer held beside the prompt when the entry card was clicked.
+   * "Change flow" puts it back in the composer, so the next card gets the same
+   * references and entities. Only durable `asset://` references are kept.
+   */
+  carried?: GuidedFlowCarry;
+}
+
+/** One composer reference, as a durable locator. */
+export interface GuidedFlowReference {
+  uri: string;
+  name: string;
+  type: string;
+}
+
+export interface GuidedFlowCarry {
+  references: GuidedFlowReference[];
+  entityIds: string[];
 }
 
 export const isGlobalWorkspaceTab = (tab: WorkspaceTab): boolean =>

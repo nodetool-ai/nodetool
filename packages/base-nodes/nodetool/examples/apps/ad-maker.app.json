@@ -14,35 +14,61 @@
           "props": {
             "id": "title",
             "text": "Ad Maker",
-            "level": "1"
-          }
-        },
-        {
-          "type": "Text",
-          "props": {
-            "id": "tagline",
-            "text": "Settle the message. Direct the campaign image."
+            "level": "1",
+            "subtitle": "Settle the message. Direct the campaign image."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "The hero render only runs after you approve the visual brief."
+            "text": "The hero render only runs after you approve the visual brief.",
+            "tone": "hint"
           }
         },
         {
-          "type": "Columns",
+          "type": "Stepper",
           "props": {
-            "id": "cols-1-settle-the-message",
-            "gap": 24,
-            "left": [
+            "id": "steps",
+            "binding": "var:step",
+            "steps": [
               {
-                "type": "Container",
+                "value": "settle-the-message",
+                "title": "Settle the message"
+              },
+              {
+                "value": "direct-the-campaign-image",
+                "title": "Direct the campaign image"
+              }
+            ],
+            "allowBack": true
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-settle-the-message",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "settle-the-message"
+            },
+            "content": [
+              {
+                "type": "Heading",
                 "props": {
-                  "id": "panel-1-settle-the-message",
-                  "title": "1 · Settle the message",
-                  "content": [
+                  "id": "heading-settle-the-message",
+                  "text": "Settle the message",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-settle-the-message",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "TextInput",
                       "props": {
@@ -109,17 +135,8 @@
                         }
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-1-settle-the-message-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -198,22 +215,70 @@
                     }
                   ]
                 }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-settle-the-message"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-settle-the-message",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-settle-the-message",
+                        "label": "Next: Direct the campaign image",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "direct-the-campaign-image"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
               }
             ]
           }
         },
         {
-          "type": "Columns",
+          "type": "Container",
           "props": {
-            "id": "cols-2-direct-the-campaign-image",
-            "gap": 24,
-            "left": [
+            "id": "step-direct-the-campaign-image",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "direct-the-campaign-image"
+            },
+            "content": [
               {
-                "type": "Container",
+                "type": "Heading",
                 "props": {
-                  "id": "panel-2-direct-the-campaign-image",
-                  "title": "2 · Direct the campaign image",
-                  "content": [
+                  "id": "heading-direct-the-campaign-image",
+                  "text": "Direct the campaign image",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-direct-the-campaign-image",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "ModelSelect",
                       "props": {
@@ -274,17 +339,8 @@
                         }
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-2-direct-the-campaign-image-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -343,6 +399,39 @@
                     }
                   ]
                 }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-direct-the-campaign-image"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-direct-the-campaign-image",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "back-direct-the-campaign-image",
+                        "label": "Back: Settle the message",
+                        "variant": "outlined",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "settle-the-message"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": []
+                }
               }
             ]
           }
@@ -394,6 +483,17 @@
     ],
     "resources": [],
     "variables": [
+      {
+        "id": "step",
+        "name": "Step",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "settle-the-message",
+        "scope": "instance",
+        "persist": false
+      },
       {
         "id": "offer",
         "name": "The offer",

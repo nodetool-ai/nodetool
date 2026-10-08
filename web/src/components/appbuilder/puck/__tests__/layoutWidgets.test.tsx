@@ -63,10 +63,13 @@ it("marks the steps before the current one done unless the author says otherwise
       />
     </ThemeProvider>
   );
-  expect(screen.getByRole("button", { name: "✓ Start" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Anchor" })).toBeInTheDocument();
-  expect(screen.getByRole("button", { name: "Worlds" })).toHaveAttribute("aria-current", "step");
-  expect(screen.getByRole("button", { name: "Ending" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Step 1 of 4: Start, done" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Step 2 of 4: Anchor" })).toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Step 3 of 4: Worlds" })).toHaveAttribute(
+    "aria-current",
+    "step"
+  );
+  expect(screen.getByRole("button", { name: "Step 4 of 4: Ending" })).toBeInTheDocument();
 });
 
 it("shows a heading's subtitle directly under it", () => {

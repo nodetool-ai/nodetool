@@ -1,5 +1,6 @@
 import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { NodeClass } from "@nodetool-ai/node-sdk";
+import type { ProcessingContext } from "@nodetool-ai/runtime";
 import {
   DEVICE_VALUES,
   DTYPE_VALUES,
@@ -8,6 +9,7 @@ import {
   ensureArray,
   extractRepoId,
   getPipeline,
+  loadTransformers,
   tjsModelDefault,
   normalizeOption
 } from "../transformers-base.js";
@@ -140,9 +142,11 @@ export class TextGenerationNode extends BaseNode {
   })
   declare device: string;
 
-  async process(): Promise<TextGenerationNodeOutputs> {
+  async process(context?: ProcessingContext): Promise<TextGenerationNodeOutputs> {
     const prompt = asString(this.prompt);
     if (!prompt) throw new Error("Prompt is required");
+    const signal = context?.signal;
+    signal?.throwIfAborted();
 
     const pipeline = await getPipeline<
       (
@@ -167,7 +171,24 @@ export class TextGenerationNode extends BaseNode {
     const topK = asNumber(this.top_k, 50);
     if (topK > 0) opts.top_k = topK;
 
-    const raw = await pipeline(prompt, opts);
+    // Interrupt the generation loop on abort; otherwise it runs to
+    // max_new_tokens after the job is cancelled.
+    const Stopper = (await loadTransformers()).InterruptableStoppingCriteria;
+    let cleanup = (): void => {};
+    if (Stopper && signal) {
+      const criteria = new Stopper();
+      opts.stopping_criteria = criteria;
+      const onAbort = (): void => criteria.interrupt();
+      signal.addEventListener("abort", onAbort, { once: true });
+      cleanup = () => signal.removeEventListener("abort", onAbort);
+    }
+    let raw: GenerationResult | GenerationResult[];
+    try {
+      raw = await pipeline(prompt, opts);
+    } finally {
+      cleanup();
+    }
+    signal?.throwIfAborted();
     const first = ensureArray<GenerationResult>(raw)[0];
     return { text: extractText(first?.generated_text) };
   }

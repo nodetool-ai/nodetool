@@ -2,9 +2,12 @@ import {
   OpenAICompatProvider,
   type OpenAICompatProviderOptions
 } from "./openai-compat-provider.js";
-import { trimTrailingSlashes } from "./openai-compat/index.js";
+import { localServerRoot } from "./openai-compat/index.js";
 import type { ProviderCapability } from "./base-provider.js";
 import type { ASRModel, EmbeddingModel, LanguageModel } from "./types.js";
+
+/** Cap on the model-list probe so an unreachable host can't stall the model menu. */
+const MODEL_LIST_TIMEOUT_MS = 5_000;
 
 interface VLLMProviderOptions extends OpenAICompatProviderOptions {
   baseURL?: string;
@@ -31,7 +34,7 @@ export class VLLMProvider extends OpenAICompatProvider {
         "VLLM_BASE_URL is required (options.baseURL, secret, or env)"
       );
     }
-    const baseURL = trimTrailingSlashes(String(rawBaseURL));
+    const baseURL = localServerRoot(String(rawBaseURL));
 
     const apiKey =
       secrets.VLLM_API_KEY && secrets.VLLM_API_KEY.trim().length > 0
@@ -60,6 +63,16 @@ export class VLLMProvider extends OpenAICompatProvider {
 
   override async hasToolSupport(_model: string): Promise<boolean> {
     return true;
+  }
+
+  /**
+   * Send no output cap unless the caller set one. vLLM rejects a request whose
+   * prompt plus `max_completion_tokens` exceeds `--max-model-len`, so the base
+   * class's 16384 default failed every call on a model served with a smaller
+   * window. Without the field vLLM fills the remaining window.
+   */
+  protected override get defaultMaxTokens(): number | undefined {
+    return undefined;
   }
 
   /**
@@ -99,7 +112,8 @@ export class VLLMProvider extends OpenAICompatProvider {
       const response = await this._vllmFetch(`${this._vllmBaseURL}/v1/models`, {
         headers: {
           Authorization: `Bearer ${this.apiKey}`
-        }
+        },
+        signal: AbortSignal.timeout(MODEL_LIST_TIMEOUT_MS)
       });
 
       if (!response.ok) {

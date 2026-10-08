@@ -272,6 +272,9 @@ const EntitySetupHost = ({
         blockedReason: reviewBlockedReason,
         pending: saveEntity.isPending,
         pendingLabel: "Creating your entity",
+        // The asset is tagged before the save resolves, so a Cancel would
+        // say the draft is unchanged about an entity that was created.
+        cancelable: false,
         render: () =>
           referenceAssetId
             ? createElement(ReviewStep, {

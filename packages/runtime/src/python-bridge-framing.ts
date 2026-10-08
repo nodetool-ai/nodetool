@@ -60,11 +60,26 @@ export interface FrameDecoderOptions {
  * can't desync the new one.
  */
 export class FrameDecoder {
-  private _buffer = Buffer.alloc(0);
+  /**
+   * Bytes received but not yet returned as frames, kept as the chunks they
+   * arrived in. They are concatenated once, when a frame is complete, so a
+   * large frame read in many pipe chunks costs linear time rather than one
+   * full copy per chunk.
+   */
+  private _chunks: Buffer[] = [];
+  private _length = 0;
   private readonly _maxFrameSize: number;
 
   constructor(options: FrameDecoderOptions = {}) {
     this._maxFrameSize = options.maxFrameSize ?? DEFAULT_MAX_BRIDGE_FRAME_SIZE;
+  }
+
+  /** Merge the buffered chunks into one and return it. */
+  private _coalesce(): Buffer {
+    if (this._chunks.length !== 1) {
+      this._chunks = [Buffer.concat(this._chunks, this._length)];
+    }
+    return this._chunks[0]!;
   }
 
   /**
@@ -82,21 +97,31 @@ export class FrameDecoder {
    * ceiling.
    */
   push(chunk: Buffer, onFrame: (frame: Buffer) => void): void {
-    this._buffer = Buffer.concat([this._buffer, chunk]);
-    while (this._buffer.length >= 4) {
-      const length = this._buffer.readUInt32BE(0);
+    if (chunk.length > 0) {
+      this._chunks.push(chunk);
+      this._length += chunk.length;
+    }
+    while (this._length >= 4) {
+      // The length prefix may straddle chunks; merging is cheap here because
+      // it only happens while fewer than 4 bytes sit in the first chunk.
+      if (this._chunks[0]!.length < 4) this._coalesce();
+      const length = this._chunks[0]!.readUInt32BE(0);
       if (length > this._maxFrameSize) {
         throw new FrameSizeError(length, this._maxFrameSize);
       }
-      if (this._buffer.length < 4 + length) break; // incomplete frame
-      const frame = this._buffer.subarray(4, 4 + length);
-      this._buffer = this._buffer.subarray(4 + length);
+      if (this._length < 4 + length) break; // incomplete frame
+      const buffer = this._coalesce();
+      const frame = buffer.subarray(4, 4 + length);
+      const rest = buffer.subarray(4 + length);
+      this._chunks = rest.length > 0 ? [rest] : [];
+      this._length = rest.length;
       onFrame(frame);
     }
   }
 
   /** Drop any buffered partial frame. Call when the transport is torn down. */
   reset(): void {
-    this._buffer = Buffer.alloc(0);
+    this._chunks = [];
+    this._length = 0;
   }
 }

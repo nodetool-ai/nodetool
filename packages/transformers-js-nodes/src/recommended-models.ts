@@ -54,11 +54,13 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
     { repo_id: "Xenova/t5-base" }
   ],
 
+  // transformers.js 3.x supports qwen3, gemma3_text, smollm3 and llama, but
+  // not qwen3_5 or gemma4.
   "tjs.text_generation": [
-    { repo_id: "onnx-community/Qwen3.5-2B-ONNX" },
-    { repo_id: "onnx-community/Qwen3.5-4B-ONNX" },
-    { repo_id: "onnx-community/gemma-4-E2B-it-ONNX" },
-    { repo_id: "onnx-community/gemma-4-E4B-it-ONNX" },
+    { repo_id: "onnx-community/Qwen3-1.7B-ONNX" },
+    { repo_id: "onnx-community/Qwen3-0.6B-ONNX" },
+    { repo_id: "onnx-community/Qwen3-4B-ONNX" },
+    { repo_id: "onnx-community/gemma-3-1b-it-ONNX" },
     { repo_id: "HuggingFaceTB/SmolLM3-3B-ONNX" },
     { repo_id: "HuggingFaceTB/SmolLM2-1.7B-Instruct" },
     { repo_id: "HuggingFaceTB/SmolLM2-360M-Instruct" },
@@ -115,12 +117,12 @@ const MODELS: Record<string, readonly TjsModelRef[]> = {
     { repo_id: "onnx-community/depth-anything-v2-small" }
   ],
 
+  // The image-to-text pipeline loads only vision-encoder-decoder, idefics3 and
+  // smolvlm models in transformers.js 3.x. Florence-2 and BLIP do not load.
   "tjs.image_to_text": [
-    { repo_id: "onnx-community/Florence-2-base-ft" },
-    { repo_id: "onnx-community/Florence-2-large-ft" },
-    { repo_id: "Xenova/blip-image-captioning-base" },
-    { repo_id: "Xenova/blip-image-captioning-large" },
-    { repo_id: "Xenova/trocr-small-printed" }
+    { repo_id: "Xenova/vit-gpt2-image-captioning" },
+    { repo_id: "Xenova/trocr-small-printed" },
+    { repo_id: "Xenova/trocr-small-handwritten" }
   ],
 
   "tjs.zero_shot_image_classification": [

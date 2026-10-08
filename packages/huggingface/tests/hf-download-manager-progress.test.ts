@@ -1,8 +1,15 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
-const { asyncHfDownloadMock, listFilesMock } = vi.hoisted(() => ({
-  asyncHfDownloadMock: vi.fn(),
-  listFilesMock: vi.fn()
+const { asyncHfDownloadMock, listFilesMock, llamaDownloadMock } = vi.hoisted(
+  () => ({
+    asyncHfDownloadMock: vi.fn(),
+    listFilesMock: vi.fn(),
+    llamaDownloadMock: vi.fn()
+  })
+);
+
+vi.mock("../src/llama-cpp-download.js", () => ({
+  downloadLlamaCppModel: llamaDownloadMock
 }));
 
 vi.mock("@huggingface/hub", () => ({
@@ -73,5 +80,39 @@ describe("DownloadManager terminal progress", () => {
     expect(asyncHfDownloadMock.mock.calls[0][2]).toMatchObject({
       token: "settings-token"
     });
+  });
+
+  it("keeps a cacheDir download in the HF cache instead of the llama.cpp cache", async () => {
+    listFilesMock.mockImplementation(async function* () {
+      yield { type: "file", path: "config.json", size: 1 };
+    });
+    asyncHfDownloadMock.mockResolvedValue("/custom/config.json");
+
+    await new DownloadManager().startDownload("org/model", {
+      cacheDir: "/custom"
+    });
+
+    expect(llamaDownloadMock).not.toHaveBeenCalled();
+    expect(asyncHfDownloadMock.mock.calls[0][2]).toMatchObject({
+      cacheDir: "/custom"
+    });
+  });
+
+  it("downloads only GGUF files of a whole-repo llama_cpp request", async () => {
+    listFilesMock.mockImplementation(async function* () {
+      yield { type: "file", path: "README.md", size: 1 };
+      yield { type: "file", path: "config.json", size: 1 };
+      yield { type: "file", path: "model-Q4_K_M.gguf", size: 1 };
+    });
+    llamaDownloadMock.mockResolvedValue("/llama/model.gguf");
+
+    await new DownloadManager().startDownload("org/model-GGUF", {
+      modelType: "llama_cpp"
+    });
+
+    expect(llamaDownloadMock.mock.calls.map((c) => c[1])).toEqual([
+      "model-Q4_K_M.gguf"
+    ]);
+    expect(asyncHfDownloadMock).not.toHaveBeenCalled();
   });
 });

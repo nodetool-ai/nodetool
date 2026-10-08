@@ -24,6 +24,7 @@ export const VIDEO_TASK_BY_NODE_TYPE: Record<string, VideoModelTask> = {
 };
 
 const STRICT_MODEL_TASKS = new Set<string>([
+  "image_edit",
   "inpainting",
   "outpaint",
   "upscale",

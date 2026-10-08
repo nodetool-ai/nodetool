@@ -7,7 +7,7 @@ import { useRun, useRunLiveUpdates, useRunLogs, useRuns, useRunTrace } from "../
 import { workflowQueryKey } from "../../serverState/useWorkflow";
 import {
   AlertBanner, Autocomplete, BORDER_RADIUS, Box, Caption, Checkbox, CONTROL, CopyButton, EditorButton, EmptyState,
-  FlexColumn, FlexRow, Label, LoadingSpinner, SelectField, SPACING, StatusPill, Text, TextInput, TYPOGRAPHY,
+  FlexColumn, FlexRow, Label, LoadingSpinner, ScrollArea, SelectField, SPACING, StatusPill, Text, TextInput, TYPOGRAPHY,
   Tooltip, TruncatedText, VirtualList, type StatusPillTone
 } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
@@ -33,7 +33,7 @@ interface SpanLaneProps {
   onFocus: (spanId: string) => void; start: number; duration: number;
 }
 
-function ContentStatus({ flags, limited }: ContentStatusProps): React.ReactElement {
+function ContentStatus({ flags, limited }: ContentStatusProps): React.ReactElement | null {
   const notices = [
     flags.content_expired ? "Run content expired." : null,
     flags.content_state === "public" ? "Visitor run. Content was not recorded." : null,
@@ -41,7 +41,7 @@ function ContentStatus({ flags, limited }: ContentStatusProps): React.ReactEleme
     flags.incomplete ? "The trace is incomplete." : null,
     limited ? "Showing a bounded portion. Focus a span or narrow the filters to inspect more." : null
   ].filter(Boolean);
-  return <Caption role="status">{notices.join(" ")}</Caption>;
+  return notices.length ? <Caption role="status">{notices.join(" ")}</Caption> : null;
 }
 
 function QueryError({ error }: QueryErrorProps): React.ReactElement {
@@ -53,6 +53,19 @@ function QueryError({ error }: QueryErrorProps): React.ReactElement {
 
 // Name, status, duration, timeline. Fixed meta widths keep the bars aligned across rows.
 const spanGrid = (theme: Theme): string => `minmax(0, 2fr) ${theme.spacing(SPACING.xxxl * 2)} ${theme.spacing(SPACING.xxxl * 4)} minmax(0, 3fr)`;
+
+// Pickers share the 28px control height and field background of SelectField and TextInput, so a filter row lines up.
+const PICKER_SX = {
+  "& .MuiInputBase-root": { height: CONTROL.height.sm, py: 0, bgcolor: "Paper.overlay" },
+  "& .MuiAutocomplete-input": { py: 0 }
+} as const;
+const SPAN_ROW_HEIGHT = CONTROL.height.md;
+const LANE_HEADER_HEIGHT = CONTROL.height.sm;
+
+// Buttons and checkboxes beside labelled fields sit in a box of the field's height, so they center on the field rather than on the label.
+function ControlSlot({ children }: { children: React.ReactNode }): React.ReactElement {
+  return <FlexRow sx={{ flexShrink: 0, height: CONTROL.height.sm, alignItems: "center", whiteSpace: "nowrap" }}>{children}</FlexRow>;
+}
 
 function formatDuration(ms: number): string {
   if (ms < 1) { return `${ms.toFixed(2)} ms`; }
@@ -86,9 +99,9 @@ function formatValue(value: unknown): string {
 function AttributeList({ attributes }: AttributeListProps): React.ReactElement {
   const entries = Object.entries(attributes).sort(([a], [b]) => a.localeCompare(b));
   if (entries.length === 0) { return <Caption color="muted">None recorded.</Caption>; }
-  return <Box component="dl" sx={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 3fr)", columnGap: SPACING.lg, rowGap: SPACING.xs, m: 0 }}>
+  return <Box component="dl" sx={{ display: "grid", gridTemplateColumns: "fit-content(40%) minmax(0, 1fr)", columnGap: SPACING.xl, rowGap: SPACING.xs, alignItems: "baseline", m: 0 }}>
     {entries.map(([key, value]) => <Box key={key} sx={{ display: "contents" }}>
-      <Caption component="dt" color="muted" sx={{ ...TYPOGRAPHY.mono.code, overflowWrap: "anywhere" }}>{key}</Caption>
+      <Text component="dt" sx={{ ...TYPOGRAPHY.mono.code, color: "text.secondary", overflowWrap: "anywhere" }}>{key}</Text>
       <Text component="dd" sx={{ ...TYPOGRAPHY.mono.code, m: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{formatValue(value)}</Text>
     </Box>)}
   </Box>;
@@ -121,9 +134,15 @@ function SpanDetails({ record, runStart }: SpanDetailsProps): React.ReactElement
 
 function SpanLane({ label, nodes, focusedSpanId, onFocus, start, duration }: SpanLaneProps): React.ReactElement {
   const theme = useTheme();
-  return <FlexColumn gap={SPACING.xs} sx={{ flex: 1, minHeight: 0 }}>
-    <Box sx={{ display: "grid", gridTemplateColumns: spanGrid(theme), columnGap: SPACING.lg, alignItems: "center", px: SPACING.sm }}>
-      <Label>{label} · {nodes.length}</Label>
+  // A lane is as tall as its rows, up to the space available, so a one-span browser lane does not take half the panel.
+  // Lanes shrink to three rows before they scroll, so a second lane or the details pane never overlaps them.
+  return <FlexColumn gap={SPACING.xs} sx={{
+    flex: "1 1 auto",
+    minHeight: `calc(${LANE_HEADER_HEIGHT + Math.min(nodes.length, 3) * SPAN_ROW_HEIGHT}px + ${theme.spacing(SPACING.xs)})`,
+    maxHeight: `calc(${LANE_HEADER_HEIGHT + nodes.length * SPAN_ROW_HEIGHT}px + ${theme.spacing(SPACING.xs)})`
+  }}>
+    <Box sx={{ display: "grid", gridTemplateColumns: spanGrid(theme), columnGap: SPACING.lg, alignItems: "center", height: LANE_HEADER_HEIGHT, flexShrink: 0, px: SPACING.sm }}>
+      <Label sx={{ pl: SPACING.xs }}>{label} · {nodes.length}</Label>
       <Caption color="muted">Status</Caption>
       <Caption color="muted" sx={{ textAlign: "right" }}>Duration</Caption>
       <FlexRow sx={{ justifyContent: "space-between" }}>
@@ -134,7 +153,7 @@ function SpanLane({ label, nodes, focusedSpanId, onFocus, start, duration }: Spa
     <VirtualList
       ariaLabel={label}
       items={nodes}
-      estimateSize={CONTROL.height.md}
+      estimateSize={SPAN_ROW_HEIGHT}
       getItemKey={({ record }) => record.span_id}
       scrollToIndex={nodes.findIndex(({ record }) => record.span_id === focusedSpanId)}
       sx={{ flex: 1, minHeight: 0 }}
@@ -173,6 +192,23 @@ function SpanLane({ label, nodes, focusedSpanId, onFocus, start, duration }: Spa
   </FlexColumn>;
 }
 
+interface SplitViewProps { detailsOpen: boolean; details: React.ReactNode; children: React.ReactNode }
+
+// The list keeps the left side and details open beside it on wide panels, or below it on narrow ones, so opening details never hides the list.
+function SplitView({ detailsOpen, details, children }: SplitViewProps): React.ReactElement {
+  return <Box sx={{
+    flex: 1, minHeight: 0, display: "grid", gap: SPACING.lg,
+    gridTemplateColumns: detailsOpen ? { xs: "minmax(0, 1fr)", lg: "minmax(0, 3fr) minmax(0, 2fr)" } : "minmax(0, 1fr)",
+    gridTemplateRows: detailsOpen ? { xs: "minmax(0, 1fr) minmax(0, 1fr)", lg: "minmax(0, 1fr)" } : "minmax(0, 1fr)"
+  }}>
+    <FlexColumn gap={SPACING.md} sx={{ minHeight: 0 }}>{children}</FlexColumn>
+    {detailsOpen && <ScrollArea fullHeight sx={{
+      minHeight: 0, borderColor: "divider", borderStyle: "solid", borderWidth: 0,
+      borderTopWidth: { xs: 1, lg: 0 }, borderLeftWidth: { xs: 0, lg: 1 }, pt: { xs: SPACING.md, lg: 0 }, pl: { xs: 0, lg: SPACING.lg }
+    }}><FlexColumn gap={SPACING.sm}>{details}</FlexColumn></ScrollArea>}
+  </Box>;
+}
+
 function TraceView({ runId, focusedSpanId, onFocus }: RunViewProps): React.ReactElement {
   const [errorsOnly, setErrorsOnly] = useState(false);
   const [depth, setDepth] = useState("64");
@@ -203,29 +239,30 @@ function TraceView({ runId, focusedSpanId, onFocus }: RunViewProps): React.React
       <Box sx={{ width: (theme) => theme.spacing(SPACING.xxxl * 8), maxWidth: "100%" }}>
         <SpanPicker label="Focus span" emptyLabel="Whole run" nodes={trace.data?.nodes ?? []} value={focusedSpanId} onChange={onFocus} />
       </Box>
-      <Box sx={{ flexShrink: 0, whiteSpace: "nowrap", height: CONTROL.height.sm, display: "flex", alignItems: "center" }}>
+      <ControlSlot>
         <Checkbox label="Errors only" size="small" checked={errorsOnly} onChange={(_, checked) => setErrorsOnly(checked)} />
-      </Box>
-      {focusedSpanId && <EditorButton size="small" onClick={() => onFocus(null)}>Clear span focus</EditorButton>}
+      </ControlSlot>
+      {focusedSpanId && <ControlSlot><EditorButton size="small" onClick={() => onFocus(null)}>Clear span focus</EditorButton></ControlSlot>}
     </FlexRow>
     {trace.error && <QueryError error={trace.error} />}
     {trace.isLoading && <LoadingSpinner />}
     {trace.data && <ContentStatus flags={trace.data} limited={trace.data.limited} />}
-    {browser.length > 0 && <SpanLane label="Browser spans" nodes={browser} focusedSpanId={focusedSpanId} onFocus={onFocus} start={start} duration={Math.max(1, end - start)} />}
-    {server.length > 0 && <SpanLane label="Server spans" nodes={server} focusedSpanId={focusedSpanId} onFocus={onFocus} start={start} duration={Math.max(1, end - start)} />}
-    {!trace.isLoading && !trace.error && nodes.length === 0 && (filtered
-      ? <EmptyState variant="no-results" title="No spans match these filters" description="Clear the filters to see every span in this run." actionText="Clear filters" onAction={clearFilters} size="small" />
-      : <EmptyState title="No spans recorded" description="The trace may still be arriving. Stored spans appear here when available." size="small" />)}
-    {focusedSpanId && <FlexColumn gap={SPACING.sm} sx={{ maxHeight: (theme) => theme.spacing(SPACING.xxxl * 8), overflow: "auto", borderTop: 1, borderColor: "divider", pt: SPACING.md }}>
-      <FlexRow gap={SPACING.md} sx={{ alignItems: "center" }}>
+    <SplitView detailsOpen={Boolean(focusedSpanId)} details={<>
+      <FlexRow gap={SPACING.md} sx={{ alignItems: "center", minHeight: LANE_HEADER_HEIGHT }}>
         <Label sx={{ minWidth: 0, overflowWrap: "anywhere" }}>{focused?.name ?? nodes.find(({ record }) => record.span_id === focusedSpanId)?.record.name ?? "Span"}</Label>
-        <AskRunAgentButton runId={runId} spanId={focusedSpanId} />
+        <AskRunAgentButton runId={runId} spanId={focusedSpanId ?? undefined} />
       </FlexRow>
       {focus.error && <QueryError error={focus.error} />}
       {focus.isLoading && <LoadingSpinner />}
       {focus.data && <ContentStatus flags={focus.data} limited={focus.data.limited} />}
       {focused && !focus.error && !focus.data?.content_expired && <SpanDetails record={focused} runStart={runStart} />}
-    </FlexColumn>}
+    </>}>
+      {browser.length > 0 && <SpanLane label="Browser spans" nodes={browser} focusedSpanId={focusedSpanId} onFocus={onFocus} start={start} duration={Math.max(1, end - start)} />}
+      {server.length > 0 && <SpanLane label="Server spans" nodes={server} focusedSpanId={focusedSpanId} onFocus={onFocus} start={start} duration={Math.max(1, end - start)} />}
+      {!trace.isLoading && !trace.error && nodes.length === 0 && (filtered
+        ? <EmptyState variant="no-results" title="No spans match these filters" description="Clear the filters to see every span in this run." actionText="Clear filters" onAction={clearFilters} size="small" />
+        : <EmptyState title="No spans recorded" description="The trace may still be arriving. Stored spans appear here when available." size="small" />)}
+    </SplitView>
   </FlexColumn>;
 }
 
@@ -234,6 +271,9 @@ function logText(log: RunLog): string {
   return typeof value === "string" ? value : JSON.stringify(log.attributes);
 }
 
+// Time, level, source, span, message. Fixed meta widths keep the columns aligned across rows.
+const logGrid = (theme: Theme): string => `${theme.spacing(SPACING.xxxl * 3)} ${theme.spacing(SPACING.xxxl * 2)} minmax(0, 0.6fr) minmax(0, 1fr) minmax(0, 3fr)`;
+const LOG_LEVEL_COLOR: Record<string, string> = { error: "error.main", warn: "warning.main" };
 const LOG_LEVELS = [{ value: "debug", label: "Debug" }, { value: "info", label: "Info" }, { value: "warn", label: "Warning" }, { value: "error", label: "Error" }];
 
 function LogsView({ runId, focusedSpanId, onFocus }: RunViewProps): React.ReactElement {
@@ -249,6 +289,7 @@ function LogsView({ runId, focusedSpanId, onFocus }: RunViewProps): React.ReactE
   entries.sort((a, b) => a.time_ms - b.time_ms || a.id.localeCompare(b.id));
   const selectedLog = logs.data?.pages.some((page) => page.content_expired) ? undefined : entries.find((log) => log.id === selectedLogId);
   const trace = useRunTrace(runId);
+  const theme = useTheme();
   return <FlexColumn gap={SPACING.md} sx={{ flex: 1, minHeight: 0 }}>
     <FlexRow gap={SPACING.lg} sx={{ alignItems: "flex-end", flexWrap: "wrap" }}>
       <Box sx={{ width: (theme) => theme.spacing(SPACING.xxxl * 4) }}>
@@ -264,18 +305,38 @@ function LogsView({ runId, focusedSpanId, onFocus }: RunViewProps): React.ReactE
     {logs.error && <QueryError error={logs.error} />}
     {logs.isLoading && <LoadingSpinner />}
     {logs.data && <ContentStatus flags={logs.data.pages[0]} limited={logs.data.pages.some((page) => page.limited)} />}
-    {!logs.isLoading && entries.length === 0 && <EmptyState title="No matching log events" size="small" />}
-    <VirtualList ariaLabel="Run logs" items={entries} estimateSize={CONTROL.height.lg} getItemKey={(log) => log.id} sx={{ flex: 1, minHeight: 0 }}
-      renderItem={(log) => <FlexRow gap={SPACING.md} sx={{ alignItems: "center", height: "100%" }}>
-        <Caption>{new Date(log.time_ms).toLocaleTimeString()} · {log.level ?? "event"} · {log.source ?? log.name}</Caption>
-        <EditorButton size="small" variant="text" aria-label={`Inspect log span ${log.span_id}`} onClick={() => onFocus(log.span_id)}>{log.span_name}</EditorButton>
-        <EditorButton size="small" variant="text" aria-label={`Read ${log.name} event ${log.id}`} onClick={() => setSelectedLogId(log.id)}>{logText(log).slice(0, 200)}</EditorButton>
-      </FlexRow>} />
-    {logs.hasNextPage && <EditorButton size="small" disabled={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>Load more log events</EditorButton>}
-    {selectedLog && <FlexColumn gap={SPACING.xs} sx={{ maxHeight: (theme) => theme.spacing(SPACING.xxxl * 4), overflow: "auto" }}>
-      <FlexRow gap={SPACING.md}><Caption>{selectedLog.name} · {selectedLog.id}</Caption><AskRunAgentButton runId={runId} spanId={selectedLog.span_id} /><EditorButton size="small" onClick={() => setSelectedLogId(null)}>Close log event</EditorButton></FlexRow>
+    <SplitView detailsOpen={Boolean(selectedLog)} details={selectedLog && <>
+      <FlexRow gap={SPACING.md} sx={{ alignItems: "center", flexWrap: "wrap", minHeight: LANE_HEADER_HEIGHT }}>
+        <Label>{selectedLog.span_name}</Label>
+        <Caption color="muted" sx={{ fontVariantNumeric: "tabular-nums" }}>{new Date(selectedLog.time_ms).toLocaleTimeString()} · {selectedLog.level ?? selectedLog.name}</Caption>
+        <AskRunAgentButton runId={runId} spanId={selectedLog.span_id} />
+        <EditorButton size="small" onClick={() => setSelectedLogId(null)}>Close log event</EditorButton>
+      </FlexRow>
       <AttributeList attributes={selectedLog.attributes} />
-    </FlexColumn>}
+    </>}>
+      {!logs.isLoading && entries.length === 0 && <EmptyState title="No matching log events" size="small" />}
+      {entries.length > 0 && <FlexColumn gap={SPACING.xs} sx={{ flex: 1, minHeight: 0 }}>
+        <Box sx={{ display: "grid", gridTemplateColumns: logGrid(theme), columnGap: SPACING.lg, alignItems: "center", height: LANE_HEADER_HEIGHT, flexShrink: 0, px: SPACING.sm }}>
+          {["Time", "Level", "Source", "Span", "Message"].map((heading) => <Caption key={heading} color="muted">{heading}</Caption>)}
+        </Box>
+        <VirtualList ariaLabel="Run logs" items={entries} estimateSize={SPAN_ROW_HEIGHT} getItemKey={(log) => log.id} sx={{ flex: 1, minHeight: 0 }}
+          renderItem={(log) => <Box sx={{
+            display: "grid", gridTemplateColumns: logGrid(theme), columnGap: SPACING.lg, alignItems: "center", height: "100%", px: SPACING.sm, borderRadius: BORDER_RADIUS.sm,
+            bgcolor: log.id === selectedLog?.id ? "action.selected" : "transparent", "&:hover": { bgcolor: log.id === selectedLog?.id ? "action.selected" : "action.hover" }
+          }}>
+            <Caption sx={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>{new Date(log.time_ms).toLocaleTimeString()}</Caption>
+            <Caption sx={{ color: LOG_LEVEL_COLOR[log.level ?? ""] ?? "text.secondary" }}>{LOG_LEVELS.find(({ value }) => value === log.level)?.label ?? log.level ?? "Event"}</Caption>
+            <Caption component="div" color="muted" sx={{ minWidth: 0 }}><TruncatedText component="span" variant="inherit">{log.source ?? log.name}</TruncatedText></Caption>
+            <EditorButton size="small" variant="text" aria-label={`Inspect log span ${log.span_id}`} title={log.span_name} onClick={() => onFocus(log.span_id)}
+              sx={{ minWidth: 0, justifyContent: "flex-start", textTransform: "none", px: 0, color: "text.secondary" }}
+            ><TruncatedText component="span" variant="inherit">{log.span_name}</TruncatedText></EditorButton>
+            <EditorButton size="small" variant="text" aria-label={`Read ${log.name} event ${log.id}`} title={logText(log).slice(0, 200)} onClick={() => setSelectedLogId(log.id)}
+              sx={{ minWidth: 0, justifyContent: "flex-start", textTransform: "none", px: 0, color: log.level === "error" ? "error.main" : "text.primary" }}
+            ><TruncatedText component="span" variant="inherit">{logText(log).slice(0, 200)}</TruncatedText></EditorButton>
+          </Box>} />
+      </FlexColumn>}
+      {logs.hasNextPage && <EditorButton size="small" disabled={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>Load more log events</EditorButton>}
+    </SplitView>
   </FlexColumn>;
 }
 
@@ -288,6 +349,7 @@ function FailureBanner({ result, onShowSpan }: FailureBannerProps): React.ReactE
   const failedSpanId = summary.first_failed_span_id;
   const title = run.status === "failed" ? `Run failed${failing ? ` in ${failing.name}` : ""}` : `A span failed${failing ? ` in ${failing.name}` : ""}, but the run continued`;
   return <AlertBanner
+    compact
     severity={run.status === "failed" ? "error" : "warning"}
     title={title}
     action={failedSpanId ? <EditorButton size="small" onClick={() => onShowSpan(failedSpanId)}>Show failing span</EditorButton> : undefined}
@@ -330,7 +392,7 @@ function RunPicker({ runs, value, onChange }: RunPickerProps): React.ReactElemen
     return runTitle(run, workflowId ? queryClient.getQueryData<Workflow>(workflowQueryKey(workflowId))?.name : undefined);
   };
   return <Autocomplete<RunRecord, false, false>
-    label="Run" size="small" options={runs} value={runs.find((run) => run.id === value) ?? null}
+    label="Run" size="small" sx={PICKER_SX} options={runs} value={runs.find((run) => run.id === value) ?? null}
     noOptionsText="No matching runs" placeholder="No recent runs"
     getOptionLabel={(run) => `${titleOf(run)} · ${run.status} · ${relativeTime(run.started_at)}`}
     isOptionEqualToValue={(option, selected) => option.id === selected.id}
@@ -353,7 +415,7 @@ function RunPicker({ runs, value, onChange }: RunPickerProps): React.ReactElemen
 function SpanPicker({ label, emptyLabel, nodes, value, onChange }: SpanPickerProps): React.ReactElement {
   const start = nodes.length ? Math.min(...nodes.map(({ record }) => record.start_time_ms)) : 0;
   return <Autocomplete<TraceNode, false, false>
-    label={label} size="small" options={nodes} value={nodes.find(({ record }) => record.span_id === value) ?? null}
+    label={label} size="small" sx={PICKER_SX} options={nodes} value={nodes.find(({ record }) => record.span_id === value) ?? null}
     placeholder={value ? `Span ${value}` : emptyLabel} noOptionsText="No matching spans"
     getOptionLabel={({ record }) => record.name}
     isOptionEqualToValue={(option, selected) => option.record.span_id === selected.record.span_id}
@@ -384,19 +446,21 @@ export default function TracePanel({ view = "trace" }: TracePanelProps): React.R
   // A run picked from an older page or a link may be missing from the recent list.
   const pickerRuns = summary.data && !runs.some((run) => run.id === summary.data.run.id) ? [summary.data.run, ...runs] : runs;
   return <FlexColumn gap={SPACING.md} sx={{ flex: 1, minHeight: 0, px: SPACING.xl, py: SPACING.md }}>
-    <FlexRow gap={SPACING.md} sx={{ alignItems: "flex-end", flexWrap: "wrap" }}>
-      <Box sx={{ flex: "1 1 auto", minWidth: 0, maxWidth: (theme) => theme.spacing(SPACING.xxxl * 16) }}>
+    <FlexRow gap={SPACING.lg} sx={{ alignItems: "flex-end", flexWrap: "wrap" }}>
+      <Box sx={{ flex: "1 1 auto", minWidth: (theme) => theme.spacing(SPACING.xxxl * 6), maxWidth: (theme) => theme.spacing(SPACING.xxxl * 12) }}>
         <RunPicker runs={pickerRuns} value={canonicalId} onChange={selectRun} />
       </Box>
-      {recent.hasNextPage && <EditorButton size="small" onClick={() => void recent.fetchNextPage()}>Older runs</EditorButton>}
-      {canonicalId && <AskRunAgentButton runId={canonicalId} />}
+      {recent.hasNextPage && <ControlSlot><EditorButton size="small" onClick={() => void recent.fetchNextPage()}>Older runs</EditorButton></ControlSlot>}
+      {summary.data && <ControlSlot>
+        <FlexRow gap={SPACING.sm} sx={{ alignItems: "center" }}>
+          <StatusPill tone={RUN_STATUS_TONE[summary.data.run.status]}>{summary.data.run.status}</StatusPill>
+          <Caption sx={{ fontVariantNumeric: "tabular-nums" }}>{runSummaryText(summary.data)}</Caption>
+        </FlexRow>
+      </ControlSlot>}
+      {canonicalId && <ControlSlot><AskRunAgentButton runId={canonicalId} /></ControlSlot>}
     </FlexRow>
     {recent.error && <QueryError error={recent.error} />}
     {summary.error && <QueryError error={summary.error} />}
-    {summary.data && <FlexRow gap={SPACING.md} sx={{ alignItems: "center" }}>
-      <StatusPill tone={RUN_STATUS_TONE[summary.data.run.status]}>{summary.data.run.status}</StatusPill>
-      <Caption sx={{ fontVariantNumeric: "tabular-nums" }}>{runSummaryText(summary.data)}</Caption>
-    </FlexRow>}
     {summary.data && <FailureBanner result={summary.data} onShowSpan={focusSpan} />}
     {!runId && !recent.isLoading && <EmptyState title="No recorded runs" description="Start an app operation, workflow, or chat turn to inspect its trace and logs." size="small" />}
     {canonicalId && (view === "logs" ? <LogsView key={canonicalId} runId={canonicalId} focusedSpanId={focusedSpanId} onFocus={focusSpan} /> : <TraceView key={canonicalId} runId={canonicalId} focusedSpanId={focusedSpanId} onFocus={focusSpan} />)}

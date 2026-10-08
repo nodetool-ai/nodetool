@@ -84,6 +84,9 @@ export interface IdeaStepProps {
   onImportingChange?: (importing: boolean) => void;
 }
 
+/** Why the ways out of the step wait for an upload. */
+const UPLOAD_PENDING_REASON = "Wait for your files to finish uploading";
+
 const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   onStartBlank,
   onStartFromScript,
@@ -231,16 +234,21 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         title: "Start from a script",
         description: "Write the words first, then send them to the timeline",
         onSelect: onStartFromScript ?? (() => undefined),
-        disabled: !onStartFromScript,
-        disabledReason: onStartFromScript
-          ? undefined
-          : "Not available here. Start a script from the project screen."
+        // Leaving the flow mid-upload would drop the media still arriving.
+        disabled: !onStartFromScript || importing,
+        disabledReason: !onStartFromScript
+          ? "Not available here. Start a script from the project screen."
+          : importing
+            ? UPLOAD_PENDING_REASON
+            : undefined
       },
       {
         id: "blank",
         title: "Start with a blank timeline",
         description: "Skip the plan and cut it yourself",
-        onSelect: onStartBlank
+        onSelect: onStartBlank,
+        disabled: importing,
+        disabledReason: importing ? UPLOAD_PENDING_REASON : undefined
       }
     ],
     [importing, onStartBlank, onStartFromScript]

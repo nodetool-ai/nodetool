@@ -97,6 +97,9 @@ export interface WorkflowSetupFlowOptions {
 export interface WorkflowSetupFlowResult extends SetupFlowConfig<WorkflowSetupStage> {
   /** The build's outcome, for the landing checklist (PRD § 11.4). */
   buildResult: BuildFromPlanResult | null;
+  /** True while the build runs, which outlasts the `done` it writes. */
+  building: boolean;
+  cancelBuild: () => Promise<void>;
 }
 
 export const useWorkflowSetupFlow = ({
@@ -276,6 +279,13 @@ export const useWorkflowSetupFlow = ({
   // the safe way round but says the wrong thing on the button. The wait gets
   // its own reason (F14).
   const rolesLoading = roleChoices.some((role) => role.status === "loading");
+  // The build assigns one model per role. A role whose list failed, or that no
+  // connected provider covers, has nothing to assign, and a build without it
+  // places nodes that cannot run.
+  const rolesFailed = roleChoices.some((role) => role.status === "error");
+  const rolesAssigned = roleChoices.every(
+    (role) => role.status === "ready" && role.selectedId !== null
+  );
 
   const steps = useMemo<SetupStep<WorkflowSetupStage>[]>(
     () => [
@@ -286,7 +296,7 @@ export const useWorkflowSetupFlow = ({
         // The copy cannot be stopped once asked for, so it is not the shell's
         // pending operation: that would offer a Cancel that hides the picker
         // and leaves only a Retry the open picker keeps disabled. The picker
-        // shows the copy, and "Back to your idea" stays in reach.
+        // shows the copy and holds "Back to your idea" until it lands.
         canAdvance: !browsingExamples && brief.trim().length > 0,
         blockedReason:
           pickingExampleId !== null
@@ -454,6 +464,12 @@ export const useWorkflowSetupFlow = ({
         // the click; the step's own "Before you build" block carries the
         // models and the sample inputs that run will use (F1).
         primaryDetail: "Builds, checks, then runs it once",
+        canAdvance: rolesAssigned,
+        blockedReason: rolesLoading
+          ? "Reading the models your providers offer"
+          : rolesFailed
+            ? "Try reading the models again above"
+            : "Connect a provider for every model above",
         pending: building,
         pendingLabel: "Building the graph, then running it once",
         render: () =>
@@ -531,6 +547,8 @@ export const useWorkflowSetupFlow = ({
       providerConfigured,
       review.canContinue,
       roleChoices,
+      rolesAssigned,
+      rolesFailed,
       rolesLoading,
       runMode,
       setSetup,
@@ -543,7 +561,9 @@ export const useWorkflowSetupFlow = ({
     steps,
     stage,
     onStageChange,
-    buildResult
+    buildResult,
+    building,
+    cancelBuild
   };
 };
 

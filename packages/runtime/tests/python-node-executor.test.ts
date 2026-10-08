@@ -55,6 +55,7 @@ describe("PythonNodeExecutor", () => {
       {},
       {},
       undefined,
+      {},
       {}
     );
   });
@@ -141,7 +142,8 @@ describe("PythonNodeExecutor", () => {
       {},
       { images: [new Uint8Array([1]), new Uint8Array([2])] },
       undefined,
-      { jobId: "job-1", workflowId: "wf-1", userId: "user-1" }
+      { jobId: "job-1", workflowId: "wf-1", userId: "user-1" },
+      {}
     );
   });
 
@@ -241,7 +243,162 @@ describe("PythonNodeExecutor", () => {
       {},
       {},
       undefined,
+      {},
       {}
     );
+  });
+
+  it("passes the run signal to the bridge and forwards log and binary updates", async () => {
+    const bridge = createMockBridge({ outputs: { output: "ok" }, blobs: {} });
+    const controller = new AbortController();
+    const posted: unknown[] = [];
+    const ctx = {
+      ...createMockContext(),
+      signal: controller.signal,
+      postMessage: (msg: unknown) => posted.push(msg)
+    } as unknown as ProcessingContext;
+    const executor = new PythonNodeExecutor(
+      bridge,
+      "huggingface.text_to_image.Flux",
+      {},
+      { output: "str" },
+      [],
+      "node-7"
+    );
+
+    await executor.process({}, ctx);
+
+    const options = vi.mocked(bridge.execute).mock.calls[0]![6]!;
+    expect(options.signal).toBe(controller.signal);
+    options.onUpdate!({
+      type: "log_update",
+      node_id: "",
+      node_name: "Flux",
+      content: "Downloading weights",
+      severity: "info"
+    });
+    options.onUpdate!({
+      type: "binary_update",
+      node_id: "",
+      output_name: "preview",
+      binary: new Uint8Array([1])
+    });
+    options.onUpdate!({ type: "preview_update", node_id: "", value: 1 });
+    expect(posted).toEqual([
+      {
+        type: "log_update",
+        node_id: "node-7",
+        node_name: "Flux",
+        content: "Downloading weights",
+        severity: "info",
+        workflow_id: "wf-1"
+      },
+      {
+        type: "binary_update",
+        node_id: "node-7",
+        output_name: "preview",
+        binary: new Uint8Array([1])
+      }
+    ]);
+  });
+
+  it("sends HF_TOKEN to huggingface nodes that do not declare it", async () => {
+    const bridge = createMockBridge({ outputs: { output: "ok" }, blobs: {} });
+    const ctx = createMockContext();
+    vi.mocked(ctx.getSecret).mockImplementation(async (key: string) =>
+      key === "HF_TOKEN" ? "hf_abc" : null
+    );
+    const hf = new PythonNodeExecutor(
+      bridge,
+      "huggingface.text_to_image.FluxControl",
+      {},
+      { output: "str" },
+      []
+    );
+    await hf.process({}, ctx);
+    expect(vi.mocked(bridge.execute).mock.calls[0]![2]).toEqual({
+      HF_TOKEN: "hf_abc"
+    });
+
+    const other = new PythonNodeExecutor(
+      bridge,
+      "mlx.text.Generate",
+      {},
+      { output: "str" },
+      []
+    );
+    await other.process({}, ctx);
+    expect(vi.mocked(bridge.execute).mock.calls[1]![2]).toEqual({});
+  });
+
+  it("reattaches blobs of refs nested in a list output instead of emitting them as outputs", async () => {
+    const bridge = createMockBridge({
+      outputs: {
+        output: [
+          { type: "audio", uri: "blob://audio_output_aa" },
+          { type: "audio", uri: "blob://audio_output_bb" }
+        ]
+      },
+      blobs: {
+        audio_output_aa: new Uint8Array([1]),
+        audio_output_bb: new Uint8Array([2]),
+        stray_key: new Uint8Array([3])
+      }
+    });
+    const ctx = createMockContext();
+    let n = 0;
+    vi.mocked(ctx.storage!.store).mockImplementation(
+      async () => `file:///tmp/out-${++n}.wav`
+    );
+    const executor = new PythonNodeExecutor(
+      bridge,
+      "huggingface.audio_to_audio.Separate",
+      {},
+      { output: "list" },
+      []
+    );
+
+    const result = await executor.process({}, ctx);
+
+    expect(Object.keys(result)).toEqual(["output"]);
+    expect(result.output).toEqual([
+      { type: "audio", uri: "file:///tmp/out-1.wav" },
+      { type: "audio", uri: "file:///tmp/out-2.wav" }
+    ]);
+    const stored = vi.mocked(ctx.storage!.store).mock.calls;
+    expect(stored.map((call) => call[1])).toEqual([
+      new Uint8Array([1]),
+      new Uint8Array([2])
+    ]);
+    expect(stored[0]![0]).toMatch(/\.wav$/);
+    expect(stored[0]![2]).toBe("audio/wav");
+  });
+
+  it("inlines nested blob bytes when no storage is available", async () => {
+    const bridge = createMockBridge({
+      outputs: {
+        output: { mask: { type: "image", uri: "blob://image_output_cc" } }
+      },
+      blobs: { image_output_cc: new Uint8Array([9]) }
+    });
+    const executor = new PythonNodeExecutor(
+      bridge,
+      "huggingface.image_segmentation.Segment",
+      {},
+      { output: "dict" },
+      []
+    );
+
+    const result = await executor.process({});
+
+    expect(result).toEqual({
+      output: {
+        mask: {
+          type: "image",
+          uri: "blob://image_output_cc",
+          data: new Uint8Array([9])
+        }
+      }
+    });
   });
 });

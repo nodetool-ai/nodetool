@@ -16,8 +16,10 @@ const mockToggleDeviceListVisibility = jest.fn();
 const mockHandleInputDeviceChange = jest.fn();
 const mockSetError = jest.fn();
 
+const noError = (): string | null => null;
+
 const mockUseWaveRecorder = jest.fn(() => ({
-  error: null as string | null,
+  error: noError(),
   setError: mockSetError,
   micRef: { current: null },
   handleRecord: mockHandleRecord,

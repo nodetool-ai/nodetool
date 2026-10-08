@@ -96,6 +96,24 @@ function normalizeEmbedding(
   return (rows as number[][][]).map(meanPool);
 }
 
+/**
+ * Truncate each vector to `dimensions` and re-normalize it to unit length,
+ * as the OpenAI `dimensions` parameter does. The HF feature-extraction API
+ * has no such parameter. A no-op when `dimensions` is unset or not smaller.
+ */
+function truncateDimensions(
+  vectors: number[][],
+  dimensions: number | undefined
+): number[][] {
+  if (!dimensions || dimensions <= 0) return vectors;
+  return vectors.map((vector) => {
+    if (vector.length <= dimensions) return vector;
+    const sliced = vector.slice(0, dimensions);
+    const norm = Math.sqrt(sliced.reduce((sum, x) => sum + x * x, 0));
+    return norm > 0 ? sliced.map((x) => x / norm) : sliced;
+  });
+}
+
 function meanPool(tokens: number[][]): number[] {
   if (tokens.length === 0) return [];
   const dim = tokens[0].length;
@@ -662,7 +680,7 @@ export class HuggingFaceProvider extends BaseProvider {
       inputs: args.text
     });
 
-    return normalizeEmbedding(result);
+    return truncateDimensions(normalizeEmbedding(result), args.dimensions);
   }
 
   /**

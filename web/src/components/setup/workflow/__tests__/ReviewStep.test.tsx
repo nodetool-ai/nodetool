@@ -312,4 +312,39 @@ describe("WorkflowReviewStep", () => {
     await userEvent.click(screen.getByRole("button", { name: "Re-plan" }));
     expect(onReplan).toHaveBeenCalledTimes(1);
   });
+
+  // A re-plan's answer replaces the whole plan, so nothing typed meanwhile
+  // may be written only to be overwritten.
+  it("holds every edit while a re-plan runs", async () => {
+    const onPlanChange = jest.fn();
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <WorkflowReviewStep
+          plan={PLAN}
+          onPlanChange={onPlanChange}
+          onReplan={jest.fn()}
+          replanPending
+          providerConfigured={() => true}
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByRole("textbox", { name: "Step 1 title" })).toBeDisabled();
+    expect(
+      screen.getByRole("textbox", { name: "Step 1 description" })
+    ).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Remove step 1" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Add a step" })).toBeDisabled();
+    await userEvent.type(
+      screen.getByRole("textbox", { name: "Output 1" }),
+      "x"
+    );
+    await userEvent.click(
+      screen.getByRole("button", { name: "Change node: nodetool.text.Template" })
+    );
+    expect(
+      screen.queryByRole("combobox", { name: "Node type for step 1" })
+    ).toBeNull();
+    expect(onPlanChange).not.toHaveBeenCalled();
+  });
 });

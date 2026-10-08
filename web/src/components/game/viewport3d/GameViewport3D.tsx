@@ -325,7 +325,6 @@ export default function GameViewport3D({ document, host, selectedId, highlighted
             if (["KeyW", "KeyA", "KeyS", "KeyD", "KeyR", "Space", "ArrowUp", "ArrowDown", "ArrowLeft", "ArrowRight"].includes(event.code)) { event.preventDefault(); }
           }
           else if (event.code === "KeyF" && !flyMode) { event.preventDefault(); frameSelection(); }
-          else if ((event.ctrlKey || event.metaKey) && event.code === "KeyZ") { event.preventDefault(); }
           else if (!flyMode && !event.ctrlKey && !event.metaKey && !event.altKey) {
             const tool = TOOLS.find((entry) => entry.code === event.code);
             if (tool) { event.preventDefault(); setMode(tool.mode); }

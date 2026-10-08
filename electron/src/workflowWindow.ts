@@ -1,4 +1,4 @@
-import { BrowserWindow, app, Menu, screen } from "electron";
+import { BrowserWindow, app, screen } from "electron";
 import { getServerPort } from "./utils";
 import path from "path";
 import { getWebDevServerUrl } from "./devMode";
@@ -12,16 +12,19 @@ let chatWindow: BrowserWindow | null = null;
 
 const webDevBaseUrl = getWebDevServerUrl();
 
-const appPort = app.isPackaged ? getServerPort() : 3000;
-const baseUrl = app.isPackaged
-  ? `http://127.0.0.1:${appPort}/apps/index.html`
-  : `${webDevBaseUrl}/index.html`;
+/**
+ * Resolved per call: the backend picks its port at startup (7777 may be
+ * taken) and again after a vault switch restarts it.
+ */
+function workflowAppUrl(workflowId: string): string {
+  const base = app.isPackaged
+    ? `http://127.0.0.1:${getServerPort()}/apps/index.html`
+    : `${webDevBaseUrl}/index.html`;
+  return `${base}?workflow_id=${encodeURIComponent(workflowId)}`;
+}
 
 /** Creates a new frameless workflow window */
 function createWorkflowWindow(workflowId: string): BrowserWindow {
-  // Remove application menu
-  Menu.setApplicationMenu(null);
-
   const workflowWindow = new BrowserWindow({
     frame: false,
     titleBarStyle: "hidden",
@@ -47,7 +50,7 @@ function createWorkflowWindow(workflowId: string): BrowserWindow {
     workflowWindows.delete(windowId);
   });
 
-  workflowWindow.loadURL(`${baseUrl}?workflow_id=${workflowId}`);
+  workflowWindow.loadURL(workflowAppUrl(workflowId));
 
   return workflowWindow;
 }
@@ -89,9 +92,13 @@ function createMiniAppWindow(workflowId: string, workflowName?: string): Browser
   // For development, use direct SPA route
   if (app.isPackaged) {
     const port = getServerPort();
-    miniAppWindow.loadURL(`http://127.0.0.1:${port}/#/miniapp/${workflowId}`);
+    miniAppWindow.loadURL(
+      `http://127.0.0.1:${port}/#/miniapp/${encodeURIComponent(workflowId)}`,
+    );
   } else {
-    miniAppWindow.loadURL(`${webDevBaseUrl}/miniapp/${workflowId}`);
+    miniAppWindow.loadURL(
+      `${webDevBaseUrl}/miniapp/${encodeURIComponent(workflowId)}`,
+    );
   }
 
   return miniAppWindow;

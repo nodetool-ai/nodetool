@@ -164,6 +164,22 @@ function idFactory() {
   };
 }
 
+/**
+ * The picker label for a model a graph node uses: the node's title without its
+ * step-number emoji or trailing aside ("6️⃣ Master style frame" becomes "Master
+ * style frame model"). Several pickers in one app would otherwise all read
+ * "<Operation> model".
+ */
+const modelLabel = (node, operationName) => {
+  const title = String(node.data?.title ?? node.ui_properties?.title ?? "")
+    .replace(/^[^\p{L}\p{N}]*\p{N}?\uFE0F?\u20E3\s*/u, "")
+    .replace(/^[^\p{L}\p{N}]+/u, "")
+    .replace(/\s+[—(].*$/u, "")
+    .trim();
+  const name = title || operationName;
+  return `${name.charAt(0).toUpperCase()}${name.slice(1)} model`;
+};
+
 const runEvents = (operationIds) =>
   operationIds.map((operationId) => ({
     trigger: "click",
@@ -732,7 +748,7 @@ function buildApp(app, templates) {
           op: operationId,
           model: { node: node.id, prop: "model" },
           modelKind: model.type,
-          label: `${node.data?.title || operation.spec.name} model`
+          label: modelLabel(node, operation.spec.name)
         });
       }
     }
@@ -762,28 +778,35 @@ function buildApp(app, templates) {
     }
   };
 
+  // The tagline reads as the title's subtitle and the cost note as a small
+  // hint under it, rather than three lines of body text at one weight.
   const defaultContent = [
     {
       type: "Heading",
       props: {
         id: nextId(["title"]),
         text: app.showEmoji === false ? app.name : `${app.emoji} ${app.name}`,
-        level: "1"
+        level: "1",
+        ...(app.tagline ? { subtitle: app.tagline } : {})
       }
-    },
-    { type: "Text", props: { id: nextId(["tagline"]), text: app.tagline } }
+    }
   ];
   const content = app.content ? structuredClone(app.content) : defaultContent;
   if (!app.content && app.note) {
     content.push({
       type: "Text",
-      props: { id: nextId(["app-note"]), text: app.note }
+      props: { id: nextId(["app-note"]), text: app.note, tone: "hint" }
     });
   }
 
   // A stepped app shows one section at a time. The Stepper writes `var:step`,
   // and each section is a Container that shows while the step names its key.
   const stepped = !app.content && app.steps === true;
+  const tabbed = !app.content && app.layout === "tabs";
+  if (stepped && tabbed) fail(`${app.name}: an app is either stepped or tabbed`);
+  if (tabbed && app.sections.length > 3) {
+    fail(`${app.name}: the Tabs widget holds at most three sections`);
+  }
   const sectionKeys = stepped ? app.sections.map((section) => section.key) : [];
   if (stepped) {
     if (!declaredVariables.has("step")) {
@@ -811,14 +834,42 @@ function buildApp(app, templates) {
     { trigger: "click", kind: "setVariable", key: varBinding("step"), value: key }
   ];
 
+  // A tabbed app puts each section's panels on its own tab, for sections that
+  // are separate tools on one source rather than steps in order.
+  const tabPanes = [];
   for (const [index, section] of (app.content ? [] : app.sections).entries()) {
-    const sourceControls = [
-      ...modelControlsForSection(section),
-      ...(section.controls ?? [])
-    ];
-    const controls = sourceControls.map((control) =>
+    const controls = (section.controls ?? []).map((control) =>
       buildControl(control, ctx)
     );
+    // Pickers for the models inside the graph go just above the first run
+    // button. Two or more fold into a closed "Models" section: the defaults
+    // run as shipped, and a wall of pickers hid the inputs that matter.
+    const modelControls = modelControlsForSection(section).map((control) =>
+      buildControl(control, ctx)
+    );
+    if (modelControls.length > 0) {
+      const firstRun = (section.controls ?? []).findIndex((control) =>
+        Array.isArray(control.run)
+      );
+      const at = firstRun === -1 ? controls.length : firstRun;
+      controls.splice(
+        at,
+        0,
+        ...(modelControls.length === 1
+          ? modelControls
+          : [
+              {
+                type: "Accordion",
+                props: {
+                  id: nextId(["models", section.title]),
+                  title: `Models (${modelControls.length})`,
+                  defaultOpen: false,
+                  content: modelControls
+                }
+              }
+            ])
+      );
+    }
     const results = (section.results ?? []).flatMap((result) =>
       buildResult(result, ctx)
     );
@@ -914,11 +965,12 @@ function buildApp(app, templates) {
         content: controls
       }
     };
+    const place = tabbed ? (widget) => tabPanes.push(widget) : (widget) => content.push(widget);
     if (results.length === 0) {
-      content.push(left);
+      place(left);
       continue;
     }
-    content.push({
+    place({
       type: "Columns",
       props: {
         id: nextId(["cols", section.title]),
@@ -936,6 +988,15 @@ function buildApp(app, templates) {
         ]
       }
     });
+  }
+
+  if (tabbed) {
+    const tabs = { id: nextId(["tabs"]) };
+    for (const [index, section] of app.sections.entries()) {
+      tabs[`tab${index + 1}Label`] = section.title;
+      tabs[`tab${index + 1}`] = [tabPanes[index]];
+    }
+    content.push({ type: "Tabs", props: tabs });
   }
 
   // Operation mappings key on node IDs, so a renamed node never breaks an app.
@@ -1260,10 +1321,34 @@ if (regen) runRegen();
 
 // ── Main ─────────────────────────────────────────────────────────────────────
 
+/**
+ * A stepped app's sections key on their slugified titles unless a spec names
+ * a key, and the `step` variable the Stepper writes is declared for it, so a
+ * spec turns steps on with `steps: true` alone.
+ */
+const withStepDefaults = (app) => {
+  if (app.steps !== true || app.content) return app;
+  const sections = app.sections.map((section) => ({
+    ...section,
+    key: section.key ?? slugify(section.title)
+  }));
+  const variables = app.variables ?? [];
+  return {
+    ...app,
+    sections,
+    variables: variables.some((variable) => variable.id === "step")
+      ? variables
+      : [
+          { id: "step", name: "Step", scope: "instance", type: "str", default: sections[0].key },
+          ...variables
+        ]
+  };
+};
+
 const only = flagValue("--app");
-const selectedApps = only
-  ? EXAMPLE_APPS.filter((app) => app.slug === only)
-  : EXAMPLE_APPS;
+const selectedApps = (
+  only ? EXAMPLE_APPS.filter((app) => app.slug === only) : EXAMPLE_APPS
+).map(withStepDefaults);
 if (selectedApps.length === 0) fail(`no example app with slug "${only}"`);
 
 const templateNames = new Set();
