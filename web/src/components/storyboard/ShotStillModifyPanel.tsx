@@ -16,7 +16,7 @@
  * as the render estimates.
  */
 
-import React, { memo, useCallback, useMemo, useState } from "react";
+import React, { memo, useCallback, useMemo, useRef, useState } from "react";
 import type { Shot, ShotModelRef } from "@nodetool-ai/protocol";
 import { entitiesForShot } from "@nodetool-ai/protocol";
 import { formatUsd } from "@nodetool-ai/model-pricing";
@@ -83,9 +83,13 @@ const TABS: { value: ModifyTab; label: string }[] = [
   { value: "adjust", label: "Adjust" }
 ];
 
-/** The catalog task each model-backed change needs. */
+/**
+ * The catalog task each model-backed change needs. A whole-image edit needs
+ * an instruction editor: an inpainting model the picker also lists fails
+ * without a painted area.
+ */
 const TASK_FOR_MODE: Record<StillVariantMode, ImageModelTask> = {
-  image_edit: "image_to_image",
+  image_edit: "image_edit",
   inpaint: "inpainting",
   upscale: "upscale",
   outpaint: "outpaint"
@@ -206,9 +210,11 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
 
   const still = shot.keyframe ?? undefined;
   const stillUrl = useResolvedMediaUri(still);
-  const sourceAssetId = still?.asset_id ?? undefined;
   const generating = isShotGenerating(shot);
-  const canSpend = !!sourceAssetId && !generating && !busy;
+  // A still without a stored asset (an example board's packaged file) is
+  // stored on first use, so the server has bytes to read.
+  const canSpend = (!!still?.asset_id || !!stillUrl) && !generating && !busy;
+  const storedCopy = useRef<{ uri: string; assetId: string } | null>(null);
   const stillName = `Shot ${shot.index + 1} still`;
 
   const cast = useMemo(() => {
@@ -237,6 +243,32 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
     [models]
   );
 
+  /** The still's asset id, storing the still first when it has none. */
+  const sourceAssetFor = useCallback(async (): Promise<string> => {
+    if (still?.asset_id) {
+      return still.asset_id;
+    }
+    const uri = still?.uri ?? "";
+    if (storedCopy.current?.uri === uri) {
+      return storedCopy.current.assetId;
+    }
+    if (!stillUrl) {
+      throw new Error("The still has no file to edit.");
+    }
+    const response = await fetch(stillUrl);
+    if (!response.ok) {
+      throw new Error(`The still could not be loaded (${response.status}).`);
+    }
+    const blob = await response.blob();
+    const type = blob.type || "image/png";
+    const file = new File([blob], `${stillName}.${type.split("/")[1] ?? "png"}`, {
+      type
+    });
+    const asset = await useAssetStore.getState().createAsset(file);
+    storedCopy.current = { uri, assetId: asset.id };
+    return asset.id;
+  }, [still, stillUrl, stillName]);
+
   const editMode: StillVariantMode = strokes ? "inpaint" : "image_edit";
   const editModelFits = supports(editModel, TASK_FOR_MODE[editMode]);
 
@@ -253,9 +285,10 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
       }
     ): Promise<boolean> => {
       const ref = asRef(model);
-      if (!ref || !sourceAssetId) {
+      if (!ref) {
         return false;
       }
+      const sourceAssetId = await sourceAssetFor();
       await generateStillVariant(boardId, shot, {
         mode,
         model: ref,
@@ -264,7 +297,7 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
       });
       return true;
     },
-    [generateStillVariant, boardId, shot, sourceAssetId]
+    [generateStillVariant, boardId, shot, sourceAssetFor]
   );
 
   const handleEdit = useCallback(async () => {
@@ -408,7 +441,7 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
             <ImageModelSelect
               value={editModel?.id ?? ""}
               provider={editModel?.provider}
-              task={["image_to_image", "inpainting"]}
+              task={["image_edit", "inpainting"]}
               onChange={setEditModel}
             />
           </FormField>
@@ -454,7 +487,9 @@ const ShotStillModifyPanelInner: React.FC<ShotStillModifyPanelProps> = ({
             <Caption color="error">
               {strokes
                 ? "This model cannot change only a painted area. Pick an inpainting model, or clear the area."
-                : "This model cannot edit an existing image. Pick an editing model."}
+                : supports(editModel, "inpainting")
+                  ? "This model only changes a painted area. Paint an area, or pick an editing model."
+                  : "This model cannot edit an existing image. Pick an editing model."}
             </Caption>
           )}
           <EditorButton

@@ -61,6 +61,7 @@ jest.mock("../shotImageEdits", () => ({
 
 import ShotStillModifyPanel from "../ShotStillModifyPanel";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
+import { useAssetStore } from "../../../stores/AssetStore";
 
 const BOARD = "board-modify";
 
@@ -101,7 +102,7 @@ describe("ShotStillModifyPanel", () => {
     renderPanel();
 
     await user.click(
-      screen.getByRole("button", { name: "Pick image_to_image+inpainting model" })
+      screen.getByRole("button", { name: "Pick image_edit+inpainting model" })
     );
     const generate = screen.getByRole("button", { name: /Generate edit/ });
     expect(generate).toBeDisabled();
@@ -127,12 +128,34 @@ describe("ShotStillModifyPanel", () => {
     renderPanel();
 
     await user.click(
-      screen.getByRole("button", { name: "Pick image_to_image+inpainting model" })
+      screen.getByRole("button", { name: "Pick image_edit+inpainting model" })
     );
     await user.type(screen.getByLabelText("What to change"), "Brighter");
 
     expect(
       screen.getByText(/This model cannot edit an existing image/)
+    ).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: /Generate edit/ })).toBeDisabled();
+  });
+
+  it("asks for a painted area before an inpainting model edits", async () => {
+    // flux-fill: tagged image_to_image for its image input, but it reads a
+    // mask and fails on a whole-image edit.
+    mockModels.push({
+      id: "pick",
+      provider: "fal_ai",
+      supported_tasks: ["image_to_image", "inpainting"]
+    });
+    const user = userEvent.setup();
+    renderPanel();
+
+    await user.click(
+      screen.getByRole("button", { name: "Pick image_edit+inpainting model" })
+    );
+    await user.type(screen.getByLabelText("What to change"), "Make the food wet");
+
+    expect(
+      screen.getByText(/This model only changes a painted area/)
     ).toBeInTheDocument();
     expect(screen.getByRole("button", { name: /Generate edit/ })).toBeDisabled();
   });
@@ -173,5 +196,59 @@ describe("ShotStillModifyPanel", () => {
         })
       )
     );
+  });
+
+  // Example boards ship their stills as package files, with no stored asset
+  // for the server to read. The panel stores the still once and edits that.
+  it("stores a packaged still as an asset before editing it", async () => {
+    const packaged: Shot = {
+      ...stillShot,
+      keyframe: {
+        type: "image",
+        uri: "package://nodetool-base/storyboards/demo/still.jpg"
+      }
+    };
+    const fetchMock = jest.fn().mockResolvedValue({
+      ok: true,
+      blob: async () => new Blob(["jpg"], { type: "image/jpeg" })
+    });
+    const originalFetch = global.fetch;
+    global.fetch = fetchMock as unknown as typeof fetch;
+    const createAsset = jest
+      .spyOn(useAssetStore.getState(), "createAsset")
+      .mockResolvedValue({ id: "imported-1" } as never);
+    try {
+      const user = userEvent.setup();
+      renderPanel(packaged);
+
+      await user.click(
+        screen.getByRole("button", { name: "Pick image_edit+inpainting model" })
+      );
+      await user.type(screen.getByLabelText("What to change"), "Warmer light");
+      const generate = screen.getByRole("button", { name: /Generate edit/ });
+      expect(generate).toBeEnabled();
+      await user.click(generate);
+
+      await waitFor(() =>
+        expect(generateStillVariant).toHaveBeenCalledWith(
+          BOARD,
+          packaged,
+          expect.objectContaining({
+            mode: "image_edit",
+            sourceAssetId: "imported-1"
+          })
+        )
+      );
+      expect(createAsset).toHaveBeenCalledTimes(1);
+
+      // The second change reuses the stored copy.
+      await user.type(screen.getByLabelText("What to change"), "!");
+      await user.click(screen.getByRole("button", { name: /Generate edit/ }));
+      await waitFor(() => expect(generateStillVariant).toHaveBeenCalledTimes(2));
+      expect(createAsset).toHaveBeenCalledTimes(1);
+    } finally {
+      global.fetch = originalFetch;
+      createAsset.mockRestore();
+    }
   });
 });

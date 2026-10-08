@@ -151,6 +151,14 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
     [refId, selectShot]
   );
 
+  // The board takes the full width until the creator asks for the assistant.
+  const [assistantOpen, setAssistantOpen] = useState(false);
+  const toggleAssistant = useCallback(
+    () => setAssistantOpen((open) => !open),
+    []
+  );
+  const desktopAssistant = !isMobile && mode !== "view";
+
   const board = useMemo(
     () => (
       <StoryboardBoard
@@ -163,9 +171,14 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
         assembling={assembling}
         assembleError={assembleError}
         reviewRequest={reviewRequest}
+        assistantOpen={assistantOpen}
+        onToggleAssistant={desktopAssistant ? toggleAssistant : undefined}
       />
     ),
     [
+      assistantOpen,
+      desktopAssistant,
+      toggleAssistant,
       refId,
       mode,
       handleDirect,
@@ -257,12 +270,18 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
       {conflictBanner}
       <Box sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>{board}</Box>
       {mode !== "view" && (
-        <ResizableSideDock
-          storageKey="storyboard_assistant"
-          ariaLabel="Resize storyboard assistant"
+        // Hidden, not unmounted: the conversation survives a toggle.
+        <Box
+          data-testid="storyboard-assistant-dock"
+          sx={{ display: assistantOpen ? "flex" : "none", minHeight: 0 }}
         >
-          <StoryboardAgentPanel boardId={refId} />
-        </ResizableSideDock>
+          <ResizableSideDock
+            storageKey="storyboard_assistant"
+            ariaLabel="Resize storyboard assistant"
+          >
+            <StoryboardAgentPanel boardId={refId} />
+          </ResizableSideDock>
+        </Box>
       )}
     </FlexRow>
   );
