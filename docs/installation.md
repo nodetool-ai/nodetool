@@ -99,8 +99,11 @@ use your account there.
 - [FAL](https://fal.ai) or [Replicate](https://replicate.com) — image, video,
   and audio generation across many models.
 
-NodeTool is bring-your-own-key: it never marks up a provider's price, and the
-provider bills you directly. Keys are stored encrypted (AES-256-GCM) in a local
+> **Note:** NodeTool is bring-your-own-key. It never marks up a provider's
+> price, and the provider bills you directly.
+{: .callout-note}
+
+Keys are stored encrypted (AES-256-GCM) in a local
 database, not in a plaintext config file. The encryption key lives in your
 operating system's keychain (macOS Keychain, Windows Credential Manager, or the
 Linux Secret Service). The `SECRETS_MASTER_KEY` environment variable overrides
@@ -237,12 +240,12 @@ If you have no dedicated graphics card, NodeTool falls back to the CPU, or you
 can use an online service instead.
 
 **A model download stalls or fails** — usually disk space or network.
-[Model Download Troubleshooting](troubleshooting.md#issue-model-download-fails-or-stalls)
+[Model Download Troubleshooting](troubleshooting.md#a-model-download-fails-or-stalls)
 covers disk space, resuming, and HuggingFace download limits.
 
 **The app can't reach its own server** — approve the firewall prompt for
 NodeTool's local server on port 7777. Running the Docker version instead? See
-[Deployment Troubleshooting](troubleshooting.md#issue-deployment-fails-or-service-wont-start).
+[Deployment Troubleshooting](troubleshooting.md#a-deployment-fails-or-the-service-wont-start).
 
 **Still stuck** — ask on [Discord](https://discord.gg/WmQTWZRcYE) or open a
 [GitHub Issue](https://github.com/nodetool-ai/nodetool/issues). Include your
@@ -262,7 +265,11 @@ to start completely fresh.
 
 ---
 
-## Next
+## Next steps
 
-You're installed. [Quick Start](getting-started.md) walks you through running
-your first workflow.
+<div class="card-grid">
+  <a class="doc-card" href="{{ '/getting-started' | relative_url }}"><strong>Quick Start</strong><span>Turn one sentence into a finished video.</span></a>
+  <a class="doc-card" href="{{ '/first-workflow' | relative_url }}"><strong>Your First Workflow</strong><span>Build a four-node image workflow from an empty canvas.</span></a>
+  <a class="doc-card" href="{{ '/providers' | relative_url }}"><strong>Providers</strong><span>What each provider can generate and which key it needs.</span></a>
+  <a class="doc-card" href="{{ '/models-and-providers' | relative_url }}"><strong>Models &amp; Providers</strong><span>Choose models or run them locally.</span></a>
+</div>

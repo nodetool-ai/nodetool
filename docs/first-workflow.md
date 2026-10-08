@@ -20,7 +20,7 @@ The workflow has four nodes:
 
 Data flows left to right: String Input → Agent → Text To Image → Preview.
 
-## Before you start
+## Before you begin
 
 You need a language model for the Agent and an image model for Text To Image.
 Both come from providers you connect in **Settings → Models & Providers**, as
@@ -29,8 +29,9 @@ Image defaults to **FLUX.1 Schnell** on FAL, so a FAL key is the fastest way to
 get an image model. The [capability matrix](providers.md#capability-matrix)
 lists other providers.
 
-The image costs money at the provider's rate. The Agent call is text and costs
-cents.
+> **Note:** The image costs money at the provider's rate. The Agent call is text
+> and costs cents.
+{: .callout-note}
 
 ## 1. Create an empty workflow
 
@@ -72,7 +73,9 @@ On the **Params** tab:
    detailed image prompt. Describe subject, light, and style. Reply with the
    prompt only.`
 
-Leave **Prompt** alone. You fill it by connecting a node in the next step.
+> **Tip:** Leave **Prompt** alone. You fill it by connecting a node in the next
+> step.
+{: .callout-tip}
 
 ## 4. Connect String Input to Agent
 
@@ -157,14 +160,36 @@ Other changes to try:
 
 Under the Inspector, **Cost estimate** prices the workflow for one run.
 
-## Next
+---
 
-| Want to | Go to |
-|---|---|
-| Learn the canvas: selecting, grouping, shortcuts | [Workflow Editor](workflow-editor.md) |
-| Learn each panel | [Editor Panels](editor-panels.md) |
-| Find a shipped starting point | [Templates Gallery](templates-gallery.md) and [Workflow Examples](workflows/) |
-| Turn this workflow into a screen others can run | [Mini Apps](mini-apps.md) |
-| Understand workflows, assets, and nodes | [Key Concepts](key-concepts.md) |
-| Choose or run models locally | [Models & Providers](models-and-providers.md) |
-| Watch short video guides | [Tutorials](tutorials.md) |
+## What you just did
+
+- **Nodes.** You placed four single-purpose boxes and set their properties in
+  the Inspector. See [Key Concepts](key-concepts.md#nodes).
+- **Connections.** You wired outputs to inputs, and NodeTool accepted only
+  matching types. See [Data Types and Connections]({{ '/data-types' | relative_url }}).
+- **Agent node.** You used an Agent to rewrite a short idea into a detailed
+  prompt. See [Key Concepts](key-concepts.md#agent-nodes).
+- **Run and preview.** You ran the graph, watched each node report progress, and
+  inspected the result. See [Workflow Editor](workflow-editor.md).
+- **Assets.** The generated image was saved to your library automatically. See
+  [Asset Management](asset-management.md).
+
+---
+
+## Troubleshooting
+
+A node failed or the run will not start? See
+[Troubleshooting]({{ '/troubleshooting' | relative_url }}) or ask on
+[Discord](https://discord.gg/WmQTWZRcYE).
+
+---
+
+## Next steps
+
+<div class="card-grid">
+  <a class="doc-card" href="{{ '/workflow-editor' | relative_url }}"><strong>Workflow Editor</strong><span>Selecting, grouping, shortcuts, and the rest of the canvas.</span></a>
+  <a class="doc-card" href="{{ '/templates-gallery' | relative_url }}"><strong>Templates Gallery</strong><span>Start from a shipped workflow instead of an empty canvas.</span></a>
+  <a class="doc-card" href="{{ '/mini-apps' | relative_url }}"><strong>Mini Apps</strong><span>Turn this workflow into a screen others can run.</span></a>
+  <a class="doc-card" href="{{ '/models-and-providers' | relative_url }}"><strong>Models &amp; Providers</strong><span>Choose models or run them locally.</span></a>
+</div>

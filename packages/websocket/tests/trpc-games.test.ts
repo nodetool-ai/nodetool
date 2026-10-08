@@ -267,6 +267,33 @@ describe("native game revisions", () => {
     expect(saved.document.scenes[0].name).toBe("Changed");
   });
 
+  it("saves a whole draft document as one recorded change and rejects stale, invalid or cross-dimension documents", async () => {
+    const caller = createCaller(makeCtx(USER_ID));
+    const created = await caller.games.create({ projectId: PROJECT_ID, name: "Whole draft" });
+    const edited = structuredClone(created.document);
+    edited.scenes[0].name = "Saved whole";
+    const saved = await caller.games.saveDraftDocument({ id: created.game.id, baseUpdatedAt: created.game.draftUpdatedAt, document: edited });
+    expect(saved.document.scenes[0].name).toBe("Saved whole");
+    expect(saved.game.revision).toBe(created.game.revision);
+    expect((await caller.games.get({ id: created.game.id })).document).toEqual(created.document);
+    const changes = await caller.games.draftChanges({ id: created.game.id });
+    expect(changes).toHaveLength(1);
+    expect(changes[0]).toMatchObject({ actor: "user", summary: "Saved the whole draft", beforeUpdatedAt: created.game.draftUpdatedAt });
+    expect(await caller.games.draftBeforeChange({ id: created.game.id, changeId: changes[0].id })).toEqual(created.document);
+    await expect(caller.games.saveDraftDocument({ id: created.game.id, baseUpdatedAt: created.game.draftUpdatedAt, document: edited }))
+      .rejects.toMatchObject({ code: "CONFLICT" });
+    const invalid = structuredClone(edited);
+    invalid.entrySceneId = "missing";
+    await expect(caller.games.saveDraftDocument({ id: created.game.id, baseUpdatedAt: saved.game.draftUpdatedAt, document: invalid }))
+      .rejects.toMatchObject({ code: "BAD_REQUEST" });
+    const other3D = await caller.games.create({ projectId: PROJECT_ID, name: "Other", dimension: "3d" });
+    await expect(caller.games.saveDraftDocument({ id: created.game.id, baseUpdatedAt: saved.game.draftUpdatedAt, document: other3D.document }))
+      .rejects.toMatchObject({ code: "BAD_REQUEST" });
+    await expect(createCaller(makeCtx("another-user")).games.saveDraftDocument({ id: created.game.id,
+      baseUpdatedAt: saved.game.draftUpdatedAt, document: edited })).rejects.toMatchObject({ code: "NOT_FOUND" });
+    expect(await caller.games.getDraft({ id: created.game.id })).toEqual(saved);
+  });
+
   it("bounds draft history bytes without returning a partial agent undo group", async () => {
     const caller = createCaller(makeCtx(USER_ID));
     const created = await caller.games.create({ projectId: PROJECT_ID, name: "Bounded history" });

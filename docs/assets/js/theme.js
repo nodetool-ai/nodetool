@@ -576,7 +576,8 @@
       const tag = document.activeElement && document.activeElement.tagName;
       const inFormField = tag === 'INPUT' || tag === 'TEXTAREA' || (document.activeElement && document.activeElement.isContentEditable);
 
-      if (event.key === '/' && !isInputFocused && !inFormField) {
+      const isModK = (event.metaKey || event.ctrlKey) && !event.altKey && event.key.toLowerCase() === 'k';
+      if (isModK || (event.key === '/' && !isInputFocused && !inFormField)) {
         event.preventDefault();
         if (searchToggle && window.getComputedStyle(searchToggle).display !== 'none') openSearch();
         else input.focus();
@@ -584,6 +585,12 @@
 
       if (event.key === 'Escape' && !resultsPanel.hidden) closeResults();
     });
+
+    const shortcutHint = container.querySelector('.search-shortcut');
+    if (shortcutHint) {
+      const isMac = /Mac|iPhone|iPad/.test(navigator.platform || navigator.userAgent);
+      shortcutHint.textContent = isMac ? '⌘K' : 'Ctrl K';
+    }
 
     document.addEventListener('click', (event) => {
       const target = event.target;
@@ -708,5 +715,48 @@
         }
       }
     });
+  }
+
+  // --- On this page outline ---------------------------------------------------
+  // Builds the right-hand outline from the article's h2/h3 headings and marks
+  // the section being read. Pages with fewer than three headings get none.
+  {
+    const tocEl = document.querySelector('.page-toc');
+    const article = document.querySelector('.doc-page .page-content');
+    const headings = article ? Array.from(article.querySelectorAll('h2[id], h3[id]')) : [];
+    if (tocEl && headings.length >= 3) {
+      const list = tocEl.querySelector('.page-toc-list');
+      const links = new Map();
+      headings.forEach((heading) => {
+        const item = document.createElement('li');
+        item.className = heading.tagName === 'H3' ? 'page-toc-item sub' : 'page-toc-item';
+        const link = document.createElement('a');
+        link.href = '#' + heading.id;
+        link.textContent = heading.textContent.replace(/#\s*$/, '').trim();
+        item.appendChild(link);
+        list.appendChild(item);
+        links.set(heading, link);
+      });
+      tocEl.hidden = false;
+      document.body.classList.add('has-page-toc');
+
+      if ('IntersectionObserver' in window) {
+        const visible = new Set();
+        const setActive = () => {
+          const current = headings.find((h) => visible.has(h));
+          if (!current) return;
+          links.forEach((link) => link.classList.remove('active'));
+          links.get(current).classList.add('active');
+        };
+        const observer = new IntersectionObserver((entries) => {
+          entries.forEach((entry) => {
+            if (entry.isIntersecting) visible.add(entry.target);
+            else visible.delete(entry.target);
+          });
+          setActive();
+        }, { rootMargin: '-80px 0px -60% 0px' });
+        headings.forEach((h) => observer.observe(h));
+      }
+    }
   }
 })();
