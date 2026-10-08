@@ -249,13 +249,17 @@ const StoryboardSurface = ({ refId, mode, active }: StoryboardSurfaceProps) => {
 
   return (
     <FlexRow fullHeight sx={{ minHeight: 0, position: "relative" }}>
-      <StoryboardQueueOverlay
-        boardId={refId}
-        readOnly={mode === "view"}
-        onReviewCompleted={handleReviewCompleted}
-      />
       {conflictBanner}
-      <Box sx={{ flex: 1, minWidth: 0, minHeight: 0 }}>{board}</Box>
+      {/* The queue overlay anchors to the board column, not the whole row,
+          so it never floats over the assistant dock on the right. */}
+      <Box sx={{ flex: 1, minWidth: 0, minHeight: 0, position: "relative" }}>
+        {board}
+        <StoryboardQueueOverlay
+          boardId={refId}
+          readOnly={mode === "view"}
+          onReviewCompleted={handleReviewCompleted}
+        />
+      </Box>
       {mode !== "view" && (
         <ResizableSideDock
           storageKey="storyboard_assistant"
