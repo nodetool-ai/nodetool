@@ -63,6 +63,29 @@ it("disabled Stepper does not initialize or activate", () => {
   fireEvent.click(button);
   expect(mockSetValue).not.toHaveBeenCalled();
 });
+it("Stepper goes back to a done step and blocks it when back is not allowed", () => {
+  mockValue = "review";
+  const steps = [
+    { value: "inputs", title: "Inputs" },
+    { value: "review", title: "Review" }
+  ];
+  const { rerender } = view(<StepperWidget id="steps" steps={steps} />);
+  fireEvent.click(screen.getByRole("button", { name: "Step 1 of 2: Inputs, done" }));
+  expect(mockSetValue).toHaveBeenCalledWith("inputs");
+  expect(mockEmit).toHaveBeenCalledWith("change");
+
+  mockSetValue.mockClear();
+  rerender(
+    <ThemeProvider theme={mockTheme}>
+      <StepperWidget id="steps" steps={steps} allowBack={false} />
+    </ThemeProvider>
+  );
+  expect(screen.getByRole("button", { name: "Step 1 of 2: Inputs, done" })).toBeDisabled();
+  expect(screen.getByRole("button", { name: "Step 2 of 2: Review" })).toHaveAttribute(
+    "aria-current",
+    "step"
+  );
+});
 it("Approval exposes the selected decision and rejects disabled edits", () => {
   mockValue = "approved";
   view(<ApprovalWidget id="approval" disabled />);

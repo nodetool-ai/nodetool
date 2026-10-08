@@ -262,32 +262,7 @@ declare global {
             logUsage?: boolean;
           }
         ) => Promise<void>;
-        trashItem: (path: string) => Promise<void>;
         beep: () => Promise<void>;
-        writeShortcutLink: (
-          shortcutPath: string,
-          operation?: "create" | "update" | "replace",
-          options?: {
-            target: string;
-            cwd?: string;
-            args?: string;
-            description?: string;
-            icon?: string;
-            iconIndex?: number;
-            appUserModelId?: string;
-            toastActivatorClsid?: string;
-          }
-        ) => Promise<boolean>;
-        readShortcutLink: (shortcutPath: string) => Promise<{
-          target: string;
-          cwd?: string;
-          args?: string;
-          description?: string;
-          icon?: string;
-          iconIndex?: number;
-          appUserModelId?: string;
-          toastActivatorClsid?: string;
-        }>;
       };
 
       localhostProxy?: {

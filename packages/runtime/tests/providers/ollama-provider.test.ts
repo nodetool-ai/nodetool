@@ -140,7 +140,7 @@ describe("OllamaProvider", () => {
     expect(result).toEqual({
       role: "assistant",
       content: "done",
-      toolCalls: [{ id: "tool_1", name: "sum", args: { a: 1, b: 2 } }]
+      toolCalls: [{ id: expect.stringMatching(/^tool_/), name: "sum", args: { a: 1, b: 2 } }]
     });
 
     // keep_alive is sent so large models stay resident between turns.
@@ -183,7 +183,7 @@ describe("OllamaProvider", () => {
 
     expect(out).toEqual([
       { type: "chunk", content: "Hel", done: false },
-      { id: "tool_1", name: "lookup", args: { q: "x" } },
+      { id: expect.stringMatching(/^tool_/), name: "lookup", args: { q: "x" } },
       { type: "chunk", content: "lo", done: false },
       { type: "chunk", content: "", done: true }
     ]);

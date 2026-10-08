@@ -19,21 +19,16 @@
           "props": {
             "id": "title",
             "text": "🪄 Vary Image",
-            "level": "1"
-          }
-        },
-        {
-          "type": "Text",
-          "props": {
-            "id": "tagline",
-            "text": "Change one thing about a photo and keep the rest."
+            "level": "1",
+            "subtitle": "Change one thing about a photo and keep the rest."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "Image editing is billed per generated image."
+            "text": "Image editing is billed per generated image.",
+            "tone": "hint"
           }
         },
         {

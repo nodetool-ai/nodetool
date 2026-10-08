@@ -15,6 +15,7 @@ import { pack, unpack } from "msgpackr";
 
 import {
   packBridgeMessage,
+  stripUndefined,
   unpackBridgeMessage
 } from "../src/python-bridge-codec.js";
 import { WebsocketPythonBridge } from "../src/python-websocket-bridge.js";
@@ -190,5 +191,51 @@ describe("model download over 4 GiB", () => {
     expect(
       Math.floor((update!.downloaded_bytes / update!.total_bytes) * 100)
     ).toBe(50);
+  });
+});
+
+describe("packBridgeMessage omits undefined properties", () => {
+  it("drops undefined options at any depth so Python keeps its defaults", () => {
+    const decoded = unpackBridgeMessage(
+      packBridgeMessage({
+        type: "provider.tts",
+        data: {
+          text: "hi",
+          speed: undefined,
+          options: { max_tokens: undefined, temperature: 0 },
+          list: [{ a: 1, b: undefined }]
+        }
+      })
+    );
+    const data = decoded["data"] as Record<string, unknown>;
+    expect(Object.hasOwn(data, "speed")).toBe(false);
+    expect(data["options"]).toEqual({ temperature: 0 });
+    expect(data["list"]).toEqual([{ a: 1 }]);
+  });
+
+  it("keeps binary payloads intact and leaves the input unmodified", () => {
+    const bytes = new Uint8Array([1, 2, 3]);
+    const msg = { data: { image: bytes, seed: undefined } };
+    const decoded = unpackBridgeMessage(packBridgeMessage(msg));
+    const data = decoded["data"] as Record<string, unknown>;
+    expect(new Uint8Array(data["image"] as Uint8Array)).toEqual(bytes);
+    expect(Object.hasOwn(msg.data, "seed")).toBe(true);
+  });
+
+  it("returns the same object when nothing is undefined", () => {
+    const msg = { a: { b: [1, { c: "x" }] } };
+    expect(stripUndefined(msg)).toBe(msg);
+  });
+
+  it("keeps a __proto__ key as an own property", () => {
+    const record = JSON.parse('{"__proto__": {"x": 1}, "y": null}') as Record<
+      string,
+      unknown
+    >;
+    record["z"] = undefined;
+    const stripped = stripUndefined(record) as Record<string, unknown>;
+    expect(Object.hasOwn(stripped, "__proto__")).toBe(true);
+    expect(Object.hasOwn(stripped, "z")).toBe(false);
+    expect(Object.getPrototypeOf(stripped)).toBe(Object.prototype);
   });
 });

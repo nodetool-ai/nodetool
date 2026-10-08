@@ -2,6 +2,7 @@ import type { ProcessingContext } from "./context.js";
 import type {
   ExecuteIdentity,
   ExecuteInputBlobs,
+  ExecuteOptions,
   ExecuteResult,
   ProgressEvent
 } from "./python-bridge-types.js";
@@ -19,7 +20,8 @@ interface PythonBridgeLike {
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
     onProgress?: (event: ProgressEvent) => void,
-    identity?: ExecuteIdentity
+    identity?: ExecuteIdentity,
+    options?: ExecuteOptions
   ): Promise<ExecuteResult>;
   executeStream?(
     nodeType: string,
@@ -27,7 +29,8 @@ interface PythonBridgeLike {
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
     onProgress?: (event: ProgressEvent) => void,
-    identity?: ExecuteIdentity
+    identity?: ExecuteIdentity,
+    options?: ExecuteOptions
   ): AsyncGenerator<ExecuteResult>;
 }
 const _nodeCrypto = getNodeBuiltinSync<typeof import("node:crypto")>(
@@ -157,6 +160,85 @@ function isMediaRefList(value: unknown): value is MediaRefValue[] {
   return Array.isArray(value) && value.every(isMediaRef);
 }
 
+/**
+ * Secrets a Python node receives when the user has set them, whether or not
+ * the node lists them in `required_settings`, keyed by node-type namespace.
+ * Hugging Face nodes read `HF_TOKEN` for gated repositories (FLUX Control,
+ * Kontext, pyannote) and most do not declare it, so without this a token
+ * stored in NodeTool settings never reaches the worker and the gated download
+ * fails. Scoped to the `huggingface.` namespace so other Python packages do
+ * not receive a credential they never asked for.
+ */
+const IMPLICIT_SECRETS_BY_NAMESPACE: ReadonlyArray<
+  readonly [prefix: string, secrets: readonly string[]]
+> = [["huggingface.", ["HF_TOKEN"]]];
+
+function implicitSecrets(nodeType: string): readonly string[] {
+  return IMPLICIT_SECRETS_BY_NAMESPACE.flatMap(([prefix, secrets]) =>
+    nodeType.startsWith(prefix) ? secrets : []
+  );
+}
+
+/** Prefix of the uri the worker gives a ref whose bytes travel as a blob. */
+const BLOB_URI_PREFIX = "blob://";
+
+/**
+ * Replace every ref nested in `value` whose uri is `blob://<key>` for a key in
+ * `blobs` with the result of `resolve`. Returns the input itself when nothing
+ * matched. The worker keys the bytes of a ref that is not a top-level output
+ * (an item of a `list[ImageRef]`, a field of a TypedDict) by its internal
+ * blob id, so this is the only place those bytes can be reattached.
+ */
+async function resolveNestedBlobRefs(
+  value: unknown,
+  blobs: Map<string, Uint8Array>,
+  used: Set<string>,
+  resolve: (
+    ref: Record<string, unknown>,
+    bytes: Uint8Array
+  ) => Promise<Record<string, unknown>>
+): Promise<unknown> {
+  if (Array.isArray(value)) {
+    let changed = false;
+    const items = await Promise.all(
+      value.map(async (item) => {
+        const next = await resolveNestedBlobRefs(item, blobs, used, resolve);
+        if (next !== item) changed = true;
+        return next;
+      })
+    );
+    return changed ? items : value;
+  }
+  if (typeof value !== "object" || value === null) return value;
+  if (value instanceof Uint8Array || value instanceof ArrayBuffer) return value;
+  const record = value as Record<string, unknown>;
+  const uri = record["uri"];
+  if (isString(uri) && uri.startsWith(BLOB_URI_PREFIX)) {
+    const key = uri.slice(BLOB_URI_PREFIX.length);
+    const bytes = blobs.get(key);
+    if (bytes) {
+      used.add(key);
+      return resolve(record, bytes);
+    }
+    return value;
+  }
+  let copy: Record<string, unknown> | null = null;
+  for (const key of Object.keys(record)) {
+    const item = record[key];
+    const next = await resolveNestedBlobRefs(item, blobs, used, resolve);
+    if (next !== item) {
+      copy ??= { ...record };
+      Object.defineProperty(copy, key, {
+        value: next,
+        enumerable: true,
+        writable: true,
+        configurable: true
+      });
+    }
+  }
+  return copy ?? value;
+}
+
 export class PythonNodeExecutor {
   constructor(
     private bridge: PythonBridgeLike,
@@ -224,6 +306,70 @@ export class PythonNodeExecutor {
     };
   }
 
+  /**
+   * Build the `update` frame sink: forwards a node's log and binary updates
+   * to the context message stream, addressed to this graph node. The worker
+   * also defines `preview_update`, but the TS message protocol has no such
+   * type and no Python node package posts one, so it is dropped here.
+   */
+  private updateHandler(
+    context?: ProcessingContext
+  ): ((update: Record<string, unknown>) => void) | undefined {
+    const nodeId = this.nodeId;
+    if (!context || !nodeId) return undefined;
+    return (update: Record<string, unknown>) => {
+      const type = update["type"];
+      if (type === "log_update") {
+        const severity = update["severity"];
+        context.postMessage({
+          type: "log_update",
+          node_id: nodeId,
+          node_name: isString(update["node_name"])
+            ? update["node_name"]
+            : this.nodeType,
+          content: isString(update["content"]) ? update["content"] : "",
+          severity:
+            severity === "warning" || severity === "error" ? severity : "info",
+          workflow_id: context.workflowId
+        });
+      } else if (type === "binary_update") {
+        const binary = update["binary"];
+        if (!(binary instanceof Uint8Array)) return;
+        context.postMessage({
+          type: "binary_update",
+          node_id: nodeId,
+          output_name: isString(update["output_name"])
+            ? update["output_name"]
+            : "output",
+          // A view over the same bytes when they sit in a plain ArrayBuffer,
+          // which is what the msgpack decoder produces.
+          binary:
+            binary.buffer instanceof ArrayBuffer
+              ? new Uint8Array(
+                  binary.buffer,
+                  binary.byteOffset,
+                  binary.byteLength
+                )
+              : new Uint8Array(binary)
+        });
+      } else {
+        log.debug("Dropping unsupported Python worker update", {
+          nodeType: this.nodeType,
+          updateType: type
+        });
+      }
+    };
+  }
+
+  /** Per-call bridge options: run cancellation and the update sink. */
+  private executeOptions(context?: ProcessingContext): ExecuteOptions {
+    const options: ExecuteOptions = {};
+    if (context?.signal) options.signal = context.signal;
+    const onUpdate = this.updateHandler(context);
+    if (onUpdate) options.onUpdate = onUpdate;
+    return options;
+  }
+
   private async prepareExecution(
     inputs: Record<string, unknown>,
     context?: ProcessingContext
@@ -288,7 +434,11 @@ export class PythonNodeExecutor {
 
     const secrets: Record<string, string> = {};
     if (context) {
-      for (const key of this.requiredSettings) {
+      const keys = new Set([
+        ...this.requiredSettings,
+        ...implicitSecrets(this.nodeType)
+      ]);
+      for (const key of keys) {
         const value = await context.getSecret(key);
         if (value) secrets[key] = value;
       }
@@ -310,7 +460,20 @@ export class PythonNodeExecutor {
       Object.create(null),
       result.outputs
     );
+    // A blob is paired with an output slot by name. A blob whose key names
+    // no slot belongs to a ref nested inside an output (its uri is
+    // `blob://<key>`); it is reattached there below, never emitted as an
+    // output of its own.
+    const nestedBlobs = new Map<string, Uint8Array>();
     for (const [name, blobData] of Object.entries(result.blobs)) {
+      if (
+        name !== "output" &&
+        !Object.hasOwn(result.outputs, name) &&
+        !Object.hasOwn(this.outputTypes, name)
+      ) {
+        nestedBlobs.set(name, blobData);
+        continue;
+      }
       // Guard the outputTypes lookup with Object.hasOwn so an external name like
       // "constructor" can't resolve to an inherited Object.prototype member.
       const mediaType = Object.hasOwn(this.outputTypes, name)
@@ -355,7 +518,61 @@ export class PythonNodeExecutor {
         outputs[name] = blobData;
       }
     }
+    if (nestedBlobs.size > 0) {
+      await this.attachNestedBlobs(outputs, nestedBlobs, context);
+    }
     return outputs;
+  }
+
+  /** Reattach blobs keyed by internal id to the nested refs that name them. */
+  private async attachNestedBlobs(
+    outputs: Record<string, unknown>,
+    blobs: Map<string, Uint8Array>,
+    context?: ProcessingContext
+  ): Promise<void> {
+    const used = new Set<string>();
+    const resolve = async (
+      ref: Record<string, unknown>,
+      bytes: Uint8Array
+    ): Promise<Record<string, unknown>> => {
+      const mediaType = isString(ref["type"])
+        ? normalizeMediaOutputType(ref["type"])
+        : null;
+      if (!context?.storage) {
+        return { ...ref, data: bytes };
+      }
+      const format = refFormat(ref);
+      const ext = format
+        ? `.${format}`
+        : mediaType
+          ? (EXTENSION_MAP[mediaType] ?? "")
+          : "";
+      const contentType =
+        (format ? FORMAT_MIME_MAP[format] : undefined) ??
+        (mediaType ? MIME_MAP[mediaType] : undefined) ??
+        "application/octet-stream";
+      const uri = await context.storage.store(
+        `python-bridge/${randomUUID()}${ext}`,
+        bytes,
+        contentType
+      );
+      const stored: Record<string, unknown> = { ...ref, uri };
+      if (isBinaryPayload(stored["data"])) delete stored["data"];
+      return stored;
+    };
+    for (const name of Object.keys(outputs)) {
+      const value = outputs[name];
+      const next = await resolveNestedBlobRefs(value, blobs, used, resolve);
+      if (next !== value) outputs[name] = next;
+    }
+    for (const key of blobs.keys()) {
+      if (!used.has(key)) {
+        log.warn("Dropping Python worker blob that matches no output", {
+          nodeType: this.nodeType,
+          blob: key
+        });
+      }
+    }
   }
 
   async process(
@@ -370,7 +587,8 @@ export class PythonNodeExecutor {
       secrets,
       blobs,
       this.progressHandler(context),
-      this.identity(context)
+      this.identity(context),
+      this.executeOptions(context)
     );
     return this.materializeOutputs(result, context);
   }
@@ -391,7 +609,8 @@ export class PythonNodeExecutor {
       secrets,
       blobs,
       this.progressHandler(context),
-      this.identity(context)
+      this.identity(context),
+      this.executeOptions(context)
     )) {
       yield await this.materializeOutputs(partial, context);
     }

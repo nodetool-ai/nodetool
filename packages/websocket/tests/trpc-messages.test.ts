@@ -10,7 +10,12 @@ vi.mock("@nodetool-ai/models", async (orig) => {
     ...actual,
     Message: {
       ...actual.Message,
-      paginate: vi.fn()
+      paginate: vi.fn(),
+      rewind: vi.fn()
+    },
+    Thread: {
+      ...actual.Thread,
+      find: vi.fn()
     }
   };
 });
@@ -27,7 +32,7 @@ vi.mock("../src/resolve-media-urls.js", async (orig) => {
   };
 });
 
-import { Message } from "@nodetool-ai/models";
+import { Message, Thread } from "@nodetool-ai/models";
 
 const createCaller = createCallerFactory(appRouter);
 
@@ -172,6 +177,43 @@ describe("messages router", () => {
       await expect(
         caller.messages.list({ thread_id: "t1" })
       ).rejects.toMatchObject({ code: "UNAUTHORIZED" });
+    });
+  });
+
+  describe("rewind", () => {
+    it("rewinds a thread the caller owns", async () => {
+      vi.mocked(Thread.find).mockResolvedValue({ id: "thread-1" } as never);
+      vi.mocked(Message.rewind).mockResolvedValue(["m2", "m3"]);
+      const caller = createCaller(makeCtx());
+
+      const result = await caller.messages.rewind({
+        thread_id: "thread-1",
+        message_id: "m2"
+      });
+
+      expect(Thread.find).toHaveBeenCalledWith("user-1", "thread-1");
+      expect(Message.rewind).toHaveBeenCalledWith("thread-1", "m2");
+      expect(result).toEqual({ deleted_ids: ["m2", "m3"] });
+    });
+
+    it("refuses another user's thread without touching it", async () => {
+      vi.mocked(Thread.find).mockResolvedValue(null);
+      const caller = createCaller(makeCtx());
+
+      await expect(
+        caller.messages.rewind({ thread_id: "thread-x", message_id: "m2" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
+      expect(Message.rewind).not.toHaveBeenCalled();
+    });
+
+    it("reports a message that is not in the thread", async () => {
+      vi.mocked(Thread.find).mockResolvedValue({ id: "thread-1" } as never);
+      vi.mocked(Message.rewind).mockResolvedValue(null);
+      const caller = createCaller(makeCtx());
+
+      await expect(
+        caller.messages.rewind({ thread_id: "thread-1", message_id: "nope" })
+      ).rejects.toMatchObject({ code: "NOT_FOUND" });
     });
   });
 });

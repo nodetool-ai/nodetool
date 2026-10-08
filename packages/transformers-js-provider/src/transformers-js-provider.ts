@@ -1,4 +1,5 @@
 import { BaseProvider } from "@nodetool-ai/runtime";
+import { loadTransformers } from "@nodetool-ai/transformers-js-nodes";
 import type {
   ASRModel,
   ASRResult,
@@ -57,28 +58,43 @@ export class TransformersJsProvider extends BaseProvider {
 
   // ── Discovery ─────────────────────────────────────────────────────
 
+  /** The optional `@huggingface/transformers` runtime may not be installed. */
+  override async unavailableReason(): Promise<string | null> {
+    try {
+      await loadTransformers();
+      return null;
+    } catch (error) {
+      return error instanceof Error ? error.message : String(error);
+    }
+  }
+
+  /** List models only when the runtime that would run them is installed. */
+  private async discover<T>(list: () => Promise<T[]>): Promise<T[]> {
+    return (await this.unavailableReason()) ? [] : list();
+  }
+
   override async getAvailableLanguageModels(): Promise<LanguageModel[]> {
-    return discoverLanguageModels();
+    return this.discover(discoverLanguageModels);
   }
 
   override async getAvailableTTSModels(): Promise<TTSModel[]> {
-    return discoverTTSModels();
+    return this.discover(discoverTTSModels);
   }
 
   override async getAvailableASRModels(): Promise<ASRModel[]> {
-    return discoverASRModels();
+    return this.discover(discoverASRModels);
   }
 
   override async getAvailableEmbeddingModels(): Promise<EmbeddingModel[]> {
-    return discoverEmbeddingModels();
+    return this.discover(discoverEmbeddingModels);
   }
 
   override async getAvailableImageModels(): Promise<ImageModel[]> {
-    return discoverImageModels();
+    return this.discover(discoverImageModels);
   }
 
   override async getAvailableRerankModels(): Promise<RerankModel[]> {
-    return discoverRerankModels();
+    return this.discover(discoverRerankModels);
   }
 
   // ── Chat ──────────────────────────────────────────────────────────

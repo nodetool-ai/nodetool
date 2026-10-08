@@ -269,8 +269,12 @@ describe("Ollama – request options and usage", () => {
       topP: 0.7,
       frequencyPenalty: 0.2
     });
-    const body = JSON.parse(fetchFn.mock.calls[0][1].body as string);
+    const chatCall = fetchFn.mock.calls.find((c) =>
+      String(c[0]).endsWith("/api/chat")
+    );
+    const body = JSON.parse(chatCall![1].body as string);
     expect(body.options).toEqual({
+      num_ctx: 32768,
       num_predict: 100,
       temperature: 0.4,
       top_p: 0.7,

@@ -15,7 +15,14 @@
  * a screenplay's speakers and a subtitle's cue timings away (F3).
  */
 
-import React, { memo, useCallback, useMemo, useRef, useState } from "react";
+import React, {
+  memo,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 
 import {
   AlertBanner,
@@ -64,6 +71,8 @@ export interface IdeaStepProps {
   scriptId: string;
   /** Opens a blank script — the flow's escape hatch, stage `done` (PRD § 6.2). */
   onStartBlank: () => void;
+  /** Reports a file being read, so the flow can hold Continue until it lands. */
+  onImportingChange?: (importing: boolean) => void;
 }
 
 /** What the panel says a source is, in one line. */
@@ -187,9 +196,23 @@ const CarriedContext: React.FC<{
   </FlexColumn>
 );
 
+/**
+ * A Final Draft or subtitle source carries speakers or cue timings that pasted
+ * text cannot, so its replacement starts empty and says what is given up.
+ */
+const replaceNote = (source: ImportedScript): string | null => {
+  if (!source.attributed) {
+    return null;
+  }
+  return source.kind === "subtitles"
+    ? "Pasted text replaces your subtitle file, and its cue timings are not kept. Cancel to keep the file."
+    : "Pasted text replaces your Final Draft file, and its speakers are not kept. Cancel to keep the file.";
+};
+
 const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   scriptId,
-  onStartBlank
+  onStartBlank,
+  onImportingChange
 }) => {
   const setup = useScriptSetup(scriptId);
   const setSetup = useScriptStore((state) => state.setSetup);
@@ -198,6 +221,10 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   );
   const setCreativeContext = useScriptStore((state) => state.setCreativeContext);
   const imports = useScriptFileImport(scriptId);
+  useEffect(() => {
+    onImportingChange?.(imports.importing);
+  }, [imports.importing, onImportingChange]);
+  useEffect(() => () => onImportingChange?.(false), [onImportingChange]);
   const textInput = useRef<HTMLInputElement>(null);
   const subtitleInput = useRef<HTMLInputElement>(null);
   const briefField = useRef<HTMLElement | null>(null);
@@ -207,6 +234,7 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   const brief = setup?.brief ?? "";
   const source = readScriptSource(setup);
   const carried = readScriptSetupContext(setup);
+  const sourceNote = source ? replaceNote(source) : null;
 
   const handleChange = useCallback(
     (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -235,7 +263,9 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
   }, [imports, pasted]);
 
   const replaceSource = useCallback(() => {
-    setPasted(source?.text ?? "");
+    // Plain text re-splits the same way, so it is offered for editing. An
+    // attributed source would come back as plain text, losing its structure.
+    setPasted(source && !source.attributed ? source.text : "");
     setPasting(true);
   }, [source]);
 
@@ -391,16 +421,23 @@ const IdeaStepInternal: React.FC<IdeaStepProps> = ({
         fullWidth
         maxWidth="sm"
       >
-        <TextInput
-          value={pasted}
-          autoFocus
-          multiline
-          rows={12}
-          label="Your script"
-          hideLabel
-          placeholder="Paste it here. We'll split it into lines and leave the words alone."
-          onChange={(event) => setPasted(event.target.value)}
-        />
+        <FlexColumn gap={GAP.normal}>
+          {sourceNote ? (
+            <Caption color="secondary" component="p">
+              {sourceNote}
+            </Caption>
+          ) : null}
+          <TextInput
+            value={pasted}
+            autoFocus
+            multiline
+            rows={12}
+            label="Your script"
+            hideLabel
+            placeholder="Paste it here. We'll split it into lines and leave the words alone."
+            onChange={(event) => setPasted(event.target.value)}
+          />
+        </FlexColumn>
       </Dialog>
     </Box>
   );

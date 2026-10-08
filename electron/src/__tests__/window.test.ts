@@ -389,76 +389,84 @@ describe('Window Module', () => {
       expect(logMessage).toHaveBeenCalledWith('Permission handlers initialized with device enumeration support');
     });
 
-    it('should handle permission requests correctly', () => {
+    const requestHandler = () =>
+      (session.defaultSession.setPermissionRequestHandler as jest.Mock).mock.calls[0][0];
+    const checkHandler = () =>
+      (session.defaultSession.setPermissionCheckHandler as jest.Mock).mock.calls[0][0];
+    const headersHandler = () =>
+      (session.defaultSession.webRequest.onHeadersReceived as jest.Mock).mock.calls[0][1];
+
+    const request = (permission: string, requestingUrl: string): boolean => {
+      const callback = jest.fn();
+      requestHandler()({}, permission, callback, { requestingUrl });
+      return callback.mock.calls[0][0];
+    };
+
+    it('grants device and clipboard permissions to the app pages', () => {
       createWindow();
 
-      const setPermissionRequestHandlerCall = (session.defaultSession.setPermissionRequestHandler as jest.Mock).mock.calls[0];
-      const permissionHandler = setPermissionRequestHandlerCall[0];
-      
-      const mockCallback = jest.fn();
-      const mockWebContents = {};
-      const mockDetails = { requestingUrl: 'https://example.com' };
-      const mockLocalEditorDetails = { requestingUrl: 'http://127.0.0.1:7777/editor/test' };
-      
-      // Test media permission (allowed)
-      permissionHandler(mockWebContents, 'media', mockCallback, mockDetails);
-      expect(mockCallback).toHaveBeenCalledWith(true);
-      expect(logMessage).toHaveBeenCalledWith('Permission requested: media from https://example.com');
-      expect(logMessage).toHaveBeenCalledWith('Granting media permission with all capabilities');
-      
-      mockCallback.mockClear();
-      
-      // Test enumerate-devices permission (allowed)
-      permissionHandler(mockWebContents, 'enumerate-devices', mockCallback, mockDetails);
-      expect(mockCallback).toHaveBeenCalledWith(true);
-      expect(logMessage).toHaveBeenCalledWith('Granting permission: enumerate-devices');
-      
-      mockCallback.mockClear();
-      
-      // Test mediaKeySystem permission (allowed)
-      permissionHandler(mockWebContents, 'mediaKeySystem', mockCallback, mockDetails);
-      expect(mockCallback).toHaveBeenCalledWith(true);
-      
-      mockCallback.mockClear();
-
-      // Test clipboard-sanitized-write permission (allowed for trusted local editor origin)
-      permissionHandler(mockWebContents, 'clipboard-sanitized-write', mockCallback, mockLocalEditorDetails);
-      expect(mockCallback).toHaveBeenCalledWith(true);
-      expect(logMessage).toHaveBeenCalledWith('Granting permission: clipboard-sanitized-write');
-      
-      mockCallback.mockClear();
-      
-      // Test denied permission
-      permissionHandler(mockWebContents, 'camera', mockCallback, mockDetails);
-      expect(mockCallback).toHaveBeenCalledWith(false);
-      expect(logMessage).toHaveBeenCalledWith('Denying permission: camera');
+      for (const url of ['http://127.0.0.1:7777/editor/test', 'file:///app/dist-web/index.html']) {
+        expect(request('media', url)).toBe(true);
+        expect(request('enumerate-devices', url)).toBe(true);
+        expect(request('clipboard-sanitized-write', url)).toBe(true);
+      }
+      expect(checkHandler()(null, 'media', 'http://127.0.0.1:7777')).toBe(true);
+      expect(logMessage).toHaveBeenCalledWith('Granting permission: media');
     });
 
-    it('should handle permission checks correctly', () => {
+    it('denies device and clipboard permissions to third-party frames', () => {
       createWindow();
 
-      const setPermissionCheckHandlerCall = (session.defaultSession.setPermissionCheckHandler as jest.Mock).mock.calls[0];
-      const permissionCheckHandler = setPermissionCheckHandlerCall[0];
-      
-      // Test media permission (allowed)
-      const result1 = permissionCheckHandler(null, 'media', 'https://example.com');
-      expect(result1).toBe(true);
-      
-      // Test enumerate-devices permission (allowed)
-      const result2 = permissionCheckHandler(null, 'enumerate-devices', 'https://example.com');
-      expect(result2).toBe(true);
-      
-      // Test mediaKeySystem permission (allowed)
-      const result3 = permissionCheckHandler(null, 'mediaKeySystem', 'https://example.com');
-      expect(result3).toBe(true);
-      
-      // Test clipboard-sanitized-write permission (allowed for trusted local origin)
-      const result4 = permissionCheckHandler(null, 'clipboard-sanitized-write', 'http://127.0.0.1:7777');
-      expect(result4).toBe(true);
-      
-      // Test denied permission
-      const result5 = permissionCheckHandler(null, 'camera', 'https://example.com');
-      expect(result5).toBe(false);
+      for (const url of ['https://example.com', 'http://127.0.0.1:11434/', 'data:text/html,x']) {
+        expect(request('media', url)).toBe(false);
+        expect(request('enumerate-devices', url)).toBe(false);
+        expect(request('clipboard-sanitized-write', url)).toBe(false);
+      }
+      expect(checkHandler()(null, 'media', 'https://example.com')).toBe(false);
+      expect(checkHandler()(null, 'enumerate-devices', 'https://example.com')).toBe(false);
+      expect(logMessage).toHaveBeenCalledWith('Denying permission: media');
+    });
+
+    it('grants fullscreen and mediaKeySystem to any frame', () => {
+      createWindow();
+
+      expect(request('fullscreen', 'https://example.com')).toBe(true);
+      expect(request('mediaKeySystem', 'https://example.com')).toBe(true);
+      expect(checkHandler()(null, 'mediaKeySystem', 'https://example.com')).toBe(true);
+    });
+
+    it('denies permissions outside the allow-lists', () => {
+      createWindow();
+
+      expect(request('camera', 'http://127.0.0.1:7777/')).toBe(false);
+      expect(request('geolocation', 'http://127.0.0.1:7777/')).toBe(false);
+      expect(checkHandler()(null, 'camera', 'https://example.com')).toBe(false);
+    });
+
+    describe('CORS relaxation', () => {
+      const respond = (frame: { url: string } | null | undefined) => {
+        const callback = jest.fn();
+        headersHandler()(
+          { frame, responseHeaders: { 'content-type': ['application/json'] } },
+          callback,
+        );
+        return callback.mock.calls[0][0].responseHeaders;
+      };
+
+      it('adds CORS headers for requests from the app pages', () => {
+        createWindow();
+
+        expect(respond({ url: 'http://127.0.0.1:7777/' })['Access-Control-Allow-Origin']).toEqual(['*']);
+        expect(respond({ url: 'file:///app/dist-web/pages/logs.html' })['Access-Control-Allow-Origin']).toEqual(['*']);
+      });
+
+      it('leaves headers untouched for third-party or frameless requests', () => {
+        createWindow();
+
+        for (const frame of [{ url: 'https://example.com/' }, null, undefined]) {
+          expect(respond(frame)).toEqual({ 'content-type': ['application/json'] });
+        }
+      });
     });
   });
 });

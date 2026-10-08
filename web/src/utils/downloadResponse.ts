@@ -18,7 +18,7 @@ function filenameFromDisposition(
   return fallback;
 }
 
-function triggerDownload(blob: Blob, filename: string): void {
+export function saveBlobAsFile(blob: Blob, filename: string): void {
   const url = URL.createObjectURL(blob);
   const link = document.createElement("a");
   link.href = url;
@@ -37,7 +37,7 @@ export async function saveResponseAsFile(
   fallback: string
 ): Promise<void> {
   const blob = await res.blob();
-  triggerDownload(
+  saveBlobAsFile(
     blob,
     filenameFromDisposition(res.headers.get("content-disposition"), fallback)
   );

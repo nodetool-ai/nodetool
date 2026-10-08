@@ -26,7 +26,7 @@ NodeTool is a visual way to use AI. Instead of writing code, you place boxes on 
 
 ### The agent
 
-The **agent** is the AI assistant in the Chats panel. Give it a goal in plain English, and it figures out the steps to achieve it. It can build workflows, call tools, and edit your documents directly.
+The **agent** is the AI assistant in the Chats panel that turns a goal in plain English into steps. It can build workflows, call tools, and edit your documents directly.
 
 How it differs from a plain chat model:
 
@@ -51,7 +51,9 @@ and has settings that appear in the panel on the right when you click it.
 
 ### Workflows
 
-A **workflow** is a set of nodes joined by lines. When you run it, your input
+A **workflow** is a set of nodes joined by connections that you run as one unit.
+
+When you run it, your input
 enters on the left, each node starts as soon as everything it needs has arrived,
 and results appear on the right as they are produced.
 
@@ -67,10 +69,14 @@ material for one of the other editors below.
 
 ### Connections
 
-The lines between nodes. Drag from a node's output on the right to another
-node's input on the left. NodeTool checks that the two ends match, so an image
-output only connects to an input that accepts images and you can't wire
-something nonsensical. Hover over a line to see what is passing through it.
+A **connection** is a line that carries one node's output into another node's
+input.
+
+Drag from a node's output on the right to another node's input on the left.
+NodeTool checks that the two ends match, so an image output only connects to an
+input that accepts images and you can't wire something nonsensical. Hover over
+a line to see what is passing through it. The full list of types and the
+conversion rules are in [Data Types and Connections]({{ '/data-types' | relative_url }}).
 
 ### Assets
 
@@ -117,17 +123,21 @@ Timelines are where results become finished media:
 
 ### Agent nodes
 
-The agent above builds workflows. An **Agent node** is an agent placed _inside_
-one: it takes a goal written in plain English, works out the steps itself, and
-uses tools such as web search, file access, or running code to get there. Use
-one when a step of your pipeline is describable but not scriptable. A normal
+An **Agent node** is an agent placed _inside_ a workflow, as opposed to the
+agent above, which builds workflows.
+
+It takes a goal written in plain English, works out the steps itself, and uses
+tools such as web search, file access, or running code to get there. Use one
+when a step of your pipeline is describable but not scriptable. A normal
 node does one fixed thing; an Agent node decides what to do.
 
 ### Mini-Apps
 
 A **Mini-App** is a form or dashboard built on top of one or more workflows,
-with the nodes and lines hidden. Create and open them from the Apps panel in the left sidebar. Give
-one to someone who should never have to look at a canvas. See
+with the nodes and lines hidden.
+
+Create and open them from the Apps panel in the left sidebar. Give one to
+someone who should never have to look at a canvas. See
 [Mini Apps](mini-apps.md).
 
 ---
@@ -178,7 +188,7 @@ B --> F[Mini-App]
 
 ## Models
 
-A **model** is a trained AI you call from a node. You don't train it; you use
+A **model** is a trained AI you call from a node. You don't train it, you use
 it.
 
 | Kind of model | Produces | Used for                      |
@@ -248,9 +258,10 @@ D --> F[Preview: Text]
 Here the Agent goes first. Text To Image and Summarizer both wait only on the
 Agent, so once it finishes they run side by side.
 
-Data always flows one way and a workflow can never loop back on itself. That
-restriction is what lets NodeTool figure out the running order for you, so you
-never specify it.
+Data flows one way, so NodeTool works out the running order for you. The editor
+refuses a connection that would close a cycle. The one exception is a Loop node,
+whose feedback inputs can take a value back from later in the graph. See
+the [Loop node reference]({{ '/nodes/nodetool/control/loop' | relative_url }}).
 
 ---
 
@@ -282,16 +293,13 @@ See the [Developer Guide](developer/) and
 
 ---
 
-## Next
+## Next steps
 
-- [Quick Start](getting-started.md) — run something in 10 minutes
-- [Chat](global-chat.md) — the agent, its tools, and permission modes
-- [Glossary](glossary.md) — single-word definitions
-- [Workflow Editor](workflow-editor.md)
-- [Asset Management](asset-management.md)
-- [Sketch Editor](sketch-editor.md)
-- [Video Editor](video-editor.md)
-- [3D Editor](3d-editor.md)
-- [Game Editor](game-editor.md)
-- [Models & Providers](models-and-providers.md)
-- [Cookbook](cookbook.md)
+<div class="card-grid">
+  <a class="doc-card" href="{{ '/getting-started' | relative_url }}"><strong>Quick Start</strong><span>Turn one sentence into a finished video.</span></a>
+  <a class="doc-card" href="{{ '/first-workflow' | relative_url }}"><strong>Your First Workflow</strong><span>Build a four-node image workflow from an empty canvas.</span></a>
+  <a class="doc-card" href="{{ '/global-chat' | relative_url }}"><strong>Chat</strong><span>The agent, its tools, and permission modes.</span></a>
+  <a class="doc-card" href="{{ '/models-and-providers' | relative_url }}"><strong>Models &amp; Providers</strong><span>Choose models or run them locally.</span></a>
+</div>
+
+Looking up a word? The [Glossary](glossary.md) has single-word definitions.

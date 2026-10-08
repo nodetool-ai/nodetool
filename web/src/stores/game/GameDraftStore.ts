@@ -29,6 +29,8 @@ interface GameDraftState {
   baseUpdatedAt: string | null;
   pendingOps: GameDocumentOp[];
   savingCount: number;
+  /** Set after the server rejected an op batch. The next save sends the whole document instead. */
+  documentSaveRequired: boolean;
   saveStatus: GameSaveStatus;
   error: string | null;
   selectedIds: string[];
@@ -46,6 +48,9 @@ interface GameDraftState {
   reportOperationError: (error: string) => void;
   setSaving: (count: number) => void;
   captureSaveOps: () => GameDocumentOp[];
+  /** Protect every pending op and return the document they produce. */
+  captureSaveDocument: () => { count: number; document: GameDocument } | null;
+  requireDocumentSave: () => void;
   select: (id: string, additive?: boolean) => void;
   selectMany: (ids: string[], additive?: boolean) => void;
   undo: () => void;
@@ -114,12 +119,12 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
   let lastScriptQueue: { key: string; before: GameDocument; start: number } | null = null;
   function closeCoalescing(): void { gesture = null; lastScriptEdit = null; lastScriptQueue = null; }
   const store = createStore<GameDraftState>()((set, get) => ({
-    document: null, savedDocument: null, baseUpdatedAt: null, pendingOps: [], savingCount: 0,
+    document: null, savedDocument: null, baseUpdatedAt: null, pendingOps: [], savingCount: 0, documentSaveRequired: false,
     saveStatus: "saved", error: null, selectedIds: [], ...historyState([], []),
     load: (document, baseUpdatedAt) => {
       retryPrefixCount = 0;
       closeCoalescing();
-      set({ document, savedDocument: document, baseUpdatedAt, pendingOps: [], savingCount: 0,
+      set({ document, savedDocument: document, baseUpdatedAt, pendingOps: [], savingCount: 0, documentSaveRequired: false,
         saveStatus: "saved", error: null, ...historyState([], []) });
     },
     applyMerged: (document, server, baseUpdatedAt) => {
@@ -132,7 +137,7 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
       validateReplay(server, pendingOps, validation.document);
       retryPrefixCount = 0;
       closeCoalescing();
-      set({ document: validation.document, savedDocument: server, baseUpdatedAt, pendingOps, savingCount: 0,
+      set({ document: validation.document, savedDocument: server, baseUpdatedAt, pendingOps, savingCount: 0, documentSaveRequired: false,
         saveStatus: pendingOps.length ? "unsaved" : "saved", error: null, ...historyState([], []) });
     },
     acceptConflict: (server, kind, unitId) => {
@@ -188,7 +193,7 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
           ? { ...lastScriptQueue, start: lastScriptQueue.start - savedCount } : null;
       }
       const remaining = get().pendingOps.slice(savedCount);
-      set({ savedDocument: document, baseUpdatedAt, pendingOps: remaining, savingCount: 0,
+      set({ savedDocument: document, baseUpdatedAt, pendingOps: remaining, savingCount: 0, documentSaveRequired: false,
         document: remaining.length === 0 ? document : get().document,
         saveStatus: remaining.length === 0 ? "saved" : "unsaved", error: null });
     },
@@ -202,6 +207,12 @@ export function getGameDraftStore(gameId: string): GameDraftStore {
       const protectedCount = Math.max(state.savingCount, retryPrefixCount);
       return structuredClone(protectedCount > 0 ? state.pendingOps.slice(0, protectedCount) : state.pendingOps);
     },
+    captureSaveDocument: () => {
+      const state = get();
+      if (!state.document || state.pendingOps.length === 0) { return null; }
+      return { count: state.pendingOps.length, document: structuredClone(state.document) };
+    },
+    requireDocumentSave: () => { set({ documentSaveRequired: true }); },
     setSaving: (count) => { set({ saveStatus: "saving", savingCount: count }); },
     select: (id, additive = false) => {
       const selectedIds = additive

@@ -13,7 +13,7 @@ import {
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { productionRequirement } from "@nodetool-ai/protocol";
+import { productionRequirement, type Entity } from "@nodetool-ai/protocol";
 import mockTheme from "../../../../__mocks__/themeMock";
 
 jest.mock("../../../../hooks/storyboard/useStoryboards", () => ({
@@ -84,7 +84,11 @@ jest.mock("../LookStep", () => ({
 }));
 
 import { useStoryboardStore } from "../../../../stores/storyboard/StoryboardStore";
-import { clearSetupReports, directionFingerprint } from "../setupChoices";
+import {
+  clearSetupReports,
+  directionFingerprint,
+  getPreviousScreenplay
+} from "../setupChoices";
 import { SetupFlow } from "../../SetupFlow";
 import {
   newStoryboardSetupDocument,
@@ -235,6 +239,41 @@ describe("useStoryboardSetupFlow", () => {
     );
     expect(generate).not.toHaveBeenCalled();
   });
+  it("keeps a reviewed plan reviewed when entities and a style are picked", async () => {
+    seedStepValues();
+    seedScreenplay();
+    useStoryboardStore.getState().setSetup(BOARD_ID, {
+      creative_context: { schema_version: 1, tone: "Direct" }
+    });
+    const hook = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    await act(async () => hook.result.current.steps[2].onAdvance?.());
+    expect(hook.result.current.steps[4].canAdvance).toBe(true);
+
+    const style: Entity = {
+      type: "entity",
+      id: "e-noir",
+      kind: "style",
+      name: "Noir",
+      descriptor: "high-contrast noir"
+    };
+    act(() => {
+      const store = useStoryboardStore.getState();
+      // What the entities step writes for one pick, and the look step for a
+      // style tile.
+      store.setEntityIds(BOARD_ID, ["e-marta"]);
+      store.updateShot(BOARD_ID, "s1", { entity_ids: ["e-marta"] });
+      store.setStylePreset(BOARD_ID, "e-noir", [style]);
+    });
+
+    expect(
+      useStoryboardStore.getState().getBoard(BOARD_ID)?.shots[0].entity_ids
+    ).toEqual(["e-marta", "e-noir"]);
+    expect(hook.result.current.steps[4].canAdvance).toBe(true);
+    expect(hook.result.current.steps[4].blockedReason).toBeUndefined();
+  });
+
   // F23: the price is beside the button, not inside its name.
   it("puts the measured render price beside the spending button", () => {
     renderPrice = "6 stills · about $0.018";
@@ -563,6 +602,49 @@ describe("useStoryboardSetupFlow", () => {
       void review?.onCancel?.();
     });
     expect(signal?.aborted).toBe(true);
+  });
+
+  it("asks for and names the board's own length when rewriting", () => {
+    seedScreenplay();
+    const { result } = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    const review = result.current.steps.find((step) => step.stage === "review");
+    const body = review?.render() as {
+      props: { onRewrite: () => void };
+    };
+    act(() => {
+      body.props.onRewrite();
+    });
+
+    expect(direct).toHaveBeenCalledWith(BOARD_ID, 1, expect.any(AbortSignal));
+    expect(review?.pendingLabel).toBe("Rewriting 1 shots");
+  });
+
+  // F15: the undo belongs to a rewrite that replaced something. A failed or
+  // canceled run replaced nothing, so the earlier undo stays as it was.
+  it("keeps the undo snapshot only when a rewrite lands", async () => {
+    seedScreenplay();
+    const { result } = renderHook(() =>
+      useStoryboardSetupFlow({ boardId: BOARD_ID })
+    );
+    const rewrite = (): void => {
+      const review = result.current.steps.find(
+        (step) => step.stage === "review"
+      );
+      const body = review?.render() as {
+        props: { onRewrite: () => void };
+      };
+      body.props.onRewrite();
+    };
+
+    direct.mockResolvedValue(false);
+    await act(async () => rewrite());
+    expect(getPreviousScreenplay(BOARD_ID)).toBeUndefined();
+
+    direct.mockResolvedValue(true);
+    await act(async () => rewrite());
+    expect(getPreviousScreenplay(BOARD_ID)?.shots[0].action).toBe("a lamp");
   });
 
   // F9: a creation started on the entities step holds the step until it

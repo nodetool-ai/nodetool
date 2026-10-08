@@ -1,173 +1,74 @@
 /**
  * StoryboardEntitiesField — the board's cast & ingredients: which library
  * entities (characters, locations, styles, props) season every shot prompt.
- * Selected entities render as avatar chips; "Add" opens a picker over the
- * entity library. Styles and locations apply to every shot; characters and
- * props activate on the shots that mention them by name (with a per-shot
- * override on each card).
+ * They show as the same reference-image tiles as a shot's entities. Styles
+ * and locations apply to every shot; characters and props activate on the
+ * shots that mention them by name (with a per-shot override in the shot
+ * editor). A pick in the library adds the entity to the board, or takes it
+ * off when it is already there.
  */
 
-import React, { memo, useCallback, useMemo, useRef, useState } from "react";
-import AddIcon from "@mui/icons-material/Add";
+import React, { memo, useCallback, useMemo } from "react";
 import type { Entity } from "@nodetool-ai/protocol";
 
-import {
-  Box,
-  Caption,
-  Chip,
-  EditorButton,
-  FlexColumn,
-  FlexRow,
-  MenuItemPrimitive,
-  Popover,
-  Text,
-  BORDER_RADIUS
-} from "../ui_primitives";
 import { useEntities } from "../../serverState/useEntities";
 import { useStoryboardStore } from "../../stores/storyboard/StoryboardStore";
-import {
-  ENTITY_KIND_ICON,
-  getEntityKindChipSx
-} from "../entities/entityKind";
-import { useResolvedThumbnailUri } from "../../hooks/useResolvedMediaUri";
+import EntityTilesField from "./EntityTilesField";
 
 interface StoryboardEntitiesFieldProps {
   boardId: string;
   entityIds: string[];
+  readOnly?: boolean;
 }
 
-/** Round reference-image avatar with the kind icon as its empty state. */
-const EntityAvatar: React.FC<{ entity: Entity; size?: number }> = ({
-  entity,
-  size = 20
-}) => {
-  // A reference image is an `asset://` locator by construction — it needs the
-  // asset's own URL before an <img> can load it. At 20-24px the avatar takes
-  // the server's 512px thumbnail, not the multi-megabyte reference still.
-  const thumb = useResolvedThumbnailUri(entity.reference_images?.[0]);
-  const Icon = ENTITY_KIND_ICON[entity.kind];
-  const frameSx = {
-    width: size,
-    height: size,
-    borderRadius: BORDER_RADIUS.circle,
-    flex: "0 0 auto",
-    overflow: "hidden"
-  } as const;
-  return thumb ? (
-    <Box
-      component="img"
-      src={thumb}
-      alt=""
-      sx={{ ...frameSx, objectFit: "cover" }}
-    />
-  ) : (
-    <FlexRow
-      align="center"
-      justify="center"
-      sx={{ ...frameSx, fontSize: size }}
-    >
-      <Icon sx={{ fontSize: "0.7em" }} />
-    </FlexRow>
-  );
-};
+const removeLabel = (name: string): string => `Remove ${name} from the board`;
 
 const StoryboardEntitiesFieldInner: React.FC<StoryboardEntitiesFieldProps> = ({
   boardId,
-  entityIds
+  entityIds,
+  readOnly
 }) => {
   const { data: allEntities } = useEntities();
   const setEntityIds = useStoryboardStore((state) => state.setEntityIds);
-  const [pickerOpen, setPickerOpen] = useState(false);
-  const addButtonRef = useRef<HTMLButtonElement | null>(null);
 
-  const { selected, available } = useMemo(() => {
-    const entities = allEntities ?? [];
-    const idSet = new Set(entityIds);
-    const byId = new Map(entities.map((e) => [e.id, e]));
-    return {
-      selected: entityIds
-        .map((id) => byId.get(id))
-        .filter((e): e is Entity => !!e),
-      available: entities.filter((e) => !idSet.has(e.id))
-    };
+  const selected = useMemo(() => {
+    const byId = new Map((allEntities ?? []).map((e) => [e.id, e]));
+    return entityIds
+      .map((id) => byId.get(id))
+      .filter((e): e is Entity => !!e);
   }, [allEntities, entityIds]);
 
   const handleRemove = useCallback(
-    (id: string) =>
+    (entity: Entity) =>
       setEntityIds(
         boardId,
-        entityIds.filter((existing) => existing !== id)
+        entityIds.filter((existing) => existing !== entity.id)
       ),
     [setEntityIds, boardId, entityIds]
   );
 
-  const handleAdd = useCallback(
-    (id: string) => {
-      setEntityIds(boardId, [...entityIds, id]);
-      setPickerOpen(false);
-    },
+  const handlePick = useCallback(
+    (entity: Entity) =>
+      setEntityIds(
+        boardId,
+        entityIds.includes(entity.id)
+          ? entityIds.filter((existing) => existing !== entity.id)
+          : [...entityIds, entity.id]
+      ),
     [setEntityIds, boardId, entityIds]
   );
 
   return (
-    <FlexRow gap={1} align="center" wrap className="storyboard-entities">
-      {selected.map((entity) => (
-        <Chip
-          key={entity.id}
-          label={entity.name || "Untitled"}
-          variant="outlined"
-          icon={<EntityAvatar entity={entity} />}
-          title={entity.descriptor || entity.name}
-          onDelete={() => handleRemove(entity.id)}
-          sx={getEntityKindChipSx(entity.kind)}
-        />
-      ))}
-      <EditorButton
-        ref={addButtonRef}
-        variant="outlined"
-        startIcon={<AddIcon />}
-        onClick={() => setPickerOpen(true)}
-      >
-        {selected.length === 0 ? "Add entities" : "Add"}
-      </EditorButton>
-
-      <Popover
-        open={pickerOpen}
-        anchorEl={addButtonRef.current}
-        onClose={() => setPickerOpen(false)}
-        placement="bottom-left"
-        maxHeight={320}
-        maxWidth={360}
-      >
-        {available.length === 0 ? (
-          <FlexColumn gap={1} sx={{ p: 2, maxWidth: 280 }}>
-            <Text size="small">
-              {(allEntities ?? []).length === 0
-                ? "No entities yet."
-                : "All entities are already on this board."}
-            </Text>
-            {(allEntities ?? []).length === 0 && (
-              <Caption color="secondary">
-                Tag an image as a character, location, style, or prop in the
-                Entities library, then add it here for consistent shots.
-              </Caption>
-            )}
-          </FlexColumn>
-        ) : (
-          available.map((entity) => (
-            <MenuItemPrimitive
-              key={entity.id}
-              label={entity.name || "Untitled"}
-              secondary={`${entity.kind}${
-                entity.descriptor ? ` · ${entity.descriptor}` : ""
-              }`}
-              icon={<EntityAvatar entity={entity} size={24} />}
-              onClick={() => handleAdd(entity.id)}
-            />
-          ))
-        )}
-      </Popover>
-    </FlexRow>
+    <EntityTilesField
+      data-testid="storyboard-entities"
+      entities={selected}
+      selectedIds={entityIds}
+      onPick={handlePick}
+      onRemove={handleRemove}
+      removeLabel={removeLabel}
+      emptyText="No entities yet. Choose a character, location, style or prop to keep it consistent across shots."
+      readOnly={readOnly}
+    />
   );
 };
 

@@ -89,3 +89,33 @@ it("waits before loading a third model while two contexts are busy", async () =>
   expect(release).toHaveBeenCalledOnce();
   await cache.dispose();
 });
+it("evicts an idle model instead of waiting for a busy older one", async () => {
+  const releases = { a: vi.fn(async () => {}), b: vi.fn(async () => {}) };
+  mocks.init
+    .mockResolvedValueOnce({ release: releases.a })
+    .mockResolvedValueOnce({ release: releases.b })
+    .mockResolvedValue({ release: async () => {} });
+  const cache = new ContextCache();
+  let finish: (() => void) | undefined;
+  const wait = new Promise<void>((resolve) => {
+    finish = resolve;
+  });
+  let started: (() => void) | undefined;
+  const start = new Promise<void>((resolve) => {
+    started = resolve;
+  });
+  // A loads first and stays busy; B loads later and goes idle.
+  const a = cache.withContext("a", "default", false, async () => {
+    started?.();
+    await wait;
+  });
+  await start;
+  await cache.withContext("b", "default", false, async () => {});
+  // C must evict idle B and run while A is still busy.
+  await cache.withContext("c", "default", false, async () => {});
+  expect(releases.b).toHaveBeenCalledOnce();
+  expect(releases.a).not.toHaveBeenCalled();
+  finish?.();
+  await a;
+  await cache.dispose();
+});

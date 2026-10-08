@@ -8,6 +8,7 @@ import { discoverASRModels, discoverVadModels } from "@nodetool-ai/whisper-cpp";
 import {
   getProvider,
   getRegisteredProvider,
+  imageModelTasks,
   isProviderConfigured,
   listRegisteredProviderIds,
   RECOMMENDED_MODELS,
@@ -881,7 +882,10 @@ function toUnifiedModel(
             : null
         }
       : null,
-    supported_tasks: model.supportedTasks ?? null,
+    supported_tasks:
+      (type === "image_model"
+        ? imageModelTasks(model)
+        : model.supportedTasks) ?? null,
     durations: model.durations ?? null,
     resolutions: model.resolutions ?? null,
     aspect_ratios: model.aspectRatios ?? null,

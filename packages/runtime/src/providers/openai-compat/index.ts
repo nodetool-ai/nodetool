@@ -1,4 +1,8 @@
-export { OpenAICompatClient, trimTrailingSlashes } from "./client.js";
+export {
+  OpenAICompatClient,
+  localServerRoot,
+  trimTrailingSlashes
+} from "./client.js";
 export type {
   OpenAICompatClientOptions,
   RequestOptions

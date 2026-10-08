@@ -25,6 +25,9 @@ type AsrResult = {
 };
 
 const WHISPER_SAMPLING_RATE = 16000;
+/** Whisper's feature extractor keeps only the first 30 s of a single input. */
+const WHISPER_WINDOW_S = 30;
+const WHISPER_STRIDE_S = 5;
 
 /** Output handles AutomaticSpeechRecognitionNode.process() emits. */
 type AutomaticSpeechRecognitionNodeOutputs = {
@@ -134,6 +137,10 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     const opts: Record<string, unknown> = {
       return_timestamps: Boolean(this.return_timestamps)
     };
+    if (samples.length > WHISPER_WINDOW_S * WHISPER_SAMPLING_RATE) {
+      opts.chunk_length_s = WHISPER_WINDOW_S;
+      opts.stride_length_s = WHISPER_STRIDE_S;
+    }
     if (!isEnglishOnlyWhisper(repoId)) {
       const language = asString(this.language);
       if (language) opts.language = language;

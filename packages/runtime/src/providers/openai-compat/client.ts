@@ -25,7 +25,10 @@ export interface OpenAICompatClientOptions {
    * migrated providers previously relied on.
    */
   maxRetries?: number;
-  /** Time-to-response-headers cap. Defaults to 600s (the `openai` SDK value). */
+  /**
+   * Time-to-response-headers cap. Defaults to 600s (the `openai` SDK value).
+   * It does not apply while the body is read.
+   */
   timeoutMs?: number;
 }
 
@@ -43,6 +46,18 @@ export function trimTrailingSlashes(url: string): string {
   let end = url.length;
   while (end > 0 && url[end - 1] === "/") end -= 1;
   return url.slice(0, end);
+}
+
+/**
+ * Server root for a local OpenAI-compatible server (vLLM, LM Studio,
+ * llama-server). Users often paste the OpenAI-SDK form ending in `/v1`; the
+ * providers append `/v1` themselves, so strip it to avoid `/v1/v1`.
+ */
+export function localServerRoot(url: string): string {
+  const trimmed = trimTrailingSlashes(url.trim());
+  return trimmed.toLowerCase().endsWith("/v1")
+    ? trimTrailingSlashes(trimmed.slice(0, -3))
+    : trimmed;
 }
 
 function isRetryableStatus(status: number): boolean {
@@ -122,10 +137,20 @@ export class OpenAICompatClient {
     for (let attempt = 0; ; attempt++) {
       options.signal?.throwIfAborted();
 
-      const timeout = AbortSignal.timeout(this._timeoutMs);
+      // The timeout covers the wait for response headers only. It is cleared
+      // once they arrive, so a long streamed generation (a CPU-bound local
+      // server) is never cut off mid-body.
+      const timeout = new AbortController();
+      const timer = setTimeout(
+        () =>
+          timeout.abort(
+            new DOMException("The operation timed out.", "TimeoutError")
+          ),
+        this._timeoutMs
+      );
       const signal = options.signal
-        ? AbortSignal.any([options.signal, timeout])
-        : timeout;
+        ? AbortSignal.any([options.signal, timeout.signal])
+        : timeout.signal;
 
       let response: Response;
       try {
@@ -141,6 +166,8 @@ export class OpenAICompatClient {
         if (attempt >= this._maxRetries) throw error;
         await sleep(backoffMs(attempt));
         continue;
+      } finally {
+        clearTimeout(timer);
       }
 
       if (response.ok) return response;

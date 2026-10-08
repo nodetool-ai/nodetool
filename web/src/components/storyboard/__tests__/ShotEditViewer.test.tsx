@@ -8,7 +8,7 @@
  * which store write the result lands through.
  */
 import React from "react";
-import { render, screen, waitFor } from "@testing-library/react";
+import { act, render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { ThemeProvider } from "@mui/material/styles";
 import type { ImageRef, Shot } from "@nodetool-ai/protocol";
@@ -45,6 +45,7 @@ jest.mock("../../../serverState/useAssetUpload", () => ({
 import ShotEditViewer from "../ShotEditViewer";
 import { useStoryboardStore } from "../../../stores/storyboard/StoryboardStore";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
+import { useStoryboardGenerationStore } from "../../../stores/storyboard/StoryboardGenerationStore";
 
 const BOARD = "board-viewer";
 
@@ -98,6 +99,7 @@ beforeEach(() => {
 
 afterEach(() => {
   useStoryboardStore.getState().removeBoard(BOARD);
+  useStoryboardGenerationStore.setState({ shotJobs: {}, jobToShot: {} });
 });
 
 describe("ShotEditViewer keyboard", () => {
@@ -191,6 +193,25 @@ describe("ShotEditViewer versions (criterion 15)", () => {
     );
     expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("1 / 2");
     expect(storedShot().keyframe?.asset_id).toBe("still-2");
+  });
+
+  it("shows a take that lands while open, without making it current", () => {
+    const { rerender } = renderViewer(seedShot());
+    act(() => {
+      useStoryboardStore
+        .getState()
+        .appendShotKeyframeVersion(BOARD, "shot-1", image("still-edit"));
+    });
+    rerender(
+      <ThemeProvider theme={mockTheme}>
+        <ShotEditViewer boardId={BOARD} shot={storedShot()} />
+      </ThemeProvider>
+    );
+    expect(screen.getByTestId("shot-version-pager")).toHaveTextContent("2 / 2");
+    expect(
+      screen.getByText("Previewing take 2. Take 1, current still")
+    ).toBeInTheDocument();
+    expect(storedShot().keyframe?.asset_id).toBe("still-1");
   });
 
   it("adds the flip as a new take, leaving the still it mirrored in place", async () => {
@@ -292,5 +313,41 @@ describe("ShotEditViewer versions (criterion 15)", () => {
     expect(onBeforeImageEditor).toHaveBeenCalled();
     expect(copiedStillMock).not.toHaveBeenCalled();
     expect(uploadAssetMock).not.toHaveBeenCalled();
+  });
+});
+
+describe("ShotEditViewer generation overlay", () => {
+  it("covers the stage while the shot's still job runs", () => {
+    useStoryboardGenerationStore.setState({
+      shotJobs: {
+        "shot-1": {
+          shotId: "shot-1",
+          boardId: BOARD,
+          jobId: "job-1",
+          kind: "keyframe",
+          status: "running"
+        }
+      },
+      jobToShot: { "job-1": "shot-1" }
+    });
+    renderViewer(seedShot());
+    expect(screen.getByTestId("shot-edit-generating")).toBeInTheDocument();
+    expect(screen.getByTestId("shot-edit-stage")).toHaveAttribute(
+      "aria-busy",
+      "true"
+    );
+  });
+
+  it("covers the stage while the shot renders", () => {
+    renderViewer(seedShot({ status: "keyframe_generating" }));
+    expect(screen.getByTestId("shot-edit-generating")).toBeInTheDocument();
+  });
+
+  it("shows the still bare once nothing runs", () => {
+    renderViewer(seedShot());
+    expect(screen.queryByTestId("shot-edit-generating")).toBeNull();
+    expect(screen.getByTestId("shot-edit-stage")).not.toHaveAttribute(
+      "aria-busy"
+    );
   });
 });

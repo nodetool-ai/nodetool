@@ -12,7 +12,19 @@ import {
 } from "../../hooks/browser/useVideoRecorder";
 import Select from "../inputs/Select";
 
-const VideoRecorder = (props: VideoRecorderProps) => {
+interface VideoRecorderViewProps extends VideoRecorderProps {
+  /**
+   * Render nothing when the machine reports no camera. A drop zone offers the
+   * camera as a second way in, so on a machine without one it should not
+   * show a control that can only fail.
+   */
+  hideWhenUnavailable?: boolean;
+}
+
+const VideoRecorder = ({
+  hideWhenUnavailable = false,
+  ...props
+}: VideoRecorderViewProps) => {
   const theme = useTheme();
   const {
     error,
@@ -128,6 +140,10 @@ const VideoRecorder = (props: VideoRecorderProps) => {
         lineHeight: "1.1em"
       }
     });
+
+  if (hideWhenUnavailable && videoInputDevices.length === 0 && !isPreviewing) {
+    return null;
+  }
 
   return (
     <Box className="videorecorder" css={styles(theme)}>

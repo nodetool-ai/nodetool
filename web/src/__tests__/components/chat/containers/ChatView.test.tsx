@@ -644,8 +644,12 @@ describe("ChatView", () => {
       );
     });
 
-    it("retries with the last user message's content", async () => {
+    it("retries by rewinding to the last user message and sending it again", async () => {
       seedThreadError("thread-1", "Provider refused the request");
+      const rewindThread = jest.fn().mockResolvedValue(undefined);
+      act(() => {
+        useGlobalChatStore.setState({ rewindThread });
+      });
 
       renderWithProviders(
         <ChatView {...baseProps} threadId="thread-1" messages={conversation} />
@@ -653,11 +657,16 @@ describe("ChatView", () => {
 
       await userEvent.click(screen.getByRole("button", { name: "Retry" }));
 
-      expect(mockSendMessage).toHaveBeenCalledWith(
-        expect.objectContaining({
-          role: "user",
-          content: [{ type: "text", text: "First ask" }]
-        })
+      // The failed turn leaves the history before it is sent again, so the
+      // thread does not end up holding the same question twice.
+      expect(rewindThread).toHaveBeenCalledWith("thread-1", "1");
+      await waitFor(() =>
+        expect(mockSendMessage).toHaveBeenCalledWith(
+          expect.objectContaining({
+            role: "user",
+            content: [{ type: "text", text: "First ask" }]
+          })
+        )
       );
     });
 

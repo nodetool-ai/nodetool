@@ -255,3 +255,28 @@ describe("HTTP API: metadata + workflows", () => {
     expect(publicGetPrivate.status).toBe(404);
   });
 });
+
+describe("HTTP API: example apps", () => {
+  const exampleAppsDir = path.resolve(
+    import.meta.dirname,
+    "../../base-nodes/nodetool/examples/apps"
+  );
+
+  it("serves one example app bundle by slug, as the test UI server opens it", async () => {
+    const response = await handleApiRequest(
+      new Request("http://localhost/api/applications/examples/model-arena"),
+      { exampleAppsDir }
+    );
+    expect(response.status).toBe(200);
+    const bundle = (await jsonBody(response)) as { name: string };
+    expect(bundle.name).toBe("Model Arena");
+  });
+
+  it("404s a slug that names no shipped app", async () => {
+    const response = await handleApiRequest(
+      new Request("http://localhost/api/applications/examples/not-an-app"),
+      { exampleAppsDir }
+    );
+    expect(response.status).toBe(404);
+  });
+});

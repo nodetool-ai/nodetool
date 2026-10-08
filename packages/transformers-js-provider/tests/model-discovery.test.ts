@@ -8,7 +8,7 @@ vi.mock("@nodetool-ai/transformers-js-nodes", async () => {
     recommendedFor: (type: string) => {
       const M: Record<string, Array<{ repo_id: string }>> = {
         "tjs.text_generation": [
-          { repo_id: "onnx-community/Qwen3.5-2B-ONNX" },
+          { repo_id: "onnx-community/Qwen3-1.7B-ONNX" },
           { repo_id: "HuggingFaceTB/SmolLM3-3B-ONNX" }
         ],
         "tjs.text_to_speech": [
@@ -33,7 +33,7 @@ vi.mock("@nodetool-ai/transformers-js-nodes", async () => {
     },
     scanTransformersJsCache: vi.fn(async () => [
       { repo_id: "onnx-community/Kokoro-82M-v1.0-ONNX", size_bytes: 100 },
-      { repo_id: "onnx-community/Qwen3.5-2B-ONNX", size_bytes: 200 }
+      { repo_id: "onnx-community/Qwen3-1.7B-ONNX", size_bytes: 200 }
     ])
   };
 });
@@ -53,7 +53,7 @@ describe("model-discovery", () => {
   it("language models include all recommended text-generation repos", async () => {
     const models = await discoverLanguageModels();
     const ids = models.map((m) => m.id);
-    expect(ids).toContain("onnx-community/Qwen3.5-2B-ONNX");
+    expect(ids).toContain("onnx-community/Qwen3-1.7B-ONNX");
     expect(ids).toContain("HuggingFaceTB/SmolLM3-3B-ONNX");
     for (const m of models) {
       expect(m.provider).toBe("transformers_js");
@@ -116,7 +116,7 @@ describe("model-discovery", () => {
   it("does not duplicate when a repo is both recommended and cached", async () => {
     const lang = await discoverLanguageModels();
     const occurrences = lang.filter(
-      (m) => m.id === "onnx-community/Qwen3.5-2B-ONNX"
+      (m) => m.id === "onnx-community/Qwen3-1.7B-ONNX"
     );
     expect(occurrences).toHaveLength(1);
   });

@@ -11,8 +11,33 @@ import type { PlanReviewField } from "../PlanReview";
 export const REVIEW_REQUIRED =
   "Production context changed. Return to the plan, review it, and continue to Look.";
 
-export function productionReviewFingerprint(context: unknown): string {
-  return deterministicFingerprint(context);
+/** Drop one field from every object in a list, leaving anything else as is. */
+const withoutField = (items: unknown, field: string): unknown =>
+  Array.isArray(items)
+    ? items.map((item: unknown) => {
+        if (typeof item !== "object" || item === null || !(field in item)) {
+          return item;
+        }
+        const rest: Record<string, unknown> = { ...item };
+        delete rest[field];
+        return rest;
+      })
+    : items;
+
+/**
+ * What the creator reviewed, as one comparable string. Steps after the review
+ * write a shot's `entity_ids` (entity and style picks) and a beat's `clip_id`
+ * (Generate links each beat to its clip before the jobs start). Neither changes
+ * the reviewed production, so neither may send the creator back to review.
+ */
+export function productionReviewFingerprint(
+  context: Readonly<Record<string, unknown>>
+): string {
+  return deterministicFingerprint({
+    ...context,
+    shots: withoutField(context.shots, "entity_ids"),
+    beats: withoutField(context.beats, "clip_id")
+  });
 }
 
 export function reviewFingerprintOf(value: unknown): string | undefined {

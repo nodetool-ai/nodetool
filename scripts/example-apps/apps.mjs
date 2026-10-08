@@ -17,10 +17,17 @@
 //              mapping are displayed.
 //   sections   [ { title, op?, controls: [...], results: [...] } ]
 //   content    Optional authored widget tree, used instead of sections.
-//   steps      `true` shows one section at a time behind a Stepper. Each
-//              section then needs a unique `key`, may carry an `intro` and a
-//              `nextWhen` variable that must be filled before Next, and the
-//              app declares a `step` variable whose default is the first key.
+//   steps      `true` shows one section at a time behind a Stepper. A
+//              section's `key` defaults to its slugified title, and the build
+//              declares the `step` variable unless the app does. A section may
+//              carry an `intro` and a `nextWhen` variable that must be filled
+//              before Next. Use it when sections run in order.
+//   layout     "tabs" puts each section on its own tab (at most three), for
+//              sections that are alternatives rather than steps.
+//
+// Model pickers for the graph's own model nodes are generated per section and
+// placed above its first run button. Two or more fold into a closed "Models"
+// accordion.
 //
 // Control kinds: input, text, model, number, slider, select, image, video, audio,
 // switch, color, run, note. Result kinds: progress, activity, transcript, error, show, showVar,
@@ -73,6 +80,7 @@ export const EXAMPLE_APPS = [
   // ── 1 ──────────────────────────────────────────────────────────────────────
   {
     slug: "photo-studio",
+    layout: "tabs",
     name: "Photo Studio",
     emoji: "📸",
     featured: true,
@@ -130,6 +138,7 @@ export const EXAMPLE_APPS = [
   // ── 3 ──────────────────────────────────────────────────────────────────────
   {
     slug: "concept-studio",
+    steps: true,
     name: "Concept Studio",
     emoji: "🖌️",
     featured: true,
@@ -226,6 +235,7 @@ export const EXAMPLE_APPS = [
   // ── 6 ──────────────────────────────────────────────────────────────────────
   {
     slug: "brand-and-social",
+    steps: true,
     name: "Brand & Social",
     emoji: "🎨",
     featured: true,
@@ -342,6 +352,7 @@ export const EXAMPLE_APPS = [
   // ── 7 ──────────────────────────────────────────────────────────────────────
   {
     slug: "product-launch-kit",
+    steps: true,
     name: "Product Launch Kit",
     emoji: "📦",
     tagline: "One product photo in, mockups and a launch video out.",
@@ -413,6 +424,7 @@ export const EXAMPLE_APPS = [
   // ── 8 ──────────────────────────────────────────────────────────────────────
   {
     slug: "film-studio",
+    steps: true,
     name: "Film Studio",
     emoji: "🎬",
     featured: true,
@@ -459,22 +471,31 @@ export const EXAMPLE_APPS = [
     ],
     sections: [
       {
-        title: "The film",
+        title: "Shoot",
+        intro: "Write the film in one line and pick a look. One run directs, storyboards, shoots and scores it.",
         op: "produce",
         controls: [
-          { note: "💸 Each run of Produce or Rough cut incurs video and music generation charges." },
           { textVar: "brief", label: "Your film in one line", multiline: true },
           { textVar: "style", label: "Visual style", multiline: true },
           { text: "Shot Count", op: "produce", label: "Number of shots" },
-          { run: ["produce"], label: "Shoot my film", disabledWhen: "produce" },
-          { run: ["cut"], label: "Give me the rough cut", disabledWhen: "cut" }
+          { run: ["produce"], label: "Shoot my film", disabledWhen: "produce" }
         ],
         results: [
           { progress: "produce", label: "Directing, storyboarding & shooting…" },
           { error: "produce", label: "Film production failed" },
           { show: "direction", op: "produce", as: "Markdown", label: "Direction document", demo: "## THE BENDING LIGHT\n\n**Logline** — A keeper follows her own beam to the thing it will no longer stop pointing at." },
           { show: "storyboard", op: "produce", as: "Image", label: "Storyboard keyframes", demo: IMG },
-          { show: "film", op: "produce", as: "Video", label: "Finished film", demo: VIDEO },
+          { show: "film", op: "produce", as: "Video", label: "Finished film", demo: VIDEO }
+        ]
+      },
+      {
+        title: "Rough cut",
+        intro: "Cut the same brief into a timeline you can keep editing. This run generates video again.",
+        op: "cut",
+        controls: [
+          { run: ["cut"], label: "Give me the rough cut", disabledWhen: "cut" }
+        ],
+        results: [
           { progress: "cut", label: "Cutting the timeline…" },
           { error: "cut", label: "Rough cut failed" },
           { show: "film", op: "cut", as: "Video", label: "Editable rough cut" }
@@ -624,6 +645,7 @@ export const EXAMPLE_APPS = [
   // ── 21 ─────────────────────────────────────────────────────────────────────
   {
     slug: "ad-maker",
+    steps: true,
     name: "Ad Maker",
     emoji: "📣",
     showEmoji: false,
@@ -683,7 +705,7 @@ export const EXAMPLE_APPS = [
     ],
     sections: [
       {
-        title: "1 · Settle the message",
+        title: "Settle the message",
         controls: [
           { textVar: "offer", label: "Offer or product brief", multiline: true },
           {
@@ -732,7 +754,7 @@ export const EXAMPLE_APPS = [
         ]
       },
       {
-        title: "2 · Direct the campaign image",
+        title: "Direct the campaign image",
         controls: [
           {
             model: { node: "ag", prop: "model" },
@@ -794,6 +816,7 @@ export const EXAMPLE_APPS = [
   // manifest describes in prose becomes a variable carried between them.
   {
     slug: "trailer-room",
+    steps: true,
     name: "Trailer Room",
     emoji: "🎞️",
     featured: false,
@@ -908,6 +931,7 @@ export const EXAMPLE_APPS = [
   // ── 23 ─────────────────────────────────────────────────────────────────────
   {
     slug: "sku-factory",
+    steps: true,
     name: "SKU Factory",
     emoji: "🏷️",
     featured: false,
@@ -1225,6 +1249,7 @@ export const EXAMPLE_APPS = [
   // ── 25 ─────────────────────────────────────────────────────────────────────
   {
     slug: "viral-ad-engine",
+    steps: true,
     name: "Viral Ad Engine",
     emoji: "📈",
     featured: false,

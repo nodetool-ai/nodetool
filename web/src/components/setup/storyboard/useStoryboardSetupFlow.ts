@@ -21,6 +21,7 @@ import {
   useRef,
   useState
 } from "react";
+import { clampShotCount } from "@nodetool-ai/protocol";
 import type {
   StoryboardDocumentSchema,
   StoryboardSetupStage
@@ -39,13 +40,13 @@ import { ReviewStep } from "./ReviewStep";
 import {
   DEFAULT_SETUP_SHOT_COUNT,
   boardScreenplaySnapshot,
-  directionFingerprint,
   keepPreviousScreenplay,
   setSetupShotCount,
   useDirectedFrom,
   useSetupShotCount
 } from "./setupChoices";
 import {
+  boardDirectionFingerprint,
   storyboardCreativeContextOf,
   storyboardProductionOf
 } from "../../../hooks/storyboard/directionFingerprint";
@@ -197,28 +198,32 @@ export const useStoryboardSetupFlow = ({
   // continues to it instead of spending on the same answer twice (F15).
   const fingerprint = useMemo(
     () =>
-      directionFingerprint({
-        brief,
-        genre,
-        shotCount,
-        modelId: directorModel?.id ?? "",
-        importKind: imported?.kind ?? "none",
-        style,
-        aspectRatio,
-        entityIds,
-        creativeContext,
-        production: storyboardProductionOf(shots ?? [])
-      }),
+      boardDirectionFingerprint(
+        {
+          brief,
+          genre,
+          style,
+          aspectRatio,
+          entityIds,
+          creativeContext: storedCreativeContext,
+          screenplay: screenplay ?? null,
+          shots: shots ?? [],
+          setupShotCount: shotCount,
+          directorModel
+        },
+        imported?.kind ?? "none"
+      ),
     [
       aspectRatio,
       brief,
-      creativeContext,
-      directorModel?.id,
+      directorModel,
       entityIds,
       genre,
       imported?.kind,
+      screenplay,
       shotCount,
       shots,
+      storedCreativeContext,
       style
     ]
   );
@@ -244,18 +249,25 @@ export const useStoryboardSetupFlow = ({
   /**
    * Run the Director, keeping the screenplay it replaces so the review step
    * can put it back (F15). What the run was answering is recorded by the run
-   * itself, so the UI and the headless path cannot disagree about it.
+   * itself, so the UI and the headless path cannot disagree about it. The
+   * snapshot is taken before the call but kept only when a screenplay lands:
+   * a failed or canceled run replaced nothing, and must not drop the undo an
+   * earlier rewrite left.
    */
   const runDirector = useCallback(
     async (requestedShots: number, signal?: AbortSignal): Promise<boolean> => {
       const board = useStoryboardStore.getState().getBoard(boardId);
-      keepPreviousScreenplay(boardId, boardScreenplaySnapshot(board));
+      const replaced = boardScreenplaySnapshot(board);
       // The Director currently reads context from the screenplay envelope.
       // Mirror the canonical root value through the setup action before planning.
       if (board?.creativeContext) {
         setSetup(boardId, { creative_context: board.creativeContext });
       }
-      return direct(boardId, requestedShots, signal);
+      const directed = await direct(boardId, requestedShots, signal);
+      if (directed) {
+        keepPreviousScreenplay(boardId, replaced);
+      }
+      return directed;
     },
     [boardId, direct, setSetup]
   );
@@ -264,21 +276,22 @@ export const useStoryboardSetupFlow = ({
   // already has rather than resetting the piece's length. It runs outside the
   // shell's button, so the flow keeps its controller and the shell's Cancel
   // aborts it (F16).
+  // The run records that count as the board's length, so the genre step's
+  // fingerprint answers it and its button continues to the rewrite.
+  const rewriteShotCount = clampShotCount(
+    hasScreenplay ? (shots?.length ?? shotCount) : shotCount
+  );
   const rewriteControllerRef = useRef<AbortController | null>(null);
   const rewrite = useCallback(() => {
     rewriteControllerRef.current?.abort();
     const controller = new AbortController();
     rewriteControllerRef.current = controller;
-    const board = useStoryboardStore.getState().getBoard(boardId);
-    void runDirector(
-      board?.shots.length ?? shotCount,
-      controller.signal
-    ).finally(() => {
+    void runDirector(rewriteShotCount, controller.signal).finally(() => {
       if (rewriteControllerRef.current === controller) {
         rewriteControllerRef.current = null;
       }
     });
-  }, [boardId, runDirector, shotCount]);
+  }, [rewriteShotCount, runDirector]);
   const cancelRewrite = useCallback(() => {
     rewriteControllerRef.current?.abort();
     rewriteControllerRef.current = null;
@@ -414,7 +427,7 @@ export const useStoryboardSetupFlow = ({
         // shell has to read its wait: nothing may move the creator on while
         // the screenplay they are reading is being replaced (F2).
         pending: directing,
-        pendingLabel: `Rewriting ${shotCount} shots`,
+        pendingLabel: `Rewriting ${rewriteShotCount} shots`,
         onCancel: cancelRewrite,
         render: () =>
           createElement(ReviewStep, {
@@ -512,6 +525,7 @@ export const useStoryboardSetupFlow = ({
       setSetup,
       reviewBlockedReason,
       rewrite,
+      rewriteShotCount,
       runDirector,
       setShotCount,
       shotCount,

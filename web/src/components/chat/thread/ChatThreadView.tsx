@@ -22,6 +22,7 @@ import { Progress } from "../feedback/Progress";
 import { MediaPredictionStatus } from "../feedback/MediaPredictionStatus";
 import { MessageView } from "../message/MessageView";
 import MediaOutputGroup from "../message/MediaOutputGroup";
+import { isCompactionMessage } from "../message/CompactionCard";
 import ToolApprovalCard from "../message/ToolApprovalCard";
 import PlanApprovalCard from "../message/PlanApprovalCard";
 import SecretRequestCard from "../message/SecretRequestCard";
@@ -37,6 +38,7 @@ import {
 } from "../../../core/chat/threadRuntime";
 import type { ActiveMediaPrediction } from "../../../core/chat/mediaPrediction";
 import { isObjectLike, isString } from "../../../utils/typePredicates";
+import { hasVisibleContent, replyEnds } from "../utils/messageUtils";
 import { collapseToolCallOnlyMessages } from "../message/groupToolCalls";
 import type { ChatStatus } from "../types/chat.types";
 import { useChatScrollAnchor } from "./useChatScrollAnchor";
@@ -60,6 +62,12 @@ interface ChatThreadViewProps {
   /** A deterministic replay owns scrolling and needs every row mounted. */
   externalScroll?: boolean;
   focusMessage?: { messageId: string; requestId: number } | null;
+  /**
+   * Rewind the thread to `message` and send it again, with `text` in place of
+   * its text when given. Backs Regenerate and editing a sent message; omitted
+   * while a turn runs or where the thread cannot be rewound.
+   */
+  onResendFrom?: (message: Message, text?: string) => void;
 }
 
 // StatusFooter re-renders once a second while a reply streams; a fresh `[]`
@@ -246,7 +254,8 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
   onInsertCode,
   showTaskUpdate = true,
   externalScroll = false,
-  focusMessage
+  focusMessage,
+  onResendFrom
 }) => {
   const theme = useTheme();
 
@@ -433,6 +442,37 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
     };
   }, [messages, executionMessagesById]);
 
+  // The reply the user just got: the last assistant message with something to
+  // copy since their last message. Its action row stays visible, as in
+  // ChatGPT and Claude, instead of waiting for a hover.
+  const latestReplyIndex = useMemo(() => {
+    if (isBusy) return -1;
+    for (let i = filteredMessages.length - 1; i > lastUserMessageIndex; i--) {
+      const message = filteredMessages[i];
+      if (message.role === "assistant" && hasVisibleContent(message)) {
+        return i;
+      }
+    }
+    return -1;
+  }, [isBusy, filteredMessages, lastUserMessageIndex]);
+
+  const replyEndText = useMemo(
+    () => replyEnds(filteredMessages),
+    [filteredMessages]
+  );
+
+  const lastUserMessage =
+    lastUserMessageIndex >= 0 ? filteredMessages[lastUserMessageIndex] : null;
+  const handleRegenerate = useMemo(
+    () =>
+      // A compaction record is stored as a user message, but it is a summary,
+      // not something to answer again.
+      onResendFrom && lastUserMessage?.id && !isCompactionMessage(lastUserMessage)
+        ? () => onResendFrom(lastUserMessage)
+        : undefined,
+    [onResendFrom, lastUserMessage]
+  );
+
   const {
     virtualizer,
     handleScrollRef,
@@ -559,6 +599,23 @@ const ChatThreadView: React.FC<ChatThreadViewProps> = ({
                       onInsertCode={onInsertCode}
                       toolResultsByCallId={toolResultsByCallId}
                       executionMessagesById={executionMessagesById}
+                      isLatestReply={virtualRow.index === latestReplyIndex}
+                      onRegenerate={
+                        virtualRow.index === latestReplyIndex
+                          ? handleRegenerate
+                          : undefined
+                      }
+                      onResend={onResendFrom}
+                      editRemovesLaterTurns={
+                        virtualRow.index < lastUserMessageIndex
+                      }
+                      hideActions={
+                        msg.role === "assistant" &&
+                        (!replyEndText.has(virtualRow.index) ||
+                          (isBusy &&
+                            virtualRow.index > lastUserMessageIndex))
+                      }
+                      replyCopyText={replyEndText.get(virtualRow.index)}
                     />
                   </div>
                 );

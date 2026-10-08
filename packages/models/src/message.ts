@@ -4,7 +4,7 @@
  * Port of Python's `nodetool.models.message`.
  */
 
-import { eq, and, or, gt, lt, desc, asc } from "drizzle-orm";
+import { eq, and, or, gt, gte, lt, desc, asc, inArray, isNotNull } from "drizzle-orm";
 import type { ProviderSession } from "@nodetool-ai/protocol";
 import { DBModel, createTimeOrderedUuid } from "./base-model.js";
 import { getPortableDb } from "./db.js";
@@ -175,5 +175,54 @@ export class Message extends DBModel {
     await db.delete(messages).where(where);
     await eraseRunTraceParentForModelDeletion({ kind: "thread", id: threadId });
     return existing.length;
+  }
+
+  /**
+   * Rewind a thread to just before `messageId`: delete that message and every
+   * later one, so the next turn continues from the history before it. This is
+   * what Regenerate and editing a sent message do.
+   *
+   * Provider session tokens on the surviving rows are cleared too. A token
+   * resumes the upstream transcript as it stood after its turn, and that
+   * transcript still holds the turns deleted here, so the next turn must rebuild
+   * its context from the stored rows instead.
+   *
+   * Returns the deleted ids, or null when the message is not in the thread.
+   */
+  static async rewind(
+    threadId: string,
+    messageId: string
+  ): Promise<string[] | null> {
+    const target = await Message.get<Message>(messageId);
+    if (!target || target.thread_id !== threadId) return null;
+    const db = getPortableDb();
+    const fromTarget = and(
+      eq(messages.thread_id, threadId),
+      or(
+        gt(messages.created_at, target.created_at),
+        and(
+          eq(messages.created_at, target.created_at),
+          gte(messages.id, target.id)
+        )
+      )
+    );
+    const doomed = await db
+      .select({ id: messages.id })
+      .from(messages)
+      .where(fromTarget);
+    const ids = doomed.map((row) => row.id);
+    for (const id of ids) {
+      await eraseRunTraceParentForModelDeletion({ kind: "message", id });
+    }
+    if (ids.length > 0) {
+      await db.delete(messages).where(inArray(messages.id, ids));
+    }
+    await db
+      .update(messages)
+      .set({ provider_session: null })
+      .where(
+        and(eq(messages.thread_id, threadId), isNotNull(messages.provider_session))
+      );
+    return ids;
   }
 }

@@ -2,7 +2,7 @@
  * SketchToolbar
  *
  * Narrow vertical icon toolbar for tool selection only.
- * Tools are arranged in a single vertical column with spacing between groups.
+ * Tools are arranged in a single vertical column, with a hairline between groups.
  * Color controls (compact overlapping FG/BG swatch) live below the tools.
  */
 
@@ -48,15 +48,19 @@ const styles = (theme: Theme) =>
     overflowY: "auto",
     flexShrink: 0,
     userSelect: "none",
-    // Larger gap between tool groups; tighter even spacing within a group.
+    // A hairline between tool groups; tighter even spacing within a group.
     "& .tool-sections": {
       display: "flex",
       flexDirection: "column",
-      gap: getSpacingPx(SPACING.md)
+      gap: getSpacingPx(SPACING.sm)
     },
     "& .tool-section": {
       display: "flex",
       flexDirection: "column"
+    },
+    "& .tool-section + .tool-section": {
+      borderTop: `1px solid ${theme.vars.palette.divider}`,
+      paddingTop: getSpacingPx(SPACING.sm)
     },
     "& .MuiToggleButtonGroup-root": {
       display: "flex",

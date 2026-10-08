@@ -14,55 +14,61 @@
           "props": {
             "id": "title",
             "text": "🎞️ Trailer Room",
-            "level": "1"
-          }
-        },
-        {
-          "type": "Text",
-          "props": {
-            "id": "tagline",
-            "text": "Premise to beat sheet to shot list to a scored teaser, on one page."
+            "level": "1",
+            "subtitle": "Premise to beat sheet to shot list to a scored teaser, on one page."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "💸 Beats and shots are text calls. Shoot spends on a per-second video model and Score on one audio generation."
+            "text": "💸 Beats and shots are text calls. Shoot spends on a per-second video model and Score on one audio generation.",
+            "tone": "hint"
           }
         },
         {
-          "type": "Columns",
+          "type": "Stepper",
           "props": {
-            "id": "cols-the-paperwork",
-            "gap": 24,
-            "left": [
+            "id": "steps",
+            "binding": "var:step",
+            "steps": [
               {
-                "type": "Container",
+                "value": "the-paperwork",
+                "title": "The paperwork"
+              },
+              {
+                "value": "the-footage",
+                "title": "The footage"
+              }
+            ],
+            "allowBack": true
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-the-paperwork",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "the-paperwork"
+            },
+            "content": [
+              {
+                "type": "Heading",
                 "props": {
-                  "id": "panel-the-paperwork",
-                  "title": "The paperwork",
-                  "content": [
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-beats-ag-model",
-                        "binding": "op:beats/prop:ag#model",
-                        "label": "Beats model",
-                        "modelKind": "language_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-shots-ag-model",
-                        "binding": "op:shots/prop:ag#model",
-                        "label": "Shots model",
-                        "modelKind": "language_model",
-                        "events": []
-                      }
-                    },
+                  "id": "heading-the-paperwork",
+                  "text": "The paperwork",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-the-paperwork",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "TextInput",
                       "props": {
@@ -71,6 +77,36 @@
                         "label": "Your trailer in one line",
                         "multiline": true,
                         "events": []
+                      }
+                    },
+                    {
+                      "type": "Accordion",
+                      "props": {
+                        "id": "models-the-paperwork",
+                        "title": "Models (2)",
+                        "defaultOpen": false,
+                        "content": [
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-beats-ag-model",
+                              "binding": "op:beats/prop:ag#model",
+                              "label": "2  Agent model",
+                              "modelKind": "language_model",
+                              "events": []
+                            }
+                          },
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-shots-ag-model",
+                              "binding": "op:shots/prop:ag#model",
+                              "label": "2  Agent model",
+                              "modelKind": "language_model",
+                              "events": []
+                            }
+                          }
+                        ]
                       }
                     },
                     {
@@ -119,17 +155,8 @@
                         ]
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-the-paperwork-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -180,62 +207,70 @@
                     }
                   ]
                 }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-the-paperwork"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-the-paperwork",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-the-paperwork",
+                        "label": "Next: The footage",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "the-footage"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
               }
             ]
           }
         },
         {
-          "type": "Columns",
+          "type": "Container",
           "props": {
-            "id": "cols-the-footage",
-            "gap": 24,
-            "left": [
+            "id": "step-the-footage",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "the-footage"
+            },
+            "content": [
               {
-                "type": "Container",
+                "type": "Heading",
                 "props": {
-                  "id": "panel-the-footage",
-                  "title": "The footage",
-                  "content": [
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-trailer-director-model",
-                        "binding": "op:trailer/prop:director#model",
-                        "label": "Shoot model",
-                        "modelKind": "language_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-trailer-keyframe-model",
-                        "binding": "op:trailer/prop:keyframe#model",
-                        "label": "Shoot model",
-                        "modelKind": "image_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-trailer-animate-model",
-                        "binding": "op:trailer/prop:animate#model",
-                        "label": "Shoot model",
-                        "modelKind": "video_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-score-score-model",
-                        "binding": "op:score/prop:score#model",
-                        "label": "Score model",
-                        "modelKind": "music_model",
-                        "events": []
-                      }
-                    },
+                  "id": "heading-the-footage",
+                  "text": "The footage",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-the-footage",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "Text",
                       "props": {
@@ -262,6 +297,56 @@
                         "min": 3,
                         "max": 10,
                         "events": []
+                      }
+                    },
+                    {
+                      "type": "Accordion",
+                      "props": {
+                        "id": "models-the-footage",
+                        "title": "Models (4)",
+                        "defaultOpen": false,
+                        "content": [
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-trailer-director-model",
+                              "binding": "op:trailer/prop:director#model",
+                              "label": "Direct the storyboard model",
+                              "modelKind": "language_model",
+                              "events": []
+                            }
+                          },
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-trailer-keyframe-model",
+                              "binding": "op:trailer/prop:keyframe#model",
+                              "label": "Render keyframes model",
+                              "modelKind": "image_model",
+                              "events": []
+                            }
+                          },
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-trailer-animate-model",
+                              "binding": "op:trailer/prop:animate#model",
+                              "label": "Animate each keyframe model",
+                              "modelKind": "video_model",
+                              "events": []
+                            }
+                          },
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-score-score-model",
+                              "binding": "op:score/prop:score#model",
+                              "label": "3  Write the score model",
+                              "modelKind": "music_model",
+                              "events": []
+                            }
+                          }
+                        ]
                       }
                     },
                     {
@@ -310,17 +395,8 @@
                         ]
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-the-footage-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -372,6 +448,39 @@
                       }
                     }
                   ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-the-footage"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-the-footage",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "back-the-footage",
+                        "label": "Back: The paperwork",
+                        "variant": "outlined",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "the-paperwork"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": []
                 }
               }
             ]
@@ -442,6 +551,17 @@
     ],
     "resources": [],
     "variables": [
+      {
+        "id": "step",
+        "name": "Step",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "the-paperwork",
+        "scope": "instance",
+        "persist": false
+      },
       {
         "id": "premise",
         "name": "Premise",

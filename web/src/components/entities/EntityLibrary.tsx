@@ -26,10 +26,12 @@ import {
 import EntityCard from "./EntityCard";
 import EntityEditorDialog from "./EntityEditorDialog";
 import EntitySetupHost from "../setup/entity/EntitySetupHost";
+import { clearEntitySetupDraft } from "../setup/entity/entitySetupDraft";
 import {
   LOOSE_PROJECT_ID,
   useWorkspaceTabsStore
 } from "../../stores/WorkspaceTabsStore";
+import { useEntityLibraryStore } from "../../stores/EntityLibraryStore";
 
 const EntityLibraryInternal: React.FC = () => {
   const projectId =
@@ -37,14 +39,25 @@ const EntityLibraryInternal: React.FC = () => {
   const { data: entities, isLoading } = useEntities();
   const deleteEntity = useDeleteEntity();
 
-  const [creating, setCreating] = useState(false);
+  const creating = useEntityLibraryStore((state) => state.creating);
+  const setCreating = useEntityLibraryStore((state) => state.setCreating);
   const [editorOpen, setEditorOpen] = useState(false);
   const [editorAssetId, setEditorAssetId] = useState<string | null>(null);
   const [editingEntity, setEditingEntity] = useState<Entity | undefined>(
     undefined
   );
 
-  const handleAdd = useCallback(() => setCreating(true), []);
+  // One draft per project, so a half-made entity does not follow the creator
+  // into another project's library.
+  const draftKey = `entity-library:${projectId}`;
+
+  const handleAdd = useCallback(() => setCreating(true), [setCreating]);
+
+  // Leaving without creating discards the draft.
+  const handleBack = useCallback(() => {
+    clearEntitySetupDraft(draftKey);
+    setCreating(false);
+  }, [draftKey, setCreating]);
 
   const handleEdit = useCallback((entity: Entity) => {
     setEditorAssetId(entity.id);
@@ -98,12 +111,16 @@ const EntityLibraryInternal: React.FC = () => {
         <EditorButton
           variant="text"
           startIcon={<ArrowBackIcon />}
-          onClick={() => setCreating(false)}
+          onClick={handleBack}
           sx={{ alignSelf: "flex-start", ml: SPACING.xl, mt: SPACING.md }}
         >
           Back to entities
         </EditorButton>
-        <EntitySetupHost onFinish={() => setCreating(false)} />
+        <EntitySetupHost
+          key={draftKey}
+          draftKey={draftKey}
+          onFinish={() => setCreating(false)}
+        />
       </FlexColumn>
     );
   }

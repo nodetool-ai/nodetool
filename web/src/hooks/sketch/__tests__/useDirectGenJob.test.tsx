@@ -23,6 +23,9 @@ jest.mock("../../../lib/websocket/GlobalWebSocketManager", () => ({
 
 import { directGenFailure, useDirectGenJob } from "../useDirectGenJob";
 import { useSketchSessionStore } from "../../../stores/sketch/SketchSessionStore";
+import { useSketchStore } from "../../../components/sketch/state/useSketchStore";
+import { createDefaultDocument } from "../../../components/sketch/types";
+import { useAssetStore } from "../../../stores/AssetStore";
 import type { LayerWorkflowBinding } from "../../../stores/sketch/SketchSessionStore";
 
 const seedBinding = (binding: Partial<LayerWorkflowBinding>): void => {
@@ -266,5 +269,80 @@ describe("failure reasons", () => {
     await start();
     expect(directGenFailure("layer-1")).toBeNull();
     expect(statusOf()).toBe("generating");
+  });
+});
+
+/**
+ * A variation lands while the creator is already working on the one they
+ * picked. Placing it must not wipe their undo history, selection or tool
+ * settings, and undoing their own edit must not take the result away again.
+ */
+describe("a result that lands mid-edit", () => {
+  it("keeps undo history, selection and tool settings", async () => {
+    let layerId = "";
+    let otherId = "";
+    act(() => {
+      const sketch = useSketchStore.getState();
+      sketch.setDocument(createDefaultDocument(512, 512));
+      layerId = sketch.addLayer("Variation 2");
+      otherId = useSketchStore.getState().addLayer("Picked");
+      useSketchStore.getState().pushHistory("rename");
+      useSketchStore.getState().pushHistory("paint");
+      useSketchStore.getState().setBrushSettings({ size: 77 });
+      useSketchStore.setState({ selectedLayerIds: [layerId, otherId] });
+      useAssetStore.setState({
+        get: async (id: string) => ({ id, get_url: `https://x.test/${id}.png` })
+      } as never);
+    });
+    const historyLength = useSketchStore.getState().history.length;
+
+    const existing = useSketchSessionStore.getState().bindings[layerId];
+    act(() => {
+      useSketchSessionStore.setState({
+        bindings: {
+          [layerId]: {
+            ...(existing ?? {}),
+            kind: "text-to-image",
+            provider: "prov",
+            model: "model-1",
+            prompt: "a heron",
+            status: "draft",
+            versions: []
+          }
+        }
+      } as never);
+    });
+    const { result } = renderHook(() => useDirectGenJob());
+    await act(async () => {
+      await result.current.start(layerId);
+    });
+    const frame = sendMock.mock.calls[0][0] as { request_id?: string };
+    const handler = subscribeMock.mock.calls[0][1] as (msg: unknown) => void;
+    await act(async () => {
+      handler({
+        type: "rpc_response",
+        request_id: frame.request_id,
+        command: "generate_media",
+        result: { asset_ids: ["asset-heron"] }
+      });
+      await new Promise((resolve) => setTimeout(resolve, 0));
+    });
+
+    const state = useSketchStore.getState();
+    const landed = state.document.layers.find((layer) => layer.id === layerId);
+    expect(landed?.imageReference?.uri).toBe("https://x.test/asset-heron.png");
+    expect(state.history).toHaveLength(historyLength);
+    expect(state.selectedLayerIds).toEqual([layerId, otherId]);
+    expect(state.toolSettings.brush.size).toBe(77);
+
+    act(() => {
+      useSketchStore.getState().undo();
+    });
+    expect(
+      useSketchStore
+        .getState()
+        .document.layers.find((layer) => layer.id === layerId)?.imageReference
+        ?.uri
+    ).toBe("https://x.test/asset-heron.png");
   });
 });

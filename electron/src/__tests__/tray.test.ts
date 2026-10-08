@@ -57,6 +57,7 @@ jest.mock("child_process", () => ({
   execSync: jest.fn(),
 }));
 
+import { execSync } from "child_process";
 import {
   trayEvents,
   TrayEventTypes,
@@ -142,6 +143,8 @@ describe("createTray platform branching", () => {
     expect(electronMock.app.setAppUserModelId).toHaveBeenCalledWith(
       "com.nodetool.desktop",
     );
+    // The user's notification-area preferences belong to Windows, not to us.
+    expect(jest.mocked(execSync)).not.toHaveBeenCalled();
   });
 
   test("recreating destroys the existing tray instance first", async () => {

@@ -14,35 +14,65 @@
           "props": {
             "id": "title",
             "text": "UGC Product Video",
-            "level": "1"
-          }
-        },
-        {
-          "type": "Text",
-          "props": {
-            "id": "tagline",
-            "text": "Build a testimonial, then finish it for social."
+            "level": "1",
+            "subtitle": "Build a testimonial, then finish it for social."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "Choose compatible writing, transcription, and native-audio video models, then review the captions before the branded finish."
+            "text": "Choose compatible writing, transcription, and native-audio video models, then review the captions before the branded finish.",
+            "tone": "hint"
           }
         },
         {
-          "type": "Columns",
+          "type": "Stepper",
           "props": {
-            "id": "cols-1-settle-the-angle",
-            "gap": 24,
-            "left": [
+            "id": "steps",
+            "binding": "var:step",
+            "steps": [
               {
-                "type": "Container",
+                "value": "settle-the-angle",
+                "title": "Settle the angle"
+              },
+              {
+                "value": "generate-the-testimonial",
+                "title": "Generate the testimonial"
+              },
+              {
+                "value": "finish-the-social-cut",
+                "title": "Finish the social cut"
+              }
+            ],
+            "allowBack": true
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-settle-the-angle",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "settle-the-angle"
+            },
+            "content": [
+              {
+                "type": "Heading",
                 "props": {
-                  "id": "panel-1-settle-the-angle",
-                  "title": "1 · Settle the angle",
-                  "content": [
+                  "id": "heading-settle-the-angle",
+                  "text": "Settle the angle",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-settle-the-angle",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "TextInput",
                       "props": {
@@ -92,17 +122,8 @@
                         }
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-1-settle-the-angle-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -143,22 +164,70 @@
                     }
                   ]
                 }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-settle-the-angle"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-settle-the-angle",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-settle-the-angle",
+                        "label": "Next: Generate the testimonial",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "generate-the-testimonial"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
               }
             ]
           }
         },
         {
-          "type": "Columns",
+          "type": "Container",
           "props": {
-            "id": "cols-2-generate-the-testimonial",
-            "gap": 24,
-            "left": [
+            "id": "step-generate-the-testimonial",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "generate-the-testimonial"
+            },
+            "content": [
               {
-                "type": "Container",
+                "type": "Heading",
                 "props": {
-                  "id": "panel-2-generate-the-testimonial",
-                  "title": "2 · Generate the testimonial",
-                  "content": [
+                  "id": "heading-generate-the-testimonial",
+                  "text": "Generate the testimonial",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-generate-the-testimonial",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "Text",
                       "props": {
@@ -227,17 +296,8 @@
                         }
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-2-generate-the-testimonial-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -279,22 +339,88 @@
                     }
                   ]
                 }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-generate-the-testimonial"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-generate-the-testimonial",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "back-generate-the-testimonial",
+                        "label": "Back: Settle the angle",
+                        "variant": "outlined",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "settle-the-angle"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-generate-the-testimonial",
+                        "label": "Next: Finish the social cut",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "finish-the-social-cut"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
               }
             ]
           }
         },
         {
-          "type": "Columns",
+          "type": "Container",
           "props": {
-            "id": "cols-3-finish-the-social-cut",
-            "gap": 24,
-            "left": [
+            "id": "step-finish-the-social-cut",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "finish-the-social-cut"
+            },
+            "content": [
               {
-                "type": "Container",
+                "type": "Heading",
                 "props": {
-                  "id": "panel-3-finish-the-social-cut",
-                  "title": "3 · Finish the social cut",
-                  "content": [
+                  "id": "heading-finish-the-social-cut",
+                  "text": "Finish the social cut",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-finish-the-social-cut",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "TextInput",
                       "props": {
@@ -363,17 +489,8 @@
                         }
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-3-finish-the-social-cut-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -421,6 +538,39 @@
                       }
                     }
                   ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-finish-the-social-cut"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-finish-the-social-cut",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "back-finish-the-social-cut",
+                        "label": "Back: Generate the testimonial",
+                        "variant": "outlined",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "generate-the-testimonial"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": []
                 }
               }
             ]
@@ -503,6 +653,17 @@
     ],
     "resources": [],
     "variables": [
+      {
+        "id": "step",
+        "name": "Step",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "settle-the-angle",
+        "scope": "instance",
+        "persist": false
+      },
       {
         "id": "offer",
         "name": "Offer",

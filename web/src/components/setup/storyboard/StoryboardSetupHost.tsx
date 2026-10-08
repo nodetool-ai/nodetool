@@ -16,6 +16,7 @@ import { useStoryboardAgentBridge } from "../../../hooks/storyboard/useStoryboar
 import DocumentLoadStatus from "../../workspace/DocumentLoadStatus";
 import { FlexColumn, PADDING, ThinkingIndicator } from "../../ui_primitives";
 import { SetupFlow } from "../SetupFlow";
+import { useFinishIfLoadedDone } from "../useFinishIfLoadedDone";
 import { useStoryboardSetupFlow } from "./useStoryboardSetupFlow";
 
 export interface StoryboardSetupHostProps {
@@ -55,6 +56,7 @@ const StoryboardSetupHost = ({
       ),
     [boardId, onChangeFlow]
   );
+  useFinishIfLoadedDone(loadState === "ready", config.stage, onFinish);
 
   // The store seeds an empty board on mount, and an empty board's stage reads
   // `done` — rendering before the server copy lands would show no flow at all.

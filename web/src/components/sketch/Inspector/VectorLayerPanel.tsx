@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { isModelSelected } from "@nodetool-ai/protocol";
 import {
   decodeSketchLayerData,
@@ -13,6 +13,7 @@ import LanguageModelSelect from "../../properties/LanguageModelSelect";
 import {
   AlertBanner,
   Caption,
+  Dialog,
   Divider,
   EditorButton,
   FlexColumn,
@@ -135,13 +136,17 @@ const layerNameFromRequest = (request: string): string => {
   return name.length > 40 ? `${name.slice(0, 39).trimEnd()}…` : name || "SVG";
 };
 
-export function ImportVectorLayer(): React.JSX.Element {
-  const input = useRef<HTMLInputElement>(null);
+interface SvgLayerImportProps {
+  /** The layers panel opens the file picker through this ref. */
+  inputRef: React.RefObject<HTMLInputElement | null>;
+}
+
+/** Hidden SVG file picker that adds the chosen file as a vector layer. */
+export function SvgLayerImport({
+  inputRef
+}: SvgLayerImportProps): React.JSX.Element {
   const addVectorLayer = useSketchStore((state) => state.addVectorLayer);
-  const canvasWidth = useSketchStore((state) => state.document.canvas.width);
-  const canvasHeight = useSketchStore((state) => state.document.canvas.height);
   const [error, setError] = useState("");
-  const [generateOpen, setGenerateOpen] = useState(false);
   const importFile = async (file: File): Promise<void> => {
     try {
       addVectorLayer(file.name.replace(/\.svg$/i, ""), await file.text());
@@ -150,16 +155,13 @@ export function ImportVectorLayer(): React.JSX.Element {
       setError(errorMessage(cause, "Could not import SVG."));
     }
   };
-  const target = useMemo(
-    () => ({ width: canvasWidth, height: canvasHeight }),
-    [canvasWidth, canvasHeight]
-  );
   return (
-    <FlexColumn gap={SPACING.sm} sx={{ p: SPACING.md }}>
+    <>
       <input
-        ref={input}
+        ref={inputRef}
         type="file"
         accept=".svg,image/svg+xml"
+        aria-label="Import SVG file"
         hidden
         onChange={(event) => {
           const file = event.target.files?.[0];
@@ -169,31 +171,45 @@ export function ImportVectorLayer(): React.JSX.Element {
           }
         }}
       />
-      <FlexRow gap={SPACING.sm} justify="center" wrap>
-        <EditorButton onClick={() => input.current?.click()}>
-          Import SVG layer
-        </EditorButton>
-        <EditorButton
-          aria-expanded={generateOpen}
-          onClick={() => setGenerateOpen((open) => !open)}
-        >
-          Generate SVG layer
-        </EditorButton>
-      </FlexRow>
-      {error && <AlertBanner severity="error">{error}</AlertBanner>}
-      {generateOpen && (
-        <SvgPromptForm
-          label="Describe the new SVG layer"
-          placeholder="A flat line icon of a paper plane"
-          submitLabel="Generate"
-          target={target}
-          onSvg={(svg, request) => {
-            addVectorLayer(layerNameFromRequest(request), svg);
-            setGenerateOpen(false);
-          }}
-        />
+      {error && (
+        <AlertBanner severity="error" onClose={() => setError("")}>
+          {error}
+        </AlertBanner>
       )}
-    </FlexColumn>
+    </>
+  );
+}
+
+interface GenerateSvgLayerDialogProps {
+  open: boolean;
+  onClose: () => void;
+}
+
+/** Prompt dialog that generates a new vector layer at the canvas size. */
+export function GenerateSvgLayerDialog({
+  open,
+  onClose
+}: GenerateSvgLayerDialogProps): React.JSX.Element {
+  const addVectorLayer = useSketchStore((state) => state.addVectorLayer);
+  const canvasWidth = useSketchStore((state) => state.document.canvas.width);
+  const canvasHeight = useSketchStore((state) => state.document.canvas.height);
+  const target = useMemo(
+    () => ({ width: canvasWidth, height: canvasHeight }),
+    [canvasWidth, canvasHeight]
+  );
+  return (
+    <Dialog open={open} onClose={onClose} title="Generate SVG layer">
+      <SvgPromptForm
+        label="Describe the new SVG layer"
+        placeholder="A flat line icon of a paper plane"
+        submitLabel="Generate"
+        target={target}
+        onSvg={(svg, request) => {
+          addVectorLayer(layerNameFromRequest(request), svg);
+          onClose();
+        }}
+      />
+    </Dialog>
   );
 }
 

@@ -488,6 +488,13 @@ export const SANDBOX_API_COVERAGE: Readonly<
     elsewhere:
       "get_thread returns a thread with its messages."
   },
+  "messages.rewind": {
+    withheld:
+      "Chat history is the record of what a run was asked to do and " +
+      "what it did. A run that could rewrite or delete a conversation " +
+      "could erase the evidence of its own behaviour, so the threads " +
+      "module is read-only by design — see capabilities/threads.ts."
+  },
   "models.all": { capability: "list_models" },
   "models.asr": {
     elsewhere:
@@ -975,6 +982,9 @@ export const SANDBOX_API_COVERAGE: Readonly<
     gap: "Restoring a revision to the draft is an editor action; the agent has no whole-revision restore capability."
   },
   "games.saveDraft": { capability: "edit_native_game" },
+  "games.saveDraftDocument": {
+    elsewhere: "The editor saves a whole document only when its op batch is rejected or too large; edit_native_game saves agent edits as ops."
+  },
   "games.previewAuthoring": { capability: "preview_native_game_authoring" },
   "games.applyAuthoring": { capability: "apply_native_game_authoring" },
   "storyboards.create": { capability: "create_storyboard" },

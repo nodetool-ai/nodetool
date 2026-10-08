@@ -1,7 +1,9 @@
+import type { Message } from "../../../stores/ApiTypes";
 import {
   formatClockTime24,
   formatDayMonth
 } from "../../../utils/formatUtils";
+import { isObjectLike, isString } from "../../../utils/typePredicates";
 
 interface ParsedThought {
   thoughtContent: string;
@@ -89,4 +91,87 @@ export const formatMessageTimestamp = (
   }
   const day = formatDayMonth(date);
   return day ? `${day} ${time}` : time;
+};
+
+/**
+ * Whether a message has something of its own to show besides tool calls:
+ * non-blank text or any non-text block (an image, a file). A message that only
+ * carries tool calls renders as timeline rows and gets no action row.
+ */
+export const hasVisibleContent = (message: Message): boolean => {
+  const { content } = message;
+  if (isString(content)) {
+    return content.trim().length > 0;
+  }
+  if (!Array.isArray(content)) {
+    return false;
+  }
+  return content.some((block) => {
+    if (!block || !isObjectLike(block)) {
+      return false;
+    }
+    if (block.type === "text") {
+      return isString(block.text) && block.text.trim().length > 0;
+    }
+    return true;
+  });
+};
+
+/** The text blocks of a message joined by newlines; what Copy puts on the clipboard. */
+export const messageText = (message: Message): string => {
+  const { content } = message;
+  if (isString(content)) {
+    return content;
+  }
+  if (!Array.isArray(content)) {
+    return "";
+  }
+  return content
+    .filter(
+      (block): block is { type: "text"; text: string } =>
+        !!block &&
+        isObjectLike(block) &&
+        block.type === "text" &&
+        isString(block.text)
+    )
+    .map((block) => block.text)
+    .join("\n");
+};
+
+/**
+ * Where each assistant reply ends, mapped to the text of the whole reply.
+ *
+ * An agent reply is often several assistant messages: text, tool rows, more
+ * text. Only its last message with visible content gets an action row, and its
+ * Copy copies every text segment of the reply, as ChatGPT and Claude do. The
+ * segments before it get no action row, so they read as one answer instead of
+ * several with gaps between them.
+ */
+export const replyEnds = (messages: Message[]): Map<number, string> => {
+  const ends = new Map<number, string>();
+  let lastIndex = -1;
+  let parts: string[] = [];
+  const close = (): void => {
+    if (lastIndex >= 0) {
+      ends.set(lastIndex, parts.join("\n\n"));
+    }
+    lastIndex = -1;
+    parts = [];
+  };
+  messages.forEach((message, index) => {
+    if (message.role === "user") {
+      close();
+      return;
+    }
+    if (message.role !== "assistant" || !hasVisibleContent(message)) {
+      return;
+    }
+    lastIndex = index;
+    const text = messageText(message).trim();
+    if (text) {
+      parts.push(text);
+    }
+  });
+  close();
+  return ends;
 };
