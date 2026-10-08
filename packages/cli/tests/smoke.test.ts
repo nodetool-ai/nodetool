@@ -4,6 +4,10 @@ vi.mock("@nodetool-ai/whisper-cpp", () => ({
   registerWhisperCppProviders: vi.fn()
 }));
 
+vi.mock("@nodetool-ai/transformers-js-provider", () => ({
+  registerTransformersJsProvider: vi.fn()
+}));
+
 describe("cli settings and provider helpers", () => {
   afterEach(() => {
     vi.unstubAllEnvs();
