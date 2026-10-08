@@ -234,9 +234,12 @@ describe("UGC Product Video recipe", () => {
     expect(timelineCode).toContain("fontSizePx: 20");
     expect(timelineCode).not.toContain("dailyRitual cup bracket");
     expect(timelineCode).toContain("closingPanel");
-    expect(timelineCode).toContain("11_750");
-    expect(timelineCode).toContain("12_300");
-    expect(timelineCode).toContain("15_083");
+    // The closing panel rises over the last 3.333 s, so a full 15.083 s clip
+    // still rises at 11.75 s and settles at 12.3 s, and a shorter clip ends
+    // on the same closing beat.
+    expect(timelineCode).toContain("Math.min(15_083, clipMs)");
+    expect(timelineCode).toContain("DURATION_MS - 3_333");
+    expect(timelineCode).toContain("riseEndMs: closingStartMs + 550");
     expect(timelineCode).not.toContain("nextStartMs - 42");
     expect(timelineCode).not.toContain("caption-pop-");
   });
