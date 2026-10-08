@@ -35,6 +35,12 @@ import { useSketchStore } from "../state/useSketchStore";
 import * as magicWandAsync from "../selection/magicWandAsync";
 import { makeToolContext } from "./_toolContextFixture";
 
+// Snapping has its own tests. These drags start a few pixels from the
+// canvas edge, where snapping would move them onto it.
+beforeEach(() => {
+  useSketchStore.setState({ snapEnabled: false });
+});
+
 const isNumber = (value: unknown): value is number =>
   typeof value === "number";
 

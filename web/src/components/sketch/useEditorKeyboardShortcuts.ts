@@ -10,7 +10,7 @@ import type {
   ShapeSettings,
   SelectSettings
 } from "./types";
-import { resolveAction, isInteractiveTarget, ACTION_HANDLERS, useSpringLoadedModifiers } from "./shortcuts";
+import { resolveAction, isInteractiveTarget, focusOwnsKey, ACTION_HANDLERS, useSpringLoadedModifiers } from "./shortcuts";
 import { offsetSelectionByDocumentDelta } from "./selection";
 
 type ArrowKey = "ArrowUp" | "ArrowDown" | "ArrowLeft" | "ArrowRight";
@@ -161,6 +161,7 @@ export function useEditorKeyboardShortcuts(
     const keydownHandler = (e: KeyboardEvent): void => {
       // Let interactive controls (inputs, comboboxes, etc.) handle their own events.
       if (isInteractiveTarget(document.activeElement)) return;
+      if (focusOwnsKey(document.activeElement, e)) return;
 
       if (paramsRef.current.suspendKeyboardShortcuts) {
         return;
@@ -195,7 +196,19 @@ export function useEditorKeyboardShortcuts(
     };
 
     const keyupHandler = (e: KeyboardEvent): void => {
+      // Release held keys whatever has focus now: an arrow pressed on the
+      // canvas and released on a control must still end the nudge loop.
+      if (e.key === "Shift" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
+        shiftHeldRef.current = false;
+      }
+      const releasedArrow = isArrowKey(e.key) && heldArrowsRef.current[e.key];
+      if (releasedArrow) {
+        heldArrowsRef.current[e.key] = false;
+        if (!anyArrowHeld()) stopNudgeLoop();
+      }
+
       if (isInteractiveTarget(document.activeElement)) return;
+      if (focusOwnsKey(document.activeElement, e)) return;
 
       if (paramsRef.current.suspendKeyboardShortcuts) {
         return;
@@ -203,14 +216,8 @@ export function useEditorKeyboardShortcuts(
 
       e.stopPropagation();
 
-      if (e.key === "Shift" || e.code === "ShiftLeft" || e.code === "ShiftRight") {
-        shiftHeldRef.current = false;
-      }
-
-      if (isArrowKey(e.key) && !e.ctrlKey && !e.metaKey && !e.altKey) {
+      if (releasedArrow) {
         e.preventDefault();
-        heldArrowsRef.current[e.key] = false;
-        if (!anyArrowHeld()) stopNudgeLoop();
       }
     };
 

@@ -162,6 +162,7 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
   const pan = useSketchStore((s) => s.pan);
   const moveToolActive = useSketchStore((s) => s.activeTool === "move");
   const cursor = useSketchStore((s) => (s.rulersVisible ? s.cursorDocPos : null));
+  const snapLines = useSketchStore((s) => s.activeSnapLines);
 
   const rootRef = useRef<HTMLDivElement>(null);
   const topRef = useRef<HTMLCanvasElement>(null);
@@ -347,6 +348,7 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
   };
 
   const guideColor = theme.vars.palette.info.main;
+  const snapColor = theme.vars.palette.secondary.main;
   const viewportX = (docX: number) => docToViewport(docX, docW, size.width, zoom, pan.x);
   const viewportY = (docY: number) => docToViewport(docY, docH, size.height, zoom, pan.y);
 
@@ -478,6 +480,37 @@ export const SketchRulersAndGuides = memo(function SketchRulersAndGuides() {
         >
           {drag.orientation === "horizontal" ? "Y" : "X"}: {drag.position} px
         </Box>
+      )}
+
+      {snapLines?.x != null && (
+        <Box
+          data-testid="sketch-snap-line"
+          data-orientation="vertical"
+          sx={{
+            position: "absolute",
+            top: 0,
+            bottom: 0,
+            left: Math.round(viewportX(snapLines.x)),
+            width: "1px",
+            backgroundColor: snapColor,
+            pointerEvents: "none"
+          }}
+        />
+      )}
+      {snapLines?.y != null && (
+        <Box
+          data-testid="sketch-snap-line"
+          data-orientation="horizontal"
+          sx={{
+            position: "absolute",
+            left: 0,
+            right: 0,
+            top: Math.round(viewportY(snapLines.y)),
+            height: "1px",
+            backgroundColor: snapColor,
+            pointerEvents: "none"
+          }}
+        />
       )}
 
       {rulersVisible && (

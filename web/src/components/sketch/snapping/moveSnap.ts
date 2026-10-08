@@ -26,6 +26,12 @@ export interface SnapTargets {
   y: number[];
 }
 
+/** Lines a drag snapped to: `x` a vertical line, `y` a horizontal line. */
+export interface SnapLines {
+  x: number | null;
+  y: number | null;
+}
+
 export interface SnapResult {
   dx: number;
   dy: number;
@@ -121,4 +127,40 @@ export function snapValue(
     }
   }
   return best;
+}
+
+function nearestLine(
+  value: number,
+  targets: readonly number[],
+  threshold: number
+): number | null {
+  let best: number | null = null;
+  let bestDist = threshold;
+  for (const t of targets) {
+    const d = Math.abs(t - value);
+    if (d <= bestDist) {
+      best = t;
+      bestDist = d;
+    }
+  }
+  return best;
+}
+
+/**
+ * Snap a point (a drawn rectangle's corner, a dragged handle) to the nearest
+ * vertical and horizontal target lines within `threshold`. Each axis snaps
+ * independently.
+ */
+export function snapPoint(
+  point: { x: number; y: number },
+  targets: SnapTargets,
+  threshold: number
+): { x: number; y: number; lines: SnapLines } {
+  const lineX = nearestLine(point.x, targets.x, threshold);
+  const lineY = nearestLine(point.y, targets.y, threshold);
+  return {
+    x: lineX ?? point.x,
+    y: lineY ?? point.y,
+    lines: { x: lineX, y: lineY }
+  };
 }

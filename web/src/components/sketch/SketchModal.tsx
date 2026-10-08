@@ -184,6 +184,14 @@ const SketchModal: React.FC<SketchModalProps> = ({
     preventDefault: false
   });
 
+  // The discard confirmation is modal: shortcuts pause while it is open and
+  // Escape cancels it instead of dropping the selection.
+  useGlobalCombo("escape", () => setConfirmDiscard(false), {
+    active: confirmDiscard,
+    allowInInputs: true,
+    preventDefault: false
+  });
+
   const handleRequestClose = useCallback(() => {
     editorRef.current?.flushPendingChanges();
     onClose();
@@ -373,7 +381,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
               <IconButton size="small" aria-label="Confirm discard" color="error" onClick={() => { editorRef.current?.discardToInitial(); onClose(); }}>
                 <TrashIcon width={16} height={16} />
               </IconButton>
-              <IconButton size="small" aria-label="Cancel discard" onClick={() => setConfirmDiscard(false)}>
+              <IconButton size="small" aria-label="Cancel discard" autoFocus onClick={() => setConfirmDiscard(false)}>
                 <CloseIcon sx={{ fontSize: "var(--fontSizeNormal)" }} />
               </IconButton>
             </>
@@ -415,7 +423,7 @@ const SketchModal: React.FC<SketchModalProps> = ({
           onDocumentChange={onDocumentChange}
           onExportImage={onExportImage}
           onExportMask={onExportMask}
-          suspendKeyboardShortcuts={shortcutsPaneOpen}
+          suspendKeyboardShortcuts={shortcutsPaneOpen || confirmDiscard}
         />
         {shortcutsPaneOpen ? (
           <>
