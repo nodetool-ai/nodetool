@@ -105,9 +105,10 @@ export interface SetupFlowProps<Stage extends string> {
    * otherwise mean leaving the guided surface altogether.
    *
    * The shell asks before it calls this, and its question promises two things
-   * the host owes: the description already typed, and any references with it,
-   * carry over to the flow picked next, and the draft document created for
-   * this flow is discarded rather than left behind as an empty project row.
+   * the host owes: the description already typed carries over to the flow
+   * picked next, and the draft document created for this flow is discarded
+   * rather than left behind as an empty project row. References and entities
+   * do not carry over yet, so the question does not promise them.
    */
   onChangeFlow?: () => void | Promise<void>;
 }
