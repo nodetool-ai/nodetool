@@ -10,6 +10,7 @@ export const SKETCH_ACTION_IDS = [
   "select-all", "deselect", "reselect", "invert-selection",
   // Canvas
   "export-png", "zoom-fit", "zoom-100", "zoom-in", "zoom-out", "toggle-panels",
+  "toggle-rulers", "toggle-guides", "toggle-snap",
   // Color
   "swap-colors", "reset-colors",
   // Paint
@@ -82,6 +83,9 @@ export const ACTION_REGISTRY: readonly ActionMeta[] = [
   { id: "zoom-in", label: "Zoom In", displayGroup: "Canvas" },
   { id: "zoom-out", label: "Zoom Out", displayGroup: "Canvas" },
   { id: "toggle-panels", label: "Toggle Panels", displayGroup: "Canvas" },
+  { id: "toggle-rulers", label: "Show / Hide Rulers", displayGroup: "Canvas" },
+  { id: "toggle-guides", label: "Show / Hide Guides", displayGroup: "Canvas" },
+  { id: "toggle-snap", label: "Snap On / Off", displayGroup: "Canvas" },
   { id: "swap-colors", label: "Swap Colors", displayGroup: "Color" },
   { id: "reset-colors", label: "Reset Colors", displayGroup: "Color" },
   { id: "tool-size-decrease", label: "Decrease Size", displayGroup: "Paint" },

@@ -308,6 +308,22 @@ export const SKETCH_PRESET_SWATCHES: string[] = [
 
 // ─── Sketch Document ──────────────────────────────────────────────────────────
 
+export type SketchGuideOrientation = "horizontal" | "vertical";
+
+/**
+ * A ruler guide: an infinite line at `position` document pixels. A horizontal
+ * guide sits at a y coordinate, a vertical guide at an x coordinate.
+ */
+export interface SketchGuide {
+  id: string;
+  orientation: SketchGuideOrientation;
+  position: number;
+}
+
+export function generateGuideId(): string {
+  return `guide_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+}
+
 export interface SketchDocument {
   version: number;
   canvas: {
@@ -325,6 +341,8 @@ export interface SketchDocument {
    * persisted, never inferred from content (D3).
    */
   setup?: SketchSetup;
+  /** Ruler guides. Absent until the first guide is placed. */
+  guides?: SketchGuide[];
   metadata: {
     createdAt: string;
     updatedAt: string;

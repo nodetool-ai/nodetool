@@ -7,6 +7,56 @@ import type { SketchStore } from "../useSketchStore";
 import { buildLayersPanelRows } from "../../types";
 
 const ASSISTANT_OPEN_KEY = "sketch.assistantPanelOpen";
+const VIEW_PREFS_KEY = "sketch.viewPrefs";
+
+interface ViewPrefs {
+  rulersVisible: boolean;
+  guidesVisible: boolean;
+  snapEnabled: boolean;
+}
+
+const DEFAULT_VIEW_PREFS: ViewPrefs = {
+  rulersVisible: false,
+  guidesVisible: true,
+  snapEnabled: true
+};
+
+function readViewPrefs(): ViewPrefs {
+  try {
+    const saved = localStorage.getItem(VIEW_PREFS_KEY);
+    if (saved) {
+      const parsed: unknown = JSON.parse(saved);
+      if (parsed && typeof parsed === "object") {
+        const p = parsed as Partial<Record<keyof ViewPrefs, unknown>>;
+        return {
+          rulersVisible:
+            typeof p.rulersVisible === "boolean"
+              ? p.rulersVisible
+              : DEFAULT_VIEW_PREFS.rulersVisible,
+          guidesVisible:
+            typeof p.guidesVisible === "boolean"
+              ? p.guidesVisible
+              : DEFAULT_VIEW_PREFS.guidesVisible,
+          snapEnabled:
+            typeof p.snapEnabled === "boolean"
+              ? p.snapEnabled
+              : DEFAULT_VIEW_PREFS.snapEnabled
+        };
+      }
+    }
+  } catch {
+    /* private mode or malformed value */
+  }
+  return { ...DEFAULT_VIEW_PREFS };
+}
+
+function writeViewPrefs(prefs: ViewPrefs): void {
+  try {
+    localStorage.setItem(VIEW_PREFS_KEY, JSON.stringify(prefs));
+  } catch {
+    /* private mode */
+  }
+}
 
 function readAssistantPanelOpen(): boolean {
   try {
@@ -38,6 +88,16 @@ export interface UiSlice {
 
   panelsHidden: boolean;
   togglePanelsHidden: () => void;
+
+  /** Rulers along the top and left canvas edges. Remembered per browser. */
+  rulersVisible: boolean;
+  toggleRulersVisible: () => void;
+  /** Whether ruler guides are drawn. Hidden guides do not snap. */
+  guidesVisible: boolean;
+  toggleGuidesVisible: () => void;
+  /** Snap moves to canvas edges, canvas center, guides and other layers. */
+  snapEnabled: boolean;
+  toggleSnapEnabled: () => void;
 
   /**
    * Whether the tool-settings row of the top bar is collapsed to just its
@@ -103,6 +163,16 @@ export interface UiSlice {
   setCursorDocPos: (pos: { x: number; y: number } | null) => void;
 }
 
+const initialViewPrefs = readViewPrefs();
+
+function pickViewPrefs(state: ViewPrefs): ViewPrefs {
+  return {
+    rulersVisible: state.rulersVisible,
+    guidesVisible: state.guidesVisible,
+    snapEnabled: state.snapEnabled
+  };
+}
+
 export const createUiSlice: StateCreator<SketchStore, [], [], UiSlice> = (
   set
 ) => ({
@@ -116,6 +186,28 @@ export const createUiSlice: StateCreator<SketchStore, [], [], UiSlice> = (
   panelsHidden: false,
   togglePanelsHidden: () =>
     set((state) => ({ panelsHidden: !state.panelsHidden })),
+
+  rulersVisible: initialViewPrefs.rulersVisible,
+  toggleRulersVisible: () =>
+    set((state) => {
+      const rulersVisible = !state.rulersVisible;
+      writeViewPrefs({ ...pickViewPrefs(state), rulersVisible });
+      return { rulersVisible };
+    }),
+  guidesVisible: initialViewPrefs.guidesVisible,
+  toggleGuidesVisible: () =>
+    set((state) => {
+      const guidesVisible = !state.guidesVisible;
+      writeViewPrefs({ ...pickViewPrefs(state), guidesVisible });
+      return { guidesVisible };
+    }),
+  snapEnabled: initialViewPrefs.snapEnabled,
+  toggleSnapEnabled: () =>
+    set((state) => {
+      const snapEnabled = !state.snapEnabled;
+      writeViewPrefs({ ...pickViewPrefs(state), snapEnabled });
+      return { snapEnabled };
+    }),
 
   toolSettingsCollapsed: false,
   toggleToolSettingsCollapsed: () =>

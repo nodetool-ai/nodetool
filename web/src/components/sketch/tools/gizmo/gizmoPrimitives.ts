@@ -22,6 +22,7 @@ import {
   GIZMO_LINE_WIDTH_HOVERED,
   OFF_CANVAS_INDICATOR_COLOR,
   OFF_CANVAS_CORNER_ARM_CSS,
+  SNAP_LINE_COLOR,
   CROP_DIM_COLOR,
   CROP_BORDER_COLOR,
   CROP_GRID_COLOR
@@ -41,6 +42,43 @@ function drawSquareHandle(
   gc.lineWidth = (isHovered ? GIZMO_LINE_WIDTH_HOVERED : GIZMO_LINE_WIDTH) * dpr;
   gc.fillRect(pos.x - hs / 2, pos.y - hs / 2, hs, hs);
   gc.strokeRect(pos.x - hs / 2, pos.y - hs / 2, hs, hs);
+}
+
+// ─── Snap lines ──────────────────────────────────────────────────────────────
+
+/**
+ * Draw full-viewport smart-guide lines at the screen positions a move snapped
+ * to. `x` is a vertical line's screen x, `y` a horizontal line's screen y,
+ * both in gizmo canvas pixels. `width` and `height` are the gizmo canvas size
+ * in the same pixels.
+ */
+export function drawSnapLines(
+  gc: CanvasRenderingContext2D,
+  lines: { x: number | null; y: number | null },
+  dpr: number,
+  width: number,
+  height: number
+): void {
+  if (lines.x === null && lines.y === null) {
+    return;
+  }
+  gc.save();
+  gc.strokeStyle = SNAP_LINE_COLOR;
+  gc.lineWidth = Math.max(1, dpr);
+  gc.setLineDash([]);
+  gc.beginPath();
+  if (lines.x !== null) {
+    const x = Math.round(lines.x) + 0.5;
+    gc.moveTo(x, 0);
+    gc.lineTo(x, height);
+  }
+  if (lines.y !== null) {
+    const y = Math.round(lines.y) + 0.5;
+    gc.moveTo(0, y);
+    gc.lineTo(width, y);
+  }
+  gc.stroke();
+  gc.restore();
 }
 
 // ─── Off-canvas indicator ────────────────────────────────────────────────────
