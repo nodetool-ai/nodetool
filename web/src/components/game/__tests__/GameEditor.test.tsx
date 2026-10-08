@@ -6,6 +6,8 @@ import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 
 import mockTheme from "../../../__mocks__/themeMock";
 import { getGameDraftStore } from "../../../stores/game/GameDraftStore";
+import { getGamePanelLayoutStore } from "../../../stores/game/useGamePanelLayoutStore";
+import useAuth from "../../../stores/useAuth";
 import GameEditor from "../GameEditor";
 import type GameViewport from "../viewport2d/GameViewport";
 import type GameInspector from "../panels/inspector/GameInspector";
@@ -82,6 +84,8 @@ jest.mock("../panels/scripts/GameScriptPane", () => ({
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // The editor shares one persisted layout store per user, so each case starts from the same docking layout.
+  getGamePanelLayoutStore(useAuth.getState().user?.id ?? null).getState().selectLayout("Default");
   mockViewportProps = undefined;
   mockPlayDocument = mockDocument;
   mockHostFailure = null;
