@@ -12,7 +12,7 @@ describe draft storage compatibility.
 
 ## Version identifiers
 
-[The game model](../packages/models/src/game.ts) stores immutable draft files at
+[The game model](https://github.com/nodetool-ai/nodetool/blob/main/packages/models/src/game.ts) stores immutable draft files at
 `<source_root>/drafts/<version_id>.json`. The `games.draft_version_id` column
 points to the current draft. Each `game_draft_changes.before_digest` value
 identifies the before-file used to undo that change.
