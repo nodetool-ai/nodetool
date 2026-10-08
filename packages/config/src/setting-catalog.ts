@@ -148,6 +148,12 @@ s(
   "Execution",
   "Maximum number of concurrent runs of the same workflow before additional runs queue (default: 4). Only applies to runs that opt into concurrency (e.g. timeline/sketch generation); canvas runs always stay sequential per workflow. Also bounded by MAX_CONCURRENT_JOBS."
 );
+s(
+  "NODETOOL_PYTHON_ON_DEMAND",
+  "Execution",
+  "Start the Python worker when a workflow first needs it instead of at server launch (default: false). Python-only providers such as huggingface-local appear once the worker has started. Restart the backend after changing this setting.",
+  ["true", "false"]
+);
 // Agent budgets — the bounds one agent run shares across every loop it starts
 // (a chat turn, its sub-agents, an AgentNode it spawns). See A1 in
 // docs/plans/agent-system-improvements.md.

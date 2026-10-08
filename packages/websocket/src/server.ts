@@ -210,6 +210,7 @@ import {
 } from "./trpc/error-logging.js";
 import { captureError, startErrorTraceMaintenance } from "./error-traces.js";
 import { detectPipMetadataRoots } from "./lib/python-metadata-roots.js";
+import { getSetting } from "./settings-registry.js";
 
 /** The Node `process` as Electron extends it. `type` is absent elsewhere. */
 type ElectronProcess = typeof process & { readonly type?: string };
@@ -1997,8 +1998,16 @@ if (process.platform === "win32") {
   process.on("SIGBREAK", () => void shutdown("SIGBREAK"));
 }
 
-// Start Python bridge eagerly if a worker is available.
-if (pythonBridge.isAvailable()) {
+// Start the Python bridge eagerly if a worker is available, unless the user
+// chose to start it on first use. Runs that need it start it through
+// `ensurePythonBridge` either way.
+const pythonOnDemand =
+  (await getSetting("NODETOOL_PYTHON_ON_DEMAND")) === "true";
+if (pythonBridge.isAvailable() && pythonOnDemand) {
+  log.info(
+    "Python bridge starts on first use (NODETOOL_PYTHON_ON_DEMAND=true)"
+  );
+} else if (pythonBridge.isAvailable()) {
   log.info(`Starting Python bridge eagerly [${startupMs()}]`);
   pythonBridge
     .ensureConnected()
