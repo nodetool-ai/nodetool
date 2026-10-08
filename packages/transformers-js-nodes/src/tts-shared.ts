@@ -32,7 +32,9 @@ const MAX_CACHED_KOKORO = 2;
 
 const kokoroCache = new ModelCache<KokoroTTS>(
   MAX_CACHED_KOKORO,
-  (tts) => (tts as { model?: { dispose?: () => unknown } }).model?.dispose?.(),
+  async (tts) => {
+    await tts.model.dispose();
+  },
   ["generate"]
 );
 
@@ -133,10 +135,16 @@ interface KokoroGenerator {
  * Synthesize `text` with Kokoro one sentence chunk at a time and concatenate
  * the audio, so text longer than the model's context is spoken in full.
  */
+/** Voice and speed for one Kokoro generation. */
+export interface KokoroSpeechOptions {
+  voice?: KokoroVoice;
+  speed?: number;
+}
+
 export async function generateKokoroSpeech(
   tts: KokoroGenerator,
   text: string,
-  options: { voice?: KokoroVoice; speed?: number }
+  options: KokoroSpeechOptions
 ): Promise<{ audio: Float32Array; sampling_rate: number }> {
   const chunks = splitTextForTts(text);
   if (chunks.length === 0) {

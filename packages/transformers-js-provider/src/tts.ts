@@ -6,6 +6,7 @@ import {
   getPipeline,
   isKokoroRepo,
   isSpeechT5Repo,
+  type KokoroSpeechOptions,
   type KokoroVoice
 } from "@nodetool-ai/transformers-js-nodes";
 import type { EncodedAudioResult } from "@nodetool-ai/runtime";
@@ -67,7 +68,7 @@ export async function textToSpeechEncoded(
 
   if (isKokoroRepo(args.model)) {
     const tts = await getKokoro(args.model, undefined, undefined);
-    const options: { voice: KokoroVoice; speed?: number } = {
+    const options: KokoroSpeechOptions = {
       voice: resolveKokoroVoice(args.voice)
     };
     if (args.speed != null) options.speed = args.speed;
