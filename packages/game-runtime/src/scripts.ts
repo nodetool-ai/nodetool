@@ -1,6 +1,6 @@
 import type { QuickJSContext, QuickJSHandle, QuickJSRuntime } from "quickjs-emscripten-core";
 import { z } from "zod";
-import { gameNonSpatialScriptCommand, type GameDocument, type GameSnapshot } from "@nodetool-ai/protocol";
+import { gameNonSpatialScriptCommand, type GameDocument, type GameEntityProps, type GameSnapshot } from "@nodetool-ai/protocol";
 
 import { canPersistGameScript } from "./script-persistence.js";
 import { gameScriptValue, scriptHandleResult } from "./script-transport.js";
@@ -38,10 +38,10 @@ export interface GameScriptCall {
   readonly velocityX: number;
   readonly velocityY: number;
   readonly touching: GameScriptTouching;
-  readonly tags: readonly string[];
-  readonly props: NonNullable<GameDocument["scenes"][number]["entities"][number]["props"]>;
-  readonly rotation: number;
-  readonly active: boolean;
+  /** Schema 4 metadata. Props travel once per entity in `GameScriptInput.props`. */
+  readonly tags?: readonly string[];
+  readonly rotation?: number;
+  readonly active?: boolean;
   readonly maxCommands: number;
   readonly maxTickMs: number;
 }
@@ -79,10 +79,9 @@ export interface GameScriptWorldEntity {
   readonly source: string;
   readonly x: number;
   readonly y: number;
-  readonly tags: readonly string[];
-  readonly props: NonNullable<GameDocument["scenes"][number]["entities"][number]["props"]>;
-  readonly rotation: number;
-  readonly active: boolean;
+  readonly tags?: readonly string[];
+  readonly rotation?: number;
+  readonly active?: boolean;
 }
 
 export interface GameScriptInput {
@@ -91,6 +90,8 @@ export interface GameScriptInput {
   readonly justPressed: readonly string[];
   readonly events: readonly unknown[];
   readonly world: readonly GameScriptWorldEntity[];
+  /** Schema 4: non-empty props of the tick's entities, keyed by entity id and sent once. */
+  readonly props?: Readonly<Record<string, GameEntityProps>>;
 }
 
 export interface GameScriptRunner {
@@ -151,6 +152,17 @@ export interface IsolatedScriptCall {
 export interface IsolatedScriptInput {
   readonly tick: number;
   readonly world: readonly ScriptWorldEntity[];
+  /**
+   * Entity props keyed by id. The logical input carries each entity's props once; the runner
+   * copies them into the call and world entries that scripts read. Absent for legacy documents.
+   */
+  readonly props?: Readonly<Record<string, GameEntityProps>>;
+}
+
+const EMPTY_PROPS: GameEntityProps = Object.freeze({});
+
+function propsOf(table: Readonly<Record<string, GameEntityProps>>, id: string): GameEntityProps {
+  return Object.hasOwn(table, id) ? table[id] : EMPTY_PROPS;
 }
 
 export interface IsolatedScriptRunner<Call extends IsolatedScriptCall, Input extends IsolatedScriptInput, Command> {
@@ -308,7 +320,8 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           }
           const started = performance.now();
           const batchDeadline = started + 50;
-          // This limits the logical tick payload; each isolated call gets its own JSON copy.
+          // This limits the logical tick payload, which carries each entity's props once.
+          // Each isolated call gets its own JSON copy with props attached to the entries scripts read.
           const serialized = JSON.stringify({ calls, input, rngState });
           const inputBytes = encoder.encode(serialized).byteLength;
           if (inputBytes > 64 * 1024) {
@@ -316,29 +329,37 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
           }
           const batchBudget = `batch 50 ms at tick ${input.tick}`;
           assertBeforeDeadline(batchDeadline, batchBudget);
+          const { props: propsTable, ...scriptInput } = input;
+          // Scripts read props on each world entry. The copies exist only in this guest-facing JSON.
+          let worldJson: string | undefined;
+          const scriptWorldJson = (): string => worldJson ??= JSON.stringify(propsTable === undefined ? scriptInput.world
+            : scriptInput.world.map((entity) => ({ ...entity, props: propsOf(propsTable, entity.id) })));
           let fullInputJson: string | undefined;
-          const inputJson = (): string => fullInputJson ??= JSON.stringify(input);
+          const inputJson = (): string => {
+            if (fullInputJson === undefined) {
+              const { world: _world, ...withoutWorld } = scriptInput;
+              const rest = JSON.stringify(withoutWorld);
+              fullInputJson = `${rest.slice(0, -1)}${rest.length > 2 ? "," : ""}"world":${scriptWorldJson()}}`;
+            }
+            return fullInputJson;
+          };
           let persistentInputJson: string | undefined;
           const inputJsonWithoutWorld = (): string => {
             if (persistentInputJson === undefined) {
-              const { world: _world, ...withoutWorld } = input;
+              const { world: _world, ...withoutWorld } = scriptInput;
               persistentInputJson = JSON.stringify(withoutWorld);
             }
             return persistentInputJson;
           };
+          const callJson = (call: Call): string => JSON.stringify(propsTable === undefined ? call : { ...call, props: propsOf(propsTable, call.entityId) });
           let hostWorld: ScriptWorldSnapshot | undefined;
-          const getHostWorld = (): ScriptWorldSnapshot => hostWorld ??= new ScriptWorldSnapshot(world ?? input.world);
+          const getHostWorld = (): ScriptWorldSnapshot => hostWorld ??= new ScriptWorldSnapshot(world ?? input.world, propsTable);
           let legacyWorld: unknown;
           let legacyWorldReady = false;
           const readLegacyWorld = (): unknown => {
             if (!legacyWorldReady) {
-              // The logical payload already captured the tick-start world. Parse it only on demand.
-              const captured: unknown = JSON.parse(serialized);
-              if (captured === null || typeof captured !== "object" || !("input" in captured)
-                || captured.input === null || typeof captured.input !== "object" || !("world" in captured.input)) {
-                throw new Error("Script input world is missing");
-              }
-              legacyWorld = captured.input.world;
+              // Parse the tick-start world only when a persistent script reads it.
+              legacyWorld = JSON.parse(scriptWorldJson());
               legacyWorldReady = true;
             }
             return legacyWorld;
@@ -378,8 +399,8 @@ export async function prepareIsolatedGameScripts<Call extends IsolatedScriptCall
               const { context, invoke, defineData, worldGetter } = realm;
               if (!persistent) { worldCall = getHostWorld().install(context, checkCallDeadline, realm.defineData, realm.queryJson); }
               checkCallDeadline();
-              // Byte-identical to JSON.stringify({ call, input, rngState }), without re-serializing the shared input per call.
-              const data = `{"call":${JSON.stringify(call)},"input":${persistent ? inputJsonWithoutWorld() : inputJson()},"rngState":${JSON.stringify(nextRngState)}}`;
+              // The shared input is serialized once per tick; only the call is serialized per call.
+              const data = `{"call":${callJson(call)},"input":${persistent ? inputJsonWithoutWorld() : inputJson()},"rngState":${JSON.stringify(nextRngState)}}`;
               checkCallDeadline();
               const normalized: unknown = persistent ? JSON.parse(data) : data;
               let argument: QuickJSHandle | undefined;
@@ -467,7 +488,8 @@ export function prepareGameScripts(document: GameDocument): Promise<GameScriptRu
     events: data.input.events, entity: {
       id: data.call.entityId, source: data.call.source, x: data.call.x, y: data.call.y,
       velocityX: data.call.velocityX, velocityY: data.call.velocityY, touching: data.call.touching,
-      tags: data.call.tags, props: data.call.props, rotation: data.call.rotation, active: data.call.active
+      ...(data.call.props === undefined ? undefined
+        : { tags: data.call.tags, props: data.call.props, rotation: data.call.rotation, active: data.call.active })
     }, world: data.input.world, state: data.call.state, random: __gameRandom
   }`);
 }

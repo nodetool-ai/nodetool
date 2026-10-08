@@ -189,6 +189,8 @@ describe("retained game authoring", () => {
 
 it("preserves explicit metadata replacements while rebuilding unrelated authored transforms", () => {
   const baseline = simple();
+  baseline.schemaVersion = 4;
+  baseline.engineVersion = "3";
   baseline.scenes[0].entities[0].tags = ["baseline"];
   baseline.scenes[0].entities[0].props = {nested:{removed:1,keep:null}};
   const initial = gameDocument.parse(retained(baseline));

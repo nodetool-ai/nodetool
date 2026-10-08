@@ -398,7 +398,7 @@ export async function createNativeGame(user: string, projectId: string, name: st
     if (!workspace || !workspaceRow) return { error: "Project workspace is unavailable" };
     const id = randomUUID().replace(/-/g, "");
     const revision = randomUUID().replace(/-/g, "");
-    const document = validateSource(source ?? (dimension === "3d" ? createNative3DGame(id) : { ...createTopDownRoomGame(id), schemaVersion: 2 }), id, revision);
+    const document = validateSource(source ?? (dimension === "3d" ? createNative3DGame(id) : { ...createTopDownRoomGame(id), schemaVersion: 4, engineVersion: "3" }), id, revision);
     if ("error" in document) return document;
     if (source && ((document.schemaVersion === 3) !== (dimension === "3d"))) { return { error: "Supplied document does not match the requested dimension" }; }
     const game = new Game({
@@ -898,7 +898,7 @@ const generateAsset: CapabilityExport = {
       lutSize = prepared.lutSize;
       if (frames?.[0]) { binding.frame = frames[0]; }
       if (prepared.baseline !== undefined && frames?.[0]) { binding.pivot = { x: 0.5, y: (prepared.baseline + 1) / frames[0].height }; }
-      if (draft.document.schemaVersion === 2) {
+      if (draft.document.schemaVersion !== 1) {
         binding.preparation = imagePreparationMetadata(settings.data);
         binding.originalDimensions = { width: prepared.originalWidth, height: prepared.originalHeight };
         if (prepared.trim) { binding.trim = prepared.trim; }
@@ -926,7 +926,7 @@ const generateAsset: CapabilityExport = {
     binding.digest = digest;
     binding.width = width;
     binding.height = height;
-    if (draft.document.schemaVersion === 2) { binding.provenance = typeof inputFile === "string" ? `import:${inputFile}`
+    if (draft.document.schemaVersion !== 1 && draft.document.schemaVersion !== 3) { binding.provenance = typeof inputFile === "string" ? `import:${inputFile}`
       : makeLut ? "generated:color-cube" : kind === "sfx" ? `node:${args["node_type"]}` : `${provider}:${model}:${generated.generation_id ?? ""}`; }
     if (draft.document.schemaVersion === 3) {
       delete binding.width; delete binding.height; delete binding.pivot; delete binding.sampling;

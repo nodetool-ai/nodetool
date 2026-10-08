@@ -179,7 +179,10 @@ files are included. The first 3D release targets desktop web and Electron.
 
 ## Entity tags and properties
 
-Both dimensions support optional `tags` and `props` on an entity. Use
+Both dimensions support optional `tags` and `props` on an entity. A 2D game
+needs `schemaVersion: 4` with `engineVersion: "3"`. Schemas 1 and 2 reject the
+fields, keep engine 1 and give scripts no metadata. New 2D games start at
+schema 4. Use
 `update_entity` with `set: {tags: ["hero"], props: {health: 10}}`. Each field
 replaces its complete value. A top-level `null` removes the stored field.
 Nested `null` is JSON data. Tags are unique, with at most 64 strings of
@@ -188,11 +191,14 @@ Nested `null` is JSON data. Tags are unique, with at most 64 strings of
 `__proto__`, `constructor` and `prototype` are rejected at every nesting level.
 
 Scripts read `entity.tags`, `entity.props`, `entity.active` and
-`entity.rotation`, and the same fields on existing `world` entries. Rotation
-is radians in 2D and the committed world quaternion `[x, y, z, w]` in 3D.
+`entity.rotation`, and the same fields on existing `world` entries and
+`world.get(id)` results. `world.query({tag})` returns the ids carrying a tag.
+Rotation is radians in 2D and the committed world quaternion `[x, y, z, w]` in 3D.
 Use `setProp {key, value}` and `removeProp {key}` to change the caller's
-runtime properties. Setting `null` keeps that key. Removal deletes it.
-Runtime properties survive snapshot restore and remain independent of the
+runtime properties. Setting `null` keeps that key. Removal deletes it. The
+runtime checks every property command in a tick before it changes any state,
+and an error names the entity and tick. Each entity's props count once
+toward the 64 KiB script input limit. Runtime properties survive snapshot restore and remain independent of the
 authored document and other prefab instances. Mutating an input object does
 not change runtime state.
 
@@ -229,6 +235,8 @@ Queries cover every active entity. Legacy `input.world` keeps its existing
 shape and population, including only collider or camera entities in 2D.
 The 2D query record is `{id, source, x, y, velocityX, velocityY, grounded}`.
 The 3D record is `{id, source, position, velocity, grounded}`, with XYZ vectors.
+3D records and schema 4 2D records add `tags`, `props`, `rotation` and `active`.
+A `tag` filter matches only entities that carry the tag.
 Pass `near: {x, y, z?}` and `radius` together. The radius is nonnegative and
 includes entities on its boundary, measured between centers, with omitted
 `z` treated as zero. `source` matches the record's original entity ID, not a 3D

@@ -43,3 +43,6 @@ export const gameEntityProps = z.preprocess((value, context) => validateRawEntit
     context.addIssue({ code: "custom", message: "Entity properties exceed 64 KiB" });
   }
 }));
+
+export type GameEntityTags = z.infer<typeof gameEntityTags>;
+export type GameEntityProps = z.infer<typeof gameEntityProps>;

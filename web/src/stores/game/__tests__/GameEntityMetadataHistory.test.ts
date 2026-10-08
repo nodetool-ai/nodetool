@@ -14,9 +14,12 @@ function metadata(document: AnyGameDocument, set: unknown): AnyGameDocumentOp {
     entity_id: document.scenes[0].entities[0].id, set });
 }
 
+// Entity metadata needs 2D schema 4.
+const createMetadataGame2D = (id: string): AnyGameDocument => ({ ...createTopDownRoomGame(id), schemaVersion: 4, engineVersion: "3" });
+
 it.each([
-  { name: "2D", create: createTopDownRoomGame, authored: false },
-  { name: "2D", create: createTopDownRoomGame, authored: true },
+  { name: "2D", create: createMetadataGame2D, authored: false },
+  { name: "2D", create: createMetadataGame2D, authored: true },
   { name: "3D", create: createNative3DGame, authored: false },
   { name: "3D", create: createNative3DGame, authored: true }
 ])(

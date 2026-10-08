@@ -1,21 +1,36 @@
-import { gameEntityProps } from "@nodetool-ai/protocol";
+import type { GameEntityProps } from "@nodetool-ai/protocol";
 import { evaluateVisual } from "../visual-animation.js";
 import { gravityScaleOf, touchingOf } from "./collision2d.js";
 import type { EntityState } from "./state2d.js";
 import type { GameSystemContext2D } from "./context2d.js";
 import { applyGameplayCommand, queueGameplayBehavior } from "../gameplay/lifecycle.js";
-import { scriptSourceKey } from "../scripts.js";
-function scriptMetadata(state: EntityState, tick: number) {
-  return { tags: [...(state.definition.tags ?? [])], props: structuredClone(state.props ?? {}), active: state.active,
+import { planScriptProps } from "../script-props.js";
+import { scriptSourceKey, type GameScriptInput } from "../scripts.js";
+
+const NO_TAGS: readonly string[] = Object.freeze([]);
+
+interface ScriptMetadata2D { readonly tags: readonly string[]; readonly rotation: number; readonly active: boolean }
+
+function scriptMetadata(state: EntityState, tick: number): ScriptMetadata2D {
+  return { tags: state.definition.tags ?? NO_TAGS, active: state.active,
     rotation: state.visual?.rotation ?? evaluateVisual(state.definition, tick - state.spawnTick, state.rotation, state.scaleX, state.scaleY).rotation };
 }
 
 export function stepScripts2D(context: GameSystemContext2D): void {
   const hasActiveScripts = context.scriptRunner && context.states.some((state) => state.active
     && state.definition.behaviors.some((behavior) => behavior.kind === "script"));
+  // Entity metadata belongs to schema 4. Older documents keep their exact script input.
+  const supportsMetadata = context.document.schemaVersion === 4;
+  const metadataByState = new Map<EntityState, ScriptMetadata2D>();
+  const metadataOf = (state: EntityState): ScriptMetadata2D | undefined => {
+    if (!supportsMetadata) { return undefined; }
+    let metadata = metadataByState.get(state);
+    if (!metadata) { metadata = scriptMetadata(state, context.tick); metadataByState.set(state, metadata); }
+    return metadata;
+  };
   const worldAtStart = hasActiveScripts ? context.states.filter((state) => state.active)
     .map((state) => ({ id: state.definition.id, source: state.sourceId ?? state.definition.id, x: state.x, y: state.y,
-      velocityX: state.velocityX, velocityY: state.velocityY, grounded: touchingOf(context, state).down })) : [];
+      velocityX: state.velocityX, velocityY: state.velocityY, grounded: touchingOf(context, state).down, ...metadataOf(state) })) : [];
   for (const state of context.states) {
     state.previousX = state.x;
     state.previousY = state.y;
@@ -56,7 +71,7 @@ export function stepScripts2D(context: GameSystemContext2D): void {
           velocityX: state.velocityX,
           velocityY: state.velocityY,
           touching: touchingOf(context, state),
-          ...scriptMetadata(state, context.tick),
+          ...metadataOf(state),
           maxCommands: behavior.maxCommands,
           maxTickMs: behavior.maxTickMs
         });
@@ -70,14 +85,23 @@ export function stepScripts2D(context: GameSystemContext2D): void {
     const world = context.states
       .filter((state) => state.active && (state.definition.collider2d || state.definition.camera2d))
       .map((state) => ({ id: state.definition.id, source: state.sourceId ?? state.definition.id, x: state.x, y: state.y,
-        ...scriptMetadata(state, context.tick) }));
+        ...metadataOf(state) }));
+    // Each active entity's props travel once; scripts read them on `entity`, `world` and `world.get`.
+    const legacyInput: GameScriptInput = { tick: context.tick, pressed: [...context.pressed], justPressed: context.input.justPressed,
+      events: context.previousEvents, world };
+    const props: Record<string, GameEntityProps> = {};
+    for (const state of context.states) {
+      if (supportsMetadata && state.active && state.props !== undefined && Object.keys(state.props).length > 0) { props[state.definition.id] = state.props; }
+    }
+    const scriptInput: GameScriptInput = supportsMetadata ? { ...legacyInput, props } : legacyInput;
     const batch = context.scriptRunner.run(
       context.scriptCalls,
-      { tick: context.tick, pressed: [...context.pressed], justPressed: context.input.justPressed, events: context.previousEvents, world },
+      scriptInput,
       context.rngState,
       worldAtStart
     );
     const byId = new Map(context.states.map((state) => [state.definition.id, state]));
+    const plannedProps = planScriptProps(batch.results, (entityId) => byId.get(entityId)?.props, context.tick, supportsMetadata);
     for (const item of batch.results) {
       for (const command of item.commands) {
         if (command.kind === "spawn" && !context.scene.entities.some((entity) => entity.id === command.prefabId && entity.templateOnly)) {
@@ -106,12 +130,8 @@ export function stepScripts2D(context: GameSystemContext2D): void {
         throw new Error(`Game script entity ${item.entityId} disappeared`);
       }
       for (const command of item.commands) {
-        if (command.kind === "setProp") {
-          state.props = gameEntityProps.parse({ ...state.props, [command.key]: command.value });
-        } else if (command.kind === "removeProp") {
-          const props = { ...state.props };
-          delete props[command.key];
-          state.props = props;
+        if (command.kind === "setProp" || command.kind === "removeProp") {
+          state.props = plannedProps.get(item.entityId);
         } else if (command.kind === "setVelocity") {
           state.velocityX = command.x;
           state.velocityY = command.y;

@@ -1,5 +1,6 @@
 import type { QuickJSContext, QuickJSHandle } from "quickjs-emscripten-core";
 import { z } from "zod";
+import type { GameEntityProps } from "@nodetool-ai/protocol";
 import { gameScriptValue, scriptHandleResult } from "./script-transport.js";
 
 export const GAME_SCRIPT_MAX_QUERIES = 64;
@@ -24,6 +25,11 @@ export interface ScriptWorldEntity {
   readonly velocityX?: number;
   readonly velocityY?: number;
   readonly grounded?: boolean;
+  /** Schema 4 and 3D metadata, matching the entries of `input.world`. */
+  readonly tags?: readonly string[];
+  readonly props?: GameEntityProps;
+  readonly rotation?: number | readonly [number, number, number, number];
+  readonly active?: boolean;
 }
 
 /** Owns one immutable start-of-tick view shared by host callbacks, never guest objects. */
@@ -32,9 +38,11 @@ export class ScriptWorldSnapshot {
   private readonly byId: ReadonlyMap<string, ScriptWorldEntity>;
   private byX: readonly { readonly entity: ScriptWorldEntity; readonly order: number }[] | undefined;
 
-  constructor(entities: readonly ScriptWorldEntity[]) {
+  /** `props` holds each entity's props once; entities absent from it read `{}`. Legacy inputs pass none. */
+  constructor(entities: readonly ScriptWorldEntity[], props?: Readonly<Record<string, GameEntityProps>>) {
     this.entities = entities.map((entity) => {
       const snapshot = { ...entity };
+      if (props !== undefined) { snapshot.props = Object.hasOwn(props, entity.id) ? props[entity.id] : {}; }
       if (entity.position) { snapshot.position = Object.freeze({ ...entity.position }); }
       if (entity.velocity) { snapshot.velocity = Object.freeze({ ...entity.velocity }); }
       return Object.freeze(snapshot);
@@ -111,11 +119,12 @@ export class ScriptWorldSnapshot {
       const parsed = queryOptions.parse(value);
       const ids: string[] = [];
       const candidates = parsed.near && parsed.radius !== undefined ? this.nearCandidates(parsed.near.x, parsed.radius, checkDeadline) : this.entities;
-      // Current documents have no authored tags. A tag filter therefore matches nothing.
-      if (parsed.tag === undefined && parsed.limit > 0) {
+      if (parsed.limit > 0) {
         for (const entity of candidates) {
           checkDeadline();
           if (parsed.source !== undefined && entity.source !== parsed.source) { continue; }
+          // Legacy entities carry no tags, so a tag filter matches none of them.
+          if (parsed.tag !== undefined && !entity.tags?.includes(parsed.tag)) { continue; }
           if (parsed.near && parsed.radius !== undefined) {
             const x = entity.position?.x ?? entity.x ?? 0;
             const y = entity.position?.y ?? entity.y ?? 0;

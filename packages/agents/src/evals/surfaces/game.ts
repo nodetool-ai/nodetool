@@ -45,7 +45,7 @@ export const GAME_TOOL_LOOP_CASES: readonly ToolLoopEvalCase<GameDocument>[] = [
   id: "entity-tags-properties",
   description: "Author native entity tags and nested JSON properties through public edit ops.",
   objective: "Give player the hero tag and properties health 10 and nested nullable null, replacing prior properties.",
-  createBridge: () => createGameToolBridge(createTopDownRoomGame("metadata-eval")),
+  createBridge: () => createGameToolBridge({ ...createTopDownRoomGame("metadata-eval"), schemaVersion: 4, engineVersion: "3" }),
   systemPrompt: "Use get_native_game and edit_native_game. update_entity replaces tags and the whole props map. Nested null is data.",
   expect: {
     requiredTools: ["edit_native_game"], noErrorResults: true, minToolCalls: 1, maxToolCalls: 5,

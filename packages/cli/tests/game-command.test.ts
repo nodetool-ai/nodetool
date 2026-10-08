@@ -262,7 +262,8 @@ it("simulates authored metadata commands and verifies property snapshot replay",
   const actual = await vi.importActual<typeof import("@nodetool-ai/game-runtime")>("@nodetool-ai/game-runtime");
   vi.mocked(createScriptedGameSession).mockImplementation(actual.createScriptedGameSession);
   const document = createTopDownRoomGame("a".repeat(32));
-  document.schemaVersion = 2;
+  document.schemaVersion = 4;
+  document.engineVersion = "3";
   const player = document.scenes[0].entities.find(entity=>entity.id==="player");
   if (!player) { throw new Error("CLI fixture requires player"); }
   player.tags = ["hero"];

@@ -60,7 +60,7 @@ describe("native game tools in 3D", () => {
 
   it("keeps omitted dimension in 2D and edits the 3D spatial draft through a short ID", async () => {
     const { run } = await agent();
-    expect(replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Legacy" })).document.schemaVersion).toBe(2);
+    expect(replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Legacy" })).document.schemaVersion).toBe(4);
     const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Exploration", dimension: "3d" }));
     if (created.document.schemaVersion !== 3) { throw new Error("Expected 3D document"); }
     const shortId = created.document.id.slice(0, 12);

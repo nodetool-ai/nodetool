@@ -4,7 +4,7 @@ import { anyGameDocumentOp, applyAnyGameOps, createTopDownRoomGame, validateAnyG
 import { blockout } from "./fixtures-game3d.js";
 
 const cases = [
-  { dimension: "2D", document: () => ({ ...createTopDownRoomGame("metadata-ops"), schemaVersion: 2 as const }) },
+  { dimension: "2D", document: () => ({ ...createTopDownRoomGame("metadata-ops"), schemaVersion: 4 as const, engineVersion: "3" as const }) },
   { dimension: "3D", document: blockout }
 ];
 

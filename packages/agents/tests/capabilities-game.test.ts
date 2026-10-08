@@ -260,7 +260,7 @@ describe("native game capabilities", () => {
     const created = await agent.invoke("create_native_game", { project_id: PROJECT, name: "Font room" }) as GameReply;
     const published = await agent.invoke("publish_native_game", { game_id: created.game.id,
       base_revision: created.game.revision,
-      base_updated_at: (await agent.invoke("get_native_game", { game_id: created.game.id, view: "full" }) as GameReply).draft_updated_at, document: { ...created.document, schemaVersion: 2 } }) as GameReply;
+      base_updated_at: (await agent.invoke("get_native_game", { game_id: created.game.id, view: "full" }) as GameReply).draft_updated_at, document: { ...created.document, schemaVersion: 2, engineVersion: "1" } }) as GameReply;
     const bytes = await readFile(new URL("../../timeline/fonts/BebasNeue-Regular.ttf", import.meta.url));
     const digest = createHash("sha256").update(bytes).digest("hex");
     const [row] = await Workspace.listByProject(USER, PROJECT);

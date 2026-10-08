@@ -57,8 +57,9 @@ export type GameRenderEffect = z.infer<typeof gameRenderEffect>;
 
 export const gameDocument = z.strictObject({
   authoring: gameAuthoring.optional(),
-  schemaVersion: z.union([z.literal(1), z.literal(2)]),
-  engineVersion: z.literal("1"),
+  /** Schema 4 adds entity tags and props and runs on engine 3. Schemas 1 and 2 run on engine 1. */
+  schemaVersion: z.union([z.literal(1), z.literal(2), z.literal(4)]),
+  engineVersion: z.enum(["1", "3"]),
   id: z.string().min(1),
   revision: z.string().min(1),
   entrySceneId: z.string().min(1),
@@ -125,7 +126,7 @@ export type GameRenderFrame = z.infer<typeof gameRenderFrame>;
 
 export const gameSnapshot = z.object({
   gameRevision: z.string(),
-  engineVersion: z.literal("1"),
+  engineVersion: z.enum(["1", "3"]),
   sceneId: z.string(),
   tick: z.number().int().nonnegative(),
   rngState: z.number().int().nonnegative(),
@@ -173,4 +174,4 @@ export { gameVisualTrack, type GameVisualTrack } from "./components/visual-anima
 
 export { gameBackgroundLayer, type GameBackgroundLayer } from "./components/background.js";
 
-export { gameEntityProps, gameEntityTags } from "../game-entity-metadata.js";
+export { gameEntityPropertyValue, gameEntityProps, gameEntityTags, type GameEntityProps, type GameEntityTags } from "../game-entity-metadata.js";

@@ -1,4 +1,4 @@
-import { gameScriptCommand3D, type GameDocument3D, type GameEvent3D, type GameInputFrame3D, type GameQueryResult3D, type GameScriptCommand3D, type GameVector3 } from "@nodetool-ai/protocol";
+import { gameScriptCommand3D, type GameDocument3D, type GameEntityProps, type GameEvent3D, type GameInputFrame3D, type GameQueryResult3D, type GameScriptCommand3D, type GameVector3 } from "@nodetool-ai/protocol";
 import { prepareIsolatedGameScripts, type IsolatedScriptCall, type IsolatedScriptRunner } from "./scripts.js";
 
 export interface GameScriptCall3D extends IsolatedScriptCall {
@@ -6,7 +6,6 @@ export interface GameScriptCall3D extends IsolatedScriptCall {
   readonly velocity: GameVector3;
   readonly grounded: boolean;
   readonly tags: readonly string[];
-  readonly props: NonNullable<GameDocument3D["scenes"][number]["entities"][number]["props"]>;
   readonly rotation: GameDocument3D["scenes"][number]["entities"][number]["transform3d"]["rotation"];
   readonly active: boolean;
 }
@@ -16,7 +15,9 @@ export interface GameScriptInput3D extends GameInputFrame3D {
   readonly events: readonly GameEvent3D[];
   readonly camera: { readonly yaw: number; readonly pitch: number };
   readonly queries: readonly GameQueryResult3D[];
-  readonly world: readonly { readonly id: string; readonly source: string; readonly position: GameVector3; readonly velocity: GameVector3; readonly grounded: boolean; readonly tags: readonly string[]; readonly props: GameScriptCall3D["props"]; readonly rotation: GameScriptCall3D["rotation"]; readonly active: boolean }[];
+  readonly world: readonly { readonly id: string; readonly source: string; readonly position: GameVector3; readonly velocity: GameVector3; readonly grounded: boolean; readonly tags: readonly string[]; readonly rotation: GameScriptCall3D["rotation"]; readonly active: boolean }[];
+  /** Non-empty props of the tick's entities, keyed by entity id and sent once. Scripts read them on `entity` and `world`. */
+  readonly props: Readonly<Record<string, GameEntityProps>>;
 }
 
 export type GameScriptRunner3D = IsolatedScriptRunner<GameScriptCall3D, GameScriptInput3D, GameScriptCommand3D>;

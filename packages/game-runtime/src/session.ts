@@ -244,7 +244,10 @@ function createGameSessionWithRunner(
       state.velocityY = saved.velocityY;
       state.spawnTick = saved.spawnTick ?? 0;
       state.active = saved.active;
-      if (saved.props !== undefined) { state.props = structuredClone(saved.props); }
+      if (saved.props !== undefined) {
+        if (document.schemaVersion !== 4) { throw new Error(`Save entity ${saved.id} props require schema version 4`); }
+        state.props = structuredClone(saved.props);
+      }
       state.health = saved.health;
       state.patrolOrigin = saved.patrolOrigin;
       state.patrolDirection = saved.patrolDirection;
@@ -281,7 +284,7 @@ function createGameSessionWithRunner(
     }
     return {
       gameRevision: document.revision,
-      engineVersion: "1",
+      engineVersion: document.engineVersion,
       sceneId,
       tick,
       rngState,
