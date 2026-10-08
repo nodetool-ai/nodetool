@@ -90,9 +90,12 @@ export interface LookStepControls {
   refetchModels: () => void;
   /**
    * Write the terminal stage, then enqueue one layer per variation. Returns
-   * the batch's layer ids, in contact-sheet order.
+   * the batch's layer ids, in contact-sheet order. `onCreated` receives the
+   * same ids before any job is started.
    */
-  generate: () => Promise<string[]>;
+  generate: (
+    onCreated?: (layerIds: readonly string[]) => void
+  ) => Promise<string[]>;
 }
 
 /**
@@ -107,13 +110,8 @@ export function useLookStep(): LookStepControls {
   const remember = useLastModelStore((state) => state.remember);
   const { data: entities } = useEntities();
   const { generateVariations } = useGenerateVariations();
-  const {
-    models,
-    providers,
-    isLoading,
-    error,
-    refetch
-  } = useImageModelsByProvider({ task: "text_to_image" });
+  const { models, providers, isLoading, error, refetch } =
+    useImageModelsByProvider({ task: "text_to_image" });
 
   const variations = setup?.variations ?? 1;
   const canvas = useSketchStore((state) => state.document.canvas);
@@ -160,15 +158,11 @@ export function useLookStep(): LookStepControls {
   const modelMissing =
     availability === "ready" &&
     model.length > 0 &&
-    !models.some(
-      (entry) => entry.id === model && entry.provider === provider
-    );
+    !models.some((entry) => entry.id === model && entry.provider === provider);
 
   const selectedModel = useMemo(
     () =>
-      models.find(
-        (entry) => entry.id === model && entry.provider === provider
-      ),
+      models.find((entry) => entry.id === model && entry.provider === provider),
     [model, models, provider]
   );
   const sizePresets = useMemo(
@@ -182,20 +176,28 @@ export function useLookStep(): LookStepControls {
     (!selectedSize ||
       !selectedModel.aspect_ratios.includes(selectedSize.aspectRatio));
 
-  const generate = useCallback(async (): Promise<string[]> => {
-    const current = useSketchStore.getState().document.setup;
-    const size = useSketchStore.getState().document.canvas;
-    const created = await generateVariations({
-      prompt: composeImagePrompt(current, styleDescriptor),
-      provider,
-      model,
-      width: size.width,
-      height: size.height,
-      aspectRatio: sizePresetFor(size.width, size.height)?.aspectRatio,
-      count: current?.variations ?? 1
-    });
-    return created.map((variation) => variation.layerId);
-  }, [generateVariations, model, provider, styleDescriptor]);
+  const generate = useCallback(
+    async (
+      onCreated?: (layerIds: readonly string[]) => void
+    ): Promise<string[]> => {
+      const current = useSketchStore.getState().document.setup;
+      const size = useSketchStore.getState().document.canvas;
+      const created = await generateVariations(
+        {
+          prompt: composeImagePrompt(current, styleDescriptor),
+          provider,
+          model,
+          width: size.width,
+          height: size.height,
+          aspectRatio: sizePresetFor(size.width, size.height)?.aspectRatio,
+          count: current?.variations ?? 1
+        },
+        { onCreated }
+      );
+      return created.map((variation) => variation.layerId);
+    },
+    [generateVariations, model, provider, styleDescriptor]
+  );
 
   // The batch creates `variations` bindings with exactly these fields, so it
   // prices through the same estimator the layer inspector uses — `quantity`
@@ -311,8 +313,8 @@ const ModelListState: React.FC<{
         </EditorButton>
       }
     >
-      None of the connected providers offers a model that renders a picture
-      from text.
+      None of the connected providers offers a model that renders a picture from
+      text.
     </AlertBanner>
   );
 };
@@ -336,8 +338,7 @@ export const ImageModelFooterField: React.FC<{
     (chosen: ImageModelValue) => {
       setModel(chosen.provider, chosen.id);
       const selected = look.models.find(
-        (entry) =>
-          entry.id === chosen.id && entry.provider === chosen.provider
+        (entry) => entry.id === chosen.id && entry.provider === chosen.provider
       );
       const supported = sizePresetsForAspectRatios(selected?.aspect_ratios);
       const current = sizePresetFor(canvas.width, canvas.height);

@@ -7,7 +7,7 @@ description: "Unified, structured memory shared by every agent, task, and step i
 
 **Navigation**: [Chat & Agents](global-chat-agents.md) → **Agent Memory**
 
-> **Not the same as the `memory_*` capabilities.** This page describes per-run scratch space (`context.memory`) shared between the steps of one workflow. For the notes an agent saves durably, across every conversation, see the `memory_*` capabilities.
+> **Not the same as the `memory_*` capabilities.** This page describes per-run scratch space (`context.memory`) shared between the steps of one workflow. For the notes an agent saves durably, across every conversation, see [Memory](memory.md).
 
 The **agent memory system** is the single source of truth for everything that flows between agents, tasks, steps, sub-agents, and tools during a workflow run. One `AgentMemory` instance lives on every `ProcessingContext` as `context.memory`. All executors read from and write to it through a single namespaced API, and every agent accesses it through three auto-attached tools:
 

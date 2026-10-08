@@ -18,7 +18,33 @@ export type RuntimePackageId =
   | "node-llama-cpp"
   | "whisper-cpp"
   | "playwright"
-  | "claude-agent-sdk";
+  | "claude-agent-sdk"
+  | "pdf-js"
+  | "office-documents"
+  | "tesseract-ocr"
+  | "fabric"
+  | "email-imap";
+
+/** Display names for the runtime packages, as the Package Manager lists them. */
+export const RUNTIME_PACKAGE_NAMES: Readonly<Record<RuntimePackageId, string>> = {
+  python: "Python",
+  nodejs: "Node.js",
+  ffmpeg: "FFmpeg & Codecs",
+  pandoc: "Pandoc",
+  pdftotext: "PDF Tools (Poppler)",
+  "yt-dlp": "yt-dlp",
+  "transformers-js": "Transformers.js",
+  "tensorflow-js": "TensorFlow.js Models",
+  "node-llama-cpp": "llama.cpp (in-process)",
+  "whisper-cpp": "whisper.cpp",
+  playwright: "Playwright",
+  "claude-agent-sdk": "Claude Agent SDK",
+  "pdf-js": "PDF Libraries",
+  "office-documents": "Office Documents",
+  "tesseract-ocr": "Tesseract OCR",
+  fabric: "Fabric.js",
+  "email-imap": "Email (IMAP)"
+};
 
 const MISSING_RUNTIME_PACKAGE = Symbol.for("nodetool.missingRuntimePackage");
 
@@ -33,6 +59,24 @@ export class MissingRuntimePackageError extends Error {
     super(message, options);
     this.name = "MissingRuntimePackageError";
   }
+}
+
+/**
+ * The error a feature throws when the npm package it imports is absent. The
+ * message names the package and where to install it, so a caller that only
+ * shows `message` (an agent, the CLI) still tells the user what to do.
+ */
+export function missingRuntimePackageError(
+  specifier: string,
+  runtimePackage: RuntimePackageId,
+  cause?: unknown
+): MissingRuntimePackageError {
+  const name = RUNTIME_PACKAGE_NAMES[runtimePackage];
+  return new MissingRuntimePackageError(
+    `The optional "${specifier}" package is not installed. Install ${name} from the Package Manager, or run "npm install ${specifier}" where NodeTool runs.`,
+    runtimePackage,
+    { cause }
+  );
 }
 
 /**

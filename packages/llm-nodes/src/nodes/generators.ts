@@ -11,7 +11,7 @@ import type {
 } from "@nodetool-ai/protocol";
 import { isChunk } from "@nodetool-ai/protocol";
 import type { Message, ProcessingContext, ToolCall } from "@nodetool-ai/runtime";
-import { isToolCall } from "@nodetool-ai/runtime";
+import { extractJson, isToolCall, messageText } from "@nodetool-ai/runtime";
 import { tagAsServer } from "@nodetool-ai/nodes-utils";
 import {
   serializeToolResult,
@@ -440,7 +440,13 @@ export class StructuredOutputGeneratorNode extends BaseNode {
       const instructions = asText(this.instructions);
       const extraContext = asText(this.context);
       const systemPrompt = asText(this.system_prompt);
-      const userText = [instructions, extraContext]
+      // The system prompt names these tags, and no provider applies a
+      // `response_format`, so the schema has to travel in the prompt.
+      const userText = [
+        `<JSON_SCHEMA>\n${JSON.stringify(schema)}\n</JSON_SCHEMA>`,
+        instructions && `<INSTRUCTIONS>\n${instructions}\n</INSTRUCTIONS>`,
+        extraContext && `<CONTEXT>\n${extraContext}\n</CONTEXT>`
+      ]
         .filter(Boolean)
         .join("\n\n");
       const messages: Message[] = [];
@@ -461,12 +467,17 @@ export class StructuredOutputGeneratorNode extends BaseNode {
         }
       });
       if (isObjectLike(result) && "content" in result) {
-        const content = asText((result as { content?: unknown }).content ?? "");
-        try {
-          return JSON.parse(content) as Record<string, unknown>;
-        } catch {
-          return { output: content };
-        }
+        // The answer arrives as a string or as content parts, and the system
+        // prompt asks for a fenced ```json block, so read the text out of the
+        // parts and the object out of the fence. Parsing the raw content
+        // returned the parts' own `type`/`text` keys, or an `output` key
+        // nothing is wired to, and every declared output stayed empty.
+        const content = messageText((result as { content?: unknown }).content);
+        const parsed = extractJson(content);
+        if (parsed) return parsed;
+        throw new Error(
+          "Structured Output Generator: the model did not return a JSON object."
+        );
       }
     }
     if (isRecord(schema)) {

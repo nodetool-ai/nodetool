@@ -115,6 +115,7 @@ export {
 } from "@nodetool-ai/core-nodes/nodes/input";
 export { OutputNode, PreviewNode, OUTPUT_NODES } from "@nodetool-ai/audio-nodes/nodes/output";
 export { WorkflowNode, WORKFLOW_NODES } from "@nodetool-ai/core-nodes/nodes/workflow";
+export { AppNode, APP_NODES } from "@nodetool-ai/core-nodes/nodes/app";
 export { SubgraphNode, SUBGRAPH_NODES } from "@nodetool-ai/core-nodes/nodes/subgraph";
 export { CompareImagesNode, COMPARE_NODES } from "@nodetool-ai/core-nodes/nodes/compare";
 export {
@@ -462,6 +463,7 @@ import { EXTENDED_PLACEHOLDER_NODES } from "@nodetool-ai/core-nodes/nodes/extend
 import { INPUT_NODES } from "@nodetool-ai/core-nodes/nodes/input";
 import { OUTPUT_NODES } from "@nodetool-ai/audio-nodes/nodes/output";
 import { WORKFLOW_NODES } from "@nodetool-ai/core-nodes/nodes/workflow";
+import { APP_NODES } from "@nodetool-ai/core-nodes/nodes/app";
 import { SUBGRAPH_NODES } from "@nodetool-ai/core-nodes/nodes/subgraph";
 import { COMPARE_NODES } from "@nodetool-ai/core-nodes/nodes/compare";
 import { ENTITY_NODES } from "@nodetool-ai/core-nodes/nodes/entity";
@@ -529,6 +531,7 @@ export const ALL_BASE_NODES: readonly NodeClass[] = [
   ...INPUT_NODES,
   ...OUTPUT_NODES,
   ...WORKFLOW_NODES,
+  ...APP_NODES,
   ...SUBGRAPH_NODES,
   ...COMPARE_NODES,
   ...ENTITY_NODES,
@@ -637,6 +640,34 @@ export function registerBaseNodes(registry: NodeRegistry): void {
             },
             {
               name: "workflow_json",
+              type: { type: "dict", type_args: [] },
+              default: {}
+            }
+          ],
+          outputs: [],
+          inline_fields: []
+        }
+      });
+      continue;
+    }
+    if (nodeClass.nodeType === "nodetool.workflows.app_node.App") {
+      registry.register(nodeClass, {
+        metadata: {
+          title: "App",
+          description: nodeClass.description,
+          namespace: "nodetool.workflows.app_node",
+          node_type: "nodetool.workflows.app_node.App",
+          supports_dynamic_inputs: true,
+          supports_dynamic_outputs: true,
+          is_streaming_output: true,
+          properties: [
+            {
+              name: "app_id",
+              type: { type: "str", type_args: [] },
+              default: ""
+            },
+            {
+              name: "app_json",
               type: { type: "dict", type_args: [] },
               default: {}
             }

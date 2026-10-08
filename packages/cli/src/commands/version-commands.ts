@@ -15,15 +15,9 @@ import { printCommandError } from "../command-errors.js";
 import { asJson, confirm, printTable } from "./output.js";
 import { numericOptionParser } from "../numeric-options.js";
 import { isString } from "../predicates.js";
+import type { JsonValue } from "../document-json.js";
 
-/** A decoded JSON document, before anything validates its shape. */
-export type JsonValue =
-  | string
-  | number
-  | boolean
-  | null
-  | JsonValue[]
-  | { [key: string]: JsonValue };
+export type { JsonValue };
 
 /** The model calls these commands make — the whole database seam. */
 export interface VersionStore<Doc, Row> {

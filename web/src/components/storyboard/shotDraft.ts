@@ -144,6 +144,10 @@ export const parseDuration = (raw: string): number | null => {
   return Number.isFinite(seconds) && seconds > 0 ? seconds : null;
 };
 
+/** True when the ERT cell holds text that is not a usable length. */
+export const isDurationInvalid = (raw: string): boolean =>
+  raw.trim() !== "" && parseDuration(raw) == null;
+
 /** An empty select or text field means "unset", not "the empty string". */
 const orUndefined = (value: string): string | undefined => {
   const trimmed = value.trim();
@@ -163,7 +167,9 @@ export const withDuration = (
   durationSeconds: string,
   linksLines: boolean
 ): ShotDraft => {
-  if (!linksLines) {
+  // A half-typed or invalid number leaves the source alone: Save is blocked
+  // until it parses, and clearing the cell is what hands timing back.
+  if (!linksLines || isDurationInvalid(durationSeconds)) {
     return { ...draft, durationSeconds };
   }
   return {

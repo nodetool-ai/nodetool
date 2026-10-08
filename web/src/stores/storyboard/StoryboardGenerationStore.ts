@@ -576,16 +576,25 @@ export const useStoryboardGenerationStore =
           set((state) => {
             const nextShotJobs = {
               ...state.shotJobs,
-              [shotId]: state.shotJobs[shotId]?.production
-                ? state.shotJobs[shotId]
-                : jobState
+              // A plain render always takes the shot's row: a production row
+              // left behind by a settled candidate would otherwise keep it,
+              // and the render's reply would be dropped as someone else's.
+              [shotId]:
+                !production || !state.shotJobs[shotId]?.production
+                  ? jobState
+                  : state.shotJobs[shotId]
             };
             const nextProductionJobs = production
               ? { ...state.productionJobs, [jobId]: jobState }
               : state.productionJobs;
             const nextJobToShot = { ...state.jobToShot, [jobId]: shotId };
             const previous = state.shotJobs[shotId];
-            if (previous && previous.jobId !== jobId && !production) {
+            if (
+              previous &&
+              previous.jobId !== jobId &&
+              !production &&
+              !previous.production
+            ) {
               delete nextJobToShot[previous.jobId];
             }
             return {
@@ -959,7 +968,14 @@ export const stopTrackingShotRequest = (requestId: string): void => {
   const shot = storyboard
     .getBoard(job.boardId)
     ?.shots.find((s) => s.id === job.shotId);
-  if (shot) {
+  // Another candidate for the same shot still running keeps the shot busy.
+  const siblingRunning = Object.values(state.productionJobs).some(
+    (candidate) =>
+      candidate.shotId === job.shotId &&
+      candidate.jobId !== requestId &&
+      isActiveStatus(candidate.status)
+  );
+  if (shot && !siblingRunning) {
     const status: ShotStatus =
       job.kind === "keyframe"
         ? shot.keyframe

@@ -66,6 +66,8 @@ export interface ReviewStepProps {
   /** Re-runs the Director with the edited plan as context. */
   onReplan: () => void;
   replanPending?: boolean;
+  /** Why the last plan or re-plan failed, shown under the plan. */
+  error?: string | null;
   onValidationChange?: (reason: string | undefined) => void;
 }
 
@@ -83,6 +85,7 @@ const TRANSITION_OPTIONS = [
 const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   onReplan,
   replanPending,
+  error,
   onValidationChange
 }) => {
   const beats = useTimelineStore((state) => state.setup?.beats);
@@ -254,6 +257,11 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
         onRemoveSection={removeBeat}
         sectionNoun="beat"
       />
+      {error ? (
+        <Text size="small" color="error" role="alert">
+          {error}
+        </Text>
+      ) : null}
     </FlexColumn>
   );
 };

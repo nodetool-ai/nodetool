@@ -2,12 +2,12 @@ import { BaseNode, prop } from "@nodetool-ai/node-sdk";
 import type { Platform } from "@nodetool-ai/protocol";
 import type { OutputCorrelation } from "@nodetool-ai/protocol";
 import type { ProcessingContext } from "@nodetool-ai/runtime";
-import { assetRefToPromptToken } from "@nodetool-ai/runtime";
+import { assetRefToPromptToken, loadMediaRefBytes } from "@nodetool-ai/runtime";
+import type { MediaRefValue } from "@nodetool-ai/runtime";
 import {
   tagAsServer,
   renderTemplate,
-  referencedVariables,
-  base64ToBytes
+  referencedVariables
 } from "@nodetool-ai/nodes-utils";
 import type { TemplateVars } from "@nodetool-ai/nodes-utils";
 import {
@@ -20,7 +20,6 @@ import {
   SAVE_TO_WORKSPACE_TITLE
 } from "@nodetool-ai/nodes-utils";
 import {
-  isNonEmptyString,
   isNumber,
   isObjectLike,
   isString
@@ -51,9 +50,6 @@ function isAsrResult<T>(value: T): value is T & { text: string } {
     typeof value.text === "string"
   );
 }
-
-/** What an `audio` slot delivers: an `AudioRef`, or `{}` before one is wired. */
-type AudioLike = { data?: unknown; uri?: unknown };
 
 /** The embedding capability's answer — one vector per embedded chunk. */
 function isEmbeddingVectors<T>(value: T): value is T & number[][] {
@@ -235,7 +231,8 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
     description: "The audio to transcribe",
     required: true
   })
-  declare audio: AudioLike | null;
+  /** An `AudioRef`, or `{}` before one is wired. */
+  declare audio: MediaRefValue | null;
 
   @prop({
     type: "str",
@@ -265,24 +262,13 @@ export class AutomaticSpeechRecognitionNode extends BaseNode {
 
   async process(context?: ProcessingContext): Promise<AutomaticSpeechRecognitionNodeOutputs> {
     const { providerId, modelId } = modelConfig(this.model);
-    const audio: AudioLike = this.audio ?? {};
-    let bytes: Uint8Array = new Uint8Array();
-    if (isString(audio.data)) {
-      bytes = base64ToBytes(audio.data);
-    } else if (audio.data instanceof Uint8Array) {
-      bytes = new Uint8Array(audio.data);
-    } else if (isNonEmptyString(audio.uri)) {
-      if (context?.storage) {
-        const stored = await context.storage.retrieve(audio.uri);
-        if (stored !== null) bytes = new Uint8Array(stored);
-      }
-      if (bytes.length === 0 && audio.uri.startsWith("file://")) {
-        const fs = await loadNodeFsPromises();
-        bytes = new Uint8Array(
-          await fs.readFile(audio.uri.slice("file://".length))
-        );
-      }
-    }
+    const audio: MediaRefValue = this.audio ?? {};
+    // The shared resolver reads every ref an app hands this node: an uploaded
+    // asset id, `asset://`, a shipped `package://` input, a storage path or an
+    // http URL. Reading `storage` and `file://` alone dropped all the others.
+    const bytes =
+      (await loadMediaRefBytes(audio, context)) ??
+      new Uint8Array();
 
     if (
       context &&

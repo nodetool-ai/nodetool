@@ -140,6 +140,10 @@ export function useStrokeLifecycleActions({
 
   const handleStrokeStart = useCallback(() => {
     canvasRef.current?.drainPendingStrokeCommit();
+    // The checkpoint must hold the previous stroke's pixels. Undo restores the
+    // layer data it records, so stale data would re-hydrate over the restored
+    // canvas and blank the layer.
+    flushPendingStrokeFinalization();
     const activeLayerId = document.activeLayerId;
     const isTransformOnlyGesture = isTransformOnlyTool(interactionTool);
     const activeLayerSnapshot =
@@ -160,11 +164,14 @@ export function useStrokeLifecycleActions({
     pushHistory(
       actionLabel,
       layerSnapshots,
-      isTransformOnlyGesture ? { restoreMode: "structure-only" } : undefined
+      isTransformOnlyGesture
+        ? { restoreMode: "structure-only", timing: "before" }
+        : { timing: "before" }
     );
   }, [
     document.activeLayerId,
     canvasRef,
+    flushPendingStrokeFinalization,
     pushHistory,
     activeTool,
     interactionTool

@@ -1,10 +1,13 @@
-import { useCallback, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import type { EntityKind } from "@nodetool-ai/protocol";
 import AddPhotoAlternateOutlinedIcon from "@mui/icons-material/AddPhotoAlternateOutlined";
 import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 
 import { rpcRequest } from "../../../lib/websocket/rpcRequest";
-import { getRememberedModel, useLastModelStore } from "../../../stores/lastModelStore";
+import {
+  getRememberedModel,
+  useLastModelStore
+} from "../../../stores/lastModelStore";
 import type { ImageModelValue } from "../../../stores/ApiTypes";
 import EntityAssetPickerDialog from "../../entities/EntityAssetPickerDialog";
 import ImageModelSelect from "../../properties/ImageModelSelect";
@@ -24,7 +27,11 @@ import {
   Text,
   TextInput
 } from "../../ui_primitives";
-import { SETUP_CONTENT_WIDTH, SETUP_MEDIA_WIDTH } from "../layout";
+import {
+  SETUP_CONTENT_WIDTH,
+  SETUP_FIELD_WIDTH,
+  SETUP_MEDIA_WIDTH
+} from "../layout";
 import { GalleryFrame } from "../MediaGallery";
 
 interface ReferenceStepProps {
@@ -154,6 +161,9 @@ const referencePrompt = (
 ): string =>
   `A reference image of ${name || `the ${kind}`}. ${descriptor.trim()} ${option.instruction}`;
 
+/** How long a reference render may take before the dialog gives up on it. */
+const REFERENCE_TIMEOUT_MS = 5 * 60_000;
+
 interface GenerateReferenceDialogProps {
   readonly open: boolean;
   readonly name: string;
@@ -187,25 +197,48 @@ const GenerateReferenceDialog = ({
     setProvider(value.provider);
   }, []);
 
+  // The request in flight. Closing the dialog or leaving the step aborts it,
+  // so a late answer cannot replace a reference picked since (F11).
+  const controllerRef = useRef<AbortController | null>(null);
+  useEffect(() => () => controllerRef.current?.abort(), []);
+
+  const handleClose = useCallback(() => {
+    controllerRef.current?.abort();
+    controllerRef.current = null;
+    setGenerating(false);
+    onClose();
+  }, [onClose]);
+
   const handleGenerate = useCallback(async () => {
     const trimmedPrompt = prompt.trim();
     if (!trimmedPrompt || !model || !provider) {
       return;
     }
+    controllerRef.current?.abort();
+    const controller = new AbortController();
+    controllerRef.current = controller;
     setGenerating(true);
     setError(null);
     try {
-      const answer = await rpcRequest("generate_media", {
-        mode: "image",
-        provider,
-        model,
-        prompt: trimmedPrompt,
-        aspect_ratio:
-          options.find((option) => option.id === selectedOption)?.aspectRatio ??
-          "1:1",
-        resolution: "1K",
-        variations: 1
-      });
+      const answer = await rpcRequest(
+        "generate_media",
+        {
+          mode: "image",
+          provider,
+          model,
+          prompt: trimmedPrompt,
+          aspect_ratio:
+            options.find((option) => option.id === selectedOption)
+              ?.aspectRatio ?? "1:1",
+          resolution: "1K",
+          variations: 1
+        },
+        REFERENCE_TIMEOUT_MS,
+        controller.signal
+      );
+      if (controller.signal.aborted) {
+        return;
+      }
       const assetId = Array.isArray(answer.asset_ids)
         ? answer.asset_ids.find((id): id is string => typeof id === "string")
         : undefined;
@@ -216,29 +249,34 @@ const GenerateReferenceDialog = ({
       onPick(assetId);
       onClose();
     } catch (cause) {
+      if (controller.signal.aborted) {
+        return;
+      }
       setError(
         cause instanceof Error
           ? cause.message
           : "The reference image could not be generated."
       );
     } finally {
-      setGenerating(false);
+      if (controllerRef.current === controller) {
+        controllerRef.current = null;
+        setGenerating(false);
+      }
     }
   }, [model, onClose, onPick, options, prompt, provider, selectedOption]);
 
   return (
     <Dialog
       open={open}
-      onClose={onClose}
+      onClose={handleClose}
       title="Generate a reference image"
       showActions
       onConfirm={() => void handleGenerate()}
       confirmText={generating ? "Generating" : "Generate reference"}
       confirmDisabled={generating || !prompt.trim() || !model || !provider}
-      cancelDisabled={generating}
       isLoading={generating}
     >
-      <FlexColumn gap={GAP.comfortable} sx={{ minWidth: 360 }}>
+      <FlexColumn gap={GAP.comfortable} sx={{ minWidth: SETUP_FIELD_WIDTH }}>
         <Caption color="secondary">
           Choose a view, then edit the prompt to refine the image.
         </Caption>
@@ -279,7 +317,7 @@ const GenerateReferenceDialog = ({
         {error ? <AlertBanner severity="error">{error}</AlertBanner> : null}
         {generating ? (
           <FlexRow gap={GAP.tight} align="center">
-            <LoadingSpinner inline size={14} />
+            <LoadingSpinner inline size="small" />
             <Caption>Creating your reference image…</Caption>
           </FlexRow>
         ) : null}
@@ -333,7 +371,11 @@ export const ReferenceStep = ({
             fit="contain"
             borderRadius={BORDER_RADIUS.md}
             showErrorFallback
-            sx={{ width: SETUP_MEDIA_WIDTH, maxWidth: "100%", maxHeight: "48vh" }}
+            sx={{
+              width: SETUP_MEDIA_WIDTH,
+              maxWidth: "100%",
+              maxHeight: "48vh"
+            }}
           />
         </GalleryFrame>
       ) : null}

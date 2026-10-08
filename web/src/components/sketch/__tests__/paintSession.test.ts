@@ -35,6 +35,13 @@ import {
   makeAffineTransform
 } from "../types";
 import { makeToolContext } from "./_toolContextFixture";
+import { useSketchStore } from "../state/useSketchStore";
+
+// Snapping has its own tests. These drags start a few pixels from the
+// canvas edge, where snapping would move them onto it.
+beforeEach(() => {
+  useSketchStore.setState({ snapEnabled: false });
+});
 
 // ─── Test helpers ──────────────────────────────────────────────────────────
 

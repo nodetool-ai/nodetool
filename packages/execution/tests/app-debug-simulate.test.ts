@@ -485,3 +485,42 @@ it("app debug selects choices delivered by a real output message fold", async ()
   expect(report.interactions.map((interaction) => interaction.error)).toEqual([null, null]);
   expect(report.interactions[1].actions).toEqual(["set main:in1"]);
 });
+
+it("app debug lets a run's output land after the click's later setVariable, as the web runtime does", async () => {
+  // The web runtime fires a click's events without waiting on the run, so a
+  // `setVariable` after the `run` lands first and the run's output last.
+  const target = resolvedWorkflow(graph, {
+    schemaVersion: 4,
+    operations: [{ id: "main", name: "Run", workflowId: "wf1", inputs: {}, outputs: { out1: { to: "variable", variableId: "phase" } }, policy: "replace" }],
+    resources: [],
+    variables: [{ id: "phase", name: "phase", scope: "instance", persist: false, default: "start" }],
+    ui: { root: { props: { title: "Phases" } }, content: [
+      { type: "Button", props: { id: "go", label: "Go", events: [
+        { trigger: "click", kind: "run", operationId: "main" },
+        { trigger: "click", kind: "setVariable", key: "var:phase", value: "working" }
+      ] } },
+      { type: "Text", props: { id: "phase-text", binding: "var:phase" } }
+    ], zones: {} }
+  });
+  const { report } = await run(target, [{ click: "go" }]);
+  expect(report.interactions[0].error).toBeNull();
+  expect(report.variables["phase"]).toBe("done");
+});
+
+it("app debug sends a variable an operation both reads and writes as it was before the run", async () => {
+  const target = resolvedWorkflow(graph, {
+    schemaVersion: 4,
+    operations: [{
+      id: "main", name: "Run", workflowId: "wf1",
+      inputs: { in1: { from: "variable", variableId: "draft" } },
+      outputs: { out1: { to: "variable", variableId: "draft" } },
+      policy: "replace"
+    }],
+    resources: [],
+    variables: [{ id: "draft", name: "draft", scope: "instance", persist: false, default: "first draft" }],
+    ui: { root: { props: { title: "Rewrite" } }, content: [runButton], zones: {} }
+  });
+  const { report, runOnServer } = await run(target, [{ click: "Button-1" }]);
+  expect(runOnServer.mock.calls[0][0].params).toMatchObject({ prompt: "first draft" });
+  expect(report.variables["draft"]).toBe("done");
+});

@@ -7,7 +7,7 @@ title: "Categorize Mails"
 
 Classifies emails into categories (Newsletter, Work, Family, Friends) with an LLM and applies the matching Gmail label.
 
-> This tutorial does not ship as an importable template. Build it manually by following the steps below. It needs a connected Google account.
+> This tutorial does not ship as an importable template. Build it manually by following the steps below. It needs the Google Workspace integration, which is available only on installs with a login (Supabase auth mode) or with `NODETOOL_GOOGLE_WORKSPACE=1`, and a connected Google account. See [Google Workspace and Email](../google-workspace.md).
 
 ## Demo
 

@@ -217,6 +217,11 @@ prefix checks, projection, and `collapse: "innermost"`.
 
 For each output handle:
 
+- A handle with no `output_correlation` entry is `single` from
+  `__execution__`. A dynamic output (a handle only in the instance's
+  `dynamic_outputs`) may take its entry from the instance's
+  `dynamic_output_correlation` instead. The App node uses it to mark the
+  outputs its inner workflow streams as `chunk`.
 - `source` means “start from this input handle's scope”. `source:
   "__execution__"` means “start from the node execution scope”.
 - `single` and `forward` propagate the base scope and the base

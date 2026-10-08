@@ -10,11 +10,20 @@ export interface PropertyFieldRowProps {
   children: ReactNode;
   htmlFor?: string;
   spacious?: boolean;
+  /** Width of the label column. Defaults to a quarter of the row. */
+  labelWidth?: string;
   sx?: SxProps<Theme>;
 }
 
 /** Shared label and control alignment for dense editor property panels. */
-export function PropertyFieldRow({ label, children, htmlFor, spacious = false, sx }: PropertyFieldRowProps) {
+export function PropertyFieldRow({
+  label,
+  children,
+  htmlFor,
+  spacious = false,
+  labelWidth = "25%",
+  sx
+}: PropertyFieldRowProps) {
   return (
     <FlexRow
       align="center"
@@ -33,7 +42,7 @@ export function PropertyFieldRow({ label, children, htmlFor, spacious = false, s
       <Label
         component={htmlFor ? "label" : "span"}
         htmlFor={htmlFor}
-        sx={{ width: "25%", flexShrink: 0, mb: 0 }}
+        sx={{ width: labelWidth, flexShrink: 0, mb: 0 }}
       >
         {label}
       </Label>

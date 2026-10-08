@@ -406,6 +406,47 @@ const parseReviewRules = (value: unknown): string[] | undefined => {
   return Array.isArray(value) && value.every(isNonEmptyString) ? [...value] : undefined;
 };
 
+const recipeElementRoles = new Set(["product", "logo", "headline", "price", "cta", "decorative"]);
+const recipeElementKinds = new Set(["asset", "text", "shape"]);
+
+const parseShotElement = (element: unknown, inputIds: ReadonlySet<string>): RecipeShotIntent["elements"][number] | undefined => {
+  if (!isRecord(element) || !isNonEmptyString(element.id)) return undefined;
+  // A template-owned shape has no input: its fill or stroke style is its source.
+  const owned = element.inputId === undefined && element.kind === "shape" && isRecord(element.style) && (element.style.fill !== undefined || element.style.stroke !== undefined);
+  if (!owned && (!isNonEmptyString(element.inputId) || !inputIds.has(element.inputId))) return undefined;
+  if (!recipeElementKinds.has(element.kind as string) || !recipeElementRoles.has(element.role as string)) return undefined;
+  if (element.direction !== undefined && !isString(element.direction)) return undefined;
+  const authored = parseAuthoredPlacement(element);
+  if (authored === undefined) return undefined;
+  const parsed: RecipeShotIntent["elements"][number] = {id: element.id, kind: element.kind as "asset" | "text" | "shape", role: element.role as RecipeShotIntent["elements"][number]["role"]};
+  if (!owned) parsed.inputId = element.inputId as string;
+  if (element.direction !== undefined) parsed.direction = element.direction;
+  return Object.assign(parsed, authored);
+};
+
+/** Undefined means the shot list is malformed. */
+const parseShots = (shots: unknown, inputIds: ReadonlySet<string>): RecipeShotIntent[] | undefined => {
+  if (!Array.isArray(shots) || shots.length === 0) return undefined;
+  const parsedShots: RecipeShotIntent[] = [];
+  for (const shot of shots) {
+    if (!isRecord(shot) || !isNonEmptyString(shot.id) || !isNonEmptyString(shot.title) || !isNumber(shot.durationSeconds) || !Number.isFinite(shot.durationSeconds) || shot.durationSeconds <= 0 || !Array.isArray(shot.elements)) return undefined;
+    const elements: RecipeShotIntent["elements"] = [];
+    for (const element of shot.elements) {
+      const parsed = parseShotElement(element, inputIds);
+      if (!parsed) return undefined;
+      elements.push(parsed);
+    }
+    if (new Set(elements.map((element) => element.id)).size !== elements.length) return undefined;
+    const shotRules = parseReviewRules(shot.reviewRules);
+    if (shotRules === undefined) return undefined;
+    const parsedShot: RecipeShotIntent = {id: shot.id, title: shot.title, durationSeconds: shot.durationSeconds, elements};
+    if (shotRules.length) parsedShot.reviewRules = shotRules;
+    parsedShots.push(parsedShot);
+  }
+  if (new Set(parsedShots.map((shot) => shot.id)).size !== parsedShots.length) return undefined;
+  return parsedShots;
+};
+
 const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
   if (value === undefined || value === null) return undefined;
   if (!isRecord(value) || value.schemaVersion !== RECIPE_MANIFEST_SCHEMA_VERSION || !isNonEmptyString(value.slug)) return undefined;
@@ -488,32 +529,8 @@ const parseRecipeManifest = (value: unknown): RecipeManifest | undefined => {
       manifest.creativeStrategy.aspectRatio = aspectRatio;
     }
     if (value.creativeStrategy.shots !== undefined) {
-      const shots = value.creativeStrategy.shots;
-      if (!Array.isArray(shots) || shots.length === 0) return undefined;
-      const parsedShots: RecipeShotIntent[] = [];
-      for (const shot of shots) {
-        if (!isRecord(shot) || !isNonEmptyString(shot.id) || !isNonEmptyString(shot.title) || !isNumber(shot.durationSeconds) || !Number.isFinite(shot.durationSeconds) || shot.durationSeconds <= 0 || !Array.isArray(shot.elements)) return undefined;
-        const elements: RecipeShotIntent["elements"] = [];
-        for (const element of shot.elements) {
-          // A template-owned shape has no input: its fill or stroke style is its source.
-          const owned = isRecord(element) && element.inputId === undefined && element.kind === "shape" && isRecord(element.style) && (element.style.fill !== undefined || element.style.stroke !== undefined);
-          if (!isRecord(element) || !isNonEmptyString(element.id) || (!owned && (!isNonEmptyString(element.inputId) || !inputIds.has(element.inputId))) || (element.kind !== "asset" && element.kind !== "text" && element.kind !== "shape") || (element.role !== "product" && element.role !== "logo" && element.role !== "headline" && element.role !== "price" && element.role !== "cta" && element.role !== "decorative") || (element.direction !== undefined && !isString(element.direction))) return undefined;
-          const parsedElement: RecipeShotIntent["elements"][number] = {id: element.id, kind: element.kind, role: element.role};
-          if (!owned) parsedElement.inputId = element.inputId as string;
-          if (element.direction !== undefined) parsedElement.direction = element.direction;
-          const authored = parseAuthoredPlacement(element);
-          if (authored === undefined) return undefined;
-          Object.assign(parsedElement, authored);
-          elements.push(parsedElement);
-        }
-        if (new Set(elements.map((element) => element.id)).size !== elements.length) return undefined;
-        const shotRules = parseReviewRules(shot.reviewRules);
-        if (shotRules === undefined) return undefined;
-        const parsedShot: RecipeShotIntent = {id: shot.id, title: shot.title, durationSeconds: shot.durationSeconds, elements};
-        if (shotRules.length) parsedShot.reviewRules = shotRules;
-        parsedShots.push(parsedShot);
-      }
-      if (new Set(parsedShots.map((shot) => shot.id)).size !== parsedShots.length) return undefined;
+      const parsedShots = parseShots(value.creativeStrategy.shots, inputIds);
+      if (!parsedShots) return undefined;
       manifest.creativeStrategy.shots = parsedShots;
     }
     const strategyRules = parseReviewRules(value.creativeStrategy.reviewRules);

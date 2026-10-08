@@ -212,7 +212,7 @@ Click the **Auto Layout** button in the composer bar to arrange your nodes in a 
 
 ### Grouping Nodes
 
-Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups keep related nodes together and move as a unit. The node context menu also offers **Group into Subgraph**, and the canvas context menu offers **Add Group**, **Add Comment**, **Add Subgraph**, and **Add Workflow**.
+Select multiple nodes and press `Ctrl/⌘ + G` to group them. Groups keep related nodes together and move as a unit. The node context menu also offers **Group into Subgraph**, and the canvas context menu offers **Add Group**, **Add Comment**, **Add Subgraph**, **Add Workflow**, and **Add App**. An App node runs a mini app's workflow: the app's inputs become the node's inputs, its outputs become the node's outputs, and an output the app streams reaches downstream nodes one value at a time.
 
 ### Aligning Nodes
 
@@ -288,7 +288,7 @@ Right-click for options anywhere:
 
 | Location | Options |
 |----------|---------|
-| **Canvas** | Paste, Fit Screen, your favorite nodes, Add Constant Node, Add Input Node, Add Comment, Add Group, Add Workflow, Add Subgraph |
+| **Canvas** | Paste, Fit Screen, your favorite nodes, Add Constant Node, Add Input Node, Add Comment, Add Group, Add Workflow, Add Subgraph, Add App |
 | **Node** | Copy, Cut, Copy Node as JSON, Duplicate, Duplicate Vertical, Run Node, Disable or Enable Node, Collapse or Expand Node, Add Comment, Group into Subgraph, Convert to Input or Constant Node, Show Templates, select all nodes of the same type, Delete Node |
 | **Selection** | Duplicate, Copy, Cut, Run Selected, Align, Arrange, Disable All, Collapse / Expand, Surround With Group, Group into Subgraph, Select All Connected, Select Inputs, Select Outputs, Delete |
 | **Input or output port** | Searchable list of compatible nodes, plus Preview, Reroute, and Save shortcuts |
@@ -426,6 +426,8 @@ Alt-based keyboard navigation moves focus between nodes without the mouse: `Ctrl
 - **Cloud models** — faster response times, require internet and API keys
 - **Streaming nodes** — show progress during long-running operations (look for the streaming indicator)
 - **Parallel branches** — NodeTool automatically runs independent branches in parallel for faster execution
+
+To give someone else access to a workflow, see [Sharing Workflows](workflow-sharing.md).
 
 ---
 

@@ -416,19 +416,30 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
     (shotId: string) => handleEditShot(shotId, "fields"),
     [handleEditShot]
   );
-  const handledReviewRequest = useRef<string | null>(null);
+  // Keyed on the request object, not its id: asking to review the same take
+  // twice (after closing the editor) is two requests.
+  const handledReviewRequest = useRef<typeof reviewRequest>(null);
   useEffect(() => {
     if (
       readOnly ||
       !reviewRequest ||
-      handledReviewRequest.current === reviewRequest.requestId
+      handledReviewRequest.current === reviewRequest
     ) {
       return;
     }
-    handledReviewRequest.current = reviewRequest.requestId;
+    handledReviewRequest.current = reviewRequest;
     handleEditShot(reviewRequest.shotId, "fields");
   }, [handleEditShot, readOnly, reviewRequest]);
   const closeEditing = useCallback(() => setEditing(null), []);
+  // The edited shot can leave the board (deleted, undone, re-directed). With
+  // no panel mounted, nothing would answer a leave request, and every other
+  // Edit button and Download ZIP would wait on it.
+  useEffect(() => {
+    if (editing && !shots.some((s) => s.id === editing.shotId)) {
+      setEditing(null);
+      setLeaveRequest(null);
+    }
+  }, [editing, shots]);
   // Stepping from the panel moves it under the shot it steps to; the focus goes
   // back to the fields, since the dialogue cell was this shot's request.
   const handleEditingShotChange = useCallback(
@@ -504,7 +515,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
       const target = event.target as HTMLElement;
       if (
         !gridRef.current?.contains(target) ||
-        target.closest("input, textarea, [contenteditable=true]") ||
+        target.closest(
+          "input, textarea, select, [contenteditable=true], [role=combobox], [role=listbox], [role=slider]"
+        ) ||
         // The editor is a row of this grid, so its keys arrive here too. It owns
         // them: Escape closes it, and nothing in it should move the selection.
         target.closest(".shot-edit-panel")
@@ -548,6 +561,9 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
   }, []);
   const handleDragEnter = useCallback(
     (shotId: string) => {
+      if (!draggingId) {
+        return;
+      }
       setDropTargetId(shotId === draggingId ? null : shotId);
     },
     [draggingId]
@@ -661,6 +677,8 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             shotRenderMode(s) === "direct" ||
             shotRenderMode(s) === "reference") &&
           !s.clip &&
+          // A shot another shot's clip already covers has nothing to render.
+          !s.covered_by &&
           s.status !== "keyframe_generating" &&
           s.status !== "clip_generating"
       ),
@@ -1273,7 +1291,7 @@ const StoryboardBoardInner: React.FC<StoryboardBoardProps> = ({
             <Caption color="secondary">
               Tracks and clips added outside this storyboard are preserved.
               {skippedAssemblyCount > 0
-                ? ` ${skippedAssemblyCount} shot${skippedAssemblyCount === 1 ? "" : "s"} without an accepted clip will be skipped.`
+                ? ` ${skippedAssemblyCount} shot${skippedAssemblyCount === 1 ? "" : "s"} without a still or clip will be skipped.`
                 : ""}
             </Caption>
           </FlexColumn>

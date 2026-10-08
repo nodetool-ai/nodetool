@@ -7,7 +7,11 @@
  * per-slide XML parsing isn't a general zip operation.
  */
 
-import { requireBytes, unwrapLibrary } from "./limits.js";
+import {
+  importOptionalLibrary,
+  requireBytes,
+  unwrapLibrary
+} from "./limits.js";
 import { isFunction } from "../utils/type-guards.js";
 
 interface TextExtractor {
@@ -18,7 +22,11 @@ interface OfficeTextExtractorLike {
 }
 
 async function loadExtractor(where: string): Promise<TextExtractor> {
-  const mod: unknown = await import("office-text-extractor");
+  const mod = await importOptionalLibrary<unknown>(
+    where,
+    "office-text-extractor",
+    "office-documents"
+  );
   const lib = unwrapLibrary<OfficeTextExtractorLike>(
     mod,
     where,

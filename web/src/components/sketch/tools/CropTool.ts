@@ -18,6 +18,7 @@ import { drawCropOverlay, drawCropGizmoWithHandles } from "./gizmo";
 import { cursorForHandle } from "./transform/cursorMapping";
 import { applyCursorFeedback } from "./transform/transformHoverPolicy";
 import { useSketchStore } from "../state/useSketchStore";
+import { DragSnapSession } from "../snapping/toolSnap";
 
 export class CropTool implements ToolHandler {
   readonly toolId = "crop" as const;
@@ -33,6 +34,7 @@ export class CropTool implements ToolHandler {
   private adjustStartPoint: Point | null = null;
 
   private hoveredHandle: TransformHandle | null = null;
+  private readonly snapping = new DragSnapSession();
 
   private publishPreview(bounds: CropRectDoc | null): void {
     useSketchStore.getState().setCropPreviewBounds(bounds);
@@ -46,6 +48,7 @@ export class CropTool implements ToolHandler {
     this.adjustStartRect = null;
     this.adjustStartPoint = null;
     this.hoveredHandle = null;
+    this.snapping.end();
     this.publishPreview(null);
     ctx.clearGizmo();
     ctx.clearOverlay();
@@ -102,6 +105,7 @@ export class CropTool implements ToolHandler {
   }
 
   onDown(_ctx: ToolContext, event: ToolPointerEvent): boolean | void {
+    this.snapping.begin(_ctx);
     const pt = event.point;
 
     if (this.pendingRect) {
@@ -118,8 +122,9 @@ export class CropTool implements ToolHandler {
       _ctx.drawSelectionOverlay();
     }
 
-    this.marqueeStart = { ...pt };
-    this.marqueeEnd = { ...pt };
+    const start = this.snapping.snap(_ctx, pt);
+    this.marqueeStart = start;
+    this.marqueeEnd = { ...start };
     return true;
   }
 
@@ -129,8 +134,9 @@ export class CropTool implements ToolHandler {
     _coalescedPoints: ToolPointerEvent[]
   ): void {
     if (this.marqueeStart && !this.adjustHandle) {
-      this.marqueeEnd = event.point;
-      this.paintCropGizmoMarquee(ctx, this.marqueeStart, event.point);
+      const end = this.snapping.snap(ctx, event.point);
+      this.marqueeEnd = end;
+      this.paintCropGizmoMarquee(ctx, this.marqueeStart, end);
       return;
     }
     if (
@@ -138,8 +144,13 @@ export class CropTool implements ToolHandler {
       this.adjustStartRect &&
       this.adjustStartPoint
     ) {
-      const dx = event.point.x - this.adjustStartPoint.x;
-      const dy = event.point.y - this.adjustStartPoint.y;
+      const { dx, dy } = this.snapHandleDelta(
+        ctx,
+        this.adjustStartRect,
+        this.adjustHandle,
+        event.point.x - this.adjustStartPoint.x,
+        event.point.y - this.adjustStartPoint.y
+      );
       const cw = ctx.doc.canvas.width;
       const ch = ctx.doc.canvas.height;
       this.pendingRect = resizeCropRectFromDrag(
@@ -157,7 +168,10 @@ export class CropTool implements ToolHandler {
 
   onUp(ctx: ToolContext, event: ToolPointerEvent): void {
     if (this.marqueeStart && !this.adjustHandle) {
-      const end = event?.point ?? this.marqueeEnd ?? this.marqueeStart;
+      const end = event?.point
+        ? this.snapping.snap(ctx, event.point)
+        : this.marqueeEnd ?? this.marqueeStart;
+      this.snapping.end();
       const rect = this.marqueeToPendingRect(ctx, this.marqueeStart, end);
       this.marqueeStart = null;
       this.marqueeEnd = null;
@@ -172,6 +186,7 @@ export class CropTool implements ToolHandler {
       return;
     }
 
+    this.snapping.end();
     if (this.adjustHandle) {
       this.adjustHandle = null;
       this.adjustStartRect = null;
@@ -216,6 +231,34 @@ export class CropTool implements ToolHandler {
     } else if (this.pendingRect) {
       this.paintPendingCropGizmo(ctx);
     }
+  }
+
+  /** Adjust a handle drag so the edges it moves land on snap lines. */
+  private snapHandleDelta(
+    ctx: ToolContext,
+    start: CropRectDoc,
+    handle: TransformHandle,
+    dx: number,
+    dy: number
+  ): { dx: number; dy: number } {
+    if (handle === "move") {
+      return this.snapping.snapRectDelta(ctx, start, dx, dy);
+    }
+    const movesLeft = handle === "left" || handle === "top-left" || handle === "bottom-left";
+    const movesRight = handle === "right" || handle === "top-right" || handle === "bottom-right";
+    const movesTop = handle === "top" || handle === "top-left" || handle === "top-right";
+    const movesBottom = handle === "bottom" || handle === "bottom-left" || handle === "bottom-right";
+    const startX = movesLeft ? start.x : movesRight ? start.x + start.width : null;
+    const startY = movesTop ? start.y : movesBottom ? start.y + start.height : null;
+    const snapped = this.snapping.snapEdges(
+      ctx,
+      startX === null ? null : startX + dx,
+      startY === null ? null : startY + dy
+    );
+    return {
+      dx: startX === null || snapped.x === null ? dx : snapped.x - startX,
+      dy: startY === null || snapped.y === null ? dy : snapped.y - startY
+    };
   }
 
   private marqueeToPendingRect(

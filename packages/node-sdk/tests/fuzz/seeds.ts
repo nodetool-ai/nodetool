@@ -163,6 +163,136 @@ export const SEED_GRAPHS: readonly SeedGraph[] = [
         }
       ]
     }
+  },
+  {
+    id: "wiring-faults",
+    graph: {
+      nodes: [
+        {
+          id: "src",
+          type: "nodetool.input.StringInput",
+          properties: { name: "s", value: "x" }
+        },
+        {
+          id: "src2",
+          type: "nodetool.input.StringInput",
+          properties: { name: "s2", value: "y" }
+        },
+        {
+          id: "sum",
+          type: "nodetool.text.Concat",
+          properties: { a: "", b: "", n: 1 },
+          dynamic_inputs: { extra: { type: { type: "string" } } },
+          dynamic_properties: { extra: 5 }
+        },
+        {
+          id: "mix",
+          type: "nodetool.text.Template",
+          data: { template: "{{ q }}" },
+          dynamic_inputs: { q: { type: { type: "int" } } },
+          dynamic_properties: { q: "not a number" }
+        },
+        {
+          id: "ghost",
+          type: "nodetool.does.NotExist",
+          properties: {}
+        },
+        { id: "sink", type: "nodetool.output.StringOutput", properties: {} },
+        { type: "nodetool.output.StringOutput", properties: {} }
+      ],
+      edges: [
+        {
+          id: "e1",
+          source: "src",
+          sourceHandle: "output",
+          target: "sum",
+          targetHandle: "n"
+        },
+        {
+          id: "e2",
+          source: "src",
+          sourceHandle: "output",
+          target: "sink",
+          targetHandle: "value"
+        },
+        {
+          id: "e3",
+          source: "src2",
+          sourceHandle: "output",
+          target: "sink",
+          targetHandle: "value"
+        },
+        {
+          id: "e4",
+          source: "sum",
+          sourceHandle: "output",
+          target: "sum",
+          targetHandle: "a"
+        },
+        {
+          id: "e5",
+          source: "src",
+          sourceHandle: "output",
+          target: "sum",
+          targetHandle: "extra"
+        },
+        {
+          id: "e6",
+          source: "src",
+          sourceHandle: "output",
+          target: "mix",
+          targetHandle: "undeclared_slot"
+        },
+        {
+          id: "e7",
+          source: "src",
+          sourceHandle: "missing_out",
+          target: "sink"
+        },
+        { id: "e8", source: "src", target: "sink", targetHandle: "value" },
+        {
+          id: "e9",
+          source: "src",
+          sourceHandle: "output",
+          target: "nowhere",
+          targetHandle: "value"
+        }
+      ]
+    }
+  },
+  {
+    id: "model-faults",
+    graph: {
+      nodes: [
+        {
+          id: "no-provider",
+          type: "nodetool.agents.Agent",
+          properties: { model: { type: "language_model", id: "gpt-5" } }
+        },
+        {
+          id: "bad-provider",
+          type: "nodetool.agents.Agent",
+          properties: {
+            model: { type: "language_model", provider: "nope", id: "x" }
+          }
+        },
+        {
+          id: "bad-model",
+          type: "nodetool.agents.Agent",
+          properties: {
+            model: { type: "language_model", provider: "openai", id: "gpt-nop" }
+          }
+        },
+        {
+          id: "unset",
+          type: "nodetool.agents.Agent",
+          properties: {
+            model: { type: "language_model", provider: "", id: "" }
+          }
+        }
+      ],
+      edges: []
+    }
   }
 ];
 
@@ -181,5 +311,69 @@ export const SEED_CODE_BODIES: readonly { id: string; code: string }[] = [
     id: "branching",
     code: "if (inputs.flag) {\n  return { a: 1 };\n}\nreturn { a: 2 };"
   },
-  { id: "empty-ish", code: "// nothing to see\n" }
+  { id: "empty-ish", code: "// nothing to see\n" },
+  {
+    id: "export-module",
+    code: "export const x = 1;\nreturn { n: 1, out: 2, doc: 3 };"
+  },
+  {
+    id: "node-builtin",
+    code: "import fs from 'fs';\nimport { join } from 'node:path';\nreturn { n: 1, out: 2, doc: 3 };"
+  },
+  {
+    id: "private-bridge",
+    code: "import bridge from 'nodetool:media';\nreturn { n: bridge, out: 2, doc: 3 };"
+  },
+  {
+    id: "dynamic-module",
+    code: "const m = await import('left-pad');\nconst r = require('fs');\nreturn { n: m, out: r, doc: 3 };"
+  },
+  {
+    id: "return-shapes",
+    code: "if (inputs.flag) {\n  return 5;\n}\nif (inputs.a) {\n  return { n: 1, extra: 2 };\n}\nreturn { n: 1, out: 2, doc: 3 };"
+  },
+  {
+    id: "fall-through",
+    code: "if (inputs.flag) {\n  return { n: 1, out: 2, doc: 3 };\n}"
+  },
+  {
+    id: "undefined-names",
+    code: "const total = missingHelper(inputs.nope) + inputs.a;\nreturn { n: total, out: ghost, doc: inputs.text };"
+  },
+  {
+    id: "opaque-inputs",
+    code: "const key = inputs.a;\nreturn { n: inputs[key], out: { ...inputs }, doc: 1 };"
+  },
+  {
+    id: "emit-dynamic-name",
+    code: "await output(inputs.a, 1);\nawait emit(`dyn${inputs.text}`, 2);"
+  },
+  {
+    id: "emit-undeclared-return",
+    code: "await output('n', 1);\nawait output('zzz', 2);\nif (inputs.flag) return 5;\nreturn undefined;"
+  },
+  {
+    id: "stream-unknown",
+    code: "for await (const x of stream('nope', 'other')) {\n  await emit('out', x);\n}"
+  },
+  {
+    id: "stream-dynamic-name",
+    code: "for await (const x of stream(inputs.a)) {\n  await emit('out', x);\n}\nawait output('n', 1);\nawait output('doc', 2);"
+  },
+  {
+    id: "stream-unconnected",
+    code: "for await (const x of stream('a', 'text')) {\n  await emit('out', x);\n}\nawait output('n', 1);\nawait output('doc', 2);"
+  },
+  {
+    id: "stream-input-read",
+    code: "for await (const x of stream('items')) {\n  await emit('out', x + inputs.items);\n}\nawait output('n', 1);\nawait output('doc', 2);"
+  },
+  {
+    id: "stream-any",
+    code: "for await (const x of stream.any()) {\n  await emit('out', x);\n}\nawait output('n', 1);\nawait output('doc', 2);"
+  },
+  {
+    id: "stream-return-contract",
+    code: "for await (const x of stream('items')) {\n  total += x;\n}\nreturn { n: 1, out: 2, doc: 3 };"
+  }
 ];

@@ -56,6 +56,8 @@ export const downloadResolvedMedia = async (
   }
   clickDownload(objectUrl ?? url, filename);
   if (objectUrl) {
-    URL.revokeObjectURL(objectUrl);
+    // Revoking in the same task can abort the download in Firefox and Safari.
+    const revoke = objectUrl;
+    setTimeout(() => URL.revokeObjectURL(revoke), 1000);
   }
 };

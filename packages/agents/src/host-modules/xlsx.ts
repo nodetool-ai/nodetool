@@ -6,7 +6,12 @@
  * records back, or hands records over and gets workbook bytes.
  */
 
-import { optionsOf, requireBytes, unwrapLibrary } from "./limits.js";
+import {
+  importOptionalLibrary,
+  optionsOf,
+  requireBytes,
+  unwrapLibrary
+} from "./limits.js";
 import {
   isFunction,
   isObjectLike,
@@ -66,7 +71,11 @@ interface ExcelJsLike {
 }
 
 async function loadExcelJs(where: string): Promise<ExcelJsLike> {
-  const mod: unknown = await import("exceljs");
+  const mod = await importOptionalLibrary<unknown>(
+    where,
+    "exceljs",
+    "office-documents"
+  );
   return unwrapLibrary<ExcelJsLike>(
     mod,
     where,

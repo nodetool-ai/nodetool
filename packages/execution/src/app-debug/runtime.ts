@@ -756,6 +756,10 @@ export class HeadlessAppRuntime {
 
     this.assertResourcesSeeded(operation.binding);
     this.assertRequiredInputs(operation);
+    // Read the inputs before `runStarted` clears the operation's output
+    // variables, as the web runtime does: an operation that reads a variable
+    // it also writes would otherwise send the cleared value.
+    const params = this.collectParams(operationId);
 
     const decision = decideRun(this.state, operation.binding);
     const targets =
@@ -807,7 +811,7 @@ export class HeadlessAppRuntime {
     });
     this.runCount += 1;
 
-    const pending = operation.runWorkflow(this.collectParams(operationId));
+    const pending = operation.runWorkflow(params);
     // A run the harness never sees the end of must not take the process with
     // it: swallow its eventual settlement and keep it for a queued successor.
     this.inFlight.set(

@@ -13,7 +13,14 @@
  * creator can leave a screenplay that is being replaced under them (F2).
  */
 
-import { createElement, useCallback, useMemo, useState } from "react";
+import {
+  createElement,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState
+} from "react";
 import type {
   StoryboardDocumentSchema,
   StoryboardSetupStage
@@ -25,7 +32,7 @@ import { useImportSource } from "../../../hooks/storyboard/useImportSource";
 import { openPageTab } from "../../workspace/openPageTab";
 import type { SetupFlowConfig, SetupStep } from "../types";
 import { GenreFooterControls, GenreStep } from "./GenreStep";
-import { EntitiesStep } from "./EntitiesStep";
+import { EntitiesStep, type EntityCreation } from "./EntitiesStep";
 import { IdeaStep } from "./IdeaStep";
 import { LookFooterControls, LookStep, useLookStep } from "./LookStep";
 import { ReviewStep } from "./ReviewStep";
@@ -240,7 +247,7 @@ export const useStoryboardSetupFlow = ({
    * itself, so the UI and the headless path cannot disagree about it.
    */
   const runDirector = useCallback(
-    async (requestedShots: number): Promise<boolean> => {
+    async (requestedShots: number, signal?: AbortSignal): Promise<boolean> => {
       const board = useStoryboardStore.getState().getBoard(boardId);
       keepPreviousScreenplay(boardId, boardScreenplaySnapshot(board));
       // The Director currently reads context from the screenplay envelope.
@@ -248,17 +255,58 @@ export const useStoryboardSetupFlow = ({
       if (board?.creativeContext) {
         setSetup(boardId, { creative_context: board.creativeContext });
       }
-      return direct(boardId, requestedShots);
+      return direct(boardId, requestedShots, signal);
     },
     [boardId, direct, setSetup]
   );
 
   // The review step's own rewrite. It asks for the shot count the board
-  // already has rather than resetting the piece's length.
+  // already has rather than resetting the piece's length. It runs outside the
+  // shell's button, so the flow keeps its controller and the shell's Cancel
+  // aborts it (F16).
+  const rewriteControllerRef = useRef<AbortController | null>(null);
   const rewrite = useCallback(() => {
+    rewriteControllerRef.current?.abort();
+    const controller = new AbortController();
+    rewriteControllerRef.current = controller;
     const board = useStoryboardStore.getState().getBoard(boardId);
-    void runDirector(board?.shots.length ?? shotCount);
+    void runDirector(
+      board?.shots.length ?? shotCount,
+      controller.signal
+    ).finally(() => {
+      if (rewriteControllerRef.current === controller) {
+        rewriteControllerRef.current = null;
+      }
+    });
   }, [boardId, runDirector, shotCount]);
+  const cancelRewrite = useCallback(() => {
+    rewriteControllerRef.current?.abort();
+    rewriteControllerRef.current = null;
+  }, []);
+  useEffect(() => cancelRewrite, [cancelRewrite]);
+
+  // Entities being created from suggestions. Counted here rather than in the
+  // step, so a creation that outlives the step still holds the count until it
+  // lands, and the shell's Cancel stops every one in flight (F9).
+  const [creatingEntities, setCreatingEntities] = useState(0);
+  const entityCreationRef = useRef(new AbortController());
+  const startEntityCreation = useCallback((): EntityCreation => {
+    setCreatingEntities((count) => count + 1);
+    let settled = false;
+    return {
+      signal: entityCreationRef.current.signal,
+      done: () => {
+        if (!settled) {
+          settled = true;
+          setCreatingEntities((count) => Math.max(0, count - 1));
+        }
+      }
+    };
+  }, []);
+  const cancelEntityCreation = useCallback(() => {
+    entityCreationRef.current.abort();
+    entityCreationRef.current = new AbortController();
+  }, []);
 
   // Every shot the creator is about to pay to render needs something to
   // render. An empty action line reaches the prompt as nothing at all (F20).
@@ -346,8 +394,8 @@ export const useStoryboardSetupFlow = ({
         // reads.
         onAdvance: upToDate
           ? undefined
-          : async () => {
-              const directed = await runDirector(shotCount);
+          : async (context) => {
+              const directed = await runDirector(shotCount, context?.signal);
               if (!directed) {
                 throw new Error(
                   directErrorRef.current ??
@@ -367,6 +415,7 @@ export const useStoryboardSetupFlow = ({
         // the screenplay they are reading is being replaced (F2).
         pending: directing,
         pendingLabel: `Rewriting ${shotCount} shots`,
+        onCancel: cancelRewrite,
         render: () =>
           createElement(ReviewStep, {
             boardId,
@@ -392,10 +441,17 @@ export const useStoryboardSetupFlow = ({
         blockedReason: "Select or create an entity, or skip this step",
         skipLabel: "Skip entities",
         onSkip: () => undefined,
+        pending: creatingEntities > 0,
+        pendingLabel:
+          creatingEntities === 1
+            ? "Creating an entity"
+            : `Creating ${creatingEntities} entities`,
+        onCancel: cancelEntityCreation,
         render: (context) =>
           createElement(EntitiesStep, {
             boardId,
-            readOnly: context?.readOnly
+            readOnly: context?.readOnly,
+            onCreationStart: startEntityCreation
           })
       },
       {
@@ -433,7 +489,10 @@ export const useStoryboardSetupFlow = ({
     [
       acceptFallback,
       boardId,
+      cancelEntityCreation,
+      cancelRewrite,
       contextError,
+      creatingEntities,
       brief,
       directError,
       directErrorRef,
@@ -456,6 +515,7 @@ export const useStoryboardSetupFlow = ({
       runDirector,
       setShotCount,
       shotCount,
+      startEntityCreation,
       upToDate,
       usedFallback
     ]

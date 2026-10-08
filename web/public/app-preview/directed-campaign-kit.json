@@ -2348,10 +2348,6 @@
           "in-version": {
             "from": "constant",
             "value": "original"
-          },
-          "in-original_record": {
-            "from": "constant",
-            "value": ""
           }
         },
         "outputs": {

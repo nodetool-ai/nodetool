@@ -84,3 +84,42 @@ for runs that do not rely on preview-canvas pixel captures.
 The fixture's report schema and its invalid-empty-report check live in
 `web/src/components/timeline/perf/report.ts` and
 `web/src/components/timeline/perf/__tests__/report.test.ts`.
+
+## Large-document benchmarks
+
+The fixtures above isolate media paths with one to four clips. The shipped
+example timelines stress the other axis: hundreds of text, shape and group
+clips per frame. Two benchmarks measure them.
+
+The scene benchmark times the per-frame scene work the preview does on every
+played frame, for every example in
+`packages/base-nodes/nodetool/examples/timelines/`. It resolves active layers,
+samples their animation and runs the animation check, with no browser or GPU.
+Run it from the repository root:
+
+```bash
+node --conditions=nodetool-dev --import ./node_modules/tsx/dist/loader.mjs web/tests/benchmarks/timeline-scene-resolve.mjs
+```
+
+It prints mean, p95 and worst frame per example and writes
+`timeline-scene-resolve.json` to `TIMELINE_PERF_REPORT_DIR`. Set
+`TIMELINE_SCENE_ONLY` to a name prefix to run one example, and
+`TIMELINE_SCENE_MODULE` to another checkout's `packages/timeline/src/scene.ts`
+to compare against it.
+
+The browser benchmark opens one example in the editor, waits for the preview,
+plays it, and writes `timeline-large-<example>.json`:
+
+```bash
+TIMELINE_PERF_REPORT_DIR="${TMPDIR:-/tmp}/nodetool-timeline-perf-reports" npm run test:benchmark -- tests/benchmarks/timeline-large-perf.spec.ts
+```
+
+`TIMELINE_LARGE_EXAMPLE` picks the example (default `serein`) and
+`TIMELINE_LARGE_PLAY_MS` the playback window. Frame intervals and load time
+depend on the GPU, and on a software adapter they measure the adapter. The
+report therefore also counts the work: texture uploads and their bytes,
+frame-sized uploads, and per submitted frame the render passes, pixels drawn,
+compute dispatches and invocations. Those counts do not depend on the adapter.
+The test fails when the preview reports a failure stage, when WebGPU is exposed
+but the preview falls back to Canvas 2D, when more than a tenth of uploads are
+frame-sized, or when a raster cache peaks above its budget.

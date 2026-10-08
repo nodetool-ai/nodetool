@@ -106,11 +106,11 @@ describe("composeFirstTurn", () => {
     const turn = composeFirstTurn({
       prompt: "A spot for our desk lamp",
       starter: launch,
-      entityNames: ["Aurora lamp", "Night street"]
+      entityIds: ["aurora", "night-street"]
     });
     expect(turn).toBe(
       "/launch-commercial\n\nA spot for our desk lamp\n\n" +
-        "Use these entities: Aurora lamp, Night street."
+        "Use these entities: entity://aurora, entity://night-street."
     );
   });
 
@@ -121,7 +121,7 @@ describe("composeFirstTurn", () => {
       composeFirstTurn({
         prompt: "/launch-commercial A spot for our desk lamp",
         starter: launch,
-        entityNames: []
+        entityIds: []
       })
     ).toBe("/launch-commercial A spot for our desk lamp");
   });
@@ -132,7 +132,7 @@ describe("composeFirstTurn", () => {
       composeFirstTurn({
         prompt: "/house-style A spot for our desk lamp",
         starter: launch,
-        entityNames: []
+        entityIds: []
       })
     ).toBe("/launch-commercial\n\n/house-style A spot for our desk lamp");
   });
@@ -144,7 +144,7 @@ describe("composeFirstTurn", () => {
       composeFirstTurn({
         prompt: "Whatever I want",
         starter: null,
-        entityNames: []
+        entityIds: []
       })
     ).toBe("Whatever I want");
   });

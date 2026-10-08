@@ -655,6 +655,67 @@ describe("refineWorkflowPlan", () => {
     expect(result.problems).toEqual(["output() in a loop"]);
   });
 
+  it("keeps the first plan when a repair call fails", async () => {
+    let calls = 0;
+    const result = await refineWorkflowPlan({
+      messages: START,
+      generate: async () => {
+        calls += 1;
+        if (calls === 1) {
+          return draft(LOOPED);
+        }
+        throw new Error("429 rate limited");
+      },
+      check
+    });
+    expect(calls).toBe(2);
+    expect(result.plan?.steps[0].code).toBe(LOOPED);
+    expect(result.problems).toEqual(["output() in a loop"]);
+    expect(result.rounds).toBe(1);
+  });
+
+  it("rejects when the first call fails, since there is no plan to keep", async () => {
+    await expect(
+      refineWorkflowPlan({
+        messages: START,
+        generate: async () => {
+          throw new Error("401 bad key");
+        },
+        check
+      })
+    ).rejects.toThrow("401 bad key");
+  });
+
+  it("rejects an aborted repair call rather than handing back the old plan", async () => {
+    let calls = 0;
+    await expect(
+      refineWorkflowPlan({
+        messages: START,
+        generate: async () => {
+          calls += 1;
+          if (calls === 1) {
+            return draft(LOOPED);
+          }
+          throw Object.assign(new Error("aborted"), { name: "AbortError" });
+        },
+        check
+      })
+    ).rejects.toThrow("aborted");
+  });
+
+  it("reports each round before its call", async () => {
+    const rounds: number[] = [];
+    const answers = [draft(LOOPED), draft(FIXED)];
+    let calls = 0;
+    await refineWorkflowPlan({
+      messages: START,
+      generate: async () => answers[calls++],
+      check,
+      onRound: (round) => rounds.push(round)
+    });
+    expect(rounds).toEqual([1, 2]);
+  });
+
   it("asks again when an answer is not a plan", async () => {
     const answers: Array<Record<string, unknown> | null> = [null, draft(FIXED)];
     let calls = 0;

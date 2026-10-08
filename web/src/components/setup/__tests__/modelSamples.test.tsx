@@ -123,3 +123,41 @@ describe("useModelSamples", () => {
     expect(result.current["img-b"]).toBeUndefined();
   });
 });
+
+// A failed probe used to be remembered for the session, so a sample that
+// failed once on a bad connection stayed hidden until reload (F18).
+it("probes a failed sample again the next time a tile asks", async () => {
+  const first = renderHook(() => useModelSamples(["img-r"], "image"));
+  for (const entry of created) {
+    entry.el.dispatchEvent(new Event("error"));
+  }
+  await waitFor(() => expect(first.result.current).toEqual({}));
+  // Let the failed answer settle and leave the cache.
+  await Promise.resolve();
+  first.unmount();
+
+  const second = renderHook(() => useModelSamples(["img-r"], "image"));
+
+  expect(created).toHaveLength(2);
+  settleLoaded("img");
+  await waitFor(() =>
+    expect(second.result.current["img-r"]).toBe(
+      `${MODEL_SAMPLE_BASE_URL}/img-r.jpg`
+    )
+  );
+});
+
+it("drops one kind's samples when the kind changes", async () => {
+  const { result, rerender } = renderHook(
+    ({ kind }: { kind: "image" | "video" }) => useModelSamples(["m-k"], kind),
+    { initialProps: { kind: "image" as "image" | "video" } }
+  );
+  settleLoaded("img");
+  await waitFor(() =>
+    expect(result.current["m-k"]).toBe(`${MODEL_SAMPLE_BASE_URL}/m-k.jpg`)
+  );
+
+  rerender({ kind: "video" });
+
+  expect(result.current["m-k"]).toBeUndefined();
+});
