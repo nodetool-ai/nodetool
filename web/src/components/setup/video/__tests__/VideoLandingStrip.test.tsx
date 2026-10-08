@@ -11,7 +11,11 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../../__mocks__/themeMock";
 import { useTimelineStore } from "../../../../stores/timeline/TimelineStore";
 import { useDirectGenPendingStore } from "../../../../hooks/timeline/directGenPending";
-import { VideoLandingStrip, remainingMs } from "../VideoLandingStrip";
+import {
+  LANDING_DISMISSED,
+  VideoLandingStrip,
+  remainingMs
+} from "../VideoLandingStrip";
 
 const start = jest.fn(async (clipId: string) => clipId);
 jest.mock("../../../../hooks/timeline/useTimelineDirectGenJob", () => ({
@@ -110,6 +114,30 @@ describe("VideoLandingStrip", () => {
     expect(onExport).toHaveBeenCalled();
     await userEvent.click(screen.getByRole("button", { name: "Add captions" }));
     expect(useTimelineStore.getState().scriptEnabled).toBe(true);
+  });
+
+  it("offers no Export on a timeline with no clips", () => {
+    useTimelineStore.getState().setSetup({ stage: "done" });
+    renderStrip();
+    expect(screen.queryByRole("button", { name: "Export" })).toBeNull();
+    expect(
+      screen.getByRole("button", { name: "Add captions" })
+    ).toBeInTheDocument();
+  });
+
+  it("stays dismissed once the creator closes it", async () => {
+    useTimelineStore.getState().setSetup({ stage: "done" });
+    useTimelineStore.getState().addClips([clip({ id: "c1" })]);
+    const { container, unmount } = renderStrip();
+
+    await userEvent.click(
+      screen.getByRole("button", { name: "Hide next steps" })
+    );
+    expect(container).toBeEmptyDOMElement();
+    expect(useTimelineStore.getState().setup?.[LANDING_DISMISSED]).toBe(true);
+
+    unmount();
+    expect(renderStrip().container).toBeEmptyDOMElement();
   });
 
   it("holds the next steps back while anything is still rendering", () => {

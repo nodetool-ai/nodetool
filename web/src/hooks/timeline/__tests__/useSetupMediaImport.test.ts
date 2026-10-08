@@ -1,5 +1,9 @@
 import { describe, it, expect, jest } from "@jest/globals";
-import { createTimelineStore } from "../../../stores/timeline/TimelineStore";
+import { act, renderHook } from "@testing-library/react";
+import {
+  createTimelineStore,
+  useTimelineStore
+} from "../../../stores/timeline/TimelineStore";
 import type { Asset } from "../../../stores/ApiTypes";
 
 const importVideoWithAudioMock =
@@ -9,7 +13,23 @@ jest.mock("../useVideoAudioImport", () => ({
     importVideoWithAudioMock(...args)
 }));
 
-import { importSetupMedia } from "../useSetupMediaImport";
+type UploadInput = {
+  file: File;
+  onCompleted: (asset: Asset) => void;
+  onFailed: (error: string) => void;
+};
+const uploadAssetMock = jest.fn<(input: UploadInput) => void>();
+jest.mock("../../../serverState/useAssetUpload", () => ({
+  useAssetUpload: (
+    selector: (state: { uploadAsset: (input: UploadInput) => void }) => unknown
+  ) => selector({ uploadAsset: (input) => uploadAssetMock(input) })
+}));
+
+import {
+  importSetupMedia,
+  useSetupMediaImport,
+  type SetupMediaImportResult
+} from "../useSetupMediaImport";
 
 const asset = (id: string, contentType: string, duration = 2): Asset =>
   ({
@@ -132,5 +152,44 @@ describe("importSetupMedia (criterion 1)", () => {
     ]);
     expect(result.skipped.map((a) => a.id)).toEqual(["notes"]);
     expect(store.getState().clips).toEqual([]);
+  });
+});
+
+describe("useSetupMediaImport", () => {
+  it("places the files that uploaded and reports the one that failed", async () => {
+    useTimelineStore.getState().reset();
+    useTimelineStore.getState().setSetup({ stage: "idea", brief: "a boat" });
+    uploadAssetMock.mockReset();
+    uploadAssetMock.mockImplementation(({ file, onCompleted, onFailed }) => {
+      if (file.name === "broken.png") {
+        onFailed("Upload rejected");
+        return;
+      }
+      onCompleted(asset(file.name, "image/png"));
+    });
+    const { result } = renderHook(() => useSetupMediaImport());
+
+    let outcome: SetupMediaImportResult | undefined;
+    await act(async () => {
+      outcome = await result.current.importFiles(
+        ["first.png", "broken.png", "last.png"].map(
+          (name) => new File(["x"], name, { type: "image/png" })
+        )
+      );
+    });
+
+    expect(outcome?.placed.map((placed) => placed.id)).toEqual([
+      "first.png",
+      "last.png"
+    ]);
+    expect(outcome?.failed).toEqual([
+      { name: "broken.png", reason: "Upload rejected" }
+    ]);
+    // The failure is listed on step 1, so the flow does not move on.
+    expect(outcome?.advanced).toBe(false);
+    expect(useTimelineStore.getState().setup?.stage).toBe("idea");
+    expect(
+      useTimelineStore.getState().clips.map((clip) => clip.currentAssetId)
+    ).toEqual(["first.png", "last.png"]);
   });
 });
