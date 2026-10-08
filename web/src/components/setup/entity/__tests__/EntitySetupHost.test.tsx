@@ -437,11 +437,11 @@ describe("EntitySetupHost", () => {
   // they moved on, and Continue waits for it.
   it("holds the details step while the blank canvas uploads", async () => {
     stubBlankCanvas();
-    let finishUpload: () => void = () => {};
+    let _finishUpload: () => void = () => {};
     mockCreateAsset.mockImplementation(
       () =>
         new Promise((resolve) => {
-          finishUpload = () => resolve({ id: "asset-blank" });
+          _finishUpload = () => resolve({ id: "asset-blank" });
         })
     );
     const user = userEvent.setup();

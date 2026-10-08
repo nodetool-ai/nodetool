@@ -824,9 +824,7 @@ export interface RefinedWorkflowPlan {
 export const WORKFLOW_PLAN_MAX_ROUNDS = 3;
 
 const isAbortError = (cause: unknown): boolean =>
-  typeof cause === "object" &&
-  cause !== null &&
-  (cause as { name?: unknown }).name === "AbortError";
+  cause instanceof Error && cause.name === "AbortError";
 
 /** The plan as the model wrote it: the ids are the parser's, not the model's. */
 const planAsAnswer = (plan: WorkflowSetupPlan): string =>
