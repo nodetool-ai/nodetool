@@ -100,7 +100,10 @@ docs/
 ├── _includes/           # Reusable components
 │   ├── header.html      # Site header and navigation
 │   ├── footer.html      # Site footer
-│   └── sidebar.html     # Documentation sidebar
+│   ├── sidebar.html     # Documentation sidebar, rendered from _data/navigation.yml
+│   └── nav-position.html # Section label and previous/next links for a page
+├── _data/
+│   └── navigation.yml   # Sidebar groups and pages, in reading order
 ├── assets/              # Theme assets and media
 │   ├── css/
 │   │   └── main.scss    # Main theme stylesheet
@@ -145,8 +148,9 @@ See [THEME.md](THEME.md) for detailed theme documentation and customization opti
    title: "New Feature"
    ---
    ```
-3. Add the page to sidebar navigation in `_includes/sidebar.html` — the single
-   source of truth for navigation. The custom theme does not use Jekyll's
+3. Add the page to `_data/navigation.yml`, the single source of truth for
+   navigation. Its position there sets the sidebar entry, the section label
+   above the page title, and the previous/next links at the bottom of the page. The custom theme does not use Jekyll's
    Minima-only `header_pages`, and `jekyll-sitemap` already includes every page.
 4. Write your content using markdown
 
@@ -174,7 +178,7 @@ To customize colors, edit CSS variables in `assets/css/main.scss`:
 
 To modify navigation:
 - **Header**: Edit `_includes/header.html`
-- **Sidebar**: Edit `_includes/sidebar.html`
+- **Sidebar**: Edit `_data/navigation.yml`
 - **Footer**: Edit `_includes/footer.html`
 
 ## Plugins

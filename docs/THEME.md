@@ -56,11 +56,11 @@ Fonts load from Google Fonts with `preconnect` for both Inter and JetBrains Mono
 | Component | File | Notes |
 |-----------|------|-------|
 | Base layout | `_layouts/default.html` | Header, footer, grid background, fonts, SEO, analytics; loads Mermaid only on pages with a diagram |
-| Page layout | `_layouts/page.html` | Title, content, "Edit on GitHub" |
+| Page layout | `_layouts/page.html` | Section label, title, content, "On this page" outline, previous/next links, "Edit on GitHub" |
 | Home layout | `_layouts/home.html` | Hero + landing content |
 | Redirect layout | `_layouts/redirect.html` | Meta-refresh for moved pages |
 | Header | `_includes/header.html` | Sticky nav, search, social links |
-| Sidebar | `_includes/sidebar.html` | Sectioned documentation navigation |
+| Sidebar | `_includes/sidebar.html` | Sectioned documentation navigation, rendered from `_data/navigation.yml` |
 | Footer | `_includes/footer.html` | Link columns |
 
 Diagrams use a local Liquid tag — `{% raw %}{% mermaid %}…{% endmermaid %}{% endraw %}`
@@ -98,7 +98,12 @@ bundle exec jekyll serve --livereload   # http://localhost:4000
 
 - **Colors / spacing / type**: edit the CSS variables at the top of
   `assets/css/main.scss`.
-- **Sidebar navigation**: edit `_includes/sidebar.html`.
+- **Sidebar navigation**: edit `_data/navigation.yml`. The page layout reads the
+  same list for the section label and the previous/next links.
+- **Callouts**: a blockquote followed by `{: .callout-note}`, `{: .callout-tip}`
+  or `{: .callout-warning}`.
+- **Link cards**: `<div class="card-grid">` holding
+  `<a class="doc-card" href="…"><strong>Title</strong><span>One line.</span></a>`.
 - **Top-nav links**: edit `_includes/header.html`.
 - **SEO / social defaults**: edit `_config.yml` (`logo`, `twitter`, `social`,
   and the default `image` under `defaults`).
