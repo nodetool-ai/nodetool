@@ -29,6 +29,7 @@ import {
   UNPREMULTIPLY_FRAGMENT,
   WebGPULayerCompositor,
   forwardClipMatrixToInverseAffine,
+  placedLayerRect,
   invertClipPlacement,
   type InverseAffine
 } from "@nodetool-ai/gpu/webgpu";
@@ -187,6 +188,16 @@ export interface FrameLayer<TSource = FrameLayerPixels> {
    * group, which is the path that allocates no intermediate texture.
    */
   precomposeGroupId?: string;
+  /**
+   * The source is this window of a larger raster rather than the whole of it:
+   * a text or shape drawn only where it has ink. The layer is placed as the
+   * `frameWidth × frameHeight` raster would be, and the window lands at
+   * `x, y` inside it. The host sends a window only for a layer with no crop,
+   * border radius, mask, matte or transition, and with effects whose spread the
+   * window was padded for (`rasterWindowMarginPx`), since each of those reads
+   * the source's own bounds.
+   */
+  sourceWindow?: FrameSourceWindow;
   /** Rounded-corner radius in source pixels. */
   borderRadius?: number;
   /**
@@ -218,6 +229,35 @@ export interface FrameLayer<TSource = FrameLayerPixels> {
    * names are rendered here.
    */
   transition?: ResolvedTransition;
+}
+
+/** Where a windowed source sits inside the raster it was cut from. */
+export interface FrameSourceWindow {
+  x: number;
+  y: number;
+  frameWidth: number;
+  frameHeight: number;
+}
+
+/**
+ * The placement of a window of a larger raster, from the placement of that
+ * raster: a texel of the window is the raster texel `(x, y)` further on.
+ * Applies to the projective form too, where the shift scales with the
+ * denominator row.
+ */
+export function shiftInverseAffine(inv: InverseAffine, x: number, y: number): InverseAffine {
+  const p = inv.p ?? 0;
+  const q = inv.q ?? 0;
+  const r = inv.r ?? 1;
+  return {
+    ...inv,
+    a: inv.a - x * p,
+    b: inv.b - x * q,
+    tx: inv.tx - x * r,
+    c: inv.c - y * p,
+    d: inv.d - y * q,
+    ty: inv.ty - y * r
+  };
 }
 
 /** A track matte with its source layer's pixels already in hand. */
@@ -592,7 +632,7 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         writeTex = swap;
         continue;
       }
-      core.renderBlendPass(encoder, readTex, writeTex, {
+      const params = {
         source: item.texture,
         opacity: item.opacity,
         blendModeId: blendModeGpuId(item.blendMode),
@@ -602,7 +642,24 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         borderRadius: item.borderRadius,
         wipe: wipeParams(item.mask),
         iris: item.iris
-      });
+      };
+      // Only the pixels under the layer's quad can change. A layer that
+      // misses the frame is skipped, and one that covers part of it is
+      // blended in place over that part: a title over a full frame of
+      // other layers costs its own area, not the frame's.
+      const rect = placedLayerRect(
+        item.invAffine,
+        item.texture.width,
+        item.texture.height,
+        readTex.width,
+        readTex.height
+      );
+      if (!rect) continue;
+      if (rect.width * rect.height < readTex.width * readTex.height) {
+        core.renderBlendPassInRect(encoder, readTex, writeTex, params, rect);
+        continue;
+      }
+      core.renderBlendPass(encoder, readTex, writeTex, params);
       const tmp = readTex;
       readTex = writeTex;
       writeTex = tmp;
@@ -739,7 +796,8 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
     // contain fit, the border radius — then sees the cropped rectangle as the
     // layer's whole picture, which is what a crop means.
     const src = this.cropSource(layer, uploaded, encoder);
-    const invAffine = this.placementOf(
+    const window = layer.sourceWindow;
+    const placement = this.placementOf(
       {
         transform: transitionTransform(
           layer.transform,
@@ -749,10 +807,11 @@ export class GpuFrameCompositor<TSource = FrameLayerPixels> {
         ),
         parentMatrix: layer.parentMatrix
       },
-      src.width,
-      src.height
+      window?.frameWidth ?? src.width,
+      window?.frameHeight ?? src.height
     );
-    if (!invAffine) return null;
+    if (!placement) return null;
+    const invAffine = window ? shiftInverseAffine(placement, window.x, window.y) : placement;
 
     const clipEffects = layer.transition?.effect
       ? [...(layer.effects ?? []), layer.transition.effect]
