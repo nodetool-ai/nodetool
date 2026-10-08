@@ -4,8 +4,9 @@
  * timeline editor.
  *
  * Labeled ghost buttons (icon + text). The active button picks up the
- * primary accent + subtle filled background; tooltip carries the shortcut.
- * Pairs with the V (select) / C (cut) keyboard shortcuts in TracksRegion.
+ * primary accent + subtle filled background; the tooltip carries the
+ * shortcut of the active keyboard layout and a one-line description. The
+ * three drop modes are one exclusive choice, announced as a radio group.
  */
 import React, { memo, useCallback } from "react";
 import { css } from "@emotion/react";
@@ -29,11 +30,16 @@ import {
   Tooltip,
   MOTION,
   BORDER_RADIUS,
+  CONTROL,
+  FONT_WEIGHT,
   SPACING,
+  TYPOGRAPHY,
   getSpacingPx
 } from "../ui_primitives";
 import { useTimelineUIStore } from "../../stores/timeline/TimelineUIStore";
+import { useSettingsStore } from "../../stores/SettingsStore";
 import { GRID_DIVISION_OPTIONS } from "./Tracks/tempoGrid";
+import { formatActionShortcut } from "./timelineKeymap";
 
 /** Custom pointer cursor — monoline, 1.6px stroke. */
 const PointerIcon: React.FC = () => (
@@ -57,10 +63,10 @@ const buttonStyles = (theme: Theme, active: boolean, compact: boolean) =>
     display: "inline-flex",
     alignItems: "center",
     justifyContent: "center",
-    gap: 6,
-    height: compact ? 28 : 24,
-    minWidth: compact ? 28 : undefined,
-    padding: compact ? 0 : theme.spacing(0, 3, 0, 2),
+    gap: getSpacingPx(SPACING.sm),
+    height: compact ? CONTROL.height.sm : CONTROL.height.xs,
+    minWidth: compact ? CONTROL.height.sm : undefined,
+    padding: compact ? 0 : theme.spacing(0, SPACING.lg, 0, SPACING.md),
     background: active ? theme.vars.palette.action.selected : "transparent",
     border: `1px solid ${active ? theme.vars.palette.divider : "transparent"}`,
     color: active
@@ -68,7 +74,7 @@ const buttonStyles = (theme: Theme, active: boolean, compact: boolean) =>
       : theme.vars.palette.text.secondary,
     cursor: "pointer",
     fontSize: theme.fontSizeSmall,
-    fontWeight: 500,
+    fontWeight: FONT_WEIGHT.medium,
     letterSpacing: "0.01em",
     fontFamily: theme.typography.fontFamily,
     borderRadius: BORDER_RADIUS.md,
@@ -81,21 +87,28 @@ const buttonStyles = (theme: Theme, active: boolean, compact: boolean) =>
       borderColor: theme.vars.palette.divider
     },
     "&:focus-visible": {
-      outline: "none",
-      borderColor: theme.vars.palette.primary.main
+      outline: `2px solid ${theme.vars.palette.primary.main}`,
+      outlineOffset: 2
     },
+    // Icon glyphs scale with the label (em is allowed for icons only).
     "& svg": {
-      fontSize: compact ? 16 : 14
+      fontSize: compact ? "1.25em" : "1.1em"
     }
   });
 
-/** The division select sits in a 28px toolbar row, so it gets the pill height
+/** The division select sits in the toolbar row, so it gets the pill height
  *  the tool buttons have rather than the field default. */
 const gridSelectStyles = css({
-  minWidth: 74,
+  // Wide enough for the longest division label.
+  minWidth: `calc(2 * ${getSpacingPx(SPACING.xxxl)} + ${getSpacingPx(SPACING.md)})`,
   "& .MuiInputBase-root": {
-    height: 24
+    height: CONTROL.height.xs
   }
+});
+
+const tooltipDescriptionStyles = css({
+  ...TYPOGRAPHY.sans.caption,
+  display: "block"
 });
 
 /**
@@ -112,19 +125,32 @@ const compactRowStyles = css({
   "& > *": { flexShrink: 0 }
 });
 
+/** The drop-mode radio group sits inside the scrolling phone strip. */
+const compactGroupStyles = css({
+  flexShrink: 0,
+  "& > *": { flexShrink: 0 }
+});
+
 const dividerStyles = css({
   width: 1,
-  height: 16,
+  height: getSpacingPx(SPACING.xl),
   margin: `0 ${getSpacingPx(SPACING.xs)}`,
   background: "currentColor",
   opacity: 0.2
 });
 
+const DROP_MODES = ["overwrite", "insert", "overlap"] as const;
+
 interface ToolButtonProps {
   label: string;
-  shortcut: string;
+  /** Key of the active layout, shown in parentheses after the label. */
+  shortcut?: string | null;
+  /** What the control does, on its own line under the label. */
+  description?: string;
   active: boolean;
   compact: boolean;
+  /** "radio" inside an exclusive group; a pressed toggle otherwise. */
+  role?: "radio";
   onClick: () => void;
   children: React.ReactNode;
 }
@@ -132,20 +158,36 @@ interface ToolButtonProps {
 const ToolButton: React.FC<ToolButtonProps> = ({
   label,
   shortcut,
+  description,
   active,
   compact,
+  role,
   onClick,
   children
 }) => {
   const theme = useTheme();
+  const heading = shortcut ? `${label} (${shortcut})` : label;
   return (
-    <Tooltip title={`${label} (${shortcut})`}>
+    <Tooltip
+      title={
+        description ? (
+          <>
+            <span css={css({ display: "block" })}>{heading}</span>
+            <span css={tooltipDescriptionStyles}>{description}</span>
+          </>
+        ) : (
+          heading
+        )
+      }
+    >
       <button
         type="button"
         css={buttonStyles(theme, active, compact)}
         onClick={onClick}
         aria-label={label}
-        aria-pressed={active}
+        {...(role === "radio"
+          ? { role: "radio", "aria-checked": active, tabIndex: active ? 0 : -1 }
+          : { "aria-pressed": active })}
       >
         {children}
         {!compact && <span>{label}</span>}
@@ -174,6 +216,31 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
   const setGridDivision = useTimelineUIStore((s) => s.setGridDivision);
   const linkedSelection = useTimelineStore((s) => s.linkedSelection);
   const setLinkedSelection = useTimelineStore((s) => s.setLinkedSelection);
+  const preset = useSettingsStore((s) => s.settings.timelineKeyboardPreset);
+  // Arrow keys move the checked radio, as the ARIA radio-group pattern expects.
+  const handleDropModeKeyDown = useCallback(
+    (e: React.KeyboardEvent<HTMLElement>) => {
+      const step =
+        e.key === "ArrowRight" || e.key === "ArrowDown"
+          ? 1
+          : e.key === "ArrowLeft" || e.key === "ArrowUp"
+            ? -1
+            : 0;
+      if (step === 0) {
+        return;
+      }
+      e.preventDefault();
+      e.stopPropagation();
+      const index = DROP_MODES.indexOf(dropMode);
+      const next =
+        DROP_MODES[(index + step + DROP_MODES.length) % DROP_MODES.length];
+      setDropMode(next);
+      const radios =
+        e.currentTarget.querySelectorAll<HTMLElement>('[role="radio"]');
+      radios[DROP_MODES.indexOf(next)]?.focus();
+    },
+    [dropMode, setDropMode]
+  );
   const handleGridChange = useCallback(
     (value: string) => setGridDivision(value as TempoGridDivision),
     [setGridDivision]
@@ -186,7 +253,7 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
     >
       <ToolButton
         label="Select"
-        shortcut="V"
+        shortcut={formatActionShortcut(preset, "selectTool")}
         active={activeTool === "select"}
         compact={compact}
         onClick={() => setActiveTool("select")}
@@ -195,7 +262,7 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
       </ToolButton>
       <ToolButton
         label="Cut"
-        shortcut="C"
+        shortcut={formatActionShortcut(preset, "cutTool")}
         active={activeTool === "cut"}
         compact={compact}
         onClick={() => setActiveTool("cut")}
@@ -204,7 +271,7 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
       </ToolButton>
       <ToolButton
         label="Ripple"
-        shortcut="trims and deletes close the gap"
+        description="Trims and deletes close the gap"
         active={rippleMode}
         compact={compact}
         onClick={toggleRippleMode}
@@ -212,9 +279,18 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
         <SwapHorizOutlinedIcon />
       </ToolButton>
       <span css={dividerStyles} aria-hidden />
+      <FlexRow
+        gap={0.5}
+        align="center"
+        role="radiogroup"
+        aria-label="Drop mode"
+        onKeyDown={handleDropModeKeyDown}
+        css={compact ? compactGroupStyles : undefined}
+      >
       <ToolButton
         label="Overwrite"
-        shortcut="drop replaces what it covers"
+        role="radio"
+        description="A drop replaces what it covers"
         active={dropMode === "overwrite"}
         compact={compact}
         onClick={() => setDropMode("overwrite")}
@@ -223,7 +299,8 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
       </ToolButton>
       <ToolButton
         label="Insert"
-        shortcut="drop pushes later clips right · Ctrl+drag"
+        role="radio"
+        description="A drop pushes later clips right (or Ctrl+drag in any mode)"
         active={dropMode === "insert"}
         compact={compact}
         onClick={() => setDropMode("insert")}
@@ -232,17 +309,20 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
       </ToolButton>
       <ToolButton
         label="Overlap"
-        shortcut="drop stacks and cross-fades"
+        role="radio"
+        description="A drop stacks and cross-fades"
         active={dropMode === "overlap"}
         compact={compact}
         onClick={() => setDropMode("overlap")}
       >
         <LayersOutlinedIcon />
       </ToolButton>
+      </FlexRow>
       <span css={dividerStyles} aria-hidden />
       <ToolButton
         label="Snap"
-        shortcut="N · Alt-drag bypasses"
+        shortcut={formatActionShortcut(preset, "toggleSnap")}
+        description="Hold Alt while dragging to bypass"
         active={snapEnabled}
         compact={compact}
         onClick={toggleSnap}
@@ -251,7 +331,7 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
       </ToolButton>
       <ToolButton
         label="Bars"
-        shortcut="the ruler counts bars and beats, not seconds"
+        description="The ruler counts bars and beats, not seconds"
         active={rulerMode === "bars"}
         compact={compact}
         onClick={toggleRulerMode}
@@ -270,7 +350,7 @@ export const ToolToggle: React.FC<ToolToggleProps> = memo(({ compact = false }) 
       <span css={dividerStyles} aria-hidden />
       <ToolButton
         label="Linked"
-        shortcut="video and its audio move together"
+        description="Video and its audio move together"
         active={linkedSelection}
         compact={compact}
         onClick={() => setLinkedSelection(!linkedSelection)}

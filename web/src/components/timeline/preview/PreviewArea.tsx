@@ -66,6 +66,11 @@ import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
 import { previewQualityScale } from "./previewQuality";
 import type { PreviewQuality } from "./previewQuality";
 import { resolvePlayStartMs } from "./playbackSync";
+import { useSettingsStore } from "../../../stores/SettingsStore";
+import { formatBinding, withActionShortcut } from "../timelineKeymap";
+
+/** Space is bound by the preview itself (useCombo below), not the keymap. */
+const PLAY_PAUSE_KEY = formatBinding({ key: " " });
 
 function frameDeltaMs(fps: number): number {
   return 1000 / Math.max(1, fps);
@@ -211,7 +216,7 @@ const timecodeStyles = (theme: Theme) =>
 const fpsStyles = (theme: Theme) =>
   css({
     ...TYPOGRAPHY.mono.caption,
-    color: theme.vars.palette.text.disabled,
+    color: theme.vars.palette.text.secondary,
     flexShrink: 0,
     userSelect: "none"
   });
@@ -1120,6 +1125,12 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
       ]
     );
 
+    // Transport tooltips name the keys of the active keyboard layout, the same
+    // table the tracks window handler resolves against.
+    const keyboardPreset = useSettingsStore(
+      (s) => s.settings.timelineKeyboardPreset
+    );
+
     const timecode = formatTimecode(currentTimeMs, fps);
     const durationTimecode = formatTimecode(contentEndMs, fps);
 
@@ -1149,7 +1160,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
         <div css={controlBarCss}>
           <ToolbarIconButton
             icon={<SkipPreviousIcon />}
-            tooltip="Previous clip boundary (Shift+←)"
+            tooltip={withActionShortcut("Previous clip boundary", keyboardPreset, "prevCut")}
             onClick={jumpToPrevBoundary}
             aria-label="Previous clip boundary"
             size="small"
@@ -1158,7 +1169,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
           <ToolbarIconButton
             icon={<NavigateBeforeIcon />}
-            tooltip="Step back one frame (←)"
+            tooltip={withActionShortcut("Step back one frame", keyboardPreset, "stepFrameBack")}
             onClick={stepBack}
             disabled={isPlaying}
             aria-label="Step back one frame"
@@ -1168,7 +1179,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
           <ToolbarIconButton
             icon={isPlaying ? <PauseIcon /> : <PlayArrowIcon />}
-            tooltip={isPlaying ? "Pause (Space)" : "Play (Space)"}
+            tooltip={`${isPlaying ? "Pause" : "Play"} (${PLAY_PAUSE_KEY})`}
             onClick={handlePlayPauseToggle}
             aria-label={isPlaying ? "Pause" : "Play"}
             variant="primary"
@@ -1185,7 +1196,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
           <ToolbarIconButton
             icon={<NavigateNextIcon />}
-            tooltip="Step forward one frame (→)"
+            tooltip={withActionShortcut("Step forward one frame", keyboardPreset, "stepFrameForward")}
             onClick={stepForward}
             disabled={isPlaying}
             aria-label="Step forward one frame"
@@ -1195,7 +1206,7 @@ export const PreviewArea: React.FC<PreviewAreaProps> = memo(
 
           <ToolbarIconButton
             icon={<SkipNextIcon />}
-            tooltip="Next clip boundary (Shift+→)"
+            tooltip={withActionShortcut("Next clip boundary", keyboardPreset, "nextCut")}
             onClick={jumpToNextBoundary}
             aria-label="Next clip boundary"
             size="small"

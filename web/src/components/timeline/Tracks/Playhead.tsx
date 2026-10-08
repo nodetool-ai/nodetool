@@ -40,7 +40,15 @@ import {
 import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import { useTimelineUIStore } from "../../../stores/timeline/TimelineUIStore";
 import { formatTimecode } from "../Inspector/InspectorPrimitives.helpers";
-import { MOTION, Z_INDEX, SPACING, getSpacingPx } from "../../ui_primitives";
+import {
+  FONT_SIZE_MONO,
+  FONT_WEIGHT,
+  MOTION,
+  TYPOGRAPHY,
+  Z_INDEX,
+  SPACING,
+  getSpacingPx
+} from "../../ui_primitives";
 
 const LINE_WIDTH_PX = 1.5;
 const HIT_AREA_WIDTH_PX = 16;
@@ -99,10 +107,9 @@ const pillStyles = (theme: Theme, dragging: boolean, hovered: boolean) =>
     borderRadius: PILL_HEIGHT_PX / 2,
     backgroundColor: theme.vars.palette.secondary.main,
     color: theme.vars.palette.secondary.contrastText,
-    fontFamily:
-      "'JetBrains Mono', ui-monospace, SFMono-Regular, Menlo, monospace",
-    fontSize: theme.fontSizeSmaller,
-    fontWeight: 600,
+    fontFamily: TYPOGRAPHY.mono.caption.fontFamily,
+    fontSize: FONT_SIZE_MONO.caption,
+    fontWeight: FONT_WEIGHT.semibold,
     letterSpacing: "0",
     whiteSpace: "nowrap",
     boxShadow:

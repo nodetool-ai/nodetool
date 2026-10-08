@@ -35,6 +35,7 @@ import {
   TextInput
 } from "../../ui_primitives";
 import { InspectorSectionTitle, InspectorSliderRow } from "./InspectorPrimitives";
+import { usePersistedFold } from "./usePersistedFold";
 
 interface AIEditClipPanelProps {
   clipId: string;
@@ -72,6 +73,7 @@ export function getMediaEditEligibility(
 const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
   const clip = useTimelineStore((state) => findClipById(state.clips, clipId));
   const sequenceId = useTimelineStore((state) => state.sequenceId);
+  const [open, setOpen] = usePersistedFold("ai-edit", true);
   const { models, isLoading, error, refetch } = useVideoModelsByProvider({
     task: "video_to_video"
   });
@@ -294,11 +296,12 @@ const AIEditClipPanel: React.FC<AIEditClipPanelProps> = ({ clipId }) => {
     <CollapsibleSection
       title={
         <InspectorSectionTitle
-          title="AI Edit"
+          title="AI edit"
           icon={<AutoAwesomeOutlinedIcon />}
         />
       }
-      defaultOpen
+      open={open}
+      onToggle={setOpen}
       unmountOnExit={false}
     >
       <FlexColumn gap={SPACING.sm} sx={{ p: SPACING.md }}>

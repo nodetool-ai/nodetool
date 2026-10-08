@@ -45,9 +45,9 @@ const PROPERTY_LABELS: Record<KeyframeProperty, { label: string; unit?: string; 
   offsetX: { label: "Position X", unit: "px", step: 1 },
   offsetY: { label: "Position Y", unit: "px", step: 1 },
   rotation: { label: "Rotation", unit: "°", step: 1 },
-  cameraAzimuth: { label: "Camera Azimuth", unit: "°", step: 1 },
-  cameraElevation: { label: "Camera Elevation", unit: "°", step: 1 },
-  cameraZoom: { label: "Camera Zoom", unit: "×", step: 0.05 },
+  cameraAzimuth: { label: "Camera azimuth", unit: "°", step: 1 },
+  cameraElevation: { label: "Camera elevation", unit: "°", step: 1 },
+  cameraZoom: { label: "Camera zoom", unit: "×", step: 0.05 },
   cameraFov: { label: "Camera FOV", unit: "°", step: 1 }
 };
 

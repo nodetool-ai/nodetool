@@ -52,7 +52,15 @@ import { runAsOneUndoEntry } from "../../../stores/timeline/useTimelineHistoryBa
 import { useTimelinePlaybackStore } from "../../../stores/timeline/TimelinePlaybackStore";
 import { useStoreWithEqualityFn } from "zustand/traditional";
 import { Clip } from "./Clip";
-import { ContextMenu, WarningBanner, MOTION, MenuItemPrimitive, Z_INDEX } from "../../ui_primitives";
+import {
+  ContextMenu,
+  WarningBanner,
+  MOTION,
+  MenuItemPrimitive,
+  SPACING,
+  getSpacingPx,
+  Z_INDEX
+} from "../../ui_primitives";
 import { AddClipMenu } from "../AddClipMenu";
 import { deserializeDragData } from "../../../lib/dragdrop";
 import type { Asset } from "../../../stores/ApiTypes";
@@ -79,7 +87,9 @@ const laneStyles = (
   visible: boolean,
   isRubberBanding: boolean,
   isDragOver: boolean,
-  isDragReject: boolean
+  isDragReject: boolean,
+  locked: boolean,
+  muted: boolean
 ) =>
   css({
     position: "relative",
@@ -87,6 +97,10 @@ const laneStyles = (
     height: heightPx,
     flexShrink: 0,
     backgroundColor: theme.vars.palette.background.default,
+    // A locked lane reads as read-only through a faint diagonal hatch.
+    backgroundImage: locked
+      ? `repeating-linear-gradient(135deg, ${theme.vars.palette.c_overlay} 0 ${getSpacingPx(SPACING.xs)}, transparent ${getSpacingPx(SPACING.xs)} ${getSpacingPx(SPACING.md)})`
+      : undefined,
     opacity: visible ? 1 : 0.55,
     borderBottom: `1px solid ${
       isDragReject
@@ -103,7 +117,20 @@ const laneStyles = (
     outlineOffset: "-2px",
     overflow: "hidden",
     cursor: isRubberBanding ? "crosshair" : "default",
-    transition: `opacity ${MOTION.fast}`
+    transition: `opacity ${MOTION.fast}`,
+    // Clips on a muted sound track recede so the mute is visible in the lane.
+    ...(muted
+      ? { "& [data-timeline-clip-id]": { opacity: 0.5 } }
+      : null),
+    // Keyboard focus ring; a drag-over outline above takes precedence.
+    ...(isDragOver || isDragReject
+      ? null
+      : {
+          "&:focus-visible": {
+            outline: `2px solid ${theme.vars.palette.primary.main}`,
+            outlineOffset: -2
+          }
+        })
   });
 
 interface TrackLaneProps {
@@ -714,6 +741,8 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
     setAddClipAnchorEl(null);
   }, []);
 
+  const isMutedSoundTrack =
+    (track.type === "audio" || track.type === "midi") && !!track.muted;
   const laneCss = useMemo(
     () =>
       laneStyles(
@@ -722,9 +751,20 @@ export const TrackLane: React.FC<TrackLaneProps> = memo(({ track, virtualizeClip
         track.visible,
         isRubberBanding,
         isDragOver,
-        isDragReject
+        isDragReject,
+        track.locked,
+        isMutedSoundTrack
       ),
-    [theme, heightPx, track.visible, isRubberBanding, isDragOver, isDragReject]
+    [
+      theme,
+      heightPx,
+      track.visible,
+      isRubberBanding,
+      isDragOver,
+      isDragReject,
+      track.locked,
+      isMutedSoundTrack
+    ]
   );
 
   return (

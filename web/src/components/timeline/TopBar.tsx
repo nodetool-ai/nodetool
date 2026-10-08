@@ -4,6 +4,7 @@
 import React, { memo, useCallback, useRef, useState } from "react";
 
 import {
+  Caption,
   EditorMenu,
   FlexRow,
   MenuItemPrimitive,
@@ -18,6 +19,7 @@ import SaveIcon from "@mui/icons-material/Save";
 import TuneIcon from "@mui/icons-material/Tune";
 import AspectRatioOutlinedIcon from "@mui/icons-material/AspectRatioOutlined";
 import VideoLibraryOutlinedIcon from "@mui/icons-material/VideoLibraryOutlined";
+import { useDocumentDraftStore } from "../../stores/DocumentDraftStore";
 
 interface TopBarProps {
   onExportVideo?: () => void;
@@ -34,7 +36,27 @@ interface TopBarProps {
    *  the timeline has no embedded authoring code. */
   onOpenCode?: () => void;
   hasCode?: boolean;
+  /** The open sequence. Its autosave state (DocumentDraftStore) drives the
+   *  Saved / Saving… / Unsaved changes caption beside Save. */
+  sequenceId?: string;
 }
+
+/** Autosave state of one sequence, as the caption beside Save reads it. */
+const useSaveStateLabel = (
+  sequenceId: string | undefined,
+  isSaving: boolean
+): string | null => {
+  const key = sequenceId ? `timeline:${sequenceId}` : null;
+  const autosaving = useDocumentDraftStore((s) =>
+    key ? Boolean(s.savingTabs[key]) : false
+  );
+  const dirty = useDocumentDraftStore((s) =>
+    key ? Boolean(s.dirtyTabs[key]) : false
+  );
+  if (!key) return null;
+  if (isSaving || autosaving) return "Saving…";
+  return dirty ? "Unsaved changes" : "Saved";
+};
 
 export const TopBar: React.FC<TopBarProps> = memo(
   ({
@@ -49,8 +71,10 @@ export const TopBar: React.FC<TopBarProps> = memo(
     onAdaptFormat,
     activitySlot,
     onOpenCode,
-    hasCode = false
+    hasCode = false,
+    sequenceId
   }) => {
+    const saveStateLabel = useSaveStateLabel(sequenceId, isSaving);
     const overflowButtonRef = useRef<HTMLButtonElement>(null);
     const [overflowAnchor, setOverflowAnchor] = useState<HTMLElement | null>(
       null
@@ -80,6 +104,16 @@ export const TopBar: React.FC<TopBarProps> = memo(
           >
             <CodeIcon fontSize="small" />
           </ToolbarIconButton>
+        )}
+        {onSave && saveStateLabel && (
+          <Caption
+            color="secondary"
+            role="status"
+            aria-live="polite"
+            sx={{ whiteSpace: "nowrap", px: SPACING.xs }}
+          >
+            {saveStateLabel}
+          </Caption>
         )}
         {onSave && (
           <ToolbarIconButton
@@ -135,7 +169,7 @@ export const TopBar: React.FC<TopBarProps> = memo(
               {onSaveToAssets && (
                 <MenuItemPrimitive
                   icon={<VideoLibraryOutlinedIcon fontSize="small" />}
-                  label="Save as Asset"
+                  label="Save as asset"
                   disabled={isExporting}
                   onClick={runFromMenu(() => {
                     const anchor = overflowButtonRef.current;

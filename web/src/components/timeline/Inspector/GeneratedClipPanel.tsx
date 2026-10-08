@@ -46,6 +46,7 @@ import AutoAwesomeOutlinedIcon from "@mui/icons-material/AutoAwesomeOutlined";
 import StopRoundedIcon from "@mui/icons-material/StopRounded";
 import { GeneratedClipTopBar } from "./GeneratedClipTopBar";
 import { InspectorSectionTitle } from "./InspectorPrimitives";
+import { usePersistedFold } from "./usePersistedFold";
 import { ClipAdjustments } from "./ClipAdjustments";
 import { ClipVersionHistory } from "./ClipVersionHistory";
 
@@ -98,6 +99,7 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
     const theme = useTheme();
     const clip = useTimelineStore((s) => findClipById(s.clips, clipId));
     const setParamOverride = useTimelineStore((s) => s.setParamOverride);
+    const [inputsOpen, setInputsOpen] = usePersistedFold("generated-inputs", true);
 
     const workflowId = clip?.workflowId ?? null;
     const { data: workflow, isLoading, isError } = useWorkflow(workflowId);
@@ -203,7 +205,8 @@ export const GeneratedClipPanel: React.FC<GeneratedClipPanelProps> = memo(
                   icon={<TuneOutlinedIcon />}
                 />
               }
-              defaultOpen
+              open={inputsOpen}
+              onToggle={setInputsOpen}
             >
               {isLoading && <LoadingSpinner size="small" />}
               {isError && (

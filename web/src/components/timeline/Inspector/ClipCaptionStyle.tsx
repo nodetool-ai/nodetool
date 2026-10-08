@@ -15,8 +15,7 @@
  */
 
 import React, { memo, useCallback } from "react";
-import { css } from "@emotion/react";
-import { useTheme, type Theme } from "@mui/material/styles";
+import { useTheme } from "@mui/material/styles";
 import ClosedCaptionOutlinedIcon from "@mui/icons-material/ClosedCaptionOutlined";
 
 import type { CaptionStyle, TimelineClip } from "@nodetool-ai/timeline";
@@ -25,26 +24,17 @@ import { useTimelineStore } from "../../../stores/timeline/TimelineStore";
 import {
   CollapsibleSection,
   FlexColumn,
-  SPACING,
-  BatchedColorInput,
-  getSpacingPx
+  BatchedColorInput
 } from "../../ui_primitives";
 import { usePersistedFold } from "./usePersistedFold";
 import {
   InspectorDivider,
   InspectorPillInput,
   InspectorRow,
-  InspectorSectionTitle
+  InspectorSectionTitle,
+  sectionContentStyles
 } from "./InspectorPrimitives";
 import { FontPicker } from "./FontPicker";
-
-const sectionContentStyles = (theme: Theme) =>
-  css({
-    display: "flex",
-    flexDirection: "column",
-    gap: getSpacingPx(SPACING.micro),
-    padding: theme.spacing(SPACING.micro, SPACING.none, SPACING.md, SPACING.xxxl)
-  });
 
 /** The colours `drawCaption` falls back to, so the swatches show what renders. */
 const DEFAULT_COLOR = "#FFFFFF";
@@ -176,6 +166,7 @@ export const ClipCaptionStyle: React.FC<ClipCaptionStyleProps> = memo(
                 value={asPercent(style?.fontSizeFrac)}
                 unit="%"
                 placeholder="5"
+                allowEmpty
                 onCommit={(raw) => handleFraction("fontSizeFrac", raw)}
                 ariaLabel="Caption size as a percentage of frame height"
               />
@@ -199,6 +190,7 @@ export const ClipCaptionStyle: React.FC<ClipCaptionStyleProps> = memo(
                 value={asPercent(style?.bottomMarginFrac)}
                 unit="%"
                 placeholder="12"
+                allowEmpty
                 onCommit={(raw) => handleFraction("bottomMarginFrac", raw)}
                 ariaLabel="Caption distance from the frame bottom"
               />
@@ -208,6 +200,7 @@ export const ClipCaptionStyle: React.FC<ClipCaptionStyleProps> = memo(
                 value={outline ? String(outline.widthPx) : ""}
                 unit="px"
                 placeholder="auto"
+                allowEmpty
                 onCommit={handleOutlineWidth}
                 ariaLabel="Caption outline width"
               />
@@ -228,6 +221,7 @@ export const ClipCaptionStyle: React.FC<ClipCaptionStyleProps> = memo(
                 value={scrim ? String(scrim.paddingPx) : ""}
                 unit="px"
                 placeholder="none"
+                allowEmpty
                 onCommit={handleScrimPadding}
                 ariaLabel="Caption scrim padding"
               />

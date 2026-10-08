@@ -202,9 +202,11 @@ export const SourceViewerPanel: React.FC = memo(() => {
               }}
             />
             {mediaType === "video" && (
-              <Button size="small" variant="text" onClick={() => markSource("in")} aria-label="Mark source in (I)">
-                Mark here
-              </Button>
+              <Tooltip title={<ShortcutHint shortcut={["I"]} />}>
+                <Button size="small" variant="text" onClick={() => markSource("in")} aria-keyshortcuts="I">
+                  Mark in
+                </Button>
+              </Tooltip>
             )}
           </FlexRow>
         </InspectorRow>
@@ -223,9 +225,11 @@ export const SourceViewerPanel: React.FC = memo(() => {
               }}
             />
             {mediaType === "video" && (
-              <Button size="small" variant="text" onClick={() => markSource("out")} aria-label="Mark source out (O)">
-                Mark here
-              </Button>
+              <Tooltip title={<ShortcutHint shortcut={["O"]} />}>
+                <Button size="small" variant="text" onClick={() => markSource("out")} aria-keyshortcuts="O">
+                  Mark out
+                </Button>
+              </Tooltip>
             )}
           </FlexRow>
         </InspectorRow>
