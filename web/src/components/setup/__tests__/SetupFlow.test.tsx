@@ -678,7 +678,7 @@ describe("SetupFlow", () => {
     );
     renderFlow({ stage: "genre", steps: withEstimate });
 
-    const estimate = await screen.findByRole("region", {
+    const estimate = await screen.findByRole("group", {
       name: "Before you generate"
     });
     expect(estimate).toHaveTextContent("Cost unknown · ~30–60s");
