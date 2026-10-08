@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { useTheme, type Theme } from "@mui/material/styles";
-import type { GetRunResult, GetRunTraceResult, RunLog, RunLogsOptions, RunReaderFlags, RunTraceOptions } from "@nodetool-ai/protocol";
+import type { GetRunResult, GetRunTraceResult, RunLog, RunLogsOptions, RunReaderFlags, RunTraceOptions, TraceRecord } from "@nodetool-ai/protocol";
 import useTraceStore, { type RunInspectionView } from "../../stores/TraceStore";
 import { useRun, useRunLiveUpdates, useRunLogs, useRuns, useRunTrace } from "../../serverState/useRuns";
 import {
-  AlertBanner, BORDER_RADIUS, Box, Caption, Checkbox, CONTROL, EditorButton, EmptyState,
+  AlertBanner, BORDER_RADIUS, Box, Caption, Checkbox, CONTROL, CopyButton, EditorButton, EmptyState,
   FlexColumn, FlexRow, Label, LoadingSpinner, SelectField, SPACING, StatusPill, Text, TextInput, TYPOGRAPHY,
   Tooltip, TruncatedText, VirtualList, type StatusPillTone
 } from "../ui_primitives";
@@ -14,7 +14,10 @@ import { AskRunAgentButton } from "../runs/AskRunAgentButton";
 interface TracePanelProps { view?: RunInspectionView }
 type TraceNode = GetRunTraceResult["nodes"][number];
 type SpanStatusCode = TraceNode["record"]["status"]["code"];
-interface SpanStatusProps { code: SpanStatusCode }
+interface SpanStatusProps { code: SpanStatusCode; message?: string | null }
+interface AttributeListProps { attributes: Record<string, unknown> }
+interface SpanDetailsProps { record: TraceRecord; runStart: number }
+interface FailureBannerProps { result: GetRunResult; onShowSpan: (spanId: string) => void }
 interface ContentStatusProps { flags: RunReaderFlags; limited?: boolean }
 interface QueryErrorProps { error: Error }
 interface RunViewProps { runId: string; focusedSpanId: string | null; onFocus: (spanId: string | null) => void }
@@ -57,9 +60,56 @@ const STATUS_DISPLAY: Record<SpanStatusCode, { tone: StatusPillTone; label: stri
   UNSET: { tone: "neutral", label: "unset", hint: "The span ended without an explicit status. OpenTelemetry treats this as success." }
 };
 
-function SpanStatus({ code }: SpanStatusProps): React.ReactElement {
+function SpanStatus({ code, message }: SpanStatusProps): React.ReactElement {
   const status = STATUS_DISPLAY[code];
-  return <Tooltip title={status.hint}><span><StatusPill tone={status.tone}>{status.label}</StatusPill></span></Tooltip>;
+  return <Tooltip title={message || status.hint}><span><StatusPill tone={status.tone}>{status.label}</StatusPill></span></Tooltip>;
+}
+
+// Spans record failures as a status message, an OpenTelemetry exception event, or an error attribute.
+function spanError(record: TraceRecord): string | null {
+  const exception = record.events.find((event) => event.name === "exception")?.attributes?.["exception.message"];
+  const message = record.status.message || exception || record.attributes["exception.message"] || record.attributes["error.message"];
+  return typeof message === "string" && message ? message : null;
+}
+
+function formatValue(value: unknown): string {
+  return typeof value === "string" ? value : JSON.stringify(value, null, 2);
+}
+
+function AttributeList({ attributes }: AttributeListProps): React.ReactElement {
+  const entries = Object.entries(attributes).sort(([a], [b]) => a.localeCompare(b));
+  if (entries.length === 0) { return <Caption color="muted">None recorded.</Caption>; }
+  return <Box component="dl" sx={{ display: "grid", gridTemplateColumns: "minmax(0, 1fr) minmax(0, 3fr)", columnGap: SPACING.lg, rowGap: SPACING.xs, m: 0 }}>
+    {entries.map(([key, value]) => <Box key={key} sx={{ display: "contents" }}>
+      <Caption component="dt" color="muted" sx={{ ...TYPOGRAPHY.mono.code, overflowWrap: "anywhere" }}>{key}</Caption>
+      <Text component="dd" sx={{ ...TYPOGRAPHY.mono.code, m: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{formatValue(value)}</Text>
+    </Box>)}
+  </Box>;
+}
+
+function SpanDetails({ record, runStart }: SpanDetailsProps): React.ReactElement {
+  const error = spanError(record);
+  const cost = record.attributes["gen_ai.usage.cost_usd"];
+  return <FlexColumn gap={SPACING.md}>
+    <FlexRow gap={SPACING.md} sx={{ alignItems: "center", flexWrap: "wrap" }}>
+      <SpanStatus code={record.status.code} message={error} />
+      <Caption sx={{ fontVariantNumeric: "tabular-nums" }}>
+        {formatDuration(record.duration_ms)} · starts at +{formatDuration(Math.max(0, record.start_time_ms - runStart))}{typeof cost === "number" ? ` · $${cost.toFixed(4)}` : ""}
+      </Caption>
+      <Caption color="muted" sx={TYPOGRAPHY.mono.code}>{record.span_id}</Caption>
+      <CopyButton value={JSON.stringify(record, null, 2)} tooltip="Copy span as JSON" />
+    </FlexRow>
+    {error && <AlertBanner severity="error" compact>{error}</AlertBanner>}
+    <Label>Attributes</Label>
+    <AttributeList attributes={record.attributes} />
+    {record.events.length > 0 && <>
+      <Label>Events · {record.events.length}</Label>
+      {record.events.map((event, index) => <FlexColumn key={event.id ?? index} gap={SPACING.xs}>
+        <Caption sx={{ fontVariantNumeric: "tabular-nums" }}>+{formatDuration(Math.max(0, event.time_ms - record.start_time_ms))} · {event.name}</Caption>
+        {event.attributes && <AttributeList attributes={event.attributes} />}
+      </FlexColumn>)}
+    </>}
+  </FlexColumn>;
 }
 
 function SpanLane({ label, nodes, focusedSpanId, onFocus, start, duration }: SpanLaneProps): React.ReactElement {
@@ -102,7 +152,7 @@ function SpanLane({ label, nodes, focusedSpanId, onFocus, start, duration }: Spa
                 color: record.status.code === "ERROR" ? "error.main" : "text.primary", fontWeight: focused ? 600 : 400 }}
             ><TruncatedText component="span" variant="inherit">{record.name}</TruncatedText></EditorButton>
           </FlexRow>
-          <SpanStatus code={record.status.code} />
+          <SpanStatus code={record.status.code} message={spanError(record)} />
           <Caption sx={{ textAlign: "right", whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>
             {formatDuration(record.duration_ms)}{typeof cost === "number" ? ` · $${cost.toFixed(4)}` : ""}
           </Caption>
@@ -124,10 +174,15 @@ function TraceView({ runId, focusedSpanId, onFocus }: RunViewProps): React.React
   if (name) { traceOptions.name = name; }
   const trace = useRunTrace(runId, traceOptions);
   const focus = useRunTrace(focusedSpanId ? runId : null, focusedSpanId ? { focus_span_id: focusedSpanId, include_content: true } : {});
-  const nodes = focusedSpanId ? focus.data?.nodes ?? [] : trace.data?.nodes ?? [];
+  // Keep the whole run visible around a focused span unless the list is a bounded portion that may not reach its subtree.
+  const keepContext = Boolean(trace.data && !trace.data.limited && trace.data.nodes.some(({ record }) => record.span_id === focusedSpanId));
+  const nodes = focusedSpanId && !keepContext ? focus.data?.nodes ?? [] : trace.data?.nodes ?? [];
+  const filtered = errorsOnly || Boolean(name) || depth !== "64";
+  const clearFilters = (): void => { setErrorsOnly(false); setName(""); setDepth("64"); };
   const browser = nodes.filter(({ record }) => record.resource["nodetool.trace.source"] === "browser");
   const server = nodes.filter(({ record }) => record.resource["nodetool.trace.source"] !== "browser");
   const start = nodes.length ? Math.min(...nodes.map(({ record }) => record.start_time_ms)) : 0;
+  const runStart = trace.data?.nodes.length ? Math.min(...trace.data.nodes.map(({ record }) => record.start_time_ms)) : start;
   const end = nodes.length ? Math.max(...nodes.map(({ record }) => record.end_time_ms)) : 0;
   const focused = focus.data?.nodes.find(({ record }) => record.span_id === focusedSpanId)?.record;
   const focusOptions = trace.data?.nodes.map(({ record }) => ({ value: record.span_id, label: `${record.name} ${record.span_id}` })) ?? [];
@@ -153,13 +208,18 @@ function TraceView({ runId, focusedSpanId, onFocus }: RunViewProps): React.React
     {trace.data && <ContentStatus flags={trace.data} limited={trace.data.limited} />}
     {browser.length > 0 && <SpanLane label="Browser spans" nodes={browser} focusedSpanId={focusedSpanId} onFocus={onFocus} start={start} duration={Math.max(1, end - start)} />}
     {server.length > 0 && <SpanLane label="Server spans" nodes={server} focusedSpanId={focusedSpanId} onFocus={onFocus} start={start} duration={Math.max(1, end - start)} />}
-    {!trace.isLoading && !trace.error && nodes.length === 0 && <EmptyState title="No spans recorded" description="The trace may still be arriving. Stored spans appear here when available." size="small" />}
-    {focusedSpanId && <FlexColumn gap={SPACING.xs} sx={{ maxHeight: (theme) => theme.spacing(SPACING.xxxl * 6), overflow: "auto", borderTop: 1, borderColor: "divider", pt: SPACING.md }}>
-      <FlexRow gap={SPACING.md} sx={{ alignItems: "center" }}><Label>Span {focusedSpanId}</Label><AskRunAgentButton runId={runId} spanId={focusedSpanId} /></FlexRow>
+    {!trace.isLoading && !trace.error && nodes.length === 0 && (filtered
+      ? <EmptyState variant="no-results" title="No spans match these filters" description="Clear the filters to see every span in this run." actionText="Clear filters" onAction={clearFilters} size="small" />
+      : <EmptyState title="No spans recorded" description="The trace may still be arriving. Stored spans appear here when available." size="small" />)}
+    {focusedSpanId && <FlexColumn gap={SPACING.sm} sx={{ maxHeight: (theme) => theme.spacing(SPACING.xxxl * 8), overflow: "auto", borderTop: 1, borderColor: "divider", pt: SPACING.md }}>
+      <FlexRow gap={SPACING.md} sx={{ alignItems: "center" }}>
+        <Label sx={{ minWidth: 0, overflowWrap: "anywhere" }}>{focused?.name ?? nodes.find(({ record }) => record.span_id === focusedSpanId)?.record.name ?? "Span"}</Label>
+        <AskRunAgentButton runId={runId} spanId={focusedSpanId} />
+      </FlexRow>
       {focus.error && <QueryError error={focus.error} />}
       {focus.isLoading && <LoadingSpinner />}
       {focus.data && <ContentStatus flags={focus.data} limited={focus.data.limited} />}
-      {focused && !focus.error && !focus.data?.content_expired && <Text component="pre" sx={{ ...TYPOGRAPHY.mono.code, m: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify({ name: focused.name, status: focused.status, attributes: focused.attributes, events: focused.events }, null, 2)}</Text>}
+      {focused && !focus.error && !focus.data?.content_expired && <SpanDetails record={focused} runStart={runStart} />}
     </FlexColumn>}
   </FlexColumn>;
 }
@@ -203,9 +263,42 @@ function LogsView({ runId, focusedSpanId, onFocus }: RunViewProps): React.ReactE
     {logs.hasNextPage && <EditorButton size="small" disabled={logs.isFetchingNextPage} onClick={() => void logs.fetchNextPage()}>Load more log events</EditorButton>}
     {selectedLog && <FlexColumn gap={SPACING.xs} sx={{ maxHeight: (theme) => theme.spacing(SPACING.xxxl * 4), overflow: "auto" }}>
       <FlexRow gap={SPACING.md}><Caption>{selectedLog.name} · {selectedLog.id}</Caption><AskRunAgentButton runId={runId} spanId={selectedLog.span_id} /><EditorButton size="small" onClick={() => setSelectedLogId(null)}>Close log event</EditorButton></FlexRow>
-      <Text component="pre" sx={{ ...TYPOGRAPHY.mono.code, m: 0, whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{JSON.stringify(selectedLog.attributes, null, 2)}</Text>
+      <AttributeList attributes={selectedLog.attributes} />
     </FlexColumn>}
   </FlexColumn>;
+}
+
+// Leads with the error message and the span that raised it, so a failed run explains itself without opening spans.
+function FailureBanner({ result, onShowSpan }: FailureBannerProps): React.ReactElement | null {
+  const { run, summary } = result;
+  if (run.status !== "failed" && !summary.first_failed_span_id) { return null; }
+  const failing = [...summary.failure_path].reverse().find((span) => span.error) ?? summary.failure_path.at(-1);
+  const message = run.error ?? failing?.error ?? "No error message was recorded.";
+  const failedSpanId = summary.first_failed_span_id;
+  const title = run.status === "failed" ? `Run failed${failing ? ` in ${failing.name}` : ""}` : `A span failed${failing ? ` in ${failing.name}` : ""}, but the run continued`;
+  return <AlertBanner
+    severity={run.status === "failed" ? "error" : "warning"}
+    title={title}
+    action={failedSpanId ? <EditorButton size="small" onClick={() => onShowSpan(failedSpanId)}>Show failing span</EditorButton> : undefined}
+  ><Text component="span" sx={{ display: "block", maxHeight: (theme) => theme.spacing(SPACING.xxxl * 3), overflow: "auto", whiteSpace: "pre-wrap", overflowWrap: "anywhere" }}>{message}</Text></AlertBanner>;
+}
+
+function runDuration(run: GetRunResult["run"]): string | null {
+  if (!run.ended_at) { return null; }
+  const ms = Date.parse(run.ended_at) - Date.parse(run.started_at);
+  return Number.isFinite(ms) && ms >= 0 ? formatDuration(ms) : null;
+}
+
+function runSummaryText({ run, summary }: GetRunResult): string {
+  const cost = Object.values(summary.cost_by_provider).reduce((total, value) => total + value, 0);
+  const duration = runDuration(run);
+  return [
+    duration,
+    `${summary.span_count} ${summary.span_count === 1 ? "span" : "spans"}`,
+    `${summary.event_count} ${summary.event_count === 1 ? "event" : "events"}`,
+    cost > 0 ? `$${cost.toFixed(4)}` : null,
+    `started ${new Date(run.started_at).toLocaleString()}`
+  ].filter(Boolean).join(" · ");
 }
 
 const RUN_STATUS_TONE: Record<GetRunResult["run"]["status"], StatusPillTone> = { completed: "done", failed: "failed", cancelled: "warning", running: "rendering" };
@@ -230,14 +323,14 @@ export default function TracePanel({ view = "trace" }: TracePanelProps): React.R
       </Box>
       {recent.hasNextPage && <EditorButton size="small" onClick={() => void recent.fetchNextPage()}>Older runs</EditorButton>}
       {canonicalId && <AskRunAgentButton runId={canonicalId} />}
-      {summary.data?.summary.first_failed_span_id && <EditorButton size="small" onClick={() => focusSpan(summary.data?.summary.first_failed_span_id ?? null)}>First failed span</EditorButton>}
     </FlexRow>
     {recent.error && <QueryError error={recent.error} />}
     {summary.error && <QueryError error={summary.error} />}
     {summary.data && <FlexRow gap={SPACING.md} sx={{ alignItems: "center" }}>
       <StatusPill tone={RUN_STATUS_TONE[summary.data.run.status]}>{summary.data.run.status}</StatusPill>
-      <Caption sx={{ fontVariantNumeric: "tabular-nums" }}>{summary.data.summary.span_count} spans · {summary.data.summary.event_count} events · ${Object.values(summary.data.summary.cost_by_provider).reduce((total, value) => total + value, 0).toFixed(4)}</Caption>
+      <Caption sx={{ fontVariantNumeric: "tabular-nums" }}>{runSummaryText(summary.data)}</Caption>
     </FlexRow>}
+    {summary.data && <FailureBanner result={summary.data} onShowSpan={focusSpan} />}
     {!runId && !recent.isLoading && <EmptyState title="No recorded runs" description="Start an app operation, workflow, or chat turn to inspect its trace and logs." size="small" />}
     {canonicalId && (view === "logs" ? <LogsView key={canonicalId} runId={canonicalId} focusedSpanId={focusedSpanId} onFocus={focusSpan} /> : <TraceView key={canonicalId} runId={canonicalId} focusedSpanId={focusedSpanId} onFocus={focusSpan} />)}
   </FlexColumn>;
