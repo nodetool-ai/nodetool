@@ -105,6 +105,62 @@ Not a setting. The kernel runs every workflow in the server process, with one ac
 
 ---
 
+## Documents & Editors
+
+### 3D Model
+A glTF asset (`.glb` or `.gltf`) that you block out with shapes and lights in the 3D editor and render as a reference image for a shot. See [3D Editor](3d-editor.md).
+
+### App Builder
+The **Design** view of an app tab, where you place widgets on a canvas and wire them to workflow inputs and outputs to make a Mini-App. See [App Builder](app-builder.md).
+
+### Clip
+One item on a timeline track: imported media, a generated result bound to a workflow, or an authored text, shape, or 3D model item. See [Video Editor](video-editor.md).
+
+### Game
+A 2D or 3D game document with scenes, entities, behaviors, and assets, which the built-in engine plays in the editor and exports as a standalone web player. See [Game Editor](game-editor.md).
+
+### JS Script
+A saved JavaScript document that runs in the QuickJS sandbox and can call nodes. The Code node uses the same sandbox. See [JS Scripts](js-scripts.md) and [JavaScript Sandbox](javascript-sandbox.md).
+
+### Sketch
+A layered image document with blend modes, painting tools, and AI generation onto a layer. See [Sketch Editor](sketch-editor.md).
+
+### Storyboard
+The shot-by-shot surface of a video project. It renders cheap stills to choose from before video generation spend. See [AI Video Production](ai-video-production.md).
+
+### Timeline
+A multi-track sequence of video, audio, image, overlay, and subtitle clips that you edit, preview, and export. See [Video Editor](video-editor.md).
+
+---
+
+## Agents, Automation & Billing
+
+### Creative Agent
+The script-to-screen video pipeline: a Director agent writes the screenplay, the storyboard gates spend shot by shot, and one click assembles the cut into the timeline. See [Creative Agent](creative-agent.md).
+
+### Credit
+The unit of NodeTool's hosted balance. Credits are spent only by calls through the `nodetool` provider on the hosted cloud. Calls on your own provider keys never use them. See [Costs and Credits](costs-and-credits.md).
+
+### Director
+The agent in the Creative Agent pipeline that turns a brief into a typed screenplay of scenes and shots. See [Creative Agent](creative-agent.md).
+
+### Entity
+A reusable character, location, style, or prop that you define once and cast into shots so it stays consistent. See [Entities](entities.md).
+
+### MCP (Model Context Protocol)
+An open protocol for giving an agent tools. NodeTool runs as an MCP server, so Claude Code, Codex, Cursor, and other clients can use workflows, assets, and editors. See [MCP Server](mcp-server.md).
+
+### Memory
+Short notes that an agent saves in one conversation and recalls in later ones, such as project facts, decisions, and references to assets it made. See [Memory](memory.md).
+
+### Skill
+A saved set of instructions for one kind of work. The agent reads its name and description each turn and loads the body when needed or when you pick it with `/`. See [Skills](skills.md).
+
+### Trigger
+A node that starts a workflow run on a schedule, a file change, a webhook, or by hand, so you do not press **Run**. See [Triggers](triggers.md).
+
+---
+
 ## Infrastructure
 
 ### Server
