@@ -316,7 +316,9 @@ describe("blob-carried output metadata", () => {
 
     const out = await executor.process({}, ctx);
 
-    expect(Object.hasOwn(out, "__proto__")).toBe(true);
-    expect(out["__proto__"]).toEqual(new Uint8Array([1]));
+    // "__proto__" names no declared slot and no nested ref, so the blob is
+    // dropped rather than emitted as an output nothing can connect to.
+    expect(Object.hasOwn(out, "__proto__")).toBe(false);
+    expect(Object.keys(out)).toEqual([]);
   });
 });

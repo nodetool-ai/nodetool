@@ -65,10 +65,13 @@ export {
 export {
   KOKORO_VOICES,
   clearKokoroCache,
+  generateKokoroSpeech,
   getKokoro,
   isKokoroRepo,
   isSpeechT5Repo,
-  type KokoroVoice
+  splitTextForTts,
+  type KokoroVoice,
+  type KokoroSpeechOptions
 } from "./tts-shared.js";
 
 export {

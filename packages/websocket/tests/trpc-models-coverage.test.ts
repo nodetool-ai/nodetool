@@ -352,6 +352,25 @@ describe("models router — extra coverage", () => {
       expect(result[0].id).toBe("img-1");
     });
 
+    it("imageByProvider tags instruction editors with image_edit", async () => {
+      isConfigured.mockResolvedValue(true);
+      const both = ["text_to_image", "image_to_image"];
+      getProv.mockResolvedValue(
+        makeProvider({
+          getAvailableImageModels: vi.fn().mockResolvedValue([
+            { id: "gpt-image-1", name: "GPT Image 1", provider: "openai", supportedTasks: both },
+            { id: "flux-dev", name: "FLUX.1 Dev", provider: "openai", supportedTasks: both }
+          ])
+        })
+      );
+      const caller = createCaller(makeCtx());
+      const result = await caller.models.imageByProvider({ provider: "openai" });
+      expect(result.map((m) => m.supported_tasks)).toEqual([
+        [...both, "image_edit"],
+        both
+      ]);
+    });
+
     it("ttsByProvider returns [] when provider unconfigured", async () => {
       isConfigured.mockResolvedValue(false);
       const caller = createCaller(makeCtx());

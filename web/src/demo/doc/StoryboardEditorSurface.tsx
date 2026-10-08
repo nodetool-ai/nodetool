@@ -24,8 +24,6 @@ export function StoryboardEditorSurface({
             <ShotEditTable
               draft={draftFromShot(shot, null)}
               onChange={() => undefined}
-              numbering={{ scene: 0, shot: shot.index + 1 }}
-              aspectRatio={doc.aspectRatio}
               linksLines={false}
               takesDuration={null}
               readOnly

@@ -158,6 +158,8 @@ export default {
     "^react-markdown$": "<rootDir>/src/__mocks__/reactMarkdownMock.tsx",
     "^remark-gfm$": "<rootDir>/src/__mocks__/emptyModule.ts",
     "^rehype-raw$": "<rootDir>/src/__mocks__/emptyModule.ts",
+    "^remark-math$": "<rootDir>/src/__mocks__/emptyModule.ts",
+    "^rehype-katex$": "<rootDir>/src/__mocks__/emptyModule.ts",
     "^@xyflow/react$": "<rootDir>/src/__mocks__/xyflowReact.tsx",
     "^.*contexts/WorkflowManagerContext$": "<rootDir>/src/__mocks__/WorkflowManagerContext.tsx",
     "^.*selection/magicWandAsync$": "<rootDir>/src/__mocks__/magicWandAsync.ts",

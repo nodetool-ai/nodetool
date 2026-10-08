@@ -321,6 +321,11 @@ export class DownloadManager {
       if (filePath) {
         files = files.filter((f) => f.path === filePath);
       }
+      // The llama.cpp cache is a flat directory of GGUF files. README and
+      // config files from a whole-repo request do not belong there.
+      if (modelType === "llama_cpp") {
+        files = files.filter((f) => f.path.toLowerCase().endsWith(".gguf"));
+      }
 
       // Check cache -- separate cached from uncached
       const filesToDownload: HfTreeEntry[] = [];
@@ -355,7 +360,7 @@ export class DownloadManager {
           emitProgress();
         };
 
-        if (modelType === "llama_cpp" || cacheDir != null) {
+        if (modelType === "llama_cpp") {
           await downloadLlamaCppModel(repoId, file.path, {
             token,
             progressCallback: onChunk,
@@ -364,6 +369,7 @@ export class DownloadManager {
         } else {
           await asyncHfDownload(repoId, file.path, {
             token,
+            cacheDir: cacheDir ?? undefined,
             progressCallback: onChunk,
             cancelSignal: abortController.signal
           });

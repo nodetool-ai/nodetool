@@ -1,5 +1,5 @@
 import * as devMode from "../devMode";
-import { isTrustedInAppUrl } from "../windowSecurity";
+import { isTrustedAppOrigin, isTrustedInAppUrl } from "../windowSecurity";
 import { serverState } from "../state";
 
 jest.mock("../logger", () => ({
@@ -165,6 +165,30 @@ describe("isTrustedInAppUrl", () => {
       isElectronDevMode.mockReturnValue(true);
       getWebDevServerUrl.mockReturnValue("not-a-valid-url");
       expect(isTrustedInAppUrl("http://127.0.0.1:3000/")).toBe(false);
+    });
+  });
+
+  describe("isTrustedAppOrigin", () => {
+    it("accepts the backend, packaged file pages, and serialized origins", () => {
+      expect(isTrustedAppOrigin("http://127.0.0.1:7777/editor")).toBe(true);
+      expect(isTrustedAppOrigin("http://localhost:7777")).toBe(true);
+      expect(isTrustedAppOrigin("file:///app/dist-web/index.html")).toBe(true);
+      expect(isTrustedAppOrigin("file://")).toBe(true);
+    });
+
+    it("accepts the dev server only in dev mode", () => {
+      expect(isTrustedAppOrigin("http://127.0.0.1:3000")).toBe(false);
+      isElectronDevMode.mockReturnValue(true);
+      expect(isTrustedAppOrigin("http://127.0.0.1:3000")).toBe(true);
+    });
+
+    it("rejects blank, data:, other local services, and remote origins", () => {
+      expect(isTrustedAppOrigin("")).toBe(false);
+      expect(isTrustedAppOrigin("about:blank")).toBe(false);
+      expect(isTrustedAppOrigin("data:text/html,x")).toBe(false);
+      expect(isTrustedAppOrigin("http://127.0.0.1:11434")).toBe(false);
+      expect(isTrustedAppOrigin("https://example.com")).toBe(false);
+      expect(isTrustedAppOrigin("null")).toBe(false);
     });
   });
 });

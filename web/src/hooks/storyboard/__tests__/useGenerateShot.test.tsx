@@ -1327,3 +1327,123 @@ describe("protected direct browser generation", () => {
     expect(send).not.toHaveBeenCalled();
   });
 });
+
+describe("still variants", () => {
+  const still: Shot = {
+    ...shot,
+    id: "shot-variant",
+    keyframe: { type: "image", asset_id: "still-1", uri: "asset://still-1" }
+  };
+  const model = { id: "variant-model", provider: "fal_ai", name: "Variant" };
+
+  beforeEach(() => {
+    useStoryboardStore.getState().upsertShot(BOARD, still);
+    useStoryboardGenerationStore.getState().clear(still.id);
+  });
+
+  /** The last `generate_media` envelope the hook sent. */
+  const lastSent = (): { request_id: string; data: Record<string, unknown> } => {
+    const call = send.mock.calls.at(-1);
+    if (!call) {
+      throw new Error("Nothing was sent.");
+    }
+    return call[0] as { request_id: string; data: Record<string, unknown> };
+  };
+  const sentData = (): Record<string, unknown> => lastSent().data;
+
+  it("sends an inpaint with the source, the mask and the board's frame", async () => {
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateStillVariant(BOARD, still, {
+        mode: "inpaint",
+        model,
+        sourceAssetId: "still-1",
+        maskAssetId: "mask-1",
+        prompt: " a red scarf "
+      });
+    });
+
+    expect(sentData()).toMatchObject({
+      mode: "inpaint",
+      provider: "fal_ai",
+      model: "variant-model",
+      prompt: "a red scarf",
+      source_asset_id: "still-1",
+      mask_asset_id: "mask-1",
+      aspect_ratio: "16:9",
+      variations: 1
+    });
+    expect(
+      useStoryboardGenerationStore.getState().shotJobs[still.id]?.kind
+    ).toBe("keyframe");
+  });
+
+  it("sends an upscale with its scale and no prompt", async () => {
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateStillVariant(BOARD, still, {
+        mode: "upscale",
+        model,
+        sourceAssetId: "still-1",
+        scale: 4
+      });
+    });
+
+    const data = sentData();
+    expect(data).toMatchObject({ mode: "upscale", scale: 4, prompt: "" });
+    expect(data).not.toHaveProperty("resolution");
+  });
+
+  it("sends a reframe with its padding and target aspect", async () => {
+    const padding = { left: 0, right: 0, top: 120, bottom: 120 };
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateStillVariant(BOARD, still, {
+        mode: "outpaint",
+        model,
+        sourceAssetId: "still-1",
+        aspectRatio: "9:16",
+        padding
+      });
+    });
+
+    expect(sentData()).toMatchObject({
+      mode: "outpaint",
+      aspect_ratio: "9:16",
+      padding
+    });
+  });
+
+  it("lands the result beside the current still, not over it", async () => {
+    const { result } = renderHook(() => useGenerateShot());
+    await act(async () => {
+      await result.current.generateStillVariant(BOARD, still, {
+        mode: "upscale",
+        model,
+        sourceAssetId: "still-1",
+        scale: 2
+      });
+    });
+    const requestId = lastSent().request_id;
+    act(() => {
+      __handleShotJobMessageForTests(
+        requestId,
+        { shotId: still.id, boardId: BOARD, kind: "keyframe" },
+        {
+          type: "rpc_response",
+          request_id: requestId,
+          result: { asset_ids: ["upscaled-1"] }
+        } as never
+      );
+    });
+
+    const settled = useStoryboardStore
+      .getState()
+      .getBoard(BOARD)
+      ?.shots.find((item) => item.id === still.id);
+    expect(settled?.keyframe?.asset_id).toBe("still-1");
+    expect(
+      settled?.keyframe_versions?.some((v) => v.asset_id === "upscaled-1")
+    ).toBe(true);
+  });
+});

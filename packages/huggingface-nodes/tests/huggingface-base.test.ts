@@ -65,6 +65,17 @@ describe("media ref helpers", () => {
     expect(Buffer.from(b64, "base64")).toEqual(Buffer.from([1, 2, 3]));
   });
 
+  it("refToBytes falls through to uri when data is a zero-length buffer", async () => {
+    const resolved = new Uint8Array([7, 8]);
+    const resolveAssetBytes = vi.fn(async () => ({ bytes: resolved }));
+    const bytes = await refToBytes(
+      { data: new Uint8Array(0), uri: "asset://abc" },
+      { resolveAssetBytes }
+    );
+    expect(bytes).toBe(resolved);
+    expect(resolveAssetBytes).toHaveBeenCalledWith("asset://abc");
+  });
+
   it("refToBytes throws on empty ref", async () => {
     await expect(refToBytes({})).rejects.toThrow(/empty/);
   });

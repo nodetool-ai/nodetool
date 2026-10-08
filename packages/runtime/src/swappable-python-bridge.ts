@@ -16,6 +16,7 @@ import type {
   ExecuteResult,
   ExecuteInputBlobs,
   ExecuteIdentity,
+  ExecuteOptions,
   JobBoundary,
   ModelEvictRequest,
   ModelEvictResult,
@@ -126,7 +127,8 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
     onProgress?: (event: ProgressEvent) => void,
-    identity?: ExecuteIdentity
+    identity?: ExecuteIdentity,
+    options?: ExecuteOptions
   ): Promise<ExecuteResult> {
     return this._target.execute(
       nodeType,
@@ -134,7 +136,8 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
       secrets,
       blobs,
       onProgress,
-      identity
+      identity,
+      options
     );
   }
 
@@ -144,7 +147,8 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
     onProgress?: (event: ProgressEvent) => void,
-    identity?: ExecuteIdentity
+    identity?: ExecuteIdentity,
+    options?: ExecuteOptions
   ): AsyncGenerator<ExecuteResult> {
     return this._target.executeStream(
       nodeType,
@@ -152,7 +156,8 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
       secrets,
       blobs,
       onProgress,
-      identity
+      identity,
+      options
     );
   }
 
@@ -218,9 +223,10 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
     providerId: string,
     text: string,
     model: string,
-    options?: Record<string, unknown>
+    options?: Record<string, unknown>,
+    signal?: AbortSignal
   ): AsyncGenerator<Uint8Array> {
-    return this._target.providerTTS(providerId, text, model, options);
+    return this._target.providerTTS(providerId, text, model, options, signal);
   }
 
   providerTextToImage(
@@ -297,17 +303,19 @@ export class SwappableBridge extends EventEmitter implements PythonBridge {
   providerTextToAudio(
     providerId: string,
     params: Record<string, unknown>,
-    secrets?: Record<string, string>
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
   ): Promise<Uint8Array> {
-    return this._target.providerTextToAudio(providerId, params, secrets);
+    return this._target.providerTextToAudio(providerId, params, secrets, signal);
   }
 
   providerTTSEncoded(
     providerId: string,
     params: Record<string, unknown>,
-    secrets?: Record<string, string>
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
   ): Promise<Uint8Array> {
-    return this._target.providerTTSEncoded(providerId, params, secrets);
+    return this._target.providerTTSEncoded(providerId, params, secrets, signal);
   }
 
   providerASR(

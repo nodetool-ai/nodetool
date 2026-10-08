@@ -256,4 +256,57 @@ describe("Message model", () => {
     const loaded = await Message.get<Message>(msg.id);
     expect(loaded!.provider_session).toBeNull();
   });
+
+  // ── rewind ────────────────────────────────────────────────────────
+
+  describe("rewind", () => {
+    const session = {
+      providerId: "claude_agent",
+      model: "m",
+      token: "tok",
+      systemHash: "h",
+      checkpoint: 2
+    };
+
+    it("deletes the message and everything after it in its thread", async () => {
+      await createMessage("u1", "t1", { id: "a", created_at: "2026-01-01T00:00:01.000Z" });
+      await createMessage("u1", "t1", { id: "b", role: "assistant", created_at: "2026-01-01T00:00:02.000Z", provider_session: session });
+      await createMessage("u1", "t1", { id: "c", created_at: "2026-01-01T00:00:03.000Z" });
+      await createMessage("u1", "t1", { id: "d", role: "assistant", created_at: "2026-01-01T00:00:04.000Z" });
+      await createMessage("u1", "t2", { id: "other", created_at: "2026-01-01T00:00:05.000Z" });
+
+      const deleted = await Message.rewind("t1", "c");
+
+      expect(deleted).toEqual(["c", "d"]);
+      const [kept] = await Message.paginate("t1");
+      expect(kept.map((m) => m.id)).toEqual(["a", "b"]);
+      expect(await Message.find("other")).not.toBeNull();
+    });
+
+    it("clears session tokens left on the surviving rows", async () => {
+      await createMessage("u1", "t1", { id: "a", created_at: "2026-01-01T00:00:01.000Z" });
+      await createMessage("u1", "t1", { id: "b", role: "assistant", created_at: "2026-01-01T00:00:02.000Z", provider_session: session });
+      await createMessage("u1", "t1", { id: "c", created_at: "2026-01-01T00:00:03.000Z" });
+
+      await Message.rewind("t1", "c");
+
+      expect((await Message.find("b"))?.provider_session).toBeNull();
+    });
+
+    it("keeps an earlier row that shares the target's timestamp", async () => {
+      await createMessage("u1", "t1", { id: "a", created_at: "2026-01-01T00:00:01.000Z" });
+      await createMessage("u1", "t1", { id: "b", created_at: "2026-01-01T00:00:01.000Z" });
+
+      expect(await Message.rewind("t1", "b")).toEqual(["b"]);
+      expect(await Message.find("a")).not.toBeNull();
+    });
+
+    it("returns null for a message outside the thread", async () => {
+      await createMessage("u1", "t2", { id: "x" });
+
+      expect(await Message.rewind("t1", "x")).toBeNull();
+      expect(await Message.rewind("t1", "missing")).toBeNull();
+      expect(await Message.find("x")).not.toBeNull();
+    });
+  });
 });

@@ -54,6 +54,8 @@ export interface DirectMediaGenerationRequest {
     | "image"
     | "image_edit"
     | "inpaint"
+    | "upscale"
+    | "outpaint"
     | "video"
     | "video_edit"
     | "video_extend"
@@ -72,6 +74,15 @@ export interface DirectMediaGenerationRequest {
   numInferenceSteps?: number;
   /** Sampling seed; providers that take none ignore it. */
   seed?: number;
+  /** Magnification for "upscale", e.g. 2 or 4. */
+  scale?: number;
+  /** Source pixels to add on each side, for "outpaint". */
+  padding?: {
+    left?: number;
+    right?: number;
+    top?: number;
+    bottom?: number;
+  };
   durationSeconds?: number;
   extensionMode?: "start" | "end";
   variations?: number;
@@ -695,7 +706,10 @@ export class DirectInferenceHandler {
     if (!req.model) {
       throw new Error("model is required");
     }
-    if (!req.prompt || !req.prompt.trim()) {
+    // An upscale or a reframe works from the image alone; the prompt is an
+    // optional hint there.
+    const promptOptional = req.mode === "upscale" || req.mode === "outpaint";
+    if (!promptOptional && (!req.prompt || !req.prompt.trim())) {
       throw new Error("prompt is required");
     }
     if (req.mode !== "video_edit" && (req.referenceAssetIds?.length || req.entityIds?.length)) {
@@ -1308,6 +1322,54 @@ export class DirectInferenceHandler {
         (abort) =>
           provider.textToImages({ ...params, signal: abort }, variations)
       );
+    } else if (req.mode === "upscale" || req.mode === "outpaint") {
+      if (!req.sourceAssetId) {
+        throw new Error(`source_asset_id is required for ${req.mode}`);
+      }
+      const sourceBytes = await retrieveSourceAssetBytes(
+        userId,
+        req.sourceAssetId
+      );
+      const hint = prompt.trim() || null;
+      if (req.mode === "upscale") {
+        generated = await generate(
+          "upscale_image",
+          { prompt: hint, scale: req.scale ?? null, image: sourceBytes },
+          {},
+          async () => [
+            await provider.upscaleImage(sourceBytes, {
+              model: imageModel,
+              scale: req.scale ?? null,
+              prompt: hint,
+              seed: req.seed ?? null
+            })
+          ]
+        );
+      } else {
+        if (!req.padding && !req.aspectRatio) {
+          throw new Error("padding or aspect_ratio is required for outpaint");
+        }
+        generated = await generate(
+          "outpaint_image",
+          {
+            prompt: hint,
+            padding: req.padding ?? null,
+            aspect_ratio: req.aspectRatio ?? null,
+            images: [sourceBytes]
+          },
+          {},
+          async (abort) => [
+            await provider.outpaintImage([sourceBytes], {
+              model: imageModel,
+              prompt: hint,
+              padding: req.padding ?? null,
+              aspectRatio: req.aspectRatio ?? null,
+              seed: req.seed ?? null,
+              signal: abort
+            })
+          ]
+        );
+      }
     } else if (req.mode === "inpaint") {
       if (!req.sourceAssetId) {
         throw new Error("source_asset_id is required for inpaint");
@@ -1560,7 +1622,8 @@ async function assertTimelineGenerationAllowed(userId: string, req: DirectMediaG
     if (!clip?.storyboardBoardId) { continue; }
     const capability = req.mode === "video" ? (req.capability ?? (req.sourceAssetId ? "image_to_video" : "text_to_video"))
       : req.mode === "video_edit" || req.mode === "video_extend" ? "video_to_video"
-      : req.mode === "image_edit" || req.mode === "inpaint" ? "image_to_image" : "text_to_image";
+      : req.mode === "image_edit" || req.mode === "inpaint" || req.mode === "upscale" || req.mode === "outpaint" ? "image_to_image"
+      : "text_to_image";
     await assertStoryboardClipGenerationAllowed(userId, sequence.project_id, clip, capability);
   }
 }

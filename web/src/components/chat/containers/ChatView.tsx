@@ -399,20 +399,54 @@ const ChatView = ({
     clearError(effectiveThreadId ?? undefined);
   }, [clearError, effectiveThreadId]);
 
+  // Regenerate, edit and Retry share one move: rewind the thread to just
+  // before a user message, then send that message again (with new text for an
+  // edit). The rewind is what keeps the old answer out of the new turn's
+  // history and off the screen.
+  const rewindThread = useGlobalChatStore((state) => state.rewindThread);
+  const handleResendFrom = useCallback(
+    async (message: Message, text?: string) => {
+      const blocks = messageBlocks(message);
+      if (!blocks || !effectiveThreadId) {
+        return;
+      }
+      const content: MessageContent[] =
+        text === undefined
+          ? blocks
+          : [
+              { type: "text", text },
+              ...blocks.filter((block) => block.type !== "text")
+            ];
+      if (message.id) {
+        try {
+          await rewindThread(effectiveThreadId, message.id);
+        } catch (error) {
+          addNotification({
+            type: "error",
+            content: `Could not rewind the conversation: ${
+              error instanceof Error ? error.message : String(error)
+            }`
+          });
+          return;
+        }
+      }
+      await handleSendMessage(
+        content,
+        "",
+        (message as ChatOutgoingMessage).media_generation ?? undefined
+      );
+    },
+    [effectiveThreadId, rewindThread, addNotification, handleSendMessage]
+  );
+
   const handleRetry = useCallback(() => {
-    if (!lastUserMessage) {
-      return;
+    if (lastUserMessage) {
+      void handleResendFrom(lastUserMessage);
     }
-    const content = messageBlocks(lastUserMessage);
-    if (!content) {
-      return;
-    }
-    void handleSendMessage(
-      content,
-      "",
-      lastUserMessage.media_generation ?? undefined
-    );
-  }, [lastUserMessage, handleSendMessage]);
+  }, [lastUserMessage, handleResendFrom]);
+  // A demo replay owns its messages, and a running turn would keep writing
+  // into the history a rewind cuts.
+  const canResend = !isBusy && !externalScroll && Boolean(effectiveThreadId);
 
   // Every open workspace tab stays mounted and inactive ones are `inert`, so
   // a shortcut must only act for the ChatView the user can actually see.
@@ -509,6 +543,7 @@ const ChatView = ({
                 onInsertCode={onInsertCode}
                 showTaskUpdate={false}
                 externalScroll={externalScroll}
+                onResendFrom={canResend ? handleResendFrom : undefined}
               />
             ) : (
               noMessagesPlaceholder ?? <div style={{ flex: 1 }} />

@@ -5,6 +5,7 @@ import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
 import EntityLibrary from "../EntityLibrary";
 import { useWorkspaceTabsStore } from "../../../stores/WorkspaceTabsStore";
+import { useEntityLibraryStore } from "../../../stores/EntityLibraryStore";
 import {
   readEntitySetupDraft,
   writeEntitySetupDraft
@@ -44,6 +45,10 @@ const draft = {
 };
 
 describe("EntityLibrary", () => {
+  beforeEach(() => {
+    useEntityLibraryStore.setState({ creating: false });
+  });
+
   it("opens the guided flow from its primary create action", async () => {
     const user = userEvent.setup();
     render(
@@ -69,6 +74,7 @@ describe("EntityLibrary", () => {
       .getByTestId("entity-setup")
       .getAttribute("data-draft-key");
     first.unmount();
+    useEntityLibraryStore.setState({ creating: false });
 
     useWorkspaceTabsStore.setState({ activeProjectId: "project-b" });
     renderLibrary();

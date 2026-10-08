@@ -3,7 +3,7 @@ import { mkdtemp, readFile, readdir, rm } from "node:fs/promises";
 import { join } from "node:path";
 import { createLogger, getManagedWorkspaceDir, managedWorkspaceKey, workspaceStorageKind } from "@nodetool-ai/config";
 import { AmbiguousGameIdError, MissingGameDraftSourceError, Asset, Game, Prediction, Project, Workspace } from "@nodetool-ai/models";
-import { anyGameAssetBinding as gameAssetBinding, gameAssetBinding as legacyAssetBinding, gameAssetBinding3D, anyGameDocument as gameDocument, gameInputFrame, shortResourceId, type AnyGameDocument as GameDocument, type GameDocument as LegacyGameDocument, type GameDocument3D, type GameInputFrame, type GameRenderFrame } from "@nodetool-ai/protocol";
+import { anyGameAssetBinding as gameAssetBinding, gameAssetBinding as legacyAssetBinding, gameAssetBinding3D, anyGameDocument as gameDocument, gameInputFrame, shortResourceId, type AnyGameAssetBinding, type AnyGameDocument as GameDocument, type GameDocument as LegacyGameDocument, type GameDocument3D, type GameInputFrame, type GameRenderFrame } from "@nodetool-ai/protocol";
 import { autoplayNativeGame, MAX_GAME_ROUTE_TICKS, createScriptedGameSession, createTopDownRoomGame, createNative3DGame, decodePreparedGameCollider3D, validateAnyGame, trackGameAuthoringEdits, anyGameDocumentOp as gameDocumentOp, GameOpError, type GameAutoplayOptions } from "@nodetool-ai/game-runtime";
 import { workspaceFromRow } from "@nodetool-ai/execution/service";
 import { assetKeyCandidates, assetObjectKey } from "@nodetool-ai/storage";
@@ -518,6 +518,9 @@ const install: CapabilityExport = {
     if (parsed.data.mediaKind === "font" && !parsed.data.fontFormat) {
       return { error: "Font binding needs a TrueType or OpenType format" };
     }
+    if (parsed.data.mediaKind === "hdri") {
+      return { error: "HDRI candidates cannot be installed until HDRI preparation verifies their bytes and dimensions" };
+    }
     const workspace = await workspaceOf(user, game);
     if (!workspace) return { error: "Game workspace is unavailable" };
     const candidateId = args["candidate_workspace_id"];
@@ -552,7 +555,7 @@ const install: CapabilityExport = {
     const draft = await Game.readDraft(user, game.id, workspace);
     if (!draft) return { error: "Game draft is missing" };
     const expectedUpdatedAt = typeof args["base_updated_at"] === "string" ? args["base_updated_at"] : draft.game.draft_updated_at;
-    let binding = parsed.data;
+    let binding: AnyGameAssetBinding = parsed.data;
     try {
       if (binding.mediaKind === "model") {
         const { prepareGameModelBinding3D } = await import("@nodetool-ai/game-renderer/preparation3d");

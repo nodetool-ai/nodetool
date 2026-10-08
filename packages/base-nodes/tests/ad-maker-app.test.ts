@@ -49,21 +49,27 @@ describe("Ad Maker app", () => {
   it("keeps writing and paid image generation in separate guided stages", () => {
     const bundle = loadApp();
     const components = flatten(bundle.app.ui.content);
-    const sectionTitles = components
-      .map((component) => component.props.title)
-      .filter((title): title is string => typeof title === "string");
+    const stepTitles = components
+      .filter(
+        (component) =>
+          component.type === "Heading" && component.props.level === "2"
+      )
+      .map((component) => component.props.text);
 
-    expect(sectionTitles).toContain("1 · Settle the message");
-    expect(sectionTitles).toContain("2 · Direct the campaign image");
+    expect(stepTitles).toContain("Settle the message");
+    expect(stepTitles).toContain("Direct the campaign image");
 
     const buttons = components.filter(
       (component) => component.type === "Button"
     );
-    const operationIds = buttons.map((button) =>
-      (button.props.events ?? [])
-        .filter((event) => event.kind === "run")
-        .map((event) => event.operationId)
-    );
+    // Step navigation buttons carry setVariable events only.
+    const operationIds = buttons
+      .map((button) =>
+        (button.props.events ?? [])
+          .filter((event) => event.kind === "run")
+          .map((event) => event.operationId)
+      )
+      .filter((ids) => ids.length > 0);
 
     expect(operationIds).toEqual([
       ["copy", "headlines"],

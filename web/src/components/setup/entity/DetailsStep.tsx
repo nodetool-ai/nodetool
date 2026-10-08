@@ -9,10 +9,7 @@ import {
 } from "../../ui_primitives";
 import { AlternativesColumn } from "../AlternativesColumn";
 import { OptionCardGrid } from "../OptionCardGrid";
-import {
-  SETUP_OPTION_MIN_WIDTH,
-  SETUP_WIDE_CONTENT_WIDTH
-} from "../layout";
+import { SETUP_OPTION_MIN_WIDTH } from "../layout";
 
 const ENTITY_KINDS: readonly {
   id: EntityKind;
@@ -79,11 +76,10 @@ export const DetailsStep = ({
               md: "minmax(0, 2fr) minmax(240px, 1fr)"
             },
       gap: GAP.spacious,
-      alignItems: "start",
-      maxWidth: SETUP_WIDE_CONTENT_WIDTH
+      alignItems: "start"
     }}
   >
-    <FlexColumn gap={GAP.spacious}>
+    <FlexColumn gap={GAP.comfortable}>
       <FlexColumn gap={GAP.tight}>
         <Text size="big" component="h1">
           What should stay consistent?

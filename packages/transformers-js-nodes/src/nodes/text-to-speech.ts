@@ -16,6 +16,7 @@ import { defaultRepoFor } from "../recommended-models.js";
 import { encodeWav } from "../wav.js";
 import {
   KOKORO_VOICES,
+  generateKokoroSpeech,
   getKokoro,
   isKokoroRepo,
   isSpeechT5Repo
@@ -117,7 +118,9 @@ export class TextToSpeechNode extends BaseNode {
     if (isKokoroRepo(repoId)) {
       const tts = await getKokoro(repoId!, dtype, device);
       const voice = asString(this.voice) || "af_heart";
-      const result = await tts.generate(text, { voice: voice as never });
+      const result = await generateKokoroSpeech(tts, text, {
+        voice: voice as never
+      });
       samples = result.audio;
       samplingRate = result.sampling_rate ?? samplingRate;
     } else {

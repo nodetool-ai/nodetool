@@ -70,6 +70,26 @@ export function isTrustedInAppUrl(rawUrl: string): boolean {
   return false;
 }
 
+/**
+ * Returns true if a document URL or serialized origin belongs to the app
+ * itself: the backend server, the Vite dev server in dev mode, or a packaged
+ * `file://` page. Unlike `isTrustedInAppUrl`, blank and `data:` documents do
+ * not count, so permission grants and CORS relaxations never reach content
+ * the app did not serve (for example a third-party `<iframe>`).
+ */
+export function isTrustedAppOrigin(urlOrOrigin: string): boolean {
+  let parsed: URL;
+  try {
+    parsed = new URL(urlOrOrigin);
+  } catch {
+    return false;
+  }
+  if (parsed.protocol === "file:") {
+    return true;
+  }
+  return parsed.protocol === "http:" && isTrustedInAppUrl(urlOrOrigin);
+}
+
 /** The cancellable event a navigation listener receives. */
 interface CancellableEvent {
   preventDefault(): void;

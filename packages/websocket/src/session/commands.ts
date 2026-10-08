@@ -832,6 +832,8 @@ export class CommandRouter {
         | "image"
         | "image_edit"
         | "inpaint"
+        | "upscale"
+        | "outpaint"
         | "video"
         | "video_edit"
         | "video_extend"
@@ -841,7 +843,11 @@ export class CommandRouter {
           ? "image_edit"
           : rawMode === "inpaint"
             ? "inpaint"
-            : rawMode === "video"
+            : rawMode === "upscale"
+              ? "upscale"
+              : rawMode === "outpaint"
+                ? "outpaint"
+                : rawMode === "video"
               ? "video"
               : rawMode === "video_edit"
                 ? "video_edit"
@@ -878,6 +884,16 @@ export class CommandRouter {
         ? (data.num_inference_steps as number)
         : undefined;
       const seed = isNumber(data.seed) ? (data.seed as number) : undefined;
+      const scale = isNumber(data.scale) ? (data.scale as number) : undefined;
+      const rawPadding = isRecord(data.padding) ? data.padding : undefined;
+      const padding = rawPadding
+        ? {
+            left: isNumber(rawPadding.left) ? rawPadding.left : undefined,
+            right: isNumber(rawPadding.right) ? rawPadding.right : undefined,
+            top: isNumber(rawPadding.top) ? rawPadding.top : undefined,
+            bottom: isNumber(rawPadding.bottom) ? rawPadding.bottom : undefined
+          }
+        : undefined;
       const durationSeconds = isNumber(data.duration)
         ? (data.duration as number)
         : undefined;
@@ -942,6 +958,8 @@ export class CommandRouter {
           strength,
           numInferenceSteps,
           seed,
+          scale,
+          padding,
           durationSeconds,
           extensionMode:
             data.extension_mode === "start" || data.extension_mode === "end"

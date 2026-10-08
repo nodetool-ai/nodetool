@@ -81,7 +81,7 @@ export const NODETOOL_MODELS: readonly NodetoolModelDef[] = [
     name: "Balanced",
     kind: "image",
     blurb: "Sharper stills, and it can work from your reference images.",
-    tasks: ["text_to_image", "image_to_image"],
+    tasks: ["text_to_image", "image_to_image", "image_edit"],
     delegate: { provider: "fal_ai", model: "fal-ai/nano-banana" },
     editDelegate: { provider: "fal_ai", model: "fal-ai/nano-banana/edit" }
   },
@@ -90,7 +90,7 @@ export const NODETOOL_MODELS: readonly NodetoolModelDef[] = [
     name: "Detailed",
     kind: "image",
     blurb: "Most detail per still, and the slowest of the three.",
-    tasks: ["text_to_image", "image_to_image"],
+    tasks: ["text_to_image", "image_to_image", "image_edit"],
     delegate: {
       provider: "fal_ai",
       model: "fal-ai/bytedance/seedream/v4/text-to-image"

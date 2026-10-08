@@ -1,11 +1,12 @@
 /**
  * ShotEditPanel
  *
- * `Edit your shot` — the editor the board opens **directly underneath the card
- * being edited**, spanning the grid's full width, rather than over the board in
- * a dialog: the shot stays on screen while its fields are edited. The viewer and
- * the takes gallery sit side by side, the § 7.7.2 table row and the scene header
- * row sit under them, and the linked script's lines sit under that.
+ * The shot editor the board opens in an overlay over itself. A header bar
+ * carries the way back, the step to the previous and next shot, and the save
+ * actions. Under it, the form sits in a left column (description, cast,
+ * dialogue, shot details, an Advanced fold for notes and graphics, script
+ * lines) and the viewer with
+ * the takes gallery fills the right. Each column scrolls on its own.
  *
  * The two rows are a **draft**. Nothing typed here reaches the board until
  * `Save`, which writes the whole shot in one `updateShot` — one store update,
@@ -17,12 +18,6 @@
  * What is *not* draft state, because it is already a committed act: choosing a
  * version, deleting one, flipping, and uploading. Those write straight through,
  * as they do on the board.
- *
- * The scene header row is the one part Save cannot fold in. Moving a shot
- * between scenes (`moveShot`) and editing a scene's lighting (`updateScene`)
- * are board-level operations with their own checkpoints, so a save that
- * changes the header writes those first and then the shot. The § 7.7.2 fields
- * — what criterion 14 measures — are always the single `updateShot`.
  */
 
 import React, {
@@ -35,16 +30,18 @@ import React, {
 } from "react";
 import { shotRenderMode } from "@nodetool-ai/protocol";
 import type { Entity, Scene, Shot } from "@nodetool-ai/protocol";
+import ArrowBackIcon from "@mui/icons-material/ArrowBack";
+import ChevronLeftIcon from "@mui/icons-material/ChevronLeft";
+import ChevronRightIcon from "@mui/icons-material/ChevronRight";
 import MoreHorizIcon from "@mui/icons-material/MoreHoriz";
 import { formatUsd } from "@nodetool-ai/model-pricing";
 
 import {
   Box,
+  Card,
   Caption,
-  Chip,
-  CloseButton,
+  CollapsibleSection,
   Dialog,
-  Divider,
   EditorButton,
   EditorMenu,
   EditorMenuItem,
@@ -52,19 +49,19 @@ import {
   FlexRow,
   Label,
   MenuItemPrimitive,
-  Panel,
   ScrollArea,
-  SelectField,
+  TabGroup,
   Text,
   TextInput,
   ToolbarIconButton,
-  SPACING,
-  TYPOGRAPHY
+  SPACING
 } from "../ui_primitives";
 import ShotGraphicsEditor from "./ShotGraphicsEditor";
 import ShotEditViewer from "./ShotEditViewer";
-import ShotEditTable from "./ShotEditTable";
+import ShotEditTable, { ShotAdvancedFields } from "./ShotEditTable";
+import ShotEntitiesField from "./ShotEntitiesField";
 import ShotTakesGallery from "./ShotTakesGallery";
+import ShotStillModifyPanel from "./ShotStillModifyPanel";
 import ShotScriptPanel from "./ShotScriptPanel";
 import ShotCostLine from "./ShotCostLine";
 import ShotPromptPreview from "./ShotPromptPreview";
@@ -94,7 +91,6 @@ import {
 } from "../../hooks/storyboard/useShotDuration";
 import { useShotCostEstimate } from "../../hooks/storyboard/useShotCostEstimate";
 import { useEntities } from "../../serverState/useEntities";
-import { getEntityChipSx, getEntityKindDotSx } from "../entities/entityKind";
 import { useWorkspaceTabsStore } from "../../stores/WorkspaceTabsStore";
 import { requestDocumentFocus } from "../../stores/DocumentFocusStore";
 import { useNotificationStore } from "../../stores/NotificationStore";
@@ -116,8 +112,6 @@ interface ShotEditPanelProps {
   /** Opens with the dialogue cell focused, for the card's dialogue icon. */
   focusDialogue?: boolean;
   readOnly?: boolean;
-  /** Opens the board's settings form, where the aspect ratio lives. */
-  onOpenBoardSettings?: () => void;
   /** A board-level transition that must pass through this panel's draft guard. */
   leaveRequest?: { id: number; shotId?: string } | null;
   onLeaveRequestComplete?: (result: "saved" | "discarded" | "cancelled") => void;
@@ -140,16 +134,73 @@ const PLACEHOLDER_SHOT: Shot = {
   status: "planned"
 };
 
-/** The two columns: the viewer takes the room, the takes gallery a sidebar. */
+/** Below this width the two columns stack and the body scrolls as one. */
+const STACKED = "@container (max-width: 56rem)";
+
+/** Back on the left, the shot and its steppers centred, actions right. */
+const headerSx = {
+  display: "grid",
+  gridTemplateColumns: "minmax(0, 1fr) auto minmax(0, 1fr)",
+  alignItems: "center",
+  gap: SPACING.md,
+  px: SPACING.xl,
+  py: SPACING.md,
+  borderBottom: "1px solid",
+  borderColor: "divider",
+  [STACKED]: {
+    gridTemplateColumns: "minmax(0, 1fr)",
+    justifyItems: "start"
+  }
+} as const;
+
+/** The form column takes a fixed width, the viewer the rest. */
 const columnsSx = {
   display: "grid",
-  gridTemplateColumns: "minmax(0, 2fr) minmax(14rem, 1fr)",
-  gap: SPACING.xl,
-  minHeight: "22rem",
-  "@container (max-width: 44rem)": {
+  gridTemplateColumns: "minmax(20rem, 28rem) minmax(0, 1fr)",
+  height: "100%",
+  minHeight: 0,
+  [STACKED]: {
     gridTemplateColumns: "minmax(0, 1fr)",
-    minHeight: 0
+    height: "auto"
   }
+} as const;
+
+const formColumnSx = {
+  height: "100%",
+  p: SPACING.xl,
+  borderRight: "1px solid",
+  borderColor: "divider",
+  [STACKED]: { height: "auto", borderRight: "none" }
+} as const;
+
+/** A fixed-height column: the stage gives way to the tools under it. */
+const viewerColumnSx = {
+  height: "100%",
+  minHeight: 0,
+  p: SPACING.xl,
+  [STACKED]: { height: "auto" }
+} as const;
+
+/** Matches the form's `Shot details` heading. */
+const sectionTitleSx = {
+  textTransform: "uppercase",
+  letterSpacing: "0.08em",
+  fontWeight: 500,
+  color: "text.disabled"
+} as const;
+
+/** The stage takes what the tools leave, down to a usable floor. */
+const viewerSx = {
+  flex: "1 1 0",
+  minHeight: "14rem",
+  [STACKED]: { flex: "none", height: "24rem" }
+} as const;
+
+/** The takes and the change tools scroll on their own, under the stage. */
+const toolsSx = {
+  flex: "0 1 auto",
+  minHeight: 0,
+  [STACKED]: { overflow: "visible" }
 } as const;
 
 const DRAFT_LABELS: Record<ShotDraftKey, string> = {
@@ -199,11 +250,12 @@ const formatDraftValue = (
   return String(value);
 };
 
-const shotNumberSx = {
-  ...TYPOGRAPHY.mono.caption,
-  color: "text.secondary",
-  flexShrink: 0
-} as const;
+type SideTab = "takes" | "change";
+
+const SIDE_TABS: { value: SideTab; label: string }[] = [
+  { value: "takes", label: "Takes" },
+  { value: "change", label: "Change still" }
+];
 
 const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   boardId,
@@ -212,7 +264,6 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   onShotChange,
   focusDialogue,
   readOnly,
-  onOpenBoardSettings,
   leaveRequest,
   onLeaveRequestComplete
 }) => {
@@ -229,15 +280,13 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   const panelRef = useRef<HTMLDivElement>(null);
   const imageLeaveResolver = useRef<((allowed: boolean) => void) | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<HTMLElement | null>(null);
+  const [sideTab, setSideTab] = useState<SideTab>("takes");
 
   const shots = useStoryboardStore(
     (state) => state.boards[boardId]?.shots ?? EMPTY_SHOTS
   );
   const scenes = useStoryboardStore(
     (state) => state.boards[boardId]?.screenplay?.scenes ?? EMPTY_SCENES
-  );
-  const aspectRatio = useStoryboardStore(
-    (state) => state.boards[boardId]?.aspectRatio ?? "16:9"
   );
   const scriptId = useStoryboardStore(
     (state) => state.boards[boardId]?.screenplay?.script_id ?? null
@@ -250,9 +299,6 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   );
   const applyShotDraft = useStoryboardStore((state) => state.applyShotDraft);
   const nudgeShot = useStoryboardStore((state) => state.nudgeShot);
-  const toggleShotEntity = useStoryboardStore(
-    (state) => state.toggleShotEntity
-  );
   const openTab = useWorkspaceTabsStore((state) => state.openTab);
   const { generateKeyframe, generateClip } = useGenerateShot();
   const { data: allEntities } = useEntities();
@@ -335,28 +381,6 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
         label: group.scene?.slugline || `SCENE ${i + 1}`
       })),
     [shots, scenes]
-  );
-
-  /**
-   * Moving to another scene brings that scene's lighting note with it — the
-   * note belongs to the scene, so leaving the old one in the field would save
-   * it onto the scene the shot just joined.
-   */
-  const handleSceneChange = useCallback(
-    (value: string) => {
-      const nextId = value === "" ? null : value;
-      setDraft((current) =>
-        current
-          ? {
-              ...current,
-              sceneId: nextId,
-              lighting:
-                scenes.find((s) => s.id === nextId)?.lighting ?? ""
-            }
-          : current
-      );
-    },
-    [scenes]
   );
 
   /**
@@ -572,8 +596,8 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
     [ordered, position, leave]
   );
 
-  // `Cmd/Ctrl+S` saves, `Esc` closes — the panel is not a dialog, so it listens
-  // for both itself. `←`/`→` step versions and are handled by the viewer, which
+  // `Cmd/Ctrl+S` saves, `Esc` closes — the overlay is not a MUI dialog, so it
+  // listens for both itself. `←`/`→` step versions and are handled by the viewer, which
   // owns the still/clip toggle and the pager index (PRD § 7.5).
   useEffect(() => {
     const onKeyDown = (event: KeyboardEvent) => {
@@ -662,197 +686,73 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
   const canStepForward =
     canStep && position >= 0 && position < ordered.length - 1;
 
+  const entityChips = (
+    <ShotEntitiesField
+      boardId={boardId}
+      shotId={shot.id}
+      boardEntities={boardEntities}
+      appliedIds={appliedIds}
+      boardEntityIds={boardEntityIds}
+      readOnly={readOnly}
+    />
+  );
+
   return (
-    <Panel
-      padding={SPACING.xl}
+    <FlexColumn
+      ref={panelRef}
+      fullHeight
       className="shot-edit-panel"
       data-testid="shot-edit-panel"
       data-shot-id={shot.id}
-      sx={{ minWidth: 0, containerType: "inline-size" }}
+      sx={{
+        minWidth: 0,
+        bgcolor: "background.default",
+        containerType: "inline-size"
+      }}
     >
-      <FlexColumn ref={panelRef} gap={SPACING.xl} sx={{ minWidth: 0 }}>
-        <FlexRow align="center" gap={SPACING.md} wrap>
-          <Text size="big">Edit your shot</Text>
-          <Box sx={shotNumberSx}>
-            {`SH ${String(shot.index + 1).padStart(2, "0")}`}
-          </Box>
+      <Box sx={headerSx}>
+        <EditorButton
+          onClick={handleClose}
+          startIcon={<ArrowBackIcon fontSize="small" />}
+          sx={{ justifySelf: "start" }}
+        >
+          Back to storyboard
+        </EditorButton>
+
+        <FlexRow align="center" gap={SPACING.md}>
           {canStep && (
-            <>
-              <EditorButton
-                onClick={() => stepShot(-1)}
-                disabled={!canStepBack}
-                title="Previous shot"
-              >
-                Previous shot
-              </EditorButton>
-              <EditorButton
-                onClick={() => stepShot(1)}
-                disabled={!canStepForward}
-                title="Next shot"
-              >
-                Next shot
-              </EditorButton>
-            </>
-          )}
-          <Box sx={{ flex: 1 }} />
-          <CloseButton onClick={handleClose} />
-        </FlexRow>
-
-        <Box sx={columnsSx}>
-          <ShotEditViewer
-            boardId={boardId}
-            shot={previewShot}
-            readOnly={readOnly}
-            onLeave={onClose}
-            onBeforeImageEditor={requestImageEditorLeave}
-          />
-          <ScrollArea>
-            <ShotTakesGallery
-              boardId={boardId}
-              shot={shot}
-              readOnly={readOnly}
+            <ToolbarIconButton
+              icon={<ChevronLeftIcon />}
+              tooltip="Previous shot"
+              ariaLabel="Previous shot"
+              onClick={() => stepShot(-1)}
+              disabled={!canStepBack}
             />
-          </ScrollArea>
-        </Box>
-
-        <Divider />
-
-        {/* Header row: which scene the shot belongs to, and how that scene is
-            lit. Both are the scene's, shared by every shot under it. */}
-        <FlexRow align="flex-end" gap={SPACING.lg} wrap>
-          <Box sx={{ flex: "1 1 16rem", minWidth: 0 }}>
-            <FlexColumn gap={SPACING.xs}>
-              <Label sx={{ color: "text.secondary" }}>Slugline</Label>
-              <SelectField
-                size="small"
-                label="Slugline"
-                hideLabel
-                disabled={readOnly || sceneOptions.length === 0}
-                value={draft.sceneId ?? ""}
-                onChange={handleSceneChange}
-                options={sceneOptions}
-              />
-            </FlexColumn>
-          </Box>
-          <Box sx={{ flex: "1 1 12rem", minWidth: 0 }}>
-            <FlexColumn gap={SPACING.xs}>
-              <Label sx={{ color: "text.secondary" }}>Render mode</Label>
-              <SelectField
-                size="small"
-                label="Render mode"
-                hideLabel
-                disabled={readOnly}
-                value={draft.renderMode}
-                onChange={(value) =>
-                  setDraft({ ...draft, renderMode: value as "keyframe" | "direct" | "reference" })
-                }
-                options={[
-                  { value: "keyframe", label: "Keyframe" },
-                  { value: "direct", label: "Direct" },
-                  { value: "reference", label: "Reference" }
-                ]}
-              />
-            </FlexColumn>
-          </Box>
-          <Box sx={{ flex: "1 1 16rem", minWidth: 0 }}>
-            <FlexColumn gap={SPACING.xs}>
-              <Label sx={{ color: "text.secondary" }}>Lighting</Label>
-              <TextInput
-                compact
-                size="small"
-                label="Scene lighting"
-                hideLabel
-                placeholder="How the scene is lit"
-                disabled={readOnly || !draft.sceneId}
-                value={draft.lighting}
-                onChange={(event) =>
-                  setDraft({ ...draft, lighting: event.target.value })
-                }
-              />
-            </FlexColumn>
-          </Box>
-          <Box sx={{ flex: "1 1 12rem", minWidth: 0 }}>
-            <FlexColumn gap={SPACING.xs}>
-              <Label sx={{ color: "text.secondary" }}>Shot title</Label>
-              <TextInput
-                compact
-                size="small"
-                label="Shot title"
-                hideLabel
-                placeholder="Untitled shot"
-                disabled={readOnly}
-                value={draft.slug}
-                onChange={(event) =>
-                  setDraft({ ...draft, slug: event.target.value })
-                }
-              />
-            </FlexColumn>
-          </Box>
+          )}
+          <FlexColumn align="center" sx={{ minWidth: 0 }}>
+            <Text size="big" data-testid="shot-edit-title">
+              {`Scene ${numbering.scene || "—"}, Shot ${numbering.shot || "—"}`}
+            </Text>
+          </FlexColumn>
+          {canStep && (
+            <ToolbarIconButton
+              icon={<ChevronRightIcon />}
+              tooltip="Next shot"
+              ariaLabel="Next shot"
+              onClick={() => stepShot(1)}
+              disabled={!canStepForward}
+            />
+          )}
         </FlexRow>
 
-        <ShotEditTable
-          draft={draft}
-          onChange={setDraft}
-          numbering={numbering}
-          aspectRatio={aspectRatio}
-          linksLines={linksLines}
-          takesDuration={duration.seconds ?? null}
-          readOnly={readOnly}
-          focusDialogue={focusDialogue}
-          onEditInScript={linksLines ? handleEditInScript : undefined}
-          onOpenBoardSettings={onOpenBoardSettings}
-        />
-
-        <ShotGraphicsEditor shot={shot} draft={draft} onChange={setDraft} readOnly={readOnly} />
-
-        {boardEntities.length > 0 && (
-          <FlexRow gap={SPACING.micro} wrap>
-            {boardEntities.map((entity) => {
-              const applied = appliedIds.includes(entity.id);
-              return (
-                <Chip
-                  key={entity.id}
-                  compact
-                  label={entity.name || "Untitled"}
-                  variant="outlined"
-                  icon={<Box sx={getEntityKindDotSx(entity.kind, applied)} />}
-                  sx={getEntityChipSx(applied)}
-                  title={
-                    applied
-                      ? `${entity.descriptor || entity.name}: click to exclude from this shot`
-                      : `Click to include ${entity.name} in this shot`
-                  }
-                  onClick={
-                    readOnly
-                      ? undefined
-                      : () =>
-                          toggleShotEntity(
-                            boardId,
-                            shot.id,
-                            entity.id,
-                            appliedIds
-                          )
-                  }
-                />
-              );
-            })}
-          </FlexRow>
-        )}
-
-        <ShotPromptPreview
-          shot={previewShot}
-          scene={promptScene}
-          style={boardStyle}
-          castNames={castNames}
-        />
-
-        <ShotScriptPanel boardId={boardId} shot={shot} readOnly={readOnly} />
-
-        <Divider />
-
-        <FlexRow align="center" gap={SPACING.sm} wrap>
+        <FlexRow
+          align="center"
+          justify="flex-end"
+          gap={SPACING.sm}
+          wrap
+          sx={{ justifySelf: "end", minWidth: 0 }}
+        >
           <ShotCostLine estimate={costEstimate} />
-          <Box sx={{ flex: 1 }} />
           {!readOnly && (
             <>
               <ToolbarIconButton
@@ -864,7 +764,9 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
               <EditorButton
                 onClick={handleRegenerate}
                 disabled={generating || durationInvalid}
-                title={generating ? "This shot is already rendering" : undefined}
+                title={
+                  generating ? "This shot is already rendering" : undefined
+                }
               >
                 {`Regenerate${stepCost("Still")}`}
               </EditorButton>
@@ -879,7 +781,105 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
             </>
           )}
         </FlexRow>
-      </FlexColumn>
+      </Box>
+
+      <ScrollArea thin sx={{ flex: 1, minHeight: 0 }}>
+        <Box sx={columnsSx}>
+          <ScrollArea thin sx={formColumnSx}>
+            <FlexColumn gap={SPACING.lg}>
+              <ShotEditTable
+                draft={draft}
+                onChange={setDraft}
+                entities={entityChips}
+                linksLines={linksLines}
+                takesDuration={duration.seconds ?? null}
+                readOnly={readOnly}
+                focusDialogue={focusDialogue}
+                onEditInScript={linksLines ? handleEditInScript : undefined}
+              />
+              <Card variant="outlined" padding="normal">
+                <CollapsibleSection
+                  title={<Caption sx={sectionTitleSx}>Advanced</Caption>}
+                  compact
+                  defaultOpen={false}
+                >
+                  <FlexColumn gap={SPACING.lg} sx={{ pt: SPACING.md }}>
+                    <ShotAdvancedFields
+                      draft={draft}
+                      onChange={setDraft}
+                      readOnly={readOnly}
+                    />
+                    <TextInput
+                      compact
+                      size="small"
+                      multiline
+                      minRows={2}
+                      label="Notes"
+                      placeholder="Anything the render should not read as direction"
+                      disabled={readOnly}
+                      value={draft.notes}
+                      onChange={(event) =>
+                        setDraft({ ...draft, notes: event.target.value })
+                      }
+                    />
+                    <ShotGraphicsEditor
+                      shot={shot}
+                      draft={draft}
+                      onChange={setDraft}
+                      readOnly={readOnly}
+                    />
+                  </FlexColumn>
+                </CollapsibleSection>
+              </Card>
+              <ShotPromptPreview
+                shot={previewShot}
+                scene={promptScene}
+                style={boardStyle}
+                castNames={castNames}
+              />
+              <ShotScriptPanel
+                boardId={boardId}
+                shot={shot}
+                readOnly={readOnly}
+              />
+            </FlexColumn>
+          </ScrollArea>
+
+          <FlexColumn gap={SPACING.lg} sx={viewerColumnSx}>
+            <Box sx={viewerSx}>
+              <ShotEditViewer
+                boardId={boardId}
+                shot={previewShot}
+                readOnly={readOnly}
+                onLeave={onClose}
+                onBeforeImageEditor={requestImageEditorLeave}
+              />
+            </Box>
+            {!readOnly && (
+              <Box sx={{ flexShrink: 0 }}>
+                <TabGroup
+                  tabs={SIDE_TABS}
+                  value={sideTab}
+                  onChange={(value) => setSideTab(value as SideTab)}
+                  size="small"
+                  aria-label="Takes or change the still"
+                />
+              </Box>
+            )}
+            <ScrollArea thin sx={toolsSx}>
+              {readOnly || sideTab === "takes" ? (
+                <ShotTakesGallery
+                  boardId={boardId}
+                  shot={shot}
+                  readOnly={readOnly}
+                />
+              ) : (
+                <ShotStillModifyPanel boardId={boardId} shot={shot} />
+              )}
+            </ScrollArea>
+          </FlexColumn>
+        </Box>
+      </ScrollArea>
 
       <EditorMenu
         open={menuAnchor !== null}
@@ -979,7 +979,7 @@ const ShotEditPanelInner: React.FC<ShotEditPanelProps> = ({
             })}
         </FlexColumn>
       </Dialog>
-    </Panel>
+    </FlexColumn>
   );
 };
 

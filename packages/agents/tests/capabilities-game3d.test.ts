@@ -104,6 +104,18 @@ describe("native game tools in 3D", () => {
     expect(await run.invoke("generate_game_asset", { game_id: created.document.id, slot: "character", kind: "model", input_file: "../private.glb" })).toMatchObject({ error: expect.stringContaining("workspace-relative") });
   });
 
+  it("refuses an HDRI candidate whose bytes and dimensions no preparation verified", async () => {
+    const { run, workspace } = await agent();
+    const created = replyDocument(await run.invoke("create_native_game", { project_id: PROJECT, name: "Sky", dimension: "3d" }));
+    const bytes = new TextEncoder().encode("#?RADIANCE\nnot an image");
+    const digest = createHash("sha256").update(bytes).digest("hex");
+    for (const extension of ["hdr", "png"]) { await workspace.write(`games/${created.document.id}/assets/${digest}.${extension}`, bytes, "application/octet-stream"); }
+    const binding = { mediaKind: "hdri", assetId: "sky", digest, format: "hdr", width: 2048, height: 1024, byteLength: bytes.length, preparationVersion: "1" };
+    expect(await run.invoke("install_native_game_asset", { game_id: created.document.id, slot: "sky", binding }))
+      .toEqual({ error: "HDRI candidates cannot be installed until HDRI preparation verifies their bytes and dimensions" });
+    expect((await Game.readDraft(USER, created.document.id, workspace))?.document.assets.sky).toBeUndefined();
+  });
+
   it("normalizes owned glTF dependencies and installs the digest of the normalized GLB", async () => {
     const { source, binary } = externalGltf();
     const sourceAsset = await Asset.create({ user_id: USER, project_id: PROJECT, parent_id: USER, name: "authored.gltf", content_type: "model/gltf+json", size: source.length });

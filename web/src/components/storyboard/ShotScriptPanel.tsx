@@ -19,6 +19,7 @@ import PlayArrowIcon from "@mui/icons-material/PlayArrow";
 import {
   Box,
   Caption,
+  Card,
   Chip,
   EditorButton,
   FlexColumn,
@@ -174,58 +175,52 @@ const LinkedScriptSection: React.FC<ShotScriptPanelProps> = ({
   const drifted = shotDialogueDrifted(shot, source.linesById);
 
   return (
-    <FlexColumn
-      gap={SPACING.xs}
-      fullWidth
-      sx={{
-        paddingTop: SPACING.xs,
-        borderTop: "1px solid",
-        borderColor: "divider"
-      }}
-    >
-      <FlexRow align="center" justify="space-between" gap={SPACING.xs} wrap>
-        <Caption color="secondary">Script</Caption>
-        {drifted && (
-          <FlexRow align="center" gap={SPACING.xs}>
-            <StatusIndicator
-              status="warning"
-              label="Script changed"
-              tooltip="The linked lines read differently from this shot's text"
-            />
-            {!readOnly && (
-              <EditorButton onClick={() => void onReproject()} disabled={reprojecting}>
-                Re-project
-              </EditorButton>
-            )}
-          </FlexRow>
+    <Card variant="outlined" padding="normal">
+      <FlexColumn gap={SPACING.xs} fullWidth>
+        <FlexRow align="center" justify="space-between" gap={SPACING.xs} wrap>
+          <Caption color="secondary">Script</Caption>
+          {drifted && (
+            <FlexRow align="center" gap={SPACING.xs}>
+              <StatusIndicator
+                status="warning"
+                label="Script changed"
+                tooltip="The linked lines read differently from this shot's text"
+              />
+              {!readOnly && (
+                <EditorButton onClick={() => void onReproject()} disabled={reprojecting}>
+                  Re-project
+                </EditorButton>
+              )}
+            </FlexRow>
+          )}
+        </FlexRow>
+
+        {lines.map((line) => (
+          <ScriptLineEntry
+            key={line.id}
+            scriptId={scriptId}
+            line={line}
+            cast={source.cast}
+            canVoice={!readOnly && draftLoaded}
+            onError={setError}
+          />
+        ))}
+
+        {lineIds.length > lines.length && (
+          <Caption color="warning">
+            {lineIds.length - lines.length === 1
+              ? "1 linked line is no longer in the script."
+              : `${lineIds.length - lines.length} linked lines are no longer in the script.`}
+          </Caption>
         )}
-      </FlexRow>
 
-      {lines.map((line) => (
-        <ScriptLineEntry
-          key={line.id}
-          scriptId={scriptId}
-          line={line}
-          cast={source.cast}
-          canVoice={!readOnly && draftLoaded}
-          onError={setError}
-        />
-      ))}
-
-      {lineIds.length > lines.length && (
-        <Caption color="warning">
-          {lineIds.length - lines.length === 1
-            ? "1 linked line is no longer in the script."
-            : `${lineIds.length - lines.length} linked lines are no longer in the script.`}
-        </Caption>
-      )}
-
-      {error && (
-        <Box>
-          <Caption color="error">{error}</Caption>
-        </Box>
-      )}
-    </FlexColumn>
+        {error && (
+          <Box>
+            <Caption color="error">{error}</Caption>
+          </Box>
+        )}
+      </FlexColumn>
+    </Card>
   );
 };
 

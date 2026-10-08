@@ -160,6 +160,7 @@ export class LiveTranscriptionNode extends BaseNode {
           buffer = combined;
           while (buffer.length >= 16000) {
             let cut = 0;
+            let speech = true;
             if (vad) {
               const segments = await vad.detectSpeechData(
                 samplesToPcm16(buffer),
@@ -168,6 +169,9 @@ export class LiveTranscriptionNode extends BaseNode {
                   minSilenceDurationMs: this.min_silence_ms
                 }
               );
+              // Whisper hallucinates text ("Thank you.") on silence, so a
+              // window VAD finds no speech in is dropped, not transcribed.
+              speech = segments.length > 0;
               const last = segments.at(-1);
               // VAD passes through whisper.cpp centiseconds (ASR uses milliseconds).
               if (
@@ -187,7 +191,9 @@ export class LiveTranscriptionNode extends BaseNode {
             if (cut <= 0) {
               break;
             }
-            enqueue(buffer.slice(0, cut));
+            if (speech) {
+              enqueue(buffer.slice(0, cut));
+            }
             buffer = buffer.slice(cut);
           }
         }
@@ -196,7 +202,15 @@ export class LiveTranscriptionNode extends BaseNode {
         }
       }
       if (buffer.length) {
-        enqueue(buffer);
+        const speech = vad
+          ? await vad.detectSpeechData(samplesToPcm16(buffer), {
+              threshold: this.vad_threshold,
+              minSilenceDurationMs: this.min_silence_ms
+            })
+          : undefined;
+        if (!speech || speech.length > 0) {
+          enqueue(buffer);
+        }
       }
       await worker;
       if (workerError) {

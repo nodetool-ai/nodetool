@@ -382,6 +382,12 @@ export interface GlobalChatState {
   ) => Promise<string>;
   switchThread: (threadId: string) => void;
   deleteThread: (threadId: string) => Promise<void>;
+  /**
+   * Drop `messageId` and every later message from `threadId`, on the server
+   * and in the cache, so the next send continues from the history before it.
+   * Regenerate and editing a sent message are a rewind followed by a send.
+   */
+  rewindThread: (threadId: string, messageId: string) => Promise<void>;
   getCurrentMessages: () => Message[];
   loadMessages: (threadId: string, cursor?: string) => Promise<Message[]>;
   updateThreadTitle: (threadId: string, title: string) => Promise<void>;
@@ -392,6 +398,9 @@ export interface GlobalChatState {
   // Message cache management
   addMessageToCache: (threadId: string, message: Message) => void;
 }
+
+/** A 32-hex message id, the shape the server mints and accepts from a client. */
+const newMessageId = (): string => crypto.randomUUID().replace(/-/g, "");
 
 function buildDefaultLanguageModel(): LanguageModel {
   return {
@@ -1116,8 +1125,12 @@ const useGlobalChatStore = create<GlobalChatState>()(
 
         // Prepare messages for cache and wire (workflow_id only on wire)
         // Preserve workflow_id if already set by caller (e.g., WorkflowAssistantChat)
+        // The turn carries an id from the start. The server keeps it, so the
+        // cached copy can name the stored row (see rewindThread).
+        const messageId = message.id ?? newMessageId();
         const messageForCache: Message = {
           ...message,
+          id: messageId,
           thread_id: threadId
         };
         if (mediaGeneration) {
@@ -1139,6 +1152,7 @@ const useGlobalChatStore = create<GlobalChatState>()(
         } = message;
         const chatMessageData = {
           ...messageWithoutTools,
+          id: messageId,
           workflow_id: message.workflow_id ?? boundWorkflowId,
           project_id: boundProjectId,
           thread_id: threadId,
@@ -1410,6 +1424,34 @@ const useGlobalChatStore = create<GlobalChatState>()(
           ...mirrorsForThread(state, threadId)
         }));
         get().loadMessages(threadId);
+      },
+
+      rewindThread: async (threadId: string, messageId: string) => {
+        try {
+          await trpcClient.messages.rewind.mutate({
+            thread_id: threadId,
+            message_id: messageId
+          });
+        } catch (error) {
+          // A turn that never reached the server, or a thread it never
+          // created, has nothing stored to rewind: the cache is all there is.
+          if (!isTRPCErrorWithCode(error, ApiErrorCode.NOT_FOUND)) {
+            throw error;
+          }
+        }
+        set((state) => {
+          const cached = state.messageCache[threadId] ?? [];
+          const index = cached.findIndex((message) => message.id === messageId);
+          if (index < 0) {
+            return {};
+          }
+          return {
+            messageCache: {
+              ...state.messageCache,
+              [threadId]: cached.slice(0, index)
+            }
+          };
+        });
       },
 
       deleteThread: async (threadId: string) => {

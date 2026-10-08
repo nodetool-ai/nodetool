@@ -62,6 +62,10 @@ export interface ChatCompletionChunkDeltaToolCall {
 export interface ChatCompletionChunkDelta {
   content?: string | null;
   tool_calls?: ChatCompletionChunkDeltaToolCall[] | null;
+  /** Reasoning text split out of `content` by llama-server, vLLM, LM Studio and DeepSeek. */
+  reasoning_content?: string | null;
+  /** The same, under the name vLLM's newer releases and OpenRouter use. */
+  reasoning?: string | null;
   /** Audio-output models (`modalities: ["text","audio"]`) stream base64 here. */
   audio?: { data?: string };
 }

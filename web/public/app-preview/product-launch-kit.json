@@ -19,75 +19,61 @@
           "props": {
             "id": "title",
             "text": "📦 Product Launch Kit",
-            "level": "1"
-          }
-        },
-        {
-          "type": "Text",
-          "props": {
-            "id": "tagline",
-            "text": "One product photo in, mockups and a launch video out."
+            "level": "1",
+            "subtitle": "One product photo in, mockups and a launch video out."
           }
         },
         {
           "type": "Text",
           "props": {
             "id": "app-note",
-            "text": "💸 Mockups and launch video use configured cloud models. Video generation is billed per run, so it has its own button."
+            "text": "💸 Mockups and launch video use configured cloud models. Video generation is billed per run, so it has its own button.",
+            "tone": "hint"
           }
         },
         {
-          "type": "Columns",
+          "type": "Stepper",
           "props": {
-            "id": "cols-your-product",
-            "gap": 24,
-            "left": [
+            "id": "steps",
+            "binding": "var:step",
+            "steps": [
               {
-                "type": "Container",
+                "value": "your-product",
+                "title": "Your product"
+              },
+              {
+                "value": "launch-video",
+                "title": "Launch video"
+              }
+            ],
+            "allowBack": true
+          }
+        },
+        {
+          "type": "Container",
+          "props": {
+            "id": "step-your-product",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "your-product"
+            },
+            "content": [
+              {
+                "type": "Heading",
                 "props": {
-                  "id": "panel-your-product",
-                  "title": "Your product",
-                  "content": [
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-mockups-4-model",
-                        "binding": "op:mockups/prop:4#model",
-                        "label": "Mockups model",
-                        "modelKind": "image_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-mockups-6-model",
-                        "binding": "op:mockups/prop:6#model",
-                        "label": "Mockups model",
-                        "modelKind": "language_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-mockups-8-model",
-                        "binding": "op:mockups/prop:8#model",
-                        "label": "Mockups model",
-                        "modelKind": "language_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-mockups-15-model",
-                        "binding": "op:mockups/prop:15#model",
-                        "label": "Mockups model",
-                        "modelKind": "image_model",
-                        "events": []
-                      }
-                    },
+                  "id": "heading-your-product",
+                  "text": "Your product",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-your-product",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "ImageInput",
                       "props": {
@@ -139,6 +125,56 @@
                       }
                     },
                     {
+                      "type": "Accordion",
+                      "props": {
+                        "id": "models-your-product",
+                        "title": "Models (4)",
+                        "defaultOpen": false,
+                        "content": [
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-mockups-4-model",
+                              "binding": "op:mockups/prop:4#model",
+                              "label": "Composite product into scene model",
+                              "modelKind": "image_model",
+                              "events": []
+                            }
+                          },
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-mockups-6-model",
+                              "binding": "op:mockups/prop:6#model",
+                              "label": "Split into per-scene prompts model",
+                              "modelKind": "language_model",
+                              "events": []
+                            }
+                          },
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-mockups-8-model",
+                              "binding": "op:mockups/prop:8#model",
+                              "label": "Scene concept agent model",
+                              "modelKind": "language_model",
+                              "events": []
+                            }
+                          },
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-mockups-15-model",
+                              "binding": "op:mockups/prop:15#model",
+                              "label": "Render scene model",
+                              "modelKind": "image_model",
+                              "events": []
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-mockups",
@@ -156,17 +192,8 @@
                         ]
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-your-product-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -211,42 +238,70 @@
                     }
                   ]
                 }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-your-product"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-your-product",
+                  "gap": 16,
+                  "left": [],
+                  "right": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "next-your-product",
+                        "label": "Next: Launch video",
+                        "variant": "contained",
+                        "color": "primary",
+                        "fullWidth": false,
+                        "align": "end",
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "launch-video"
+                          }
+                        ]
+                      }
+                    }
+                  ]
+                }
               }
             ]
           }
         },
         {
-          "type": "Columns",
+          "type": "Container",
           "props": {
-            "id": "cols-launch-video",
-            "gap": 24,
-            "left": [
+            "id": "step-launch-video",
+            "variant": "plain",
+            "visibleWhen": {
+              "binding": "var:step",
+              "op": "eq",
+              "value": "launch-video"
+            },
+            "content": [
               {
-                "type": "Container",
+                "type": "Heading",
                 "props": {
-                  "id": "panel-launch-video",
-                  "title": "Launch video",
-                  "content": [
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-video-3-model",
-                        "binding": "op:video/prop:3#model",
-                        "label": "Launch video model",
-                        "modelKind": "language_model",
-                        "events": []
-                      }
-                    },
-                    {
-                      "type": "ModelSelect",
-                      "props": {
-                        "id": "model-video-97f03868-da4f-4604-b57e-5f2118847956-model",
-                        "binding": "op:video/prop:97f03868-da4f-4604-b57e-5f2118847956#model",
-                        "label": "Launch video model",
-                        "modelKind": "video_model",
-                        "events": []
-                      }
-                    },
+                  "id": "heading-launch-video",
+                  "text": "Launch video",
+                  "level": "2"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "cols-launch-video",
+                  "gap": 24,
+                  "left": [
                     {
                       "type": "Text",
                       "props": {
@@ -275,6 +330,36 @@
                       }
                     },
                     {
+                      "type": "Accordion",
+                      "props": {
+                        "id": "models-launch-video",
+                        "title": "Models (2)",
+                        "defaultOpen": false,
+                        "content": [
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-video-3-model",
+                              "binding": "op:video/prop:3#model",
+                              "label": "Write video prompt model",
+                              "modelKind": "language_model",
+                              "events": []
+                            }
+                          },
+                          {
+                            "type": "ModelSelect",
+                            "props": {
+                              "id": "model-video-97f03868-da4f-4604-b57e-5f2118847956-model",
+                              "binding": "op:video/prop:97f03868-da4f-4604-b57e-5f2118847956#model",
+                              "label": "Animate product video model",
+                              "modelKind": "video_model",
+                              "events": []
+                            }
+                          }
+                        ]
+                      }
+                    },
+                    {
                       "type": "Button",
                       "props": {
                         "id": "btn-video",
@@ -292,17 +377,8 @@
                         ]
                       }
                     }
-                  ]
-                }
-              }
-            ],
-            "right": [
-              {
-                "type": "Container",
-                "props": {
-                  "id": "panel-launch-video-results",
-                  "title": "Results",
-                  "content": [
+                  ],
+                  "right": [
                     {
                       "type": "Progress",
                       "props": {
@@ -329,6 +405,39 @@
                       }
                     }
                   ]
+                }
+              },
+              {
+                "type": "Divider",
+                "props": {
+                  "id": "divider-launch-video"
+                }
+              },
+              {
+                "type": "Columns",
+                "props": {
+                  "id": "nav-launch-video",
+                  "gap": 16,
+                  "left": [
+                    {
+                      "type": "Button",
+                      "props": {
+                        "id": "back-launch-video",
+                        "label": "Back: Your product",
+                        "variant": "outlined",
+                        "fullWidth": false,
+                        "events": [
+                          {
+                            "trigger": "click",
+                            "kind": "setVariable",
+                            "key": "var:step",
+                            "value": "your-product"
+                          }
+                        ]
+                      }
+                    }
+                  ],
+                  "right": []
                 }
               }
             ]
@@ -376,6 +485,17 @@
     ],
     "resources": [],
     "variables": [
+      {
+        "id": "step",
+        "name": "Step",
+        "type": {
+          "type": "str",
+          "optional": true
+        },
+        "default": "your-product",
+        "scope": "instance",
+        "persist": false
+      },
       {
         "id": "productPhoto",
         "name": "Product photo",
@@ -682,6 +802,7 @@
     "op:video/out:output-product-video": {
       "$demo": "video"
     },
+    "var:step": "your-product",
     "var:audience": "people who hike on weekends"
   }
 }

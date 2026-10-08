@@ -7,6 +7,10 @@ import {
   type ProviderStreamItem,
   type ProviderCapability
 } from "@nodetool-ai/runtime";
+import {
+  decodeAudioBytesToSamples,
+  encodeWav
+} from "@nodetool-ai/transformers-js-nodes";
 import { z } from "zod";
 import type { AsrArgs } from "./whisper-cpp-provider.js";
 
@@ -39,6 +43,43 @@ async function readResult(response: Response): Promise<ASRResult> {
   }
   return { text: result.data.text.trim(), chunks };
 }
+/** ID3-tagged MP3 or a raw MPEG audio frame sync. */
+function isMp3(bytes: Uint8Array): boolean {
+  return (
+    (bytes[0] === 0x49 && bytes[1] === 0x44 && bytes[2] === 0x33) ||
+    (bytes[0] === 0xff && (bytes[1] & 0xe0) === 0xe0)
+  );
+}
+
+/**
+ * whisper-server decodes uploads with miniaudio, which reads WAV, MP3 and
+ * FLAC only (unless the server runs with `--convert`). Send those unchanged
+ * and convert anything else (WebM/Opus, M4A, OGG) to 16 kHz mono WAV.
+ * When local decoding fails, send the original bytes so a `--convert`
+ * server can still try.
+ */
+async function toServerAudio(
+  audio: Uint8Array
+): Promise<{ bytes: Uint8Array; mime: string; extension: string }> {
+  const mime = sniffAudioMime(audio);
+  if (mime === "audio/wav") {
+    return { bytes: audio, mime, extension: "wav" };
+  }
+  if (mime === "audio/flac") {
+    return { bytes: audio, mime, extension: "flac" };
+  }
+  if (isMp3(audio)) {
+    return { bytes: audio, mime: "audio/mpeg", extension: "mp3" };
+  }
+  let samples: Float32Array;
+  try {
+    samples = await decodeAudioBytesToSamples(audio, 16000);
+  } catch {
+    return { bytes: audio, mime: "application/octet-stream", extension: "bin" };
+  }
+  return { bytes: encodeWav(samples, 16000), mime: "audio/wav", extension: "wav" };
+}
+
 export class WhisperServerProvider extends BaseProvider {
   readonly baseUrl: string;
   private readonly fetchFn: typeof fetch;
@@ -83,19 +124,11 @@ export class WhisperServerProvider extends BaseProvider {
     if (args.audio.length === 0) {
       throw new Error("audio must not be empty");
     }
-    const mime = sniffAudioMime(args.audio);
-    const extension =
-      mime === "audio/wav"
-        ? "wav"
-        : mime === "audio/ogg"
-          ? "ogg"
-          : mime === "audio/flac"
-            ? "flac"
-            : "mp3";
+    const { bytes, mime, extension } = await toServerAudio(args.audio);
     const form = new FormData();
     form.set(
       "file",
-      new Blob([new Uint8Array(args.audio)], { type: mime }),
+      new Blob([new Uint8Array(bytes)], { type: mime }),
       `audio.${extension}`
     );
     form.set("response_format", "verbose_json");
