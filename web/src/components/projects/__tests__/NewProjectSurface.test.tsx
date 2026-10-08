@@ -677,13 +677,14 @@ describe("NewProjectSurface", () => {
     expect(closeTab).toHaveBeenCalledWith("project-new:new");
 
     // The staged turn is the prompt as written, command and all, plus the
-    // entities picked from the button.
+    // entities picked from the button as `entity://<id>` tokens, the form the
+    // chat composer writes.
     const staged = peekChatTurn("chat-1");
     expect(staged).not.toBeNull();
     const text = staged?.[0].type === "text" ? staged[0].text : "";
     expect(text).toBe(
       "/launch-commercial A spot for our desk lamp\n\n" +
-        "Use these entities: Aurora lamp."
+        "Use these entities: entity://e1."
     );
   });
 

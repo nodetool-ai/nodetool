@@ -48,6 +48,12 @@
       "import": "./dist/render/index.js",
       "default": "./dist/render/index.js"
     },
+    "./testing": {
+      "nodetool-dev": "./src/testing/index.ts",
+      "types": "./dist/testing/index.d.ts",
+      "import": "./dist/testing/index.js",
+      "default": "./dist/testing/index.js"
+    },
     "./scene": {
       "nodetool-dev": "./src/scene.ts",
       "types": "./dist/scene.d.ts",

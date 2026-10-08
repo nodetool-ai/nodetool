@@ -10,6 +10,7 @@ import {
   draftFromShot,
   hasShotFieldChanges,
   isDraftDirty,
+  isDurationInvalid,
   parseDuration,
   savedShot,
   shotPatchFromDraft,
@@ -143,6 +144,24 @@ describe("withDuration on a linked board (PRD D9)", () => {
 
   it("leaves the source alone on an unlinked board", () => {
     expect(withDuration(original, "6", false).durationSource).toBeUndefined();
+  });
+
+  it("keeps a pinned shot pinned while the typed length is invalid", () => {
+    const pinned = withDuration(original, "6", true);
+    expect(withDuration(pinned, "0", true)).toMatchObject({
+      durationSeconds: "0",
+      durationSource: "manual"
+    });
+  });
+});
+
+describe("isDurationInvalid", () => {
+  it("flags text that is not a positive length, but not an empty cell", () => {
+    expect(isDurationInvalid("0")).toBe(true);
+    expect(isDurationInvalid("-3")).toBe(true);
+    expect(isDurationInvalid("soon")).toBe(true);
+    expect(isDurationInvalid("")).toBe(false);
+    expect(isDurationInvalid("6")).toBe(false);
   });
 });
 

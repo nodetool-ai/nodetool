@@ -14,6 +14,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Why NodeTool]({{ site.url }}/comparisons): How NodeTool compares to ComfyUI, n8n, LangChain, etc.
 - [Installation]({{ site.url }}/installation): Install NodeTool Studio on macOS, Windows, or Linux.
 - [Quick Start]({{ site.url }}/getting-started): Install, run a template, edit and iterate.
+- [Your First Workflow]({{ site.url }}/first-workflow): Build a four-node workflow from an empty canvas: connect, save, run, and change it.
 - [Agents and Automation]({{ site.url }}/agents/): Install, discover node schemas, validate and run workflows programmatically.
 
 ## Core Concepts
@@ -35,17 +36,26 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Graph View]({{ site.url }}/workflow-graph-view): Read-only graph navigation.
 - [Debugging]({{ site.url }}/workflow-debugging): Inspect runs, errors, logs.
 - [Triggers]({{ site.url }}/triggers): Run a workflow on a schedule, on a file change, from a webhook, or manually.
+- [Sharing Workflows]({{ site.url }}/workflow-sharing): Share a workflow through view or edit links, manage people with access, and accept share links.
+- [On-Canvas Node Editors]({{ site.url }}/node-editors): The editors inside image, prompt, and Code nodes and how edits map to node properties.
 - [Templates Gallery]({{ site.url }}/templates-gallery): Browse and open starter workflows.
 
 ## Creative Editors
 
 - [Creative Agent]({{ site.url }}/creative-agent): Brief to finished film through a Director agent, storyboard and timeline.
+- [Guided Creation Flows]({{ site.url }}/guided-flows): Start an image, workflow, entity, storyboard, video, script, or game from a guided sequence of steps.
+- [Entities]({{ site.url }}/entities): Save characters, locations, styles, and props with reference images and reuse them in generation.
 - [AI Video Production]({{ site.url }}/ai-video-production): Guided video, storyboard and script flows.
 - [Video Editor]({{ site.url }}/video-editor): Multi-track timeline editing and export.
 - [AI Timeline Editing]({{ site.url }}/ai-timeline-editing): Generate and revise clips on the timeline.
+- [Timeline Motion Design]({{ site.url }}/timeline-motion-design): Timeline document fields for easing, text animators, camera, layout, effects, and transitions.
+- [Custom Animations]({{ site.url }}/timeline-custom-animations): Write timeline motion as JavaScript that returns keyframes.
 - [Sketch Editor]({{ site.url }}/sketch-editor): Mask, paint, layer, and generate images inline.
 - [3D Editor]({{ site.url }}/3d-editor): Block out a set with shapes and lights and render shot references.
+- [Blender Nodes]({{ site.url }}/blender): Render 3D models to images, passes and video with headless Blender inside a workflow.
 - [Game Editor]({{ site.url }}/game-editor): Build, play and publish 2D and 3D games.
+- [Audio Editor]({{ site.url }}/audio-editor): Trim, fade, normalize, and reverse an audio asset and save it back.
+- [Text and SVG Documents]({{ site.url }}/text-and-svg-documents): Every document type the + New menu creates, and the text, CSV, and SVG editors.
 
 ## Mini Apps
 
@@ -61,12 +71,14 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Chat & Agents]({{ site.url }}/global-chat-agents): Use agents from chat.
 - [Skills]({{ site.url }}/skills): Instruction packs agents load, how to write one, and the shipped catalog.
 - [Agent Memory]({{ site.url }}/agent-memory): How agents persist context.
+- [Memory]({{ site.url }}/memory): Durable notes agents save across conversations, the memory_* tools, and the Memory page.
 
 ## Models & Providers
 
 - [Overview]({{ site.url }}/models-and-providers): All supported providers.
 - [Local vs Cloud]({{ site.url }}/models): When to use which.
 - [Provider Reference]({{ site.url }}/providers): Per-provider configuration.
+- [Custom Providers]({{ site.url }}/custom-providers): Add any OpenAI-compatible endpoint as a provider.
 - [HuggingFace]({{ site.url }}/huggingface): Models from the Hub.
 - [ComfyUI]({{ site.url }}/comfyui): Run ComfyUI workflows directly, over a GPU worker, or on Comfy Cloud.
 - [ComfyUI Setup]({{ site.url }}/comfyui-setup): Getting a ComfyUI endpoint NodeTool can reach, and what must be installed on it.
@@ -80,6 +92,13 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Core Concepts]({{ site.url }}/cookbook/core-concepts): Typed edges, documents as values, fan-out versus chain.
 - [Creative Patterns]({{ site.url }}/cookbook/patterns): Eight patterns from brief to delivered cut.
 - [Workflow Examples]({{ site.url }}/workflows/): Ready-to-run sample workflows.
+
+## Integrations
+
+- [Google Workspace and Email]({{ site.url }}/google-workspace): Connect a Google account so agents can use Drive, Gmail, Docs, Sheets and Calendar, or read mail over IMAP.
+- [Telegram Bot]({{ site.url }}/telegram-bot): Chat with your NodeTool agent from Telegram: BotFather setup, account linking, allowlist.
+- [Apify]({{ site.url }}/apify-integration): Run Apify actors from agents and the sandbox.
+- [SerpAPI]({{ site.url }}/serpapi-integration): Search any SerpAPI engine through one discovered capability.
 
 ## Configuration
 
@@ -107,6 +126,7 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Chat CLI]({{ site.url }}/chat-cli): Interactive chat with agent mode.
 - [Agent CLI]({{ site.url }}/agent-cli): Run agent configs from the terminal.
 - [MCP Server]({{ site.url }}/mcp-server): Use NodeTool from Claude Code, Codex, OpenCode, or any MCP client.
+- [MCP on a Server]({{ site.url }}/mcp-production): Serve the /mcp endpoint on a production server and authenticate agents.
 - [Chat Server]({{ site.url }}/chat-server): Serve the OpenAI-compatible chat API via `nodetool serve`.
 - [API Server]({{ site.url }}/api-server): REST + WebSocket API server.
 
@@ -124,10 +144,13 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 - [Packages]({{ site.url }}/packages): NPM workspace package map.
 - [Python Bridge Protocol]({{ site.url }}/python-bridge-protocol): Stdio msgpack bridge to Python nodes.
 - [Execution Strategies]({{ site.url }}/execution-strategies): Actor-model workflow execution and code-runner sandboxes.
+- [JavaScript Sandbox]({{ site.url }}/javascript-sandbox): The QuickJS guest that runs Code nodes and CodeAct actions.
+- [JS Scripts]({{ site.url }}/js-scripts): Saved JavaScript documents with ports, secrets, a run dialog and tests.
 - [Custom Nodes]({{ site.url }}/developer/custom-nodes-guide): Implement BaseNode subclasses.
 - [Node Patterns]({{ site.url }}/developer/node-patterns): process / genProcess / streaming.
 - [Node Reference]({{ site.url }}/developer/node-reference): @prop, types, decorators.
 - [TypeScript DSL]({{ site.url }}/developer/ts-dsl-guide): Define workflows in TS.
+- [Portable Workflow Runner]({{ site.url }}/developer/workflow-runner): Run a workflow graph from a Web-standard request handler on Node, Bun, Deno, Vercel, Cloudflare Workers, or in the browser.
 - [Node Packs]({{ site.url }}/node-packs): Distribute nodes as installable packs.
 
 ## Apps
@@ -140,3 +163,8 @@ NodeTool is an open-source, local-first visual environment for building AI workf
 
 - [Troubleshooting]({{ site.url }}/troubleshooting): Common errors and fixes.
 - [Tips & Tricks]({{ site.url }}/tips-and-tricks): Productivity shortcuts.
+- [Keyboard Shortcuts]({{ site.url }}/keyboard-shortcuts): Every keyboard shortcut by surface.
+- [FAQ]({{ site.url }}/faq): Answers to common questions with links to the pages that cover them.
+- [Privacy and Data]({{ site.url }}/privacy): Where NodeTool stores data and what leaves your machine.
+- [Upgrading]({{ site.url }}/upgrading): Update the desktop app or a self-hosted server, and back up first.
+- [Changelog]({{ site.url }}/changelog): Recent releases and where to find the full changelog.
