@@ -64,6 +64,7 @@ Export a `register(registry)` function and add a `nodetool` field to `package.js
 ### Programmatic Workflows
 
 - [TypeScript DSL Guide](ts-dsl-guide.md) -- Type-safe workflow definitions with auto-generated factory functions
+- [Portable Workflow Runner](workflow-runner.md) -- Run a workflow graph from a `(Request) => Response` handler on Node, Bun, Deno, Vercel, Cloudflare Workers, or in the browser
 
 ### Architecture
 

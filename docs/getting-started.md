@@ -118,6 +118,7 @@ agents get the same tools over MCP: [NodeTool as an MCP Server](mcp-server.md).
 | Control each shot, stills first | [Creative Agent](creative-agent.md) (the **Storyboard** card) |
 | Get good at the timeline | [Video Editor](video-editor.md) |
 | Keep a character the same across shots | [Creative Agent → Entities](creative-agent.md) |
+| Build a workflow from an empty canvas | [Your First Workflow](first-workflow.md) |
 | Build pipelines on a canvas | [Key Concepts](key-concepts.md) |
 | Turn a workflow into an app | [Mini Apps](mini-apps.md) |
 | Build a game you can play and export | [Game Editor](game-editor.md) |
