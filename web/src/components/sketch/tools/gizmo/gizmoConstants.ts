@@ -63,6 +63,9 @@ export const HANDLE_FILL_HOVERED = "rgba(0, 120, 255, 0.15)";
 /** Off-canvas indicator color (MoveTool corner brackets). */
 export const OFF_CANVAS_INDICATOR_COLOR = "rgba(255, 200, 0, 0.75)";
 
+/** Smart-guide line color shown while a move snaps (Photoshop magenta). */
+export const SNAP_LINE_COLOR = "rgba(255, 0, 200, 0.9)";
+
 /** Length (CSS px) of each corner arm for the off-canvas indicator, before DPR. */
 export const OFF_CANVAS_CORNER_ARM_CSS = 14;
 

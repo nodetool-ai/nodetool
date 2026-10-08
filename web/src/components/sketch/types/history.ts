@@ -54,6 +54,14 @@ export interface PushHistoryOptions {
    * without touching layer canvases.
    */
   selectionOnly?: boolean;
+  /**
+   * `before` marks a checkpoint pushed before its edit runs (strokes,
+   * transforms, pixel ops): the entry holds the pre-edit state and its
+   * `action` names the edit that follows. The default, `after`, means the
+   * entry already holds the result of `action`. The History panel uses this
+   * to label each state by the edit that produced it.
+   */
+  timing?: "before" | "after";
 }
 
 export interface HistoryEntry {
@@ -81,5 +89,7 @@ export interface HistoryEntry {
   /** Controls whether undo/redo must replay raster data or only restore structure. */
   restoreMode: HistoryRestoreMode;
   action: string;
+  /** Set when the entry was pushed before its edit ran. See {@link PushHistoryOptions.timing}. */
+  timing?: "before";
   timestamp: number;
 }
