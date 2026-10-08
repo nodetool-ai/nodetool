@@ -78,6 +78,7 @@ import {
 } from "./editor-shell";
 import { ConnectedGeneratedLayerSection } from "./Inspector/ConnectedGeneratedLayerSection";
 import SketchAgentPanel from "./SketchAgentPanel";
+import { SketchRulersAndGuides } from "./guides/SketchRulersAndGuides";
 import ResizableSideDock from "../chat/assistant/ResizableSideDock";
 import { useSketchAgentBridge } from "../../hooks/sketch/useSketchAgentBridge";
 import { useSketchCanvasRefStore } from "../../stores/sketch/SketchCanvasRefStore";
@@ -598,6 +599,7 @@ function SketchEditor({
               }
               segmentation={session.segmentation}
             />
+            <SketchRulersAndGuides />
           </Container>
           {/*
           Tool top bar sits above the canvas in z-order but does not consume flex

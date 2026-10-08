@@ -427,7 +427,17 @@ export const sketchDocumentLike = z.object({
    * and on every document that never went through it — such a document parses
    * unchanged and opens as the editor.
    */
-  setup: sketchSetup.optional()
+  setup: sketchSetup.optional(),
+  /** Ruler guides placed in the editor, in document pixels. */
+  guides: z
+    .array(
+      z.object({
+        id: z.string(),
+        orientation: z.enum(["horizontal", "vertical"]),
+        position: z.number()
+      })
+    )
+    .optional()
 });
 
 // ── Image document data (persisted JSON) ───────────────────────────────────

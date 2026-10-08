@@ -4,6 +4,8 @@
  * Supports:
  *   - Ctrl+Alt click to duplicate-and-move
  *   - Alt click to auto-pick topmost non-transparent layer
+ *   - Snapping to canvas edges and center, guides and other layers
+ *     (hold Ctrl/Cmd while dragging to bypass), Shift to lock an axis
  *   - Shared PreviewSession for live compositing preview
  *   - clearLayerTransformPreview on release
  *
@@ -34,7 +36,14 @@ import {
   computeTransformedCorners
 } from "../transform/geometry/layerGeometry";
 import { docToScreen } from "./transform/handleGeometry";
-import { drawOffCanvasIndicator } from "./gizmo";
+import { drawOffCanvasIndicator, drawSnapLines } from "./gizmo";
+import {
+  SNAP_THRESHOLD_SCREEN_PX,
+  buildSnapTargets,
+  snapMoveDelta,
+  type SnapRect,
+  type SnapTargets
+} from "../snapping/moveSnap";
 import { useSketchStore } from "../state/useSketchStore";
 import { createPreviewSession, type PreviewSession } from "./previewSession";
 import { pickTopmostTransformableLayer } from "./transformTargetSet";
@@ -128,13 +137,21 @@ function duplicateActiveLayerFromSelection(
   return freshDoc.layers.find((l) => l.id === newLayerId) ?? null;
 }
 
+/** Document-space lines a move snapped to, drawn as smart guides. */
+interface SnapLines {
+  x: number | null;
+  y: number | null;
+}
+
 /** Paint corner brackets for off-canvas layer extents on the gizmo canvas.
  *  Uses {@link resolveGizmoBounds} (same contract as TransformTool) and maps the
- *  transformed quad to screen space so bounds track tight content and rotation. */
+ *  transformed quad to screen space so bounds track tight content and rotation.
+ *  Also paints the smart-guide lines of an active snap. */
 function paintOffCanvasGizmo(
   ctx: ToolContext,
   layerId: string,
-  transform: LayerTransform
+  transform: LayerTransform,
+  snapLines: SnapLines | null = null
 ): void {
   const layer = ctx.doc.layers.find((l) => l.id === layerId);
   if (!layer) {
@@ -153,7 +170,9 @@ function paintOffCanvasGizmo(
     extents.y < 0 ||
     extents.x + extents.width > cw ||
     extents.y + extents.height > ch;
-  if (!extendsOutside) {
+  const hasSnapLines =
+    snapLines !== null && (snapLines.x !== null || snapLines.y !== null);
+  if (!extendsOutside && !hasSnapLines) {
     ctx.clearGizmo();
     return;
   }
@@ -161,6 +180,32 @@ function paintOffCanvasGizmo(
   const docCorners = computeTransformedCorners(transform, rasterBounds);
 
   ctx.drawGizmo((gc, dpr, containerW, containerH) => {
+    if (snapLines && hasSnapLines) {
+      const origin = docToScreen(
+        snapLines.x ?? 0,
+        snapLines.y ?? 0,
+        cw,
+        ch,
+        ctx.zoom,
+        ctx.pan,
+        containerW,
+        containerH,
+        dpr
+      );
+      drawSnapLines(
+        gc,
+        {
+          x: snapLines.x === null ? null : origin.x,
+          y: snapLines.y === null ? null : origin.y
+        },
+        dpr,
+        containerW * dpr,
+        containerH * dpr
+      );
+    }
+    if (!extendsOutside) {
+      return;
+    }
     const screenCorners: [Point, Point, Point, Point] = [
       docToScreen(docCorners[0].x, docCorners[0].y, cw, ch, ctx.zoom, ctx.pan, containerW, containerH, dpr),
       docToScreen(docCorners[1].x, docCorners[1].y, cw, ch, ctx.zoom, ctx.pan, containerW, containerH, dpr),
@@ -189,6 +234,12 @@ export class MoveTool implements ToolHandler {
     layerId: string;
     baseline: LayerTransform;
   }> = [];
+  /** Union of the moving layers' extents at drag start, for snapping. */
+  private snapRect: SnapRect | null = null;
+  private snapTargets: SnapTargets | null = null;
+  private snapLines: SnapLines | null = null;
+  /** Snapped / constrained cursor of the latest move, reused on release. */
+  private lastCursor: Point | null = null;
 
   onActivate(ctx: ToolContext): void {
     this.refreshGizmo(ctx);
@@ -222,12 +273,78 @@ export class MoveTool implements ToolHandler {
     this.extraMoveTargets = [];
     this.moveStart = null;
     this.moveLayerStartTransform = { ...IDENTITY_AFFINE };
+    this.resetSnapState();
     ctx.clearGizmo();
+  }
+
+  private resetSnapState(): void {
+    this.snapRect = null;
+    this.snapTargets = null;
+    this.snapLines = null;
+    this.lastCursor = null;
+  }
+
+  /**
+   * Capture the moving layers' extents and the lines they can snap to. Other
+   * layers' bounds are read once here, not on every pointer move.
+   */
+  private prepareSnapping(ctx: ToolContext, movingIds: ReadonlySet<string>): void {
+    const { doc } = ctx;
+    const { isolatedLayerId, guidesVisible } = useSketchStore.getState();
+    const extentsOf = (layerId: string): SnapRect | null => {
+      const layer = doc.layers.find((l) => l.id === layerId);
+      if (!layer || layer.type === "group") {
+        return null;
+      }
+      const canvas = ctx.layerCanvasesRef.current.get(layerId);
+      return computeTransformedExtents(
+        layer.transform,
+        getVisualBounds(layer, canvas, doc.canvas)
+      );
+    };
+    let union: SnapRect | null = null;
+    for (const id of movingIds) {
+      const r = extentsOf(id);
+      if (!r) {
+        continue;
+      }
+      if (!union) {
+        union = { ...r };
+      } else {
+        const x0 = Math.min(union.x, r.x);
+        const y0 = Math.min(union.y, r.y);
+        const x1 = Math.max(union.x + union.width, r.x + r.width);
+        const y1 = Math.max(union.y + union.height, r.y + r.height);
+        union = { x: x0, y: y0, width: x1 - x0, height: y1 - y0 };
+      }
+    }
+    this.snapRect = union;
+    const others: SnapRect[] = [];
+    for (const layer of doc.layers) {
+      if (
+        movingIds.has(layer.id) ||
+        layer.type === "group" ||
+        layer.type === "mask" ||
+        !isLayerCompositeVisible(doc.layers, layer, isolatedLayerId)
+      ) {
+        continue;
+      }
+      const r = extentsOf(layer.id);
+      if (r) {
+        others.push(r);
+      }
+    }
+    this.snapTargets = buildSnapTargets(
+      doc.canvas,
+      guidesVisible ? (doc.guides ?? []) : [],
+      others
+    );
   }
 
   private refreshGizmo(ctx: ToolContext): void {
     this.refreshGizmoWithTransform(ctx, null);
   }
+
 
   /**
    * Refresh the gizmo overlay. When `overrideTransform` is provided it is
@@ -247,7 +364,12 @@ export class MoveTool implements ToolHandler {
     const previewTransform = this.session.isActive()
       ? this.session.state.currentTransform
       : overrideTransform ?? activeLayer.transform;
-    paintOffCanvasGizmo(ctx, activeLayer.id, previewTransform);
+    paintOffCanvasGizmo(
+      ctx,
+      activeLayer.id,
+      previewTransform,
+      this.session.isActive() ? this.snapLines : null
+    );
   }
 
   /** Get the current preview session (for external consumers). */
@@ -401,6 +523,11 @@ export class MoveTool implements ToolHandler {
         });
       }
     }
+    this.resetSnapState();
+    this.prepareSnapping(
+      ctx,
+      new Set([moveTargetLayer.id, ...this.extraMoveTargets.map((e) => e.layerId)])
+    );
     return true;
   }
 
@@ -409,8 +536,50 @@ export class MoveTool implements ToolHandler {
       return;
     }
     const pt = event.point;
-    const dx = pt.x - this.moveStart.x;
-    const dy = pt.y - this.moveStart.y;
+    let dx = pt.x - this.moveStart.x;
+    let dy = pt.y - this.moveStart.y;
+    const native = event.nativeEvent;
+    // Shift locks the move to the dominant axis.
+    if (native.shiftKey) {
+      if (Math.abs(dx) >= Math.abs(dy)) {
+        dy = 0;
+      } else {
+        dx = 0;
+      }
+    }
+    this.snapLines = null;
+    // Ctrl/Cmd held during a Move-tool drag bypasses snapping, as in
+    // Photoshop. A spring-loaded move (Ctrl held on another tool) and a
+    // Ctrl+Alt duplicate-drag hold Ctrl for another reason, so they still snap.
+    const bypassSnap =
+      (native.ctrlKey || native.metaKey) &&
+      !native.altKey &&
+      useSketchStore.getState().activeTool === "move";
+    if (
+      useSketchStore.getState().snapEnabled &&
+      !bypassSnap &&
+      this.snapRect &&
+      this.snapTargets
+    ) {
+      const threshold = SNAP_THRESHOLD_SCREEN_PX / Math.max(ctx.zoom, 1e-6);
+      const snapped = snapMoveDelta(
+        this.snapRect,
+        dx,
+        dy,
+        this.snapTargets,
+        threshold
+      );
+      // A locked axis stays locked: only the free axis may snap.
+      const lockX = native.shiftKey && dx === 0;
+      const lockY = native.shiftKey && dy === 0;
+      dx = lockX ? 0 : snapped.dx;
+      dy = lockY ? 0 : snapped.dy;
+      this.snapLines = {
+        x: lockX ? null : snapped.snappedX,
+        y: lockY ? null : snapped.snappedY
+      };
+    }
+    this.lastCursor = { x: this.moveStart.x + dx, y: this.moveStart.y + dy };
     const previewId = this.session.state.layerId;
     // Read freshest doc from the store in case a duplicate just occurred.
     // Fall back to ctx.doc when the store document doesn't contain the target layer
@@ -460,7 +629,7 @@ export class MoveTool implements ToolHandler {
     // order (primary first, then extras), which keeps history entries
     // grouped naturally and makes the post-up gizmo refresh see the
     // freshest doc.
-    const finalCursor = event?.point ?? null;
+    const finalCursor = this.lastCursor ?? event?.point ?? null;
     const extras = this.extraMoveTargets;
     this.extraMoveTargets = [];
     if (finalCursor && this.moveStart) {
@@ -485,6 +654,7 @@ export class MoveTool implements ToolHandler {
 
     this.moveStart = null;
     this.moveLayerStartTransform = { ...IDENTITY_AFFINE };
+    this.resetSnapState();
 
     if (layerId) {
       ctx.onStrokeEnd(layerId, null, undefined, {
