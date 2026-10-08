@@ -7,6 +7,7 @@ import { useGamePlaySession } from "../useGamePlaySession";
 import { gameAuthoring, gameAssetBinding, type GameDocument } from "@nodetool-ai/protocol";
 import { loadBrowserGameFonts } from "@nodetool-ai/game-renderer/browser";
 import { resolveMediaUri } from "../../../utils/resolveMediaUri";
+import { FixedTickClock } from "@nodetool-ai/game-renderer";
 
 const mockRenderers: Array<{ assets: (slot: string) => Promise<HTMLImageElement | null>; invalidateAsset: jest.Mock; render: jest.Mock }> = [];
 
@@ -88,6 +89,65 @@ function ExplicitFailureReplayHarness() {
     <output aria-label="Host failure">{session.scriptError?.message ?? "none"}</output>
   </>;
 }
+
+function FailureBurstHarness() {
+  const session = useGamePlaySession({ refId: "first-script-error", active: true, document });
+  return <>
+    <canvas ref={session.canvasRef} />
+    <button onClick={session.beginPlay}>{session.playing ? "Pause" : "Play"}</button>
+    <button onClick={session.stop}>Stop</button>
+    <button onClick={session.save}>Save</button>
+    <button onClick={() => void session.load()}>Restore</button>
+    <button onClick={() => void session.replayBeforeError()}>Replay failure</button>
+    <button onClick={() => session.step()}>Step</button>
+    <button onClick={() => {
+      const clock = new FixedTickClock(60);
+      clock.advance(0, () => undefined);
+      clock.advance(40, () => session.step());
+    }}>Fail fixed-clock burst</button>
+    <output aria-label="Backend">{session.backend}</output>
+    <output aria-label="Tick">{session.playState.tick}</output>
+    <output aria-label="Session error">{session.error}</output>
+    <output aria-label="Script error">{session.scriptError?.message}</output>
+  </>;
+}
+
+it.each(["Restore", "Replay failure", "Restart"])("preserves the first 2D script error in a burst and allows %s recovery", async (recovery) => {
+  const animation = jest.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+  const user = userEvent.setup();
+  const candidate = await createScriptedGameSession(document, 1);
+  const frame = candidate.frame.bind(candidate);
+  let failed = false;
+  const step = jest.spyOn(candidate, "step").mockImplementation(() => {
+    if (failed) { throw new Error("Game session stopped after a failed step"); }
+    failed = true;
+    throw new Error("Game script original failure");
+  });
+  jest.spyOn(candidate, "frame").mockImplementation(() => {
+    if (failed) { throw new Error("Game session stopped after a failed step"); }
+    return frame();
+  });
+  const view = render(<FailureBurstHarness />);
+  try {
+    await waitFor(() => expect(screen.getByLabelText("Backend")).toHaveTextContent("Canvas 2D"));
+    jest.mocked(createScriptedGameSession).mockResolvedValueOnce(candidate);
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Fail fixed-clock burst" }));
+    expect(screen.getByLabelText("Session error")).toHaveTextContent("Game script original failure");
+    expect(screen.getByLabelText("Script error")).toHaveTextContent("Game script original failure");
+    expect(step).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
+    if (recovery === "Restart") {
+      await user.click(screen.getByRole("button", { name: "Stop" }));
+      await user.click(screen.getByRole("button", { name: "Play" }));
+      await user.click(screen.getByRole("button", { name: "Pause" }));
+    } else { await user.click(screen.getByRole("button", { name: recovery })); }
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(screen.getByLabelText("Tick").textContent).toBe("1");
+  } finally { view.unmount(); animation.mockRestore(); localStorage.removeItem("nodetool.game.save.first-script-error"); }
+});
 
 it("replays active ring history for an explicit diagnostic failure while private host error remains null", async () => {
   const user = userEvent.setup();

@@ -45,6 +45,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   const resizeObserverRef = useRef<ResizeObserver | null>(null);
   const rendererRef = useRef<GameRenderer3D | null>(null);
   const sessionRef = useRef<GameSession3D | null>(null);
+  const sessionFailedRef = useRef(false);
   const sessionOptionsRef = useRef<GameSession3DOptions>({});
   const generationRef = useRef(0);
   const inputRef = useRef(new GameInput3D());
@@ -102,7 +103,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
 
   const step = useCallback((input: GameInputFrame3D = EMPTY_INPUT_3D): void => {
     const session = sessionRef.current;
-    if (!session) { return; }
+    if (!session || sessionFailedRef.current) { return; }
     try {
       const previous = historyRef.current.needsCheckpoint() ? session.snapshot() : undefined;
       const result = session.step(input);
@@ -123,6 +124,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       }
       if (!playingRef.current) { display(result.frame, 1); }
     } catch (cause) {
+      sessionFailedRef.current = true;
       setInspection(committedRef.current);
       setFrame(lastFrameRef.current);
       setError(cause instanceof Error ? cause.message : String(cause));
@@ -185,6 +187,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       session = await createGameSession3D(current, 1, undefined, options);
       controller.signal.throwIfAborted();
       sessionRef.current = session;
+      sessionFailedRef.current = false;
       committedRef.current = session.inspect();
       setInspection(committedRef.current);
       const initialFrame = session.frame();
@@ -262,7 +265,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
     const animate = (now: number): void => {
       const alpha = clock.advance(now, () => step(inputRef.current.sample(sessionDocument)));
       const current = sessionRef.current;
-      if (current) {
+      if (current && !sessionFailedRef.current) {
         try { display(current.frame(), alpha); } catch { setPlaying(false); }
       }
       request = requestAnimationFrame(animate);
@@ -275,6 +278,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
   }, [playing, active, sessionDocument, step, display]);
 
   const beginPlay = (): void => {
+    if (playDocument && sessionFailedRef.current) { return; }
     if (!playDocument) { historyRef.current.clear(); setPlayDocument(structuredClone(document)); }
     inputRef.current.release();
     setPlaying((value) => !value);
@@ -298,6 +302,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       historyRef.current.clear(snapshot);
       sessionRef.current?.dispose();
       sessionRef.current = restored;
+      sessionFailedRef.current = false;
       committedRef.current = restored.inspect();
       setInspection(committedRef.current);
       lastFrameRef.current = restored.frame();
@@ -319,6 +324,7 @@ export function useGamePlaySession3D({ refId, document, active, editorSceneId }:
       catch (cause) { restored.dispose(); throw cause; }
       sessionRef.current?.dispose();
       sessionRef.current = restored;
+      sessionFailedRef.current = false;
       committedRef.current = restored.inspect();
       setInspection(committedRef.current);
       lastFrameRef.current = restored.frame();
