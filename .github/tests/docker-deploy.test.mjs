@@ -8,12 +8,13 @@ const workflow = (name) => parse(readFileSync(new URL(`../workflows/${name}`, im
 test("Docker releases preserve the build gates and cannot cancel a rolling deployment", () => {
   const server = workflow("fly-deploy.yml");
   assert.equal(server.name, "Deploy to Docker");
-  assert.deepEqual(server.on.workflow_run.workflows, ["Docker", "User Journeys"]);
+  assert.deepEqual(server.on.workflow_run.workflows, ["Docker", "User Journeys", "Test"]);
   assert.equal(server.concurrency["cancel-in-progress"], false);
   assert.equal(server.jobs.deploy.name, "Deploy server");
   assert.ok(server.jobs.deploy.needs.includes("gate"));
   const gate = server.jobs.gate.steps.map((step) => step.run ?? "").join("\n");
-  assert.ok(gate.includes("docker.yml") && gate.includes("user-journeys.yml"));
+  assert.ok(gate.includes("docker.yml") && gate.includes("user-journeys.yml") && gate.includes("test.yml"));
+  assert.ok(gate.includes("event=push"));
   const release = server.jobs.deploy.steps.map((step) => step.run ?? "").join("\n");
   assert.ok(release.includes("StrictHostKeyChecking=yes"));
   assert.ok(release.includes("BatchMode=yes"));
