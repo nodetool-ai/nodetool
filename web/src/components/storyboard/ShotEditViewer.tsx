@@ -219,6 +219,18 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
 
   const handlePointerDown = useCallback(
     (event: React.PointerEvent<HTMLDivElement>) => {
+      // Pan with the primary button only, and never from media controls:
+      // capturing the pointer there would turn a click on play or the seek bar
+      // into a pan.
+      if (
+        event.button !== 0 ||
+        (event.target instanceof Element &&
+          event.target.closest(
+            "button, input, select, video, a, [role=slider], [role=button]"
+          ))
+      ) {
+        return;
+      }
       panFrom.current = { x: event.clientX - pan.x, y: event.clientY - pan.y };
       event.currentTarget.setPointerCapture(event.pointerId);
     },
@@ -265,13 +277,18 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
     (file: File, failure: string) =>
       uploadAsset({
         file,
-        onCompleted: (asset) =>
+        onCompleted: (asset) => {
+          setBusy(false);
           appendShotKeyframeVersion(
             boardId,
             shot.id,
             mediaRefFromAsset(asset, "image")
-          ),
-        onFailed: (error) => reportFailure(error, failure)
+          );
+        },
+        onFailed: (error) => {
+          setBusy(false);
+          reportFailure(error, failure);
+        }
       }),
     [uploadAsset, appendShotKeyframeVersion, boardId, shot.id]
   );
@@ -327,14 +344,14 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
     }
     setBusy(true);
     try {
+      // `busy` clears when the upload settles, not when it is queued.
       addVersion(
         await flippedStill(stillUrl, `${stillName} flipped.png`),
         "The flip could not be saved."
       );
     } catch (error) {
-      reportFailure(error, "The still could not be flipped.");
-    } finally {
       setBusy(false);
+      reportFailure(error, "The still could not be flipped.");
     }
   }, [stillUrl, stillName, addVersion]);
 
@@ -351,6 +368,7 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
       uploadAsset({
         file,
         onCompleted: (asset) => {
+          setBusy(false);
           appendShotKeyframeVersion(
             boardId,
             shot.id,
@@ -365,13 +383,14 @@ const ShotEditViewerInner: React.FC<ShotEditViewerProps> = ({
           });
           onLeave?.();
         },
-        onFailed: (error) =>
-          reportFailure(error, "The still could not be opened for editing.")
+        onFailed: (error) => {
+          setBusy(false);
+          reportFailure(error, "The still could not be opened for editing.");
+        }
       });
     } catch (error) {
-      reportFailure(error, "The still could not be opened for editing.");
-    } finally {
       setBusy(false);
+      reportFailure(error, "The still could not be opened for editing.");
     }
   }, [
     stillUrl,

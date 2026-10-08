@@ -31,8 +31,11 @@ const scalar =
 const storyboardUnitsTouchedByOp = (
   op: DocumentOp
 ): { kind: string; unitId?: string }[] => {
-  // set_board rewrites the board's own fields; set_link only its timeline.
-  if (op.tool === "set_board") return [{ kind: "field" }];
+  // set_board and set_setup rewrite the board's own fields; set_link only its
+  // timeline.
+  if (op.tool === "set_board" || op.tool === "set_setup") {
+    return [{ kind: "field" }];
+  }
   if (op.tool === "set_link") return [{ kind: "field", unitId: "timelineId" }];
   if (op.tool !== "update_shot") return [];
   const input = (op.input ?? {}) as Record<string, unknown>;
@@ -77,7 +80,13 @@ export const storyboardMergeAdapter: DocumentMergeAdapter<StoryboardBoard> = {
     scalar("directorModel", "directorModel"),
     scalar("imageModel", "imageModel"),
     scalar("videoModel", "videoModel"),
-    scalar("timelineId", "timelineId")
+    scalar("timelineId", "timelineId"),
+    // The setup flow's fields: an agent's set_setup writes these.
+    scalar("genre", "genre"),
+    scalar("setupStage", "setupStage"),
+    scalar("setupShotCount", "setupShotCount"),
+    scalar("setupDirectedFrom", "setupDirectedFrom"),
+    scalar("importSource", "importSource")
   ],
   unitsTouchedByOp: storyboardUnitsTouchedByOp
 };
