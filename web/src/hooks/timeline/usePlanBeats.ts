@@ -379,17 +379,31 @@ export const planContextOf = (store: TimelineStoreApi): PlanBeatsContext => {
   };
 };
 
+/**
+ * Why a finished plan was not written: the sequence's setup changed at the
+ * same stage while the Director was writing, so the answer no longer matches
+ * what is on screen.
+ */
+export const PLAN_INPUTS_CHANGED =
+  "The video setup changed while the beats were being planned. Plan the beats again.";
+
 export interface UsePlanBeatsResult {
   /**
    * Draft and apply, reading the brief and format off the sequence. `context`
    * defaults to the sequence's own references, entities and placed clips; pass
    * `{}` to plan from the brief alone.
+   *
+   * Resolves true when the plan was written onto the sequence and false when
+   * it was dropped because the run was canceled, superseded, or the creator
+   * left the stage. A plan dropped because the setup changed at the same stage
+   * rejects with {@link PLAN_INPUTS_CHANGED}, so the caller does not advance
+   * to an empty review.
    */
   plan: (options?: {
     replan?: boolean;
     context?: PlanBeatsContext;
     signal?: AbortSignal;
-  }) => Promise<void>;
+  }) => Promise<boolean>;
   /** Stop the active request and prevent any late result from being adopted. */
   cancel: () => void;
   planning: boolean;
@@ -431,7 +445,7 @@ export function usePlanBeats(): UsePlanBeatsResult {
       replan?: boolean;
       context?: PlanBeatsContext;
       signal?: AbortSignal;
-    } = {}) => {
+    } = {}): Promise<boolean> => {
       const setup = store.getState().setup;
       const format = videoFormatById(setup?.format);
       if (!format) {
@@ -484,15 +498,21 @@ export function usePlanBeats(): UsePlanBeatsResult {
         if (
           token !== requestRef.current ||
           controller.signal.aborted ||
-          store.getState().setup !== setup ||
           store.getState().setup?.stage !== originStage
         ) {
-          return;
+          return false;
+        }
+        // Same stage, different setup: the answer is for inputs that are no
+        // longer on screen. The drop is a failure, so the caller stays on
+        // this stage with the reason instead of advancing to an empty review.
+        if (store.getState().setup !== setup) {
+          throw new Error(PLAN_INPUTS_CHANGED);
         }
         applyBeatPlan(store, beats, fingerprint);
+        return true;
       } catch (cause) {
         if (token !== requestRef.current || controller.signal.aborted) {
-          return;
+          return false;
         }
         setError(cause instanceof Error ? cause.message : String(cause));
         throw cause;

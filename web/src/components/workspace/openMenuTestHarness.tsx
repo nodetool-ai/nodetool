@@ -37,6 +37,9 @@ export const mockGuidedStarters: {
   }[];
 } = { value: [] };
 
+/** The starter `useGuidedFlowStarters` reports as being created. */
+export const mockGuidedStarting: { value: string | null } = { value: null };
+
 export const mockOpenMenu = {
   openTab: jest.fn(),
   addNotification: jest.fn(),
@@ -66,7 +69,7 @@ jest.mock("../../hooks/storyboard/useStoryboards", () => ({
 jest.mock("./useGuidedFlowStarters", () => ({
   useGuidedFlowStarters: () => ({
     starters: mockGuidedStarters.value,
-    starting: null
+    starting: mockGuidedStarting.value
   })
 }));
 

@@ -215,3 +215,42 @@ describe("previewSignature", () => {
     expect(previewSignature(undefined)).toBe("");
   });
 });
+
+describe("preview shot count", () => {
+  it("counts shots, not the audio twins and stills on other tracks", () => {
+    const preview = buildPreviewSequence(
+      board({
+        shots: [
+          clipShot("a", 0),
+          clipShot("b", 1),
+          clipShot("c", 2),
+          stillShot("d", 3)
+        ]
+      })
+    );
+    expect(preview?.shotCount).toBe(4);
+    expect(preview?.stillShotIds).toEqual(["d"]);
+  });
+});
+
+describe("preview signature inputs", () => {
+  it("changes when a shot switches to graphics or gains coverage", () => {
+    const base = board({ shots: [clipShot("a", 0), clipShot("b", 1)] });
+    const graphics = board({
+      shots: [
+        clipShot("a", 0, { graphics: { mode: "graphics_first" } as Shot["graphics"] }),
+        clipShot("b", 1)
+      ]
+    });
+    const covered = board({
+      shots: [
+        clipShot("a", 0),
+        clipShot("b", 1, {
+          covered_by: { shot_id: "a", start_seconds: 2 } as Shot["covered_by"]
+        })
+      ]
+    });
+    expect(previewSignature(graphics)).not.toBe(previewSignature(base));
+    expect(previewSignature(covered)).not.toBe(previewSignature(base));
+  });
+});

@@ -9,6 +9,10 @@
 
 import { graph as graphSchema } from "@nodetool-ai/protocol/api-schemas/workflows.js";
 
+import type { WorkflowManagerState } from "../../stores/WorkflowManagerStore";
+import { graphEdgeToReactFlowEdge } from "../../stores/graphEdgeToReactFlowEdge";
+import { graphNodeToReactFlowNode } from "../../stores/graphNodeToReactFlowNode";
+
 export interface ImportedWorkflowGraph {
   nodes: unknown[];
   edges: unknown[];
@@ -48,4 +52,35 @@ export async function readWorkflowFile(
     );
   }
   return { nodes: result.data.nodes, edges: result.data.edges };
+}
+
+/**
+ * Put an imported graph on an open workflow and save it.
+ *
+ * The setup flow's stage write that follows saves the canvas, not the row, so
+ * the graph has to reach the canvas too or that save writes it back empty.
+ */
+export async function importWorkflowGraph(
+  state: Pick<
+    WorkflowManagerState,
+    "getWorkflow" | "updateWorkflow" | "getNodeStore" | "saveWorkflow"
+  >,
+  workflowId: string,
+  imported: ImportedWorkflowGraph
+): Promise<void> {
+  const workflow = state.getWorkflow(workflowId);
+  if (!workflow) {
+    throw new Error(`Workflow ${workflowId} is not open.`);
+  }
+  const graph = imported as NonNullable<typeof workflow.graph>;
+  const next = { ...workflow, graph };
+  state.updateWorkflow(next);
+  const nodeStore = state.getNodeStore(workflowId)?.getState();
+  if (nodeStore) {
+    nodeStore.setNodes(
+      graph.nodes.map((node) => graphNodeToReactFlowNode(next, node))
+    );
+    nodeStore.setEdges(graph.edges.map(graphEdgeToReactFlowEdge));
+  }
+  await state.saveWorkflow(nodeStore?.getWorkflow() ?? next);
 }

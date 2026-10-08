@@ -46,6 +46,9 @@ export const SKETCH_SIZE = {
   panelWidth: "260px",
 } as const;
 
+/** Thickness (CSS px) of the top and left canvas rulers. */
+export const SKETCH_RULER_SIZE_PX = 20;
+
 // ─── Tooltip delay ───────────────────────────────────────────────────────────
 
 /** Centralised hover delay (ms) for all MUI Tooltips inside the sketch editor. */
@@ -57,6 +60,7 @@ export const SKETCH_Z_INDEX = {
   /** Dimension/zoom readout over canvas */ readout: 5,
   /** Resize handles around canvas */    handles: 6,
   /** Cursor overlay, selection ants */  overlay: 10,
+  /** Guides and rulers over the canvas */ rulers: 11,
   /** Modal covering the editor */       modal: 9999,
   /** Popovers above the modal */        popover: 10001,
 } as const;

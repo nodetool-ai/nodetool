@@ -33,7 +33,8 @@ type Recognize = (
 async function loadRecognize(where: string): Promise<Recognize> {
   const mod = await importOptionalLibrary<Record<string, unknown>>(
     where,
-    "tesseract.js"
+    "tesseract.js",
+    "tesseract-ocr"
   );
   const candidate =
     isFunction(mod.recognize)

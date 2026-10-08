@@ -18,6 +18,7 @@ import { Caption, CollapsibleSection, ConflictBanner, Dialog, EmptyState, FlexCo
 import ReportBugButton from "../support/ReportBugButton";
 import GameAgentPanel from "./panels/agent/GameAgentPanel";
 import GameRevisions from "./panels/revisions/GameRevisions";
+import GameDraftRecovery, { isMissingDraft } from "./GameDraftRecovery";
 import { publishGameDraft } from "./gamePublish";
 import GameChanges from "./panels/changes/GameChanges";
 import GameAuthoringPreview from "./panels/authoring/GameAuthoringPreview";
@@ -159,6 +160,11 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
           loadedTokenRef.current = result.game.draftUpdatedAt;
           retries = 0;
         } catch (cause) {
+          if (isMissingDraft(cause)) {
+            store.getState().failSave("Draft source unavailable. Export your local draft before restoring.");
+            await queries.games.getDraft.invalidate({ id: refId });
+            throw cause;
+          }
           try {
             const server = await trpcClient.games.getDraft.query({ id: refId });
             const latest = store.getState();
@@ -191,7 +197,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
       }
     };
     await flushGameDraft(savingPromiseRef, save);
-  }, [refId]);
+  }, [refId, queries.games.getDraft]);
 
   useEffect(() => {
     if (saveStatus !== "unsaved" || conflicts.items.length > 0) return;
@@ -374,6 +380,7 @@ const LegacyGameEditor = ({ refId, active }: GameEditorProps) => {
   const validationIssues = documentValidation?.issues ?? [];
   const runtimeEntity = runtimeEntities?.find((entity) => entity.id === selectedIds[0]) ?? null;
 
+  if (loadError?.data?.code === "PRECONDITION_FAILED") { return <GameDraftRecovery key={refId} refId={refId} />; }
   if (isPending || (data && !document)) return <LoadingSpinner text="Loading game" />;
   if (loadError || !data || !document) {
     return <EmptyState variant="error" title="Could not load game" description={loadError?.message ?? "The game may have been deleted."} />;

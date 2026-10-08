@@ -77,6 +77,7 @@ import {
 } from "@nodetool-ai/protocol";
 import { generateSnippetMetadata } from "../../../config/snippetMetadata";
 import {
+  PLAN_SET_ASIDE_REASON,
   usePlanWorkflow,
   pinnedChipPlan,
   planCandidates,
@@ -277,7 +278,7 @@ describe("planWorkflow", () => {
 
     await act(async () => {
       release(ANSWER);
-      expect(await pending).toBeNull();
+      expect(await pending).toBe(PLAN_SET_ASIDE_REASON);
     });
     const setup = readWorkflowSetup(settings);
     expect(setup?.stage).toBe("idea");
@@ -308,7 +309,7 @@ describe("planWorkflow", () => {
 
     await act(async () => {
       release(ANSWER);
-      expect(await pending).toBeNull();
+      expect(await pending).toBe(PLAN_SET_ASIDE_REASON);
     });
     expect(readWorkflowSetup(settings)?.brief).toBe("new");
     expect(readWorkflowSetup(settings)?.plan).toBeUndefined();
@@ -334,7 +335,7 @@ describe("planWorkflow", () => {
 
     await act(async () => {
       release(ANSWER);
-      expect(await pending).toBeNull();
+      expect(await pending).toBe("Planning was canceled.");
     });
     expect(readWorkflowSetup(settings)?.plan).toBeUndefined();
 
@@ -365,7 +366,7 @@ describe("planWorkflow", () => {
     const resumed = renderHook(() => usePlanWorkflow("w1"));
     await act(async () => {
       release(ANSWER);
-      expect(await pending).toBeNull();
+      expect(await pending).toBe("Planning was canceled.");
     });
     expect(resumed.result.current.planning).toBe(false);
     expect(readWorkflowSetup(settings)?.plan).toBeUndefined();
@@ -395,6 +396,141 @@ describe("planWorkflow", () => {
       ).toContain("Connect a provider");
     });
     expect(result.current.error).toContain("Connect a provider");
+  });
+});
+
+describe("planWorkflow while the document changes", () => {
+  const LOOPED = {
+    data: {
+      inputs: [{ name: "csv", type: "string", sample: "name\nmug" }],
+      steps: [
+        {
+          title: "Prompts",
+          summary: "one per row",
+          node_type: PLAN_CODE_NODE_TYPE,
+          code: 'for (const row of inputs.input) { await output("output", row.name); }'
+        }
+      ],
+      outputs: [{ name: "prompt", type: "string" }]
+    }
+  };
+
+  // F2: any write to `settings` used to void the request, a save response
+  // included, so the answer was dropped and the shell advanced to an empty
+  // review. Only the stage, the brief and the category decide.
+  it("stores the plan when an unrelated settings write lands meanwhile", async () => {
+    settings = writeWorkflowSetup({}, { stage: "category", brief: "b" });
+    let release: (value: unknown) => void = () => undefined;
+    rpcRequest.mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = resolve;
+      })
+    );
+    const { result, rerender } = renderHook(() => usePlanWorkflow("w1"));
+    let pending: Promise<string | null> = Promise.resolve(null);
+    await act(async () => {
+      pending = result.current.planWorkflow({ brief: "b", model: MODEL });
+    });
+
+    settings = writeWorkflowSetup(settings, {
+      planner_model: { provider: "openai", id: "gpt-y" }
+    });
+    rerender();
+
+    await act(async () => {
+      release(ANSWER);
+      expect(await pending).toBeNull();
+    });
+    expect(readWorkflowSetup(settings)?.stage).toBe("review");
+    expect(readWorkflowSetup(settings)?.plan?.steps).toHaveLength(2);
+  });
+
+  it("sets the answer aside when the category changes meanwhile", async () => {
+    settings = writeWorkflowSetup(
+      {},
+      { stage: "category", brief: "b", category: "content-pipeline" }
+    );
+    let release: (value: unknown) => void = () => undefined;
+    rpcRequest.mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = resolve;
+      })
+    );
+    const { result } = renderHook(() => usePlanWorkflow("w1"));
+    let pending: Promise<string | null> = Promise.resolve(null);
+    await act(async () => {
+      pending = result.current.planWorkflow({
+        brief: "b",
+        category: "content-pipeline",
+        model: MODEL
+      });
+    });
+
+    settings = writeWorkflowSetup(settings, { category: "media-batch" });
+
+    await act(async () => {
+      release(ANSWER);
+      expect(await pending).toBe(PLAN_SET_ASIDE_REASON);
+    });
+    expect(readWorkflowSetup(settings)?.plan).toBeUndefined();
+    expect(result.current.error).toBeNull();
+  });
+
+  // F10: a failed repair round used to discard the draft the first round
+  // produced, and the creator saw a refusal instead of a plan to fix.
+  it("stores the first draft when a repair call fails", async () => {
+    settings = writeWorkflowSetup({}, { stage: "category", brief: "b" });
+    rpcRequest
+      .mockResolvedValueOnce(LOOPED)
+      .mockRejectedValueOnce(new Error("429 rate limited"));
+    const { result } = renderHook(() => usePlanWorkflow("w1"));
+    await act(async () => {
+      expect(
+        await result.current.planWorkflow({ brief: "b", model: MODEL })
+      ).toBeNull();
+    });
+    expect(rpcRequest).toHaveBeenCalledTimes(2);
+    expect(readWorkflowSetup(settings)?.plan?.steps[0].code).toContain(
+      "output("
+    );
+    expect(result.current.error).toBeNull();
+  });
+
+  it("says the plan is being checked during a repair round", async () => {
+    settings = writeWorkflowSetup({}, { stage: "category", brief: "b" });
+    let release: (value: unknown) => void = () => undefined;
+    rpcRequest.mockResolvedValueOnce(LOOPED).mockReturnValueOnce(
+      new Promise((resolve) => {
+        release = resolve;
+      })
+    );
+    const { result } = renderHook(() => usePlanWorkflow("w1"));
+    let pending: Promise<string | null> = Promise.resolve(null);
+    await act(async () => {
+      pending = result.current.planWorkflow({ brief: "b", model: MODEL });
+    });
+    expect(result.current.planningPhase).toBe("checking");
+    await act(async () => {
+      release(ANSWER);
+      await pending;
+    });
+  });
+
+  // F11: a refusal on one step used to stay on the hook and show above a
+  // valid plan after the creator moved on.
+  it("clears a refusal once the stage changes", async () => {
+    settings = writeWorkflowSetup({}, { stage: "review", brief: "b" });
+    rpcRequest.mockRejectedValueOnce(new Error("provider is down"));
+    const { result, rerender } = renderHook(() => usePlanWorkflow("w1"));
+    await act(async () => {
+      await result.current.planWorkflow({ brief: "b", model: MODEL });
+    });
+    expect(result.current.error).toBe("provider is down");
+
+    settings = writeWorkflowSetup(settings, { stage: "setup" });
+    rerender();
+    expect(result.current.error).toBeNull();
+    expect(result.current.planningStatus).toBe("idle");
   });
 });
 

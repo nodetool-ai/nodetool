@@ -18,6 +18,7 @@ import { useCreateStoryboard } from "../../hooks/storyboard/useStoryboards";
 import { useCreateScript } from "../../hooks/script/useScripts";
 import {
   useCreateTimeline,
+  useDeleteTimeline,
   useSeedTimelineDetail
 } from "../../hooks/useTimelineSequence";
 import { useWorkflowManager } from "../../contexts/WorkflowManagerContext";
@@ -79,6 +80,7 @@ export const useGuidedFlowStarters = (
   const createStoryboard = useCreateStoryboard();
   const createScript = useCreateScript();
   const createTimeline = useCreateTimeline();
+  const deleteTimeline = useDeleteTimeline();
   const seedTimelineDetail = useSeedTimelineDetail();
   const createWorkflow = useWorkflowManager((state) => state.create);
 
@@ -135,10 +137,20 @@ export const useGuidedFlowStarters = (
         // PATCH straight after — before the tab opens, so the flow never
         // flashes the editor. The create seeded the detail cache with a
         // setup-less copy; the tab must not load that one.
-        const withSetup = await trpcClient.timeline.update.mutate({
-          id: sequence.id,
-          document: newVideoSetupDocument("")
-        });
+        let withSetup;
+        try {
+          withSetup = await trpcClient.timeline.update.mutate({
+            id: sequence.id,
+            document: newVideoSetupDocument("")
+          });
+        } catch (error) {
+          // A failed PATCH would leave an empty "Untitled timeline" behind
+          // that no tab opened (F15).
+          await deleteTimeline
+            .mutateAsync({ id: sequence.id })
+            .catch(() => undefined);
+          throw error;
+        }
         seedTimelineDetail(withSetup);
         openTab({
           type: "timeline",
@@ -148,7 +160,7 @@ export const useGuidedFlowStarters = (
           projectId: sequence.projectId
         });
       }),
-    [runStart, createTimeline, seedTimelineDetail, openTab]
+    [runStart, createTimeline, deleteTimeline, seedTimelineDetail, openTab]
   );
 
   const startScript = useCallback(

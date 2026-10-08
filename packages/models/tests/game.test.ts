@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { createHash } from "node:crypto";
 import { AmbiguousGameIdError, Game, initTestDb } from "../src/index.js";
 import { gameDocument3D } from "@nodetool-ai/protocol";
-import { createTopDownRoomGame } from "@nodetool-ai/game-runtime";
+import { createNative3DGame, createTopDownRoomGame } from "@nodetool-ai/game-runtime";
 
 const USER = "game-owner";
 const PREFIX = "0123456789ab";
@@ -138,7 +138,67 @@ describe("game revision pointer", () => {
     });
   });
 
-  it("F7 recovers a missing version file from the published revision and accepts the next edit", async () => {
+  it.each(["missing", "stale"])("F6 leaves a missing draft unchanged when its mirror is %s", async (mirror) => {
+    const game = await insert(`${PREFIX}${"1".repeat(20)}`);
+    const original = { ...createTopDownRoomGame(game.id), revision: game.current_revision };
+    const files = new Map([[`${game.source_root}/revisions/${game.current_revision}/game.json`, JSON.stringify(original)]]);
+    const workspace = {
+      readText: async (path: string) => files.get(path) ?? null,
+      write: async (path: string, data: string) => { files.set(path, data); },
+      delete: async (path: string) => files.delete(path)
+    };
+    const saved = await Game.updateDraft(USER, game.id, game.draft_updated_at,
+      [{ op: "update_scene", scene_id: original.entrySceneId, set: { name: "Lost edit" } }], workspace);
+    if (!saved) { throw new Error("Missing saved draft"); }
+    files.delete(`${game.source_root}/drafts/${saved.game.draft_version_id}.json`);
+    if (mirror === "missing") { files.delete(`${game.source_root}/draft.json`); }
+    else { files.set(`${game.source_root}/draft.json`, JSON.stringify(original)); }
+    const beforeFiles = new Map(files);
+    const beforeChanges = await Game.listDraftChanges(USER, game.id);
+    await expect(Game.readDraft(USER, game.id, workspace)).rejects.toThrow("Game draft source is unavailable");
+    const unchanged = await Game.findOwned(USER, game.id);
+    expect(unchanged?.draft_updated_at).toBe(saved.game.draft_updated_at);
+    expect(unchanged?.draft_version_id).toBe(saved.game.draft_version_id);
+    expect(files).toEqual(beforeFiles);
+    expect(await Game.listDraftChanges(USER, game.id)).toEqual(beforeChanges);
+  });
+
+  it("F6 explicitly restores a selected revision after draft loss without publishing or fabricating an undo source", async () => {
+    const game = await insert(`${PREFIX}${"1".repeat(20)}`);
+    const original = { ...createTopDownRoomGame(game.id), revision: game.current_revision };
+    const files = new Map([[`${game.source_root}/revisions/${game.current_revision}/game.json`, JSON.stringify(original)]]);
+    const workspace = {
+      readText: async (path: string) => files.get(path) ?? null,
+      write: async (path: string, data: string) => { files.set(path, data); },
+      delete: async (path: string) => files.delete(path)
+    };
+    const saved = await Game.updateDraft(USER, game.id, game.draft_updated_at,
+      [{ op: "update_scene", scene_id: original.entrySceneId, set: { name: "Lost edit" } }], workspace);
+    if (!saved) { throw new Error("Missing saved draft"); }
+    const missingPath = `${game.source_root}/drafts/${saved.game.draft_version_id}.json`;
+    files.delete(missingPath);
+    files.delete(`${game.source_root}/draft.json`);
+    await expect(Game.updateDraft(USER, game.id, saved.game.draft_updated_at, [], workspace))
+      .rejects.toThrow("Game draft source is unavailable");
+    await expect(Game.applyAuthoringCandidate(USER, game.id, saved.game.draft_updated_at,
+      createHash("sha256").update(JSON.stringify(original)).digest("hex"), original, workspace))
+      .rejects.toThrow("Game draft source is unavailable");
+    await expect(Game.replaceDraft(USER, game.id, saved.game.draft_updated_at, createNative3DGame(game.id), workspace))
+      .rejects.toThrow("A game cannot change dimension");
+    const restored = await Game.replaceDraft(USER, game.id, saved.game.draft_updated_at, original, workspace);
+    expect(restored?.document).toEqual(original);
+    expect(restored?.game.current_revision).toBe(game.current_revision);
+    expect(restored?.game.draft_updated_at).not.toBe(saved.game.draft_updated_at);
+    expect(restored?.game.draft_version_id).not.toBe(saved.game.draft_version_id);
+    expect(files.has(missingPath)).toBe(false);
+    const changes = await Game.listDraftChanges(USER, game.id);
+    expect(changes).toHaveLength(2);
+    expect(changes[0].summary).toBe("Restored a revision after draft source loss");
+    expect(await Game.readDraftBeforeChange(USER, game.id, changes[0].id, workspace)).toBeNull();
+    expect(await Game.readDraft(USER, game.id, workspace)).toEqual(restored);
+  });
+
+  it("F6 rejects a stale explicit restore token without mutating the missing draft", async () => {
     const game = await insert(`${PREFIX}${"1".repeat(20)}`);
     const original = { ...createTopDownRoomGame(game.id), revision: game.current_revision };
     const files = new Map([[`${game.source_root}/revisions/${game.current_revision}/game.json`, JSON.stringify(original)]]);
@@ -152,14 +212,47 @@ describe("game revision pointer", () => {
     if (!saved) { throw new Error("Missing saved draft"); }
     files.delete(`${game.source_root}/drafts/${saved.game.draft_version_id}.json`);
     files.delete(`${game.source_root}/draft.json`);
-    const recovered = await Game.readDraft(USER, game.id, workspace);
-    expect(recovered?.document).toEqual(original);
-    expect(recovered?.game.draft_updated_at).not.toBe(saved.game.draft_updated_at);
-    expect(await Game.updateDraft(USER, game.id, saved.game.draft_updated_at,
-      [{ op: "update_scene", scene_id: original.entrySceneId, set: { name: "Stale" } }], workspace)).toBeNull();
-    const next = await Game.updateDraft(USER, game.id, recovered?.game.draft_updated_at ?? "",
-      [{ op: "update_scene", scene_id: original.entrySceneId, set: { name: "Recovered edit" } }], workspace);
-    expect(next?.document.scenes[0].name).toBe("Recovered edit");
+    const beforeFiles = new Map(files);
+    expect(await Game.replaceDraft(USER, game.id, game.draft_updated_at, original, workspace)).toBeNull();
+    const unchanged = await Game.findOwned(USER, game.id);
+    expect(unchanged?.draft_updated_at).toBe(saved.game.draft_updated_at);
+    expect(unchanged?.draft_version_id).toBe(saved.game.draft_version_id);
+    expect(files).toEqual(beforeFiles);
+  });
+
+  it("F6 preserves a concurrent winning recovery when an earlier restore loses compare-and-set", async () => {
+    const game = await insert(`${PREFIX}${"1".repeat(20)}`);
+    const original = { ...createTopDownRoomGame(game.id), revision: game.current_revision };
+    const files = new Map([[`${game.source_root}/revisions/${game.current_revision}/game.json`, JSON.stringify(original)]]);
+    const losing = structuredClone(original);
+    losing.scenes[0].name = "Losing recovery";
+    const winning = structuredClone(original);
+    winning.scenes[0].name = "Winning recovery";
+    let recoveryToken: string | null = null;
+    let injectWinner = true;
+    const workspace = {
+      readText: async (path: string) => files.get(path) ?? null,
+      write: async (path: string, data: string) => {
+        files.set(path, data);
+        if (recoveryToken && injectWinner && data.includes('"name":"Losing recovery"')) {
+          injectWinner = false;
+          const winner = await Game.replaceDraft(USER, game.id, recoveryToken, winning, workspace);
+          expect(winner?.document).toEqual(winning);
+        }
+      },
+      delete: async (path: string) => files.delete(path)
+    };
+    const saved = await Game.updateDraft(USER, game.id, game.draft_updated_at,
+      [{ op: "update_scene", scene_id: original.entrySceneId, set: { name: "Lost edit" } }], workspace);
+    if (!saved) { throw new Error("Missing saved draft"); }
+    recoveryToken = saved.game.draft_updated_at;
+    files.delete(`${game.source_root}/drafts/${saved.game.draft_version_id}.json`);
+    files.delete(`${game.source_root}/draft.json`);
+    expect(await Game.replaceDraft(USER, game.id, recoveryToken, losing, workspace)).toBeNull();
+    const current = await Game.readDraft(USER, game.id, workspace);
+    expect(current?.document).toEqual(winning);
+    expect(current?.game.current_revision).toBe(game.current_revision);
+    expect(await Game.listDraftChanges(USER, game.id)).toHaveLength(2);
   });
 
   it("F27 defers failed compare-and-set draft cleanup without deleting the winning draft", async () => {

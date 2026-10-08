@@ -8,6 +8,7 @@ import type {
 } from "@nodetool-ai/timeline";
 import type {
   CompositorBlendMode,
+  FrameSourceWindow,
   MatteMode,
   ResolvedTransition
 } from "@nodetool-ai/timeline/render";
@@ -50,6 +51,13 @@ export interface CompositeLayer {
    * effects and no blend mode, which is the path that allocates nothing.
    */
   precomposeGroupId?: string;
+  /**
+   * The source is this window of a frame-sized raster: a text or shape
+   * rasterized only where it draws. Placed as the whole raster would be. Only
+   * the WebGPU backend reads it, so only that backend is handed windowed
+   * sources (see `compositeLayers.ts`).
+   */
+  sourceWindow?: FrameSourceWindow;
   /** Rounded-corner radius in source pixels. Default 0. */
   borderRadius?: number;
   /**

@@ -1169,6 +1169,11 @@ export async function simulateApp(
         },
         from
       };
+      // The web runtime fires a widget's events in order without waiting on a
+      // run: a `setVariable` after a `run` lands while the job is in flight,
+      // and the run's own outputs land after it. Awaiting each run before the
+      // next event let that `setVariable` overwrite what the run produced.
+      const runs: Promise<void>[] = [];
       for (const event of found.events) {
         if (event.trigger !== trigger) continue;
         const action = eventToAction(event, eventCtx);
@@ -1189,8 +1194,10 @@ export async function simulateApp(
               ? `${action.kind} ${action.operationId ?? context.defaultOperationId}`
               : action.kind
         );
-        await dispatch(record, action);
+        if (action.kind === "run") runs.push(dispatch(record, action));
+        else await dispatch(record, action);
       }
+      await Promise.all(runs);
       if (record.actions.length === 0) {
         record.error = `widget has no "${trigger}" events to fire.`;
       }

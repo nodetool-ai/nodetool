@@ -53,6 +53,30 @@ describe("FakeProvider.generateMessage", () => {
     expect(provider.lastMessages).toEqual([{ role: "user", content: "Hi" }]);
   });
 
+  it("answers a prompt carrying a JSON schema with an object the schema accepts", async () => {
+    const schema = {
+      type: "object",
+      properties: {
+        title: { type: "string" },
+        tone: { type: "string", enum: ["warm", "cold"] },
+        scenes: { type: "array", minItems: 2, items: { type: "integer" } }
+      }
+    };
+    const provider = new FakeProvider();
+    const result = await provider.generateMessage({
+      messages: [
+        { role: "user", content: `<JSON_SCHEMA>\n${JSON.stringify(schema)}\n</JSON_SCHEMA>` }
+      ],
+      model: "fake-model"
+    });
+    expect(result.content).toEqual([
+      {
+        type: "text",
+        text: '```json\n{"title":"fake","tone":"warm","scenes":[1,1]}\n```'
+      }
+    ]);
+  });
+
   it("returns tool calls when configured", async () => {
     const tc: ToolCall = { id: "t1", name: "search", args: { q: "test" } };
     const provider = new FakeProvider({ toolCalls: [tc] });

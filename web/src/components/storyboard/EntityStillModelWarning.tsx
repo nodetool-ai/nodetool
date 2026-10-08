@@ -28,7 +28,10 @@ const EntityStillModelWarning = ({
   const details = modelId
     ? models.find((m) => m.id === modelId && m.provider === provider)
     : undefined;
-  if (details?.supported_tasks?.includes("image_to_image")) {
+  // Only a model known to take text alone earns the warning: no model picked,
+  // a list still loading, or a model that lists no tasks says nothing.
+  const tasks = details?.supported_tasks;
+  if (!tasks || tasks.length === 0 || tasks.includes("image_to_image")) {
     return null;
   }
   return (

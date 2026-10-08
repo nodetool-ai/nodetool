@@ -26,6 +26,7 @@ const mockToken = "2026-01-01T00:00:00.000Z";
 const mockSavedToken = "2026-01-01T00:00:00.001Z";
 const mockRestoredToken = "2026-01-01T00:00:00.002Z";
 const mockRevision = "a".repeat(32);
+let mockDraftUnavailable = false;
 const mockServer = { document: mockDocument, game: { id: mockDocument.id, name: "Controller 3D", projectId: "project", draftUpdatedAt: mockToken } };
 const mockGetDraftQuery = jest.fn(async (_request: unknown) => mockServer);
 const mockInvalidate = jest.fn(async () => undefined);
@@ -35,12 +36,15 @@ const mockRestore = jest.fn(async (request: { id: string; baseUpdatedAt: string;
 jest.mock("../../../trpc/client", () => ({
   trpc: {
     games: {
-      getDraft: { useQuery: () => ({ data: mockServer, isPending: false }) },
+      getDraft: { useQuery: () => mockDraftUnavailable
+        ? { data: undefined, isPending: false, error: { message: "Game draft source is unavailable", data: { code: "PRECONDITION_FAILED" } } }
+        : { data: mockServer, isPending: false } },
+      get: { useQuery: () => ({ data: mockServer, isPending: false }) },
       revisions: { useQuery: () => ({ data: [{ revision: mockRevision, modifiedAt: 0, current: false, message: "Earlier release" }] }) },
       draftChanges: { useQuery: () => ({ data: [] }) }
     },
     useUtils: () => ({ games: {
-      getDraft: { invalidate: mockInvalidate }, revisions: { invalidate: mockInvalidate }, draftChanges: { invalidate: mockInvalidate }
+      getDraft: { invalidate: mockInvalidate, setData: jest.fn() }, revisions: { invalidate: mockInvalidate }, draftChanges: { invalidate: mockInvalidate }
     } })
   },
   trpcClient: { games: {
@@ -90,6 +94,7 @@ beforeEach(() => {
   mockPlayDocument = null;
   mockDiagnosticFailure = null;
   mockHostError = null;
+  mockDraftUnavailable = false;
   mockDocument.id = `controller3d-${++mockFixtureId}`;
   mockServer.game.id = mockDocument.id;
   for (const id of ["player", "player-visual"]) {
@@ -116,6 +121,39 @@ it.each(["host", "diagnostic"])("offers 3D host replay only for host failures: %
   } else {
     await user.click(screen.getByRole("button", { name: "Replay displayed error" }));
     expect(mockReplay).toHaveBeenCalledWith(expect.objectContaining({ tick: 31 }));
+  }
+});
+
+it("F6 restores a missing 3D draft only after selecting and confirming a published revision", async () => {
+  mockDraftUnavailable = true;
+  getGameDraftStore(mockDocument.id).setState({ document: null });
+  const user = userEvent.setup();
+  render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+  expect(mockRestore).not.toHaveBeenCalled();
+  await user.click(screen.getByRole("button", { name: "Restore to draft" }));
+  expect(mockRestore).not.toHaveBeenCalled();
+  await user.click(within(screen.getByRole("dialog")).getByRole("button", { name: "Restore to draft" }));
+  expect(mockRestore).toHaveBeenCalledWith({ id: mockDocument.id,
+    baseUpdatedAt: mockServer.game.draftUpdatedAt, revision: mockRevision });
+});
+
+it("opens recovery after a missing-source save without clearing local edits", async () => {
+  jest.useFakeTimers();
+  try {
+    mockSave.mockRejectedValueOnce({ data: { code: "PRECONDITION_FAILED" } });
+    render(<ThemeProvider theme={mockTheme}><GameEditor3D refId={mockDocument.id} active /></ThemeProvider>);
+    const store = getGameDraftStore(mockDocument.id);
+    act(() => store.getState().apply([
+      { op: "update_scene", scene_id: mockDocument.entrySceneId, set: { name: "Only local copy" } }
+    ]));
+    const local = store.getState();
+    await act(async () => { jest.advanceTimersByTime(500); });
+    expect(mockInvalidate).toHaveBeenCalledWith({ id: mockDocument.id });
+    expect(store.getState().document).toEqual(local.document);
+    expect(store.getState().pendingOps).toEqual(local.pendingOps);
+    expect(store.getState().commandHistory).toEqual(local.commandHistory);
+  } finally {
+    jest.useRealTimers();
   }
 });
 

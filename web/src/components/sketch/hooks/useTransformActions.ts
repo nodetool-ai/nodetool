@@ -158,7 +158,10 @@ export function useTransformActions({
               [activeLayerId]: canvasRef.current.snapshotLayerCanvas(activeLayerId)
             }
           : undefined;
-      pushHistory(label, layerCanvasSnapshots, { restoreMode: "structure-only" });
+      pushHistory(label, layerCanvasSnapshots, {
+        restoreMode: "structure-only",
+        timing: "before"
+      });
     },
     [pushHistory, document.activeLayerId, canvasRef]
   );
@@ -425,7 +428,9 @@ export function useTransformActions({
       transformToolHandler.isMultiTarget()
     ) {
       const ids = [...transformToolHandler.getMultiTargetLayerIds()];
-      pushHistory("transform bake", snapshotLayersForHistory(canvasRef, ids));
+      pushHistory("transform bake", snapshotLayersForHistory(canvasRef, ids), {
+        timing: "before"
+      });
       const primary =
         document.layers.find((l) => l.id === document.activeLayerId) ??
         document.layers.find((l) => l.id === ids[0]);
@@ -476,7 +481,8 @@ export function useTransformActions({
     if (selectionSession && selectionSession.layerId === activeLayerId) {
       pushHistory(
         "transform bake",
-        snapshotLayersForHistory(canvasRef, [activeLayerId])
+        snapshotLayersForHistory(canvasRef, [activeLayerId]),
+        { timing: "before" }
       );
       storeLastCommittedTransform(activeLayer.transform, true);
       canvas.reconcileLayerToDocumentSpace(activeLayerId);
@@ -512,7 +518,8 @@ export function useTransformActions({
 
     pushHistory(
       "transform bake",
-      snapshotLayersForHistory(canvasRef, [activeLayerId])
+      snapshotLayersForHistory(canvasRef, [activeLayerId]),
+      { timing: "before" }
     );
     const newData = canvas.reconcileLayerToDocumentSpace(activeLayerId);
     storeLastCommittedTransform(activeLayer.transform, false);
@@ -622,7 +629,8 @@ export function useTransformActions({
 
       pushHistory(
         "transform bake",
-        snapshotLayersForHistory(canvasRef, [layerId])
+        snapshotLayersForHistory(canvasRef, [layerId]),
+        { timing: "before" }
       );
       const data = canvasRef.current.reconcileLayerToDocumentSpace(layerId);
       commitLayerTransform(layerId, { ...IDENTITY_AFFINE });

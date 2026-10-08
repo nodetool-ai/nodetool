@@ -8,6 +8,7 @@ import userEvent from "@testing-library/user-event";
 
 import {
   mockGuidedStarters,
+  mockGuidedStarting,
   renderOpenMenu
 } from "../openMenuTestHarness";
 
@@ -35,6 +36,22 @@ describe("OpenMenu guided flows", () => {
 
   afterEach(() => {
     mockGuidedStarters.value = [];
+    mockGuidedStarting.value = null;
+  });
+
+  // The menu stays open while a draft is created, so the item being started
+  // says so instead of only going grey with the rest (O7).
+  it("shows progress on the flow being started", () => {
+    mockGuidedStarting.value = "video";
+    renderOpenMenu();
+
+    expect(screen.getByText("Creating…")).toBeInTheDocument();
+    expect(
+      screen.getByText("From a sentence to a rendered board in four steps.")
+    ).toBeInTheDocument();
+    expect(
+      screen.queryByText("From a sentence to a cut on the timeline, no board.")
+    ).toBeNull();
   });
 
   it("lists each guided flow under its own section", () => {

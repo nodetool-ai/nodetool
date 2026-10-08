@@ -194,6 +194,19 @@ describe("IdeaStep", () => {
     expect(board()?.brief).toBe("Fifteen seconds for a running-shoe launch.");
   });
 
+  // The clicked example leaves the list, so the keyboard goes to the field
+  // whose text just changed (O5).
+  it("focuses the brief after an example is picked", async () => {
+    const user = userEvent.setup();
+    renderStep();
+
+    await user.click(
+      screen.getByText("Fifteen seconds for a running-shoe launch.")
+    );
+
+    expect(screen.getByRole("textbox")).toHaveFocus();
+  });
+
   // Every flow puts its entry paths in a column beside the box, and this step
   // is read alongside the other four.
   it("keeps the entry paths in the side column, not behind a disclosure", () => {

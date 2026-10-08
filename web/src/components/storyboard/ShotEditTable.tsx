@@ -35,6 +35,7 @@ import {
   cameraOptions
 } from "./cameraOptions";
 import {
+  isDurationInvalid,
   withDuration,
   withDurationSourceToggled,
   type ShotDraft
@@ -222,6 +223,11 @@ const ShotEditTableInner: React.FC<ShotEditTableProps> = ({
             disabled={readOnly}
             value={draft.durationSeconds}
             onChange={handleDuration}
+            errorMessage={
+              isDurationInvalid(draft.durationSeconds)
+                ? "Enter a length above 0 seconds"
+                : undefined
+            }
             inputProps={{
               min: 1,
               step: 1,

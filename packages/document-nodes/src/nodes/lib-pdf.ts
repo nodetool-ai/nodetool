@@ -12,7 +12,7 @@ import {
   requireDocumentBytes,
   type DocumentRefLike
 } from "../document-bytes.js";
-import { parsePdfBuffer } from "../lib/pdf-text.js";
+import { loadLiteParse, parsePdfBuffer } from "../lib/pdf-text.js";
 
 async function resolvePdfBuffer(
   pdf: DocumentRefLike,
@@ -855,7 +855,7 @@ export class PdfExtractOcrNode extends BaseNode {
   declare dpi: number;
 
   async process(context?: ProcessingContext): Promise<PdfExtractOcrNodeOutputs> {
-    const { LiteParse } = await import("@llamaindex/liteparse");
+    const { LiteParse } = await loadLiteParse();
     const pdfBuffer = await resolvePdfBuffer(this.pdf ?? {}, context);
     const ocrLanguage = this.ocr_language;
     const dpi = this.dpi;

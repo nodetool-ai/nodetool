@@ -242,6 +242,16 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
     every call cost ~2.8ms; a cache hit costs a `WeakMap` lookup. A canvas
     resize or a new `clips` array (any edit) misses it, by design.
     `render.spatialTiming.test.ts` asserts this by spying on `Yoga.Node.create`.
+  - **Everything else that depends only on the document is cached the same
+    way, so it must reach the layout as the same array.** `expandTemporalClips`
+    returns one array per input array, and `sceneModel.ts`'s `sceneIndex`
+    holds the per-document lookups, the patched layout inputs for animated
+    flex text (one array per distinct set of animated styles) and a memo of
+    the text measurer. A step that builds a fresh array per frame before
+    layout turns every frame into a cache miss, which is how the Serein
+    example once spent most of its frame in Yoga.
+    `tests/render.sceneCache.test.ts` holds this, and
+    `web/tests/benchmarks/timeline-scene-resolve.mjs` times it.
   - **`yoga-layout`'s WASM init is a top-level await inside an ESM module.**
     Every host that imports `./render`/`./scene` builds/runs as ESM (`tsc`
     for the backend packages, Vite for `web/`, `esbuild --format esm` for
@@ -265,6 +275,19 @@ leftClip.fadeOutMs`, `delete rightClip.fadeInMs`/`transitionIn`. A full spread
   the draw report identifies missing scratch surfaces. Keep clip, group and
   adjustment behavior aligned through the
   [pixel comparison matrix](tests/render.parity.gpu.test.ts).
+- **A GPU layer touches only the pixels its quad covers.** `blendStack` asks
+  `placedLayerRect` for the layer's bounds, skips a layer off the frame, and
+  blends any smaller rectangle in place with a scissored pass
+  (`renderBlendPassInRect`). That is only correct because the blend shader
+  returns the destination outside the quad, for every blend mode. The browser
+  preview leans on it: it rasterizes text and shapes into only the window
+  their ink can reach (`textRasterWindow`, `shapeRasterWindow`) and passes
+  `FrameLayer.sourceWindow`, which places that window as part of a full frame.
+  An effect that can move ink outward widens the window by
+  `rasterWindowMarginPx`; one that reads by frame position (a vignette, grain,
+  a generator) makes it answer null and the raster stays frame-sized.
+  [`render.rasterWindow.gpu.test.ts`](tests/render.rasterWindow.gpu.test.ts)
+  holds a windowed layer to the frame-sized raster it was cut from.
 - **An adjustment clip is z-order, bottom-up, group-scoped, and mixed by its
   coverage.** `mediaType: "adjustment"` draws nothing: it treats the composite of
   everything already on the surface at its own track's z — every track with a

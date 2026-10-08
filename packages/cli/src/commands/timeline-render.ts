@@ -256,26 +256,6 @@ function slugOf(name: string): string {
 }
 
 /**
- * The shipped `package://` assets in a checkout, which the server serves from
- * `packages/base-nodes/nodetool/assets`. The runtime reads that directory when
- * `NODETOOL_PACKAGE_ASSETS_DIR` names it and otherwise asks a running server,
- * so without this a rendered example's stills need the server up.
- */
-async function checkoutPackageAssetsDir(): Promise<string | null> {
-  const { existsSync } = await import("node:fs");
-  const { createRequire } = await import("node:module");
-  const path = await import("node:path");
-  try {
-    const entry = createRequire(import.meta.url).resolve("@nodetool-ai/base-nodes");
-    const dir = path.resolve(path.dirname(entry), "..", "nodetool", "assets");
-    return existsSync(dir) ? dir : null;
-  } catch {
-    // Not installed beside the CLI: package assets resolve over HTTP.
-    return null;
-  }
-}
-
-/**
  * Resolve clip assets to local files through the local asset store. The
  * database opens on the first asset a clip needs, so a pure motion-graphics
  * timeline renders without one.
@@ -295,7 +275,8 @@ async function localAssetResolver(
     const { AssetFiles } = await import(
       "@nodetool-ai/video-nodes/nodes/timeline/assetFiles"
     );
-    const packageAssets = await checkoutPackageAssetsDir();
+    const { checkoutPackageAssetsDir } = await import("../package-assets.js");
+    const packageAssets = checkoutPackageAssetsDir();
     initDb(getDefaultDbPath());
     const context = new ProcessingContext({
       jobId: `timeline-render-${Date.now()}`,

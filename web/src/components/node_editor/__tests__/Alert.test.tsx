@@ -75,4 +75,25 @@ describe("Alert", () => {
     });
     expect(mockRemoveNotification).not.toHaveBeenCalled();
   });
+
+  it("shows the notification action and dismiss, without copy", () => {
+    const onClick = jest.fn();
+    renderWithStore([
+      { ...notification, action: { label: "Show", onClick } }
+    ]);
+    expect(screen.getByRole("button", { name: "Show" })).toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Close" })).toBeInTheDocument();
+    expect(
+      screen.queryByRole("button", { name: "Copy to clipboard" })
+    ).not.toBeInTheDocument();
+  });
+
+  it("dismisses through the close button", () => {
+    renderWithStore([notification]);
+    fireEvent.click(screen.getByRole("button", { name: "Close" }));
+    act(() => {
+      jest.advanceTimersByTime(300);
+    });
+    expect(mockRemoveNotification).toHaveBeenCalledWith("1");
+  });
 });

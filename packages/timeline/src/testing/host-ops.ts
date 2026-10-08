@@ -2,18 +2,18 @@ import type {
   TimelineOp,
   TimelineOpState,
   TimelineOpContext
-} from "../../src/ops/index.js";
+} from "../ops/index.js";
 import { directState } from "./ops.js";
 import type {
   TimelineClip,
   TimelineTrack,
   TimelineTempo
-} from "../../src/types.js";
+} from "../types.js";
 import {
   DEFAULT_MIDI_INSTRUMENT,
   DEFAULT_TEMPO,
   findInstrumentPreset
-} from "../../src/index.js";
+} from "../index.js";
 
 export interface HostOpFixture {
   name: string;

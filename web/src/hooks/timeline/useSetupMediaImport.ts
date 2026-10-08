@@ -50,6 +50,11 @@ export interface SetupMediaImportResult {
   /** Assets whose content type is not image, video or audio. */
   skipped: Asset[];
   /**
+   * Files whose upload failed, by name with the reason. The files that did
+   * upload are still placed, so one bad file does not orphan the rest.
+   */
+  failed: { name: string; reason: string }[];
+  /**
    * Whether the flow moved on to the format step. It only does so once the
    * sequence carries a brief: the planner is what step 2 leads to and it
    * refuses an empty one, so footage with no instruction stops here rather
@@ -66,7 +71,8 @@ export interface SetupMediaImportResult {
  */
 export async function importSetupMedia(
   store: TimelineStoreApi,
-  assets: readonly Asset[]
+  assets: readonly Asset[],
+  failed: SetupMediaImportResult["failed"] = []
 ): Promise<SetupMediaImportResult> {
   const skipped: Asset[] = [];
   const placed: Asset[] = [];
@@ -96,12 +102,18 @@ export async function importSetupMedia(
   }
   // The clips are on the sequence. The flow continues at the format step when
   // there is something to plan against; without a brief it stays on step 1 and
-  // asks for one, with the footage already placed.
-  const advanced = (store.getState().setup?.brief ?? "").trim().length > 0;
+  // asks for one, with the footage already placed. An upload that finishes
+  // after the creator has moved on must not pull them back to the format step.
+  // A failed upload also keeps them on step 1, where the failure is listed.
+  const setup = store.getState().setup;
+  const advanced =
+    failed.length === 0 &&
+    setup?.stage === "idea" &&
+    (setup.brief ?? "").trim().length > 0;
   if (advanced) {
     store.getState().setSetup({ stage: "format" });
   }
-  return { placed, skipped, advanced };
+  return { placed, skipped, failed, advanced };
 }
 
 /**
@@ -117,12 +129,15 @@ const uploadOne = (
     upload({
       file,
       onCompleted: resolve,
-      onFailed: (error) => reject(new Error(`${file.name}: ${error}`))
+      onFailed: (error) => reject(new Error(String(error)))
     });
   });
 
 export interface UseSetupMediaImport {
-  /** Upload the picked files, then place them in pick order. */
+  /**
+   * Upload the picked files, then place the ones that uploaded in pick order.
+   * A failed upload is reported in `failed` rather than thrown.
+   */
   importFiles: (files: readonly File[]) => Promise<SetupMediaImportResult>;
   importing: boolean;
 }
@@ -137,10 +152,18 @@ export function useSetupMediaImport(): UseSetupMediaImport {
       setImporting(true);
       try {
         const assets: Asset[] = [];
+        const failed: SetupMediaImportResult["failed"] = [];
         for (const file of files) {
-          assets.push(await uploadOne(upload, file));
+          try {
+            assets.push(await uploadOne(upload, file));
+          } catch (cause) {
+            failed.push({
+              name: file.name,
+              reason: cause instanceof Error ? cause.message : String(cause)
+            });
+          }
         }
-        return await importSetupMedia(store, assets);
+        return await importSetupMedia(store, assets, failed);
       } finally {
         setImporting(false);
       }

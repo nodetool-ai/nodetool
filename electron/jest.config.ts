@@ -18,6 +18,7 @@ export default {
     '^@nodetool-ai/protocol$': '<rootDir>/src/__mocks__/protocol.ts',
     '^@nodetool-ai/protocol/bridge-protocol$': '<rootDir>/../packages/protocol/src/bridge-protocol.ts',
     '^@nodetool-ai/protocol/builtin-packs$': '<rootDir>/../packages/protocol/src/builtin-packs.ts',
+    '^@nodetool-ai/protocol/missing-runtime-package$': '<rootDir>/../packages/protocol/src/missing-runtime-package.ts',
     '^@nodetool-ai/protocol/python-packs$': '<rootDir>/../packages/protocol/src/python-packs.ts',
     '^@nodetool-ai/protocol/sandbox-package$': '<rootDir>/../packages/protocol/src/sandbox-package.ts',
     '^@nodetool-ai/node-sdk/sandbox-pack-discovery$': '<rootDir>/../packages/node-sdk/src/sandbox-pack-discovery.ts',

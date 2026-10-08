@@ -49,6 +49,10 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
   const theme = useTheme();
   const createWorkflow = useWorkflowManager((state) => state.create);
   const [batch, setBatch] = useState<readonly string[]>([]);
+  // Every variation layer this session generated, across batches. `Back to
+  // generation settings` starts a new sheet, but picking from it still has to
+  // hide the earlier batches, or they stay visible over the pick (F13).
+  const [sessionLayers, setSessionLayers] = useState<readonly string[]>([]);
   const [makingMore, setMakingMore] = useState(false);
   const [makeMoreError, setMakeMoreError] = useState<string | null>(null);
   const saveEntity = useSaveEntity();
@@ -57,6 +61,7 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
 
   const handleGenerated = useCallback((layerIds: readonly string[]) => {
     setBatch(layerIds);
+    setSessionLayers((current) => [...current, ...layerIds]);
   }, []);
 
   const finish = useCallback(() => {
@@ -87,6 +92,7 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
       .generate()
       .then((layerIds) => {
         setBatch((current) => [...current, ...layerIds]);
+        setSessionLayers((current) => [...current, ...layerIds]);
       })
       .catch((cause: unknown) => {
         setMakeMoreError(
@@ -225,6 +231,7 @@ export const ImageSetupOverlay: React.FC<ImageSetupOverlayProps> = ({
             <MediaGalleryProvider>
               <ContactSheet
                 layerIds={batch}
+                siblingLayerIds={sessionLayers}
                 onPick={pickRenderedImage}
                 onMakeMore={makeMore}
                 makeMorePending={makingMore}

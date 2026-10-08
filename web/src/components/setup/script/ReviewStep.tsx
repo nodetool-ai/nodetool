@@ -66,7 +66,13 @@ export interface ReviewStepProps {
   scriptId: string;
   /** Reruns the writer with the edited script as context. */
   onRewrite: () => void;
+  /**
+   * True while `Rewrite` runs. The lines are read-only meanwhile: the
+   * writer's answer replaces them, so an edit made now would be lost.
+   */
   rewriting?: boolean;
+  /** Why the last write or rewrite failed, shown under the script. */
+  error?: string | null;
   /** Finishes setup on the text alone: stage `done`, no voices, no audio. */
   onOpenEditor: () => void;
 }
@@ -75,6 +81,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
   scriptId,
   onRewrite,
   rewriting = false,
+  error,
   onOpenEditor
 }) => {
   const script = useScriptStore((state) => state.scripts[scriptId]);
@@ -127,11 +134,16 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
     [scriptId]
   );
 
+  // The empty value is a named choice, so a line nobody says reads as
+  // unassigned rather than as a blank box (F7).
   const speakerOptions = useMemo(
-    () => (script?.cast ?? []).map((speaker) => ({
-      value: speaker.id,
-      label: speaker.name
-    })),
+    () => [
+      { value: "", label: "No speaker" },
+      ...(script?.cast ?? []).map((speaker) => ({
+        value: speaker.id,
+        label: speaker.name
+      }))
+    ],
     [script?.cast]
   );
 
@@ -148,6 +160,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
             compact: true,
             value: line.speakerId ?? "",
             options: speakerOptions,
+            readOnly: rewriting,
             onChange: (value: string) => setLineSpeaker(line.id, value)
           },
           {
@@ -157,6 +170,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
             placeholder: "Line",
             value: line.text,
             multiline: true,
+            readOnly: rewriting,
             onChange: (value: string) => setLineText(line.id, value)
           },
           ...(line.direction === undefined
@@ -186,7 +200,7 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
               ])
         ])
       })),
-    [script?.sections, setLineSpeaker, setLineText, speakerOptions]
+    [rewriting, script?.sections, setLineSpeaker, setLineText, speakerOptions]
   );
 
   const emptyLineIds = useMemo(
@@ -264,13 +278,19 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
           the control that produces one. It used to say "add a line" with
           nothing on the screen that could (F20). */}
       <FlexRow gap={GAP.normal} align="center" wrap>
-        <EditorButton variant="outlined" size="small" onClick={addLine}>
+        <EditorButton
+          variant="outlined"
+          size="small"
+          onClick={addLine}
+          disabled={rewriting}
+        >
           Add a line
         </EditorButton>
         {emptyLineIds.length > 0 ? (
           <EditorButton
             variant="text"
             size="small"
+            disabled={rewriting}
             onClick={() => emptyLineIds.forEach(removeLine)}
           >
             {`Remove ${emptyLineIds.length} empty ${emptyLineIds.length === 1 ? "line" : "lines"}`}
@@ -279,6 +299,12 @@ const ReviewStepInternal: React.FC<ReviewStepProps> = ({
       </FlexRow>
 
       <PlanReview sections={sections} />
+
+      {error ? (
+        <Text size="small" color="error" role="alert">
+          {error}
+        </Text>
+      ) : null}
 
       <FlexRow gap={GAP.normal} align="center" wrap>
         <EditorButton variant="text" size="small" onClick={onOpenEditor}>

@@ -191,6 +191,57 @@ describe("script ReviewStep", () => {
     expect(linesOf()).toHaveLength(2);
   });
 
+  it("names a line with no speaker as unassigned (F7)", async () => {
+    const user = userEvent.setup();
+    useScriptStore
+      .getState()
+      .patchLine(SCRIPT_ID, "line_2", { speakerId: null });
+    renderStep();
+
+    const speakers = screen.getAllByRole("combobox", { name: "Speaker" });
+    expect(speakers[1]).toHaveTextContent("No speaker");
+    await user.click(speakers[0]);
+    await user.click(screen.getByRole("option", { name: "No speaker" }));
+    expect(setLineSpeaker).toHaveBeenCalledWith("line_1", null);
+  });
+
+  it("locks the lines while a rewrite replaces them (F8)", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ReviewStep
+          scriptId={SCRIPT_ID}
+          onRewrite={jest.fn()}
+          onOpenEditor={jest.fn()}
+          rewriting
+        />
+      </ThemeProvider>
+    );
+
+    expect(screen.getByDisplayValue("Welcome back.")).toHaveAttribute(
+      "readonly"
+    );
+    for (const speaker of screen.getAllByRole("combobox", { name: "Speaker" })) {
+      expect(speaker).toHaveAttribute("aria-disabled", "true");
+    }
+    expect(screen.getByRole("button", { name: "Add a line" })).toBeDisabled();
+  });
+
+  it("shows why the last rewrite failed (F6)", () => {
+    render(
+      <ThemeProvider theme={mockTheme}>
+        <ReviewStep
+          scriptId={SCRIPT_ID}
+          onRewrite={jest.fn()}
+          onOpenEditor={jest.fn()}
+          error="The writer timed out."
+        />
+      </ThemeProvider>
+    );
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "The writer timed out."
+    );
+  });
+
   it("offers the text-only finish (F16)", async () => {
     const user = userEvent.setup();
     const { onOpenEditor } = renderStep();
