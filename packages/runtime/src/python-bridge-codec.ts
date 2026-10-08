@@ -26,9 +26,68 @@ const unpackr = new Unpackr({
   mapsAsObjects: true
 });
 
-/** Encode one bridge message to msgpack bytes. */
+/**
+ * Drop object properties whose value is `undefined`, at any depth.
+ *
+ * msgpackr encodes `undefined` as ext type 0, which the Python worker decodes
+ * as `None`. A TS caller that leaves an option out (`speed`, `max_tokens`,
+ * `temperature`) would otherwise send an explicit `None` that replaces the
+ * Python default. An absent key keeps the default. Array elements are kept,
+ * because their position carries meaning. Binary payloads and other
+ * non-plain objects pass through untouched. Returns the input itself when
+ * nothing was removed, so large frames are not copied.
+ */
+export function stripUndefined(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    let copy: unknown[] | null = null;
+    for (let i = 0; i < value.length; i++) {
+      const item: unknown = value[i];
+      if (typeof item !== "object" || item === null) continue;
+      const stripped = stripUndefined(item);
+      if (stripped !== item) {
+        copy ??= value.slice();
+        copy[i] = stripped;
+      }
+    }
+    return copy ?? value;
+  }
+  if (typeof value !== "object" || value === null) return value;
+  const proto: unknown = Object.getPrototypeOf(value);
+  if (proto !== Object.prototype && proto !== null) return value;
+  const record = value as Record<string, unknown>;
+  const keys = Object.keys(record);
+  const strippedValues = keys.map((key) => {
+    const item = record[key];
+    return item === undefined ? undefined : stripUndefined(item);
+  });
+  if (
+    keys.every(
+      (key, i) => strippedValues[i] === record[key] && record[key] !== undefined
+    )
+  ) {
+    return value;
+  }
+  // defineProperty, not assignment: a key named "__proto__" must stay an own
+  // property instead of reaching the prototype setter.
+  const copy = Object.create(proto as object | null) as Record<string, unknown>;
+  keys.forEach((key, i) => {
+    if (strippedValues[i] === undefined) return;
+    Object.defineProperty(copy, key, {
+      value: strippedValues[i],
+      enumerable: true,
+      writable: true,
+      configurable: true
+    });
+  });
+  return copy;
+}
+
+/**
+ * Encode one bridge message to msgpack bytes. Properties set to `undefined`
+ * are omitted (see {@link stripUndefined}).
+ */
 export function packBridgeMessage(msg: Record<string, unknown>): Buffer {
-  return pack(msg);
+  return pack(stripUndefined(msg));
 }
 
 /**

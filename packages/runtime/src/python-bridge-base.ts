@@ -88,6 +88,7 @@ import type {
   ExecuteResult,
   ExecuteInputBlobs,
   ExecuteIdentity,
+  ExecuteOptions,
   JobBoundary,
   ModelEvictRequest,
   ModelEvictResult,
@@ -125,6 +126,14 @@ interface PendingRequest {
   resolve: (value: ExecuteResult) => void;
   reject: (error: Error) => void;
   onProgress?: (event: ProgressEvent) => void;
+  /** Receives `update` frames (log, preview and binary updates). */
+  onUpdate?: (update: Record<string, unknown>) => void;
+  /**
+   * Called on every frame that shows the worker is still working on this
+   * request (progress, update, blob chunk), so `execute` can treat its
+   * timeout as an inactivity limit rather than a wall-clock limit.
+   */
+  onActivity?: () => void;
   blobTransfers?: Map<string, BlobTransfer>;
   completedBlobs?: Record<string, Uint8Array>;
 }
@@ -372,16 +381,24 @@ export abstract class PythonBridgeBase
     } else if (type === "blob.start" && requestId) {
       this._startBlobTransfer(requestId, msg.data as Record<string, unknown>);
     } else if (type === "blob.chunk" && requestId) {
+      this._pending.get(requestId)?.onActivity?.();
       this._appendBlobChunk(requestId, msg.data as Record<string, unknown>);
     } else if (type === "blob.end" && requestId) {
       this._finishBlobTransfer(requestId, msg.data as Record<string, unknown>);
     } else if (type === "progress" && requestId) {
       const pending = this._pending.get(requestId);
+      pending?.onActivity?.();
       if (pending?.onProgress) {
         const data = msg.data as { progress: number; total: number };
         pending.onProgress({ request_id: requestId, ...data });
       }
       this.emit("progress", msg.data);
+    } else if (type === "update" && requestId) {
+      // Log, preview and binary updates a node posts while it runs. The data
+      // is the worker's serialized message, discriminated by its `type`.
+      const pending = this._pending.get(requestId);
+      pending?.onActivity?.();
+      pending?.onUpdate?.(msg.data as Record<string, unknown>);
     } else if (type === "comfy.event" && requestId) {
       // Dedicated `comfy.execute` lifecycle frame. Distinct from `progress`
       // because ComfyUI's events don't fit `{progress,total,message}`. Without
@@ -668,11 +685,16 @@ export abstract class PythonBridgeBase
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
     onProgress?: (event: ProgressEvent) => void,
-    identity?: ExecuteIdentity
+    identity?: ExecuteIdentity,
+    options?: ExecuteOptions
   ): Promise<ExecuteResult> {
     const requestId = randomUUID();
     const timeoutMs =
       this._options.executeTimeoutMs ?? DEFAULT_EXECUTE_TIMEOUT_MS;
+    const signal = options?.signal;
+    if (signal?.aborted) {
+      throw new Error(`Python node "${nodeType}" was cancelled.`);
+    }
 
     log.debug("Python bridge execute dispatched", { nodeType, requestId });
 
@@ -690,8 +712,59 @@ export abstract class PythonBridgeBase
       executeData["blob_transfer"] = "chunked-v1";
     }
 
-    const executePromise = new Promise<ExecuteResult>((resolve, reject) => {
-      this._pending.set(requestId, { resolve, reject, onProgress });
+    return new Promise<ExecuteResult>((resolve, reject) => {
+      let timer: NodeJS.Timeout | undefined;
+      const cleanup = () => {
+        if (timer) clearTimeout(timer);
+        timer = undefined;
+        signal?.removeEventListener("abort", onAbort);
+      };
+      // Drop the request, tell the worker to stop it, and fail the call.
+      const abandon = (error: Error) => {
+        if (!this._pending.has(requestId)) return;
+        this._pending.delete(requestId);
+        cleanup();
+        try {
+          this.cancel(requestId);
+        } catch {
+          // Worker may already be gone; cancel is best-effort.
+        }
+        reject(error);
+      };
+      const onAbort = () =>
+        abandon(new Error(`Python node "${nodeType}" was cancelled.`));
+      // The timeout measures inactivity: every progress, update or blob
+      // frame for this request restarts it, so a long node that keeps
+      // reporting progress is not killed at a fixed wall-clock limit.
+      const armTimer = () => {
+        if (timeoutMs <= 0) return;
+        if (timer) clearTimeout(timer);
+        timer = setTimeout(() => {
+          const stderrHint = this.getRecentStderrSummary(4);
+          abandon(
+            new Error(
+              `Python node "${nodeType}" timed out after ${timeoutMs}ms waiting for the worker.` +
+                (stderrHint ? ` Recent stderr: ${stderrHint}` : "")
+            )
+          );
+        }, timeoutMs);
+      };
+
+      this._pending.set(requestId, {
+        resolve: (value) => {
+          cleanup();
+          resolve(value);
+        },
+        reject: (error) => {
+          cleanup();
+          reject(error);
+        },
+        onProgress,
+        onUpdate: options?.onUpdate,
+        onActivity: armTimer
+      });
+      signal?.addEventListener("abort", onAbort, { once: true });
+      armTimer();
       try {
         this._send({
           type: "execute",
@@ -700,43 +773,10 @@ export abstract class PythonBridgeBase
         });
       } catch (err) {
         this._pending.delete(requestId);
+        cleanup();
         reject(err instanceof Error ? err : new Error(String(err)));
       }
     });
-
-    if (timeoutMs <= 0) {
-      return executePromise;
-    }
-
-    let timer: NodeJS.Timeout | undefined;
-    const timeoutPromise = new Promise<ExecuteResult>((_, reject) => {
-      timer = setTimeout(() => {
-        if (!this._pending.has(requestId)) {
-          return;
-        }
-        this._pending.delete(requestId);
-        try {
-          this.cancel(requestId);
-        } catch {
-          // Worker may already be gone; cancel is best-effort.
-        }
-        const stderrHint = this.getRecentStderrSummary(4);
-        reject(
-          new Error(
-            `Python node "${nodeType}" timed out after ${timeoutMs}ms waiting for the worker.` +
-              (stderrHint ? ` Recent stderr: ${stderrHint}` : "")
-          )
-        );
-      }, timeoutMs);
-    });
-
-    try {
-      return await Promise.race([executePromise, timeoutPromise]);
-    } finally {
-      if (timer) {
-        clearTimeout(timer);
-      }
-    }
   }
 
   async *executeStream(
@@ -745,9 +785,11 @@ export abstract class PythonBridgeBase
     secrets: Record<string, string>,
     blobs: ExecuteInputBlobs,
     onProgress?: (event: ProgressEvent) => void,
-    identity?: ExecuteIdentity
+    identity?: ExecuteIdentity,
+    options?: ExecuteOptions
   ): AsyncGenerator<ExecuteResult> {
     const requestId = randomUUID();
+    const signal = options?.signal;
     const chunks: ExecuteResult[] = [];
     let done = false;
     let error: Error | null = null;
@@ -755,11 +797,12 @@ export abstract class PythonBridgeBase
     let emittedCount = 0;
     let resolveWait: (() => void) | null = null;
 
-    if (onProgress) {
+    if (onProgress || options?.onUpdate) {
       this._pending.set(requestId, {
         resolve: () => undefined,
         reject: () => undefined,
-        onProgress
+        onProgress,
+        onUpdate: options?.onUpdate
       });
     }
 
@@ -803,7 +846,20 @@ export abstract class PythonBridgeBase
         }
       });
 
+    // A run cancel ends the stream: the loop below throws, and `finally`
+    // sends the worker a `cancel` because the terminal frame never came.
+    const onAbort = () => {
+      error = new Error(`Python node "${nodeType}" was cancelled.`);
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+
     try {
+      if (signal?.aborted) onAbort();
+      if (error) throw error;
       this._send({
         type: "execute.stream",
         request_id: requestId,
@@ -832,6 +888,7 @@ export abstract class PythonBridgeBase
         yield finalResult;
       }
     } finally {
+      signal?.removeEventListener("abort", onAbort);
       // If the stream never reached its terminal frame (consumer abandoned the
       // generator via break/return, or the initial _send threw), the worker is
       // still producing output nobody reads. Cancel it and release pending
@@ -1214,26 +1271,36 @@ export abstract class PythonBridgeBase
   async providerTextToAudio(
     providerId: string,
     params: Record<string, unknown>,
-    secrets?: Record<string, string>
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
   ): Promise<Uint8Array> {
-    const result = await this._providerBlobCall("provider.text_to_audio", {
-      provider: providerId,
-      params,
-      secrets: secrets ?? {}
-    });
+    const result = await this._providerBlobCall(
+      "provider.text_to_audio",
+      {
+        provider: providerId,
+        params,
+        secrets: secrets ?? {}
+      },
+      signal
+    );
     return result.blobs.audio;
   }
 
   async providerTTSEncoded(
     providerId: string,
     params: Record<string, unknown>,
-    secrets?: Record<string, string>
+    secrets?: Record<string, string>,
+    signal?: AbortSignal
   ): Promise<Uint8Array> {
-    const result = await this._providerBlobCall("provider.tts_encoded", {
-      provider: providerId,
-      params,
-      secrets: secrets ?? {}
-    });
+    const result = await this._providerBlobCall(
+      "provider.tts_encoded",
+      {
+        provider: providerId,
+        params,
+        secrets: secrets ?? {}
+      },
+      signal
+    );
     return result.blobs.audio;
   }
 
@@ -1241,7 +1308,8 @@ export abstract class PythonBridgeBase
     providerId: string,
     text: string,
     model: string,
-    options?: Record<string, unknown>
+    options?: Record<string, unknown>,
+    signal?: AbortSignal
   ): AsyncGenerator<Uint8Array> {
     const requestId = randomUUID();
     const chunks: Uint8Array[] = [];
@@ -1281,7 +1349,19 @@ export abstract class PythonBridgeBase
         }
       });
 
+    // Aborting ends the stream; `finally` then cancels the worker request.
+    const onAbort = () => {
+      error = new Error(`Provider request "${requestId}" was cancelled.`);
+      if (resolveWait) {
+        resolveWait();
+        resolveWait = null;
+      }
+    };
+    signal?.addEventListener("abort", onAbort, { once: true });
+
     try {
+      if (signal?.aborted) onAbort();
+      if (error) throw error;
       this._send({
         type: "provider.tts",
         request_id: requestId,
@@ -1298,6 +1378,7 @@ export abstract class PythonBridgeBase
       }
       if (error) throw error;
     } finally {
+      signal?.removeEventListener("abort", onAbort);
       // Cancel the worker-side stream and drop pending state if the generator
       // is torn down before its terminal frame (consumer break/return, or a
       // throwing initial _send).

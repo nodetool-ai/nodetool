@@ -65,6 +65,17 @@ const validFrames: Record<string, Record<string, unknown>> = {
     request_id: "r1",
     data: { progress: 1, total: 10 }
   },
+  update: {
+    type: "update",
+    request_id: "r1",
+    data: {
+      type: "log_update",
+      node_id: "n1",
+      node_name: "Node",
+      content: "loading weights",
+      severity: "info"
+    }
+  },
   "comfy.event": {
     type: "comfy.event",
     request_id: "r1",
