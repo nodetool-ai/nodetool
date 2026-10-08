@@ -272,6 +272,12 @@ export function useDraftGenerationSettings(): DraftGenerationSettings {
   return seeded;
 }
 
+/** Whether any beat carries words for the Voiceover to read. */
+const beatsHaveLines = (
+  beats: readonly { voiceover?: string | null }[] | undefined
+): boolean =>
+  (beats ?? []).some((beat) => (beat.voiceover ?? "").trim().length > 0);
+
 export function useLookStep({
   voiceOn,
   musicOn
@@ -293,7 +299,8 @@ export function useLookStep({
   const needsVideoGeneration =
     beats?.some((beat) => !beat.source_clip_id) ?? false;
   const voiceWanted = voiceLane && voiceOn;
-  const needsVoiceGeneration = voiceWanted;
+  // With no line to read there is nothing to voice, so no voice is required.
+  const needsVoiceGeneration = voiceWanted && beatsHaveLines(beats);
   const voiced =
     needsVoiceGeneration && !!audio?.voice && isAvailable(voices, audio.voice);
 
@@ -465,6 +472,12 @@ const LookStepInternal: React.FC<LookStepProps> = ({
 }) => {
   const width = useTimelineStore((state) => state.width);
   const height = useTimelineStore((state) => state.height);
+  const hasLines = useTimelineStore((state) =>
+    beatsHaveLines(state.setup?.beats)
+  );
+  // A switched-on Voiceover with no lines asks for no voice: it explains the
+  // gap instead of offering pickers that change nothing.
+  const readsLines = voiceOn && hasLines;
   // The frame is a top-level sequence field, not part of the document autosave
   // persists, so it goes through the hook that writes those.
   const { save: saveProjectSettings } = useTimelineProjectSettings();
@@ -539,7 +552,9 @@ const LookStepInternal: React.FC<LookStepProps> = ({
   // The reason the final button is dead belongs beside the control that fixes
   // it as well as beside the button (F11).
   const voiceNote =
-    voiceOn && !pickedVoice
+    voiceOn && !hasLines
+      ? "No beat has a line to read. Add one in the review."
+      : voiceOn && !pickedVoice
       ? "Pick a voice, or switch Voiceover off — nothing is read otherwise."
       : voiceOn && pickedVoice && !isAvailable(voices, pickedVoice)
         ? "Your providers do not offer the voice you picked. Pick another, or switch Voiceover off."
@@ -675,11 +690,13 @@ const LookStepInternal: React.FC<LookStepProps> = ({
           />
           {voiceOn ? (
             <>
-              <ModelAvailabilityNote
-                availability={voices}
-                kind="voice"
-                noCompatible={noCompatibleVoice}
-              />
+              {readsLines ? (
+                <ModelAvailabilityNote
+                  availability={voices}
+                  kind="voice"
+                  noCompatible={noCompatibleVoice}
+                />
+              ) : null}
               {voiceNote ? (
                 <Caption color="secondary" role="status">
                   {voiceNote}
@@ -687,7 +704,7 @@ const LookStepInternal: React.FC<LookStepProps> = ({
               ) : null}
             </>
           ) : null}
-          {voiceOn && curatedVoiceOffered ? (
+          {readsLines && curatedVoiceOffered ? (
             <PresetTileGrid
               label="Voice"
               presets={voiceTiles}
@@ -700,7 +717,7 @@ const LookStepInternal: React.FC<LookStepProps> = ({
               aspectRatio="1/1"
             />
           ) : null}
-          {voiceOn && !curatedVoiceOffered && voices.reported.length > 0 ? (
+          {readsLines && !curatedVoiceOffered && voices.reported.length > 0 ? (
             <FormField
               label="Voice model"
               helperText="Every voice your configured providers read lines with."

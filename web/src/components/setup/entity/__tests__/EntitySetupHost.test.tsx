@@ -502,6 +502,44 @@ describe("EntitySetupHost", () => {
 
   // A review with no reference says what is missing instead of rendering an
   // empty body over a dead button.
+  // The entity is written before the save resolves, so Cancel could only
+  // claim an unchanged draft while the entity is created anyway.
+  it("offers no Cancel while the entity is being created", async () => {
+    const user = userEvent.setup();
+    let finishUpdate: () => void = () => {};
+    updateAsset.mockImplementationOnce(
+      (input: { id: string; metadata: object }) =>
+        new Promise((resolve) => {
+          finishUpdate = () =>
+            resolve({
+              id: input.id,
+              project_id: "default",
+              name: "nova.png",
+              content_type: "image/png",
+              metadata: input.metadata,
+              created_at: ""
+            });
+        })
+    );
+    const { onFinish } = renderHost(jest.fn(), "asset-7");
+
+    await user.type(screen.getByRole("textbox", { name: "Name" }), "Nova");
+    await user.click(
+      screen.getByRole("button", { name: "Choose a reference" })
+    );
+    await user.click(
+      await screen.findByRole("button", { name: "Review entity" })
+    );
+    await user.click(screen.getByRole("button", { name: "Create entity" }));
+    await waitFor(() => expect(updateAsset).toHaveBeenCalled());
+
+    expect(
+      screen.queryByRole("button", { name: "Cancel" })
+    ).not.toBeInTheDocument();
+    finishUpdate();
+    await waitFor(() => expect(onFinish).toHaveBeenCalled());
+  });
+
   it("explains a review that has no reference", async () => {
     writeEntitySetupDraft("project-1", {
       version: 1,

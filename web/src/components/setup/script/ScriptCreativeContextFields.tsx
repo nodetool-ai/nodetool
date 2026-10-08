@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { CreativeContext } from "@nodetool-ai/protocol";
 
 import {
@@ -24,6 +24,56 @@ const listFromValue = (value: string): string[] | undefined => {
     .map((item) => item.trim())
     .filter((item) => item.length > 0);
   return values.length > 0 ? values : undefined;
+};
+
+interface ClaimsTextProps {
+  readonly label: string;
+  readonly helperText: string;
+  readonly value: string;
+  readonly onCommit: (value: string) => void;
+}
+
+// Parsing each keystroke would trim away spaces and new lines as they are
+// typed, so keep a draft and commit it on blur or unmount.
+const ClaimsText: React.FC<ClaimsTextProps> = ({
+  label,
+  helperText,
+  value,
+  onCommit
+}) => {
+  const [draft, setDraft] = useState(value);
+  const pendingRef = useRef({ draft, value, onCommit });
+  pendingRef.current = { draft, value, onCommit };
+  useEffect(
+    () => () => {
+      const pending = pendingRef.current;
+      if (pending.draft !== pending.value) {
+        pending.onCommit(pending.draft);
+      }
+    },
+    []
+  );
+  return (
+    <FlexColumn gap={GAP.micro}>
+      <Label>{label}</Label>
+      <TextInput
+        label={label}
+        hideLabel
+        multiline
+        rows={3}
+        value={draft}
+        helperText={helperText}
+        onChange={(event) => setDraft(event.target.value)}
+        onBlur={() => {
+          if (draft !== value) {
+            // The commit remounts this field, so unmount must not repeat it.
+            pendingRef.current.value = draft;
+            onCommit(draft);
+          }
+        }}
+      />
+    </FlexColumn>
+  );
 };
 
 const TEXT_FIELDS = [
@@ -85,34 +135,20 @@ export const ScriptCreativeContextFields: React.FC<
           }
         />
       ))}
-      <FlexColumn gap={GAP.micro}>
-        <Label>Approved claims</Label>
-        <TextInput
-          label="Approved claims"
-          hideLabel
-          multiline
-          rows={3}
-          value={listValue(context.approved_claims)}
-          helperText="One approved fact per line."
-          onChange={(event) =>
-            update({ approved_claims: listFromValue(event.target.value) })
-          }
-        />
-      </FlexColumn>
-      <FlexColumn gap={GAP.micro}>
-        <Label>Prohibited claims</Label>
-        <TextInput
-          label="Prohibited claims"
-          hideLabel
-          multiline
-          rows={3}
-          value={listValue(context.prohibited_claims)}
-          helperText="One claim to avoid per line."
-          onChange={(event) =>
-            update({ prohibited_claims: listFromValue(event.target.value) })
-          }
-        />
-      </FlexColumn>
+      <ClaimsText
+        key={`approved:${listValue(context.approved_claims)}`}
+        label="Approved claims"
+        helperText="One approved fact per line."
+        value={listValue(context.approved_claims)}
+        onCommit={(text) => update({ approved_claims: listFromValue(text) })}
+      />
+      <ClaimsText
+        key={`prohibited:${listValue(context.prohibited_claims)}`}
+        label="Prohibited claims"
+        helperText="One claim to avoid per line."
+        value={listValue(context.prohibited_claims)}
+        onCommit={(text) => update({ prohibited_claims: listFromValue(text) })}
+      />
     </FlexColumn>
   );
 };

@@ -7,6 +7,7 @@ import React from "react";
 import { readFileSync } from "node:fs";
 import { join } from "node:path";
 import {
+  act,
   render,
   screen,
   waitFor,
@@ -360,6 +361,35 @@ describe("IdeaStep — upload your file", () => {
     await waitFor(() => expect(board()?.brief).toBe("FADE IN. A door opens."));
     expect(restFetch.mock.calls[0][0]).toBe("/api/documents/extract-text");
     expect(getImportSource(BOARD)?.kind).toBe("text");
+  });
+
+  it("drops a PDF that lands after the creator moved on", async () => {
+    const user = userEvent.setup();
+    let land: (answer: Response) => void = () => undefined;
+    restFetch.mockReturnValue(
+      new Promise<Response>((resolve) => {
+        land = resolve;
+      })
+    );
+    useStoryboardStore.getState().setSetup(BOARD, { stage: "idea" });
+    renderStep();
+
+    await user.upload(
+      screen.getByLabelText("Upload your file"),
+      upload("script.pdf", "application/pdf", "%PDF-1.7")
+    );
+    await waitFor(() => expect(restFetch).toHaveBeenCalled());
+    act(() =>
+      useStoryboardStore
+        .getState()
+        .setSetup(BOARD, { brief: "A brief typed meanwhile", stage: "genre" })
+    );
+    await act(async () => {
+      land(routeAnswer(200, { text: "FADE IN. A door opens.", pages: 1 }));
+    });
+
+    expect(board()?.brief).toBe("A brief typed meanwhile");
+    expect(getImportSource(BOARD)).toBeUndefined();
   });
 
   it("writes nothing and shows the route's notice for a scanned PDF", async () => {

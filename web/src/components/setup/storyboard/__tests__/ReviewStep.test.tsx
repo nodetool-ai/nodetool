@@ -391,9 +391,14 @@ describe("ReviewStep", () => {
       screen.getByRole("button", { name: "Rewrite from brief" })
     );
 
-    expect(await screen.findByRole("alert")).toHaveTextContent(
-      "model unavailable"
-    );
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent("model unavailable");
+    // Read beside the button that failed, not below the whole screenplay.
+    expect(
+      alert.compareDocumentPosition(
+        screen.getByDisplayValue("The keeper climbs the stair")
+      ) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
     expect(board()?.shots).toHaveLength(2);
     expect(board()?.setupStage).toBe("review");
   });

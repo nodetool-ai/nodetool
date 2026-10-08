@@ -19,6 +19,7 @@ import { useScriptServerSync } from "../../../hooks/script/useScriptServerSync";
 import { useScriptAgentBridge } from "../../../hooks/script/useScriptAgentBridge";
 import DocumentLoadStatus from "../../workspace/DocumentLoadStatus";
 import { SetupFlow } from "../SetupFlow";
+import { useFinishIfLoadedDone } from "../useFinishIfLoadedDone";
 import { useScriptSetupFlow } from "./useScriptSetupFlow";
 
 export interface ScriptSetupHostProps {
@@ -56,6 +57,7 @@ const ScriptSetupHost = ({
     () => onChangeFlow?.(brief),
     [brief, onChangeFlow]
   );
+  useFinishIfLoadedDone(loadState === "ready", config.stage, onFinish);
 
   // The store seeds an empty script on mount, and an empty script's stage
   // reads `done` — rendering before the server copy lands would show no flow.

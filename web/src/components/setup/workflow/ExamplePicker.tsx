@@ -107,7 +107,13 @@ const PickerInternal: React.FC<WorkflowExamplePickerProps> = ({
           placeholder="Search examples"
           showClear
         />
-        <EditorButton variant="text" onClick={onCancel}>
+        {/* A copy cannot be stopped once asked for, and it opens what it
+            copied when it lands. Leaving meanwhile would be undone by that. */}
+        <EditorButton
+          variant="text"
+          onClick={onCancel}
+          disabled={pickingId !== null}
+        >
           Back to your idea
         </EditorButton>
       </FlexRow>

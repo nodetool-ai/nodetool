@@ -63,6 +63,10 @@ async function extractionError(response: Response): Promise<string> {
   return `This file could not be read. ${UNSUPPORTED}`;
 }
 
+/** The board's setup stage, read when a file is picked and when it lands. */
+const stageOf = (boardId: string): string | undefined =>
+  useStoryboardStore.getState().getBoard(boardId)?.setupStage;
+
 export interface ScriptImportResult {
   importing: boolean;
   error: string | null;
@@ -85,10 +89,18 @@ export function useScriptImport(boardId: string): ScriptImportResult {
         return;
       }
       const store = useStoryboardStore.getState();
+      // Reading a PDF or DOCX takes a round trip. A creator who moved on in
+      // the meantime has written the brief they meant to keep, so a file that
+      // lands on another step writes nothing.
+      const pickedAt = stageOf(boardId);
+      const movedOn = (): boolean => stageOf(boardId) !== pickedAt;
       setImporting(true);
       try {
         if (isFdx(file)) {
           const parsed = parseFdx(await file.text());
+          if (movedOn()) {
+            return;
+          }
           const screenplay: Screenplay = {
             type: "screenplay",
             id: `fdx-${boardId}`,
@@ -129,6 +141,9 @@ export function useScriptImport(boardId: string): ScriptImportResult {
             : "";
         if (text.trim() === "") {
           setError(`This file could not be read. ${UNSUPPORTED}`);
+          return;
+        }
+        if (movedOn()) {
           return;
         }
         store.setSetup(boardId, { brief: text });
