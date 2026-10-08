@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import TuneOutlinedIcon from "@mui/icons-material/TuneOutlined";
 import { useStore } from "zustand";
 import { gameEntity3D, type GameDocument3D } from "@nodetool-ai/protocol";
@@ -70,7 +70,8 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
   const selected = scene?.entities.find((entity) => entity.id === selectedIds[0]);
   const host = useGamePlaySession3D({ refId, document, active, editorSceneId: activeSceneId });
   const diagnostics = useGameScriptDiagnostics(document, openDiagnosticSession);
-  const scriptError = diagnostics.error ?? (host.error?.includes("Game script") ? scriptFailure(host.error, (host.inspection?.tick ?? 0) + 1) : null);
+  const hostScriptError = host.error?.includes("Game script") ? scriptFailure(host.error, (host.inspection?.tick ?? 0) + 1) : null;
+  const scriptError = diagnostics.error ?? hostScriptError;
   const conflicts = useDocumentConflicts("game", refId);
   const queries = trpc.useUtils();
   const { data: revisions } = trpc.games.revisions.useQuery({ id: refId }, { staleTime: 15_000 });
@@ -244,7 +245,8 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
     } catch (cause) { setOperationError(cause instanceof Error ? cause.message : String(cause)); }
     finally { setRestoring(false); }
   };
-  const restart = host.playDocument && JSON.stringify(host.playDocument) !== JSON.stringify(document);
+  const restart = useMemo(() => host.playDocument && JSON.stringify(host.playDocument) !== JSON.stringify(document),
+    [host.playDocument, document]);
   const notice = host.error || draftError || operationError || restart;
   return <GameEditorShell dimension="3d"
     toolbar={{ name: name,
@@ -322,7 +324,7 @@ function GameEditor3DContent({ refId, active, document, name, projectId }: GameE
           key={`${scriptKey.sceneId}:${scriptKey.entityId}:${scriptKey.index}`} dimension="3d" entityId={activeScript.id}
           entityName={activeScript.name} behaviorIndex={scriptKey.index} behavior={behavior}
           error={scriptError && (!scriptError.entityId || scriptError.entityId === activeScript.id) ? scriptError : null}
-          onReplay={host.playDocument && scriptError ? () => void host.replayBeforeError(scriptError) : undefined}
+          onReplay={host.playDocument && !diagnostics.error && hostScriptError ? () => void host.replayBeforeError(hostScriptError) : undefined}
           onAskAssistant={askAssistant} onRunTenSeconds={() => void diagnostics.run()}
           runningTenSeconds={diagnostics.running} runSummary={diagnostics.summary} runEntityStats={diagnostics.byEntity}
           onChange={(source) => onOps([{ op: "set_script", scene_id: scriptKey.sceneId, entity_id: activeScript.id, index: scriptKey.index, source }])}

@@ -6,6 +6,7 @@ import userEvent from "@testing-library/user-event";
 import { gameAuthoring, gameDocument3D, type GameDocument3D, type GameRenderFrame3D } from "@nodetool-ai/protocol";
 import { createGameSession3D, decodePreparedGameCollider3D } from "@nodetool-ai/game-runtime";
 import { useGamePlaySession3D } from "../useGamePlaySession3D";
+import { FixedTickClock } from "@nodetool-ai/game-renderer";
 import { asResolvedMediaUrl, resolveMediaUri } from "../../../utils/resolveMediaUri";
 
 const mockRenderers: { render: jest.Mock; dispose: jest.Mock }[] = [];
@@ -45,8 +46,14 @@ function Harness({ document, sceneId = "level" }: { document: GameDocument3D; sc
     <button onClick={session.beginPlay}>{session.playing ? "Pause" : "Play"}</button>
     <button onClick={session.stop}>Stop</button>
     <button onClick={() => session.step()}>Step</button>
+    <button onClick={() => {
+      const clock = new FixedTickClock(60);
+      clock.advance(0, () => undefined);
+      clock.advance(40, () => session.step({ pressed: [], justPressed: [], axes: { invalid: 1 }, look: { x: 0, y: 0 } }));
+    }}>Fail fixed-clock burst</button>
     <button onClick={session.save}>Save</button>
     <button onClick={() => void session.load()}>Restore</button>
+    <button onClick={() => void session.replayBeforeError()}>Replay failure</button>
     <button onClick={() => session.step({ pressed: [], justPressed: [], axes: { moveX: 2 }, look: { x: 0, y: 0 } })}>Fail tick</button>
     <output data-testid="backend">{session.backend}</output>
     <output data-testid="scene">{session.inspection?.sceneId}</output>
@@ -178,6 +185,8 @@ it("completes ten distinct preview edits without losing renderer readiness", asy
     view.rerender(<Profiler id="preview3d" onRender={onRender}><Harness document={edited} /></Profiler>);
     await waitFor(() => expect(renderer.render.mock.calls.some(([frame]: [GameRenderFrame3D]) =>
       frame.entities.some((entity) => entity.entityId === "floor" && entity.transform.position.x === x))).toBe(true));
+    expect(renderer.render.mock.calls.every(([frame]: [GameRenderFrame3D]) =>
+      frame.entities.some((entity) => entity.entityId === "floor" && entity.transform.position.x === x))).toBe(true);
     expect(mockRenderers).toEqual([renderer]);
     expect(renderer.dispose).not.toHaveBeenCalled();
     expect(backends.length).toBeGreaterThan(0);
@@ -269,8 +278,42 @@ it("publishes Play updates only at crossed HUD tick boundaries", async () => {
     expect(previousTick).toBe(60);
     expect(renderer.render.mock.calls.length).toBeGreaterThanOrEqual(60);
     expect(commits).toEqual(Array.from({ length: 10 }, (_, index) => String((index + 1) * 6)));
+    for (let callback = 0; callback < 10 && previousTick < 63; callback++) {
+      await advance();
+      previousTick = renderer.render.mock.calls.at(-1)?.[0].tick ?? previousTick;
+    }
+    expect(previousTick).toBe(63);
+    await user.click(screen.getByRole("button", { name: "Pause" }));
+    expect(screen.getByTestId("tick").textContent).toBe("63");
+    expect(screen.getByTestId("frame-tick").textContent).toBe("63");
     console.info("K2 hook cadence", JSON.stringify({ dimension: "3d", ticks: previousTick, clockAdvanceMs: now, renderCalls: renderer.render.mock.calls.length, commits }));
   } finally {
     view.unmount(); request.mockRestore(); cancel.mockRestore();
   }
+});
+
+
+it.each(["Restore", "Replay failure", "Restart"])("preserves the first 3D failure in a burst and allows %s recovery", async (recovery) => {
+  const animation = jest.spyOn(window, "requestAnimationFrame").mockImplementation(() => 1);
+  const user = userEvent.setup();
+  const view = render(<Harness document={fixture()} />);
+  try {
+    await waitFor(() => expect(screen.getByTestId("backend")).toHaveTextContent("WebGL2"));
+    const renders = mockRenderers[0].render.mock.calls.length;
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    await waitFor(() => expect(mockRenderers[0].render.mock.calls.length).toBeGreaterThan(renders));
+    await user.click(screen.getByRole("button", { name: "Save" }));
+    await user.click(screen.getByRole("button", { name: "Fail fixed-clock burst" }));
+    expect(screen.getByTestId("error")).toHaveTextContent("Unknown 3D input");
+    expect(screen.getByTestId("error")).not.toHaveTextContent("stopped after a failed step");
+    await user.click(screen.getByRole("button", { name: "Play" }));
+    expect(screen.getByRole("button", { name: "Play" })).toBeInTheDocument();
+    if (recovery === "Restart") {
+      await user.click(screen.getByRole("button", { name: "Stop" }));
+      await user.click(screen.getByRole("button", { name: "Play" }));
+      await user.click(screen.getByRole("button", { name: "Pause" }));
+    } else { await user.click(screen.getByRole("button", { name: recovery })); }
+    await user.click(screen.getByRole("button", { name: "Step" }));
+    expect(screen.getByTestId("tick").textContent).toBe("1");
+  } finally { view.unmount(); animation.mockRestore(); }
 });

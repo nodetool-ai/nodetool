@@ -1,7 +1,10 @@
 import { render, screen, fireEvent, act, waitFor } from "@testing-library/react";
 import { ThemeProvider } from "@mui/material/styles";
 import mockTheme from "../../../__mocks__/themeMock";
-import { ImportVectorLayer, VectorLayerPanel } from "../Inspector/VectorLayerPanel";
+import {
+  GenerateSvgLayerDialog,
+  VectorLayerPanel
+} from "../Inspector/VectorLayerPanel";
 import { useSketchStore } from "../state";
 import { formatSvgSource, getVectorSource } from "../vectorLayer";
 import { rpcRequest } from "../../../lib/websocket/rpcRequest";
@@ -109,12 +112,12 @@ it("generates a new vector layer at the canvas size", async () => {
   mockRpc.mockResolvedValue({
     text: '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64"><rect width="64" height="64"/></svg>'
   });
+  const onClose = jest.fn();
   render(
     <ThemeProvider theme={mockTheme}>
-      <ImportVectorLayer />
+      <GenerateSvgLayerDialog open onClose={onClose} />
     </ThemeProvider>
   );
-  fireEvent.click(screen.getByRole("button", { name: "Generate SVG layer" }));
   fireEvent.change(
     screen.getByRole("textbox", { name: "Describe the new SVG layer" }),
     { target: { value: "A black square" } }
@@ -132,4 +135,5 @@ it("generates a new vector layer at the canvas size", async () => {
     name: "A black square",
     type: "vector"
   });
+  expect(onClose).toHaveBeenCalledTimes(1);
 });
