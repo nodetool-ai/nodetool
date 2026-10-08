@@ -67,8 +67,8 @@ it("uses a durable shared picker for app, workflow and chat runs with keyboard s
   expect(screen.getByRole("list", { name: "Browser spans" }).compareDocumentPosition(screen.getByRole("list", { name: "Server spans" })) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   const picker = screen.getByRole("combobox", { name: "Run" });
   act(() => picker.focus());
-  await user.keyboard("{Enter}");
-  expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual(expect.arrayContaining([expect.stringContaining("app"), expect.stringContaining("workflow"), expect.stringContaining("chat")]));
+  await user.keyboard("{ArrowDown}");
+  expect(screen.getAllByRole("option").map((option) => option.textContent)).toEqual(expect.arrayContaining([expect.stringContaining("app"), expect.stringContaining("Workflow run"), expect.stringContaining("Chat turn")]));
   await user.keyboard("{ArrowDown}{Enter}");
   await waitFor(() => expect(useTraceStore.getState().selectedRunId).toBe(b));
   await waitFor(() => expect(jest.mocked(trpcClient.runs.get.query).mock.calls.some(([input]) => input.id === b)).toBe(true));
@@ -95,7 +95,7 @@ it("reads stored Logs events with level, source and span filters and the same ev
   fireEvent.click(screen.getByRole("button", { name: "Inspect log span " + log.span_id }));
   await waitFor(() => expect(jest.mocked(trpcClient.runs.logs.query).mock.calls.some(([input]) => input.span_id === log.span_id)).toBe(true));
   fireEvent.mouseDown(screen.getByRole("combobox", { name: "Log level" }));
-  fireEvent.click(screen.getByRole("option", { name: "error" }));
+  fireEvent.click(screen.getByRole("option", { name: "Error" }));
   await waitFor(() => expect(jest.mocked(trpcClient.runs.logs.query).mock.calls.some(([input]) => input.level === "error")).toBe(true));
   fireEvent.mouseDown(screen.getByRole("combobox", { name: "Log source" }));
   fireEvent.click(screen.getByRole("option", { name: "script" }));
@@ -194,4 +194,29 @@ it("offers to clear filters when no span matches them", async () => {
   fireEvent.click(await screen.findByRole("button", { name: "Clear filters" }));
   await screen.findByRole("list", { name: "Server spans" });
   expect(screen.getByRole("textbox", { name: "Span name" })).toHaveValue("");
+});
+
+it("finds runs and spans by typing and labels repeated span names by position", async () => {
+  const user = userEvent.setup();
+  client.setQueryData(["workflow", "w".repeat(32)], { id: "w".repeat(32), name: "Research digest" });
+  jest.mocked(trpcClient.runs.list.query).mockResolvedValue({ runs: [
+    makeTrace(a).run, { ...makeTrace(b).run, kind: "workflow", parents: [{ kind: "workflow", id: "w".repeat(32) }] }
+  ], next_cursor: null });
+  renderPanel();
+  await screen.findByRole("list", { name: "Server spans" });
+  await user.type(screen.getByRole("combobox", { name: "Run" }), "research");
+  const runOptions = await screen.findAllByRole("option");
+  expect(runOptions).toHaveLength(1);
+  expect(runOptions[0]).toHaveTextContent("Research digest");
+  await user.click(runOptions[0]);
+  await waitFor(() => expect(useTraceStore.getState().selectedRunId).toBe(b));
+  await screen.findByRole("list", { name: "Server spans" });
+  const spanPicker = screen.getByRole("combobox", { name: "Focus span" });
+  await user.type(spanPicker, "script");
+  const spanOptions = await screen.findAllByRole("option");
+  expect(spanOptions).toHaveLength(1);
+  expect(spanOptions[0]).toHaveTextContent("script.run");
+  expect(spanOptions[0]).toHaveTextContent("error");
+  await user.click(spanOptions[0]);
+  expect(useTraceStore.getState().focusedSpanId).toBe(makeRecord(2).span_id);
 });

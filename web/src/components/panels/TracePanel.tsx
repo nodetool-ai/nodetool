@@ -1,15 +1,19 @@
 import { useState } from "react";
 import { useTheme, type Theme } from "@mui/material/styles";
+import { useQueryClient } from "@tanstack/react-query";
 import type { GetRunResult, GetRunTraceResult, RunLog, RunLogsOptions, RunReaderFlags, RunTraceOptions, TraceRecord } from "@nodetool-ai/protocol";
 import useTraceStore, { type RunInspectionView } from "../../stores/TraceStore";
 import { useRun, useRunLiveUpdates, useRunLogs, useRuns, useRunTrace } from "../../serverState/useRuns";
+import { workflowQueryKey } from "../../serverState/useWorkflow";
 import {
-  AlertBanner, BORDER_RADIUS, Box, Caption, Checkbox, CONTROL, CopyButton, EditorButton, EmptyState,
+  AlertBanner, Autocomplete, BORDER_RADIUS, Box, Caption, Checkbox, CONTROL, CopyButton, EditorButton, EmptyState,
   FlexColumn, FlexRow, Label, LoadingSpinner, SelectField, SPACING, StatusPill, Text, TextInput, TYPOGRAPHY,
   Tooltip, TruncatedText, VirtualList, type StatusPillTone
 } from "../ui_primitives";
 import ReportBugButton from "../support/ReportBugButton";
 import { AskRunAgentButton } from "../runs/AskRunAgentButton";
+import type { Workflow } from "../../stores/ApiTypes";
+import { relativeTime } from "../../utils/formatDateAndTime";
 
 interface TracePanelProps { view?: RunInspectionView }
 type TraceNode = GetRunTraceResult["nodes"][number];
@@ -17,6 +21,9 @@ type SpanStatusCode = TraceNode["record"]["status"]["code"];
 interface SpanStatusProps { code: SpanStatusCode; message?: string | null }
 interface AttributeListProps { attributes: Record<string, unknown> }
 interface SpanDetailsProps { record: TraceRecord; runStart: number }
+type RunRecord = GetRunResult["run"];
+interface RunPickerProps { runs: RunRecord[]; value: string | null; onChange: (runId: string) => void }
+interface SpanPickerProps { label: string; emptyLabel: string; nodes: TraceNode[]; value: string | null; onChange: (spanId: string | null) => void }
 interface FailureBannerProps { result: GetRunResult; onShowSpan: (spanId: string) => void }
 interface ContentStatusProps { flags: RunReaderFlags; limited?: boolean }
 interface QueryErrorProps { error: Error }
@@ -185,8 +192,6 @@ function TraceView({ runId, focusedSpanId, onFocus }: RunViewProps): React.React
   const runStart = trace.data?.nodes.length ? Math.min(...trace.data.nodes.map(({ record }) => record.start_time_ms)) : start;
   const end = nodes.length ? Math.max(...nodes.map(({ record }) => record.end_time_ms)) : 0;
   const focused = focus.data?.nodes.find(({ record }) => record.span_id === focusedSpanId)?.record;
-  const focusOptions = trace.data?.nodes.map(({ record }) => ({ value: record.span_id, label: `${record.name} ${record.span_id}` })) ?? [];
-  if (focusedSpanId && !focusOptions.some((option) => option.value === focusedSpanId)) { focusOptions.push({ value: focusedSpanId, label: focusedSpanId }); }
   return <FlexColumn gap={SPACING.md} sx={{ flex: 1, minHeight: 0 }}>
     <FlexRow gap={SPACING.lg} sx={{ alignItems: "flex-end", flexWrap: "wrap" }}>
       <Box sx={{ width: (theme) => theme.spacing(SPACING.xxxl * 4) }}>
@@ -196,7 +201,7 @@ function TraceView({ runId, focusedSpanId, onFocus }: RunViewProps): React.React
         <TextInput label="Span name" size="small" fullWidth value={name} onChange={(event) => setName(event.target.value.slice(0, 200))} />
       </Box>
       <Box sx={{ width: (theme) => theme.spacing(SPACING.xxxl * 8), maxWidth: "100%" }}>
-        <SelectField label="Focus span" size="small" value={focusedSpanId ?? ""} onChange={(value) => onFocus(value || null)} options={[{ value: "", label: "Whole run" }, ...focusOptions]} />
+        <SpanPicker label="Focus span" emptyLabel="Whole run" nodes={trace.data?.nodes ?? []} value={focusedSpanId} onChange={onFocus} />
       </Box>
       <Box sx={{ flexShrink: 0, whiteSpace: "nowrap", height: CONTROL.height.sm, display: "flex", alignItems: "center" }}>
         <Checkbox label="Errors only" size="small" checked={errorsOnly} onChange={(_, checked) => setErrorsOnly(checked)} />
@@ -229,6 +234,8 @@ function logText(log: RunLog): string {
   return typeof value === "string" ? value : JSON.stringify(log.attributes);
 }
 
+const LOG_LEVELS = [{ value: "debug", label: "Debug" }, { value: "info", label: "Info" }, { value: "warn", label: "Warning" }, { value: "error", label: "Error" }];
+
 function LogsView({ runId, focusedSpanId, onFocus }: RunViewProps): React.ReactElement {
   const [level, setLevel] = useState("");
   const [source, setSource] = useState("");
@@ -242,13 +249,17 @@ function LogsView({ runId, focusedSpanId, onFocus }: RunViewProps): React.ReactE
   entries.sort((a, b) => a.time_ms - b.time_ms || a.id.localeCompare(b.id));
   const selectedLog = logs.data?.pages.some((page) => page.content_expired) ? undefined : entries.find((log) => log.id === selectedLogId);
   const trace = useRunTrace(runId);
-  const spanOptions = trace.data?.nodes.map(({ record }) => ({ value: record.span_id, label: `${record.name} ${record.span_id}` })) ?? [];
-  if (focusedSpanId && !spanOptions.some((option) => option.value === focusedSpanId)) { spanOptions.push({ value: focusedSpanId, label: focusedSpanId }); }
   return <FlexColumn gap={SPACING.md} sx={{ flex: 1, minHeight: 0 }}>
-    <FlexRow gap={SPACING.md}>
-      <SelectField label="Log level" size="small" value={level} onChange={setLevel} options={[{ value: "", label: "All levels" }, ...["debug", "info", "warn", "error"].map((value) => ({ value, label: value }))]} />
-      <SelectField label="Log source" size="small" value={source} onChange={setSource} options={[{ value: "", label: "All sources" }, ...[...new Set([...entries.map((log) => log.source).filter((value): value is string => Boolean(value)), ...(source ? [source] : [])])].map((value) => ({ value, label: value }))]} />
-      <SelectField label="Log span" size="small" value={focusedSpanId ?? ""} onChange={(value) => onFocus(value || null)} options={[{ value: "", label: "All spans" }, ...spanOptions]} />
+    <FlexRow gap={SPACING.lg} sx={{ alignItems: "flex-end", flexWrap: "wrap" }}>
+      <Box sx={{ width: (theme) => theme.spacing(SPACING.xxxl * 4) }}>
+        <SelectField label="Log level" size="small" value={level} onChange={setLevel} options={[{ value: "", label: "All levels" }, ...LOG_LEVELS]} />
+      </Box>
+      <Box sx={{ width: (theme) => theme.spacing(SPACING.xxxl * 5) }}>
+        <SelectField label="Log source" size="small" value={source} onChange={setSource} options={[{ value: "", label: "All sources" }, ...[...new Set([...entries.map((log) => log.source).filter((value): value is string => Boolean(value)), ...(source ? [source] : [])])].map((value) => ({ value, label: value }))]} />
+      </Box>
+      <Box sx={{ width: (theme) => theme.spacing(SPACING.xxxl * 8), maxWidth: "100%" }}>
+        <SpanPicker label="Log span" emptyLabel="All spans" nodes={trace.data?.nodes ?? []} value={focusedSpanId} onChange={onFocus} />
+      </Box>
     </FlexRow>
     {logs.error && <QueryError error={logs.error} />}
     {logs.isLoading && <LoadingSpinner />}
@@ -303,6 +314,62 @@ function runSummaryText({ run, summary }: GetRunResult): string {
 
 const RUN_STATUS_TONE: Record<GetRunResult["run"]["status"], StatusPillTone> = { completed: "done", failed: "failed", cancelled: "warning", running: "rendering" };
 
+// Workflow runs carry a job id as their source, so the name comes from a workflow already in the cache. Nothing is fetched per run.
+function runTitle(run: RunRecord, workflowName: string | undefined): string {
+  if (run.app) { return run.app.operation_id; }
+  if (run.kind === "workflow") { return workflowName ?? "Workflow run"; }
+  return run.kind === "chat" ? "Chat turn" : "App run";
+}
+
+const matchesQuery = (query: string, ...fields: string[]): boolean => fields.join(" ").toLowerCase().includes(query.trim().toLowerCase());
+
+function RunPicker({ runs, value, onChange }: RunPickerProps): React.ReactElement {
+  const queryClient = useQueryClient();
+  const titleOf = (run: RunRecord): string => {
+    const workflowId = run.parents.find((parent) => parent.kind === "workflow")?.id;
+    return runTitle(run, workflowId ? queryClient.getQueryData<Workflow>(workflowQueryKey(workflowId))?.name : undefined);
+  };
+  return <Autocomplete<RunRecord, false, false>
+    label="Run" size="small" options={runs} value={runs.find((run) => run.id === value) ?? null}
+    noOptionsText="No matching runs" placeholder="No recent runs"
+    getOptionLabel={(run) => `${titleOf(run)} · ${run.status} · ${relativeTime(run.started_at)}`}
+    isOptionEqualToValue={(option, selected) => option.id === selected.id}
+    filterOptions={(options, { inputValue }) => options.filter((run) => matchesQuery(inputValue, titleOf(run), run.kind, run.status))}
+    onChange={(_, run) => { if (run) { onChange(run.id); } }}
+    // MUI keys options by label, and two runs of one workflow share a label.
+    renderOption={({ key: _key, ...props }, run) => <Box component="li" key={run.id} {...props}>
+      <FlexColumn gap={SPACING.micro} sx={{ minWidth: 0 }}>
+        <Text component="span" truncate title={titleOf(run)}>{titleOf(run)}</Text>
+        <FlexRow gap={SPACING.sm} sx={{ alignItems: "center" }}>
+          <StatusPill tone={RUN_STATUS_TONE[run.status]}>{run.status}</StatusPill>
+          <Caption color="muted" sx={{ fontVariantNumeric: "tabular-nums" }}>{[run.kind, relativeTime(run.started_at), runDuration(run)].filter(Boolean).join(" · ")}</Caption>
+        </FlexRow>
+      </FlexColumn>
+    </Box>}
+  />;
+}
+
+// Spans are listed in tree order and indented by depth, so repeated names such as several llm.stream calls stay apart by position, timing and status.
+function SpanPicker({ label, emptyLabel, nodes, value, onChange }: SpanPickerProps): React.ReactElement {
+  const start = nodes.length ? Math.min(...nodes.map(({ record }) => record.start_time_ms)) : 0;
+  return <Autocomplete<TraceNode, false, false>
+    label={label} size="small" options={nodes} value={nodes.find(({ record }) => record.span_id === value) ?? null}
+    placeholder={value ? `Span ${value}` : emptyLabel} noOptionsText="No matching spans"
+    getOptionLabel={({ record }) => record.name}
+    isOptionEqualToValue={(option, selected) => option.record.span_id === selected.record.span_id}
+    filterOptions={(options, { inputValue }) => options.filter(({ record }) => matchesQuery(inputValue, record.name, record.status.code))}
+    onChange={(_, node) => onChange(node?.record.span_id ?? null)}
+    slotProps={{ popper: { placement: "bottom-start", sx: { minWidth: (theme) => theme.spacing(SPACING.xxxl * 14) } } }}
+    renderOption={({ key: _key, ...props }, { record, depth }) => <Box component="li" key={record.span_id} {...props}>
+      <FlexRow gap={SPACING.md} sx={{ alignItems: "center", width: "100%", minWidth: 0, pl: Math.min(depth, 8) * SPACING.md }}>
+        <Text component="span" size="small" truncate title={record.name} color={record.status.code === "ERROR" ? "error" : "inherit"} sx={{ flex: 1, minWidth: 0 }}>{record.name}</Text>
+        {record.status.code === "ERROR" && <StatusPill tone="failed">error</StatusPill>}
+        <Caption color="muted" sx={{ whiteSpace: "nowrap", fontVariantNumeric: "tabular-nums" }}>+{formatDuration(Math.max(0, record.start_time_ms - start))} · {formatDuration(record.duration_ms)}</Caption>
+      </FlexRow>
+    </Box>}
+  />;
+}
+
 export default function TracePanel({ view = "trace" }: TracePanelProps): React.ReactElement {
   const selectedRunId = useTraceStore((state) => state.selectedRunId);
   const focusedSpanId = useTraceStore((state) => state.focusedSpanId);
@@ -314,12 +381,12 @@ export default function TracePanel({ view = "trace" }: TracePanelProps): React.R
   const summary = useRun(runId);
   const canonicalId = summary.data?.run.id ?? runId;
   useRunLiveUpdates(canonicalId);
-  const options = runs.map((run) => ({ value: run.id, label: `${run.kind} · ${run.app?.operation_id ?? run.source_id.slice(0, 12)} · ${run.status} · ${new Date(run.started_at).toLocaleString()}` }));
-  if (runId && !options.some((option) => option.value === runId)) { options.unshift({ value: runId, label: runId }); }
+  // A run picked from an older page or a link may be missing from the recent list.
+  const pickerRuns = summary.data && !runs.some((run) => run.id === summary.data.run.id) ? [summary.data.run, ...runs] : runs;
   return <FlexColumn gap={SPACING.md} sx={{ flex: 1, minHeight: 0, px: SPACING.xl, py: SPACING.md }}>
     <FlexRow gap={SPACING.md} sx={{ alignItems: "flex-end", flexWrap: "wrap" }}>
       <Box sx={{ flex: "1 1 auto", minWidth: 0, maxWidth: (theme) => theme.spacing(SPACING.xxxl * 16) }}>
-        <SelectField label="Run" size="small" value={runId ?? ""} options={options.length ? options : [{ value: "", label: "No recent runs" }]} onChange={selectRun} />
+        <RunPicker runs={pickerRuns} value={canonicalId} onChange={selectRun} />
       </Box>
       {recent.hasNextPage && <EditorButton size="small" onClick={() => void recent.fetchNextPage()}>Older runs</EditorButton>}
       {canonicalId && <AskRunAgentButton runId={canonicalId} />}
