@@ -58,6 +58,7 @@ import * as timeline from "./nodetool.timeline.js";
 import * as triggers from "./nodetool.triggers.js";
 import * as variable from "./nodetool.variable.js";
 import * as video from "./nodetool.video.js";
+import * as workflowsApp_node from "./nodetool.workflows.app_node.js";
 import * as workflowsBase_node from "./nodetool.workflows.base_node.js";
 import * as workflowsSubgraph from "./nodetool.workflows.subgraph.js";
 import * as workflowsWorkflow_node from "./nodetool.workflows.workflow_node.js";
@@ -136,6 +137,7 @@ export {
   vector,
   video,
   whisper_cpp,
+  workflowsApp_node,
   workflowsBase_node,
   workflowsSubgraph,
   workflowsWorkflow_node,

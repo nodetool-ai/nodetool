@@ -59,6 +59,7 @@ export * as timeline from "./nodetool.timeline.js";
 export * as triggers from "./nodetool.triggers.js";
 export * as variable from "./nodetool.variable.js";
 export * as video from "./nodetool.video.js";
+export * as workflowsApp_node from "./nodetool.workflows.app_node.js";
 export * as workflowsBase_node from "./nodetool.workflows.base_node.js";
 export * as workflowsSubgraph from "./nodetool.workflows.subgraph.js";
 export * as workflowsWorkflow_node from "./nodetool.workflows.workflow_node.js";

@@ -94,5 +94,9 @@ export function reactFlowNodeToGraphNode(node: Node<NodeData>): GraphNode {
   if (Object.keys(dynamic_inputs).length > 0) {
     graphNode.dynamic_inputs = dynamic_inputs;
   }
+  const dynamicCorrelation = node.data?.dynamic_output_correlation;
+  if (dynamicCorrelation && Object.keys(dynamicCorrelation).length > 0) {
+    graphNode.dynamic_output_correlation = dynamicCorrelation;
+  }
   return graphNode;
 }
