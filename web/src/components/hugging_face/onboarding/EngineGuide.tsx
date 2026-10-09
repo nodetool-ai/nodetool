@@ -30,8 +30,8 @@ import {
 
 const EngineCard: React.FC<{ engine: OnboardingEngine }> = ({ engine }) => {
   const theme = useTheme();
-  const statusChip = engine.bundled ? (
-    <Chip label="Bundled" compact color="success" variant="outlined" />
+  const statusChip = engine.separateInstallUrl ? (
+    <Chip label="Separate app" compact variant="outlined" />
   ) : engine.runtimeId ? (
     <Chip label="Runtime" compact variant="outlined" />
   ) : null;
@@ -71,12 +71,22 @@ const EngineCard: React.FC<{ engine: OnboardingEngine }> = ({ engine }) => {
             <Chip key={fmt} label={fmt} compact variant="outlined" />
           ))}
         </FlexRow>
+        {engine.separateInstallUrl && (
+          <TextLink
+            href={engine.separateInstallUrl}
+            external
+            sx={{ mt: SPACING.micro, fontSize: "var(--fontSizeSmall)" }}
+          >
+            Download {engine.name}{" "}
+            <OpenInNewIcon fontSize="inherit" sx={{ ml: SPACING.micro }} />
+          </TextLink>
+        )}
         <TextLink
           href={engine.docsUrl}
           external
           sx={{ mt: SPACING.micro, fontSize: "var(--fontSizeSmall)" }}
         >
-          Learn more <OpenInNewIcon sx={{ fontSize: 12, ml: SPACING.micro }} />
+          Learn more <OpenInNewIcon fontSize="inherit" sx={{ ml: SPACING.micro }} />
         </TextLink>
       </FlexColumn>
     </Card>
@@ -212,7 +222,7 @@ const EngineGuide: React.FC = () => {
             variant="text"
             density="compact"
             size="small"
-            endIcon={<OpenInNewIcon sx={{ fontSize: 13 }} />}
+            endIcon={<OpenInNewIcon fontSize="inherit" />}
             onClick={openPackageManager}
           >
             Package Manager

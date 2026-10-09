@@ -30,6 +30,7 @@ import {
   Asset,
   Project
 } from "@nodetool-ai/models";
+import { resolveWorkerSettingsEnv } from "./worker-settings-env.js";
 import {
   loadPythonPackageMetadata,
   type NodeMetadata,
@@ -250,7 +251,8 @@ export async function getWorkflowRuntimeEnvironment(
       const pythonBridge = createPythonBridge({
         workerArgs: process.env["NODETOOL_WORKER_NAMESPACES"]
           ? ["--namespaces", process.env["NODETOOL_WORKER_NAMESPACES"]]
-          : []
+          : [],
+        workerEnv: () => resolveWorkerSettingsEnv()
       });
 
       const logPythonBridgeDiagnostics = (context: string): void => {

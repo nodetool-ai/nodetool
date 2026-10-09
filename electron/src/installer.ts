@@ -22,7 +22,7 @@ import { fileExists } from "./utils";
 import { spawn, spawnSync } from "child_process";
 import { BrowserWindow } from "electron";
 // Lock file no longer used — packages are specified directly via runtime configuration
-import { InstallToLocationData, IpcChannels, ModelBackend } from "./types.d";
+import { InstallToLocationData, IpcChannels } from "./types.d";
 import { createIpcMainHandler } from "./ipc";
 import { isString } from "./typePredicates";
 
@@ -32,26 +32,16 @@ const MICROMAMBA_BIN_DIR_NAME = "bin";
 const MICROMAMBA_EXECUTABLE_NAME =
   process.platform === "win32" ? "micromamba.exe" : "micromamba";
 const MICROMAMBA_BUNDLED_DIR_NAME = "micromamba";
-const MODEL_BACKEND_SETTING_KEY = "MODEL_BACKEND";
 const MICROMAMBA_LOCK_STALE_THRESHOLD_MS = 10 * 60 * 1000; // 10 minutes
 const MICROMAMBA_LOCK_ERROR_PATTERN = /could not set lock|cannot lock/i;
 const DEFAULT_MAMBA_HOME_DIR = ".mamba";
 
 interface InstallationPreferences {
   location: string;
-  modelBackend: ModelBackend;
 }
 
 interface InstallationSelection extends InstallationPreferences {
   installLlamaCpp?: boolean;
-}
-
-function normalizeModelBackend(backend: unknown): ModelBackend {
-  if (backend === "ollama" || backend === "llama_cpp" || backend === "none") {
-    return backend;
-  }
-  // Default to ollama if not specified, or fallback to safe default
-  return "ollama";
 }
 
 function normalizeInstallLocation(location: unknown): string {
@@ -63,18 +53,15 @@ function normalizeInstallLocation(location: unknown): string {
 
 function persistInstallationPreferences(
   location: unknown,
-  modelBackend: unknown,
 ): InstallationPreferences {
   const normalizedLocation = normalizeInstallLocation(location);
-  const normalizedBackend = normalizeModelBackend(modelBackend);
 
   try {
     updateSettings({
       CONDA_ENV: normalizedLocation,
-      [MODEL_BACKEND_SETTING_KEY]: normalizedBackend,
     });
     logMessage(
-      `Persisted installer preferences: location=${normalizedLocation}, backend=${normalizedBackend}`
+      `Persisted installer preferences: location=${normalizedLocation}`
     );
   } catch (error) {
     logMessage(
@@ -87,7 +74,6 @@ function persistInstallationPreferences(
 
   return {
     location: normalizedLocation,
-    modelBackend: normalizedBackend,
   };
 }
 
@@ -107,14 +93,10 @@ async function promptForInstallLocation(
         _event,
         {
           location,
-          modelBackend,
           installLlamaCpp,
         }: InstallToLocationData
       ) => {
-        const preferences = persistInstallationPreferences(
-          location,
-          modelBackend,
-        );
+        const preferences = persistInstallationPreferences(location);
         resolve({
           ...preferences,
           installLlamaCpp,

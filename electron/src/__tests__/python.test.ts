@@ -49,7 +49,7 @@ jest.spyOn(utils, "checkPermissions");
 jest.spyOn(utils, "fileExists").mockResolvedValue(true);
 jest.spyOn(events, "emitBootMessage").mockImplementation(() => {});
 jest.spyOn(events, "emitServerLog").mockImplementation(() => {});
-jest.spyOn(torchPlatformCache, "getTorchIndexUrl").mockReturnValue(null);
+jest.spyOn(torchPlatformCache, "getTorchBackend").mockReturnValue(null);
 
 jest.mock("@nodetool-ai/protocol/bridge-protocol", () => ({
   BRIDGE_PROTOCOL_VERSION: 1,
@@ -158,7 +158,6 @@ describe("python environment helpers", () => {
       expect.arrayContaining([
         "pip",
         "install",
-        "--prerelease=allow",
         "--system",
         "nodetool-core>=0.7.0",
         "nodetool-huggingface",
@@ -169,6 +168,7 @@ describe("python environment helpers", () => {
     );
 
     const argv = spawn.mock.calls[0][1] as string[];
+    expect(argv).not.toContain("--prerelease=allow");
     expect(argv).not.toEqual(
       expect.arrayContaining([expect.stringMatching(/^nodetool-huggingface==/)])
     );

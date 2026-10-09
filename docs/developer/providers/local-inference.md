@@ -17,7 +17,7 @@ and `whisper_cpp_server` calls a user-run whisper-server. See
 ## TL;DR
 
 1. Start the local server and load a model.
-2. Set the server's base URL (env var or Settings → API Keys).
+2. Set the server's base URL (env var or Settings → Integrations → Local Model Servers).
 3. Models appear in NodeTool automatically — no code change needed.
 
 The only time you touch code is when you are changing provider behavior (URL resolution, message normalization, tool-call handling) — see [Provider-level changes](#provider-level-changes-dev-path).
@@ -111,7 +111,7 @@ LM Studio's OpenAI-compatible server starts when you enable it in LM Studio → 
 To use a different port:
 
 ```bash
-# In your shell environment, or via Settings → API Keys
+# In your shell environment, or via Settings → Integrations → Local Model Servers
 export LMSTUDIO_API_URL=http://127.0.0.1:8080
 ```
 
