@@ -24,7 +24,7 @@ const budget = (maximum: number) => z.number().int().min(1).max(maximum);
 export const gameFrameBudgets = z.strictObject({
   drawCalls: budget(100_000).optional().describe("Draw calls per rendered frame."),
   triangles: budget(100_000_000).optional().describe("Triangles per rendered frame."),
-  particles: budget(1_000_000).optional().describe("Live particles in the scene."),
+  particles: budget(1_000_000).optional().describe("Live particles in the scene. No player reports a particle count yet, so this budget does not warn until particle rendering lands."),
   voices: budget(1024).optional().describe("Playing audio voices.")
 }).describe("Per-frame budgets. Players warn in the console when a frame exceeds one. Omitted budgets use the player defaults.");
 

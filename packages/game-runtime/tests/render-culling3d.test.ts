@@ -51,6 +51,26 @@ describe("3D render culling is presentation only", () => {
     } finally { session.dispose(); }
   });
 
+  it("inherits the nearest ancestor's cull distance so a culled parent hides its child meshes", async () => {
+    const base = cratesGame(true);
+    const game = gameDocument3D.parse({ ...base, scenes: [{ ...base.scenes[0], entities: [...base.scenes[0].entities,
+      { id: "statue", transform3d: { position: { x: 4, y: 0, z: 4 } }, renderCulling: { layer: "props" } },
+      { id: "statue-mesh", parentId: "statue", transform3d: {}, primitive: { kind: "box", dimensions: { x: 1, y: 2, z: 1 } } },
+      { id: "statue-plinth", parentId: "statue-mesh", transform3d: {}, primitive: { kind: "box", dimensions: { x: 2, y: 0.2, z: 2 } } },
+      { id: "statue-flag", parentId: "statue-mesh", transform3d: {}, renderCulling: { maxDistance: 2 },
+        primitive: { kind: "plane", dimensions: { x: 1, y: 1, z: 1 } } }
+    ] }] });
+    expect(validateGame3D(game).errors).toEqual([]);
+    const session = await createGameSession3D(game, 1);
+    try {
+      const distances = Object.fromEntries(session.frame().entities.map((entity) => [entity.entityId, entity.cullDistance]));
+      expect(distances.statue).toBe(6);
+      expect(distances["statue-mesh"]).toBe(6);
+      expect(distances["statue-plinth"]).toBe(6);
+      expect(distances["statue-flag"]).toBe(2);
+    } finally { session.dispose(); }
+  });
+
   it("produces identical snapshots, events and transforms with culling on and off for the same seed", async () => {
     const culled = await createGameSession3D(cratesGame(true), 1);
     const plain = await createGameSession3D(cratesGame(false), 1);

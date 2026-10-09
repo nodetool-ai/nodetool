@@ -1,6 +1,7 @@
 import {
   type GameCameraState3D,
   type GameDocument3D,
+  type GameEntity3D,
   type GameHudLabel,
   type GameRenderFrame3D,
   type GameScene3D,
@@ -28,6 +29,24 @@ export function readStepResult3D(context: GameSystemContext3D): NonNullable<Game
   }
   return context.result;
 }
+/** Resolves an entity's cull distance from the nearest entity in its parent chain that sets one, so a culled parent hides its children. */
+function cullDistanceResolver3D(document: GameDocument3D, states: readonly EntityState3D[]): (definition: GameEntity3D) => number | undefined {
+  const byId = new Map(states.map((state) => [state.definition.id, state.definition]));
+  return (definition) => {
+    const visited = new Set<string>();
+    for (let current: GameEntity3D | undefined = definition; current && !visited.has(current.id);
+      current = current.parentId === undefined ? undefined : byId.get(current.parentId)) {
+      visited.add(current.id);
+      const culling = current.renderCulling;
+      const distance = culling?.maxDistance ?? (culling?.layer === undefined ? undefined : document.performance?.cullLayers?.[culling.layer]?.maxDistance);
+      if (distance !== undefined) {
+        return distance;
+      }
+    }
+    return undefined;
+  };
+}
+
 export function frame3D(
   document: GameDocument3D,
   scene: GameScene3D,
@@ -40,6 +59,7 @@ export function frame3D(
   hud: ReadonlyMap<string, GameHudLabel>
 ): GameRenderFrame3D {
   const cameraDefinition = states.find((state) => state.definition.id === camera.entityId)?.definition.camera3d;
+  const cullDistanceOf = states.some((state) => state.definition.renderCulling) ? cullDistanceResolver3D(document, states) : undefined;
   if (!cameraDefinition) {
     throw new Error(`Missing active camera ${camera.entityId}`);
   }
@@ -97,12 +117,9 @@ export function frame3D(
         if (state.definition.particles) {
           entity.particles = state.definition.particles;
         }
-        const culling = state.definition.renderCulling;
-        if (culling) {
-          const cullDistance = culling.maxDistance ?? (culling.layer === undefined ? undefined : document.performance?.cullLayers?.[culling.layer]?.maxDistance);
-          if (cullDistance !== undefined) {
-            entity.cullDistance = cullDistance;
-          }
+        const cullDistance = cullDistanceOf?.(state.definition);
+        if (cullDistance !== undefined) {
+          entity.cullDistance = cullDistance;
         }
         return entity;
       }),
