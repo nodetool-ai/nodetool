@@ -45,52 +45,7 @@ import {
   SketchProvider,
   type SketchInstance
 } from "../stores/sketch/SketchInstance";
-
-interface DocOptions {
-  width?: number;
-  height?: number;
-  /** Raster layers to create (a group and an FX layer are added on top). */
-  layers?: number;
-}
-
-interface Stats {
-  count: number;
-  totalMs: number;
-  meanMs: number;
-  p50Ms: number;
-  p95Ms: number;
-  maxMs: number;
-}
-
-interface CaptureResult {
-  frames: Stats & { over20ms: number; over33ms: number };
-  composite: Stats;
-  react: {
-    commits: number;
-    renderMs: number;
-    topComponents: Array<{ name: string; renders: number; selfMs: number }>;
-  };
-  longTasks: { count: number; totalMs: number };
-}
-
-declare global {
-  interface Window {
-    __sketchPerf?: SketchPerfApi;
-    __sketchPerfFiberRenders?: Map<string, number>;
-    __sketchPerfFiberSelfMs?: Map<string, number>;
-  }
-}
-
-interface SketchPerfApi {
-  mount: (opts?: DocOptions) => Promise<{ layers: number }>;
-  setTool: (tool: string) => void;
-  getState: () => { zoom: number; pan: { x: number; y: number } };
-  startCapture: () => void;
-  stopCapture: () => Promise<CaptureResult>;
-  compositorBench: (opts?: DocOptions & { iterations?: number }) => Promise<
-    Record<string, Stats>
-  >;
-}
+import type { DocOptions, SketchPerfApi, Stats } from "./sketchPerfApi";
 
 // ─── Measurement plumbing ────────────────────────────────────────────────────
 
